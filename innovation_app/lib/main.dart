@@ -12,7 +12,7 @@ class InnovationApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Innovation',
+      title: 'INNOVATION.IA',
       initialRoute: AppRoutes.login,
       routes: AppRoutes.routes,
     );

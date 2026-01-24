@@ -1,25 +1,22 @@
+import '../models/user.dart';
+
 class AuthService {
-  Future<bool> login(String email, String password) async {
-    await Future.delayed(const Duration(seconds: 1));
-
-    // MOCK
-    if (email.isNotEmpty && password.isNotEmpty) {
-      return true;
-    }
-    return false;
-  }
-
-  Future<bool> register({
-    required String name,
+  // Placeholder (depois conecta no backend)
+  Future<AppUser> login({
     required String email,
     required String password,
   }) async {
-    await Future.delayed(const Duration(seconds: 1));
-    return true;
+    await Future.delayed(const Duration(milliseconds: 600));
+    return AppUser(id: '1', name: 'Usuário', email: email);
   }
 
-  Future<bool> acceptTerms() async {
-    await Future.delayed(const Duration(milliseconds: 500));
-    return true;
+  Future<AppUser> register({
+    required String name,
+    required String email,
+    required String password,
+    required bool multiEmpresa,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 800));
+    return AppUser(id: '1', name: name, email: email, multiEmpresa: multiEmpresa);
   }
 }

@@ -1,19 +1,27 @@
-class User {
+class AppUser {
+  final String id;
   final String name;
   final String email;
-  final String company;
+  final bool multiEmpresa;
 
-  User({
+  const AppUser({
+    required this.id,
     required this.name,
     required this.email,
-    required this.company,
+    this.multiEmpresa = false,
   });
 
-  factory User.fromJson(Map<String, dynamic> json) {
-    return User(
-      name: json['name'],
-      email: json['email'],
-      company: json['company'],
-    );
-  }
+  factory AppUser.fromJson(Map<String, dynamic> json) => AppUser(
+        id: (json['id'] ?? '').toString(),
+        name: (json['name'] ?? '').toString(),
+        email: (json['email'] ?? '').toString(),
+        multiEmpresa: (json['multiEmpresa'] ?? false) == true,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'email': email,
+        'multiEmpresa': multiEmpresa,
+      };
 }

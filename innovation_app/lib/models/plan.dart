@@ -1,19 +1,13 @@
 class Plan {
-  final int id;
-  final String name;
-  final double price;
+  final String id;
+  final String title;
+  final int price; // em reais (ex: 99)
+  final List<String> features;
 
-  Plan({
+  const Plan({
     required this.id,
-    required this.name,
+    required this.title,
     required this.price,
+    required this.features,
   });
-
-  factory Plan.fromJson(Map<String, dynamic> json) {
-    return Plan(
-      id: json['id'],
-      name: json['name'],
-      price: json['price'].toDouble(),
-    );
-  }
 }

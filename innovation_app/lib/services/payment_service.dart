@@ -1,33 +1,33 @@
-class PaymentService {
-  Future<List<Map<String, dynamic>>> getPlans() async {
-    await Future.delayed(const Duration(seconds: 1));
+import '../models/plan.dart';
 
-    return [
-      {
-        'id': 1,
-        'name': 'Free',
-        'price': 0,
-      },
-      {
-        'id': 2,
-        'name': 'Pro',
-        'price': 29.90,
-      },
-      {
-        'id': 3,
-        'name': 'Enterprise',
-        'price': 79.90,
-      },
+class PaymentService {
+  List<Plan> getPlans() {
+    return const [
+      Plan(
+        id: 'pessoal',
+        title: 'Pessoal',
+        price: 99,
+        features: ['1 Usuário', 'Plano Pessoal', 'Acesso básico'],
+      ),
+      Plan(
+        id: 'equipe',
+        title: 'Equipe',
+        price: 299,
+        features: ['Até 5 Usuários', 'Plano Profissional', 'Acesso avançado'],
+      ),
+      Plan(
+        id: 'empresa',
+        title: 'Empresa',
+        price: 499,
+        features: ['Usuários ilimitados', 'Plano Empresarial', 'Acesso completo'],
+      ),
     ];
   }
 
-  Future<bool> subscribe({
-    required int planId,
-    required String paymentMethod, // pix, credit, boleto
+  Future<void> confirmPayment({
+    required String planId,
+    required String method, // "pix" | "boleto" | "card"
   }) async {
-    await Future.delayed(const Duration(seconds: 2));
-
-    // Aqui entra Mercado Pago depois
-    return true;
+    await Future.delayed(const Duration(milliseconds: 900));
   }
 }
