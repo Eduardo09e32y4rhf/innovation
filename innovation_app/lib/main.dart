@@ -12,11 +12,6 @@ class InnovationApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Innovation',
-      theme: ThemeData(
-        fontFamily: 'Roboto',
-        scaffoldBackgroundColor: Colors.transparent,
-      ),
       initialRoute: AppRoutes.login,
       routes: AppRoutes.routes,
     );
