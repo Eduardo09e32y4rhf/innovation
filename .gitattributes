@@ -1,0 +1,7 @@
+﻿# Ignorar linguagens de sistema no gráfico
+venv/* linguist-vendored
+.venv/* linguist-vendored
+build/* linguist-vendored
+android/* linguist-vendored
+ios/* linguist-vendored
+*.cmake linguist-documentation
