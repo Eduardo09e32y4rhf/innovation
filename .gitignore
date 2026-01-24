@@ -1,30 +1,44 @@
-# Python
+# ===== Python =====
 .venv/
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
 .env
+*.db
+*.sqlite
+*.sqlite3
 
-# Flutter
-build/
-.dart_tool/
-.packages
-.pub-cache/
-.pub/
-.flutter-plugins
-.flutter-plugins-dependencies
+# ===== Flutter/Dart =====
+**/.dart_tool/
+**/.packages
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+**/build/
+**/pubspec.lock
 
-# Android / iOS
-android/.gradle/
-android/local.properties
-ios/Pods/
-ios/.symlinks/
-ios/Flutter/ephemeral/
+# ===== Android =====
+**/.gradle/
+**/android/.gradle/
+**/android/local.properties
+**/android/app/debug/
+**/android/app/profile/
+**/android/app/release/
 
-# IDE
-.vscode/
-.idea/
+# ===== iOS/macOS =====
+**/ios/Pods/
+**/ios/.symlinks/
+**/ios/Flutter/ephemeral/
+**/ios/Runner.xcworkspace/
+**/macos/Pods/
+**/macos/Flutter/ephemeral/
 
-# Logs
-*.log
+# ===== Windows/Linux =====
+**/windows/flutter/ephemeral/
+**/linux/flutter/ephemeral/
+
+# ===== IDE =====
+**/.idea/
+**/.vscode/
+.DS_Store
+Thumbs.db
