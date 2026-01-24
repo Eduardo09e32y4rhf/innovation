@@ -1,3 +1,40 @@
+import 'package:flutter/material.dart';
+import '../routes/app_routes.dart';
+import '../services/auth_service.dart';
+
+class LoginScreen extends StatelessWidget {
+  const LoginScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Container(
+        decoration: appGradient(),
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Innovation',
+                style: TextStyle(fontSize: 32, color: Colors.white),
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pushNamed(context, AppRoutes.register);
+                },
+                child: const Text('Criar conta'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+
+
 BoxDecoration appGradient() {
   return const BoxDecoration(
     gradient: LinearGradient(
