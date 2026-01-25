@@ -3,6 +3,15 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 
+from pydantic_settings import BaseSettings
+
+class Settings(BaseSettings):
+    SECRET_KEY: str = "supersecret"
+    MP_ACCESS_TOKEN: str = "TEST-MP-TOKEN"
+
+settings = Settings()
+
+
 
 class Settings(BaseSettings):
     DATABASE_URL: str

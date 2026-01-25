@@ -1,26 +1,21 @@
-from __future__ import annotations
+from fastapi import Depends, HTTPException, status
+from sqlalchemy.orm import Session
+from app.db.session import get_db
+from app.models.subscription import Subscription
 
-from datetime import datetime, timedelta
+def require_active_subscription(
+    user_id: int,
+    db: Session = Depends(get_db)
+):
+    sub = db.query(Subscription).filter(
+        Subscription.user_id == user_id,
+        Subscription.status == "active"
+    ).first()
 
-from jose import jwt
-from passlib.context import CryptContext
+    if not sub:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Assinatura inativa"
+        )
 
-from app.core.config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
-
-# ✅ Requisitos do projeto já incluem passlib[bcrypt] + bcrypt
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-
-def get_password_hash(password: str) -> str:
-    return pwd_context.hash(password)
-
-
-def verify_password(plain: str, hashed: str) -> bool:
-    return pwd_context.verify(plain, hashed)
-
-
-def create_access_token(data: dict) -> str:
-    to_encode = data.copy()
-    expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    to_encode.update({"exp": expire})
-    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return sub
