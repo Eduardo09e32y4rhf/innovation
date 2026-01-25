@@ -1,26 +1,22 @@
 from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
-from jose import jwt, JWTError
 from sqlalchemy.orm import Session
-
-from app.core.config import SECRET_KEY, ALGORITHM
-from app.db.dependencies import get_db
+from app.db.session import get_db
+from app.models.subscription import Subscription
 from app.models.user import User
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+def require_active_subscription(
+    current_user: User,
+    db: Session = Depends(get_db)
+):
+    sub = db.query(Subscription).filter(
+        Subscription.user_id == current_user.id,
+        Subscription.status == "active"
+    ).first()
 
-def get_current_user(
-    token: str = Depends(oauth2_scheme),
-    db: Session = Depends(get_db),
-) -> User:
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        user_id = int(payload.get("sub"))
-    except (JWTError, ValueError):
-        raise HTTPException(status_code=401, detail="Token inválido")
+    if not sub:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Assinatura inativa ou inexistente"
+        )
 
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
-        raise HTTPException(status_code=401, detail="Usuário não encontrado")
-
-    return user
+    return sub

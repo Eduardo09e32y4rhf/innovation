@@ -8,3 +8,4 @@ class Plan(Base):
     name = Column(String, unique=True)
     price = Column(Integer)
     features = Column(JSON)
+    # ex: ["pdf", "history", "ia"]
