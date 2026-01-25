@@ -9,20 +9,20 @@ from app.core.permissions import require_feature
 from app.models.document import Document
 from app.models.user import User
 
+
+
 router = APIRouter(
     prefix="/documents",
     tags=["Documents"]
 )
 
-
 @router.get("/history")
 def list_documents(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-    _sub = Depends(require_active_subscription),
-    _feature = Depends(require_feature("history"))
+    current_user = Depends(get_current_user),
+    _ = Depends(require_active_subscription),
 ):
-    documents = (
+    docs = (
         db.query(Document)
         .filter(Document.user_id == current_user.id)
         .order_by(Document.created_at.desc())
@@ -31,37 +31,10 @@ def list_documents(
 
     return [
         {
-            "id": doc.id,
-            "name": doc.name,
-            "type": doc.doc_type,
-            "created_at": doc.created_at
+            "id": d.id,
+            "name": d.name,
+            "type": d.doc_type,
+            "created_at": d.created_at,
         }
-        for doc in documents
+        for d in docs
     ]
-
-
-@router.get("/{doc_id}/download")
-def download_document(
-    doc_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-    _sub = Depends(require_active_subscription),
-    _feature = Depends(require_feature("history"))
-):
-    document = (
-        db.query(Document)
-        .filter(
-            Document.id == doc_id,
-            Document.user_id == current_user.id
-        )
-        .first()
-    )
-
-    if not document:
-        raise HTTPException(status_code=404, detail="Documento não encontrado")
-
-    return FileResponse(
-        path=document.file_path,
-        filename=document.name,
-        media_type="application/pdf"
-    )

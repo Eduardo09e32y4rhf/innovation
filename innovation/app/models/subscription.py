@@ -3,18 +3,21 @@ from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.db.base import Base
 
+
 class Subscription(Base):
     __tablename__ = "subscriptions"
 
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True, index=True)
+
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     plan_id = Column(Integer, ForeignKey("plans.id"), nullable=False)
 
+    mp_preapproval_id = Column(String, unique=True, index=True)
     status = Column(String, default="pending")  
-    # pending | active | past_due | canceled
+    # pending | active | paused | canceled | past_due
 
-    mp_subscription_id = Column(String, unique=True, index=True)
-    current_period_end = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     user = relationship("User")
     plan = relationship("Plan")

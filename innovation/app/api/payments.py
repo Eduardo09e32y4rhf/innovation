@@ -1,64 +1,57 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session
 import requests
-from datetime import datetime
+import os
 
 from app.db.session import get_db
 from app.models.subscription import Subscription
-from app.models.plan import Plan
-from app.core.config import settings
-from app.core.security import get_current_user
-from app.models.user import User
 
 router = APIRouter(prefix="/payments", tags=["payments"])
 
-MP_URL = "https://api.mercadopago.com/preapproval"
+MP_ACCESS_TOKEN = os.getenv("MP_ACCESS_TOKEN")
+MP_BASE_URL = "https://api.mercadopago.com/preapproval"
 
-@router.post("/subscribe")
-def subscribe(
-    plan_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    plan = db.query(Plan).filter(Plan.id == plan_id).first()
-    if not plan:
-        raise HTTPException(404, "Plano não encontrado")
 
-    payload = {
-        "reason": f"Plano {plan.name}",
-        "external_reference": str(current_user.id),
-        "payer_email": current_user.email,
-        "auto_recurring": {
-            "frequency": 1,
-            "frequency_type": "months",
-            "transaction_amount": plan.price,
-            "currency_id": "BRL"
-        },
-        "back_url": "https://seusite.com/retorno"
+@router.post("/webhook")
+async def mp_webhook(request: Request, db: Session = Depends(get_db)):
+    try:
+        payload = await request.json()
+    except Exception:
+        return {"ignored": "empty body"}
+
+    event_type = payload.get("type")
+    data = payload.get("data", {})
+    preapproval_id = data.get("id")
+
+    if event_type != "preapproval" or not preapproval_id:
+        return {"ignored": True}
+
+    headers = {
+        "Authorization": f"Bearer {MP_ACCESS_TOKEN}",
     }
 
-    resp = requests.post(
-        MP_URL,
-        json=payload,
-        headers={"Authorization": f"Bearer {settings.MP_ACCESS_TOKEN}"}
+    mp_response = requests.get(
+        f"{MP_BASE_URL}/{preapproval_id}",
+        headers=headers,
     )
 
-    if resp.status_code not in (200, 201):
-        raise HTTPException(400, "Erro ao criar assinatura MP")
+    mp_data = mp_response.json()
 
-    data = resp.json()
-
-    sub = Subscription(
-        user_id=current_user.id,
-        plan_id=plan.id,
-        status="pending",
-        mp_subscription_id=data["id"]
+    sub = (
+        db.query(Subscription)
+        .filter(Subscription.mp_preapproval_id == preapproval_id)
+        .first()
     )
 
-    db.add(sub)
+    if not sub:
+        return {"error": "subscription not found"}
+
+    sub.status = mp_data.get("status", sub.status)
     db.commit()
 
+    print(f"[WEBHOOK MP] sub_id={sub.id} status={sub.status}")
+
     return {
-        "checkout_url": data["init_point"],
-        "subscription_id": data["id"]
+        "subscription_id": sub.id,
+        "new_status": sub.status,
     }
