@@ -1,18 +1,27 @@
 ﻿# Python
 __pycache__/
-*.pyc
-.venv/
+*.py[cod]
+*.pyo
+*.pyd
 
-# Flutter
-build/
-.dart_tool/
+# Django
+db.sqlite3
+*.log
+staticfiles/
+
+# Virtualenv / venv
+.venv/
+venv/
+env/
+ENV/
+Scripts/
+Lib/
+Include/
+pyvenv.cfg
 
 # IDE
 .vscode/
 .idea/
-
-# Backups
-backups/
 
 # OS
 .DS_Store

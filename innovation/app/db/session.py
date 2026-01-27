@@ -1,14 +1,23 @@
+from __future__ import annotations
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-DATABASE_URL = "sqlite:///./innovation.db"
+from app.core.config import DATABASE_URL
 
-engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
-SessionLocal = sessionmaker(bind=engine)
+_connect_args = {}
+if str(DATABASE_URL).startswith("sqlite"):
+    _connect_args = {"check_same_thread": False}
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+engine = create_engine(
+    DATABASE_URL,
+    echo=False,
+    future=True,
+    connect_args=_connect_args,
+)
+
+SessionLocal = sessionmaker(
+    bind=engine,
+    autoflush=False,
+    autocommit=False,
+)
