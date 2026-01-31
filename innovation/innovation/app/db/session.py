@@ -1,23 +1,27 @@
-from __future__ import annotations
+import os
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from app.core.config import DATABASE_URL
+from app.core.config import settings
 
-_connect_args = {}
-if str(DATABASE_URL).startswith("sqlite"):
-    _connect_args = {"check_same_thread": False}
 
-engine = create_engine(
-    DATABASE_URL,
-    echo=False,
-    future=True,
-    connect_args=_connect_args,
-)
+def _build_engine() -> tuple[str, dict]:
+    database_url = os.getenv("DATABASE_URL", settings.DATABASE_URL)
+    connect_args = {}
+    if database_url.startswith("sqlite"):
+        connect_args = {"check_same_thread": False}
+    return database_url, connect_args
 
-SessionLocal = sessionmaker(
-    bind=engine,
-    autoflush=False,
-    autocommit=False,
-)
+
+DATABASE_URL, CONNECT_ARGS = _build_engine()
+
+engine = create_engine(DATABASE_URL, connect_args=CONNECT_ARGS)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()

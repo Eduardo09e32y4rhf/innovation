@@ -3,6 +3,16 @@ from __future__ import annotations
 from datetime import datetime
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
+from pydantic import BaseModel, EmailStr
+
+class RegisterRequest(BaseModel):
+    email: EmailStr
+    password: str
+
+class LoginRequest(BaseModel):
+    email: EmailStr
+    password: str
+
 
 class RegisterRequest(BaseModel):
     # Mantém compatibilidade (antigo só tinha email/password/company_name)

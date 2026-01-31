@@ -1,24 +1,3 @@
-<<<<<<< HEAD
-﻿# Python
-__pycache__/
-*.pyc
-.venv/
-
-# Flutter
-build/
-.dart_tool/
-
-# IDE
-.vscode/
-.idea/
-
-# Backups
-backups/
-
-# OS
-.DS_Store
-Thumbs.db
-=======
 __pycache__/
 *.pyc
 .env
@@ -26,4 +5,3 @@ __pycache__/
 *.db
 build/
 .dart_tool/
->>>>>>> 8797e42 (Arquitetura Innovation Erah: Versão Final Organizada)

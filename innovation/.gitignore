@@ -1,39 +1,7 @@
-# Python
+﻿# Python
 __pycache__/
-*.py[cod]
-*.pyo
-*.pyd
-
-# Django
-db.sqlite3
-*.log
-staticfiles/
-
-# Virtualenv / venv
+*.pyc
 .venv/
-venv/
-env/
-ENV/
-Scripts/
-Lib/
-Include/
-pyvenv.cfg
-
-# Env/Sensitive
-.env
-.env.*
-*.db
-*.sqlite
-*.sqlite3
-storage/
-
-# Keys
-*.pem
-*.key
-*.p12
-*.pfx
-*.jks
-*.keystore
 
 # Flutter
 build/
@@ -42,6 +10,9 @@ build/
 # IDE
 .vscode/
 .idea/
+
+# Backups
+backups/
 
 # OS
 .DS_Store
