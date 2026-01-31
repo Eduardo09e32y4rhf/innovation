@@ -8,6 +8,7 @@ class Document(Base):
 
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    company_id = Column(Integer, ForeignKey("companies.id"), nullable=True)
 
     name = Column(String, nullable=False)
     file_path = Column(String, nullable=False)
@@ -16,3 +17,4 @@ class Document(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     user = relationship("User")
+    company = relationship("Company")

@@ -18,6 +18,7 @@ def register_user(
     password: str,
     *,
     name: str | None = None,
+    phone: str | None = None,
     company_name: str | None = None,
     razao_social: str | None = None,
     cnpj: str | None = None,
@@ -32,6 +33,7 @@ def register_user(
         email=email,
         password_hash=get_password_hash(password),
         role="owner",
+        phone=phone,
     )
     db.add(user)
     db.flush()  # garante user.id
@@ -69,9 +71,11 @@ def register_user(
     return user
 
 
-def authenticate_user(db: Session, email: str, password: str):
+def authenticate_user(db: Session, email: str, password: str | None, *, skip_password: bool = False):
     user = db.query(User).filter(User.email == email).first()
-    if not user or not verify_password(password, user.password_hash):
+    if not user:
+        return None
+    if not skip_password and (password is None or not verify_password(password, user.password_hash)):
         return None
 
     token = create_access_token({"sub": str(user.id)})

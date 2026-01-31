@@ -25,6 +25,14 @@ from app.db.base import Base  # noqa: E402
 # Importa models para registrar metadata
 from app.models import user as _user  # noqa: F401,E402
 from app.models import company as _company  # noqa: F401,E402
+from app.models import plan as _plan  # noqa: F401,E402
+from app.models import subscription as _subscription  # noqa: F401,E402
+from app.models import job as _job  # noqa: F401,E402
+from app.models import application as _application  # noqa: F401,E402
+from app.models import application_status_history as _application_status_history  # noqa: F401,E402
+from app.models import candidate as _candidate  # noqa: F401,E402
+from app.models import document as _document  # noqa: F401,E402
+from app.models import audit_log as _audit_log  # noqa: F401,E402
 
 target_metadata = Base.metadata
 

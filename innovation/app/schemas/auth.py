@@ -9,6 +9,7 @@ class RegisterRequest(BaseModel):
     name: str | None = Field(default=None, min_length=2, max_length=120)
     email: EmailStr
     password: str = Field(min_length=6)
+    phone: str | None = Field(default=None, max_length=30)
 
     # Nome simples (compat)
     company_name: str | None = Field(default=None, max_length=200)
@@ -28,6 +29,8 @@ class LoginRequest(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
+    two_factor_required: bool | None = None
+    user_id: int | None = None
 
 
 class UserOut(BaseModel):

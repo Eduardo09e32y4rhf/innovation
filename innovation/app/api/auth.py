@@ -8,6 +8,7 @@ from app.db.dependencies import get_db
 from app.models.user import User
 from app.schemas.auth import LoginRequest, RegisterRequest, Token, UserOut
 from app.services.auth_service import authenticate_user, register_user
+from app.services.two_factor_service import request_code, verify_code
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
@@ -20,6 +21,7 @@ def register(data: RegisterRequest, db: Session = Depends(get_db)):
             data.email,
             data.password,
             name=data.name,
+            phone=data.phone,
             company_name=data.company_name,
             razao_social=data.razao_social,
             cnpj=data.cnpj,
@@ -36,8 +38,29 @@ def login(data: LoginRequest, db: Session = Depends(get_db)):
     if not result:
         raise HTTPException(status_code=401, detail="Credenciais inválidas")
 
-    access_token, _ = result
+    access_token, user = result
+    if user.two_factor_enabled:
+        request_code(user.id, user.email, user.phone)
+        return {
+            "access_token": "",
+            "token_type": "bearer",
+            "two_factor_required": True,
+            "user_id": user.id,
+        }
     return {"access_token": access_token, "token_type": "bearer"}
+
+
+@router.post("/login/verify", response_model=Token)
+def verify_login_code(user_id: int, code: str, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado")
+
+    if not verify_code(user.id, code):
+        raise HTTPException(status_code=401, detail="Código inválido")
+
+    access_token = authenticate_user(db, user.email, None, skip_password=True)
+    return {"access_token": access_token[0], "token_type": "bearer"}
 
 
 @router.get("/me", response_model=UserOut)
