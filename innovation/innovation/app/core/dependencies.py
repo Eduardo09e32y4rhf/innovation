@@ -1,32 +1,26 @@
 from fastapi import Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer
+from jose import jwt, JWTError
 from sqlalchemy.orm import Session
 
-from app.db.session import get_db
-from app.core.security import get_current_user
-from app.models.subscription import Subscription
+from app.core.config import SECRET_KEY, ALGORITHM
+from app.db.dependencies import get_db
+from app.models.user import User
 
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
-def require_active_subscription(
+def get_current_user(
+    token: str = Depends(oauth2_scheme),
     db: Session = Depends(get_db),
-    user=Depends(get_current_user),
-):
-    sub = (
-        db.query(Subscription)
-        .filter(Subscription.user_id == user.id)
-        .order_by(Subscription.created_at.desc())
-        .first()
-    )
+) -> User:
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id = int(payload.get("sub"))
+    except (JWTError, ValueError):
+        raise HTTPException(status_code=401, detail="Token inválido")
 
-    if not sub:
-        raise HTTPException(
-            status_code=status.HTTP_402_PAYMENT_REQUIRED,
-            detail="Nenhuma assinatura encontrada",
-        )
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=401, detail="Usuário não encontrado")
 
-    if sub.status != "authorized":
-        raise HTTPException(
-            status_code=status.HTTP_402_PAYMENT_REQUIRED,
-            detail="Assinatura inativa ou inadimplente",
-        )
-
-    return sub
+    return user

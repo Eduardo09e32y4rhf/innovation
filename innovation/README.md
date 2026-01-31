@@ -1,222 +1,237 @@
-🚀 Innovation
+# 🚀 Innovation Recruit (Django)
 
-Innovation é uma plataforma SaaS de RH, Folha de Pagamento e Automação com IA, focada em pequenas e médias empresas, construída com arquitetura moderna, escalável e orientada a produto.
+Plataforma SaaS para **RH + Recrutamento + Gestão** (estilo ERP) construída em **Django** com:
+- ✅ **Login / Registro** (sessão)
+- ✅ **Dashboard** (resumo da empresa)
+- ✅ **Sidebar estilo SaaS** (módulos do sistema)
+- ✅ **Módulo de Pagamento** (base pronta — Stripe como padrão)
+- ✅ **SQLite** (padrão) + **MySQL** (opcional)
 
-O projeto nasce com um MVP funcional e monetizável, pronto para evolução contínua até se tornar um ERP completo de RH, Fiscal e Contábil.
+---
 
-🎯 Visão do Produto
+## ✨ Visão Geral
 
-Fluxo principal do usuário:
+O sistema é dividido em módulos:
 
-Login → Aceite dos Termos → Escolha da Empresa (CNPJ) → Assinatura →
-Dashboard RH → Cadastro de Funcionários → Geração de Holerite (PDF) → Histórico
+- **Dashboard** → resumo geral da empresa (vagas, funcionários, contratos, agenda)
+- **Aut-Temp** → estilo Trello/Kanban para tarefas e pipeline
+- **RH** → gestão de ponto e funcionários
+- **Funcionários** → controle completo de colaboradores
+- **Portal** → avaliação de candidatos + entrevistas/testes
+- **Vagas** → criação e gerenciamento de vagas
+- **Configurações** → plano, notas fiscais, suporte e cancelamento
+- **Pagamento** → checkout/assinatura (estrutura pronta)
 
-🧩 Funcionalidades do MVP
-✅ Autenticação & Acesso
+---
 
-Cadastro e login de usuários
+## 🧭 Rotas do Sistema
 
-Autenticação JWT
+| Rota | O que é |
+|------|---------|
+| `/` | Login |
+| `/register/` | Criar conta |
+| `/dashboard/` | Dashboard (login obrigatório) |
+| `/aut-temp/` | Kanban/Trello |
+| `/rh/` | RH (ponto e gestão) |
+| `/funcionarios/` | Funcionários |
+| `/portal/` | Portal de candidatos |
+| `/vagas/` | Gestão de vagas |
+| `/configuracoes/` | Plano/NF/Suporte |
+| `/payment/` | Pagamento |
+| `/admin/` | Admin do Django |
+| `/logout/` | Sair |
 
-RBAC básico (perfis)
+---
 
-Estrutura preparada para multi-empresa (org_id)
+## ✅ Requisitos
 
-✅ RH
+- **Python 3.10+** (recomendado 3.11/3.12)
+- **pip**
+- **Git** (para versionamento)
 
-Cadastro de funcionários
+> No Windows, use `py` no lugar de `python`.
 
-Estrutura base de folha de pagamento
+---
 
-Salary Slip (Holerite) como entidade central
+## ⚡ Instalação Rápida
 
-Histórico mensal por funcionário
+### 1) Criar e ativar ambiente virtual
 
-✅ Documentos
+**Windows**
+```powershell
+py -m venv .venv
+.\.venv\Scripts\Activate.ps1
 
-Geração de holerite em PDF
+Linux/Mac
+python3 -m venv .venv
+source .venv/bin/activate
 
-Histórico de documentos
-
-Download seguro por usuário
-
-✅ Pagamentos
-
-Integração com Mercado Pago (assinaturas recorrentes)
-
-Planos mensais
-
-Webhook funcional para atualização automática de status
-
-Estrutura pronta para bloqueio por inadimplência
-
-✅ IA (Base)
-
-Pipeline preparado para IA:
-
-Prompt → JSON → Validação → Persistência
-
-
-Estrutura pronta para integração com Google Gemini
-
-Token externo (não versionado)
-
-Base preparada para OCR, auditoria e explicações automáticas
-
-🛠️ Stack Tecnológica
-Backend
-
-Python 3.12+
-
-FastAPI
-
-SQLAlchemy
-
-Alembic
-
-SQLite (dev) / PostgreSQL (produção)
-
-JWT Authentication
-
-Frontend (Mobile)
-
-Flutter
-
-Navegação por rotas nomeadas
-
-Arquitetura por camadas (screens, services, models)
-
-Integrações
-
-Mercado Pago (assinaturas)
-
-Google Gemini (IA)
-
-📁 Estrutura do Projeto
-innovation.ia/
-├── innovation/
-│   ├── app/
-│   │   ├── api/
-│   │   │   ├── auth.py
-│   │   │   ├── payments.py
-│   │   │   ├── documents.py
-│   │   ├── core/
-│   │   │   ├── security.py
-│   │   │   ├── dependencies.py
-│   │   │   ├── permissions.py
-│   │   ├── models/
-│   │   │   ├── user.py
-│   │   │   ├── plan.py
-│   │   │   ├── subscription.py
-│   │   │   ├── document.py
-│   │   ├── services/
-│   │   │   ├── pdf_service.py
-│   │   │   ├── document_service.py
-│   │   │   ├── ai_service.py
-│   │   ├── db/
-│   │   │   ├── session.py
-│   │   │   ├── seeds.py
-│   │   └── main.py
-│   ├── alembic/
-│   └── docs/
-├── innovation_app/        # Flutter
-│   ├── lib/
-│   │   ├── models/
-│   │   ├── routes/
-│   │   ├── screens/
-│   │   ├── services/
-│   │   └── main.dart
-│   └── pubspec.yaml
-├── scripts/
-├── .env
-├── pyproject.toml
-├── requirements.txt
-└── README.md
-
-▶️ Como Rodar o Projeto
-🔹 Backend
-python -m venv .venv
-.venv\Scripts\activate
+2) Instalar dependências
+Se já existir requirements.txt:
 pip install -r requirements.txt
-alembic upgrade head
-uvicorn app.main:app --reload
 
+Se não existir, crie um requirements.txt assim:
+Django>=5
+stripe
+
+e rode:
+pip install -r requirements.txt
+
+
+▶️ Rodar o Projeto
+1) Migrar banco
+py manage.py migrate
+
+2) Criar superusuário (admin)
+py manage.py createsuperuser
+
+3) Rodar servidor
+py manage.py runserver
 
 Acesse:
 
-http://127.0.0.1:8000/docs
 
-🔹 Frontend (Flutter)
-cd innovation_app
-flutter pub get
-flutter run
+App → http://127.0.0.1:8000/
 
 
-Pode rodar em:
-
-Android Emulator
-
-Celular físico
-
-Windows (desktop)
-
-🔐 Variáveis de Ambiente
-
-Arquivo .env:
-
-SECRET_KEY=sua-chave-secreta
-DATABASE_URL=sqlite:///innovation.db
-
-# Integrações
-MERCADO_PAGO_TOKEN=
-GEMINI_API_KEY=
+Admin → http://127.0.0.1:8000/admin/
 
 
-⚠ Tokens nunca são versionados.
 
-📊 Status Atual do Projeto
+🔐 Usuário e Senha
+Admin do Django (/admin/)
 
-Base técnica: ~75%
 
-MVP comercial: ~55%
+Usuário e senha: os que você criou no createsuperuser
 
-Produto final (ERP): ~25%
 
-Projeto geral: ~48–50%
+Se esqueceu a senha:
+py manage.py changepassword SEU_USUARIO
 
-✔ Arquitetura consolidada
-✔ Pagamento recorrente funcional
-✔ Webhook ativo
-✔ Projeto já é um produto em evolução, não apenas um estudo
+Login do sistema (/)
 
-🧠 Roadmap
-Curto Prazo (MVP)
 
-Finalizar bloqueio total por assinatura
+Você pode logar com:
 
-Conectar Flutter ao fluxo de pagamento
 
-Publicar APK no Google Play
+Usuário
 
-Médio Prazo
 
-IA explicando holerites
+ou Email
 
-Agenda diária estilo Trello
 
-Chat interno
 
-Longo Prazo
 
-Contabilidade completa
+Crie conta em /register/
 
-Fiscal
 
-RH avançado
 
-👨‍💻 Autor
+🗃 Banco de Dados
+SQLite (padrão)
+Já vem pronto e funciona sem configurar nada.
+MySQL (opcional)
+Instale:
+pip install mysqlclient
 
-Eduardo Silva
-Projeto independente com foco em produto real, monetização progressiva e escala.
+E no settings.py:
+DATABASES = {
+  "default": {
+    "ENGINE": "django.db.backends.mysql",
+    "NAME": "innovation_db",
+    "USER": "root",
+    "PASSWORD": "sua_senha",
+    "HOST": "localhost",
+    "PORT": "3306",
+  }
+}
 
-© Innovation — Todos os direitos reservados
+
+💳 Pagamento (Stripe)
+O módulo payment já está preparado para integração.
+Instale:
+pip install stripe
+
+Depois configure a chave no apps/payment/views.py ou via variável de ambiente (recomendado).
+
+Próximo passo: integrar Checkout Session + Webhooks.
+
+
+🗂 Estrutura de Pastas (resumo)
+innovation/
+├── manage.py
+├── recruitment_project/
+│   ├── settings.py
+│   ├── urls.py
+│   └── ...
+├── apps/
+│   ├── auth_app/
+│   ├── dashboard/
+│   ├── payment/
+│   └── core/        (módulos: Aut-Temp, RH, etc.)
+├── templates/
+│   ├── base.html
+│   ├── auth/
+│   ├── dashboard/
+│   └── core/
+└── static/
+    └── css/style.css
+
+
+🧨 Problemas Comuns (e solução)
+CSS não atualiza
+
+
+Faça CTRL + F5
+
+
+Reinicie o server (CTRL + C e py manage.py runserver)
+
+
+TemplateDoesNotExist
+
+
+Confirme a pasta templates/
+
+
+Confirme no settings.py:
+
+
+TEMPLATES[0]['DIRS'] = [BASE_DIR / 'templates']
+
+
+
+
+ModuleNotFoundError: apps.x
+
+
+Garanta que existe apps/__init__.py
+
+
+Confira se o app está em INSTALLED_APPS
+
+
+
+🛣 Roadmap (Próximos passos)
+
+
+Modelos reais: Funcionários, Vagas, Candidatos, Entrevistas
+
+
+Portal com ranking/score
+
+
+Aut-Temp com drag & drop real (Kanban)
+
+
+Agenda semanal real (FullCalendar)
+
+
+Stripe real (checkout + assinatura + webhooks)
+
+
+Nota fiscal + suporte dentro do sistema
+
+
+
+🧾 Licença
+Projeto privado / uso interno.

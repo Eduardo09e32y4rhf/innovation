@@ -1,8 +1,39 @@
-<<<<<<< HEAD
-﻿# Python
+# Python
 __pycache__/
-*.pyc
+*.py[cod]
+*.pyo
+*.pyd
+
+# Django
+db.sqlite3
+*.log
+staticfiles/
+
+# Virtualenv / venv
 .venv/
+venv/
+env/
+ENV/
+Scripts/
+Lib/
+Include/
+pyvenv.cfg
+
+# Env/Sensitive
+.env
+.env.*
+*.db
+*.sqlite
+*.sqlite3
+storage/
+
+# Keys
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
 
 # Flutter
 build/
@@ -12,18 +43,6 @@ build/
 .vscode/
 .idea/
 
-# Backups
-backups/
-
 # OS
 .DS_Store
 Thumbs.db
-=======
-__pycache__/
-*.pyc
-.env
-.venv/
-*.db
-build/
-.dart_tool/
->>>>>>> 8797e42 (Arquitetura Innovation Erah: Versão Final Organizada)
