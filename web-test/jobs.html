@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset='utf-8'/>
+  <title>N1 - Vagas</title>
+</head>
+<body>
+  <h1>N1 - Vagas</h1>
+  <p>Selecione uma vaga para ver candidatos e atualizar status.</p>
+  <div id='jobs'>Carregando vagas...</div>
+  <hr />
+  <h2>Candidaturas</h2>
+  <div id='applications'>Selecione uma vaga acima.</div>
+  <div id='history'></div>
+  <a href='index.html'>Voltar</a>
+
+  <script>
+    const API_BASE = 'https://innovation-5lse.onrender.com'
+    const jobsEl = document.getElementById('jobs')
+    const applicationsEl = document.getElementById('applications')
+    const historyEl = document.getElementById('history')
+
+    const statusOptions = [
+      { value: 'received', label: 'Recebida' },
+      { value: 'in_review', label: 'Em análise' },
+      { value: 'approved', label: 'Aprovada' },
+      { value: 'rejected', label: 'Rejeitada' }
+    ]
+
+    function buildStatusButtons(applicationId, currentStatus) {
+      return statusOptions
+        .map(
+          option =>
+            `<button data-action='status' data-id='${applicationId}' data-status='${option.value}' ${
+              option.value === currentStatus ? 'disabled' : ''
+            }>${option.label}</button>`
+        )
+        .join(' ')
+    }
+
+    function renderJobs(jobs) {
+      if (!jobs.length) {
+        jobsEl.textContent = 'Nenhuma vaga encontrada.'
+        return
+      }
+
+      jobsEl.innerHTML = jobs
+        .map(
+          job =>
+            `<div style='margin-bottom: 12px;'>
+              <b>${job.title}</b> - ${job.location || 'Local não informado'}
+              <button data-action='select-job' data-job-id='${job.id}'>Ver candidaturas</button>
+            </div>`
+        )
+        .join('')
+    }
+
+    function renderApplications(applications) {
+      if (!applications.length) {
+        applicationsEl.textContent = 'Nenhuma candidatura para esta vaga.'
+        return
+      }
+
+      applicationsEl.innerHTML = applications
+        .map(
+          application =>
+            `<div style='border: 1px solid #ddd; padding: 8px; margin-bottom: 8px;'>
+              <div><b>Candidatura #${application.id}</b></div>
+              <div>Candidato: ${application.candidate_user_id}</div>
+              <div>Status atual: ${application.status}</div>
+              <div style='margin-top: 6px;'>
+                ${buildStatusButtons(application.id, application.status)}
+                <button data-action='history' data-id='${application.id}'>Ver histórico</button>
+              </div>
+            </div>`
+        )
+        .join('')
+    }
+
+    function renderHistory(applicationId, historyItems) {
+      if (!historyItems.length) {
+        historyEl.innerHTML = `<p>Nenhum histórico para candidatura #${applicationId}.</p>`
+        return
+      }
+      const lines = historyItems
+        .map(
+          item =>
+            `<li>${new Date(item.created_at).toLocaleString()} — ${item.old_status} → ${item.new_status}</li>`
+        )
+        .join('')
+      historyEl.innerHTML = `<h3>Histórico da candidatura #${applicationId}</h3><ul>${lines}</ul>`
+    }
+
+    async function fetchJobs() {
+      try {
+        const response = await fetch(`${API_BASE}/jobs`)
+        const jobs = await response.json()
+        renderJobs(jobs)
+      } catch (error) {
+        jobsEl.textContent = 'Erro ao carregar vagas.'
+      }
+    }
+
+    async function fetchApplications(jobId) {
+      applicationsEl.textContent = 'Carregando candidaturas...'
+      historyEl.innerHTML = ''
+      try {
+        const response = await fetch(`${API_BASE}/applications/company?job_id=${jobId}`)
+        const applications = await response.json()
+        renderApplications(applications)
+      } catch (error) {
+        applicationsEl.textContent = 'Erro ao carregar candidaturas.'
+      }
+    }
+
+    async function updateApplicationStatus(applicationId, status) {
+      try {
+        const response = await fetch(`${API_BASE}/applications/${applicationId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status })
+        })
+        if (!response.ok) {
+          throw new Error('Falha ao atualizar status')
+        }
+        const updated = await response.json()
+        return updated
+      } catch (error) {
+        alert('Erro ao atualizar status')
+        return null
+      }
+    }
+
+    async function fetchHistory(applicationId) {
+      try {
+        const response = await fetch(`${API_BASE}/applications/${applicationId}/history`)
+        const historyItems = await response.json()
+        renderHistory(applicationId, historyItems)
+      } catch (error) {
+        historyEl.innerHTML = `<p>Erro ao carregar histórico da candidatura #${applicationId}.</p>`
+      }
+    }
+
+    document.addEventListener('click', async event => {
+      const button = event.target.closest('button')
+      if (!button) return
+
+      const action = button.dataset.action
+      if (action === 'select-job') {
+        const jobId = button.dataset.jobId
+        await fetchApplications(jobId)
+      }
+
+      if (action === 'status') {
+        const applicationId = button.dataset.id
+        const status = button.dataset.status
+        const updated = await updateApplicationStatus(applicationId, status)
+        if (updated) {
+          const jobButton = document.querySelector('[data-action="select-job"].active')
+          const selectedJobId = jobButton ? jobButton.dataset.jobId : null
+          if (selectedJobId) {
+            await fetchApplications(selectedJobId)
+          }
+        }
+      }
+
+      if (action === 'history') {
+        const applicationId = button.dataset.id
+        await fetchHistory(applicationId)
+      }
+    })
+
+    document.addEventListener('click', event => {
+      const button = event.target.closest('[data-action="select-job"]')
+      if (!button) return
+      document
+        .querySelectorAll('[data-action="select-job"]')
+        .forEach(item => item.classList.remove('active'))
+      button.classList.add('active')
+    })
+
+    fetchJobs()
+  </script>
+</body>
+</html>

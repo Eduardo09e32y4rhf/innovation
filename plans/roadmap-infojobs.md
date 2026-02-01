@@ -38,6 +38,10 @@ Deliver a structured, phased roadmap to reach InfoJobs-level capabilities across
 - CMS baseline for content
 - Analytics event taxonomy and instrumentation plan
 - Moderation policy and tooling requirements definition
+- Minimal observability: structured logs, metrics, and error tracking per endpoint
+
+**KPI**
+- 95%+ of endpoints emitting logs/metrics/errors with alerting on P1 failures
 
 **Dependencies**
 - Required before any user-facing flows or AI training pipelines
@@ -75,20 +79,43 @@ Deliver a structured, phased roadmap to reach InfoJobs-level capabilities across
 
 **Priority**: P1
 
+### Phase 2.5: Communication and Search Performance
+**Goals**: Strengthen employer-candidate communication and search UX before heavy AI.
+
+**Key work**
+- Company↔candidate communication: messages, templates, and conversation history
+- Search + filters performance: caching, pagination, and deterministic sorting
+
+**KPI**
+- 80%+ employer reply rate within 48h; P95 search response under 800ms
+
 ### Phase 3: Monetization and Growth
 **Goals**: Revenue readiness and growth loops.
 
 **Key work**
 - Payments, plans, invoicing, refunds
 - Premium job posting options and boosts
+- Plan blocking and upsell signaling in web UX
 - Employer analytics dashboards
 - Candidate notification preferences and alerts
+
+**KPI**
+- 8%+ upsell conversion from plan-blocked actions
 
 **Dependencies**
 - Phase 1 and 2 stable workflows
 - Analytics instrumentation from Phase 0
 
 **Priority**: P1
+
+### Phase 3.1: SEO First-Class V2.1
+**Goals**: Organic acquisition via indexation and structured data.
+
+**Key work**
+- Indexation strategy, schema.org implementation, city/role landing pages
+
+**KPI**
+- 70%+ of target pages indexed; 25%+ organic traffic lift
 
 ### Phase 4: AI-Driven Differentiation
 **Goals**: InfoJobs-level AI for matching and relevance.
@@ -150,6 +177,8 @@ graph TD
 - **Employer**: time to fill, applicant response rate, ATS pipeline velocity
 - **Monetization**: paid employer conversion, revenue per posting, churn rate
 - **AI**: match acceptance rate, recommendation CTR, ranking relevance metrics
+- **SEO**: index coverage rate, organic sessions, landing page CTR
+- **Observability**: endpoint coverage for logs/metrics/errors, alert MTTA
 
 ## Traceability: Checklist to Phases
 | Checklist Area | Bullet | Phase |
@@ -174,3 +203,15 @@ graph TD
 | AI | ranking | Phase 4 |
 | AI | recommendations | Phase 4 |
 | AI | parsing | Phase 4 |
+
+## Final Priority Sequence
+1. Web loop improvements (employer↔candidate communication and UX friction removal)
+2. Search + filters performance (cache, pagination, deterministic sorting)
+3. SEO first-class V2.1 (indexation, schema.org, city/role pages)
+4. Alerts/notifications maturity (preferences, triggers, deliverability)
+5. AI matching incremental rollout (heuristics → ML → monitoring)
+
+## Concluding Notes
+- Prioritize measurable UX and marketplace loops before advanced AI to build data volume and trust.
+- Keep SEO and search performance tightly coupled to job inventory freshness and structured data quality.
+- Observability and plan-blocking UX should be non-negotiable foundations for scaling monetization.

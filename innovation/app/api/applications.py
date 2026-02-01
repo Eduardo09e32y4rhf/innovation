@@ -45,13 +45,12 @@ def list_company_applications(
     db: Session = Depends(get_db),
     company_id: int = Depends(require_active_company),
     _subscription=Depends(require_active_subscription),
+    job_id: int | None = None,
 ):
-    apps = (
-        db.query(Application)
-        .filter(Application.company_id == company_id)
-        .order_by(Application.id.desc())
-        .all()
-    )
+    query = db.query(Application).filter(Application.company_id == company_id)
+    if job_id:
+        query = query.filter(Application.job_id == job_id)
+    apps = query.order_by(Application.id.desc()).all()
     return [
         {
             "id": app.id,
@@ -61,6 +60,41 @@ def list_company_applications(
             "status": app.status,
         }
         for app in apps
+    ]
+
+
+@router.get("/{application_id}/history")
+def get_application_history(
+    application_id: int,
+    db: Session = Depends(get_db),
+    company_id: int = Depends(require_active_company),
+    _subscription=Depends(require_active_subscription),
+):
+    app = (
+        db.query(Application)
+        .filter(Application.id == application_id)
+        .filter(Application.company_id == company_id)
+        .first()
+    )
+    if not app:
+        raise HTTPException(status_code=404, detail="Aplicação não encontrada")
+
+    history_items = (
+        db.query(ApplicationStatusHistory)
+        .filter(ApplicationStatusHistory.application_id == application_id)
+        .order_by(ApplicationStatusHistory.id.desc())
+        .all()
+    )
+    return [
+        {
+            "id": item.id,
+            "application_id": item.application_id,
+            "old_status": item.old_status,
+            "new_status": item.new_status,
+            "changed_by_user_id": item.changed_by_user_id,
+            "created_at": item.created_at,
+        }
+        for item in history_items
     ]
 
 
