@@ -1,5 +1,4 @@
-# 🚀 Innovation.ia — Plataforma de Recrutamento
-
+# 🚀 Innovation.ia 
 Produto de recrutamento com:
 - **Backend** em **Python/FastAPI**
 - **App Mobile (candidato)** em **Flutter**
