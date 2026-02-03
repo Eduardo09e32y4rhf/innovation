@@ -35,4 +35,4 @@ class Company(Base):
         nullable=False,
     )
 
-    owner: Mapped["User"] = relationship("User")
+    owner: Mapped["User"] = relationship("User", foreign_keys=[owner_user_id])

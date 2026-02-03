@@ -3,7 +3,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.core.dependencies import get_current_user
+from app.core.dependencies import get_current_user, require_role
+from app.core.roles import Role
 from app.db.dependencies import get_db
 from app.models.company import Company
 
@@ -14,7 +15,7 @@ router = APIRouter(prefix="/companies", tags=["Companies"])
 @router.get("/me")
 def get_my_company(
     db: Session = Depends(get_db),
-    current_user=Depends(get_current_user),
+    current_user=Depends(require_role(Role.COMPANY)),
 ):
     company = db.query(Company).filter(Company.owner_user_id == current_user.id).first()
     if not company:
@@ -36,7 +37,7 @@ def get_my_company(
 def create_company(
     payload: dict,
     db: Session = Depends(get_db),
-    current_user=Depends(get_current_user),
+    current_user=Depends(require_role(Role.COMPANY)),
 ):
     required_fields = ["razao_social", "cnpj", "cidade", "uf"]
     missing = [field for field in required_fields if not payload.get(field)]

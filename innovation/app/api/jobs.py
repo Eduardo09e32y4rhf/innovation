@@ -6,8 +6,10 @@ from sqlalchemy.orm import Session
 from app.core.dependencies import (
     get_current_user,
     require_active_company,
-    require_active_subscription,
+    require_company_subscription,
+    require_role,
 )
+from app.core.roles import Role
 from app.db.dependencies import get_db
 from app.models.job import Job
 from app.services.audit_service import log_event
@@ -36,7 +38,8 @@ def list_jobs(db: Session = Depends(get_db)):
 def list_company_jobs(
     db: Session = Depends(get_db),
     company_id: int = Depends(require_active_company),
-    _subscription=Depends(require_active_subscription),
+    _subscription=Depends(require_company_subscription),
+    _company_user=Depends(require_role(Role.COMPANY)),
 ):
     jobs = db.query(Job).filter(Job.company_id == company_id).order_by(Job.id.desc()).all()
     return [
@@ -57,8 +60,8 @@ def create_job(
     payload: dict,
     db: Session = Depends(get_db),
     company_id: int = Depends(require_active_company),
-    _subscription=Depends(require_active_subscription),
-    current_user=Depends(get_current_user),
+    _subscription=Depends(require_company_subscription),
+    current_user=Depends(require_role(Role.COMPANY)),
 ):
     title = payload.get("title")
     description = payload.get("description")
@@ -100,8 +103,8 @@ def update_job(
     payload: dict,
     db: Session = Depends(get_db),
     company_id: int = Depends(require_active_company),
-    _subscription=Depends(require_active_subscription),
-    current_user=Depends(get_current_user),
+    _subscription=Depends(require_company_subscription),
+    current_user=Depends(require_role(Role.COMPANY)),
 ):
     job = db.query(Job).filter(Job.id == job_id, Job.company_id == company_id).first()
     if not job:
@@ -137,8 +140,8 @@ def pause_job(
     job_id: int,
     db: Session = Depends(get_db),
     company_id: int = Depends(require_active_company),
-    _subscription=Depends(require_active_subscription),
-    current_user=Depends(get_current_user),
+    _subscription=Depends(require_company_subscription),
+    current_user=Depends(require_role(Role.COMPANY)),
 ):
     job = db.query(Job).filter(Job.id == job_id, Job.company_id == company_id).first()
     if not job:
@@ -161,8 +164,8 @@ def close_job(
     job_id: int,
     db: Session = Depends(get_db),
     company_id: int = Depends(require_active_company),
-    _subscription=Depends(require_active_subscription),
-    current_user=Depends(get_current_user),
+    _subscription=Depends(require_company_subscription),
+    current_user=Depends(require_role(Role.COMPANY)),
 ):
     job = db.query(Job).filter(Job.id == job_id, Job.company_id == company_id).first()
     if not job:

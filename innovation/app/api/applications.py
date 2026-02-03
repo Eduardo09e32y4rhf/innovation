@@ -3,7 +3,13 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.core.dependencies import get_current_user, require_active_company, require_active_subscription
+from app.core.dependencies import (
+    get_current_user,
+    require_active_company,
+    require_company_subscription,
+    require_role,
+)
+from app.core.roles import Role
 from app.db.dependencies import get_db
 from app.models.application import Application
 from app.models.application_status_history import ApplicationStatusHistory
@@ -44,7 +50,8 @@ def list_my_applications(
 def list_company_applications(
     db: Session = Depends(get_db),
     company_id: int = Depends(require_active_company),
-    _subscription=Depends(require_active_subscription),
+    _subscription=Depends(require_company_subscription),
+    _company_user=Depends(require_role(Role.COMPANY)),
     job_id: int | None = None,
 ):
     query = db.query(Application).filter(Application.company_id == company_id)
@@ -68,7 +75,8 @@ def get_application_history(
     application_id: int,
     db: Session = Depends(get_db),
     company_id: int = Depends(require_active_company),
-    _subscription=Depends(require_active_subscription),
+    _subscription=Depends(require_company_subscription),
+    _company_user=Depends(require_role(Role.COMPANY)),
 ):
     app = (
         db.query(Application)
@@ -160,8 +168,8 @@ def update_application(
     payload: dict,
     db: Session = Depends(get_db),
     company_id: int = Depends(require_active_company),
-    _subscription=Depends(require_active_subscription),
-    current_user=Depends(get_current_user),
+    _subscription=Depends(require_company_subscription),
+    current_user=Depends(require_role(Role.COMPANY)),
 ):
     app = (
         db.query(Application)

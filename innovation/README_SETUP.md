@@ -25,3 +25,19 @@ Set-ExecutionPolicy -Scope Process Bypass -Force
 ```powershell
 .\scripts\check.ps1
 ```
+
+---
+
+## Variáveis de ambiente (backend)
+
+Crie `innovation/.env` (mesma pasta do `app/`) com:
+
+```env
+DATABASE_URL=sqlite:///./innovation.db
+SECRET_KEY=change_me
+MP_ACCESS_TOKEN=change_me
+```
+
+Opcionais: `MP_PUBLIC_KEY`, `SENDGRID_FROM_EMAIL`, `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_PHONE`.
+
+> A carga do `.env` é feita por [`innovation/app/core/config.py`](innovation/app/core/config.py:1).

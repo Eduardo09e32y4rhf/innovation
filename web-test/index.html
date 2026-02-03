@@ -1,14 +1,260 @@
 <!DOCTYPE html>
-<html>
-<head>
-  <meta charset='utf-8'/>
-  <title>Admin - Dashboard</title>
-</head>
-<body>
-  <h1>ADM</h1>
-  <ul>
-    <li><a href='jobs.html'>N1 - Vagas</a></li>
-    <li><a href='settings.html'>N2 - Empresa</a></li>
-  </ul>
-</body>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Web ADM - Plataforma</title>
+    <link rel="stylesheet" href="app.css" />
+  </head>
+  <body>
+    <header>
+      <div>
+        <h1>Web ADM</h1>
+        <div class="muted">Administração de contas, planos e serviços corporativos</div>
+      </div>
+      <div class="user-pill">
+        <div><strong data-user="name">-</strong></div>
+        <div class="muted" data-user="role">-</div>
+      </div>
+      <button class="ghost" data-action="logout">Sair</button>
+    </header>
+
+    <div class="container">
+      <div class="alert hidden" data-role="alert"></div>
+
+      <section data-view="login" class="card">
+        <h2>Acessar ADM</h2>
+        <form data-form="login">
+          <label for="login-email">E-mail</label>
+          <input id="login-email" type="email" placeholder="adm@empresa.com" required />
+
+          <label for="login-password">Senha</label>
+          <input id="login-password" type="password" required />
+
+          <div class="actions">
+            <button class="primary" type="submit">Entrar</button>
+          </div>
+        </form>
+        <p class="muted helper">
+          Autenticação JWT com 2FA pronta para ativação. Em testes, a validação de código permanece desabilitada.
+        </p>
+        <form data-form="verify" class="hidden" data-section="login-code">
+          <label for="login-code">Código 2FA</label>
+          <input id="login-code" type="text" placeholder="000000" />
+          <div class="actions">
+            <button class="primary" type="submit">Validar</button>
+          </div>
+        </form>
+      </section>
+
+      <section data-view="app" class="hidden">
+        <div class="card hidden" data-section="access-denied">
+          <h3>Acesso restrito</h3>
+          <p class="muted">
+            Seu perfil não possui permissão ADM. Solicite ao administrador o papel correto para acessar este
+            painel.
+          </p>
+        </div>
+        <nav class="card">
+          <a href="#" data-nav="dashboard" class="active">Dashboard</a>
+          <a href="#" data-nav="companies">Empresas</a>
+          <a href="#" data-nav="plans">Planos</a>
+          <a href="#" data-nav="services">Serviços</a>
+          <a href="#" data-nav="users">Usuários internos</a>
+          <a href="#" data-nav="audit">Auditoria</a>
+          <a href="#" data-nav="monitoring">Monitoramento</a>
+        </nav>
+
+        <section data-page="dashboard">
+          <div class="grid">
+            <div class="card">
+              <h3>Usuário ADM</h3>
+              <div data-user="summary"></div>
+            </div>
+            <div class="card">
+              <h3>Empresas ativas</h3>
+              <div data-summary="companies"></div>
+            </div>
+            <div class="card">
+              <h3>Planos comerciais</h3>
+              <div data-summary="plans"></div>
+            </div>
+            <div class="card">
+              <h3>Serviços habilitados</h3>
+              <div data-summary="services"></div>
+            </div>
+            <div class="card">
+              <h3>Usuários internos</h3>
+              <div data-summary="users"></div>
+            </div>
+            <div class="card">
+              <h3>Alertas de monitoramento</h3>
+              <div data-summary="monitoring"></div>
+            </div>
+          </div>
+        </section>
+
+        <section data-page="companies" class="hidden">
+          <div class="card">
+            <h3>Cadastro de empresas</h3>
+            <form data-form="company-create" class="split">
+              <div>
+                <label for="company-name">Razão social</label>
+                <input id="company-name" required />
+                <label for="company-cnpj">CNPJ</label>
+                <input id="company-cnpj" required />
+                <label for="company-city">Cidade</label>
+                <input id="company-city" required />
+              </div>
+              <div>
+                <label for="company-plan">Plano</label>
+                <select id="company-plan"></select>
+                <label for="company-status">Status</label>
+                <select id="company-status">
+                  <option value="active">Ativa</option>
+                  <option value="inactive">Inativa</option>
+                </select>
+                <label for="company-owner">Responsável</label>
+                <input id="company-owner" placeholder="Contato principal" />
+              </div>
+              <div class="actions">
+                <button class="primary" type="submit">Salvar empresa</button>
+              </div>
+            </form>
+          </div>
+          <div class="split">
+            <div class="card">
+              <div class="actions">
+                <input id="company-search" placeholder="Buscar por razão social, CNPJ ou cidade" />
+                <button data-action="refresh-companies">Atualizar</button>
+              </div>
+              <div data-list="companies"></div>
+            </div>
+            <div class="card">
+              <h3>Detalhes da empresa</h3>
+              <div class="muted" data-company="context">Selecione uma empresa para editar serviços e plano.</div>
+              <div data-section="company-detail" class="hidden">
+                <div class="stack">
+                  <div class="status-line">
+                    <span class="badge" data-company="status"></span>
+                    <button data-action="toggle-company-status">Ativar/Inativar</button>
+                  </div>
+                  <label for="company-plan-update">Plano contratado</label>
+                  <select id="company-plan-update"></select>
+                  <label>Serviços Web</label>
+                  <div data-list="company-services" class="service-list"></div>
+                  <div class="actions">
+                    <button class="primary" data-action="save-company">Atualizar cadastro</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section data-page="plans" class="hidden">
+          <div class="card">
+            <h3>Gerenciar planos</h3>
+            <form data-form="plan-create" class="split">
+              <div>
+                <label for="plan-name">Nome do plano</label>
+                <input id="plan-name" required />
+                <label for="plan-price">Valor mensal (R$)</label>
+                <input id="plan-price" type="number" step="0.01" required />
+              </div>
+              <div>
+                <label for="plan-seats">Limite de usuários</label>
+                <input id="plan-seats" type="number" required />
+                <label for="plan-notes">Observações</label>
+                <input id="plan-notes" placeholder="Ex: suporte prioritário" />
+              </div>
+              <div class="actions">
+                <button class="primary" type="submit">Adicionar plano</button>
+              </div>
+            </form>
+          </div>
+          <div class="card">
+            <div data-list="plans"></div>
+          </div>
+        </section>
+
+        <section data-page="services" class="hidden">
+          <div class="card">
+            <h3>Serviços por empresa</h3>
+            <label for="service-company">Empresa</label>
+            <select id="service-company"></select>
+            <div class="muted helper">Ative ou desative serviços web por empresa.</div>
+            <div data-list="service-controls" class="service-list"></div>
+            <div class="actions">
+              <button class="primary" data-action="save-services">Salvar serviços</button>
+            </div>
+          </div>
+        </section>
+
+        <section data-page="users" class="hidden">
+          <div class="card">
+            <h3>Usuários internos (SAC / Services / ADM)</h3>
+            <form data-form="user-create" class="split">
+              <div>
+                <label for="user-name">Nome</label>
+                <input id="user-name" required />
+                <label for="user-email">E-mail</label>
+                <input id="user-email" type="email" required />
+              </div>
+              <div>
+                <label for="user-role">Perfil</label>
+                <select id="user-role">
+                  <option value="ADM">ADM</option>
+                  <option value="SAC">SAC</option>
+                  <option value="Services">Services</option>
+                </select>
+                <label for="user-password">Senha temporária</label>
+                <input id="user-password" type="password" required />
+              </div>
+              <div class="actions">
+                <button class="primary" type="submit">Criar usuário</button>
+              </div>
+            </form>
+          </div>
+          <div class="card">
+            <div data-list="users"></div>
+          </div>
+        </section>
+
+        <section data-page="audit" class="hidden">
+          <div class="card">
+            <h3>Logs de auditoria</h3>
+            <div data-list="audit"></div>
+          </div>
+        </section>
+
+        <section data-page="monitoring" class="hidden">
+          <div class="grid">
+            <div class="card">
+              <h3>Disponibilidade</h3>
+              <div data-monitor="uptime"></div>
+            </div>
+            <div class="card">
+              <h3>Erros críticos</h3>
+              <div data-monitor="errors"></div>
+            </div>
+            <div class="card">
+              <h3>Latência média</h3>
+              <div data-monitor="latency"></div>
+            </div>
+            <div class="card">
+              <h3>Fila de processamento</h3>
+              <div data-monitor="queue"></div>
+            </div>
+          </div>
+          <div class="card">
+            <h3>Status dos serviços</h3>
+            <div data-list="monitoring"></div>
+          </div>
+        </section>
+      </section>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
 </html>

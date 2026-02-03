@@ -1,13 +1,18 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 
+from app.core.dependencies import require_role
+from app.core.roles import Role
 
 router = APIRouter(prefix="/ai", tags=["AI"])
 
 
 @router.post("/job-description")
-def generate_job_description(payload: dict):
+def generate_job_description(
+    payload: dict,
+    _company_user=Depends(require_role(Role.COMPANY)),
+):
     title = (payload.get("title") or "").strip()
     seniority = (payload.get("seniority") or "").strip()
     location = (payload.get("location") or "").strip()

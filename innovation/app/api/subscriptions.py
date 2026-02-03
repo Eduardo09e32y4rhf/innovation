@@ -3,8 +3,10 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.core.dependencies import get_current_user
+from app.core.dependencies import get_current_user, require_role
+from app.core.roles import Role
 from app.db.dependencies import get_db
+from app.models.company import Company
 from app.models.subscription import Subscription
 from app.models.plan import Plan
 from app.services.audit_service import log_event
@@ -16,7 +18,7 @@ router = APIRouter(prefix="/subscriptions", tags=["Subscriptions"])
 @router.get("/me")
 def get_my_subscription(
     db: Session = Depends(get_db),
-    current_user=Depends(get_current_user),
+    current_user=Depends(require_role(Role.COMPANY)),
 ):
     sub = (
         db.query(Subscription)
@@ -26,6 +28,9 @@ def get_my_subscription(
     )
     if not sub:
         raise HTTPException(status_code=404, detail="Assinatura não encontrada")
+    company = db.query(Company).filter(Company.id == sub.company_id).first()
+    if not company or company.owner_user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Empresa inválida")
     return {
         "id": sub.id,
         "company_id": sub.company_id,
@@ -39,16 +44,28 @@ def get_my_subscription(
 def create_subscription(
     payload: dict,
     db: Session = Depends(get_db),
-    current_user=Depends(get_current_user),
+    current_user=Depends(require_role(Role.COMPANY)),
 ):
     plan_id = payload.get("plan_id")
     company_id = payload.get("company_id")
-    if not plan_id or not company_id:
-        raise HTTPException(status_code=400, detail="plan_id e company_id são obrigatórios")
+    if not plan_id:
+        raise HTTPException(status_code=400, detail="plan_id é obrigatório")
 
     plan = db.query(Plan).filter(Plan.id == plan_id).first()
     if not plan:
         raise HTTPException(status_code=404, detail="Plano não encontrado")
+
+    if company_id:
+        company = db.query(Company).filter(Company.id == company_id).first()
+        if not company:
+            raise HTTPException(status_code=404, detail="Empresa não encontrada")
+        if company.owner_user_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Empresa inválida")
+    else:
+        company = db.query(Company).filter(Company.owner_user_id == current_user.id).first()
+        if not company:
+            raise HTTPException(status_code=404, detail="Empresa não encontrada")
+        company_id = company.id
 
     sub = Subscription(
         user_id=current_user.id,

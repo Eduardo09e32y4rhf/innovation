@@ -25,8 +25,8 @@ class User(Base):
     # ✅ no banco/migration o nome do campo é password_hash
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
 
-    role: Mapped[str] = mapped_column(String(30), nullable=False, default="owner")
-    two_factor_enabled: Mapped[bool] = mapped_column(default=True)
+    role: Mapped[str] = mapped_column(String(30), nullable=False, default="COMPANY")
+    two_factor_enabled: Mapped[bool] = mapped_column(default=False)
 
     terms_accepted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     terms_version: Mapped[str | None] = mapped_column(String(20), nullable=True)

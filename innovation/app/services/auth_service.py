@@ -32,7 +32,7 @@ def register_user(
         name=(name or email.split("@")[0] or "Usuário").strip(),
         email=email,
         password_hash=get_password_hash(password),
-        role="owner",
+        role="COMPANY",
         phone=phone,
     )
     db.add(user)
