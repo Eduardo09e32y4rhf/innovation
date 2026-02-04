@@ -1,0 +1,90 @@
+---
+title: Empresa
+page-header: Empresa
+page-menu: dashboards.company
+page-libs: [apexcharts]
+layout: default
+permalink: dashboard-crypto.html
+---
+
+<div class="alert alert-info" role="alert">
+   Área exclusiva para empresas. Fluxo MVP: Empresa → Vagas → Candidatos → Configurações.
+</div>
+
+<div class="row row-cards">
+   <div class="col-12">
+      <div class="row row-cards">
+         <div class="col-12 col-md-6 col-xxl">
+            <div class="card">
+               <div class="card-body">
+                  <div class="row">
+                     <div class="col mt-0">
+                      <h5 class="card-title">Vagas ativas</h5>
+                     </div>
+                     <div class="col-auto">
+                        {% include "ui/avatar.html" icon="building-community" %}
+                     </div>
+                  </div>
+                  <div class="mb-1">
+                      <span class="h3">12</span>
+                      <span class="text-muted">+2 esta semana</span>
+                  </div>
+               </div>
+            </div>
+         </div>
+         <div class="col-12 col-md-6 col-xxl">
+            <div class="card">
+               <div class="card-body">
+                  <div class="row">
+                     <div class="col mt-0">
+                      <h5 class="card-title">Candidatos ativos</h5>
+                     </div>
+                     <div class="col-auto">
+                        {% include "ui/avatar.html" icon="users" %}
+                     </div>
+                  </div>
+                  <div class="mb-1">
+                      <span class="h3">342</span>
+                      <span class="text-muted">+28 esta semana</span>
+                  </div>
+               </div>
+            </div>
+         </div>
+      </div>
+   </div>
+   <div class="col-12">
+      <div class="row row-cards">
+         <div class="col-12 col-lg-7">
+            <div class="card">
+               <div class="card-header">
+                   <h5 class="card-title mb-0">Vagas publicadas</h5>
+               </div>
+               <div class="card-body">
+                  <p class="text-muted">Resumo semanal de vagas abertas e encerradas.</p>
+                  <div class="progress mb-3" style="height: 6px">
+                     <div class="progress-bar" style="width: 68%" role="progressbar"></div>
+                  </div>
+                  <div class="d-flex justify-content-between text-muted small">
+                     <span>Abertas: 68%</span>
+                     <span>Encerradas: 32%</span>
+                  </div>
+               </div>
+            </div>
+         </div>
+         <div class="col-12 col-lg-5">
+            <div class="card">
+               <div class="card-header">
+                  <h5 class="card-title mb-0">Alertas</h5>
+               </div>
+               <div class="card-body">
+                   <div class="list-group list-group-flush">
+                      <div class="list-group-item">5 vagas aguardando revisão</div>
+                      <div class="list-group-item">12 candidatos pendentes de análise</div>
+                      <div class="list-group-item">Configurações incompletas</div>
+                   </div>
+               </div>
+            </div>
+         </div>
+      </div>
+   </div>
+</div>

@@ -1,4 +1,4 @@
-﻿# Python
+# Python
 __pycache__/
 *.py[cod]
 *.pyo
@@ -26,3 +26,6 @@ pyvenv.cfg
 # OS
 .DS_Store
 Thumbs.db
+
+# Backups de .git ao converter submódulos em pasta normal
+**/.git.bak
