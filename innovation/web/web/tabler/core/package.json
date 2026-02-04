@@ -1,0 +1,186 @@
+{
+  "name": "@tabler/core",
+  "version": "1.4.0",
+  "description": "Premium and Open Source dashboard template with responsive and high quality UI.",
+  "homepage": "https://tabler.io",
+  "scripts": {
+    "dev": "pnpm run clean && pnpm run copy && pnpm run watch",
+    "build": "pnpm run clean && pnpm run build-assets && pnpm run copy && pnpm run generate-sri",
+    "build-assets": "concurrently \"pnpm run css\" \"pnpm run js\"",
+    "clean": "shx rm -rf dist demo",
+    "css": "pnpm run css-build && pnpm run css-prefix && pnpm run css-rtl && pnpm run css-minify && pnpm run css-banner",
+    "css-build": "sass --no-source-map --load-path=node_modules --style expanded scss/:dist/css/",
+    "css-banner": "tsx .build/add-banner.ts",
+    "css-prefix": "postcss --config .build/postcss.config.mjs --replace \"dist/css/*.css\" \"!dist/css/*.rtl*.css\" \"!dist/css/*.min.css\"",
+    "css-rtl": "cross-env NODE_ENV=RTL postcss --config .build/postcss.config.mjs --dir \"dist/css\" --ext \".rtl.css\" \"dist/css/*.css\" \"!dist/css/*.min.css\" \"!dist/css/*.rtl.css\"",
+    "css-minify": "concurrently \"pnpm run css-minify-main\" \"pnpm run css-minify-rtl\"",
+    "css-minify-main": "cleancss -O1 --format breakWith=lf --with-rebase --source-map --source-map-inline-sources --output dist/css/ --batch --batch-suffix \".min\" \"dist/css/*.css\" \"!dist/css/*.min.css\" \"!dist/css/*rtl*.css\"",
+    "css-minify-rtl": "cleancss -O1 --format breakWith=lf --with-rebase --source-map --source-map-inline-sources --output dist/css/ --batch --batch-suffix \".min\" \"dist/css/*rtl.css\" \"!dist/css/*.min.css\"",
+    "css-lint": "pnpm run css-lint-variables",
+    "css-lint-variables": "find-unused-sass-variables scss/ node_modules/bootstrap/scss/",
+    "js": "pnpm run js-build && pnpm run js-build-min",
+    "js-build": "concurrently \"pnpm run js-build-standalone\" \"pnpm run js-build-theme\"",
+    "js-build-theme": "cross-env BASE_NAME=tabler-theme vite build --config .build/vite.config.mts",
+    "js-build-standalone": "cross-env BASE_NAME=tabler vite build --config .build/vite.config.mts",
+    "js-build-min": "concurrently \"pnpm run js-build-min-standalone\" \"pnpm run js-build-min-theme\"",
+    "js-build-min-standalone": "concurrently \"terser dist/js/tabler.js --compress --mangle --comments '/@license|@preserve|^!/' --source-map \\\"content=dist/js/tabler.js.map,filename=dist/js/tabler.min.js.map,url=tabler.min.js.map\\\" -o dist/js/tabler.min.js\" \"terser dist/js/tabler.esm.js --module --compress --mangle --comments '/@license|@preserve|^!/' --source-map \\\"content=dist/js/tabler.esm.js.map,filename=dist/js/tabler.esm.min.js.map,url=tabler.esm.min.js.map\\\" -o dist/js/tabler.esm.min.js\"",
+    "js-build-min-theme": "concurrently \"terser dist/js/tabler-theme.js --compress --mangle --comments '/@license|@preserve|^!/' --source-map \\\"content=dist/js/tabler-theme.js.map,filename=dist/js/tabler-theme.min.js.map,url=tabler-theme.min.js.map\\\" -o dist/js/tabler-theme.min.js\" \"terser dist/js/tabler-theme.esm.js --module --compress --mangle --comments '/@license|@preserve|^!/' --source-map \\\"content=dist/js/tabler-theme.esm.js.map,filename=dist/js/tabler-theme.esm.min.js.map,url=tabler-theme.esm.min.js.map\\\" -o dist/js/tabler-theme.esm.min.js\"",
+    "copy": "concurrently \"pnpm run copy-img\" \"pnpm run copy-libs\" \"pnpm run copy-fonts\"",
+    "copy-img": "shx mkdir -p dist/img && shx cp -rf img/* dist/img",
+    "copy-libs": "tsx .build/copy-libs.ts",
+    "copy-fonts": "shx mkdir -p dist/fonts && shx cp -rf fonts/* dist/fonts",
+    "import-fonts": "tsx .build/import-fonts.ts",
+    "watch": "concurrently \"pnpm run watch-css\" \"pnpm run watch-js\"",
+    "watch-css": "nodemon --watch scss/ --ext scss --exec \"pnpm run css-build && pnpm run css-prefix\"",
+    "watch-js": "nodemon --watch js/ --ext ts,js --exec \"pnpm run js-build\"",
+    "bundlewatch": "bundlewatch",
+    "generate-sri": "tsx .build/generate-sri.ts",
+    "format:check": "prettier --check \"scss/**/*.scss\" \"js/**/*.{js,ts}\" --cache",
+    "format:write": "prettier --write \"scss/**/*.scss\" \"js/**/*.{js,ts}\" --cache",
+    "type-check": "tsc --noEmit"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tabler/tabler.git"
+  },
+  "keywords": [
+    "css",
+    "sass",
+    "mobile-first",
+    "responsive",
+    "front-end",
+    "framework",
+    "web"
+  ],
+  "author": "codecalm",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/tabler/tabler/issues"
+  },
+  "funding": {
+    "type": "github",
+    "url": "https://github.com/sponsors/codecalm"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "files": [
+    "docs/**/*",
+    "dist/**/*",
+    "js/**/*.{ts,js,map}",
+    "img/**/*.{svg}",
+    "scss/**/*.scss",
+    "libs.json"
+  ],
+  "style": "dist/css/tabler.css",
+  "sass": "scss/tabler.scss",
+  "unpkg": "dist/js/tabler.min.js",
+  "umd:main": "dist/js/tabler.min.js",
+  "module": "dist/js/tabler.esm.js",
+  "main": "dist/js/tabler.js",
+  "bundlewatch": {
+    "files": [
+      {
+        "path": "./dist/css/tabler.css",
+        "maxSize": "75 kB"
+      },
+      {
+        "path": "./dist/css/tabler.min.css",
+        "maxSize": "70 kB"
+      },
+      {
+        "path": "./dist/css/tabler.rtl.css",
+        "maxSize": "75 kB"
+      },
+      {
+        "path": "./dist/css/tabler.rtl.min.css",
+        "maxSize": "70 kB"
+      },
+      {
+        "path": "./dist/css/tabler-flags.css",
+        "maxSize": "2.5 kB"
+      },
+      {
+        "path": "./dist/css/tabler-flags.min.css",
+        "maxSize": "2 kB"
+      },
+      {
+        "path": "./dist/css/tabler-payments.css",
+        "maxSize": "2.2 kB"
+      },
+      {
+        "path": "./dist/css/tabler-payments.min.css",
+        "maxSize": "2 kB"
+      },
+      {
+        "path": "./dist/css/tabler-socials.css",
+        "maxSize": "2 kB"
+      },
+      {
+        "path": "./dist/css/tabler-socials.min.css",
+        "maxSize": "2 kB"
+      },
+      {
+        "path": "./dist/css/tabler-vendors.css",
+        "maxSize": "7.5 kB"
+      },
+      {
+        "path": "./dist/css/tabler-vendors.min.css",
+        "maxSize": "6.5 kB"
+      },
+      {
+        "path": "./dist/js/tabler.js",
+        "maxSize": "60 kB"
+      },
+      {
+        "path": "./dist/js/tabler.min.js",
+        "maxSize": "45 kB"
+      },
+      {
+        "path": "./dist/js/tabler.esm.js",
+        "maxSize": "60 kB"
+      },
+      {
+        "path": "./dist/js/tabler.esm.min.js",
+        "maxSize": "45 kB"
+      }
+    ]
+  },
+  "dependencies": {
+    "@popperjs/core": "^2.11.8",
+    "bootstrap": "5.3.8"
+  },
+  "devDependencies": {
+    "@hotwired/turbo": "^8.0.18",
+    "@melloware/coloris": "^0.25.0",
+    "@types/node": "^22.0.0",
+    "apexcharts": "^5.3.6",
+    "autosize": "^6.0.1",
+    "choices.js": "^11.1.0",
+    "clipboard": "^2.0.11",
+    "countup.js": "^2.9.0",
+    "dropzone": "^6.0.0-beta.2",
+    "find-unused-sass-variables": "^6.1.0",
+    "flatpickr": "^4.6.13",
+    "fslightbox": "^3.7.4",
+    "fullcalendar": "^6.1.19",
+    "geist": "^1.5.1",
+    "hugerte": "^1.0.9",
+    "imask": "^7.6.1",
+    "jsvectormap": "^1.7.0",
+    "list.js": "^2.3.1",
+    "litepicker": "^2.0.12",
+    "nouislider": "^15.8.1",
+    "plyr": "^3.8.3",
+    "signature_pad": "^5.1.1",
+    "sortablejs": "^1.15.6",
+    "star-rating.js": "^4.3.1",
+    "tom-select": "^2.4.3",
+    "typed.js": "^2.1.0",
+    "typescript": "^5.9.3",
+    "driver.js": "^1.0.0"
+  },
+  "directories": {
+    "doc": "docs"
+  }
+}

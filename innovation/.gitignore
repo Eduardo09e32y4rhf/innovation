@@ -1,0 +1,19 @@
+﻿# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Flutter
+build/
+.dart_tool/
+
+# IDE
+.vscode/
+.idea/
+
+# Backups
+backups/
+
+# OS
+.DS_Store
+Thumbs.db
