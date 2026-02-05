@@ -1,5 +1,24 @@
 # Limpeza final de índices e submódulos
 
+## O que foi feito neste repositório (fix do erro "inovação" / tabler)
+
+- **innovation** e **innovation/web/web/tabler** estavam no índice como **submódulos** (modo 160000).
+- Eles foram removidos do índice, o `.git` interno foi renomeado para `.git.bak`, e as pastas foram adicionadas de novo como **arquivos normais**.
+- O `.gitmodules` não existia localmente; o erro no Koyeb vinha do clone no GitHub ainda ter referências a submódulos.
+- Após o commit atual, **não há mais nenhum submódulo** no repositório. Basta dar **push** para `main` com `--force`.
+
+**Comando para enviar a correção (na branch `update-reqs`):**
+
+```bash
+git push origin update-reqs:main --force
+```
+
+Depois, no Koyeb: **Settings → Clear Build Cache** (se existir) e **Redeploy**.
+
+---
+
+## Limpeza manual (se precisar refazer no futuro)
+
 Remova todos os arquivos do **índice** (sem apagar os arquivos no disco):
 
 ```bash
