@@ -159,29 +159,30 @@ def upgrade() -> None:
     )
     op.create_index(op.f("ix_audit_logs_id"), "audit_logs", ["id"], unique=False)
 
-    op.add_column("users", sa.Column("phone", sa.String(length=30), nullable=True))
-    op.add_column(
-        "users",
-        sa.Column(
-            "two_factor_enabled",
-            sa.Boolean(),
-            server_default=sa.text("true"),
-            nullable=False,
-        ),
-    )
+    with op.batch_alter_table("users", schema=None) as batch_op:
+        batch_op.add_column(sa.Column("phone", sa.String(length=30), nullable=True))
+        batch_op.add_column(
+            sa.Column(
+                "two_factor_enabled",
+                sa.Boolean(),
+                server_default=sa.text("true"),
+                nullable=False,
+            ),
+        )
+
     op.execute("UPDATE users SET two_factor_enabled = true WHERE two_factor_enabled IS NULL")
 
-    op.add_column("companies", sa.Column("plan_id", sa.Integer(), nullable=True))
-    op.add_column(
-        "companies",
-        sa.Column(
-            "status",
-            sa.String(length=30),
-            server_default=sa.text("'active'"),
-            nullable=False,
-        ),
-    )
-    op.create_foreign_key("fk_companies_plan_id_plans", "companies", "plans", ["plan_id"], ["id"])
+    with op.batch_alter_table("companies", schema=None) as batch_op:
+        batch_op.add_column(sa.Column("plan_id", sa.Integer(), nullable=True))
+        batch_op.add_column(
+            sa.Column(
+                "status",
+                sa.String(length=30),
+                server_default=sa.text("'active'"),
+                nullable=False,
+            ),
+        )
+        batch_op.create_foreign_key("fk_companies_plan_id_plans", "plans", ["plan_id"], ["id"])
 
     plan_table = sa.table(
         "plans",
@@ -202,18 +203,20 @@ def upgrade() -> None:
     op.execute("UPDATE companies SET plan_id = 1 WHERE plan_id IS NULL")
     op.execute("UPDATE companies SET status = 'active' WHERE status IS NULL")
 
-    op.alter_column("companies", "plan_id", nullable=False)
+    with op.batch_alter_table("companies", schema=None) as batch_op:
+        batch_op.alter_column("plan_id", nullable=False)
 
 
 def downgrade() -> None:
     """Downgrade schema."""
-    op.alter_column("companies", "plan_id", nullable=True)
-    op.drop_constraint("fk_companies_plan_id_plans", "companies", type_="foreignkey")
-    op.drop_column("companies", "status")
-    op.drop_column("companies", "plan_id")
+    with op.batch_alter_table("companies", schema=None) as batch_op:
+        batch_op.drop_constraint("fk_companies_plan_id_plans", type_="foreignkey")
+        batch_op.drop_column("status")
+        batch_op.drop_column("plan_id")
 
-    op.drop_column("users", "two_factor_enabled")
-    op.drop_column("users", "phone")
+    with op.batch_alter_table("users", schema=None) as batch_op:
+        batch_op.drop_column("two_factor_enabled")
+        batch_op.drop_column("phone")
 
     op.drop_index(op.f("ix_audit_logs_id"), table_name="audit_logs")
     op.drop_table("audit_logs")

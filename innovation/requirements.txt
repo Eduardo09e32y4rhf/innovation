@@ -9,9 +9,8 @@ fastapi==0.128.0
 greenlet==3.3.1
 h11==0.16.0
 idna==3.11
-# innovation-ia==0.1.0
 passlib==1.7.4
-psycopg2-binary==2.9.11
+psycopg2==2.9.11  # Compilado localmente, preferível ao binary
 pyasn1==0.6.2
 pydantic==2.12.5
 pydantic-settings==2.12.0
@@ -28,3 +27,5 @@ gunicorn==23.0.0
 uvicorn[standard]==0.34.0
 sendgrid==6.11.0
 twilio==9.2.2
+alembic==1.14.0
+slowapi==0.1.9  # Rate limiting

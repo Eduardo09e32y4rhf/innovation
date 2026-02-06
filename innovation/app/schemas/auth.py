@@ -28,9 +28,11 @@ class LoginRequest(BaseModel):
 
 class Token(BaseModel):
     access_token: str
+    refresh_token: str = ""
     token_type: str = "bearer"
     two_factor_required: bool | None = None
-    user_id: int | None = None
+    temporary_token: str | None = None  # Token temporário para 2FA
+
 
 
 class UserOut(BaseModel):

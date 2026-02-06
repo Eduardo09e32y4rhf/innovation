@@ -1,10 +1,18 @@
 from __future__ import annotations
 
+import logging
 from sqlalchemy.orm import Session
 
-from app.core.security import create_access_token, get_password_hash, verify_password
+from app.core.security import (
+    create_access_token,
+    create_refresh_token,
+    get_password_hash,
+    verify_password
+)
 from app.models.company import Company
 from app.models.user import User
+
+logger = logging.getLogger(__name__)
 
 
 def _temp_cnpj_from_user_id(user_id: int) -> str:
@@ -42,7 +50,15 @@ def register_user(
     rs = (razao_social or company_name or "Minha Empresa").strip()
     city = (cidade or "São Paulo").strip()
     state = (uf or "SP").strip().upper()
-    if len(state) != 2:
+    
+    # Valida UF (Estados brasileiros)
+    valid_states = {
+        'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA',
+        'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN',
+        'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'
+    }
+    if state not in valid_states:
+        logger.warning(f"UF inválido '{state}', usando 'SP' como padrão")
         state = "SP"
 
     if cnpj:
@@ -68,15 +84,20 @@ def register_user(
     user.active_company_id = company.id
     db.commit()
     db.refresh(user)
+    logger.info(f"Usuário registrado: {user.email} (ID: {user.id})")
     return user
 
 
 def authenticate_user(db: Session, email: str, password: str | None, *, skip_password: bool = False):
     user = db.query(User).filter(User.email == email).first()
     if not user:
+        logger.warning(f"Tentativa de login com email inexistente: {email}")
         return None
     if not skip_password and (password is None or not verify_password(password, user.password_hash)):
+        logger.warning(f"Tentativa de login com senha incorreta: {email}")
         return None
 
-    token = create_access_token({"sub": str(user.id)})
-    return token, user
+    access_token = create_access_token({"sub": str(user.id)})
+    refresh_token = create_refresh_token(user.id)
+    logger.info(f"Autenticação bem-sucedida: {email} (ID: {user.id})")
+    return access_token, refresh_token, user

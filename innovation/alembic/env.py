@@ -33,8 +33,11 @@ from app.models import application_status_history as _application_status_history
 from app.models import candidate as _candidate  # noqa: F401,E402
 from app.models import document as _document  # noqa: F401,E402
 from app.models import audit_log as _audit_log  # noqa: F401,E402
+from app.models import two_factor_code as _two_factor_code  # noqa: F401,E402
+from app.models import refresh_token as _refresh_token  # noqa: F401,E402
 
 target_metadata = Base.metadata
+
 
 
 def run_migrations_offline() -> None:
@@ -45,6 +48,7 @@ def run_migrations_offline() -> None:
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
         compare_type=True,
+        render_as_batch=True,
     )
 
     with context.begin_transaction():
@@ -69,6 +73,7 @@ def run_migrations_online() -> None:
             connection=connection,
             target_metadata=target_metadata,
             compare_type=True,
+            render_as_batch=True,
         )
 
         with context.begin_transaction():
