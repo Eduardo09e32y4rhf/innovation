@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from typing import List
 
 from app.core.dependencies import (
     get_current_user,
@@ -14,6 +15,7 @@ from app.db.dependencies import get_db
 from app.models.application import Application
 from app.models.application_status_history import ApplicationStatusHistory
 from app.models.job import Job
+from app.schemas.application import ApplicationCreate, ApplicationOut, ApplicationUpdate
 from app.services.audit_service import log_event
 from app.services.notification_service import notify_application_status_change
 
@@ -23,7 +25,7 @@ router = APIRouter(prefix="/applications", tags=["Applications"])
 ALLOWED_APPLICATION_STATUSES = {"received", "in_review", "approved", "rejected"}
 
 
-@router.get("/me")
+@router.get("/me", response_model=List[ApplicationOut])
 def list_my_applications(
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
@@ -34,19 +36,10 @@ def list_my_applications(
         .order_by(Application.id.desc())
         .all()
     )
-    return [
-        {
-            "id": app.id,
-            "job_id": app.job_id,
-            "company_id": app.company_id,
-            "candidate_user_id": app.candidate_user_id,
-            "status": app.status,
-        }
-        for app in apps
-    ]
+    return apps
 
 
-@router.get("/company")
+@router.get("/company", response_model=List[ApplicationOut])
 def list_company_applications(
     db: Session = Depends(get_db),
     company_id: int = Depends(require_active_company),
@@ -58,16 +51,7 @@ def list_company_applications(
     if job_id:
         query = query.filter(Application.job_id == job_id)
     apps = query.order_by(Application.id.desc()).all()
-    return [
-        {
-            "id": app.id,
-            "job_id": app.job_id,
-            "company_id": app.company_id,
-            "candidate_user_id": app.candidate_user_id,
-            "status": app.status,
-        }
-        for app in apps
-    ]
+    return apps
 
 
 @router.get("/{application_id}/history")
@@ -106,34 +90,24 @@ def get_application_history(
     ]
 
 
-@router.post("")
+@router.post("", response_model=ApplicationOut)
 def apply_to_job(
-    payload: dict,
+    data: ApplicationCreate,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    job_id = payload.get("job_id")
-    if not job_id:
-        raise HTTPException(status_code=400, detail="job_id é obrigatório")
-
-    job = db.query(Job).filter(Job.id == job_id, Job.status == "open").first()
+    job = db.query(Job).filter(Job.id == data.job_id, Job.status == "open").first()
     if not job:
         raise HTTPException(status_code=404, detail="Vaga não encontrada")
 
     existing = (
         db.query(Application)
-        .filter(Application.job_id == job_id)
+        .filter(Application.job_id == data.job_id)
         .filter(Application.candidate_user_id == current_user.id)
         .first()
     )
     if existing:
-        return {
-            "id": existing.id,
-            "job_id": existing.job_id,
-            "company_id": existing.company_id,
-            "candidate_user_id": existing.candidate_user_id,
-            "status": existing.status,
-        }
+        return existing
 
     app = Application(
         job_id=job.id,
@@ -153,19 +127,13 @@ def apply_to_job(
         entity_type="application",
         entity_id=app.id,
     )
-    return {
-        "id": app.id,
-        "job_id": app.job_id,
-        "company_id": app.company_id,
-        "candidate_user_id": app.candidate_user_id,
-        "status": app.status,
-    }
+    return app
 
 
-@router.patch("/{application_id}")
+@router.patch("/{application_id}", response_model=ApplicationOut)
 def update_application(
     application_id: int,
-    payload: dict,
+    data: ApplicationUpdate,
     db: Session = Depends(get_db),
     company_id: int = Depends(require_active_company),
     _subscription=Depends(require_company_subscription),
@@ -180,7 +148,7 @@ def update_application(
     if not app:
         raise HTTPException(status_code=404, detail="Aplicação não encontrada")
 
-    status_value = payload.get("status")
+    status_value = data.status
     old_status = app.status
     status_changed = False
     if status_value:
@@ -217,10 +185,4 @@ def update_application(
             old_status=old_status,
             new_status=status_value,
         )
-    return {
-        "id": app.id,
-        "job_id": app.job_id,
-        "company_id": app.company_id,
-        "candidate_user_id": app.candidate_user_id,
-        "status": app.status,
-    }
+    return app
