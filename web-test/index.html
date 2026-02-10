@@ -4,465 +4,262 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Innovation.ia - Recrutamento com IA</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
-    rel="stylesheet">
+  <title>Innovation.ia | Recrutamento Inteligente</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            primary: '#3B82F6',
-            secondary: '#8B5CF6',
-          },
-          fontFamily: {
-            sans: ['Inter', 'sans-serif'],
-          },
-        }
-      }
-    }
-  </script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
   <style>
-    @keyframes fadeInUp {
-      from {
-        opacity: 0;
-        transform: translateY(30px);
-      }
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: #020617;
+      color: #ffffff;
+      overflow-x: hidden;
     }
 
-    @keyframes float {
-
-      0%,
-      100% {
-        transform: translateY(0);
-      }
-
-      50% {
-        transform: translateY(-20px);
-      }
-    }
-
-    .animate-fade-in-up {
-      animation: fadeInUp 0.8s ease-out;
-    }
-
-    .animate-float {
-      animation: float 3s ease-in-out infinite;
-    }
-
-    .gradient-text {
-      background: linear-gradient(135deg, #3B82F6, #8B5CF6);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+    .hero-glow {
+      position: absolute;
+      top: -10%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 80%;
+      height: 60%;
+      background: radial-gradient(circle, rgba(130, 10, 209, 0.15) 0%, rgba(2, 6, 23, 0) 70%);
+      z-index: -1;
+      filter: blur(80px);
     }
 
     .glass {
-      background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: rgba(255, 255, 255, 0.03);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .gradient-text {
+      background: linear-gradient(135deg, #ffffff 0%, #820AD1 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .btn-glow {
+      box-shadow: 0 0 20px rgba(130, 10, 209, 0.3);
+      transition: all 0.3s;
+    }
+
+    .btn-glow:hover {
+      box-shadow: 0 0 35px rgba(130, 10, 209, 0.5);
+      transform: translateY(-2px);
+    }
+
+    /* AI CHAT STYLES */
+    #chat-window {
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      transform: translateY(20px);
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    #chat-window.active {
+      transform: translateY(0);
+      opacity: 1;
+      pointer-events: auto;
     }
   </style>
 </head>
 
-<body class="font-sans antialiased">
+<body>
+  <div class="hero-glow"></div>
 
-  <!-- NAVIGATION -->
-  <nav class="fixed w-full z-50 bg-white/90 backdrop-blur-md shadow-sm">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="flex justify-between items-center h-16">
-        <div class="flex items-center">
-          <span class="text-2xl font-bold gradient-text">Innovation.ia</span>
-        </div>
-        <div class="hidden md:flex items-center gap-8">
-          <a href="#features" class="text-gray-600 hover:text-primary transition">Recursos</a>
-          <a href="#pricing" class="text-gray-600 hover:text-primary transition">Preços</a>
-          <a href="#about" class="text-gray-600 hover:text-primary transition">Sobre</a>
-          <a href="candidate/index.html" class="text-primary font-medium hover:text-blue-700 transition">Ver Vagas</a>
-          <a href="company/login.html"
-            class="bg-gradient-to-r from-primary to-secondary text-white px-6 py-2 rounded-lg font-medium hover:shadow-lg transition">
-            Começar Grátis
-          </a>
-        </div>
+  <!-- NAVBAR -->
+  <nav class="fixed top-0 w-full z-50 py-6 px-10 border-b border-white/5 bg-[#020617]/50 backdrop-blur-md">
+    <div class="max-w-7xl mx-auto flex justify-between items-center">
+      <h1 class="text-2xl font-extrabold tracking-tighter">Innovation<span class="text-[#820AD1]">.ia</span></h1>
+
+      <div class="hidden md:flex gap-10 text-sm font-semibold text-slate-400">
+        <a href="#features" class="hover:text-white transition">Soluções</a>
+        <a href="#about" class="hover:text-white transition">Como Funciona</a>
+        <a href="#pricing" class="hover:text-white transition">Preços</a>
+      </div>
+
+      <div class="flex gap-4">
+        <a href="/login" class="px-6 py-2.5 text-sm font-bold hover:text-[#820AD1] transition">Entrar</a>
+        <a href="/register" class="px-6 py-2.5 bg-[#820AD1] text-white text-sm font-bold rounded-full btn-glow">Empresa
+          Gratis</a>
       </div>
     </div>
   </nav>
 
-  <!-- HERO SECTION -->
-  <section class="relative pt-32 pb-20 px-4 overflow-hidden">
-    <!-- Background Gradient -->
-    <div class="absolute inset-0 bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 -z-10"></div>
-
-    <!-- Floating Elements -->
+  <!-- HERO -->
+  <section class="min-h-screen flex flex-col items-center justify-center text-center px-6 pt-20">
     <div
-      class="absolute top-20 left-10 w-72 h-72 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-float">
+      class="inline-block px-4 py-2 bg-white/5 rounded-full text-[#820AD1] text-xs font-bold tracking-widest uppercase mb-8 border border-white/10">
+      ✨ O Futuro do Recrutamento Chegou
     </div>
-    <div
-      class="absolute top-40 right-10 w-72 h-72 bg-blue-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-float"
-      style="animation-delay: 1s;"></div>
-
-    <div class="max-w-7xl mx-auto">
-      <div class="grid lg:grid-cols-2 gap-12 items-center">
-        <!-- Left Content -->
-        <div class="animate-fade-in-up">
-          <div class="inline-block px-4 py-2 bg-blue-100 rounded-full text-primary font-medium text-sm mb-6">
-            🚀 Recrutamento do Futuro
-          </div>
-          <h1 class="text-5xl lg:text-6xl font-black text-gray-900 leading-tight mb-6">
-            Contrate os
-            <span class="gradient-text">melhores talentos</span>
-            com inteligência artificial
-          </h1>
-          <p class="text-xl text-gray-600 mb-8 leading-relaxed">
-            Reduza 70% do tempo de recrutamento com triagem automática, matching inteligente e gestão completa de
-            candidatos.
-          </p>
-
-          <!-- CTA Buttons -->
-          <div class="flex flex-col sm:flex-row gap-4">
-            <a href="company/login.html"
-              class="inline-flex items-center justify-center px-8 py-4 bg-gradient-to-r from-primary to-secondary text-white rounded-xl font-semibold hover:shadow-2xl transition transform hover:scale-105">
-              Começar Gratuitamente
-              <svg class="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6">
-                </path>
-              </svg>
-            </a>
-            <a href="#demo"
-              class="inline-flex items-center justify-center px-8 py-4 bg-white border-2 border-gray-300 text-gray-700 rounded-xl font-semibold hover:border-primary hover:text-primary transition">
-              Ver Demonstração
-              <svg class="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z">
-                </path>
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-              </svg>
-            </a>
-          </div>
-
-          <!-- Stats -->
-          <div class="grid grid-cols-3 gap-6 mt-12">
-            <div>
-              <div class="text-3xl font-bold text-gray-900">70%</div>
-              <div class="text-sm text-gray-600">Tempo economizado</div>
-            </div>
-            <div>
-              <div class="text-3xl font-bold text-gray-900">1.2k+</div>
-              <div class="text-sm text-gray-600">Empresas ativas</div>
-            </div>
-            <div>
-              <div class="text-3xl font-bold text-gray-900">95%</div>
-              <div class="text-sm text-gray-600">Match accuracy</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Right Content - Image/Illustration -->
-        <div class="relative animate-fade-in-up" style="animation-delay: 0.3s;">
-          <div class="relative">
-            <img src="https://images.unsplash.com/photo-1552664730-d307ca884978?w=800&h=600&fit=crop" alt="Team"
-              class="rounded-2xl shadow-2xl">
-
-            <!-- Floating Cards -->
-            <div class="absolute -top-6 -left-6 bg-white p-4 rounded-xl shadow-lg animate-float">
-              <div class="flex items-center gap-3">
-                <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center text-2xl">✓</div>
-                <div>
-                  <div class="text-sm font-semibold text-gray-900">Match 95%</div>
-                  <div class="text-xs text-gray-500">João Silva</div>
-                </div>
-              </div>
-            </div>
-
-            <div class="absolute -bottom-6 -right-6 bg-white p-4 rounded-xl shadow-lg animate-float"
-              style="animation-delay: 1.5s;">
-              <div class="text-sm font-semibold text-gray-900">+458 candidatos</div>
-              <div class="text-xs text-gray-500">Esta semana</div>
-            </div>
-          </div>
-        </div>
-      </div>
+    <h2 class="text-6xl md:text-8xl font-black gradient-text leading-tight mb-8">
+      Encontre o talento <br> perfeito em segundos.
+    </h2>
+    <p class="text-slate-400 text-lg md:text-xl max-w-3xl leading-relaxed mb-12">
+      Nossa plataforma utiliza IA generativa para triar currículos, analisar perfis técnicos e
+      gerar matchings inteligentes, reduzindo em até 80% o tempo de contratação.
+    </p>
+    <div class="flex flex-col sm:flex-row gap-6">
+      <a href="/register"
+        class="px-10 py-5 bg-white text-black font-extrabold rounded-2xl hover:bg-slate-100 transition shadow-2xl">
+        Começar Agora
+      </a>
+      <a href="#demo" class="px-10 py-5 glass text-white font-extrabold rounded-2xl flex items-center gap-3">
+        <i class="fas fa-play text-[#820AD1]"></i> Ver Demo
+      </a>
     </div>
   </section>
 
-  <!-- FEATURES SECTION -->
-  <section id="features" class="py-20 px-4 bg-white">
-    <div class="max-w-7xl mx-auto">
-      <div class="text-center mb-16">
-        <h2 class="text-4xl font-bold text-gray-900 mb-4">Recursos Poderosos</h2>
-        <p class="text-xl text-gray-600">Tudo que você precisa para encontrar os melhores talentos</p>
+  <!-- FEATURES -->
+  <section id="features" class="py-32 px-10">
+    <div class="max-w-7xl mx-auto grid md:grid-cols-3 gap-8">
+      <div class="glass p-10 rounded-[2.5rem] hover:bg-white/5 transition duration-500">
+        <div class="w-16 h-16 bg-[#820AD1]/20 rounded-2xl flex items-center justify-center text-2xl mb-8">
+          <i class="fas fa-bolt text-[#820AD1]"></i>
+        </div>
+        <h3 class="text-2xl font-bold mb-4">Triagem Turbo</h3>
+        <p class="text-slate-500 leading-relaxed">
+          Nossa IA lê milhares de currículos em minutos e classifica os candidatos com base em competências reais.
+        </p>
       </div>
-
-      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-        <!-- Feature Cards -->
-        <div class="group p-8 bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl hover:shadow-xl transition">
-          <div
-            class="w-14 h-14 bg-primary rounded-xl flex items-center justify-center text-white text-2xl mb-4 group-hover:scale-110 transition">
-            🤖
-          </div>
-          <h3 class="text-xl font-bold text-gray-900 mb-3">Triagem com IA</h3>
-          <p class="text-gray-600">Algoritmo inteligente analisa currículos e faz matching automático com suas vagas</p>
+      <div class="glass p-10 rounded-[2.5rem] hover:bg-white/5 transition duration-500">
+        <div class="w-16 h-16 bg-blue-500/20 rounded-2xl flex items-center justify-center text-2xl mb-8 text-blue-500">
+          <i class="fas fa-brain"></i>
         </div>
-
-        <div class="group p-8 bg-gradient-to-br from-purple-50 to-purple-100 rounded-2xl hover:shadow-xl transition">
-          <div
-            class="w-14 h-14 bg-secondary rounded-xl flex items-center justify-center text-white text-2xl mb-4 group-hover:scale-110 transition">
-            ⚡
-          </div>
-          <h3 class="text-xl font-bold text-gray-900 mb-3">Super Rápido</h3>
-          <p class="text-gray-600">Reduza de semanas para dias o processo de contratação completo</p>
-        </div>
-
-        <div class="group p-8 bg-gradient-to-br from-green-50 to-green-100 rounded-2xl hover:shadow-xl transition">
-          <div
-            class="w-14 h-14 bg-green-500 rounded-xl flex items-center justify-center text-white text-2xl mb-4 group-hover:scale-110 transition">
-            📊
-          </div>
-          <h3 class="text-xl font-bold text-gray-900 mb-3">Analytics Completo</h3>
-          <p class="text-gray-600">Acompanhe métricas, conversão e performance do seu recrutamento</p>
-        </div>
-
-        <div class="group p-8 bg-gradient-to-br from-pink-50 to-pink-100 rounded-2xl hover:shadow-xl transition">
-          <div
-            class="w-14 h-14 bg-pink-500 rounded-xl flex items-center justify-center text-white text-2xl mb-4 group-hover:scale-110 transition">
-            📱
-          </div>
-          <h3 class="text-xl font-bold text-gray-900 mb-3">App Mobile</h3>
-          <p class="text-gray-600">Candidatos se candidatam pelo celular com apenas alguns cliques</p>
-        </div>
-
-        <div class="group p-8 bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-2xl hover:shadow-xl transition">
-          <div
-            class="w-14 h-14 bg-yellow-500 rounded-xl flex items-center justify-center text-white text-2xl mb-4 group-hover:scale-110 transition">
-            🔔
-          </div>
-          <h3 class="text-xl font-bold text-gray-900 mb-3">Notificações Smart</h3>
-          <p class="text-gray-600">Avisos automáticos para novas candidaturas e mudanças de status</p>
-        </div>
-
-        <div class="group p-8 bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-2xl hover:shadow-xl transition">
-          <div
-            class="w-14 h-14 bg-indigo-500 rounded-xl flex items-center justify-center text-white text-2xl mb-4 group-hover:scale-110 transition">
-            🔒
-          </div>
-          <h3 class="text-xl font-bold text-gray-900 mb-3">100% Seguro</h3>
-          <p class="text-gray-600">Dados protegidos com criptografia e conformidade LGPD</p>
-        </div>
+        <h3 class="text-2xl font-bold mb-4">IA Generativa</h3>
+        <p class="text-slate-500 leading-relaxed">
+          Gere descrições de vagas vendedoras e perguntas de entrevista personalizadas com suporte do Gemini Pro.
+        </p>
       </div>
-    </div>
-  </section>
-
-  <!-- PRICING SECTION -->
-  <section id="pricing" class="py-20 px-4 bg-gray-50">
-    <div class="max-w-7xl mx-auto">
-      <div class="text-center mb-16">
-        <h2 class="text-4xl font-bold text-gray-900 mb-4">Planos Transparentes</h2>
-        <p class="text-xl text-gray-600">Escolha o melhor para sua empresa</p>
-      </div>
-
-      <div class="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-        <!-- Starter -->
-        <div class="bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition">
-          <h3 class="text-2xl font-bold text-gray-900 mb-2">Starter</h3>
-          <div class="mb-6">
-            <span class="text-5xl font-bold text-primary">R$ 49</span>
-            <span class="text-gray-600">/mês</span>
-          </div>
-          <ul class="space-y-4 mb-8">
-            <li class="flex items-start">
-              <svg class="w-6 h-6 text-green-500 mr-3 flex-shrink-0" fill="none" stroke="currentColor"
-                viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-              </svg>
-              <span class="text-gray-600">5 vagas ativas</span>
-            </li>
-            <li class="flex items-start">
-              <svg class="w-6 h-6 text-green-500 mr-3 flex-shrink-0" fill="none" stroke="currentColor"
-                viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-              </svg>
-              <span class="text-gray-600">50 candidaturas/mês</span>
-            </li>
-            <li class="flex items-start">
-              <svg class="w-6 h-6 text-green-500 mr-3 flex-shrink-0" fill="none" stroke="currentColor"
-                viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-              </svg>
-              <span class="text-gray-600">Suporte por email</span>
-            </li>
-          </ul>
-          <a href="company/login.html"
-            class="block w-full text-center px-6 py-3 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition">
-            Começar
-          </a>
-        </div>
-
-        <!-- Pro (Featured) -->
+      <div class="glass p-10 rounded-[2.5rem] hover:bg-white/5 transition duration-500">
         <div
-          class="bg-gradient-to-br from-primary to-secondary rounded-2xl p-8 shadow-2xl transform scale-105 relative">
-          <div class="absolute -top-4 left-1/2 transform -translate-x-1/2">
-            <span class="bg-yellow-400 text-gray-900 px-4 py-1 rounded-full text-sm font-bold">Mais Popular</span>
-          </div>
-          <h3 class="text-2xl font-bold text-white mb-2">Pro</h3>
-          <div class="mb-6">
-            <span class="text-5xl font-bold text-white">R$ 99</span>
-            <span class="text-blue-100">/mês</span>
-          </div>
-          <ul class="space-y-4 mb-8">
-            <li class="flex items-start">
-              <svg class="w-6 h-6 text-green-300 mr-3 flex-shrink-0" fill="none" stroke="currentColor"
-                viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-              </svg>
-              <span class="text-white">20 vagas ativas</span>
-            </li>
-            <li class="flex items-start">
-              <svg class="w-6 h-6 text-green-300 mr-3 flex-shrink-0" fill="none" stroke="currentColor"
-                viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-              </svg>
-              <span class="text-white">Candidaturas ilimitadas</span>
-            </li>
-            <li class="flex items-start">
-              <svg class="w-6 h-6 text-green-300 mr-3 flex-shrink-0" fill="none" stroke="currentColor"
-                viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-              </svg>
-              <span class="text-white">IA avançada</span>
-            </li>
-            <li class="flex items-start">
-              <svg class="w-6 h-6 text-green-300 mr-3 flex-shrink-0" fill="none" stroke="currentColor"
-                viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-              </svg>
-              <span class="text-white">Suporte prioritário</span>
-            </li>
-          </ul>
-          <a href="company/login.html"
-            class="block w-full text-center px-6 py-3 bg-white text-primary rounded-lg font-semibold hover:bg-gray-100 transition">
-            Começar Agora
-          </a>
+          class="w-16 h-16 bg-green-500/20 rounded-2xl flex items-center justify-center text-2xl mb-8 text-green-500">
+          <i class="fas fa-chart-pie"></i>
         </div>
-
-        <!-- Enterprise -->
-        <div class="bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition">
-          <h3 class="text-2xl font-bold text-gray-900 mb-2">Enterprise</h3>
-          <div class="mb-6">
-            <span class="text-5xl font-bold text-gray-900">Custom</span>
-          </div>
-          <ul class="space-y-4 mb-8">
-            <li class="flex items-start">
-              <svg class="w-6 h-6 text-green-500 mr-3 flex-shrink-0" fill="none" stroke="currentColor"
-                viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-              </svg>
-              <span class="text-gray-600">Vagas ilimitadas</span>
-            </li>
-            <li class="flex items-start">
-              <svg class="w-6 h-6 text-green-500 mr-3 flex-shrink-0" fill="none" stroke="currentColor"
-                viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-              </svg>
-              <span class="text-gray-600">White label</span>
-            </li>
-            <li class="flex items-start">
-              <svg class="w-6 h-6 text-green-500 mr-3 flex-shrink-0" fill="none" stroke="currentColor"
-                viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-              </svg>
-              <span class="text-gray-600">API dedicada</span>
-            </li>
-            <li class="flex items-start">
-              <svg class="w-6 h-6 text-green-500 mr-3 flex-shrink-0" fill="none" stroke="currentColor"
-                viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-              </svg>
-              <span class="text-gray-600">Suporte 24/7</span>
-            </li>
-          </ul>
-          <a href="mailto:contato@innovation.ia"
-            class="block w-full text-center px-6 py-3 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition">
-            Falar com Vendas
-          </a>
-        </div>
+        <h3 class="text-2xl font-bold mb-4">Analytics de Elite</h3>
+        <p class="text-slate-500 leading-relaxed">
+          Dashboards preditivos que revelam a qualidade real do seu pipeline e o tempo médio para fechamento.
+        </p>
       </div>
     </div>
   </section>
 
-  <!-- CTA FINAL -->
-  <section class="py-20 px-4 bg-gradient-to-r from-primary to-secondary">
-    <div class="max-w-4xl mx-auto text-center">
-      <h2 class="text-4xl md:text-5xl font-bold text-white mb-6">
-        Pronto para revolucionar seu recrutamento?
-      </h2>
-      <p class="text-xl text-blue-100 mb-8">
-        Junte-se a mais de 1.200 empresas que já contratam melhor com Innovation.ia
-      </p>
-      <div class="flex flex-col sm:flex-row gap-4 justify-center">
-        <a href="company/login.html"
-          class="inline-flex items-center justify-center px-8 py-4 bg-white text-primary rounded-xl font-semibold hover:shadow-2xl transition transform hover:scale-105">
-          Começar Gratuitamente
-          <svg class="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
-          </svg>
-        </a>
-        <a href="candidate/index.html"
-          class="inline-flex items-center justify-center px-8 py-4 bg-transparent border-2 border-white text-white rounded-xl font-semibold hover:bg-white hover:text-primary transition">
-          Ver Vagas Disponíveis
-        </a>
+  <!-- CHATBOT -->
+  <div id="ai-chat-container" class="fixed bottom-8 right-8 z-50">
+    <button onclick="toggleChat()"
+      class="w-16 h-16 bg-[#820AD1] text-white rounded-full shadow-[0_8px_30px_rgba(130,10,209,0.5)] flex items-center justify-center hover:scale-110 transition-all active:scale-95 group relative">
+      <i class="fas fa-robot text-2xl"></i>
+    </button>
+
+    <div id="chat-window"
+      class="absolute bottom-20 right-0 w-96 bg-[#0f172a] rounded-3xl shadow-2xl border border-white/10 flex flex-col overflow-hidden">
+      <div class="bg-[#820AD1] p-6 text-white flex justify-between items-center">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center font-bold">G</div>
+          <div>
+            <p class="font-bold text-sm">IA Consultation</p>
+            <p class="text-[10px] text-purple-200 uppercase font-black tracking-widest">Atendimento 24/7</p>
+          </div>
+        </div>
+        <button onclick="toggleChat()"><i class="fas fa-times"></i></button>
       </div>
-      <p class="mt-6 text-blue-100 text-sm">
-        ✓ Sem cartão de crédito ✓ Setup em 2 minutos ✓ Cancele quando quiser
-      </p>
+
+      <div id="chat-messages" class="h-80 overflow-y-auto p-6 space-y-4 bg-[#020617]/50">
+        <div class="flex gap-3">
+          <div class="w-8 h-8 bg-[#820AD1] rounded-lg flex items-center justify-center text-[10px] shrink-0 font-bold">
+            IA</div>
+          <div class="bg-white/5 p-4 rounded-2xl rounded-tl-none text-sm text-slate-300 border border-white/5">
+            Olá! Sou a assistente da Innovation.ia. Quer saber como nossa IA pode transformar seu RH ou precisa de ajuda
+            com seu plano?
+          </div>
+        </div>
+      </div>
+
+      <div class="p-4 bg-[#0f172a] border-t border-white/5 flex gap-2">
+        <input type="text" id="chat-input" placeholder="Digite sua dúvida..."
+          class="flex-1 bg-white/5 border-none rounded-2xl px-4 py-3 text-sm text-white focus:ring-1 focus:ring-[#820AD1] outline-none"
+          onkeypress="if(event.key === 'Enter') sendMessage()">
+        <button onclick="sendMessage()"
+          class="w-12 h-12 bg-[#820AD1] text-white rounded-xl flex items-center justify-center hover:bg-[#6c06b0] transition">
+          <i class="fas fa-paper-plane text-xs"></i>
+        </button>
+      </div>
     </div>
-  </section>
+  </div>
 
   <!-- FOOTER -->
-  <footer class="bg-gray-900 text-gray-400 py-12 px-4">
-    <div class="max-w-7xl mx-auto">
-      <div class="grid md:grid-cols-4 gap-8 mb-8">
-        <div>
-          <h3 class="text-white font-bold text-xl mb-4">Innovation.ia</h3>
-          <p class="text-sm">Recrutamento inteligente com IA</p>
-        </div>
-        <div>
-          <h4 class="text-white font-semibold mb-4">Produto</h4>
-          <ul class="space-y-2 text-sm">
-            <li><a href="#features" class="hover:text-white transition">Recursos</a></li>
-            <li><a href="#pricing" class="hover:text-white transition">Preços</a></li>
-            <li><a href="candidate/index.html" class="hover:text-white transition">Vagas</a></li>
-          </ul>
-        </div>
-        <div>
-          <h4 class="text-white font-semibold mb-4">Empresa</h4>
-          <ul class="space-y-2 text-sm">
-            <li><a href="#about" class="hover:text-white transition">Sobre</a></li>
-            <li><a href="#" class="hover:text-white transition">Blog</a></li>
-            <li><a href="#" class="hover:text-white transition">Contato</a></li>
-          </ul>
-        </div>
-        <div>
-          <h4 class="text-white font-semibold mb-4">Legal</h4>
-          <ul class="space-y-2 text-sm">
-            <li><a href="#" class="hover:text-white transition">Privacidade</a></li>
-            <li><a href="#" class="hover:text-white transition">Termos</a></li>
-          </ul>
-        </div>
+  <footer class="py-20 border-t border-white/5 px-10">
+    <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-10 text-slate-500 text-sm">
+      <h2 class="text-xl font-black text-white">Innovation<span class="text-[#820AD1]">.ia</span></h2>
+      <div class="flex gap-10">
+        <a href="#" class="hover:text-white">Termos</a>
+        <a href="#" class="hover:text-white">Privacidade</a>
+        <a href="#" class="hover:text-white">LinkedIn</a>
       </div>
-      <div class="border-t border-gray-800 pt-8 text-center text-sm">
-        <p>&copy; 2026 Innovation.ia. Todos os direitos reservados.</p>
-      </div>
+      <p>© 2026 Innovation Tech. Todos os direitos reservados.</p>
     </div>
   </footer>
 
+  <script>
+    function toggleChat() {
+      document.getElementById('chat-window').classList.toggle('active');
+      document.getElementById('chat-window').classList.toggle('hidden');
+    }
+    document.getElementById('chat-window').classList.add('hidden');
+
+    async function sendMessage() {
+      const input = document.getElementById('chat-input');
+      const container = document.getElementById('chat-messages');
+      const text = input.value.trim();
+      if (!text) return;
+
+      container.innerHTML += `
+                <div class="flex justify-end">
+                    <div class="bg-[#820AD1] text-white p-4 rounded-2xl rounded-tr-none text-sm font-medium">
+                        ${text}
+                    </div>
+                </div>
+            `;
+      input.value = '';
+      container.scrollTop = container.scrollHeight;
+
+      const loadingId = 'loading-' + Date.now();
+      container.innerHTML += `
+                <div class="flex gap-3" id="${loadingId}">
+                    <div class="w-8 h-8 bg-[#820AD1] rounded-lg flex items-center justify-center text-[10px] shrink-0 font-bold">IA</div>
+                    <div class="bg-white/5 p-4 rounded-2xl rounded-tl-none text-sm text-slate-500 border border-white/5 italic">
+                        Processando sua pergunta...
+                    </div>
+                </div>
+            `;
+      container.scrollTop = container.scrollHeight;
+
+      try {
+        const res = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: text })
+        });
+        const data = await res.json();
+        document.getElementById(loadingId).remove();
+        container.innerHTML += `
+                    <div class="flex gap-3">
+                        <div class="w-8 h-8 bg-[#820AD1] rounded-lg flex items-center justify-center text-[10px] shrink-0 font-bold">IA</div>
+                        <div class="bg-white/5 p-4 rounded-2xl rounded-tl-none text-sm text-slate-300 border border-white/5 leading-relaxed">
+                            ${data.response}
+                        </div>
+                    </div>
+                `;
+        container.scrollTop = container.scrollHeight;
+      } catch (e) {
+        document.getElementById(loadingId).remove();
+        container.innerHTML += `<div class="text-center text-red-500 text-[10px] font-bold">Erro de conexão.</div>`;
+      }
+    }
+  </script>
 </body>
 
 </html>

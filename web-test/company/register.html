@@ -4,160 +4,148 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Criar Conta Empresa - Innovation.ia</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/common/css/design-system.css">
+    <title>Registro | Innovation.ia</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
         body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: var(--space-4);
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #f8fafc;
         }
 
-        .register-container {
+        .register-card {
             background: white;
-            border-radius: var(--radius-2xl);
-            padding: var(--space-8);
-            box-shadow: var(--shadow-xl);
+            border-radius: 2.5rem;
+            padding: 3.5rem;
+            box-shadow: 0 20px 50px -12px rgba(0, 0, 0, 0.05);
             width: 100%;
-            max-width: 500px;
-            animation: slideUp 0.5s ease;
+            max-width: 520px;
         }
 
-        .logo {
-            text-align: center;
-            margin-bottom: var(--space-6);
+        .input-nubank {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 1.25rem;
+            padding: 1rem 1.25rem;
+            outline: none;
+            transition: all 0.3s;
         }
 
-        .logo h1 {
-            font-size: var(--text-3xl);
-            font-weight: 700;
-            background: linear-gradient(135deg, var(--color-primary-500), var(--color-secondary-500));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+        .input-nubank:focus {
+            border-color: #820AD1;
+            background: white;
+            box-shadow: 0 0 0 4px rgba(130, 10, 209, 0.05);
         }
 
-        .logo p {
-            color: var(--color-gray-600);
-            font-size: var(--text-sm);
-            margin-top: var(--space-2);
-        }
-
-        .form-group {
-            margin-bottom: var(--space-4);
-        }
-
-        .form-label {
-            display: block;
-            font-weight: 600;
-            font-size: var(--text-sm);
-            color: var(--color-gray-700);
-            margin-bottom: var(--space-2);
-        }
-
-        .form-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: var(--space-4);
-        }
-
-        .error-message {
-            background: #FEE2E2;
-            color: #991B1B;
-            padding: var(--space-3);
-            border-radius: var(--radius-md);
-            font-size: var(--text-sm);
-            margin-bottom: var(--space-4);
-            display: none;
-        }
-
-        .error-message.show {
-            display: block;
+        .btn-purple {
+            background-color: #820AD1;
+            color: white;
+            font-weight: 800;
+            padding: 1.25rem;
+            border-radius: 1.25rem;
+            transition: all 0.3s;
+            box-shadow: 0 10px 25px rgba(130, 10, 209, 0.2);
         }
     </style>
 </head>
 
-<body>
-    <div class="register-container">
-        <div class="logo">
-            <h1>Innovation.ia</h1>
-            <p>Crie sua conta corporativa</p>
+<body class="min-h-screen flex items-center justify-center p-6">
+
+    <div class="register-card">
+        <div class="text-center mb-10">
+            <h1 class="text-3xl font-black tracking-tighter text-slate-900 mb-2">Innovation<span
+                    class="text-[#820AD1]">.ia</span></h1>
+            <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Expansão de Ecossistema</p>
         </div>
 
-        <div id="errorMessage" class="error-message"></div>
+        <div id="errorMessage"
+            class="hidden bg-red-50 text-red-600 p-4 rounded-xl mb-6 text-sm font-bold border border-red-100 italic">
+        </div>
 
-        <form id="registerForm">
-            <div class="form-group">
-                <label class="form-label">Nome da Empresa</label>
-                <input type="text" id="company_name" class="input" placeholder="Minha Empresa LTDA" required>
+        <form id="registerForm" class="space-y-5">
+            <div>
+                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Razão Social /
+                    Empresa</label>
+                <input type="text" id="company_name" class="w-full input-nubank" placeholder="Sua Empresa LTDA"
+                    required>
             </div>
-
-            <div class="form-group">
-                <label class="form-label">Email Corporativo</label>
-                <input type="email" id="email" class="input" placeholder="voce@empresa.com" required>
+            <div>
+                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Email
+                    Corporativo</label>
+                <input type="email" id="email" class="w-full input-nubank" placeholder="contato@empresa.com" required>
             </div>
-
-            <div class="form-grid">
-                <div class="form-group">
-                    <label class="form-label">Senha</label>
-                    <input type="password" id="password" class="input" placeholder="••••••••" required>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label
+                        class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Senha</label>
+                    <input type="password" id="password" class="w-full input-nubank" placeholder="••••••••" required>
                 </div>
-                <div class="form-group">
-                    <label class="form-label">Confirmar Senha</label>
-                    <input type="password" id="confirm_password" class="input" placeholder="••••••••" required>
+                <div>
+                    <label
+                        class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Confirmar</label>
+                    <input type="password" id="confirm_password" class="w-full input-nubank" placeholder="••••••••"
+                        required>
                 </div>
             </div>
 
-            <button type="submit" class="btn btn-primary btn-lg" style="width: 100%; margin-top: var(--space-4);"
-                id="registerBtn">
-                Criar Conta
+            <button type="submit" class="w-full btn-purple mt-4" id="registerBtn">
+                Criar Conta Pro
             </button>
         </form>
 
-        <div style="text-align: center; margin-top: var(--space-6);">
-            <p style="color: var(--color-gray-600); font-size: var(--text-sm);">
-                Já tem uma conta? <a href="/login"
-                    style="color: var(--color-primary-600); text-decoration: none; font-weight: 600;">Faça login</a>
+        <div class="mt-10 text-center pt-8 border-t border-slate-50">
+            <p class="text-slate-400 text-sm font-bold">
+                Já possui acesso? <br>
+                <a href="/login" class="text-[#820AD1] hover:underline mt-2 inline-block">Fazer Login no Portal</a>
             </p>
         </div>
     </div>
 
-    <script src="/static/company/js/auth.js"></script>
     <script>
         document.getElementById('registerForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-
             const btn = document.getElementById('registerBtn');
             const errorDiv = document.getElementById('errorMessage');
             const password = document.getElementById('password').value;
             const confirm = document.getElementById('confirm_password').value;
 
             if (password !== confirm) {
-                errorDiv.textContent = 'As senhas não coincidem';
-                errorDiv.classList.add('show');
+                errorDiv.textContent = 'As senhas não coincidem.';
+                errorDiv.classList.remove('hidden');
                 return;
             }
 
-            errorDiv.classList.remove('show');
             btn.disabled = true;
-            btn.innerHTML = '<span class="spinner"></span> Criando...';
+            btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i>';
 
-            // Simulação ou chamada real
             try {
-                // await register(...)
-                alert('Conta criada com sucesso! Faça login.');
-                window.location.href = 'login.html';
+                const data = {
+                    company_name: document.getElementById('company_name').value,
+                    email: document.getElementById('email').value,
+                    password: password
+                };
+
+                const res = await fetch('/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                if (res.ok) {
+                    alert('Conta criada com sucesso!');
+                    window.location.href = '/login';
+                } else {
+                    const err = await res.json();
+                    throw new Error(err.detail || 'Erro no registro.');
+                }
             } catch (error) {
                 errorDiv.textContent = error.message;
-                errorDiv.classList.add('show');
+                errorDiv.classList.remove('hidden');
             } finally {
                 btn.disabled = false;
-                btn.textContent = 'Criar Conta';
+                btn.innerHTML = 'Criar Conta Pro';
             }
         });
     </script>

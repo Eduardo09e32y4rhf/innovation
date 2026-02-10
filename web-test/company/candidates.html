@@ -6,207 +6,237 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Candidatos | Innovation.ia</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
         body {
-            font-family: 'Inter', sans-serif;
+            font-family: 'Plus Jakarta Sans', sans-serif;
             background-color: #f8fafc;
+            color: #1e293b;
         }
 
-        .sidebar-link:hover {
-            background: rgba(59, 130, 246, 0.1);
-            color: #3b82f6;
+        .sidebar {
+            background-color: #820AD1;
+            color: white;
+            border-top-right-radius: 2rem;
+            border-bottom-right-radius: 2rem;
         }
 
-        .active-link {
-            background: #3b82f6;
-            color: white !important;
+        .nav-link {
+            color: rgba(255, 255, 255, 0.8);
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            padding: 0.85rem 1.5rem;
+            border-radius: 1rem;
+            gap: 1rem;
+            margin: 0.25rem 1rem;
+            transition: 0.2s;
         }
 
-        /* Mobile Sidebar Overlay */
-        #sidebar-overlay {
-            background-color: rgba(0, 0, 0, 0.5);
-            transition: opacity 0.3s;
+        .nav-link:hover,
+        .nav-link.active {
+            background-color: rgba(255, 255, 255, 0.15);
+            color: white;
+        }
+
+        .content-card {
+            background: white;
+            border-radius: 2rem;
+            padding: 2.5rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+        }
+
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            background: #f3e8ff;
+            color: #820AD1;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Floating Chat Widget */
+        #chat-widget {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            width: 350px;
+            height: 500px;
+            background: white;
+            border-radius: 2rem;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.1);
+            display: none;
+            flex-direction: column;
+            z-index: 100;
+            overflow: hidden;
+            border: 1px solid #f1f5f9;
+        }
+
+        .chat-header {
+            background: #820AD1;
+            color: white;
+            padding: 1.5rem;
+            font-weight: 800;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .message {
+            padding: 0.75rem 1rem;
+            border-radius: 1rem;
+            max-width: 80%;
+            font-size: 0.875rem;
+        }
+
+        .msg-ai {
+            background: #f3e8ff;
+            color: #820AD1;
+            align-self: flex-start;
+        }
+
+        .msg-user {
+            background: #820AD1;
+            color: white;
+            align-self: flex-end;
+        }
+
+        .chat-input {
+            padding: 1rem;
+            border-top: 1px solid #f1f5f9;
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .chat-input input {
+            flex: 1;
+            border: none;
+            outline: none;
+            background: #f8fafc;
+            padding: 0.75rem 1rem;
+            border-radius: 1rem;
+            font-size: 0.875rem;
         }
     </style>
 </head>
 
 <body class="flex h-screen overflow-hidden">
 
-    <!-- MOBILE OVERLAY -->
-    <div id="sidebar-overlay" class="fixed inset-0 z-40 hidden opacity-0" onclick="toggleSidebar()"></div>
-
-    <!-- SIDEBAR -->
-    <aside id="sidebar"
-        class="w-64 bg-white border-r border-gray-200 fixed inset-y-0 left-0 transform -translate-x-full md:translate-x-0 md:relative flex flex-col transition-transform duration-300 ease-in-out z-50">
-        <div class="p-6 flex justify-between items-center">
-            <span
-                class="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Innovation.ia</span>
-            <button class="md:hidden text-gray-500" onclick="toggleSidebar()">✕</button>
+    <aside class="w-72 h-screen sidebar flex flex-col flex-shrink-0 z-20">
+        <div class="p-8">
+            <h1 class="text-2xl font-black tracking-tighter">Innovation.ia</h1>
         </div>
-        <nav class="flex-1 px-4 space-y-2">
-            <a href="/dashboard"
-                class="sidebar-link flex items-center p-3 rounded-xl transition text-gray-600 hover:text-blue-600">
-                <span class="mr-3">📊</span> Dashboard
-            </a>
-            <a href="/vagas"
-                class="sidebar-link flex items-center p-3 rounded-xl transition text-gray-600 hover:text-blue-600">
-                <span class="mr-3">💼</span> Minhas Vagas
-            </a>
-            <a href="/candidatos" class="sidebar-link active-link flex items-center p-3 rounded-xl transition">
-                <span class="mr-3">👥</span> Candidatos
-            </a>
-            <a href="/configuracoes"
-                class="sidebar-link flex items-center p-3 rounded-xl transition text-gray-600 hover:text-blue-600">
-                <span class="mr-3">⚙️</span> Configurações
-            </a>
+        <nav class="flex-1 space-y-1">
+            <div class="text-[10px] font-bold text-white/40 uppercase tracking-[0.2em] mb-4 px-8">Menu Principal</div>
+            <a href="/dashboard" class="nav-link"><i class="fas fa-chart-pie w-5"></i> <span>Dashboard</span></a>
+            <a href="/vagas" class="nav-link"><i class="fas fa-briefcase w-5"></i> <span>Minhas Vagas</span></a>
+            <a href="/candidatos" class="nav-link active"><i class="fas fa-users w-5"></i> <span>Candidatos</span></a>
+            <a href="/configuracoes" class="nav-link"><i class="fas fa-cog w-5"></i> <span>Configurações</span></a>
+            <button onclick="toggleChat()" class="nav-link w-[calc(100%-2rem)]">
+                <i class="fas fa-comment-dots w-5"></i> <span>Chat IA</span>
+            </button>
         </nav>
+        <div class="p-8 border-t border-white/10">
+            <button onclick="logout()"
+                class="flex items-center text-white/60 hover:text-white transition w-full font-bold text-sm">
+                <i class="fas fa-sign-out-alt mr-3"></i> Sair do Portal
+            </button>
+        </div>
     </aside>
 
-    <!-- MAIN CONTENT -->
-    <main class="flex-1 overflow-y-auto p-4 md:p-8 w-full">
-        <!-- MOBILE HEADER -->
-        <div class="md:hidden flex items-center mb-6">
-            <button onclick="toggleSidebar()" class="text-gray-600 p-2 mr-4 rounded-lg hover:bg-gray-100">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16">
-                    </path>
-                </svg>
-            </button>
-            <span class="text-xl font-bold text-gray-800">Candidatos</span>
-        </div>
+    <main class="flex-1 overflow-y-auto p-12">
+        <div class="max-w-7xl mx-auto">
+            <header class="mb-12">
+                <h2 class="text-4xl font-extrabold text-slate-900 tracking-tight">Base de Candidatos</h2>
+                <p class="text-slate-400 mt-1 font-medium italic">Ranking de compatibilidade processado pela nossa IA.
+                </p>
+            </header>
 
-        <header class="hidden md:flex justify-between items-center mb-8">
-            <div>
-                <h1 class="text-2xl font-bold text-gray-800">Candidatos</h1>
-                <p class="text-gray-500 text-sm mt-1">Gerencie os talentos que se aplicaram às suas vagas</p>
-            </div>
-        </header>
-
-        <!-- TABLE -->
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-            <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse">
-                    <thead class="bg-gray-50 border-b border-gray-100">
-                        <tr class="text-xs uppercase text-gray-500 font-semibold tracking-wider">
-                            <th class="px-6 py-4">Nome / Email</th>
-                            <th class="px-6 py-4 hidden sm:table-cell">Vaga</th>
-                            <th class="px-6 py-4">Score IA</th>
-                            <th class="px-6 py-4 hidden sm:table-cell">Status</th>
-                            <th class="px-6 py-4 text-right">Ações</th>
+            <div class="content-card overflow-hidden">
+                <table class="w-full text-left">
+                    <thead
+                        class="text-[10px] font-black uppercase text-slate-400 tracking-widest border-b border-slate-50">
+                        <tr>
+                            <th class="px-8 py-6">Talento</th>
+                            <th class="px-8 py-6">Vaga Aplicada</th>
+                            <th class="px-8 py-6">Score Gemini</th>
+                            <th class="px-8 py-6 text-right">Ação</th>
                         </tr>
                     </thead>
-                    <tbody id="candidates-table-body" class="divide-y divide-gray-100 text-sm text-gray-700">
-                        <tr>
-                            <td colspan="5" class="px-6 py-8 text-center text-gray-400">
-                                Carregando candidatos...
-                            </td>
-                        </tr>
+                    <tbody id="candidates-rows" class="divide-y divide-slate-50">
+                        <!-- Via JS -->
                     </tbody>
                 </table>
-            </div>
-            <!-- Pagination -->
-            <div class="px-6 py-4 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
-                <span>Total de resultados</span>
-                <div class="flex gap-2">
-                    <button class="px-3 py-1 border rounded hover:bg-gray-50">Anterior</button>
-                    <button class="px-3 py-1 border rounded hover:bg-gray-50">Próxima</button>
-                </div>
             </div>
         </div>
     </main>
 
+    <!-- CHAT WIDGET -->
+    <div id="chat-widget">
+        <div class="chat-header"><span>Assistente Innovation IA</span><button onclick="toggleChat()"><i
+                    class="fas fa-times"></i></button></div>
+        <div class="chat-messages" id="chat-messages">
+            <div class="message msg-ai">Olá! Como posso ajudar na triagem de candidatos hoje?</div>
+        </div>
+        <div class="chat-input"><input type="text" id="user-input" placeholder="Pergunte sobre um candidato..."><button
+                onclick="sendMessage()" class="p-2 text-[#820AD1]"><i class="fas fa-paper-plane"></i></button></div>
+    </div>
+
     <script>
-        function toggleSidebar() {
-            const sidebar = document.getElementById('sidebar');
-            const overlay = document.getElementById('sidebar-overlay');
+        function logout() { localStorage.removeItem('token'); window.location.href = '/login'; }
+        function toggleChat() { const chat = document.getElementById('chat-widget'); chat.style.display = chat.style.display === 'flex' ? 'none' : 'flex'; }
 
-            if (sidebar.classList.contains('-translate-x-full')) {
-                // Open
-                sidebar.classList.remove('-translate-x-full');
-                overlay.classList.remove('hidden');
-                setTimeout(() => overlay.classList.remove('opacity-0'), 10);
-            } else {
-                // Close
-                sidebar.classList.add('-translate-x-full');
-                overlay.classList.add('opacity-0');
-                setTimeout(() => overlay.classList.add('hidden'), 300);
-            }
-        }
-
-        async function loadCandidates() {
+        async function sendMessage() {
+            const input = document.getElementById('user-input');
+            const msg = input.value;
+            if (!msg) return;
+            const chat = document.getElementById('chat-messages');
+            chat.innerHTML += `<div class="message msg-user">${msg}</div>`;
+            input.value = '';
             try {
-                const response = await fetch('/api/candidates');
-                if (!response.ok) throw new Error('Erro ao buscar candidatos');
-
-                const candidates = await response.json();
-                const tbody = document.getElementById('candidates-table-body');
-
-                if (candidates.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-8 text-center text-gray-400">Nenhum candidato encontrado.</td></tr>`;
-                    return;
-                }
-
-                tbody.innerHTML = candidates.map((c, index) => {
-                    // Logic for Score Color
-                    let colorClass = 'bg-red-500';
-                    let textClass = 'text-red-600';
-
-                    if (c.score >= 80) {
-                        colorClass = 'bg-green-500';
-                        textClass = 'text-green-600';
-                    } else if (c.score >= 50) {
-                        colorClass = 'bg-yellow-500';
-                        textClass = 'text-yellow-600';
-                    }
-
-                    return `
-                    <tr class="hover:bg-gray-50 transition duration-150">
-                        <td class="px-6 py-4">
-                            <div class="flex items-center">
-                                <div class="h-10 w-10 flex-shrink-0 mr-4 bg-gradient-to-br from-blue-100 to-blue-200 rounded-full flex items-center justify-center text-blue-600 font-bold text-sm">
-                                    ${c.nome ? c.nome.charAt(0).toUpperCase() : '?'}
-                                </div>
-                                <div>
-                                    <div class="font-semibold text-gray-900">${c.nome || 'Sem Nome'}</div>
-                                    <div class="text-xs text-gray-500 truncate max-w-[150px]">${c.email}</div>
-                                </div>
+                const res = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+                    body: JSON.stringify({ message: msg })
+                });
+                const data = await res.json();
+                chat.innerHTML += `<div class="message msg-ai">${data.response}</div>`;
+                chat.scrollTop = chat.scrollHeight;
+            } catch (e) { console.error(e); }
+        }
+        async function load() {
+            try {
+                const res = await fetch('/api/candidates', { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } });
+                const data = await res.json();
+                document.getElementById('candidates-rows').innerHTML = data.map(c => `
+                    <tr>
+                        <td class="px-8 py-6">
+                            <div class="flex items-center gap-4">
+                                <div class="avatar">${c.nome.charAt(0)}</div>
+                                <div><p class="font-bold text-slate-900">${c.nome}</p><p class="text-[10px] text-slate-400 uppercase font-bold">${c.email}</p></div>
                             </div>
                         </td>
-                        <td class="px-6 py-4 font-medium text-gray-800 hidden sm:table-cell">${c.vaga}</td>
-                        <td class="px-6 py-4">
-                            <div class="flex items-center">
-                                <span class="font-bold ${textClass} mr-2">${c.score}%</span>
-                                <div class="w-24 bg-gray-200 rounded-full h-1.5 hidden sm:block">
-                                    <div class="${colorClass} h-1.5 rounded-full" style="width: ${c.score}%"></div>
-                                </div>
-                            </div>
-                        </td>
-                        <td class="px-6 py-4 hidden sm:table-cell">
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                ${c.status || 'Novo'}
-                            </span>
-                        </td>
-                        <td class="px-6 py-4 text-right">
-                            <button onclick="verPerfil(${c.id})" class="text-indigo-600 hover:text-indigo-900 font-semibold text-sm hover:underline">
-                                Ver
-                            </button>
-                        </td>
+                        <td class="px-8 py-6 font-bold text-slate-500 text-sm italic">${c.vaga}</td>
+                        <td class="px-8 py-6"><span class="px-3 py-1 bg-purple-50 text-[#820AD1] rounded-full text-[10px] font-black">${c.score}% Match</span></td>
+                        <td class="px-8 py-6 text-right"><button class="text-[#820AD1] font-black text-xs hover:underline uppercase tracking-widest">Currículo</button></td>
                     </tr>
-                `}).join('');
-            } catch (error) {
-                console.error("Erro:", error);
-                document.getElementById('candidates-table-body').innerHTML = `
-                    <tr><td colspan="5" class="px-6 py-8 text-center text-red-500">Erro ao carregar dados.</td></tr>
-                `;
-            }
+                `).join('');
+            } catch (e) { }
         }
-
-        function verPerfil(id) {
-            window.location.href = `/api/candidates/${id}`;
-        }
-
-        loadCandidates();
+        load();
     </script>
 </body>
 

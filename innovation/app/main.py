@@ -7,6 +7,8 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 import logging
 import os
+import google.generativeai as genai
+from fastapi.responses import JSONResponse
 
 from app.api import (
     auth,
@@ -39,6 +41,11 @@ app = FastAPI(
     description="API completa para gestão de empresas e vagas",
     version="1.0.0"
 )
+
+# CONFIGURAÇÃO GEMINI
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "SUA_CHAVE_AQUI")
+genai.configure(api_key=GEMINI_API_KEY)
+model_gemini = genai.GenerativeModel('gemini-pro')
 
 # Adicionar middleware de logging
 @app.middleware("http")
@@ -75,7 +82,6 @@ app.include_router(audit_logs.router)
 app.include_router(ai.router)
 app.include_router(documents.router)
 app.include_router(services_documents.router)
-app.include_router(services_documents.router)
 app.include_router(services_full.router)
 app.include_router(users.router)
 
@@ -94,22 +100,7 @@ async def get_stats():
 
 
 
-# SERVIR FRONTEND (WEB-TEST)
-app.mount("/static", StaticFiles(directory="../web-test"), name="static")
-
-# Rotas do Portal Empresa
-@app.get("/")
-async def read_index():
-    return FileResponse("../web-test/index.html")
-
-@app.get("/login")
-async def read_login():
-    return FileResponse("../web-test/company/login.html")
-
-@app.get("/register")
-async def read_register():
-    return FileResponse("../web-test/company/register.html")
-
+# --- ROTAS DO FRONTEND (WEB-TEST) ---
 @app.get("/dashboard")
 async def get_dashboard():
     return FileResponse("../web-test/company/dashboard.html")
@@ -122,18 +113,37 @@ async def get_vagas_page():
 async def get_candidates_page():
     return FileResponse("../web-test/company/candidates.html")
 
-@app.get("/vagas/nova")
-async def read_vagas_nova():
-    return FileResponse("../web-test/company/vagas-form.html")
+@app.get("/configuracoes")
+async def get_settings_page():
+    return FileResponse("../web-test/company/settings.html")
 
-# Fallback para outros arquivos estáticos
-@app.get("/{path:path}")
-async def serve_static_fallback(path: str):
-    file_path = os.path.join("../web-test", path)
-    if os.path.isfile(file_path):
-        return FileResponse(file_path)
-    return {"detail": "Not Found", "path": path}
+@app.get("/login")
+async def read_login():
+    return FileResponse("../web-test/company/login.html")
+
+@app.get("/")
+async def read_index():
+    return FileResponse("../web-test/index.html")
 
 @app.get("/health")
 def health_check():
     return {"status": "healthy"}
+
+# API DO CHAT IA
+@app.post("/api/chat")
+async def chat_ia(request: Request):
+    try:
+        data = await request.json()
+        user_message = data.get("message")
+        
+        if not user_message:
+            return JSONResponse(status_code=400, content={"response": "Mensagem vazia."})
+
+        # Prompt context for recruitment assistant
+        prompt = f"Você é o assistente virtual da Innovation.ia, uma plataforma de recrutamento tech de elite. Ajude o recrutador com a seguinte dúvida ou tarefa: {user_message}"
+        
+        response = model_gemini.generate_content(prompt)
+        return {"response": response.text}
+    except Exception as e:
+        logger.error(f"Erro Gemini: {str(e)}")
+        return JSONResponse(status_code=500, content={"response": "Erro na IA. Verifique a conexão ou a chave API."})

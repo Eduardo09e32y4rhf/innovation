@@ -1,31 +1,16 @@
-# Python
 __pycache__/
 *.py[cod]
-*.pyo
-*.pyd
-
-# Django
-db.sqlite3
-*.log
-staticfiles/
-
-# Virtualenv / venv
-.venv/
+*$py.class
+.env
+.venv
 venv/
-env/
 ENV/
-Scripts/
-Lib/
-Include/
-pyvenv.cfg
-
-# IDE
+env/
+innovation.db
 .vscode/
 .idea/
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Backups de .git ao converter submódulos em pasta normal
-**/.git.bak
+node_modules/
+dist/
+build/
+.next/
+.vercel
