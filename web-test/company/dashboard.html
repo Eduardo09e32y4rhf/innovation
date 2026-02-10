@@ -33,7 +33,7 @@
             padding: 0.85rem 1.5rem;
             border-radius: 1rem;
             gap: 1rem;
-            margin: 0.25rem 1rem;
+            margin: 0.15rem 1rem;
             transition: 0.2s;
         }
 
@@ -97,87 +97,59 @@
             font-weight: 800;
         }
 
-        #chat-widget {
-            position: fixed;
-            bottom: 2rem;
-            right: 2rem;
-            width: 350px;
-            height: 500px;
-            background: white;
-            border-radius: 2rem;
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.1);
-            display: none;
-            flex-direction: column;
-            z-index: 100;
-            overflow: hidden;
-            border: 1px solid #f1f5f9;
-        }
-
-        .chat-header {
-            background: #820AD1;
-            color: white;
-            padding: 1.25rem;
-            font-weight: 800;
-            display: flex;
-            justify-content: space-between;
-        }
-
-        .chat-messages {
-            flex: 1;
-            overflow-y: auto;
+        /* Chat Sidebar Style */
+        .ai-chat-box {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 1.5rem;
+            margin: 1rem;
             padding: 1rem;
-            display: flex;
-            flex-direction: column;
-            gap: 0.75rem;
         }
 
-        .message {
-            padding: 0.75rem 1rem;
-            border-radius: 1rem;
-            max-width: 80%;
-            font-size: 0.85rem;
-        }
-
-        .msg-ai {
-            background: #f3e8ff;
-            color: #820AD1;
-            align-self: flex-start;
-        }
-
-        .msg-user {
-            background: #820AD1;
-            color: white;
-            align-self: flex-end;
+        #ai-response {
+            font-size: 11px;
+            margin-top: 0.5rem;
+            max-height: 100px;
+            overflow-y: auto;
+            color: rgba(255, 255, 255, 0.7);
         }
     </style>
 </head>
 
 <body class="flex h-screen overflow-hidden">
 
-    <!-- SIDEBAR FIXO -->
     <aside class="w-72 h-screen sidebar flex flex-col flex-shrink-0 z-20 shadow-2xl">
         <div class="p-8">
             <h1 class="text-2xl font-black tracking-tighter">Innovation.ia</h1>
         </div>
-        <nav class="flex-1 space-y-1 mt-4">
+        <nav class="flex-1 space-y-1">
             <div class="text-[10px] font-bold text-white/40 uppercase tracking-[0.2em] mb-4 px-8 italic">Gestão
                 Inteligente</div>
             <a href="/dashboard" class="nav-link active"><i class="fas fa-chart-pie w-5"></i> <span>Dashboard</span></a>
             <a href="/vagas" class="nav-link"><i class="fas fa-briefcase w-5"></i> <span>Minhas Vagas</span></a>
             <a href="/candidatos" class="nav-link"><i class="fas fa-users w-5"></i> <span>Candidatos</span></a>
             <a href="/configuracoes" class="nav-link"><i class="fas fa-cog w-5"></i> <span>Configurações</span></a>
-            <button onclick="toggleChat()" class="nav-link w-[calc(100%-2rem)] text-left"><i
-                    class="fas fa-comment-dots w-5"></i> <span>Chat IA</span></button>
+
+            <!-- Chat na Sidebar -->
+            <div class="ai-chat-box">
+                <p class="text-[10px] font-bold uppercase tracking-widest opacity-50 mb-3">Assistente Gemini</p>
+                <div class="flex gap-2">
+                    <input type="text" id="ai-query" placeholder="Perguntar..."
+                        class="flex-1 bg-white/10 border-none outline-none rounded-lg p-2 text-xs text-white placeholder:text-white/30">
+                    <button onclick="askGemini()"
+                        class="bg-white text-[#820AD1] px-2 py-1 rounded-lg hover:bg-purple-50 transition"><i
+                            class="fas fa-paper-plane text-xs"></i></button>
+                </div>
+                <div id="ai-response" class="hidden"></div>
+            </div>
         </nav>
-        <div class="p-8 border-t border-white/10"><button onclick="logout()"
+        <div class="p-8 border-t border-white/10 mt-auto"><button onclick="logout()"
                 class="flex items-center text-white/50 hover:text-white transition w-full font-bold text-sm"><i
                     class="fas fa-sign-out-alt mr-3"></i> Sair do Portal</button></div>
     </aside>
 
     <main class="flex-1 overflow-y-auto p-12 lg:p-16">
         <div class="max-w-7xl mx-auto">
-
-            <!-- HEADER (Igual ao Print) -->
             <header class="flex justify-between items-start mb-14">
                 <div>
                     <h2 class="text-[32px] font-extrabold text-[#111827] tracking-tight">Visão Geral</h2>
@@ -193,7 +165,6 @@
                 </div>
             </header>
 
-            <!-- STAT CARDS (Valores exatos do print) -->
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
                 <div class="stat-card">
                     <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Vagas Ativas</p>
@@ -223,25 +194,22 @@
                 </div>
             </div>
 
-            <!-- CHARTS (Dupla Coluna) -->
             <div class="grid grid-cols-1 xl:grid-cols-2 gap-8 mb-12">
                 <div class="content-card">
-                    <h3 class="text-xl font-extrabold mb-10 text-slate-800">Fluxo de Candidaturas</h3>
-                    <canvas id="flowChart" height="200"></canvas>
+                    <h3 class="text-xl font-extrabold mb-10 text-slate-800">Fluxo de Candidaturas</h3><canvas
+                        id="flowChart" height="200"></canvas>
                 </div>
                 <div class="content-card">
-                    <h3 class="text-xl font-extrabold mb-10 text-slate-800">Evolução de Contratações</h3>
-                    <canvas id="hireChart" height="200"></canvas>
+                    <h3 class="text-xl font-extrabold mb-10 text-slate-800">Evolução de Contratações</h3><canvas
+                        id="hireChart" height="200"></canvas>
                 </div>
             </div>
 
-            <!-- TALENTS (Dupla Coluna) -->
             <div class="grid grid-cols-1 xl:grid-cols-2 gap-8 pb-16">
                 <!-- Coluna 1 -->
                 <div class="content-card">
                     <div class="flex justify-between items-center mb-10">
-                        <h3 class="text-xl font-extrabold text-slate-800">Últimos Talentos</h3>
-                        <a href="/candidatos"
+                        <h3 class="text-xl font-extrabold text-slate-800">Últimos Talentos</h3><a href="/candidatos"
                             class="text-xs font-black text-[#820AD1] uppercase tracking-widest hover:underline">Ver
                             todos</a>
                     </div>
@@ -259,12 +227,10 @@
                         </div>
                     </div>
                 </div>
-
                 <!-- Coluna 2 -->
                 <div class="content-card">
                     <div class="flex justify-between items-center mb-10">
-                        <h3 class="text-xl font-extrabold text-slate-800">Últimos Talentos</h3>
-                        <a href="/candidatos"
+                        <h3 class="text-xl font-extrabold text-slate-800">Últimos Talentos</h3><a href="/candidatos"
                             class="text-xs font-black text-[#820AD1] uppercase tracking-widest hover:underline">Ver
                             todos</a>
                     </div>
@@ -286,60 +252,31 @@
         </div>
     </main>
 
-    <!-- CHAT PERSISTENTE -->
-    <div id="chat-widget">
-        <div class="chat-header"><span>Inteligência Innovation</span><button onclick="toggleChat()"><i
-                    class="fas fa-times"></i></button></div>
-        <div class="chat-messages" id="msgs">
-            <div class="message msg-ai shadow-sm">Olá! Sou o assistente Gemini da Innovation.ia. O que deseja analisar
-                hoje?</div>
-        </div>
-        <div class="p-4 border-t flex gap-2">
-            <input type="text" id="chatInput" placeholder="Sua pergunta..."
-                class="flex-1 bg-slate-50 px-4 py-3 rounded-2xl text-sm outline-none border border-slate-100 focus:border-[#820AD1]">
-            <button onclick="send()"
-                class="w-12 h-12 bg-[#820AD1] text-white rounded-2xl flex items-center justify-center shadow-lg hover:brightness-110"><i
-                    class="fas fa-paper-plane"></i></button>
-        </div>
-    </div>
-
     <script>
-        function toggleChat() { const c = document.getElementById('chat-widget'); c.style.display = c.style.display === 'flex' ? 'none' : 'flex'; }
+        function logout() { localStorage.removeItem('token'); window.location.href = '/login'; }
 
-        async function send() {
-            const i = document.getElementById('chatInput'); if (!i.value) return;
-            const m = document.getElementById('msgs'); m.innerHTML += `<div class="message msg-user shadow-sm self-end">${i.value}</div>`;
-            const txt = i.value; i.value = ''; m.scrollTop = m.scrollHeight;
+        async function askGemini() {
+            const query = document.getElementById('ai-query').value;
+            const respDiv = document.getElementById('ai-response');
+            if (!query) return;
+            respDiv.classList.remove('hidden'); respDiv.innerHTML = "Processando...";
             try {
-                const res = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: txt }) });
+                const res = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: query }) });
                 const d = await res.json();
-                m.innerHTML += `<div class="message msg-ai shadow-sm">${d.response}</div>`;
-                m.scrollTop = m.scrollHeight;
-            } catch (e) { }
+                respDiv.innerHTML = `<strong>IA:</strong><br>${d.response}`;
+            } catch (e) { respDiv.innerHTML = "Erro ao conectar."; }
         }
 
         const chartConfig = (data, color) => ({
-            type: 'line',
-            data: {
+            type: 'line', data: {
                 labels: ['Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out'],
                 datasets: [{
-                    data: data,
-                    borderColor: color,
-                    borderWidth: 4,
-                    pointRadius: 0,
-                    tension: 0.45,
-                    fill: true,
-                    backgroundColor: (ctx) => {
-                        const g = ctx.chart.ctx.createLinearGradient(0, 0, 0, 300);
-                        g.addColorStop(0, color + '20');
-                        g.addColorStop(1, 'transparent');
-                        return g;
-                    }
+                    data: data, borderColor: color, borderWidth: 4, pointRadius: 0, tension: 0.45, fill: true,
+                    backgroundColor: (ctx) => { const g = ctx.chart.ctx.createLinearGradient(0, 0, 0, 300); g.addColorStop(0, color + '20'); g.addColorStop(1, 'transparent'); return g; }
                 }]
             },
             options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { display: true, grid: { color: '#f1f5f9' }, border: { dash: [5, 5] } }, x: { grid: { display: false } } } }
         });
-
         new Chart(document.getElementById('flowChart'), chartConfig([15, 25, 22, 48, 50, 42], '#820AD1'));
         new Chart(document.getElementById('hireChart'), chartConfig([18, 17, 14, 30, 45, 45], '#9333ea'));
     </script>

@@ -1,65 +1,31 @@
-﻿from fastapi import FastAPI, Request
-from fastapi.middleware.cors import CORSMiddleware
+﻿import os
+from fastapi import FastAPI, Request
+from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
-from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_address
-from slowapi.errors import RateLimitExceeded
-import logging
-import os
+from fastapi.templating import Jinja2Templates
 import google.generativeai as genai
-from fastapi.responses import JSONResponse
+from pydantic import BaseModel
+from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import (
-    auth,
-    plans,
-    payments,
-    terms,
-    companies,
-    jobs,
-    applications,
-    candidates,
-    subscriptions,
-    audit_logs,
-    ai,
-    documents,
-    services_documents,
-    services_full,
-    users,
-)
+# Iniciar App
+app = FastAPI(title="Innovation.ia - Elite Recruitment")
 
-from app.core.logging_config import setup_logging
-
-# Configuração de logging centralizada
-logger = setup_logging()
-
-# Rate Limiter
-limiter = Limiter(key_func=get_remote_address)
-
-app = FastAPI(
-    title="Innovation SaaS",
-    description="API completa para gestão de empresas e vagas",
-    version="1.0.0"
-)
-
-# CONFIGURAÇÃO GEMINI
+# Configuração do Gemini
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "SUA_CHAVE_AQUI")
 genai.configure(api_key=GEMINI_API_KEY)
 model_gemini = genai.GenerativeModel('gemini-pro')
 
-# Adicionar middleware de logging
-@app.middleware("http")
-async def log_requests(request: Request, call_next):
-    logger.info(f"{request.method} {request.url.path}")
-    response = await call_next(request)
-    logger.info(f"Status: {response.status_code}")
-    return response
+# Configuração de Caminhos (Ajustado para rodar na raiz ou pasta /innovation)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+# Busca o web-test um nível acima da pasta app/main.py
+WEB_BASE = os.path.abspath(os.path.join(BASE_DIR, "../../web-test"))
 
-# Adiciona rate limiting
-app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+# Configuração de Templates e Static
+# Montamos a pasta raiz do web-test para servir assets como imagens e CSS
+app.mount("/static", StaticFiles(directory=WEB_BASE), name="static")
+templates = Jinja2Templates(directory=os.path.join(WEB_BASE, "company"))
 
-# Configuração CORS
+# Middleware CORS para evitar problemas de bloqueio
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -68,82 +34,66 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Routers API
-app.include_router(auth.router)
-app.include_router(plans.router)
-app.include_router(payments.router)
-app.include_router(terms.router)
-app.include_router(companies.router)
-app.include_router(jobs.router)
-app.include_router(applications.router)
-app.include_router(candidates.router)
-app.include_router(subscriptions.router)
-app.include_router(audit_logs.router)
-app.include_router(ai.router)
-app.include_router(documents.router)
-app.include_router(services_documents.router)
-app.include_router(services_full.router)
-app.include_router(users.router)
+# Modelo para o Chat
+class ChatMessage(BaseModel):
+    message: str
 
-@app.get("/api/status")
-def api_status():
-    return {"status": "online", "version": "1.0.0"}
+# --- ROTAS DE NAVEGAÇÃO ---
 
-@app.get("/api/dashboard-stats", tags=["API"])
-async def get_stats():
-    return {
-        "vagas_ativas": 12,
-        "total_candidatos": 458,
-        "triagens_ia": "1.2k",
-        "economia_tempo": "72h"
-    }
+@app.get("/", response_class=HTMLResponse)
+async def home(request: Request):
+    # Caminho direto para a Landing Page
+    index_path = os.path.join(WEB_BASE, "index.html")
+    if os.path.exists(index_path):
+        with open(index_path, "r", encoding="utf-8") as f:
+            return f.read()
+    return "Landing Page não encontrada. Verifique a pasta web-test/index.html"
 
-
-
-# --- ROTAS DO FRONTEND (WEB-TEST) ---
 @app.get("/dashboard")
-async def get_dashboard():
-    return FileResponse("../web-test/company/dashboard.html")
+async def dashboard(request: Request):
+    return templates.TemplateResponse("dashboard.html", {"request": request})
 
 @app.get("/vagas")
-async def get_vagas_page():
-    return FileResponse("../web-test/company/jobs.html")
+async def jobs(request: Request):
+    return templates.TemplateResponse("jobs.html", {"request": request})
 
 @app.get("/candidatos")
-async def get_candidates_page():
-    return FileResponse("../web-test/company/candidates.html")
+async def candidates(request: Request):
+    return templates.TemplateResponse("candidates.html", {"request": request})
 
 @app.get("/configuracoes")
-async def get_settings_page():
-    return FileResponse("../web-test/company/settings.html")
+async def settings(request: Request):
+    return templates.TemplateResponse("settings.html", {"request": request})
 
 @app.get("/login")
-async def read_login():
-    return FileResponse("../web-test/company/login.html")
+async def login_page(request: Request):
+    return templates.TemplateResponse("login.html", {"request": request})
 
-@app.get("/")
-async def read_index():
-    return FileResponse("../web-test/index.html")
+# --- API DE INTELIGÊNCIA ARTIFICIAL ---
 
-@app.get("/health")
-def health_check():
-    return {"status": "healthy"}
-
-# API DO CHAT IA
 @app.post("/api/chat")
-async def chat_ia(request: Request):
+async def chat_gemini(data: ChatMessage):
     try:
-        data = await request.json()
-        user_message = data.get("message")
-        
-        if not user_message:
-            return JSONResponse(status_code=400, content={"response": "Mensagem vazia."})
-
-        # Prompt context for recruitment assistant
-        prompt = f"Você é o assistente virtual da Innovation.ia, uma plataforma de recrutamento tech de elite. Ajude o recrutador com a seguinte dúvida ou tarefa: {user_message}"
-        
+        # Prompt focado em recrutamento para o Gemini ser um assistente de elite
+        prompt = f"Você é o assistente de recrutamento da Innovation.ia. Responda de forma curta e profissional: {data.message}"
         response = model_gemini.generate_content(prompt)
         return {"response": response.text}
     except Exception as e:
-        logger.error(f"Erro Gemini: {str(e)}")
-        return JSONResponse(status_code=500, content={"response": "Erro na IA. Verifique a conexão ou a chave API."})
+        return JSONResponse(status_code=500, content={"response": "Erro ao conectar com a IA. Verifique a API Key."})
+
+# --- API DE DADOS PARA OS GRÁFICOS ---
+
+@app.get("/api/stats")
+async def get_stats():
+    return {
+        "vagas_ativas": 12,
+        "candidatos_total": 458,
+        "entrevistas_semana": 24,
+        "score_ia_medio": 84,
+        "grafico_fluxo": [120, 250, 180, 390, 320, 458],
+        "grafico_contratacoes": [5, 8, 12, 7, 15, 20]
+    }
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}
