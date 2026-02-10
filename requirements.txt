@@ -14,3 +14,6 @@ psycopg2-binary==2.9.11
 
 sendgrid==6.11.0
 twilio==9.2.2
+slowapi
+email-validator
+alembic

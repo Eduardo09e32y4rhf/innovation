@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Empresa - Innovation.ia</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/common/css/design-system.css">
+    <style>
+        body {
+            background: radial-gradient(circle at top right, #1e293b, #0f172a);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: var(--space-4);
+            color: white;
+            font-family: var(--font-sans);
+        }
+
+        .login-card-elite {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius-2xl);
+            padding: var(--space-12);
+            width: 100%;
+            max-width: 440px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            animation: fadeInScale 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes fadeInScale {
+            from {
+                opacity: 0;
+                transform: scale(0.95) translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        .logo-login {
+            text-align: center;
+            margin-bottom: var(--space-8);
+        }
+
+        .logo-login h1 {
+            font-size: var(--text-3xl);
+            font-weight: 800;
+            letter-spacing: -1px;
+        }
+
+        .logo-login p {
+            color: var(--color-gray-400);
+            font-size: var(--text-sm);
+            margin-top: var(--space-2);
+        }
+
+        .form-label-elite {
+            display: block;
+            font-weight: 500;
+            font-size: var(--text-sm);
+            color: var(--color-gray-300);
+            margin-bottom: var(--space-2);
+        }
+
+        .input-elite {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius-lg);
+            color: white;
+            padding: var(--space-4);
+            width: 100%;
+            transition: all 0.3s;
+        }
+
+        .input-elite:focus {
+            outline: none;
+            border-color: #6366f1;
+            background: rgba(255, 255, 255, 0.1);
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.2);
+        }
+
+        .btn-login-elite {
+            background: white;
+            color: black;
+            font-weight: 700;
+            padding: var(--space-4);
+            border-radius: var(--radius-lg);
+            width: 100%;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: var(--space-4);
+        }
+
+        .btn-login-elite:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-login-elite:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .error-toast {
+            background: #991B1B;
+            color: white;
+            padding: var(--space-4);
+            border-radius: var(--radius-lg);
+            margin-bottom: var(--space-6);
+            font-size: var(--text-sm);
+            display: none;
+            animation: shake 0.4s ease;
+        }
+
+        @keyframes shake {
+
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+
+            25% {
+                transform: translateX(-5px);
+            }
+
+            75% {
+                transform: translateX(5px);
+            }
+        }
+
+        .link-elite {
+            color: var(--color-gray-400);
+            text-decoration: none;
+            font-size: var(--text-sm);
+            transition: color 0.3s;
+        }
+
+        .link-elite:hover {
+            color: white;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="login-card-elite">
+        <div class="logo-login">
+            <h1>Innovation<span class="gradient-text">.ia</span></h1>
+            <p>Portal Corporativo de Elite</p>
+        </div>
+
+        <div id="errorMessage" class="error-toast"></div>
+
+        <form id="loginForm">
+            <div class="form-group" style="margin-bottom: var(--space-6);">
+                <label class="form-label-elite">Email corporativo</label>
+                <input type="email" id="email" class="input-elite" placeholder="nome@empresa.com" required
+                    autocomplete="email">
+            </div>
+
+            <div class="form-group" style="margin-bottom: var(--space-6);">
+                <div style="display: flex; justify-content: space-between;">
+                    <label class="form-label-elite">Senha</label>
+                    <a href="#" class="link-elite">Esqueceu?</a>
+                </div>
+                <input type="password" id="password" class="input-elite" placeholder="••••••••" required
+                    autocomplete="current-password">
+            </div>
+
+            <button type="submit" class="btn-login-elite" id="loginBtn">
+                Acessar Dashboard
+            </button>
+        </form>
+
+        <div style="text-align: center; margin-top: var(--space-8);">
+            <p style="color: var(--color-gray-500); font-size: var(--text-sm);">
+                Ainda não tem acesso? <a href="/register" class="link-elite"
+                    style="color: white; font-weight: 600;">Contratar Plano</a>
+            </p>
+        </div>
+    </div>
+
+    <script src="/static/company/js/auth.js"></script>
+    <script src="/static/common/js/notifications.js"></script>
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const btn = document.getElementById('loginBtn');
+            const errorDiv = document.getElementById('errorMessage');
+
+            errorDiv.style.display = 'none';
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner" style="border-top-color: black;"></span> Verificando...';
+
+            try {
+                await login(email, password);
+                window.location.href = '/dashboard'; // Rota amigável do FastAPI
+            } catch (error) {
+                errorDiv.textContent = error.message || 'Credenciais inválidas';
+                errorDiv.style.display = 'block';
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Acessar Dashboard';
+            }
+        });
+    </script>
+</body>
+
+</html>

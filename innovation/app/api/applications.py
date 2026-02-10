@@ -135,11 +135,19 @@ def apply_to_job(
             "status": existing.status,
         }
 
+    
+    # AI SCORE CALCULATION
+    from app.core.ai_processor import calculate_match_score
+    
+    candidate_text = f"{getattr(current_user, 'bio', '') or ''} {getattr(current_user, 'skills', '') or ''}"
+    score = calculate_match_score(job.description, candidate_text)
+
     app = Application(
         job_id=job.id,
         company_id=job.company_id,
         candidate_user_id=current_user.id,
         status="received",
+        score=score
     )
     db.add(app)
     db.commit()

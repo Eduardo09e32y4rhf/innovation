@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Criar Conta Empresa - Innovation.ia</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/common/css/design-system.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: var(--space-4);
+        }
+
+        .register-container {
+            background: white;
+            border-radius: var(--radius-2xl);
+            padding: var(--space-8);
+            box-shadow: var(--shadow-xl);
+            width: 100%;
+            max-width: 500px;
+            animation: slideUp 0.5s ease;
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: var(--space-6);
+        }
+
+        .logo h1 {
+            font-size: var(--text-3xl);
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--color-primary-500), var(--color-secondary-500));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .logo p {
+            color: var(--color-gray-600);
+            font-size: var(--text-sm);
+            margin-top: var(--space-2);
+        }
+
+        .form-group {
+            margin-bottom: var(--space-4);
+        }
+
+        .form-label {
+            display: block;
+            font-weight: 600;
+            font-size: var(--text-sm);
+            color: var(--color-gray-700);
+            margin-bottom: var(--space-2);
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--space-4);
+        }
+
+        .error-message {
+            background: #FEE2E2;
+            color: #991B1B;
+            padding: var(--space-3);
+            border-radius: var(--radius-md);
+            font-size: var(--text-sm);
+            margin-bottom: var(--space-4);
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="register-container">
+        <div class="logo">
+            <h1>Innovation.ia</h1>
+            <p>Crie sua conta corporativa</p>
+        </div>
+
+        <div id="errorMessage" class="error-message"></div>
+
+        <form id="registerForm">
+            <div class="form-group">
+                <label class="form-label">Nome da Empresa</label>
+                <input type="text" id="company_name" class="input" placeholder="Minha Empresa LTDA" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Email Corporativo</label>
+                <input type="email" id="email" class="input" placeholder="voce@empresa.com" required>
+            </div>
+
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label">Senha</label>
+                    <input type="password" id="password" class="input" placeholder="••••••••" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Confirmar Senha</label>
+                    <input type="password" id="confirm_password" class="input" placeholder="••••••••" required>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-lg" style="width: 100%; margin-top: var(--space-4);"
+                id="registerBtn">
+                Criar Conta
+            </button>
+        </form>
+
+        <div style="text-align: center; margin-top: var(--space-6);">
+            <p style="color: var(--color-gray-600); font-size: var(--text-sm);">
+                Já tem uma conta? <a href="/login"
+                    style="color: var(--color-primary-600); text-decoration: none; font-weight: 600;">Faça login</a>
+            </p>
+        </div>
+    </div>
+
+    <script src="/static/company/js/auth.js"></script>
+    <script>
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const btn = document.getElementById('registerBtn');
+            const errorDiv = document.getElementById('errorMessage');
+            const password = document.getElementById('password').value;
+            const confirm = document.getElementById('confirm_password').value;
+
+            if (password !== confirm) {
+                errorDiv.textContent = 'As senhas não coincidem';
+                errorDiv.classList.add('show');
+                return;
+            }
+
+            errorDiv.classList.remove('show');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Criando...';
+
+            // Simulação ou chamada real
+            try {
+                // await register(...)
+                alert('Conta criada com sucesso! Faça login.');
+                window.location.href = 'login.html';
+            } catch (error) {
+                errorDiv.textContent = error.message;
+                errorDiv.classList.add('show');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Criar Conta';
+            }
+        });
+    </script>
+</body>
+
+</html>

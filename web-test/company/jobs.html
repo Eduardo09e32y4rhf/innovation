@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minhas Vagas | Innovation.ia</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+
+        .sidebar-link:hover {
+            background: rgba(59, 130, 246, 0.1);
+            color: #3b82f6;
+        }
+
+        .active-link {
+            background: #3b82f6;
+            color: white !important;
+        }
+
+        .modal {
+            transition: opacity 0.25s ease;
+        }
+
+        body.modal-active {
+            overflow-x: hidden;
+            overflow-y: hidden !important;
+        }
+    </style>
+</head>
+
+<body class="flex h-screen overflow-hidden">
+
+    <!-- MOBILE OVERLAY -->
+    <div id="sidebar-overlay"
+        class="fixed inset-0 z-40 hidden bg-black bg-opacity-50 opacity-0 transition-opacity duration-300"
+        onclick="toggleSidebar()"></div>
+
+    <!-- SIDEBAR -->
+    <aside id="sidebar"
+        class="w-64 bg-white border-r border-gray-200 fixed inset-y-0 left-0 transform -translate-x-full md:translate-x-0 md:relative flex flex-col transition-transform duration-300 ease-in-out z-50">
+        <div class="p-6 flex justify-between items-center">
+            <span
+                class="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Innovation.ia</span>
+            <button class="md:hidden text-gray-500" onclick="toggleSidebar()">✕</button>
+        </div>
+        <nav class="flex-1 px-4 space-y-2">
+            <a href="/dashboard"
+                class="sidebar-link flex items-center p-3 rounded-xl transition text-gray-600 hover:text-blue-600">
+                <span class="mr-3">📊</span> Dashboard
+            </a>
+            <a href="/vagas" class="sidebar-link active-link flex items-center p-3 rounded-xl transition">
+                <span class="mr-3">💼</span> Minhas Vagas
+            </a>
+            <a href="/candidatos"
+                class="sidebar-link flex items-center p-3 rounded-xl transition text-gray-600 hover:text-blue-600">
+                <span class="mr-3">👥</span> Candidatos
+            </a>
+            <a href="/configuracoes"
+                class="sidebar-link flex items-center p-3 rounded-xl transition text-gray-600 hover:text-blue-600">
+                <span class="mr-3">⚙️</span> Configurações
+            </a>
+        </nav>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="flex-1 p-4 md:p-8 overflow-y-auto w-full">
+        <!-- MOBILE HEADER -->
+        <div class="md:hidden flex items-center justify-between mb-6">
+            <button onclick="toggleSidebar()" class="text-gray-600 p-2 rounded-lg hover:bg-gray-100">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16">
+                    </path>
+                </svg>
+            </button>
+            <span class="text-xl font-bold text-gray-800">Minhas Vagas</span>
+            <button onclick="toggleModal()" class="text-blue-600 font-bold">+</button>
+        </div>
+
+        <div class="hidden md:flex justify-between items-center mb-10">
+            <div>
+                <h1 class="text-3xl font-bold text-slate-800">Minhas Vagas</h1>
+                <p class="text-slate-500">Gerencie suas oportunidades ativas e pausadas.</p>
+            </div>
+            <button onclick="toggleModal()"
+                class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-bold shadow-lg transition flex items-center gap-2">
+                <span>+</span> Publicar Nova Vaga
+            </button>
+        </div>
+
+        <div id="jobs-container" class="grid grid-cols-1 gap-4">
+            <div class="animate-pulse bg-white h-32 rounded-2xl border border-gray-100"></div>
+        </div>
+    </main>
+
+    <!-- MODAL -->
+    <div id="modal" class="modal opacity-0 pointer-events-none fixed z-50 inset-0 flex items-center justify-center p-4">
+        <div class="modal-overlay absolute inset-0 bg-slate-900 opacity-50"></div>
+        <div
+            class="modal-container bg-white w-full max-w-lg mx-auto rounded-2xl shadow-2xl z-50 overflow-y-auto max-h-[90vh]">
+            <div class="p-6 md:p-8">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-slate-800">Nova Oportunidade</h2>
+                    <button onclick="toggleModal()" class="text-gray-400 hover:text-gray-600">✕</button>
+                </div>
+
+                <form id="job-form" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1">Título da Vaga</label>
+                        <input type="text" id="title"
+                            class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                            placeholder="Ex: Desenvolvedor Senior" required>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1">Descrição</label>
+                        <textarea id="description" rows="4"
+                            class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                            placeholder="Descreva as responsabilidades e requisitos..." required></textarea>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1">Localização</label>
+                            <input type="text" id="location"
+                                class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                placeholder="Ex: São Paulo, SP">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1">Status</label>
+                            <select id="status"
+                                class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                                <option value="open">Aberta</option>
+                                <option value="closed">Fechada</option>
+                                <option value="draft">Rascunho</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end gap-3 mt-8">
+                        <button type="button" onclick="toggleModal()"
+                            class="px-6 py-2 text-slate-500 font-semibold hover:bg-slate-50 rounded-lg transition">Cancelar</button>
+                        <button type="submit"
+                            class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold shadow-md transition">Publicar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+
+            if (sidebar.classList.contains('-translate-x-full')) {
+                sidebar.classList.remove('-translate-x-full');
+                overlay.classList.remove('hidden');
+                setTimeout(() => overlay.classList.remove('opacity-0'), 10);
+            } else {
+                sidebar.classList.add('-translate-x-full');
+                overlay.classList.add('opacity-0');
+                setTimeout(() => overlay.classList.add('hidden'), 300);
+            }
+        }
+
+        // --- LOGICA CRUD ---
+        const apiBase = '/api/jobs';
+
+        async function fetchJobs() {
+            try {
+                const res = await fetch(apiBase);
+                if (!res.ok) throw new Error("Falha ao buscar vagas");
+                const jobs = await res.json();
+                const container = document.getElementById('jobs-container');
+
+                if (jobs.length === 0) {
+                    container.innerHTML = `
+                        <div class="text-center py-12 bg-white rounded-2xl border border-gray-100">
+                            <p class="text-gray-500 mb-4">Nenhuma vaga encontrada.</p>
+                            <button onclick="toggleModal()" class="text-blue-600 font-semibold hover:underline">Criar sua primeira vaga</button>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = jobs.map(job => `
+                    <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <div class="w-full">
+                            <h3 class="text-xl font-bold text-slate-800 break-words">${job.title}</h3>
+                            <div class="flex flex-wrap gap-2 text-sm text-slate-500 mt-2">
+                                <span class="bg-gray-100 px-2 py-1 rounded">📍 ${job.location || 'Remoto'}</span>
+                                <span class="bg-gray-100 px-2 py-1 rounded">🏷️ ${job.status === 'open' ? 'Aberta' : 'Fechada'}</span>
+                            </div>
+                            <p class="text-gray-400 text-sm mt-3 line-clamp-2 md:line-clamp-1">${job.description || ''}</p>
+                        </div>
+                        <div class="flex gap-2 self-end md:self-center shrink-0">
+                            <button onclick="alert('Edição em breve')" class="p-3 bg-gray-50 hover:bg-gray-100 rounded-lg text-slate-500 transition">
+                                ✏️
+                            </button>
+                            <button onclick="deleteJob(${job.id})" class="p-3 bg-red-50 hover:bg-red-100 rounded-lg text-red-500 transition">
+                                🗑️
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error(error);
+                document.getElementById('jobs-container').innerHTML = '<p class="text-red-500 text-center">Erro ao carregar vagas. Verifique sua conexão.</p>';
+            }
+        }
+
+        document.getElementById('job-form').onsubmit = async (e) => {
+            e.preventDefault();
+            const data = {
+                title: document.getElementById('title').value,
+                description: document.getElementById('description').value,
+                location: document.getElementById('location').value,
+                status: document.getElementById('status').value,
+            };
+
+            try {
+                const res = await fetch(apiBase, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                if (res.ok) {
+                    toggleModal();
+                    fetchJobs();
+                    e.target.reset();
+                } else alert('Erro ao criar vaga');
+            } catch (error) { console.error(error); }
+        };
+
+        async function deleteJob(id) {
+            if (confirm('Excluir esta vaga?')) {
+                try {
+                    await fetch(`${apiBase}/${id}`, { method: 'DELETE' });
+                    fetchJobs();
+                } catch (e) { console.error(e); }
+            }
+        }
+
+        function toggleModal() {
+            const modal = document.getElementById('modal');
+            modal.classList.toggle('opacity-0');
+            modal.classList.toggle('pointer-events-none');
+            document.body.classList.toggle('modal-active');
+        }
+
+        fetchJobs(); 
+    </script>
+</body>
+
+</html>

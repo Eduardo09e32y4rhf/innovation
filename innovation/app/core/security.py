@@ -4,20 +4,22 @@ import secrets
 from datetime import datetime, timedelta, timezone
 
 from jose import jwt
-from passlib.context import CryptContext
+import bcrypt
 
 from app.core.config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES, REFRESH_TOKEN_EXPIRE_DAYS
 
-# ✅ Requisitos do projeto já incluem passlib[bcrypt] + bcrypt
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-
 def get_password_hash(password: str) -> str:
-    return pwd_context.hash(password)
+    # Usando bcrypt diretamente para evitar bug de compatibilidade do passlib
+    hashed_bytes = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+    return hashed_bytes.decode('utf-8')
 
 
 def verify_password(plain: str, hashed: str) -> bool:
-    return pwd_context.verify(plain, hashed)
+    # Usando bcrypt diretamente para evitar bug de compatibilidade do passlib
+    try:
+        return bcrypt.checkpw(plain.encode('utf-8'), hashed.encode('utf-8'))
+    except Exception:
+        return False
 
 
 def create_access_token(data: dict) -> str:
