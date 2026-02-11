@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login | Innovation.ia</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #f8fafc;
+        }
+
+        .login-card {
+            background: white;
+            border-radius: 2.5rem;
+            padding: 3.5rem;
+            box-shadow: 0 20px 50px -12px rgba(0, 0, 0, 0.05);
+            width: 100%;
+            max-width: 480px;
+        }
+
+        .input-nubank {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 1.25rem;
+            padding: 1.25rem;
+            outline: none;
+            transition: all 0.3s;
+        }
+
+        .input-nubank:focus {
+            border-color: #820AD1;
+            background: white;
+            box-shadow: 0 0 0 4px rgba(130, 10, 209, 0.05);
+        }
+
+        .btn-purple {
+            background-color: #820AD1;
+            color: white;
+            font-weight: 800;
+            padding: 1.25rem;
+            border-radius: 1.25rem;
+            transition: all 0.3s;
+            box-shadow: 0 10px 25px rgba(130, 10, 209, 0.2);
+        }
+
+        .btn-purple:hover {
+            background-color: #6c06b0;
+            transform: translateY(-2px);
+            box-shadow: 0 15px 35px rgba(130, 10, 209, 0.3);
+        }
+    </style>
+</head>
+
+<body class="min-h-screen flex items-center justify-center p-6">
+
+    <div class="login-card">
+        <div class="text-center mb-12">
+            <h1 class="text-3xl font-black tracking-tighter text-slate-900 mb-2">Innovation<span
+                    class="text-[#820AD1]">.ia</span></h1>
+            <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Portal de Recrutamento Tech</p>
+        </div>
+
+        <div id="errorMessage"
+            class="hidden bg-red-50 text-red-600 p-4 rounded-xl mb-6 text-sm font-bold border border-red-100 flex items-center gap-3">
+            <i class="fas fa-exclamation-circle text-lg"></i>
+            <span id="errorText"></span>
+        </div>
+
+        <form id="loginForm" class="space-y-8">
+            <div>
+                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Email
+                    Corporativo</label>
+                <input type="email" id="email" class="w-full input-nubank" placeholder="nome@empresa.com" required>
+            </div>
+            <div>
+                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Senha de
+                    Acesso</label>
+                <input type="password" id="password" class="w-full input-nubank" placeholder="••••••••" required>
+            </div>
+
+            <button type="submit" class="w-full btn-purple" id="loginBtn">
+                Entrar no Portal
+            </button>
+        </form>
+
+        <div class="mt-12 text-center pt-8 border-t border-slate-50">
+            <p class="text-slate-400 text-sm font-bold">
+                Ainda não tem conta? <br>
+                <a href="/register" class="text-[#820AD1] hover:underline mt-2 inline-block">Cadastrar minha Empresa</a>
+            </p>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('loginBtn');
+            const errorDiv = document.getElementById('errorMessage');
+            const errorText = document.getElementById('errorText');
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i>';
+            errorDiv.classList.add('hidden');
+
+            try {
+                const email = document.getElementById('email').value;
+                const password = document.getElementById('password').value;
+
+                const res = await fetch('/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    localStorage.setItem('token', data.access_token);
+                    window.location.href = '/dashboard';
+                } else {
+                    const err = await res.json();
+                    throw new Error(err.detail || 'Falha no acesso.');
+                }
+            } catch (error) {
+                errorText.textContent = error.message;
+                errorDiv.classList.remove('hidden');
+                btn.innerHTML = 'Entrar no Portal';
+            } finally {
+                btn.disabled = false;
+            }
+        });
+    </script>
+</body>
+
+</html>

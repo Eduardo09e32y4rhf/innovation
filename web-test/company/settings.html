@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configurações | Innovation.ia</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #f8fafc;
+            color: #1e293b;
+            margin: 0;
+        }
+
+        .sidebar {
+            background-color: #820AD1;
+            color: white;
+            border-top-right-radius: 2.5rem;
+            border-bottom-right-radius: 2.5rem;
+        }
+
+        .nav-link {
+            color: rgba(255, 255, 255, 0.85);
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            padding: 0.85rem 1.5rem;
+            border-radius: 1rem;
+            gap: 1rem;
+            margin: 0.15rem 1rem;
+            transition: 0.2s;
+        }
+
+        .nav-link:hover,
+        .nav-link.active {
+            background-color: rgba(255, 255, 255, 0.15);
+            color: white;
+        }
+
+        .card-prem {
+            background: white;
+            border-radius: 2.5rem;
+            padding: 2.5rem;
+            box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.04);
+        }
+
+        .ai-chat-box {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 1.5rem;
+            margin: 1rem;
+            padding: 1rem;
+        }
+    </style>
+</head>
+
+<body class="flex h-screen overflow-hidden">
+    <aside class="w-72 h-screen sidebar flex flex-col flex-shrink-0 z-20 shadow-2xl">
+        <div class="p-8">
+            <h1 class="text-2xl font-black tracking-tighter">Innovation.ia</h1>
+        </div>
+        <nav class="flex-1 space-y-1">
+            <div class="text-[10px] font-bold text-white/40 uppercase tracking-[0.2em] mb-4 px-8 italic">Gestão
+                Inteligente</div>
+            <a href="/dashboard" class="nav-link"><i class="fas fa-chart-pie w-5"></i> <span>Dashboard</span></a>
+            <a href="/vagas" class="nav-link"><i class="fas fa-briefcase w-5"></i> <span>Minhas Vagas</span></a>
+            <a href="/candidatos" class="nav-link"><i class="fas fa-users w-5"></i> <span>Candidatos</span></a>
+            <a href="/configuracoes" class="nav-link active"><i class="fas fa-cog w-5"></i>
+                <span>Configurações</span></a>
+            <div class="ai-chat-box">
+                <p class="text-[10px] font-bold uppercase tracking-widest opacity-50 mb-3">Assistente Gemini</p>
+                <div class="flex gap-2">
+                    <input type="text" id="ai-query" placeholder="Perguntar..."
+                        class="flex-1 bg-white/10 border-none outline-none rounded-lg p-2 text-xs text-white placeholder:text-white/30">
+                    <button onclick="askGemini()"
+                        class="bg-white text-[#820AD1] px-2 py-1 rounded-lg hover:bg-purple-50 transition"><i
+                            class="fas fa-paper-plane text-xs"></i></button>
+                </div>
+            </div>
+        </nav>
+        <div class="p-8 border-t border-white/10 mt-auto"><button onclick="logout()"
+                class="flex items-center text-white/50 hover:text-white transition w-full font-bold text-sm"><i
+                    class="fas fa-sign-out-alt mr-3"></i> Sair do Portal</button></div>
+    </aside>
+
+    <main class="flex-1 p-16 overflow-y-auto">
+        <div class="max-w-4xl mx-auto">
+            <h2 class="text-4xl font-extrabold text-[#111827] tracking-tight mb-12">Configurações</h2>
+            <div class="card-prem">
+                <h3 class="font-bold text-slate-800 mb-6 border-b pb-4">Perfil da Empresa</h3>
+                <div class="space-y-6">
+                    <div class="grid grid-cols-2 gap-6">
+                        <div><label
+                                class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Nome
+                                da Empresa</label>
+                            <input type="text" value="Innovation Tech"
+                                class="w-full p-4 border-none bg-slate-50 rounded-2xl outline-none focus:ring-2 ring-purple-100 transition">
+                        </div>
+                        <div><label
+                                class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">E-mail
+                                de Suporte</label>
+                            <input type="email" value="admin@innovation.ia"
+                                class="w-full p-4 border-none bg-slate-50 rounded-2xl outline-none focus:ring-2 ring-purple-100 transition">
+                        </div>
+                    </div>
+                    <button
+                        class="bg-[#820AD1] text-white px-10 py-4 rounded-2xl font-bold hover:shadow-xl hover:brightness-110 transition mt-4">Salvar
+                        Alterações</button>
+                </div>
+            </div>
+        </div>
+    </main>
+    <script>
+        function logout() { localStorage.removeItem('token'); window.location.href = '/login'; }
+        async function askGemini() { alert("Gemini integrado! Digite sua pergunta no Dashboard para ver a resposta."); }
+    </script>
+</body>
+
+</html>
