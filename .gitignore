@@ -1,9 +1,0 @@
-innovation/Lib/
-innovation/Scripts/
-innovation/Include/
-.git.bak/
-__pycache__/
-innovation.db
-.env
-.vercel
-node_modules/
