@@ -52,12 +52,14 @@ def upgrade() -> None:
     op.create_index(op.f('ix_companies_id'), 'companies', ['id'], unique=False)
 
     # 3. Agora adicionamos o vínculo que faltava em users (active_company_id)
-    op.create_foreign_key('fk_users_active_company', 'users', 'companies', ['active_company_id'], ['id'])
+    with op.batch_alter_table('users') as batch_op:
+        batch_op.create_foreign_key('fk_users_active_company', 'companies', ['active_company_id'], ['id'])
 
 
 def downgrade() -> None:
     # Remover o vínculo circular primeiro
-    op.drop_constraint('fk_users_active_company', 'users', type_='foreignkey')
+    with op.batch_alter_table('users') as batch_op:
+        batch_op.drop_constraint('fk_users_active_company', type_='foreignkey')
     op.drop_index(op.f('ix_users_id'), table_name='users')
     op.drop_index(op.f('ix_users_email'), table_name='users')
     op.drop_table('users')
