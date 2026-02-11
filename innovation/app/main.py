@@ -7,6 +7,18 @@ import google.generativeai as genai
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 
+# Importar Rotas da API
+from app.api.auth import router as auth_router
+from app.api.jobs import router as jobs_router
+from app.api.applications import router as applications_router
+from app.api.users import router as users_router
+from app.api.companies import router as companies_router
+from app.api.payments import router as payments_router
+from app.api.plans import router as plans_router
+from app.api.subscriptions import router as subscriptions_router
+from app.api.candidates import router as candidates_router
+from app.api.ai import router as ai_router
+
 # Iniciar App
 app = FastAPI(title="Innovation.ia - Elite Recruitment")
 
@@ -33,6 +45,18 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Incluir Rotas da API
+app.include_router(auth_router)
+app.include_router(jobs_router)
+app.include_router(applications_router)
+app.include_router(users_router)
+app.include_router(companies_router)
+app.include_router(payments_router)
+app.include_router(plans_router)
+app.include_router(subscriptions_router)
+app.include_router(candidates_router)
+app.include_router(ai_router)
 
 # Modelo para o Chat
 class ChatMessage(BaseModel):

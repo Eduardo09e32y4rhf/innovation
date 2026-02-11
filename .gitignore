@@ -5,6 +5,8 @@ innovation/Include/
 **/.git.bak/
 __pycache__/
 innovation.db
+test.db
+*.log
 .env
 .vercel
 node_modules/
