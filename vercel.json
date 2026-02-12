@@ -2,22 +2,59 @@
   "version": 2,
   "builds": [
     {
-      "src": "innovation/app/main.py",
+      "src": "backend/app/main.py",
       "use": "@vercel/python"
     },
     {
-      "src": "web-test/**",
+      "src": "web-admin/**",
       "use": "@vercel/static"
     }
   ],
   "routes": [
-    { "src": "/api/(.*)", "dest": "innovation/app/main.py" },
-    { "src": "/dashboard", "dest": "web-test/company/dashboard.html" },
-    { "src": "/vagas", "dest": "web-test/company/jobs.html" },
-    { "src": "/candidatos", "dest": "web-test/company/candidates.html" },
-    { "src": "/configuracoes", "dest": "web-test/company/settings.html" },
-    { "src": "/login", "dest": "web-test/company/login.html" },
-    { "src": "/", "dest": "web-test/index.html" },
-    { "src": "/static/(.*)", "dest": "/web-test/$1" }
-  ]
+    {
+      "src": "/api/(.*)",
+      "dest": "backend/app/main.py"
+    },
+    {
+      "src": "/docs",
+      "dest": "backend/app/main.py"
+    },
+    {
+      "src": "/openapi.json",
+      "dest": "backend/app/main.py"
+    },
+    {
+      "src": "/dashboard",
+      "dest": "web-admin/company/dashboard.html"
+    },
+    {
+      "src": "/vagas",
+      "dest": "web-admin/company/jobs.html"
+    },
+    {
+      "src": "/candidatos",
+      "dest": "web-admin/company/candidates.html"
+    },
+    {
+      "src": "/configuracoes",
+      "dest": "web-admin/company/settings.html"
+    },
+    {
+      "src": "/login",
+      "dest": "web-admin/company/login.html"
+    },
+    {
+      "src": "/",
+      "dest": "web-admin/index.html"
+    },
+    {
+      "src": "/static/(.*)",
+      "dest": "/web-admin/$1"
+    }
+  ],
+  "env": {
+    "DATABASE_URL": "@database_url",
+    "SECRET_KEY": "@secret_key",
+    "GEMINI_API_KEY": "@gemini_api_key"
+  }
 }

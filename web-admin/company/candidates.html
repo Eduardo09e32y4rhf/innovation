@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Candidatos | Innovation.ia</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+        }
+
+        .sidebar {
+            background: linear-gradient(180deg, #820AD1 0%, #6c06b0 100%);
+        }
+
+        .candidate-card {
+            background: #1e293b;
+            border: 1px solid #334155;
+            transition: all 0.3s;
+        }
+
+        .candidate-card:hover {
+            border-color: #820AD1;
+            transform: translateY(-2px);
+        }
+
+        .score-badge {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        }
+    </style>
+</head>
+
+<body class="flex h-screen overflow-hidden">
+    <aside class="w-72 sidebar flex flex-col flex-shrink-0">
+        <div class="p-8">
+            <h1 class="text-2xl font-black tracking-tighter text-white">Innovation.ia</h1>
+            <p class="text-xs opacity-60 mt-1 text-white">GESTÃO EMPRESARIAL</p>
+        </div>
+        <nav class="flex-1 px-4">
+            <a href="/dashboard"
+                class="flex items-center gap-3 px-4 py-3 rounded-xl text-white/70 hover:bg-white/10 hover:text-white mb-2 transition-all">
+                <i class="fas fa-chart-pie"></i> Dashboard
+            </a>
+            <a href="/vagas"
+                class="flex items-center gap-3 px-4 py-3 rounded-xl text-white/70 hover:bg-white/10 hover:text-white mb-2 transition-all">
+                <i class="fas fa-briefcase"></i> Minhas Vagas
+            </a>
+            <a href="/candidatos"
+                class="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/10 text-white mb-2 hover:bg-white/20 transition-all">
+                <i class="fas fa-users"></i> Candidatos
+            </a>
+            <a href="/configuracoes"
+                class="flex items-center gap-3 px-4 py-3 rounded-xl text-white/70 hover:bg-white/10 hover:text-white mb-2 transition-all">
+                <i class="fas fa-cog"></i> Configurações
+            </a>
+        </nav>
+        <div class="p-4 border-t border-white/10">
+            <button onclick="logout()"
+                class="flex items-center gap-3 px-4 py-3 rounded-xl text-white/70 hover:bg-white/10 hover:text-white w-full transition-all">
+                <i class="fas fa-sign-out-alt"></i> Sair
+            </button>
+        </div>
+    </aside>
+
+    <main class="flex-1 overflow-y-auto p-8">
+        <div class="max-w-7xl mx-auto">
+            <header class="flex justify-between items-center mb-8">
+                <div>
+                    <h2 class="text-3xl font-extrabold">Candidatos</h2>
+                    <p class="text-slate-400 mt-1">Gerencie seus talentos</p>
+                </div>
+            </header>
+
+            <!-- Filtros -->
+            <div class="bg-[#1e293b] rounded-xl p-4 mb-6 flex gap-4">
+                <input type="text" placeholder="Buscar candidatos..."
+                    class="bg-[#0f172a] border border-slate-700 rounded-lg px-4 py-2 flex-1 text-white">
+                <select class="bg-[#0f172a] border border-slate-700 rounded-lg px-4 py-2 text-white">
+                    <option>Todas as vagas</option>
+                    <option>Senior Python Developer</option>
+                    <option>UX Designer</option>
+                </select>
+                <button class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+
+            <!-- Grid de Candidatos -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Candidato 1 -->
+                <div class="candidate-card rounded-xl p-6">
+                    <div class="flex items-start justify-between mb-4">
+                        <div class="flex items-center gap-3">
+                            <div
+                                class="w-12 h-12 rounded-full bg-purple-600 flex items-center justify-center text-white font-bold">
+                                JS
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-white">João Silva</h3>
+                                <p class="text-xs text-slate-400">joao@email.com</p>
+                            </div>
+                        </div>
+                        <div class="score-badge text-white text-xs font-bold px-3 py-1 rounded-full">
+                            95
+                        </div>
+                    </div>
+                    <p class="text-sm text-slate-300 mb-4">Senior Python Developer</p>
+                    <div class="flex gap-2">
+                        <button class="flex-1 bg-purple-600 hover:bg-purple-700 text-white text-sm py-2 rounded-lg">
+                            Ver Perfil
+                        </button>
+                        <button class="px-3 py-2 border border-slate-700 hover:bg-slate-800 rounded-lg">
+                            <i class="fas fa-calendar text-slate-400"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Candidato 2 -->
+                <div class="candidate-card rounded-xl p-6">
+                    <div class="flex items-start justify-between mb-4">
+                        <div class="flex items-center gap-3">
+                            <div
+                                class="w-12 h-12 rounded-full bg-cyan-600 flex items-center justify-center text-white font-bold">
+                                MS
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-white">Maria Santos</h3>
+                                <p class="text-xs text-slate-400">maria@email.com</p>
+                            </div>
+                        </div>
+                        <div class="score-badge text-white text-xs font-bold px-3 py-1 rounded-full">
+                            88
+                        </div>
+                    </div>
+                    <p class="text-sm text-slate-300 mb-4">UX Designer</p>
+                    <div class="flex gap-2">
+                        <button class="flex-1 bg-purple-600 hover:bg-purple-700 text-white text-sm py-2 rounded-lg">
+                            Ver Perfil
+                        </button>
+                        <button class="px-3 py-2 border border-slate-700 hover:bg-slate-800 rounded-lg">
+                            <i class="fas fa-calendar text-slate-400"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Candidato 3 -->
+                <div class="candidate-card rounded-xl p-6">
+                    <div class="flex items-start justify-between mb-4">
+                        <div class="flex items-center gap-3">
+                            <div
+                                class="w-12 h-12 rounded-full bg-orange-600 flex items-center justify-center text-white font-bold">
+                                PC
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-white">Pedro Costa</h3>
+                                <p class="text-xs text-slate-400">pedro@email.com</p>
+                            </div>
+                        </div>
+                        <div class="score-badge text-white text-xs font-bold px-3 py-1 rounded-full">
+                            92
+                        </div>
+                    </div>
+                    <p class="text-sm text-slate-300 mb-4">Data Scientist</p>
+                    <div class="flex gap-2">
+                        <button class="flex-1 bg-purple-600 hover:bg-purple-700 text-white text-sm py-2 rounded-lg">
+                            Ver Perfil
+                        </button>
+                        <button class="px-3 py-2 border border-slate-700 hover:bg-slate-800 rounded-lg">
+                            <i class="fas fa-calendar text-slate-400"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        function logout() {
+            localStorage.clear();
+            window.location.href = '/login';
+        }
+    </script>
+</body>
+
+</html>

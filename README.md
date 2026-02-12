@@ -1,184 +1,88 @@
-# 🚀 Innovation.ia 
-Produto de recrutamento com:
-- **Backend** em **Python/FastAPI**
-- **App Mobile (candidato)** em **Flutter**
-- **Web Admin (empresa)** em **HTML + JS**
+# 🚀 Innovation.ia - Plataforma de Recrutamento com IA
 
----
+## 📁 Estrutura do Projeto
 
-## ✨ Visão geral (estado atual)
-
-### Candidato (App Flutter)
-- Login com 2FA
-- Listagem de vagas
-- Candidatura
-- Status da candidatura
-
-Arquivos principais:
-- [`innovation_app/lib/presentation/screens/login_screen.dart`](innovation_app/lib/presentation/screens/login_screen.dart)
-- [`innovation_app/lib/presentation/screens/dashboard_screen.dart`](innovation_app/lib/presentation/screens/dashboard_screen.dart)
-- [`innovation_app/lib/services/auth_service.dart`](innovation_app/lib/services/auth_service.dart)
-
-### Empresa (Web Admin)
-- Dashboard simples (navegação)
-- Vagas + candidaturas por vaga
-- Alteração de status de candidatura
-- Histórico de status
-
-Arquivos principais:
-- [`web-test/index.html`](web-test/index.html)
-- [`web-test/jobs.html`](web-test/jobs.html)
-- [`web-test/settings.html`](web-test/settings.html)
-
-### Backend (FastAPI)
-- Endpoints de **jobs** e **applications**
-- Autenticação via JWT
-- Regras de assinatura ativa para endpoints de empresa
-
-Arquivos principais:
-- [`innovation/app/api/jobs.py`](innovation/app/api/jobs.py)
-- [`innovation/app/api/applications.py`](innovation/app/api/applications.py)
-- [`innovation/app/core/dependencies.py`](innovation/app/core/dependencies.py)
-
----
-
-## ⚠️ Limitações atuais (transparentes)
-
-- **Web Admin** é protótipo estático (sem login próprio).
-- Endpoints de empresa podem exigir **JWT** e **assinatura ativa** (HTTP 401/402).
-- **Recuperação de senha** no app está como placeholder.
-
----
-
-## ✅ Requisitos
-
-- **Python 3.10+**
-- **pip**
-- **Flutter SDK**
-
-> No Windows, use `py` no lugar de `python`.
-
----
-
-## 🔧 Variáveis de ambiente (backend)
-
-As variáveis são carregadas de `innovation/.env` (ver [`innovation/app/core/config.py`](innovation/app/core/config.py:1)).
-
-Obrigatórias:
-- `DATABASE_URL` (ex: `sqlite:///./innovation.db` ou Postgres)
-- `SECRET_KEY` (string aleatória para JWT)
-- `MP_ACCESS_TOKEN` (Mercado Pago)
-
-Opcionais (conforme uso):
-- `MP_PUBLIC_KEY`
-- `SENDGRID_FROM_EMAIL`
-- `TWILIO_ACCOUNT_SID`
-- `TWILIO_AUTH_TOKEN`
-- `TWILIO_FROM_PHONE`
-- `ACCESS_TOKEN_EXPIRE_MINUTES`
-- `TERMS_VERSION`
-
-> 2FA: o backend exige validação se o usuário tiver `two_factor_enabled=true` (ver [`innovation/app/api/auth.py`](innovation/app/api/auth.py:35)). No app, a UI informa que 2FA está desativado para testes (ver [`innovation_app/lib/presentation/screens/login_screen.dart`](innovation_app/lib/presentation/screens/login_screen.dart:83)).
-
----
-
-## ⚡ Backend (FastAPI)
-
-### Instalação
-
-```powershell
-py -m venv .venv
-.\.venv\Scripts\Activate.ps1
-pip install -r innovation/requirements.txt
+```
+innovation.ia/
+├── innovation/          # 🔹 BACKEND (FastAPI + PostgreSQL)
+│   ├── app/            # Código da aplicação
+│   ├── alembic/        # Migrações de banco de dados
+│   ├── tests/          # Testes automatizados
+│   ├── docs/           # Documentação técnica
+│   └── requirements.txt
+│
+├── web-test/           # 🎨 FRONTEND (HTML/CSS/JS)
+│   ├── index.html      # Landing page
+│   ├── company/        # Portal da empresa
+│   └── common/         # Assets compartilhados
+│
+└── tools/              # 🛠️ Scripts utilitários
 ```
 
-### Rodar o backend
+## 🏃 Quick Start
 
-Opção 1 (scripts do projeto):
-
-```powershell
-./innovation/scripts/run.ps1
-```
-
-Opção 2 (manual):
-
-```powershell
+### 1. Backend (FastAPI)
+```bash
 cd innovation
+python -m venv .venv
+.venv\Scripts\activate  # Windows
+source .venv/bin/activate  # Linux/Mac
+
+pip install -r requirements.txt
 uvicorn app.main:app --reload
 ```
 
-### Smoke test (backend)
+Acesse: `http://localhost:8000`
 
-1) Health check:
-```powershell
-curl http://localhost:8000/
+### 2. Frontend
+O frontend é servido automaticamente pelo FastAPI em `/` e rotas como `/dashboard`, `/vagas`, etc.
+
+## 🔐 Configuração
+
+1. Copie `.env.example` para `.env` dentro da pasta `innovation/`
+2. Configure suas variáveis de ambiente:
+   - `DATABASE_URL` - String de conexão do PostgreSQL
+   - `SECRET_KEY` - Chave secreta para JWT
+   - `GEMINI_API_KEY` - Chave da API do Google Gemini
+
+## 📦 Deploy
+
+### Vercel
+```bash
+vercel
 ```
-Esperado: `{"status":"API rodando"}` (ver [`innovation/app/main.py`](innovation/app/main.py:38)).
 
-2) Swagger:
-Abra `http://localhost:8000/docs` no navegador.
+### Render/Railway
+Use o `Dockerfile` em `innovation/`
 
-### Seed de dados (opcional)
+## 🧪 Testes
 
-Existe um script simples para planos em [`innovation/app/db/seeds.py`](innovation/app/db/seeds.py:1).
-
-```powershell
+```bash
 cd innovation
-py -c "from app.db.seeds import seed_plans; seed_plans()"
+pytest tests/
 ```
 
----
+## 📚 Documentação
 
-## 📱 App Flutter (Candidato)
+- **API Docs (Swagger)**: http://localhost:8000/docs
+- **Docs Técnicas**: `innovation/docs/`
+- **Audit Log**: `CLEANUP_AUDIT.md`
 
-```powershell
-cd innovation_app
-flutter pub get
-flutter run
-```
+## 🛠️ Stack Tecnológica
 
-Configurar base URL da API (default: `https://innovation-api.onrender.com`):
+**Backend:**
+- FastAPI (Python)
+- SQLAlchemy + Alembic
+- PostgreSQL
+- Google Gemini AI
+- JWT Auth
 
-```powershell
-flutter run --dart-define=API_BASE_URL=http://localhost:8000
-```
+**Frontend:**
+- HTML5/CSS3/JavaScript Vanilla
+- TailwindCSS
+- Chart.js
+- Font Awesome
 
-> A URL da API está em [`innovation_app/lib/services/api_client.dart`](innovation_app/lib/services/api_client.dart:59).
+## 📝 License
 
----
-
-## 🧩 Web Admin (Empresa)
-
-Protótipo estático em [`web-test/`](web-test/).
-
-Abra o arquivo [`web-test/index.html`](web-test/index.html) no navegador.
-
-### Smoke test (web)
-
-- Abrir `web-test/index.html`.
-- Navegar para **Jobs** e **Settings** para validar carregamento de layout.
-
----
-
-## ✅ Smoke test (fluxo básico)
-
-1) Backend rodando e `GET /` respondendo OK.
-2) App Flutter inicia e carrega tela de login.
-3) Web Admin abre localmente (HTML estático).
-
----
-
-## 🗂 Estrutura de pastas (resumo)
-
-```
-innovation/          # Backend FastAPI
-innovation_app/      # App Flutter (candidato)
-web-test/            # Web Admin (HTML/JS)
-plans/               # Documentação e planos
-```
-
----
-
-## 🧾 Licença
-
-Projeto privado / uso interno.
+Proprietary - Innovation.ia © 2026

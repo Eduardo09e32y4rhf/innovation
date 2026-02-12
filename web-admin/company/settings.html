@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configurações | Innovation.ia</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+        }
+
+        .sidebar {
+            background: linear-gradient(180deg, #820AD1 0%, #6c06b0 100%);
+        }
+
+        .settings-card {
+            background: #1e293b;
+            border: 1px solid #334155;
+        }
+
+        input:read-only {
+            background: #1e293b !important;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+    </style>
+</head>
+
+<body class="flex h-screen overflow-hidden">
+    <aside class="w-72 sidebar flex flex-col flex-shrink-0">
+        <div class="p-8">
+            <h1 class="text-2xl font-black tracking-tighter text-white">Innovation.ia</h1>
+            <p class="text-xs opacity-60 mt-1 text-white">GESTÃO EMPRESARIAL</p>
+        </div>
+        <nav class="flex-1 px-4">
+            <a href="/dashboard"
+                class="flex items-center gap-3 px-4 py-3 rounded-xl text-white/70 hover:bg-white/10 hover:text-white mb-2 transition-all">
+                <i class="fas fa-chart-pie"></i> Dashboard
+            </a>
+            <a href="/vagas"
+                class="flex items-center gap-3 px-4 py-3 rounded-xl text-white/70 hover:bg-white/10 hover:text-white mb-2 transition-all">
+                <i class="fas fa-briefcase"></i> Minhas Vagas
+            </a>
+            <a href="/candidatos"
+                class="flex items-center gap-3 px-4 py-3 rounded-xl text-white/70 hover:bg-white/10 hover:text-white mb-2 transition-all">
+                <i class="fas fa-users"></i> Candidatos
+            </a>
+            <a href="/configuracoes"
+                class="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/10 text-white mb-2 hover:bg-white/20 transition-all">
+                <i class="fas fa-cog"></i> Configurações
+            </a>
+        </nav>
+        <div class="p-4 border-t border-white/10">
+            <button onclick="logout()"
+                class="flex items-center gap-3 px-4 py-3 rounded-xl text-white/70 hover:bg-white/10 hover:text-white w-full transition-all">
+                <i class="fas fa-sign-out-alt"></i> Sair
+            </button>
+        </div>
+    </aside>
+
+    <main class="flex-1 overflow-y-auto p-8">
+        <div class="max-w-4xl mx-auto">
+            <header class="mb-8">
+                <h2 class="text-3xl font-extrabold">Configurações</h2>
+                <p class="text-slate-400 mt-1">Gerencie as configurações da sua empresa</p>
+            </header>
+
+            <!-- Perfil da Empresa -->
+            <div class="settings-card rounded-xl p-6 mb-6">
+                <h3 class="text-xl font-bold mb-6">Perfil da Empresa</h3>
+                <form id="settingsForm" onsubmit="saveSettings(event)" class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-bold text-slate-300 mb-2">Nome da Empresa</label>
+                            <input type="text" id="companyName" required
+                                class="w-full bg-[#0f172a] border border-slate-700 rounded-lg px-4 py-2 text-white">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-slate-300 mb-2">E-mail de Suporte</label>
+                            <input type="email" id="supportEmail" required
+                                class="w-full bg-[#0f172a] border border-slate-700 rounded-lg px-4 py-2 text-white">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-bold text-slate-300 mb-2">CNPJ</label>
+                            <input type="text" id="cnpj" readonly
+                                class="w-full bg-[#0f172a] border border-slate-700 rounded-lg px-4 py-2 text-white">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-slate-300 mb-2">Telefone</label>
+                            <input type="text" id="phone"
+                                class="w-full bg-[#0f172a] border border-slate-700 rounded-lg px-4 py-2 text-white"
+                                placeholder="(11) 99999-9999">
+                        </div>
+                    </div>
+
+                    <!-- Endereço Completo -->
+                    <div class="border-t border-slate-700 pt-4 mt-4">
+                        <h4 class="font-bold text-slate-200 mb-4">Endereço</h4>
+                        <div class="grid grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-sm font-bold text-slate-300 mb-2">CEP</label>
+                                <input type="text" id="cep" maxlength="9" placeholder="00000-000"
+                                    class="w-full bg-[#0f172a] border border-slate-700 rounded-lg px-4 py-2 text-white"
+                                    onblur="buscarCEP()">
+                            </div>
+                            <div class="col-span-2">
+                                <label class="block text-sm font-bold text-slate-300 mb-2">Rua</label>
+                                <input type="text" id="street"
+                                    class="w-full bg-[#0f172a] border border-slate-700 rounded-lg px-4 py-2 text-white">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-4 gap-4 mt-4">
+                            <div>
+                                <label class="block text-sm font-bold text-slate-300 mb-2">Número</label>
+                                <input type="text" id="number"
+                                    class="w-full bg-[#0f172a] border border-slate-700 rounded-lg px-4 py-2 text-white">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold text-slate-300 mb-2">Complemento</label>
+                                <input type="text" id="complement"
+                                    class="w-full bg-[#0f172a] border border-slate-700 rounded-lg px-4 py-2 text-white">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold text-slate-300 mb-2">Bairro</label>
+                                <input type="text" id="neighborhood"
+                                    class="w-full bg-[#0f172a] border border-slate-700 rounded-lg px-4 py-2 text-white">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold text-slate-300 mb-2">Cidade</label>
+                                <input type="text" id="city"
+                                    class="w-full bg-[#0f172a] border border-slate-700 rounded-lg px-4 py-2 text-white">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4 mt-4">
+                            <div>
+                                <label class="block text-sm font-bold text-slate-300 mb-2">Estado</label>
+                                <input type="text" id="state" maxlength="2"
+                                    class="w-full bg-[#0f172a] border border-slate-700 rounded-lg px-4 py-2 text-white"
+                                    placeholder="SP">
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit"
+                        class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg font-bold mt-6">
+                        <i class="fas fa-save mr-2"></i> Salvar Alterações
+                    </button>
+                </form>
+            </div>
+
+            <!-- Integrações (SEM GEMINI) -->
+            <div class="settings-card rounded-xl p-6">
+                <h3 class="text-xl font-bold mb-6">Integrações</h3>
+                <div class="space-y-4">
+                    <div class="flex items-center justify-between p-4 bg-[#0f172a] rounded-lg">
+                        <div class="flex items-center gap-3">
+                            <i class="fas fa-calendar text-blue-400 text-2xl"></i>
+                            <div>
+                                <p class="font-bold">Google Calendar</p>
+                                <p class="text-xs text-slate-400">Sincronização de agenda e entrevistas</p>
+                            </div>
+                        </div>
+                        <button onclick="connectGoogleCalendar()"
+                            class="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-sm">
+                            Conectar
+                        </button>
+                    </div>
+                    <div class="flex items-center justify-between p-4 bg-[#0f172a] rounded-lg">
+                        <div class="flex items-center gap-3">
+                            <i class="fas fa-envelope text-green-400 text-2xl"></i>
+                            <div>
+                                <p class="font-bold">SendGrid</p>
+                                <p class="text-xs text-slate-400">Envio de e-mails automáticos</p>
+                            </div>
+                        </div>
+                        <button class="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-sm">
+                            Conectar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Carregar dados ao abrir a página
+        window.addEventListener('DOMContentLoaded', loadSettings);
+
+        async function loadSettings() {
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch('/auth/me', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (response.ok) {
+                    const user = await response.json();
+
+                    // Preencher formulário com dados do usuário
+                    document.getElementById('companyName').value = user.company_name || '';
+                    document.getElementById('supportEmail').value = user.email || '';
+                    document.getElementById('cnpj').value = user.cnpj || '12.345.678/0001-90';
+                    document.getElementById('phone').value = user.phone || '';
+
+                    // Endereço (se existir)
+                    if (user.address) {
+                        document.getElementById('cep').value = user.address.cep || '';
+                        document.getElementById('street').value = user.address.street || '';
+                        document.getElementById('number').value = user.address.number || '';
+                        document.getElementById('complement').value = user.address.complement || '';
+                        document.getElementById('neighborhood').value = user.address.neighborhood || '';
+                        document.getElementById('city').value = user.address.city || '';
+                        document.getElementById('state').value = user.address.state || '';
+                    }
+                }
+            } catch (error) {
+                console.error('Erro ao carregar configurações:', error);
+            }
+        }
+
+        async function saveSettings(event) {
+            event.preventDefault();
+
+            const settingsData = {
+                company_name: document.getElementById('companyName').value,
+                email: document.getElementById('supportEmail').value,
+                phone: document.getElementById('phone').value,
+                address: {
+                    cep: document.getElementById('cep').value,
+                    street: document.getElementById('street').value,
+                    number: document.getElementById('number').value,
+                    complement: document.getElementById('complement').value,
+                    neighborhood: document.getElementById('neighborhood').value,
+                    city: document.getElementById('city').value,
+                    state: document.getElementById('state').value
+                }
+            };
+
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch('/auth/me', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(settingsData)
+                });
+
+                if (response.ok) {
+                    alert('✅ Configurações salvas com sucesso!');
+                    // Recarregar dados para confirmar salvamento
+                    loadSettings();
+                } else {
+                    alert('❌ Erro ao salvar configurações');
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('❌ Erro ao salvar configurações');
+            }
+        }
+
+        async function buscarCEP() {
+            const cep = document.getElementById('cep').value.replace(/\D/g, '');
+
+            if (cep.length !== 8) return;
+
+            try {
+                // API ViaCEP (gratuita e pública)
+                const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+                const data = await response.json();
+
+                if (!data.erro) {
+                    document.getElementById('street').value = data.logradouro;
+                    document.getElementById('neighborhood').value = data.bairro;
+                    document.getElementById('city').value = data.localidade;
+                    document.getElementById('state').value = data.uf;
+                    document.getElementById('number').focus();
+                } else {
+                    alert('CEP não encontrado');
+                }
+            } catch (error) {
+                console.error('Erro ao buscar CEP:', error);
+            }
+        }
+
+        function connectGoogleCalendar() {
+            alert('🔄 Integração com Google Calendar em desenvolvimento.\n\nEm breve você poderá sincronizar suas entrevistas automaticamente!');
+        }
+
+        function logout() {
+            localStorage.clear();
+            window.location.href = '/login';
+        }
+
+        // Máscara para CEP
+        document.getElementById('cep').addEventListener('input', function (e) {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value.length > 5) {
+                value = value.slice(0, 5) + '-' + value.slice(5, 8);
+            }
+            e.target.value = value;
+        });
+    </script>
+</body>
+
+</html>

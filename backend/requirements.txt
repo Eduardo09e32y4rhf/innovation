@@ -33,11 +33,5 @@ slowapi==0.1.9  # Rate limiting
 # IA / Gemini
 google-generativeai>=0.3.0
 
-# Google Calendar Integration
-google-auth==2.23.0
-google-auth-oauthlib==1.1.0
-google-auth-httplib2==0.1.1
-google-api-python-client==2.100.0
-
 # PostgreSQL (produção - mais portável que psycopg2 compilado)
 psycopg2-binary>=2.9.9

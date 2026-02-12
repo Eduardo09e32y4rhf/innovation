@@ -1,21 +1,47 @@
-innovation/Lib/
-innovation/Scripts/
-innovation/Include/
-.git.bak/
-**/.git.bak/
+# Python
 __pycache__/
-innovation.db
-.env
-.vercel
-node_modules/
-innovation_app/build/
-innovation_app/.dart_tool/
-innovation_app/linux/flutter/
-innovation_app/windows/flutter/
-innovation_app/macos/Flutter/
-innovation_app/ios/Flutter/
-innovation_app/android/app/
-*.exe
-*.dll
+*.py[cod]
+*$py.class
 *.so
-*.dylib
+.venv/
+venv/
+ENV/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+innovation.db
+
+# Environment
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build
+dist/
+build/
+*.egg-info/
+
+# Vercel
+.vercel
+
+# Node (se usar)
+node_modules/
+
+# Logs
+*.log
+
+# Temporary
+*.tmp
+*.bak
+.git.bak/

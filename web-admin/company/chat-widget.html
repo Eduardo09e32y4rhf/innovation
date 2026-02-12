@@ -1,0 +1,180 @@
+<!-- CHAT WIDGET - Adicionar antes do </body> -->
+<div id="chatToggle" class="chat-toggle" onclick="toggleChat()">
+    <i class="fas fa-robot text-white text-2xl"></i>
+</div>
+
+<div id="chatWidget" class="chat-widget">
+    <div class="bg-gradient-to-r from-purple-600 to-purple-800 p-4 rounded-t-xl flex justify-between items-center">
+        <div class="flex items-center gap-2">
+            <i class="fas fa-robot text-white"></i>
+            <span class="font-bold text-white">Assistente IA</span>
+        </div>
+        <button onclick="toggleChat()" class="text-white hover:text-gray-200">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+
+    <div id="chatMessages" class="chat-messages">
+        <div class="chat-message ai">
+            <p class="text-sm">Olá! Sou o assistente de RH da Innovation.ia. Como posso ajudar?</p>
+        </div>
+    </div>
+
+    <div class="p-4 border-t border-slate-700">
+        <form onsubmit="sendMessage(event)" class="flex gap-2">
+            <input type="text" id="chatInput" placeholder="Digite sua mensagem..."
+                class="flex-1 bg-[#0f172a] border border-slate-700 rounded-lg px-4 py-2 text-white text-sm">
+            <button type="submit" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </form>
+    </div>
+</div>
+
+<style>
+    .chat-widget {
+        position: fixed;
+        bottom: 2rem;
+        right: 2rem;
+        width: 380px;
+        height: 500px;
+        background: #1e293b;
+        border-radius: 1rem;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        display: none;
+        flex-direction: column;
+        z-index: 1000;
+    }
+
+    .chat-widget.active {
+        display: flex;
+    }
+
+    .chat-messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1rem;
+    }
+
+    .chat-message {
+        margin-bottom: 1rem;
+        padding: 0.75rem;
+        border-radius: 0.5rem;
+        animation: fadeIn 0.3s;
+    }
+
+    .chat-message.user {
+        background: #820AD1;
+        margin-left: 2rem;
+    }
+
+    .chat-message.ai {
+        background: #334155;
+        margin-right: 2rem;
+    }
+
+    .chat-toggle {
+        position: fixed;
+        bottom: 2rem;
+        right: 2rem;
+        width: 60px;
+        height: 60px;
+        background: linear-gradient(135deg, #820AD1, #a855f7);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        box-shadow: 0 8px 24px rgba(130, 10, 209, 0.4);
+        z-index: 999;
+        transition: transform 0.3s;
+    }
+
+    .chat-toggle:hover {
+        transform: scale(1.1);
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+</style>
+
+<script>
+    function toggleChat() {
+        const widget = document.getElementById('chatWidget');
+        const toggle = document.getElementById('chatToggle');
+
+        if (widget.classList.contains('active')) {
+            widget.classList.remove('active');
+            toggle.style.display = 'flex';
+        } else {
+            widget.classList.add('active');
+            toggle.style.display = 'none';
+        }
+    }
+
+    async function sendMessage(event) {
+        event.preventDefault();
+
+        const input = document.getElementById('chatInput');
+        const message = input.value.trim();
+
+        if (!message) return;
+
+        // Adicionar mensagem do usuário
+        const messagesDiv = document.getElementById('chatMessages');
+        messagesDiv.innerHTML += `
+        <div class="chat-message user">
+            <p class="text-sm text-white">${message}</p>
+        </div>
+    `;
+
+        input.value = '';
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+        // Mostrar loading
+        messagesDiv.innerHTML += `
+        <div class="chat-message ai" id="loading">
+            <p class="text-sm"><i class="fas fa-spinner fa-spin mr-2"></i>Pensando...</p>
+        </div>
+    `;
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+        try {
+            const response = await fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message })
+            });
+
+            const data = await response.json();
+
+            // Remover loading
+            document.getElementById('loading').remove();
+
+            // Adicionar resposta da IA
+            messagesDiv.innerHTML += `
+            <div class="chat-message ai">
+                <p class="text-sm">${data.response}</p>
+            </div>
+        `;
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+        } catch (error) {
+            document.getElementById('loading').remove();
+            messagesDiv.innerHTML += `
+            <div class="chat-message ai">
+                <p class="text-sm text-red-400">Erro ao conectar com a IA. Tente novamente.</p>
+            </div>
+        `;
+        }
+    }
+</script>
