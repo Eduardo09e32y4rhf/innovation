@@ -2,8 +2,8 @@
   "version": 2,
   "builds": [
     {
-      "src": "backend/app/main.py",
-      "use": "@vercel/python"
+      "src": "api/index.ts",
+      "use": "@vercel/node"
     },
     {
       "src": "web-admin/**",
@@ -13,15 +13,7 @@
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "backend/app/main.py"
-    },
-    {
-      "src": "/docs",
-      "dest": "backend/app/main.py"
-    },
-    {
-      "src": "/openapi.json",
-      "dest": "backend/app/main.py"
+      "dest": "api/index.ts"
     },
     {
       "src": "/dashboard",
