@@ -223,21 +223,28 @@ function nextId(collection) {
   return collection.length ? Math.max(...collection.map(item => item.id)) + 1 : 1
 }
 
-function createToken(user) {
-  const payload = {
-    sub: user?.id,
-    role: user?.role,
-    email: user?.email,
-    iat: Math.floor(Date.now() / 1000)
+function parseJwt(token) {
+  try {
+    const base64Url = token.split('.')[1]
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    )
+    return JSON.parse(jsonPayload)
+  } catch (e) {
+    return null
   }
-  return btoa(JSON.stringify(payload))
 }
 
 function loadUserFromToken() {
   if (!state.token) return null
   try {
-    const decoded = JSON.parse(atob(state.token))
-    return state.data.internalUsers.find(user => user.id === decoded.sub) || null
+    const decoded = parseJwt(state.token)
+    if (!decoded || !decoded.sub) return null
+    return state.data.internalUsers.find(user => String(user.id) === String(decoded.sub)) || null
   } catch (error) {
     return null
   }
@@ -592,26 +599,61 @@ async function handleLogin(event) {
   loadData()
   const email = selectors.loginEmail.value.trim().toLowerCase()
   const password = selectors.loginPassword.value
-  const user = state.data.internalUsers.find(entry => entry.email.toLowerCase() === email)
-  if (!user || user.password !== password) {
-    showAlert('Falha ao autenticar. Verifique suas credenciais.', 'danger')
-    return
+
+  try {
+    const response = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    })
+
+    if (!response.ok) {
+      const err = await response.json()
+      showAlert(err.detail || 'Falha ao autenticar.', 'danger')
+      return
+    }
+
+    const data = await response.json()
+
+    if (data.two_factor_required) {
+      state.temporaryToken = data.temporary_token
+      selectors.loginCodeSection?.classList.remove('hidden')
+      showAlert('Insira o código 2FA enviado.', 'warning')
+      return
+    }
+
+    completeLogin(data.access_token)
+  } catch (error) {
+    showAlert('Erro ao conectar com o servidor.', 'danger')
   }
-  if (user.status !== 'active') {
-    showAlert('Usuário inativo. Solicite reativação ao ADM.', 'danger')
-    return
-  }
-  state.pendingUserId = user.id
-  selectors.loginCodeSection?.classList.add('hidden')
-  completeLogin(createToken(user))
 }
 
 async function handleVerify(event) {
   event.preventDefault()
-  showAlert('2FA pronto, mas desabilitado para testes neste ambiente.', 'warning')
-  if (state.pendingUserId) {
-    const user = state.data.internalUsers.find(entry => entry.id === state.pendingUserId)
-    completeLogin(createToken(user))
+  const code = selectors.loginCode.value.trim()
+  if (!state.temporaryToken) {
+    showAlert('Sessão expirada. Tente o login novamente.', 'danger')
+    return
+  }
+
+  try {
+    const response = await fetch(
+      `/api/auth/login/verify?temporary_token=${state.temporaryToken}&code=${code}`,
+      {
+        method: 'POST'
+      }
+    )
+
+    if (!response.ok) {
+      const err = await response.json()
+      showAlert(err.detail || 'Código inválido.', 'danger')
+      return
+    }
+
+    const data = await response.json()
+    completeLogin(data.access_token)
+  } catch (error) {
+    showAlert('Erro ao verificar código.', 'danger')
   }
 }
 
@@ -832,10 +874,15 @@ async function initializeApp() {
   setView(true)
   try {
     loadData()
-    state.user = loadUserFromToken()
-    if (!state.user) {
-      throw new Error('token')
-    }
+
+    const res = await fetch('/api/auth/me', {
+      headers: { Authorization: `Bearer ${state.token}` }
+    })
+    if (!res.ok) throw new Error('token')
+
+    const userData = await res.json()
+    state.user = userData
+
     updateUserHeader()
     setAccessDenied(!hasAdmRole(state.user))
     addAuditLog('login', 'auth', `Login de ${state.user.email}.`)
