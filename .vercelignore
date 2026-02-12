@@ -32,6 +32,7 @@ build/
 
 # Node
 node_modules/
+package-lock.json
 
 # Logs
 *.log
@@ -45,34 +46,40 @@ tests/
 test_*.py
 *_test.py
 
-# Documentation
+# Documentation (exceto README)
 docs/
 *.md
 !README.md
 
 # Git
-.git/
 .gitignore
+.github/
 
-# Alembic (migrations não necessárias no serverless)
+# Alembic (migrations rodadas via script)
 alembic/
 alembic.ini
 
-# Backend folder (já que estamos usando innovation/)
-backend/
-
-# Tools
+# Tools e scripts de desenvolvimento
 tools/
+create_admin.py
+create_test_user.py
+init_db.py
+reorganize.py
 
-# Web admin (já configurado como static)
-# web-admin/ - NÃO REMOVER, é necessário
+# Innovation folder antiga (não necessário)
+innovation/
 
-# Arquivos de backup
-*.bak
-.git.bak/
-
-# Outros
+# Arquivos de configuração local
 .env.example
 .dockerignore
 Dockerfile
 docker-compose.yml
+render.yaml
+tsconfig.json
+
+# API Node (não usada)
+api/
+server/
+
+# Vercel outputs
+.vercel/
