@@ -1,76 +1,49 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "backend/app/main.py",
-      "use": "@vercel/python",
-      "config": {
-        "maxLambdaSize": "50mb",
-        "excludeFiles": "{tests/**,docs/**,*.md,*.db,*.sqlite,alembic/**}"
-      }
-    },
-    {
-      "src": "web-admin/**",
-      "use": "@vercel/static"
-    }
-  ],
   "routes": [
     {
-      "src": "/api/auth/(.*)",
-      "dest": "backend/app/main.py"
-    },
-    {
       "src": "/api/(.*)",
-      "dest": "backend/app/main.py"
+      "dest": "/backend/app/main.py"
     },
     {
       "src": "/health",
-      "dest": "backend/app/main.py"
+      "dest": "/backend/app/main.py"
     },
     {
       "src": "/docs",
-      "dest": "backend/app/main.py"
+      "dest": "/backend/app/main.py"
     },
     {
       "src": "/openapi.json",
-      "dest": "backend/app/main.py"
+      "dest": "/backend/app/main.py"
     },
     {
       "src": "/dashboard",
-      "dest": "web-admin/company/dashboard.html"
+      "dest": "/web-admin/company/dashboard.html"
     },
     {
       "src": "/vagas",
-      "dest": "web-admin/company/jobs.html"
+      "dest": "/web-admin/company/jobs.html"
     },
     {
       "src": "/candidatos",
-      "dest": "web-admin/company/candidates.html"
+      "dest": "/web-admin/company/candidates.html"
     },
     {
       "src": "/configuracoes",
-      "dest": "web-admin/company/settings.html"
+      "dest": "/web-admin/company/settings.html"
     },
     {
       "src": "/login",
-      "dest": "web-admin/company/login.html"
+      "dest": "/web-admin/company/login.html"
     },
     {
       "src": "/static/(.*)",
-      "dest": "web-admin/$1"
+      "dest": "/web-admin/$1"
     },
     {
       "src": "/",
-      "dest": "web-admin/index.html"
+      "dest": "/web-admin/index.html"
     }
-  ],
-  "env": {
-    "DATABASE_URL": "@database_url",
-    "SECRET_KEY": "@secret_key",
-    "GEMINI_API_KEY": "@gemini_api_key",
-    "ALGORITHM": "HS256",
-    "ACCESS_TOKEN_EXPIRE_MINUTES": "1440",
-    "REFRESH_TOKEN_EXPIRE_DAYS": "30",
-    "TERMS_VERSION": "v1"
-  }
+  ]
 }
