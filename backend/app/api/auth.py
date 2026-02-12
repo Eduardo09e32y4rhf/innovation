@@ -14,7 +14,7 @@ from app.services.auth_service import authenticate_user, register_user
 from app.services.two_factor_service import request_code, verify_code
 
 limiter = Limiter(key_func=get_remote_address)
-router = APIRouter(prefix="/auth", tags=["Auth"])
+router = APIRouter(prefix="/api/auth", tags=["Auth"])
 
 
 
