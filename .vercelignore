@@ -1,0 +1,78 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.venv/
+venv/
+ENV/
+env/
+.Python
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+innovation.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build
+dist/
+build/
+*.egg-info/
+
+# Node
+node_modules/
+
+# Logs
+*.log
+
+# Temporary
+*.tmp
+*.bak
+
+# Tests
+tests/
+test_*.py
+*_test.py
+
+# Documentation
+docs/
+*.md
+!README.md
+
+# Git
+.git/
+.gitignore
+
+# Alembic (migrations não necessárias no serverless)
+alembic/
+alembic.ini
+
+# Backend folder (já que estamos usando innovation/)
+backend/
+
+# Tools
+tools/
+
+# Web admin (já configurado como static)
+# web-admin/ - NÃO REMOVER, é necessário
+
+# Arquivos de backup
+*.bak
+.git.bak/
+
+# Outros
+.env.example
+.dockerignore
+Dockerfile
+docker-compose.yml
