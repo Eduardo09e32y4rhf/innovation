@@ -6,7 +6,7 @@ from fastapi.templating import Jinja2Templates
 import google.generativeai as genai
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
-from app.api import jobs, applications, ai, matching, auth, dashboard, interviews, ai_services, projects, rh, finance
+from app.api import jobs, applications, ai, matching, auth, dashboard, interviews, ai_services, projects, rh, finance, support
 import app.models # Garante o registro de todos os modelos
 
 # Iniciar App
@@ -48,6 +48,7 @@ app.include_router(ai_services.router)
 app.include_router(projects.router)
 app.include_router(rh.router)
 app.include_router(finance.router)
+app.include_router(support.router)
 
 # Modelo para o Chat
 class ChatMessage(BaseModel):
@@ -95,6 +96,18 @@ async def rh_page(request: Request):
 @app.get("/financeiro")
 async def finance_page(request: Request):
     return templates.TemplateResponse("finance.html", {"request": request})
+
+@app.get("/suporte")
+async def support_page(request: Request):
+    return templates.TemplateResponse("support.html", {"request": request})
+
+@app.get("/status", response_class=HTMLResponse)
+async def public_status_page(request: Request):
+    path = os.path.join(WEB_BASE, "status.html")
+    if os.path.exists(path):
+        with open(path, "r", encoding="utf-8") as f:
+            return f.read()
+    return "Página de status não encontrada."
 
 @app.get("/login")
 async def login_page(request: Request):
