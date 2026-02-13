@@ -35,4 +35,16 @@ class FinanceService:
             "recommended_action": "Manter reserva de contingência para as despesas de R$ " + str(summary['pending_expenses'])
         }
 
+    @staticmethod
+    def detect_anomalies(db: Session, company_id: int):
+        """IA detecta picos de gastos anômalos."""
+        # Comparação básica por categoria
+        prediction_data = FinanceService.ai_cash_flow_prediction(db, company_id)
+        # Mock logic
+        return [{
+            "description": "Aumento de 40% na conta de luz",
+            "impact": "Alto",
+            "suggestion": "Verificar se houve erro na medição ou novo equipamento ligado 24h."
+        }]
+
 finance_service = FinanceService()

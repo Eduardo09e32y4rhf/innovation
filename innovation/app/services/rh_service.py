@@ -3,9 +3,27 @@ from datetime import datetime
 from ..models.onboarding import Onboarding
 from ..models.leave_request import LeaveRequest
 from ..models.performance_review import PerformanceReview
+from ..models.compliance import PulseSurvey
+from .ai_ats import ai_ats_service
 import json
 
 class RHService:
+    @staticmethod
+    async def generate_contract_draft(db: Session, employee_id: int):
+        from ..models.user import User
+        user = db.query(User).filter(User.id == employee_id).first()
+        if not user: return "Usuário não encontrado"
+        
+        contract = await ai_ats_service.generate_contract(user.full_name, "Colaborador", "R$ 5.000,00")
+        return contract
+
+    @staticmethod
+    def register_pulse(db: Session, user_id: int, score: int, comment: str = None):
+        pulse = PulseSurvey(user_id=user_id, mood_score=score, comment=comment)
+        db.add(pulse)
+        db.commit()
+        db.refresh(pulse)
+        return pulse
     @staticmethod
     def process_document_ocr(db: Session, onboarding_id: int, file_content: str):
         # Aqui integraríamos com o Gemini Vision para extrair dados

@@ -108,22 +108,36 @@
                         <th class="px-8 py-4 text-right">Valor</th>
                     </tr>
                 </thead>
-                <tbody class="text-sm">
-                    <tr class="border-t border-white/5">
-                        <td class="px-8 py-6">Fatura AWS - Cloud Computing</td>
-                        <td class="px-8 py-6"><span
-                                class="px-3 py-1 bg-green-500/10 text-green-500 rounded-full text-xs">Pago</span></td>
-                        <td class="px-8 py-6 text-right font-bold">R$ 1.200,00</td>
-                    </tr>
-                    <tr class="border-t border-white/5">
-                        <td class="px-8 py-6">Assinatura Innovation.ia Enterprise</td>
-                        <td class="px-8 py-6"><span
-                                class="px-3 py-1 bg-yellow-500/10 text-yellow-500 rounded-full text-xs">Pendente</span>
-                        </td>
-                        <td class="px-8 py-6 text-right font-extrabold text-[#820AD1]">R$ 1.999,00</td>
-                    </tr>
+                <tbody class="text-sm" id="transaction-body">
+                    <!-- Dinâmico -->
                 </tbody>
             </table>
+        </div>
+
+        <!-- Compliance & Audit Logs -->
+        <div class="mt-12 grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div class="glass p-8 rounded-[2rem]">
+                <h4 class="font-bold mb-6 flex items-center gap-2"><i class="fas fa-fingerprint text-purple-400"></i>
+                    Auditoria de Acesso (Compliance)</h4>
+                <div class="space-y-4" id="audit-logs">
+                    <div class="flex justify-between text-xs py-2 border-b border-white/5">
+                        <span class="text-slate-400">visualizou_salario</span>
+                        <span class="font-bold">Admin • 14:20</span>
+                    </div>
+                    <div class="flex justify-between text-xs py-2 border-b border-white/5">
+                        <span class="text-slate-400">exportou_ofx</span>
+                        <span class="font-bold">Admin • 12:05</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-red-500/10 border border-red-500/20 p-8 rounded-[2rem]">
+                <h4 class="font-bold mb-4 text-red-500 flex items-center gap-2"><i
+                        class="fas fa-exclamation-triangle"></i> Alertas de Anomalia IA</h4>
+                <div id="anomalies-container">
+                    <p class="text-xs text-slate-400">Nenhuma anomalia crítica detectada nas últimas 24h.</p>
+                </div>
+            </div>
         </div>
     </main>
 

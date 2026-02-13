@@ -31,3 +31,18 @@ async def list_leaves(db: Session = Depends(get_db)):
 @router.post("/performance-reviews")
 async def create_review(employee_id: int, reviewer_id: int, score: float, feedback: str, db: Session = Depends(get_db)):
     return rh_service.add_performance_review(db, employee_id, reviewer_id, score, feedback)
+
+@router.get("/onboarding/{employee_id}/contract")
+async def get_contract(employee_id: int, db: Session = Depends(get_db)):
+    return {"contract": await rh_service.generate_contract_draft(db, employee_id)}
+
+@router.post("/pulse")
+async def pulse(score: int, comment: str = None, db: Session = Depends(get_db)):
+    # Mock user_id = 1
+    return rh_service.register_pulse(db, 1, score, comment)
+
+@router.get("/employees/{employee_id}/badges")
+async def get_badges(employee_id: int, db: Session = Depends(get_db)):
+    from ..models.user import User
+    user = db.query(User).filter(User.id == employee_id).first()
+    return {"badges": user.badges if user else "[]", "points": user.points if user else 0}

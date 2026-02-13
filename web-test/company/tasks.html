@@ -82,6 +82,11 @@
                 <p class="text-slate-400 text-sm mt-1">Gestão de Processos & Tempo (Kanban 2.0)</p>
             </div>
             <div class="flex gap-4">
+                <div class="bg-white/5 border border-white/5 px-4 py-2 rounded-xl flex items-center gap-2">
+                    <button class="px-3 py-1 bg-[#820AD1] rounded-lg text-xs font-bold">Kanban</button>
+                    <button
+                        class="px-3 py-1 hover:bg-white/10 rounded-lg text-xs font-bold text-slate-500">Lista</button>
+                </div>
                 <div class="bg-white/5 border border-white/5 px-6 py-3 rounded-2xl flex items-center gap-4">
                     <div class="text-right">
                         <p class="text-[10px] text-slate-500 uppercase font-bold tracking-widest">Custo Real Acumulado
@@ -123,6 +128,13 @@
             </div>
         </div>
     </main>
+
+    <!-- Painel de Automações (Workflow) -->
+    <div id="automationPanel"
+        class="hidden fixed bottom-10 right-10 bg-indigo-600 p-6 rounded-3xl shadow-2xl text-white max-w-xs animate-bounce">
+        <h4 class="font-bold flex items-center gap-2"><i class="fas fa-bolt"></i> Automação Ativa</h4>
+        <p class="text-[10px] mt-1 opacity-80">Quando mover para 'Concluído' → Notificar Gestor via E-mail</p>
+    </div>
 
     <!-- Modal Nova Tarefa -->
     <div id="taskModal" class="hidden fixed inset-0 z-50 items-center justify-center bg-black/80 backdrop-blur-sm p-6">

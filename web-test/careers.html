@@ -10,10 +10,27 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
+        :root {
+            --primary-color: #820AD1;
+            --bg-color: #0f172a;
+        }
+
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
-            background-color: #020617;
-            color: #ffffff;
+            background-color: var(--bg-color);
+            color: #f8fafc;
+        }
+
+        .bg-primary {
+            background-color: var(--primary-color);
+        }
+
+        .text-primary {
+            color: var(--primary-color);
+        }
+
+        .border-primary {
+            border-color: var(--primary-color);
         }
 
         .glass {

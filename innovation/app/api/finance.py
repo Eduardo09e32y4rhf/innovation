@@ -38,3 +38,12 @@ async def create_transaction(data: TransactionCreate, db: Session = Depends(get_
     db.commit()
     db.refresh(transaction)
     return transaction
+
+@router.get("/anomalies")
+async def get_anomalies(db: Session = Depends(get_db)):
+    return finance_service.detect_anomalies(db, 1)
+
+@router.get("/logs")
+async def get_logs(db: Session = Depends(get_db)):
+    from ..models.audit_log import AuditLog
+    return db.query(AuditLog).order_by(AuditLog.created_at.desc()).limit(20).all()

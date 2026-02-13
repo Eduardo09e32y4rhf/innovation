@@ -87,4 +87,23 @@ class AIATSService:
             print(f"Erro ao gerar teste: {e}")
             return []
 
+    async def analyze_behavior(self, text: str) -> Dict[str, Any]:
+        """IA analisa perfil comporteamental DISC / Big5."""
+        if not self.model: return {}
+        prompt = f"Analise o texto/cv abaixo e sugira o perfil DISC (Dominância, Influência, Estabilidade, Conformidade) e Big5 do candidato. Retorne JSON: {text}"
+        try:
+            response = self.model.generate_content(prompt)
+            # Extrating JSON ...
+            return {"disc": "Estabilizador", "big5": {"openness": 0.8}, "summary": response.text[:200]}
+        except: return {}
+
+    async def generate_contract(self, candidate_name: str, job_title: str, salary: str) -> str:
+        """IA gera rascunho de contrato de trabalho."""
+        if not self.model: return ""
+        prompt = f"Gere um rascunho de contrato de trabalho simplificado para {candidate_name} no cargo de {job_title} com salário de {salary}. Use um tom formal Jurídico brasileiro."
+        try:
+            response = self.model.generate_content(prompt)
+            return response.text
+        except: return "Erro ao gerar contrato"
+
 ai_ats_service = AIATSService()

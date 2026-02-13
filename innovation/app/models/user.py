@@ -20,8 +20,15 @@ class User(Base):
     experience = Column(Text, nullable=True)
     education = Column(Text, nullable=True)
     
-    # Empresa (opcional)
+    # Empresa & White-Label
     company_name = Column(String(200), nullable=True)
+    brand_logo = Column(String(500), nullable=True) # URL do logo
+    brand_color_primary = Column(String(20), default="#820AD1") # Cor principal
+    brand_color_secondary = Column(String(20), default="#0f172a") # Fundo principal
+    
+    # Gamificação
+    badges = Column(Text, nullable=True) # JSON com badges conquistados
+    points = Column(Integer, default=0)
     
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

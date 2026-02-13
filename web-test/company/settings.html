@@ -158,6 +158,36 @@
                 </form>
             </div>
 
+            <!-- Personalização (White-Label) -->
+            <div class="settings-card rounded-xl p-6 mb-6">
+                <h3 class="text-xl font-bold mb-6">Identidade Visual (White-Label)</h3>
+                <div class="grid grid-cols-1 gap-6">
+                    <div>
+                        <label class="block text-sm font-bold text-slate-300 mb-2">URL da Logomarca (PNG transparente
+                            recomendado)</label>
+                        <input type="text" id="brandLogo"
+                            class="w-full bg-[#0f172a] border border-slate-700 rounded-lg px-4 py-2 text-white"
+                            placeholder="https://exemplo.com/logo.png">
+                    </div>
+                    <div class="grid grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-bold text-slate-300 mb-2">Cor Primária (Botões e
+                                Links)</label>
+                            <input type="color" id="brandColorPrimary"
+                                class="w-full h-12 bg-[#0f172a] border border-slate-700 rounded-lg p-1 cursor-pointer"
+                                value="#820AD1">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-slate-300 mb-2">Cor de Destaque (Fundo e
+                                Cards)</label>
+                            <input type="color" id="brandColorSecondary"
+                                class="w-full h-12 bg-[#0f172a] border border-slate-700 rounded-lg p-1 cursor-pointer"
+                                value="#0f172a">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Integrações (SEM GEMINI) -->
             <div class="settings-card rounded-xl p-6">
                 <h3 class="text-xl font-bold mb-6">Integrações</h3>
