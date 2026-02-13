@@ -95,6 +95,54 @@
 
 ---
 
+## 🟡 MÓDULO 6: CENTRAL DE SERVIÇOS (CSC) & SERVICE DESK
+*Centralizar todas as solicitações da empresa, garantindo que nada se perca e que cada departamento atue dentro do prazo (SLA).*
+
+### 6.1. Abertura & Gestão de Chamados (Ticket System)
+- [ ] **Catálogo de Serviços Inteligente:** IA sugere categoria automaticamente (ex: "Erro na Nota" → Contabilidade > Cancelamento de NF).
+- [ ] **Formulários Condicionais:** Campos dinâmicos baseados na categoria (erro = print, reembolso = recibo).
+- [ ] **Base de Conhecimento (KB) Ativa:** IA sugere tutoriais antes de abrir chamado (redução de 30% em tickets N1).
+
+### 6.2. Roteamento Automático & Filas
+- [ ] **Filas por Departamento:**
+  - **N1 (Triagem):** Dúvidas básicas, reset de senha
+  - **N2 (Técnico):** Análise de logs, configurações complexas
+  - **DEV (Engenharia):** Bugs confirmados → Integração GitHub/Jira
+  - **BKO (Backoffice):** Cadastro de clientes, validação de documentos
+  - **RET (Retenção):** Cancelamentos (SLA crítico)
+  - **COB (Cobrança):** Negociação de dívidas
+  - **CONT (Contabilidade):** Dúvidas fiscais, folha de pagamento
+
+### 6.3. SLA & Escalonamento Automático
+- [ ] **Relógio de SLA:** Contagem regressiva colorida (Verde/Amarelo/Vermelho). Ex: N1=2h, Dev=48h.
+- [ ] **Escalonamento Automático:** Se não responder no prazo, sobe para supervisor com alerta.
+- [ ] **SLA VIP:** Clientes Enterprise furam a fila automaticamente.
+
+### 6.4. Interface do Agente (Mesa de Trabalho)
+- [ ] **Visão 360º do Solicitante:** Histórico de chamados, "humor" (análise de sentimento IA).
+- [ ] **Respostas Prontas (Canned Responses):** Atalhos como `/reset` para textos padrão.
+- [ ] **Chat Interno no Ticket:** Notas privadas entre N1/N2 (@mentions).
+- [ ] **Acesso Remoto:** Botão para compartilhamento de tela direto no ticket.
+
+### 6.5. Página de Status & Manutenção (NOC)
+- [ ] **Dashboard de Saúde:** Indicadores em tempo real (API, DB, Integrações).
+- [ ] **Manutenção Programada:** Avisos fixos no topo do sistema.
+- [ ] **Página Pública de Status:** `status.innovation.ia` para clientes verificarem incidentes.
+- [ ] **Assinatura de Alertas:** Notificação automática quando incidente for resolvido.
+- [ ] **Post-Mortem Automático:** Rascunho de relatório após incidentes.
+
+### 6.6. IA para Suporte (Copiloto)
+- [ ] **Sugestão de Resposta (Smart Reply):** IA escreve resposta técnica para atendente revisar.
+- [ ] **Detecção de Anomalias:** Alerta de spike em chamados ("50 tickets sobre 'Boleto Duplicado' na última hora").
+- [ ] **Triagem Preditiva:** IA define prioridade e fila automaticamente.
+
+### 6.7. Relatórios & Qualidade (KPIs)
+- [ ] **CSAT (Customer Satisfaction):** Pesquisa de estrelas após fechamento do chamado.
+- [ ] **FCR (First Contact Resolution):** % de chamados resolvidos no N1.
+- [ ] **Top Ofensores:** Ranking dos 3 maiores motivos de chamado por departamento.
+
+---
+
 ## 🗺️ ROTEIRO DE IMPLEMENTAÇÃO (Roadmap)
 
 ### ✅ Fase 0: Infraestrutura & Deploy (ATUAL)
@@ -135,14 +183,21 @@
 - [ ] Previsões financeiras
 - [ ] App Mobile
 
+### 🟡 Fase 6: Central de Serviços (Mês 10-12)
+- [ ] Sistema de tickets multi-fila
+- [ ] SLA e escalonamento automático
+- [ ] Página de status pública
+- [ ] IA para suporte (Smart Reply)
+- [ ] KPIs e CSAT
+
 ---
 
 ## 💰 MODELO DE NEGÓCIO
 
 ### Planos
 1. **Starter** (R$ 299/mês): Até 10 funcionários. ATS + Tarefas básicas.
-2. **Growth** (R$ 799/mês): Até 50 funcionários. + RH + Time Tracking.
-3. **Enterprise** (R$ 1.999/mês): Ilimitado. + Financeiro + API + White-Label.
+2. **Growth** (R$ 799/mês): Até 50 funcionários. + RH + Time Tracking + Service Desk.
+3. **Enterprise** (R$ 1.999/mês): Ilimitado. + Financeiro + CSC Completo + API + White-Label.
 
 ### Receita Projetada (18 meses)
 - **Mês 6:** 10 clientes = R$ 7.990/mês
@@ -152,4 +207,4 @@
 ---
 
 **Última Atualização:** 12/02/2026  
-**Status:** Fase 0 completa. Iniciando Fase 1.
+**Status:** Fase 0 completa. MASTERPLAN expandido com 6 módulos completos.
