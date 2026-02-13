@@ -10,6 +10,7 @@ class User(Base):
     email = Column(String(180), unique=True, index=True, nullable=False)
     hashed_password = Column(String(255), nullable=False)
     full_name = Column(String(200), nullable=False)
+    phone = Column(String(20), nullable=True)
     role = Column(String(50), nullable=False, default="candidate") # candidate, company
     is_active = Column(Boolean, default=True)
     two_factor_enabled = Column(Boolean, default=False)
@@ -39,3 +40,11 @@ class User(Base):
     projects = relationship("Project", back_populates="company")
     tasks = relationship("Task", back_populates="assignee")
     time_entries = relationship("TimeEntry", back_populates="user")
+
+    @property
+    def name(self):
+        return self.full_name
+
+    @name.setter
+    def name(self, value):
+        self.full_name = value

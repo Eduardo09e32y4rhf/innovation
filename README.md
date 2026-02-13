@@ -1,9 +1,4 @@
-# 🚀 Innovation.ia - Plataforma de Recrutamento com IA
-
-[![Security](https://img.shields.io/badge/Security-Hardened-green.svg)](./innovation/docs/SECURITY_FIXES.md)
-[![Python](https://img.shields.io/badge/Python-3.12+-blue.svg)](https://www.python.org/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.128+-00a393.svg)](https://fastapi.tiangolo.com/)
-[![IA](https://img.shields.io/badge/AI-Gemini_Pro-blueviolet.svg)](https://ai.google.dev/)
+# 🚀 Innovation.ia - Plataforma de Recrutamento Inteligente
 
 > **Plataforma SaaS completa de recrutamento que combina Inteligência Artificial, agendamento inteligente e segurança enterprise-grade.**
 
@@ -11,129 +6,113 @@
 
 ## 🎯 Visão Geral
 
-O **Innovation.ia** é um ecossistema de recrutamento moderno projetado para automatizar o ciclo completo de contratação:
-
-- ✅ **Backend FastAPI:** Arquitetura robusta, assíncrona e altamente segura.
-- ✅ **IA Gemini Pro:** Triagem inteligente, matching candidato-vaga e análise de perfis.
-- ✅ **Google Calendar:** Sincronização automática de entrevistas via OAuth 2.0.
-- ✅ **SendGrid:** Automação total de convites, confirmações e lembretes por e-mail.
-- ✅ **ViaCEP:** Integração nativa para preenchimento instantâneo de endereços.
-- ✅ **Segurança 2FA:** Autenticação de dois fatores com Rate Limiting e Auditoria.
+O **Innovation.ia** revoluciona o processo de contratação com:
+- ✅ **Backend FastAPI:** Alta performance e segurança.
+- ✅ **Frontend Moderno:** Interface administrativa responsiva (`web-test`).
+- ✅ **IA Gemini Pro:** Triagem e análise de candidatos.
+- ✅ **Segurança Avançada:** 2FA, Rate Limiting, Proteção contra Injection e DoS.
 
 ---
 
-## 🔐 Recursos de Segurança (Hardened)
+## 🛠️ Estrutura do Projeto
 
-O projeto implementa rigorosos padrões de segurança para garantir a integridade dos dados:
+O projeto foi reorganizado para máxima eficiência:
 
-| Recurso | Descrição |
-|---------|-----------|
-| **2FA Database-Backed** | Códigos 2FA persistentes e seguros via tokens temporários. |
-| **JWT Refresh Tokens** | Sistema de tokens de curta duração com renovação via DB. |
-| **Rate Limiting** | Proteção contra brute-force em endpoints críticos (Auth, 2FA). |
-| **Auditoria Local** | Logs detalhados de todas as ações sensíveis no sistema. |
-| **CORS Seguro** | Configuração restrita para origens autorizadas. |
-
----
-
-## � Estrutura do Projeto
-
-```bash
+```
 innovation.ia/
-├── innovation/              # 🔹 BACKEND (FastAPI + PostgreSQL)
+├── innovation/              # 🔹 BACKEND (Python/FastAPI)
 │   ├── app/
-│   │   ├── api/            # Endpoints REST (Auth, Jobs, Calendar, Chat...)
-│   │   ├── core/           # Configurações, Segurança, Dependências
-│   │   ├── models/         # Modelos SQLAlchemy (Banco de Dados)
-│   │   ├── services/       # Lógica de Negócio (IA, Email, Calendar)
-│   │   └── db/             # Sessão de Banco, Migrações e Seeds
-│   ├── docs/               # 📚 Documentação Técnica (Segurança, Admin)
-│   ├── tests/              # Testes Automatizados (Pytest)
-│   └── requirements.txt    # Dependências do Python
+│   │   ├── api/            # Endpoints REST (Auth, Jobs, etc.)
+│   │   ├── models/         # Modelos de Banco de Dados (SQLAlchemy)
+│   │   ├── services/       # Lógica de Negócio (Auth, IA, Email)
+│   │   └── core/           # Configurações e Segurança
+│   ├── tests/              # Testes Automatizados e de Segurança
+│   └── .env.example        # Modelo de variáveis de ambiente
 │
-├── web-test/               # 🎨 WEB ADMIN (HTML/CSS/JS)
-│   ├── index.html          # Landing Page Principal
-│   ├── company/            # Portal da Empresa (Dashboard, Vagas, Config)
-│   └── common/             # Assets Compartilhados (Tailwind, FontAwesome)
+├── web-test/               # 🎨 FRONTEND (HTML5/JS/Tailwind)
+│   ├── company/            # Painel Administrativo
+│   ├── common/             # Assets e Estilos
+│   └── app.js              # Lógica do Frontend
 │
-├── innovation_app/          # 📱 MOBILE APP (Flutter para Candidatos)
-└── Dockerfile              # Configuração para Deploy em Containers
+├── requirements.txt        # Dependências Python
+└── README.md               # Esta documentação
 ```
 
 ---
 
-## 🏃 Começo Rápido (Quick Start)
+## 🔐 Segurança Implementada
 
-### 1️⃣ Instalação
+Realizamos uma auditoria completa e implementamos correções críticas:
+
+1.  **Proteção contra DoS:** Limites rigorosos de tamanho de payload em todos os endpoints de criação/edição.
+2.  **Correção de Autenticação:** Normalização de roles (`company` vs `COMPANY`) e correção no serviço de registro.
+3.  **Rate Limiting:** Proteção contra força bruta em login e endpoints sensíveis.
+4.  **Validação de Input:** Sanitização e tipagem estrita com Pydantic para prevenir Injection.
+5.  **2FA:** Suporte nativo a autenticação de dois fatores.
+
+---
+
+## 🚀 Como Executar
+
+### 1. Pré-requisitos
+- Python 3.12+
+- Pip
+
+### 2. Instalação
 
 ```bash
-cd innovation
+# Clone o repositório
+git clone <url-do-repo>
+cd innovation.ia
+
+# Crie um ambiente virtual
 python -m venv .venv
-.venv\Scripts\activate  # No Windows
+source .venv/bin/activate  # Linux/Mac
+# ou .venv\Scripts\activate  # Windows
+
+# Instale as dependências
 pip install -r requirements.txt
 ```
 
-### 2️⃣ Configuração do Ambiente
-
-Crie um arquivo `.env` na pasta `innovation/` baseado no `.env.example`:
+### 3. Configuração
+Crie um arquivo `innovation/.env` com suas credenciais (baseado em `.env.example` ou use os valores abaixo para teste local):
 
 ```env
 DATABASE_URL=sqlite:///./innovation.db
-SECRET_KEY=sua_chave_secreta_aqui
-GEMINI_API_KEY=sua_chave_gemini
-GOOGLE_CLIENT_ID=seu_client_id_google
-SENDGRID_API_KEY=sua_id_sendgrid
+SECRET_KEY=sua_chave_secreta_super_segura
+GEMINI_API_KEY=sua_api_key_gemini
 ```
 
-> 📖 Consulte o [**Guia de Credenciais**](./CREDENTIALS_SETUP.md) para detalhes de configuração.
-
-### 3️⃣ Execução
+### 4. Executando o Servidor
 
 ```bash
-# Sincronizar banco de dados
-alembic upgrade head
-python -m app.db.seed
-
-# Iniciar servidor
-uvicorn app.main:app --reload
+# Execute a partir da raiz do projeto
+export PYTHONPATH=$PYTHONPATH:$(pwd)/innovation
+uvicorn innovation.app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
----
-
-## 🛠️ Stack Tecnológica
-
-### Backend
-- **FastAPI** - Performance e rapidez no desenvolvimento.
-- **SQLAlchemy 2.0** - ORM moderno para manipulação de dados.
-- **Alembic** - Gerenciamento profissional de migrações de DB.
-- **JWT & OAuth 2.0** - Autenticação e integrações seguras.
-
-### Inteligência Artificial
-- **Google Gemini Pro** - Processamento de linguagem natural e triagem.
-
-### Frontend
-- **HTML5 / Vanilla JS** - Agilidade e controle total sobre o DOM.
-- **TailwindCSS** - Design moderno e responsivo.
-- **Chart.js** - Dashboards financeiros e estatísticos.
+Acesse:
+- **Web Admin:** `http://localhost:8000/`
+- **Documentação API:** `http://localhost:8000/docs`
 
 ---
 
-## 📚 Documentação Adicional
+## 🧪 Testes
 
-| Documento | Link |
-|-----------|-----------|
-| **Guia de Credenciais** | [CREDENTIALS_SETUP.md](./CREDENTIALS_SETUP.md) |
-| **Histórico de Correções** | [SECURITY_FIXES.md](./innovation/docs/SECURITY_FIXES.md) |
-| **Resumo Executivo** | [EXECUTIVE_SUMMARY.md](./innovation/docs/EXECUTIVE_SUMMARY.md) |
-| **Swagger UI** | `http://localhost:8000/docs` |
+Para executar a bateria de testes, incluindo os testes de segurança ("Hacker Mode"):
 
----
+```bash
+export PYTHONPATH=$PYTHONPATH:$(pwd)/innovation
+pytest innovation/tests
+```
 
-## 👨‍💻 Autor
-
-**Eduardo Silva**  
-Inovando o recrutamento através da Tecnologia e Inteligência Artificial.
+> **Nota:** O script `tests/test_hacker.py` simula ataques reais para validar a robustez do sistema.
 
 ---
 
-**Proprietary** - Innovation.ia © 2026
+## 👨‍💻 Manutenção
+
+Este projeto segue padrões estritos de segurança e qualidade de código.
+Qualquer nova feature deve ser acompanhada de testes e validação de segurança.
+
+**Innovation.ia © 2026**

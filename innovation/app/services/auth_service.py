@@ -37,10 +37,10 @@ def register_user(
         raise ValueError("Email já existe")
 
     user = User(
-        name=(name or email.split("@")[0] or "Usuário").strip(),
+        full_name=(name or email.split("@")[0] or "Usuário").strip(),
         email=email,
         hashed_password=get_password_hash(password),
-        role="COMPANY",
+        role="company",
         phone=phone,
     )
     db.add(user)

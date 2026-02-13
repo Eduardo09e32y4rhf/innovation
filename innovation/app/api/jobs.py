@@ -6,7 +6,7 @@ from ..models.job import Job
 from ..models.application import Application
 from ..models.user import User
 from ..core.dependencies import get_current_user
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, ConfigDict
 import logging
 
 router = APIRouter(prefix="/api/jobs", tags=["jobs"])
@@ -14,25 +14,25 @@ logger = logging.getLogger(__name__)
 
 # SCHEMAS
 class JobCreate(BaseModel):
-    title: str
-    description: str
-    requirements: Optional[str] = None
-    salary: Optional[str] = None
-    location: str
-    type: str
-    interview_link: Optional[str] = None
-    comments: Optional[str] = None
+    title: str = Field(..., max_length=150)
+    description: str = Field(..., max_length=10000)
+    requirements: Optional[str] = Field(None, max_length=5000)
+    salary: Optional[str] = Field(None, max_length=100)
+    location: str = Field(..., max_length=100)
+    type: str = Field(..., max_length=50)
+    interview_link: Optional[str] = Field(None, max_length=500)
+    comments: Optional[str] = Field(None, max_length=2000)
 
 class JobUpdate(BaseModel):
-    title: Optional[str] = None
-    description: Optional[str] = None
-    requirements: Optional[str] = None
-    salary: Optional[str] = None
-    location: Optional[str] = None
-    type: Optional[str] = None
-    status: Optional[str] = None
-    interview_link: Optional[str] = None
-    comments: Optional[str] = None
+    title: Optional[str] = Field(None, max_length=150)
+    description: Optional[str] = Field(None, max_length=10000)
+    requirements: Optional[str] = Field(None, max_length=5000)
+    salary: Optional[str] = Field(None, max_length=100)
+    location: Optional[str] = Field(None, max_length=100)
+    type: Optional[str] = Field(None, max_length=50)
+    status: Optional[str] = Field(None, max_length=20)
+    interview_link: Optional[str] = Field(None, max_length=500)
+    comments: Optional[str] = Field(None, max_length=2000)
 
 class JobResponse(BaseModel):
     id: int
@@ -48,8 +48,7 @@ class JobResponse(BaseModel):
     company_id: int
     applications_count: Optional[int] = 0
     
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # ENDPOINTS
 @router.get("", response_model=List[JobResponse])
@@ -131,7 +130,7 @@ async def create_job(
     db: Session = Depends(get_db)
 ):
     """Criar vaga (empresa)"""
-    if current_user.role != "company":
+    if current_user.role.lower() != "company":
         raise HTTPException(403, "Apenas empresas podem criar vagas")
     
     try:
