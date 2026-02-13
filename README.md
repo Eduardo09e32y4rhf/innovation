@@ -1,63 +1,63 @@
-# 🚀 Innovation.ia - Plataforma de Recrutamento com IA
+# 🚀 Innovation.ia - Plataforma de Recrutamento & Gestão Financeira com IA
 
 [![Security](https://img.shields.io/badge/Security-Hardened-green.svg)](./innovation/docs/SECURITY_FIXES.md)
 [![Python](https://img.shields.io/badge/Python-3.12+-blue.svg)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.128+-00a393.svg)](https://fastapi.tiangolo.com/)
-[![IA](https://img.shields.io/badge/AI-Gemini_Pro-blueviolet.svg)](https://ai.google.dev/)
+[![AI](https://img.shields.io/badge/AI-Gemini_Pro-blueviolet.svg)](https://ai.google.dev/)
 
-> **Plataforma SaaS completa de recrutamento que combina Inteligência Artificial, agendamento inteligente e segurança enterprise-grade.**
+> **Plataforma SaaS completa que combina Recrutamento Inteligente, Gestão Financeira e Segurança Enterprise-grade.**
 
 ---
 
 ## 🎯 Visão Geral
 
-O **Innovation.ia** é um ecossistema de recrutamento moderno projetado para automatizar o ciclo completo de contratação:
+O **Innovation.ia** evoluiu para um ecossistema de gestão empresarial integrado:
 
-- ✅ **Backend FastAPI:** Arquitetura robusta, assíncrona e altamente segura.
-- ✅ **IA Gemini Pro:** Triagem inteligente, matching candidato-vaga e análise de perfis.
-- ✅ **Google Calendar:** Sincronização automática de entrevistas via OAuth 2.0.
-- ✅ **SendGrid:** Automação total de convites, confirmações e lembretes por e-mail.
-- ✅ **ViaCEP:** Integração nativa para preenchimento instantâneo de endereços.
-- ✅ **Segurança 2FA:** Autenticação de dois fatores com Rate Limiting e Auditoria.
+- ✅ **Backend FastAPI:** Arquitetura robusta, assíncrona e segura.
+- ✅ **Gestão Financeira:** Controle de fluxo de caixa com precisão decimal (`Decimal`), previsões via IA e detecção de anomalias.
+- ✅ **Recrutamento IA:** Triagem inteligente, matching candidato-vaga e análise de perfis com Google Gemini Pro.
+- ✅ **Segurança Avançada:**
+    - Autenticação JWT com Refresh Tokens.
+    - 2FA (Dois Fatores) via Twilio/SendGrid.
+    - Proteção contra IDOR e Rate Limiting.
+    - CORS restrito e validação rigorosa de inputs (Pydantic V2).
 
 ---
 
 ## 🔐 Recursos de Segurança (Hardened)
 
-O projeto implementa rigorosos padrões de segurança para garantir a integridade dos dados:
+O projeto implementa rigorosos padrões de segurança:
 
 | Recurso | Descrição |
 |---------|-----------|
-| **2FA Database-Backed** | Códigos 2FA persistentes e seguros via tokens temporários. |
-| **JWT Refresh Tokens** | Sistema de tokens de curta duração com renovação via DB. |
-| **Rate Limiting** | Proteção contra brute-force em endpoints críticos (Auth, 2FA). |
-| **Auditoria Local** | Logs detalhados de todas as ações sensíveis no sistema. |
-| **CORS Seguro** | Configuração restrita para origens autorizadas. |
+| **Precisão Financeira** | Uso de `Decimal` para evitar erros de ponto flutuante em transações. |
+| **RBAC** | Controle de acesso baseado em funções (Company vs Candidate) em todas as rotas críticas. |
+| **2FA Database-Backed** | Códigos temporários seguros com expiração e limite de tentativas. |
+| **Proteção de Dados** | Senhas hash com Bcrypt e validação de `max_length` para prevenir DoS. |
 
 ---
 
-## � Estrutura do Projeto
+## 📂 Estrutura do Projeto
 
 ```bash
 innovation.ia/
-├── innovation/              # 🔹 BACKEND (FastAPI + PostgreSQL)
+├── innovation/              # 🔹 BACKEND (Python)
+│   ├── alembic/            # Migrações de Banco de Dados
 │   ├── app/
-│   │   ├── api/            # Endpoints REST (Auth, Jobs, Calendar, Chat...)
+│   │   ├── api/            # Endpoints REST (Auth, Jobs, Finance...)
 │   │   ├── core/           # Configurações, Segurança, Dependências
 │   │   ├── models/         # Modelos SQLAlchemy (Banco de Dados)
-│   │   ├── services/       # Lógica de Negócio (IA, Email, Calendar)
-│   │   └── db/             # Sessão de Banco, Migrações e Seeds
-│   ├── docs/               # 📚 Documentação Técnica (Segurança, Admin)
+│   │   ├── schemas/        # Schemas Pydantic (Validação)
+│   │   ├── services/       # Lógica de Negócio (IA, Finance, Auth)
+│   │   └── db/             # Sessão de Banco
 │   ├── tests/              # Testes Automatizados (Pytest)
 │   └── requirements.txt    # Dependências do Python
 │
-├── web-test/               # 🎨 WEB ADMIN (HTML/CSS/JS)
-│   ├── index.html          # Landing Page Principal
-│   ├── company/            # Portal da Empresa (Dashboard, Vagas, Config)
-│   └── common/             # Assets Compartilhados (Tailwind, FontAwesome)
+├── web-test/               # 🎨 FRONTEND (HTML/CSS/JS)
+│   ├── company/            # Portal da Empresa (Dashboard, Vagas)
+│   └── common/             # Assets Compartilhados
 │
-├── innovation_app/          # 📱 MOBILE APP (Flutter para Candidatos)
-└── Dockerfile              # Configuração para Deploy em Containers
+└── requirements.txt        # Dependências Globais
 ```
 
 ---
@@ -67,72 +67,61 @@ innovation.ia/
 ### 1️⃣ Instalação
 
 ```bash
-cd innovation
-python -m venv .venv
-.venv\Scripts\activate  # No Windows
+# Instalar dependências
 pip install -r requirements.txt
 ```
 
 ### 2️⃣ Configuração do Ambiente
 
-Crie um arquivo `.env` na pasta `innovation/` baseado no `.env.example`:
+Crie um arquivo `.env` na pasta `innovation/`:
 
 ```env
 DATABASE_URL=sqlite:///./innovation.db
-SECRET_KEY=sua_chave_secreta_aqui
+SECRET_KEY=sua_chave_secreta_super_segura
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+REFRESH_TOKEN_EXPIRE_DAYS=30
 GEMINI_API_KEY=sua_chave_gemini
-GOOGLE_CLIENT_ID=seu_client_id_google
-SENDGRID_API_KEY=sua_id_sendgrid
+ALLOWED_ORIGINS=http://localhost:8000,http://127.0.0.1:5500
 ```
 
-> 📖 Consulte o [**Guia de Credenciais**](./CREDENTIALS_SETUP.md) para detalhes de configuração.
+### 3️⃣ Banco de Dados
 
-### 3️⃣ Execução
+O projeto usa **Alembic** para gerenciar o esquema do banco de dados.
 
 ```bash
-# Sincronizar banco de dados
+cd innovation
 alembic upgrade head
-python -m app.db.seed
-
-# Iniciar servidor
-uvicorn app.main:app --reload
 ```
 
----
+### 4️⃣ Execução
 
-## 🛠️ Stack Tecnológica
+Inicie o servidor backend:
 
-### Backend
-- **FastAPI** - Performance e rapidez no desenvolvimento.
-- **SQLAlchemy 2.0** - ORM moderno para manipulação de dados.
-- **Alembic** - Gerenciamento profissional de migrações de DB.
-- **JWT & OAuth 2.0** - Autenticação e integrações seguras.
+```bash
+# Na raiz do projeto (ou dentro de innovation/)
+uvicorn innovation.app.main:app --reload
+```
 
-### Inteligência Artificial
-- **Google Gemini Pro** - Processamento de linguagem natural e triagem.
-
-### Frontend
-- **HTML5 / Vanilla JS** - Agilidade e controle total sobre o DOM.
-- **TailwindCSS** - Design moderno e responsivo.
-- **Chart.js** - Dashboards financeiros e estatísticos.
+Acesse a documentação da API em: `http://localhost:8000/docs`
 
 ---
 
-## 📚 Documentação Adicional
+## 🧪 Testes
 
-| Documento | Link |
-|-----------|-----------|
-| **Guia de Credenciais** | [CREDENTIALS_SETUP.md](./CREDENTIALS_SETUP.md) |
-| **Histórico de Correções** | [SECURITY_FIXES.md](./innovation/docs/SECURITY_FIXES.md) |
-| **Resumo Executivo** | [EXECUTIVE_SUMMARY.md](./innovation/docs/EXECUTIVE_SUMMARY.md) |
-| **Swagger UI** | `http://localhost:8000/docs` |
+Os testes cobrem segurança, lógica financeira e integridade do banco de dados.
+
+```bash
+# Rodar todos os testes
+PYTHONPATH=innovation pytest innovation/tests/
+```
 
 ---
 
 ## 👨‍💻 Autor
 
 **Eduardo Silva**  
-Inovando o recrutamento através da Tecnologia e Inteligência Artificial.
+Inovando a gestão empresarial através da Tecnologia e Inteligência Artificial.
 
 ---
 

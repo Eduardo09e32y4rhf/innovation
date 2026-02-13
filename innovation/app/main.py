@@ -1,13 +1,16 @@
-﻿import os
+import os
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 import google.generativeai as genai
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from fastapi.middleware.cors import CORSMiddleware
 from app.api import jobs, applications, ai, matching, auth, dashboard, interviews, ai_services, projects, rh, finance, support
 import app.models # Garante o registro de todos os modelos
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Iniciar App
 app = FastAPI(title="Innovation.ia - Elite Recruitment")
@@ -25,12 +28,14 @@ WEB_BASE = os.path.abspath(os.path.join(BASE_DIR, "../../web-test"))
 # Configuração de Templates e Static
 # Montamos a pasta raiz do web-test para servir assets como imagens e CSS
 app.mount("/static", StaticFiles(directory=WEB_BASE), name="static")
+# Templates apontam para a pasta company, mas podemos ter outros locais
 templates = Jinja2Templates(directory=os.path.join(WEB_BASE, "company"))
+templates_common = Jinja2Templates(directory=WEB_BASE)
 
 # Middleware CORS para evitar problemas de bloqueio
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=os.getenv("ALLOWED_ORIGINS", "*").split(","),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -52,7 +57,7 @@ app.include_router(support.router)
 
 # Modelo para o Chat
 class ChatMessage(BaseModel):
-    message: str
+    message: str = Field(..., max_length=1000)
 
 # --- ROTAS DE NAVEGAÇÃO ---
 
@@ -111,6 +116,8 @@ async def public_status_page(request: Request):
 
 @app.get("/login")
 async def login_page(request: Request):
+    # Login might be in common/login.html or directly in company/login.html
+    # Based on file list, web-test/company/login.html exists.
     return templates.TemplateResponse("login.html", {"request": request})
 
 @app.get("/carreiras", response_class=HTMLResponse)
@@ -120,30 +127,6 @@ async def careers_page(request: Request):
         with open(careers_path, "r", encoding="utf-8") as f:
             return f.read()
     return "Portal de Carreiras não encontrado."
-
-@app.get("/dashboard", response_class=HTMLResponse)
-async def dashboard_page(request: Request):
-    path = os.path.join(WEB_BASE, "company", "dashboard.html")
-    if os.path.exists(path):
-        with open(path, "r", encoding="utf-8") as f:
-            return f.read()
-    return f"Arquivo dashboard.html não encontrado em {path}"
-
-@app.get("/vagas", response_class=HTMLResponse)
-async def jobs_page(request: Request):
-    path = os.path.join(WEB_BASE, "company", "jobs.html")
-    if os.path.exists(path):
-        with open(path, "r", encoding="utf-8") as f:
-            return f.read()
-    return "Página de vagas não encontrada."
-
-@app.get("/candidatos", response_class=HTMLResponse)
-async def candidates_page(request: Request):
-    path = os.path.join(WEB_BASE, "company", "candidates.html")
-    if os.path.exists(path):
-        with open(path, "r", encoding="utf-8") as f:
-            return f.read()
-    return "Página de candidatos não encontrada."
 
 # --- API DE INTELIGÊNCIA ARTIFICIAL ---
 

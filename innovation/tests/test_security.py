@@ -24,7 +24,9 @@ from app.core.security import verify_temporary_token
 @pytest.fixture
 def mock_jwt():
     """Fixture to mock the jwt object within the app.core.security module."""
-    with patch('app.core.security.jwt') as mock_jwt_obj:
+    with patch('app.core.security.jwt') as mock_jwt_obj, \
+         patch('app.core.security.SECRET_KEY', "test_secret"), \
+         patch('app.core.security.ALGORITHM', "HS256"):
         yield mock_jwt_obj
 
 def test_verify_temporary_token_success(mock_jwt):
