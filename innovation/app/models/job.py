@@ -15,10 +15,17 @@ class Job(Base):
     type = Column(String(50), nullable=True)  # remoto, presencial, híbrido
     status = Column(String(50), default="active")  # active, inactive, closed
     
-    # NOVOS CAMPOS
+    # CAMPOS ORIGINAIS E EXTENDIDOS
     interview_link = Column(String(500), nullable=True)  # Link entrevista
     comments = Column(Text, nullable=True)  # Comentários internos
     match_score_threshold = Column(Integer, default=70)  # Score mínimo para match
+    
+    # NOVOS CAMPOS MASTERPLAN (Fase 1)
+    requirements_structured = Column(Text, nullable=True)  # Requisitos extraídos via IA
+    salary_min = Column(Integer, nullable=True)
+    salary_max = Column(Integer, nullable=True)
+    location_type = Column(String(50), default="remote")  # remote, onsite, hybrid
+    custom_questions = Column(Text, nullable=True)  # JSON com perguntas dinâmicas
     
     company_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)

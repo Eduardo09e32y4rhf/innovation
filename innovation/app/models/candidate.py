@@ -20,6 +20,11 @@ class Candidate(Base):
 
     resume_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     resume_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    
+    # NOVOS CAMPOS MASTERPLAN (Fase 1)
+    parsed_resume: Mapped[str | None] = mapped_column(Text, nullable=True)  # JSON com dados extraídos
+    skills_structured: Mapped[str | None] = mapped_column(Text, nullable=True)  # JSON com lista de skills e níveis
+    behavioral_profile: Mapped[str | None] = mapped_column(Text, nullable=True)  # Análise DISC/Big5 via IA
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=text("CURRENT_TIMESTAMP"), nullable=False

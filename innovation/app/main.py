@@ -81,6 +81,38 @@ async def configuracoes_page(request: Request):
 async def login_page(request: Request):
     return templates.TemplateResponse("login.html", {"request": request})
 
+@app.get("/carreiras", response_class=HTMLResponse)
+async def careers_page(request: Request):
+    careers_path = os.path.join(WEB_BASE, "careers.html")
+    if os.path.exists(careers_path):
+        with open(careers_path, "r", encoding="utf-8") as f:
+            return f.read()
+    return "Portal de Carreiras não encontrado."
+
+@app.get("/dashboard", response_class=HTMLResponse)
+async def dashboard_page(request: Request):
+    path = os.path.join(WEB_BASE, "company", "dashboard.html")
+    if os.path.exists(path):
+        with open(path, "r", encoding="utf-8") as f:
+            return f.read()
+    return f"Arquivo dashboard.html não encontrado em {path}"
+
+@app.get("/vagas", response_class=HTMLResponse)
+async def jobs_page(request: Request):
+    path = os.path.join(WEB_BASE, "company", "jobs.html")
+    if os.path.exists(path):
+        with open(path, "r", encoding="utf-8") as f:
+            return f.read()
+    return "Página de vagas não encontrada."
+
+@app.get("/candidatos", response_class=HTMLResponse)
+async def candidates_page(request: Request):
+    path = os.path.join(WEB_BASE, "company", "candidates.html")
+    if os.path.exists(path):
+        with open(path, "r", encoding="utf-8") as f:
+            return f.read()
+    return "Página de candidatos não encontrada."
+
 # --- API DE INTELIGÊNCIA ARTIFICIAL ---
 
 @app.post("/api/chat")
