@@ -66,9 +66,6 @@ create_test_user.py
 init_db.py
 reorganize.py
 
-# Innovation folder antiga (não necessário)
-innovation/
-
 # Arquivos de configuração local
 .env.example
 .dockerignore

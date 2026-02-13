@@ -19,8 +19,8 @@ model_gemini = genai.GenerativeModel('gemini-pro')
 
 # Configuração de Caminhos (Ajustado para rodar na raiz ou pasta /innovation)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-# Busca o web-admin um nível acima da pasta app/main.py
-WEB_BASE = os.path.abspath(os.path.join(BASE_DIR, "../../web-admin"))
+# Busca o web-test um nível acima da pasta app/main.py
+WEB_BASE = os.path.abspath(os.path.join(BASE_DIR, "../../web-test"))
 
 # Configuração de Templates e Static
 # Montamos a pasta raiz do web-test para servir assets como imagens e CSS
