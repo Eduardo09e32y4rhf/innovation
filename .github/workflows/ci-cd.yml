@@ -1,4 +1,4 @@
-name: Node.js CI
+name: Python CI
 
 on:
   push:
@@ -12,19 +12,33 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [18.x]
+        python-version: [3.12]
 
     steps:
     - uses: actions/checkout@v4
 
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v3
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
       with:
-        node-version: ${{ matrix.node-version }}
-        cache: 'npm'
+        python-version: ${{ matrix.python-version }}
+        cache: 'pip'
 
     - name: Install dependencies
-      run: npm ci
+      run: |
+        python -m pip install --upgrade pip
+        if [ -f innovation/requirements.txt ]; then pip install -r innovation/requirements.txt; fi
+        # Ensure pytest is installed
+        pip install pytest
 
-    - name: Build
-      run: npm run build
+    - name: Run tests with pytest
+      env:
+        DATABASE_URL: sqlite:///./test_ci.db
+        SECRET_KEY: test_secret_key_123
+        GEMINI_API_KEY: dummy_key_for_tests
+        PYTHONPATH: innovation
+      run: |
+        if [ -d "innovation/tests" ]; then
+          pytest innovation/tests
+        else
+          echo "No tests directory found at innovation/tests"
+        fi
