@@ -37,11 +37,12 @@ def register_user(
         raise ValueError("Email já existe")
 
     user = User(
-        name=(name or email.split("@")[0] or "Usuário").strip(),
+        full_name=(name or email.split("@")[0] or "Usuário").strip(),
         email=email,
         hashed_password=get_password_hash(password),
-        role="COMPANY",
+        role="company",
         phone=phone,
+        company_name=company_name
     )
     db.add(user)
     db.flush()  # garante user.id
@@ -81,7 +82,7 @@ def register_user(
     db.add(company)
     db.flush()
 
-    user.active_company_id = company.id
+    # user.active_company_id = company.id # REMOVED (Legacy)
     db.commit()
     db.refresh(user)
     logger.info(f"Usuário registrado: {user.email} (ID: {user.id})")
@@ -99,5 +100,6 @@ def authenticate_user(db: Session, email: str, password: str | None, *, skip_pas
 
     access_token = create_access_token({"sub": str(user.id)})
     refresh_token = create_refresh_token(user.id)
+
     logger.info(f"Autenticação bem-sucedida: {email} (ID: {user.id})")
     return access_token, refresh_token, user

@@ -43,7 +43,7 @@ def upgrade() -> None:
         sa.Column('revoked', sa.Boolean(), nullable=False, server_default='false'),
         sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=False),
         sa.PrimaryKeyConstraint('id'),
-        sa.UniqueConstraint('token')
+        sa.UniqueConstraint('token', name="refresh_tokens_token_key")
     )
     op.create_index(op.f('ix_refresh_tokens_id'), 'refresh_tokens', ['id'], unique=False)
     op.create_index(op.f('ix_refresh_tokens_user_id'), 'refresh_tokens', ['user_id'], unique=False)

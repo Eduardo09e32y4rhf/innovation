@@ -39,10 +39,10 @@ class UserOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
-    name: str
+    name: str # Mapped via @property in model
     email: EmailStr
     role: str
-    active_company_id: int | None
-    terms_accepted_at: datetime | None = None
-    terms_version: str | None = None
+    company_name: str | None = None
     created_at: datetime | None = None
+    phone: str | None = None
+    two_factor_enabled: bool | None = None
