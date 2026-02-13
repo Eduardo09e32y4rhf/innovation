@@ -2,23 +2,8 @@ import sys
 from unittest.mock import patch, MagicMock
 import pytest
 
-# Mock necessary modules if they are not installed in the environment.
-# This allows importing the security module for testing purposes in environments
-# where dependencies are not fully installed.
-if 'jose' not in sys.modules:
-    sys.modules['jose'] = MagicMock()
-if 'bcrypt' not in sys.modules:
-    sys.modules['bcrypt'] = MagicMock()
-if 'pydantic_settings' not in sys.modules:
-    sys.modules['pydantic_settings'] = MagicMock()
-
-# Mock app.core.config to avoid its internal dependencies and environment requirements.
-mock_config = MagicMock()
-mock_config.SECRET_KEY = "test_secret"
-mock_config.ALGORITHM = "HS256"
-sys.modules['app.core.config'] = mock_config
-
-# Now we can import the function under test
+# We import the function under test.
+# Note: app.core.security must be importable.
 from app.core.security import verify_temporary_token
 
 @pytest.fixture
@@ -26,6 +11,14 @@ def mock_jwt():
     """Fixture to mock the jwt object within the app.core.security module."""
     with patch('app.core.security.jwt') as mock_jwt_obj:
         yield mock_jwt_obj
+
+@pytest.fixture(autouse=True)
+def mock_settings():
+    """Fixture to mock settings used in security module."""
+    # Patch the global variables in app.core.security module
+    with patch('app.core.security.SECRET_KEY', 'test_secret'), \
+         patch('app.core.security.ALGORITHM', 'HS256'):
+        yield
 
 def test_verify_temporary_token_success(mock_jwt):
     """Test successful verification of a valid temporary token."""

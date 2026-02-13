@@ -46,3 +46,6 @@ sendgrid==6.11.0
 # UTILITIES
 # ========================================
 python-dotenv==1.0.1
+
+# SMS - TWILIO
+twilio==9.10.1

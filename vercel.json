@@ -1,0 +1,17 @@
+{
+  "builds": [
+    {
+      "src": "innovation/app/main.py",
+      "use": "@vercel/python",
+      "config": {
+        "includeFiles": "web-test/**"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "innovation/app/main.py"
+    }
+  ]
+}
