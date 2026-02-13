@@ -98,10 +98,8 @@ def authenticate_user(db: Session, email: str, password: str | None, *, skip_pas
         logger.warning(f"Tentativa de login com senha incorreta: {email}")
         return None
 
-    access_token, refresh_token, user_ret = create_access_token({"sub": str(user.id)}), create_refresh_token(user.id), user
-    # Wait, create_access_token returns string. create_refresh_token returns string.
-    # Original code returned tuple? No, check security.py.
-    # security.py create_access_token returns str.
+    access_token = create_access_token({"sub": str(user.id)})
+    refresh_token = create_refresh_token(user.id)
 
     logger.info(f"Autenticação bem-sucedida: {email} (ID: {user.id})")
     return access_token, refresh_token, user
