@@ -6,7 +6,7 @@ from fastapi.templating import Jinja2Templates
 import google.generativeai as genai
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
-from app.api import jobs, applications, ai, matching, auth, dashboard, interviews, ai_services
+from app.api import jobs, applications, ai, matching, auth, dashboard, interviews, ai_services, projects
 import app.models # Garante o registro de todos os modelos
 
 # Iniciar App
@@ -45,6 +45,7 @@ app.include_router(matching.router)
 app.include_router(dashboard.router)
 app.include_router(interviews.router)
 app.include_router(ai_services.router)
+app.include_router(projects.router)
 
 # Modelo para o Chat
 class ChatMessage(BaseModel):
@@ -76,6 +77,14 @@ async def candidatos_page(request: Request):
 @app.get("/configuracoes")
 async def configuracoes_page(request: Request):
     return templates.TemplateResponse("settings.html", {"request": request})
+
+@app.get("/projetos")
+async def projetos_page(request: Request):
+    return templates.TemplateResponse("projects.html", {"request": request})
+
+@app.get("/tarefas")
+async def tarefas_page(request: Request):
+    return templates.TemplateResponse("tasks.html", {"request": request})
 
 @app.get("/login")
 async def login_page(request: Request):

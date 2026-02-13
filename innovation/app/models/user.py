@@ -29,3 +29,6 @@ class User(Base):
     # Relationships
     jobs = relationship("Job", back_populates="company")
     applications = relationship("Application", foreign_keys="Application.candidate_id", back_populates="candidate")
+    projects = relationship("Project", back_populates="company")
+    tasks = relationship("Task", back_populates="assignee")
+    time_entries = relationship("TimeEntry", back_populates="user")
