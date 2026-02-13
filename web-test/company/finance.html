@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financeiro | Innovation.ia</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+        }
+
+        .sidebar {
+            background: linear-gradient(180deg, #820AD1 0%, #6c06b0 100%);
+        }
+
+        .glass {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+    </style>
+</head>
+
+<body class="flex h-screen overflow-hidden">
+    <aside class="w-72 sidebar flex flex-col flex-shrink-0">
+        <div class="p-8">
+            <h1 class="text-2xl font-black text-white">Innovation.ia</h1>
+        </div>
+        <nav class="flex-1 px-4">
+            <a href="/dashboard"
+                class="flex items-center gap-3 px-4 py-3 rounded-xl text-white/70 hover:bg-white/10 hover:text-white mb-2 transition-all">
+                <i class="fas fa-chart-pie"></i> Dashboard
+            </a>
+            <a href="/financeiro"
+                class="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/10 text-white mb-2 hover:bg-white/20 transition-all">
+                <i class="fas fa-wallet"></i> Financeiro
+            </a>
+            <a href="/rh"
+                class="flex items-center gap-3 px-4 py-3 rounded-xl text-white/70 hover:bg-white/10 hover:text-white mb-2 transition-all">
+                <i class="fas fa-heart"></i> Gestão de RH
+            </a>
+        </nav>
+    </aside>
+
+    <main class="flex-1 overflow-y-auto p-8">
+        <header class="flex justify-between items-center mb-12">
+            <div>
+                <h2 class="text-4xl font-extrabold text-white">Gestão Financeira</h2>
+                <p class="text-slate-400 mt-2">Controle de caixa, BPO e Previsão IA</p>
+            </div>
+            <div class="flex gap-4">
+                <button class="bg-[#820AD1] text-white px-6 py-3 rounded-2xl font-bold">+ Nova Transação</button>
+            </div>
+        </header>
+
+        <!-- Stats Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
+            <div class="glass p-6 rounded-3xl">
+                <p class="text-slate-500 text-xs font-bold uppercase mb-2">Saldo em Conta</p>
+                <h3 class="text-2xl font-black text-white" id="balance">R$ 45.200,00</h3>
+            </div>
+            <div class="glass p-6 rounded-3xl">
+                <p class="text-slate-500 text-xs font-bold uppercase mb-2">Entradas (Mês)</p>
+                <h3 class="text-2xl font-black text-green-500">R$ 12.800,00</h3>
+            </div>
+            <div class="glass p-6 rounded-3xl">
+                <p class="text-slate-500 text-xs font-bold uppercase mb-2">Saídas (Mês)</p>
+                <h3 class="text-2xl font-black text-red-400">R$ 5.400,00</h3>
+            </div>
+            <div class="bg-purple-600/20 border border-purple-500/30 p-6 rounded-3xl">
+                <p class="text-purple-400 text-xs font-bold uppercase mb-2">Projeção Próximo Mês</p>
+                <h3 class="text-2xl font-black text-purple-300">+ 15% 🚀</h3>
+            </div>
+        </div>
+
+        <!-- AI Prediction Alert -->
+        <div class="bg-indigo-600 p-8 rounded-[2rem] mb-12 flex items-center justify-between text-white shadow-2xl">
+            <div class="flex items-center gap-6">
+                <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center text-3xl">🤖</div>
+                <div>
+                    <h4 class="text-xl font-bold">Insight da IA Financeira</h4>
+                    <p class="text-white/80 max-w-xl mt-1" id="ai-prediction">Carregando previsão do Gemini para seu
+                        fluxo de caixa...</p>
+                </div>
+            </div>
+            <button class="px-8 py-4 bg-white text-indigo-600 font-black rounded-2xl hover:scale-105 transition">Aplicar
+                Sugestão</button>
+        </div>
+
+        <!-- Transactions List -->
+        <div class="glass rounded-[2rem] overflow-hidden">
+            <div class="p-8 border-b border-white/5 flex justify-between items-center">
+                <h4 class="font-bold text-xl">Transações Recentes</h4>
+                <button class="text-sm text-[#820AD1] font-bold">Ver Todas</button>
+            </div>
+            <table class="w-full text-left">
+                <thead class="bg-white/5 text-[10px] font-black text-slate-500 uppercase">
+                    <tr>
+                        <th class="px-8 py-4">Descrição</th>
+                        <th class="px-8 py-4">Status</th>
+                        <th class="px-8 py-4 text-right">Valor</th>
+                    </tr>
+                </thead>
+                <tbody class="text-sm">
+                    <tr class="border-t border-white/5">
+                        <td class="px-8 py-6">Fatura AWS - Cloud Computing</td>
+                        <td class="px-8 py-6"><span
+                                class="px-3 py-1 bg-green-500/10 text-green-500 rounded-full text-xs">Pago</span></td>
+                        <td class="px-8 py-6 text-right font-bold">R$ 1.200,00</td>
+                    </tr>
+                    <tr class="border-t border-white/5">
+                        <td class="px-8 py-6">Assinatura Innovation.ia Enterprise</td>
+                        <td class="px-8 py-6"><span
+                                class="px-3 py-1 bg-yellow-500/10 text-yellow-500 rounded-full text-xs">Pendente</span>
+                        </td>
+                        <td class="px-8 py-6 text-right font-extrabold text-[#820AD1]">R$ 1.999,00</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <script>
+        async function loadFinance() {
+            try {
+                const res = await fetch('/api/finance/prediction');
+                const data = await res.json();
+                document.getElementById('ai-prediction').innerText = data.prediction;
+            } catch (e) { console.error(e); }
+        }
+        loadFinance();
+    </script>
+</body>
+
+</html>
