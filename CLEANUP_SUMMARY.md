@@ -13,12 +13,12 @@
 3. ❌ `server/` - Servidor alternativo não utilizado
 4. ❌ `tools/` - Scripts de desenvolvimento
 5. ❌ `docs/` - Documentação interna
-6. ❌ `.venv/` - Ambiente virtual Python (rebuild na Vercel)
+6. ❌ `.venv/` - Ambiente virtual Python
 
 ### 📄 Arquivos Removidos
 - Documentação: `CLEANUP_AUDIT.md`, `FINAL_REPORT.md`, `QUICKSTART.md`, `SOLUCAO_WARNING_BUILDS.md`, `VERCEL_DEPLOY_GUIDE.md`, `VERCEL_OPTIMIZATION.md`
 - Scripts: `create_admin.py`, `create_test_user.py`, `init_db.py`, `reorganize.py`
-- Configurações: `package.json`, `package-lock.json`, `tsconfig.json`, `render.yaml`, `.dockerignore`, `Dockerfile`
+- Configurações: `package.json`, `package-lock.json`, `tsconfig.json`, `.dockerignore`, `Dockerfile`
 
 ### 📁 Estrutura Final (Otimizada)
 ```
@@ -26,7 +26,6 @@ innovation.ia/
 ├── .git/                    # Git repository
 ├── .github/                 # GitHub workflows
 ├── .gitignore
-├── .vercelignore           # Exclusões do deploy
 ├── .vscode/                # Configurações do VSCode
 ├── backend/                # Backend FastAPI (Python) ✅
 │   ├── alembic/           # Migrações de banco
@@ -45,4 +44,4 @@ innovation.ia/
 - ✅ Arquivos de configuração necessários
 
 ## 🚀 Pronto para Deploy!
-O projeto agora está **99.8% mais leve** e pronto para deploy na Vercel sem exceder o limite de 250 MB!
+O projeto agora está **99.8% mais leve** e pronto para deploy no Render!

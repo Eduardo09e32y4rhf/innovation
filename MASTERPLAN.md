@@ -147,7 +147,7 @@
 
 ### ✅ Fase 0: Infraestrutura & Deploy (ATUAL)
 - [x] Estrutura do projeto organizada
-- [x] Deploy na Vercel funcionando
+- [x] Deploy no Render funcionando
 - [x] Autenticação JWT
 - [x] Banco de dados configurado
 

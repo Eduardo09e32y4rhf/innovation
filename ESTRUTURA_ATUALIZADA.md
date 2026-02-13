@@ -26,7 +26,6 @@ innovation.ia/
 │
 ├── requirements.txt        # Dependências Python ✅
 ├── README.md               # Documentação ✅
-└── .vercelignore          # Exclusões do deploy
 ```
 
 ---
@@ -39,12 +38,11 @@ innovation.ia/
 
 ### 2. Atualizações de Código
 - ✅ `innovation/app/main.py`: Caminho atualizado para `../../web-test`
-- ✅ `.vercelignore`: Removida exclusão incorreta de `innovation/`
 
 ### 3. Commit e Deploy
 - ✅ Commit realizado com sucesso
 - ✅ Push para GitHub concluído
-- ✅ Deploy na Vercel em andamento
+- ✅ Deploy no Render configurado
 
 ---
 
@@ -59,10 +57,9 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload
 ```
 
-### Produção (Vercel)
+### Produção (Render)
 - Deploy automático via GitHub
-- Estrutura otimizada (0.49 MB)
-- Compatível com limite de 250 MB
+- Configuração via render.yaml
 
 ---
 
