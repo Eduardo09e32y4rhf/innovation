@@ -12,31 +12,53 @@ import domain.models # Garante o registro de todos os modelos
 from core.config import settings
 
 # Iniciar App
-app = FastAPI(title="Innovation.ia - Elite Recruitment")
+from contextlib import asynccontextmanager
+from core.superintendent import superintendent
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: Initialize Superintendent AI
+    print("🤖 Innovation.ia Superintendent: Online")
+    await superintendent.run_check()
+    yield
+    # Shutdown
+    print("🤖 Innovation.ia Superintendent: Offline")
+
+app = FastAPI(title="Innovation.ia - Elite Recruitment", lifespan=lifespan)
 
 # Configuração do Gemini
+# Configuração do Gemini
 GEMINI_API_KEY = settings.GEMINI_API_KEY
+model_gemini = None
 if GEMINI_API_KEY:
-    genai.configure(api_key=GEMINI_API_KEY)
-model_gemini = genai.GenerativeModel('gemini-pro')
+    try:
+        genai.configure(api_key=GEMINI_API_KEY)
+        model_gemini = genai.GenerativeModel('gemini-pro')
+    except Exception as e:
+        print(f"Aviso: Falha ao configurar Gemini AI (Pode estar depreciado): {e}")
 
 # Configuração de Caminhos (Ajustado para a nova estrutura Enterprise)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 # Busca pastas do frontend no novo local
-WEB_BASE = os.path.abspath(os.path.join(BASE_DIR, "../../../frontend/legacy_web_test"))
-WEB_ADMIN = os.path.abspath(os.path.join(BASE_DIR, "../../../frontend/legacy_web_admin"))
 WEB_MARKETING = os.path.abspath(os.path.join(BASE_DIR, "../../../frontend/marketing"))
+WEB_ADMIN = WEB_MARKETING # Fallback seguro, já que legacy_web_admin foi removido
 WEB_PAGES = os.path.abspath(os.path.join(BASE_DIR, "../../../frontend/src/pages"))
+
+# Fallback para WEB_BASE (usando marketing como base se legacy não existir)
+WEB_BASE = WEB_MARKETING
 
 # Configuração de Templates e Static
 # Montamos a pasta raiz do web-test para servir assets como imagens e CSS
-app.mount("/static", StaticFiles(directory=WEB_BASE), name="static")
+if os.path.exists(WEB_BASE):
+    app.mount("/static", StaticFiles(directory=WEB_BASE), name="static")
+
 if os.path.exists(WEB_ADMIN):
     app.mount("/admin-static", StaticFiles(directory=WEB_ADMIN), name="admin-static")
 
 # Templates apontam para a pasta company, mas podemos ter outros locais
-templates = Jinja2Templates(directory=os.path.join(WEB_BASE, "company"))
-templates_common = Jinja2Templates(directory=WEB_BASE)
+# templates = Jinja2Templates(directory=os.path.join(WEB_BASE, "company")) # Legacy
+templates = Jinja2Templates(directory=WEB_PAGES) # Usando pages como default para templates agora?
+# templates_common = Jinja2Templates(directory=WEB_BASE)
 templates_modern = Jinja2Templates(directory=WEB_PAGES)
 
 # Middleware CORS para evitar problemas de bloqueio
@@ -109,6 +131,8 @@ app.add_middleware(AuthMiddleware)
 app.include_router(auth.router)
 app.include_router(jobs.router)
 app.include_router(applications.router)
+app.include_router(enterprise.router)
+app.include_router(payments.router)
 app.include_router(ai.router)
 app.include_router(matching.router)
 app.include_router(dashboard.router)

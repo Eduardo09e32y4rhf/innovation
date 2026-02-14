@@ -431,7 +431,8 @@
 
         function logout() {
             localStorage.clear();
-            window.location.href = 'login.html';
+            document.cookie = "access_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; SameSite=Lax";
+            window.location.href = '/login';
         }
 
         // Load on page load

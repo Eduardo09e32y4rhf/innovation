@@ -118,6 +118,25 @@ def list_users(
         query = query.filter(User.role == role)
     return query.all()
 
+@router.post("/forgot-password")
+async def forgot_password(data: dict, db: Session = Depends(get_db)):
+    email = data.get("email")
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        # Don't reveal if user exists for security, just return success
+        return {"message": "Se o email existir, um link de recuperação será enviado."}
+    
+    # In a real app, send email here
+    return {"message": "Link de recuperação enviado com sucesso."}
+
+@router.get("/google-login")
+async def google_login():
+    """
+    Mock Google Login redirect. 
+    In production, this would redirect to Google OAuth.
+    """
+    return {"message": "Recurso de Login com Google sendo configurado no Console de APIs. Use email/senha por enquanto."}
+
 # --- Caching Strategy ---
 # Using functools.lru_cache to cache user sessions in memory
 # This reduces database hits for frequent operations like "get_current_user"

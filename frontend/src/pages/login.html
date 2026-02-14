@@ -291,17 +291,48 @@
         // Show alert
         function showAlert(message, type = 'error') {
             const alert = document.getElementById('alert');
-            alert.className = `mt-4 p-4 rounded-lg ${type === 'success'
+            alert.className = `mt-4 p-4 rounded-lg z-50 relative ${type === 'success'
                 ? 'bg-green-500/20 border border-green-500/50 text-green-300'
                 : 'bg-red-500/20 border border-red-500/50 text-red-300'
                 }`;
-            alert.textContent = message;
+            alert.innerHTML = message;
             alert.classList.remove('hidden');
 
             setTimeout(() => {
                 alert.classList.add('hidden');
             }, 5000);
         }
+
+        // Helper to set cookie
+        function setTokenCookie(token) {
+            document.cookie = `access_token=${token}; path=/; max-age=86400; SameSite=Lax`;
+        }
+
+        // Forgot Password Modal
+        document.querySelector('a[href="#"]').addEventListener('click', (e) => {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            if (!email) {
+                showAlert('Por favor, digite seu email primeiro.');
+                return;
+            }
+            showAlert(`Um link de recuperação será enviado para <strong>${email}</strong> em instantes.`, 'success');
+
+            // Mock API call
+            fetch(`${API_BASE}/auth/forgot-password`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email })
+            });
+        });
+
+        // Google Login Mock
+        document.querySelector('.btn-secondary').addEventListener('click', () => {
+            showAlert('Conectando ao Google... Aguarde redirecionamento.');
+            setTimeout(() => {
+                window.location.href = `${API_BASE}/auth/google-login`;
+            }, 1000);
+        });
 
         // Login
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
@@ -330,6 +361,7 @@
 
                 if (response.ok) {
                     localStorage.setItem('token', data.access_token);
+                    setTokenCookie(data.access_token);
 
                     // Fetch user info
                     const meRes = await fetch(`${API_BASE}/auth/me`, {
@@ -383,10 +415,14 @@
                 const data = await response.json();
 
                 if (response.ok) {
-                    showAlert('Conta criada! Redirecionando...', 'success');
+                    showAlert('Conta criada com sucesso!', 'success');
+
+                    // After register, we also login automatically or redirect to login
+                    // User complained about reloading many times, so let's log them in or show login tab clearly
                     setTimeout(() => {
                         switchTab('login');
                         document.getElementById('loginEmail').value = formData.email;
+                        showAlert('Por favor, faça seu primeiro login para confirmar sua identidade.', 'success');
                     }, 2000);
                 } else {
                     showAlert(data.detail || 'Erro ao criar conta');
@@ -400,10 +436,17 @@
             }
         });
 
-        // Check if already logged in
-        if (localStorage.getItem('token')) {
-            window.location.href = '/dashboard';
+        // Check if already logged in (Only redirect if cookie and localStorage match)
+        function checkAuth() {
+            const token = localStorage.getItem('token');
+            const hasCookie = document.cookie.includes('access_token=');
+
+            if (token && hasCookie) {
+                window.location.href = '/dashboard';
+            }
         }
+
+        checkAuth();
     </script>
 </body>
 

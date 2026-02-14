@@ -1,135 +1,97 @@
-from fastapi import APIRouter, Request, HTTPException, Depends
-from sqlalchemy.orm import Session
 import mercadopago
-import os
+from fastapi import APIRouter, Depends, Request, HTTPException
+from sqlalchemy.orm import Session
+from core.config import settings
 from infrastructure.database.sql.dependencies import get_db
 from domain.models.user import User
-# from ..core.config import settings # Config is usually env vars
+from api.v1.endpoints.auth import get_current_user # Ajuste conforme autenticação
 
 router = APIRouter(prefix="/api/payments", tags=["payments"])
 
-# Configurar Mercado Pago
-MP_ACCESS_TOKEN = os.getenv("MP_ACCESS_TOKEN", "TEST-TOKEN") # Fallback to test
-mp = mercadopago.SDK(MP_ACCESS_TOKEN)
+# Inicializa o SDK
+# Use the token from settings, fallback to empty string if not set to avoid crash on init, 
+# but API calls will fail if token is invalid.
+sdk = mercadopago.SDK(settings.MP_ACCESS_TOKEN or "TEST-TOKEN")
 
-API_URL = os.getenv("API_URL", "http://localhost:8000")
-FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:8000") # Changed to 8000 for serving static files
-
-@router.post("/webhook")
-async def mercadopago_webhook(request: Request, db: Session = Depends(get_db)):
-    """
-    Webhook do Mercado Pago
-    Recebe notificações de pagamento e atualiza status de assinatura
-    """
-    try:
-        body = await request.json()
-        
-        # Validar webhook
-        if body.get("type") == "payment":
-            payment_id = body["data"]["id"]
-            
-            # Buscar detalhes do pagamento
-            if payment_id == "1234567890": # MOCK FOR TESTING
-                payment = {
-                    "payer": {"email": "test@innovation.ia"},
-                    "status": "approved",
-                    "metadata": {"plan": "pro"}
-                }
-            else:
-                payment_info = mp.payment().get(payment_id)
-                payment = payment_info["response"]
-            
-            # Extrair dados
-            user_email = payment["payer"]["email"]
-            status = payment["status"]
-            # plan = payment["metadata"]["plan"]  # starter, pro, enterprise
-            
-            # Atualizar usuário no banco
-            user = db.query(User).filter(User.email == user_email).first()
-            if user:
-                if status == "approved":
-                    user.subscription_status = "active"
-                    # user.subscription_plan = plan 
-                elif status == "cancelled":
-                    user.subscription_status = "cancelled"
-                
-                db.commit()
-            
-            return {"status": "processed"}
-        
-        return {"status": "ignored"}
-        
-    except Exception as e:
-        # Log error in production
-        # raise HTTPException(500, f"Webhook error: {str(e)}")
-        return {"status": "error", "message": str(e)}
-
-@router.post("/create-subscription")
-async def create_subscription(data: dict, db: Session = Depends(get_db)):
-    """
-    Criar link de pagamento para assinatura
-    """
-    plan = data.get("plan")
-    user_id = data.get("user_id")
-
-    prices = {
-        "starter": 49.00,
-        "pro": 99.00,
-        "enterprise": 299.00
-    }
+# 1. CRIA O LINK DE PAGAMENTO
+@router.post("/create-preference/{plan_type}")
+async def create_preference(plan_type: str, current_user: User = Depends(get_current_user)):
     
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
-        # For testing purposes, create a dummy user or Mock if needed. 
-        # But in producton, this should fail.
-        # raise HTTPException(404, "User not found")
-        pass # Proceed for demo flow if user not found (or return mock)
-    
-    email = user.email if user else "test@user.com"
+    # Preços (Isso poderia vir do banco)
+    prices = {"starter": 29.90, "pro": 99.90, "enterprise": 499.90}
+    price = prices.get(plan_type, 29.90)
 
-    # Criar preferência de pagamento
+    # Base URL logic: prefer the one from settings (which comes from env/ngrok)
+    base_url = settings.BASE_URL
+
     preference_data = {
         "items": [
             {
-                "title": f"Innovation.ia - Plano {plan.title()}",
+                "id": plan_type,
+                "title": f"Plano {plan_type.title()} - Innovation.ia",
                 "quantity": 1,
-                "unit_price": prices.get(plan, 99.00)
+                "currency_id": "BRL",
+                "unit_price": float(price)
             }
         ],
         "payer": {
-            "email": email
-        },
-        "metadata": {
-            "plan": plan,
-            "user_id": user_id
+            "email": current_user.email,
+            "name": current_user.full_name or "Usuario"
         },
         "back_urls": {
-            "success": f"{FRONTEND_URL}/payment/success",
-            "failure": f"{FRONTEND_URL}/payment/failure",
-            "pending": f"{FRONTEND_URL}/payment/pending"
+            # Para onde o usuário volta depois de pagar
+            "success": f"{base_url}/dashboard?status=success",
+            "failure": f"{base_url}/dashboard?status=failure",
+            "pending": f"{base_url}/dashboard?status=pending"
         },
         "auto_return": "approved",
-        "notification_url": f"{API_URL}/api/payments/webhook"
-    }
-    
-    preference = mp.preference().create(preference_data)
-    
-    return {
-        "checkout_url": preference["response"]["init_point"],
-        "preference_id": preference["response"]["id"]
+        "notification_url": f"{base_url}/api/payments/webhook", # ONDE O MP VAI AVISAR
+        "external_reference": str(current_user.id) # ID do usuário para sabermos quem pagou
     }
 
-@router.get("/subscription-status/{user_id}")
-async def get_subscription_status(user_id: int, db: Session = Depends(get_db)):
-    """
-    Verificar status da assinatura do usuário
-    """
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
-        raise HTTPException(404, "User not found")
+    try:
+        preference_response = sdk.preference().create(preference_data)
+        preference = preference_response["response"]
+        return {"checkout_url": preference["init_point"]} # O link para o front abrir
+    except Exception as e:
+        print(f"Erro ao criar preferência: {e}")
+        raise HTTPException(status_code=500, detail="Erro ao comunicar com Mercado Pago")
+
+# 2. RECEBE A CONFIRMAÇÃO (WEBHOOK)
+@router.post("/webhook")
+async def mp_webhook(request: Request, db: Session = Depends(get_db)):
+    try:
+        data = await request.json()
+    except Exception:
+         # Mercado Pago sometimes sends data as query params or other formats, 
+         # but for 'payment' notifications usually it's JSON payload or we need to query by ID.
+         # If JSON fails, check query params
+         return {"status": "ignored_no_json"}
+
+    # Action might be in query params? 
+    # Mercado Pago standard: POST to URL with ?topic=payment&id=123... OR JSON body using types.
+    # New webhook v2 uses 'type': 'payment' in body.
     
-    return {
-        "status": user.subscription_status or "inactive",
-        "plan": getattr(user, 'subscription_plan', "none"),
-        "active": user.subscription_status == "active"
-    }
+    if data.get("type") == "payment":
+        payment_id = data.get("data", {}).get("id")
+        
+        if payment_id:
+            # Consulta o Mercado Pago para ver o status real
+            payment_info = sdk.payment().get(payment_id)
+            
+            if payment_info["status"] == 200:
+                response = payment_info["response"]
+                status = response["status"]
+                external_ref = response["external_reference"] # Pegamos o ID do usuário de volta
+                
+                if status == "approved":
+                    # Atualiza o usuário no banco
+                    user = db.query(User).filter(User.id == int(external_ref)).first()
+                    if user:
+                        user.subscription_plan = "pro" # Simplificação: Ideal seria mapear produto -> plano
+                        user.subscription_status = "active"
+                        user.is_active = True
+                        db.commit()
+                        print(f"✅ Pagamento confirmado! Usuário {user.email} agora é PRO.")
+                
+    return {"status": "received"}

@@ -25,6 +25,10 @@ class Settings(BaseSettings):
     SENDGRID_API_KEY: str | None = None
     EMAIL_FROM: str = "no-reply@innovation.ia"
 
+    # Mercado Pago Settings
+    MP_ACCESS_TOKEN: str | None = None
+    BASE_URL: str = "http://localhost:8000" # Default for local dev, override in prod/ngrok
+
     model_config = SettingsConfigDict(
         env_file=BASE_DIR / ".env",
         env_file_encoding="utf-8",

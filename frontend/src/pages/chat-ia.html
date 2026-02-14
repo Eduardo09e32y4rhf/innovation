@@ -298,14 +298,14 @@
             const aiMsgWrapper = addMessage('Pensando...', 'ai', true, loadingId);
 
             try {
-                const response = await fetch('/api/ai/chat', {
+                const response = await fetch('/api/ai/ask', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${token}`
                     },
                     body: JSON.stringify({
-                        message: text,
+                        question: text,
                         context: "Usuário do sistema Innovation.ia. Responda como um assistente de RH."
                     })
                 });
@@ -318,12 +318,12 @@
                     loadingBubble.classList.remove('animate-pulse');
                     if (response.ok) {
                         // Converter Markdown para HTML simples (básico)
-                        let formattedResponse = data.response
+                        let formattedResponse = (data.answer || data.response || '')
                             .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
                             .replace(/\n/g, '<br>');
                         loadingBubble.innerHTML = formattedResponse;
                     } else {
-                        loadingBubble.textContent = data.response || 'Erro ao processar sua mensagem.';
+                        loadingBubble.textContent = data.answer || data.response || 'Erro ao processar sua mensagem.';
                         loadingBubble.classList.add('text-red-400');
                     }
                 }
@@ -361,7 +361,11 @@
             return wrapper.querySelector('.message-bubble');
         }
 
-        function logout() { localStorage.clear(); window.location.href = 'login'; }
+        function logout() {
+            localStorage.clear();
+            document.cookie = "access_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; SameSite=Lax";
+            window.location.href = '/login';
+        }
 
         // Auto-expand textarea
         userInput.addEventListener('input', function () {

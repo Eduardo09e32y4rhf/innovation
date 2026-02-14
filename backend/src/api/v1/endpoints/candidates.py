@@ -69,34 +69,40 @@ async def get_candidate_profile(
 ):
     """Obter perfil completo do candidato"""
     try:
-        # Tenta buscar com diferentes cases para role
-        candidate = db.query(User).filter(
-            User.id == candidate_id
-        ).first()
+        candidate = db.query(User).filter(User.id == candidate_id).first()
         
         if not candidate:
             raise HTTPException(404, "Candidato não encontrado")
         
-        # Verifica se role é candidate (case insensitive ou check simples)
-        if hasattr(candidate, 'role') and str(candidate.role).upper() != "CANDIDATE":
-            # Opcional: permitir ver perfil se for empresa vendo candidato
-            # Mas a rota pede 'candidate_id'
-            pass 
-        
-        # Buscar candidaturas do candidato
         applications = db.query(Application).filter(
             Application.candidate_user_id == candidate_id
         ).all()
-        
+
+        # IA Analysis Check
+        ai_summary = getattr(candidate, 'ai_summary', None)
+        if not ai_summary and hasattr(candidate, 'bio') and candidate.bio:
+            # Trigger lazy analysis if not present
+            try:
+                from infrastructure.ai_clients.gemini_pro import GeminiService
+                gemini = GeminiService()
+                # Simple analysis of the bio as a proxy for resume
+                prompt = f"Analise este perfil profissional e gere um resumo executivo de 3 linhas focado em pontos fortes: {candidate.bio}"
+                ai_response = gemini.model.generate_content(prompt)
+                ai_summary = ai_response.text
+                # In a real app, save this back to DB
+            except Exception:
+                ai_summary = "Análise de IA indisponível no momento."
+
         return {
             "id": candidate.id,
-            "full_name": candidate.name,  # Mapeado para 'name'
+            "full_name": candidate.name,
             "email": candidate.email,
             "phone": getattr(candidate, 'phone', None),
             "bio": getattr(candidate, 'bio', None),
             "skills": getattr(candidate, 'skills', []),
             "experience": getattr(candidate, 'experience', None),
             "education": getattr(candidate, 'education', None),
+            "ai_summary": ai_summary,
             "applications_count": len(applications),
             "applications": [
                 {

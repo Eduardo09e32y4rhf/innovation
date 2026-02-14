@@ -6,8 +6,14 @@ import re
 
 class GeminiService:
     def __init__(self):
-        genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-        self.model = genai.GenerativeModel('gemini-1.5-flash')
+        self.api_key = os.getenv("GEMINI_API_KEY")
+        self.model = None
+        if self.api_key:
+            try:
+                genai.configure(api_key=self.api_key)
+                self.model = genai.GenerativeModel('gemini-1.5-flash')
+            except Exception as e:
+                print(f"Warning: Failed to initialize GeminiService: {e}")
     
     async def analyze_resume(self, resume_text: str, job_description: str) -> Dict:
         """

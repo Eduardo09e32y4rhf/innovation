@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: innovation-enterprise
+  labels:
+    name: innovation-enterprise
+    environment: production
