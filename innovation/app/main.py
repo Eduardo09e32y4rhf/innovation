@@ -1,23 +1,23 @@
 import os
-from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
+from fastapi import FastAPI, Request, status
+from fastapi.responses import HTMLResponse, JSONResponse, FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 import google.generativeai as genai
 from pydantic import BaseModel, Field
 from fastapi.middleware.cors import CORSMiddleware
+from jose import jwt, JWTError
 from app.api import jobs, applications, ai, matching, auth, dashboard, interviews, ai_services, projects, rh, finance, support, payments
 import app.models # Garante o registro de todos os modelos
-from dotenv import load_dotenv
-
-load_dotenv()
+from app.core.config import settings
 
 # Iniciar App
 app = FastAPI(title="Innovation.ia - Elite Recruitment")
 
 # Configuração do Gemini
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "SUA_CHAVE_AQUI")
-genai.configure(api_key=GEMINI_API_KEY)
+GEMINI_API_KEY = settings.GEMINI_API_KEY
+if GEMINI_API_KEY:
+    genai.configure(api_key=GEMINI_API_KEY)
 model_gemini = genai.GenerativeModel('gemini-pro')
 
 # Configuração de Caminhos (Ajustado para rodar na raiz ou pasta /innovation)
@@ -39,7 +39,7 @@ templates_common = Jinja2Templates(directory=WEB_BASE)
 # Middleware CORS para evitar problemas de bloqueio
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=os.getenv("ALLOWED_ORIGINS", "*").split(","),
+    allow_origins=settings.ALLOWED_ORIGINS.split(","),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -47,7 +47,6 @@ app.add_middleware(
 
 # --- GLOBAL AUTHENTICATION MIDDLEWARE ---
 from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.responses import RedirectResponse
 from app.api.auth import user_memory_cache
 
 # List of public routes that don't pass through auth check
@@ -89,6 +88,13 @@ class AuthMiddleware(BaseHTTPMiddleware):
             token = request.cookies.get("access_token")
             if not token:
                 # Redirect to login
+                return RedirectResponse(url="/login")
+
+            # Verify Token Signature
+            try:
+                jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+            except JWTError:
+                # Invalid token
                 return RedirectResponse(url="/login")
         
         response = await call_next(request)
@@ -135,8 +141,14 @@ async def home(request: Request):
 @app.get("/pages/{page_name}", response_class=HTMLResponse)
 async def serve_futuristic_pages(page_name: str):
     """Serve páginas do novo tema futurista"""
-    page_path = os.path.join(WEB_ADMIN, "pages", page_name)
-    if os.path.exists(page_path):
+    # Security: Normalize path and prevent traversal
+    page_path = os.path.normpath(os.path.join(WEB_ADMIN, "pages", page_name))
+    base_path = os.path.join(WEB_ADMIN, "pages")
+
+    if not page_path.startswith(base_path):
+        return HTMLResponse("Acesso negado", status_code=403)
+
+    if os.path.exists(page_path) and os.path.isfile(page_path):
         with open(page_path, "r", encoding="utf-8") as f:
             return f.read()
     return HTMLResponse("Página não encontrada", status_code=404)
@@ -144,47 +156,53 @@ async def serve_futuristic_pages(page_name: str):
 @app.get("/css/{file_name}", response_class=HTMLResponse)
 async def serve_css(file_name: str):
     """Serve CSS do novo tema futurista"""
-    css_path = os.path.join(WEB_ADMIN, "css", file_name)
-    if os.path.exists(css_path):
+    # Security: Normalize path and prevent traversal
+    css_path = os.path.normpath(os.path.join(WEB_ADMIN, "css", file_name))
+    base_path = os.path.join(WEB_ADMIN, "css")
+
+    if not css_path.startswith(base_path):
+         return HTMLResponse("Acesso negado", status_code=403)
+
+    if os.path.exists(css_path) and os.path.isfile(css_path):
         with open(css_path, "r", encoding="utf-8") as f:
             return HTMLResponse(content=f.read(), media_type="text/css")
     return HTMLResponse("CSS não encontrado", status_code=404)
 
 @app.get("/dashboard")
 async def dashboard(request: Request):
-    return templates.TemplateResponse("dashboard.html", {"request": request})
+    return templates.TemplateResponse(request=request, name="dashboard.html")
 
 @app.get("/vagas")
 async def vagas_page(request: Request):
-    return templates.TemplateResponse("jobs.html", {"request": request})
+    return templates.TemplateResponse(request=request, name="jobs.html")
 
 @app.get("/candidatos")
 async def candidatos_page(request: Request):
-    return templates.TemplateResponse("candidates.html", {"request": request})
+    return templates.TemplateResponse(request=request, name="candidates.html")
 
 @app.get("/configuracoes")
 async def configuracoes_page(request: Request):
-    return templates.TemplateResponse("settings.html", {"request": request})
+    return templates.TemplateResponse(request=request, name="settings.html")
 
 @app.get("/projetos")
 async def projetos_page(request: Request):
-    return templates.TemplateResponse("projects.html", {"request": request})
+    return templates.TemplateResponse(request=request, name="projects.html")
 
 @app.get("/tarefas")
 async def tarefas_page(request: Request):
-    return templates.TemplateResponse("tasks.html", {"request": request})
+    return templates.TemplateResponse(request=request, name="tasks.html")
 
 @app.get("/rh")
 async def rh_page(request: Request):
-    return templates.TemplateResponse("rh.html", {"request": request})
+    return templates.TemplateResponse(request=request, name="rh.html")
 
 @app.get("/financeiro")
 async def finance_page(request: Request):
-    return templates.TemplateResponse("finance.html", {"request": request})
+    return templates.TemplateResponse(request=request, name="finance.html")
 
 @app.get("/suporte")
 async def support_page(request: Request):
-    return templates.TemplateResponse("support.html", {"request": request})
+    return templates.TemplateResponse(request=request, name="support.html")
 
 @app.get("/status", response_class=HTMLResponse)
 async def public_status_page(request: Request):
@@ -198,7 +216,7 @@ async def public_status_page(request: Request):
 async def login_page(request: Request):
     # Login might be in common/login.html or directly in company/login.html
     # Based on file list, web-test/company/login.html exists.
-    return templates.TemplateResponse("login.html", {"request": request})
+    return templates.TemplateResponse(request=request, name="login.html")
 
 @app.get("/carreiras", response_class=HTMLResponse)
 async def careers_page(request: Request):

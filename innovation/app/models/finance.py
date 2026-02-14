@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, Text, DateTime, Numeric, ForeignKey
 from sqlalchemy.orm import relationship
-from datetime import datetime
+from datetime import datetime, timezone
 from ..db.database import Base
 
 class Transaction(Base):
@@ -19,7 +19,7 @@ class Transaction(Base):
     cost_center_id = Column(Integer, ForeignKey("cost_centers.id"), nullable=True)
     company_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     
     # Relationships
     cost_center = relationship("CostCenter", back_populates="transactions")
