@@ -26,22 +26,3 @@ innovation.db
 # OS
 .DS_Store
 Thumbs.db
-
-# Build
-dist/
-build/
-*.egg-info/
-
-# Vercel
-.vercel
-
-# Node (se usar)
-node_modules/
-
-# Logs
-*.log
-
-# Temporary
-*.tmp
-*.bak
-.git.bak/

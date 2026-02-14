@@ -46,6 +46,12 @@ def login(request: Request, data: LoginRequest, db: Session = Depends(get_db)):
 
     access_token, refresh_token, user = result
     
+    # Cache the user upon successful login
+    user_memory_cache.set(user.id, user)
+
+
+    access_token, refresh_token, user = result
+    
     # Se 2FA está habilitado, retorna temporary_token
     if user.two_factor_enabled:
         request_code(db, user.id, user.email, user.phone)
@@ -101,3 +107,36 @@ def verify_login_code(request: Request, temporary_token: str, code: str, db: Ses
 @router.get("/me", response_model=UserOut)
 def me(current_user: User = Depends(get_current_user)):
     return current_user
+
+# --- Caching Strategy ---
+# Using functools.lru_cache to cache user sessions in memory
+# This reduces database hits for frequent operations like "get_current_user"
+# In a distributed environment, Redis would be preferred.
+
+from functools import lru_cache
+import time
+
+# Simple in-memory cache with expiry logic wrapper
+class UserCache:
+    def __init__(self):
+        self._cache = {}
+        self._ttl = 300 # 5 minutes
+
+    def get(self, user_id: int):
+        if user_id in self._cache:
+            data, timestamp = self._cache[user_id]
+            if time.time() - timestamp < self._ttl:
+                return data
+            else:
+                del self._cache[user_id]
+        return None
+
+    def set(self, user_id: int, user_data: User):
+        self._cache[user_id] = (user_data, time.time())
+
+    def invalidate(self, user_id: int):
+        if user_id in self._cache:
+            del self._cache[user_id]
+
+# Singleton instance
+user_memory_cache = UserCache()

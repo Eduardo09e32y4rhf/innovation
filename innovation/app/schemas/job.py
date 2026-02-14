@@ -1,27 +1,28 @@
-from typing import Optional
+from __future__ import annotations
+
 from datetime import datetime
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict
 
 class JobBase(BaseModel):
     title: str
     description: str
-    location: Optional[str] = None
-    status: Optional[str] = "open"
+    location: str | None = None
+    status: str = "open"
 
 class JobCreate(JobBase):
     pass
 
 class JobUpdate(BaseModel):
-    title: Optional[str] = None
-    description: Optional[str] = None
-    location: Optional[str] = None
-    status: Optional[str] = None
+    title: str | None = None
+    description: str | None = None
+    location: str | None = None
+    status: str | None = None
 
-class JobResponse(JobBase):
+
+class JobOut(JobBase):
     id: int
     company_id: int
     created_at: datetime
-    updated_at: datetime
+    updated_at: datetime | None = None # Added back updated_at just in case
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)

@@ -1,48 +1,25 @@
-# ========================================
-# CORE FRAMEWORK
-# ========================================
-fastapi==0.128.0
-uvicorn==0.34.0
-python-multipart==0.0.20
-jinja2==3.1.6
-
-# ========================================
-# DATABASE (Otimizado para Vercel)
-# ========================================
-sqlalchemy==2.0.46
-psycopg2-binary==2.9.10
-
-# ========================================
-# AUTHENTICATION & SECURITY
-# ========================================
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+sqlalchemy==2.0.25
+alembic==1.13.1
+pydantic==2.5.3
+pydantic-settings==2.1.0
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
-bcrypt==5.0.0
-slowapi==0.1.9
-
-# ========================================
-# VALIDATION & SETTINGS
-# ========================================
-pydantic==2.12.0
-pydantic-settings==2.7.0
-email-validator==2.2.0
-
-# ========================================
-# HTTP CLIENT
-# ========================================
-httpx==0.28.1
-
-# ========================================
-# AI - GOOGLE GEMINI (Essencial)
-# ========================================
-google-generativeai==0.8.3
-
-# ========================================
-# EMAIL - SENDGRID (Leve)
-# ========================================
-sendgrid==6.11.0
-
-# ========================================
-# UTILITIES
-# ========================================
-python-dotenv==1.0.1
+python-multipart==0.0.6
+mercadopago==2.2.1
+google-generativeai==0.3.2
+anthropic==0.18.1
+redis==5.0.1
+sentry-sdk[fastapi]==1.40.0
+pytest-asyncio==0.23.3
+pytest-cov==4.1.0
+locust==2.20.0
+python-dotenv==1.0.0
+twilio
+sendgrid
+slowapi
+email-validator
+Faker
+sqlalchemy-mixins
+requests

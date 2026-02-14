@@ -112,7 +112,7 @@
                 const email = document.getElementById('email').value;
                 const password = document.getElementById('password').value;
 
-                const res = await fetch('/auth/login', {
+                const res = await fetch('/api/auth/login', { // Changed to match API route prefix
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email, password })
@@ -120,7 +120,11 @@
 
                 if (res.ok) {
                     const data = await res.json();
+                    // Store token in cookie for middleware access
+                    document.cookie = `access_token=${data.access_token}; path=/; max-age=86400; SameSite=Lax`;
+                    // Also store in localStorage for client-side API calls if needed
                     localStorage.setItem('token', data.access_token);
+
                     window.location.href = '/dashboard';
                 } else {
                     const err = await res.json();

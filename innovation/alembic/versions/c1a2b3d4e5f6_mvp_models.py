@@ -27,7 +27,7 @@ def upgrade() -> None:
         sa.Column("price", sa.Integer(), nullable=True),
         sa.Column("features", sa.JSON(), nullable=True),
         sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint("name"),
+        sa.UniqueConstraint("name", name="plans_name_key"),
     )
     op.create_index(op.f("ix_plans_id"), "plans", ["id"], unique=False)
 

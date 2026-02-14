@@ -1,0 +1,72 @@
+---
+layout: settings
+permalink: settings.html
+title: N2 - Configurações da Empresa
+page-header: N2 - Configurações da Empresa
+---
+
+<div class="alert alert-info" role="alert">
+  Conteúdo exclusivo para empresas. Ajuste os dados e a visibilidade pública da organização.
+</div>
+
+<div class="card-body">
+	<h2 class="mb-4">N2 - Configurações da Empresa</h2>
+
+	<h3 class="card-title">Detalhes do responsável</h3>
+
+	<div class="row align-items-center">
+		<div class="col-auto">{% include "ui/avatar.html" size="xl" person-id="1" %}</div>
+		<div class="col-auto">{% include "ui/button.html" text="Change avatar" %}</div>
+		<div class="col-auto">{% include "ui/button.html" text="Delete avatar" color="danger" ghost=true %}</div>
+	</div>
+
+
+	<h3 class="card-title mt-4">Perfil da empresa</h3>
+
+	<div class="row g-3">
+		<div class="col-md">
+			<label class="form-label" for="business-name">Razão social</label>
+			<input type="text" class="form-control" id="business-name" name="business-name" value="{{ people[0].company }}">
+		</div>
+		<div class="col-md">
+			<label class="form-label" for="business-id">CNPJ</label>
+			<input type="text" class="form-control" id="business-id" name="business-id" value="560afc32">
+		</div>
+		<div class="col-md">
+			<label class="form-label" for="location">Cidade/UF</label>
+			<input type="text" class="form-control" id="location" name="location"
+			       value="{{ people[0].city }}, {{ people[0].country }}">
+		</div>
+	</div>
+
+	<h3 class="card-title mt-4">Email corporativo</h3>
+	<p class="card-subtitle">Este contato será exibido publicamente.</p>
+
+	<div>
+		<div class="row g-2">
+			<div class="col-auto">
+				<label for="email" class="form-label visually-hidden">Email</label>
+				<input type="text" class="form-control w-auto" id="email" name="email" value="{{ people[0].email }}">
+			</div>
+			<div class="col-auto">{% include "ui/button.html" text="Change" %}</div>
+		</div>
+	</div>
+
+	<h3 class="card-title mt-4">Senha</h3>
+	<p class="card-subtitle">Atualize sua senha de acesso sempre que necessário.</p>
+	<div>
+		{% include "ui/button.html" text="Set new password" %}
+	</div>
+
+	<h3 class="card-title mt-4">Perfil público</h3>
+	<p class="card-subtitle">Defina se a empresa fica visível para candidatos.</p>
+	<div>
+		{% include "ui/form/check.html" switch=true size="lg" title-on="Empresa visível" title-off="Empresa oculta" %}
+	</div>
+</div>
+<div class="card-footer bg-transparent mt-auto">
+	<div class="btn-list justify-content-end">
+		{% include "ui/button.html" text="Cancel" %}
+		{% include "ui/button.html" text="Submit" color="primary" %}
+	</div>
+</div>

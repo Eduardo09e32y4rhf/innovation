@@ -35,6 +35,16 @@ from app.models import document as _document  # noqa: F401,E402
 from app.models import audit_log as _audit_log  # noqa: F401,E402
 from app.models import two_factor_code as _two_factor_code  # noqa: F401,E402
 from app.models import refresh_token as _refresh_token  # noqa: F401,E402
+# Missing models added below
+from app.models import finance as _finance  # noqa: F401,E402
+from app.models import project as _project  # noqa: F401,E402
+from app.models import task as _task  # noqa: F401,E402
+from app.models import time_entry as _time_entry  # noqa: F401,E402
+from app.models import leave_request as _leave_request  # noqa: F401,E402
+from app.models import performance_review as _performance_review  # noqa: F401,E402
+from app.models import ticket as _ticket  # noqa: F401,E402
+from app.models import onboarding as _onboarding  # noqa: F401,E402
+from app.models import compliance as _compliance  # noqa: F401,E402
 
 target_metadata = Base.metadata
 

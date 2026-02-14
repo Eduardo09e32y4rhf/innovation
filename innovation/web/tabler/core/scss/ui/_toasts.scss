@@ -1,0 +1,22 @@
+.toast {
+  border: $alert-border-width var(--#{$prefix}border-style) $alert-border-color;
+  box-shadow: $alert-shadow;
+
+  .toast-header {
+    user-select: none;
+  }
+
+  button[data-bs-dismiss='toast'] {
+    outline: none;
+  }
+
+  @include media-print {
+    display: none;
+  }
+}
+
+@each $state, $value in $theme-colors {
+  .toast-#{$state} {
+    --#{$prefix}toast-color: #{$value};
+  }
+}

@@ -223,10 +223,39 @@
     </main>
 
     <script>
+        // Helper to get token
+        function getToken() {
+            return localStorage.getItem('token');
+        }
+
+        // Helper for authenticated fetch
+        async function authFetch(url) {
+            const token = getToken();
+            if (!token) {
+                window.location.href = '/login';
+                return null;
+            }
+
+            const res = await fetch(url, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (res.status === 401) {
+                logout();
+                return null;
+            }
+
+            return res;
+        }
+
         // Carregar dados do dashboard
         async function loadDashboard() {
             try {
-                const response = await fetch('/api/dashboard/metrics');
+                const response = await authFetch('/api/dashboard/metrics');
+                if (!response) return;
+
                 const data = await response.json();
 
                 // Atualizar valores
@@ -274,10 +303,12 @@
 
         // Carregar calendário
         async function loadCalendar() {
-            const response = await fetch('/api/dashboard/calendar');
+            const response = await authFetch('/api/dashboard/calendar');
+            if (!response) return;
             const data = await response.json();
 
             const grid = document.getElementById('calendar-grid');
+            grid.innerHTML = ''; // Clear existing
             const today = new Date();
             const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
 
@@ -286,8 +317,11 @@
                 day.className = 'calendar-day';
                 day.textContent = i;
 
-                // Marcar dias com tarefas
-                if ([11, 15, 18, 22].includes(i)) {
+                // Simple check for tasks on this date (mock logic adaptation)
+                const dateString = `${data.year}-${String(data.month).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+                const hasTask = data.tasks.some(t => t.date === dateString);
+
+                if (hasTask) {
                     day.classList.add('has-task');
                 }
 
@@ -297,10 +331,13 @@
 
         // Carregar Kanban
         async function loadKanban() {
-            const response = await fetch('/api/dashboard/kanban');
+            const response = await authFetch('/api/dashboard/kanban');
+            if (!response) return;
             const data = await response.json();
 
             const board = document.getElementById('kanban-board');
+            board.innerHTML = '';
+
             data.columns.forEach(column => {
                 const col = document.createElement('div');
                 col.className = 'kanban-column';
@@ -324,7 +361,8 @@
         }
 
         function logout() {
-            localStorage.clear();
+            localStorage.removeItem('token');
+            document.cookie = "access_token=; path=/; max-age=0";
             window.location.href = '/login';
         }
 

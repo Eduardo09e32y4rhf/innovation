@@ -13,6 +13,11 @@ class User(Base):
     role = Column(String(50), nullable=False, default="candidate") # candidate, company
     is_active = Column(Boolean, default=True)
     two_factor_enabled = Column(Boolean, default=False)
+    phone = Column(String(30), nullable=True) # Added back for 2FA
+    
+    # Assinatura
+    subscription_status = Column(String(50), default="inactive") # active, inactive, cancelled
+    subscription_plan = Column(String(50), default="starter") # starter, pro, enterprise
     
     # Perfil (Candidato)
     bio = Column(Text, nullable=True)
@@ -39,3 +44,11 @@ class User(Base):
     projects = relationship("Project", back_populates="company")
     tasks = relationship("Task", back_populates="assignee")
     time_entries = relationship("TimeEntry", back_populates="user")
+
+    @property
+    def name(self):
+        return self.full_name
+
+    @name.setter
+    def name(self, value):
+        self.full_name = value
