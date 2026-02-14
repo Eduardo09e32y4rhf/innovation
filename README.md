@@ -1,132 +1,93 @@
-# 🚀 Innovation.ia - Plataforma de Recrutamento & Gestão Financeira com IA
+# 🚀 Innovation-Enterprise - Plataforma de Recrutamento & Gestão com IA
 
-[![Security](https://img.shields.io/badge/Security-Hardened-green.svg)](./innovation/docs/SECURITY_FIXES.md)
-[![Python](https://img.shields.io/badge/Python-3.12+-blue.svg)](https://www.python.org/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.128+-00a393.svg)](https://fastapi.tiangolo.com/)
-[![AI](https://img.shields.io/badge/AI-Gemini_Pro-blueviolet.svg)](https://ai.google.dev/)
+[![Arquitetura](https://img.shields.io/badge/Architecture-Enterprise--Grade-gold.svg)](#)
+[![Security](https://img.shields.io/badge/Security-Hardened-green.svg)](#)
+[![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-Elite-00a393.svg)](https://fastapi.tiangolo.com/)
+[![Docker](https://img.shields.io/badge/Docker-Ready-blue.svg)](#)
 
-> **Plataforma SaaS completa que combina Recrutamento Inteligente, Gestão Financeira e Segurança Enterprise-grade.**
-
----
-
-## 🎯 Visão Geral
-
-O **Innovation.ia** evoluiu para um ecossistema de gestão empresarial integrado:
-
-- ✅ **Backend FastAPI:** Arquitetura robusta, assíncrona e segura.
-- ✅ **Gestão Financeira:** Controle de fluxo de caixa com precisão decimal (`Decimal`), previsões via IA e detecção de anomalias.
-- ✅ **Recrutamento IA:** Triagem inteligente, matching candidato-vaga e análise de perfis com Google Gemini Pro.
-- ✅ **Segurança Avançada:**
-    - Autenticação JWT com Refresh Tokens.
-    - 2FA (Dois Fatores) via Twilio/SendGrid.
-    - Proteção contra IDOR e Rate Limiting.
-    - CORS restrito e validação rigorosa de inputs (Pydantic V2).
+> **O ecossistema definitivo para escalabilidade global.** Unindo recrutamento inteligente, gestão financeira enterprise e agentes autônomos de IA.
 
 ---
 
-## 🔐 Recursos de Segurança (Hardened)
+## 🏗️ Arquitetura Global (Nível Gupy)
 
-O projeto implementa rigorosos padrões de segurança:
-
-| Recurso | Descrição |
-|---------|-----------|
-| **Precisão Financeira** | Uso de `Decimal` para evitar erros de ponto flutuante em transações. |
-| **RBAC** | Controle de acesso baseado em funções (Company vs Candidate) em todas as rotas críticas. |
-| **2FA Database-Backed** | Códigos temporários seguros com expiração e limite de tentativas. |
-| **Proteção de Dados** | Senhas hash com Bcrypt e validação de `max_length` para prevenir DoS. |
-| **Proteção de Rotas** | Validação de caminhos (`Path Traversal`) e verificação de assinatura JWT em rotas estáticas protegidas. |
-
----
-
-## 📂 Estrutura do Projeto
+O projeto segue agora uma estrutura modular e escalável, preparada para microsserviços e alta performance:
 
 ```bash
-innovation.ia/
-├── innovation/              # 🔹 BACKEND (Python - FastAPI)
-│   ├── alembic/            # Migrações de Banco de Dados
-│   ├── app/
-│   │   ├── api/            # Endpoints REST (Auth, Jobs, Finance...)
-│   │   ├── core/           # Configurações, Segurança, Dependências
-│   │   ├── models/         # Modelos SQLAlchemy (Banco de Dados)
-│   │   ├── schemas/        # Schemas Pydantic (Validação)
-│   │   ├── services/       # Lógica de Negócio (IA, Finance, Auth)
-│   │   └── db/             # Sessão de Banco
-│   ├── tests/              # Testes Automatizados (Pytest)
-│   └── requirements.txt    # Dependências do Python
+innovation-enterprise/
+├── backend/                    # 🧠 O CÉREBRO (API Python/FastAPI)
+│   ├── src/
+│   │   ├── api/v1/endpoints/   # Rotas versionadas (auth, jobs, finance)
+│   │   ├── core/               # Configurações Globais e Segurança
+│   │   ├── domain/             # Lógica de Negócio (Models & Schemas)
+│   │   ├── infrastructure/     # SQL, NoSQL, Cache (Redis), AI Clients
+│   │   └── services/           # Serviços de integração (Auth, Reports)
+│   └── tests/                  # Testes Unitários e Integração
 │
-├── innovation_app/          # 📱 APP MOBILE (Flutter - Candidato)
+├── frontend/                   # 🎨 A CARA (React/Next.js e Legado HTML)
+│   ├── legacy_web_admin/       # Portal Administrativo
+│   └── legacy_web_test/        # Landing Page e Testes
 │
-├── web-test/               # 🎨 FRONTEND ADMIN (HTML/CSS/JS - Empresa)
-│   ├── company/            # Portal da Empresa (Dashboard, Vagas)
-│   └── common/             # Assets Compartilhados
+├── ai_engine/                  # 🤖 O AGENTE AUTÔNOMO (Workers Jules & Admin IA)
+│   ├── agents/                 # Recruiter Agent, Finance Auditor
+│   └── worker.py               # Celery/Background Tasks
 │
-└── requirements.txt        # Dependências Globais
+└── ops/                        # 🛠️ OPERAÇÕES & INFRAESTRUTURA
+    ├── docker-compose.yml      # Orquestração (App + DB + Redis + Worker)
+    └── Dockerfile              # Receita de build otimizada
 ```
 
 ---
 
-## 🏃 Começo Rápido (Quick Start)
+## ⚡ Recursos Principais (Enterprise Level)
 
-### 1️⃣ Instalação
+### 🏎️ Módulo de Cache (Redis)
+Utilizamos **Redis** para acelerar o carregamento de dados pesados (como currículos analisados) e gerenciar sessões rápidas, garantindo que o sistema "voe" mesmo com milhares de usuários.
 
-```bash
-# Instalar dependências
-pip install -r requirements.txt
-```
+### 🤖 AI Engine & Agentes em Background
+A IA (Jules) agora processa tarefas pesadas (como análise profunda de currículos) em **segundo plano** usando **Celery Workers**. Isso libera a API para responder instantaneamente ao usuário enquanto a IA trabalha no background.
 
-### 2️⃣ Configuração do Ambiente
+### 🐳 Dockerização Completa
+O sistema está 100% pronto para rodar em containers, facilitando o deploy em qualquer nuvem (**AWS, Azure, GCP**) com um único comando.
 
-Crie um arquivo `.env` na pasta `innovation/`:
+---
 
+## 🏃 Como Rodar (Modo Enterprise)
+
+A forma oficial e mais fácil de rodar o ecossistema completo é usando Docker:
+
+### 1️⃣ Configure suas chaves
+Crie um arquivo `.env` na raiz do projeto seguindo o modelo:
 ```env
-DATABASE_URL=sqlite:///./innovation.db
-SECRET_KEY=sua_chave_secreta_super_segura
-ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=30
-REFRESH_TOKEN_EXPIRE_DAYS=30
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=postgres
+POSTGRES_DB=innovation_db
+REDIS_URL=redis://redis:6379/0
+SECRET_KEY=sua_chave_secreta
 GEMINI_API_KEY=sua_chave_gemini
-ALLOWED_ORIGINS=http://localhost:8000,http://127.0.0.1:5500
 ```
 
-### 3️⃣ Banco de Dados
-
+### 2️⃣ Suba o ecossistema com um comando
 ```bash
-cd innovation
-# Inicializar banco
-PYTHONPATH=. python app/db/init_db.py
-# Aplicar migrações
-alembic upgrade head
+cd ops
+docker-compose up --build
 ```
 
-### 4️⃣ Execução
-
-Inicie o servidor backend:
-
-```bash
-# Na raiz do projeto
-uvicorn innovation.app.main:app --reload
-```
-
-Acesse a documentação da API em: `http://localhost:8000/docs`
+Isso irá iniciar:
+- **Banco de Dados** (PostgreSQL)
+- **Cache & Message Broker** (Redis)
+- **API Principal** (FastAPI na porta 8000)
+- **AI Worker** (Agente Jules processando backgrounds)
 
 ---
 
-## 🧪 Testes
-
-Os testes cobrem segurança, lógica financeira e integridade do banco de dados.
-
-```bash
-# Rodar todos os testes
-PYTHONPATH=innovation pytest innovation/tests/
-```
+## 👨‍💻 Status do Projeto
+- [x] Agente de Recrutamento & Triagem (ATS) com Gemini Pro.
+- [x] Módulo Financeiro com Fluxo de Caixa e Integração Mercado Pago.
+- [x] Gestão de Projetos (Kanban) e Chamados de Suporte (Service Desk).
+- [x] Interface Futurista "Glassmorphism" Responsiva.
+- [x] Agentes de IA em Background (Jules & Claude).
 
 ---
-
-## 👨‍💻 Autor
-
-**Eduardo Silva**  
-Inovando a gestão empresarial através da Tecnologia e Inteligência Artificial.
-
----
-
-**Proprietary** - Innovation.ia © 2026
+**Innovation-Enterprise © 2026** - Escalando o futuro com inteligência.

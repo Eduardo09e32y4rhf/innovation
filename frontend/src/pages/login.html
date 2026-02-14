@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Innovation.ia</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #000;
+            color: #fff;
+            overflow: hidden;
+        }
+
+        .gradient-bg {
+            position: fixed;
+            inset: 0;
+            background: radial-gradient(circle at 20% 50%, rgba(139, 92, 246, 0.15), transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(236, 72, 153, 0.15), transparent 50%);
+            animation: gradientShift 15s ease infinite;
+        }
+
+        @keyframes gradientShift {
+
+            0%,
+            100% {
+                transform: translate(0, 0);
+            }
+
+            50% {
+                transform: translate(-5%, 5%);
+            }
+        }
+
+        .glass-panel {
+            background: rgba(17, 17, 24, 0.7);
+            backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid rgba(139, 92, 246, 0.2);
+            border-radius: 24px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+
+        .input-glow {
+            background: rgba(26, 26, 36, 0.5);
+            border: 2px solid rgba(139, 92, 246, 0.3);
+            border-radius: 12px;
+            padding: 1rem;
+            color: #fff;
+            transition: all 0.3s;
+        }
+
+        .input-glow:focus {
+            outline: none;
+            border-color: #8B5CF6;
+            box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.1);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #8B5CF6, #EC4899);
+            padding: 1rem 2rem;
+            border-radius: 12px;
+            font-weight: 600;
+            transition: all 0.3s;
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.5);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 30px rgba(139, 92, 246, 0.8);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 1rem 2rem;
+            border-radius: 12px;
+            transition: all 0.3s;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #8B5CF6, #EC4899);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .tab-active {
+            border-bottom: 2px solid #8B5CF6;
+            color: #8B5CF6;
+        }
+
+        .spinner {
+            border: 3px solid rgba(139, 92, 246, 0.3);
+            border-top-color: #8B5CF6;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="gradient-bg"></div>
+
+    <div class="min-h-screen flex items-center justify-center px-4 relative z-10">
+        <div class="glass-panel w-full max-w-md p-8">
+            <!-- Logo -->
+            <div class="text-center mb-8">
+                <h1 class="text-3xl font-black gradient-text mb-2">INNOVATION.IA</h1>
+                <p class="text-gray-400 text-sm">Sistema Operacional de IA Empresarial</p>
+            </div>
+
+            <!-- Tabs -->
+            <div class="flex gap-4 mb-8 border-b border-white/10">
+                <button id="loginTab" class="flex-1 py-3 font-semibold tab-active transition"
+                    onclick="switchTab('login')">
+                    Login
+                </button>
+                <button id="registerTab" class="flex-1 py-3 font-semibold text-gray-400 transition"
+                    onclick="switchTab('register')">
+                    Criar Conta
+                </button>
+            </div>
+
+            <!-- Login Form -->
+            <form id="loginForm" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Email</label>
+                    <input type="email" id="loginEmail" class="input-glow w-full" placeholder="seu@email.com" required>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Senha</label>
+                    <div class="relative">
+                        <input type="password" id="loginPassword" class="input-glow w-full pr-12" placeholder="••••••••"
+                            required>
+                        <button type="button" onclick="togglePassword('loginPassword')"
+                            class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white">
+                            👁️
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between text-sm">
+                    <label class="flex items-center text-gray-400 cursor-pointer">
+                        <input type="checkbox" class="mr-2 rounded">
+                        Lembrar-me
+                    </label>
+                    <a href="#" class="text-purple-400 hover:text-purple-300">Esqueci a senha</a>
+                </div>
+
+                <button type="submit" class="btn-primary w-full flex items-center justify-center gap-2">
+                    <span id="loginText">Entrar</span>
+                    <div id="loginSpinner" class="spinner hidden"></div>
+                </button>
+
+                <div class="relative my-6">
+                    <div class="absolute inset-0 flex items-center">
+                        <div class="w-full border-t border-white/10"></div>
+                    </div>
+                    <div class="relative flex justify-center text-sm">
+                        <span class="px-4 bg-transparent text-gray-400">ou</span>
+                    </div>
+                </div>
+
+                <button type="button" class="btn-secondary w-full">
+                    <span class="flex items-center justify-center gap-2">
+                        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                            <path
+                                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                            <path
+                                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                            <path
+                                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                            <path
+                                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+                        </svg>
+                        Continuar com Google
+                    </span>
+                </button>
+            </form>
+
+            <!-- Register Form -->
+            <form id="registerForm" class="space-y-4 hidden">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Nome</label>
+                        <input type="text" id="registerName" class="input-glow w-full" placeholder="João" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Sobrenome</label>
+                        <input type="text" id="registerLastname" class="input-glow w-full" placeholder="Silva" required>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Email Corporativo</label>
+                    <input type="email" id="registerEmail" class="input-glow w-full" placeholder="voce@empresa.com"
+                        required>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Nome da Empresa</label>
+                    <input type="text" id="registerCompany" class="input-glow w-full" placeholder="Sua Empresa Ltda"
+                        required>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">CNPJ</label>
+                    <input type="text" id="registerCNPJ" class="input-glow w-full" placeholder="00.000.000/0000-00"
+                        required>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Senha</label>
+                    <input type="password" id="registerPassword" class="input-glow w-full"
+                        placeholder="Mínimo 8 caracteres" required>
+                </div>
+
+                <label class="flex items-start text-xs text-gray-400 cursor-pointer">
+                    <input type="checkbox" class="mt-1 mr-2" required>
+                    Aceito os <a href="#" class="text-purple-400 hover:text-purple-300 mx-1">Termos de Uso</a> e
+                    <a href="#" class="text-purple-400 hover:text-purple-300 ml-1">Política de Privacidade</a>
+                </label>
+
+                <button type="submit" class="btn-primary w-full flex items-center justify-center gap-2">
+                    <span id="registerText">Criar Conta</span>
+                    <div id="registerSpinner" class="spinner hidden"></div>
+                </button>
+            </form>
+
+            <!-- Alert -->
+            <div id="alert" class="hidden mt-4 p-4 rounded-lg"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/api';
+
+        // Switch between tabs
+        function switchTab(tab) {
+            const loginTab = document.getElementById('loginTab');
+            const registerTab = document.getElementById('registerTab');
+            const loginForm = document.getElementById('loginForm');
+            const registerForm = document.getElementById('registerForm');
+
+            if (tab === 'login') {
+                loginTab.classList.add('tab-active', 'text-purple-400');
+                loginTab.classList.remove('text-gray-400');
+                registerTab.classList.remove('tab-active', 'text-purple-400');
+                registerTab.classList.add('text-gray-400');
+                loginForm.classList.remove('hidden');
+                registerForm.classList.add('hidden');
+            } else {
+                registerTab.classList.add('tab-active', 'text-purple-400');
+                registerTab.classList.remove('text-gray-400');
+                loginTab.classList.remove('tab-active', 'text-purple-400');
+                loginTab.classList.add('text-gray-400');
+                registerForm.classList.remove('hidden');
+                loginForm.classList.add('hidden');
+            }
+        }
+
+        // Toggle password visibility
+        function togglePassword(id) {
+            const input = document.getElementById(id);
+            input.type = input.type === 'password' ? 'text' : 'password';
+        }
+
+        // Show alert
+        function showAlert(message, type = 'error') {
+            const alert = document.getElementById('alert');
+            alert.className = `mt-4 p-4 rounded-lg ${type === 'success'
+                ? 'bg-green-500/20 border border-green-500/50 text-green-300'
+                : 'bg-red-500/20 border border-red-500/50 text-red-300'
+                }`;
+            alert.textContent = message;
+            alert.classList.remove('hidden');
+
+            setTimeout(() => {
+                alert.classList.add('hidden');
+            }, 5000);
+        }
+
+        // Login
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const loginText = document.getElementById('loginText');
+            const loginSpinner = document.getElementById('loginSpinner');
+
+            loginText.textContent = 'Entrando...';
+            loginSpinner.classList.remove('hidden');
+
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+
+            try {
+                const response = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email,
+                        password
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    localStorage.setItem('token', data.access_token);
+
+                    // Fetch user info
+                    const meRes = await fetch(`${API_BASE}/auth/me`, {
+                        headers: { 'Authorization': `Bearer ${data.access_token}` }
+                    });
+                    const userData = await meRes.json();
+                    localStorage.setItem('user', JSON.stringify(userData));
+
+                    showAlert('Login realizado com sucesso!', 'success');
+
+                    setTimeout(() => {
+                        window.location.href = '/dashboard';
+                    }, 1000);
+                } else {
+                    showAlert(data.detail || 'Erro ao fazer login');
+                }
+            } catch (error) {
+                showAlert('Erro de conexão com o servidor');
+                console.error('Login error:', error);
+            } finally {
+                loginText.textContent = 'Entrar';
+                loginSpinner.classList.add('hidden');
+            }
+        });
+
+        // Register
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const registerText = document.getElementById('registerText');
+            const registerSpinner = document.getElementById('registerSpinner');
+
+            registerText.textContent = 'Criando...';
+            registerSpinner.classList.remove('hidden');
+
+            const formData = {
+                email: document.getElementById('registerEmail').value,
+                password: document.getElementById('registerPassword').value,
+                name: `${document.getElementById('registerName').value} ${document.getElementById('registerLastname').value}`,
+                company_name: document.getElementById('registerCompany').value,
+                cnpj: document.getElementById('registerCNPJ').value
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/auth/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showAlert('Conta criada! Redirecionando...', 'success');
+                    setTimeout(() => {
+                        switchTab('login');
+                        document.getElementById('loginEmail').value = formData.email;
+                    }, 2000);
+                } else {
+                    showAlert(data.detail || 'Erro ao criar conta');
+                }
+            } catch (error) {
+                showAlert('Erro de conexão com o servidor');
+                console.error('Register error:', error);
+            } finally {
+                registerText.textContent = 'Criar Conta';
+                registerSpinner.classList.add('hidden');
+            }
+        });
+
+        // Check if already logged in
+        if (localStorage.getItem('token')) {
+            window.location.href = '/dashboard';
+        }
+    </script>
+</body>
+
+</html>
