@@ -13,7 +13,6 @@
 
 O **Innovation.ia** evoluiu para um ecossistema de gestão empresarial integrado:
 
-<<<<<<< HEAD
 - ✅ **Backend FastAPI:** Arquitetura robusta, assíncrona e segura.
 - ✅ **Gestão Financeira:** Controle de fluxo de caixa com precisão decimal (`Decimal`), previsões via IA e detecção de anomalias.
 - ✅ **Recrutamento IA:** Triagem inteligente, matching candidato-vaga e análise de perfis com Google Gemini Pro.
@@ -22,36 +21,11 @@ O **Innovation.ia** evoluiu para um ecossistema de gestão empresarial integrado
     - 2FA (Dois Fatores) via Twilio/SendGrid.
     - Proteção contra IDOR e Rate Limiting.
     - CORS restrito e validação rigorosa de inputs (Pydantic V2).
-=======
-Arquivos principais:
-- [`innovation_app/lib/screens/login.dart`](innovation_app/lib/screens/login.dart)
-- [`innovation_app/lib/screens/dashboard.dart`](innovation_app/lib/screens/dashboard.dart)
-
-### Empresa (Web Admin)
-- Dashboard SPA (Single Page Application)
-- Vagas + candidaturas (Mockup)
-- Gestão de empresas e planos (Mockup)
-
-Arquivos principais:
-- [`web-test/index.html`](web-test/index.html)
-- [`web-test/app.js`](web-test/app.js)
-
-### Backend (FastAPI)
-- Endpoints de **jobs** e **applications** com validação Pydantic
-- Autenticação via JWT
-- Auditoria de eventos
-
-Arquivos principais:
-- [`innovation/app/api/jobs.py`](innovation/app/api/jobs.py)
-- [`innovation/app/api/applications.py`](innovation/app/api/applications.py)
-- [`innovation/app/core/dependencies.py`](innovation/app/core/dependencies.py)
->>>>>>> origin/feature/project-evaluation-and-cleanup-6642120096084795944
 
 ---
 
 ## 🔐 Recursos de Segurança (Hardened)
 
-<<<<<<< HEAD
 O projeto implementa rigorosos padrões de segurança:
 
 | Recurso | Descrição |
@@ -60,20 +34,14 @@ O projeto implementa rigorosos padrões de segurança:
 | **RBAC** | Controle de acesso baseado em funções (Company vs Candidate) em todas as rotas críticas. |
 | **2FA Database-Backed** | Códigos temporários seguros com expiração e limite de tentativas. |
 | **Proteção de Dados** | Senhas hash com Bcrypt e validação de `max_length` para prevenir DoS. |
-=======
-- **Web Admin** é protótipo estático com dados em localStorage (não integrado à API ainda).
-- **App Flutter** contém a estrutura básica de telas mas requer integração total com a API.
-- **Recuperação de senha** no app está como placeholder.
->>>>>>> origin/feature/project-evaluation-and-cleanup-6642120096084795944
 
 ---
 
 ## 📂 Estrutura do Projeto
 
-<<<<<<< HEAD
 ```bash
 innovation.ia/
-├── innovation/              # 🔹 BACKEND (Python)
+├── innovation/              # 🔹 BACKEND (Python - FastAPI)
 │   ├── alembic/            # Migrações de Banco de Dados
 │   ├── app/
 │   │   ├── api/            # Endpoints REST (Auth, Jobs, Finance...)
@@ -85,7 +53,9 @@ innovation.ia/
 │   ├── tests/              # Testes Automatizados (Pytest)
 │   └── requirements.txt    # Dependências do Python
 │
-├── web-test/               # 🎨 FRONTEND (HTML/CSS/JS)
+├── innovation_app/          # 📱 APP MOBILE (Flutter - Candidato)
+│
+├── web-test/               # 🎨 FRONTEND ADMIN (HTML/CSS/JS - Empresa)
 │   ├── company/            # Portal da Empresa (Dashboard, Vagas)
 │   └── common/             # Assets Compartilhados
 │
@@ -114,66 +84,25 @@ ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=30
 REFRESH_TOKEN_EXPIRE_DAYS=30
 GEMINI_API_KEY=sua_chave_gemini
-ALLOWED_ORIGINS=http://localhost:8000,http://127.0.0.1:5500
+ALLOW_ORIGINS=http://localhost:8000,http://127.0.0.1:5500
 ```
 
 ### 3️⃣ Banco de Dados
 
-O projeto usa **Alembic** para gerenciar o esquema do banco de dados.
-
-=======
-- **Python 3.10+**
-- **pip**
-- **Flutter SDK**
-
----
-
-## 🔧 Variáveis de ambiente (backend)
-
-As variáveis são carregadas de `innovation/.env`.
-
-Obrigatórias:
-- `DATABASE_URL` (ex: `sqlite:///./test.db`)
-- `SECRET_KEY` (string aleatória para JWT)
-
----
-
-## ⚡ Backend (FastAPI)
-
-### Instalação
-
-```bash
-pip install -r innovation/requirements.txt
-```
-
-### Inicialização do Banco
-
 ```bash
 cd innovation
+# Inicializar banco
 PYTHONPATH=. python app/db/init_db.py
-```
-
-### Criar Admin de Teste
-
-```bash
-python force_admin.py
-```
-
-### Rodar o backend
-
->>>>>>> origin/feature/project-evaluation-and-cleanup-6642120096084795944
-```bash
-cd innovation
+# Aplicar migrações
 alembic upgrade head
 ```
 
-<<<<<<< HEAD
 ### 4️⃣ Execução
 
 Inicie o servidor backend:
 
 ```bash
-# Na raiz do projeto (ou dentro de innovation/)
+# Na raiz do projeto
 uvicorn innovation.app.main:app --reload
 ```
 
@@ -190,46 +119,13 @@ Os testes cobrem segurança, lógica financeira e integridade do banco de dados.
 PYTHONPATH=innovation pytest innovation/tests/
 ```
 
-=======
->>>>>>> origin/feature/project-evaluation-and-cleanup-6642120096084795944
 ---
 
 ## 👨‍💻 Autor
 
-<<<<<<< HEAD
 **Eduardo Silva**  
 Inovando a gestão empresarial através da Tecnologia e Inteligência Artificial.
 
 ---
 
 **Proprietary** - Innovation.ia © 2026
-=======
-```bash
-cd innovation_app
-flutter pub get
-flutter run
-```
-
----
-
-## 🧩 Web Admin (Empresa)
-
-Abra o arquivo [`web-test/index.html`](web-test/index.html) no navegador. É uma SPA que simula o painel administrativo.
-
----
-
-## 🗂 Estrutura de pastas (resumo)
-
-```
-innovation/          # Backend FastAPI (Core do Produto)
-innovation_app/      # App Flutter (Candidato)
-web-test/            # Web Admin Protótipo (Empresa)
-plans/               # Documentação e planos
-```
-
----
-
-## 🧾 Licença
-
-Projeto privado / uso interno.
->>>>>>> origin/feature/project-evaluation-and-cleanup-6642120096084795944

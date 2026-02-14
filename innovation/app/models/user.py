@@ -14,10 +14,10 @@ class User(Base):
     is_active = Column(Boolean, default=True)
     two_factor_enabled = Column(Boolean, default=False)
     phone = Column(String(30), nullable=True) # Added back for 2FA
-    
     # Assinatura
     subscription_status = Column(String(50), default="inactive") # active, inactive, cancelled
     subscription_plan = Column(String(50), default="starter") # starter, pro, enterprise
+
     
     # Perfil (Candidato)
     bio = Column(Text, nullable=True)
