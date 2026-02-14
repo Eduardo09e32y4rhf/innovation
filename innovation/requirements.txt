@@ -29,3 +29,11 @@ uvicorn[standard]==0.34.0
 sendgrid==6.11.0
 twilio==9.2.2
 email-validator
+google-generativeai
+httpx
+slowapi
+python-multipart
+stripe
+pytest
+mercadopago
+jinja2
