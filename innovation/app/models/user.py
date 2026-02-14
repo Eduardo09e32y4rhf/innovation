@@ -1,7 +1,15 @@
 from sqlalchemy import Column, Integer, String, Text, DateTime, Boolean, ForeignKey
 from sqlalchemy.orm import relationship
 from datetime import datetime
+from typing import TYPE_CHECKING
 from ..db.database import Base
+
+if TYPE_CHECKING:
+    from app.models.job import Job
+    from app.models.application import Application
+    from app.models.project import Project
+    from app.models.task import Task
+    from app.models.time_entry import TimeEntry
 
 class User(Base):
     __tablename__ = "users"

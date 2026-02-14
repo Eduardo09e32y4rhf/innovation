@@ -7,7 +7,7 @@ import re
 class GeminiService:
     def __init__(self):
         genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-        self.model = genai.GenerativeModel('gemini-pro')
+        self.model = genai.GenerativeModel('gemini-1.5-flash')
     
     async def analyze_resume(self, resume_text: str, job_description: str) -> Dict:
         """
