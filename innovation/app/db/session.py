@@ -5,6 +5,10 @@ from sqlalchemy.orm import sessionmaker
 
 from app.core.config import DATABASE_URL
 
+# Fix for Render (postgres:// -> postgresql://)
+if str(DATABASE_URL).startswith("postgres://"):
+    DATABASE_URL = str(DATABASE_URL).replace("postgres://", "postgresql://", 1)
+
 _connect_args = {}
 if str(DATABASE_URL).startswith("sqlite"):
     _connect_args = {"check_same_thread": False}
