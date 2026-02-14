@@ -8,10 +8,10 @@ from domain.models.user import User
 
 router = APIRouter(prefix="/api/dashboard", tags=["Dashboard"])
 
+
 @router.get("/metrics")
 async def get_dashboard_metrics(
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
     """
     Retorna métricas principais do dashboard:
@@ -22,9 +22,9 @@ async def get_dashboard_metrics(
     """
     # TODO: Buscar dados reais do banco quando models estiverem prontos
     # Por enquanto, retornando dados mockados realistas
-    
+
     current_month = datetime.now().month
-    
+
     return {
         "revenue": {
             "current": 25220.00,
@@ -36,8 +36,8 @@ async def get_dashboard_metrics(
                 {"month": "Mar", "value": 21000},
                 {"month": "Abr", "value": 22500},
                 {"month": "Mai", "value": 23150},
-                {"month": "Jun", "value": 25220}
-            ]
+                {"month": "Jun", "value": 25220},
+            ],
         },
         "costs": {
             "current": 6370.00,
@@ -47,7 +47,7 @@ async def get_dashboard_metrics(
                 "salaries": 3200.00,
                 "infrastructure": 1500.00,
                 "marketing": 970.00,
-                "others": 700.00
+                "others": 700.00,
             },
             "chart_data": [
                 {"month": "Jan", "value": 5200},
@@ -55,8 +55,8 @@ async def get_dashboard_metrics(
                 {"month": "Mar", "value": 5600},
                 {"month": "Abr", "value": 5750},
                 {"month": "Mai", "value": 5890},
-                {"month": "Jun", "value": 6370}
-            ]
+                {"month": "Jun", "value": 6370},
+            ],
         },
         "profit": {
             "current": 19350.00,
@@ -69,17 +69,18 @@ async def get_dashboard_metrics(
                 {"month": "Mar", "value": 15400},
                 {"month": "Abr", "value": 16750},
                 {"month": "Mai", "value": 17260},
-                {"month": "Jun", "value": 19350}
-            ]
-        }
+                {"month": "Jun", "value": 19350},
+            ],
+        },
     }
+
 
 @router.get("/calendar")
 async def get_calendar_tasks(
     month: Optional[int] = None,
     year: Optional[int] = None,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     Retorna tarefas e eventos do calendário
@@ -88,7 +89,7 @@ async def get_calendar_tasks(
         month = datetime.now().month
     if not year:
         year = datetime.now().year
-    
+
     # Dados mockados de tarefas
     tasks = [
         {
@@ -96,47 +97,43 @@ async def get_calendar_tasks(
             "title": "Reunião com candidato",
             "date": f"{year}-{month:02d}-11",
             "type": "interview",
-            "status": "scheduled"
+            "status": "scheduled",
         },
         {
             "id": 2,
             "title": "Publicar vaga Senior Python",
             "date": f"{year}-{month:02d}-15",
             "type": "task",
-            "status": "pending"
+            "status": "pending",
         },
         {
             "id": 3,
             "title": "Candidato para senior completo",
             "date": f"{year}-{month:02d}-18",
             "type": "task",
-            "status": "completed"
+            "status": "completed",
         },
         {
             "id": 4,
             "title": "Delegado no esta semana",
             "date": f"{year}-{month:02d}-22",
             "type": "task",
-            "status": "pending"
-        }
+            "status": "pending",
+        },
     ]
-    
-    return {
-        "month": month,
-        "year": year,
-        "tasks": tasks
-    }
+
+    return {"month": month, "year": year, "tasks": tasks}
+
 
 @router.get("/kanban")
 async def get_kanban_board(
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
     """
     Retorna processos seletivos organizados em kanban
     Colunas: A Fazer | Em Progresso | Em Revisão | Concluído
     """
-    
+
     kanban_data = {
         "columns": [
             {
@@ -150,9 +147,9 @@ async def get_kanban_board(
                         "job_title": "Senior Python Developer",
                         "candidates_count": 5,
                         "priority": "high",
-                        "avatars": ["JD", "MS"]
+                        "avatars": ["JD", "MS"],
                     }
-                ]
+                ],
             },
             {
                 "id": "in_progress",
@@ -166,7 +163,7 @@ async def get_kanban_board(
                         "candidates_count": 3,
                         "priority": "medium",
                         "status": "Entrevista Hoje",
-                        "avatars": ["AB", "CD"]
+                        "avatars": ["AB", "CD"],
                     },
                     {
                         "id": "job_3",
@@ -175,9 +172,9 @@ async def get_kanban_board(
                         "candidates_count": 2,
                         "priority": "low",
                         "status": "Análise de Portfólio",
-                        "avatars": ["EF"]
-                    }
-                ]
+                        "avatars": ["EF"],
+                    },
+                ],
             },
             {
                 "id": "review",
@@ -191,9 +188,9 @@ async def get_kanban_board(
                         "candidates_count": 1,
                         "priority": "high",
                         "status": "Aguardando Aprovação",
-                        "avatars": ["GH", "IJ"]
+                        "avatars": ["GH", "IJ"],
                     }
-                ]
+                ],
             },
             {
                 "id": "done",
@@ -208,20 +205,21 @@ async def get_kanban_board(
                         "priority": "completed",
                         "status": "Contratado",
                         "completed_date": "2023-06-10",
-                        "avatars": ["KL", "MN"]
+                        "avatars": ["KL", "MN"],
                     }
-                ]
-            }
+                ],
+            },
         ]
     }
-    
+
     return kanban_data
+
 
 @router.get("/recent-activity")
 async def get_recent_activity(
     limit: int = 10,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     Retorna atividades recentes do sistema
@@ -233,7 +231,7 @@ async def get_recent_activity(
             "message": "Nova candidatura para Senior Python Developer",
             "candidate_name": "João Silva",
             "timestamp": datetime.now() - timedelta(minutes=5),
-            "avatar": "JS"
+            "avatar": "JS",
         },
         {
             "id": 2,
@@ -241,15 +239,15 @@ async def get_recent_activity(
             "message": "Entrevista agendada com Maria Santos",
             "candidate_name": "Maria Santos",
             "timestamp": datetime.now() - timedelta(hours=2),
-            "avatar": "MS"
+            "avatar": "MS",
         },
         {
             "id": 3,
             "type": "job",
             "message": "Nova vaga publicada: UX Designer",
             "timestamp": datetime.now() - timedelta(hours=5),
-            "avatar": None
-        }
+            "avatar": None,
+        },
     ]
-    
+
     return {"activities": activities[:limit]}

@@ -1,6 +1,7 @@
 from .redis_client import redis_client
 from typing import Any, Optional
 
+
 class CacheManager:
     @staticmethod
     async def get_candidate_data(candidate_id: int) -> Optional[Any]:
@@ -16,6 +17,9 @@ class CacheManager:
 
     @staticmethod
     async def set_ai_analysis(candidate_id: int, job_id: int, analysis: Any):
-        await redis_client.set(f"analysis:{candidate_id}:{job_id}", analysis, expire=7200) # 2h cache
+        await redis_client.set(
+            f"analysis:{candidate_id}:{job_id}", analysis, expire=7200
+        )  # 2h cache
+
 
 cache_manager = CacheManager()

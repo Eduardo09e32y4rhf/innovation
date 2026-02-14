@@ -3,12 +3,13 @@ import json
 import google.generativeai as genai
 from typing import Dict, Any, List
 
+
 class AIATSService:
     def __init__(self):
         self.api_key = os.getenv("GEMINI_API_KEY")
         if self.api_key:
             genai.configure(api_key=self.api_key)
-            self.model = genai.GenerativeModel('gemini-pro')
+            self.model = genai.GenerativeModel("gemini-pro")
         else:
             self.model = None
 
@@ -30,15 +31,17 @@ class AIATSService:
             response = self.model.generate_content(prompt)
             # Tenta extrair o JSON da resposta
             text = response.text
-            start = text.find('{')
-            end = text.rfind('}') + 1
+            start = text.find("{")
+            end = text.rfind("}") + 1
             if start != -1 and end != -1:
                 return json.loads(text[start:end])
             return {"raw_response": text}
         except Exception as e:
             return {"error": str(e)}
 
-    async def rank_candidate(self, resume_data: Dict[str, Any], job_description: str) -> Dict[str, Any]:
+    async def rank_candidate(
+        self, resume_data: Dict[str, Any], job_description: str
+    ) -> Dict[str, Any]:
         """Gera um score de 0-100 para o candidato em relação à vaga."""
         if not self.model:
             return {"error": "IA não configurada"}
@@ -56,15 +59,17 @@ class AIATSService:
         try:
             response = self.model.generate_content(prompt)
             text = response.text
-            start = text.find('{')
-            end = text.rfind('}') + 1
+            start = text.find("{")
+            end = text.rfind("}") + 1
             if start != -1 and end != -1:
                 return json.loads(text[start:end])
             return {"match_score": 0, "justification": text}
         except Exception as e:
             return {"error": str(e)}
 
-    async def generate_technical_test(self, job_title: str, requirements: str) -> List[Dict[str, Any]]:
+    async def generate_technical_test(
+        self, job_title: str, requirements: str
+    ) -> List[Dict[str, Any]]:
         """Gera um teste técnico personalizado para a vaga."""
         if not self.model:
             return []
@@ -78,8 +83,8 @@ class AIATSService:
         try:
             response = self.model.generate_content(prompt)
             text = response.text
-            start = text.find('[')
-            end = text.rfind(']') + 1
+            start = text.find("[")
+            end = text.rfind("]") + 1
             if start != -1 and end != -1:
                 return json.loads(text[start:end])
             return []
@@ -89,21 +94,32 @@ class AIATSService:
 
     async def analyze_behavior(self, text: str) -> Dict[str, Any]:
         """IA analisa perfil comporteamental DISC / Big5."""
-        if not self.model: return {}
+        if not self.model:
+            return {}
         prompt = f"Analise o texto/cv abaixo e sugira o perfil DISC (Dominância, Influência, Estabilidade, Conformidade) e Big5 do candidato. Retorne JSON: {text}"
         try:
             response = self.model.generate_content(prompt)
             # Extrating JSON ...
-            return {"disc": "Estabilizador", "big5": {"openness": 0.8}, "summary": response.text[:200]}
-        except: return {}
+            return {
+                "disc": "Estabilizador",
+                "big5": {"openness": 0.8},
+                "summary": response.text[:200],
+            }
+        except:
+            return {}
 
-    async def generate_contract(self, candidate_name: str, job_title: str, salary: str) -> str:
+    async def generate_contract(
+        self, candidate_name: str, job_title: str, salary: str
+    ) -> str:
         """IA gera rascunho de contrato de trabalho."""
-        if not self.model: return ""
+        if not self.model:
+            return ""
         prompt = f"Gere um rascunho de contrato de trabalho simplificado para {candidate_name} no cargo de {job_title} com salário de {salary}. Use um tom formal Jurídico brasileiro."
         try:
             response = self.model.generate_content(prompt)
             return response.text
-        except: return "Erro ao gerar contrato"
+        except:
+            return "Erro ao gerar contrato"
+
 
 ai_ats_service = AIATSService()

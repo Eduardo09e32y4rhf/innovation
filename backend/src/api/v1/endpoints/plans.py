@@ -7,6 +7,7 @@ from domain.models.plan import Plan
 
 router = APIRouter(prefix="/plans", tags=["plans"])
 
+
 @router.get("")
 def list_plans(
     db: Session = Depends(get_db),
@@ -14,6 +15,11 @@ def list_plans(
 ):
     plans = db.query(Plan).order_by(Plan.id.asc()).all()
     return [
-        {"id": plan.id, "name": plan.name, "price": plan.price, "features": plan.features}
+        {
+            "id": plan.id,
+            "name": plan.name,
+            "price": plan.price,
+            "features": plan.features,
+        }
         for plan in plans
     ]

@@ -5,19 +5,30 @@ from decimal import Decimal
 import pytest
 from datetime import datetime
 
+
 def test_decimal_precision_db(db_session):
-    user = User(full_name="Test", email="test@test.com", hashed_password="pw", role="company")
+    user = User(
+        full_name="Test", email="test@test.com", hashed_password="pw", role="company"
+    )
     db_session.add(user)
     db_session.commit()
 
     # 0.1 + 0.2
     t1 = Transaction(
-        description="T1", amount=Decimal("0.10"), type="income", status="paid",
-        due_date=datetime.now(), company_id=user.id
+        description="T1",
+        amount=Decimal("0.10"),
+        type="income",
+        status="paid",
+        due_date=datetime.now(),
+        company_id=user.id,
     )
     t2 = Transaction(
-        description="T2", amount=Decimal("0.20"), type="income", status="paid",
-        due_date=datetime.now(), company_id=user.id
+        description="T2",
+        amount=Decimal("0.20"),
+        type="income",
+        status="paid",
+        due_date=datetime.now(),
+        company_id=user.id,
     )
     db_session.add(t1)
     db_session.add(t2)

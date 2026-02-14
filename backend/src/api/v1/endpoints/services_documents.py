@@ -14,7 +14,6 @@ from domain.models.subscription import Subscription
 from services.audit_service import log_event
 from services.plan_service import get_subscription_plan, has_plan_feature
 
-
 router = APIRouter(prefix="/services/documents", tags=["Services Documents"])
 
 

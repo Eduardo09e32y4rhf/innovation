@@ -22,7 +22,9 @@ def get_company_plan(db: Session, company_id: int) -> Plan | None:
     return db.query(Plan).filter(Plan.id == company.plan_id).first()
 
 
-def get_subscription_plan(db: Session, subscription: Subscription | None) -> Plan | None:
+def get_subscription_plan(
+    db: Session, subscription: Subscription | None
+) -> Plan | None:
     if not subscription:
         return None
     return db.query(Plan).filter(Plan.id == subscription.plan_id).first()
@@ -39,4 +41,7 @@ def has_any_services_feature(plan: Plan | None) -> bool:
     if not plan:
         return False
     features = _normalize_features(plan.features)
-    return bool({PlanFeature.SERVICES_VALIDATION.value, PlanFeature.SERVICES_FULL.value} & features)
+    return bool(
+        {PlanFeature.SERVICES_VALIDATION.value, PlanFeature.SERVICES_FULL.value}
+        & features
+    )

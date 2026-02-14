@@ -65,7 +65,7 @@ def deep_health_check(db: Session = Depends(get_db)):
                 recipient_email=settings.EMAIL_FROM,
                 recipient_phone=None,
                 subject="Health Check - Innovation.ia",
-                message="Este é um teste automático do sistema de health check."
+                message="Este é um teste automático do sistema de health check.",
             )
             success = send_email(payload)
             checks["email_send"] = "success" if success else "failed"

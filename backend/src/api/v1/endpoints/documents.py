@@ -10,7 +10,6 @@ from domain.models.document import Document
 from domain.models.subscription import Subscription
 from services.plan_service import get_subscription_plan, has_any_services_feature
 
-
 router = APIRouter(prefix="/documents", tags=["Documents"])
 
 

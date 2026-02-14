@@ -6,18 +6,24 @@ from datetime import datetime, timedelta, timezone
 from jose import jwt
 import bcrypt
 
-from core.config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES, REFRESH_TOKEN_EXPIRE_DAYS
+from core.config import (
+    SECRET_KEY,
+    ALGORITHM,
+    ACCESS_TOKEN_EXPIRE_MINUTES,
+    REFRESH_TOKEN_EXPIRE_DAYS,
+)
+
 
 def get_password_hash(password: str) -> str:
     # Usando bcrypt diretamente para evitar bug de compatibilidade do passlib
-    hashed_bytes = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
-    return hashed_bytes.decode('utf-8')
+    hashed_bytes = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt())
+    return hashed_bytes.decode("utf-8")
 
 
 def verify_password(plain: str, hashed: str) -> bool:
     # Usando bcrypt diretamente para evitar bug de compatibilidade do passlib
     try:
-        return bcrypt.checkpw(plain.encode('utf-8'), hashed.encode('utf-8'))
+        return bcrypt.checkpw(plain.encode("utf-8"), hashed.encode("utf-8"))
     except Exception:
         return False
 
@@ -36,7 +42,7 @@ def create_refresh_token(user_id: int) -> str:
         "sub": str(user_id),
         "exp": expire,
         "type": "refresh",
-        "jti": secrets.token_urlsafe(32)  # JWT ID único
+        "jti": secrets.token_urlsafe(32),  # JWT ID único
     }
     return jwt.encode(token_data, SECRET_KEY, algorithm=ALGORITHM)
 
@@ -44,11 +50,7 @@ def create_refresh_token(user_id: int) -> str:
 def create_temporary_token(user_id: int) -> str:
     """Cria um token temporário de 5 minutos para verificação 2FA"""
     expire = datetime.now(timezone.utc) + timedelta(minutes=5)
-    token_data = {
-        "sub": str(user_id),
-        "exp": expire,
-        "type": "temporary_2fa"
-    }
+    token_data = {"sub": str(user_id), "exp": expire, "type": "temporary_2fa"}
     return jwt.encode(token_data, SECRET_KEY, algorithm=ALGORITHM)
 
 

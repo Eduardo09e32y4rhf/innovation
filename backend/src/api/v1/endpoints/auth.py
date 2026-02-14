@@ -18,7 +18,6 @@ limiter = Limiter(key_func=get_remote_address)
 router = APIRouter(prefix="/api/auth", tags=["Auth"])
 
 
-
 @router.post("/register", response_model=UserOut)
 def register(data: RegisterRequest, db: Session = Depends(get_db)):
     try:
@@ -46,10 +45,10 @@ def login(request: Request, data: LoginRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=401, detail="Credenciais inválidas")
 
     access_token, refresh_token, user = result
-    
+
     # Cache the user upon successful login
     user_memory_cache.set(user.id, user)
-    
+
     # Se 2FA está habilitado, retorna temporary_token
     if user.two_factor_enabled:
         request_code(db, user.id, user.email, user.phone)
@@ -61,26 +60,29 @@ def login(request: Request, data: LoginRequest, db: Session = Depends(get_db)):
             "two_factor_required": True,
             "temporary_token": temporary_token,
         }
-    
+
     return {
         "access_token": access_token,
         "refresh_token": refresh_token,
-        "token_type": "bearer"
+        "token_type": "bearer",
     }
-
 
 
 @router.post("/login/verify", response_model=Token)
 @limiter.limit("3/minute")  # Máximo 3 tentativas de verificação por minuto
-def verify_login_code(request: Request, temporary_token: str, code: str, db: Session = Depends(get_db)):
+def verify_login_code(
+    request: Request, temporary_token: str, code: str, db: Session = Depends(get_db)
+):
     """
     Verifica código 2FA usando temporary_token em vez de user_id exposto.
     Isso previne enumeração de usuários.
     """
     user_id = verify_temporary_token(temporary_token)
     if not user_id:
-        raise HTTPException(status_code=401, detail="Token temporário inválido ou expirado")
-    
+        raise HTTPException(
+            status_code=401, detail="Token temporário inválido ou expirado"
+        )
+
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="Usuário não encontrado")
@@ -92,31 +94,32 @@ def verify_login_code(request: Request, temporary_token: str, code: str, db: Ses
     result = authenticate_user(db, user.email, None, skip_password=True)
     if not result:
         raise HTTPException(status_code=500, detail="Erro na autenticação")
-    
+
     access_token, refresh_token, _ = result
     return {
         "access_token": access_token,
         "refresh_token": refresh_token,
-        "token_type": "bearer"
+        "token_type": "bearer",
     }
-
 
 
 @router.get("/me", response_model=UserOut)
 def me(current_user: User = Depends(get_current_user)):
     return current_user
 
+
 @router.get("/users", response_model=List[UserOut])
 def list_users(
     role: Optional[str] = None,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     query = db.query(User)
     if role:
         # Check if the query is for candidates and current user is a company
         query = query.filter(User.role == role)
     return query.all()
+
 
 @router.post("/forgot-password")
 async def forgot_password(data: dict, db: Session = Depends(get_db)):
@@ -125,17 +128,21 @@ async def forgot_password(data: dict, db: Session = Depends(get_db)):
     if not user:
         # Don't reveal if user exists for security, just return success
         return {"message": "Se o email existir, um link de recuperação será enviado."}
-    
+
     # In a real app, send email here
     return {"message": "Link de recuperação enviado com sucesso."}
+
 
 @router.get("/google-login")
 async def google_login():
     """
-    Mock Google Login redirect. 
+    Mock Google Login redirect.
     In production, this would redirect to Google OAuth.
     """
-    return {"message": "Recurso de Login com Google sendo configurado no Console de APIs. Use email/senha por enquanto."}
+    return {
+        "message": "Recurso de Login com Google sendo configurado no Console de APIs. Use email/senha por enquanto."
+    }
+
 
 # --- Caching Strategy ---
 # Using functools.lru_cache to cache user sessions in memory
@@ -145,11 +152,12 @@ async def google_login():
 from functools import lru_cache
 import time
 
+
 # Simple in-memory cache with expiry logic wrapper
 class UserCache:
     def __init__(self):
         self._cache = {}
-        self._ttl = 300 # 5 minutes
+        self._ttl = 300  # 5 minutes
 
     def get(self, user_id: int):
         if user_id in self._cache:
@@ -166,6 +174,7 @@ class UserCache:
     def invalidate(self, user_id: int):
         if user_id in self._cache:
             del self._cache[user_id]
+
 
 # Singleton instance
 user_memory_cache = UserCache()

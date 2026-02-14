@@ -12,7 +12,7 @@ import os
 import sys
 
 # Add 'src' to sys.path so we can import 'core.config' and 'infrastructure.database.sql.base'
-sys.path.append(os.path.join(os.path.dirname(__file__), '../src'))
+sys.path.append(os.path.join(os.path.dirname(__file__), "../src"))
 
 from core.config import settings
 from infrastructure.database.sql.base import Base
@@ -20,7 +20,7 @@ from infrastructure.database.sql.base import Base
 # Import all models so that Base.metadata.sorted_tables works properly
 # If your models are not imported, Autogenerate won't detect them
 # Usually importing `domain.models` (the package) is enough if __init__.py imports everything
-import domain.models 
+import domain.models
 
 # ---------------------------------------------------------------------
 
@@ -44,8 +44,10 @@ target_metadata = Base.metadata
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
 
+
 def get_url():
     return settings.DATABASE_URL
+
 
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode.
@@ -80,7 +82,7 @@ def run_migrations_online() -> None:
     """
     configuration = config.get_section(config.config_ini_section)
     configuration["sqlalchemy.url"] = get_url()
-    
+
     connectable = engine_from_config(
         configuration,
         prefix="sqlalchemy.",
@@ -88,9 +90,7 @@ def run_migrations_online() -> None:
     )
 
     with connectable.connect() as connection:
-        context.configure(
-            connection=connection, target_metadata=target_metadata
-        )
+        context.configure(connection=connection, target_metadata=target_metadata)
 
         with context.begin_transaction():
             context.run_migrations()

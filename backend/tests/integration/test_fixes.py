@@ -8,6 +8,7 @@ import pytest
 
 client = TestClient(app)
 
+
 def test_path_traversal_css():
     # Attempt to access a file outside css directory via traversal
     # We use URL encoding to prevent TestClient from normalizing the path
@@ -19,12 +20,14 @@ def test_path_traversal_css():
     # 404 is expected if Router blocks slash in path param. 403 if our logic catches it.
     assert response.status_code in [403, 404]
 
+
 def test_path_traversal_pages():
     token = create_access_token({"sub": "1"})
     client.cookies.set("access_token", token)
 
     response = client.get("/pages/..%2fREADME.md")
     assert response.status_code in [403, 404]
+
 
 def test_finance_role_case_insensitivity():
     # User with role "Company" (mixed case) should be allowed
@@ -36,7 +39,9 @@ def test_finance_role_case_insensitivity():
     mock_db = MagicMock()
 
     # Mock Service to avoid actual DB calls inside service
-    with patch("app.services.finance_service.finance_service.get_cash_flow_summary") as mock_service:
+    with patch(
+        "app.services.finance_service.finance_service.get_cash_flow_summary"
+    ) as mock_service:
         mock_service.return_value = {"income": 100, "expense": 50, "balance": 50}
 
         app.dependency_overrides[get_current_user] = lambda: user
@@ -48,6 +53,7 @@ def test_finance_role_case_insensitivity():
             assert response.json() == {"income": 100, "expense": 50, "balance": 50}
         finally:
             app.dependency_overrides = {}
+
 
 def test_finance_role_unauthorized():
     # User with role "Candidate" should be 403
@@ -61,6 +67,7 @@ def test_finance_role_unauthorized():
         assert response.status_code == 403
     finally:
         app.dependency_overrides = {}
+
 
 def test_create_transaction_date_parsing():
     # Test that YYYY-MM-DD is accepted
@@ -77,7 +84,7 @@ def test_create_transaction_date_parsing():
         "description": "Test Transaction",
         "amount": 100.50,
         "type": "income",
-        "due_date": "2023-12-25"
+        "due_date": "2023-12-25",
     }
 
     try:

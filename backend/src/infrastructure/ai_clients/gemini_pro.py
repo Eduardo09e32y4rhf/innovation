@@ -4,6 +4,7 @@ import os
 import json
 import re
 
+
 class GeminiService:
     def __init__(self):
         self.api_key = os.getenv("GEMINI_API_KEY")
@@ -11,10 +12,10 @@ class GeminiService:
         if self.api_key:
             try:
                 genai.configure(api_key=self.api_key)
-                self.model = genai.GenerativeModel('gemini-1.5-flash')
+                self.model = genai.GenerativeModel("gemini-1.5-flash")
             except Exception as e:
                 print(f"Warning: Failed to initialize GeminiService: {e}")
-    
+
     async def analyze_resume(self, resume_text: str, job_description: str) -> Dict:
         """
         Analisar currículo vs vaga usando Gemini
@@ -36,10 +37,10 @@ class GeminiService:
         
         Responda em formato JSON.
         """
-        
+
         response = self.model.generate_content(prompt)
         return self._parse_json_response(response.text)
-    
+
     async def chat_recruiter(self, message: str, context: str = "") -> str:
         """
         Chat com IA para recrutamento
@@ -53,10 +54,10 @@ class GeminiService:
         
         Responda de forma profissional e concisa.
         """
-        
+
         response = self.model.generate_content(prompt)
         return response.text
-    
+
     async def financial_insights(self, transactions: List[Dict]) -> Dict:
         """
         Gerar insights financeiros
@@ -73,10 +74,10 @@ class GeminiService:
         
         Responda em JSON.
         """
-        
+
         response = self.model.generate_content(prompt)
         return self._parse_json_response(response.text)
-    
+
     async def project_insights(self, tasks: List[Dict]) -> Dict:
         """
         Insights sobre progresso de projetos
@@ -93,10 +94,10 @@ class GeminiService:
         
         JSON format.
         """
-        
+
         response = self.model.generate_content(prompt)
         return self._parse_json_response(response.text)
-    
+
     async def admin_audit(self, db_stats: Dict) -> Dict:
         """
         Auditoria do sistema pelo Admin IA
@@ -116,16 +117,16 @@ class GeminiService:
         
         Responda em JSON estrito.
         """
-        
+
         response = self.model.generate_content(prompt)
         return self._parse_json_response(response.text)
 
     def _parse_json_response(self, text: str) -> Dict:
         """Parse JSON from Gemini response"""
-        
+
         # Remover markdown code blocks
-        text = re.sub(r'```json\n|\n```|```', '', text)
-        
+        text = re.sub(r"```json\n|\n```|```", "", text)
+
         try:
             return json.loads(text)
         except:

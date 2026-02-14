@@ -8,7 +8,6 @@ from core.roles import Role
 from infrastructure.database.sql.dependencies import get_db
 from domain.models.audit_log import AuditLog
 
-
 router = APIRouter(prefix="/audit-logs", tags=["Audit"])
 
 

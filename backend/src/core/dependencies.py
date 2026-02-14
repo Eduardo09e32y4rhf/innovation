@@ -12,6 +12,7 @@ from domain.models.subscription import Subscription
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
+
 def get_current_user(
     token: str = Depends(oauth2_scheme),
     db: Session = Depends(get_db),
@@ -86,9 +87,14 @@ def require_active_subscription(
         .first()
     )
     if not sub:
-        raise HTTPException(status_code=status.HTTP_402_PAYMENT_REQUIRED, detail="Nenhuma assinatura encontrada")
+        raise HTTPException(
+            status_code=status.HTTP_402_PAYMENT_REQUIRED,
+            detail="Nenhuma assinatura encontrada",
+        )
     if sub.status not in {"authorized", "active"}:
-        raise HTTPException(status_code=status.HTTP_402_PAYMENT_REQUIRED, detail="Assinatura inativa")
+        raise HTTPException(
+            status_code=status.HTTP_402_PAYMENT_REQUIRED, detail="Assinatura inativa"
+        )
     return sub
 
 
@@ -108,7 +114,12 @@ def require_company_subscription(
         .first()
     )
     if not sub:
-        raise HTTPException(status_code=status.HTTP_402_PAYMENT_REQUIRED, detail="Nenhuma assinatura encontrada")
+        raise HTTPException(
+            status_code=status.HTTP_402_PAYMENT_REQUIRED,
+            detail="Nenhuma assinatura encontrada",
+        )
     if sub.status not in {"authorized", "active"}:
-        raise HTTPException(status_code=status.HTTP_402_PAYMENT_REQUIRED, detail="Assinatura inativa")
+        raise HTTPException(
+            status_code=status.HTTP_402_PAYMENT_REQUIRED, detail="Assinatura inativa"
+        )
     return sub

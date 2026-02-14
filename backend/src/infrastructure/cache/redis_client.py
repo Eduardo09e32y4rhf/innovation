@@ -3,6 +3,7 @@ from core.config import settings
 import json
 from typing import Any, Optional
 
+
 class RedisClient:
     def __init__(self):
         # Em produção, usar REDIS_URL do .env
@@ -11,7 +12,9 @@ class RedisClient:
 
     async def connect(self):
         if not self._redis:
-            self._redis = await redis.from_url(self.redis_url, encoding="utf-8", decode_responses=True)
+            self._redis = await redis.from_url(
+                self.redis_url, encoding="utf-8", decode_responses=True
+            )
         return self._redis
 
     async def get(self, key: str) -> Any:
@@ -33,5 +36,6 @@ class RedisClient:
     async def delete(self, key: str):
         client = await self.connect()
         await client.delete(key)
+
 
 redis_client = RedisClient()

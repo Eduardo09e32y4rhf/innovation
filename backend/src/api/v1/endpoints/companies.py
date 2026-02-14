@@ -8,7 +8,6 @@ from core.roles import Role
 from infrastructure.database.sql.dependencies import get_db
 from domain.models.company import Company
 
-
 router = APIRouter(prefix="/companies", tags=["Companies"])
 
 
@@ -42,9 +41,13 @@ def create_company(
     required_fields = ["razao_social", "cnpj", "cidade", "uf"]
     missing = [field for field in required_fields if not payload.get(field)]
     if missing:
-        raise HTTPException(status_code=400, detail=f"Campos obrigatórios: {', '.join(missing)}")
+        raise HTTPException(
+            status_code=400, detail=f"Campos obrigatórios: {', '.join(missing)}"
+        )
 
-    existing = db.query(Company).filter(Company.owner_user_id == current_user.id).first()
+    existing = (
+        db.query(Company).filter(Company.owner_user_id == current_user.id).first()
+    )
     if existing:
         raise HTTPException(status_code=409, detail="Empresa já cadastrada")
 

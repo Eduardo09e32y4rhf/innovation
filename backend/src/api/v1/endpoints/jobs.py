@@ -20,33 +20,35 @@ from services.audit_service import log_event
 router = APIRouter(prefix="/api/jobs", tags=["jobs"])
 logger = logging.getLogger(__name__)
 
+
 @router.get("", response_model=List[JobOut])
 def list_jobs(
     skip: int = 0,
     limit: int = 100,
     status: Optional[str] = "open",
     search: Optional[str] = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Lista vagas (público) - Mesclado com filtros"""
     try:
         query = db.query(Job)
-        
+
         if status:
             query = query.filter(Job.status == status)
-        
+
         if search:
             query = query.filter(
-                (Job.title.ilike(f"%{search}%")) |
-                (Job.description.ilike(f"%{search}%"))
+                (Job.title.ilike(f"%{search}%"))
+                | (Job.description.ilike(f"%{search}%"))
             )
-        
+
         jobs = query.order_by(Job.id.desc()).offset(skip).limit(limit).all()
         return jobs
-        
+
     except Exception as e:
         logger.error(f"Erro ao listar vagas: {str(e)}")
         raise HTTPException(500, str(e))
+
 
 @router.get("/company", response_model=List[JobOut])
 def list_company_jobs(
@@ -56,8 +58,11 @@ def list_company_jobs(
     _company_user=Depends(require_role(Role.COMPANY)),
 ):
     """Lista vagas específicas da empresa logada"""
-    jobs = db.query(Job).filter(Job.company_id == company_id).order_by(Job.id.desc()).all()
+    jobs = (
+        db.query(Job).filter(Job.company_id == company_id).order_by(Job.id.desc()).all()
+    )
     return jobs
+
 
 @router.get("/{job_id}", response_model=JobOut)
 def get_job(job_id: int, db: Session = Depends(get_db)):
@@ -66,6 +71,7 @@ def get_job(job_id: int, db: Session = Depends(get_db)):
     if not job:
         raise HTTPException(404, "Vaga não encontrada")
     return job
+
 
 @router.post("", response_model=JobOut)
 def create_job(
@@ -84,7 +90,7 @@ def create_job(
             status=data.status or "open",
             requirements=data.requirements,
             salary=data.salary,
-            type=data.type
+            type=data.type,
         )
         db.add(job)
         db.commit()
@@ -103,6 +109,7 @@ def create_job(
         db.rollback()
         logger.error(f"Erro ao criar vaga: {str(e)}")
         raise HTTPException(500, str(e))
+
 
 @router.patch("/{job_id}", response_model=JobOut)
 def update_job(
@@ -134,6 +141,7 @@ def update_job(
     )
     return job
 
+
 @router.delete("/{job_id}", status_code=204)
 def delete_job(
     job_id: int,
@@ -145,10 +153,10 @@ def delete_job(
     job = db.query(Job).filter(Job.id == job_id, Job.company_id == company_id).first()
     if not job:
         raise HTTPException(404, "Vaga não encontrada")
-    
+
     db.delete(job)
     db.commit()
-    
+
     log_event(
         db,
         "job_deleted",
@@ -158,6 +166,7 @@ def delete_job(
         entity_id=job_id,
     )
     return None
+
 
 @router.get("/{job_id}/applications")
 def get_job_applications(
@@ -170,23 +179,25 @@ def get_job_applications(
     job = db.query(Job).filter(Job.id == job_id, Job.company_id == company_id).first()
     if not job:
         raise HTTPException(404, "Vaga não encontrada")
-    
+
     applications = db.query(Application).filter(Application.job_id == job_id).all()
-    
+
     result = []
     for app in applications:
         candidate = db.query(User).filter(User.id == app.candidate_id).first()
-        result.append({
-            "id": app.id,
-            "job_id": app.job_id,
-            "candidate_id": app.candidate_id,
-            "candidate_name": candidate.full_name if candidate else "Desconhecido",
-            "candidate_email": candidate.email if candidate else "",
-            "status": app.status,
-            "match_score": app.match_score,
-            "ai_analysis": app.ai_analysis,
-            "recruiter_notes": app.recruiter_notes,
-            "created_at": app.created_at.isoformat() if app.created_at else None
-        })
-    
+        result.append(
+            {
+                "id": app.id,
+                "job_id": app.job_id,
+                "candidate_id": app.candidate_id,
+                "candidate_name": candidate.full_name if candidate else "Desconhecido",
+                "candidate_email": candidate.email if candidate else "",
+                "status": app.status,
+                "match_score": app.match_score,
+                "ai_analysis": app.ai_analysis,
+                "recruiter_notes": app.recruiter_notes,
+                "created_at": app.created_at.isoformat() if app.created_at else None,
+            }
+        )
+
     return result

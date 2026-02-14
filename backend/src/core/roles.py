@@ -12,4 +12,3 @@ class Role(str, Enum):
 
 INTERNAL_ROLES = {Role.SERVICES, Role.SAC, Role.ADM}
 COMPANY_ROLES = {Role.COMPANY}
-
