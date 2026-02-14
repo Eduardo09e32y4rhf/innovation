@@ -1,52 +1,14 @@
 {
-  "version": 2,
   "builds": [
     {
-      "src": "api/index.ts",
-      "use": "@vercel/node"
-    },
-    {
-      "src": "web-admin/**",
-      "use": "@vercel/static"
+      "src": "innovation/app/main.py",
+      "use": "@vercel/python"
     }
   ],
   "routes": [
     {
-      "src": "/api/(.*)",
-      "dest": "api/index.ts"
-    },
-    {
-      "src": "/dashboard",
-      "dest": "web-admin/company/dashboard.html"
-    },
-    {
-      "src": "/vagas",
-      "dest": "web-admin/company/jobs.html"
-    },
-    {
-      "src": "/candidatos",
-      "dest": "web-admin/company/candidates.html"
-    },
-    {
-      "src": "/configuracoes",
-      "dest": "web-admin/company/settings.html"
-    },
-    {
-      "src": "/login",
-      "dest": "web-admin/company/login.html"
-    },
-    {
-      "src": "/",
-      "dest": "web-admin/index.html"
-    },
-    {
-      "src": "/static/(.*)",
-      "dest": "/web-admin/$1"
+      "src": "/(.*)",
+      "dest": "innovation/app/main.py"
     }
-  ],
-  "env": {
-    "DATABASE_URL": "@database_url",
-    "SECRET_KEY": "@secret_key",
-    "GEMINI_API_KEY": "@gemini_api_key"
-  }
+  ]
 }
