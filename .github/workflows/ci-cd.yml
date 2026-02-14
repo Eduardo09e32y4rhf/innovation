@@ -30,17 +30,3 @@ jobs:
         else
           echo "No tests directory found at innovation/tests"
         fi
-
-  node-build:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v4
-    - name: Use Node.js 18.x
-      uses: actions/setup-node@v3
-      with:
-        node-version: 18.x
-        cache: 'npm'
-    - name: Install dependencies
-      run: npm install
-    - name: Build
-      run: npm run build || echo "No build script found"
