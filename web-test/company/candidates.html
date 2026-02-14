@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pipeline de Candidatos | Innovation.ia</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+        }
+
+        .sidebar {
+            background: linear-gradient(180deg, #820AD1 0%, #6c06b0 100%);
+        }
+
+        .kanban-column {
+            background: #1e293b80;
+            min-height: calc(100vh - 200px);
+            width: 320px;
+            border-radius: 1.5rem;
+        }
+
+        .candidate-card {
+            background: #1e293b;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.3s;
+        }
+
+        .candidate-card:hover {
+            transform: translateY(-4px);
+            border-color: #820AD1;
+        }
+
+        .score-badge {
+            background: rgba(130, 10, 209, 0.2);
+            color: #a855f7;
+        }
+    </style>
+</head>
+
+<body class="flex h-screen overflow-hidden">
+    <aside class="w-72 sidebar flex flex-col flex-shrink-0">
+        <div class="p-8">
+            <h1 class="text-2xl font-black tracking-tighter text-white">Innovation.ia</h1>
+        </div>
+        <nav class="flex-1 px-4">
+            <a href="/dashboard"
+                class="flex items-center gap-3 px-4 py-3 rounded-xl text-white/70 hover:bg-white/10 hover:text-white mb-2 transition-all">
+                <i class="fas fa-chart-pie"></i> Dashboard
+            </a>
+            <a href="/vagas"
+                class="flex items-center gap-3 px-4 py-3 rounded-xl text-white/70 hover:bg-white/10 hover:text-white mb-2 transition-all">
+                <i class="fas fa-briefcase"></i> Minhas Vagas
+            </a>
+            <a href="/candidatos"
+                class="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/10 text-white mb-2 hover:bg-white/20 transition-all">
+                <i class="fas fa-users"></i> Candidatos
+            </a>
+        </nav>
+    </aside>
+
+    <main class="flex-1 overflow-x-auto p-8">
+        <header class="mb-8 flex justify-between items-center">
+            <div>
+                <h2 class="text-3xl font-extrabold">Pipeline de Recrutamento</h2>
+                <p class="text-slate-400">Acompanhe seus candidatos em tempo real</p>
+            </div>
+            <div class="flex gap-4">
+                <select class="bg-[#1e293b] border-none rounded-xl px-4 py-2 text-sm outline-none">
+                    <option>Todas as Vagas</option>
+                    <option>Software Engineer (IA)</option>
+                </select>
+            </div>
+        </header>
+
+        <div class="flex gap-6 pb-4">
+            <!-- Triagem -->
+            <div class="kanban-column flex-shrink-0 p-4">
+                <div class="flex justify-between items-center mb-4 px-2">
+                    <h3 class="font-bold text-slate-400 uppercase text-xs tracking-widest">Triagem (2)</h3>
+                    <button class="text-slate-500"><i class="fas fa-ellipsis-h"></i></button>
+                </div>
+                <div class="space-y-4">
+                    <div class="candidate-card p-5 rounded-2xl cursor-pointer">
+                        <div class="flex justify-between items-start mb-3">
+                            <span class="score-badge px-2 py-1 rounded-lg text-[10px] font-black italic">MATCH
+                                92%</span>
+                            <div class="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs">AM
+                            </div>
+                        </div>
+                        <h4 class="font-bold text-sm">Alex Mendes</h4>
+                        <p class="text-xs text-slate-500 mt-1">Python, React, AWS</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Entrevista -->
+            <div class="kanban-column flex-shrink-0 p-4">
+                <h3 class="font-bold text-slate-400 uppercase text-xs tracking-widest mb-4 px-2">Entrevista (0)</h3>
+                <div
+                    class="border-2 border-dashed border-slate-700 rounded-2xl h-32 flex items-center justify-center text-slate-600 text-xs text-center p-4">
+                    Arraste aqui para mover para entrevista
+                </div>
+            </div>
+
+            <!-- Teste Técnico -->
+            <div class="kanban-column flex-shrink-0 p-4">
+                <h3 class="font-bold text-slate-400 uppercase text-xs tracking-widest mb-4 px-2">Teste Técnico (0)</h3>
+            </div>
+
+            <!-- Contratado -->
+            <div class="kanban-column flex-shrink-0 p-4">
+                <h3 class="font-bold text-slate-400 uppercase text-xs tracking-widest mb-4 px-2">Contratado (0)</h3>
+            </div>
+        </div>
+    </main>
+</body>
+
+</html>

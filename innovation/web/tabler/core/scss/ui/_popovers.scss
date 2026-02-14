@@ -1,0 +1,5 @@
+.popover {
+  @include media-print {
+    display: none;
+  }
+}

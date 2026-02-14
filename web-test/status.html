@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Status do Sistema | Innovation.ia</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #020617;
+            color: #ffffff;
+        }
+
+        .service-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+    </style>
+</head>
+
+<body class="min-h-screen">
+    <div class="max-w-4xl mx-auto px-6 py-20">
+        <header class="text-center mb-16">
+            <h1 class="text-3xl font-black mb-2">Innovation<span class="text-[#820AD1]">.ia</span></h1>
+            <p class="text-slate-500">Página de Status em Tempo Real</p>
+        </header>
+
+        <!-- Status Hero -->
+        <div class="bg-green-500/10 border border-green-500/20 p-8 rounded-[2rem] text-center mb-12">
+            <div class="flex items-center justify-center gap-4">
+                <div class="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                <h2 class="text-2xl font-bold text-green-500">Todos os sistemas operacionais</h2>
+            </div>
+            <p class="text-white/60 mt-2 text-sm">Atualizado há menos de 1 minuto</p>
+        </div>
+
+        <div class="space-y-4">
+            <div class="service-card p-6 rounded-2xl flex justify-between items-center">
+                <span class="font-bold">API Backend (FastAPI)</span>
+                <span class="text-xs font-black text-green-500">OPERACIONAL</span>
+            </div>
+            <div class="service-card p-6 rounded-2xl flex justify-between items-center">
+                <span class="font-bold">Banco de Dados (PostgreSQL)</span>
+                <span class="text-xs font-black text-green-500">OPERACIONAL</span>
+            </div>
+            <div class="service-card p-6 rounded-2xl flex justify-between items-center">
+                <span class="font-bold">Serviço de IA (Gemini)</span>
+                <span class="text-xs font-black text-green-500">OPERACIONAL</span>
+            </div>
+            <div class="service-card p-6 rounded-2xl flex justify-between items-center">
+                <span class="font-bold">Integração WhatsApp</span>
+                <span class="text-xs font-black text-yellow-500 italic">INSTABILIDADE LEVE</span>
+            </div>
+            <div class="service-card p-6 rounded-2xl flex justify-between items-center">
+                <span class="font-bold">Portal de Carreiras</span>
+                <span class="text-xs font-black text-green-500">OPERACIONAL</span>
+            </div>
+        </div>
+
+        <!-- Manutenções Programadas -->
+        <div class="mt-16 p-8 bg-white/5 rounded-[2rem] border border-white/5">
+            <h3 class="text-lg font-bold mb-4">Próximas Manutenções</h3>
+            <div class="flex gap-4 items-start">
+                <div class="p-3 bg-indigo-500/10 text-indigo-400 rounded-xl">
+                    <i class="fas fa-tools"></i>
+                </div>
+                <div>
+                    <h4 class="font-bold text-sm">Atualização Módulo Financeiro</h4>
+                    <p class="text-xs text-slate-500 mt-1">Previsto: 15/05/2026 das 02:00h às 04:00h BRT</p>
+                </div>
+            </div>
+        </div>
+
+        <footer class="mt-20 text-center text-xs text-slate-600">
+            &copy; 2026 Innovation.ia • Powered by advanced AI routing.
+        </footer>
+    </div>
+</body>
+
+</html>

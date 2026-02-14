@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minhas Vagas | Innovation.ia</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+        }
+
+        .sidebar {
+            background: linear-gradient(180deg, #820AD1 0%, #6c06b0 100%);
+        }
+
+        .table-row:hover {
+            background: #1e293b;
+        }
+
+        .badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .badge-active {
+            background: #10b98120;
+            color: #10b981;
+        }
+
+        .badge-draft {
+            background: #f59e0b20;
+            color: #f59e0b;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+        }
+
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: #1e293b;
+            border-radius: 1rem;
+            padding: 2rem;
+            max-width: 600px;
+            width: 90%;
+        }
+    </style>
+</head>
+
+<body class="flex h-screen overflow-hidden">
+    <aside class="w-72 sidebar flex flex-col flex-shrink-0">
+        <div class="p-8">
+            <h1 class="text-2xl font-black tracking-tighter text-white">Innovation.ia</h1>
+            <p class="text-xs opacity-60 mt-1 text-white">GESTÃO EMPRESARIAL</p>
+        </div>
+        <nav class="flex-1 px-4">
+            <a href="/dashboard"
+                class="flex items-center gap-3 px-4 py-3 rounded-xl text-white/70 hover:bg-white/10 hover:text-white mb-2 transition-all">
+                <i class="fas fa-chart-pie"></i> Dashboard
+            </a>
+            <a href="/vagas"
+                class="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/10 text-white mb-2 hover:bg-white/20 transition-all">
+                <i class="fas fa-briefcase"></i> Minhas Vagas
+            </a>
+            <a href="/candidatos"
+                class="flex items-center gap-3 px-4 py-3 rounded-xl text-white/70 hover:bg-white/10 hover:text-white mb-2 transition-all">
+                <i class="fas fa-users"></i> Candidatos
+            </a>
+            <a href="/configuracoes"
+                class="flex items-center gap-3 px-4 py-3 rounded-xl text-white/70 hover:bg-white/10 hover:text-white mb-2 transition-all">
+                <i class="fas fa-cog"></i> Configurações
+            </a>
+        </nav>
+        <div class="p-4 border-t border-white/10">
+            <button onclick="logout()"
+                class="flex items-center gap-3 px-4 py-3 rounded-xl text-white/70 hover:bg-white/10 hover:text-white w-full transition-all">
+                <i class="fas fa-sign-out-alt"></i> Sair
+            </button>
+        </div>
+    </aside>
+
+    <main class="flex-1 overflow-y-auto p-8">
+        <div class="max-w-7xl mx-auto">
+            <header class="flex justify-between items-center mb-8">
+                <div>
+                    <h2 class="text-3xl font-extrabold">Minhas Vagas</h2>
+                    <p class="text-slate-400 mt-1">Gerencie suas oportunidades</p>
+                </div>
+                <button onclick="openModal()"
+                    class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-xl font-bold">
+                    <i class="fas fa-plus mr-2"></i> Nova Vaga
+                </button>
+            </header>
+
+            <!-- Filtros -->
+            <div class="bg-[#1e293b] rounded-xl p-4 mb-6 flex gap-4">
+                <input type="text" id="searchInput" placeholder="Buscar vagas..."
+                    class="bg-[#0f172a] border border-slate-700 rounded-lg px-4 py-2 flex-1 text-white">
+                <select id="statusFilter" class="bg-[#0f172a] border border-slate-700 rounded-lg px-4 py-2 text-white">
+                    <option value="">Todos os status</option>
+                    <option value="active">Ativas</option>
+                    <option value="draft">Rascunho</option>
+                </select>
+                <button onclick="loadJobs()" class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+
+            <!-- Tabela de Vagas -->
+            <div class="bg-[#1e293b] rounded-xl overflow-hidden">
+                <table class="w-full">
+                    <thead class="bg-[#0f172a]">
+                        <tr>
+                            <th class="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase">Título</th>
+                            <th class="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase">Departamento</th>
+                            <th class="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase">Localização</th>
+                            <th class="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase">Candidatos</th>
+                            <th class="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase">Status</th>
+                            <th class="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="jobsTableBody">
+                        <tr>
+                            <td colspan="6" class="px-6 py-12 text-center text-slate-500">
+                                <i class="fas fa-spinner fa-spin text-3xl mb-4"></i>
+                                <p>Carregando vagas...</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal Nova Vaga -->
+    <div id="jobModal" class="modal">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-bold">Nova Vaga</h3>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-white">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <form id="jobForm" onsubmit="saveJob(event)">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-bold text-slate-300 mb-2">Título</label>
+                        <input type="text" id="jobTitle" required
+                            class="w-full bg-[#0f172a] border border-slate-700 rounded-lg px-4 py-2 text-white">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-bold text-slate-300 mb-2">Departamento</label>
+                            <input type="text" id="jobDept" required
+                                class="w-full bg-[#0f172a] border border-slate-700 rounded-lg px-4 py-2 text-white">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-slate-300 mb-2">Localização</label>
+                            <input type="text" id="jobLocation" required
+                                class="w-full bg-[#0f172a] border border-slate-700 rounded-lg px-4 py-2 text-white">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-slate-300 mb-2">Descrição</label>
+                        <textarea id="jobDesc" rows="4" required
+                            class="w-full bg-[#0f172a] border border-slate-700 rounded-lg px-4 py-2 text-white"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-slate-300 mb-2">Requisitos</label>
+                        <textarea id="jobReqs" rows="3"
+                            class="w-full bg-[#0f172a] border border-slate-700 rounded-lg px-4 py-2 text-white"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-slate-300 mb-2">Faixa Salarial</label>
+                        <input type="text" id="jobSalary" placeholder="Ex: R$ 8.000 - R$ 12.000"
+                            class="w-full bg-[#0f172a] border border-slate-700 rounded-lg px-4 py-2 text-white">
+                    </div>
+                </div>
+                <div class="flex gap-4 mt-6">
+                    <button type="submit"
+                        class="flex-1 bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg font-bold">
+                        Salvar Vaga
+                    </button>
+                    <button type="button" onclick="closeModal()"
+                        class="px-6 py-3 rounded-lg border border-slate-700 hover:bg-slate-800">
+                        Cancelar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        async function loadJobs() {
+            const search = document.getElementById('searchInput').value;
+            const status = document.getElementById('statusFilter').value;
+
+            try {
+                const token = localStorage.getItem('token');
+                const params = new URLSearchParams();
+                if (search) params.append('search', search);
+                if (status) params.append('status', status);
+
+                const response = await fetch(`/api/jobs?${params}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                const data = await response.json();
+                const tbody = document.getElementById('jobsTableBody');
+
+                if (data.jobs && data.jobs.length > 0) {
+                    tbody.innerHTML = data.jobs.map(job => `
+                        <tr class="table-row border-t border-slate-800">
+                            <td class="px-6 py-4">
+                                <div class="font-bold">${job.title}</div>
+                                <div class="text-xs text-slate-400">${job.type || 'CLT'}</div>
+                            </td>
+                            <td class="px-6 py-4 text-slate-300">${job.department || '-'}</td>
+                            <td class="px-6 py-4 text-slate-300">${job.location}</td>
+                            <td class="px-6 py-4">
+                                <span class="font-bold text-purple-400">${job.applications_count || 0}</span>
+                            </td>
+                            <td class="px-6 py-4">
+                                <span class="badge badge-${job.status}">${job.status === 'active' ? 'Ativa' : 'Rascunho'}</span>
+                            </td>
+                            <td class="px-6 py-4">
+                                <button onclick="editJob(${job.id})" class="text-blue-400 hover:text-blue-300 mr-3">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button onclick="deleteJob(${job.id})" class="text-red-400 hover:text-red-300">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `).join('');
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-12 text-center text-slate-500">Nenhuma vaga encontrada</td></tr>';
+                }
+            } catch (error) {
+                console.error('Erro ao carregar vagas:', error);
+                alert('Erro ao carregar vagas. Faça login novamente.');
+            }
+        }
+
+        async function saveJob(event) {
+            event.preventDefault();
+
+            const jobData = {
+                title: document.getElementById('jobTitle').value,
+                department: document.getElementById('jobDept').value,
+                location: document.getElementById('jobLocation').value,
+                description: document.getElementById('jobDesc').value,
+                requirements: document.getElementById('jobReqs').value,
+                salary: document.getElementById('jobSalary').value,
+                type: 'CLT'
+            };
+
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch('/api/jobs', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(jobData)
+                });
+
+                if (response.ok) {
+                    closeModal();
+                    loadJobs();
+                    alert('Vaga criada com sucesso!');
+                } else {
+                    alert('Erro ao criar vaga');
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro ao salvar vaga');
+            }
+        }
+
+        async function deleteJob(id) {
+            if (!confirm('Tem certeza que deseja deletar esta vaga?')) return;
+
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`/api/jobs/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (response.ok) {
+                    loadJobs();
+                    alert('Vaga deletada com sucesso!');
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+            }
+        }
+
+        function openModal() {
+            document.getElementById('jobModal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('jobModal').classList.remove('active');
+            document.getElementById('jobForm').reset();
+        }
+
+        function logout() {
+            localStorage.clear();
+            window.location.href = '/login';
+        }
+
+        loadJobs();
+    </script>
+</body>
+
+</html>
