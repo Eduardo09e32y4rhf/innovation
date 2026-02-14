@@ -48,9 +48,6 @@ def login(request: Request, data: LoginRequest, db: Session = Depends(get_db)):
     
     # Cache the user upon successful login
     user_memory_cache.set(user.id, user)
-
-
-    access_token, refresh_token, user = result
     
     # Se 2FA está habilitado, retorna temporary_token
     if user.two_factor_enabled:

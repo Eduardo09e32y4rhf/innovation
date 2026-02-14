@@ -10,3 +10,6 @@ from app.models.audit_log import AuditLog
 from app.models.document import Document
 from app.models.application_status_history import ApplicationStatusHistory
 from app.models.candidate import Candidate
+from app.models.project import Project
+from app.models.task import Task
+from app.models.compliance import PulseSurvey
