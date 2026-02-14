@@ -12,6 +12,10 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int = 30  # 30 dias para manter usuário logado
     TERMS_VERSION: str = "v1"
     
+    # External Services
+    GEMINI_API_KEY: str | None = None
+    ALLOWED_ORIGINS: str = "*"
+
     # Twilio Settings
     TWILIO_ACCOUNT_SID: str | None = None
     TWILIO_AUTH_TOKEN: str | None = None
@@ -37,4 +41,3 @@ ALGORITHM = settings.ALGORITHM
 ACCESS_TOKEN_EXPIRE_MINUTES = settings.ACCESS_TOKEN_EXPIRE_MINUTES
 REFRESH_TOKEN_EXPIRE_DAYS = settings.REFRESH_TOKEN_EXPIRE_DAYS
 TERMS_VERSION = settings.TERMS_VERSION
-

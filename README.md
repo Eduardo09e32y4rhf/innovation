@@ -34,6 +34,7 @@ O projeto implementa rigorosos padrões de segurança:
 | **RBAC** | Controle de acesso baseado em funções (Company vs Candidate) em todas as rotas críticas. |
 | **2FA Database-Backed** | Códigos temporários seguros com expiração e limite de tentativas. |
 | **Proteção de Dados** | Senhas hash com Bcrypt e validação de `max_length` para prevenir DoS. |
+| **Proteção de Rotas** | Validação de caminhos (`Path Traversal`) e verificação de assinatura JWT em rotas estáticas protegidas. |
 
 ---
 
@@ -84,7 +85,7 @@ ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=30
 REFRESH_TOKEN_EXPIRE_DAYS=30
 GEMINI_API_KEY=sua_chave_gemini
-ALLOW_ORIGINS=http://localhost:8000,http://127.0.0.1:5500
+ALLOWED_ORIGINS=http://localhost:8000,http://127.0.0.1:5500
 ```
 
 ### 3️⃣ Banco de Dados
