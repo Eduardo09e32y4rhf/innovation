@@ -1,13 +1,34 @@
+databases:
+  - name: innovation-db
+    plan: free
+    databaseName: innovation
+    user: innovation
+
 services:
   - type: web
     name: innovation-backend
     env: python
-    buildCommand: pip install -r requirements.txt
-    startCommand: cd innovation && alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    buildCommand: cd backend && pip install -r requirements.txt
+    startCommand: cd backend && export PYTHONPATH=$PYTHONPATH:$(pwd)/src && alembic upgrade head && uvicorn api.main:app --host 0.0.0.0 --port $PORT
     envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: innovation-db
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
       - key: PYTHON_VERSION
         value: 3.11.4
-      - key: DATABASE_URL
-        sync: false
-      - key: SECRET_KEY
-        sync: false
+
+  - type: web
+    name: innovation-frontend
+    env: node
+    rootDir: frontend-next
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
+    envVars:
+      - key: NEXT_PUBLIC_API_URL
+        fromService:
+          type: web
+          name: innovation-backend
+          property: url
