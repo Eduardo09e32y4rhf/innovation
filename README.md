@@ -28,7 +28,7 @@ innovation-enterprise/
 │
 ├── frontend/                   # 🏛️ LEGADO (Landing Page Marketing)
 │
-├── ai_engine/                  # 🤖 AGENTES DE IA (Gemini Pro)
+├── ai_engine/                  # 🤖 AGENTES DE IA (Gemini 1.5 Flash + Claude 3 Sonnet)
 │   ├── agents/                 # Recruiter Agent, Finance Auditor
 │   └── worker.py               # Celery Worker para Background Tasks
 │
@@ -48,10 +48,15 @@ innovation-enterprise/
 Utilizamos **Redis** para acelerar o carregamento de dados pesados (como currículos analisados) e gerenciar sessões rápidas, garantindo que o sistema "voe" mesmo com milhares de usuários.
 
 ### 🤖 AI Engine & Agentes em Background
-A IA (Jules) agora processa tarefas pesadas (como análise profunda de currículos) em **segundo plano** usando **Celery Workers**. Isso libera a API para responder instantaneamente ao usuário enquanto a IA trabalha no background.
+A IA (Jules) agora processa tarefas pesadas (como análise profunda de currículos) em **segundo plano** usando **Celery Workers**.
+Utilizamos **Gemini 1.5 Flash** para alta performance e **Claude 3 Sonnet** para raciocínio complexo. Isso libera a API para responder instantaneamente ao usuário enquanto a IA trabalha no background.
 
-### 🐳 Dockerização Completa
+### 🔐 Segurança Enterprise
+Implementação de testes de segurança rigorosos, controle de acesso baseado em roles (RBAC) e proteção contra vulnerabilidades comuns (SQL Injection, XSS).
+
+### 🐳 Dockerização & Deploy Multi-Cloud
 O sistema está 100% pronto para rodar em containers, facilitando o deploy em qualquer nuvem (**AWS, Azure, GCP**) com um único comando.
+Suporte nativo para **Render** (Backend + DB PostgreSQL) e **Vercel** (Frontend Next.js).
 
 ---
 
@@ -109,10 +114,11 @@ npm run dev
 ---
 
 ## 👨‍💻 Status do Projeto
-- [x] Agente de Recrutamento & Triagem (ATS) com Gemini Pro.
+- [x] Agente de Recrutamento & Triagem (ATS) com Gemini 1.5 Flash.
+- [x] Assistente de IA Avançado com Claude 3 Sonnet.
 - [x] Módulo Financeiro com Fluxo de Caixa e Integração Mercado Pago.
 - [x] Gestão de Projetos (Kanban) e Chamados de Suporte (Service Desk).
-- [x] Interface Futurista "Glassmorphism" Responsiva.
+- [x] Interface Futurista "Glassmorphism" Responsiva (Next.js 16).
 - [x] Agentes de IA em Background (Jules & Claude).
 
 ---
