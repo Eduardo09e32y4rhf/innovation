@@ -46,7 +46,9 @@ DATABASE_URL = settings.DATABASE_URL
 if DATABASE_URL.startswith("sqlite:///./"):
     db_name = DATABASE_URL.split("sqlite:///./")[1]
     DATABASE_URL = f"sqlite:///{BASE_DIR}/{db_name}"
-elif DATABASE_URL.startswith("sqlite:///") and not DATABASE_URL.startswith("sqlite:////"):
+elif DATABASE_URL.startswith("sqlite:///") and not DATABASE_URL.startswith(
+    "sqlite:////"
+):
     # If it's a relative path without ./ (e.g. sqlite:///innovation.db)
     # This is technically not valid URI for relative path but often used
     # Assuming relative to root if not absolute
