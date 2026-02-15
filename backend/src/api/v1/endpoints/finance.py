@@ -41,19 +41,24 @@ async def create_transaction(
     if current_user.role.lower() != "company":
         raise HTTPException(status_code=403, detail="Acesso não autorizado")
 
-    # Pydantic validates date format automatically
-
-    transaction = Transaction(
-        description=data.description,
-        amount=data.amount,
-        type=data.type,
-        due_date=datetime.combine(data.due_date, time.min),
-        company_id=current_user.id,
-    )
-    db.add(transaction)
-    db.commit()
-    db.refresh(transaction)
-    return transaction
+    try:
+        transaction = Transaction(
+            description=data.description,
+            amount=data.amount,
+            type=data.type,
+            due_date=datetime.combine(data.due_date, time.min),
+            company_id=current_user.id,
+        )
+        db.add(transaction)
+        db.commit()
+        db.refresh(transaction)
+        return transaction
+    except Exception as e:
+        db.rollback()
+        # Log the error in a real app
+        raise HTTPException(
+            status_code=500, detail="Erro ao criar transação: " + str(e)
+        )
 
 
 @router.get("/anomalies")

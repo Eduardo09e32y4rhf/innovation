@@ -1,119 +1,109 @@
 # 🚀 Innovation-Enterprise - Plataforma de Recrutamento & Gestão com IA
 
-[![Arquitetura](https://img.shields.io/badge/Architecture-Enterprise--Grade-gold.svg)](#)
-[![Security](https://img.shields.io/badge/Security-Hardened-green.svg)](#)
-[![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://www.python.org/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-Elite-00a393.svg)](https://fastapi.tiangolo.com/)
-[![Next.js](https://img.shields.io/badge/Next.js-16-black.svg)](https://nextjs.org/)
-[![Kubernetes](https://img.shields.io/badge/Kubernetes-Ready-blue.svg)](#)
-[![Docker](https://img.shields.io/badge/Docker-Enterprise-blue.svg)](#)
+![Innovation Enterprise Architecture](https://img.shields.io/badge/Architecture-Microservices-blue)
+![FastAPI](https://img.shields.io/badge/Backend-FastAPI-green)
+![Next.js](https://img.shields.io/badge/Frontend-Next.js_16-black)
+![PostgreSQL](https://img.shields.io/badge/Database-PostgreSQL-blue)
 
-> **O ecossistema definitivo para escalabilidade global.** Unindo recrutamento inteligente, gestão financeira enterprise e agentes autônomos de IA.
+Bem-vindo ao repositório oficial da **Innovation-Enterprise**. Esta plataforma unifica recrutamento inteligente (ATS), gestão financeira e operações empresariais em uma arquitetura moderna e escalável.
 
 ---
 
-## 🏗️ Arquitetura Global (Nível Gupy)
+## 🏗️ Arquitetura do Projeto
 
-O projeto segue agora uma estrutura modular e escalável, preparada para microsserviços e alta performance:
+O sistema é dividido em dois componentes principais:
 
-```bash
-innovation-enterprise/
-├── backend/                    # 🧠 O CÉREBRO (API Python/FastAPI)
-│   ├── src/                    # Código Fonte (Clean Architecture)
-│   └── tests/                  # Testes Automatizados
-│
-├── frontend-next/              # 🎨 NOVA INTERFACE (Next.js 16 + App Router)
-│   ├── app/                    # Páginas e Layouts (Server Components)
-│   └── components/             # UI Kit e Componentes Reutilizáveis
-│
-├── frontend/                   # 🏛️ LEGADO (Landing Page Marketing)
-│
-├── ai_engine/                  # 🤖 AGENTES DE IA (Gemini Pro)
-│   ├── agents/                 # Recruiter Agent, Finance Auditor
-│   └── worker.py               # Celery Worker para Background Tasks
-│
-├── k8s/                        # ☸️ KUBERNETES (Manifests de Produção)
-│
-├── docker-compose.enterprise.yml # 🐳 Setup Full Scale (Kong, Kafka, etc)
-│
-└── ops/                        # 🛠️ INFRA (Docker, Render, Vercel)
-    └── docker-compose.yml      # Setup Padrão
-```
+1.  **Backend (`backend/`)**: API RESTful desenvolvida em Python com **FastAPI**.
+    *   **Autenticação**: JWT (JSON Web Tokens) com suporte a RBAC (Role-Based Access Control).
+    *   **Banco de Dados**: SQLAlchemy ORM (PostgreSQL em produção, SQLite em dev).
+    *   **IA**: Integração com Google Gemini Pro para análise de currículos e chatbots.
+    *   **Segurança**: Proteção contra ataques comuns (SQLi, XSS, CSRF), Rate Limiting.
+
+2.  **Frontend (`frontend-next/`)**: Interface moderna desenvolvida em **Next.js 16** (App Router).
+    *   **Estilização**: Tailwind CSS + Shadcn UI.
+    *   **Estado**: React Server Components e Client Components otimizados.
 
 ---
 
-## ⚡ Recursos Principais (Enterprise Level)
+## 🚀 Como Rodar o Projeto
 
-### 🏎️ Módulo de Cache (Redis)
-Utilizamos **Redis** para acelerar o carregamento de dados pesados (como currículos analisados) e gerenciar sessões rápidas, garantindo que o sistema "voe" mesmo com milhares de usuários.
+### Pré-requisitos
+*   Python 3.10+
+*   Node.js 18+
+*   Docker (opcional, mas recomendado)
 
-### 🤖 AI Engine & Agentes em Background
-A IA (Jules) agora processa tarefas pesadas (como análise profunda de currículos) em **segundo plano** usando **Celery Workers**. Isso libera a API para responder instantaneamente ao usuário enquanto a IA trabalha no background.
+### 1. Configuração do Backend
 
-### 🐳 Dockerização Completa
-O sistema está 100% pronto para rodar em containers, facilitando o deploy em qualquer nuvem (**AWS, Azure, GCP**) com um único comando.
-
----
-
-## 🏃 Como Rodar
-
-### 1️⃣ Configure suas chaves
-Crie um arquivo `.env` na raiz do projeto:
-```env
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=postgres
-POSTGRES_DB=innovation_db
-REDIS_URL=redis://redis:6379/0
-SECRET_KEY=sua_chave_secreta
-GEMINI_API_KEY=sua_chave_gemini
-```
-
-### 2️⃣ Escolha seu modo de execução
-
-#### 🐳 Opção 1: Docker (Padrão)
-Ideal para testar o sistema completo rapidamente.
 ```bash
-cd ops
-docker-compose up --build
-```
+cd backend
 
-#### 🏢 Opção 2: Docker (Enterprise Simulation)
-Simula um ambiente de grande escala com Kong, Kafka, Prometheus, etc.
-```bash
-docker-compose -f docker-compose.enterprise.yml up --build
-```
-
-#### ☸️ Opção 3: Kubernetes (Produção)
-Para deploy em cluster K8s.
-```bash
-./deploy_k8s.ps1
-```
-
-#### 💻 Opção 4: Desenvolvimento Local
-Para trabalhar no código.
-
-**Backend:**
-```bash
-./run_backend.ps1
+# Criar ambiente virtual
+python -m venv venv
+source venv/bin/activate  # Linux/Mac
 # ou
-cd backend && uvicorn src.api.main:app --reload
+venv\Scripts\activate     # Windows
+
+# Instalar dependências
+pip install -r requirements.txt
+
+# Configurar variáveis de ambiente (.env)
+cp .env.example .env  # Crie um .env baseado no exemplo se houver
+# Exemplo básico de .env:
+# DATABASE_URL=sqlite:///./sql_app.db
+# SECRET_KEY=sua_chave_secreta_super_segura
+
+# Rodar migrações (se necessário)
+alembic upgrade head
+
+# Iniciar o servidor
+uvicorn src.api.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-**Frontend (Next.js):**
+O Backend estará rodando em `http://localhost:8000`.
+Documentação da API (Swagger UI): `http://localhost:8000/docs`
+
+### 2. Configuração do Frontend
+
 ```bash
 cd frontend-next
+
+# Instalar dependências
 npm install
+
+# Iniciar servidor de desenvolvimento
 npm run dev
 ```
 
----
-
-## 👨‍💻 Status do Projeto
-- [x] Agente de Recrutamento & Triagem (ATS) com Gemini Pro.
-- [x] Módulo Financeiro com Fluxo de Caixa e Integração Mercado Pago.
-- [x] Gestão de Projetos (Kanban) e Chamados de Suporte (Service Desk).
-- [x] Interface Futurista "Glassmorphism" Responsiva.
-- [x] Agentes de IA em Background (Jules & Claude).
+O Frontend estará rodando em `http://localhost:3000`.
 
 ---
-**Innovation-Enterprise © 2026** - Escalando o futuro com inteligência.
+
+## 🛡️ Segurança (Hacker Mode)
+
+O projeto segue práticas rigorosas de segurança:
+*   **Validação de Input**: Pydantic v2 para validação estrita de dados.
+*   **Autenticação**: Senhas hash com Bcrypt, Tokens JWT assinados.
+*   **Autorização**: Middleware de verificação de escopo e role.
+*   **Rate Limiting**: Proteção contra força bruta em rotas sensíveis (`/login`).
+
+## 🧪 Testes
+
+Para rodar os testes do backend:
+
+```bash
+cd backend
+pytest
+```
+
+---
+
+## 🤝 Contribuição
+
+1.  Faça um Fork do projeto.
+2.  Crie uma Branch para sua Feature (`git checkout -b feature/NovaFeature`).
+3.  Faça o Commit (`git commit -m 'Add some feature'`).
+4.  Push para a Branch (`git push origin feature/NovaFeature`).
+5.  Abra um Pull Request.
+
+---
+**Innovation-Enterprise © 2024**

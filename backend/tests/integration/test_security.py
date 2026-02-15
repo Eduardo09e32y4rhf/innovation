@@ -12,22 +12,22 @@ if "bcrypt" not in sys.modules:
 if "pydantic_settings" not in sys.modules:
     sys.modules["pydantic_settings"] = MagicMock()
 
-# Mock app.core.config to avoid its internal dependencies and environment requirements.
+# Mock core.config to avoid its internal dependencies and environment requirements.
 mock_config = MagicMock()
 mock_config.SECRET_KEY = "test_secret"
 mock_config.ALGORITHM = "HS256"
-sys.modules["app.core.config"] = mock_config
+sys.modules["core.config"] = mock_config
 
 # Now we can import the function under test
-from app.core.security import verify_temporary_token
+from core.security import verify_temporary_token
 
 
 @pytest.fixture
 def mock_jwt():
-    """Fixture to mock the jwt object within the app.core.security module."""
-    with patch("app.core.security.jwt") as mock_jwt_obj, patch(
-        "app.core.security.SECRET_KEY", "test_secret"
-    ), patch("app.core.security.ALGORITHM", "HS256"):
+    """Fixture to mock the jwt object within the core.security module."""
+    with patch("core.security.jwt") as mock_jwt_obj, patch(
+        "core.security.SECRET_KEY", "test_secret"
+    ), patch("core.security.ALGORITHM", "HS256"):
         yield mock_jwt_obj
 
 

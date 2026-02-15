@@ -6,7 +6,7 @@ from slowapi.util import get_remote_address
 from sqlalchemy.orm import Session
 from typing import List, Optional
 
-from core.dependencies import get_current_user
+from core.dependencies import get_current_user, require_admin_role
 from core.security import create_temporary_token, verify_temporary_token
 from infrastructure.database.sql.dependencies import get_db
 from domain.models.user import User
@@ -32,6 +32,7 @@ def register(data: RegisterRequest, db: Session = Depends(get_db)):
             cnpj=data.cnpj,
             cidade=data.cidade,
             uf=data.uf,
+            role=data.role or "candidate",
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -45,9 +46,6 @@ def login(request: Request, data: LoginRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=401, detail="Credenciais inválidas")
 
     access_token, refresh_token, user = result
-
-    # Cache the user upon successful login
-    user_memory_cache.set(user.id, user)
 
     # Se 2FA está habilitado, retorna temporary_token
     if user.two_factor_enabled:
@@ -112,11 +110,10 @@ def me(current_user: User = Depends(get_current_user)):
 def list_users(
     role: Optional[str] = None,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_admin_role),
 ):
     query = db.query(User)
     if role:
-        # Check if the query is for candidates and current user is a company
         query = query.filter(User.role == role)
     return query.all()
 
@@ -142,39 +139,3 @@ async def google_login():
     return {
         "message": "Recurso de Login com Google sendo configurado no Console de APIs. Use email/senha por enquanto."
     }
-
-
-# --- Caching Strategy ---
-# Using functools.lru_cache to cache user sessions in memory
-# This reduces database hits for frequent operations like "get_current_user"
-# In a distributed environment, Redis would be preferred.
-
-from functools import lru_cache
-import time
-
-
-# Simple in-memory cache with expiry logic wrapper
-class UserCache:
-    def __init__(self):
-        self._cache = {}
-        self._ttl = 300  # 5 minutes
-
-    def get(self, user_id: int):
-        if user_id in self._cache:
-            data, timestamp = self._cache[user_id]
-            if time.time() - timestamp < self._ttl:
-                return data
-            else:
-                del self._cache[user_id]
-        return None
-
-    def set(self, user_id: int, user_data: User):
-        self._cache[user_id] = (user_data, time.time())
-
-    def invalidate(self, user_id: int):
-        if user_id in self._cache:
-            del self._cache[user_id]
-
-
-# Singleton instance
-user_memory_cache = UserCache()
