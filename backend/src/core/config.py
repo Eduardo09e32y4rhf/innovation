@@ -46,6 +46,9 @@ DATABASE_URL = settings.DATABASE_URL
 if DATABASE_URL.startswith("sqlite:///./"):
     db_name = DATABASE_URL.split("sqlite:///./")[1]
     DATABASE_URL = f"sqlite:///{BASE_DIR}/{db_name}"
+# Fix Render Postgres URL
+if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
 SECRET_KEY = settings.SECRET_KEY
 ALGORITHM = settings.ALGORITHM
