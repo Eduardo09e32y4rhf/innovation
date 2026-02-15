@@ -1,8 +1,8 @@
 from fastapi.testclient import TestClient
-from app.main import app
-from app.core.dependencies import get_current_user
-from app.db.dependencies import get_db
-from app.core.security import create_access_token
+from api.main import app
+from core.dependencies import get_current_user
+from infrastructure.database.sql.dependencies import get_db
+from core.security import create_access_token
 from unittest.mock import MagicMock, patch
 import pytest
 
@@ -40,7 +40,7 @@ def test_finance_role_case_insensitivity():
 
     # Mock Service to avoid actual DB calls inside service
     with patch(
-        "app.services.finance_service.finance_service.get_cash_flow_summary"
+        "services.finance_service.finance_service.get_cash_flow_summary"
     ) as mock_service:
         mock_service.return_value = {"income": 100, "expense": 50, "balance": 50}
 

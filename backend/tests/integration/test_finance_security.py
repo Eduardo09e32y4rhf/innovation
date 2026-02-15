@@ -1,7 +1,7 @@
 import pytest
-from app.core.security import create_access_token
-from app.models.user import User
-from app.models.finance import Transaction
+from core.security import create_access_token
+from domain.models.user import User
+from domain.models.finance import Transaction
 from decimal import Decimal
 from datetime import datetime
 

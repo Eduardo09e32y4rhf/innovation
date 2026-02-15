@@ -1,6 +1,6 @@
-from app.services.finance_service import FinanceService
-from app.models.finance import Transaction
-from app.models.user import User
+from services.finance_service import FinanceService
+from domain.models.finance import Transaction
+from domain.models.user import User
 from decimal import Decimal
 import pytest
 from datetime import datetime

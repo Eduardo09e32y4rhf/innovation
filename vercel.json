@@ -1,14 +1,19 @@
 {
+  "version": 2,
   "builds": [
     {
-      "src": "innovation/app/main.py",
+      "src": "frontend-next/package.json",
+      "use": "@vercel/next"
+    },
+    {
+      "src": "api/index.py",
       "use": "@vercel/python"
     }
   ],
-  "routes": [
+  "rewrites": [
     {
-      "src": "/(.*)",
-      "dest": "innovation/app/main.py"
+      "source": "/api/(.*)",
+      "destination": "/api/index.py"
     }
   ]
 }

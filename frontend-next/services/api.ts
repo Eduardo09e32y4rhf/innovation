@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-    baseURL: 'http://localhost:8000/api', // Pointing to FastAPI
+    baseURL: process.env.NEXT_PUBLIC_API_URL || '/api', // Pointing to FastAPI or proxy
     headers: {
         'Content-Type': 'application/json',
     },

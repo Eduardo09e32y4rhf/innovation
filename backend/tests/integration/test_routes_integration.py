@@ -26,18 +26,14 @@ def test_login_flow(client):
     assert response.status_code == 200
     token = response.json()["access_token"]
 
-    # Access Dashboard without cookie (should redirect)
-    # Note: TestClient handles cookies automatically if set in previous requests?
-    # No, POST /api/auth/login returns token in body, not cookie.
+    # Access API Dashboard without token (should fail 401)
+    client.headers.clear() # clear previous headers if any
+    response = client.get("/api/dashboard/metrics")
+    assert response.status_code == 401
 
-    # Clear cookies just in case
-    client.cookies.clear()
-
-    response = client.get("/dashboard", follow_redirects=False)
-    # 307 Temporary Redirect is default for RedirectResponse
-    assert response.status_code == 307
-
-    # Access Dashboard with cookie
-    client.cookies.set("access_token", token)
-    response = client.get("/dashboard")
+    # Access API Dashboard with token
+    client.headers.update({"Authorization": f"Bearer {token}"})
+    response = client.get("/api/dashboard/metrics")
+    if response.status_code != 200:
+        print(response.json())
     assert response.status_code == 200
