@@ -84,7 +84,7 @@ class ChatMessage(BaseModel):
 async def chat_gemini(data: ChatMessage):
     try:
         if not model_gemini:
-             return JSONResponse(
+            return JSONResponse(
                 status_code=503,
                 content={"response": "Gemini AI não configurado."},
             )

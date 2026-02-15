@@ -27,7 +27,7 @@ def test_login_flow(client):
     token = response.json()["access_token"]
 
     # Access API Dashboard without token (should fail 401)
-    client.headers.clear() # clear previous headers if any
+    client.headers.clear()  # clear previous headers if any
     response = client.get("/api/dashboard/metrics")
     assert response.status_code == 401
 
