@@ -6,13 +6,21 @@ os.environ.setdefault("DATABASE_URL", "sqlite:///:memory:")
 os.environ.setdefault("SECRET_KEY", "test_secret_key_for_testing_purposes_only")
 os.environ.setdefault("GEMINI_API_KEY", "dummy_key")
 
+import sys
+from pathlib import Path
+
+# Add backend/src to python path
+BASE_DIR = Path(__file__).resolve().parents[2]
+SRC_DIR = BASE_DIR / "src"
+sys.path.append(str(SRC_DIR))
+
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
-from app.main import app
-from app.db.dependencies import get_db
-from app.db.base import Base
+from api.main import app
+from infrastructure.database.sql.dependencies import get_db
+from infrastructure.database.sql.base import Base
 
 # Use in-memory SQLite for tests
 SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"

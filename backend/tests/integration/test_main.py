@@ -1,12 +1,15 @@
 from fastapi.testclient import TestClient
 import sys
 import os
+from pathlib import Path
 import httpx  # Ensure httpx is installed
 
-# Adiciona o diretório 'innovation' ao sys.path para que possamos importar 'app'
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Add backend/src to python path
+BASE_DIR = Path(__file__).resolve().parents[2]
+SRC_DIR = BASE_DIR / "src"
+sys.path.append(str(SRC_DIR))
 
-from app.main import app
+from api.main import app
 
 # Instantiate TestClient
 client = TestClient(app)

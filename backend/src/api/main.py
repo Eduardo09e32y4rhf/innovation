@@ -21,6 +21,7 @@ from api.v1.endpoints import (
     finance,
     support,
     payments,
+    enterprise,
 )
 import domain.models  # Garante o registro de todos os modelos
 from core.config import settings
@@ -49,7 +50,7 @@ model_gemini = None
 if GEMINI_API_KEY:
     try:
         genai.configure(api_key=GEMINI_API_KEY)
-        model_gemini = genai.GenerativeModel("gemini-pro")
+        model_gemini = genai.GenerativeModel("gemini-1.5-flash")
     except Exception as e:
         print(f"Aviso: Falha ao configurar Gemini AI (Pode estar depreciado): {e}")
 
