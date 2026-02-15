@@ -1,5 +1,6 @@
 import pytest
 
+
 def test_login_flow(client):
     # Register
     register_data = {
@@ -11,7 +12,7 @@ def test_login_flow(client):
         "cnpj": "12345678000199",
         "cidade": "Sao Paulo",
         "uf": "SP",
-        "phone": "11999999999"
+        "phone": "11999999999",
     }
 
     response = client.post("/api/auth/register", json=register_data)
@@ -20,10 +21,7 @@ def test_login_flow(client):
     assert response.status_code == 200
 
     # Login
-    login_payload = {
-        "email": "test@company.com",
-        "password": "securepassword"
-    }
+    login_payload = {"email": "test@company.com", "password": "securepassword"}
     response = client.post("/api/auth/login", json=login_payload)
     assert response.status_code == 200
     token = response.json()["access_token"]

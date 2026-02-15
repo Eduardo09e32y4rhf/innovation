@@ -34,12 +34,11 @@ class Token(BaseModel):
     temporary_token: str | None = None  # Token temporário para 2FA
 
 
-
 class UserOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
-    name: str # Mapped via @property in model
+    name: str  # Mapped via @property in model
     email: EmailStr
     role: str
     company_name: str | None = None

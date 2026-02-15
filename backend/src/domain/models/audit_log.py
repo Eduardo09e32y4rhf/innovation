@@ -17,8 +17,12 @@ class AuditLog(Base):
     __tablename__ = "audit_logs"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    user_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("users.id"), nullable=True)
-    company_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("companies.id"), nullable=True)
+    user_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("users.id"), nullable=True
+    )
+    company_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("companies.id"), nullable=True
+    )
 
     action: Mapped[str] = mapped_column(String(120), nullable=False)
     entity_type: Mapped[str | None] = mapped_column(String(80), nullable=True)
@@ -26,7 +30,9 @@ class AuditLog(Base):
     details: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=text("CURRENT_TIMESTAMP"), nullable=False
+        DateTime(timezone=True),
+        server_default=text("CURRENT_TIMESTAMP"),
+        nullable=False,
     )
 
     user: Mapped["User | None"] = relationship("User")

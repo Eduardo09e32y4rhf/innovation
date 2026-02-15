@@ -7,14 +7,19 @@ from domain.models.compliance import PulseSurvey
 from .ai_ats import ai_ats_service
 import json
 
+
 class RHService:
     @staticmethod
     async def generate_contract_draft(db: Session, employee_id: int):
         from domain.models.user import User
+
         user = db.query(User).filter(User.id == employee_id).first()
-        if not user: return "Usuário não encontrado"
-        
-        contract = await ai_ats_service.generate_contract(user.full_name, "Colaborador", "R$ 5.000,00")
+        if not user:
+            return "Usuário não encontrado"
+
+        contract = await ai_ats_service.generate_contract(
+            user.full_name, "Colaborador", "R$ 5.000,00"
+        )
         return contract
 
     @staticmethod
@@ -24,6 +29,7 @@ class RHService:
         db.commit()
         db.refresh(pulse)
         return pulse
+
     @staticmethod
     def process_document_ocr(db: Session, onboarding_id: int, file_content: str):
         # Aqui integraríamos com o Gemini Vision para extrair dados
@@ -32,9 +38,9 @@ class RHService:
             "full_name": "João Silva",
             "document_number": "123.456.789-00",
             "birth_date": "1990-05-15",
-            "address": "Rua das Flores, 123"
+            "address": "Rua das Flores, 123",
         }
-        
+
         onboarding = db.query(Onboarding).filter(Onboarding.id == onboarding_id).first()
         if onboarding:
             onboarding.document_ocr_data = json.dumps(mock_data)
@@ -55,17 +61,20 @@ class RHService:
         return request
 
     @staticmethod
-    def add_performance_review(db: Session, employee_id: int, reviewer_id: int, score: float, feedback: str):
+    def add_performance_review(
+        db: Session, employee_id: int, reviewer_id: int, score: float, feedback: str
+    ):
         review = PerformanceReview(
             employee_id=employee_id,
             reviewer_id=reviewer_id,
             score=score,
             feedback=feedback,
-            period="Q1-2026" # Dinâmico
+            period="Q1-2026",  # Dinâmico
         )
         db.add(review)
         db.commit()
         db.refresh(review)
         return review
+
 
 rh_service = RHService()

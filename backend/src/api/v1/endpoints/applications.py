@@ -13,7 +13,11 @@ from infrastructure.database.sql.dependencies import get_db
 from domain.models.application import Application
 from domain.models.application_status_history import ApplicationStatusHistory
 from domain.models.job import Job
-from domain.schemas.application import ApplicationCreate, ApplicationOut, ApplicationUpdate
+from domain.schemas.application import (
+    ApplicationCreate,
+    ApplicationOut,
+    ApplicationUpdate,
+)
 from services.audit_service import log_event
 from services.notification_service import notify_application_status_change
 from domain.models.user import User
@@ -150,7 +154,7 @@ def update_application(
     status_value = data.status
     old_status = app.status
     status_changed = False
-    
+
     if status_value:
         if status_value not in ALLOWED_APPLICATION_STATUSES:
             raise HTTPException(status_code=400, detail="Status inválido")
@@ -190,6 +194,6 @@ def update_application(
                 new_status=status_value,
             )
         except Exception as e:
-            pass # Non-critical failure
+            pass  # Non-critical failure
 
     return app

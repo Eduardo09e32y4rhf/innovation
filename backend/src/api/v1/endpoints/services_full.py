@@ -11,7 +11,6 @@ from domain.models.job import Job
 from domain.models.subscription import Subscription
 from services.plan_service import get_subscription_plan, has_plan_feature
 
-
 router = APIRouter(prefix="/services/full", tags=["Services Full"])
 
 
@@ -57,7 +56,9 @@ def list_full_service_jobs(
     if not _company_has_full_service(db, company_id):
         raise HTTPException(status_code=403, detail="Empresa sem full service")
 
-    jobs = db.query(Job).filter(Job.company_id == company_id).order_by(Job.id.desc()).all()
+    jobs = (
+        db.query(Job).filter(Job.company_id == company_id).order_by(Job.id.desc()).all()
+    )
     return [
         {
             "id": job.id,

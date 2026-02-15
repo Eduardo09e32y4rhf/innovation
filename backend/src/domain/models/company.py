@@ -17,7 +17,9 @@ class Company(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
 
-    owner_user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
+    owner_user_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("users.id"), nullable=False
+    )
 
     razao_social: Mapped[str] = mapped_column(String(200), nullable=False)
     cnpj: Mapped[str] = mapped_column(String(20), unique=True, nullable=False)
@@ -26,7 +28,9 @@ class Company(Base):
 
     logo_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
 
-    plan_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("plans.id"), nullable=True)
+    plan_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("plans.id"), nullable=True
+    )
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="active")
 
     created_at: Mapped[datetime] = mapped_column(

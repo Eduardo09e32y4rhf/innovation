@@ -1,6 +1,7 @@
 import re
 from collections import Counter
 
+
 def calculate_match_score(job_description: str, candidate_text: str) -> int:
     """
     Calcula um score de 0 a 100 baseado na similaridade de palavras-chave
@@ -11,22 +12,43 @@ def calculate_match_score(job_description: str, candidate_text: str) -> int:
 
     # Normalizar textos (lowercase, remover pontuação básica)
     def normalize(text):
-        return re.sub(r'[^\w\s]', '', text.lower())
+        return re.sub(r"[^\w\s]", "", text.lower())
 
     job_tokens = set(normalize(job_description).split())
     candidate_tokens = set(normalize(candidate_text).split())
 
     # Palavras-chave importantes (hardcoded para demo, mas poderia vir de um banco)
     keywords = {
-        "python", "javascript", "react", "node", "sql", "aws", "docker", 
-        "senior", "pleno", "junior", "liderança", "agile", "scrum",
-        "java", "c#", ".net", "php", "ruby", "go", "rust",
-        "machine", "learning", "data", "science", "analytics"
+        "python",
+        "javascript",
+        "react",
+        "node",
+        "sql",
+        "aws",
+        "docker",
+        "senior",
+        "pleno",
+        "junior",
+        "liderança",
+        "agile",
+        "scrum",
+        "java",
+        "c#",
+        ".net",
+        "php",
+        "ruby",
+        "go",
+        "rust",
+        "machine",
+        "learning",
+        "data",
+        "science",
+        "analytics",
     }
 
     # Interseção de tokens relevantes
     relevant_job_tokens = job_tokens.intersection(keywords)
-    
+
     if not relevant_job_tokens:
         # Se a vaga não tem keywords conhecidas, usa interseção simples
         intersection = job_tokens.intersection(candidate_tokens)

@@ -4,7 +4,9 @@
 [![Security](https://img.shields.io/badge/Security-Hardened-green.svg)](#)
 [![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-Elite-00a393.svg)](https://fastapi.tiangolo.com/)
-[![Docker](https://img.shields.io/badge/Docker-Ready-blue.svg)](#)
+[![Next.js](https://img.shields.io/badge/Next.js-16-black.svg)](https://nextjs.org/)
+[![Kubernetes](https://img.shields.io/badge/Kubernetes-Ready-blue.svg)](#)
+[![Docker](https://img.shields.io/badge/Docker-Enterprise-blue.svg)](#)
 
 > **O ecossistema definitivo para escalabilidade global.** Unindo recrutamento inteligente, gestão financeira enterprise e agentes autônomos de IA.
 
@@ -17,25 +19,25 @@ O projeto segue agora uma estrutura modular e escalável, preparada para micross
 ```bash
 innovation-enterprise/
 ├── backend/                    # 🧠 O CÉREBRO (API Python/FastAPI)
-│   ├── src/
-│   │   ├── api/v1/endpoints/   # Rotas versionadas (auth, jobs, finance)
-│   │   ├── core/               # Configurações Globais e Segurança
-│   │   ├── domain/             # Lógica de Negócio (Models & Schemas)
-│   │   ├── infrastructure/     # SQL, NoSQL, Cache (Redis), AI Clients
-│   │   └── services/           # Serviços de integração (Auth, Reports)
-│   └── tests/                  # Testes Unitários e Integração
+│   ├── src/                    # Código Fonte (Clean Architecture)
+│   └── tests/                  # Testes Automatizados
 │
-├── frontend/                   # 🎨 A CARA (React/Next.js e Legado HTML)
-│   ├── legacy_web_admin/       # Portal Administrativo
-│   └── legacy_web_test/        # Landing Page e Testes
+├── frontend-next/              # 🎨 NOVA INTERFACE (Next.js 16 + App Router)
+│   ├── app/                    # Páginas e Layouts (Server Components)
+│   └── components/             # UI Kit e Componentes Reutilizáveis
 │
-├── ai_engine/                  # 🤖 O AGENTE AUTÔNOMO (Workers Jules & Admin IA)
+├── frontend/                   # 🏛️ LEGADO (Landing Page Marketing)
+│
+├── ai_engine/                  # 🤖 AGENTES DE IA (Gemini Pro)
 │   ├── agents/                 # Recruiter Agent, Finance Auditor
-│   └── worker.py               # Celery/Background Tasks
+│   └── worker.py               # Celery Worker para Background Tasks
 │
-└── ops/                        # 🛠️ OPERAÇÕES & INFRAESTRUTURA
-    ├── docker-compose.yml      # Orquestração (App + DB + Redis + Worker)
-    └── Dockerfile              # Receita de build otimizada
+├── k8s/                        # ☸️ KUBERNETES (Manifests de Produção)
+│
+├── docker-compose.enterprise.yml # 🐳 Setup Full Scale (Kong, Kafka, etc)
+│
+└── ops/                        # 🛠️ INFRA (Docker, Render, Vercel)
+    └── docker-compose.yml      # Setup Padrão
 ```
 
 ---
@@ -53,12 +55,10 @@ O sistema está 100% pronto para rodar em containers, facilitando o deploy em qu
 
 ---
 
-## 🏃 Como Rodar (Modo Enterprise)
-
-A forma oficial e mais fácil de rodar o ecossistema completo é usando Docker:
+## 🏃 Como Rodar
 
 ### 1️⃣ Configure suas chaves
-Crie um arquivo `.env` na raiz do projeto seguindo o modelo:
+Crie um arquivo `.env` na raiz do projeto:
 ```env
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=postgres
@@ -68,17 +68,43 @@ SECRET_KEY=sua_chave_secreta
 GEMINI_API_KEY=sua_chave_gemini
 ```
 
-### 2️⃣ Suba o ecossistema com um comando
+### 2️⃣ Escolha seu modo de execução
+
+#### 🐳 Opção 1: Docker (Padrão)
+Ideal para testar o sistema completo rapidamente.
 ```bash
 cd ops
 docker-compose up --build
 ```
 
-Isso irá iniciar:
-- **Banco de Dados** (PostgreSQL)
-- **Cache & Message Broker** (Redis)
-- **API Principal** (FastAPI na porta 8000)
-- **AI Worker** (Agente Jules processando backgrounds)
+#### 🏢 Opção 2: Docker (Enterprise Simulation)
+Simula um ambiente de grande escala com Kong, Kafka, Prometheus, etc.
+```bash
+docker-compose -f docker-compose.enterprise.yml up --build
+```
+
+#### ☸️ Opção 3: Kubernetes (Produção)
+Para deploy em cluster K8s.
+```bash
+./deploy_k8s.ps1
+```
+
+#### 💻 Opção 4: Desenvolvimento Local
+Para trabalhar no código.
+
+**Backend:**
+```bash
+./run_backend.ps1
+# ou
+cd backend && uvicorn src.api.main:app --reload
+```
+
+**Frontend (Next.js):**
+```bash
+cd frontend-next
+npm install
+npm run dev
+```
 
 ---
 

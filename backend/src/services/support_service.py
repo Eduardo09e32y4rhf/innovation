@@ -3,22 +3,23 @@ from datetime import datetime, timedelta
 from domain.models.ticket import Ticket, TicketCategory
 import json
 
+
 class SupportService:
     @staticmethod
     def create_ticket(db: Session, title: str, description: str, requester_id: int):
         # IA Classifica a Categoria (Simulação)
         # Em produção, chamaríamos o Gemini aqui
-        category = db.query(TicketCategory).first() # TI por padrão
-        
+        category = db.query(TicketCategory).first()  # TI por padrão
+
         sla_hours = category.expected_sla_hours if category else 24
         deadline = datetime.utcnow() + timedelta(hours=sla_hours)
-        
+
         ticket = Ticket(
             title=title,
             description=description,
             requester_id=requester_id,
             category_id=category.id if category else 1,
-            sla_deadline=deadline
+            sla_deadline=deadline,
         )
         db.add(ticket)
         db.commit()
@@ -42,5 +43,6 @@ class SupportService:
             elif t.sla_deadline and now > (t.sla_deadline - timedelta(hours=2)):
                 t.sla_status = "warning"
         db.commit()
+
 
 support_service = SupportService()

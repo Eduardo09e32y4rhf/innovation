@@ -7,6 +7,7 @@ from core.config import settings
 
 logger = logging.getLogger(__name__)
 
+
 @dataclass(frozen=True)
 class NotificationPayload:
     recipient_email: str | None
@@ -18,13 +19,13 @@ class NotificationPayload:
 def send_email(payload: NotificationPayload) -> bool:
     if not payload.recipient_email or not settings.SENDGRID_API_KEY:
         return False
-    
+
     try:
         message = Mail(
             from_email=settings.EMAIL_FROM,
             to_emails=payload.recipient_email,
             subject=payload.subject,
-            plain_text_content=payload.message
+            plain_text_content=payload.message,
         )
         sg = SendGridAPIClient(settings.SENDGRID_API_KEY)
         sg.send(message)
@@ -37,13 +38,13 @@ def send_email(payload: NotificationPayload) -> bool:
 def send_sms(payload: NotificationPayload) -> bool:
     if not payload.recipient_phone or not settings.TWILIO_ACCOUNT_SID:
         return False
-    
+
     try:
         client = TwilioClient(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
         client.messages.create(
             body=payload.message,
             from_=settings.TWILIO_PHONE_NUMBER,
-            to=payload.recipient_phone
+            to=payload.recipient_phone,
         )
         return True
     except Exception as e:

@@ -8,11 +8,12 @@ from domain.models.user import User
 
 router = APIRouter(prefix="/api/interviews", tags=["Interviews"])
 
+
 @router.get("")
 async def list_interviews(
     status: Optional[str] = None,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     Lista todas as entrevistas
@@ -28,7 +29,7 @@ async def list_interviews(
             "interviewer": "Carlos Manager",
             "status": "scheduled",
             "type": "technical",
-            "location": "Online - Google Meet"
+            "location": "Online - Google Meet",
         },
         {
             "id": 2,
@@ -39,7 +40,7 @@ async def list_interviews(
             "interviewer": "Ana Lead",
             "status": "scheduled",
             "type": "portfolio_review",
-            "location": "Presencial - Escritório SP"
+            "location": "Presencial - Escritório SP",
         },
         {
             "id": 3,
@@ -52,14 +53,15 @@ async def list_interviews(
             "type": "technical",
             "location": "Online - Zoom",
             "feedback": "Excelente conhecimento técnico",
-            "score": 9.5
-        }
+            "score": 9.5,
+        },
     ]
-    
+
     if status:
         interviews = [i for i in interviews if i["status"] == status]
-    
+
     return {"interviews": interviews, "total": len(interviews)}
+
 
 @router.post("")
 async def schedule_interview(
@@ -70,7 +72,7 @@ async def schedule_interview(
     location: str,
     notes: Optional[str] = None,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     Agenda uma nova entrevista
@@ -85,13 +87,11 @@ async def schedule_interview(
         "location": location,
         "notes": notes,
         "status": "scheduled",
-        "created_at": datetime.now().isoformat()
+        "created_at": datetime.now().isoformat(),
     }
-    
-    return {
-        "message": "Entrevista agendada com sucesso",
-        "interview": new_interview
-    }
+
+    return {"message": "Entrevista agendada com sucesso", "interview": new_interview}
+
 
 @router.put("/{interview_id}")
 async def update_interview(
@@ -99,7 +99,7 @@ async def update_interview(
     status: Optional[str] = None,
     scheduled_date: Optional[datetime] = None,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     Atualiza uma entrevista existente
@@ -107,8 +107,9 @@ async def update_interview(
     # TODO: Implementar atualização real
     return {
         "message": "Entrevista atualizada com sucesso",
-        "interview_id": interview_id
+        "interview_id": interview_id,
     }
+
 
 @router.post("/{interview_id}/feedback")
 async def add_interview_feedback(
@@ -117,28 +118,29 @@ async def add_interview_feedback(
     score: float,
     recommendation: str,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     Adiciona feedback após a entrevista
     """
     if score < 0 or score > 10:
         raise HTTPException(status_code=400, detail="Score deve estar entre 0 e 10")
-    
+
     # TODO: Salvar feedback no banco
     return {
         "message": "Feedback registrado com sucesso",
         "interview_id": interview_id,
         "score": score,
-        "recommendation": recommendation
+        "recommendation": recommendation,
     }
+
 
 @router.get("/calendar")
 async def get_interview_calendar(
     month: Optional[int] = None,
     year: Optional[int] = None,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     Retorna entrevistas organizadas por calendário
@@ -147,7 +149,7 @@ async def get_interview_calendar(
         month = datetime.now().month
     if not year:
         year = datetime.now().year
-    
+
     # Dados mockados
     calendar_data = {
         "2023-06-15": [
@@ -156,7 +158,7 @@ async def get_interview_calendar(
                 "time": "14:00",
                 "candidate": "João Silva",
                 "job": "Senior Python Developer",
-                "type": "technical"
+                "type": "technical",
             }
         ],
         "2023-06-16": [
@@ -165,13 +167,9 @@ async def get_interview_calendar(
                 "time": "10:00",
                 "candidate": "Maria Santos",
                 "job": "UX Designer",
-                "type": "portfolio_review"
+                "type": "portfolio_review",
             }
-        ]
+        ],
     }
-    
-    return {
-        "month": month,
-        "year": year,
-        "interviews": calendar_data
-    }
+
+    return {"month": month, "year": year, "interviews": calendar_data}

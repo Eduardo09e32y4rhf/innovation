@@ -2,12 +2,14 @@ from datetime import datetime
 from typing import Optional
 from pydantic import BaseModel, EmailStr, ConfigDict, Field
 
+
 # Schemas de Entrada (Request)
 class UserCreate(BaseModel):
     full_name: str = Field(..., max_length=200)
     email: EmailStr
     password: str = Field(..., min_length=8)
     company_name: Optional[str] = Field(None, max_length=200)
+
 
 class UserUpdate(BaseModel):
     full_name: Optional[str] = Field(None, max_length=200)
@@ -19,6 +21,7 @@ class UserUpdate(BaseModel):
     brand_logo: Optional[str] = Field(None, max_length=500)
     brand_color_primary: Optional[str] = Field(None, max_length=20)
     brand_color_secondary: Optional[str] = Field(None, max_length=20)
+
 
 # Schemas de Saída (Response) - PROTEGIDO
 class UserOut(BaseModel):

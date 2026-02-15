@@ -11,7 +11,6 @@ from domain.models.subscription import Subscription
 from domain.models.plan import Plan
 from services.audit_service import log_event
 
-
 router = APIRouter(prefix="/subscriptions", tags=["Subscriptions"])
 
 
@@ -62,7 +61,9 @@ def create_subscription(
         if company.owner_user_id != current_user.id:
             raise HTTPException(status_code=403, detail="Empresa inválida")
     else:
-        company = db.query(Company).filter(Company.owner_user_id == current_user.id).first()
+        company = (
+            db.query(Company).filter(Company.owner_user_id == current_user.id).first()
+        )
         if not company:
             raise HTTPException(status_code=404, detail="Empresa não encontrada")
         company_id = company.id

@@ -1,7 +1,7 @@
 from fastapi.testclient import TestClient
 import sys
 import os
-import httpx # Ensure httpx is installed
+import httpx  # Ensure httpx is installed
 
 # Adiciona o diretório 'innovation' ao sys.path para que possamos importar 'app'
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -11,10 +11,12 @@ from app.main import app
 # Instantiate TestClient
 client = TestClient(app)
 
+
 def test_read_main():
     response = client.get("/health")
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
+
 
 def test_get_stats():
     response = client.get("/api/stats")
@@ -22,11 +24,13 @@ def test_get_stats():
     assert "vagas_ativas" in response.json()
     assert response.json()["vagas_ativas"] == 12
 
+
 def test_home_page():
     response = client.get("/")
     assert response.status_code == 200
     # Verifica se contém o título ou algo da landing page
     assert "Innovation.ia" in response.text
+
 
 def test_login_page():
     response = client.get("/login")

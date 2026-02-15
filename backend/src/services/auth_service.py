@@ -7,7 +7,7 @@ from core.security import (
     create_access_token,
     create_refresh_token,
     get_password_hash,
-    verify_password
+    verify_password,
 )
 from domain.models.company import Company
 from domain.models.user import User
@@ -42,7 +42,7 @@ def register_user(
         hashed_password=get_password_hash(password),
         role="company",
         phone=phone,
-        company_name=company_name
+        company_name=company_name,
     )
     db.add(user)
     db.flush()  # garante user.id
@@ -51,12 +51,36 @@ def register_user(
     rs = (razao_social or company_name or "Minha Empresa").strip()
     city = (cidade or "São Paulo").strip()
     state = (uf or "SP").strip().upper()
-    
+
     # Valida UF (Estados brasileiros)
     valid_states = {
-        'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA',
-        'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN',
-        'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'
+        "AC",
+        "AL",
+        "AP",
+        "AM",
+        "BA",
+        "CE",
+        "DF",
+        "ES",
+        "GO",
+        "MA",
+        "MT",
+        "MS",
+        "MG",
+        "PA",
+        "PB",
+        "PR",
+        "PE",
+        "PI",
+        "RJ",
+        "RN",
+        "RS",
+        "RO",
+        "RR",
+        "SC",
+        "SP",
+        "SE",
+        "TO",
     }
     if state not in valid_states:
         logger.warning(f"UF inválido '{state}', usando 'SP' como padrão")
@@ -89,12 +113,16 @@ def register_user(
     return user
 
 
-def authenticate_user(db: Session, email: str, password: str | None, *, skip_password: bool = False):
+def authenticate_user(
+    db: Session, email: str, password: str | None, *, skip_password: bool = False
+):
     user = db.query(User).filter(User.email == email).first()
     if not user:
         logger.warning(f"Tentativa de login com email inexistente: {email}")
         return None
-    if not skip_password and (password is None or not verify_password(password, user.hashed_password)):
+    if not skip_password and (
+        password is None or not verify_password(password, user.hashed_password)
+    ):
         logger.warning(f"Tentativa de login com senha incorreta: {email}")
         return None
 
