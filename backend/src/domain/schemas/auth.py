@@ -11,6 +11,9 @@ class RegisterRequest(BaseModel):
     password: str = Field(min_length=6)
     phone: str | None = Field(default=None, max_length=30)
 
+    # Role selection (defaults to candidate)
+    role: str | None = Field(default="candidate", pattern="^(company|candidate)$")
+
     # Nome simples (compat)
     company_name: str | None = Field(default=None, max_length=200)
 
