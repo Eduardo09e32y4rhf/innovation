@@ -56,7 +56,9 @@ async def create_transaction(
     except Exception as e:
         db.rollback()
         # Log the error in a real app
-        raise HTTPException(status_code=500, detail="Erro ao criar transação: " + str(e))
+        raise HTTPException(
+            status_code=500, detail="Erro ao criar transação: " + str(e)
+        )
 
 
 @router.get("/anomalies")

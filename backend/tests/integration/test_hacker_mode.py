@@ -8,18 +8,20 @@ from core.security import create_access_token, get_password_hash
 # Adjust imports based on your project structure if needed
 # Assuming conftest.py handles the app and client fixtures
 
+
 def create_user(db: Session, email: str, role: str = "company") -> User:
     user = User(
         email=email,
         hashed_password=get_password_hash("password123"),
         full_name="Test User",
         role=role,
-        is_active=True
+        is_active=True,
     )
     db.add(user)
     db.commit()
     db.refresh(user)
     return user
+
 
 def create_company(db: Session, user_id: int) -> Company:
     company = Company(
@@ -27,12 +29,13 @@ def create_company(db: Session, user_id: int) -> Company:
         razao_social="Test Company",
         cnpj=f"12345678000{user_id}",
         cidade="Sao Paulo",
-        uf="SP"
+        uf="SP",
     )
     db.add(company)
     db.commit()
     db.refresh(company)
     return company
+
 
 def test_idor_finance_summary(client: TestClient, db_session: Session):
     """
@@ -68,6 +71,7 @@ def test_idor_finance_summary(client: TestClient, db_session: Session):
     # If there was an endpoint like /api/finance/summary/{user_id}, we would test accessing user_b.id
     # But current implementation uses dependencies.get_current_user, so it's secure by default against IDOR on this specific vector.
 
+
 def test_privilege_escalation_users_list(client: TestClient, db_session: Session):
     """
     Hacker Mode: Privilege Escalation
@@ -81,18 +85,23 @@ def test_privilege_escalation_users_list(client: TestClient, db_session: Session
     response = client.get("/api/auth/users", headers=headers)
     assert response.status_code == 403, "Candidate should not be able to list users"
 
+
 def test_auth_bypass_finance(client: TestClient):
     """
     Hacker Mode: Auth Bypass
     Access protected route without token.
     """
-    response = client.post("/api/finance/transactions", json={
-        "description": "Hack",
-        "amount": 1000,
-        "type": "income",
-        "due_date": "2024-12-31"
-    })
+    response = client.post(
+        "/api/finance/transactions",
+        json={
+            "description": "Hack",
+            "amount": 1000,
+            "type": "income",
+            "due_date": "2024-12-31",
+        },
+    )
     assert response.status_code == 401
+
 
 def test_sql_injection_login(client: TestClient, db_session: Session):
     """
@@ -103,13 +112,11 @@ def test_sql_injection_login(client: TestClient, db_session: Session):
     create_user(db_session, "valid@test.com", "company")
 
     # Attempt SQLi in email
-    payload = {
-        "email": "' OR '1'='1",
-        "password": "password123"
-    }
+    payload = {"email": "' OR '1'='1", "password": "password123"}
     response = client.post("/api/auth/login", json=payload)
     assert response.status_code == 401 or response.status_code == 422
     # Should not be 200
+
 
 def test_xss_payload_in_register(client: TestClient, db_session: Session):
     """
@@ -122,7 +129,7 @@ def test_xss_payload_in_register(client: TestClient, db_session: Session):
         "email": "xss@test.com",
         "password": "password123",
         "name": "<script>alert('xss')</script>",
-        "role": "candidate"
+        "role": "candidate",
     }
     response = client.post("/api/auth/register", json=payload)
     assert response.status_code == 200

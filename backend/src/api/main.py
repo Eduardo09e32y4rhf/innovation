@@ -16,7 +16,7 @@ from api.v1.endpoints import (
     finance,
     support,
     payments,
-    enterprise
+    enterprise,
 )
 import domain.models  # Garante o registro de todos os modelos
 from core.config import settings
