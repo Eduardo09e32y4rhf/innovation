@@ -7,6 +7,7 @@ import re
 
 from .base import AIProvider
 
+
 class GeminiService(AIProvider):
     def __init__(self):
         self.api_key = os.getenv("GEMINI_API_KEY")

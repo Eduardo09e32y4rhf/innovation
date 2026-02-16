@@ -23,7 +23,7 @@ services:
   - type: web
     name: innovation-frontend
     env: node
-    rootDir: frontend-next
+    rootDir: frontend
     buildCommand: npm install && npm run build
     startCommand: npm run start
     envVars:

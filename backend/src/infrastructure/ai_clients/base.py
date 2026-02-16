@@ -1,12 +1,13 @@
 from abc import ABC, abstractmethod
 from typing import Dict, List, Any
 
+
 class AIProvider(ABC):
     """
     Interface base para provedores de IA (Gemini, OpenAI, Anthropic).
     Garante que todos os serviços sigam o mesmo contrato.
     """
-    
+
     @abstractmethod
     async def analyze_resume(self, resume_text: str, job_description: str) -> Dict:
         """Analisa currículo vs vaga."""
