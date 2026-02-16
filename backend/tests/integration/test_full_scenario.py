@@ -5,6 +5,7 @@ from domain.models.company import Company
 from domain.models.finance import Transaction
 from datetime import date, timedelta
 
+
 def test_full_company_finance_flow(client: TestClient, db_session: Session):
     # 1. Register Company with full address
     register_payload = {
@@ -21,7 +22,7 @@ def test_full_company_finance_flow(client: TestClient, db_session: Session):
         "street": "Rua Innovation",
         "number": "100",
         "complement": "Sala 1",
-        "neighborhood": "Centro"
+        "neighborhood": "Centro",
     }
     resp = client.post("/api/auth/register", json=register_payload)
     assert resp.status_code == 200
@@ -51,7 +52,7 @@ def test_full_company_finance_flow(client: TestClient, db_session: Session):
             "type": "income",
             "due_date": str(date.today()),
         },
-        headers=headers
+        headers=headers,
     )
     # Expense: Salary 3000
     client.post(
@@ -61,9 +62,9 @@ def test_full_company_finance_flow(client: TestClient, db_session: Session):
             "amount": 3000.00,
             "type": "expense",
             "due_date": str(date.today()),
-            "category": "salary"  # Assuming this field is handled by schema even if not explicitly in my update (it was in original model)
+            "category": "salary",  # Assuming this field is handled by schema even if not explicitly in my update (it was in original model)
         },
-        headers=headers
+        headers=headers,
     )
     # Expense: Tax DAS 500
     client.post(
@@ -73,9 +74,9 @@ def test_full_company_finance_flow(client: TestClient, db_session: Session):
             "amount": 500.00,
             "type": "expense",
             "tax_type": "DAS",
-            "due_date": str(date.today())
+            "due_date": str(date.today()),
         },
-        headers=headers
+        headers=headers,
     )
 
     # Mark them as PAID directly in DB (API defaults to pending usually, let's check)

@@ -24,12 +24,13 @@ async def get_dashboard_metrics(
     - Lucro líquido
     - Dados para gráficos
     """
+
     # Helper para somar transações
     def get_sum(filters):
         query = db.query(func.sum(Transaction.amount)).filter(
             Transaction.company_id == current_user.id,
             Transaction.status == "paid",
-            *filters
+            *filters,
         )
         result = query.scalar()
         return float(result) if result else 0.0
@@ -39,9 +40,15 @@ async def get_dashboard_metrics(
     current_profit = current_revenue - current_costs
 
     # Breakdown de custos
-    salary_costs = get_sum([Transaction.type == "expense", Transaction.category == "salary"])
-    infra_costs = get_sum([Transaction.type == "expense", Transaction.category == "infrastructure"])
-    marketing_costs = get_sum([Transaction.type == "expense", Transaction.category == "marketing"])
+    salary_costs = get_sum(
+        [Transaction.type == "expense", Transaction.category == "salary"]
+    )
+    infra_costs = get_sum(
+        [Transaction.type == "expense", Transaction.category == "infrastructure"]
+    )
+    marketing_costs = get_sum(
+        [Transaction.type == "expense", Transaction.category == "marketing"]
+    )
     other_costs = current_costs - (salary_costs + infra_costs + marketing_costs)
 
     # Contagens
@@ -52,8 +59,8 @@ async def get_dashboard_metrics(
     return {
         "revenue": {
             "current": current_revenue,
-            "previous": 23150.00, # Mocked
-            "change_percent": 8.9, # Mocked
+            "previous": 23150.00,  # Mocked
+            "change_percent": 8.9,  # Mocked
             "chart_data": [
                 {"month": "Jan", "value": 18500},
                 {"month": "Fev", "value": 19200},
@@ -65,8 +72,8 @@ async def get_dashboard_metrics(
         },
         "costs": {
             "current": current_costs,
-            "previous": 5890.00, # Mocked
-            "change_percent": 8.1, # Mocked
+            "previous": 5890.00,  # Mocked
+            "change_percent": 8.1,  # Mocked
             "breakdown": {
                 "salaries": salary_costs,
                 "infrastructure": infra_costs,
@@ -84,9 +91,11 @@ async def get_dashboard_metrics(
         },
         "profit": {
             "current": current_profit,
-            "previous": 17260.00, # Mocked
-            "change_percent": 12.1, # Mocked
-            "margin_percent": (current_profit / current_revenue * 100) if current_revenue > 0 else 0,
+            "previous": 17260.00,  # Mocked
+            "change_percent": 12.1,  # Mocked
+            "margin_percent": (
+                (current_profit / current_revenue * 100) if current_revenue > 0 else 0
+            ),
             "chart_data": [
                 {"month": "Jan", "value": 13300},
                 {"month": "Fev", "value": 13800},

@@ -170,7 +170,9 @@ async def google_callback(code: str, db: Session = Depends(get_db)):
     Troca o code pelo token, busca info do user e loga/registra.
     """
     if not settings.GOOGLE_CLIENT_ID or not settings.GOOGLE_CLIENT_SECRET:
-        raise HTTPException(status_code=500, detail="Google Credentials não configuradas.")
+        raise HTTPException(
+            status_code=500, detail="Google Credentials não configuradas."
+        )
 
     # 1. Trocar code por token
     token_url = "https://oauth2.googleapis.com/token"
@@ -185,7 +187,9 @@ async def google_callback(code: str, db: Session = Depends(get_db)):
     async with httpx.AsyncClient() as client:
         resp = await client.post(token_url, data=payload)
         if resp.status_code != 200:
-            raise HTTPException(status_code=400, detail=f"Falha ao obter token Google: {resp.text}")
+            raise HTTPException(
+                status_code=400, detail=f"Falha ao obter token Google: {resp.text}"
+            )
 
         token_data = resp.json()
         access_token = token_data.get("access_token")
@@ -193,10 +197,12 @@ async def google_callback(code: str, db: Session = Depends(get_db)):
         # 2. Obter dados do usuário
         user_info_resp = await client.get(
             "https://www.googleapis.com/oauth2/v2/userinfo",
-            headers={"Authorization": f"Bearer {access_token}"}
+            headers={"Authorization": f"Bearer {access_token}"},
         )
         if user_info_resp.status_code != 200:
-             raise HTTPException(status_code=400, detail="Falha ao obter dados do usuário Google")
+            raise HTTPException(
+                status_code=400, detail="Falha ao obter dados do usuário Google"
+            )
 
         user_info = user_info_resp.json()
 
@@ -208,13 +214,16 @@ async def google_callback(code: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Email não retornado pelo Google.")
 
     # Executar query síncrona em threadpool
-    user = await run_in_threadpool(lambda: db.query(User).filter(User.email == email).first())
+    user = await run_in_threadpool(
+        lambda: db.query(User).filter(User.email == email).first()
+    )
 
     if not user:
         # Registrar novo usuário (Candidate por padrão, ou forçar Company se vier de um fluxo específico)
         # Aqui simplificamos criando como candidate, o usuário pode mudar depois ou o front pode mandar flag
         from services.auth_service import register_user
         import secrets
+
         random_password = secrets.token_urlsafe(16)
 
         # Executar registro síncrono em threadpool
@@ -224,7 +233,7 @@ async def google_callback(code: str, db: Session = Depends(get_db)):
             email,
             random_password,
             name=name,
-            role="candidate" # Default
+            role="candidate",  # Default
         )
 
     # 4. Gerar JWT do nosso app
