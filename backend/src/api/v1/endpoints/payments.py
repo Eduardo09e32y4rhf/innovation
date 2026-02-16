@@ -52,6 +52,7 @@ async def create_preference(
         "external_reference": str(
             current_user.id
         ),  # ID do usuário para sabermos quem pagou
+        "metadata": {"plan_type": plan_type, "user_id": current_user.id},
     }
 
     try:
@@ -98,14 +99,16 @@ async def mp_webhook(request: Request, db: Session = Depends(get_db)):
                     # Atualiza o usuário no banco
                     user = db.query(User).filter(User.id == int(external_ref)).first()
                     if user:
-                        user.subscription_plan = (
-                            "pro"  # Simplificação: Ideal seria mapear produto -> plano
-                        )
+                        # Tenta pegar o plano do metadata, senão fallback para "pro"
+                        metadata = response.get("metadata", {})
+                        purchased_plan = metadata.get("plan_type", "pro")
+
+                        user.subscription_plan = purchased_plan
                         user.subscription_status = "active"
                         user.is_active = True
                         db.commit()
                         print(
-                            f"✅ Pagamento confirmado! Usuário {user.email} agora é PRO."
+                            f"✅ Pagamento confirmado! Usuário {user.email} agora é {purchased_plan.upper()}."
                         )
 
     return {"status": "received"}

@@ -2,9 +2,13 @@ from datetime import datetime, timedelta
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from infrastructure.database.sql.dependencies import get_db
 from core.dependencies import get_current_user
 from domain.models.user import User
+from domain.models.finance import Transaction
+from domain.models.job import Job
+from domain.models.application import Application
 
 router = APIRouter(prefix="/api/dashboard", tags=["Dashboard"])
 
@@ -20,34 +24,54 @@ async def get_dashboard_metrics(
     - Lucro líquido
     - Dados para gráficos
     """
-    # TODO: Buscar dados reais do banco quando models estiverem prontos
-    # Por enquanto, retornando dados mockados realistas
+    # Helper para somar transações
+    def get_sum(filters):
+        query = db.query(func.sum(Transaction.amount)).filter(
+            Transaction.company_id == current_user.id,
+            Transaction.status == "paid",
+            *filters
+        )
+        result = query.scalar()
+        return float(result) if result else 0.0
 
-    current_month = datetime.now().month
+    current_revenue = get_sum([Transaction.type == "income"])
+    current_costs = get_sum([Transaction.type == "expense"])
+    current_profit = current_revenue - current_costs
 
+    # Breakdown de custos
+    salary_costs = get_sum([Transaction.type == "expense", Transaction.category == "salary"])
+    infra_costs = get_sum([Transaction.type == "expense", Transaction.category == "infrastructure"])
+    marketing_costs = get_sum([Transaction.type == "expense", Transaction.category == "marketing"])
+    other_costs = current_costs - (salary_costs + infra_costs + marketing_costs)
+
+    # Contagens
+    # active_jobs = db.query(Job).filter(Job.company_id == current_user.id, Job.status == "published").count()
+    # total_applications = db.query(Application).join(Job).filter(Job.company_id == current_user.id).count()
+
+    # Manter dados históricos mockados para evitar gráfico quebrado no frontend
     return {
         "revenue": {
-            "current": 25220.00,
-            "previous": 23150.00,
-            "change_percent": 8.9,
+            "current": current_revenue,
+            "previous": 23150.00, # Mocked
+            "change_percent": 8.9, # Mocked
             "chart_data": [
                 {"month": "Jan", "value": 18500},
                 {"month": "Fev", "value": 19200},
                 {"month": "Mar", "value": 21000},
                 {"month": "Abr", "value": 22500},
                 {"month": "Mai", "value": 23150},
-                {"month": "Jun", "value": 25220},
+                {"month": "Jun", "value": current_revenue},
             ],
         },
         "costs": {
-            "current": 6370.00,
-            "previous": 5890.00,
-            "change_percent": 8.1,
+            "current": current_costs,
+            "previous": 5890.00, # Mocked
+            "change_percent": 8.1, # Mocked
             "breakdown": {
-                "salaries": 3200.00,
-                "infrastructure": 1500.00,
-                "marketing": 970.00,
-                "others": 700.00,
+                "salaries": salary_costs,
+                "infrastructure": infra_costs,
+                "marketing": marketing_costs,
+                "others": other_costs,
             },
             "chart_data": [
                 {"month": "Jan", "value": 5200},
@@ -55,21 +79,21 @@ async def get_dashboard_metrics(
                 {"month": "Mar", "value": 5600},
                 {"month": "Abr", "value": 5750},
                 {"month": "Mai", "value": 5890},
-                {"month": "Jun", "value": 6370},
+                {"month": "Jun", "value": current_costs},
             ],
         },
         "profit": {
-            "current": 19350.00,
-            "previous": 17260.00,
-            "change_percent": 12.1,
-            "margin_percent": 76.8,
+            "current": current_profit,
+            "previous": 17260.00, # Mocked
+            "change_percent": 12.1, # Mocked
+            "margin_percent": (current_profit / current_revenue * 100) if current_revenue > 0 else 0,
             "chart_data": [
                 {"month": "Jan", "value": 13300},
                 {"month": "Fev", "value": 13800},
                 {"month": "Mar", "value": 15400},
                 {"month": "Abr", "value": 16750},
                 {"month": "Mai", "value": 17260},
-                {"month": "Jun", "value": 19350},
+                {"month": "Jun", "value": current_profit},
             ],
         },
     }
