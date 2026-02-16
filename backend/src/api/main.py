@@ -22,6 +22,8 @@ import domain.models  # Garante o registro de todos os modelos
 from core.config import settings
 from contextlib import asynccontextmanager
 from core.superintendent import superintendent
+from core.security.vpn_block import vpn_blocker_middleware
+
 
 
 @asynccontextmanager
@@ -35,6 +37,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Innovation.ia - Elite Recruitment", lifespan=lifespan)
+app.middleware("http")(vpn_blocker_middleware)
 
 # Configuração do Gemini
 GEMINI_API_KEY = settings.GEMINI_API_KEY
