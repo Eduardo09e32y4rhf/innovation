@@ -48,6 +48,7 @@ services:
       - DATABASE_URL=postgresql://user:password@postgres:5432/innovation
       - REDIS_URL=redis://redis:6379
       - MONGODB_URL=mongodb://mongo:27017
+      - ENABLE_VPN_BLOCK=True
     depends_on:
       - postgres
       - redis
