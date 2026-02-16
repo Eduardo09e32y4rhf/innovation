@@ -48,7 +48,7 @@ body {
 
 @layer components {
   .glass-panel {
-    @apply bg-gray-950/70 backdrop-blur-xl border border-white/5 shadow-xl;
+    @apply bg-zinc-950/70 backdrop-blur-xl border border-white/5 shadow-xl;
   }
 
   .glass-card {

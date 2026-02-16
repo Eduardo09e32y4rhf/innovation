@@ -101,7 +101,7 @@ export default function ChatIAPage() {
 
             <main className="flex-1 ml-[280px] flex flex-col h-full relative">
                 {/* Header */}
-                <header className="p-6 border-b border-gray-900 flex justify-between items-center bg-gray-950/50 backdrop-blur-md sticky top-0 z-10">
+                <header className="p-6 border-b border-gray-900 flex justify-between items-center bg-zinc-950/50 backdrop-blur-md sticky top-0 z-10">
                     <div>
                         <h2 className="text-xl font-bold">Assistente Innovation.ia</h2>
                         <div className="flex items-center gap-2 mt-1">
