@@ -12,6 +12,17 @@ services:
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf # Need to create this config later
 
+  # Frontend Application (Next.js)
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - API_URL=http://backend:8000
+      - NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
+    depends_on:
+      - backend
+
   # API Gateway (Kong)
   kong:
     image: kong:latest

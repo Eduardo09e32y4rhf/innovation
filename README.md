@@ -19,7 +19,7 @@ O sistema é dividido em dois componentes principais:
     *   **IA**: Integração com Google Gemini Pro para análise de currículos e chatbots.
     *   **Segurança**: Proteção contra ataques comuns (SQLi, XSS, CSRF), Rate Limiting.
 
-2.  **Frontend (`frontend-next/`)**: Interface moderna desenvolvida em **Next.js 16** (App Router).
+2.  **Frontend (`frontend/`)**: Interface moderna desenvolvida em **Next.js 16** (App Router).
     *   **Estilização**: Tailwind CSS + Shadcn UI.
     *   **Estado**: React Server Components e Client Components otimizados.
 
@@ -65,7 +65,7 @@ Documentação da API (Swagger UI): `http://localhost:8000/docs`
 ### 2. Configuração do Frontend
 
 ```bash
-cd frontend-next
+cd frontend
 
 # Instalar dependências
 npm install
