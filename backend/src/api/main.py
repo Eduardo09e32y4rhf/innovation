@@ -25,7 +25,6 @@ from core.superintendent import superintendent
 from core.security.vpn_block import vpn_blocker_middleware
 
 
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup: Initialize Superintendent AI
