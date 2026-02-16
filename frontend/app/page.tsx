@@ -128,7 +128,7 @@ export default function Home() {
       {/* Footer */}
       <footer className="border-t border-zinc-800 bg-black py-12">
         <div className="container mx-auto px-4 text-center text-zinc-500">
-          <p>&copy; 2024 Innovation.ia Enterprise. Todos os direitos reservados.</p>
+          <p>&copy; 2026 Innovation.ia Enterprise. Todos os direitos reservados.</p>
         </div>
       </footer>
     </div>

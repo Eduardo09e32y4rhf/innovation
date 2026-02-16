@@ -106,4 +106,4 @@ pytest
 5.  Abra um Pull Request.
 
 ---
-**Innovation-Enterprise © 2024**
+**Innovation-Enterprise © 2026**
