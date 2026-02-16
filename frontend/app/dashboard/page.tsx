@@ -1,10 +1,10 @@
-"use client"
+'use client';
 
+import { Sidebar } from '../../components/Sidebar';
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Navbar } from "@/components/layout/navbar"
 import { motion } from "framer-motion"
-import { Activity, BarChart3, Bot, Calendar, Clock, DollarSign, Target, TrendingUp, Users } from "lucide-react"
+import { Activity, Bot, Calendar, DollarSign, Target, TrendingUp, Users } from "lucide-react"
 
 export default function DashboardPage() {
     const stats = [
@@ -66,19 +66,19 @@ export default function DashboardPage() {
     ]
 
     return (
-        <div className="min-h-screen bg-black">
-            <Navbar />
+        <div className="flex bg-[#0a0a0f] min-h-screen text-white">
+            <Sidebar />
 
-            <main className="container mx-auto px-4 pt-24 pb-12">
+            <main className="flex-1 ml-[280px] p-8">
                 <div className="flex flex-col space-y-8">
                     {/* Header */}
                     <div className="flex items-center justify-between">
                         <div>
-                            <h1 className="text-3xl font-bold tracking-tight text-white">Dashboard Enterprise</h1>
+                            <h1 className="text-3xl font-bold tracking-tight text-white mb-2">Dashboard Enterprise</h1>
                             <p className="text-zinc-400">Visão geral em tempo real das operações.</p>
                         </div>
                         <div className="flex items-center space-x-2">
-                            <Button>Novo Relatório</Button>
+                            <Button className="bg-purple-600 hover:bg-purple-700">Novo Relatório</Button>
                         </div>
                     </div>
 
@@ -91,7 +91,7 @@ export default function DashboardPage() {
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: i * 0.1 }}
                             >
-                                <Card className="border-zinc-800 bg-zinc-900/50">
+                                <Card className="border-zinc-800 bg-zinc-900/50 hover:bg-zinc-800/80 transition-colors">
                                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                                         <CardTitle className="text-sm font-medium text-zinc-200">
                                             {stat.title}
@@ -100,7 +100,7 @@ export default function DashboardPage() {
                                     </CardHeader>
                                     <CardContent>
                                         <div className="text-2xl font-bold text-white">{stat.value}</div>
-                                        <p className="text-xs text-zinc-500">{stat.change}</p>
+                                        <p className="text-xs text-zinc-500 mt-1">{stat.change}</p>
                                     </CardContent>
                                 </Card>
                             </motion.div>
@@ -112,8 +112,8 @@ export default function DashboardPage() {
                         {/* Chart Area (Mock) */}
                         <Card className="col-span-4 border-zinc-800 bg-zinc-900/50">
                             <CardHeader>
-                                <CardTitle>Crescimento da Plataforma</CardTitle>
-                                <CardDescription>Usuários ativos nos últimos 6 meses</CardDescription>
+                                <CardTitle className="text-white">Crescimento da Plataforma</CardTitle>
+                                <CardDescription className="text-zinc-400">Usuários ativos nos últimos 6 meses</CardDescription>
                             </CardHeader>
                             <CardContent className="pl-2">
                                 <div className="h-[300px] flex items-end justify-between px-4 pb-4 space-x-2">
@@ -129,11 +129,11 @@ export default function DashboardPage() {
                         {/* Recent Activity */}
                         <Card className="col-span-3 border-zinc-800 bg-zinc-900/50">
                             <CardHeader>
-                                <CardTitle>Atividade Recente da IA</CardTitle>
-                                <CardDescription>Ações autônomas do sistema</CardDescription>
+                                <CardTitle className="text-white">Atividade Recente da IA</CardTitle>
+                                <CardDescription className="text-zinc-400">Ações autônomas do sistema</CardDescription>
                             </CardHeader>
                             <CardContent>
-                                <div className="space-y-8">
+                                <div className="space-y-6">
                                     {recent_activity.map((item, i) => (
                                         <div className="flex items-center" key={i}>
                                             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-zinc-800 border border-zinc-700">
@@ -141,7 +141,7 @@ export default function DashboardPage() {
                                             </div>
                                             <div className="ml-4 space-y-1">
                                                 <p className="text-sm font-medium leading-none text-white">{item.user}</p>
-                                                <p className="text-sm text-zinc-400">{item.action}</p>
+                                                <p className="text-xs text-zinc-400">{item.action}</p>
                                             </div>
                                             <div className="ml-auto font-medium text-xs text-zinc-500">{item.time}</div>
                                         </div>
