@@ -42,7 +42,7 @@ async def create_subscription(
             "frequency": 1,
             "frequency_type": "months",
             "transaction_amount": float(price),
-            "currency_id": "BRL"
+            "currency_id": "BRL",
         },
         "back_url": f"{base_url}/dashboard",
         "status": "pending",
@@ -57,9 +57,11 @@ async def create_subscription(
         init_point = response.get("init_point")
 
         if not init_point:
-             # Fallback ou erro
-             print(f"Erro MP Response: {response}")
-             raise HTTPException(status_code=500, detail="Não foi possível gerar o link de assinatura.")
+            # Fallback ou erro
+            print(f"Erro MP Response: {response}")
+            raise HTTPException(
+                status_code=500, detail="Não foi possível gerar o link de assinatura."
+            )
 
         return {"checkout_url": init_point}
     except Exception as e:
@@ -114,7 +116,9 @@ async def mp_webhook(request: Request, db: Session = Depends(get_db)):
                             user.subscription_plan = "starter"
 
                         db.commit()
-                        print(f"✅ Assinatura confirmada! Usuário {user.email} agora é {user.subscription_plan.upper()}.")
+                        print(
+                            f"✅ Assinatura confirmada! Usuário {user.email} agora é {user.subscription_plan.upper()}."
+                        )
         except Exception as e:
             print(f"Erro processando webhook MP: {e}")
 
