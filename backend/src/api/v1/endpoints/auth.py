@@ -72,6 +72,7 @@ def login(request: Request, data: LoginRequest, db: Session = Depends(get_db)):
         "access_token": access_token,
         "refresh_token": refresh_token,
         "token_type": "bearer",
+        "role": user.role,
     }
 
 
@@ -107,6 +108,7 @@ def verify_login_code(
         "access_token": access_token,
         "refresh_token": refresh_token,
         "token_type": "bearer",
+        "role": user.role,
     }
 
 
@@ -168,6 +170,7 @@ async def google_login():
 async def google_callback(code: str, db: Session = Depends(get_db)):
     """
     Troca o code pelo token, busca info do user e loga/registra.
+    Retorna também 'role' e 'is_new_user' para o front decidir redirecionamento.
     """
     if not settings.GOOGLE_CLIENT_ID or not settings.GOOGLE_CLIENT_SECRET:
         raise HTTPException(
@@ -218,9 +221,11 @@ async def google_callback(code: str, db: Session = Depends(get_db)):
         lambda: db.query(User).filter(User.email == email).first()
     )
 
+    is_new_user = False
+
     if not user:
-        # Registrar novo usuário (Candidate por padrão, ou forçar Company se vier de um fluxo específico)
-        # Aqui simplificamos criando como candidate, o usuário pode mudar depois ou o front pode mandar flag
+        is_new_user = True
+        # Registrar novo usuário
         from services.auth_service import register_user
         import secrets
 
@@ -233,7 +238,7 @@ async def google_callback(code: str, db: Session = Depends(get_db)):
             email,
             random_password,
             name=name,
-            role="candidate",  # Default
+            role="candidate",  # Default, front deve pedir dados extras se quiser virar Company
         )
 
     # 4. Gerar JWT do nosso app
@@ -244,4 +249,6 @@ async def google_callback(code: str, db: Session = Depends(get_db)):
         "access_token": access_token,
         "refresh_token": refresh_token,
         "token_type": "bearer",
+        "role": user.role,
+        "is_new_user": is_new_user,
     }

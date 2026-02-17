@@ -41,6 +41,8 @@ class Token(BaseModel):
     token_type: str = "bearer"
     two_factor_required: bool | None = None
     temporary_token: str | None = None  # Token temporário para 2FA
+    role: str | None = None  # Role do usuário para redirecionamento no front
+    is_new_user: bool | None = False
 
 
 class UserOut(BaseModel):

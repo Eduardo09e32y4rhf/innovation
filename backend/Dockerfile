@@ -18,8 +18,8 @@ COPY . .
 # Setar o PYTHONPATH para encontrar os módulos
 ENV PYTHONPATH=/app/backend/src:/app
 
-# Expor a porta que o FastAPI usa
+# Expor a porta (documentação)
 EXPOSE 8000
 
-# Comando padrão (pode ser sobrescrito pelo docker-compose)
-CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Comando para iniciar a aplicação usando a variável de ambiente PORT (padrão Railway)
+CMD sh -c "uvicorn api.main:app --host 0.0.0.0 --port ${PORT:-8000}"

@@ -1,9 +1,50 @@
 'use client';
 
 import { Sidebar } from '../../components/Sidebar';
-import { BadgeDollarSign, TrendingUp, CreditCard, Wallet, ArrowUpRight, ArrowDownRight, Download } from 'lucide-react';
+import { BadgeDollarSign, TrendingUp, CreditCard, Wallet, ArrowUpRight, ArrowDownRight, Download, FileText } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import api from '../../services/api';
+
+interface FinanceSummary {
+    balance: number;
+    total_income: number;
+    total_expenses: number;
+    pending_income: number;
+    pending_expenses: number;
+}
+
+interface TaxSummary {
+    total_taxes: number;
+    breakdown: Record<string, { total: number; pending: number; paid: number }>;
+}
 
 export default function FinancePage() {
+    const [summary, setSummary] = useState<FinanceSummary | null>(null);
+    const [taxes, setTaxes] = useState<TaxSummary | null>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const [summaryRes, taxesRes] = await Promise.all([
+                    api.get('/finance/summary'),
+                    api.get('/finance/taxes')
+                ]);
+                setSummary(summaryRes.data);
+                setTaxes(taxesRes.data);
+            } catch (error) {
+                console.error("Error fetching finance data", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchData();
+    }, []);
+
+    const formatCurrency = (value: number) => {
+        return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+    };
+
     return (
         <div className="flex h-screen bg-[#0a0a0f] text-white">
             <Sidebar />
@@ -29,19 +70,43 @@ export default function FinancePage() {
                 {/* KPI Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
                     {[
-                        { title: "Receita Total", value: "R$ 1.2M", change: "+12.5%", icon: BadgeDollarSign, color: "text-green-400" },
-                        { title: "Custos Operacionais", value: "R$ 450k", change: "-2.4%", icon: Wallet, color: "text-red-400" },
-                        { title: "Lucro Líquido", value: "R$ 750k", change: "+18.2%", icon: TrendingUp, color: "text-emerald-400" },
-                        { title: "Assinaturas Ativas", value: "1,240", change: "+54 recém-chegados", icon: CreditCard, color: "text-purple-400" },
+                        {
+                            title: "Saldo Atual",
+                            value: summary ? formatCurrency(summary.balance) : "R$ 0,00",
+                            change: "Calculado",
+                            icon: BadgeDollarSign,
+                            color: "text-green-400"
+                        },
+                        {
+                            title: "Despesas Totais",
+                            value: summary ? formatCurrency(summary.total_expenses) : "R$ 0,00",
+                            change: "Pago",
+                            icon: Wallet,
+                            color: "text-red-400"
+                        },
+                        {
+                            title: "A Receber (Pendente)",
+                            value: summary ? formatCurrency(summary.pending_income) : "R$ 0,00",
+                            change: "Previsto",
+                            icon: TrendingUp,
+                            color: "text-emerald-400"
+                        },
+                        {
+                            title: "A Pagar (Pendente)",
+                            value: summary ? formatCurrency(summary.pending_expenses) : "R$ 0,00",
+                            change: "Previsto",
+                            icon: CreditCard,
+                            color: "text-purple-400"
+                        },
                     ].map((kpi, i) => (
-                        <div key={i} className="glass-panel p-6 rounded-2xl relative overflow-hidden group">
+                        <div key={i} className="glass-panel p-6 rounded-2xl relative overflow-hidden group border border-white/5 bg-white/5">
                             <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
                                 <kpi.icon className={`w-16 h-16 ${kpi.color}`} />
                             </div>
                             <div className="relative z-10">
                                 <p className="text-gray-400 text-sm font-medium mb-1">{kpi.title}</p>
-                                <h3 className="text-2xl font-bold text-white mb-2">{kpi.value}</h3>
-                                <span className={`text-xs px-2 py-1 rounded-full bg-white/5 ${kpi.change.startsWith('+') ? 'text-green-400' : 'text-red-400'}`}>
+                                <h3 className="text-2xl font-bold text-white mb-2">{loading ? "..." : kpi.value}</h3>
+                                <span className={`text-xs px-2 py-1 rounded-full bg-white/5 text-gray-400`}>
                                     {kpi.change}
                                 </span>
                             </div>
@@ -49,57 +114,53 @@ export default function FinancePage() {
                     ))}
                 </div>
 
-                {/* Charts & Transaction Section */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    {/* Main Chart Area */}
-                    <div className="lg:col-span-2 glass-panel rounded-2xl p-6">
-                        <h3 className="text-lg font-semibold mb-6">Fluxo de Caixa (Real-Time)</h3>
-                        <div className="h-[300px] flex items-end justify-between gap-2 px-2">
-                            {[65, 59, 80, 81, 56, 55, 40, 70, 75, 60, 90, 85].map((h, i) => (
-                                <div key={i} className="w-full bg-gray-800 rounded-t-sm hover:bg-gray-700 transition-all relative group h-full flex flex-col justify-end">
-                                    <div
-                                        style={{ height: `${h}%` }}
-                                        className={`w-full rounded-t-sm transition-all duration-500 ${i % 2 === 0 ? 'bg-green-500/80' : 'bg-emerald-600/80'} group-hover:bg-green-400`}
-                                    ></div>
-                                </div>
-                            ))}
-                        </div>
-                        <div className="flex justify-between text-xs text-gray-500 mt-4 px-2">
-                            <span>Jan</span><span>fev</span><span>mar</span><span>abr</span><span>mai</span><span>jun</span>
-                            <span>jul</span><span>ago</span><span>set</span><span>out</span><span>nov</span><span>dez</span>
-                        </div>
-                    </div>
+                    {/* Tax Breakdown Area */}
+                    <div className="lg:col-span-2 glass-panel rounded-2xl p-6 border border-white/5 bg-white/5">
+                        <h3 className="text-lg font-semibold mb-6 flex items-center gap-2">
+                            <FileText className="w-5 h-5 text-yellow-500" />
+                            Impostos e Tributos (DAS, INSS, FGTS)
+                        </h3>
 
-                    {/* Recent Transactions */}
-                    <div className="glass-panel rounded-2xl p-6">
-                        <h3 className="text-lg font-semibold mb-4">Transações Recentes</h3>
-                        <div className="space-y-4">
-                            {[
-                                { name: "Licença Enterprise", desc: "Tech Corp Ltda", value: "+ R$ 12.000", type: "in" },
-                                { name: "Servidores AWS", desc: "Infraestrutura", value: "- R$ 850,00", type: "out" },
-                                { name: "Consultoria IA", desc: "Banco Digital", value: "+ R$ 45.000", type: "in" },
-                                { name: "Marketing Q3", desc: "Google Ads", value: "- R$ 3.200", type: "out" },
-                                { name: "Plano Pro", desc: "Startup X", value: "+ R$ 299,00", type: "in" },
-                            ].map((tx, i) => (
-                                <div key={i} className="flex items-center justify-between p-3 hover:bg-white/5 rounded-xl transition">
-                                    <div className="flex items-center gap-3">
-                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${tx.type === 'in' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
-                                            {tx.type === 'in' ? <ArrowUpRight className="w-5 h-5" /> : <ArrowDownRight className="w-5 h-5" />}
-                                        </div>
+                        {!loading && taxes?.breakdown && Object.keys(taxes.breakdown).length > 0 ? (
+                            <div className="space-y-4">
+                                {Object.entries(taxes.breakdown).map(([key, data]) => (
+                                    <div key={key} className="p-4 rounded-xl bg-white/5 hover:bg-white/10 transition flex justify-between items-center">
                                         <div>
-                                            <p className="text-sm font-medium">{tx.name}</p>
-                                            <p className="text-xs text-gray-500">{tx.desc}</p>
+                                            <p className="font-bold text-lg text-white">{key}</p>
+                                            <p className="text-xs text-gray-400">Total Acumulado</p>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="font-bold text-white">{formatCurrency(data.total)}</p>
+                                            <p className="text-xs text-red-400">Pendente: {formatCurrency(data.pending)}</p>
                                         </div>
                                     </div>
-                                    <span className={`text-sm font-bold ${tx.type === 'in' ? 'text-green-400' : 'text-gray-400'}`}>
-                                        {tx.value}
-                                    </span>
-                                </div>
-                            ))}
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="h-[200px] flex items-center justify-center text-gray-500">
+                                <p>{loading ? "Carregando..." : "Nenhum registro tributário encontrado."}</p>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Recent Transactions (Placeholder for now, could be real too) */}
+                    <div className="glass-panel rounded-2xl p-6 border border-white/5 bg-white/5">
+                        <h3 className="text-lg font-semibold mb-4">Ações Rápidas</h3>
+                         <div className="space-y-3">
+                            <button className="w-full py-3 px-4 bg-purple-600 hover:bg-purple-700 rounded-xl transition flex items-center justify-center gap-2 font-medium">
+                                <CreditCard className="w-4 h-4" /> Pagar Impostos
+                            </button>
+                            <button className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 rounded-xl transition flex items-center justify-center gap-2 font-medium">
+                                <TrendingUp className="w-4 h-4" /> Ver Relatórios Completos
+                            </button>
+                         </div>
+
+                        <h3 className="text-lg font-semibold mt-8 mb-4">Status Tributário</h3>
+                        <div className="p-4 rounded-xl bg-green-500/10 border border-green-500/20">
+                            <p className="text-green-400 text-sm font-medium">Sua empresa está em dia!</p>
+                            <p className="text-gray-400 text-xs mt-1">Nenhuma pendência crítica encontrada nos últimos 30 dias.</p>
                         </div>
-                        <button className="w-full mt-6 py-3 rounded-xl border border-dashed border-gray-700 text-gray-400 text-sm hover:border-gray-500 hover:text-white transition">
-                            Ver todas as transações
-                        </button>
                     </div>
                 </div>
             </main>
