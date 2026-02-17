@@ -41,6 +41,16 @@ export function Sidebar() {
             </nav>
 
             <div className="p-6 mt-auto border-t border-purple-500/10">
+                <div className="mb-4 text-xs text-center text-gray-500">
+                    <p className="font-semibold text-gray-400">Innovation HQ</p>
+                    <p>Sede Virtual: Osasco - SP</p>
+                    <div className="flex justify-center gap-2 mt-2 text-[10px]">
+                        <Link href="/terms" className="hover:text-purple-400">Termos</Link>
+                        <span>•</span>
+                        <Link href="/rules" className="hover:text-purple-400">Regras</Link>
+                    </div>
+                </div>
+
                 <button className="w-full py-2 bg-red-500/10 text-red-400 rounded-lg hover:bg-red-500/20 transition text-sm font-medium flex items-center justify-center gap-2">
                     Sair
                 </button>

@@ -4,111 +4,112 @@ from sqlalchemy.orm import Session
 from core.config import settings
 from infrastructure.database.sql.dependencies import get_db
 from domain.models.user import User
-from api.v1.endpoints.auth import get_current_user  # Ajuste conforme autenticação
+from api.v1.endpoints.auth import get_current_user
+from datetime import datetime, timedelta
 
 router = APIRouter(prefix="/api/payments", tags=["payments"])
 
-# Inicializa o SDK
-# Use the token from settings, fallback to empty string if not set to avoid crash on init,
-# but API calls will fail if token is invalid.
+# Initialize SDK
 sdk = mercadopago.SDK(settings.MP_ACCESS_TOKEN or "TEST-TOKEN")
 
 
-# 1. CRIA O LINK DE PAGAMENTO
-@router.post("/create-preference/{plan_type}")
-async def create_preference(
+@router.post("/create-subscription/{plan_type}")
+async def create_subscription(
     plan_type: str, current_user: User = Depends(get_current_user)
 ):
-
-    # Preços (Isso poderia vir do banco)
+    """
+    Creates a recurring subscription (preapproval) for the streaming model.
+    """
     prices = {"starter": 29.90, "pro": 99.90, "enterprise": 499.90}
     price = prices.get(plan_type, 29.90)
-
-    # Base URL logic: prefer the one from settings (which comes from env/ngrok)
     base_url = settings.BASE_URL
 
-    preference_data = {
-        "items": [
-            {
-                "id": plan_type,
-                "title": f"Plano {plan_type.title()} - Innovation.ia",
-                "quantity": 1,
-                "currency_id": "BRL",
-                "unit_price": float(price),
-            }
-        ],
-        "payer": {
-            "email": current_user.email,
-            "name": current_user.full_name or "Usuario",
+    # Preapproval payload (Subscription)
+    preapproval_data = {
+        "reason": f"Assinatura Innovation.ia - {plan_type.title()}",
+        "auto_recurring": {
+            "frequency": 1,
+            "frequency_type": "months",
+            "transaction_amount": float(price),
+            "currency_id": "BRL",
         },
-        "back_urls": {
-            # Para onde o usuário volta depois de pagar
-            "success": f"{base_url}/dashboard?status=success",
-            "failure": f"{base_url}/dashboard?status=failure",
-            "pending": f"{base_url}/dashboard?status=pending",
-        },
-        "auto_return": "approved",
-        "notification_url": f"{base_url}/api/payments/webhook",  # ONDE O MP VAI AVISAR
-        "external_reference": str(
-            current_user.id
-        ),  # ID do usuário para sabermos quem pagou
-        "metadata": {"plan_type": plan_type, "user_id": current_user.id},
+        "payer_email": current_user.email,
+        "back_url": f"{base_url}/dashboard",
+        "status": "pending",
+        "external_reference": str(current_user.id),
     }
 
     try:
-        preference_response = sdk.preference().create(preference_data)
-        preference = preference_response["response"]
-        return {"checkout_url": preference["init_point"]}  # O link para o front abrir
+        # Create Preapproval (Subscription)
+        result = sdk.preapproval().create(preapproval_data)
+        response = result["response"]
+
+        # 'init_point' is the link for the user to authorize the subscription
+        return {"checkout_url": response["init_point"], "id": response["id"]}
     except Exception as e:
-        print(f"Erro ao criar preferência: {e}")
+        print(f"Erro ao criar assinatura: {e}")
         raise HTTPException(
             status_code=500, detail="Erro ao comunicar com Mercado Pago"
         )
 
 
-# 2. RECEBE A CONFIRMAÇÃO (WEBHOOK)
 @router.post("/webhook")
 async def mp_webhook(request: Request, db: Session = Depends(get_db)):
     try:
         data = await request.json()
     except Exception:
-        # Mercado Pago sometimes sends data as query params or other formats,
-        # but for 'payment' notifications usually it's JSON payload or we need to query by ID.
-        # If JSON fails, check query params
         return {"status": "ignored_no_json"}
 
-    # Action might be in query params?
-    # Mercado Pago standard: POST to URL with ?topic=payment&id=123... OR JSON body using types.
-    # New webhook v2 uses 'type': 'payment' in body.
+    event_type = data.get("type")
+    action = data.get("action")
 
-    if data.get("type") == "payment":
-        payment_id = data.get("data", {}).get("id")
+    # Handle Subscription (preapproval) events
+    if event_type == "subscription_preapproval":
+        preapproval_id = data.get("data", {}).get("id")
+        if preapproval_id:
+            # Verify status with MP
+            result = sdk.preapproval().get(preapproval_id)
+            if result["status"] == 200:
+                sub_data = result["response"]
+                status = sub_data["status"]
+                external_ref = sub_data["external_reference"]
 
-        if payment_id:
-            # Consulta o Mercado Pago para ver o status real
-            payment_info = sdk.payment().get(payment_id)
-
-            if payment_info["status"] == 200:
-                response = payment_info["response"]
-                status = response["status"]
-                external_ref = response[
-                    "external_reference"
-                ]  # Pegamos o ID do usuário de volta
-
-                if status == "approved":
-                    # Atualiza o usuário no banco
+                # 'authorized' means the user accepted the subscription
+                if status == "authorized":
                     user = db.query(User).filter(User.id == int(external_ref)).first()
                     if user:
-                        # Tenta pegar o plano do metadata, senão fallback para "pro"
-                        metadata = response.get("metadata", {})
-                        purchased_plan = metadata.get("plan_type", "pro")
+                        # Determine plan based on amount or reason logic
+                        # Simplified: default to 'pro' or extract from reason string
+                        reason = sub_data.get("reason", "").lower()
+                        plan = "pro"
+                        if "starter" in reason:
+                            plan = "starter"
+                        elif "enterprise" in reason:
+                            plan = "enterprise"
 
-                        user.subscription_plan = purchased_plan
+                        user.subscription_plan = plan
                         user.subscription_status = "active"
                         user.is_active = True
                         db.commit()
-                        print(
-                            f"✅ Pagamento confirmado! Usuário {user.email} agora é {purchased_plan.upper()}."
-                        )
+                        print(f"✅ Assinatura Ativa: {user.email} - {plan}")
+
+    # Keep handling individual payments for redundancy/legacy
+    elif event_type == "payment":
+        payment_id = data.get("data", {}).get("id")
+        if payment_id:
+            payment_info = sdk.payment().get(payment_id)
+            if payment_info["status"] == 200:
+                response = payment_info["response"]
+                status = response["status"]
+                external_ref = response.get("external_reference")
+
+                if status == "approved" and external_ref:
+                    user = db.query(User).filter(User.id == int(external_ref)).first()
+                    if user:
+                         # Update only if not already active to avoid overwriting subscription logic
+                         if user.subscription_status != "active":
+                            user.subscription_status = "active"
+                            user.is_active = True
+                            db.commit()
 
     return {"status": "received"}

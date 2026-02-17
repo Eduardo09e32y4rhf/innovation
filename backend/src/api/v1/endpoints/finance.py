@@ -6,7 +6,12 @@ from domain.models.user import User
 from domain.models.finance import Transaction
 from services.finance_service import finance_service
 from domain.models.audit_log import AuditLog
-from domain.schemas.finance import TransactionCreate
+from domain.schemas.finance import (
+    TransactionCreate,
+    TransactionRead,
+    FinanceSummary,
+    TaxSummary,
+)
 from typing import List
 from decimal import Decimal
 from datetime import datetime, time
@@ -14,7 +19,7 @@ from datetime import datetime, time
 router = APIRouter(prefix="/api/finance", tags=["finance"])
 
 
-@router.get("/summary")
+@router.get("/summary", response_model=FinanceSummary)
 async def get_summary(
     db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
 ):
@@ -30,6 +35,24 @@ async def get_prediction(
     if current_user.role.lower() != "company":
         raise HTTPException(status_code=403, detail="Acesso não autorizado")
     return finance_service.ai_cash_flow_prediction(db, current_user.id)
+
+
+@router.get("/transactions", response_model=List[TransactionRead])
+async def get_transactions(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    limit: int = 20,
+):
+    if current_user.role.lower() != "company":
+        raise HTTPException(status_code=403, detail="Acesso não autorizado")
+
+    return (
+        db.query(Transaction)
+        .filter(Transaction.company_id == current_user.id)
+        .order_by(Transaction.created_at.desc())
+        .limit(limit)
+        .all()
+    )
 
 
 @router.post("/transactions")
@@ -72,7 +95,7 @@ async def get_anomalies(
     return finance_service.detect_anomalies(db, current_user.id)
 
 
-@router.get("/taxes")
+@router.get("/taxes", response_model=TaxSummary)
 async def get_taxes(
     db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
 ):
