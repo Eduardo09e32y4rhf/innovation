@@ -101,16 +101,16 @@ export default function ChatIAPage() {
 
             <main className="flex-1 ml-[280px] flex flex-col h-full relative">
                 {/* Header */}
-                <header className="p-6 border-b border-gray-900 flex justify-between items-center bg-zinc-950/50 backdrop-blur-md sticky top-0 z-10">
+                <header className="p-6 border-b border-zinc-900 flex justify-between items-center bg-zinc-950/50 backdrop-blur-md sticky top-0 z-10">
                     <div>
                         <h2 className="text-xl font-bold">Assistente Innovation.ia</h2>
                         <div className="flex items-center gap-2 mt-1">
                             <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                            <span className="text-xs text-gray-400">Gemini 1.5 Flash Ativo</span>
+                            <span className="text-xs text-zinc-400">Gemini 1.5 Flash Ativo</span>
                         </div>
                     </div>
                     <div className="flex gap-4">
-                        <select className="bg-gray-900 border border-gray-800 rounded-lg px-3 py-1.5 text-xs text-white outline-none">
+                        <select className="bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-white outline-none">
                             <option value="gemini">Gemini Pro</option>
                             <option value="claude">Claude 3.5</option>
                         </select>
@@ -125,7 +125,7 @@ export default function ChatIAPage() {
                                 <Cpu className="w-10 h-10 text-white" />
                             </div>
                             <h3 className="text-2xl font-black mb-2">Como posso acelerar seu RH hoje?</h3>
-                            <p className="max-w-md text-gray-400">Posso analisar currículos, prever custos de contratação ou gerar roadmaps de squads inteiros.</p>
+                            <p className="max-w-md text-zinc-400">Posso analisar currículos, prever custos de contratação ou gerar roadmaps de squads inteiros.</p>
                         </div>
                     ) : (
                         messages.map((msg) => (
@@ -141,14 +141,14 @@ export default function ChatIAPage() {
                                 <div className={`p-4 rounded-2xl text-sm leading-relaxed 
                   ${msg.sender === 'user'
                                         ? 'bg-purple-600 text-white rounded-br-none'
-                                        : 'bg-gray-800/80 border border-purple-500/30 rounded-bl-none text-gray-200'} 
+                                        : 'bg-zinc-800/80 border border-purple-500/30 rounded-bl-none text-zinc-200'}
                   ${msg.isThinking ? 'animate-pulse' : ''}`}>
 
                                     {msg.isThinking ? (
                                         <span className="flex gap-1">
-                                            <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-75"></span>
-                                            <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-150"></span>
-                                            <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-300"></span>
+                                            <span className="w-2 h-2 bg-zinc-400 rounded-full animate-bounce delay-75"></span>
+                                            <span className="w-2 h-2 bg-zinc-400 rounded-full animate-bounce delay-150"></span>
+                                            <span className="w-2 h-2 bg-zinc-400 rounded-full animate-bounce delay-300"></span>
                                         </span>
                                     ) : (
                                         // Basic markdown rendering (bold and newlines)
@@ -173,7 +173,7 @@ export default function ChatIAPage() {
                             onChange={(e) => setInput(e.target.value)}
                             onKeyDown={handleKeyDown}
                             placeholder="Pergunte qualquer coisa sobre sua empresa..."
-                            className="w-full bg-gray-900/50 border border-purple-500/30 rounded-2xl pl-5 pr-14 py-4 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all resize-none overflow-hidden min-h-[60px]"
+                            className="w-full bg-zinc-900/50 border border-purple-500/30 rounded-2xl pl-5 pr-14 py-4 text-white placeholder-zinc-500 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all resize-none overflow-hidden min-h-[60px]"
                             rows={1}
                         />
                         <button
@@ -184,7 +184,7 @@ export default function ChatIAPage() {
                             <Send className="w-5 h-5" />
                         </button>
                     </div>
-                    <p className="text-center text-[10px] text-gray-600 mt-4">
+                    <p className="text-center text-[10px] text-zinc-600 mt-4">
                         A IA pode fornecer informações incorretas. Verifique fatos importantes.
                     </p>
                 </div>

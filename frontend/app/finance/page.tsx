@@ -14,10 +14,10 @@ export default function FinancePage() {
                         <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-green-400 to-emerald-600">
                             Gestão Financeira
                         </h1>
-                        <p className="text-gray-400 mt-1">Fluxo de caixa e assinaturas enterprise</p>
+                        <p className="text-zinc-400 mt-1">Fluxo de caixa e assinaturas enterprise</p>
                     </div>
                     <div className="flex gap-3">
-                        <button className="flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg text-sm border border-gray-700 transition">
+                        <button className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-sm border border-zinc-700 transition">
                             <Download className="w-4 h-4" /> Exportar Relatório
                         </button>
                         <button className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-500 rounded-lg text-sm font-medium transition shadow-lg shadow-green-900/20">
@@ -39,7 +39,7 @@ export default function FinancePage() {
                                 <kpi.icon className={`w-16 h-16 ${kpi.color}`} />
                             </div>
                             <div className="relative z-10">
-                                <p className="text-gray-400 text-sm font-medium mb-1">{kpi.title}</p>
+                                <p className="text-zinc-400 text-sm font-medium mb-1">{kpi.title}</p>
                                 <h3 className="text-2xl font-bold text-white mb-2">{kpi.value}</h3>
                                 <span className={`text-xs px-2 py-1 rounded-full bg-white/5 ${kpi.change.startsWith('+') ? 'text-green-400' : 'text-red-400'}`}>
                                     {kpi.change}
@@ -56,7 +56,7 @@ export default function FinancePage() {
                         <h3 className="text-lg font-semibold mb-6">Fluxo de Caixa (Real-Time)</h3>
                         <div className="h-[300px] flex items-end justify-between gap-2 px-2">
                             {[65, 59, 80, 81, 56, 55, 40, 70, 75, 60, 90, 85].map((h, i) => (
-                                <div key={i} className="w-full bg-gray-800 rounded-t-sm hover:bg-gray-700 transition-all relative group h-full flex flex-col justify-end">
+                                <div key={i} className="w-full bg-zinc-800 rounded-t-sm hover:bg-zinc-700 transition-all relative group h-full flex flex-col justify-end">
                                     <div
                                         style={{ height: `${h}%` }}
                                         className={`w-full rounded-t-sm transition-all duration-500 ${i % 2 === 0 ? 'bg-green-500/80' : 'bg-emerald-600/80'} group-hover:bg-green-400`}
@@ -64,7 +64,7 @@ export default function FinancePage() {
                                 </div>
                             ))}
                         </div>
-                        <div className="flex justify-between text-xs text-gray-500 mt-4 px-2">
+                        <div className="flex justify-between text-xs text-zinc-500 mt-4 px-2">
                             <span>Jan</span><span>fev</span><span>mar</span><span>abr</span><span>mai</span><span>jun</span>
                             <span>jul</span><span>ago</span><span>set</span><span>out</span><span>nov</span><span>dez</span>
                         </div>
@@ -88,16 +88,16 @@ export default function FinancePage() {
                                         </div>
                                         <div>
                                             <p className="text-sm font-medium">{tx.name}</p>
-                                            <p className="text-xs text-gray-500">{tx.desc}</p>
+                                            <p className="text-xs text-zinc-500">{tx.desc}</p>
                                         </div>
                                     </div>
-                                    <span className={`text-sm font-bold ${tx.type === 'in' ? 'text-green-400' : 'text-gray-400'}`}>
+                                    <span className={`text-sm font-bold ${tx.type === 'in' ? 'text-green-400' : 'text-zinc-400'}`}>
                                         {tx.value}
                                     </span>
                                 </div>
                             ))}
                         </div>
-                        <button className="w-full mt-6 py-3 rounded-xl border border-dashed border-gray-700 text-gray-400 text-sm hover:border-gray-500 hover:text-white transition">
+                        <button className="w-full mt-6 py-3 rounded-xl border border-dashed border-zinc-700 text-zinc-400 text-sm hover:border-zinc-500 hover:text-white transition">
                             Ver todas as transações
                         </button>
                     </div>

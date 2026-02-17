@@ -18,7 +18,7 @@ export default function ATSPage() {
                             <Users className="w-6 h-6" />
                         </div>
                         <div>
-                            <p className="text-gray-400 text-sm">Candidatos Totais</p>
+                            <p className="text-zinc-400 text-sm">Candidatos Totais</p>
                             <p className="text-2xl font-bold">1,248</p>
                         </div>
                     </div>
@@ -27,7 +27,7 @@ export default function ATSPage() {
                             <CheckCircle className="w-6 h-6" />
                         </div>
                         <div>
-                            <p className="text-gray-400 text-sm">Aprovados pela IA</p>
+                            <p className="text-zinc-400 text-sm">Aprovados pela IA</p>
                             <p className="text-2xl font-bold">85</p>
                         </div>
                     </div>
@@ -36,7 +36,7 @@ export default function ATSPage() {
                             <XCircle className="w-6 h-6" />
                         </div>
                         <div>
-                            <p className="text-gray-400 text-sm">Rejeitados Automaticamente</p>
+                            <p className="text-zinc-400 text-sm">Rejeitados Automaticamente</p>
                             <p className="text-2xl font-bold">842</p>
                         </div>
                     </div>
@@ -50,21 +50,21 @@ export default function ATSPage() {
                             { role: "Product Manager", applicants: 89, phase: "Triagem IA", status: "Active" },
                             { role: "UX Designer", applicants: 56, phase: "Finalizado", status: "Closed" },
                         ].map((job, i) => (
-                            <div key={i} className="flex items-center justify-between p-4 bg-gray-900/50 rounded-xl hover:bg-gray-800 transition">
+                            <div key={i} className="flex items-center justify-between p-4 bg-zinc-900/50 rounded-xl hover:bg-zinc-800 transition">
                                 <div className="flex items-center gap-4">
                                     <div className="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center text-purple-400">
                                         <FileText className="w-5 h-5" />
                                     </div>
                                     <div>
                                         <p className="font-medium text-white">{job.role}</p>
-                                        <p className="text-sm text-gray-500">{job.applicants} candidatos</p>
+                                        <p className="text-sm text-zinc-500">{job.applicants} candidatos</p>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-4">
                                     <span className="px-3 py-1 rounded-full text-xs font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20">
                                         {job.phase}
                                     </span>
-                                    <span className={`w-2 h-2 rounded-full ${job.status === 'Active' ? 'bg-green-500' : 'bg-gray-500'}`}></span>
+                                    <span className={`w-2 h-2 rounded-full ${job.status === 'Active' ? 'bg-green-500' : 'bg-zinc-500'}`}></span>
                                 </div>
                             </div>
                         ))}

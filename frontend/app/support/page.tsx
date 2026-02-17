@@ -21,7 +21,7 @@ export default function SupportPage() {
                     ].map((kpi, i) => (
                         <div key={i} className="glass-panel p-6 rounded-xl flex flex-col items-center text-center">
                             <kpi.icon className={`w-10 h-10 mb-2 ${kpi.color}`} />
-                            <p className="text-gray-400 text-sm">{kpi.title}</p>
+                            <p className="text-zinc-400 text-sm">{kpi.title}</p>
                             <p className="text-2xl font-bold mt-1">{kpi.value}</p>
                         </div>
                     ))}
@@ -31,7 +31,7 @@ export default function SupportPage() {
                     <h3 className="text-lg font-semibold mb-6">Tickets Recentes</h3>
                     <table className="w-full text-left">
                         <thead>
-                            <tr className="text-sm text-gray-500 border-b border-gray-800">
+                            <tr className="text-sm text-zinc-500 border-b border-zinc-800">
                                 <th className="pb-3 pl-4">ID</th>
                                 <th className="pb-3">Assunto</th>
                                 <th className="pb-3">Status</th>
@@ -45,8 +45,8 @@ export default function SupportPage() {
                                 { id: "#2048", subject: "Dúvida sobre Faturas", status: "Em Andamento", priority: "Média" },
                                 { id: "#2047", subject: "Integração GitHub falhou", status: "Resolvido", priority: "Baixa" },
                             ].map((ticket, i) => (
-                                <tr key={i} className="group hover:bg-gray-800/50 transition border-b border-gray-800/50 last:border-0">
-                                    <td className="py-4 pl-4 font-mono text-sm text-gray-400">{ticket.id}</td>
+                                <tr key={i} className="group hover:bg-zinc-800/50 transition border-b border-zinc-800/50 last:border-0">
+                                    <td className="py-4 pl-4 font-mono text-sm text-zinc-400">{ticket.id}</td>
                                     <td className="py-4 font-medium text-white">{ticket.subject}</td>
                                     <td className="py-4">
                                         <span className={`px-2 py-1 rounded text-xs font-medium 
@@ -56,7 +56,7 @@ export default function SupportPage() {
                                             {ticket.status}
                                         </span>
                                     </td>
-                                    <td className="py-4 text-sm text-gray-400">{ticket.priority}</td>
+                                    <td className="py-4 text-sm text-zinc-400">{ticket.priority}</td>
                                     <td className="py-4 pr-4 text-right">
                                         <button className="text-purple-400 hover:text-purple-300 text-sm font-medium">Ver Detalhes</button>
                                     </td>

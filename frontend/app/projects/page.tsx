@@ -16,22 +16,22 @@ export default function ProjectsPage() {
                     {['Backlog', 'Em Progresso', 'Concluído'].map((col, i) => (
                         <div key={i} className="glass-panel p-4 rounded-xl min-h-[500px]">
                             <div className="flex items-center justify-between mb-4">
-                                <span className="font-semibold text-gray-300">{col}</span>
-                                <span className="bg-gray-800 px-2 py-0.5 rounded text-xs text-gray-500">
+                                <span className="font-semibold text-zinc-300">{col}</span>
+                                <span className="bg-zinc-800 px-2 py-0.5 rounded text-xs text-zinc-500">
                                     {i === 1 ? '3' : i === 2 ? '12' : '5'}
                                 </span>
                             </div>
                             <div className="space-y-3">
                                 {[1, 2, 3].map((card) => (
-                                    <div key={card} className="bg-gray-800/50 p-3 rounded-lg border border-gray-700 hover:border-blue-500/50 cursor-grab active:cursor-grabbing transition shadow-sm">
+                                    <div key={card} className="bg-zinc-800/50 p-3 rounded-lg border border-zinc-700 hover:border-blue-500/50 cursor-grab active:cursor-grabbing transition shadow-sm">
                                         <div className="flex justify-between items-start mb-2">
                                             <span className="text-xs bg-purple-500/20 text-purple-300 px-1.5 py-0.5 rounded">Frontend</span>
-                                            <Users className="w-3 h-3 text-gray-500" />
+                                            <Users className="w-3 h-3 text-zinc-500" />
                                         </div>
-                                        <p className="text-sm font-medium text-gray-200 mb-2">
+                                        <p className="text-sm font-medium text-zinc-200 mb-2">
                                             Implementar Dashboard {col === 'Em Progresso' ? 'v2' : card}
                                         </p>
-                                        <div className="flex justify-between items-center text-xs text-gray-500">
+                                        <div className="flex justify-between items-center text-xs text-zinc-500">
                                             <span>#{card}24</span>
                                             <div className="w-5 h-5 rounded-full bg-indigo-500 flex items-center justify-center text-white font-bold text-[10px]">
                                                 JS

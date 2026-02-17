@@ -17,7 +17,7 @@ export function Sidebar() {
     ];
 
     return (
-        <aside className="fixed left-0 top-0 bottom-0 w-[280px] bg-gray-950/95 backdrop-blur-xl border-r border-purple-500/20 z-50 flex flex-col">
+        <aside className="fixed left-0 top-0 bottom-0 w-[280px] bg-zinc-950/95 backdrop-blur-xl border-r border-purple-500/20 z-50 flex flex-col">
             <div className="p-6">
                 <h1 className="text-2xl font-black gradient-text">INNOVATION.IA</h1>
             </div>
@@ -33,7 +33,7 @@ export function Sidebar() {
                             href={item.href}
                             className={`sidebar-link ${isActive ? 'active' : ''}`}
                         >
-                            <Icon className={`w-5 h-5 ${isActive ? 'text-purple-400' : 'text-gray-500'}`} />
+                            <Icon className={`w-5 h-5 ${isActive ? 'text-purple-400' : 'text-zinc-500'}`} />
                             <span className="font-medium">{item.name}</span>
                         </Link>
                     );
