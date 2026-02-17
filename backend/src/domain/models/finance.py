@@ -11,6 +11,7 @@ class Transaction(Base):
     description = Column(String(200), nullable=False)
     amount = Column(Numeric(10, 2), nullable=False)
     type = Column(String(20), nullable=False)  # income, expense
+    tax_type = Column(String(20), nullable=True)  # DAS, INSS, FGTS, etc.
     status = Column(String(20), default="pending")  # pending, paid, cancelled
 
     due_date = Column(DateTime, nullable=False)

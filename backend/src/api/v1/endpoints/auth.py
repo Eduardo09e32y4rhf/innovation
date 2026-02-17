@@ -13,6 +13,10 @@ from domain.models.user import User
 from domain.schemas.auth import LoginRequest, RegisterRequest, Token, UserOut
 from services.auth_service import authenticate_user, register_user
 from services.two_factor_service import request_code, verify_code
+from core.config import settings
+import httpx
+from core.security import create_access_token, create_refresh_token
+from starlette.concurrency import run_in_threadpool
 
 limiter = Limiter(key_func=get_remote_address)
 router = APIRouter(prefix="/api/auth", tags=["Auth"])
@@ -32,6 +36,11 @@ def register(data: RegisterRequest, db: Session = Depends(get_db)):
             cnpj=data.cnpj,
             cidade=data.cidade,
             uf=data.uf,
+            cep=data.cep,
+            street=data.street,
+            number=data.number,
+            complement=data.complement,
+            neighborhood=data.neighborhood,
             role=data.role or "candidate",
         )
     except ValueError as e:
@@ -133,9 +142,106 @@ async def forgot_password(data: dict, db: Session = Depends(get_db)):
 @router.get("/google-login")
 async def google_login():
     """
-    Mock Google Login redirect.
-    In production, this would redirect to Google OAuth.
+    Retorna a URL para iniciar o fluxo OAuth com Google.
     """
+    client_id = settings.GOOGLE_CLIENT_ID
+    redirect_uri = settings.GOOGLE_REDIRECT_URI
+    scope = "openid email profile"
+
+    if not client_id:
+        raise HTTPException(status_code=500, detail="Google Client ID não configurado.")
+
+    auth_url = (
+        f"https://accounts.google.com/o/oauth2/v2/auth?"
+        f"client_id={client_id}&"
+        f"redirect_uri={redirect_uri}&"
+        f"response_type=code&"
+        f"scope={scope}&"
+        f"access_type=offline&"
+        f"prompt=consent"
+    )
+
+    return {"url": auth_url}
+
+
+@router.post("/google-callback", response_model=Token)
+async def google_callback(code: str, db: Session = Depends(get_db)):
+    """
+    Troca o code pelo token, busca info do user e loga/registra.
+    """
+    if not settings.GOOGLE_CLIENT_ID or not settings.GOOGLE_CLIENT_SECRET:
+        raise HTTPException(
+            status_code=500, detail="Google Credentials não configuradas."
+        )
+
+    # 1. Trocar code por token
+    token_url = "https://oauth2.googleapis.com/token"
+    payload = {
+        "client_id": settings.GOOGLE_CLIENT_ID,
+        "client_secret": settings.GOOGLE_CLIENT_SECRET,
+        "code": code,
+        "grant_type": "authorization_code",
+        "redirect_uri": settings.GOOGLE_REDIRECT_URI,
+    }
+
+    async with httpx.AsyncClient() as client:
+        resp = await client.post(token_url, data=payload)
+        if resp.status_code != 200:
+            raise HTTPException(
+                status_code=400, detail=f"Falha ao obter token Google: {resp.text}"
+            )
+
+        token_data = resp.json()
+        access_token = token_data.get("access_token")
+
+        # 2. Obter dados do usuário
+        user_info_resp = await client.get(
+            "https://www.googleapis.com/oauth2/v2/userinfo",
+            headers={"Authorization": f"Bearer {access_token}"},
+        )
+        if user_info_resp.status_code != 200:
+            raise HTTPException(
+                status_code=400, detail="Falha ao obter dados do usuário Google"
+            )
+
+        user_info = user_info_resp.json()
+
+    # 3. Logar ou Registrar
+    email = user_info.get("email")
+    name = user_info.get("name")
+
+    if not email:
+        raise HTTPException(status_code=400, detail="Email não retornado pelo Google.")
+
+    # Executar query síncrona em threadpool
+    user = await run_in_threadpool(
+        lambda: db.query(User).filter(User.email == email).first()
+    )
+
+    if not user:
+        # Registrar novo usuário (Candidate por padrão, ou forçar Company se vier de um fluxo específico)
+        # Aqui simplificamos criando como candidate, o usuário pode mudar depois ou o front pode mandar flag
+        from services.auth_service import register_user
+        import secrets
+
+        random_password = secrets.token_urlsafe(16)
+
+        # Executar registro síncrono em threadpool
+        user = await run_in_threadpool(
+            register_user,
+            db,
+            email,
+            random_password,
+            name=name,
+            role="candidate",  # Default
+        )
+
+    # 4. Gerar JWT do nosso app
+    access_token = create_access_token({"sub": str(user.id)})
+    refresh_token = create_refresh_token(user.id)
+
     return {
-        "message": "Recurso de Login com Google sendo configurado no Console de APIs. Use email/senha por enquanto."
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "token_type": "bearer",
     }

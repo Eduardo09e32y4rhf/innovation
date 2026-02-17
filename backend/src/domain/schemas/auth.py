@@ -23,6 +23,12 @@ class RegisterRequest(BaseModel):
     cidade: str | None = Field(default=None, max_length=120)
     uf: str | None = Field(default=None, min_length=2, max_length=2)
 
+    cep: str | None = Field(default=None, max_length=20)
+    street: str | None = Field(default=None, max_length=200)
+    number: str | None = Field(default=None, max_length=20)
+    complement: str | None = Field(default=None, max_length=100)
+    neighborhood: str | None = Field(default=None, max_length=100)
+
 
 class LoginRequest(BaseModel):
     email: EmailStr

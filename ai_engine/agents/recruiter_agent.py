@@ -1,6 +1,7 @@
 from infrastructure.ai_clients.gemini_pro import GeminiService
 import logging
 
+
 class RecruiterAgent:
     def __init__(self):
         self.gemini = GeminiService()
@@ -18,5 +19,6 @@ class RecruiterAgent:
         except Exception as e:
             self.logger.error(f"Erro no processamento do agente: {str(e)}")
             raise
+
 
 recruiter_agent = RecruiterAgent()
