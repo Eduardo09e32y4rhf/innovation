@@ -16,28 +16,22 @@ from api.v1.endpoints.auth import get_current_user
 
 client = TestClient(app)
 
-mock_db_instance = MagicMock()
-
 # Mock User
 async def override_get_current_user():
     return User(id=1, email="test@innovation.ia", role="company")
 
-# Mock DB
-def override_get_db():
-    yield mock_db_instance
-
-# Overrides
-app.dependency_overrides[get_current_user] = override_get_current_user
-app.dependency_overrides[get_db] = override_get_db
 
 def test_get_transactions():
-    # Setup DB mock specific to this test
+    # Mock DB specifically for this test
+    # We create a new MagicMock for the DB session for this test scope
+    mock_db = MagicMock()
+
     mock_query = MagicMock()
     mock_filter = MagicMock()
     mock_order = MagicMock()
     mock_limit = MagicMock()
 
-    mock_db_instance.query.return_value = mock_query
+    mock_db.query.return_value = mock_query
     mock_query.filter.return_value = mock_filter
     mock_filter.order_by.return_value = mock_order
     mock_order.limit.return_value = mock_limit
@@ -45,13 +39,16 @@ def test_get_transactions():
     tx1 = Transaction(
         id=1,
         description="Sale",
-        amount=100.0,
+        amount=Decimal("100.00"),
         type="income",
         due_date=datetime.utcnow().date(),
         company_id=1,
-        created_at=datetime.utcnow()
+        created_at=datetime.utcnow(),
     )
     mock_limit.all.return_value = [tx1]
+
+    # Override dependency ONLY for this test by replacing the override
+    app.dependency_overrides[get_db] = lambda: mock_db
 
     response = client.get("/api/finance/transactions")
 
@@ -61,14 +58,18 @@ def test_get_transactions():
     assert len(data) == 1
     assert data[0]["description"] == "Sale"
 
+
 def test_get_summary():
+    # Ensure get_db override is active/valid (simple mock is enough)
+    app.dependency_overrides[get_db] = lambda: MagicMock()
+
     with patch("api.v1.endpoints.finance.finance_service") as mock_service:
         mock_service.get_cash_flow_summary.return_value = {
             "balance": Decimal("1000.00"),
             "total_income": Decimal("2000.00"),
             "total_expenses": Decimal("1000.00"),
             "pending_income": Decimal("500.00"),
-            "pending_expenses": Decimal("200.00")
+            "pending_expenses": Decimal("200.00"),
         }
 
         response = client.get("/api/finance/summary")
@@ -77,7 +78,11 @@ def test_get_summary():
         data = response.json()
         assert data["balance"] == "1000.00"
 
+
 def test_get_taxes():
+    # Ensure get_db override is active/valid
+    app.dependency_overrides[get_db] = lambda: MagicMock()
+
     with patch("api.v1.endpoints.finance.finance_service") as mock_service:
         mock_service.get_tax_summary.return_value = {
             "total_taxes": Decimal("500.00"),
@@ -86,9 +91,9 @@ def test_get_taxes():
                     "total": Decimal("200.00"),
                     "pending": Decimal("200.00"),
                     "paid": Decimal("0.00"),
-                    "items": []
+                    "items": [],
                 }
-            }
+            },
         }
 
         response = client.get("/api/finance/taxes")
@@ -97,3 +102,6 @@ def test_get_taxes():
         data = response.json()
         assert data["total_taxes"] == "500.00"
         assert "DAS" in data["breakdown"]
+
+# Global overrides for auth (applied once)
+app.dependency_overrides[get_current_user] = override_get_current_user

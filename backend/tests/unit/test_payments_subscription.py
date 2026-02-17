@@ -13,10 +13,12 @@ from api.v1.endpoints.auth import get_current_user
 
 client = TestClient(app)
 
+
 # Mock user dependency
 async def override_get_current_user():
     # Return a dummy user with ID 1
     return User(id=1, email="test@innovation.ia", full_name="Test User", role="company")
+
 
 # Mock DB dependency
 def override_get_db():
@@ -33,9 +35,11 @@ def override_get_db():
 
     yield db
 
+
 # Use the function object as key
 app.dependency_overrides[get_current_user] = override_get_current_user
 app.dependency_overrides[get_db] = override_get_db
+
 
 def test_create_subscription():
     with patch("api.v1.endpoints.payments.sdk") as mock_sdk:
@@ -45,7 +49,7 @@ def test_create_subscription():
         mock_preapproval.create.return_value = {
             "response": {
                 "init_point": "https://mercadopago.com/checkout/123",
-                "id": "preapproval_123"
+                "id": "preapproval_123",
             }
         }
 
@@ -74,20 +78,20 @@ def test_webhook_subscription_approved():
             "response": {
                 "status": "authorized",
                 "external_reference": "1",
-                "reason": "Assinatura Innovation.ia - Pro"
-            }
+                "reason": "Assinatura Innovation.ia - Pro",
+            },
         }
 
         webhook_payload = {
             "type": "subscription_preapproval",
             "action": "created",
-            "data": {"id": "preapproval_123"}
+            "data": {"id": "preapproval_123"},
         }
 
         response = client.post("/api/payments/webhook", json=webhook_payload)
 
         if response.status_code != 200:
-             print(f"WEBHOOK FAILED: {response.json()}")
+            print(f"WEBHOOK FAILED: {response.json()}")
 
         assert response.status_code == 200
         assert response.json() == {"status": "received"}

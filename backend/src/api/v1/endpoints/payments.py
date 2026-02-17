@@ -106,8 +106,8 @@ async def mp_webhook(request: Request, db: Session = Depends(get_db)):
                 if status == "approved" and external_ref:
                     user = db.query(User).filter(User.id == int(external_ref)).first()
                     if user:
-                         # Update only if not already active to avoid overwriting subscription logic
-                         if user.subscription_status != "active":
+                        # Update only if not already active to avoid overwriting subscription logic
+                        if user.subscription_status != "active":
                             user.subscription_status = "active"
                             user.is_active = True
                             db.commit()
