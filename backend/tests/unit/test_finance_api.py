@@ -16,6 +16,7 @@ from api.v1.endpoints.auth import get_current_user
 
 client = TestClient(app)
 
+
 # Mock User
 async def override_get_current_user():
     return User(id=1, email="test@innovation.ia", role="company")
@@ -102,6 +103,7 @@ def test_get_taxes():
         data = response.json()
         assert data["total_taxes"] == "500.00"
         assert "DAS" in data["breakdown"]
+
 
 # Global overrides for auth (applied once)
 app.dependency_overrides[get_current_user] = override_get_current_user
