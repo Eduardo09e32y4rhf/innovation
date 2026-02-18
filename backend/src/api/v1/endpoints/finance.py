@@ -32,6 +32,24 @@ async def get_prediction(
     return finance_service.ai_cash_flow_prediction(db, current_user.id)
 
 
+@router.get("/transactions")
+async def get_transactions(
+    limit: int = 50,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if current_user.role.lower() != "company":
+        raise HTTPException(status_code=403, detail="Acesso não autorizado")
+
+    return (
+        db.query(Transaction)
+        .filter(Transaction.company_id == current_user.id)
+        .order_by(Transaction.due_date.desc())
+        .limit(limit)
+        .all()
+    )
+
+
 @router.post("/transactions")
 async def create_transaction(
     data: TransactionCreate,

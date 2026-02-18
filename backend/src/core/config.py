@@ -20,6 +20,11 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_ID: str | None = None
     GOOGLE_CLIENT_SECRET: str | None = None
     GOOGLE_REDIRECT_URI: str = "http://localhost:3000/auth/callback"
+    GOOGLE_SCOPES: list[str] = [
+        "https://www.googleapis.com/auth/userinfo.email",
+        "https://www.googleapis.com/auth/userinfo.profile",
+        "https://www.googleapis.com/auth/calendar",
+    ]
 
     # Twilio Settings
     TWILIO_ACCOUNT_SID: str | None = None
