@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { motion } from "framer-motion"
 import { Bot, Lock, Mail, User } from "lucide-react"
+import Link from "next/link"
 import { AuthService } from "../../services/api"
 import { useState } from "react"
 
