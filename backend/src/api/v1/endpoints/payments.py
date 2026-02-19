@@ -54,8 +54,10 @@ async def create_preference(
         preapproval_id = response.get("id")
 
         if not init_point:
-             # Fallback or error handling
-             raise HTTPException(status_code=500, detail="Failed to generate subscription link.")
+            # Fallback or error handling
+            raise HTTPException(
+                status_code=500, detail="Failed to generate subscription link."
+            )
 
         return {"checkout_url": init_point, "preapproval_id": preapproval_id}
 
@@ -89,7 +91,7 @@ async def mp_webhook(request: Request, db: Session = Depends(get_db)):
                 if search_result["status"] == 200:
                     info = search_result["response"]
                     status = info.get("status")  # authorized, paused, cancelled
-                    external_ref = info.get("external_reference") # user_id
+                    external_ref = info.get("external_reference")  # user_id
 
                     if external_ref:
                         user_id = int(external_ref)
@@ -97,22 +99,30 @@ async def mp_webhook(request: Request, db: Session = Depends(get_db)):
 
                         if user:
                             # Update or Create Subscription Record
-                            sub = db.query(Subscription).filter(Subscription.user_id == user.id).first()
+                            sub = (
+                                db.query(Subscription)
+                                .filter(Subscription.user_id == user.id)
+                                .first()
+                            )
 
                             # Determine Plan ID based on amount (simplification)
                             # Ideally, store plan_id in metadata, but preapproval metadata support varies
-                            amount = info.get("auto_recurring", {}).get("transaction_amount", 0)
-                            plan_id = 1 # Default
-                            if amount > 90: plan_id = 2 # Pro
-                            if amount > 400: plan_id = 3 # Enterprise
+                            amount = info.get("auto_recurring", {}).get(
+                                "transaction_amount", 0
+                            )
+                            plan_id = 1  # Default
+                            if amount > 90:
+                                plan_id = 2  # Pro
+                            if amount > 400:
+                                plan_id = 3  # Enterprise
 
                             if not sub:
                                 sub = Subscription(
                                     user_id=user.id,
-                                    company_id=user.active_company_id or 1, # Fallback
+                                    company_id=user.active_company_id or 1,  # Fallback
                                     plan_id=plan_id,
                                     mp_preapproval_id=preapproval_id,
-                                    status=status
+                                    status=status,
                                 )
                                 db.add(sub)
                             else:
@@ -128,25 +138,29 @@ async def mp_webhook(request: Request, db: Session = Depends(get_db)):
                                 user.subscription_status = status
 
                             db.commit()
-                            print(f"✅ Subscription updated for user {user.email}: {status}")
+                            print(
+                                f"✅ Subscription updated for user {user.email}: {status}"
+                            )
 
         # Handle Payment events (invoice paid)
         elif action == "payment.created" or type_ == "payment":
             payment_id = data.get("data", {}).get("id")
             if payment_id:
-                 payment_info = sdk.payment().get(payment_id)
-                 if payment_info["status"] == 200:
-                     response = payment_info["response"]
-                     status = response["status"]
-                     external_ref = response.get("external_reference")
+                payment_info = sdk.payment().get(payment_id)
+                if payment_info["status"] == 200:
+                    response = payment_info["response"]
+                    status = response["status"]
+                    external_ref = response.get("external_reference")
 
-                     if status == "approved" and external_ref:
-                         # Ensure user is active
-                         user = db.query(User).filter(User.id == int(external_ref)).first()
-                         if user:
-                             user.subscription_status = "active"
-                             user.is_active = True
-                             db.commit()
+                    if status == "approved" and external_ref:
+                        # Ensure user is active
+                        user = (
+                            db.query(User).filter(User.id == int(external_ref)).first()
+                        )
+                        if user:
+                            user.subscription_status = "active"
+                            user.is_active = True
+                            db.commit()
 
     except Exception as e:
         print(f"Webhook error: {e}")
