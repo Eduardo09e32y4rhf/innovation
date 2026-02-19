@@ -5,18 +5,34 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { motion } from "framer-motion"
 import { Bot, Lock, Mail } from "lucide-react"
 import Link from "next/link"
+import { AuthService } from "../../services/api"
 import { useState } from "react"
 
 export default function LoginPage() {
     const [loading, setLoading] = useState(false)
+    const [email, setEmail] = useState("")
+    const [password, setPassword] = useState("")
+    const [error, setError] = useState("")
 
-    const handleLogin = (e: React.FormEvent) => {
+    const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault()
         setLoading(true)
-        setTimeout(() => {
+        setError("")
+
+        try {
+            const data = await AuthService.login(email, password)
+            if (data.access_token) {
+                localStorage.setItem("token", data.access_token)
+                window.location.href = "/dashboard"
+            } else {
+                setError("Falha na autenticação. Tente novamente.")
+            }
+        } catch (err: any) {
+            console.error("Login error:", err)
+            setError(err.response?.data?.detail || "Erro ao conectar ao servidor. Verifique suas credenciais.")
+        } finally {
             setLoading(false)
-            window.location.href = "/dashboard"
-        }, 1500)
+        }
     }
 
     return (
@@ -48,6 +64,11 @@ export default function LoginPage() {
                     </CardHeader>
                     <CardContent>
                         <form onSubmit={handleLogin} className="space-y-4">
+                            {error && (
+                                <div className="bg-red-500/10 border border-red-500/50 text-red-500 px-4 py-2 rounded-md text-sm mb-4">
+                                    {error}
+                                </div>
+                            )}
                             <div className="space-y-2">
                                 <label className="text-sm font-medium text-zinc-300">Email</label>
                                 <div className="relative">
@@ -55,6 +76,8 @@ export default function LoginPage() {
                                     <input
                                         type="email"
                                         placeholder="seu@email.com"
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
                                         className="w-full rounded-md border border-zinc-700 bg-zinc-800/50 px-3 py-2 pl-9 text-sm text-white placeholder:text-zinc-500 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500 transition-all"
                                         required
                                     />
@@ -67,6 +90,8 @@ export default function LoginPage() {
                                     <input
                                         type="password"
                                         placeholder="••••••••"
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
                                         className="w-full rounded-md border border-zinc-700 bg-zinc-800/50 px-3 py-2 pl-9 text-sm text-white placeholder:text-zinc-500 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500 transition-all"
                                         required
                                     />
