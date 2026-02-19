@@ -4,7 +4,8 @@ from sqlalchemy.orm import Session
 from core.config import settings
 from infrastructure.database.sql.dependencies import get_db
 from domain.models.user import User
-from api.v1.endpoints.auth import get_current_user  # Ajuste conforme autenticação
+from api.v1.endpoints.auth import get_current_user
+from typing import Optional
 
 router = APIRouter(prefix="/api/payments", tags=["payments"])
 
@@ -14,11 +15,15 @@ router = APIRouter(prefix="/api/payments", tags=["payments"])
 sdk = mercadopago.SDK(settings.MP_ACCESS_TOKEN or "TEST-TOKEN")
 
 
-# 1. CRIA O LINK DE PAGAMENTO
-@router.post("/create-preference/{plan_type}")
-async def create_preference(
+# 1. CRIA O LINK DE ASSINATURA (PREAPPROVAL)
+@router.post("/create-subscription/{plan_type}")
+async def create_subscription(
     plan_type: str, current_user: User = Depends(get_current_user)
 ):
+    """
+    Cria uma assinatura (Preapproval) no Mercado Pago.
+    Retorna a URL de checkout (init_point) para o usuário autorizar.
+    """
 
     # Preços (Isso poderia vir do banco)
     prices = {"starter": 29.90, "pro": 99.90, "enterprise": 499.90}
@@ -27,40 +32,40 @@ async def create_preference(
     # Base URL logic: prefer the one from settings (which comes from env/ngrok)
     base_url = settings.BASE_URL
 
-    preference_data = {
-        "items": [
-            {
-                "id": plan_type,
-                "title": f"Plano {plan_type.title()} - Innovation.ia",
-                "quantity": 1,
-                "currency_id": "BRL",
-                "unit_price": float(price),
-            }
-        ],
-        "payer": {
-            "email": current_user.email,
-            "name": current_user.full_name or "Usuario",
+    # Dados da Assinatura (Preapproval)
+    # Docs: https://www.mercadopago.com.br/developers/pt/reference/subscriptions/_preapproval/post
+    preapproval_data = {
+        "reason": f"Plano {plan_type.title()} - Innovation.ia",
+        "external_reference": str(current_user.id),
+        "payer_email": current_user.email,
+        "auto_recurring": {
+            "frequency": 1,
+            "frequency_type": "months",
+            "transaction_amount": float(price),
+            "currency_id": "BRL",
         },
-        "back_urls": {
-            # Para onde o usuário volta depois de pagar
-            "success": f"{base_url}/dashboard?status=success",
-            "failure": f"{base_url}/dashboard?status=failure",
-            "pending": f"{base_url}/dashboard?status=pending",
-        },
-        "auto_return": "approved",
-        "notification_url": f"{base_url}/api/payments/webhook",  # ONDE O MP VAI AVISAR
-        "external_reference": str(
-            current_user.id
-        ),  # ID do usuário para sabermos quem pagou
-        "metadata": {"plan_type": plan_type, "user_id": current_user.id},
+        "back_url": f"{base_url}/dashboard",
+        "status": "pending",
     }
 
     try:
-        preference_response = sdk.preference().create(preference_data)
-        preference = preference_response["response"]
-        return {"checkout_url": preference["init_point"]}  # O link para o front abrir
+        # Cria a assinatura
+        preapproval_response = sdk.preapproval().create(preapproval_data)
+        response = preapproval_response["response"]
+
+        # O link de checkout para assinatura
+        init_point = response.get("init_point")
+
+        if not init_point:
+            # Fallback ou erro
+            print(f"Erro MP Response: {response}")
+            raise HTTPException(
+                status_code=500, detail="Não foi possível gerar o link de assinatura."
+            )
+
+        return {"checkout_url": init_point}
     except Exception as e:
-        print(f"Erro ao criar preferência: {e}")
+        print(f"Erro ao criar assinatura: {e}")
         raise HTTPException(
             status_code=500, detail="Erro ao comunicar com Mercado Pago"
         )
@@ -69,46 +74,52 @@ async def create_preference(
 # 2. RECEBE A CONFIRMAÇÃO (WEBHOOK)
 @router.post("/webhook")
 async def mp_webhook(request: Request, db: Session = Depends(get_db)):
+    """
+    Recebe notificações do Mercado Pago.
+    Processa 'subscription_preapproval' para ativar o plano do usuário.
+    """
     try:
         data = await request.json()
     except Exception:
-        # Mercado Pago sometimes sends data as query params or other formats,
-        # but for 'payment' notifications usually it's JSON payload or we need to query by ID.
-        # If JSON fails, check query params
         return {"status": "ignored_no_json"}
 
-    # Action might be in query params?
-    # Mercado Pago standard: POST to URL with ?topic=payment&id=123... OR JSON body using types.
-    # New webhook v2 uses 'type': 'payment' in body.
+    # Mercado Pago envia notificações de subscription_preapproval ou payment
+    # Verificamos o type ou topic
 
-    if data.get("type") == "payment":
-        payment_id = data.get("data", {}).get("id")
+    event_type = data.get("type")
+    entity_id = data.get("data", {}).get("id")
 
-        if payment_id:
-            # Consulta o Mercado Pago para ver o status real
-            payment_info = sdk.payment().get(payment_id)
+    if event_type == "subscription_preapproval" and entity_id:
+        # Consulta o status da assinatura
+        try:
+            preapproval_info = sdk.preapproval().get(entity_id)
 
-            if payment_info["status"] == 200:
-                response = payment_info["response"]
+            if preapproval_info["status"] == 200:
+                response = preapproval_info["response"]
                 status = response["status"]
-                external_ref = response[
-                    "external_reference"
-                ]  # Pegamos o ID do usuário de volta
+                external_ref = response["external_reference"]  # ID do usuário
 
-                if status == "approved":
-                    # Atualiza o usuário no banco
+                # Status de assinatura ativa é 'authorized'
+                if status == "authorized":
                     user = db.query(User).filter(User.id == int(external_ref)).first()
                     if user:
-                        # Tenta pegar o plano do metadata, senão fallback para "pro"
-                        metadata = response.get("metadata", {})
-                        purchased_plan = metadata.get("plan_type", "pro")
-
-                        user.subscription_plan = purchased_plan
                         user.subscription_status = "active"
                         user.is_active = True
+
+                        # Atualiza plano baseado no valor (lógica simples de exemplo)
+                        amount = float(response["auto_recurring"]["transaction_amount"])
+                        if amount >= 400:
+                            user.subscription_plan = "enterprise"
+                        elif amount >= 90:
+                            user.subscription_plan = "pro"
+                        else:
+                            user.subscription_plan = "starter"
+
                         db.commit()
                         print(
-                            f"✅ Pagamento confirmado! Usuário {user.email} agora é {purchased_plan.upper()}."
+                            f"✅ Assinatura confirmada! Usuário {user.email} agora é {user.subscription_plan.upper()}."
                         )
+        except Exception as e:
+            print(f"Erro processando webhook MP: {e}")
 
     return {"status": "received"}

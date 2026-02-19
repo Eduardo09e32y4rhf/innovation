@@ -5,64 +5,64 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { motion } from "framer-motion"
 import { Activity, Bot, Calendar, DollarSign, Target, TrendingUp, Users } from "lucide-react"
+import { useEffect, useState } from 'react';
+import api from '../../services/api';
 
 export default function DashboardPage() {
+    const [metrics, setMetrics] = useState<any>(null);
+    const [activities, setActivities] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        async function loadData() {
+            try {
+                const [metricsRes, activityRes] = await Promise.all([
+                    api.get('/dashboard/metrics'),
+                    api.get('/dashboard/recent-activity')
+                ]);
+                setMetrics(metricsRes.data);
+                setActivities(activityRes.data.activities);
+            } catch (e) {
+                console.error("Failed to load dashboard data", e);
+            } finally {
+                setLoading(false);
+            }
+        }
+        loadData();
+    }, []);
+
+    const formatCurrency = (val: number) =>
+        new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
+
     const stats = [
         {
-            title: "Vagas Ativas",
-            value: "12",
-            change: "+2 essa semana",
-            icon: Target,
-            color: "text-purple-500",
-        },
-        {
-            title: "Candidatos",
-            value: "458",
-            change: "+24% vs mês anterior",
-            icon: Users,
-            color: "text-blue-500",
-        },
-        {
-            title: "Entrevistas",
-            value: "24",
-            change: "Agendadas para hoje",
-            icon: Calendar,
-            color: "text-pink-500",
-        },
-        {
-            title: "Receita (YTD)",
-            value: "R$ 1.2M",
-            change: "+12% meta batida",
+            title: "Receita Mensal",
+            value: metrics ? formatCurrency(metrics.revenue.current) : "R$ 0,00",
+            change: metrics ? `${metrics.revenue.change_percent}% vs mês anterior` : "...",
             icon: DollarSign,
             color: "text-green-500",
         },
-    ]
-
-    const recent_activity = [
         {
-            user: "IA Recrutadora",
-            action: "Analisou 150 currículos para Dev Python",
-            time: "2 min atrás",
-            icon: Bot
+            title: "Custo Operacional",
+            value: metrics ? formatCurrency(metrics.costs.current) : "R$ 0,00",
+            change: metrics ? `${metrics.costs.change_percent}% vs mês anterior` : "...",
+            icon: TrendingUp, // Using TrendingUp for costs usually implies up is bad, but icon choice is generic
+            color: "text-red-500",
         },
         {
-            user: "João Silva",
-            action: "Agendou entrevista com Candidato #42",
-            time: "15 min atrás",
-            icon: Calendar
+            title: "Lucro Líquido",
+            value: metrics ? formatCurrency(metrics.profit.current) : "R$ 0,00",
+            change: metrics ? `Margem: ${metrics.profit.margin_percent.toFixed(1)}%` : "...",
+            icon: Target,
+            color: "text-emerald-500",
         },
         {
-            user: "Sistema",
-            action: "Backup automático concluído",
-            time: "1 hora atrás",
-            icon: Activity
+            title: "Vagas Ativas",
+            value: "12", // This is still hardcoded in backend metrics for now, so keeping static or need to add to metrics
+            change: "+2 essa semana",
+            icon: Users,
+            color: "text-blue-500",
         },
-        {
-            user: "Superintendente",
-            action: "Otimizou queries do banco de dados",
-            time: "2 horas atrás",
-            icon: TrendingUp
-        }
     ]
 
     return (
@@ -99,7 +99,7 @@ export default function DashboardPage() {
                                         <stat.icon className={`h-4 w-4 ${stat.color}`} />
                                     </CardHeader>
                                     <CardContent>
-                                        <div className="text-2xl font-bold text-white">{stat.value}</div>
+                                        <div className="text-2xl font-bold text-white">{loading ? "..." : stat.value}</div>
                                         <p className="text-xs text-zinc-500 mt-1">{stat.change}</p>
                                     </CardContent>
                                 </Card>
@@ -109,7 +109,7 @@ export default function DashboardPage() {
 
                     {/* Main Content Areas */}
                     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-                        {/* Chart Area (Mock) */}
+                        {/* Chart Area (Mock for UI, but could use metrics.revenue.chart_data) */}
                         <Card className="col-span-4 border-zinc-800 bg-zinc-900/50">
                             <CardHeader>
                                 <CardTitle className="text-white">Crescimento da Plataforma</CardTitle>
@@ -117,6 +117,7 @@ export default function DashboardPage() {
                             </CardHeader>
                             <CardContent className="pl-2">
                                 <div className="h-[300px] flex items-end justify-between px-4 pb-4 space-x-2">
+                                    {/* Using mock heights for visual consistency, ideally map metrics.revenue.chart_data */}
                                     {[30, 45, 60, 50, 70, 85, 95].map((h, i) => (
                                         <div key={i} className="w-full bg-purple-500/20 hover:bg-purple-500/40 transition-colors rounded-t-sm relative group">
                                             <div style={{ height: `${h}%` }} className="absolute bottom-0 w-full bg-purple-600 rounded-t-sm"></div>
@@ -129,21 +130,25 @@ export default function DashboardPage() {
                         {/* Recent Activity */}
                         <Card className="col-span-3 border-zinc-800 bg-zinc-900/50">
                             <CardHeader>
-                                <CardTitle className="text-white">Atividade Recente da IA</CardTitle>
-                                <CardDescription className="text-zinc-400">Ações autônomas do sistema</CardDescription>
+                                <CardTitle className="text-white">Atividade Recente</CardTitle>
+                                <CardDescription className="text-zinc-400">Ações do sistema e usuários</CardDescription>
                             </CardHeader>
                             <CardContent>
                                 <div className="space-y-6">
-                                    {recent_activity.map((item, i) => (
+                                    {loading ? <p className="text-sm text-zinc-500">Carregando atividades...</p> :
+                                     activities.map((item, i) => (
                                         <div className="flex items-center" key={i}>
                                             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-zinc-800 border border-zinc-700">
-                                                <item.icon className="h-4 w-4 text-purple-500" />
+                                                {item.type === 'application' ? <Users className="h-4 w-4 text-blue-500" /> :
+                                                 item.type === 'interview' ? <Calendar className="h-4 w-4 text-purple-500" /> :
+                                                 <Activity className="h-4 w-4 text-green-500" />}
                                             </div>
                                             <div className="ml-4 space-y-1">
-                                                <p className="text-sm font-medium leading-none text-white">{item.user}</p>
-                                                <p className="text-xs text-zinc-400">{item.action}</p>
+                                                <p className="text-sm font-medium leading-none text-white">{item.message}</p>
+                                                <p className="text-xs text-zinc-400">{item.candidate_name || "Sistema"}</p>
                                             </div>
-                                            <div className="ml-auto font-medium text-xs text-zinc-500">{item.time}</div>
+                                            {/* Timestamp would need formatting */}
+                                            <div className="ml-auto font-medium text-xs text-zinc-500">Hoje</div>
                                         </div>
                                     ))}
                                 </div>
