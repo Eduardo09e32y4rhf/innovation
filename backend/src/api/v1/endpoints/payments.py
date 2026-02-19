@@ -4,6 +4,8 @@ from sqlalchemy.orm import Session
 from core.config import settings
 from infrastructure.database.sql.dependencies import get_db
 from domain.models.user import User
+from domain.models.subscription import Subscription
+from domain.models.company import Company
 from api.v1.endpoints.auth import get_current_user
 from typing import Optional
 
@@ -76,7 +78,7 @@ async def create_subscription(
 async def mp_webhook(request: Request, db: Session = Depends(get_db)):
     """
     Recebe notificações do Mercado Pago.
-    Processa 'subscription_preapproval' para ativar o plano do usuário.
+    Processa 'subscription_preapproval' e 'payment' para ativar o plano do usuário.
     """
     try:
         data = await request.json()
@@ -84,13 +86,19 @@ async def mp_webhook(request: Request, db: Session = Depends(get_db)):
         return {"status": "ignored_no_json"}
 
     # Mercado Pago envia notificações de subscription_preapproval ou payment
-    # Verificamos o type ou topic
+    # Verificamos o type, action ou topic
 
     event_type = data.get("type")
+    action = data.get("action")
     entity_id = data.get("data", {}).get("id")
 
+    # Alguns webhooks mandam id direto no data sem aninhamento ou vice-versa,
+    # mas o padrao V1 costuma ser data: { id: ... }
+
+    # ---------------------------------------------------
+    # 1. SUBSCRIPTION PREAPPROVAL (Assinatura Recorrente)
+    # ---------------------------------------------------
     if event_type == "subscription_preapproval" and entity_id:
-        # Consulta o status da assinatura
         try:
             preapproval_info = sdk.preapproval().get(entity_id)
 
@@ -99,27 +107,95 @@ async def mp_webhook(request: Request, db: Session = Depends(get_db)):
                 status = response["status"]
                 external_ref = response["external_reference"]  # ID do usuário
 
-                # Status de assinatura ativa é 'authorized'
-                if status == "authorized":
-                    user = db.query(User).filter(User.id == int(external_ref)).first()
+                # Valor para definir plano
+                transaction_amount = response.get("auto_recurring", {}).get("transaction_amount", 0)
+                amount = float(transaction_amount)
+
+                # Busca usuário
+                user = db.query(User).filter(User.id == int(external_ref)).first()
+
+                if user:
+                    # Lógica de definição do plano baseada no valor
+                    # Ajuste conforme seus preços reais
+                    # prices = {"starter": 29.90, "pro": 99.90, "enterprise": 499.90}
+                    plan_id = 1  # Default (Starter)
+                    plan_name = "starter"
+
+                    if amount >= 400:
+                        plan_id = 3  # Enterprise
+                        plan_name = "enterprise"
+                    elif amount >= 90:
+                        plan_id = 2  # Pro
+                        plan_name = "pro"
+
+                    # Se autorizado, ativa
+                    if status == "authorized":
+                        user.subscription_status = "active"
+                        user.is_active = True
+                        user.subscription_plan = plan_name
+                    else:
+                        # Se cancelado, pendente, etc.
+                        user.subscription_status = status
+
+                    # Atualiza ou cria registro na tabela Subscription
+                    # Tenta achar a company do usuário
+                    company = db.query(Company).filter(Company.owner_user_id == user.id).first()
+                    # Fallback de company_id = 1 se não achar (para evitar erro de constraint se aplicável)
+                    company_id = company.id if company else 1
+
+                    sub = db.query(Subscription).filter(Subscription.user_id == user.id).first()
+
+                    if not sub:
+                        sub = Subscription(
+                            user_id=user.id,
+                            company_id=company_id,
+                            plan_id=plan_id,
+                            mp_preapproval_id=entity_id,
+                            status=status,
+                        )
+                        db.add(sub)
+                    else:
+                        sub.status = status
+                        sub.mp_preapproval_id = entity_id
+                        sub.plan_id = plan_id
+                        # Atualizamos o company_id? Talvez não precise, mas se mudou...
+                        # sub.company_id = company_id
+
+                    db.commit()
+                    print(
+                        f"✅ Assinatura confirmada/atualizada! Usuário {user.email}: {status} ({plan_name})."
+                    )
+
+        except Exception as e:
+            print(f"Erro processando webhook MP (subscription): {e}")
+
+    # ---------------------------------------------------
+    # 2. PAYMENT (Pagamento Avulso ou Fatura da Assinatura)
+    # ---------------------------------------------------
+    elif (action == "payment.created" or event_type == "payment") and entity_id:
+        try:
+            payment_info = sdk.payment().get(entity_id)
+            if payment_info["status"] == 200:
+                response = payment_info["response"]
+                status = response["status"]
+                external_ref = response.get("external_reference")
+
+                if status == "approved" and external_ref:
+                    # Garante que usuário está ativo
+                    user = (
+                        db.query(User).filter(User.id == int(external_ref)).first()
+                    )
                     if user:
                         user.subscription_status = "active"
                         user.is_active = True
-
-                        # Atualiza plano baseado no valor (lógica simples de exemplo)
-                        amount = float(response["auto_recurring"]["transaction_amount"])
-                        if amount >= 400:
-                            user.subscription_plan = "enterprise"
-                        elif amount >= 90:
-                            user.subscription_plan = "pro"
-                        else:
-                            user.subscription_plan = "starter"
-
+                        # Aqui não temos como saber o plano só pelo pagamento facilmente,
+                        # a menos que busquemos a assinatura associada ou metadata.
+                        # Mas o preapproval webhook já deve ter cuidado disso.
+                        # Este bloco serve como redundância ou para pagamentos avulsos.
                         db.commit()
-                        print(
-                            f"✅ Assinatura confirmada! Usuário {user.email} agora é {user.subscription_plan.upper()}."
-                        )
+                        print(f"✅ Pagamento aprovado para user {user.id}")
+
         except Exception as e:
-            print(f"Erro processando webhook MP: {e}")
+            print(f"Erro processando webhook MP (payment): {e}")
 
     return {"status": "received"}
