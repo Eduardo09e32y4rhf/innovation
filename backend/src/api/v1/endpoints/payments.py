@@ -11,7 +11,7 @@ from typing import Optional
 
 router = APIRouter(prefix="/api/payments", tags=["payments"])
 
-# Inicializa o SDK
+# Initialize SDK
 # Use the token from settings, fallback to empty string if not set to avoid crash on init,
 # but API calls will fail if token is invalid.
 sdk = mercadopago.SDK(settings.MP_ACCESS_TOKEN or "TEST-TOKEN")
@@ -57,6 +57,7 @@ async def create_subscription(
 
         # O link de checkout para assinatura
         init_point = response.get("init_point")
+        preapproval_id = response.get("id")
 
         if not init_point:
             # Fallback ou erro
@@ -65,7 +66,7 @@ async def create_subscription(
                 status_code=500, detail="Não foi possível gerar o link de assinatura."
             )
 
-        return {"checkout_url": init_point}
+        return {"checkout_url": init_point, "preapproval_id": preapproval_id}
     except Exception as e:
         print(f"Erro ao criar assinatura: {e}")
         raise HTTPException(
