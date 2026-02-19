@@ -4,7 +4,8 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
     LayoutDashboard, MessageSquare, DollarSign, Briefcase,
-    FileText, LifeBuoy, Users, CreditCard, Globe, LogOut
+    FileText, LifeBuoy, Users, CreditCard, Globe, LogOut,
+    HeartHandshake, Clock, BookOpen, Zap, Activity, RadioTower, ChevronRight
 } from 'lucide-react';
 
 export function Sidebar() {
@@ -20,10 +21,19 @@ export function Sidebar() {
         { name: 'Onboarding', href: '/onboarding', icon: Users },
     ];
 
+    const advancedMenu = [
+        { name: 'RH Avançado', href: '/rh', icon: HeartHandshake },
+        { name: 'Central de Serviços', href: '/csc', icon: BookOpen },
+        { name: 'Financeiro Avançado', href: '/finance-advanced', icon: Clock },
+        { name: 'Automação / Compras', href: '/projects-advanced', icon: Zap },
+    ];
+
     const publicMenu = [
         { name: 'Planos & Preços', href: '/pricing', icon: CreditCard },
         { name: 'Portal de Vagas', href: '/jobs', icon: Globe },
+        { name: 'Status da Plataforma', href: '/status', icon: Activity },
     ];
+
 
     const handleLogout = () => {
         if (typeof window !== 'undefined') {
@@ -43,6 +53,24 @@ export function Sidebar() {
                 <p className="text-xs text-gray-600 uppercase tracking-widest mb-2 px-2">Principal</p>
                 <div className="space-y-1 mb-6">
                     {mainMenu.map((item) => {
+                        const isActive = pathname === item.href;
+                        const Icon = item.icon;
+                        return (
+                            <Link
+                                key={item.href}
+                                href={item.href}
+                                className={`sidebar-link ${isActive ? 'active' : ''}`}
+                            >
+                                <Icon className={`w-5 h-5 ${isActive ? 'text-purple-400' : 'text-gray-500'}`} />
+                                <span className="font-medium">{item.name}</span>
+                            </Link>
+                        );
+                    })}
+                </div>
+
+                <p className="text-xs text-gray-600 uppercase tracking-widest mb-2 mt-4 px-2">Avançado</p>
+                <div className="space-y-1 mb-6">
+                    {advancedMenu.map((item) => {
                         const isActive = pathname === item.href;
                         const Icon = item.icon;
                         return (

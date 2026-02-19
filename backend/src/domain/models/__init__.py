@@ -19,3 +19,12 @@ from domain.models.onboarding import Onboarding
 from domain.models.performance_review import PerformanceReview
 from domain.models.ticket import Ticket
 from domain.models.time_entry import TimeEntry
+# ── MASTERPLAN advanced models ──
+from domain.models.killer_question import KillerQuestion
+from domain.models.review_360 import Review360
+from domain.models.pdi_goal import PDIGoal
+from domain.models.time_bank import TimeBank
+from domain.models.payslip import Payslip
+from domain.models.workflow_trigger import WorkflowTrigger
+from domain.models.purchase_request import PurchaseRequest
+from domain.models.csm_models import KBArticle, TicketRating, WebhookSubscription

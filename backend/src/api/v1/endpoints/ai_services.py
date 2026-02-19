@@ -1,255 +1,229 @@
-from datetime import datetime
-from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException
+"""
+AI Services Endpoint — Resume Parsing, DISC Analysis, Tech Test Generator
+"""
+import os
+import io
+import base64
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
+from pydantic import BaseModel
+from typing import Optional
+
 from infrastructure.database.sql.dependencies import get_db
 from core.dependencies import get_current_user
 from domain.models.user import User
-import google.generativeai as genai
-import os
-from infrastructure.cache.session_manager import cache_manager
-import hashlib
-import json
 
-router = APIRouter(prefix="/api/ai", tags=["AI Services"])
+router = APIRouter(prefix="/api/ai", tags=["ai-services"])
 
-# Configurar Gemini
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-if GEMINI_API_KEY:
-    genai.configure(api_key=GEMINI_API_KEY)
-    model = genai.GenerativeModel("gemini-pro")
+def _get_gemini():
+    import google.generativeai as genai
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=503, detail="GEMINI_API_KEY não configurada")
+    genai.configure(api_key=api_key)
+    return genai.GenerativeModel("gemini-1.5-flash")
 
 
-@router.post("/analyze-resume")
-async def analyze_resume(
-    resume_text: str,
-    job_requirements: str,
-    job_title: str,
+# ─── RESUME PARSING ────────────────────────────────────────────────────────────
+
+@router.post("/parse-resume")
+async def parse_resume(
+    file: UploadFile = File(...),
     current_user: User = Depends(get_current_user),
 ):
     """
-    Analisa currículo usando Gemini AI com Cache em Redis
+    Faz o parsing de um PDF ou DOCX de currículo e retorna dados estruturados.
     """
-    # 1. Gerar Hash para Cache
-    cache_key = hashlib.md5(
-        f"{resume_text[:500]}_{job_requirements[:500]}".encode()
-    ).hexdigest()
+    content = await file.read()
+    text = ""
 
-    # 2. Verificar Cache (Redis)
-    try:
-        cached_result = await cache_manager.redis_client.get(
-            f"resume_analysis:{cache_key}"
-        )
-        if cached_result:
-            return {
-                "success": True,
-                "analysis": cached_result,
-                "cached": True,
-                "analyzed_at": datetime.now().isoformat(),
-            }
-    except Exception:
-        pass  # Se o Redis estiver fora, continua sem cache
+    if file.filename.lower().endswith(".pdf"):
+        try:
+            import fitz  # PyMuPDF
+            doc = fitz.open(stream=content, filetype="pdf")
+            text = "\n".join(page.get_text() for page in doc)
+        except ImportError:
+            # Fallback: decode as text
+            text = content.decode("utf-8", errors="ignore")
+    else:
+        text = content.decode("utf-8", errors="ignore")
 
-    if not GEMINI_API_KEY:
-        raise HTTPException(
-            status_code=503,
-            detail="Gemini API não configurada. Configure GEMINI_API_KEY no .env",
-        )
+    model = _get_gemini()
+    prompt = f"""
+Analise o currículo abaixo e retorne um JSON estruturado com os campos:
+- name (string)
+- email (string)
+- phone (string)
+- linkedin (string)
+- summary (string, resumo profissional em 2 linhas)
+- skills (array de strings)
+- languages (array: [{{"lang": "Inglês", "level": "Fluente"}}])
+- experience (array: [{{"company": str, "role": str, "duration": str, "summary": str}}])
+- education (array: [{{"institution": str, "degree": str, "year": str}}])
+- seniority_level (string: "Júnior/Pleno/Sênior/Especialista")
 
-    try:
-        prompt = f"""
-Você é um especialista em recrutamento e seleção. Analise o currículo abaixo em relação aos requisitos da vaga.
+Currículo:
+{text[:8000]}
 
-VAGA: {job_title}
-
-REQUISITOS DA VAGA:
-{job_requirements}
-
-CURRÍCULO DO CANDIDATO:
-{resume_text}
-
-Forneça uma análise estruturada em JSON com:
-1. score (0-100): Compatibilidade geral
-2. strengths (lista): Principais pontos fortes do candidato
-3. weaknesses (lista): Gaps ou pontos de atenção
-4. recommendation (string): "approve", "interview", ou "reject"
-5. summary (string): Resumo da análise em 2-3 frases
-
-Responda APENAS com o JSON, sem texto adicional.
+Responda SOMENTE com o JSON válido, sem markdown.
 """
-
-        response = model.generate_content(prompt)
-        result_text = response.text.strip()
-
-        # Tentar parsear como JSON
-        try:
-            clean_text = result_text
-            if clean_text.startswith("```"):
-                clean_text = clean_text.split("```")[1]
-                if clean_text.startswith("json"):
-                    clean_text = clean_text[4:]
-
-            analysis = json.loads(clean_text)
-        except:
-            # Fallback
-            analysis = {
-                "score": 75,
-                "strengths": ["Experiência relevante"],
-                "weaknesses": ["Gaps identificados"],
-                "recommendation": "interview",
-                "summary": result_text[:200],
-            }
-
-        # 4. Salvar no Cache
-        try:
-            await cache_manager.redis_client.set(
-                f"resume_analysis:{cache_key}", analysis, expire=86400
-            )
-        except Exception:
-            pass  # Falha no cache não impede o retorno
-
-        return {
-            "success": True,
-            "analysis": analysis,
-            "cached": False,
-            "analyzed_at": datetime.now().isoformat(),
-        }
-    except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Erro ao analisar currículo: {str(e)}"
-        )
-
-
-@router.post("/analyze-resume-async")
-async def analyze_resume_async(
-    resume_text: str,
-    job_requirements: str,
-    job_title: str,
-    current_user: User = Depends(get_current_user),
-):
-    """
-    Inicia análise assíncrona. Retorna task_id para acompanhamento.
-    """
-    from ai_engine.worker import analyze_resume_task
-
-    task = analyze_resume_task.delay(resume_text, job_requirements)
-
-    return {
-        "success": True,
-        "task_id": task.id,
-        "status": "processing",
-        "message": "Análise enviada para o Agente Jules em background.",
-    }
-
-
-@router.post("/generate-interview-questions")
-async def generate_interview_questions(
-    job_title: str,
-    job_description: str,
-    candidate_background: Optional[str] = None,
-    question_count: int = 5,
-    current_user: User = Depends(get_current_user),
-):
-    """
-    Gera perguntas de entrevista personalizadas usando Gemini
-    """
-    if not GEMINI_API_KEY:
-        raise HTTPException(status_code=503, detail="Gemini API não configurada")
-
     try:
-        prompt = f"""
-Você é um especialista em entrevistas técnicas e comportamentais.
+        response = model.generate_content(prompt)
+        import json, re
+        raw = response.text.strip()
+        raw = re.sub(r"```json|```", "", raw).strip()
+        return json.loads(raw)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao processar currículo: {e}")
 
-Gere {question_count} perguntas de entrevista para a vaga de {job_title}.
 
-DESCRIÇÃO DA VAGA:
-{job_description}
+# ─── DISC / BIG5 ANALYSIS ──────────────────────────────────────────────────────
 
-{"BACKGROUND DO CANDIDATO: " + candidate_background if candidate_background else ""}
+class DISCRequest(BaseModel):
+    cover_letter: str
+    candidate_name: Optional[str] = "Candidato"
 
-Forneça perguntas que avaliem:
-- Competências técnicas
-- Soft skills
-- Fit cultural
-- Experiências relevantes
 
-Retorne em formato JSON:
+@router.post("/disc-analysis")
+async def disc_analysis(
+    data: DISCRequest,
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Analisa a carta de apresentação do candidato e retorna perfil DISC + Big5.
+    """
+    model = _get_gemini()
+    prompt = f"""
+Você é um especialista em psicologia organizacional. Analise o texto abaixo e retorne o perfil comportamental do candidato {data.candidate_name}.
+
+Retorne um JSON com:
+{{
+  "disc": {{
+    "dominance": 0-100,
+    "influence": 0-100,
+    "steadiness": 0-100,
+    "conscientiousness": 0-100,
+    "primary_style": "D|I|S|C",
+    "description": "Perfil em 2 linhas"
+  }},
+  "big5": {{
+    "openness": 0-100,
+    "conscientiousness": 0-100,
+    "extraversion": 0-100,
+    "agreeableness": 0-100,
+    "neuroticism": 0-100
+  }},
+  "strengths": ["lista de 3 pontos fortes"],
+  "risks": ["lista de 2 pontos de atenção"],
+  "ideal_roles": ["lista de 3 cargos ideais para este perfil"],
+  "fit_recommendation": "Alto/Médio/Baixo",
+  "fit_justification": "1 parágrafo"
+}}
+
+Carta de apresentação:
+{data.cover_letter[:4000]}
+
+Responda SOMENTE com JSON válido, sem markdown.
+"""
+    try:
+        response = model.generate_content(prompt)
+        import json, re
+        raw = re.sub(r"```json|```", "", response.text.strip()).strip()
+        return json.loads(raw)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro na análise DISC: {e}")
+
+
+# ─── TECH TEST GENERATOR ───────────────────────────────────────────────────────
+
+class TestGenRequest(BaseModel):
+    job_title: str
+    tech_stack: str  # ex: "Python, FastAPI, PostgreSQL"
+    seniority: str  # "Júnior" | "Pleno" | "Sênior"
+    num_questions: int = 5
+
+
+@router.post("/generate-test")
+async def generate_tech_test(
+    data: TestGenRequest,
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Gera um teste técnico ÚNICO e personalizado para a vaga.
+    """
+    model = _get_gemini()
+    prompt = f"""
+Crie um teste técnico ÚNICO (nunca repetido) para uma vaga de {data.job_title} nível {data.seniority}.
+Stack: {data.tech_stack}.
+
+Gere exatamente {data.num_questions} questões. Retorne um JSON:
+{{
+  "title": "Teste técnico para {data.job_title} ({data.seniority})",
+  "estimated_time_minutes": número,
+  "instructions": "instruções gerais",
+  "questions": [
+    {{
+      "number": 1,
+      "type": "multiple_choice|open|coding",
+      "question": "enunciado",
+      "options": ["A) ...", "B) ...", "C) ...", "D) ..."],  // só para multiple_choice
+      "expected_answer": "resposta esperada (para corrigir)",
+      "points": 10
+    }}
+  ]
+}}
+
+Varie os tipos: inclua pelo menos 1 questão de código, 1 teórica e 1 situacional.
+Responda SOMENTE com JSON válido, sem markdown.
+"""
+    try:
+        response = model.generate_content(prompt)
+        import json, re
+        raw = re.sub(r"```json|```", "", response.text.strip()).strip()
+        return json.loads(raw)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao gerar teste: {e}")
+
+
+# ─── KILLER QUESTIONS SUGGESTION ──────────────────────────────────────────────
+
+class KillerSuggestRequest(BaseModel):
+    job_title: str
+    job_description: str
+
+
+@router.post("/suggest-killer-questions")
+async def suggest_killer_questions(
+    data: KillerSuggestRequest,
+    current_user: User = Depends(get_current_user),
+):
+    """
+    IA sugere killer questions para uma vaga específica.
+    """
+    model = _get_gemini()
+    prompt = f"""
+Sugira 5 killer questions (perguntas eliminatórias) para a vaga de {data.job_title}.
+
+Descrição da vaga: {data.job_description[:2000]}
+
+Retorne um JSON assim:
 {{
   "questions": [
     {{
       "question": "texto da pergunta",
-      "type": "technical" ou "behavioral",
-      "focus_area": "área que a pergunta avalia"
+      "expected_answer": "resposta ideal",
+      "is_eliminatory": true/false,
+      "why": "por que essa pergunta faz diferença"
     }}
   ]
 }}
+
+Responda SOMENTE com JSON válido, sem markdown.
 """
-
-        response = model.generate_content(prompt)
-        result_text = response.text.strip()
-
-        import json
-
-        try:
-            if result_text.startswith("```"):
-                result_text = result_text.split("```")[1]
-                if result_text.startswith("json"):
-                    result_text = result_text[4:]
-
-            questions_data = json.loads(result_text)
-        except:
-            # Fallback
-            questions_data = {
-                "questions": [
-                    {
-                        "question": "Descreva um projeto desafiador que você liderou",
-                        "type": "behavioral",
-                        "focus_area": "Liderança",
-                    }
-                ]
-            }
-
-        return {
-            "success": True,
-            "questions": questions_data.get("questions", []),
-            "generated_at": datetime.now().isoformat(),
-        }
-
-    except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Erro ao gerar perguntas: {str(e)}"
-        )
-
-
-@router.post("/chat")
-async def ai_chat_assistant(
-    message: str,
-    context: Optional[str] = None,
-    current_user: User = Depends(get_current_user),
-):
-    """
-    Assistente de RH via chat (Gemini)
-    """
-    if not GEMINI_API_KEY:
-        return {
-            "response": "Gemini API não configurada. Configure GEMINI_API_KEY no arquivo .env"
-        }
-
     try:
-        system_context = """
-Você é um assistente especializado em Recursos Humanos e Recrutamento da Innovation.ia.
-Ajude com dúvidas sobre processos seletivos, gestão de candidatos, melhores práticas de RH.
-Seja profissional, objetivo e prestativo.
-"""
-
-        full_prompt = f"{system_context}\n\n"
-        if context:
-            full_prompt += f"CONTEXTO: {context}\n\n"
-        full_prompt += f"PERGUNTA: {message}"
-
-        response = model.generate_content(full_prompt)
-
-        return {"response": response.text, "timestamp": datetime.now().isoformat()}
-
+        response = model.generate_content(prompt)
+        import json, re
+        raw = re.sub(r"```json|```", "", response.text.strip()).strip()
+        return json.loads(raw)
     except Exception as e:
-        return {"response": f"Erro ao processar mensagem: {str(e)}"}
+        raise HTTPException(status_code=500, detail=f"Erro ao sugerir perguntas: {e}")

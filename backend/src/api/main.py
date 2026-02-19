@@ -18,6 +18,7 @@ from api.v1.endpoints import (
     payments,
     enterprise,
 )
+from api.v1.endpoints import rh_advanced, csc_advanced, finance_advanced, projects_advanced, killer_questions
 import domain.models  # Garante o registro de todos os modelos
 from core.config import settings
 from contextlib import asynccontextmanager
@@ -70,6 +71,12 @@ app.include_router(projects.router)
 app.include_router(rh.router)
 app.include_router(finance.router)
 app.include_router(support.router)
+# ── Advanced Modules (MASTERPLAN completion) ──
+app.include_router(rh_advanced.router)
+app.include_router(csc_advanced.router)
+app.include_router(finance_advanced.router)
+app.include_router(projects_advanced.router)
+app.include_router(killer_questions.router)
 
 
 @app.get("/health")
