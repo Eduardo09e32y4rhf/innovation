@@ -1,6 +1,7 @@
 import mercadopago
 from fastapi import APIRouter, Depends, Request, HTTPException
 from sqlalchemy.orm import Session
+from pydantic import BaseModel
 from core.config import settings
 from infrastructure.database.sql.dependencies import get_db
 from domain.models.user import User
@@ -8,13 +9,56 @@ from api.v1.endpoints.auth import get_current_user  # Ajuste conforme autentica�
 
 router = APIRouter(prefix="/api/payments", tags=["payments"])
 
+
+class CheckoutRequest(BaseModel):
+    plan: str
+
 # Inicializa o SDK
 # Use the token from settings, fallback to empty string if not set to avoid crash on init,
 # but API calls will fail if token is invalid.
 sdk = mercadopago.SDK(settings.MP_ACCESS_TOKEN or "TEST-TOKEN")
 
 
-# 1. CRIA O LINK DE PAGAMENTO
+# 0. CHECKOUT UNIFICADO (usado pela página /pricing)
+@router.post("/checkout")
+async def checkout(
+    data: CheckoutRequest,
+    current_user: User = Depends(get_current_user),
+):
+    """Cria preferência e retorna init_point para a página de pricing."""
+    prices = {"starter": 299.0, "growth": 799.0, "enterprise": 1999.0}
+    price = prices.get(data.plan.lower())
+    if not price:
+        raise HTTPException(status_code=400, detail="Plano inválido")
+
+    base_url = settings.BASE_URL
+    preference_data = {
+        "items": [{
+            "id": data.plan,
+            "title": f"Innovation.ia — Plano {data.plan.title()}",
+            "quantity": 1,
+            "currency_id": "BRL",
+            "unit_price": price,
+        }],
+        "payer": {"email": current_user.email, "name": current_user.full_name or "Usuário"},
+        "back_urls": {
+            "success": f"{base_url}/dashboard?status=success&plan={data.plan}",
+            "failure": f"{base_url}/pricing?status=failure",
+            "pending": f"{base_url}/dashboard?status=pending",
+        },
+        "auto_return": "approved",
+        "notification_url": f"{base_url}/api/payments/webhook",
+        "external_reference": f"{current_user.id}:{data.plan}",
+    }
+    try:
+        response = sdk.preference().create(preference_data)
+        pref = response["response"]
+        return {"init_point": pref["init_point"], "plan": data.plan, "price": price}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro Mercado Pago: {e}")
+
+
+# 1. CRIA O LINK DE PAGAMENTO (legacy route)
 @router.post("/create-preference/{plan_type}")
 async def create_preference(
     plan_type: str, current_user: User = Depends(get_current_user)

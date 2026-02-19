@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from sqlalchemy.orm import Session
+from services.notification_service import send_email, NotificationPayload
 
 from core.security import (
     create_access_token,
@@ -113,6 +114,22 @@ def register_user(
     db.commit()
     db.refresh(user)
     logger.info(f"Usuário registrado: {user.email} (ID: {user.id}) as {role}")
+
+    # Send welcome email (non-blocking)
+    try:
+        send_email(NotificationPayload(
+            recipient_email=user.email,
+            subject="Bem-vindo à Innovation.ia! 🚀",
+            message=(
+                f"Olá {user.full_name},\n\n"
+                "Sua conta foi criada com sucesso na Innovation.ia.\n"
+                "Acesse o painel em https://innovation.ia/dashboard\n\n"
+                "Equipe Innovation.ia"
+            ),
+        ))
+    except Exception as e:
+        logger.warning(f"E-mail de boas-vindas não enviado: {e}")
+
     return user
 
 

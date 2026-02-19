@@ -1,9 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from infrastructure.database.sql.dependencies import get_db
+from core.dependencies import get_current_user
+from domain.models.user import User
 from services.support_service import support_service
 from pydantic import BaseModel
-from typing import List
 
 router = APIRouter(prefix="/api/support", tags=["support"])
 
@@ -14,20 +15,41 @@ class TicketCreate(BaseModel):
 
 
 @router.post("/tickets")
-async def create_ticket(data: TicketCreate, db: Session = Depends(get_db)):
-    # Mock user_id = 1
-    return support_service.create_ticket(db, data.title, data.description, 1)
+async def create_ticket(
+    data: TicketCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return support_service.create_ticket(db, data.title, data.description, current_user.id)
 
 
 @router.get("/tickets")
-async def list_tickets(db: Session = Depends(get_db)):
+async def list_tickets(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     from domain.models.ticket import Ticket
+    return db.query(Ticket).filter(Ticket.user_id == current_user.id).all()
 
-    return db.query(Ticket).all()
+
+@router.get("/tickets/all")
+async def list_all_tickets(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Admin: lista todos os tickets"""
+    if current_user.role not in ["admin", "company"]:
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    from domain.models.ticket import Ticket
+    return db.query(Ticket).order_by(Ticket.id.desc()).all()
 
 
 @router.get("/tickets/{ticket_id}/smart-reply")
-async def get_reply(ticket_id: int, description: str):
+async def get_reply(
+    ticket_id: int,
+    description: str,
+    current_user: User = Depends(get_current_user),
+):
     return {"reply": support_service.get_ai_smart_reply(ticket_id, description)}
 
 
