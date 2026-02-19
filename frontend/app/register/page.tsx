@@ -4,19 +4,39 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { motion } from "framer-motion"
 import { Bot, Lock, Mail, User } from "lucide-react"
-import Link from "next/link"
+import { AuthService } from "../../services/api"
 import { useState } from "react"
 
 export default function RegisterPage() {
     const [loading, setLoading] = useState(false)
+    const [name, setName] = useState("")
+    const [email, setEmail] = useState("")
+    const [password, setPassword] = useState("")
+    const [error, setError] = useState("")
+    const [success, setSuccess] = useState(false)
 
-    const handleRegister = (e: React.FormEvent) => {
+    const handleRegister = async (e: React.FormEvent) => {
         e.preventDefault()
         setLoading(true)
-        setTimeout(() => {
+        setError("")
+
+        try {
+            await AuthService.register({
+                name,
+                email,
+                password,
+                role: "candidate" // Padrão
+            })
+            setSuccess(true)
+            setTimeout(() => {
+                window.location.href = "/login"
+            }, 2000)
+        } catch (err: any) {
+            console.error("Register error:", err)
+            setError(err.response?.data?.detail || "Erro ao criar conta. Tente novamente.")
+        } finally {
             setLoading(false)
-            window.location.href = "/dashboard"
-        }, 1500)
+        }
     }
 
     return (
@@ -48,6 +68,16 @@ export default function RegisterPage() {
                     </CardHeader>
                     <CardContent>
                         <form onSubmit={handleRegister} className="space-y-4">
+                            {error && (
+                                <div className="bg-red-500/10 border border-red-500/50 text-red-500 px-4 py-2 rounded-md text-sm mb-4">
+                                    {error}
+                                </div>
+                            )}
+                            {success && (
+                                <div className="bg-green-500/10 border border-green-500/50 text-green-500 px-4 py-2 rounded-md text-sm mb-4">
+                                    Conta criada com sucesso! Redirecionando para o login...
+                                </div>
+                            )}
                             <div className="space-y-2">
                                 <label className="text-sm font-medium text-zinc-300">Nome Completo</label>
                                 <div className="relative">
@@ -55,6 +85,8 @@ export default function RegisterPage() {
                                     <input
                                         type="text"
                                         placeholder="João Silva"
+                                        value={name}
+                                        onChange={(e) => setName(e.target.value)}
                                         className="w-full rounded-md border border-zinc-700 bg-zinc-800/50 px-3 py-2 pl-9 text-sm text-white placeholder:text-zinc-500 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500 transition-all"
                                         required
                                     />
@@ -67,6 +99,8 @@ export default function RegisterPage() {
                                     <input
                                         type="email"
                                         placeholder="voce@empresa.com"
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
                                         className="w-full rounded-md border border-zinc-700 bg-zinc-800/50 px-3 py-2 pl-9 text-sm text-white placeholder:text-zinc-500 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500 transition-all"
                                         required
                                     />
@@ -79,12 +113,14 @@ export default function RegisterPage() {
                                     <input
                                         type="password"
                                         placeholder="••••••••"
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
                                         className="w-full rounded-md border border-zinc-700 bg-zinc-800/50 px-3 py-2 pl-9 text-sm text-white placeholder:text-zinc-500 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500 transition-all"
                                         required
                                     />
                                 </div>
                             </div>
-                            <Button className="w-full bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700" disabled={loading}>
+                            <Button className="w-full bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700" disabled={loading || success}>
                                 {loading ? "Criando Conta..." : "Inicializar Acesso"}
                             </Button>
                         </form>
