@@ -108,7 +108,9 @@ async def mp_webhook(request: Request, db: Session = Depends(get_db)):
                 external_ref = response["external_reference"]  # ID do usuário
 
                 # Valor para definir plano
-                transaction_amount = response.get("auto_recurring", {}).get("transaction_amount", 0)
+                transaction_amount = response.get("auto_recurring", {}).get(
+                    "transaction_amount", 0
+                )
                 amount = float(transaction_amount)
 
                 # Busca usuário
@@ -139,11 +141,19 @@ async def mp_webhook(request: Request, db: Session = Depends(get_db)):
 
                     # Atualiza ou cria registro na tabela Subscription
                     # Tenta achar a company do usuário
-                    company = db.query(Company).filter(Company.owner_user_id == user.id).first()
+                    company = (
+                        db.query(Company)
+                        .filter(Company.owner_user_id == user.id)
+                        .first()
+                    )
                     # Fallback de company_id = 1 se não achar (para evitar erro de constraint se aplicável)
                     company_id = company.id if company else 1
 
-                    sub = db.query(Subscription).filter(Subscription.user_id == user.id).first()
+                    sub = (
+                        db.query(Subscription)
+                        .filter(Subscription.user_id == user.id)
+                        .first()
+                    )
 
                     if not sub:
                         sub = Subscription(
@@ -182,9 +192,7 @@ async def mp_webhook(request: Request, db: Session = Depends(get_db)):
 
                 if status == "approved" and external_ref:
                     # Garante que usuário está ativo
-                    user = (
-                        db.query(User).filter(User.id == int(external_ref)).first()
-                    )
+                    user = db.query(User).filter(User.id == int(external_ref)).first()
                     if user:
                         user.subscription_status = "active"
                         user.is_active = True
