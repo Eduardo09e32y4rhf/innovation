@@ -26,6 +26,12 @@ class Company(Base):
     cidade: Mapped[str] = mapped_column(String(120), nullable=False)
     uf: Mapped[str] = mapped_column(String(2), nullable=False)
 
+    cep: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    street: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    number: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    complement: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    neighborhood: Mapped[str | None] = mapped_column(String(100), nullable=True)
+
     logo_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
 
     plan_id: Mapped[int | None] = mapped_column(

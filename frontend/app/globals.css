@@ -1,6 +1,4 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
 :root {
   --foreground-rgb: 0, 0, 0;
@@ -50,11 +48,17 @@ body {
 
 @layer components {
   .glass-panel {
-    @apply bg-gray-950/70 backdrop-blur-xl border border-white/5 shadow-xl;
+    background-color: rgba(3, 7, 18, 0.7);
+    @apply backdrop-blur-xl border border-white/5 shadow-xl;
   }
 
   .glass-card {
-    @apply bg-black/40 backdrop-blur-md border border-white/10 rounded-xl hover:border-purple-500/30 transition-all duration-300;
+    background-color: rgba(0, 0, 0, 0.4);
+    @apply backdrop-blur-md border border-white/10 rounded-xl transition-all duration-300;
+  }
+
+  .glass-card:hover {
+    @apply border-purple-500/30;
   }
 
   .gradient-text {
@@ -62,11 +66,17 @@ body {
   }
 
   .sidebar-link {
-    @apply flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition-all duration-200;
+    @apply flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 transition-all duration-200;
+  }
+
+  .sidebar-link:hover {
+    color: white;
+    background-color: rgba(255, 255, 255, 0.05);
   }
 
   .sidebar-link.active {
-    @apply bg-purple-500/10 text-purple-400 border-l-2 border-purple-500 rounded-l-none;
+    background-color: rgba(168, 85, 247, 0.1);
+    @apply text-purple-400 border-l-2 border-purple-500 rounded-l-none;
   }
 }
 

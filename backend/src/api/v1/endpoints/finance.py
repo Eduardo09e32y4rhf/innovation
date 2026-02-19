@@ -46,6 +46,8 @@ async def create_transaction(
             description=data.description,
             amount=data.amount,
             type=data.type,
+            tax_type=data.tax_type,
+            category=data.category,
             due_date=datetime.combine(data.due_date, time.min),
             company_id=current_user.id,
         )
@@ -68,6 +70,15 @@ async def get_anomalies(
     if current_user.role.lower() != "company":
         raise HTTPException(status_code=403, detail="Acesso não autorizado")
     return finance_service.detect_anomalies(db, current_user.id)
+
+
+@router.get("/taxes")
+async def get_taxes(
+    db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
+):
+    if current_user.role.lower() != "company":
+        raise HTTPException(status_code=403, detail="Acesso não autorizado")
+    return finance_service.get_tax_summary(db, current_user.id)
 
 
 @router.get("/logs")

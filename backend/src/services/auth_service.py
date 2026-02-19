@@ -33,6 +33,11 @@ def register_user(
     cnpj: str | None = None,
     cidade: str | None = None,
     uf: str | None = None,
+    cep: str | None = None,
+    street: str | None = None,
+    number: str | None = None,
+    complement: str | None = None,
+    neighborhood: str | None = None,
     role: str = "candidate",
 ) -> User:
     if db.query(User).filter(User.email == email).first():
@@ -105,6 +110,11 @@ def register_user(
             cnpj=cnpj_value,
             cidade=city,
             uf=state,
+            cep=cep,
+            street=street,
+            number=number,
+            complement=complement,
+            neighborhood=neighborhood,
             logo_url=None,
         )
         db.add(company)

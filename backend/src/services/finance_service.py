@@ -37,6 +37,47 @@ class FinanceService:
         }
 
     @staticmethod
+    def get_tax_summary(db: Session, company_id: int):
+        """Agrega despesas por tipo de imposto (DAS, INSS, FGTS, etc)."""
+        transactions = (
+            db.query(Transaction)
+            .filter(
+                Transaction.company_id == company_id,
+                Transaction.tax_type.isnot(None),
+                Transaction.type == "expense",
+            )
+            .all()
+        )
+
+        # Agrupa por tax_type
+        summary = {}
+        total_tax = 0
+        for t in transactions:
+            ttype = t.tax_type.upper()
+            if ttype not in summary:
+                summary[ttype] = {"total": 0, "pending": 0, "paid": 0, "items": []}
+
+            val = float(t.amount)
+            summary[ttype]["total"] += val
+            total_tax += val
+
+            if t.status == "paid":
+                summary[ttype]["paid"] += val
+            else:
+                summary[ttype]["pending"] += val
+
+            summary[ttype]["items"].append(
+                {
+                    "description": t.description,
+                    "amount": val,
+                    "due_date": t.due_date,
+                    "status": t.status,
+                }
+            )
+
+        return {"total_taxes": total_tax, "breakdown": summary}
+
+    @staticmethod
     def ai_cash_flow_prediction(db: Session, company_id: int):
         # Coleta dados históricos simplificados
         summary = FinanceService.get_cash_flow_summary(db, company_id)

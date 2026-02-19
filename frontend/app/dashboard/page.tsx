@@ -98,7 +98,7 @@ export default function DashboardPage() {
                                         <stat.icon className={`h-4 w-4 ${stat.color}`} />
                                     </CardHeader>
                                     <CardContent>
-                                        <div className="text-2xl font-bold text-white">{stat.value}</div>
+                                        <div className="text-2xl font-bold text-white">{loading ? "..." : stat.value}</div>
                                         <p className="text-xs text-zinc-500 mt-1">{stat.change}</p>
                                     </CardContent>
                                 </Card>
