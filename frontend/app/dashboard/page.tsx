@@ -17,8 +17,34 @@ interface Activity {
     avatar?: string;
 }
 
+interface MetricData {
+    current: number;
+    change_percent: number;
+}
+
+interface RevenueMetric extends MetricData {
+    chart_data?: { month: string; value: number }[];
+}
+
+interface ProfitMetric extends MetricData {
+    margin_percent?: number;
+}
+
+interface CostsMetric extends MetricData {
+    breakdown?: {
+        infrastructure?: number;
+    };
+}
+
+interface Metrics {
+    revenue?: RevenueMetric;
+    profit?: ProfitMetric;
+    costs?: CostsMetric;
+    [key: string]: any;
+}
+
 export default function DashboardPage() {
-    const [metrics, setMetrics] = useState<Record<string, { current: number; change_percent: number }> | null>(null);
+    const [metrics, setMetrics] = useState<Metrics | null>(null);
     const [activities, setActivities] = useState<Activity[]>([]);
     const [loading, setLoading] = useState(true);
 

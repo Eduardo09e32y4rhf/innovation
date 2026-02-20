@@ -16,6 +16,7 @@ router = APIRouter(prefix="/api/payments", tags=["payments"])
 class CheckoutRequest(BaseModel):
     plan: str
 
+
 # Inicializa o SDK
 # Use the token from settings, fallback to empty string if not set to avoid crash on init,
 # but API calls will fail if token is invalid.
@@ -36,14 +37,19 @@ async def checkout(
 
     base_url = settings.BASE_URL
     preference_data = {
-        "items": [{
-            "id": data.plan,
-            "title": f"Innovation.ia — Plano {data.plan.title()}",
-            "quantity": 1,
-            "currency_id": "BRL",
-            "unit_price": price,
-        }],
-        "payer": {"email": current_user.email, "name": current_user.full_name or "Usuário"},
+        "items": [
+            {
+                "id": data.plan,
+                "title": f"Innovation.ia — Plano {data.plan.title()}",
+                "quantity": 1,
+                "currency_id": "BRL",
+                "unit_price": price,
+            }
+        ],
+        "payer": {
+            "email": current_user.email,
+            "name": current_user.full_name or "Usuário",
+        },
         "back_urls": {
             "success": f"{base_url}/dashboard?status=success&plan={data.plan}",
             "failure": f"{base_url}/pricing?status=failure",
@@ -133,40 +139,43 @@ async def mp_webhook(request: Request, db: Session = Depends(get_db)):
     # Signature Verification
     x_signature = request.headers.get("x-signature")
     x_request_id = request.headers.get("x-request-id")
-    
+
     import os
+
     mp_secret = os.getenv("MP_WEBHOOK_SECRET")
 
     if mp_secret and x_signature and x_request_id:
         try:
             import hmac
             import hashlib
-            
+
             # Parse signature header "ts=...;v1=..."
             parts = {}
-            for p in x_signature.split(","): # MP uses comma or semicolon? Docs say comma often but check both
-                 kv = p.strip().split("=")
-                 if len(kv) == 2:
-                     parts[kv[0]] = kv[1]
+            for p in x_signature.split(
+                ","
+            ):  # MP uses comma or semicolon? Docs say comma often but check both
+                kv = p.strip().split("=")
+                if len(kv) == 2:
+                    parts[kv[0]] = kv[1]
 
             ts = parts.get("ts")
             v1 = parts.get("v1")
-            
+
             if ts and v1:
                 # MP Docs: manifest = "id:{data.id};request-id:{x-request-id};ts:{ts};"
                 data_id = data.get("data", {}).get("id")
                 if data_id:
                     manifest = f"id:{data_id};request-id:{x_request_id};ts:{ts};"
-                    
+
                     calculated = hmac.new(
-                        mp_secret.encode(), 
-                        manifest.encode(), 
-                        hashlib.sha256
+                        mp_secret.encode(), manifest.encode(), hashlib.sha256
                     ).hexdigest()
-                    
+
                     # Log failure but proceed for resilience unless strict mode
                     if calculated != v1:
-                        print(f"⚠️ Assinatura Webhook MP inválida. Esperado: {v1}, Calc: {calculated}")
+                        print(
+                            f"⚠️ Assinatura Webhook MP inválida. Esperado: {v1}, Calc: {calculated}"
+                        )
         except Exception as e:
             print(f"Erro ao verificar assinatura MP: {e}")
 

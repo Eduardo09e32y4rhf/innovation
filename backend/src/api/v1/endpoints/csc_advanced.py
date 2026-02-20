@@ -1,6 +1,7 @@
 """
 CSC/Service Desk Advanced — Queues, SLA, KB, CSAT, Spike Detection, Webhooks
 """
+
 import os
 import json
 import hmac
@@ -43,21 +44,30 @@ def list_queues(
 ):
     """Lista tickets agrupados por fila."""
     from domain.models.company import Company
+
     company = db.query(Company).filter(Company.owner_user_id == current_user.id).first()
     company_id = company.id if company else None
 
     if not company_id:
         # Fallback for non-owners: only own tickets? Or empty?
         # Let's return empty/filtered for safety
-        return {q: {"count": 0, "sla_hours": SLA_HOURS.get(q, 24), "tickets": []} for q in QUEUES}
+        return {
+            q: {"count": 0, "sla_hours": SLA_HOURS.get(q, 24), "tickets": []}
+            for q in QUEUES
+        }
 
     result = {}
     for queue in QUEUES:
-        tickets = db.query(Ticket).filter(
-            Ticket.company_id == company_id,
-            Ticket.queue == queue,
-            Ticket.status != "closed",
-        ).order_by(Ticket.created_at.asc()).all()
+        tickets = (
+            db.query(Ticket)
+            .filter(
+                Ticket.company_id == company_id,
+                Ticket.queue == queue,
+                Ticket.status != "closed",
+            )
+            .order_by(Ticket.created_at.asc())
+            .all()
+        )
         result[queue] = {
             "count": len(tickets),
             "sla_hours": SLA_HOURS.get(queue, 24),
@@ -68,12 +78,19 @@ def list_queues(
                     "status": t.status,
                     "priority": getattr(t, "priority", "normal"),
                     "created_at": str(t.created_at),
-                    "sla_deadline": str(
-                        t.created_at + timedelta(hours=SLA_HOURS.get(queue, 24))
-                    ) if t.created_at else None,
+                    "sla_deadline": (
+                        str(t.created_at + timedelta(hours=SLA_HOURS.get(queue, 24)))
+                        if t.created_at
+                        else None
+                    ),
                     "sla_breached": (
-                        datetime.utcnow() > t.created_at + timedelta(hours=SLA_HOURS.get(queue, 24))
-                    ) if t.created_at else False,
+                        (
+                            datetime.utcnow()
+                            > t.created_at + timedelta(hours=SLA_HOURS.get(queue, 24))
+                        )
+                        if t.created_at
+                        else False
+                    ),
                 }
                 for t in tickets
             ],
@@ -90,18 +107,27 @@ def assign_queue(
 ):
     if queue not in QUEUES:
         raise HTTPException(status_code=400, detail=f"Fila inválida. Válidas: {QUEUES}")
-    
+
     from domain.models.company import Company
+
     company = db.query(Company).filter(Company.owner_user_id == current_user.id).first()
     company_id = company.id if company else None
 
-    ticket = db.query(Ticket).filter(
-        Ticket.id == ticket_id,
-        Ticket.company_id == company_id if company_id else True # Fail safe? No, should be strict
-    ).first()
-    
+    ticket = (
+        db.query(Ticket)
+        .filter(
+            Ticket.id == ticket_id,
+            (
+                Ticket.company_id == company_id if company_id else True
+            ),  # Fail safe? No, should be strict
+        )
+        .first()
+    )
+
     if not ticket or (company_id and ticket.company_id != company_id):
-         raise HTTPException(status_code=404, detail="Ticket não encontrado ou acesso negado")
+        raise HTTPException(
+            status_code=404, detail="Ticket não encontrado ou acesso negado"
+        )
 
     ticket.queue = queue
     db.commit()
@@ -110,6 +136,7 @@ def assign_queue(
 
 
 # ─── SLA ───────────────────────────────────────────────────────────────────────
+
 
 @router.get("/tickets/{ticket_id}/sla")
 def get_ticket_sla(
@@ -123,7 +150,9 @@ def get_ticket_sla(
 
     queue = getattr(ticket, "queue", "N1") or "N1"
     sla_hours = SLA_HOURS.get(queue, 24)
-    deadline = ticket.created_at + timedelta(hours=sla_hours) if ticket.created_at else None
+    deadline = (
+        ticket.created_at + timedelta(hours=sla_hours) if ticket.created_at else None
+    )
     now = datetime.utcnow()
     remaining = (deadline - now).total_seconds() if deadline else 0
     breached = remaining < 0
@@ -134,8 +163,14 @@ def get_ticket_sla(
         "sla_hours": sla_hours,
         "deadline": str(deadline),
         "remaining_seconds": max(0, remaining),
-        "remaining_human": f"{int(remaining // 3600)}h {int((remaining % 3600) // 60)}m" if remaining > 0 else "VENCIDO",
-        "sla_status": "red" if breached else ("yellow" if remaining < 3600 else "green"),
+        "remaining_human": (
+            f"{int(remaining // 3600)}h {int((remaining % 3600) // 60)}m"
+            if remaining > 0
+            else "VENCIDO"
+        ),
+        "sla_status": (
+            "red" if breached else ("yellow" if remaining < 3600 else "green")
+        ),
         "breached": breached,
     }
 
@@ -150,16 +185,20 @@ def escalate_breached_tickets(
     # Or optimize to run background job?
     # Assuming manual trigger by admin/company owner for their own tickets.
     from domain.models.company import Company
+
     company = db.query(Company).filter(Company.owner_user_id == current_user.id).first()
     if not company:
-         return {"escalated_count": 0, "ticket_ids": []}
+        return {"escalated_count": 0, "ticket_ids": []}
 
     escalated = []
-    open_tickets = db.query(Ticket).filter(
-        Ticket.company_id == company.id,
-        Ticket.status.in_(["open", "in_progress"])
-    ).all()
-    
+    open_tickets = (
+        db.query(Ticket)
+        .filter(
+            Ticket.company_id == company.id, Ticket.status.in_(["open", "in_progress"])
+        )
+        .all()
+    )
+
     now = datetime.utcnow()
     for ticket in open_tickets:
         queue = getattr(ticket, "queue", "N1") or "N1"
@@ -177,6 +216,7 @@ def escalate_breached_tickets(
 
 # ─── KNOWLEDGE BASE ────────────────────────────────────────────────────────────
 
+
 class KBArticleCreate(BaseModel):
     title: str
     content: str
@@ -191,6 +231,7 @@ def create_kb_article(
     current_user: User = Depends(get_current_user),
 ):
     from domain.models.company import Company
+
     company = db.query(Company).filter(Company.owner_user_id == current_user.id).first()
     article = KBArticle(
         company_id=company.id if company else None,
@@ -207,13 +248,14 @@ def list_kb_articles(
     q: Optional[str] = None,
     category: Optional[str] = None,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user), # Add user to filter by company
+    current_user: User = Depends(get_current_user),  # Add user to filter by company
 ):
     from domain.models.company import Company
+
     company = db.query(Company).filter(Company.owner_user_id == current_user.id).first()
-    
+
     query = db.query(KBArticle).filter(KBArticle.is_published == True)
-    
+
     if company:
         # Filter by company OR public (if implementing public KB later)
         # For now, isolate by company
@@ -240,10 +282,15 @@ def suggest_kb_articles(
     words = ticket_title.lower().split()
     results = []
     for word in words[:3]:
-        articles = db.query(KBArticle).filter(
-            KBArticle.is_published == True,
-            KBArticle.title.ilike(f"%{word}%"),
-        ).limit(3).all()
+        articles = (
+            db.query(KBArticle)
+            .filter(
+                KBArticle.is_published == True,
+                KBArticle.title.ilike(f"%{word}%"),
+            )
+            .limit(3)
+            .all()
+        )
         results.extend(articles)
     seen = set()
     unique = [a for a in results if a.id not in seen and not seen.add(a.id)]
@@ -261,6 +308,7 @@ def mark_kb_view(article_id: int, db: Session = Depends(get_db)):
 
 # ─── CSAT ──────────────────────────────────────────────────────────────────────
 
+
 class CSATCreate(BaseModel):
     score: int  # 1-5
     comment: Optional[str] = None
@@ -275,16 +323,22 @@ def rate_ticket(
 ):
     if not 1 <= data.score <= 5:
         raise HTTPException(status_code=400, detail="Score deve ser entre 1 e 5")
-    existing = db.query(TicketRating).filter(
-        TicketRating.ticket_id == ticket_id,
-        TicketRating.user_id == current_user.id,
-    ).first()
+    existing = (
+        db.query(TicketRating)
+        .filter(
+            TicketRating.ticket_id == ticket_id,
+            TicketRating.user_id == current_user.id,
+        )
+        .first()
+    )
     if existing:
         existing.score = data.score
         existing.comment = data.comment
         db.commit()
         return existing
-    rating = TicketRating(ticket_id=ticket_id, user_id=current_user.id, **data.model_dump())
+    rating = TicketRating(
+        ticket_id=ticket_id, user_id=current_user.id, **data.model_dump()
+    )
     db.add(rating)
     db.commit()
     db.refresh(rating)
@@ -297,6 +351,7 @@ def csat_summary(
     current_user: User = Depends(get_current_user),
 ):
     from domain.models.company import Company
+
     company = db.query(Company).filter(Company.owner_user_id == current_user.id).first()
     if not company:
         return {"average": 0, "total": 0, "distribution": {}}
@@ -307,7 +362,7 @@ def csat_summary(
         .filter(Ticket.company_id == company.id)
         .all()
     )
-    
+
     if not ratings:
         return {"average": 0, "total": 0, "distribution": {}}
     avg = sum(r.score for r in ratings) / len(ratings)
@@ -317,6 +372,7 @@ def csat_summary(
 
 # ─── SPIKE DETECTION ───────────────────────────────────────────────────────────
 
+
 @router.get("/analytics/spikes")
 def detect_spikes(
     db: Session = Depends(get_db),
@@ -324,9 +380,10 @@ def detect_spikes(
 ):
     """Detecta spikes de tickets na última hora vs média das últimas 24h."""
     from domain.models.company import Company
+
     company = db.query(Company).filter(Company.owner_user_id == current_user.id).first()
     if not company:
-         return {"is_spike": False, "severity": "normal"}
+        return {"is_spike": False, "severity": "normal"}
 
     now = datetime.utcnow()
     last_hour = now - timedelta(hours=1)
@@ -353,12 +410,17 @@ def detect_spikes(
         "hourly_average_24h": round(hourly_avg, 1),
         "spike_ratio": round(spike_ratio, 2),
         "is_spike": spike_ratio > 2.5,
-        "severity": "critical" if spike_ratio > 5 else ("warning" if spike_ratio > 2.5 else "normal"),
+        "severity": (
+            "critical"
+            if spike_ratio > 5
+            else ("warning" if spike_ratio > 2.5 else "normal")
+        ),
         "top_offenders": [{"category": k, "count": v} for k, v in top_offenders],
     }
 
 
 # ─── WEBHOOKS ──────────────────────────────────────────────────────────────────
+
 
 class WebhookCreate(BaseModel):
     url: str
@@ -373,9 +435,12 @@ def create_webhook(
     current_user: User = Depends(get_current_user),
 ):
     from domain.models.company import Company
+
     company = db.query(Company).filter(Company.owner_user_id == current_user.id).first()
     if not company:
-        raise HTTPException(status_code=403, detail="Apenas empresas podem criar webhooks")
+        raise HTTPException(
+            status_code=403, detail="Apenas empresas podem criar webhooks"
+        )
     wh = WebhookSubscription(
         company_id=company.id,
         url=data.url,
@@ -394,10 +459,15 @@ def list_webhooks(
     current_user: User = Depends(get_current_user),
 ):
     from domain.models.company import Company
+
     company = db.query(Company).filter(Company.owner_user_id == current_user.id).first()
     if not company:
         return []
-    return db.query(WebhookSubscription).filter(WebhookSubscription.company_id == company.id).all()
+    return (
+        db.query(WebhookSubscription)
+        .filter(WebhookSubscription.company_id == company.id)
+        .all()
+    )
 
 
 @router.delete("/webhooks/{wh_id}", status_code=204)
@@ -407,16 +477,23 @@ def delete_webhook(
     current_user: User = Depends(get_current_user),
 ):
     from domain.models.company import Company
+
     company = db.query(Company).filter(Company.owner_user_id == current_user.id).first()
     if not company:
         raise HTTPException(status_code=403, detail="Acesso negado")
 
-    wh = db.query(WebhookSubscription).filter(
-        WebhookSubscription.id == wh_id,
-        WebhookSubscription.company_id == company.id
-    ).first()
-    
+    wh = (
+        db.query(WebhookSubscription)
+        .filter(
+            WebhookSubscription.id == wh_id,
+            WebhookSubscription.company_id == company.id,
+        )
+        .first()
+    )
+
     if not wh:
-        raise HTTPException(status_code=404, detail="Webhook não encontrado ou acesso negado")
+        raise HTTPException(
+            status_code=404, detail="Webhook não encontrado ou acesso negado"
+        )
     db.delete(wh)
     db.commit()
