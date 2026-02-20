@@ -11,4 +11,5 @@
   cmds = ["npm run build"]
 
 [start]
-  cmd = "export PATH=$PATH:./node_modules/.bin && next start"
+[start]
+  cmd = "npm run start"
