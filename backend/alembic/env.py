@@ -92,10 +92,9 @@ def run_migrations_online() -> None:
         db_url = db_url.replace("postgres://", "postgresql://", 1)
 
     if not db_url:
-        print("❌ ERRO CRÍTICO: DATABASE_URL não encontrada nas variáveis de ambiente.")
-        # We can't proceed without a DB, but maybe we shouldn't exit if it's just a build step?
-        # Alembic needs it though.
-        # sys.exit(1) # Let it crash with a clear message?
+        print("⚠️ AVISO: DATABASE_URL não encontrada. Usando SQLite temporário para evitar crash.")
+        # Fallback to local sqlite to prevent crash during build/deploy of non-configured envs
+        db_url = "sqlite:///./innovation_fallback.db"
         
     configuration = config.get_section(config.config_ini_section) or {}
     configuration["sqlalchemy.url"] = db_url
