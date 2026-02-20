@@ -46,6 +46,14 @@ export const AuthService = {
         const res = await api.post('/auth/forgot-password', { email });
         return res.data;
     },
+    getGoogleLoginUrl: async () => {
+        const res = await api.get('/auth/google-login');
+        return res.data;
+    },
+    googleCallback: async (code: string) => {
+        const res = await api.post(`/auth/google-callback?code=${code}`);
+        return res.data;
+    },
 };
 
 // ── DASHBOARD ────────────────────────────────────────────────────────────

@@ -105,7 +105,14 @@ export function Sidebar() {
                 </div>
             </nav>
 
-            <div className="p-4 border-t border-purple-500/10">
+            <div className="p-4 border-t border-purple-500/10 space-y-4">
+                <div className="px-2">
+                    <p className="text-[10px] text-zinc-500 text-center leading-tight">
+                        Sede: Osasco (Virtual)<br />
+                        <Link href="/terms" className="hover:text-purple-400 transition-colors">Termos</Link> •
+                        <Link href="/rules" className="hover:text-purple-400 transition-colors"> Regras</Link>
+                    </p>
+                </div>
                 <button
                     onClick={handleLogout}
                     className="w-full py-2 bg-red-500/10 text-red-400 rounded-lg hover:bg-red-500/20 transition text-sm font-medium flex items-center justify-center gap-2"
