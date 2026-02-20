@@ -21,10 +21,13 @@ async def create_ticket(
     current_user: User = Depends(get_current_user),
 ):
     from domain.models.company import Company
+
     company = db.query(Company).filter(Company.owner_user_id == current_user.id).first()
     company_id = company.id if company else None
 
-    return support_service.create_ticket(db, data.title, data.description, current_user.id, company_id)
+    return support_service.create_ticket(
+        db, data.title, data.description, current_user.id, company_id
+    )
 
 
 @router.get("/tickets")
@@ -33,6 +36,7 @@ async def list_tickets(
     current_user: User = Depends(get_current_user),
 ):
     from domain.models.ticket import Ticket
+
     return db.query(Ticket).filter(Ticket.user_id == current_user.id).all()
 
 
@@ -46,17 +50,22 @@ async def list_all_tickets(
         raise HTTPException(status_code=403, detail="Acesso negado")
     from domain.models.ticket import Ticket
     from domain.models.company import Company
-    
+
     if current_user.role == "admin":
         return db.query(Ticket).order_by(Ticket.id.desc()).all()
-        
+
     company = db.query(Company).filter(Company.owner_user_id == current_user.id).first()
     if not company:
         # If not company owner, only see own tickets (fallback) or error?
         # Let's return own tickets to be safe
         return db.query(Ticket).filter(Ticket.requester_id == current_user.id).all()
-        
-    return db.query(Ticket).filter(Ticket.company_id == company.id).order_by(Ticket.id.desc()).all()
+
+    return (
+        db.query(Ticket)
+        .filter(Ticket.company_id == company.id)
+        .order_by(Ticket.id.desc())
+        .all()
+    )
 
 
 @router.get("/tickets/{ticket_id}/smart-reply")

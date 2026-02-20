@@ -81,10 +81,11 @@ def run_migrations_online() -> None:
 
     """
     db_url = get_url()
-    
+
     # Fallback to os.getenv if settings model fails or returns empty
     if not db_url:
         import os
+
         db_url = os.getenv("DATABASE_URL")
 
     # Fix for Render/Railway Postgres URLs
@@ -92,10 +93,12 @@ def run_migrations_online() -> None:
         db_url = db_url.replace("postgres://", "postgresql://", 1)
 
     if not db_url:
-        print("⚠️ AVISO: DATABASE_URL não encontrada. Usando SQLite temporário para evitar crash.")
+        print(
+            "⚠️ AVISO: DATABASE_URL não encontrada. Usando SQLite temporário para evitar crash."
+        )
         # Fallback to local sqlite to prevent crash during build/deploy of non-configured envs
         db_url = "sqlite:///./innovation_fallback.db"
-        
+
     configuration = config.get_section(config.config_ini_section) or {}
     configuration["sqlalchemy.url"] = db_url
 

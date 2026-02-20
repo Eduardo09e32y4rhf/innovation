@@ -4,6 +4,7 @@ AI Chat Endpoint — Tiered Model Access
 - Gemini 1.5 Pro    → Plano Growth  (avançado)
 - Claude 3.5 Sonnet → Apenas admin-unlocked / personalizado
 """
+
 import os
 import json
 import re
@@ -21,15 +22,18 @@ ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 
 # ─── Models ────────────────────────────────────────────────────────────────────
 
+
 class ChatMessage(BaseModel):
-    role: str   # "user" | "assistant"
+    role: str  # "user" | "assistant"
     content: str
+
 
 class ChatRequest(BaseModel):
     question: str
     context: Optional[str] = None
     model: Optional[str] = "gemini-flash"  # "gemini-flash" | "gemini-pro" | "claude"
     history: Optional[List[ChatMessage]] = []
+
 
 # ─── System Prompts ────────────────────────────────────────────────────────────
 
@@ -58,7 +62,10 @@ Responda SEMPRE em português brasileiro com qualidade executiva."""
 
 # ─── Helper: Gemini ────────────────────────────────────────────────────────────
 
-async def _ask_gemini(question: str, history: List[ChatMessage], model_name: str) -> str:
+
+async def _ask_gemini(
+    question: str, history: List[ChatMessage], model_name: str
+) -> str:
     import google.generativeai as genai
 
     if not GEMINI_API_KEY:
@@ -69,26 +76,29 @@ async def _ask_gemini(question: str, history: List[ChatMessage], model_name: str
 
     # Build conversation history
     chat_history = []
-    for msg in (history or []):
-        chat_history.append({
-            "role": "user" if msg.role == "user" else "model",
-            "parts": [msg.content]
-        })
+    for msg in history or []:
+        chat_history.append(
+            {"role": "user" if msg.role == "user" else "model", "parts": [msg.content]}
+        )
 
     chat = model.start_chat(history=chat_history)
     response = chat.send_message(f"{SYSTEM_PROMPT}\n\n{question}")
     return response.text
 
+
 # ─── Helper: Claude ────────────────────────────────────────────────────────────
+
 
 async def _ask_claude(question: str, history: List[ChatMessage]) -> str:
     import httpx
 
     if not ANTHROPIC_API_KEY:
-        raise HTTPException(503, "ANTHROPIC_API_KEY não configurada. Contate o administrador.")
+        raise HTTPException(
+            503, "ANTHROPIC_API_KEY não configurada. Contate o administrador."
+        )
 
     messages = []
-    for msg in (history or []):
+    for msg in history or []:
         messages.append({"role": msg.role, "content": msg.content})
     messages.append({"role": "user", "content": question})
 
@@ -115,6 +125,7 @@ async def _ask_claude(question: str, history: List[ChatMessage]) -> str:
         result = response.json()
         return result["content"][0]["text"]
 
+
 # ─── Main Endpoint ─────────────────────────────────────────────────────────────
 
 # Rate Limiting
@@ -123,6 +134,7 @@ from slowapi.util import get_remote_address
 from starlette.requests import Request
 
 limiter = Limiter(key_func=get_remote_address)
+
 
 @router.post("/ask")
 @limiter.limit("10/minute")
@@ -155,10 +167,14 @@ async def ask_ai(
             answer = await _ask_claude(data.question, data.history or [])
             model_used = "Claude 3.5 Sonnet"
         elif model_choice == "gemini-pro":
-            answer = await _ask_gemini(data.question, data.history or [], "gemini-1.5-pro")
+            answer = await _ask_gemini(
+                data.question, data.history or [], "gemini-1.5-pro"
+            )
             model_used = "Gemini 1.5 Pro"
         else:
-            answer = await _ask_gemini(data.question, data.history or [], "gemini-1.5-flash")
+            answer = await _ask_gemini(
+                data.question, data.history or [], "gemini-1.5-flash"
+            )
             model_used = "Gemini 1.5 Flash"
 
         return {
@@ -176,7 +192,9 @@ async def ask_ai(
             "error": True,
         }
 
+
 # ─── Model Info ────────────────────────────────────────────────────────────────
+
 
 @router.get("/models")
 async def list_models(current_user: User = Depends(get_current_user)):
@@ -210,7 +228,11 @@ async def list_models(current_user: User = Depends(get_current_user)):
                 "plan": "Enterprise",
                 "available": claude_unlocked,
                 "icon": "🧠",
-                "locked_message": None if claude_unlocked else "Apenas para planos Enterprise ou acesso personalizado.",
+                "locked_message": (
+                    None
+                    if claude_unlocked
+                    else "Apenas para planos Enterprise ou acesso personalizado."
+                ),
             },
         ],
         "current_plan": user_plan,

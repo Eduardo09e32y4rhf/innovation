@@ -6,7 +6,9 @@ import json
 
 class SupportService:
     @staticmethod
-    def create_ticket(db: Session, title: str, description: str, requester_id: int, company_id: int):
+    def create_ticket(
+        db: Session, title: str, description: str, requester_id: int, company_id: int
+    ):
         # IA Classifica a Categoria (Simulação)
         # Em produção, chamaríamos o Gemini aqui
         category = db.query(TicketCategory).first()  # TI por padrão

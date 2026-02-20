@@ -13,7 +13,9 @@ class Task(Base):
     status = Column(String(50), default="todo")  # todo, in_progress, review, done
     priority = Column(String(20), default="medium")  # low, medium, high, urgent
 
-    project_id = Column(Integer, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False)
+    project_id = Column(
+        Integer, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False
+    )
     assigned_to = Column(Integer, ForeignKey("users.id"), nullable=True)
 
     # Time Tracking Tracking

@@ -72,9 +72,11 @@ async def delete_project(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    project = db.query(Project).filter(
-        Project.id == project_id, Project.company_id == current_user.id
-    ).first()
+    project = (
+        db.query(Project)
+        .filter(Project.id == project_id, Project.company_id == current_user.id)
+        .first()
+    )
     if not project:
         raise HTTPException(status_code=404, detail="Projeto não encontrado")
     db.delete(project)
@@ -88,9 +90,11 @@ async def create_task(
     current_user: User = Depends(get_current_user),
 ):
     # Validate project belongs to user
-    project = db.query(Project).filter(
-        Project.id == data.project_id, Project.company_id == current_user.id
-    ).first()
+    project = (
+        db.query(Project)
+        .filter(Project.id == data.project_id, Project.company_id == current_user.id)
+        .first()
+    )
     if not project:
         raise HTTPException(status_code=404, detail="Projeto não encontrado")
 
@@ -122,7 +126,9 @@ async def update_task(
         .first()
     )
     if not task:
-        raise HTTPException(status_code=404, detail="Tarefa não encontrada ou acesso negado")
+        raise HTTPException(
+            status_code=404, detail="Tarefa não encontrada ou acesso negado"
+        )
 
     update_data = data.model_dump(exclude_unset=True)
     for field, value in update_data.items():
@@ -165,8 +171,5 @@ async def list_all_tasks(
     current_user: User = Depends(get_current_user),
 ):
     return (
-        db.query(Task)
-        .join(Project)
-        .filter(Project.company_id == current_user.id)
-        .all()
+        db.query(Task).join(Project).filter(Project.company_id == current_user.id).all()
     )

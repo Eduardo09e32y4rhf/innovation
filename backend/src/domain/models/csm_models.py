@@ -7,7 +7,9 @@ class KBArticle(Base):
     __tablename__ = "kb_articles"
 
     id = Column(Integer, primary_key=True, index=True)
-    company_id = Column(Integer, ForeignKey("companies.id"), nullable=True)  # None = global
+    company_id = Column(
+        Integer, ForeignKey("companies.id"), nullable=True
+    )  # None = global
     title = Column(String(255), nullable=False)
     content = Column(Text, nullable=False)
     category = Column(String(100), nullable=True)  # "TI", "RH", "Financeiro"
@@ -35,7 +37,9 @@ class WebhookSubscription(Base):
     id = Column(Integer, primary_key=True, index=True)
     company_id = Column(Integer, ForeignKey("companies.id"), nullable=False)
     url = Column(String(500), nullable=False)
-    events = Column(String(1000), nullable=False)  # comma-separated: "ticket.created,job.applied"
+    events = Column(
+        String(1000), nullable=False
+    )  # comma-separated: "ticket.created,job.applied"
     secret = Column(String(100), nullable=True)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, server_default=func.now())

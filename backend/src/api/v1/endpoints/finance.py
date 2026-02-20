@@ -85,8 +85,8 @@ async def get_taxes(
 async def get_logs(
     skip: int = 0,
     limit: int = 20,
-    db: Session = Depends(get_db), 
-    current_user: User = Depends(get_current_user)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     if current_user.role.lower() != "company":
         raise HTTPException(status_code=403, detail="Acesso não autorizado")
