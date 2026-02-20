@@ -1,1 +1,76 @@
-version: '3.8'\n\nservices:\n  backend:\n    image: backend_image:latest\n    ports:\n      - '5000:5000'\n    environment:\n      - DATABASE_URL=postgresql://user:password@db/postgres\n      - REDIS_URL=redis://cache:6379\n\n  frontend:\n    image: frontend_image:latest\n    ports:\n      - '3000:3000'\n\n  db:\n    image: postgres:latest\n    environment:\n      - POSTGRES_USER=user\n      - POSTGRES_PASSWORD=password\n    volumes:\n      - pgdata:/var/lib/postgresql/data\n\n  mongodb:\n    image: mongo:latest\n    volumes:\n      - mongo-data:/data/db\n\n  cache:\n    image: redis:latest\n\nvolumes:\n  pgdata:\n  mongo-data:
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:13
+    restart: always
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: db
+    healthcheck:
+      test: [ 'CMD-SHELL', 'pg_isready -U user' ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mongodb:
+    image: mongo:latest
+    restart: always
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: [ 'CMD-SHELL', 'nc -z mongodb 27017' ]
+      interval: 10s
+
+  redis:
+    image: redis:latest
+    restart: always
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: [ 'CMD-SHELL', 'redis-cli ping' ]
+      interval: 10s
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    depends_on:
+      - postgres
+      - mongodb
+      - redis
+    environment:
+      DATABASE_URL: postgres://user:password@postgres/db
+      REDIS_URL: redis://redis:6379
+    healthcheck:
+      test: [ 'CMD-SHELL', 'curl -f http://localhost:8000/health' ]
+      interval: 30s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+  nginx:
+    image: nginx:latest
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    ports:
+      - "443:443"
+    depends_on:
+      - frontend
+    healthcheck:
+      test: [ 'CMD-SHELL', 'curl -f http://localhost' ]
+      interval: 30s
+
+volumes:
+  postgres_data:
+  mongo_data:
+  redis_data:
