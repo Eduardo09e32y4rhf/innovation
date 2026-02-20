@@ -6,7 +6,7 @@ import json
 
 class SupportService:
     @staticmethod
-    def create_ticket(db: Session, title: str, description: str, requester_id: int):
+    def create_ticket(db: Session, title: str, description: str, requester_id: int, company_id: int):
         # IA Classifica a Categoria (Simulação)
         # Em produção, chamaríamos o Gemini aqui
         category = db.query(TicketCategory).first()  # TI por padrão
@@ -20,6 +20,7 @@ class SupportService:
             requester_id=requester_id,
             category_id=category.id if category else 1,
             sla_deadline=deadline,
+            company_id=company_id,
         )
         db.add(ticket)
         db.commit()

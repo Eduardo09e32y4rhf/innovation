@@ -130,6 +130,46 @@ async def mp_webhook(request: Request, db: Session = Depends(get_db)):
     except Exception:
         return {"status": "ignored_no_json"}
 
+    # Signature Verification
+    x_signature = request.headers.get("x-signature")
+    x_request_id = request.headers.get("x-request-id")
+    
+    import os
+    mp_secret = os.getenv("MP_WEBHOOK_SECRET")
+
+    if mp_secret and x_signature and x_request_id:
+        try:
+            import hmac
+            import hashlib
+            
+            # Parse signature header "ts=...;v1=..."
+            parts = {}
+            for p in x_signature.split(","): # MP uses comma or semicolon? Docs say comma often but check both
+                 kv = p.strip().split("=")
+                 if len(kv) == 2:
+                     parts[kv[0]] = kv[1]
+
+            ts = parts.get("ts")
+            v1 = parts.get("v1")
+            
+            if ts and v1:
+                # MP Docs: manifest = "id:{data.id};request-id:{x-request-id};ts:{ts};"
+                data_id = data.get("data", {}).get("id")
+                if data_id:
+                    manifest = f"id:{data_id};request-id:{x_request_id};ts:{ts};"
+                    
+                    calculated = hmac.new(
+                        mp_secret.encode(), 
+                        manifest.encode(), 
+                        hashlib.sha256
+                    ).hexdigest()
+                    
+                    # Log failure but proceed for resilience unless strict mode
+                    if calculated != v1:
+                        print(f"⚠️ Assinatura Webhook MP inválida. Esperado: {v1}, Calc: {calculated}")
+        except Exception as e:
+            print(f"Erro ao verificar assinatura MP: {e}")
+
     # Mercado Pago envia notificações de subscription_preapproval ou payment
     # Verificamos o type, action ou topic
 

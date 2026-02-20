@@ -2,15 +2,43 @@
 
 import { useState, useEffect } from 'react';
 import { Sidebar } from '../../components/Sidebar';
-import { Star, Users, TrendingUp, Target, Clock, Plus, CheckCircle, ChevronRight, Award } from 'lucide-react';
+import { Star, Users, TrendingUp, Target, Clock, Plus, CheckCircle, ChevronRight, Award, Trophy, Medal, Smile, Meh, Frown, Heart, ThumbsUp } from 'lucide-react';
 import api from '../../services/api';
+
+// ─── BADGES CONFIG ────────────────────────────────────────────────────────────
+const BADGES = [
+    { id: 'pioneer', name: 'Pioneiro', desc: 'Primeiro a completar o onboarding', icon: '🚀', color: 'from-blue-500 to-cyan-500', earned: true },
+    { id: 'top_recruiter', name: 'Top Recruta', desc: 'Indicou 5+ candidatos contratados', icon: '🎯', color: 'from-purple-500 to-pink-500', earned: true },
+    { id: 'team_player', name: 'Team Player', desc: 'Avaliação 360° acima de 8.5', icon: '🤝', color: 'from-green-500 to-emerald-500', earned: true },
+    { id: 'pdi_master', name: 'PDI Master', desc: 'Completou 100% das metas do trimestre', icon: '🏆', color: 'from-yellow-500 to-orange-500', earned: false },
+    { id: 'mentor', name: 'Mentor', desc: 'Realizou 10+ mentorias registradas', icon: '🧠', color: 'from-indigo-500 to-purple-500', earned: false },
+    { id: 'early_bird', name: 'Pontualidade', desc: '30 dias seguidos sem atraso', icon: '⏰', color: 'from-teal-500 to-green-500', earned: true },
+    { id: 'innovator', name: 'Inovador', desc: 'Sugeriu melhoria implementada', icon: '💡', color: 'from-pink-500 to-rose-500', earned: false },
+    { id: 'five_star', name: '5 Estrelas', desc: 'CSAT perfeito em 3 atendimentos', icon: '⭐', color: 'from-amber-400 to-yellow-500', earned: true },
+];
+
+const RANKING = [
+    { name: 'Ana Silva', points: 1250, badges: 7, avatar: 'AS' },
+    { name: 'Carlos Santos', points: 980, badges: 5, avatar: 'CS' },
+    { name: 'Maria Oliveira', points: 870, badges: 6, avatar: 'MO' },
+    { name: 'João Pereira', points: 720, badges: 4, avatar: 'JP' },
+    { name: 'Você', points: 650, badges: 5, avatar: 'EU' },
+];
+
+const MOODS = [
+    { emoji: '😄', label: 'Ótimo', value: 5, color: 'text-green-400 border-green-500/30 hover:bg-green-500/10' },
+    { emoji: '🙂', label: 'Bem', value: 4, color: 'text-blue-400 border-blue-500/30 hover:bg-blue-500/10' },
+    { emoji: '😐', label: 'Normal', value: 3, color: 'text-yellow-400 border-yellow-500/30 hover:bg-yellow-500/10' },
+    { emoji: '😕', label: 'Ruim', value: 2, color: 'text-orange-400 border-orange-500/30 hover:bg-orange-500/10' },
+    { emoji: '😢', label: 'Péssimo', value: 1, color: 'text-red-400 border-red-500/30 hover:bg-red-500/10' },
+];
 
 export default function RHAdvancedPage() {
     const [reviews, setReviews] = useState<any>(null);
     const [pdiGoals, setPdiGoals] = useState<any[]>([]);
     const [timeBalance, setTimeBalance] = useState<any>(null);
     const [payslips, setPayslips] = useState<any[]>([]);
-    const [activeTab, setActiveTab] = useState<'360' | 'pdi' | 'timebank' | 'payslips'>('360');
+    const [activeTab, setActiveTab] = useState<'360' | 'pdi' | 'timebank' | 'payslips' | 'gamification' | 'pulse'>('360');
     const [loading, setLoading] = useState(true);
 
     // Forms
@@ -18,6 +46,11 @@ export default function RHAdvancedPage() {
     const [pdiForm, setPdiForm] = useState({ title: '', description: '', quarter: 'Q1-2026' });
     const [timeBankForm, setTimeBankForm] = useState({ type: 'credit', hours: 0, reason: '' });
     const [showForm, setShowForm] = useState(false);
+
+    // Pulse
+    const [selectedMood, setSelectedMood] = useState<number | null>(null);
+    const [pulseComment, setPulseComment] = useState('');
+    const [pulseSent, setPulseSent] = useState(false);
 
     const loadData = async () => {
         try {
@@ -61,21 +94,41 @@ export default function RHAdvancedPage() {
         loadData();
     };
 
+    const submitPulse = () => {
+        if (selectedMood === null) return;
+        // In a real app, this would POST to the backend
+        setPulseSent(true);
+        setTimeout(() => {
+            setPulseSent(false);
+            setSelectedMood(null);
+            setPulseComment('');
+        }, 3000);
+    };
+
+    const TABS = [
+        { key: '360' as const, label: '🔄 Avaliação 360°' },
+        { key: 'pdi' as const, label: '🎯 PDI' },
+        { key: 'timebank' as const, label: '⏱ Banco de Horas' },
+        { key: 'payslips' as const, label: '💰 Holerites' },
+        { key: 'gamification' as const, label: '🏆 Conquistas' },
+        { key: 'pulse' as const, label: '💗 Pulso' },
+    ];
+
     return (
         <div className="min-h-screen bg-gray-950 text-white flex">
             <Sidebar />
             <main className="ml-[280px] flex-1 p-8">
                 <div className="mb-8">
-                    <h1 className="text-3xl font-bold gradient-text">RH Avançado</h1>
-                    <p className="text-gray-400 mt-1">Avaliação 360°, PDI, Banco de Horas e Holerites</p>
+                    <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">RH Avançado</h1>
+                    <p className="text-gray-400 mt-1">Avaliação 360°, PDI, Banco de Horas, Holerites, Gamificação e Pesquisa de Pulso</p>
                 </div>
 
                 {/* Tabs */}
-                <div className="flex gap-2 mb-6">
-                    {(['360', 'pdi', 'timebank', 'payslips'] as const).map(tab => (
-                        <button key={tab} onClick={() => { setActiveTab(tab); setShowForm(false); }}
-                            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${activeTab === tab ? 'bg-purple-600 text-white' : 'bg-gray-900 text-gray-400 hover:text-white'}`}>
-                            {tab === '360' ? '🔄 Avaliação 360°' : tab === 'pdi' ? '🎯 PDI' : tab === 'timebank' ? '⏱ Banco de Horas' : '💰 Holerites'}
+                <div className="flex gap-2 mb-6 flex-wrap">
+                    {TABS.map(tab => (
+                        <button key={tab.key} onClick={() => { setActiveTab(tab.key); setShowForm(false); }}
+                            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${activeTab === tab.key ? 'bg-purple-600 text-white' : 'bg-gray-900 text-gray-400 hover:text-white'}`}>
+                            {tab.label}
                         </button>
                     ))}
                 </div>
@@ -268,6 +321,155 @@ export default function RHAdvancedPage() {
                                     <p>Nenhum holerite disponível</p>
                                 </div>
                             )}
+                        </div>
+                    </div>
+                )}
+
+                {/* GAMIFICATION */}
+                {activeTab === 'gamification' && (
+                    <div className="space-y-6">
+                        {/* Points Summary */}
+                        <div className="grid grid-cols-3 gap-4">
+                            <div className="bg-gradient-to-br from-yellow-500/10 to-orange-500/10 border border-yellow-500/20 rounded-xl p-5 text-center">
+                                <Trophy className="w-8 h-8 text-yellow-400 mx-auto mb-2" />
+                                <p className="text-3xl font-black text-yellow-400">650</p>
+                                <p className="text-xs text-gray-500 mt-1">Pontos Totais</p>
+                            </div>
+                            <div className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 border border-purple-500/20 rounded-xl p-5 text-center">
+                                <Medal className="w-8 h-8 text-purple-400 mx-auto mb-2" />
+                                <p className="text-3xl font-black text-purple-400">{BADGES.filter(b => b.earned).length}/{BADGES.length}</p>
+                                <p className="text-xs text-gray-500 mt-1">Badges Conquistados</p>
+                            </div>
+                            <div className="bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border border-blue-500/20 rounded-xl p-5 text-center">
+                                <TrendingUp className="w-8 h-8 text-blue-400 mx-auto mb-2" />
+                                <p className="text-3xl font-black text-blue-400">#5</p>
+                                <p className="text-xs text-gray-500 mt-1">Ranking na Empresa</p>
+                            </div>
+                        </div>
+
+                        {/* Badges Grid */}
+                        <div>
+                            <h3 className="text-lg font-bold text-white mb-4">Suas Conquistas</h3>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                {BADGES.map(badge => (
+                                    <div key={badge.id}
+                                        className={`relative rounded-xl p-4 text-center border transition-all duration-300
+                                            ${badge.earned
+                                                ? `bg-gradient-to-br ${badge.color}/10 border-gray-700 hover:scale-105`
+                                                : 'bg-gray-900/50 border-gray-800 opacity-40 grayscale'}`}
+                                    >
+                                        <span className="text-4xl block mb-2">{badge.icon}</span>
+                                        <h4 className="text-sm font-bold text-white">{badge.name}</h4>
+                                        <p className="text-[10px] text-gray-500 mt-1">{badge.desc}</p>
+                                        {badge.earned && (
+                                            <div className="absolute -top-1 -right-1 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
+                                                <CheckCircle className="w-3 h-3 text-white" />
+                                            </div>
+                                        )}
+                                        {!badge.earned && (
+                                            <span className="text-[9px] text-gray-600 mt-2 block uppercase tracking-wider">Bloqueado</span>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Ranking */}
+                        <div>
+                            <h3 className="text-lg font-bold text-white mb-4">Ranking da Empresa</h3>
+                            <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+                                {RANKING.map((person, i) => (
+                                    <div key={i} className={`flex items-center gap-4 p-4 border-b border-gray-800/50 last:border-b-0
+                                        ${person.name === 'Você' ? 'bg-purple-500/10' : ''}`}>
+                                        <span className={`text-lg font-black w-8 ${i < 3 ? 'text-yellow-400' : 'text-gray-600'}`}>
+                                            {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`}
+                                        </span>
+                                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-xs font-bold text-white">
+                                            {person.avatar}
+                                        </div>
+                                        <div className="flex-1">
+                                            <p className={`text-sm font-medium ${person.name === 'Você' ? 'text-purple-300' : 'text-white'}`}>{person.name}</p>
+                                            <p className="text-xs text-gray-500">{person.badges} badges</p>
+                                        </div>
+                                        <span className="text-sm font-bold text-purple-400">{person.points} pts</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* PULSE SURVEY */}
+                {activeTab === 'pulse' && (
+                    <div className="max-w-2xl mx-auto">
+                        <div className="bg-gray-900 border border-purple-500/20 rounded-2xl p-8 text-center">
+                            <Heart className="w-12 h-12 text-pink-400 mx-auto mb-4 animate-pulse" />
+                            <h3 className="text-xl font-bold text-white mb-2">Como você está se sentindo hoje?</h3>
+                            <p className="text-gray-500 text-sm mb-8">Sua resposta é anônima e nos ajuda a melhorar o ambiente de trabalho.</p>
+
+                            {pulseSent ? (
+                                <div className="py-8">
+                                    <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                                        <CheckCircle className="w-8 h-8 text-green-400" />
+                                    </div>
+                                    <p className="text-green-400 font-bold text-lg">Obrigado pelo seu feedback!</p>
+                                    <p className="text-gray-500 text-sm mt-1">Contribuição registrada com sucesso.</p>
+                                </div>
+                            ) : (
+                                <>
+                                    <div className="flex justify-center gap-4 mb-8">
+                                        {MOODS.map(mood => (
+                                            <button
+                                                key={mood.value}
+                                                onClick={() => setSelectedMood(mood.value)}
+                                                className={`w-16 h-16 rounded-2xl border-2 flex flex-col items-center justify-center transition-all duration-200 ${mood.color}
+                                                    ${selectedMood === mood.value ? 'scale-110 ring-2 ring-purple-500 bg-gray-800' : 'bg-gray-800/50'}`}
+                                            >
+                                                <span className="text-2xl">{mood.emoji}</span>
+                                                <span className="text-[9px] mt-0.5 text-gray-400">{mood.label}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    <textarea
+                                        value={pulseComment}
+                                        onChange={e => setPulseComment(e.target.value)}
+                                        placeholder="Quer deixar um comentário? (opcional)"
+                                        rows={3}
+                                        className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-purple-500 placeholder-gray-600 mb-4"
+                                    />
+
+                                    <button
+                                        onClick={submitPulse}
+                                        disabled={selectedMood === null}
+                                        className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-8 py-3 rounded-xl font-medium text-sm hover:opacity-90 transition disabled:opacity-30 disabled:cursor-not-allowed"
+                                    >
+                                        Enviar meu Pulso
+                                    </button>
+                                </>
+                            )}
+                        </div>
+
+                        {/* Pulse History (mock) */}
+                        <div className="mt-8">
+                            <h3 className="text-lg font-bold text-white mb-4">Tendência de Clima (Últimas 8 Semanas)</h3>
+                            <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
+                                <div className="flex items-end gap-2 h-32">
+                                    {[3.2, 3.5, 3.8, 4.0, 3.9, 4.2, 4.1, 4.4].map((val, i) => (
+                                        <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                                            <div
+                                                className={`w-full rounded-t-lg transition-all ${val >= 4 ? 'bg-green-500' : val >= 3 ? 'bg-yellow-500' : 'bg-red-500'}`}
+                                                style={{ height: `${(val / 5) * 100}%` }}
+                                            />
+                                            <span className="text-[9px] text-gray-600">S{i + 1}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-800">
+                                    <span className="text-xs text-gray-500">Média atual: <strong className="text-green-400">4.4 / 5.0</strong></span>
+                                    <span className="text-xs text-gray-500">Participação: <strong className="text-purple-400">78%</strong></span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 )}

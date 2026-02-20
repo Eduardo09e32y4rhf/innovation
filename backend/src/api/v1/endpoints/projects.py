@@ -51,10 +51,19 @@ async def create_project(
 
 @router.get("/")
 async def list_projects(
+    skip: int = 0,
+    limit: int = 100,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return db.query(Project).filter(Project.company_id == current_user.id).all()
+    return (
+        db.query(Project)
+        .filter(Project.company_id == current_user.id)
+        .order_by(Project.id.desc())
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
 
 
 @router.delete("/{project_id}", status_code=204)
@@ -105,9 +114,16 @@ async def update_task(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    task = db.query(Task).filter(Task.id == task_id).first()
+    # Validate task belongs to a project owned by user
+    task = (
+        db.query(Task)
+        .join(Project)
+        .filter(Task.id == task_id, Project.company_id == current_user.id)
+        .first()
+    )
     if not task:
-        raise HTTPException(status_code=404, detail="Tarefa não encontrada")
+        raise HTTPException(status_code=404, detail="Tarefa não encontrada ou acesso negado")
+
     update_data = data.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         setattr(task, field, value)

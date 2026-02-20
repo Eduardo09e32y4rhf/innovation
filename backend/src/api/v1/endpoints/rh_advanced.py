@@ -214,6 +214,11 @@ def upload_payslip(
     current_user: User = Depends(get_current_user),
 ):
     """Contador/Admin faz upload do holerite"""
+    # Check if target user exists
+    target_user = db.query(User).filter(User.id == data.user_id).first()
+    if not target_user:
+        raise HTTPException(status_code=404, detail="Funcionário não encontrado")
+
     from domain.models.company import Company
     company = db.query(Company).filter(Company.owner_user_id == current_user.id).first()
     company_id = company.id if company else 0

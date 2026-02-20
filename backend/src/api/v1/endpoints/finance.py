@@ -83,7 +83,10 @@ async def get_taxes(
 
 @router.get("/logs")
 async def get_logs(
-    db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
+    skip: int = 0,
+    limit: int = 20,
+    db: Session = Depends(get_db), 
+    current_user: User = Depends(get_current_user)
 ):
     if current_user.role.lower() != "company":
         raise HTTPException(status_code=403, detail="Acesso não autorizado")
@@ -92,6 +95,7 @@ async def get_logs(
         db.query(AuditLog)
         .filter(AuditLog.company_id == current_user.id)
         .order_by(AuditLog.created_at.desc())
-        .limit(20)
+        .offset(skip)
+        .limit(limit)
         .all()
     )

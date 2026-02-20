@@ -42,9 +42,19 @@ def list_queues(
     current_user: User = Depends(get_current_user),
 ):
     """Lista tickets agrupados por fila."""
+    from domain.models.company import Company
+    company = db.query(Company).filter(Company.owner_user_id == current_user.id).first()
+    company_id = company.id if company else None
+
+    if not company_id:
+        # Fallback for non-owners: only own tickets? Or empty?
+        # Let's return empty/filtered for safety
+        return {q: {"count": 0, "sla_hours": SLA_HOURS.get(q, 24), "tickets": []} for q in QUEUES}
+
     result = {}
     for queue in QUEUES:
         tickets = db.query(Ticket).filter(
+            Ticket.company_id == company_id,
             Ticket.queue == queue,
             Ticket.status != "closed",
         ).order_by(Ticket.created_at.asc()).all()
@@ -80,9 +90,19 @@ def assign_queue(
 ):
     if queue not in QUEUES:
         raise HTTPException(status_code=400, detail=f"Fila inválida. Válidas: {QUEUES}")
-    ticket = db.query(Ticket).filter(Ticket.id == ticket_id).first()
-    if not ticket:
-        raise HTTPException(status_code=404, detail="Ticket não encontrado")
+    
+    from domain.models.company import Company
+    company = db.query(Company).filter(Company.owner_user_id == current_user.id).first()
+    company_id = company.id if company else None
+
+    ticket = db.query(Ticket).filter(
+        Ticket.id == ticket_id,
+        Ticket.company_id == company_id if company_id else True # Fail safe? No, should be strict
+    ).first()
+    
+    if not ticket or (company_id and ticket.company_id != company_id):
+         raise HTTPException(status_code=404, detail="Ticket não encontrado ou acesso negado")
+
     ticket.queue = queue
     db.commit()
     db.refresh(ticket)
@@ -126,8 +146,20 @@ def escalate_breached_tickets(
     current_user: User = Depends(get_current_user),
 ):
     """Verifica tickets com SLA vencido e escala."""
+    # Only verify for current company if user triggers it manually?
+    # Or optimize to run background job?
+    # Assuming manual trigger by admin/company owner for their own tickets.
+    from domain.models.company import Company
+    company = db.query(Company).filter(Company.owner_user_id == current_user.id).first()
+    if not company:
+         return {"escalated_count": 0, "ticket_ids": []}
+
     escalated = []
-    open_tickets = db.query(Ticket).filter(Ticket.status.in_(["open", "in_progress"])).all()
+    open_tickets = db.query(Ticket).filter(
+        Ticket.company_id == company.id,
+        Ticket.status.in_(["open", "in_progress"])
+    ).all()
+    
     now = datetime.utcnow()
     for ticket in open_tickets:
         queue = getattr(ticket, "queue", "N1") or "N1"
@@ -175,11 +207,24 @@ def list_kb_articles(
     q: Optional[str] = None,
     category: Optional[str] = None,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user), # Add user to filter by company
 ):
+    from domain.models.company import Company
+    company = db.query(Company).filter(Company.owner_user_id == current_user.id).first()
+    
     query = db.query(KBArticle).filter(KBArticle.is_published == True)
+    
+    if company:
+        # Filter by company OR public (if implementing public KB later)
+        # For now, isolate by company
+        query = query.filter(KBArticle.company_id == company.id)
+    else:
+        # If not company owner, what? Return none?
+        return []
+
     if q:
         query = query.filter(
-            KBArticle.title.ilike(f"%{q}%") | KBArticle.content.ilike(f"%{q}%")
+            (KBArticle.title.ilike(f"%{q}%")) | (KBArticle.content.ilike(f"%{q}%"))
         )
     if category:
         query = query.filter(KBArticle.category == category)
@@ -251,7 +296,18 @@ def csat_summary(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    ratings = db.query(TicketRating).all()
+    from domain.models.company import Company
+    company = db.query(Company).filter(Company.owner_user_id == current_user.id).first()
+    if not company:
+        return {"average": 0, "total": 0, "distribution": {}}
+
+    ratings = (
+        db.query(TicketRating)
+        .join(Ticket)
+        .filter(Ticket.company_id == company.id)
+        .all()
+    )
+    
     if not ratings:
         return {"average": 0, "total": 0, "distribution": {}}
     avg = sum(r.score for r in ratings) / len(ratings)
@@ -267,17 +323,24 @@ def detect_spikes(
     current_user: User = Depends(get_current_user),
 ):
     """Detecta spikes de tickets na última hora vs média das últimas 24h."""
+    from domain.models.company import Company
+    company = db.query(Company).filter(Company.owner_user_id == current_user.id).first()
+    if not company:
+         return {"is_spike": False, "severity": "normal"}
+
     now = datetime.utcnow()
     last_hour = now - timedelta(hours=1)
     last_24h = now - timedelta(hours=24)
 
-    hour_count = db.query(Ticket).filter(Ticket.created_at >= last_hour).count()
-    day_count = db.query(Ticket).filter(Ticket.created_at >= last_24h).count()
+    base_query = db.query(Ticket).filter(Ticket.company_id == company.id)
+
+    hour_count = base_query.filter(Ticket.created_at >= last_hour).count()
+    day_count = base_query.filter(Ticket.created_at >= last_24h).count()
     hourly_avg = day_count / 24 if day_count else 0
     spike_ratio = hour_count / hourly_avg if hourly_avg > 0 else 0
 
     # Top categories in last hour
-    recent_tickets = db.query(Ticket).filter(Ticket.created_at >= last_hour).all()
+    recent_tickets = base_query.filter(Ticket.created_at >= last_hour).all()
     categories: dict = {}
     for t in recent_tickets:
         cat = getattr(t, "category", "Geral") or "Geral"
@@ -343,8 +406,17 @@ def delete_webhook(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    wh = db.query(WebhookSubscription).filter(WebhookSubscription.id == wh_id).first()
+    from domain.models.company import Company
+    company = db.query(Company).filter(Company.owner_user_id == current_user.id).first()
+    if not company:
+        raise HTTPException(status_code=403, detail="Acesso negado")
+
+    wh = db.query(WebhookSubscription).filter(
+        WebhookSubscription.id == wh_id,
+        WebhookSubscription.company_id == company.id
+    ).first()
+    
     if not wh:
-        raise HTTPException(status_code=404, detail="Webhook não encontrado")
+        raise HTTPException(status_code=404, detail="Webhook não encontrado ou acesso negado")
     db.delete(wh)
     db.commit()

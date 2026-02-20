@@ -21,6 +21,10 @@ class Ticket(Base):
     sla_deadline = Column(DateTime, nullable=True)
     sla_status = Column(String(20), default="on_time")  # on_time, warning, breached
 
+    # Multi-tenancy & Queue Management
+    company_id = Column(Integer, ForeignKey("companies.id"), nullable=True)  # Nullable for platform tickets? Or rigid?
+    queue = Column(String(50), default="N1")  # N1, N2, DEV, etc.
+
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

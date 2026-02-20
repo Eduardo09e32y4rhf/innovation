@@ -69,9 +69,24 @@ def toggle_workflow(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    wf = db.query(WorkflowTrigger).filter(WorkflowTrigger.id == wf_id).first()
+    # Validate workflow belongs to user's company
+    wf = db.query(WorkflowTrigger).filter(
+        WorkflowTrigger.id == wf_id,
+        WorkflowTrigger.company_id == current_user.id  # Assuming user is owner
+    ).first()
+    
     if not wf:
-        raise HTTPException(status_code=404, detail="Fluxo não encontrado")
+        from domain.models.company import Company
+        company = db.query(Company).filter(Company.owner_user_id == current_user.id).first()
+        if company:
+             wf = db.query(WorkflowTrigger).filter(
+                WorkflowTrigger.id == wf_id,
+                WorkflowTrigger.company_id == company.id
+            ).first()
+
+    if not wf:
+        raise HTTPException(status_code=404, detail="Fluxo não encontrado ou acesso negado")
+        
     wf.is_active = not wf.is_active
     db.commit()
     return {"id": wf_id, "is_active": wf.is_active}
@@ -181,9 +196,22 @@ def approve_purchase(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    req = db.query(PurchaseRequest).filter(PurchaseRequest.id == req_id).first()
+    # Determine user's company (ownership check)
+    from domain.models.company import Company
+    company = db.query(Company).filter(Company.owner_user_id == current_user.id).first()
+    
+    if not company:
+         raise HTTPException(status_code=403, detail="Apenas donos de empresa podem aprovar compras")
+
+    # Fetch request and ensure it belongs to the company
+    req = db.query(PurchaseRequest).filter(
+        PurchaseRequest.id == req_id,
+        PurchaseRequest.company_id == company.id
+    ).first()
+
     if not req:
-        raise HTTPException(status_code=404, detail="Solicitação não encontrada")
+        raise HTTPException(status_code=404, detail="Solicitação não encontrada para sua empresa")
+        
     req.status = "approved" if data.approve else "rejected"
     req.approver_id = current_user.id
     req.approver_note = data.note
