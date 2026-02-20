@@ -11,99 +11,93 @@ Bem-vindo ao repositório oficial da **Innovation-Enterprise**. Esta plataforma 
 
 ## 🏗️ Arquitetura do Projeto
 
-O sistema é dividido em dois componentes principais:
+O sistema é dividido em dois componentes principais (Monorepo):
 
 1.  **Backend (`backend/`)**: API RESTful desenvolvida em Python com **FastAPI**.
-    *   **Autenticação**: JWT (JSON Web Tokens) com suporte a RBAC (Role-Based Access Control).
-    *   **Banco de Dados**: SQLAlchemy ORM (PostgreSQL em produção, SQLite em dev).
-    *   **IA**: Integração com Google Gemini Pro para análise de currículos e chatbots.
-    *   **Segurança**: Proteção contra ataques comuns (SQLi, XSS, CSRF), Rate Limiting.
+    *   **Autenticação**: JWT (JSON Web Tokens) com suporte a RBAC.
+    *   **Banco de Dados**: SQLAlchemy ORM (PostgreSQL).
+    *   **IA**: Integração com Google Gemini Pro.
+    *   **Segurança**: Proteção contra ataques (SQLi, XSS, CSRF), Rate Limiting.
 
-2.  **Frontend (`frontend/`)**: Interface moderna desenvolvida em **Next.js 16** (App Router).
+2.  **Frontend (`frontend/`)**: Interface moderna desenvolvida em **Next.js 16**.
     *   **Estilização**: Tailwind CSS + Shadcn UI.
-    *   **Estado**: React Server Components e Client Components otimizados.
+    *   **Estado**: React Server Components.
 
 ---
 
-## 🚀 Como Rodar o Projeto
+## 🚂 Como Deployar no Railway (Recomendado)
+
+Este projeto foi otimizado para deploy no **Railway** como um Monorepo.
+
+### Passo 1: Fork/Clone
+Certifique-se de que este repositório está no seu GitHub.
+
+### Passo 2: Criar Projeto no Railway
+1.  Acesse [railway.app](https://railway.app) e crie um novo projeto ("New Project").
+2.  Selecione "Deploy from GitHub repo" e escolha este repositório.
+
+### Passo 3: Configurar Serviços (Monorepo)
+O Railway importará o repo. Você precisará adicionar dois serviços (um para o backend, outro para o frontend).
+
+#### **Serviço 1: Backend**
+*   No painel do Railway, vá em Settings -> **Root Directory** e mude para: `/backend`
+*   No **Start Command**, verifique se está: `uvicorn src.api.main:app --host 0.0.0.0 --port $PORT`
+*   Adicione as **Variáveis de Ambiente**:
+    *   `DATABASE_URL`: (Adicione um plugin PostgreSQL no Railway e use a URL interna)
+    *   `SECRET_KEY`: Gere uma string aleatória segura.
+    *   `GEMINI_API_KEY`: Sua chave da API do Google Gemini.
+    *   `MP_ACCESS_TOKEN`: Token do Mercado Pago (se usar pagamentos).
+
+#### **Serviço 2: Frontend**
+*   Adicione um novo serviço ("+ New" -> "GitHub Repo" -> mesmo repo).
+*   Vá em Settings -> **Root Directory** e mude para: `/frontend`
+*   No **Start Command**, use: `npm start`
+*   Adicione as **Variáveis de Ambiente**:
+    *   `NEXT_PUBLIC_API_URL`: A URL pública do serviço do Backend (ex: `https://backend-production.up.railway.app`)
+
+### 4. Deploy
+O Railway fará o build e deploy automaticamente.
+
+---
+
+## 🚀 Como Rodar Localmente
 
 ### Pré-requisitos
 *   Python 3.10+
 *   Node.js 18+
-*   Docker (opcional, mas recomendado)
 
-### 1. Configuração do Backend
-
+### 1. Backend
 ```bash
 cd backend
-
-# Criar ambiente virtual
 python -m venv venv
-source venv/bin/activate  # Linux/Mac
-# ou
-venv\Scripts\activate     # Windows
-
-# Instalar dependências
+# Windows: venv\Scripts\activate | Linux: source venv/bin/activate
 pip install -r requirements.txt
-
-# Configurar variáveis de ambiente (.env)
-cp .env.example .env  # Crie um .env baseado no exemplo se houver
-# Exemplo básico de .env:
-# DATABASE_URL=sqlite:///./sql_app.db
-# SECRET_KEY=sua_chave_secreta_super_segura
-
-# Rodar migrações (se necessário)
-alembic upgrade head
-
-# Iniciar o servidor
-uvicorn src.api.main:app --reload --host 0.0.0.0 --port 8000
+uvicorn src.api.main:app --reload
 ```
 
-O Backend estará rodando em `http://localhost:8000`.
-Documentação da API (Swagger UI): `http://localhost:8000/docs`
-
-### 2. Configuração do Frontend
-
+### 2. Frontend
 ```bash
 cd frontend
-
-# Instalar dependências
 npm install
-
-# Iniciar servidor de desenvolvimento
 npm run dev
 ```
 
-O Frontend estará rodando em `http://localhost:3000`.
-
 ---
 
-## 🛡️ Segurança (Hacker Mode)
-
+## 🛡️ Segurança
 O projeto segue práticas rigorosas de segurança:
-*   **Validação de Input**: Pydantic v2 para validação estrita de dados.
-*   **Autenticação**: Senhas hash com Bcrypt, Tokens JWT assinados.
-*   **Autorização**: Middleware de verificação de escopo e role.
-*   **Rate Limiting**: Proteção contra força bruta em rotas sensíveis (`/login`).
-
-## 🧪 Testes
-
-Para rodar os testes do backend:
-
-```bash
-cd backend
-pytest
-```
+*   **Validação**: Pydantic v2.
+*   **Auth**: OAuth2 com Password Flow (JWT).
+*   **Rate Limiting**: `slowapi`.
 
 ---
 
 ## 🤝 Contribuição
-
-1.  Faça um Fork do projeto.
-2.  Crie uma Branch para sua Feature (`git checkout -b feature/NovaFeature`).
-3.  Faça o Commit (`git commit -m 'Add some feature'`).
-4.  Push para a Branch (`git push origin feature/NovaFeature`).
-5.  Abra um Pull Request.
+1.  Fork o projeto.
+2.  Crie uma Branch (`git checkout -b feature/NovaFeature`).
+3.  Commit (`git commit -m 'Add some feature'`).
+4.  Push (`git push origin feature/NovaFeature`).
+5.  Open a Pull Request.
 
 ---
 **Innovation-Enterprise © 2026**

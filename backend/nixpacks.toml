@@ -1,0 +1,14 @@
+[build]
+  ignore = "frontend"
+
+[phases.setup]
+  nixPkgs = ["python311", "gcc"]
+
+[phases.install]
+  cmds = ["pip install -r requirements.txt"]
+
+[phases.build]
+  cmds = ["echo 'Building Backend...'"]
+
+[start]
+  cmd = "uvicorn src.api.main:app --host 0.0.0.0 --port $PORT"
