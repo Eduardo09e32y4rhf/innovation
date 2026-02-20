@@ -1,6 +1,7 @@
 """
 Projects Advanced — Workflow Triggers & Purchase Approvals
 """
+
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -18,6 +19,7 @@ router = APIRouter(prefix="/api/projects/v2", tags=["projects-advanced"])
 
 # ─── WORKFLOW TRIGGERS ─────────────────────────────────────────────────────────
 
+
 class WorkflowCreate(BaseModel):
     name: str
     trigger_event: str  # "task_moved_to_done" | "ticket_created" | "task_overdue"
@@ -33,9 +35,12 @@ def create_workflow(
     current_user: User = Depends(get_current_user),
 ):
     from domain.models.company import Company
+
     company = db.query(Company).filter(Company.owner_user_id == current_user.id).first()
     if not company:
-        raise HTTPException(status_code=403, detail="Apenas empresas podem criar fluxos")
+        raise HTTPException(
+            status_code=403, detail="Apenas empresas podem criar fluxos"
+        )
 
     wf = WorkflowTrigger(
         company_id=company.id,
@@ -57,10 +62,13 @@ def list_workflows(
     current_user: User = Depends(get_current_user),
 ):
     from domain.models.company import Company
+
     company = db.query(Company).filter(Company.owner_user_id == current_user.id).first()
     if not company:
         return []
-    return db.query(WorkflowTrigger).filter(WorkflowTrigger.company_id == company.id).all()
+    return (
+        db.query(WorkflowTrigger).filter(WorkflowTrigger.company_id == company.id).all()
+    )
 
 
 @router.patch("/workflows/{wf_id}/toggle")
@@ -89,30 +97,38 @@ def fire_event(
     Retorna os fluxos executados (simulação - sem integração externa real).
     """
     from domain.models.company import Company
+
     company = db.query(Company).filter(Company.owner_user_id == current_user.id).first()
     if not company:
         return {"fired": 0}
 
-    triggers = db.query(WorkflowTrigger).filter(
-        WorkflowTrigger.company_id == company.id,
-        WorkflowTrigger.trigger_event == event,
-        WorkflowTrigger.is_active == True,
-    ).all()
+    triggers = (
+        db.query(WorkflowTrigger)
+        .filter(
+            WorkflowTrigger.company_id == company.id,
+            WorkflowTrigger.trigger_event == event,
+            WorkflowTrigger.is_active == True,
+        )
+        .all()
+    )
 
     fired = []
     for trigger in triggers:
         # Log execution
-        fired.append({
-            "trigger_id": trigger.id,
-            "name": trigger.name,
-            "action_type": trigger.action_type,
-            "action_config": trigger.action_config,
-            "status": "queued",
-        })
+        fired.append(
+            {
+                "trigger_id": trigger.id,
+                "name": trigger.name,
+                "action_type": trigger.action_type,
+                "action_config": trigger.action_config,
+                "status": "queued",
+            }
+        )
     return {"fired": len(fired), "executions": fired}
 
 
 # ─── PURCHASE APPROVALS ────────────────────────────────────────────────────────
+
 
 class PurchaseCreate(BaseModel):
     description: str
@@ -132,6 +148,7 @@ def create_purchase_request(
     current_user: User = Depends(get_current_user),
 ):
     from domain.models.company import Company
+
     company = db.query(Company).filter(Company.owner_user_id == current_user.id).first()
     req = PurchaseRequest(
         requester_id=current_user.id,
@@ -152,7 +169,9 @@ def list_purchase_requests(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    query = db.query(PurchaseRequest).filter(PurchaseRequest.requester_id == current_user.id)
+    query = db.query(PurchaseRequest).filter(
+        PurchaseRequest.requester_id == current_user.id
+    )
     if status:
         query = query.filter(PurchaseRequest.status == status)
     return query.order_by(PurchaseRequest.id.desc()).all()
@@ -165,13 +184,21 @@ def list_pending_approvals(
 ):
     """Manager vê aprovações pendentes da empresa."""
     from domain.models.company import Company
+
     company = db.query(Company).filter(Company.owner_user_id == current_user.id).first()
     if not company:
-        raise HTTPException(status_code=403, detail="Apenas gestores veem aprovações pendentes")
-    return db.query(PurchaseRequest).filter(
-        PurchaseRequest.company_id == company.id,
-        PurchaseRequest.status == "pending",
-    ).order_by(PurchaseRequest.amount.desc()).all()
+        raise HTTPException(
+            status_code=403, detail="Apenas gestores veem aprovações pendentes"
+        )
+    return (
+        db.query(PurchaseRequest)
+        .filter(
+            PurchaseRequest.company_id == company.id,
+            PurchaseRequest.status == "pending",
+        )
+        .order_by(PurchaseRequest.amount.desc())
+        .all()
+    )
 
 
 @router.patch("/purchases/{req_id}/approve")

@@ -17,8 +17,36 @@ interface Activity {
     avatar?: string;
 }
 
+interface DashboardMetrics {
+    revenue: {
+        current: number;
+        previous: number;
+        change_percent: number;
+        chart_data: { month: string; value: number }[];
+    };
+    costs: {
+        current: number;
+        previous: number;
+        change_percent: number;
+        breakdown: {
+            salaries: number;
+            infrastructure: number;
+            marketing: number;
+            others: number;
+        };
+        chart_data: { month: string; value: number }[];
+    };
+    profit: {
+        current: number;
+        previous: number;
+        change_percent: number;
+        margin_percent: number;
+        chart_data: { month: string; value: number }[];
+    };
+}
+
 export default function DashboardPage() {
-    const [metrics, setMetrics] = useState<Record<string, { current: number; change_percent: number }> | null>(null);
+    const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
     const [activities, setActivities] = useState<Activity[]>([]);
     const [loading, setLoading] = useState(true);
 

@@ -1,6 +1,7 @@
 """
 CSC/Service Desk Advanced — Queues, SLA, KB, CSAT, Spike Detection, Webhooks
 """
+
 import os
 import json
 import hmac
@@ -44,10 +45,15 @@ def list_queues(
     """Lista tickets agrupados por fila."""
     result = {}
     for queue in QUEUES:
-        tickets = db.query(Ticket).filter(
-            Ticket.queue == queue,
-            Ticket.status != "closed",
-        ).order_by(Ticket.created_at.asc()).all()
+        tickets = (
+            db.query(Ticket)
+            .filter(
+                Ticket.queue == queue,
+                Ticket.status != "closed",
+            )
+            .order_by(Ticket.created_at.asc())
+            .all()
+        )
         result[queue] = {
             "count": len(tickets),
             "sla_hours": SLA_HOURS.get(queue, 24),
@@ -58,12 +64,19 @@ def list_queues(
                     "status": t.status,
                     "priority": getattr(t, "priority", "normal"),
                     "created_at": str(t.created_at),
-                    "sla_deadline": str(
-                        t.created_at + timedelta(hours=SLA_HOURS.get(queue, 24))
-                    ) if t.created_at else None,
+                    "sla_deadline": (
+                        str(t.created_at + timedelta(hours=SLA_HOURS.get(queue, 24)))
+                        if t.created_at
+                        else None
+                    ),
                     "sla_breached": (
-                        datetime.utcnow() > t.created_at + timedelta(hours=SLA_HOURS.get(queue, 24))
-                    ) if t.created_at else False,
+                        (
+                            datetime.utcnow()
+                            > t.created_at + timedelta(hours=SLA_HOURS.get(queue, 24))
+                        )
+                        if t.created_at
+                        else False
+                    ),
                 }
                 for t in tickets
             ],
@@ -91,6 +104,7 @@ def assign_queue(
 
 # ─── SLA ───────────────────────────────────────────────────────────────────────
 
+
 @router.get("/tickets/{ticket_id}/sla")
 def get_ticket_sla(
     ticket_id: int,
@@ -103,7 +117,9 @@ def get_ticket_sla(
 
     queue = getattr(ticket, "queue", "N1") or "N1"
     sla_hours = SLA_HOURS.get(queue, 24)
-    deadline = ticket.created_at + timedelta(hours=sla_hours) if ticket.created_at else None
+    deadline = (
+        ticket.created_at + timedelta(hours=sla_hours) if ticket.created_at else None
+    )
     now = datetime.utcnow()
     remaining = (deadline - now).total_seconds() if deadline else 0
     breached = remaining < 0
@@ -114,8 +130,14 @@ def get_ticket_sla(
         "sla_hours": sla_hours,
         "deadline": str(deadline),
         "remaining_seconds": max(0, remaining),
-        "remaining_human": f"{int(remaining // 3600)}h {int((remaining % 3600) // 60)}m" if remaining > 0 else "VENCIDO",
-        "sla_status": "red" if breached else ("yellow" if remaining < 3600 else "green"),
+        "remaining_human": (
+            f"{int(remaining // 3600)}h {int((remaining % 3600) // 60)}m"
+            if remaining > 0
+            else "VENCIDO"
+        ),
+        "sla_status": (
+            "red" if breached else ("yellow" if remaining < 3600 else "green")
+        ),
         "breached": breached,
     }
 
@@ -127,7 +149,9 @@ def escalate_breached_tickets(
 ):
     """Verifica tickets com SLA vencido e escala."""
     escalated = []
-    open_tickets = db.query(Ticket).filter(Ticket.status.in_(["open", "in_progress"])).all()
+    open_tickets = (
+        db.query(Ticket).filter(Ticket.status.in_(["open", "in_progress"])).all()
+    )
     now = datetime.utcnow()
     for ticket in open_tickets:
         queue = getattr(ticket, "queue", "N1") or "N1"
@@ -145,6 +169,7 @@ def escalate_breached_tickets(
 
 # ─── KNOWLEDGE BASE ────────────────────────────────────────────────────────────
 
+
 class KBArticleCreate(BaseModel):
     title: str
     content: str
@@ -159,6 +184,7 @@ def create_kb_article(
     current_user: User = Depends(get_current_user),
 ):
     from domain.models.company import Company
+
     company = db.query(Company).filter(Company.owner_user_id == current_user.id).first()
     article = KBArticle(
         company_id=company.id if company else None,
@@ -195,10 +221,15 @@ def suggest_kb_articles(
     words = ticket_title.lower().split()
     results = []
     for word in words[:3]:
-        articles = db.query(KBArticle).filter(
-            KBArticle.is_published == True,
-            KBArticle.title.ilike(f"%{word}%"),
-        ).limit(3).all()
+        articles = (
+            db.query(KBArticle)
+            .filter(
+                KBArticle.is_published == True,
+                KBArticle.title.ilike(f"%{word}%"),
+            )
+            .limit(3)
+            .all()
+        )
         results.extend(articles)
     seen = set()
     unique = [a for a in results if a.id not in seen and not seen.add(a.id)]
@@ -216,6 +247,7 @@ def mark_kb_view(article_id: int, db: Session = Depends(get_db)):
 
 # ─── CSAT ──────────────────────────────────────────────────────────────────────
 
+
 class CSATCreate(BaseModel):
     score: int  # 1-5
     comment: Optional[str] = None
@@ -230,16 +262,22 @@ def rate_ticket(
 ):
     if not 1 <= data.score <= 5:
         raise HTTPException(status_code=400, detail="Score deve ser entre 1 e 5")
-    existing = db.query(TicketRating).filter(
-        TicketRating.ticket_id == ticket_id,
-        TicketRating.user_id == current_user.id,
-    ).first()
+    existing = (
+        db.query(TicketRating)
+        .filter(
+            TicketRating.ticket_id == ticket_id,
+            TicketRating.user_id == current_user.id,
+        )
+        .first()
+    )
     if existing:
         existing.score = data.score
         existing.comment = data.comment
         db.commit()
         return existing
-    rating = TicketRating(ticket_id=ticket_id, user_id=current_user.id, **data.model_dump())
+    rating = TicketRating(
+        ticket_id=ticket_id, user_id=current_user.id, **data.model_dump()
+    )
     db.add(rating)
     db.commit()
     db.refresh(rating)
@@ -260,6 +298,7 @@ def csat_summary(
 
 
 # ─── SPIKE DETECTION ───────────────────────────────────────────────────────────
+
 
 @router.get("/analytics/spikes")
 def detect_spikes(
@@ -290,12 +329,17 @@ def detect_spikes(
         "hourly_average_24h": round(hourly_avg, 1),
         "spike_ratio": round(spike_ratio, 2),
         "is_spike": spike_ratio > 2.5,
-        "severity": "critical" if spike_ratio > 5 else ("warning" if spike_ratio > 2.5 else "normal"),
+        "severity": (
+            "critical"
+            if spike_ratio > 5
+            else ("warning" if spike_ratio > 2.5 else "normal")
+        ),
         "top_offenders": [{"category": k, "count": v} for k, v in top_offenders],
     }
 
 
 # ─── WEBHOOKS ──────────────────────────────────────────────────────────────────
+
 
 class WebhookCreate(BaseModel):
     url: str
@@ -310,9 +354,12 @@ def create_webhook(
     current_user: User = Depends(get_current_user),
 ):
     from domain.models.company import Company
+
     company = db.query(Company).filter(Company.owner_user_id == current_user.id).first()
     if not company:
-        raise HTTPException(status_code=403, detail="Apenas empresas podem criar webhooks")
+        raise HTTPException(
+            status_code=403, detail="Apenas empresas podem criar webhooks"
+        )
     wh = WebhookSubscription(
         company_id=company.id,
         url=data.url,
@@ -331,10 +378,15 @@ def list_webhooks(
     current_user: User = Depends(get_current_user),
 ):
     from domain.models.company import Company
+
     company = db.query(Company).filter(Company.owner_user_id == current_user.id).first()
     if not company:
         return []
-    return db.query(WebhookSubscription).filter(WebhookSubscription.company_id == company.id).all()
+    return (
+        db.query(WebhookSubscription)
+        .filter(WebhookSubscription.company_id == company.id)
+        .all()
+    )
 
 
 @router.delete("/webhooks/{wh_id}", status_code=204)

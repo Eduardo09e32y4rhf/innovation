@@ -18,7 +18,13 @@ from api.v1.endpoints import (
     payments,
     enterprise,
 )
-from api.v1.endpoints import rh_advanced, csc_advanced, finance_advanced, projects_advanced, killer_questions
+from api.v1.endpoints import (
+    rh_advanced,
+    csc_advanced,
+    finance_advanced,
+    projects_advanced,
+    killer_questions,
+)
 import domain.models  # Garante o registro de todos os modelos
 from core.config import settings
 from contextlib import asynccontextmanager

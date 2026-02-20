@@ -1,6 +1,7 @@
 """
 Killer Questions endpoint — per-job dynamic screening questions
 """
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
@@ -23,7 +24,12 @@ class KillerQuestionCreate(BaseModel):
 
 @router.get("/{job_id}/questions")
 def list_questions(job_id: int, db: Session = Depends(get_db)):
-    return db.query(KillerQuestion).filter(KillerQuestion.job_id == job_id).order_by(KillerQuestion.order).all()
+    return (
+        db.query(KillerQuestion)
+        .filter(KillerQuestion.job_id == job_id)
+        .order_by(KillerQuestion.order)
+        .all()
+    )
 
 
 @router.post("/{job_id}/questions")
@@ -47,7 +53,11 @@ def delete_question(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    q = db.query(KillerQuestion).filter(KillerQuestion.id == question_id, KillerQuestion.job_id == job_id).first()
+    q = (
+        db.query(KillerQuestion)
+        .filter(KillerQuestion.id == question_id, KillerQuestion.job_id == job_id)
+        .first()
+    )
     if not q:
         raise HTTPException(status_code=404, detail="Pergunta não encontrada")
     db.delete(q)

@@ -16,6 +16,7 @@ router = APIRouter(prefix="/api/payments", tags=["payments"])
 class CheckoutRequest(BaseModel):
     plan: str
 
+
 # Inicializa o SDK
 # Use the token from settings, fallback to empty string if not set to avoid crash on init,
 # but API calls will fail if token is invalid.
@@ -36,14 +37,19 @@ async def checkout(
 
     base_url = settings.BASE_URL
     preference_data = {
-        "items": [{
-            "id": data.plan,
-            "title": f"Innovation.ia — Plano {data.plan.title()}",
-            "quantity": 1,
-            "currency_id": "BRL",
-            "unit_price": price,
-        }],
-        "payer": {"email": current_user.email, "name": current_user.full_name or "Usuário"},
+        "items": [
+            {
+                "id": data.plan,
+                "title": f"Innovation.ia — Plano {data.plan.title()}",
+                "quantity": 1,
+                "currency_id": "BRL",
+                "unit_price": price,
+            }
+        ],
+        "payer": {
+            "email": current_user.email,
+            "name": current_user.full_name or "Usuário",
+        },
         "back_urls": {
             "success": f"{base_url}/dashboard?status=success&plan={data.plan}",
             "failure": f"{base_url}/pricing?status=failure",

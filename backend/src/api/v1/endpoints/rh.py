@@ -40,6 +40,7 @@ async def create_leave(
 ):
     from domain.models.leave_request import LeaveRequest
     from datetime import datetime
+
     leave = LeaveRequest(
         employee_id=current_user.id,
         start_date=datetime.fromisoformat(data.start_date),
@@ -59,9 +60,12 @@ async def list_leaves(
     current_user: User = Depends(get_current_user),
 ):
     from domain.models.leave_request import LeaveRequest
+
     if current_user.role in ["admin", "company"]:
         return db.query(LeaveRequest).all()
-    return db.query(LeaveRequest).filter(LeaveRequest.employee_id == current_user.id).all()
+    return (
+        db.query(LeaveRequest).filter(LeaveRequest.employee_id == current_user.id).all()
+    )
 
 
 @router.post("/performance-reviews")
@@ -72,7 +76,9 @@ async def create_review(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return rh_service.add_performance_review(db, employee_id, current_user.id, score, feedback)
+    return rh_service.add_performance_review(
+        db, employee_id, current_user.id, score, feedback
+    )
 
 
 @router.get("/onboarding/{employee_id}/contract")

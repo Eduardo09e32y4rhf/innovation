@@ -1,6 +1,7 @@
 """
 Finance Advanced — OFX Import, Payroll Cost, Cost Centers, Digital Voucher
 """
+
 import io
 import re
 from datetime import datetime
@@ -19,11 +20,13 @@ router = APIRouter(prefix="/api/finance/v2", tags=["finance-advanced"])
 
 # ─── OFX IMPORT ────────────────────────────────────────────────────────────────
 
+
 def _parse_ofx(content: str) -> List[dict]:
     """Parse básico de OFX — extrai transações sem lib externa."""
     transactions = []
     stmttrn_blocks = re.findall(r"<STMTTRN>(.*?)</STMTTRN>", content, re.DOTALL)
     for block in stmttrn_blocks:
+
         def _get(tag):
             m = re.search(rf"<{tag}>(.*?)\n", block)
             return m.group(1).strip() if m else ""
@@ -43,13 +46,15 @@ def _parse_ofx(content: str) -> List[dict]:
         except ValueError:
             tx_date = datetime.utcnow()
 
-        transactions.append({
-            "date": tx_date.isoformat(),
-            "description": memo,
-            "amount": abs(amount),
-            "type": "credit" if amount > 0 else "debit",
-            "ofx_type": trntype,
-        })
+        transactions.append(
+            {
+                "date": tx_date.isoformat(),
+                "description": memo,
+                "amount": abs(amount),
+                "type": "credit" if amount > 0 else "debit",
+                "ofx_type": trntype,
+            }
+        )
     return transactions
 
 
@@ -65,7 +70,9 @@ async def import_ofx(
 
     transactions = _parse_ofx(content)
     if not transactions:
-        raise HTTPException(status_code=422, detail="Nenhuma transação encontrada no arquivo OFX")
+        raise HTTPException(
+            status_code=422, detail="Nenhuma transação encontrada no arquivo OFX"
+        )
 
     created = []
     for tx in transactions:
@@ -75,7 +82,11 @@ async def import_ofx(
             amount=tx["amount"],
             type=tx["type"],
             category="Importação OFX",
-            date=datetime.fromisoformat(tx["date"]) if tx.get("date") else datetime.utcnow(),
+            date=(
+                datetime.fromisoformat(tx["date"])
+                if tx.get("date")
+                else datetime.utcnow()
+            ),
         )
         db.add(new_tx)
         created.append(tx)
@@ -85,6 +96,7 @@ async def import_ofx(
 
 
 # ─── PAYROLL COST ───────────────────────────────────────────────────────────────
+
 
 class PayrollEntry(BaseModel):
     employee_name: str
@@ -103,7 +115,13 @@ class PayrollEntry(BaseModel):
 
     @property
     def total_real_cost(self) -> float:
-        return self.gross_salary + self.inss + self.fgts + self.benefits + self.equipment_cost
+        return (
+            self.gross_salary
+            + self.inss
+            + self.fgts
+            + self.benefits
+            + self.equipment_cost
+        )
 
 
 class PayrollRequest(BaseModel):
@@ -116,17 +134,27 @@ def calculate_payroll_cost(data: PayrollRequest):
     total = 0.0
     breakdown = []
     for emp in data.employees:
-        real_cost = emp.gross_salary + emp.gross_salary * 0.288 + emp.gross_salary * 0.08 + emp.benefits + emp.equipment_cost
-        breakdown.append({
-            "employee": emp.employee_name,
-            "gross_salary": emp.gross_salary,
-            "inss_patronal": round(emp.gross_salary * 0.288, 2),
-            "fgts": round(emp.gross_salary * 0.08, 2),
-            "benefits": emp.benefits,
-            "equipment": emp.equipment_cost,
-            "total_real_cost": round(real_cost, 2),
-            "overhead_factor": round(real_cost / emp.gross_salary, 2) if emp.gross_salary else 0,
-        })
+        real_cost = (
+            emp.gross_salary
+            + emp.gross_salary * 0.288
+            + emp.gross_salary * 0.08
+            + emp.benefits
+            + emp.equipment_cost
+        )
+        breakdown.append(
+            {
+                "employee": emp.employee_name,
+                "gross_salary": emp.gross_salary,
+                "inss_patronal": round(emp.gross_salary * 0.288, 2),
+                "fgts": round(emp.gross_salary * 0.08, 2),
+                "benefits": emp.benefits,
+                "equipment": emp.equipment_cost,
+                "total_real_cost": round(real_cost, 2),
+                "overhead_factor": (
+                    round(real_cost / emp.gross_salary, 2) if emp.gross_salary else 0
+                ),
+            }
+        )
         total += real_cost
 
     return {
@@ -138,16 +166,21 @@ def calculate_payroll_cost(data: PayrollRequest):
 
 # ─── COST CENTERS ───────────────────────────────────────────────────────────────
 
+
 @router.get("/cost-centers")
 def get_cost_centers(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     """Agrupa transações por categoria (centro de custo)."""
-    transactions = db.query(Transaction).filter(
-        Transaction.user_id == current_user.id,
-        Transaction.type == "debit",
-    ).all()
+    transactions = (
+        db.query(Transaction)
+        .filter(
+            Transaction.user_id == current_user.id,
+            Transaction.type == "debit",
+        )
+        .all()
+    )
 
     centers: dict = {}
     for tx in transactions:
@@ -163,11 +196,14 @@ def get_cost_centers(
 
     return {
         "total_spend": round(total_spend, 2),
-        "cost_centers": sorted(centers.values(), key=lambda x: x["total"], reverse=True),
+        "cost_centers": sorted(
+            centers.values(), key=lambda x: x["total"], reverse=True
+        ),
     }
 
 
 # ─── DIGITAL VOUCHER VAULT ─────────────────────────────────────────────────────
+
 
 class VoucherCreate(BaseModel):
     transaction_id: Optional[int] = None
@@ -211,8 +247,13 @@ def list_vouchers(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    vouchers = db.query(Transaction).filter(
-        Transaction.user_id == current_user.id,
-        Transaction.category == "Cofre Digital",
-    ).order_by(Transaction.id.desc()).all()
+    vouchers = (
+        db.query(Transaction)
+        .filter(
+            Transaction.user_id == current_user.id,
+            Transaction.category == "Cofre Digital",
+        )
+        .order_by(Transaction.id.desc())
+        .all()
+    )
     return vouchers

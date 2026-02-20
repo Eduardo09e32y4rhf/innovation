@@ -1,6 +1,7 @@
 """
 AI Services Endpoint — Resume Parsing, DISC Analysis, Tech Test Generator
 """
+
 import os
 import io
 import base64
@@ -15,8 +16,10 @@ from domain.models.user import User
 
 router = APIRouter(prefix="/api/ai", tags=["ai-services"])
 
+
 def _get_gemini():
     import google.generativeai as genai
+
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
         raise HTTPException(status_code=503, detail="GEMINI_API_KEY não configurada")
@@ -25,6 +28,7 @@ def _get_gemini():
 
 
 # ─── RESUME PARSING ────────────────────────────────────────────────────────────
+
 
 @router.post("/parse-resume")
 async def parse_resume(
@@ -40,6 +44,7 @@ async def parse_resume(
     if file.filename.lower().endswith(".pdf"):
         try:
             import fitz  # PyMuPDF
+
             doc = fitz.open(stream=content, filetype="pdf")
             text = "\n".join(page.get_text() for page in doc)
         except ImportError:
@@ -70,6 +75,7 @@ Responda SOMENTE com o JSON válido, sem markdown.
     try:
         response = model.generate_content(prompt)
         import json, re
+
         raw = response.text.strip()
         raw = re.sub(r"```json|```", "", raw).strip()
         return json.loads(raw)
@@ -78,6 +84,7 @@ Responda SOMENTE com o JSON válido, sem markdown.
 
 
 # ─── DISC / BIG5 ANALYSIS ──────────────────────────────────────────────────────
+
 
 class DISCRequest(BaseModel):
     cover_letter: str
@@ -128,6 +135,7 @@ Responda SOMENTE com JSON válido, sem markdown.
     try:
         response = model.generate_content(prompt)
         import json, re
+
         raw = re.sub(r"```json|```", "", response.text.strip()).strip()
         return json.loads(raw)
     except Exception as e:
@@ -135,6 +143,7 @@ Responda SOMENTE com JSON válido, sem markdown.
 
 
 # ─── TECH TEST GENERATOR ───────────────────────────────────────────────────────
+
 
 class TestGenRequest(BaseModel):
     job_title: str
@@ -179,6 +188,7 @@ Responda SOMENTE com JSON válido, sem markdown.
     try:
         response = model.generate_content(prompt)
         import json, re
+
         raw = re.sub(r"```json|```", "", response.text.strip()).strip()
         return json.loads(raw)
     except Exception as e:
@@ -186,6 +196,7 @@ Responda SOMENTE com JSON válido, sem markdown.
 
 
 # ─── KILLER QUESTIONS SUGGESTION ──────────────────────────────────────────────
+
 
 class KillerSuggestRequest(BaseModel):
     job_title: str
@@ -223,6 +234,7 @@ Responda SOMENTE com JSON válido, sem markdown.
     try:
         response = model.generate_content(prompt)
         import json, re
+
         raw = re.sub(r"```json|```", "", response.text.strip()).strip()
         return json.loads(raw)
     except Exception as e:

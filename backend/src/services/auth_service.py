@@ -127,16 +127,18 @@ def register_user(
 
     # Send welcome email (non-blocking)
     try:
-        send_email(NotificationPayload(
-            recipient_email=user.email,
-            subject="Bem-vindo à Innovation.ia! 🚀",
-            message=(
-                f"Olá {user.full_name},\n\n"
-                "Sua conta foi criada com sucesso na Innovation.ia.\n"
-                "Acesse o painel em https://innovation.ia/dashboard\n\n"
-                "Equipe Innovation.ia"
-            ),
-        ))
+        send_email(
+            NotificationPayload(
+                recipient_email=user.email,
+                subject="Bem-vindo à Innovation.ia! 🚀",
+                message=(
+                    f"Olá {user.full_name},\n\n"
+                    "Sua conta foi criada com sucesso na Innovation.ia.\n"
+                    "Acesse o painel em https://innovation.ia/dashboard\n\n"
+                    "Equipe Innovation.ia"
+                ),
+            )
+        )
     except Exception as e:
         logger.warning(f"E-mail de boas-vindas não enviado: {e}")
 

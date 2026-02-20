@@ -2,6 +2,7 @@
 Expanded RH endpoint — 360° Reviews, PDI, Time Bank, Payslips
 Complementa o rh.py existente com os novos módulos.
 """
+
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
@@ -20,6 +21,7 @@ router = APIRouter(prefix="/api/rh/v2", tags=["rh-advanced"])
 
 
 # ─── 360° REVIEWS ──────────────────────────────────────────────────────────────
+
 
 class Review360Create(BaseModel):
     subject_user_id: int
@@ -73,6 +75,7 @@ def get_reviews_360(
 
 # ─── PDI ───────────────────────────────────────────────────────────────────────
 
+
 class PDIGoalCreate(BaseModel):
     title: str
     description: Optional[str] = None
@@ -88,6 +91,7 @@ def create_pdi_goal(
 ):
     # Get company_id from user
     from domain.models.company import Company
+
     company = db.query(Company).filter(Company.owner_user_id == current_user.id).first()
     company_id = company.id if company else current_user.id
 
@@ -120,7 +124,11 @@ def update_pdi_progress(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    goal = db.query(PDIGoal).filter(PDIGoal.id == goal_id, PDIGoal.user_id == current_user.id).first()
+    goal = (
+        db.query(PDIGoal)
+        .filter(PDIGoal.id == goal_id, PDIGoal.user_id == current_user.id)
+        .first()
+    )
     if not goal:
         raise HTTPException(status_code=404, detail="Meta não encontrada")
     goal.progress = min(100.0, max(0.0, progress))
@@ -131,6 +139,7 @@ def update_pdi_progress(
 
 
 # ─── TIME BANK ─────────────────────────────────────────────────────────────────
+
 
 class TimeBankEntry(BaseModel):
     type: str  # credit | debit
@@ -145,6 +154,7 @@ def add_time_bank_entry(
     current_user: User = Depends(get_current_user),
 ):
     from domain.models.company import Company
+
     company = db.query(Company).filter(Company.owner_user_id == current_user.id).first()
     company_id = company.id if company else 0
 
@@ -166,10 +176,14 @@ def get_time_bank_balance(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    entries = db.query(TimeBank).filter(
-        TimeBank.user_id == current_user.id,
-        TimeBank.status == "approved",
-    ).all()
+    entries = (
+        db.query(TimeBank)
+        .filter(
+            TimeBank.user_id == current_user.id,
+            TimeBank.status == "approved",
+        )
+        .all()
+    )
     credits = sum(e.hours for e in entries if e.type == "credit")
     debits = sum(e.hours for e in entries if e.type == "debit")
     return {
@@ -199,6 +213,7 @@ def approve_time_bank(
 
 # ─── PAYSLIPS (HOLERITE) ───────────────────────────────────────────────────────
 
+
 class PayslipCreate(BaseModel):
     user_id: int
     reference_month: str  # "2026-02"
@@ -215,6 +230,7 @@ def upload_payslip(
 ):
     """Contador/Admin faz upload do holerite"""
     from domain.models.company import Company
+
     company = db.query(Company).filter(Company.owner_user_id == current_user.id).first()
     company_id = company.id if company else 0
 
@@ -237,7 +253,12 @@ def list_my_payslips(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return db.query(Payslip).filter(Payslip.user_id == current_user.id).order_by(Payslip.reference_month.desc()).all()
+    return (
+        db.query(Payslip)
+        .filter(Payslip.user_id == current_user.id)
+        .order_by(Payslip.reference_month.desc())
+        .all()
+    )
 
 
 @router.get("/payslips/team")
@@ -247,7 +268,15 @@ def list_team_payslips(
 ):
     """Manager/Admin vê holerites da equipe"""
     from domain.models.company import Company
+
     company = db.query(Company).filter(Company.owner_user_id == current_user.id).first()
     if not company:
-        raise HTTPException(status_code=403, detail="Apenas empresas podem ver holerites da equipe")
-    return db.query(Payslip).filter(Payslip.company_id == company.id).order_by(Payslip.reference_month.desc()).all()
+        raise HTTPException(
+            status_code=403, detail="Apenas empresas podem ver holerites da equipe"
+        )
+    return (
+        db.query(Payslip)
+        .filter(Payslip.company_id == company.id)
+        .order_by(Payslip.reference_month.desc())
+        .all()
+    )

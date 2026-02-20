@@ -1,6 +1,7 @@
 import pytest
 from datetime import date
 
+
 def test_finance_tax_breakdown_extended(client, db_session):
     # Register and Login
     register_payload = {
@@ -12,7 +13,7 @@ def test_finance_tax_breakdown_extended(client, db_session):
         "razao_social": "Finance Co Ltda",
         "cnpj": "99999999000199",
         "cidade": "Osasco",
-        "uf": "SP"
+        "uf": "SP",
     }
     resp = client.post("/api/auth/register", json=register_payload)
     assert resp.status_code == 200
@@ -24,11 +25,7 @@ def test_finance_tax_breakdown_extended(client, db_session):
     headers = {"Authorization": f"Bearer {token}"}
 
     # Create Taxes: DAS, INSS, FGTS
-    taxes = [
-        ("DAS", 100.00),
-        ("INSS", 200.00),
-        ("FGTS", 300.00)
-    ]
+    taxes = [("DAS", 100.00), ("INSS", 200.00), ("FGTS", 300.00)]
 
     for tax_type, amount in taxes:
         resp = client.post(
@@ -39,9 +36,9 @@ def test_finance_tax_breakdown_extended(client, db_session):
                 "type": "expense",
                 "tax_type": tax_type,
                 "due_date": str(date.today()),
-                "category": "tax"
+                "category": "tax",
             },
-            headers=headers
+            headers=headers,
         )
         assert resp.status_code == 200, f"Failed to create tax {tax_type}: {resp.text}"
 

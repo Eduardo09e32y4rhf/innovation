@@ -20,7 +20,9 @@ async def create_ticket(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return support_service.create_ticket(db, data.title, data.description, current_user.id)
+    return support_service.create_ticket(
+        db, data.title, data.description, current_user.id
+    )
 
 
 @router.get("/tickets")
@@ -29,6 +31,7 @@ async def list_tickets(
     current_user: User = Depends(get_current_user),
 ):
     from domain.models.ticket import Ticket
+
     return db.query(Ticket).filter(Ticket.user_id == current_user.id).all()
 
 
@@ -41,6 +44,7 @@ async def list_all_tickets(
     if current_user.role not in ["admin", "company"]:
         raise HTTPException(status_code=403, detail="Acesso negado")
     from domain.models.ticket import Ticket
+
     return db.query(Ticket).order_by(Ticket.id.desc()).all()
 
 
