@@ -49,8 +49,6 @@ def list_queues(
     company_id = company.id if company else None
 
     if not company_id:
-        # Fallback for non-owners: only own tickets? Or empty?
-        # Let's return empty/filtered for safety
         return {
             q: {"count": 0, "sla_hours": SLA_HOURS.get(q, 24), "tickets": []}
             for q in QUEUES
@@ -76,7 +74,7 @@ def list_queues(
                     "id": t.id,
                     "title": t.title,
                     "status": t.status,
-                    "priority": getattr(t, "priority", "normal"),
+                    "priority": getattr(t, "priority", "medium"),
                     "created_at": str(t.created_at),
                     "sla_deadline": (
                         str(t.created_at + timedelta(hours=SLA_HOURS.get(queue, 24)))
@@ -117,9 +115,7 @@ def assign_queue(
         db.query(Ticket)
         .filter(
             Ticket.id == ticket_id,
-            (
-                Ticket.company_id == company_id if company_id else True
-            ),  # Fail safe? No, should be strict
+            (Ticket.company_id == company_id if company_id else True),
         )
         .first()
     )
@@ -181,9 +177,6 @@ def escalate_breached_tickets(
     current_user: User = Depends(get_current_user),
 ):
     """Verifica tickets com SLA vencido e escala."""
-    # Only verify for current company if user triggers it manually?
-    # Or optimize to run background job?
-    # Assuming manual trigger by admin/company owner for their own tickets.
     from domain.models.company import Company
 
     company = db.query(Company).filter(Company.owner_user_id == current_user.id).first()
@@ -205,12 +198,14 @@ def escalate_breached_tickets(
         sla_hours = SLA_HOURS.get(queue, 24)
         if ticket.created_at:
             deadline = ticket.created_at + timedelta(hours=sla_hours)
-            if now > deadline and getattr(ticket, "escalated", False) is False:
-                ticket.priority = "urgent"
-                if hasattr(ticket, "escalated"):
-                    ticket.escalated = True
+            if now > deadline and ticket.sla_status != "breached":
+                ticket.priority = "critical"
+                ticket.sla_status = "breached"
                 escalated.append(ticket.id)
-    db.commit()
+
+    if escalated:
+        db.commit()
+
     return {"escalated_count": len(escalated), "ticket_ids": escalated}
 
 
@@ -248,7 +243,7 @@ def list_kb_articles(
     q: Optional[str] = None,
     category: Optional[str] = None,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),  # Add user to filter by company
+    current_user: User = Depends(get_current_user),
 ):
     from domain.models.company import Company
 
@@ -257,11 +252,8 @@ def list_kb_articles(
     query = db.query(KBArticle).filter(KBArticle.is_published == True)
 
     if company:
-        # Filter by company OR public (if implementing public KB later)
-        # For now, isolate by company
         query = query.filter(KBArticle.company_id == company.id)
     else:
-        # If not company owner, what? Return none?
         return []
 
     if q:
