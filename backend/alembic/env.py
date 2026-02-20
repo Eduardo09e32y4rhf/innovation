@@ -80,8 +80,25 @@ def run_migrations_online() -> None:
     and associate a connection with the context.
 
     """
-    configuration = config.get_section(config.config_ini_section)
-    configuration["sqlalchemy.url"] = get_url()
+    db_url = get_url()
+    
+    # Fallback to os.getenv if settings model fails or returns empty
+    if not db_url:
+        import os
+        db_url = os.getenv("DATABASE_URL")
+
+    # Fix for Render/Railway Postgres URLs
+    if db_url and db_url.startswith("postgres://"):
+        db_url = db_url.replace("postgres://", "postgresql://", 1)
+
+    if not db_url:
+        print("❌ ERRO CRÍTICO: DATABASE_URL não encontrada nas variáveis de ambiente.")
+        # We can't proceed without a DB, but maybe we shouldn't exit if it's just a build step?
+        # Alembic needs it though.
+        # sys.exit(1) # Let it crash with a clear message?
+        
+    configuration = config.get_section(config.config_ini_section) or {}
+    configuration["sqlalchemy.url"] = db_url
 
     connectable = engine_from_config(
         configuration,
