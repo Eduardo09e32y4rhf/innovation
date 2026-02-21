@@ -14,15 +14,13 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copiar o restante do código
-# O contexto de build é ./backend, então COPY . . copia src/, alembic/, etc.
 COPY . .
 
-# PYTHONPATH aponta para /app/src onde ficam os pacotes: api, core, domain, services, infrastructure
+# PYTHONPATH aponta para onde os pacotes (api, core, etc) estão
 ENV PYTHONPATH=/app/src:/app
 
-# Expor a porta (documentação)
+# Expor a porta
 EXPOSE 8000
 
-# Usar ENTRYPOINT para garantir que o comando correto seja sempre executado,
-# independente de qualquer 'command:' no docker-compose
-ENTRYPOINT ["sh", "-c", "uvicorn api.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+# Única fonte de verdade para o comando
+CMD ["sh", "-c", "uvicorn api.main:app --host 0.0.0.0 --port ${PORT:-8000}"]

@@ -43,8 +43,6 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     restart: always
-    # Comando explícito sobrescreve qualquer CMD do Dockerfile — garante módulo correto
-    command: sh -c "uvicorn api.main:app --host 0.0.0.0 --port ${PORT:-8000}"
     depends_on:
       postgres:
         condition: service_healthy
