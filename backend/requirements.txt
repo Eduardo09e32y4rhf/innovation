@@ -29,7 +29,7 @@ uvicorn[standard]==0.34.0
 sendgrid==6.11.0
 twilio==9.2.2
 email-validator
-google-generativeai
+google-genai
 httpx
 slowapi
 python-multipart

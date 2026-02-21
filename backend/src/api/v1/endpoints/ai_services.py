@@ -18,7 +18,7 @@ router = APIRouter(prefix="/api/ai", tags=["ai-services"])
 
 
 def _get_gemini():
-    import google.generativeai as genai
+    import google.genai as genai
 
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:

@@ -66,7 +66,7 @@ Responda SEMPRE em português brasileiro com qualidade executiva."""
 async def _ask_gemini(
     question: str, history: List[ChatMessage], model_name: str
 ) -> str:
-    import google.generativeai as genai
+    import google.genai as genai
 
     if not GEMINI_API_KEY:
         raise HTTPException(503, "GEMINI_API_KEY não configurada. Configure no .env")

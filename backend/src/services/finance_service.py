@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 from domain.models.finance import Transaction, CostCenter
-import google.generativeai as genai
+import google.genai as genai
 import os
 
 

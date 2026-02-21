@@ -1,7 +1,7 @@
 import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-import google.generativeai as genai
+import google.genai as genai
 from api.v1.endpoints import (
     jobs,
     applications,

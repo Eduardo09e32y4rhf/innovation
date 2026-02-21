@@ -25,7 +25,7 @@ modules_to_test = [
     ("uvicorn", "uvicorn"),
     ("sqlalchemy", "create_engine"),
     ("pydantic_settings", "BaseSettings"),
-    ("google.generativeai", "google.generativeai"),
+    ("google.genai", "google.genai"),
     ("mercadopago", "mercadopago"),
     ("httpx", "httpx"),
     ("redis", "redis"),

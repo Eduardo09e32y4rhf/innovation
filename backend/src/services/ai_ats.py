@@ -1,6 +1,6 @@
 import os
 import json
-import google.generativeai as genai
+import google.genai as genai
 from typing import Dict, Any, List
 
 
