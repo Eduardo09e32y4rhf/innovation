@@ -40,6 +40,7 @@ requests
 # AI SERVICES
 # ========================================
 google-generativeai==0.8.3
+google-genai
 anthropic==0.18.1
 
 # ========================================

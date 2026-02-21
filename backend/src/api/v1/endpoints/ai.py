@@ -17,6 +17,9 @@ from domain.models.user import User
 
 router = APIRouter(prefix="/api/ai", tags=["ai-chat"])
 
+from fastapi.responses import StreamingResponse
+import asyncio
+
 from core.ai_key_manager import ai_key_manager
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 
@@ -132,6 +135,74 @@ async def _ask_gemini(
     raise HTTPException(503, f"Todas as chaves do Gemini falharam. Último erro: {str(last_error)}")
 
 
+async def _ask_gemini_stream(
+    question: str, history: List[ChatMessage], model_name: str
+):
+    import google.genai as genai
+    
+    active_keys = ai_key_manager.get_all_active_keys()
+    if not active_keys:
+        yield "data: [ERROR] Sem chaves do Gemini disponíveis.\n\n"
+        return
+
+    for api_key in active_keys:
+        try:
+            # Uso do AsyncClient para não bloquear o servidor
+            client = genai.Client(api_key=api_key, http_options={'api_version': 'v1alpha'}) # ou apenas omitir se não precisar
+            # Na verdade, o Client novo simplifica muita coisa, mas vamos garantir o loop.
+            
+            chat_history = []
+            for msg in history or []:
+                chat_history.append(
+                    {"role": "user" if msg.role == "user" else "model", "parts": [{"text": msg.content}]}
+                )
+            
+            actual_model = model_name
+            if "flash" in model_name:
+                actual_model = "gemini-2.0-flash"
+
+            try:
+                # generate_content_stream retorna um iterator
+                stream = client.models.generate_content_stream(
+                    model=actual_model,
+                    contents=chat_history + [{"role": "user", "parts": [{"text": question}]}],
+                    config={
+                        "system_instruction": SYSTEM_PROMPT.strip(),
+                        "temperature": 0.7,
+                    }
+                )
+                
+                for chunk in stream:
+                    if chunk.text:
+                        clean_text = chunk.text.replace("\n", "[NEWLINE]")
+                        yield f"data: {clean_text}\n\n"
+                        await asyncio.sleep(0.01) # Cede o controle para o loop
+                
+                yield "data: [DONE]\n\n"
+                return
+            except Exception as e:
+                if "429" in str(e) or "quota" in str(e).lower():
+                    ai_key_manager.mark_as_exhausted(api_key)
+                    continue
+                # Fallback redundante para 1.5 se o 2.0 falhar
+                if actual_model == "gemini-2.0-flash":
+                     stream = client.models.generate_content_stream(
+                        model="gemini-1.5-flash",
+                        contents=chat_history + [{"role": "user", "parts": [{"text": question}]}],
+                        config={"system_instruction": SYSTEM_PROMPT.strip()}
+                    )
+                     for chunk in stream:
+                        if chunk.text:
+                            yield f"data: {chunk.text.replace(\"\\n\", \"[NEWLINE]\")}\n\n"
+                     yield "data: [DONE]\n\n"
+                     return
+                raise e
+        except Exception as inner_e:
+            continue
+
+    yield f"data: [ERROR] Falha crítica: {str(inner_e)}\n\n"
+
+
 
 # ─── Helper: Claude ────────────────────────────────────────────────────────────
 
@@ -232,12 +303,33 @@ async def ask_ai(
 
     except HTTPException:
         raise
-    except Exception as e:
         return {
             "answer": f"Erro ao processar: {str(e)}",
             "model_used": model_choice,
             "error": True,
         }
+
+
+@router.post("/ask-stream")
+async def ask_ai_stream(
+    request: Request,
+    data: ChatRequest,
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Endpoint de streaming para resposta em tempo real.
+    """
+    model_choice = (data.model or "gemini-flash").lower()
+    
+    # Por enquanto apenas Gemini suporta streaming nativo nesta implementação
+    if "claude" in model_choice:
+        # Fallback para não-streaming se tentar claude no stream (ou implementar claude stream depois)
+        return StreamingResponse(iter([f"data: [ERROR] Streaming ainda não disponível para Claude. Use Gemini.\n\n", "data: [DONE]\n\n"]), media_type="text/event-stream")
+
+    return StreamingResponse(
+        _ask_gemini_stream(data.question, data.history, model_choice),
+        media_type="text/event-stream"
+    )
 
 
 # ─── Model Info ────────────────────────────────────────────────────────────────
