@@ -201,7 +201,8 @@ async def _ask_gemini_stream(
                     )
                      for chunk in stream:
                         if chunk.text:
-                            yield f"data: {chunk.text.replace(\"\\n\", \"[NEWLINE]\")}\n\n"
+                            texto_formatado = chunk.text.replace("\n", "[NEWLINE]")
+                            yield f"data: {texto_formatado}\n\n"
                      yield "data: [DONE]\n\n"
                      return
                 raise e
