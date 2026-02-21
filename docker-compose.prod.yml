@@ -43,6 +43,8 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     restart: always
+    # Comando explícito sobrescreve qualquer CMD do Dockerfile — garante módulo correto
+    command: sh -c "uvicorn api.main:app --host 0.0.0.0 --port ${PORT:-8000}"
     depends_on:
       postgres:
         condition: service_healthy
@@ -61,6 +63,8 @@ services:
       - MP_ACCESS_TOKEN=${MERCADO_PAGO_API_KEY}
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-*}
       - BASE_URL=http://187.77.49.207
+      # PYTHONPATH explícito para garantir resolução dos módulos
+      - PYTHONPATH=/app/src:/app
     healthcheck:
       test: [ 'CMD', 'curl', '-f', 'http://localhost:8000/health' ]
       interval: 30s
