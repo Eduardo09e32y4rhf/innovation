@@ -1,16 +1,14 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
 import {
     LayoutDashboard, MessageSquare, DollarSign, Briefcase,
-    FileText, LifeBuoy, Users, CreditCard, Globe, LogOut,
-    HeartHandshake, Clock, BookOpen, Zap, Activity, TrendingUp,
-    Target, Star, Trophy, Flame, CheckCircle2, ArrowUpRight,
-    Sparkles, Bot, Shield, Layers, BarChart3, Bell, Settings,
-    ChevronRight, Award, Rocket, Cpu, Brain
+    FileText, LifeBuoy, Users, Zap, Activity, TrendingUp,
+    Trophy, Flame, CheckCircle2, ArrowUpRight,
+    Bell, Settings, ChevronRight, Rocket, Brain, BookOpen, Clock, CreditCard, HeartHandshake, LogOut
 } from 'lucide-react';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
+import AppLayout from '../../components/AppLayout';
 import { AuthService, DashboardService } from '../../services/api';
 
 // ─── TYPES ────────────────────────────────────────────────────────────────
@@ -162,110 +160,6 @@ function XpBar({ xp, maxXp, level }: { xp: number; maxXp: number; level: number 
     );
 }
 
-// ─── SIDEBAR ───────────────────────────────────────────────────────────────
-function Sidebar({ user }: { user: UserProfile | null }) {
-    const pathname = usePathname();
-    const mainMenu = [
-        { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-        { name: 'Chat IA', href: '/chat-ia', icon: MessageSquare },
-        { name: 'Financeiro', href: '/finance', icon: DollarSign },
-        { name: 'Vagas (ATS)', href: '/ats', icon: Briefcase },
-        { name: 'Projetos', href: '/projects', icon: FileText },
-        { name: 'Suporte', href: '/support', icon: LifeBuoy },
-        { name: 'Onboarding', href: '/onboarding', icon: Users },
-    ];
-    const advancedMenu = [
-        { name: 'RH Avançado', href: '/rh', icon: HeartHandshake },
-        { name: 'Central de Serviços', href: '/csc', icon: BookOpen },
-        { name: 'Financeiro Avançado', href: '/finance-advanced', icon: Clock },
-        { name: 'Automação', href: '/projects-advanced', icon: Zap },
-    ];
-    const handleLogout = () => {
-        if (typeof window !== 'undefined') {
-            localStorage.removeItem('token');
-            window.location.href = '/login';
-        }
-    };
-    return (
-        <aside className="fixed left-0 top-0 bottom-0 w-[260px] bg-black/60 backdrop-blur-2xl border-r border-white/5 z-50 flex flex-col">
-            {/* Logo */}
-            <div className="px-5 py-5 border-b border-white/5">
-                <Link href="/" className="text-lg font-black tracking-tighter">
-                    INNOV<span className="text-[#8b5cf6]">A</span>TION IA
-                </Link>
-                <p className="text-[10px] text-white/20 mt-0.5 tracking-widest uppercase">Enterprise Platform</p>
-            </div>
-
-            {/* User profile */}
-            {user && (
-                <div className="px-5 py-4 border-b border-white/5">
-                    <div className="flex items-center gap-3">
-                        <div className="relative">
-                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#8b5cf6] to-[#7c3aed] flex items-center justify-center text-white font-black text-sm shadow-lg shadow-[#8b5cf6]/30">
-                                {getInitials(user.name)}
-                            </div>
-                            <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-black" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                            <p className="text-sm font-bold text-white truncate">{user.name}</p>
-                            <p className="text-[10px] text-white/30 truncate">{user.email}</p>
-                        </div>
-                    </div>
-                    <div className="mt-3">
-                        <XpBar xp={2340} maxXp={3000} level={7} />
-                    </div>
-                </div>
-            )}
-
-            {/* Nav */}
-            <nav className="flex-1 px-3 py-4 overflow-y-auto space-y-5 scrollbar-thin">
-                <div>
-                    <p className="text-[9px] text-white/20 uppercase tracking-[0.2em] mb-2 px-2">Principal</p>
-                    <div className="space-y-0.5">
-                        {mainMenu.map((item) => {
-                            const active = pathname === item.href;
-                            const Icon = item.icon;
-                            return (
-                                <Link key={item.href} href={item.href}
-                                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group ${active ? 'bg-[#8b5cf6]/15 text-[#8b5cf6] border border-[#8b5cf6]/20' : 'text-white/40 hover:text-white hover:bg-white/5'}`}>
-                                    <Icon className={`w-4 h-4 shrink-0 ${active ? 'text-[#8b5cf6]' : 'group-hover:text-white/80'}`} />
-                                    <span className="text-sm font-medium">{item.name}</span>
-                                    {active && <ChevronRight className="w-3 h-3 ml-auto" />}
-                                </Link>
-                            );
-                        })}
-                    </div>
-                </div>
-                <div>
-                    <p className="text-[9px] text-white/20 uppercase tracking-[0.2em] mb-2 px-2">Avançado</p>
-                    <div className="space-y-0.5">
-                        {advancedMenu.map((item) => {
-                            const active = pathname === item.href;
-                            const Icon = item.icon;
-                            return (
-                                <Link key={item.href} href={item.href}
-                                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group ${active ? 'bg-[#8b5cf6]/15 text-[#8b5cf6] border border-[#8b5cf6]/20' : 'text-white/40 hover:text-white hover:bg-white/5'}`}>
-                                    <Icon className={`w-4 h-4 shrink-0 ${active ? 'text-[#8b5cf6]' : 'group-hover:text-white/80'}`} />
-                                    <span className="text-sm font-medium">{item.name}</span>
-                                </Link>
-                            );
-                        })}
-                    </div>
-                </div>
-            </nav>
-
-            {/* Footer */}
-            <div className="px-3 py-3 border-t border-white/5 space-y-1">
-                <Link href="/pricing" className="flex items-center gap-3 px-3 py-2 rounded-xl text-white/30 hover:text-white hover:bg-white/5 transition-all text-sm">
-                    <CreditCard className="w-4 h-4" /> Planos
-                </Link>
-                <button onClick={handleLogout} className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-red-400/60 hover:text-red-400 hover:bg-red-500/10 transition-all text-sm">
-                    <LogOut className="w-4 h-4" /> Sair
-                </button>
-            </div>
-        </aside>
-    );
-}
 
 // ─── MAIN PAGE ─────────────────────────────────────────────────────────────
 export default function DashboardPage() {
@@ -368,38 +262,8 @@ export default function DashboardPage() {
     ];
 
     return (
-        <div className="flex bg-[#000000] min-h-screen text-white">
-            {/* Background ambient */}
-            <div className="fixed top-0 right-0 w-[600px] h-[400px] bg-[#8b5cf6]/5 rounded-full blur-[150px] pointer-events-none" />
-
-            <Sidebar user={user} />
-
-            <main className="flex-1 ml-[260px] min-h-screen">
-                {/* Top Bar */}
-                <header className="sticky top-0 z-40 bg-black/60 backdrop-blur-xl border-b border-white/5 px-8 py-3 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-                        <span className="text-xs text-white/30 font-medium">Sistema operacional • Atualizado agora</span>
-                    </div>
-                    <div className="flex items-center gap-4">
-                        <button className="relative text-white/30 hover:text-white transition">
-                            <Bell className="w-5 h-5" />
-                            <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#8b5cf6] rounded-full text-[9px] flex items-center justify-center font-bold">3</span>
-                        </button>
-                        <Link href="/settings" className="text-white/30 hover:text-white transition">
-                            <Settings className="w-5 h-5" />
-                        </Link>
-                        {user && (
-                            <div className="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-full border border-white/8">
-                                <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#8b5cf6] to-[#7c3aed] flex items-center justify-center text-white font-black text-[10px]">
-                                    {getInitials(user.name)}
-                                </div>
-                                <span className="text-sm font-medium text-white">{user.name.split(' ')[0]}</span>
-                                <span className="text-[10px] bg-[#8b5cf6]/20 text-[#a78bfa] px-1.5 py-0.5 rounded-md font-bold">Nv.7</span>
-                            </div>
-                        )}
-                    </div>
-                </header>
+        <AppLayout title="Dashboard — Visão Geral">
+            <div className="min-h-screen text-white">
 
                 <div className="p-8 space-y-8">
 
@@ -649,15 +513,9 @@ export default function DashboardPage() {
                     </div>
 
                 </div>
-            </main>
 
-            <style jsx global>{`
-        @keyframes slide-up {
-          from { opacity: 0; transform: translateY(20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .slide-up { animation: slide-up 0.4s ease-out forwards; }
-      `}</style>
+            </div>
         </div>
+        </AppLayout >
     );
 }

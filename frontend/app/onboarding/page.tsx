@@ -1,6 +1,6 @@
 'use client';
 
-import { Sidebar } from '../../components/Sidebar';
+import AppLayout from '../../components/AppLayout';
 import { Upload, CheckCircle, Clock, AlertCircle, FileText, User, Loader2 } from 'lucide-react';
 import { useState, useRef } from 'react';
 import { RHService } from '../../services/api';
@@ -99,123 +99,124 @@ export default function OnboardingPage() {
     }[status]);
 
     return (
-        <div className="flex h-screen bg-[#0a0a0f] text-white">
-            <Sidebar />
-            <main className="flex-1 ml-[280px] p-8 overflow-y-auto">
-                <div className="max-w-3xl mx-auto">
-                    <div className="mb-8">
-                        <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-teal-400 to-cyan-600 mb-2">
-                            Onboarding Digital
-                        </h1>
-                        <p className="text-gray-400">Envie seus documentos para concluir a admissão. Nossa IA valida automaticamente.</p>
-                    </div>
-
-                    {/* Progress */}
-                    <div className="glass-panel rounded-2xl p-6 mb-6">
-                        <div className="flex justify-between items-center mb-3">
-                            <span className="text-sm font-medium text-zinc-300">Progresso da Admissão</span>
-                            <span className="text-sm font-bold text-teal-400">{completed}/{total} documentos</span>
+        <AppLayout title="Onboarding Digital">
+            <div className="text-white">
+                <main className="p-8 overflow-y-auto">
+                    <div className="max-w-3xl mx-auto">
+                        <div className="mb-8">
+                            <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-teal-400 to-cyan-600 mb-2">
+                                Onboarding Digital
+                            </h1>
+                            <p className="text-gray-400">Envie seus documentos para concluir a admissão. Nossa IA valida automaticamente.</p>
                         </div>
-                        <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
-                            <div
-                                className="h-full bg-gradient-to-r from-teal-500 to-cyan-500 rounded-full transition-all duration-500"
-                                style={{ width: `${progress}%` }}
-                            />
-                        </div>
-                        <p className="text-xs text-zinc-500 mt-2">{progress}% completo</p>
-                    </div>
 
-                    {/* Checklist de Departamentos */}
-                    <div className="glass-panel rounded-2xl p-6 mb-6">
-                        <h3 className="font-semibold mb-4 flex items-center gap-2">
-                            <User className="w-5 h-5 text-teal-400" />
-                            Kit Boas-Vindas
-                        </h3>
-                        <div className="space-y-3">
-                            {[
-                                { label: 'TI: E-mail corporativo criado', done: completed >= 2 },
-                                { label: 'Financeiro: Conta salário configurada', done: completed >= 4 },
-                                { label: 'Gestor: Reunião de almoço agendada', done: completed >= 6 },
-                            ].map((item, i) => (
-                                <div key={i} className="flex items-center gap-3 text-sm">
-                                    {item.done ? (
-                                        <CheckCircle className="w-4 h-4 text-green-400 shrink-0" />
-                                    ) : (
-                                        <Clock className="w-4 h-4 text-zinc-600 shrink-0" />
-                                    )}
-                                    <span className={item.done ? 'text-zinc-300' : 'text-zinc-600'}>{item.label}</span>
-                                </div>
-                            ))}
+                        {/* Progress */}
+                        <div className="glass-panel rounded-2xl p-6 mb-6">
+                            <div className="flex justify-between items-center mb-3">
+                                <span className="text-sm font-medium text-zinc-300">Progresso da Admissão</span>
+                                <span className="text-sm font-bold text-teal-400">{completed}/{total} documentos</span>
+                            </div>
+                            <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
+                                <div
+                                    className="h-full bg-gradient-to-r from-teal-500 to-cyan-500 rounded-full transition-all duration-500"
+                                    style={{ width: `${progress}%` }}
+                                />
+                            </div>
+                            <p className="text-xs text-zinc-500 mt-2">{progress}% completo</p>
                         </div>
-                    </div>
 
-                    {/* Document Upload */}
-                    <div className="glass-panel rounded-2xl p-6 mb-6">
-                        <h3 className="font-semibold mb-6 flex items-center gap-2">
-                            <FileText className="w-5 h-5 text-teal-400" />
-                            Documentos Necessários
-                        </h3>
-                        <input ref={inputRef} type="file" className="hidden" onChange={handleFileChange} accept=".pdf,.jpg,.jpeg,.png" />
-                        <div className="space-y-3">
-                            {steps.map(step => (
-                                <div key={step.id} className={`flex items-center justify-between p-4 rounded-xl border transition ${step.status === 'validated' ? 'border-green-500/30 bg-green-500/5' :
-                                    step.status === 'uploaded' ? 'border-yellow-500/30 bg-yellow-500/5' :
-                                        step.status === 'error' ? 'border-red-500/30 bg-red-500/5' :
-                                            'border-zinc-800 bg-zinc-900/30 hover:border-zinc-600'
-                                    }`}>
-                                    <div className="flex items-center gap-3">
-                                        {statusIcon(step.status)}
-                                        <div>
-                                            <p className="text-sm font-medium">{step.label}</p>
-                                            {step.file && <p className="text-xs text-zinc-500">{step.file}</p>}
-                                            {!step.required && <span className="text-xs text-zinc-600">Opcional</span>}
+                        {/* Checklist de Departamentos */}
+                        <div className="glass-panel rounded-2xl p-6 mb-6">
+                            <h3 className="font-semibold mb-4 flex items-center gap-2">
+                                <User className="w-5 h-5 text-teal-400" />
+                                Kit Boas-Vindas
+                            </h3>
+                            <div className="space-y-3">
+                                {[
+                                    { label: 'TI: E-mail corporativo criado', done: completed >= 2 },
+                                    { label: 'Financeiro: Conta salário configurada', done: completed >= 4 },
+                                    { label: 'Gestor: Reunião de almoço agendada', done: completed >= 6 },
+                                ].map((item, i) => (
+                                    <div key={i} className="flex items-center gap-3 text-sm">
+                                        {item.done ? (
+                                            <CheckCircle className="w-4 h-4 text-green-400 shrink-0" />
+                                        ) : (
+                                            <Clock className="w-4 h-4 text-zinc-600 shrink-0" />
+                                        )}
+                                        <span className={item.done ? 'text-zinc-300' : 'text-zinc-600'}>{item.label}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Document Upload */}
+                        <div className="glass-panel rounded-2xl p-6 mb-6">
+                            <h3 className="font-semibold mb-6 flex items-center gap-2">
+                                <FileText className="w-5 h-5 text-teal-400" />
+                                Documentos Necessários
+                            </h3>
+                            <input ref={inputRef} type="file" className="hidden" onChange={handleFileChange} accept=".pdf,.jpg,.jpeg,.png" />
+                            <div className="space-y-3">
+                                {steps.map(step => (
+                                    <div key={step.id} className={`flex items-center justify-between p-4 rounded-xl border transition ${step.status === 'validated' ? 'border-green-500/30 bg-green-500/5' :
+                                        step.status === 'uploaded' ? 'border-yellow-500/30 bg-yellow-500/5' :
+                                            step.status === 'error' ? 'border-red-500/30 bg-red-500/5' :
+                                                'border-zinc-800 bg-zinc-900/30 hover:border-zinc-600'
+                                        }`}>
+                                        <div className="flex items-center gap-3">
+                                            {statusIcon(step.status)}
+                                            <div>
+                                                <p className="text-sm font-medium">{step.label}</p>
+                                                {step.file && <p className="text-xs text-zinc-500">{step.file}</p>}
+                                                {!step.required && <span className="text-xs text-zinc-600">Opcional</span>}
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <span className={`text-xs ${step.status === 'validated' ? 'text-green-400' :
+                                                step.status === 'uploaded' ? 'text-yellow-400' :
+                                                    step.status === 'error' ? 'text-red-400' : 'text-zinc-600'
+                                                }`}>{statusLabel(step.status)}</span>
+                                            {step.status === 'pending' || step.status === 'error' ? (
+                                                <button
+                                                    onClick={() => triggerUpload(step.id)}
+                                                    disabled={uploading === step.id}
+                                                    className="px-3 py-1 text-xs bg-teal-600 hover:bg-teal-500 rounded-lg transition disabled:opacity-50 flex items-center gap-1"
+                                                >
+                                                    {uploading === step.id ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
+                                                    Enviar
+                                                </button>
+                                            ) : null}
                                         </div>
                                     </div>
-                                    <div className="flex items-center gap-3">
-                                        <span className={`text-xs ${step.status === 'validated' ? 'text-green-400' :
-                                            step.status === 'uploaded' ? 'text-yellow-400' :
-                                                step.status === 'error' ? 'text-red-400' : 'text-zinc-600'
-                                            }`}>{statusLabel(step.status)}</span>
-                                        {step.status === 'pending' || step.status === 'error' ? (
-                                            <button
-                                                onClick={() => triggerUpload(step.id)}
-                                                disabled={uploading === step.id}
-                                                className="px-3 py-1 text-xs bg-teal-600 hover:bg-teal-500 rounded-lg transition disabled:opacity-50 flex items-center gap-1"
-                                            >
-                                                {uploading === step.id ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
-                                                Enviar
-                                            </button>
-                                        ) : null}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Contract Generation */}
-                    <div className="glass-panel rounded-2xl p-6">
-                        <div className="flex justify-between items-center mb-4">
-                            <h3 className="font-semibold flex items-center gap-2">
-                                <FileText className="w-5 h-5 text-teal-400" />
-                                Contrato de Trabalho (IA)
-                            </h3>
-                            <button
-                                onClick={loadContract}
-                                disabled={loadingContract || completed < 3}
-                                className="px-4 py-2 text-sm bg-teal-600 hover:bg-teal-500 rounded-lg transition disabled:opacity-50"
-                            >
-                                {loadingContract ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Gerar Rascunho'}
-                            </button>
-                        </div>
-                        {completed < 3 && <p className="text-xs text-zinc-500">Envie pelo menos 3 documentos para gerar o contrato.</p>}
-                        {contract && (
-                            <div className="mt-4 p-4 bg-zinc-900 border border-zinc-700 rounded-xl text-sm text-zinc-300 whitespace-pre-wrap max-h-64 overflow-y-auto">
-                                {contract}
+                                ))}
                             </div>
-                        )}
+                        </div>
+
+                        {/* Contract Generation */}
+                        <div className="glass-panel rounded-2xl p-6">
+                            <div className="flex justify-between items-center mb-4">
+                                <h3 className="font-semibold flex items-center gap-2">
+                                    <FileText className="w-5 h-5 text-teal-400" />
+                                    Contrato de Trabalho (IA)
+                                </h3>
+                                <button
+                                    onClick={loadContract}
+                                    disabled={loadingContract || completed < 3}
+                                    className="px-4 py-2 text-sm bg-teal-600 hover:bg-teal-500 rounded-lg transition disabled:opacity-50"
+                                >
+                                    {loadingContract ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Gerar Rascunho'}
+                                </button>
+                            </div>
+                            {completed < 3 && <p className="text-xs text-zinc-500">Envie pelo menos 3 documentos para gerar o contrato.</p>}
+                            {contract && (
+                                <div className="mt-4 p-4 bg-zinc-900 border border-zinc-700 rounded-xl text-sm text-zinc-300 whitespace-pre-wrap max-h-64 overflow-y-auto">
+                                    {contract}
+                                </div>
+                            )}
+                        </div>
                     </div>
-                </div>
-            </main>
-        </div>
+                </main>
+            </div>
+        </AppLayout>
     );
 }
