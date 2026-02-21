@@ -71,18 +71,20 @@ async def _ask_gemini(
     if not GEMINI_API_KEY:
         raise HTTPException(503, "GEMINI_API_KEY não configurada. Configure no .env")
 
-    genai.configure(api_key=GEMINI_API_KEY)
-    model = genai.GenerativeModel(model_name)
+    client = genai.Client(api_key=GEMINI_API_KEY)
 
     # Build conversation history
+    # The new SDK uses a slightly different structure for chat
     chat_history = []
     for msg in history or []:
         chat_history.append(
-            {"role": "user" if msg.role == "user" else "model", "parts": [msg.content]}
+            {"role": "user" if msg.role == "user" else "model", "parts": [{"text": msg.content}]}
         )
 
-    chat = model.start_chat(history=chat_history)
-    response = chat.send_message(f"{SYSTEM_PROMPT}\n\n{question}")
+    response = client.models.generate_content(
+        model=model_name,
+        contents=chat_history + [{"role": "user", "parts": [{"text": f"{SYSTEM_PROMPT}\n\n{question}"}]}]
+    )
     return response.text
 
 

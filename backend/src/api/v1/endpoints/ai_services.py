@@ -17,14 +17,13 @@ from domain.models.user import User
 router = APIRouter(prefix="/api/ai", tags=["ai-services"])
 
 
-def _get_gemini():
+def _get_gemini_client():
     import google.genai as genai
 
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
         raise HTTPException(status_code=503, detail="GEMINI_API_KEY não configurada")
-    genai.configure(api_key=api_key)
-    return genai.GenerativeModel("gemini-1.5-flash")
+    return genai.Client(api_key=api_key)
 
 
 # ─── RESUME PARSING ────────────────────────────────────────────────────────────
@@ -53,7 +52,7 @@ async def parse_resume(
     else:
         text = content.decode("utf-8", errors="ignore")
 
-    model = _get_gemini()
+    client = _get_gemini_client()
     prompt = f"""
 Analise o currículo abaixo e retorne um JSON estruturado com os campos:
 - name (string)
@@ -73,7 +72,10 @@ Currículo:
 Responda SOMENTE com o JSON válido, sem markdown.
 """
     try:
-        response = model.generate_content(prompt)
+        response = client.models.generate_content(
+            model="gemini-1.5-flash",
+            contents=prompt
+        )
         import json, re
 
         raw = response.text.strip()
@@ -99,7 +101,7 @@ async def disc_analysis(
     """
     Analisa a carta de apresentação do candidato e retorna perfil DISC + Big5.
     """
-    model = _get_gemini()
+    client = _get_gemini_client()
     prompt = f"""
 Você é um especialista em psicologia organizacional. Analise o texto abaixo e retorne o perfil comportamental do candidato {data.candidate_name}.
 
@@ -133,7 +135,10 @@ Carta de apresentação:
 Responda SOMENTE com JSON válido, sem markdown.
 """
     try:
-        response = model.generate_content(prompt)
+        response = client.models.generate_content(
+            model="gemini-1.5-flash",
+            contents=prompt
+        )
         import json, re
 
         raw = re.sub(r"```json|```", "", response.text.strip()).strip()
@@ -160,7 +165,7 @@ async def generate_tech_test(
     """
     Gera um teste técnico ÚNICO e personalizado para a vaga.
     """
-    model = _get_gemini()
+    client = _get_gemini_client()
     prompt = f"""
 Crie um teste técnico ÚNICO (nunca repetido) para uma vaga de {data.job_title} nível {data.seniority}.
 Stack: {data.tech_stack}.
@@ -186,7 +191,10 @@ Varie os tipos: inclua pelo menos 1 questão de código, 1 teórica e 1 situacio
 Responda SOMENTE com JSON válido, sem markdown.
 """
     try:
-        response = model.generate_content(prompt)
+        response = client.models.generate_content(
+            model="gemini-1.5-flash",
+            contents=prompt
+        )
         import json, re
 
         raw = re.sub(r"```json|```", "", response.text.strip()).strip()
@@ -211,7 +219,7 @@ async def suggest_killer_questions(
     """
     IA sugere killer questions para uma vaga específica.
     """
-    model = _get_gemini()
+    client = _get_gemini_client()
     prompt = f"""
 Sugira 5 killer questions (perguntas eliminatórias) para a vaga de {data.job_title}.
 
@@ -232,7 +240,10 @@ Retorne um JSON assim:
 Responda SOMENTE com JSON válido, sem markdown.
 """
     try:
-        response = model.generate_content(prompt)
+        response = client.models.generate_content(
+            model="gemini-1.5-flash",
+            contents=prompt
+        )
         import json, re
 
         raw = re.sub(r"```json|```", "", response.text.strip()).strip()

@@ -11,13 +11,21 @@ from .base import AIProvider
 class GeminiService(AIProvider):
     def __init__(self):
         self.api_key = os.getenv("GEMINI_API_KEY")
-        self.model = None
+        self.client = None
         if self.api_key:
             try:
-                genai.configure(api_key=self.api_key)
-                self.model = genai.GenerativeModel("gemini-1.5-flash")
+                self.client = genai.Client(api_key=self.api_key)
             except Exception as e:
                 print(f"Warning: Failed to initialize GeminiService: {e}")
+
+    async def _generate(self, prompt: str) -> str:
+        if not self.client:
+            return "IA não configurada"
+        response = self.client.models.generate_content(
+            model="gemini-1.5-flash",
+            contents=prompt
+        )
+        return response.text
 
     async def analyze_resume(self, resume_text: str, job_description: str) -> Dict:
         """
@@ -41,8 +49,8 @@ class GeminiService(AIProvider):
         Responda em formato JSON.
         """
 
-        response = self.model.generate_content(prompt)
-        return self._parse_json_response(response.text)
+        response_text = await self._generate(prompt)
+        return self._parse_json_response(response_text)
 
     async def chat_recruiter(self, message: str, context: str = "") -> str:
         """
@@ -58,8 +66,7 @@ class GeminiService(AIProvider):
         Responda de forma profissional e concisa.
         """
 
-        response = self.model.generate_content(prompt)
-        return response.text
+        return await self._generate(prompt)
 
     async def financial_insights(self, transactions: List[Dict]) -> Dict:
         """
@@ -78,8 +85,8 @@ class GeminiService(AIProvider):
         Responda em JSON.
         """
 
-        response = self.model.generate_content(prompt)
-        return self._parse_json_response(response.text)
+        response_text = await self._generate(prompt)
+        return self._parse_json_response(response_text)
 
     async def project_insights(self, tasks: List[Dict]) -> Dict:
         """
@@ -98,8 +105,8 @@ class GeminiService(AIProvider):
         JSON format.
         """
 
-        response = self.model.generate_content(prompt)
-        return self._parse_json_response(response.text)
+        response_text = await self._generate(prompt)
+        return self._parse_json_response(response_text)
 
     async def admin_audit(self, db_stats: Dict) -> Dict:
         """
@@ -121,8 +128,8 @@ class GeminiService(AIProvider):
         Responda em JSON estrito.
         """
 
-        response = self.model.generate_content(prompt)
-        return self._parse_json_response(response.text)
+        response_text = await self._generate(prompt)
+        return self._parse_json_response(response_text)
 
     def _parse_json_response(self, text: str) -> Dict:
         """Parse JSON from Gemini response"""

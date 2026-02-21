@@ -8,14 +8,22 @@ class AIATSService:
     def __init__(self):
         self.api_key = os.getenv("GEMINI_API_KEY")
         if self.api_key:
-            genai.configure(api_key=self.api_key)
-            self.model = genai.GenerativeModel("gemini-1.5-flash")
+            self.client = genai.Client(api_key=self.api_key)
         else:
-            self.model = None
+            self.client = None
+
+    async def _generate(self, prompt: str) -> str:
+        if not self.client:
+            return ""
+        response = self.client.models.generate_content(
+            model="gemini-1.5-flash",
+            contents=prompt
+        )
+        return response.text
 
     async def parse_resume(self, resume_text: str) -> Dict[str, Any]:
         """Extrai dados estruturados de um currículo em texto."""
-        if not self.model:
+        if not self.client:
             return {"error": "IA não configurada"}
 
         prompt = f"""
@@ -28,9 +36,8 @@ class AIATSService:
         """
 
         try:
-            response = self.model.generate_content(prompt)
+            text = await self._generate(prompt)
             # Tenta extrair o JSON da resposta
-            text = response.text
             start = text.find("{")
             end = text.rfind("}") + 1
             if start != -1 and end != -1:
@@ -43,7 +50,7 @@ class AIATSService:
         self, resume_data: Dict[str, Any], job_description: str
     ) -> Dict[str, Any]:
         """Gera um score de 0-100 para o candidato em relação à vaga."""
-        if not self.model:
+        if not self.client:
             return {"error": "IA não configurada"}
 
         prompt = f"""
@@ -57,8 +64,7 @@ class AIATSService:
         """
 
         try:
-            response = self.model.generate_content(prompt)
-            text = response.text
+            text = await self._generate(prompt)
             start = text.find("{")
             end = text.rfind("}") + 1
             if start != -1 and end != -1:
@@ -71,7 +77,7 @@ class AIATSService:
         self, job_title: str, requirements: str
     ) -> List[Dict[str, Any]]:
         """Gera um teste técnico personalizado para a vaga."""
-        if not self.model:
+        if not self.client:
             return []
 
         prompt = f"""
@@ -81,8 +87,7 @@ class AIATSService:
         """
 
         try:
-            response = self.model.generate_content(prompt)
-            text = response.text
+            text = await self._generate(prompt)
             start = text.find("[")
             end = text.rfind("]") + 1
             if start != -1 and end != -1:
@@ -94,16 +99,16 @@ class AIATSService:
 
     async def analyze_behavior(self, text: str) -> Dict[str, Any]:
         """IA analisa perfil comporteamental DISC / Big5."""
-        if not self.model:
+        if not self.client:
             return {}
         prompt = f"Analise o texto/cv abaixo e sugira o perfil DISC (Dominância, Influência, Estabilidade, Conformidade) e Big5 do candidato. Retorne JSON: {text}"
         try:
-            response = self.model.generate_content(prompt)
+            text = await self._generate(prompt)
             # Extrating JSON ...
             return {
                 "disc": "Estabilizador",
                 "big5": {"openness": 0.8},
-                "summary": response.text[:200],
+                "summary": text[:200],
             }
         except:
             return {}
@@ -112,12 +117,12 @@ class AIATSService:
         self, candidate_name: str, job_title: str, salary: str
     ) -> str:
         """IA gera rascunho de contrato de trabalho."""
-        if not self.model:
+        if not self.client:
             return ""
         prompt = f"Gere um rascunho de contrato de trabalho simplificado para {candidate_name} no cargo de {job_title} com salário de {salary}. Use um tom formal Jurídico brasileiro."
         try:
-            response = self.model.generate_content(prompt)
-            return response.text
+            text = await self._generate(prompt)
+            return text
         except:
             return "Erro ao gerar contrato"
 
