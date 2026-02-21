@@ -26,3 +26,4 @@ innovation.db
 # OS
 .DS_Store
 Thumbs.db
+keys_status.json

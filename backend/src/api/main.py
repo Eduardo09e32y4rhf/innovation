@@ -45,13 +45,9 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Innovation.ia - Elite Recruitment", lifespan=lifespan)
 app.middleware("http")(vpn_blocker_middleware)
 
-# Configuração do Gemini
-GEMINI_API_KEY = settings.GEMINI_API_KEY
-if GEMINI_API_KEY:
-    try:
-        genai.configure(api_key=GEMINI_API_KEY)
-    except Exception as e:
-        print(f"Aviso: Falha ao configurar Gemini AI (Pode estar depreciado): {e}")
+# O Gemini é configurado dinamicamente nos endpoints via google.genai.Client
+# usando a chave definida no settings.GEMINI_API_KEYS
+
 
 # Middleware CORS
 app.add_middleware(

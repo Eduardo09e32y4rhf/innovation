@@ -80,37 +80,20 @@ export default function HomePage() {
     setErrorPlan('');
     setAiPlan(null);
 
-    const apiKey = '';
-    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
-
-    const systemPrompt = `Você é um executivo de vendas de topo da Innovation IA. Venda o plano de R$ 9,99/mês.
-Com base no cargo da pessoa, cite 3 benefícios REAIS, PRÁTICOS e HUMANOS (ex: "Saia do trabalho às 18h", "Automatize a criação de relatórios", "Traduza documentos em 2 segundos").
-Inicie cada benefício com um hífen (-). Linguagem simples, acolhedora e altamente persuasiva.`;
-
-    const userQuery = `Sou ${businessType}. Qual a minha vantagem real em pagar R$ 9,99 pelo Innovation IA hoje?`;
-
     const makeRequest = async (retries = 0): Promise<void> => {
       try {
-        const response = await fetch(endpoint, {
+        const response = await fetch('/api/ai/landing-plan', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: userQuery }] }],
-            systemInstruction: { parts: [{ text: systemPrompt }] },
-          }),
+          body: JSON.stringify({ business_type: businessType }),
         });
 
         if (!response.ok) {
-          if (response.status === 429 && retries < 5) {
-            const delay = Math.pow(2, retries) * 1000;
-            await new Promise((resolve) => setTimeout(resolve, delay));
-            return makeRequest(retries + 1);
-          }
-          throw new Error('Erro de conexão');
+          throw new Error('Erro no servidor');
         }
 
         const data = await response.json();
-        const text: string = data.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+        const text: string = data.answer || '';
 
         const points = text
           .split('\n')
@@ -120,7 +103,7 @@ Inicie cada benefício com um hífen (-). Linguagem simples, acolhedora e altame
 
         setAiPlan(points.length > 0 ? points : [text]);
       } catch {
-        setErrorPlan('A rede está com tráfego elevado. Por favor, tente de novo em instantes.');
+        setErrorPlan('O simulador está em manutenção ou atingiu o limite. Tente em instantes.');
       } finally {
         setIsLoadingPlan(false);
       }
@@ -182,8 +165,8 @@ Inicie cada benefício com um hífen (-). Linguagem simples, acolhedora e altame
             <button
               onClick={goToRegister}
               className={`px-6 py-2.5 rounded-full font-bold text-sm shadow-xl transition-all hover:-translate-y-1 ${scrolled
-                  ? 'bg-violet-700 text-white hover:bg-violet-800'
-                  : 'bg-white text-violet-800 hover:bg-zinc-100'
+                ? 'bg-violet-700 text-white hover:bg-violet-800'
+                : 'bg-white text-violet-800 hover:bg-zinc-100'
                 }`}
             >
               Abra a sua conta

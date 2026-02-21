@@ -17,7 +17,7 @@ from domain.models.user import User
 
 router = APIRouter(prefix="/api/ai", tags=["ai-chat"])
 
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+from core.ai_key_manager import ai_key_manager
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 
 # ─── Models ────────────────────────────────────────────────────────────────────
@@ -68,24 +68,66 @@ async def _ask_gemini(
 ) -> str:
     import google.genai as genai
 
-    if not GEMINI_API_KEY:
-        raise HTTPException(503, "GEMINI_API_KEY não configurada. Configure no .env")
+    # Tenta usar as chaves disponíveis em rotação
+    active_keys = ai_key_manager.get_all_active_keys()
+    
+    if not active_keys:
+        raise HTTPException(503, "Sem chaves do Gemini disponíveis. Configure no .env")
 
-    client = genai.Client(api_key=GEMINI_API_KEY)
+    last_error = None
+    
+    for api_key in active_keys:
+        try:
+            client = genai.Client(api_key=api_key)
 
-    # Build conversation history
-    # The new SDK uses a slightly different structure for chat
-    chat_history = []
-    for msg in history or []:
-        chat_history.append(
-            {"role": "user" if msg.role == "user" else "model", "parts": [{"text": msg.content}]}
-        )
+            # Converter histórico para formato do novo SDK
+            chat_history = []
+            for msg in history or []:
+                chat_history.append(
+                    {"role": "user" if msg.role == "user" else "model", "parts": [{"text": msg.content}]}
+                )
 
-    response = client.models.generate_content(
-        model=model_name,
-        contents=chat_history + [{"role": "user", "parts": [{"text": f"{SYSTEM_PROMPT}\n\n{question}"}]}]
-    )
-    return response.text
+            # Chamar API usando system_instruction e a versão 2.0 que é mais poderosa
+            actual_model = model_name
+            if "flash" in model_name:
+                actual_model = "gemini-2.0-flash"
+
+            try:
+                response = client.models.generate_content(
+                    model=actual_model,
+                    contents=chat_history + [{"role": "user", "parts": [{"text": question}]}],
+                    config={
+                        "system_instruction": SYSTEM_PROMPT.strip(),
+                        "temperature": 0.7,
+                    }
+                )
+                return response.text
+            except Exception as e:
+                # Se for erro de cota ou chave, tentamos o próximo modelo (1.5) ou próxima chave
+                if "429" in str(e) or "quota" in str(e).lower() or "API_KEY_INVALID" in str(e):
+                    print(f"⚠️ Chave do Gemini falhou ({api_key[:10]}...): {e}")
+                    ai_key_manager.mark_as_exhausted(api_key)
+                    last_error = e
+                    continue # Tenta próxima chave no loop externo
+                
+                # Fallback para 1.5 se o 2.0 falhar por outro motivo
+                if actual_model == "gemini-2.0-flash":
+                    response = client.models.generate_content(
+                        model="gemini-1.5-flash",
+                        contents=chat_history + [{"role": "user", "parts": [{"text": question}]}],
+                        config={
+                            "system_instruction": SYSTEM_PROMPT.strip(),
+                        }
+                    )
+                    return response.text
+                raise e
+        except Exception as inner_e:
+            print(f"❌ Erro crítico com chave: {inner_e}")
+            last_error = inner_e
+            continue
+
+    raise HTTPException(503, f"Todas as chaves do Gemini falharam. Último erro: {str(last_error)}")
+
 
 
 # ─── Helper: Claude ────────────────────────────────────────────────────────────
@@ -240,3 +282,22 @@ async def list_models(current_user: User = Depends(get_current_user)):
         "current_plan": user_plan,
         "role": user_role,
     }
+
+@router.post("/landing-plan")
+async def landing_plan(request: Request, data: dict):
+    """
+    Endpoint público para a landing page (Simulador de ROI).
+    Usa rotação de chaves.
+    """
+    business_type = data.get("business_type", "Usuário")
+    
+    user_query = f"Simule planos para: {business_type}. " + \
+                 "Cite 3 benefícios REAIS, PRÁTICOS e HUMANOS de pagar R$ 9,99/mês. " + \
+                 "Inicie cada benefício com um hífen (-)."
+    
+    try:
+        # Reutiliza o helper _ask_gemini que já tem a rotação
+        answer = await _ask_gemini(user_query, [], "gemini-1.5-flash")
+        return {"answer": answer}
+    except Exception as e:
+        raise HTTPException(500, f"Erro no simulador: {str(e)}")

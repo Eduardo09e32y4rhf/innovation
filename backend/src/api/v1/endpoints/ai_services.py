@@ -17,13 +17,38 @@ from domain.models.user import User
 router = APIRouter(prefix="/api/ai", tags=["ai-services"])
 
 
-def _get_gemini_client():
-    import google.genai as genai
+from core.ai_key_manager import ai_key_manager
 
-    api_key = os.getenv("GEMINI_API_KEY")
-    if not api_key:
-        raise HTTPException(status_code=503, detail="GEMINI_API_KEY não configurada")
-    return genai.Client(api_key=api_key)
+async def _gemini_generate_with_retry(model, contents, config=None, system_instruction=None):
+    import google.genai as genai
+    
+    active_keys = ai_key_manager.get_all_active_keys()
+    last_error = None
+    
+    for api_key in active_keys:
+        try:
+            client = genai.Client(api_key=api_key)
+            
+            # Ajustar config para incluir system_instruction se fornecida
+            final_config = config or {}
+            if system_instruction:
+                final_config["system_instruction"] = system_instruction
+            
+            response = client.models.generate_content(
+                model=model,
+                contents=contents,
+                config=final_config
+            )
+            return response.text
+        except Exception as e:
+            if "429" in str(e) or "quota" in str(e).lower() or "API_KEY_INVALID" in str(e):
+                print(f"⚠️ Chave falhou nos serviços ({api_key[:10]}...): {e}")
+                ai_key_manager.mark_as_exhausted(api_key)
+                last_error = e
+                continue
+            raise e
+            
+    raise HTTPException(503, f"Todas as chaves falharam nos serviços de IA. {str(last_error)}")
 
 
 # ─── RESUME PARSING ────────────────────────────────────────────────────────────
@@ -52,7 +77,7 @@ async def parse_resume(
     else:
         text = content.decode("utf-8", errors="ignore")
 
-    client = _get_gemini_client()
+    # The original prompt is kept for the fallback mechanism
     prompt = f"""
 Analise o currículo abaixo e retorne um JSON estruturado com os campos:
 - name (string)
@@ -72,17 +97,28 @@ Currículo:
 Responda SOMENTE com o JSON válido, sem markdown.
 """
     try:
-        response = client.models.generate_content(
-            model="gemini-1.5-flash",
-            contents=prompt
+        # Tenta 2.0 primeiro com retry de chaves
+        response_text = await _gemini_generate_with_retry(
+            model="gemini-2.0-flash",
+            contents=text[:16000],
+            system_instruction="Você é um especialista em parsing de currículos. Extraia os dados e retorne SOMENTE um JSON válido.",
+            config={"response_mime_type": "application/json"}
         )
         import json, re
-
-        raw = response.text.strip()
+        raw = response_text.strip()
         raw = re.sub(r"```json|```", "", raw).strip()
         return json.loads(raw)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro ao processar currículo: {e}")
+        # Fallback para 1.5 se o 2.0 falhar geral ou se persistir erro após rotação
+        try:
+            response_text = await _gemini_generate_with_retry(
+                model="gemini-1.5-flash",
+                contents=prompt
+            )
+            raw = re.sub(r"```json|```", "", response_text.strip()).strip()
+            return json.loads(raw)
+        except:
+            raise HTTPException(status_code=500, detail=f"Erro ao processar currículo após tentativas: {e}")
 
 
 # ─── DISC / BIG5 ANALYSIS ──────────────────────────────────────────────────────
@@ -101,7 +137,7 @@ async def disc_analysis(
     """
     Analisa a carta de apresentação do candidato e retorna perfil DISC + Big5.
     """
-    client = _get_gemini_client()
+    # The original prompt is kept for the fallback mechanism
     prompt = f"""
 Você é um especialista em psicologia organizacional. Analise o texto abaixo e retorne o perfil comportamental do candidato {data.candidate_name}.
 
@@ -135,16 +171,48 @@ Carta de apresentação:
 Responda SOMENTE com JSON válido, sem markdown.
 """
     try:
-        response = client.models.generate_content(
-            model="gemini-1.5-flash",
-            contents=prompt
+        response_text = await _gemini_generate_with_retry(
+            model="gemini-2.0-flash",
+            contents=f"Analise este texto: {data.cover_letter[:8000]}",
+            system_instruction=f"""Você é um especialista em psicologia organizacional. Analise o texto e retorne o perfil comportamental do candidato {data.candidate_name} em JSON.
+Retorne um JSON com:
+{{
+  "disc": {{
+    "dominance": 0-100,
+    "influence": 0-100,
+    "steadiness": 0-100,
+    "conscientiousness": 0-100,
+    "primary_style": "D|I|S|C",
+    "description": "Perfil em 2 linhas"
+  }},
+  "big5": {{
+    "openness": 0-100,
+    "conscientiousness": 0-100,
+    "extraversion": 0-100,
+    "agreeableness": 0-100,
+    "neuroticism": 0-100
+  }},
+  "strengths": ["lista de 3 pontos fortes"],
+  "risks": ["lista de 2 pontos de atenção"],
+  "ideal_roles": ["lista de 3 cargos ideais para este perfil"],
+  "fit_recommendation": "Alto/Médio/Baixo",
+  "fit_justification": "1 parágrafo"
+}}""",
+            config={"response_mime_type": "application/json"}
         )
         import json, re
-
-        raw = re.sub(r"```json|```", "", response.text.strip()).strip()
+        raw = re.sub(r"```json|```", "", response_text.strip()).strip()
         return json.loads(raw)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro na análise DISC: {e}")
+        try:
+            response_text = await _gemini_generate_with_retry(
+                model="gemini-1.5-flash",
+                contents=prompt
+            )
+            raw = re.sub(r"```json|```", "", response_text.strip()).strip()
+            return json.loads(raw)
+        except:
+            raise HTTPException(status_code=500, detail=f"Erro na análise DISC após rotação: {e}")
 
 
 # ─── TECH TEST GENERATOR ───────────────────────────────────────────────────────
@@ -165,7 +233,7 @@ async def generate_tech_test(
     """
     Gera um teste técnico ÚNICO e personalizado para a vaga.
     """
-    client = _get_gemini_client()
+    # The original prompt is kept for the fallback mechanism
     prompt = f"""
 Crie um teste técnico ÚNICO (nunca repetido) para uma vaga de {data.job_title} nível {data.seniority}.
 Stack: {data.tech_stack}.
@@ -191,16 +259,44 @@ Varie os tipos: inclua pelo menos 1 questão de código, 1 teórica e 1 situacio
 Responda SOMENTE com JSON válido, sem markdown.
 """
     try:
-        response = client.models.generate_content(
-            model="gemini-1.5-flash",
-            contents=prompt
+        response_text = await _gemini_generate_with_retry(
+            model="gemini-2.0-flash",
+            contents=f"Vaga: {data.job_title}, Stack: {data.tech_stack}, Nível: {data.seniority}, Número de questões: {data.num_questions}",
+            system_instruction=f"""Crie um teste técnico ÚNICO (nunca repetido) e personalizado para uma vaga de {data.job_title} nível {data.seniority}, com a stack: {data.tech_stack}.
+Gere exatamente {data.num_questions} questões. Varie os tipos: inclua pelo menos 1 questão de código, 1 teórica e 1 situacional.
+Retorne SOMENTE um JSON válido com a seguinte estrutura:
+{{
+  "title": "Teste técnico para {data.job_title} ({data.seniority})",
+  "estimated_time_minutes": número,
+  "instructions": "instruções gerais",
+  "questions": [
+    {{
+      "number": 1,
+      "type": "multiple_choice|open|coding",
+      "question": "enunciado",
+      "options": ["A) ...", "B) ...", "C) ...", "D) ..."],
+      "expected_answer": "resposta esperada",
+      "points": 10
+    }}
+  ]
+}}""",
+            config={"response_mime_type": "application/json"}
         )
         import json, re
 
-        raw = re.sub(r"```json|```", "", response.text.strip()).strip()
+        raw = re.sub(r"```json|```", "", response_text.strip()).strip()
         return json.loads(raw)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro ao gerar teste: {e}")
+        # Fallback para 1.5
+        try:
+            response_text = await _gemini_generate_with_retry(
+                model="gemini-1.5-flash",
+                contents=prompt
+            )
+            raw = re.sub(r"```json|```", "", response_text.strip()).strip()
+            return json.loads(raw)
+        except:
+            raise HTTPException(status_code=500, detail=f"Erro ao gerar teste após rotação: {e}")
 
 
 # ─── KILLER QUESTIONS SUGGESTION ──────────────────────────────────────────────
@@ -219,7 +315,6 @@ async def suggest_killer_questions(
     """
     IA sugere killer questions para uma vaga específica.
     """
-    client = _get_gemini_client()
     prompt = f"""
 Sugira 5 killer questions (perguntas eliminatórias) para a vaga de {data.job_title}.
 
@@ -240,13 +335,13 @@ Retorne um JSON assim:
 Responda SOMENTE com JSON válido, sem markdown.
 """
     try:
-        response = client.models.generate_content(
+        response_text = await _gemini_generate_with_retry(
             model="gemini-1.5-flash",
             contents=prompt
         )
         import json, re
 
-        raw = re.sub(r"```json|```", "", response.text.strip()).strip()
+        raw = re.sub(r"```json|```", "", response_text.strip()).strip()
         return json.loads(raw)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro ao sugerir perguntas: {e}")
+        raise HTTPException(status_code=500, detail=f"Erro ao sugerir perguntas após rotação: {e}")
