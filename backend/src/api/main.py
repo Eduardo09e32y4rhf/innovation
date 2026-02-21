@@ -1,7 +1,6 @@
 import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-import google.genai as genai
 from api.v1.endpoints import (
     jobs,
     applications,
@@ -17,8 +16,6 @@ from api.v1.endpoints import (
     support,
     payments,
     enterprise,
-)
-from api.v1.endpoints import (
     rh_advanced,
     csc_advanced,
     finance_advanced,
