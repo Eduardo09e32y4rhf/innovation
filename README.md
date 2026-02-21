@@ -1,5 +1,8 @@
 # Innovation‑Enterprise (INNOVATION.IA)
 
+> **AVISO: SISTEMA PRIVADO E PROPRIETÁRIO**  
+> Este software é de uso restrito. A cópia, distribuição ou reprodução não autorizada é estritamente proibida.
+
 Resumo rápido
 Innovation‑Enterprise é uma plataforma SaaS pronta para demonstração que unifica recrutamento inteligente (ATS) com IA, gestão de RH, gestão de projetos e funcionalidades financeiras. Desenvolvida como monorepo com backend em FastAPI e frontend em Next.js, projetada para implantação em container (Docker).
 
@@ -48,5 +51,9 @@ Observações para recrutador
 - Arquitetura e código estruturados para escalar e integrar com provedores de IA e ERPs.
 - Acesso para avaliação técnica pode ser providenciado mediante solicitação (sem contato público no README).
 
-Licença
-- (Adicione licença, por exemplo MIT, se desejar)
+## Licença
+
+Este sistema é **PROPRIETÁRIO** e **PRIVADO**.
+Copyright © 2026 Innovation.ia - Eduardo Silva. Todos os direitos reservados.
+
+A cópia, distribuição ou uso não autorizado deste software é estritamente proibida. O acesso para avaliação técnica deve ser solicitado diretamente ao proprietário.

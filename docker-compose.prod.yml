@@ -61,6 +61,8 @@ services:
       - MP_ACCESS_TOKEN=${MERCADO_PAGO_API_KEY}
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-*}
       - BASE_URL=http://187.77.49.207
+    env_file:
+      - .env.prod
       # PYTHONPATH explícito para garantir resolução dos módulos
       - PYTHONPATH=/app/src:/app
     healthcheck:
