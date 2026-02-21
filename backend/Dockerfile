@@ -23,6 +23,6 @@ ENV PYTHONPATH=/app/src:/app
 # Expor a porta (documentação)
 EXPOSE 8000
 
-# Comando para iniciar a aplicação
-# /app/src está no PYTHONPATH, então 'api.main:app' resolve corretamente
-CMD sh -c "uvicorn api.main:app --host 0.0.0.0 --port ${PORT:-8000}"
+# Usar ENTRYPOINT para garantir que o comando correto seja sempre executado,
+# independente de qualquer 'command:' no docker-compose
+ENTRYPOINT ["sh", "-c", "uvicorn api.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
