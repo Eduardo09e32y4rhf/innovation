@@ -303,6 +303,7 @@ async def ask_ai(
 
     except HTTPException:
         raise
+    except Exception as e:
         return {
             "answer": f"Erro ao processar: {str(e)}",
             "model_used": model_choice,
