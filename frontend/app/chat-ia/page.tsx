@@ -60,7 +60,7 @@ export default function ChatIAPage() {
 
     // Load available models
     useEffect(() => {
-        api.get('/api/ai/models')
+        api.get('/ai/models')
             .then(r => setModels(r.data.models || []))
             .catch(() => {
                 // Fallback models if endpoint not reachable
@@ -104,7 +104,7 @@ export default function ChatIAPage() {
                     content: m.text,
                 }));
 
-            const response = await api.post('/api/ai/ask', {
+            const response = await api.post('/ai/ask', {
                 question: text,
                 context: 'Assistente completo Innovation.ia',
                 model: selectedModel,
