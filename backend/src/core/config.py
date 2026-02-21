@@ -6,7 +6,7 @@ BASE_DIR = Path(__file__).resolve().parents[3]
 
 class Settings(BaseSettings):
     DATABASE_URL: str = "sqlite:///./innovation_rh.db"
-    SECRET_KEY: str = "innovation_v2_premium_dark"
+    SECRET_KEY: str = "change_this_immediately_in_production_for_security_reasons_12345"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30  # 30 minutos para segurança
     REFRESH_TOKEN_EXPIRE_DAYS: int = 30  # 30 dias para manter usuário logado
@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     # External Services
     REDIS_URL: str = "redis://localhost:6379/0"
     GEMINI_API_KEYS: str | None = None
-    ALLOWED_ORIGINS: str = "*"
+    ALLOWED_ORIGINS: str = "http://localhost:3000,http://187.77.49.207"
 
     # Google OAuth
     GOOGLE_CLIENT_ID: str | None = None

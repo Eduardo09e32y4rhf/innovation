@@ -37,8 +37,15 @@ def create_question(
     job_id: int,
     data: KillerQuestionCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    company_id: int = Depends(require_active_company),
+    current_user: User = Depends(require_role(Role.COMPANY)),
 ):
+    # Verifica se a vaga pertence à empresa
+    from domain.models.job import Job
+    job = db.query(Job).filter(Job.id == job_id, Job.company_id == company_id).first()
+    if not job:
+        raise HTTPException(status_code=403, detail="Vaga não pertence à sua empresa")
+
     q = KillerQuestion(job_id=job_id, **data.model_dump())
     db.add(q)
     db.commit()
@@ -51,8 +58,15 @@ def delete_question(
     job_id: int,
     question_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    company_id: int = Depends(require_active_company),
+    current_user: User = Depends(require_role(Role.COMPANY)),
 ):
+    # Verifica se a vaga pertence à empresa
+    from domain.models.job import Job
+    job = db.query(Job).filter(Job.id == job_id, Job.company_id == company_id).first()
+    if not job:
+        raise HTTPException(status_code=403, detail="Acesso negado")
+
     q = (
         db.query(KillerQuestion)
         .filter(KillerQuestion.id == question_id, KillerQuestion.job_id == job_id)

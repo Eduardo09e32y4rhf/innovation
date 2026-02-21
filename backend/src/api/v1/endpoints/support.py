@@ -46,7 +46,8 @@ async def list_all_tickets(
     current_user: User = Depends(get_current_user),
 ):
     """Admin: lista todos os tickets"""
-    if current_user.role not in ["admin", "company"]:
+    from core.roles import Role
+    if current_user.role not in [Role.ADM.value, Role.COMPANY.value]:
         raise HTTPException(status_code=403, detail="Acesso negado")
     from domain.models.ticket import Ticket
     from domain.models.company import Company
@@ -74,7 +75,9 @@ async def get_reply(
     description: str,
     current_user: User = Depends(get_current_user),
 ):
-    return {"reply": support_service.get_ai_smart_reply(ticket_id, description)}
+    # Sanitização básica contra Prompt Injection
+    clean_description = description[:1000].replace("ignore previous instructions", "").replace("system prompt", "")
+    return {"reply": support_service.get_ai_smart_reply(ticket_id, clean_description)}
 
 
 @router.get("/system-status")
