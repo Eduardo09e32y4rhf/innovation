@@ -8,7 +8,8 @@ from pydantic import BaseModel
 from typing import Optional, List
 
 from infrastructure.database.sql.dependencies import get_db
-from core.dependencies import get_current_user
+from core.dependencies import get_current_user, require_active_company, require_role
+from core.roles import Role
 from domain.models.user import User
 from domain.models.killer_question import KillerQuestion
 
