@@ -185,7 +185,7 @@ export default function ChatIAPage() {
 
         } catch (error: any) {
             if (error.name === 'AbortError') {
-                setMessages(prev => prev.map(m => m.id === aiMsgId ? { ...m, text: fullText + '... [Interrompido]', isThinking: false } : m));
+                setMessages(prev => prev.map(m => m.id === aiMsgId ? { ...m, text: m.text + '... [Interrompido]', isThinking: false } : m));
             } else {
                 const errMsg = error.message || 'Erro de conexão.';
                 setMessages(prev => prev.map(m => m.id === aiMsgId ? { ...m, text: `❌ **Erro:** ${errMsg}`, isThinking: false } : m));
