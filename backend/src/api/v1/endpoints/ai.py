@@ -34,6 +34,9 @@ class ChatRequest(BaseModel):
     model: Optional[str] = "gemini-flash"  # "gemini-flash" | "gemini-pro" | "claude"
     history: Optional[List[ChatMessage]] = []
 
+class LandingPlanRequest(BaseModel):
+    business_type: str
+
 
 # ─── System Prompts ────────────────────────────────────────────────────────────
 
@@ -284,20 +287,21 @@ async def list_models(current_user: User = Depends(get_current_user)):
     }
 
 @router.post("/landing-plan")
-async def landing_plan(request: Request, data: dict):
+async def landing_plan(data: LandingPlanRequest):
     """
     Endpoint público para a landing page (Simulador de ROI).
     Usa rotação de chaves.
     """
-    business_type = data.get("business_type", "Usuário")
+    business_type = data.business_type or "Usuário"
     
-    user_query = f"Simule planos para: {business_type}. " + \
-                 "Cite 3 benefícios REAIS, PRÁTICOS e HUMANOS de pagar R$ 9,99/mês. " + \
-                 "Inicie cada benefício com um hífen (-)."
+    user_query = f"Simule planos para uma pessoa do cargo: {business_type}. " + \
+                 "Cite 3 benefícios REAIS, PRÁTICOS e HUMANOS de usar a Innovation IA pagando R$ 9,99/mês. " + \
+                 "Inicie cada benefício com um hífen (-) e seja curto."
     
     try:
         # Reutiliza o helper _ask_gemini que já tem a rotação
         answer = await _ask_gemini(user_query, [], "gemini-1.5-flash")
         return {"answer": answer}
     except Exception as e:
-        raise HTTPException(500, f"Erro no simulador: {str(e)}")
+        print(f"❌ Erro no simulador: {e}")
+        raise HTTPException(500, detail=str(e))

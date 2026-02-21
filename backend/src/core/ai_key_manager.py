@@ -14,7 +14,13 @@ class AIKeyManager:
         self._load_status()
 
     def _load_keys(self):
+        # Tenta carregar a nova variável (múltiplas chaves)
         keys_str = settings.GEMINI_API_KEYS or ""
+        
+        # Fallback para a variável antiga (chave única) caso a nova esteja vazia
+        if not keys_str:
+            keys_str = os.getenv("GEMINI_API_KEY", "")
+            
         self._keys = [k.strip() for k in keys_str.split(",") if k.strip()]
 
     def _load_status(self):
