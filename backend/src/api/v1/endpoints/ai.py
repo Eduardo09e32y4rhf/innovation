@@ -23,6 +23,11 @@ import asyncio
 from core.ai_key_manager import ai_key_manager
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 
+try:
+    from google import genai
+except ImportError:
+    genai = None
+
 # ─── Models ────────────────────────────────────────────────────────────────────
 
 
@@ -72,7 +77,8 @@ Responda SEMPRE em português brasileiro com qualidade executiva."""
 async def _ask_gemini(
     question: str, history: List[ChatMessage], model_name: str
 ) -> str:
-    import google.genai as genai
+    if not genai:
+        return "❌ SDK Google GenAI não instalado."
 
     # Tenta usar as chaves disponíveis em rotação
     active_keys = ai_key_manager.get_all_active_keys()
@@ -138,7 +144,9 @@ async def _ask_gemini(
 async def _ask_gemini_stream(
     question: str, history: List[ChatMessage], model_name: str
 ):
-    import google.genai as genai
+    if not genai:
+        yield "data: [ERROR] SDK Google GenAI não instalado.\n\n"
+        return
     
     active_keys = ai_key_manager.get_all_active_keys()
     if not active_keys:
@@ -147,8 +155,8 @@ async def _ask_gemini_stream(
 
     for api_key in active_keys:
         try:
-            # Uso do AsyncClient para não bloquear o servidor
-            client = genai.Client(api_key=api_key, http_options={'api_version': 'v1alpha'}) # ou apenas omitir se não precisar
+            # Uso do Client simplificado
+            client = genai.Client(api_key=api_key)
             # Na verdade, o Client novo simplifica muita coisa, mas vamos garantir o loop.
             
             chat_history = []

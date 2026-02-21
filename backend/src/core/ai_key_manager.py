@@ -24,10 +24,18 @@ class AIKeyManager:
         self._keys = [k.strip() for k in keys_str.split(",") if k.strip()]
 
     def _load_status(self):
-        if self.status_file.exists():
-            with open(self.status_file, "r") as f:
-                self.exhausted_keys = set(json.load(f))
-        else:
+        try:
+            if self.status_file.exists():
+                with open(self.status_file, "r") as f:
+                    content = f.read().strip()
+                    if content:
+                        self.exhausted_keys = set(json.loads(content))
+                    else:
+                        self.exhausted_keys = set()
+            else:
+                self.exhausted_keys = set()
+        except Exception as e:
+            print(f"⚠️ Erro ao carregar status das chaves: {e}")
             self.exhausted_keys = set()
 
     def _save_status(self):
