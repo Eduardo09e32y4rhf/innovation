@@ -33,6 +33,10 @@ interface ProfitMetric extends MetricData {
 interface CostsMetric extends MetricData {
     breakdown?: {
         infrastructure?: number;
+        salaries?: number;
+        marketing?: number;
+        others?: number;
+        [key: string]: number | undefined;
     };
 }
 
