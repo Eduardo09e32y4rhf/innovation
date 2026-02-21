@@ -36,7 +36,7 @@ def get_my_company(
 def create_company(
     payload: dict,
     db: Session = Depends(get_db),
-    current_user=Depends(require_role(Role.COMPANY)),
+    current_user=Depends(get_current_user),
 ):
     required_fields = ["razao_social", "cnpj", "cidade", "uf"]
     missing = [field for field in required_fields if not payload.get(field)]
@@ -62,6 +62,11 @@ def create_company(
         status=payload.get("status", "active"),
     )
     db.add(company)
+
+    # Auto-promote user to company role
+    current_user.role = Role.COMPANY
+    db.add(current_user)
+
     db.commit()
     db.refresh(company)
     return {

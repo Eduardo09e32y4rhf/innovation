@@ -17,6 +17,7 @@ from api.v1.endpoints import (
     support,
     payments,
     enterprise,
+    companies,
 )
 from api.v1.endpoints import (
     rh_advanced,
@@ -77,6 +78,7 @@ app.include_router(projects.router)
 app.include_router(rh.router)
 app.include_router(finance.router)
 app.include_router(support.router)
+app.include_router(companies.router)
 # ── Advanced Modules (MASTERPLAN completion) ──
 app.include_router(rh_advanced.router)
 app.include_router(csc_advanced.router)

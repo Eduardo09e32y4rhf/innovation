@@ -28,7 +28,7 @@ export default function FinancePage() {
     const [anomalies, setAnomalies] = useState<{ description: string; impact: string }[]>([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
-    const [form, setForm] = useState({ description: '', amount: '', type: 'income', due_date: '' });
+    const [form, setForm] = useState({ description: '', amount: '', type: 'income', due_date: '', category: 'other', tax_type: '' });
 
     useEffect(() => { loadData(); }, []);
 
@@ -51,10 +51,12 @@ export default function FinancePage() {
                 amount: parseFloat(form.amount),
                 type: form.type,
                 due_date: form.due_date,
+                category: form.category,
+                tax_type: form.tax_type || undefined,
             });
             setTransactions(prev => [tx, ...prev]);
             setShowModal(false);
-            setForm({ description: '', amount: '', type: 'income', due_date: '' });
+            setForm({ description: '', amount: '', type: 'income', due_date: '', category: 'other', tax_type: '' });
             loadData();
         } catch (e) { console.error(e); }
     };
@@ -163,6 +165,25 @@ export default function FinancePage() {
                                     <option value="income">Receita</option>
                                     <option value="expense">Despesa</option>
                                 </select>
+
+                                <select className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm" value={form.category} onChange={e => setForm({ ...form, category: e.target.value })}>
+                                    <option value="other">Outros</option>
+                                    <option value="salary">Salário / Folha</option>
+                                    <option value="infrastructure">Infraestrutura</option>
+                                    <option value="marketing">Marketing</option>
+                                    <option value="services">Serviços</option>
+                                </select>
+
+                                {form.type === 'expense' && (
+                                    <select className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm" value={form.tax_type} onChange={e => setForm({ ...form, tax_type: e.target.value })}>
+                                        <option value="">Sem Imposto Específico</option>
+                                        <option value="DAS">DAS (Simples Nacional)</option>
+                                        <option value="INSS">INSS</option>
+                                        <option value="FGTS">FGTS</option>
+                                        <option value="ISS">ISS</option>
+                                    </select>
+                                )}
+
                                 <input className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm" type="date" value={form.due_date} onChange={e => setForm({ ...form, due_date: e.target.value })} />
                                 <button onClick={handleCreate} className="w-full py-2 bg-green-600 hover:bg-green-500 rounded-lg text-sm font-medium transition">
                                     Registrar Transação

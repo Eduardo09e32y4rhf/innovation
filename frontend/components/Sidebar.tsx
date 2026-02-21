@@ -106,6 +106,14 @@ export function Sidebar() {
             </nav>
 
             <div className="p-4 border-t border-purple-500/10">
+                <div className="mb-4 px-2">
+                    <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-semibold">Sede</p>
+                    <div className="flex items-center gap-2 mt-1 text-zinc-400">
+                        <RadioTower className="w-3 h-3" />
+                        <span className="text-xs">Osasco (Virtual)</span>
+                    </div>
+                </div>
+
                 <button
                     onClick={handleLogout}
                     className="w-full py-2 bg-red-500/10 text-red-400 rounded-lg hover:bg-red-500/20 transition text-sm font-medium flex items-center justify-center gap-2"

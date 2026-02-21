@@ -46,6 +46,26 @@ export const AuthService = {
         const res = await api.post('/auth/forgot-password', { email });
         return res.data;
     },
+    getGoogleLoginUrl: async () => {
+        const res = await api.get('/auth/google-login');
+        return res.data;
+    },
+    googleCallback: async (code: string) => {
+        const res = await api.post(`/auth/google-callback?code=${code}`);
+        return res.data;
+    },
+};
+
+// ── COMPANY ─────────────────────────────────────────────────────────────
+export const CompanyService = {
+    create: async (data: any) => {
+        const res = await api.post('/companies', data);
+        return res.data;
+    },
+    getMe: async () => {
+        const res = await api.get('/companies/me');
+        return res.data;
+    },
 };
 
 // ── DASHBOARD ────────────────────────────────────────────────────────────
@@ -117,7 +137,7 @@ export const FinanceService = {
         const res = await api.get('/finance/anomalies');
         return res.data;
     },
-    createTransaction: async (data: { description: string; amount: number; type: string; due_date: string }) => {
+    createTransaction: async (data: { description: string; amount: number; type: string; due_date: string; category?: string; tax_type?: string }) => {
         const res = await api.post('/finance/transactions', data);
         return res.data;
     },

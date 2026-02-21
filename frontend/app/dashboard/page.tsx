@@ -86,9 +86,9 @@ export default function DashboardPage() {
             icon: Target, color: "text-pink-500",
         },
         {
-            title: "Infraestrutura",
-            value: `R$ ${metrics.costs?.breakdown?.infrastructure?.toLocaleString('pt-BR') ?? '---'}`,
-            change: "Custo de servidores",
+            title: "Folha de Pagamento",
+            value: `R$ ${metrics.costs?.breakdown?.salaries?.toLocaleString('pt-BR') ?? '---'}`,
+            change: "Total de Salários",
             icon: Users, color: "text-purple-500",
         },
     ] : [

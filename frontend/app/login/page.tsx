@@ -35,6 +35,15 @@ export default function LoginPage() {
         }
     }
 
+    const handleGoogleLogin = async () => {
+        try {
+            const data = await AuthService.getGoogleLoginUrl()
+            if (data.url) window.location.href = data.url
+        } catch (err) {
+            console.error("Google Login error:", err)
+        }
+    }
+
     return (
         <div className="flex min-h-screen items-center justify-center bg-black p-4 relative overflow-hidden">
             {/* Background Elements */}
@@ -99,6 +108,19 @@ export default function LoginPage() {
                             </div>
                             <Button className="w-full" disabled={loading}>
                                 {loading ? "Autenticando..." : "Entrar na Plataforma"}
+                            </Button>
+
+                            <div className="relative">
+                                <div className="absolute inset-0 flex items-center">
+                                    <span className="w-full border-t border-zinc-800" />
+                                </div>
+                                <div className="relative flex justify-center text-xs uppercase">
+                                    <span className="bg-zinc-900 px-2 text-zinc-500">Ou continue com</span>
+                                </div>
+                            </div>
+
+                            <Button variant="outline" type="button" className="w-full border-zinc-700 hover:bg-zinc-800 text-zinc-300" onClick={handleGoogleLogin}>
+                                <Mail className="mr-2 h-4 w-4" /> Entrar com Google
                             </Button>
                         </form>
                     </CardContent>
