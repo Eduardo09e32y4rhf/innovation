@@ -5,14 +5,15 @@ BASE_DIR = Path(__file__).resolve().parents[3]
 
 
 class Settings(BaseSettings):
-    DATABASE_URL: str
-    SECRET_KEY: str
+    DATABASE_URL: str = "sqlite:///./innovation_rh.db"
+    SECRET_KEY: str = "innovation_v2_premium_dark"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30  # 30 minutos para segurança
     REFRESH_TOKEN_EXPIRE_DAYS: int = 30  # 30 dias para manter usuário logado
     TERMS_VERSION: str = "v1"
 
     # External Services
+    REDIS_URL: str = "redis://localhost:6379/0"
     GEMINI_API_KEY: str | None = None
     ALLOWED_ORIGINS: str = "*"
 
