@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
-from .models import User, RefreshToken
-from .security import get_password_hash, verify_password, create_access_token, create_refresh_token
+from models import User, RefreshToken
+from security import get_password_hash, verify_password, create_access_token, create_refresh_token
 from datetime import datetime, timedelta, timezone
 
 def register_user(db: Session, email: str, password: str, name: str = None, role: str = "candidate", phone: str = None):

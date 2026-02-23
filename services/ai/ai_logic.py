@@ -2,8 +2,8 @@ import os
 import asyncio
 from google import genai
 from anthropic import Anthropic
-from .key_manager import ai_key_manager
-from .schemas import ChatMessage
+from key_manager import ai_key_manager
+from schemas import ChatMessage
 
 SYSTEM_PROMPT = """Você é o assistente inteligente da Innovation.ia...""" # Abrevied for now
 

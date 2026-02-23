@@ -4,8 +4,8 @@ from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 import os
 
-from .schemas import ChatRequest, ChatResponse, LandingPlanRequest
-from .ai_logic import ask_gemini, ask_gemini_stream
+from schemas import ChatRequest, ChatResponse, LandingPlanRequest
+from ai_logic import ask_gemini, ask_gemini_stream
 
 app = FastAPI(title="Innovation IA - AI Service")
 

@@ -4,9 +4,9 @@ from sqlalchemy.orm import Session
 from typing import List
 import os
 
-from .database import get_db, Base, engine
-from .models import Job, Transaction, Ticket
-from .schemas import JobCreate, JobOut, TransactionOut, TicketOut
+from database import get_db, Base, engine
+from models import Job, Transaction, Ticket
+from schemas import JobCreate, JobOut, TransactionOut, TicketOut
 
 # Criar tabelas se não existirem (apenas para teste rápido, o ideal é Alembic)
 Base.metadata.create_all(bind=engine)

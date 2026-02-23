@@ -4,12 +4,12 @@ from sqlalchemy.orm import Session
 import uvicorn
 import os
 
-from .database import get_db
-from .schemas import LoginRequest, RegisterRequest, Token, UserOut
-from .auth_logic import authenticate_user, register_user
-from .two_factor import request_code, verify_code
-from .security import create_temporary_token, verify_temporary_token, SECRET_KEY, ALGORITHM
-from .models import User
+from database import get_db
+from schemas import LoginRequest, RegisterRequest, Token, UserOut
+from auth_logic import authenticate_user, register_user
+from two_factor import request_code, verify_code
+from security import create_temporary_token, verify_temporary_token, SECRET_KEY, ALGORITHM
+from models import User
 from jose import jwt
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
@@ -102,7 +102,7 @@ async def verify_2fa(temporary_token: str, code: str, db: Session = Depends(get_
 
 @app.post("/api/auth/refresh")
 async def refresh(refresh_token: str, db: Session = Depends(get_db)):
-    from .auth_logic import refresh_access_token
+    from auth_logic import refresh_access_token
     new_token = refresh_access_token(db, refresh_token)
     if not new_token:
         raise HTTPException(status_code=401, detail="Refresh token inválido ou expirado")
@@ -110,7 +110,7 @@ async def refresh(refresh_token: str, db: Session = Depends(get_db)):
 
 @app.post("/api/auth/logout")
 async def logout(refresh_token: str, db: Session = Depends(get_db)):
-    from .auth_logic import revoke_refresh_token
+    from auth_logic import revoke_refresh_token
     revoke_refresh_token(db, refresh_token)
     return {"message": "Logout realizado com sucesso"}
 

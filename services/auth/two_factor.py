@@ -2,7 +2,7 @@ import secrets
 import logging
 from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session
-from .models import TwoFactorCode
+from models import TwoFactorCode
 
 logger = logging.getLogger(__name__)
 
