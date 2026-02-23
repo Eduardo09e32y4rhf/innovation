@@ -46,6 +46,11 @@ Como rodar local (resumo para validação técnica)
 - Deploy simplificado (servidor):
   - docker-compose -f docker-compose.prod.yml up -d --build
 
+- Deploy Microserviços (Beta):
+  - Copie `.env.microservices.example` para `.env`
+  - docker-compose -f docker-compose.microservices.yml up -d --build
+  - Acesse via Gateway na porta 8000
+
 Observações para recrutador
 - Projeto pronto para demonstração, com foco em automação do processo de recrutamento.
 - Arquitetura e código estruturados para escalar e integrar com provedores de IA e ERPs.

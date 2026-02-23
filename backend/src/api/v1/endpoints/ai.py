@@ -14,6 +14,9 @@ from typing import Optional, List
 
 from core.dependencies import get_current_user
 from domain.models.user import User
+from infrastructure.database.sql.dependencies import get_db
+from sqlalchemy.orm import Session
+from services import audit_service
 
 router = APIRouter(prefix="/api/ai", tags=["ai-chat"])
 
@@ -293,16 +296,20 @@ async def ask_ai(
         if model_choice == "claude":
             answer = await _ask_claude(data.question, data.history or [])
             model_used = "Claude 3.5 Sonnet"
-        elif model_choice == "gemini-pro":
-            answer = await _ask_gemini(
-                data.question, data.history or [], "gemini-1.5-pro"
-            )
-            model_used = "Gemini 1.5 Pro"
         else:
             answer = await _ask_gemini(
                 data.question, data.history or [], "gemini-1.5-flash"
             )
             model_used = "Gemini 1.5 Flash"
+
+        # Log usage and award XP
+        db = next(get_db())
+        audit_service.log_event(
+            db,
+            "CHAT_MESSAGE",
+            user_id=current_user.id,
+            details=f"Model: {model_used}"
+        )
 
         return {
             "answer": answer,
@@ -331,6 +338,15 @@ async def ask_ai_stream(
     """
     model_choice = (data.model or "gemini-flash").lower()
     
+    # Log usage and award XP
+    db = next(get_db())
+    audit_service.log_event(
+        db,
+        "CHAT_MESSAGE",
+        user_id=current_user.id,
+        details=f"Model: {model_choice} (Streaming)"
+    )
+
     # Por enquanto apenas Gemini suporta streaming nativo nesta implementação
     if "claude" in model_choice:
         # Fallback para não-streaming se tentar claude no stream (ou implementar claude stream depois)

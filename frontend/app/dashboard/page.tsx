@@ -201,64 +201,62 @@ export default function DashboardPage() {
 
     const stats = [
         {
-            title: 'Receita Mensal', prefix: 'R$ ', suffix: '', raw: metrics?.revenue?.current ?? 48320,
-            change: `+${metrics?.revenue?.change_percent ?? 12}%`,
+            title: 'Receita Mensal', prefix: 'R$ ', suffix: '', raw: metrics?.revenue?.current ?? 0,
+            change: `+${metrics?.revenue?.change_percent ?? 0}%`,
             icon: DollarSign, color: 'text-green-400', bg: 'bg-green-500/10', barColor: 'bg-green-500',
-            sparkColor: '#22c55e', sparkline: [30, 45, 38, 60, 55, 72, 80, 68, 90, 85],
-            progress: 72,
+            sparkColor: '#22c55e', sparkline: metrics?.revenue?.chart_data?.map((d: any) => d.value) ?? [0, 0, 0, 0, 0],
+            progress: 0,
         },
         {
-            title: 'Lucro Líquido', prefix: 'R$ ', suffix: '', raw: metrics?.profit?.current ?? 18900,
-            change: `+${metrics?.profit?.change_percent ?? 8}%`,
+            title: 'Lucro Líquido', prefix: 'R$ ', suffix: '', raw: metrics?.profit?.current ?? 0,
+            change: `+${metrics?.profit?.change_percent ?? 0}%`,
             icon: TrendingUp, color: 'text-blue-400', bg: 'bg-blue-500/10', barColor: 'bg-blue-500',
-            sparkColor: '#3b82f6', sparkline: [20, 28, 35, 30, 42, 38, 50, 45, 60, 58],
-            progress: 58,
+            sparkColor: '#3b82f6', sparkline: metrics?.profit?.chart_data?.map((d: any) => d.value) ?? [0, 0, 0, 0, 0],
+            progress: 0,
         },
         {
-            title: 'Projetos Ativos', prefix: '', suffix: '', raw: metrics?.projects ?? 14,
-            change: '+3 esse mês',
+            title: 'Projetos Ativos', prefix: '', suffix: '', raw: metrics?.projects ?? 0,
+            change: 'Total de projetos',
             icon: FileText, color: 'text-orange-400', bg: 'bg-orange-500/10', barColor: 'bg-orange-500',
-            sparkColor: '#f97316', sparkline: [5, 7, 8, 10, 11, 10, 12, 11, 13, 14],
-            progress: 45,
+            sparkColor: '#f97316', sparkline: [0, 0, 0, 0, metrics?.projects ?? 0],
+            progress: metrics?.projects ? 100 : 0,
         },
         {
-            title: 'Candidatos IA', prefix: '', suffix: '', raw: metrics?.candidates ?? 237,
-            change: '+41 essa semana',
+            title: 'Candidatos IA', prefix: '', suffix: '', raw: metrics?.candidates ?? 0,
+            change: 'Total de aplicações',
             icon: Users, color: 'text-pink-400', bg: 'bg-pink-500/10', barColor: 'bg-pink-500',
-            sparkColor: '#ec4899', sparkline: [80, 100, 130, 150, 170, 190, 200, 215, 225, 237],
-            progress: 85,
+            sparkColor: '#ec4899', sparkline: [0, 0, 0, 0, metrics?.candidates ?? 0],
+            progress: metrics?.candidates ? 100 : 0,
         },
         {
-            title: 'Tickets Resolvidos', prefix: '', suffix: '%', raw: metrics?.support_rate ?? 94,
-            change: 'SLA excelente',
-            icon: LifeBuoy, color: 'text-teal-400', bg: 'bg-teal-500/10', barColor: 'bg-teal-500',
-            sparkColor: '#14b8a6', sparkline: [70, 75, 72, 80, 85, 82, 88, 90, 92, 94],
-            progress: 94,
+            title: 'Vagas Ativas', prefix: '', suffix: '', raw: metrics?.active_jobs ?? 0,
+            change: 'Vagas publicadas',
+            icon: Briefcase, color: 'text-teal-400', bg: 'bg-teal-500/10', barColor: 'bg-teal-500',
+            sparkColor: '#14b8a6', sparkline: [0, 0, 0, 0, metrics?.active_jobs ?? 0],
+            progress: metrics?.active_jobs ? 100 : 0,
         },
         {
-            title: 'Score IA', prefix: '', suffix: '/100', raw: metrics?.ai_score ?? 91,
-            change: 'Eficiência alta',
+            title: 'Score IA', prefix: '', suffix: '/100', raw: metrics?.ai_score ?? 0,
+            change: 'Eficiência média',
             icon: Brain, color: 'text-[#a78bfa]', bg: 'bg-[#8b5cf6]/10', barColor: 'bg-[#8b5cf6]',
-            sparkColor: '#a78bfa', sparkline: [60, 65, 70, 75, 80, 78, 82, 86, 89, 91],
-            progress: 91,
+            sparkColor: '#a78bfa', sparkline: [0, 0, 0, 0, metrics?.ai_score ?? 0],
+            progress: metrics?.ai_score ?? 0,
         },
     ];
 
     const moduleRanking = [
-        { name: 'Chat IA', icon: MessageSquare, uses: 1842, color: 'text-[#8b5cf6]', bar: 92 },
-        { name: 'ATS / Vagas', icon: Briefcase, uses: 731, color: 'text-pink-400', bar: 37 },
-        { name: 'Financeiro', icon: DollarSign, uses: 512, color: 'text-green-400', bar: 26 },
-        { name: 'Projetos', icon: FileText, uses: 388, color: 'text-orange-400', bar: 19 },
-        { name: 'Suporte', icon: LifeBuoy, uses: 204, color: 'text-blue-400', bar: 10 },
+        { name: 'Chat IA', icon: MessageSquare, uses: activities.filter(a => a.message.includes("CHAT_MESSAGE")).length, color: 'text-[#8b5cf6]', bar: 100 },
+        { name: 'ATS / Vagas', icon: Briefcase, uses: metrics?.active_jobs ?? 0, color: 'text-pink-400', bar: 37 },
+        { name: 'Financeiro', icon: DollarSign, uses: 0, color: 'text-green-400', bar: 10 },
     ];
 
     const achievements = [
-        { label: 'Pioneiro IA', icon: '🚀', earned: true },
-        { label: '10 Chats', icon: '💬', earned: true },
-        { label: 'Analisador', icon: '🧠', earned: true },
-        { label: 'Recrutador', icon: '🎯', earned: false },
-        { label: 'Financista', icon: '💰', earned: false },
-        { label: 'Mestre', icon: '👑', earned: false },
+        { label: 'Pioneiro IA', icon: '🚀', earned: (metrics?.user?.points ?? 0) > 0 },
+        { label: '10 Chats', icon: '💬', earned: activities.filter(a => a.message.includes("CHAT_MESSAGE")).length >= 10 },
+        { label: 'Analisador', icon: '🧠', earned: (metrics?.ai_score ?? 0) > 50 },
+        { label: 'Recrutador', icon: '🎯', earned: (metrics?.active_jobs ?? 0) > 0 },
+        { label: 'Financista', icon: '💰', earned: metrics?.revenue?.current > 0 },
+        { label: 'Mestre', icon: '👑', earned: (metrics?.user?.level ?? 1) >= 10 },
     ];
 
     return (
@@ -278,7 +276,7 @@ export default function DashboardPage() {
                                         {user ? getInitials(user.name) : '?'}
                                     </div>
                                     <div className="absolute -bottom-1 -right-1 bg-yellow-400 rounded-md px-1.5 py-0.5 text-[9px] font-black text-black">
-                                        Nv.7
+                                        Nv.{metrics?.user?.level ?? 1}
                                     </div>
                                 </div>
                                 <div>
@@ -297,10 +295,10 @@ export default function DashboardPage() {
                             <div className="hidden lg:flex flex-col items-end gap-2 shrink-0">
                                 <div className="flex items-center gap-2 text-sm font-medium text-white/60">
                                     <Trophy className="w-4 h-4 text-yellow-400" />
-                                    <span>2.340 XP acumulados</span>
+                                    <span>{metrics?.user?.points?.toLocaleString() ?? 0} XP acumulados</span>
                                 </div>
                                 <div className="w-48">
-                                    <XpBar xp={2340} maxXp={3000} level={7} />
+                                    <XpBar xp={metrics?.user?.xp_in_level ?? 0} maxXp={metrics?.user?.next_level_xp ?? 1000} level={metrics?.user?.level ?? 1} />
                                 </div>
                                 <div className="flex gap-1.5 mt-1">
                                     {achievements.map((a, i) => (

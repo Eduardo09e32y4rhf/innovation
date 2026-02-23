@@ -1,0 +1,37 @@
+_format_version: "3.0"
+
+services:
+  - name: auth-service
+    url: http://auth_service:8001
+    routes:
+      - name: auth-routes
+        paths:
+          - /api/auth
+
+  - name: ai-service
+    url: http://ai_service:8002
+    routes:
+      - name: ai-routes
+        paths:
+          - /api/ai
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: 100
+          hour: 1000
+
+  - name: core-service
+    url: http://core_service:8003
+    routes:
+      - name: core-routes
+        paths:
+          - /api/jobs
+          - /api/applications
+          - /api/finance
+          - /api/tickets
+          - /api/support
+          - /api/dashboard
+          - /api/projects
+          - /api/rh
+          - /api/payments
+          - /api/enterprise

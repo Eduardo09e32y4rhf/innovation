@@ -1,0 +1,87 @@
+version: '3.8'
+
+services:
+  # ============================================
+  # API GATEWAY (Kong)
+  # ============================================
+  kong:
+    image: kong:3.4
+    container_name: innovation_gateway
+    environment:
+      - KONG_DATABASE=off
+      - KONG_DECLARATIVE_CONFIG=/usr/local/kong/declarative/kong.yml
+      - KONG_PROXY_ACCESS_LOG=/dev/stdout
+      - KONG_ADMIN_ACCESS_LOG=/dev/stdout
+      - KONG_PROXY_ERROR_LOG=/dev/stderr
+      - KONG_ADMIN_ERROR_LOG=/dev/stderr
+      - KONG_ADMIN_LISTEN=0.0.0.0:8001, 0.0.0.0:8444 ssl
+    volumes:
+      - ./gateway/kong.yml:/usr/local/kong/declarative/kong.yml
+    ports:
+      - "8000:8000"
+      - "8443:8443"
+      - "8001:8001"
+      - "8444:8444"
+    networks:
+      - innovation_net
+
+  # ============================================
+  # AUTH SERVICE
+  # ============================================
+  auth_service:
+    build: ./services/auth
+    container_name: auth_service
+    environment:
+      - DATABASE_URL=postgresql://user:secure_pass@postgres:5432/innovation
+      - SECRET_KEY=${SECRET_KEY:-innovation_v2_premium_dark}
+    networks:
+      - innovation_net
+    depends_on:
+      - postgres
+
+  # ============================================
+  # AI SERVICE
+  # ============================================
+  ai_service:
+    build: ./services/ai
+    container_name: ai_service
+    environment:
+      - GEMINI_KEYS=${GEMINI_KEYS}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+    networks:
+      - innovation_net
+
+  # ============================================
+  # CORE SERVICE
+  # ============================================
+  core_service:
+    build: ./services/core
+    container_name: core_service
+    environment:
+      - DATABASE_URL=postgresql://user:secure_pass@postgres:5432/innovation
+    networks:
+      - innovation_net
+    depends_on:
+      - postgres
+
+  # ============================================
+  # DATABASES
+  # ============================================
+  postgres:
+    image: postgres:15-alpine
+    container_name: innovation_db_v2
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=secure_pass
+      - POSTGRES_DB=innovation
+    volumes:
+      - postgres_data_v2:/var/lib/postgresql/data
+    networks:
+      - innovation_net
+
+networks:
+  innovation_net:
+    driver: bridge
+
+volumes:
+  postgres_data_v2:

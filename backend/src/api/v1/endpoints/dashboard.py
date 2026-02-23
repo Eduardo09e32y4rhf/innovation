@@ -9,6 +9,8 @@ from domain.models.user import User
 from domain.models.finance import Transaction
 from domain.models.job import Job
 from domain.models.application import Application
+from domain.models.project import Project
+from domain.models.audit_log import AuditLog
 
 router = APIRouter(prefix="/api/dashboard", tags=["Dashboard"])
 
@@ -52,59 +54,47 @@ async def get_dashboard_metrics(
     other_costs = current_costs - (salary_costs + infra_costs + marketing_costs)
 
     # Contagens
-    # active_jobs = db.query(Job).filter(Job.company_id == current_user.id, Job.status == "published").count()
-    # total_applications = db.query(Application).join(Job).filter(Job.company_id == current_user.id).count()
+    # Contagens Reais
+    active_jobs = db.query(Job).filter(Job.company_id == current_user.id, Job.status == "published").count()
+    total_applications = db.query(Application).join(Job).filter(Job.company_id == current_user.id).count()
+    total_projects = db.query(Project).filter(Project.company_id == current_user.id).count()
+    
+    # Gamificação
+    user_points = current_user.points or 0
+    user_level = (user_points // 1000) + 1  # Lógica simples: Cada 1000 XP ganha um nível
+    xp_in_level = user_points % 1000
+    next_level_xp = 1000
 
-    # Manter dados históricos mockados para evitar gráfico quebrado no frontend
+    # Score IA (calculado com base em feedbacks ou matchings concluídos)
+    ai_score = db.query(func.avg(Application.match_score)).join(Job).filter(Job.company_id == current_user.id).scalar()
+    ai_score = round(float(ai_score * 100), 1) if ai_score else 0.0
+
     return {
+        "user": {
+            "points": user_points,
+            "level": user_level,
+            "xp_in_level": xp_in_level,
+            "next_level_xp": next_level_xp
+        },
         "revenue": {
             "current": current_revenue,
-            "previous": 23150.00,  # Mocked
-            "change_percent": 8.9,  # Mocked
-            "chart_data": [
-                {"month": "Jan", "value": 18500},
-                {"month": "Fev", "value": 19200},
-                {"month": "Mar", "value": 21000},
-                {"month": "Abr", "value": 22500},
-                {"month": "Mai", "value": 23150},
-                {"month": "Jun", "value": current_revenue},
-            ],
+            "previous": 0.0,
+            "change_percent": 0.0,
+            "chart_data": [], # Gráficos podem ser populados dinamicamente se houver histórico
         },
-        "costs": {
-            "current": current_costs,
-            "previous": 5890.00,  # Mocked
-            "change_percent": 8.1,  # Mocked
-            "breakdown": {
-                "salaries": salary_costs,
-                "infrastructure": infra_costs,
-                "marketing": marketing_costs,
-                "others": other_costs,
-            },
-            "chart_data": [
-                {"month": "Jan", "value": 5200},
-                {"month": "Fev", "value": 5400},
-                {"month": "Mar", "value": 5600},
-                {"month": "Abr", "value": 5750},
-                {"month": "Mai", "value": 5890},
-                {"month": "Jun", "value": current_costs},
-            ],
-        },
+        "projects": total_projects,
+        "candidates": total_applications,
+        "active_jobs": active_jobs,
+        "support_rate": 0, # Mocked por enquanto até ter tickets reais
+        "ai_score": ai_score,
         "profit": {
             "current": current_profit,
-            "previous": 17260.00,  # Mocked
-            "change_percent": 12.1,  # Mocked
+            "previous": 0.0,
+            "change_percent": 0.0,
             "margin_percent": (
                 (current_profit / current_revenue * 100) if current_revenue > 0 else 0
             ),
-            "chart_data": [
-                {"month": "Jan", "value": 13300},
-                {"month": "Fev", "value": 13800},
-                {"month": "Mar", "value": 15400},
-                {"month": "Abr", "value": 16750},
-                {"month": "Mai", "value": 17260},
-                {"month": "Jun", "value": current_profit},
-            ],
-        },
+        }
     }
 
 
@@ -257,30 +247,18 @@ async def get_recent_activity(
     """
     Retorna atividades recentes do sistema
     """
-    activities = [
-        {
-            "id": 1,
-            "type": "application",
-            "message": "Nova candidatura para Senior Python Developer",
-            "candidate_name": "João Silva",
-            "timestamp": datetime.now() - timedelta(minutes=5),
-            "avatar": "JS",
-        },
-        {
-            "id": 2,
-            "type": "interview",
-            "message": "Entrevista agendada com Maria Santos",
-            "candidate_name": "Maria Santos",
-            "timestamp": datetime.now() - timedelta(hours=2),
-            "avatar": "MS",
-        },
-        {
-            "id": 3,
-            "type": "job",
-            "message": "Nova vaga publicada: UX Designer",
-            "timestamp": datetime.now() - timedelta(hours=5),
-            "avatar": None,
-        },
-    ]
+    db_activities = db.query(AuditLog).filter(
+        AuditLog.user_id == current_user.id
+    ).order_by(AuditLog.created_at.desc()).limit(limit).all()
 
-    return {"activities": activities[:limit]}
+    activities = []
+    for act in db_activities:
+        activities.append({
+            "id": act.id,
+            "type": act.entity_type or "system",
+            "message": f"{act.action}: {act.details or ''}",
+            "timestamp": act.created_at,
+            "avatar": None
+        })
+
+    return {"activities": activities}
