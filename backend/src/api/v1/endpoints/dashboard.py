@@ -37,23 +37,36 @@ async def get_dashboard_metrics(
         result = query.scalar()
         return float(result) if result else 0.0
 
-    current_revenue = get_sum([Transaction.type == "income"])
-    current_costs = get_sum([Transaction.type == "expense"])
+    # Lógica de datas para histórico
+    today = datetime.now()
+    this_month_start = today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    last_month_start = (this_month_start - timedelta(days=1)).replace(day=1)
+    
+    current_revenue = get_sum([Transaction.type == "income", Transaction.created_at >= this_month_start])
+    previous_revenue = get_sum([Transaction.type == "income", Transaction.created_at >= last_month_start, Transaction.created_at < this_month_start])
+    
+    current_costs = get_sum([Transaction.type == "expense", Transaction.created_at >= this_month_start])
+    previous_costs = get_sum([Transaction.type == "expense", Transaction.created_at >= last_month_start, Transaction.created_at < this_month_start])
+    
     current_profit = current_revenue - current_costs
+    previous_profit = previous_revenue - previous_costs
 
-    # Breakdown de custos
-    salary_costs = get_sum(
-        [Transaction.type == "expense", Transaction.category == "salary"]
-    )
-    infra_costs = get_sum(
-        [Transaction.type == "expense", Transaction.category == "infrastructure"]
-    )
-    marketing_costs = get_sum(
-        [Transaction.type == "expense", Transaction.category == "marketing"]
-    )
-    other_costs = current_costs - (salary_costs + infra_costs + marketing_costs)
+    # Dados para o gráfico de evolução (últimos 6 meses)
+    chart_data = []
+    for i in range(5, -1, -1):
+        month_date = (this_month_start - timedelta(days=i*30)).replace(day=1)
+        next_month_date = (month_date + timedelta(days=32)).replace(day=1)
+        
+        m_income = get_sum([Transaction.type == "income", Transaction.created_at >= month_date, Transaction.created_at < next_month_date])
+        m_expense = get_sum([Transaction.type == "expense", Transaction.created_at >= month_date, Transaction.created_at < next_month_date])
+        
+        chart_data.append({
+            "month": month_date.strftime("%b"),
+            "revenue": m_income,
+            "profit": m_income - m_expense,
+            "value": m_income # Usado pelo frontend simples
+        })
 
-    # Contagens
     # Contagens Reais
     active_jobs = db.query(Job).filter(Job.company_id == current_user.id, Job.status == "published").count()
     total_applications = db.query(Application).join(Job).filter(Job.company_id == current_user.id).count()
@@ -61,13 +74,18 @@ async def get_dashboard_metrics(
     
     # Gamificação
     user_points = current_user.points or 0
-    user_level = (user_points // 1000) + 1  # Lógica simples: Cada 1000 XP ganha um nível
+    user_level = (user_points // 1000) + 1
     xp_in_level = user_points % 1000
     next_level_xp = 1000
 
-    # Score IA (calculado com base em feedbacks ou matchings concluídos)
-    ai_score = db.query(func.avg(Application.match_score)).join(Job).filter(Job.company_id == current_user.id).scalar()
-    ai_score = round(float(ai_score * 100), 1) if ai_score else 0.0
+    # Score IA
+    ai_score_val = db.query(func.avg(Application.match_score)).join(Job).filter(Job.company_id == current_user.id).scalar()
+    ai_score = round(float(ai_score_val * 100), 1) if ai_score_val else 0.0
+
+    # Cálculo de porcentagem de mudança
+    def calc_change(curr, prev):
+        if prev == 0: return 100 if curr > 0 else 0
+        return round(((curr - prev) / prev) * 100, 1)
 
     return {
         "user": {
@@ -78,22 +96,23 @@ async def get_dashboard_metrics(
         },
         "revenue": {
             "current": current_revenue,
-            "previous": 0.0,
-            "change_percent": 0.0,
-            "chart_data": [], # Gráficos podem ser populados dinamicamente se houver histórico
+            "previous": previous_revenue,
+            "change_percent": calc_change(current_revenue, previous_revenue),
+            "chart_data": chart_data,
         },
         "projects": total_projects,
         "candidates": total_applications,
         "active_jobs": active_jobs,
-        "support_rate": 0, # Mocked por enquanto até ter tickets reais
+        "support_rate": 0,
         "ai_score": ai_score,
         "profit": {
             "current": current_profit,
-            "previous": 0.0,
-            "change_percent": 0.0,
+            "previous": previous_profit,
+            "change_percent": calc_change(current_profit, previous_profit),
             "margin_percent": (
                 (current_profit / current_revenue * 100) if current_revenue > 0 else 0
             ),
+            "chart_data": [{"month": d["month"], "value": d["profit"]} for d in chart_data]
         }
     }
 
@@ -262,3 +281,27 @@ async def get_recent_activity(
         })
 
     return {"activities": activities}
+
+
+@router.get("/heatmap")
+async def get_activity_heatmap(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Retorna contagem de ações por dia nas últimas 12 semanas para o heatmap.
+    """
+    twelve_weeks_ago = datetime.now() - timedelta(weeks=12)
+    
+    # Agrupa logs por data
+    activity_counts = db.query(
+        func.date(AuditLog.created_at).label('date'),
+        func.count(AuditLog.id).label('count')
+    ).filter(
+        AuditLog.user_id == current_user.id,
+        AuditLog.created_at >= twelve_weeks_ago
+    ).group_by(func.date(AuditLog.created_at)).all()
+    
+    heatmap_data = {str(row.date): row.count for row in activity_counts}
+    
+    return heatmap_data

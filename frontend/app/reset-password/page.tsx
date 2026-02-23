@@ -6,10 +6,10 @@ import { motion, AnimatePresence } from "framer-motion"
 import { Lock, ChevronRight, ArrowLeft, ShieldCheck, Eye, EyeOff } from "lucide-react"
 import Link from "next/link"
 import { AuthService } from "../../services/api"
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 
-export default function ResetPasswordPage() {
+function ResetPasswordForm() {
     const searchParams = useSearchParams()
     const router = useRouter()
     const token = searchParams.get("token")
@@ -188,5 +188,13 @@ export default function ResetPasswordPage() {
                 </div>
             </motion.div>
         </div>
+    )
+}
+
+export default function ResetPasswordPage() {
+    return (
+        <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-[#050508] text-white/50 text-xs uppercase tracking-[0.2em]">Iniciando protocolo de segurança...</div>}>
+            <ResetPasswordForm />
+        </Suspense>
     )
 }

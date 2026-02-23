@@ -98,19 +98,21 @@ function StatCard({ stat, index }: { stat: any; index: number }) {
 }
 
 // ─── HEAT MAP ──────────────────────────────────────────────────────────────
-function ActivityHeatmap() {
+function ActivityHeatmap({ data }: { data: Record<string, number> }) {
     const weeks = 12;
     const days = 7;
+
+    // Constrói a grade retroativamente a partir de hoje
+    const today = new Date();
     const grid = Array.from({ length: weeks }, (_, w) =>
         Array.from({ length: days }, (_, d) => {
-            const r = Math.random();
-            if (r < 0.25) return 0;
-            if (r < 0.5) return 1;
-            if (r < 0.75) return 2;
-            if (r < 0.9) return 3;
-            return 4;
+            const date = new Date(today);
+            date.setDate(today.getDate() - ((weeks - 1 - w) * 7 + (days - 1 - d)));
+            const dateStr = date.toISOString().split('T')[0];
+            return data[dateStr] || 0;
         })
     );
+
     const levels = [
         'bg-white/5',
         'bg-[#8b5cf6]/20',
@@ -120,21 +122,24 @@ function ActivityHeatmap() {
     ];
     const dayLabels = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
     return (
-        <div className="flex gap-1 items-end">
-            <div className="flex flex-col gap-1 mr-1">
+        <div className="flex gap-1 items-end overflow-x-auto pb-2">
+            <div className="flex flex-col gap-1 mr-1 shrink-0">
                 {dayLabels.map((d, i) => (
                     <span key={i} className="text-[9px] text-white/20 leading-none" style={{ height: '10px', lineHeight: '10px' }}>{d}</span>
                 ))}
             </div>
             {grid.map((week, w) => (
-                <div key={w} className="flex flex-col gap-1">
-                    {week.map((day, d) => (
-                        <div
-                            key={d}
-                            className={`w-2.5 h-2.5 rounded-sm ${levels[day]} transition-transform hover:scale-125 cursor-default`}
-                            title={`${day} atividades`}
-                        />
-                    ))}
+                <div key={w} className="flex flex-col gap-1 shrink-0">
+                    {week.map((count, d) => {
+                        const level = Math.min(count, 4);
+                        return (
+                            <div
+                                key={d}
+                                className={`w-2.5 h-2.5 rounded-sm ${levels[level]} transition-transform hover:scale-125 cursor-default`}
+                                title={`${count} atividades`}
+                            />
+                        );
+                    })}
                 </div>
             ))}
         </div>
@@ -166,6 +171,7 @@ export default function DashboardPage() {
     const [user, setUser] = useState<UserProfile | null>(null);
     const [metrics, setMetrics] = useState<any>(null);
     const [activities, setActivities] = useState<any[]>([]);
+    const [heatmap, setHeatmap] = useState<Record<string, number>>({});
     const [loading, setLoading] = useState(true);
     const [missions, setMissions] = useState([
         { id: 1, label: 'Enviar 1ª mensagem ao Chat IA', xp: 50, done: true },
@@ -178,14 +184,16 @@ export default function DashboardPage() {
     useEffect(() => {
         const load = async () => {
             try {
-                const [u, m, a] = await Promise.all([
+                const [u, m, a, h] = await Promise.all([
                     AuthService.me().catch(() => null),
                     DashboardService.getMetrics().catch(() => null),
                     DashboardService.getRecentActivity().catch(() => null),
+                    DashboardService.getHeatmap().catch(() => ({})),
                 ]);
                 if (u) setUser(u);
                 if (m) setMetrics(m);
                 if (a) setActivities(a.activities || []);
+                if (h) setHeatmap(h);
             } catch (e) {
                 console.error(e);
             } finally {
@@ -434,7 +442,7 @@ export default function DashboardPage() {
                             {/* Heatmap */}
                             <div className="mb-5 p-3 bg-white/[0.02] rounded-xl border border-white/5">
                                 <p className="text-[9px] text-white/20 uppercase tracking-widest mb-2">Mapa de Atividade — últimas 12 semanas</p>
-                                <ActivityHeatmap />
+                                <ActivityHeatmap data={heatmap} />
                             </div>
 
                             {/* Feed */}

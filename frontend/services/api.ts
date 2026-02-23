@@ -64,6 +64,10 @@ export const DashboardService = {
         const res = await api.get('/dashboard/kanban');
         return res.data;
     },
+    getHeatmap: async () => {
+        const res = await api.get('/dashboard/heatmap');
+        return res.data;
+    },
 };
 
 // ── JOBS / ATS ────────────────────────────────────────────────────────────
