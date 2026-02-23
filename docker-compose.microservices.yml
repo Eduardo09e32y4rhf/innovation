@@ -65,6 +65,24 @@ services:
       - postgres
 
   # ============================================
+  # FRONTEND
+  # ============================================
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: innovation_frontend
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+    depends_on:
+      - kong
+    networks:
+      - innovation_net
+
+  # ============================================
   # DATABASES
   # ============================================
   postgres:
