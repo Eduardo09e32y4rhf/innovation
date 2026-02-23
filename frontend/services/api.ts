@@ -127,6 +127,10 @@ export const FinanceService = {
         const res = await api.post('/finance/transactions', data);
         return res.data;
     },
+    getTransactions: async () => {
+        const res = await api.get('/finance/transactions');
+        return res.data;
+    },
     getLogs: async () => {
         const res = await api.get('/finance/logs');
         return res.data;

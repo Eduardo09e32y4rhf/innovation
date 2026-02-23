@@ -19,6 +19,7 @@ from domain.models.user import User
 from domain.schemas.auth import LoginRequest, RegisterRequest, Token, UserOut
 from services.auth_service import authenticate_user, register_user
 from services.two_factor_service import request_code, verify_code
+from services.audit_service import log_event # Added
 from core.config import settings
 import httpx
 from core.security import create_access_token, create_refresh_token
@@ -73,7 +74,7 @@ def login(request: Request, data: LoginRequest, db: Session = Depends(get_db)):
             "two_factor_required": True,
             "temporary_token": temporary_token,
         }
-
+    log_event(db, "login", user_id=user.id)
     return {
         "access_token": access_token,
         "refresh_token": refresh_token,
@@ -147,6 +148,7 @@ async def forgot_password(data: dict, db: Session = Depends(get_db)):
     # Em um app real, enviaria o e-mail aqui.
     # Por enquanto, apenas retornamos sucesso. O token seria incluído no link do e-mail.
     print(f"DEBUG: Password reset token for {email}: {token}")
+    log_event(db, "password_reset_request", user_id=user.id)
     return {"message": "Link de recuperação enviado com sucesso."}
 
 

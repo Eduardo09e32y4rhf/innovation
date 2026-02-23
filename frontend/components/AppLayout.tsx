@@ -16,6 +16,7 @@ interface UserProfile {
     name: string;
     email: string;
     role?: string;
+    points?: number;
 }
 
 // ─── HELPERS ────────────────────────────────────────────────────────────────
@@ -101,10 +102,14 @@ function Sidebar({ user, isOpen, onClose }: { user: UserProfile | null, isOpen: 
                                     <span className="text-[9px] text-orange-400 font-medium">Ativo</span>
                                 </div>
                             </div>
-                            <span className="text-[9px] bg-yellow-400/20 text-yellow-300 px-1.5 py-0.5 rounded font-black shrink-0">Nv.7</span>
+                            <span className="text-[9px] bg-yellow-400/20 text-yellow-300 px-1.5 py-0.5 rounded font-black shrink-0">Nv.{Math.floor((user.points || 0) / 500) + 1}</span>
                         </div>
                         <div className="mt-3">
-                            <XpBar xp={2340} maxXp={3000} level={7} />
+                            <XpBar
+                                xp={(user.points || 0) % 500}
+                                maxXp={500}
+                                level={Math.floor((user.points || 0) / 500) + 1}
+                            />
                         </div>
                     </div>
                 )}

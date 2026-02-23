@@ -34,12 +34,14 @@ export default function FinancePage() {
 
     const loadData = async () => {
         try {
-            const [s, a] = await Promise.all([
+            const [s, a, t] = await Promise.all([
                 FinanceService.getSummary(),
                 FinanceService.getAnomalies(),
+                FinanceService.getTransactions(),
             ]);
             setSummary(s);
             setAnomalies(a);
+            setTransactions(t || []);
         } catch (e) { console.error(e); }
         finally { setLoading(false); }
     };
