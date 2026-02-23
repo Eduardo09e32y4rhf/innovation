@@ -13,6 +13,7 @@ class User(Base):
     is_active = Column(Boolean, default=True)
     two_factor_enabled = Column(Boolean, default=False)
     phone = Column(String(30), nullable=True)
+    points = Column(Integer, default=0)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 class RefreshToken(Base):

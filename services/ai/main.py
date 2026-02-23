@@ -18,7 +18,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.post("/api/ai/chat", response_model=ChatResponse)
+@app.post("/chat", response_model=ChatResponse)
 async def chat(data: ChatRequest):
     model = data.model or "gemini-2.0-flash"
     try:
@@ -27,7 +27,7 @@ async def chat(data: ChatRequest):
     except Exception as e:
         return ChatResponse(answer=str(e), model_used=model, error=True)
 
-@app.post("/api/ai/chat/stream")
+@app.post("/chat/stream")
 async def chat_stream(data: ChatRequest):
     return StreamingResponse(
         ask_gemini_stream(data.question, data.history, data.model or "gemini-2.0-flash"),

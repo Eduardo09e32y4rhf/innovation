@@ -7,7 +7,6 @@ services:
       - name: auth-routes
         paths:
           - /api/auth
-        strip_path: false
 
   - name: ai-service
     url: http://ai_service:8002
@@ -15,7 +14,6 @@ services:
       - name: ai-routes
         paths:
           - /api/ai
-        strip_path: false
     plugins:
       - name: rate-limiting
         config:
@@ -37,4 +35,3 @@ services:
           - /api/rh
           - /api/payments
           - /api/enterprise
-        strip_path: false
