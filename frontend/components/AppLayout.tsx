@@ -217,11 +217,15 @@ export default function AppLayout({
     const [user, setUser] = useState<UserProfile | null>(null);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
+    const router = useRouter();
+
     useEffect(() => {
         AuthService.me()
             .then(setUser)
-            .catch(() => null);
-    }, []);
+            .catch(() => {
+                router.push('/login');
+            });
+    }, [router]);
 
     // Close sidebar on window resize if greater than lg breakpoint
     useEffect(() => {

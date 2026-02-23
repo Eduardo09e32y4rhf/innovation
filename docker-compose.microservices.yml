@@ -76,7 +76,7 @@ services:
     ports:
       - "80:3000"
     environment:
-      - NEXT_PUBLIC_API_URL=http://187.77.49.207:8000/api
+      - NEXT_PUBLIC_API_URL=/api
     depends_on:
       - kong
     networks:

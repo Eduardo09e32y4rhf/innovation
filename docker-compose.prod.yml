@@ -71,7 +71,7 @@ services:
       dockerfile: Dockerfile
     restart: always
     environment:
-      - NEXT_PUBLIC_API_URL=http://187.77.49.207:8000/api
+      - NEXT_PUBLIC_API_URL=/api
       - API_URL=http://backend:8000
     depends_on:
       - backend
