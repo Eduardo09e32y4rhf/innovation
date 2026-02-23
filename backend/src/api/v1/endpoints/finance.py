@@ -10,7 +10,6 @@ from domain.schemas.finance import TransactionCreate
 from typing import List
 from decimal import Decimal
 from datetime import datetime, time
-from services.audit_service import log_event # Added
 
 router = APIRouter(prefix="/api/finance", tags=["finance"])
 
@@ -55,17 +54,6 @@ async def create_transaction(
         db.add(transaction)
         db.commit()
         db.refresh(transaction)
-        
-        log_event(
-            db,
-            "transaction_created",
-            user_id=current_user.id,
-            company_id=current_user.id,
-            entity_type="transaction",
-            entity_id=transaction.id,
-            details=f"Type: {data.type}, Amount: {data.amount}"
-        )
-        
         return transaction
     except Exception as e:
         db.rollback()
@@ -107,26 +95,6 @@ async def get_logs(
         db.query(AuditLog)
         .filter(AuditLog.company_id == current_user.id)
         .order_by(AuditLog.created_at.desc())
-        .offset(skip)
-        .limit(limit)
-        .all()
-    )
-
-
-@router.get("/transactions")
-async def get_transactions(
-    skip: int = 0,
-    limit: int = 50,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    if current_user.role.lower() != "company":
-        raise HTTPException(status_code=403, detail="Acesso não autorizado")
-
-    return (
-        db.query(Transaction)
-        .filter(Transaction.company_id == current_user.id)
-        .order_by(Transaction.due_date.desc())
         .offset(skip)
         .limit(limit)
         .all()

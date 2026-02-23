@@ -29,3 +29,4 @@ from domain.models.payslip import Payslip
 from domain.models.workflow_trigger import WorkflowTrigger
 from domain.models.purchase_request import PurchaseRequest
 from domain.models.csm_models import KBArticle, TicketRating, WebhookSubscription
+from domain.models.gamification import Mission, UserMission

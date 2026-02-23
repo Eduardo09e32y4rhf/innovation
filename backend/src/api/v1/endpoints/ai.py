@@ -306,7 +306,7 @@ async def ask_ai(
         db = next(get_db())
         audit_service.log_event(
             db,
-            "chat_message",
+            "CHAT_MESSAGE",
             user_id=current_user.id,
             details=f"Model: {model_used}"
         )
@@ -342,7 +342,7 @@ async def ask_ai_stream(
     db = next(get_db())
     audit_service.log_event(
         db,
-        "chat_message",
+        "CHAT_MESSAGE",
         user_id=current_user.id,
         details=f"Model: {model_choice} (Streaming)"
     )

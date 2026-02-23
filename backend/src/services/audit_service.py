@@ -5,16 +5,13 @@ from domain.models.user import User
 
 # XP Mapping for different actions
 XP_MAP = {
-    "chat_message": 10,
-    "job_created": 50,
-    "job_deleted": -10, # Pena por deletar (opcional)
-    "application_created": 20,
-    "transaction_created": 15,
-    "project_created": 40,
-    "task_completed": 30,
-    "login": 5,
-    "password_reset_request": 5,
-    "password_reset_success": 20,
+    "CHAT_MESSAGE": 10,
+    "JOB_CREATE": 50,
+    "APPLICATION_CREATE": 20,
+    "TRANSACTION_CREATE": 15,
+    "PROJECT_CREATE": 40,
+    "TASK_COMPLETE": 30,
+    "LOGIN": 5,
 }
 
 def log_event(

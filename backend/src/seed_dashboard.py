@@ -94,21 +94,7 @@ def seed_dashboard_data():
                 created_at=now - timedelta(days=random.randint(5, 20))
             ))
 
-        # 6. Criar Audit Logs (Heatmap)
-        actions = ["chat_message", "job_created", "application_created", "transaction_created", "login"]
-        for i in range(12 * 7): # 12 semanas
-            event_date = now - timedelta(days=i)
-            # Adiciona de 0 a 5 atividades por dia
-            for _ in range(random.randint(0, 5)):
-                db.add(AuditLog(
-                    action=random.choice(actions),
-                    user_id=user.id,
-                    company_id=user.id,
-                    created_at=event_date,
-                    details="Seed data activity"
-                ))
-
-        # 7. Atualizar XP do usuário
+        # 6. Atualizar XP do usuário
         user.points = random.randint(1500, 4500)
         
         db.commit()

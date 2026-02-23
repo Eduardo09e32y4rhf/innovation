@@ -56,4 +56,3 @@ class UserOut(BaseModel):
     created_at: datetime | None = None
     phone: str | None = None
     two_factor_enabled: bool | None = None
-    points: int = 0

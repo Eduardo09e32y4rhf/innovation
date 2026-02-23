@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-    baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api',
+    baseURL: '/api',
     headers: { 'Content-Type': 'application/json' },
 });
 
@@ -125,10 +125,6 @@ export const FinanceService = {
     },
     createTransaction: async (data: { description: string; amount: number; type: string; due_date: string }) => {
         const res = await api.post('/finance/transactions', data);
-        return res.data;
-    },
-    getTransactions: async () => {
-        const res = await api.get('/finance/transactions');
         return res.data;
     },
     getLogs: async () => {
