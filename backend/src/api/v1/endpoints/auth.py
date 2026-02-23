@@ -7,7 +7,13 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 
 from core.dependencies import get_current_user, require_admin_role
-from core.security import create_temporary_token, verify_temporary_token
+from core.security import (
+    create_temporary_token,
+    verify_temporary_token,
+    create_reset_token,
+    verify_reset_token,
+    get_password_hash,
+)
 from infrastructure.database.sql.dependencies import get_db
 from domain.models.user import User
 from domain.schemas.auth import LoginRequest, RegisterRequest, Token, UserOut
@@ -137,8 +143,34 @@ async def forgot_password(data: dict, db: Session = Depends(get_db)):
         # Don't reveal if user exists for security, just return success
         return {"message": "Se o email existir, um link de recuperação será enviado."}
 
-    # In a real app, send email here
+    token = create_reset_token(user.id)
+    # Em um app real, enviaria o e-mail aqui.
+    # Por enquanto, apenas retornamos sucesso. O token seria incluído no link do e-mail.
+    print(f"DEBUG: Password reset token for {email}: {token}")
     return {"message": "Link de recuperação enviado com sucesso."}
+
+
+@router.post("/reset-password")
+async def reset_password(data: dict, db: Session = Depends(get_db)):
+    token = data.get("token")
+    new_password = data.get("password")
+
+    if not token or not new_password:
+        raise HTTPException(status_code=400, detail="Token e nova senha são obrigatórios")
+
+    user_id = verify_reset_token(token)
+    if not user_id:
+        raise HTTPException(status_code=400, detail="Token inválido ou expirado")
+
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado")
+
+    user.hashed_password = get_password_hash(new_password)
+    db.add(user)
+    db.commit()
+
+    return {"message": "Senha redefinida com sucesso."}
 
 
 @router.get("/google-login")

@@ -63,3 +63,21 @@ def verify_temporary_token(token: str) -> int | None:
         return int(payload.get("sub"))
     except Exception:
         return None
+
+
+def create_reset_token(user_id: int) -> str:
+    """Cria um token temporário de 15 minutos para redefinição de senha"""
+    expire = datetime.now(timezone.utc) + timedelta(minutes=15)
+    token_data = {"sub": str(user_id), "exp": expire, "type": "reset_password"}
+    return jwt.encode(token_data, SECRET_KEY, algorithm=ALGORITHM)
+
+
+def verify_reset_token(token: str) -> int | None:
+    """Verifica e retorna o user_id de um reset token"""
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        if payload.get("type") != "reset_password":
+            return None
+        return int(payload.get("sub"))
+    except Exception:
+        return None
