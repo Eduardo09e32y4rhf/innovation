@@ -305,3 +305,38 @@ async def get_activity_heatmap(
     heatmap_data = {str(row.date): row.count for row in activity_counts}
     
     return heatmap_data
+
+
+from domain.models.gamification import Mission, UserMission
+
+@router.get("/missions")
+async def get_missions(
+    current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
+):
+    """Retorna missões diárias e progresso do usuário logado"""
+    from datetime import time, timezone
+    
+    # Active missions
+    all_missions = db.query(Mission).filter(Mission.is_active == True).all()
+    
+    # Done today
+    today_start = datetime.combine(datetime.now(timezone.utc).date(), time.min)
+    done_ids = [
+        um.mission_id 
+        for um in db.query(UserMission)
+        .filter(UserMission.user_id == current_user.id)
+        .filter(UserMission.completed_at >= today_start)
+        .all()
+    ]
+    
+    result = []
+    for m in all_missions:
+        result.append({
+            "id": m.id,
+            "title": m.title,
+            "description": m.description,
+            "xp_reward": m.xp_reward,
+            "done": m.id in done_ids
+        })
+    
+    return result

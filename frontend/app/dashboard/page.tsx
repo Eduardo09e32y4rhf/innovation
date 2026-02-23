@@ -173,27 +173,23 @@ export default function DashboardPage() {
     const [activities, setActivities] = useState<any[]>([]);
     const [heatmap, setHeatmap] = useState<Record<string, number>>({});
     const [loading, setLoading] = useState(true);
-    const [missions, setMissions] = useState([
-        { id: 1, label: 'Enviar 1ª mensagem ao Chat IA', xp: 50, done: true },
-        { id: 2, label: 'Criar uma vaga no ATS', xp: 100, done: false },
-        { id: 3, label: 'Revisar Financeiro do mês', xp: 75, done: false },
-        { id: 4, label: 'Abrir ticket de suporte', xp: 50, done: true },
-        { id: 5, label: 'Explorar módulo de Projetos', xp: 80, done: false },
-    ]);
+    const [missions, setMissions] = useState<any[]>([]);
 
     useEffect(() => {
         const load = async () => {
             try {
-                const [u, m, a, h] = await Promise.all([
+                const [u, m, a, h, ms] = await Promise.all([
                     AuthService.me().catch(() => null),
                     DashboardService.getMetrics().catch(() => null),
                     DashboardService.getRecentActivity().catch(() => null),
                     DashboardService.getHeatmap().catch(() => ({})),
+                    DashboardService.getMissions().catch(() => []),
                 ]);
                 if (u) setUser(u);
                 if (m) setMetrics(m);
                 if (a) setActivities(a.activities || []);
                 if (h) setHeatmap(h);
+                if (ms) setMissions(ms);
             } catch (e) {
                 console.error(e);
             } finally {
@@ -204,7 +200,8 @@ export default function DashboardPage() {
     }, []);
 
     const toggleMission = (id: number) => {
-        setMissions(prev => prev.map(m => m.id === id ? { ...m, done: !m.done } : m));
+        // Now read-only or handled by backend actions
+        // setMissions(prev => prev.map(m => m.id === id ? { ...m, done: !m.done } : m));
     };
 
     const stats = [
@@ -398,7 +395,7 @@ export default function DashboardPage() {
                             <div className="flex items-center justify-between mb-5">
                                 <div>
                                     <h2 className="text-sm font-bold text-white">Missões Diárias</h2>
-                                    <p className="text-[10px] text-white/30">{missions.filter(m => m.done).length}/{missions.length} completas</p>
+                                    <p className="text-[10px] text-white/30">{missions.length > 0 ? missions.filter(m => m.done).length : 0}/{missions.length} completas</p>
                                 </div>
                                 <Rocket className="w-5 h-5 text-[#8b5cf6]" />
                             </div>
@@ -409,22 +406,22 @@ export default function DashboardPage() {
                                         <circle cx="40" cy="40" r="34" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="6" />
                                         <circle cx="40" cy="40" r="34" fill="none" stroke="#8b5cf6" strokeWidth="6"
                                             strokeDasharray={`${2 * Math.PI * 34}`}
-                                            strokeDashoffset={`${2 * Math.PI * 34 * (1 - missions.filter(m => m.done).length / missions.length)}`}
+                                            strokeDashoffset={`${2 * Math.PI * 34 * (1 - (missions.length > 0 ? missions.filter(m => m.done).length / missions.length : 0))}`}
                                             strokeLinecap="round" className="transition-all duration-1000" />
                                     </svg>
                                     <div className="absolute inset-0 flex items-center justify-center">
-                                        <span className="text-lg font-black text-white">{Math.round(missions.filter(m => m.done).length / missions.length * 100)}%</span>
+                                        <span className="text-lg font-black text-white">{missions.length > 0 ? Math.round(missions.filter(m => m.done).length / missions.length * 100) : 0}%</span>
                                     </div>
                                 </div>
                             </div>
                             <div className="space-y-2">
                                 {missions.map(m => (
-                                    <button key={m.id} onClick={() => toggleMission(m.id)}
+                                    <div key={m.id}
                                         className={`w-full flex items-center gap-3 text-left px-3 py-2 rounded-xl transition-all hover:bg-white/5 ${m.done ? 'opacity-50' : ''}`}>
                                         <CheckCircle2 className={`w-4 h-4 shrink-0 transition-colors ${m.done ? 'text-green-500' : 'text-white/15'}`} />
-                                        <span className={`flex-1 text-xs ${m.done ? 'line-through text-white/30' : 'text-white/70'}`}>{m.label}</span>
-                                        <span className="text-[10px] font-bold text-[#8b5cf6]">+{m.xp} XP</span>
-                                    </button>
+                                        <span className={`flex-1 text-xs ${m.done ? 'line-through text-white/30' : 'text-white/70'}`}>{m.title}</span>
+                                        <span className="text-[10px] font-bold text-[#8b5cf6]">+{m.xp_reward} XP</span>
+                                    </div>
                                 ))}
                             </div>
                         </div>

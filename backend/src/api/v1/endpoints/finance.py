@@ -32,6 +32,28 @@ async def get_prediction(
     return finance_service.ai_cash_flow_prediction(db, current_user.id)
 
 
+@router.get("/transactions")
+async def get_transactions(
+    skip: int = 0,
+    limit: int = 50,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if current_user.role.lower() != "company":
+        raise HTTPException(status_code=403, detail="Acesso não autorizado")
+
+    return (
+        db.query(Transaction)
+        .filter(Transaction.company_id == current_user.id)
+        .order_by(Transaction.due_date.desc())
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
+
+
+from services.audit_service import log_event
+
 @router.post("/transactions")
 async def create_transaction(
     data: TransactionCreate,
@@ -50,14 +72,27 @@ async def create_transaction(
             category=data.category,
             due_date=datetime.combine(data.due_date, time.min),
             company_id=current_user.id,
+            status="paid" if data.type == "income" else "pending" # Simplificação do status
         )
         db.add(transaction)
+        db.flush()
+        
+        # Log event and award XP
+        log_event(
+            db, 
+            "TRANSACTION_CREATE", 
+            user_id=current_user.id, 
+            company_id=current_user.id,
+            entity_type="transaction",
+            entity_id=transaction.id,
+            details=f"Criou transação: {transaction.description} (R$ {transaction.amount})"
+        )
+        
         db.commit()
         db.refresh(transaction)
         return transaction
     except Exception as e:
         db.rollback()
-        # Log the error in a real app
         raise HTTPException(
             status_code=500, detail="Erro ao criar transação: " + str(e)
         )

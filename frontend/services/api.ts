@@ -68,6 +68,10 @@ export const DashboardService = {
         const res = await api.get('/dashboard/heatmap');
         return res.data;
     },
+    getMissions: async () => {
+        const res = await api.get('/dashboard/missions');
+        return res.data;
+    },
 };
 
 // ── JOBS / ATS ────────────────────────────────────────────────────────────
@@ -113,6 +117,10 @@ export const ATSService = {
 export const FinanceService = {
     getSummary: async () => {
         const res = await api.get('/finance/summary');
+        return res.data;
+    },
+    getTransactions: async () => {
+        const res = await api.get('/finance/transactions');
         return res.data;
     },
     getPrediction: async () => {

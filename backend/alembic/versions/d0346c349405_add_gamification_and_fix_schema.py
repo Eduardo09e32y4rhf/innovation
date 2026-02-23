@@ -48,10 +48,10 @@ def upgrade() -> None:
     #     batch_op.drop_constraint(None, type_='foreignkey')
     #     batch_op.create_foreign_key(None, 'projects', ['project_id'], ['id'], ondelete='CASCADE')
 
-    with op.batch_alter_table('tickets', schema=None) as batch_op:
-        batch_op.add_column(sa.Column('company_id', sa.Integer(), nullable=True))
-        batch_op.add_column(sa.Column('queue', sa.String(length=50), nullable=True))
-        batch_op.create_foreign_key(None, 'companies', ['company_id'], ['id'])
+    # with op.batch_alter_table('tickets', schema=None) as batch_op:
+    #     batch_op.add_column(sa.Column('company_id', sa.Integer(), nullable=True))
+    #     batch_op.add_column(sa.Column('queue', sa.String(length=50), nullable=True))
+    #     batch_op.create_foreign_key(None, 'companies', ['company_id'], ['id'])
 
     # ### end Alembic commands ###
 

@@ -98,7 +98,7 @@ def create_job(
 
         log_event(
             db,
-            "job_created",
+            "JOB_CREATE",
             user_id=current_user.id,
             company_id=company_id,
             entity_type="job",
@@ -133,7 +133,7 @@ def update_job(
 
     log_event(
         db,
-        "job_updated",
+        "JOB_UPDATE",
         user_id=current_user.id,
         company_id=company_id,
         entity_type="job",
@@ -159,7 +159,7 @@ def delete_job(
 
     log_event(
         db,
-        "job_deleted",
+        "JOB_DELETE",
         user_id=current_user.id,
         company_id=company_id,
         entity_type="job",

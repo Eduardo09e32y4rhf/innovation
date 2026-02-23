@@ -74,6 +74,9 @@ def login(request: Request, data: LoginRequest, db: Session = Depends(get_db)):
             "temporary_token": temporary_token,
         }
 
+    from services.audit_service import log_event
+    log_event(db, "LOGIN", user_id=user.id)
+
     return {
         "access_token": access_token,
         "refresh_token": refresh_token,

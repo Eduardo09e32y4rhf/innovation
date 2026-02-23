@@ -25,9 +25,22 @@ async def create_ticket(
     company = db.query(Company).filter(Company.owner_user_id == current_user.id).first()
     company_id = company.id if company else None
 
-    return support_service.create_ticket(
+    from services.audit_service import log_event
+    ticket = support_service.create_ticket(
         db, data.title, data.description, current_user.id, company_id
     )
+
+    log_event(
+        db, 
+        "TICKET_CREATE", 
+        user_id=current_user.id, 
+        company_id=company_id,
+        entity_type="ticket",
+        entity_id=ticket.id,
+        details=f"Criou ticket de suporte: {ticket.title}"
+    )
+
+    return ticket
 
 
 @router.get("/tickets")
