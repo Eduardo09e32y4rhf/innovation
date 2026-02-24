@@ -54,7 +54,7 @@ async def check_db_ready():
                     admin = models.User(
                         email="admin@innovation.ia",
                         full_name="Administrador Master",
-                        role="admin", # Campo role incluído
+                        role="admin",
                         hashed_password=hashed.decode('utf-8'),
                         is_active=True,
                         is_superuser=True
@@ -98,7 +98,17 @@ async def health():
 
 @app.get("/me", response_model=schemas.UserResponse)
 async def me(current_user: models.User = Depends(get_current_user)):
-    return current_user
+    # Mapeia full_name para name para evitar crash no Frontend (Golden Match)
+    return {
+        "id": current_user.id,
+        "email": current_user.email,
+        "name": current_user.full_name,
+        "full_name": current_user.full_name,
+        "role": current_user.role,
+        "is_active": current_user.is_active,
+        "is_superuser": current_user.is_superuser,
+        "created_at": current_user.created_at
+    }
 
 @app.post("/login", response_model=schemas.TokenResponse)
 async def login(credentials: schemas.LoginRequest, db: Session = Depends(get_db)):
@@ -114,12 +124,11 @@ async def login(credentials: schemas.LoginRequest, db: Session = Depends(get_db)
     }
     token = jwt.encode(token_data, SECRET_KEY, algorithm=ALGORITHM)
     
-    # Payload IDENTICO à versão Golden 29ac18b
     return {
         "access_token": token,
         "token_type": "bearer",
         "role": user.role,
-        "is_new_user": False # Valor padrão para compatibilidade
+        "is_new_user": False
     }
 
 @app.post("/register", response_model=schemas.UserResponse)
@@ -132,11 +141,22 @@ async def register(user_data: schemas.UserCreate, db: Session = Depends(get_db))
     new_user = models.User(
         email=user_data.email,
         full_name=user_data.full_name,
-        role="candidate", # Default role
+        role="candidate",
         hashed_password=hashed.decode('utf-8'),
         is_active=True
     )
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
-    return new_user
+    
+    # Retorna com 'name' para consistência
+    return {
+        "id": new_user.id,
+        "email": new_user.email,
+        "name": new_user.full_name,
+        "full_name": new_user.full_name,
+        "role": new_user.role,
+        "is_active": new_user.is_active,
+        "is_superuser": new_user.is_superuser,
+        "created_at": new_user.created_at
+    }

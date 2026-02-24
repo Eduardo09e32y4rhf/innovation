@@ -27,7 +27,6 @@ ALGORITHM = "HS256"
 async def startup_event():
     logger.info("🚀 Iniciando Core Service e verificando DB...")
     try:
-        # Criar tabelas se não existirem (Self-Healing)
         Base.metadata.create_all(bind=engine)
         logger.info("✅ Tabelas do Core Service verificadas/criadas com sucesso!")
     except Exception as e:
@@ -56,7 +55,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# --- Dashboard Endpoints (Rotas curtas para o Kong strip_path) ---
+# --- Dashboard Endpoints (Golden Structure) ---
 
 @app.get("/dashboard/metrics")
 async def get_dashboard_metrics(current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
@@ -85,13 +84,33 @@ async def get_dashboard_metrics(current_user: models.User = Depends(get_current_
     user_points = current_user.points or 0
     level = (user_points // 500) + 1
 
+    # Estrutura harmonizada com o Frontend para evitar 'undefined'
     return {
-        "user": {"points": user_points, "level": level},
-        "revenue": {"current": current_revenue},
-        "projects": total_projects,
-        "candidates": total_applications,
+        "user": {
+            "name": current_user.full_name,
+            "points": user_points, 
+            "level": level
+        },
+        "revenue": {
+            "current": current_revenue,
+            "change_percent": 0.0,
+            "chart_data": []
+        },
+        "projects": {
+            "current": total_projects,
+            "change_percent": 0.0,
+            "chart_data": []
+        },
+        "candidates": {
+            "current": total_applications,
+            "change_percent": 0.0,
+            "chart_data": []
+        },
         "active_jobs": active_jobs,
-        "profit": {"current": current_profit}
+        "profit": {
+            "current": current_profit,
+            "change_percent": 0.0
+        }
     }
 
 @app.get("/dashboard/heatmap")
@@ -130,20 +149,6 @@ async def create_job(data: JobCreate, current_user: models.User = Depends(get_cu
     db.commit()
     db.refresh(job)
     return job
-
-# --- Finance Endpoints ---
-
-@app.get("/finance/transactions", response_model=List[TransactionOut])
-async def list_transactions(db: Session = Depends(get_db)):
-    from models import Transaction
-    return db.query(Transaction).all()
-
-# --- Ticket Endpoints ---
-
-@app.get("/tickets", response_model=List[TicketOut])
-async def list_tickets(db: Session = Depends(get_db)):
-    from models import Ticket
-    return db.query(Ticket).all()
 
 @app.get("/health")
 async def health_check():

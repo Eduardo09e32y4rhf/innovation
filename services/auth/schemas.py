@@ -14,6 +14,7 @@ class LoginRequest(BaseModel):
 class UserResponse(BaseModel):
     id: int
     email: str
+    name: str # Adicionado para compatibilidade com Dashboard
     full_name: str
     role: str
     is_active: bool
