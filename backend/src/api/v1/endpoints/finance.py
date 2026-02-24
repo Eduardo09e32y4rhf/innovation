@@ -54,6 +54,7 @@ async def get_transactions(
 
 from services.audit_service import log_event
 
+
 @router.post("/transactions")
 async def create_transaction(
     data: TransactionCreate,
@@ -72,22 +73,24 @@ async def create_transaction(
             category=data.category,
             due_date=datetime.combine(data.due_date, time.min),
             company_id=current_user.id,
-            status="paid" if data.type == "income" else "pending" # Simplificação do status
+            status=(
+                "paid" if data.type == "income" else "pending"
+            ),  # Simplificação do status
         )
         db.add(transaction)
         db.flush()
-        
+
         # Log event and award XP
         log_event(
-            db, 
-            "TRANSACTION_CREATE", 
-            user_id=current_user.id, 
+            db,
+            "TRANSACTION_CREATE",
+            user_id=current_user.id,
             company_id=current_user.id,
             entity_type="transaction",
             entity_id=transaction.id,
-            details=f"Criou transação: {transaction.description} (R$ {transaction.amount})"
+            details=f"Criou transação: {transaction.description} (R$ {transaction.amount})",
         )
-        
+
         db.commit()
         db.refresh(transaction)
         return transaction

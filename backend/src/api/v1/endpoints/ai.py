@@ -24,6 +24,7 @@ from fastapi.responses import StreamingResponse
 import asyncio
 
 from core.ai_key_manager import ai_key_manager
+
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 
 try:
@@ -44,6 +45,7 @@ class ChatRequest(BaseModel):
     context: Optional[str] = None
     model: Optional[str] = "gemini-flash"  # "gemini-flash" | "gemini-pro" | "claude"
     history: Optional[List[ChatMessage]] = []
+
 
 class LandingPlanRequest(BaseModel):
     business_type: str
@@ -85,12 +87,12 @@ async def _ask_gemini(
 
     # Tenta usar as chaves disponíveis em rotação
     active_keys = ai_key_manager.get_all_active_keys()
-    
+
     if not active_keys:
         raise HTTPException(503, "Sem chaves do Gemini disponíveis. Configure no .env")
 
     last_error = None
-    
+
     for api_key in active_keys:
         try:
             client = genai.Client(api_key=api_key)
@@ -99,7 +101,10 @@ async def _ask_gemini(
             chat_history = []
             for msg in history or []:
                 chat_history.append(
-                    {"role": "user" if msg.role == "user" else "model", "parts": [{"text": msg.content}]}
+                    {
+                        "role": "user" if msg.role == "user" else "model",
+                        "parts": [{"text": msg.content}],
+                    }
                 )
 
             # Chamar API usando system_instruction e a versão 2.0 que é mais poderosa
@@ -110,29 +115,35 @@ async def _ask_gemini(
             try:
                 response = client.models.generate_content(
                     model=actual_model,
-                    contents=chat_history + [{"role": "user", "parts": [{"text": question}]}],
+                    contents=chat_history
+                    + [{"role": "user", "parts": [{"text": question}]}],
                     config={
                         "system_instruction": SYSTEM_PROMPT.strip(),
                         "temperature": 0.7,
-                    }
+                    },
                 )
                 return response.text
             except Exception as e:
                 # Se for erro de cota ou chave, tentamos o próximo modelo (1.5) ou próxima chave
-                if "429" in str(e) or "quota" in str(e).lower() or "API_KEY_INVALID" in str(e):
+                if (
+                    "429" in str(e)
+                    or "quota" in str(e).lower()
+                    or "API_KEY_INVALID" in str(e)
+                ):
                     print(f"⚠️ Chave do Gemini falhou ({api_key[:10]}...): {e}")
                     ai_key_manager.mark_as_exhausted(api_key)
                     last_error = e
-                    continue # Tenta próxima chave no loop externo
-                
+                    continue  # Tenta próxima chave no loop externo
+
                 # Fallback para 1.5 se o 2.0 falhar por outro motivo
                 if actual_model == "gemini-2.0-flash":
                     response = client.models.generate_content(
                         model="gemini-1.5-flash",
-                        contents=chat_history + [{"role": "user", "parts": [{"text": question}]}],
+                        contents=chat_history
+                        + [{"role": "user", "parts": [{"text": question}]}],
                         config={
                             "system_instruction": SYSTEM_PROMPT.strip(),
-                        }
+                        },
                     )
                     return response.text
                 raise e
@@ -141,7 +152,9 @@ async def _ask_gemini(
             last_error = inner_e
             continue
 
-    raise HTTPException(503, f"Todas as chaves do Gemini falharam. Último erro: {str(last_error)}")
+    raise HTTPException(
+        503, f"Todas as chaves do Gemini falharam. Último erro: {str(last_error)}"
+    )
 
 
 async def _ask_gemini_stream(
@@ -150,7 +163,7 @@ async def _ask_gemini_stream(
     if not genai:
         yield "data: [ERROR] SDK Google GenAI não instalado.\n\n"
         return
-    
+
     active_keys = ai_key_manager.get_all_active_keys()
     if not active_keys:
         yield "data: [ERROR] Sem chaves do Gemini disponíveis.\n\n"
@@ -161,13 +174,16 @@ async def _ask_gemini_stream(
             # Uso do Client simplificado
             client = genai.Client(api_key=api_key)
             # Na verdade, o Client novo simplifica muita coisa, mas vamos garantir o loop.
-            
+
             chat_history = []
             for msg in history or []:
                 chat_history.append(
-                    {"role": "user" if msg.role == "user" else "model", "parts": [{"text": msg.content}]}
+                    {
+                        "role": "user" if msg.role == "user" else "model",
+                        "parts": [{"text": msg.content}],
+                    }
                 )
-            
+
             actual_model = model_name
             if "flash" in model_name:
                 actual_model = "gemini-2.0-flash"
@@ -176,19 +192,20 @@ async def _ask_gemini_stream(
                 # generate_content_stream retorna um iterator
                 stream = client.models.generate_content_stream(
                     model=actual_model,
-                    contents=chat_history + [{"role": "user", "parts": [{"text": question}]}],
+                    contents=chat_history
+                    + [{"role": "user", "parts": [{"text": question}]}],
                     config={
                         "system_instruction": SYSTEM_PROMPT.strip(),
                         "temperature": 0.7,
-                    }
+                    },
                 )
-                
+
                 for chunk in stream:
                     if chunk.text:
                         clean_text = chunk.text.replace("\n", "[NEWLINE]")
                         yield f"data: {clean_text}\n\n"
-                        await asyncio.sleep(0.01) # Cede o controle para o loop
-                
+                        await asyncio.sleep(0.01)  # Cede o controle para o loop
+
                 yield "data: [DONE]\n\n"
                 return
             except Exception as e:
@@ -197,23 +214,23 @@ async def _ask_gemini_stream(
                     continue
                 # Fallback redundante para 1.5 se o 2.0 falhar
                 if actual_model == "gemini-2.0-flash":
-                     stream = client.models.generate_content_stream(
+                    stream = client.models.generate_content_stream(
                         model="gemini-1.5-flash",
-                        contents=chat_history + [{"role": "user", "parts": [{"text": question}]}],
-                        config={"system_instruction": SYSTEM_PROMPT.strip()}
+                        contents=chat_history
+                        + [{"role": "user", "parts": [{"text": question}]}],
+                        config={"system_instruction": SYSTEM_PROMPT.strip()},
                     )
-                     for chunk in stream:
+                    for chunk in stream:
                         if chunk.text:
                             texto_formatado = chunk.text.replace("\n", "[NEWLINE]")
                             yield f"data: {texto_formatado}\n\n"
-                     yield "data: [DONE]\n\n"
-                     return
+                    yield "data: [DONE]\n\n"
+                    return
                 raise e
         except Exception as inner_e:
             continue
 
     yield f"data: [ERROR] Falha crítica: {str(inner_e)}\n\n"
-
 
 
 # ─── Helper: Claude ────────────────────────────────────────────────────────────
@@ -305,10 +322,7 @@ async def ask_ai(
         # Log usage and award XP
         db = next(get_db())
         audit_service.log_event(
-            db,
-            "CHAT_MESSAGE",
-            user_id=current_user.id,
-            details=f"Model: {model_used}"
+            db, "CHAT_MESSAGE", user_id=current_user.id, details=f"Model: {model_used}"
         )
 
         return {
@@ -337,24 +351,32 @@ async def ask_ai_stream(
     Endpoint de streaming para resposta em tempo real.
     """
     model_choice = (data.model or "gemini-flash").lower()
-    
+
     # Log usage and award XP
     db = next(get_db())
     audit_service.log_event(
         db,
         "CHAT_MESSAGE",
         user_id=current_user.id,
-        details=f"Model: {model_choice} (Streaming)"
+        details=f"Model: {model_choice} (Streaming)",
     )
 
     # Por enquanto apenas Gemini suporta streaming nativo nesta implementação
     if "claude" in model_choice:
         # Fallback para não-streaming se tentar claude no stream (ou implementar claude stream depois)
-        return StreamingResponse(iter([f"data: [ERROR] Streaming ainda não disponível para Claude. Use Gemini.\n\n", "data: [DONE]\n\n"]), media_type="text/event-stream")
+        return StreamingResponse(
+            iter(
+                [
+                    f"data: [ERROR] Streaming ainda não disponível para Claude. Use Gemini.\n\n",
+                    "data: [DONE]\n\n",
+                ]
+            ),
+            media_type="text/event-stream",
+        )
 
     return StreamingResponse(
         _ask_gemini_stream(data.question, data.history, model_choice),
-        media_type="text/event-stream"
+        media_type="text/event-stream",
     )
 
 
@@ -404,6 +426,7 @@ async def list_models(current_user: User = Depends(get_current_user)):
         "role": user_role,
     }
 
+
 @router.post("/landing-plan")
 async def landing_plan(data: LandingPlanRequest):
     """
@@ -411,11 +434,13 @@ async def landing_plan(data: LandingPlanRequest):
     Usa rotação de chaves.
     """
     business_type = data.business_type or "Usuário"
-    
-    user_query = f"Simule planos para uma pessoa do cargo: {business_type}. " + \
-                 "Cite 3 benefícios REAIS, PRÁTICOS e HUMANOS de usar a Innovation IA pagando R$ 9,99/mês. " + \
-                 "Inicie cada benefício com um hífen (-) e seja curto."
-    
+
+    user_query = (
+        f"Simule planos para uma pessoa do cargo: {business_type}. "
+        + "Cite 3 benefícios REAIS, PRÁTICOS e HUMANOS de usar a Innovation IA pagando R$ 9,99/mês. "
+        + "Inicie cada benefício com um hífen (-) e seja curto."
+    )
+
     try:
         # Reutiliza o helper _ask_gemini que já tem a rotação
         answer = await _ask_gemini(user_query, [], "gemini-1.5-flash")
