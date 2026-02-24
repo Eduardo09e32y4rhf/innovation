@@ -1,54 +1,49 @@
 _format_version: "3.0"
 
+plugins:
+  - name: cors
+    config:
+      origins:
+        - "*"
+      methods:
+        - GET
+        - POST
+        - PUT
+        - PATCH
+        - DELETE
+        - OPTIONS
+      headers:
+        - Accept
+        - Accept-Version
+        - Content-Length
+        - Content-MD5
+        - Content-Type
+        - Date
+        - Authorization
+      exposed_headers:
+        - Authorization
+      credentials: true
+      max_age: 3600
+
 services:
-  - name: auth-service
+  - name: auth_service
     url: http://auth_service:8001
     routes:
-      - name: auth-routes
+      - name: auth-route
         paths:
           - /api/auth
         strip_path: true
-    plugins:
-      - name: cors
-        config:
-          origins:
-            - "*"
-          methods:
-            - GET
-            - POST
-            - OPTIONS
-            - PUT
-            - PATCH
-            - DELETE
-          headers:
-            - Accept
-            - Accept-Version
-            - Content-Length
-            - Content-MD5
-            - Content-Type
-            - Date
-            - Authorization
-          exposed_headers:
-            - Content-Type
-            - Authorization
-          max_age: 3600
-          credentials: true
-
-  - name: ai-service
+  - name: ai_service
     url: http://ai_service:8002
     routes:
-      - name: ai-routes
+      - name: ai-route
         paths:
           - /api/ai
         strip_path: true
-
-  - name: core-service
+  - name: core_service
     url: http://core_service:8003
     routes:
-      - name: core-routes
+      - name: core-route
         paths:
-          - /api/jobs
-          - /api/finance
-          - /api/dashboard
-          - /api/rh
-        strip_path: false
+          - /api/core
+        strip_path: true
