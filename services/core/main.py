@@ -3,13 +3,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from typing import List
 import os
+import logging
 
 from database import get_db, Base, engine
-from models import Job, Transaction, Ticket
+import models
 from schemas import JobCreate, JobOut, TransactionOut, TicketOut
 
-# Criar tabelas se não existirem (apenas para teste rápido, o ideal é Alembic)
-Base.metadata.create_all(bind=engine)
+# Configuração de Logs
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 from jose import jwt
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -21,6 +23,16 @@ security = HTTPBearer()
 SECRET_KEY = os.getenv("SECRET_KEY", "innovation_v2_premium_dark")
 ALGORITHM = "HS256"
 
+@app.on_event("startup")
+async def startup_event():
+    logger.info("🚀 Iniciando Core Service e verificando DB...")
+    try:
+        # Criar tabelas se não existirem (Self-Healing)
+        Base.metadata.create_all(bind=engine)
+        logger.info("✅ Tabelas do Core Service verificadas/criadas com sucesso!")
+    except Exception as e:
+        logger.error(f"❌ Erro ao criar tabelas do Core: {e}")
+
 async def get_current_user(token: HTTPAuthorizationCredentials = Depends(security), db: Session = Depends(get_db)):
     try:
         payload = jwt.decode(token.credentials, SECRET_KEY, algorithms=[ALGORITHM])
@@ -30,8 +42,7 @@ async def get_current_user(token: HTTPAuthorizationCredentials = Depends(securit
     except Exception:
         raise HTTPException(status_code=401, detail="Invalid token")
     
-    from models import User
-    user = db.query(User).filter(User.id == int(user_id)).first()
+    user = db.query(models.User).filter(models.User.id == int(user_id)).first()
     if user is None:
         raise HTTPException(status_code=401, detail="User not found")
     return user
@@ -45,10 +56,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# --- Dashboard Endpoints ---
+# --- Dashboard Endpoints (Rotas curtas para o Kong strip_path) ---
 
 @app.get("/dashboard/metrics")
-async def get_dashboard_metrics(current_user: Session = Depends(get_current_user), db: Session = Depends(get_db)):
+async def get_dashboard_metrics(current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
     from models import Transaction, Job, Application, Project
     
     def get_sum(filters):
@@ -84,7 +95,7 @@ async def get_dashboard_metrics(current_user: Session = Depends(get_current_user
     }
 
 @app.get("/dashboard/heatmap")
-async def get_activity_heatmap(current_user: Session = Depends(get_current_user), db: Session = Depends(get_db)):
+async def get_activity_heatmap(current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
     from models import AuditLog
     twelve_weeks_ago = datetime.now() - timedelta(weeks=12)
     activity_counts = db.query(
@@ -97,7 +108,7 @@ async def get_activity_heatmap(current_user: Session = Depends(get_current_user)
     return {str(row.date): row.count for row in activity_counts}
 
 @app.get("/dashboard/missions")
-async def get_missions(current_user: Session = Depends(get_current_user), db: Session = Depends(get_db)):
+async def get_missions(current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
     from models import Mission, UserMission
     all_missions = db.query(Mission).filter(Mission.is_active == True).all()
     today_start = datetime.combine(datetime.now(timezone.utc).date(), time.min)
@@ -112,7 +123,7 @@ async def list_jobs(db: Session = Depends(get_db)):
     return db.query(Job).filter(Job.status == "active").all()
 
 @app.post("/jobs", response_model=JobOut)
-async def create_job(data: JobCreate, current_user: Session = Depends(get_current_user), db: Session = Depends(get_db)):
+async def create_job(data: JobCreate, current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
     from models import Job
     job = Job(**data.dict(), company_id=current_user.id) 
     db.add(job)
