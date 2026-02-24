@@ -33,7 +33,8 @@ services:
     networks:
       - innovation_net
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
 
   ai_service:
     build: ./services/ai
