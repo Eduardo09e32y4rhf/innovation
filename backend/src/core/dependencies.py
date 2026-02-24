@@ -13,21 +13,36 @@ from domain.models.subscription import Subscription
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
 
+from typing import Optional
+
 def get_current_user(
-    token: str = Depends(oauth2_scheme),
+    token: Optional[str] = Depends(oauth2_scheme),
     db: Session = Depends(get_db),
 ) -> User:
+    """
+    Dependency to get the current user. 
+    TEMPORARY: Released for testing without login. Returns the first user in DB if token is missing.
+    """
+    if not token or token == "undefined":
+        user = db.query(User).first()
+        if user:
+            return user
+        raise HTTPException(status_code=401, detail="Autenticação necessária (nenhum usuário encontrado no banco)")
+
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         user_id = int(payload.get("sub"))
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user:
+            # Fallback para o primeiro usuário se o ID do token não existir mais
+            return db.query(User).first()
+        return user
     except (JWTError, ValueError):
-        raise HTTPException(status_code=401, detail="Token inválido")
-
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
-        raise HTTPException(status_code=401, detail="Usuário não encontrado")
-
-    return user
+        # Fallback para teste em caso de erro no decode
+        user = db.query(User).first()
+        if user:
+            return user
+        raise HTTPException(status_code=401, detail="Token inválido e nenhum usuário disponível")
 
 
 def require_active_company(

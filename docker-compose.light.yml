@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  # O Cérebro do Sistema (Monolito Otimizado)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: innovation_backend_light
+    restart: always
+    environment:
+      - DATABASE_URL=sqlite:///innovation_rh.db
+      - REDIS_URL=redis://cache:6379/0
+      - SECRET_KEY=${SECRET_KEY:-innovation_v2_premium_dark}
+      - GEMINI_API_KEYS=${GEMINI_API_KEYS}
+      - MP_ACCESS_TOKEN=${MP_ACCESS_TOKEN}
+      - ALLOWED_ORIGINS=*
+      - PORT=8000
+    volumes:
+      - backend_data:/app/src # Persistência do SQLite se necessário
+    networks:
+      - light_net
+    depends_on:
+      - cache
+
+  # Interface Futurista
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: innovation_frontend_light
+    restart: always
+    environment:
+      - NEXT_PUBLIC_API_URL=/api
+      - API_URL=http://backend:8000
+    depends_on:
+      - backend
+    networks:
+      - light_net
+
+  # Proxy Reverso Leve (Nginx) em vez de Kong Gateway
+  nginx:
+    image: nginx:alpine
+    container_name: innovation_proxy_light
+    restart: always
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - light_net
+
+  # Cache de Performance
+  cache:
+    image: redis:alpine
+    container_name: innovation_cache_light
+    networks:
+      - light_net
+
+networks:
+  light_net:
+    driver: bridge
+
+volumes:
+  backend_data:

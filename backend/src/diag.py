@@ -38,9 +38,9 @@ print("--- Testando dependências externas ---")
 for mod, label in modules_to_test:
     try:
         __import__(mod)
-        print(f"  ✅ {label}")
+        print(f"  [OK] {label}")
     except ImportError as e:
-        print(f"  ❌ {label}: {e}")
+        print(f"  [ERROR] {label}: {e}")
 
 print()
 print("--- Testando módulos internos ---")
@@ -69,9 +69,9 @@ internal_modules = [
 for mod in internal_modules:
     try:
         __import__(mod)
-        print(f"  ✅ {mod}")
+        print(f"  [OK] {mod}")
     except Exception as e:
-        print(f"  ❌ {mod}")
+        print(f"  [ERROR] {mod}")
         print(f"      → {type(e).__name__}: {e}")
         traceback.print_exc()
         print()
