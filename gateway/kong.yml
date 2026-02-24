@@ -7,6 +7,32 @@ services:
       - name: auth-routes
         paths:
           - /api/auth
+        strip_path: true
+    plugins:
+      - name: cors
+        config:
+          origins:
+            - "*"
+          methods:
+            - GET
+            - POST
+            - OPTIONS
+            - PUT
+            - PATCH
+            - DELETE
+          headers:
+            - Accept
+            - Accept-Version
+            - Content-Length
+            - Content-MD5
+            - Content-Type
+            - Date
+            - Authorization
+          exposed_headers:
+            - Content-Type
+            - Authorization
+          max_age: 3600
+          credentials: true
 
   - name: ai-service
     url: http://ai_service:8002
@@ -14,11 +40,7 @@ services:
       - name: ai-routes
         paths:
           - /api/ai
-    plugins:
-      - name: rate-limiting
-        config:
-          minute: 100
-          hour: 1000
+        strip_path: true
 
   - name: core-service
     url: http://core_service:8003
@@ -26,12 +48,7 @@ services:
       - name: core-routes
         paths:
           - /api/jobs
-          - /api/applications
           - /api/finance
-          - /api/tickets
-          - /api/support
           - /api/dashboard
-          - /api/projects
           - /api/rh
-          - /api/payments
-          - /api/enterprise
+        strip_path: false

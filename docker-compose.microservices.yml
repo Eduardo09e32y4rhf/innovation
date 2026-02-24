@@ -1,9 +1,6 @@
 version: '3.8'
 
 services:
-  # ============================================
-  # API GATEWAY (Kong)
-  # ============================================
   kong:
     image: kong:3.4
     container_name: innovation_gateway
@@ -14,46 +11,33 @@ services:
       - KONG_ADMIN_ACCESS_LOG=/dev/stdout
       - KONG_PROXY_ERROR_LOG=/dev/stderr
       - KONG_ADMIN_ERROR_LOG=/dev/stderr
-      - KONG_ADMIN_LISTEN=0.0.0.0:8001, 0.0.0.0:8444 ssl
+      - KONG_ADMIN_LISTEN=0.0.0.0:8001
     volumes:
       - ./gateway/kong.yml:/usr/local/kong/declarative/kong.yml
     ports:
-      - "8000:8000"
-      - "8443:8443"
-      - "8001:8001"
-      - "8444:8444"
+      - "8000:8000" # Gateway Proxy
+      - "8001:8001" # Admin API
     networks:
       - innovation_net
 
-  # ============================================
-  # AUTH SERVICE
-  # ============================================
   auth_service:
     build: ./services/auth
     container_name: auth_service
     environment:
       - DATABASE_URL=postgresql://user:secure_pass@postgres:5432/innovation
-      - SECRET_KEY=${SECRET_KEY:-innovation_v2_premium_dark}
+      - SECRET_KEY=innovation_v2_premium_dark
     networks:
       - innovation_net
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
 
-  # ============================================
-  # AI SERVICE
-  # ============================================
   ai_service:
     build: ./services/ai
     container_name: ai_service
-    environment:
-      - GEMINI_KEYS=${GEMINI_KEYS}
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
     networks:
       - innovation_net
 
-  # ============================================
-  # CORE SERVICE
-  # ============================================
   core_service:
     build: ./services/core
     container_name: core_service
@@ -62,11 +46,9 @@ services:
     networks:
       - innovation_net
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
 
-  # ============================================
-  # FRONTEND
-  # ============================================
   frontend:
     build:
       context: ./frontend
@@ -76,16 +58,12 @@ services:
     ports:
       - "80:3000"
     environment:
-      - NEXT_PUBLIC_API_URL=/api
       - API_URL=http://kong:8000
     depends_on:
       - kong
     networks:
       - innovation_net
 
-  # ============================================
-  # DATABASES
-  # ============================================
   postgres:
     image: postgres:15-alpine
     container_name: innovation_db_v2
@@ -95,6 +73,11 @@ services:
       - POSTGRES_DB=innovation
     volumes:
       - postgres_data_v2:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U user -d innovation" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     networks:
       - innovation_net
 
