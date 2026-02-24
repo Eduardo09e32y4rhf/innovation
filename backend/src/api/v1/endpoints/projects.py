@@ -34,6 +34,7 @@ class TaskUpdate(BaseModel):
 
 from services.audit_service import log_event
 
+
 @router.post("/")
 async def create_project(
     data: ProjectCreate,
@@ -47,7 +48,7 @@ async def create_project(
     )
     db.add(project)
     db.flush()
-    
+
     log_event(
         db,
         "PROJECT_CREATE",
@@ -55,9 +56,9 @@ async def create_project(
         company_id=current_user.id,
         entity_type="project",
         entity_id=project.id,
-        details=f"Criou projeto: {project.name}"
+        details=f"Criou projeto: {project.name}",
     )
-    
+
     db.commit()
     db.refresh(project)
     return project

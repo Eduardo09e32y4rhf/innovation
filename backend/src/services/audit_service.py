@@ -20,6 +20,7 @@ XP_MAP = {
 from domain.models.gamification import Mission, UserMission
 from datetime import datetime, timezone, time
 
+
 def log_event(
     db: Session,
     action: str,
@@ -40,38 +41,47 @@ def log_event(
         details=details,
     )
     db.add(entry)
-    
+
     # 2. Award Base Points (XP)
     if user_id:
         user = db.query(User).filter(User.id == user_id).first()
         if user:
             xp_to_add = XP_MAP.get(action, 0)
-            
+
             # 3. Check for Missions (Fase 4.2)
             # Find an active mission triggered by this action
-            mission = db.query(Mission).filter(
-                Mission.trigger_action == action,
-                Mission.is_active == True
-            ).first()
-            
+            mission = (
+                db.query(Mission)
+                .filter(Mission.trigger_action == action, Mission.is_active == True)
+                .first()
+            )
+
             if mission:
                 # Check if user already completed this mission TODAY (Daily Mission logic)
-                today_start = datetime.combine(datetime.now(timezone.utc).date(), time.min)
-                already_done = db.query(UserMission).filter(
-                    UserMission.user_id == user_id,
-                    UserMission.mission_id == mission.id,
-                    UserMission.completed_at >= today_start
-                ).first()
-                
+                today_start = datetime.combine(
+                    datetime.now(timezone.utc).date(), time.min
+                )
+                already_done = (
+                    db.query(UserMission)
+                    .filter(
+                        UserMission.user_id == user_id,
+                        UserMission.mission_id == mission.id,
+                        UserMission.completed_at >= today_start,
+                    )
+                    .first()
+                )
+
                 if not already_done:
                     # Mark as completed and add bonus XP
                     db.add(UserMission(user_id=user_id, mission_id=mission.id))
                     xp_to_add += mission.xp_reward
-                    print(f"MISSION COMPLETED: {mission.title} (+{mission.xp_reward} XP extra)")
+                    print(
+                        f"MISSION COMPLETED: {mission.title} (+{mission.xp_reward} XP extra)"
+                    )
 
             if xp_to_add > 0:
                 if not user.points:
                     user.points = 0
                 user.points += xp_to_add
-    
+
     db.commit()

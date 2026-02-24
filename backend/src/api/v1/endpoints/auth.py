@@ -75,6 +75,7 @@ def login(request: Request, data: LoginRequest, db: Session = Depends(get_db)):
         }
 
     from services.audit_service import log_event
+
     log_event(db, "LOGIN", user_id=user.id)
 
     return {
@@ -159,7 +160,9 @@ async def reset_password(data: dict, db: Session = Depends(get_db)):
     new_password = data.get("password")
 
     if not token or not new_password:
-        raise HTTPException(status_code=400, detail="Token e nova senha são obrigatórios")
+        raise HTTPException(
+            status_code=400, detail="Token e nova senha são obrigatórios"
+        )
 
     user_id = verify_reset_token(token)
     if not user_id:

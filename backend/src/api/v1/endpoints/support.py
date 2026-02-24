@@ -26,18 +26,19 @@ async def create_ticket(
     company_id = company.id if company else None
 
     from services.audit_service import log_event
+
     ticket = support_service.create_ticket(
         db, data.title, data.description, current_user.id, company_id
     )
 
     log_event(
-        db, 
-        "TICKET_CREATE", 
-        user_id=current_user.id, 
+        db,
+        "TICKET_CREATE",
+        user_id=current_user.id,
         company_id=company_id,
         entity_type="ticket",
         entity_id=ticket.id,
-        details=f"Criou ticket de suporte: {ticket.title}"
+        details=f"Criou ticket de suporte: {ticket.title}",
     )
 
     return ticket
@@ -60,6 +61,7 @@ async def list_all_tickets(
 ):
     """Admin: lista todos os tickets"""
     from core.roles import Role
+
     if current_user.role not in [Role.ADM.value, Role.COMPANY.value]:
         raise HTTPException(status_code=403, detail="Acesso negado")
     from domain.models.ticket import Ticket
@@ -89,7 +91,11 @@ async def get_reply(
     current_user: User = Depends(get_current_user),
 ):
     # Sanitização básica contra Prompt Injection
-    clean_description = description[:1000].replace("ignore previous instructions", "").replace("system prompt", "")
+    clean_description = (
+        description[:1000]
+        .replace("ignore previous instructions", "")
+        .replace("system prompt", "")
+    )
     return {"reply": support_service.get_ai_smart_reply(ticket_id, clean_description)}
 
 

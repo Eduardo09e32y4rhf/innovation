@@ -19,36 +19,43 @@ router = APIRouter(prefix="/api/ai", tags=["ai-services"])
 
 from core.ai_key_manager import ai_key_manager
 
-async def _gemini_generate_with_retry(model, contents, config=None, system_instruction=None):
+
+async def _gemini_generate_with_retry(
+    model, contents, config=None, system_instruction=None
+):
     import google.genai as genai
-    
+
     active_keys = ai_key_manager.get_all_active_keys()
     last_error = None
-    
+
     for api_key in active_keys:
         try:
             client = genai.Client(api_key=api_key)
-            
+
             # Ajustar config para incluir system_instruction se fornecida
             final_config = config or {}
             if system_instruction:
                 final_config["system_instruction"] = system_instruction
-            
+
             response = client.models.generate_content(
-                model=model,
-                contents=contents,
-                config=final_config
+                model=model, contents=contents, config=final_config
             )
             return response.text
         except Exception as e:
-            if "429" in str(e) or "quota" in str(e).lower() or "API_KEY_INVALID" in str(e):
+            if (
+                "429" in str(e)
+                or "quota" in str(e).lower()
+                or "API_KEY_INVALID" in str(e)
+            ):
                 print(f"⚠️ Chave falhou nos serviços ({api_key[:10]}...): {e}")
                 ai_key_manager.mark_as_exhausted(api_key)
                 last_error = e
                 continue
             raise e
-            
-    raise HTTPException(503, f"Todas as chaves falharam nos serviços de IA. {str(last_error)}")
+
+    raise HTTPException(
+        503, f"Todas as chaves falharam nos serviços de IA. {str(last_error)}"
+    )
 
 
 # ─── RESUME PARSING ────────────────────────────────────────────────────────────
@@ -102,9 +109,10 @@ Responda SOMENTE com o JSON válido, sem markdown.
             model="gemini-2.0-flash",
             contents=text[:16000],
             system_instruction="Você é um especialista em parsing de currículos. Extraia os dados e retorne SOMENTE um JSON válido.",
-            config={"response_mime_type": "application/json"}
+            config={"response_mime_type": "application/json"},
         )
         import json, re
+
         raw = response_text.strip()
         raw = re.sub(r"```json|```", "", raw).strip()
         return json.loads(raw)
@@ -112,13 +120,15 @@ Responda SOMENTE com o JSON válido, sem markdown.
         # Fallback para 1.5 se o 2.0 falhar geral ou se persistir erro após rotação
         try:
             response_text = await _gemini_generate_with_retry(
-                model="gemini-1.5-flash",
-                contents=prompt
+                model="gemini-1.5-flash", contents=prompt
             )
             raw = re.sub(r"```json|```", "", response_text.strip()).strip()
             return json.loads(raw)
         except:
-            raise HTTPException(status_code=500, detail=f"Erro ao processar currículo após tentativas: {e}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Erro ao processar currículo após tentativas: {e}",
+            )
 
 
 # ─── DISC / BIG5 ANALYSIS ──────────────────────────────────────────────────────
@@ -198,21 +208,23 @@ Retorne um JSON com:
   "fit_recommendation": "Alto/Médio/Baixo",
   "fit_justification": "1 parágrafo"
 }}""",
-            config={"response_mime_type": "application/json"}
+            config={"response_mime_type": "application/json"},
         )
         import json, re
+
         raw = re.sub(r"```json|```", "", response_text.strip()).strip()
         return json.loads(raw)
     except Exception as e:
         try:
             response_text = await _gemini_generate_with_retry(
-                model="gemini-1.5-flash",
-                contents=prompt
+                model="gemini-1.5-flash", contents=prompt
             )
             raw = re.sub(r"```json|```", "", response_text.strip()).strip()
             return json.loads(raw)
         except:
-            raise HTTPException(status_code=500, detail=f"Erro na análise DISC após rotação: {e}")
+            raise HTTPException(
+                status_code=500, detail=f"Erro na análise DISC após rotação: {e}"
+            )
 
 
 # ─── TECH TEST GENERATOR ───────────────────────────────────────────────────────
@@ -280,7 +292,7 @@ Retorne SOMENTE um JSON válido com a seguinte estrutura:
     }}
   ]
 }}""",
-            config={"response_mime_type": "application/json"}
+            config={"response_mime_type": "application/json"},
         )
         import json, re
 
@@ -290,13 +302,14 @@ Retorne SOMENTE um JSON válido com a seguinte estrutura:
         # Fallback para 1.5
         try:
             response_text = await _gemini_generate_with_retry(
-                model="gemini-1.5-flash",
-                contents=prompt
+                model="gemini-1.5-flash", contents=prompt
             )
             raw = re.sub(r"```json|```", "", response_text.strip()).strip()
             return json.loads(raw)
         except:
-            raise HTTPException(status_code=500, detail=f"Erro ao gerar teste após rotação: {e}")
+            raise HTTPException(
+                status_code=500, detail=f"Erro ao gerar teste após rotação: {e}"
+            )
 
 
 # ─── KILLER QUESTIONS SUGGESTION ──────────────────────────────────────────────
@@ -336,12 +349,13 @@ Responda SOMENTE com JSON válido, sem markdown.
 """
     try:
         response_text = await _gemini_generate_with_retry(
-            model="gemini-1.5-flash",
-            contents=prompt
+            model="gemini-1.5-flash", contents=prompt
         )
         import json, re
 
         raw = re.sub(r"```json|```", "", response_text.strip()).strip()
         return json.loads(raw)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro ao sugerir perguntas após rotação: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"Erro ao sugerir perguntas após rotação: {e}"
+        )

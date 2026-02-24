@@ -6,6 +6,7 @@ from typing import Dict, Any, List
 
 from core.ai_key_manager import ai_key_manager
 
+
 class AIATSService:
     def __init__(self):
         pass
@@ -13,23 +14,26 @@ class AIATSService:
     async def _generate(self, prompt: str) -> str:
         active_keys = ai_key_manager.get_all_active_keys()
         last_error = None
-        
+
         for api_key in active_keys:
             try:
                 client = genai.Client(api_key=api_key)
                 response = client.models.generate_content(
-                    model="gemini-2.0-flash",
-                    contents=prompt
+                    model="gemini-2.0-flash", contents=prompt
                 )
                 return response.text
             except Exception as e:
-                if "429" in str(e) or "quota" in str(e).lower() or "API_KEY_INVALID" in str(e):
+                if (
+                    "429" in str(e)
+                    or "quota" in str(e).lower()
+                    or "API_KEY_INVALID" in str(e)
+                ):
                     print(f"⚠️ Chave falhou no serviço ATS ({api_key[:10]}...): {e}")
                     ai_key_manager.mark_as_exhausted(api_key)
                     last_error = e
                     continue
                 raise e
-        
+
         return f"Erro no ATS: Todas as chaves falharam. {last_error}"
 
     async def parse_resume(self, resume_text: str) -> Dict[str, Any]:

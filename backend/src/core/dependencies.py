@@ -15,34 +15,33 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
 from typing import Optional
 
+
 def get_current_user(
-    token: Optional[str] = Depends(oauth2_scheme),
+    token: str = Depends(oauth2_scheme),
     db: Session = Depends(get_db),
 ) -> User:
     """
-    Dependency to get the current user. 
-    TEMPORARY: Released for testing without login. Returns the first user in DB if token is missing.
+    Dependency to get the current user from the JWT token.
+    Enforces strict authentication.
     """
-    if not token or token == "undefined":
-        user = db.query(User).first()
-        if user:
-            return user
-        raise HTTPException(status_code=401, detail="Autenticação necessária (nenhum usuário encontrado no banco)")
-
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        user_id = int(payload.get("sub"))
-        user = db.query(User).filter(User.id == user_id).first()
-        if not user:
-            # Fallback para o primeiro usuário se o ID do token não existir mais
-            return db.query(User).first()
-        return user
+        user_id_str: str = payload.get("sub")
+        if user_id_str is None:
+            raise credentials_exception
+        user_id = int(user_id_str)
     except (JWTError, ValueError):
-        # Fallback para teste em caso de erro no decode
-        user = db.query(User).first()
-        if user:
-            return user
-        raise HTTPException(status_code=401, detail="Token inválido e nenhum usuário disponível")
+        raise credentials_exception
+
+    user = db.query(User).filter(User.id == user_id).first()
+    if user is None:
+        raise credentials_exception
+    return user
 
 
 def require_active_company(

@@ -43,6 +43,7 @@ def create_question(
 ):
     # Verifica se a vaga pertence à empresa
     from domain.models.job import Job
+
     job = db.query(Job).filter(Job.id == job_id, Job.company_id == company_id).first()
     if not job:
         raise HTTPException(status_code=403, detail="Vaga não pertence à sua empresa")
@@ -64,6 +65,7 @@ def delete_question(
 ):
     # Verifica se a vaga pertence à empresa
     from domain.models.job import Job
+
     job = db.query(Job).filter(Job.id == job_id, Job.company_id == company_id).first()
     if not job:
         raise HTTPException(status_code=403, detail="Acesso negado")

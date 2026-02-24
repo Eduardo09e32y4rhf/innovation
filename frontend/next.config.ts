@@ -7,7 +7,7 @@ const nextConfig: NextConfig = {
     return [
       {
         source: '/api/:path*',
-        destination: 'http://innovation_gateway:8000/api/:path*',
+        destination: `${process.env.API_URL || 'http://innovation_gateway:8000'}/api/:path*`,
       },
     ];
   },
