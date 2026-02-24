@@ -7,7 +7,7 @@ import logging
 
 from database import get_db, Base, engine
 import models
-from schemas import JobCreate, JobOut, TransactionOut, TicketOut
+from schemas import JobCreate, JobOut, TransactionOut, TicketOut, SystemAnnouncementCreate, SystemAnnouncementOut
 
 # Configuração de Logs
 logging.basicConfig(level=logging.INFO)
@@ -89,7 +89,9 @@ async def get_dashboard_metrics(current_user: models.User = Depends(get_current_
         "user": {
             "name": current_user.full_name,
             "points": user_points, 
-            "level": level
+            "level": level,
+            "xp_in_level": user_points % 500,
+            "next_level_xp": 500
         },
         "revenue": {
             "current": current_revenue,
@@ -149,6 +151,30 @@ async def create_job(data: JobCreate, current_user: models.User = Depends(get_cu
     db.commit()
     db.refresh(job)
     return job
+
+# --- System Announcement Endpoints ---
+
+@app.get("/system/announcements", response_model=List[SystemAnnouncementOut])
+async def list_announcements(db: Session = Depends(get_db)):
+    now = datetime.now(timezone.utc)
+    # Get active announcements that haven't expired
+    return db.query(models.SystemAnnouncement).filter(
+        models.SystemAnnouncement.is_active == True,
+        models.SystemAnnouncement.start_at <= now,
+        (models.SystemAnnouncement.end_at == None) | (models.SystemAnnouncement.end_at >= now)
+    ).all()
+
+@app.post("/system/announcements", response_model=SystemAnnouncementOut)
+async def create_announcement(data: SystemAnnouncementCreate, current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
+    # Simple check: only admins can create announcements (assuming role based on your RBAC plans)
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Only admins can create system announcements")
+    
+    announcement = models.SystemAnnouncement(**data.dict())
+    db.add(announcement)
+    db.commit()
+    db.refresh(announcement)
+    return announcement
 
 @app.get("/health")
 async def health_check():

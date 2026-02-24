@@ -84,3 +84,13 @@ class UserMission(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     mission_id = Column(Integer, ForeignKey("missions.id"), nullable=False)
     completed_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+class SystemAnnouncement(Base):
+    __tablename__ = "system_announcements"
+    id = Column(Integer, primary_key=True, index=True)
+    message = Column(Text, nullable=False)
+    type = Column(String(20), default="info") # info, warning, danger
+    is_active = Column(Boolean, default=True)
+    start_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    end_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))

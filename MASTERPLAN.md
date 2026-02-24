@@ -37,7 +37,7 @@
 - [x] **Avaliação 360º:** Peer, Manager e Subordinate reviews com agregação de notas.
 - [x] **PDI (Plano de Desenvolvimento Individual):** Metas trimestrais com barra de progresso interativa.
 - [x] **Termômetro de Humor:** Integrado ao dashboard de RH.
-- [ ] **Gamificação:** Medalhas e pontuação por bater metas (Pendente UI de Conquistas).
+- [x] **Gamificação:** Medalhas e pontuação por bater metas (UI de Conquistas implementada).
 
 ### 2.3. Departamento Pessoal (Básico)
 - [x] **Gestão de Férias:** Calendário e solicitações.
@@ -119,7 +119,7 @@
 
 ### 6.5. Página de Status & Manutenção (NOC)
 - [x] **Dashboard de Saúde:** Status em tempo real de API e Banco de dados no frontend.
-- [ ] **Manutenção Programada:** Alertas de banner (Pendente).
+- [/] **Manutenção Programada:** Alertas de banner (Em implementação).
 - [x] **Página Pública de Status:** `/status` funcional e monitorável.
 - [x] **Assinatura de Alertas:** Alertas via webhook de status.
 

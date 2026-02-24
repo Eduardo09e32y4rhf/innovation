@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
+import AnnouncementBanner from '../components/AnnouncementBanner'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -17,6 +18,7 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" className="dark">
       <body className={`${inter.className} min-h-screen bg-black text-white antialiased`}>
+        <AnnouncementBanner />
         {children}
       </body>
     </html>

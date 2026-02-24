@@ -10,6 +10,7 @@ import {
 import { useEffect, useState } from 'react';
 import AppLayout from '../../components/AppLayout';
 import { AuthService, DashboardService } from '../../services/api';
+import GamificationDashboard from '../../components/GamificationDashboard';
 
 // ─── TYPES ────────────────────────────────────────────────────────────────
 interface UserProfile {
@@ -146,24 +147,7 @@ function ActivityHeatmap({ data }: { data: Record<string, number> }) {
     );
 }
 
-// ─── XP BAR ────────────────────────────────────────────────────────────────
-function XpBar({ xp, maxXp, level }: { xp: number; maxXp: number; level: number }) {
-    const pct = Math.min((xp / maxXp) * 100, 100);
-    return (
-        <div className="w-full">
-            <div className="flex items-center justify-between mb-1.5">
-                <span className="text-[10px] text-white/40 font-medium">Nível {level} → {level + 1}</span>
-                <span className="text-[10px] text-[#8b5cf6] font-bold">{xp} / {maxXp} XP</span>
-            </div>
-            <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
-                <div
-                    className="h-full rounded-full bg-gradient-to-r from-[#8b5cf6] to-[#a78bfa] transition-all duration-1000"
-                    style={{ width: `${pct}%` }}
-                />
-            </div>
-        </div>
-    );
-}
+// (XpBar removed as it is now inside GamificationDashboard)
 
 
 // ─── MAIN PAGE ─────────────────────────────────────────────────────────────
@@ -270,51 +254,18 @@ export default function DashboardPage() {
 
                 <div className="p-8 space-y-8">
 
-                    {/* ── WELCOME HERO ─────────────────────────────────────────────── */}
-                    <div className="relative bg-gradient-to-r from-[#8b5cf6]/10 via-white/[0.02] to-transparent border border-white/5 rounded-3xl p-6 overflow-hidden">
-                        <div className="absolute right-0 top-0 bottom-0 w-[300px] bg-gradient-to-l from-[#8b5cf6]/8 to-transparent" />
-                        <div className="relative flex items-center justify-between gap-6">
-                            <div className="flex items-center gap-5">
-                                {/* Avatar grande */}
-                                <div className="relative shrink-0">
-                                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#8b5cf6] to-[#7c3aed] flex items-center justify-center text-white font-black text-xl shadow-2xl shadow-[#8b5cf6]/30">
-                                        {user ? getInitials(user.name) : '?'}
-                                    </div>
-                                    <div className="absolute -bottom-1 -right-1 bg-yellow-400 rounded-md px-1.5 py-0.5 text-[9px] font-black text-black">
-                                        Nv.{metrics?.user?.level ?? 1}
-                                    </div>
-                                </div>
-                                <div>
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <Flame className="w-4 h-4 text-orange-400" />
-                                        <span className="text-xs text-orange-400 font-bold">7 dias seguidos!</span>
-                                    </div>
-                                    <h1 className="text-2xl font-black text-white leading-tight">
-                                        Olá, {user ? user.name.split(' ')[0] : 'Utilizador'} 👋
-                                    </h1>
-                                    <p className="text-sm text-white/40 mt-1">
-                                        Você está no <span className="text-[#a78bfa] font-semibold">Top&nbsp;5%</span> dos utilizadores mais ativos esta semana.
-                                    </p>
-                                </div>
-                            </div>
-                            <div className="hidden lg:flex flex-col items-end gap-2 shrink-0">
-                                <div className="flex items-center gap-2 text-sm font-medium text-white/60">
-                                    <Trophy className="w-4 h-4 text-yellow-400" />
-                                    <span>{metrics?.user?.points?.toLocaleString() ?? 0} XP acumulados</span>
-                                </div>
-                                <div className="w-48">
-                                    <XpBar xp={metrics?.user?.xp_in_level ?? 0} maxXp={metrics?.user?.next_level_xp ?? 1000} level={metrics?.user?.level ?? 1} />
-                                </div>
-                                <div className="flex gap-1.5 mt-1">
-                                    {achievements.map((a, i) => (
-                                        <div key={i} title={a.label} className={`text-lg transition-all ${a.earned ? 'grayscale-0' : 'grayscale opacity-30'} hover:scale-125`}>
-                                            {a.icon}
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    {/* ── GAMIFICATION DASHBOARD (Level, XP, Missions, Achievements) ────────────────── */}
+                    <GamificationDashboard
+                        user={{
+                            name: user?.name || 'Utilizador',
+                            points: metrics?.user?.points ?? 0,
+                            level: metrics?.user?.level ?? 1,
+                            xp_in_level: metrics?.user?.xp_in_level ?? 0,
+                            next_level_xp: metrics?.user?.next_level_xp ?? 1000
+                        }}
+                        missions={missions}
+                        achievements={achievements}
+                    />
 
                     {/* ── STATS GRID ───────────────────────────────────────────────── */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -390,41 +341,7 @@ export default function DashboardPage() {
                     {/* ── BOTTOM ROW ───────────────────────────────────────────────── */}
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-                        {/* Missões Diárias */}
-                        <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6">
-                            <div className="flex items-center justify-between mb-5">
-                                <div>
-                                    <h2 className="text-sm font-bold text-white">Missões Diárias</h2>
-                                    <p className="text-[10px] text-white/30">{missions.length > 0 ? missions.filter(m => m.done).length : 0}/{missions.length} completas</p>
-                                </div>
-                                <Rocket className="w-5 h-5 text-[#8b5cf6]" />
-                            </div>
-                            {/* Progress ring */}
-                            <div className="flex justify-center mb-5">
-                                <div className="relative w-20 h-20">
-                                    <svg className="w-full h-full -rotate-90" viewBox="0 0 80 80">
-                                        <circle cx="40" cy="40" r="34" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="6" />
-                                        <circle cx="40" cy="40" r="34" fill="none" stroke="#8b5cf6" strokeWidth="6"
-                                            strokeDasharray={`${2 * Math.PI * 34}`}
-                                            strokeDashoffset={`${2 * Math.PI * 34 * (1 - (missions.length > 0 ? missions.filter(m => m.done).length / missions.length : 0))}`}
-                                            strokeLinecap="round" className="transition-all duration-1000" />
-                                    </svg>
-                                    <div className="absolute inset-0 flex items-center justify-center">
-                                        <span className="text-lg font-black text-white">{missions.length > 0 ? Math.round(missions.filter(m => m.done).length / missions.length * 100) : 0}%</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="space-y-2">
-                                {missions.map(m => (
-                                    <div key={m.id}
-                                        className={`w-full flex items-center gap-3 text-left px-3 py-2 rounded-xl transition-all hover:bg-white/5 ${m.done ? 'opacity-50' : ''}`}>
-                                        <CheckCircle2 className={`w-4 h-4 shrink-0 transition-colors ${m.done ? 'text-green-500' : 'text-white/15'}`} />
-                                        <span className={`flex-1 text-xs ${m.done ? 'line-through text-white/30' : 'text-white/70'}`}>{m.title}</span>
-                                        <span className="text-[10px] font-bold text-[#8b5cf6]">+{m.xp_reward} XP</span>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
+                        {/* Espaço reservado para outro componente se necessário ou remover se o layout ficar equilibrado */}
 
                         {/* Atividade Recente + Heatmap */}
                         <div className="lg:col-span-2 bg-white/[0.02] border border-white/5 rounded-2xl p-6">

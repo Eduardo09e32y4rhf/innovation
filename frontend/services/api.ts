@@ -53,23 +53,23 @@ export const AuthService = {
 // ── DASHBOARD ────────────────────────────────────────────────────────────
 export const DashboardService = {
     getMetrics: async () => {
-        const res = await api.get('/dashboard/metrics');
+        const res = await api.get('/core/dashboard/metrics');
         return res.data;
     },
     getRecentActivity: async () => {
-        const res = await api.get('/dashboard/recent-activity');
+        const res = await api.get('/core/dashboard/recent-activity');
         return res.data;
     },
     getKanban: async () => {
-        const res = await api.get('/dashboard/kanban');
+        const res = await api.get('/core/dashboard/kanban');
         return res.data;
     },
     getHeatmap: async () => {
-        const res = await api.get('/dashboard/heatmap');
+        const res = await api.get('/core/dashboard/heatmap');
         return res.data;
     },
     getMissions: async () => {
-        const res = await api.get('/dashboard/missions');
+        const res = await api.get('/core/dashboard/missions');
         return res.data;
     },
 };
@@ -77,34 +77,34 @@ export const DashboardService = {
 // ── JOBS / ATS ────────────────────────────────────────────────────────────
 export const ATSService = {
     getJobs: async (params?: { status?: string; search?: string }) => {
-        const res = await api.get('/jobs', { params });
+        const res = await api.get('/core/jobs', { params });
         return res.data;
     },
     getPublicJobs: async () => {
-        const res = await api.get('/jobs');
+        const res = await api.get('/core/jobs');
         return res.data;
     },
     getCompanyJobs: async () => {
-        const res = await api.get('/jobs/company');
+        const res = await api.get('/core/jobs/company');
         return res.data;
     },
     createJob: async (data: Record<string, unknown>) => {
-        const res = await api.post('/jobs', data);
+        const res = await api.post('/core/jobs', data);
         return res.data;
     },
     updateJob: async (id: number, data: Record<string, unknown>) => {
-        const res = await api.patch(`/jobs/${id}`, data);
+        const res = await api.patch(`/core/jobs/${id}`, data);
         return res.data;
     },
     deleteJob: async (id: number) => {
-        await api.delete(`/jobs/${id}`);
+        await api.delete(`/core/jobs/${id}`);
     },
     getJobApplications: async (jobId: number) => {
-        const res = await api.get(`/jobs/${jobId}/applications`);
+        const res = await api.get(`/core/jobs/${jobId}/applications`);
         return res.data;
     },
     applyToJob: async (jobId: number, data: Record<string, unknown>) => {
-        const res = await api.post('/applications', { job_id: jobId, ...data });
+        const res = await api.post('/core/applications', { job_id: jobId, ...data });
         return res.data;
     },
     analyzeCandidate: async (resumeText: string, jobDescription: string) => {
@@ -116,27 +116,27 @@ export const ATSService = {
 // ── FINANCE ──────────────────────────────────────────────────────────────
 export const FinanceService = {
     getSummary: async () => {
-        const res = await api.get('/finance/summary');
+        const res = await api.get('/core/finance/summary');
         return res.data;
     },
     getTransactions: async () => {
-        const res = await api.get('/finance/transactions');
+        const res = await api.get('/core/finance/transactions');
         return res.data;
     },
     getPrediction: async () => {
-        const res = await api.get('/finance/prediction');
+        const res = await api.get('/core/finance/prediction');
         return res.data;
     },
     getAnomalies: async () => {
-        const res = await api.get('/finance/anomalies');
+        const res = await api.get('/core/finance/anomalies');
         return res.data;
     },
     createTransaction: async (data: { description: string; amount: number; type: string; due_date: string }) => {
-        const res = await api.post('/finance/transactions', data);
+        const res = await api.post('/core/finance/transactions', data);
         return res.data;
     },
     getLogs: async () => {
-        const res = await api.get('/finance/logs');
+        const res = await api.get('/core/finance/logs');
         return res.data;
     },
 };
@@ -144,38 +144,38 @@ export const FinanceService = {
 // ── PROJECTS ─────────────────────────────────────────────────────────────
 export const ProjectService = {
     getProjects: async () => {
-        const res = await api.get('/projects/');
+        const res = await api.get('/core/projects/');
         return res.data;
     },
     createProject: async (data: { name: string; description?: string }) => {
-        const res = await api.post('/projects/', data);
+        const res = await api.post('/core/projects/', data);
         return res.data;
     },
     deleteProject: async (id: number) => {
-        await api.delete(`/projects/${id}`);
+        await api.delete(`/core/projects/${id}`);
     },
     getTasks: async () => {
-        const res = await api.get('/projects/all-tasks');
+        const res = await api.get('/core/projects/all-tasks');
         return res.data;
     },
     createTask: async (data: Record<string, unknown>) => {
-        const res = await api.post('/projects/tasks', data);
+        const res = await api.post('/core/projects/tasks', data);
         return res.data;
     },
     updateTask: async (id: number, data: Record<string, unknown>) => {
-        const res = await api.patch(`/projects/tasks/${id}`, data);
+        const res = await api.patch(`/core/projects/tasks/${id}`, data);
         return res.data;
     },
     startTimeTracking: async (taskId: number) => {
-        const res = await api.post(`/projects/tasks/${taskId}/start`);
+        const res = await api.post(`/core/projects/tasks/${taskId}/start`);
         return res.data;
     },
     stopTimeTracking: async (entryId: number) => {
-        const res = await api.post(`/projects/time-entries/${entryId}/stop`);
+        const res = await api.post(`/core/projects/time-entries/${entryId}/stop`);
         return res.data;
     },
     getProjectStats: async (projectId: number) => {
-        const res = await api.get(`/projects/${projectId}/stats`);
+        const res = await api.get(`/core/projects/${projectId}/stats`);
         return res.data;
     },
 };
@@ -183,19 +183,19 @@ export const ProjectService = {
 // ── SUPPORT ──────────────────────────────────────────────────────────────
 export const SupportService = {
     getTickets: async () => {
-        const res = await api.get('/support/tickets');
+        const res = await api.get('/core/support/tickets');
         return res.data;
     },
     createTicket: async (data: { title: string; description: string }) => {
-        const res = await api.post('/support/tickets', data);
+        const res = await api.post('/core/support/tickets', data);
         return res.data;
     },
     getSystemStatus: async () => {
-        const res = await api.get('/support/system-status');
+        const res = await api.get('/core/support/system-status');
         return res.data;
     },
     getSmartReply: async (ticketId: number, description: string) => {
-        const res = await api.get(`/support/tickets/${ticketId}/smart-reply`, { params: { description } });
+        const res = await api.get(`/core/support/tickets/${ticketId}/smart-reply`, { params: { description } });
         return res.data;
     },
 };
@@ -203,19 +203,19 @@ export const SupportService = {
 // ── RH ───────────────────────────────────────────────────────────────────
 export const RHService = {
     getLeaveRequests: async () => {
-        const res = await api.get('/rh/leave-requests');
+        const res = await api.get('/core/rh/leave-requests');
         return res.data;
     },
     requestLeave: async (data: { start_date: string; end_date: string; reason: string }) => {
-        const res = await api.post('/rh/leave-requests', data);
+        const res = await api.post('/core/rh/leave-requests', data);
         return res.data;
     },
     submitPulse: async (score: number, comment?: string) => {
-        const res = await api.post('/rh/pulse', { score, comment });
+        const res = await api.post('/core/rh/pulse', { score, comment });
         return res.data;
     },
     getBadges: async (employeeId: number) => {
-        const res = await api.get(`/rh/employees/${employeeId}/badges`);
+        const res = await api.get(`/core/rh/employees/${employeeId}/badges`);
         return res.data;
     },
 };
@@ -223,7 +223,7 @@ export const RHService = {
 // ── PAYMENTS ─────────────────────────────────────────────────────────────
 export const PaymentService = {
     createCheckout: async (plan: string) => {
-        const res = await api.post('/payments/checkout', { plan });
+        const res = await api.post('/core/payments/checkout', { plan });
         return res.data;
     },
 };
@@ -231,11 +231,22 @@ export const PaymentService = {
 // ── ENTERPRISE ───────────────────────────────────────────────────────────
 export const EnterpriseService = {
     getRealtimeAnalytics: async () => {
-        const res = await api.get('/enterprise/analytics/realtime');
+        const res = await api.get('/core/enterprise/analytics/realtime');
         return res.data;
     },
     sendSupportMessage: async (message: string) => {
-        const res = await api.post('/enterprise/support/chat', { message, context: {} });
+        const res = await api.post('/core/enterprise/support/chat', { message, context: {} });
+        return res.data;
+    },
+};
+
+export const SystemConfigService = {
+    getAnnouncements: async () => {
+        const res = await api.get('/core/system/announcements');
+        return res.data;
+    },
+    createAnnouncement: async (data: any) => {
+        const res = await api.post('/core/system/announcements', data);
         return res.data;
     },
 };

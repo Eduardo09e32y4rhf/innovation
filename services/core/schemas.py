@@ -40,3 +40,19 @@ class TicketOut(TicketBase):
     created_at: datetime
     class Config:
         from_attributes = True
+
+class SystemAnnouncementBase(BaseModel):
+    message: str
+    type: Optional[str] = "info"
+    is_active: Optional[bool] = True
+    start_at: Optional[datetime] = None
+    end_at: Optional[datetime] = None
+
+class SystemAnnouncementCreate(SystemAnnouncementBase):
+    pass
+
+class SystemAnnouncementOut(SystemAnnouncementBase):
+    id: int
+    created_at: datetime
+    class Config:
+        from_attributes = True
