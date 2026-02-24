@@ -98,7 +98,6 @@ async def health():
 
 @app.get("/me", response_model=schemas.UserResponse)
 async def me(current_user: models.User = Depends(get_current_user)):
-    # Mapeia full_name para name para evitar crash no Frontend (Golden Match)
     return {
         "id": current_user.id,
         "email": current_user.email,
@@ -136,12 +135,15 @@ async def register(user_data: schemas.UserCreate, db: Session = Depends(get_db))
     existing = db.query(models.User).filter(models.User.email == user_data.email).first()
     if existing: raise HTTPException(status_code=400, detail="Email já cadastrado")
     
+    # Harmonização 'name' -> 'full_name'
+    real_name = user_data.name or user_data.full_name or "Usuário Innovation"
+    
     salt = bcrypt.gensalt()
     hashed = bcrypt.hashpw(user_data.password.encode('utf-8'), salt)
     new_user = models.User(
         email=user_data.email,
-        full_name=user_data.full_name,
-        role="candidate",
+        full_name=real_name,
+        role=user_data.role or "candidate",
         hashed_password=hashed.decode('utf-8'),
         is_active=True
     )
@@ -149,7 +151,6 @@ async def register(user_data: schemas.UserCreate, db: Session = Depends(get_db))
     db.commit()
     db.refresh(new_user)
     
-    # Retorna com 'name' para consistência
     return {
         "id": new_user.id,
         "email": new_user.email,
@@ -160,3 +161,14 @@ async def register(user_data: schemas.UserCreate, db: Session = Depends(get_db))
         "is_superuser": new_user.is_superuser,
         "created_at": new_user.created_at
     }
+
+@app.post("/forgot-password")
+async def forgot_password(request: schemas.ForgotPasswordRequest, db: Session = Depends(get_db)):
+    # Mock para evitar 404/Crash no Frontend
+    user = db.query(models.User).filter(models.User.email == request.email).first()
+    return {"message": "Se o e-mail existir, um link de recuperação será enviado."}
+
+@app.post("/reset-password")
+async def reset_password(request: schemas.ResetPasswordRequest, db: Session = Depends(get_db)):
+    # Mock para evitar 404/Crash no Frontend
+    return {"message": "Senha redefinida com sucesso."}

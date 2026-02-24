@@ -1,11 +1,13 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 from datetime import datetime
 from typing import Optional
 
 class UserCreate(BaseModel):
     email: EmailStr
     password: str
-    full_name: str
+    name: Optional[str] = None # Suporte para o campo 'name' do frontend
+    full_name: Optional[str] = None # Fallback
+    role: Optional[str] = "candidate"
 
 class LoginRequest(BaseModel):
     email: EmailStr
@@ -29,3 +31,10 @@ class TokenResponse(BaseModel):
     token_type: str
     role: str
     is_new_user: bool
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
