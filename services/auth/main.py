@@ -38,16 +38,12 @@ async def check_db_ready():
     max_retries = 30
     for i in range(max_retries):
         try:
-            # Tenta conectar e executar um comando simples
             with engine.connect() as conn:
                 conn.execute(text("SELECT 1"))
             
             logger.info("✅ Conexão com o Banco de Dados estabelecida!")
-            
-            # Sincroniza tabelas
             Base.metadata.create_all(bind=engine)
             
-            # Seed do Admin
             db = SessionLocal()
             try:
                 admin = db.query(models.User).filter(models.User.email == "admin@innovation.ia").first()
@@ -58,6 +54,7 @@ async def check_db_ready():
                     admin = models.User(
                         email="admin@innovation.ia",
                         full_name="Administrador Master",
+                        role="admin", # Campo role incluído
                         hashed_password=hashed.decode('utf-8'),
                         is_active=True,
                         is_superuser=True
@@ -67,15 +64,13 @@ async def check_db_ready():
                     logger.info("✅ Admin criado com sucesso!")
             finally:
                 db.close()
-                
             break
         except Exception as e:
             logger.warning(f"⏳ Banco de Dados não está pronto. Tentativa {i+1}/{max_retries}. Erro: {str(e)[:50]}")
-            await asyncio.sleep(3) # Uso de asyncio.sleep para não bloquear o event loop
+            await asyncio.sleep(3)
 
 @app.on_event("startup")
 async def startup_event():
-    # Disparar a verificação em segundo plano
     asyncio.create_task(check_db_ready())
 
 def get_db():
@@ -105,7 +100,7 @@ async def health():
 async def me(current_user: models.User = Depends(get_current_user)):
     return current_user
 
-@app.post("/login")
+@app.post("/login", response_model=schemas.TokenResponse)
 async def login(credentials: schemas.LoginRequest, db: Session = Depends(get_db)):
     user = db.query(models.User).filter(models.User.email == credentials.email).first()
     if not user or not bcrypt.checkpw(credentials.password.encode('utf-8'), user.hashed_password.encode('utf-8')):
@@ -114,17 +109,34 @@ async def login(credentials: schemas.LoginRequest, db: Session = Depends(get_db)
     token_data = {
         "sub": str(user.id),
         "email": user.email,
+        "role": user.role,
         "exp": datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     }
     token = jwt.encode(token_data, SECRET_KEY, algorithm=ALGORITHM)
     
+    # Payload IDENTICO à versão Golden 29ac18b
     return {
         "access_token": token,
         "token_type": "bearer",
-        "user": {
-            "id": user.id,
-            "email": user.email,
-            "full_name": user.full_name,
-            "is_superuser": user.is_superuser
-        }
+        "role": user.role,
+        "is_new_user": False # Valor padrão para compatibilidade
     }
+
+@app.post("/register", response_model=schemas.UserResponse)
+async def register(user_data: schemas.UserCreate, db: Session = Depends(get_db)):
+    existing = db.query(models.User).filter(models.User.email == user_data.email).first()
+    if existing: raise HTTPException(status_code=400, detail="Email já cadastrado")
+    
+    salt = bcrypt.gensalt()
+    hashed = bcrypt.hashpw(user_data.password.encode('utf-8'), salt)
+    new_user = models.User(
+        email=user_data.email,
+        full_name=user_data.full_name,
+        role="candidate", # Default role
+        hashed_password=hashed.decode('utf-8'),
+        is_active=True
+    )
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    return new_user
