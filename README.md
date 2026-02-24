@@ -1,75 +1,85 @@
-# Innovation‑Enterprise (INNOVATION.IA)
+# <img src="https://raw.githubusercontent.com/lucide-react/lucide/main/icons/bot.svg" width="32" height="32" /> INNOVATION.IA — Enterprise OS
 
-> **AVISO: SISTEMA PRIVADO E PROPRIETÁRIO**  
-> Este software é de uso restrito. A cópia, distribuição ou reprodução não autorizada é estritamente proibida.
+[![Microservices](https://img.shields.io/badge/Architecture-Microservices-purple?style=for-the-badge&logo=docker)](https://github.com/Eduardo09e32y4rhf/innovation)
+[![FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688?style=for-the-badge&logo=fastapi)](https://fastapi.tiangolo.com/)
+[![Next.js](https://img.shields.io/badge/Frontend-Next.js-black?style=for-the-badge&logo=next.js)](https://nextjs.org/)
+[![Proprietary](https://img.shields.io/badge/License-Proprietary-red?style=for-the-badge)](https://innovation.ia)
 
-Resumo rápido
-Innovation‑Enterprise é uma plataforma SaaS pronta para demonstração que unifica recrutamento inteligente (ATS) com IA, gestão de RH, gestão de projetos e funcionalidades financeiras. Desenvolvida como monorepo com backend em FastAPI e frontend em Next.js, projetada para implantação em container (Docker) e Cloud (Render).
+---
 
-Por que é relevante para recrutadores
-- Triagem automática de currículos com parsing e ranking por IA — acelera a seleção inicial.
-- Fluxos de contratação e onboarding automatizados — reduz tempo até contratação e esforço operacional.
-- Integrações de comunicação e pagamento (ex.: SendGrid, Twilio, Mercado Pago) — pronta para clientes empresariais.
-- Arquitetura escalável e segura, com prática de deploy via Docker Compose e Nginx.
+## ⚠️ AVISO LEGAL E DE PROPRIEDADE INTELECTUAL
 
-O que mostrar na demo (prioridade)
-1. Painel de vagas e lista de candidatos (ATS) — filtros e ranking automático.
-2. Fluxo de seleção: mudança de status, templates de e‑mail e agendamento.
-3. Onboarding digital e status de admissão.
-4. Endpoint de health / status e logs básicos (garantia de operação).
+> [!IMPORTANT]
+> **SISTEMA PRIVADO E ESTRITAMENTE CONFIDENCIAL**  
+> Este software é propriedade intelectual exclusiva de **Eduardo Silva / Innovation.ia**.  
+> 
+> **RESTRIÇÕES RÍGIDAS:**
+> - 🚫 **PROIBIDA** a cópia ou reprodução total ou parcial.
+> - 🚫 **PROIBIDA** a venda, sublicenciamento ou exploração comercial por terceiros.
+> - 🚫 **PROIBIDA** a distribuição em repositórios públicos ou privados sem autorização.
+> - 🚫 **PROIBIDA** a engenharia reversa para fins de plágio.
+>
+> Qualquer violação destes termos resultará em medidas legais imediatas conforme a Lei de Direitos Autorais e Propriedade Intelectual.
 
-Destaques técnicos (resumo)
-- Backend: Python, FastAPI, Uvicorn, SQLAlchemy, Alembic
-- Frontend: Next.js 16, React, TypeScript, Tailwind CSS
-- Infraestrutura: Docker, docker‑compose, Nginx (reverse proxy), Render (Blueprint)
-- Bancos: PostgreSQL (relacional), MongoDB (NoSQL), Redis (cache)
-- Observabilidade (opcional): Prometheus / Grafana
-- Integrações IA: Google Gemini / APIs LLM
+---
 
-Como avaliar rapidamente (para time técnico do recrutador)
-- Acessar demo: http://187.77.49.207:3000
-- Conferir health endpoint do backend (ex.: /api/health ou /health)
-- Fazer upload de 1 currículo e verificar parsing + ranking automático
-- Revisar readiness para produção: Dockerfile(s), docker‑compose.prod.yml, nginx.conf, .env.prod
-- Executar testes do backend: cd backend && pytest
+## 💎 Visão Geral
+A **Innovation.ia** é uma plataforma SaaS *Next-Gen* que orquestra todo o ecossistema empresarial em um único sistema operacional de elite. Desenvolvida com arquitetura de microserviços de alta performance, a plataforma unifica inteligência artificial, recrutamento avançado e gestão financeira.
 
-Como rodar local (resumo para validação técnica)
-- Backend:
-  - cd backend
-  - python -m venv venv && source venv/bin/activate
-  - pip install -r requirements.txt
-  - export PYTHONPATH=$PWD/src  # Necessário para imports absolutos
-  - uvicorn src.api.main:app --reload
-- Frontend:
-  - cd frontend
-  - npm install
-  - npm run dev
-- Deploy simplificado (servidor):
-  - docker-compose -f docker-compose.prod.yml up -d --build
+### 🚀 Módulos Nucleares
+- **ATS Intelligence**: Triagem e ranking de candidatos impulsionados por IA (Gemini/LLMs).
+- **Core Business**: Gestão de projetos, missões e gamificação de produtividade.
+- **Finance Hub**: Fluxo de caixa, integração com gateways de pagamento e auditoria.
+- **AI Engine**: Integração profunda com modelos de linguagem para análise comportamental.
+- **Security Portal**: Gateway de autenticação robusto com RBAC (Role-Based Access Control).
 
-- Deploy Microserviços (Beta):
-  - Copie `.env.microservices.example` para `.env`
-  - docker-compose -f docker-compose.microservices.yml up -d --build
-  - Acesse via Gateway na porta 8000
+---
 
-- Deploy em Cloud (Render):
-  - O projeto inclui um arquivo `render.yaml` (Blueprint) para deploy automático.
-  - No Dashboard do Render, escolha "New Blueprint Instance" e conecte este repositório.
-  - O Blueprint provisionará automaticamente:
-    - `innovation-backend` (Python/FastAPI)
-    - `innovation-frontend` (Node.js/Next.js)
-    - `innovation-db` (PostgreSQL)
-    - `innovation-redis` (Redis)
-  - As variáveis de ambiente (como `API_URL` e conexões de banco) serão configuradas automaticamente pelo Blueprint.
+## 🛠 Atributos Técnicos
 
-Observações para recrutador
-- Projeto pronto para demonstração, com foco em automação do processo de recrutamento.
-- Arquitetura e código estruturados para escalar e integrar com provedores de IA e ERPs.
-- Acesso para avaliação técnica pode ser providenciado mediante solicitação (sem contato público no README).
+### Backend (Microserviços)
+- **FastAPI**: Processamento assíncrono de alta velocidade.
+- **SQLAlchemy & Alembic**: Gestão de base de dados relacional (PostgreSQL).
+- **JWT Extended**: Segurança de nível bancário para sessões.
+- **AsyncIO**: Startup resiliente e não-bloqueante.
 
-## Licença
+### Frontend (User Experience)
+- **Next.js 16**: Performance SSR e renderização híbrida.
+- **Tailwind CSS**: Design system sofisticado com Glassmorphism.
+- **Framer Motion**: Micro-interações e animações premium.
+- **Lucide Icons**: Iconografia minimalista e moderna.
 
-Este sistema é **PROPRIETÁRIO** e **PRIVADO**.
-Copyright © 2026 Innovation.ia - Eduardo Silva. Todos os direitos reservados.
+### Infraestrutura & DevOps
+- **Docker & Docker Compose**: Orquestração de containers.
+- **Kong Gateway**: Roteamento inteligente e proteção de APIs.
+- **Nginx**: Proxy reverso e terminação SSL/TLS.
+- **Self-Healing Startup**: Capacidade de auto-correção e espera por dependências.
 
-A cópia, distribuição ou uso não autorizado deste software é estritamente proibida. O acesso para avaliação técnica deve ser solicitado diretamente ao proprietário.
+---
+
+## 📐 Arquitetura do Sistema
+
+```mermaid
+graph TD;
+    User((Usuário Vitalício)) -->|HTTPS| Kong[Gateway Kong]
+    Kong -->|/api/auth| Auth[Auth Service]
+    Kong -->|/api/core| Core[Core Service]
+    Kong -->|/api/ai| AI[AI Service]
+    Auth --> DB[(PostgreSQL)]
+    Core --> DB
+    AI --> Gemini[Gemini Pro API]
+```
+
+---
+
+## 🔒 Contato e Aquisição
+O acesso a este repositório é restrito apenas a desenvolvedores autorizados e investidores. Se você recebeu este acesso para avaliação técnica:
+
+1. **Não compartilhe** credenciais ou screenshots publicamente.
+2. **Respeite** o Segredo de Negócio da arquitetura.
+3. Para propostas comerciais ou licenciamento Enterprise: [eduardo@innovation.ia](mailto:eduardo@innovation.ia)
+
+---
+<p align="center">
+  <b>Innovation.ia &copy; 2026 — O Futuro do Enterprise OS</b>
+</p>
