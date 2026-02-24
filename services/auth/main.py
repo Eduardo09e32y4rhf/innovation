@@ -28,11 +28,11 @@ app.add_middleware(
 )
 
 security = HTTPBearer()
-SECRET_KEY = "innovation-super-secret-key-2026"
+# Harmonização com os outros serviços:
+SECRET_KEY = os.getenv("SECRET_KEY", "innovation_v2_premium_dark")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
-# --- STARTUP ---
 @app.on_event("startup")
 async def startup_event():
     logger.info("🚀 Iniciando Auth Service...")
@@ -68,7 +68,6 @@ async def startup_event():
     except Exception as e:
         logger.error(f"❌ Erro no startup: {e}")
 
-# --- DEPENDENCIES ---
 def get_db():
     db = SessionLocal()
     try:
@@ -79,19 +78,20 @@ def get_db():
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security), db: Session = Depends(get_db)):
     try:
         token = credentials.credentials
+        # Log para debug interno (será visto nos logs do docker)
+        logger.info(f"Verificando token com KEY: {SECRET_KEY[:5]}...")
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         user_id: str = payload.get("sub")
         if user_id is None:
             raise HTTPException(status_code=401, detail="Token inválido")
-    except Exception:
+    except Exception as e:
+        logger.error(f"Erro na validação do token: {e}")
         raise HTTPException(status_code=401, detail="Não autorizado")
     
     user = db.query(models.User).filter(models.User.id == int(user_id)).first()
     if user is None:
         raise HTTPException(status_code=401, detail="Usuário não encontrado")
     return user
-
-# --- ROUTES ---
 
 @app.get("/health")
 async def health_check():
@@ -110,7 +110,6 @@ async def login(credentials: schemas.LoginRequest, db: Session = Depends(get_db)
     }
     access_token = jwt.encode(token_data, SECRET_KEY, algorithm=ALGORITHM)
     
-    # IMPORTANTE: Devolver o user object como o frontend espera para evitar logout imediato
     return {
         "access_token": access_token, 
         "token_type": "bearer",
@@ -124,7 +123,6 @@ async def login(credentials: schemas.LoginRequest, db: Session = Depends(get_db)
 
 @app.get("/me", response_model=schemas.UserResponse)
 async def me(current_user: models.User = Depends(get_current_user)):
-    """A ROTA QUE ESTAVA FALTANDO!"""
     return current_user
 
 @app.post("/register", response_model=schemas.UserResponse)

@@ -5,9 +5,23 @@ plugins:
     config:
       origins:
         - "*"
-      methods: [GET, POST, PUT, PATCH, DELETE, OPTIONS]
-      headers: [Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, Authorization]
-      exposed_headers: [Authorization]
+      methods:
+        - GET
+        - POST
+        - PUT
+        - PATCH
+        - DELETE
+        - OPTIONS
+      headers:
+        - Accept
+        - Accept-Version
+        - Content-Length
+        - Content-MD5
+        - Content-Type
+        - Date
+        - Authorization
+      exposed_headers:
+        - Authorization
       credentials: true
       max_age: 3600
 
@@ -16,28 +30,20 @@ services:
     url: http://auth_service:8001
     routes:
       - name: auth-route
-        paths: [/api/auth]
+        paths:
+          - /api/auth
         strip_path: true
-
   - name: ai_service
     url: http://ai_service:8002
     routes:
       - name: ai-route
-        paths: [/api/ai]
+        paths:
+          - /api/ai
         strip_path: true
-
   - name: core_service
     url: http://core_service:8003
     routes:
       - name: core-route
         paths:
-          - /api/dashboard
-          - /api/jobs
-          - /api/applications
-          - /api/finance
-          - /api/projects
-          - /api/support
-          - /api/rh
-          - /api/payments
-          - /api/enterprise
-        strip_path: false # Mantemos false para o Core Service saber diferenciar os módulos
+          - /api/core
+        strip_path: true
