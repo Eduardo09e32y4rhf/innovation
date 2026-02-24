@@ -4,7 +4,7 @@
 > Este software é de uso restrito. A cópia, distribuição ou reprodução não autorizada é estritamente proibida.
 
 Resumo rápido
-Innovation‑Enterprise é uma plataforma SaaS pronta para demonstração que unifica recrutamento inteligente (ATS) com IA, gestão de RH, gestão de projetos e funcionalidades financeiras. Desenvolvida como monorepo com backend em FastAPI e frontend em Next.js, projetada para implantação em container (Docker).
+Innovation‑Enterprise é uma plataforma SaaS pronta para demonstração que unifica recrutamento inteligente (ATS) com IA, gestão de RH, gestão de projetos e funcionalidades financeiras. Desenvolvida como monorepo com backend em FastAPI e frontend em Next.js, projetada para implantação em container (Docker) e Cloud (Render).
 
 Por que é relevante para recrutadores
 - Triagem automática de currículos com parsing e ranking por IA — acelera a seleção inicial.
@@ -21,7 +21,7 @@ O que mostrar na demo (prioridade)
 Destaques técnicos (resumo)
 - Backend: Python, FastAPI, Uvicorn, SQLAlchemy, Alembic
 - Frontend: Next.js 16, React, TypeScript, Tailwind CSS
-- Infraestrutura: Docker, docker‑compose, Nginx (reverse proxy)
+- Infraestrutura: Docker, docker‑compose, Nginx (reverse proxy), Render (Blueprint)
 - Bancos: PostgreSQL (relacional), MongoDB (NoSQL), Redis (cache)
 - Observabilidade (opcional): Prometheus / Grafana
 - Integrações IA: Google Gemini / APIs LLM
@@ -38,6 +38,7 @@ Como rodar local (resumo para validação técnica)
   - cd backend
   - python -m venv venv && source venv/bin/activate
   - pip install -r requirements.txt
+  - export PYTHONPATH=$PWD/src  # Necessário para imports absolutos
   - uvicorn src.api.main:app --reload
 - Frontend:
   - cd frontend
@@ -50,6 +51,16 @@ Como rodar local (resumo para validação técnica)
   - Copie `.env.microservices.example` para `.env`
   - docker-compose -f docker-compose.microservices.yml up -d --build
   - Acesse via Gateway na porta 8000
+
+- Deploy em Cloud (Render):
+  - O projeto inclui um arquivo `render.yaml` (Blueprint) para deploy automático.
+  - No Dashboard do Render, escolha "New Blueprint Instance" e conecte este repositório.
+  - O Blueprint provisionará automaticamente:
+    - `innovation-backend` (Python/FastAPI)
+    - `innovation-frontend` (Node.js/Next.js)
+    - `innovation-db` (PostgreSQL)
+    - `innovation-redis` (Redis)
+  - As variáveis de ambiente (como `API_URL` e conexões de banco) serão configuradas automaticamente pelo Blueprint.
 
 Observações para recrutador
 - Projeto pronto para demonstração, com foco em automação do processo de recrutamento.
