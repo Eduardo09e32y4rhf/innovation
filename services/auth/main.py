@@ -1,34 +1,33 @@
-from fastapi import FastAPI, HTTPException, Depends, Request
+"""
+Innovation.ia - Auth Service
+Microserviço de Autenticação (Corrigido)
+"""
+
+from fastapi import FastAPI, HTTPException, Depends, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
-import uvicorn
+from datetime import datetime, timedelta
+import jwt
+import bcrypt
+import logging
 import os
 
-from database import get_db
-from schemas import LoginRequest, RegisterRequest, Token, UserOut
-from auth_logic import authenticate_user, register_user
-from two_factor import request_code, verify_code
-from security import create_temporary_token, verify_temporary_token, SECRET_KEY, ALGORITHM
-from models import User
-from jose import jwt
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+# Imports locais
+from database import engine, SessionLocal, Base
+import models
+import schemas
 
-app = FastAPI(title="Innovation IA - Auth Service")
-security = HTTPBearer()
+# Configurar logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-async def get_current_user(token: HTTPAuthorizationCredentials = Depends(security), db: Session = Depends(get_db)):
-    try:
-        payload = jwt.decode(token.credentials, SECRET_KEY, algorithms=[ALGORITHM])
-        user_id: str = payload.get("sub")
-        if user_id is None:
-            raise HTTPException(status_code=401, detail="Invalid token")
-    except Exception:
-        raise HTTPException(status_code=401, detail="Invalid token")
-    
-    user = db.query(User).filter(User.id == int(user_id)).first()
-    if user is None:
-        raise HTTPException(status_code=401, detail="User not found")
-    return user
+# Criar app
+app = FastAPI(
+    title="Innovation.ia - Auth Service",
+    description="Serviço de Autenticação",
+    version="1.0.0"
+)
 
 # CORS
 app.add_middleware(
@@ -39,88 +38,165 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.post("/register", response_model=UserOut)
-async def register(data: RegisterRequest, db: Session = Depends(get_db)):
+# Security
+security = HTTPBearer()
+
+# Configurações JWT
+SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-change-in-production")
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 60
+
+# ============================================
+# STARTUP: CRIAR TABELAS E SEED (SELF-HEALING)
+# ============================================
+
+@app.on_event("startup")
+async def startup_event():
+    """Inicialização do serviço com Self-Healing"""
+    logger.info("🚀 Iniciando Auth Service...")
+    
     try:
-        user = register_user(
-            db,
-            email=data.email,
-            password=data.password,
-            name=data.name,
-            role=data.role,
-            phone=data.phone
-        )
-        return user
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        # 1. Criar todas as tabelas (Garante que se o banco subir do zero, as tabelas nasçam)
+        logger.info("📊 Verificando/Criando tabelas no banco de dados...")
+        Base.metadata.create_all(bind=engine)
+        logger.info("✅ Tabelas sincronizadas!")
+        
+        # 2. Seed do Admin (Garante First-Time UX)
+        db = SessionLocal()
+        try:
+            admin_email = "admin@innovation.ia"
+            admin_user = db.query(models.User).filter(models.User.email == admin_email).first()
+            
+            if not admin_user:
+                logger.info(f"👤 Criando usuário admin padrão ({admin_email})...")
+                
+                # Hash da senha padrão: admin123
+                salt = bcrypt.gensalt()
+                hashed = bcrypt.hashpw("admin123".encode('utf-8'), salt)
+                
+                admin_user = models.User(
+                    email=admin_email,
+                    full_name="Administrador Master",
+                    hashed_password=hashed.decode('utf-8'),
+                    is_active=True,
+                    is_superuser=True,
+                    created_at=datetime.utcnow()
+                )
+                
+                db.add(admin_user)
+                db.commit()
+                logger.info("✅ Usuário admin criado: admin@innovation.ia / admin123")
+            else:
+                logger.info("✅ Usuário admin já existe.")
+        finally:
+            db.close()
+            
+    except Exception as e:
+        logger.error(f"❌ Erro crítico no startup: {e}")
 
-@app.post("/login", response_model=Token)
-async def login(data: LoginRequest, db: Session = Depends(get_db)):
-    result = authenticate_user(db, data.email, data.password)
-    if not result:
-        raise HTTPException(status_code=401, detail="Credenciais inválidas")
+# ============================================
+# DEPENDENCIES
+# ============================================
 
-    access_token, refresh_token, user = result
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
-    if user.two_factor_enabled:
-        request_code(db, user.id, user.email, user.phone)
-        temp_token = create_temporary_token(user.id)
-        return Token(
-            access_token="",
-            refresh_token="",
-            token_type="bearer",
-            two_factor_required=True,
-            temporary_token=temp_token
-        )
+def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    try:
+        token = credentials.credentials
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id = payload.get("sub")
+        if user_id is None:
+            raise HTTPException(status_code=401, detail="Token inválido")
+        return user_id
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expirado")
+    except jwt.JWTError:
+        raise HTTPException(status_code=401, detail="Token inválido")
 
-    return Token(
-        access_token=access_token,
-        refresh_token=refresh_token,
-        token_type="bearer",
-        role=user.role
-    )
-
-@app.post("/2fa/verify", response_model=Token)
-async def verify_2fa(temporary_token: str, code: str, db: Session = Depends(get_db)):
-    user_id = verify_temporary_token(temporary_token)
-    if not user_id:
-        raise HTTPException(status_code=401, detail="Token temporário inválido ou expirado")
-    
-    if not verify_code(db, user_id, code):
-        raise HTTPException(status_code=401, detail="Código inválido ou expirado")
-    
-    user = db.query(User).filter(User.id == user_id).first()
-    # Login sem senha pois 2FA foi validado
-    access_token, refresh_token, _ = authenticate_user(db, user.email, None, skip_password=True)
-    
-    return Token(
-        access_token=access_token,
-        refresh_token=refresh_token,
-        token_type="bearer",
-        role=user.role
-    )
-
-@app.post("/refresh")
-async def refresh(refresh_token: str, db: Session = Depends(get_db)):
-    from auth_logic import refresh_access_token
-    new_token = refresh_access_token(db, refresh_token)
-    if not new_token:
-        raise HTTPException(status_code=401, detail="Refresh token inválido ou expirado")
-    return {"access_token": new_token, "token_type": "bearer"}
-
-@app.post("/logout")
-async def logout(refresh_token: str, db: Session = Depends(get_db)):
-    from auth_logic import revoke_refresh_token
-    revoke_refresh_token(db, refresh_token)
-    return {"message": "Logout realizado com sucesso"}
-
-@app.get("/me", response_model=UserOut)
-async def me(user: User = Depends(get_current_user)):
-    return user
+# ============================================
+# ROTAS LIMPAS (Kong strip_path remove /api/auth)
+# ============================================
 
 @app.get("/health")
 async def health_check():
-    return {"status": "healthy", "service": "auth-service"}
+    """Health check para o Docker e Kong"""
+    try:
+        db = SessionLocal()
+        db.execute("SELECT 1")
+        db.close()
+        return {"status": "healthy", "service": "auth-service", "database": "connected"}
+    except Exception as e:
+        logger.error(f"Health check failed: {e}")
+        raise HTTPException(status_code=503, detail="Service Unhealthy")
+
+@app.post("/register", response_model=schemas.UserResponse)
+async def register(user_data: schemas.UserCreate, db: Session = Depends(get_db)):
+    existing = db.query(models.User).filter(models.User.email == user_data.email).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Email já cadastrado")
+    
+    salt = bcrypt.gensalt()
+    hashed = bcrypt.hashpw(user_data.password.encode('utf-8'), salt)
+    
+    new_user = models.User(
+        email=user_data.email,
+        full_name=user_data.full_name,
+        hashed_password=hashed.decode('utf-8'),
+        is_active=True,
+        is_superuser=False,
+        created_at=datetime.utcnow()
+    )
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    return new_user
+
+@app.post("/login")
+async def login(credentials: schemas.LoginRequest, db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.email == credentials.email).first()
+    if not user or not bcrypt.checkpw(credentials.password.encode('utf-8'), user.hashed_password.encode('utf-8')):
+        raise HTTPException(status_code=401, detail="Email ou senha incorretos")
+    
+    if not user.is_active:
+        raise HTTPException(status_code=403, detail="Usuário desativado")
+    
+    token_data = {
+        "sub": str(user.id),
+        "email": user.email,
+        "exp": datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    }
+    
+    access_token = jwt.encode(token_data, SECRET_KEY, algorithm=ALGORITHM)
+    
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": {
+            "id": user.id,
+            "email": user.email,
+            "full_name": user.full_name,
+            "is_superuser": user.is_superuser
+        }
+    }
+
+@app.get("/me", response_model=schemas.UserResponse)
+async def get_current_user(user_id: str = Depends(verify_token), db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.id == int(user_id)).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado")
+    return user
+
+# Rotas de Depuração (Remover em produção real)
+@app.get("/debug/users")
+async def list_users(db: Session = Depends(get_db)):
+    users = db.query(models.User).all()
+    return [{"id": u.id, "email": u.email, "is_active": u.is_active} for u in users]
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8001, reload=True)
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8001)
