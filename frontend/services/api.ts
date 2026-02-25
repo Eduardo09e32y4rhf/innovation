@@ -131,7 +131,7 @@ export const FinanceService = {
         const res = await api.get('/core/finance/anomalies');
         return res.data;
     },
-    createTransaction: async (data: { description: string; amount: number; type: string; due_date: string }) => {
+    createTransaction: async (data: { description: string; amount: number; type: string; due_date: string; attachment_url?: string; ai_metadata?: string }) => {
         const res = await api.post('/core/finance/transactions', data);
         return res.data;
     },
