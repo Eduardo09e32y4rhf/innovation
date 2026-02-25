@@ -1,7 +1,7 @@
 'use client';
 
 import AppLayout from '../../components/AppLayout';
-import { BadgeDollarSign, TrendingUp, CreditCard, Wallet, ArrowUpRight, ArrowDownRight, Download, Plus, X } from 'lucide-react';
+import { BadgeDollarSign, TrendingUp, CreditCard, Wallet, ArrowUpRight, ArrowDownRight, Download, Plus, X, Upload, ScanLine } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { FinanceService } from '../../services/api';
 
@@ -12,6 +12,7 @@ interface Transaction {
     type: string;
     status: string;
     due_date: string;
+    attachment_url?: string;
 }
 
 interface Summary {
@@ -28,7 +29,7 @@ export default function FinancePage() {
     const [anomalies, setAnomalies] = useState<{ description: string; impact: string }[]>([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
-    const [form, setForm] = useState({ description: '', amount: '', type: 'income', due_date: '' });
+    const [form, setForm] = useState({ description: '', amount: '', type: 'income', due_date: '', attachment_url: '', ai_metadata: '' });
 
     useEffect(() => { loadData(); }, []);
 
@@ -53,10 +54,12 @@ export default function FinancePage() {
                 amount: parseFloat(form.amount),
                 type: form.type,
                 due_date: form.due_date,
+                attachment_url: form.attachment_url,
+                ai_metadata: form.ai_metadata
             });
             setTransactions(prev => [tx, ...prev]);
             setShowModal(false);
-            setForm({ description: '', amount: '', type: 'income', due_date: '' });
+            setForm({ description: '', amount: '', type: 'income', due_date: '', attachment_url: '', ai_metadata: '' });
             loadData();
         } catch (e) { console.error(e); }
     };
@@ -138,7 +141,10 @@ export default function FinancePage() {
                                             </div>
                                             <div>
                                                 <p className="text-sm font-medium">{tx.description}</p>
-                                                <p className="text-xs text-gray-500">{tx.due_date} · {tx.status}</p>
+                                                <p className="text-xs text-gray-500">
+                                                    {tx.due_date} · {tx.status}
+                                                    {tx.attachment_url && <span className="ml-2 text-blue-400">📎</span>}
+                                                </p>
                                             </div>
                                         </div>
                                         <span className={`text-sm font-bold ${tx.type === 'income' ? 'text-green-400' : 'text-gray-400'}`}>
@@ -159,6 +165,22 @@ export default function FinancePage() {
                                     <button onClick={() => setShowModal(false)}><X className="w-5 h-5 text-gray-400" /></button>
                                 </div>
                                 <div className="space-y-3">
+
+                                    {/* Upload Area */}
+                                    <div className="border border-zinc-700 border-dashed rounded-lg p-4 flex flex-col items-center justify-center bg-zinc-800/50 hover:bg-zinc-800 transition cursor-pointer group">
+                                        <div className="flex gap-2 mb-2 items-center">
+                                            <Upload className="w-5 h-5 text-gray-400 group-hover:text-white" />
+                                            <ScanLine className="w-5 h-5 text-green-400 group-hover:text-green-300" />
+                                        </div>
+                                        <span className="text-xs text-gray-400 text-center mb-2">Arraste um comprovante ou <span className="text-green-400 font-medium">Scanear com IA</span></span>
+                                        <input
+                                            className="w-full bg-zinc-900 border border-zinc-700 rounded px-2 py-1 text-xs text-gray-300 focus:border-green-500 focus:outline-none"
+                                            placeholder="Cole a URL do comprovante (Zero Papel)..."
+                                            value={form.attachment_url}
+                                            onChange={e => setForm({ ...form, attachment_url: e.target.value })}
+                                        />
+                                    </div>
+
                                     <input className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm" placeholder="Descrição" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} />
                                     <input className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm" placeholder="Valor (R$)" type="number" value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} />
                                     <select className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm" value={form.type} onChange={e => setForm({ ...form, type: e.target.value })}>
@@ -166,8 +188,8 @@ export default function FinancePage() {
                                         <option value="expense">Despesa</option>
                                     </select>
                                     <input className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm" type="date" value={form.due_date} onChange={e => setForm({ ...form, due_date: e.target.value })} />
-                                    <button onClick={handleCreate} className="w-full py-2 bg-green-600 hover:bg-green-500 rounded-lg text-sm font-medium transition">
-                                        Registrar Transação
+                                    <button onClick={handleCreate} className="w-full py-2 bg-green-600 hover:bg-green-500 rounded-lg text-sm font-medium transition flex items-center justify-center gap-2">
+                                        <Plus className="w-4 h-4" /> Registrar Transação
                                     </button>
                                 </div>
                             </div>

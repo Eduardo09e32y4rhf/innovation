@@ -12,3 +12,5 @@ class TransactionCreate(BaseModel):
         default=None, max_length=50
     )  # salary, infrastructure, marketing
     due_date: date
+    attachment_url: str | None = Field(default=None, max_length=500)
+    ai_metadata: str | None = Field(default=None)
