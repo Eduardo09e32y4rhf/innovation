@@ -21,7 +21,8 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     op.add_column(
-        "transactions", sa.Column("attachment_url", sa.String(length=500), nullable=True)
+        "transactions",
+        sa.Column("attachment_url", sa.String(length=500), nullable=True),
     )
     op.add_column("transactions", sa.Column("ai_metadata", sa.Text(), nullable=True))
 
