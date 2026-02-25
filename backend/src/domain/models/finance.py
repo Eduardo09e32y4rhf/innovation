@@ -20,6 +20,8 @@ class Transaction(Base):
     category = Column(String(50), nullable=True)
     cost_center_id = Column(Integer, ForeignKey("cost_centers.id"), nullable=True)
     company_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    attachment_url = Column(String(500), nullable=True)
+    ai_metadata = Column(Text, nullable=True)
 
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 

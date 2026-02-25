@@ -10,6 +10,7 @@ from domain.schemas.finance import TransactionCreate
 from typing import List
 from decimal import Decimal
 from datetime import datetime, time
+from services.audit_service import log_event
 
 router = APIRouter(prefix="/api/finance", tags=["finance"])
 
@@ -52,9 +53,6 @@ async def get_transactions(
     )
 
 
-from services.audit_service import log_event
-
-
 @router.post("/transactions")
 async def create_transaction(
     data: TransactionCreate,
@@ -73,6 +71,8 @@ async def create_transaction(
             category=data.category,
             due_date=datetime.combine(data.due_date, time.min),
             company_id=current_user.id,
+            attachment_url=data.attachment_url,
+            ai_metadata=data.ai_metadata,
             status=(
                 "paid" if data.type == "income" else "pending"
             ),  # Simplificação do status
