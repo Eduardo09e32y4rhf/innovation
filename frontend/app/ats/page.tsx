@@ -1,7 +1,7 @@
 'use client';
 
 import AppLayout from '../../components/AppLayout';
-import { Users, FileText, CheckCircle, XCircle, Plus, Loader2 } from 'lucide-react';
+import { Users, FileText, CheckCircle, XCircle, Plus, Loader2, Calendar } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { ATSService } from '../../services/api';
 
@@ -19,9 +19,19 @@ interface ApplicationStat {
     rejected: number;
 }
 
+interface Interview {
+    id: number;
+    candidate_name: string;
+    job_title: string;
+    scheduled_date: string;
+    status: string;
+    type: string;
+}
+
 export default function ATSPage() {
     const [jobs, setJobs] = useState<Job[]>([]);
     const [stats, setStats] = useState<ApplicationStat>({ total: 0, approved: 0, rejected: 0 });
+    const [interviews, setInterviews] = useState<Interview[]>([]);
     const [loading, setLoading] = useState(true);
     const [showCreate, setShowCreate] = useState(false);
     const [form, setForm] = useState({ title: '', description: '', location: '', type: 'CLT' });
@@ -35,7 +45,12 @@ export default function ATSPage() {
             const data = await ATSService.getCompanyJobs();
             setJobs(data);
             const appData = await ATSService.getJobs({ status: 'open' });
-            // Calc stats from jobs
+
+            // Fetch real interviews
+            const interviewsData = await ATSService.getInterviews('scheduled');
+            setInterviews(interviewsData.interviews || []);
+
+            // Calc stats from jobs (this part might still be mocked or derived)
             const total = data.reduce((acc: number, j: Job & { _count?: number }) => acc + (j._count || 0), 0);
             setStats({ total: appData.length * 12, approved: Math.round(appData.length * 1.5), rejected: appData.length * 8 });
         } catch (e) {
@@ -124,7 +139,7 @@ export default function ATSPage() {
                         </div>
                     )}
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
                         <div className="glass-panel p-6 rounded-2xl flex items-center gap-4">
                             <div className="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400">
                                 <Users className="w-6 h-6" />
@@ -132,6 +147,15 @@ export default function ATSPage() {
                             <div>
                                 <p className="text-gray-400 text-sm">Vagas Ativas</p>
                                 <p className="text-2xl font-bold">{loading ? '...' : jobs.filter(j => j.status === 'open').length}</p>
+                            </div>
+                        </div>
+                        <div className="glass-panel p-6 rounded-2xl flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-full bg-purple-500/20 flex items-center justify-center text-purple-400">
+                                <Calendar className="w-6 h-6" />
+                            </div>
+                            <div>
+                                <p className="text-gray-400 text-sm">Entrevistas</p>
+                                <p className="text-2xl font-bold">{loading ? '...' : interviews.length}</p>
                             </div>
                         </div>
                         <div className="glass-panel p-6 rounded-2xl flex items-center gap-4">
@@ -148,46 +172,73 @@ export default function ATSPage() {
                                 <XCircle className="w-6 h-6" />
                             </div>
                             <div>
-                                <p className="text-gray-400 text-sm">Vagas Fechadas</p>
+                                <p className="text-gray-400 text-sm">Fechadas</p>
                                 <p className="text-2xl font-bold">{loading ? '...' : jobs.filter(j => j.status !== 'open').length}</p>
                             </div>
                         </div>
                     </div>
 
-                    <div className="glass-panel rounded-2xl p-6">
-                        <h3 className="text-lg font-semibold mb-4">Pipeline de Vagas</h3>
-                        {loading ? (
-                            <div className="flex items-center justify-center py-12">
-                                <Loader2 className="w-8 h-8 animate-spin text-purple-500" />
-                            </div>
-                        ) : jobs.length === 0 ? (
-                            <div className="text-center py-12 text-gray-500">
-                                <FileText className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                                <p>Nenhuma vaga criada. Clique em &ldquo;Nova Vaga&rdquo; para começar.</p>
-                            </div>
-                        ) : (
-                            <div className="space-y-4">
-                                {jobs.map((job) => (
-                                    <div key={job.id} className="flex items-center justify-between p-4 bg-gray-900/50 rounded-xl hover:bg-gray-800 transition">
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center text-purple-400">
-                                                <FileText className="w-5 h-5" />
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        {/* Jobs List */}
+                        <div className="lg:col-span-2 glass-panel rounded-2xl p-6">
+                            <h3 className="text-lg font-semibold mb-4">Pipeline de Vagas</h3>
+                            {loading ? (
+                                <div className="flex items-center justify-center py-12">
+                                    <Loader2 className="w-8 h-8 animate-spin text-purple-500" />
+                                </div>
+                            ) : jobs.length === 0 ? (
+                                <div className="text-center py-12 text-gray-500">
+                                    <FileText className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                                    <p>Nenhuma vaga criada. Clique em &ldquo;Nova Vaga&rdquo; para começar.</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    {jobs.map((job) => (
+                                        <div key={job.id} className="flex items-center justify-between p-4 bg-gray-900/50 rounded-xl hover:bg-gray-800 transition">
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center text-purple-400">
+                                                    <FileText className="w-5 h-5" />
+                                                </div>
+                                                <div>
+                                                    <p className="font-medium text-white">{job.title}</p>
+                                                    <p className="text-sm text-gray-500">{job.location} · {job.type}</p>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <p className="font-medium text-white">{job.title}</p>
-                                                <p className="text-sm text-gray-500">{job.location} · {job.type}</p>
+                                            <div className="flex items-center gap-4">
+                                                <span className="px-3 py-1 rounded-full text-xs font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                                                    {getPhaseLabel(job.status)}
+                                                </span>
+                                                <span className={`w-2 h-2 rounded-full ${job.status === 'open' ? 'bg-green-500' : 'bg-gray-500'}`} />
                                             </div>
                                         </div>
-                                        <div className="flex items-center gap-4">
-                                            <span className="px-3 py-1 rounded-full text-xs font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                                                {getPhaseLabel(job.status)}
-                                            </span>
-                                            <span className={`w-2 h-2 rounded-full ${job.status === 'open' ? 'bg-green-500' : 'bg-gray-500'}`} />
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Upcoming Interviews */}
+                        <div className="glass-panel rounded-2xl p-6">
+                            <h3 className="text-lg font-semibold mb-4">Próximas Entrevistas</h3>
+                            {interviews.length === 0 ? (
+                                <div className="text-center py-12 text-gray-500">
+                                    <Calendar className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                                    <p>Nenhuma entrevista agendada.</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    {interviews.map(i => (
+                                        <div key={i.id} className="p-3 bg-gray-900/50 rounded-xl border border-gray-800">
+                                            <div className="flex justify-between items-start mb-2">
+                                                <p className="font-semibold text-sm">{i.candidate_name}</p>
+                                                <span className="text-xs bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded-full">{new Date(i.scheduled_date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                                            </div>
+                                            <p className="text-xs text-gray-400 mb-1">{i.job_title}</p>
+                                            <p className="text-[10px] text-gray-500 uppercase tracking-wider">{i.type}</p>
                                         </div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </main>
             </div>

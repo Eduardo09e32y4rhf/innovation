@@ -1,8 +1,8 @@
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 from domain.models.finance import Transaction, CostCenter
-import google.genai as genai
-import os
+from sqlalchemy import func
+import logging
 
 
 class FinanceService:
@@ -79,32 +79,90 @@ class FinanceService:
 
     @staticmethod
     def ai_cash_flow_prediction(db: Session, company_id: int):
-        # Coleta dados históricos simplificados
+        # Implementação "Real" baseada em dados reais
         summary = FinanceService.get_cash_flow_summary(db, company_id)
+        balance = float(summary["balance"])
+        pending_exp = float(summary["pending_expenses"])
 
-        # Chama a IA para prever o próximo mês (Simulação lite)
-        # Em produção, passaríamos o histórico detalhado para o Gemini
-        prediction = f"Baseado no saldo de R$ {summary['balance']}, prevemos uma estabilidade de 15% de crescimento no próximo mês se as despesas pendentes (R$ {summary['pending_expenses']}) forem quitadas no prazo."
+        # Lógica simples de projeção: Saldo Atual - Despesas Pendentes + Receitas Pendentes
+        projected_balance = balance + float(summary["pending_income"]) - pending_exp
+
+        status = "estável"
+        if projected_balance > balance * 1.1:
+            status = "crescimento"
+        elif projected_balance < balance * 0.9:
+            status = "alerta"
+
+        prediction_text = (
+            f"Projeção de caixa para o fim do mês: R$ {projected_balance:.2f}. "
+            f"Status: {status.upper()}. "
+            f"Considerando R$ {pending_exp:.2f} em contas a pagar."
+        )
 
         return {
-            "prediction": prediction,
-            "recommended_action": "Manter reserva de contingência para as despesas de R$ "
-            + str(summary["pending_expenses"]),
+            "prediction": prediction_text,
+            "recommended_action": (
+                "Priorizar pagamento de impostos e fornecedores críticos."
+                if status == "alerta"
+                else "Investir excedente em CDB ou Tesouro."
+            ),
         }
 
     @staticmethod
     def detect_anomalies(db: Session, company_id: int):
-        """IA detecta picos de gastos anômalos."""
-        # Comparação básica por categoria
-        prediction_data = FinanceService.ai_cash_flow_prediction(db, company_id)
-        # Mock logic
-        return [
-            {
-                "description": "Aumento de 40% na conta de luz",
-                "impact": "Alto",
-                "suggestion": "Verificar se houve erro na medição ou novo equipamento ligado 24h.",
-            }
-        ]
+        """Detecta gastos acima da média por categoria."""
+        # Obter média de gastos por categoria
+        expenses = (
+            db.query(
+                Transaction.category,
+                func.avg(Transaction.amount).label("avg_amount"),
+                func.stddev(Transaction.amount).label("std_amount"),
+            )
+            .filter(Transaction.company_id == company_id, Transaction.type == "expense")
+            .group_by(Transaction.category)
+            .all()
+        )
+
+        # Verificar transações recentes (últimos 30 dias) que fogem do padrão (ex: > média + 2*desvio)
+        recent_cutoff = datetime.now() - timedelta(days=30)
+        recent_txs = (
+            db.query(Transaction)
+            .filter(
+                Transaction.company_id == company_id,
+                Transaction.type == "expense",
+                Transaction.created_at >= recent_cutoff,
+            )
+            .all()
+        )
+
+        anomalies = []
+        stats_map = {
+            e.category: (float(e.avg_amount or 0), float(e.std_amount or 0))
+            for e in expenses
+        }
+
+        for tx in recent_txs:
+            if tx.category in stats_map:
+                avg, std = stats_map[tx.category]
+                if std > 0 and float(tx.amount) > (avg + 2 * std):
+                    anomalies.append(
+                        {
+                            "description": f"Gasto atípico em {tx.category}: {tx.description}",
+                            "impact": "Alto",
+                            "suggestion": f"Valor R$ {tx.amount} é significativamente maior que a média histórica (R$ {avg:.2f}).",
+                        }
+                    )
+
+        if not anomalies:
+            return [
+                {
+                    "description": "Nenhuma anomalia detectada recentemente.",
+                    "impact": "Baixo",
+                    "suggestion": "Monitoramento continua ativo.",
+                }
+            ]
+
+        return anomalies
 
 
 finance_service = FinanceService()
