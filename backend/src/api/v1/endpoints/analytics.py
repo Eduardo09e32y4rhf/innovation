@@ -14,10 +14,11 @@ from domain.models.application import Application
 
 router = APIRouter(tags=["analytics"])
 
+
 @router.get("", response_model=Dict[str, Any])
 def get_analytics(
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_role(Role.COMPANY))
+    current_user: User = Depends(require_role(Role.COMPANY)),
 ):
     """
     Get aggregated analytics for the dashboard.
@@ -28,29 +29,30 @@ def get_analytics(
     income_query = db.query(func.sum(Transaction.amount)).filter(
         Transaction.company_id == company_id,
         Transaction.type == "income",
-        Transaction.status == "paid"
+        Transaction.status == "paid",
     )
     total_revenue = income_query.scalar() or 0
 
     expense_query = db.query(func.sum(Transaction.amount)).filter(
         Transaction.company_id == company_id,
         Transaction.type == "expense",
-        Transaction.status == "paid"
+        Transaction.status == "paid",
     )
     total_expenses = expense_query.scalar() or 0
 
     profit = total_revenue - total_expenses
 
     # 2. Active Jobs
-    active_jobs = db.query(Job).filter(
-        Job.company_id == company_id,
-        Job.status.in_(["open", "active"])
-    ).count()
+    active_jobs = (
+        db.query(Job)
+        .filter(Job.company_id == company_id, Job.status.in_(["open", "active"]))
+        .count()
+    )
 
     # 3. Total Candidates (Applications received)
-    total_candidates = db.query(Application).join(Job).filter(
-        Job.company_id == company_id
-    ).count()
+    total_candidates = (
+        db.query(Application).join(Job).filter(Job.company_id == company_id).count()
+    )
 
     # 4. Financial History (Last 6 months)
     today = datetime.now()
@@ -79,28 +81,40 @@ def get_analytics(
 
         month_label = month_start.strftime("%b")
 
-        month_income = db.query(func.sum(Transaction.amount)).filter(
-            Transaction.company_id == company_id,
-            Transaction.type == "income",
-            Transaction.status == "paid",
-            Transaction.payment_date >= month_start,
-            Transaction.payment_date < month_end
-        ).scalar() or 0
+        month_income = (
+            db.query(func.sum(Transaction.amount))
+            .filter(
+                Transaction.company_id == company_id,
+                Transaction.type == "income",
+                Transaction.status == "paid",
+                Transaction.payment_date >= month_start,
+                Transaction.payment_date < month_end,
+            )
+            .scalar()
+            or 0
+        )
 
-        month_expense = db.query(func.sum(Transaction.amount)).filter(
-            Transaction.company_id == company_id,
-            Transaction.type == "expense",
-            Transaction.status == "paid",
-            Transaction.payment_date >= month_start,
-            Transaction.payment_date < month_end
-        ).scalar() or 0
+        month_expense = (
+            db.query(func.sum(Transaction.amount))
+            .filter(
+                Transaction.company_id == company_id,
+                Transaction.type == "expense",
+                Transaction.status == "paid",
+                Transaction.payment_date >= month_start,
+                Transaction.payment_date < month_end,
+            )
+            .scalar()
+            or 0
+        )
 
-        history_data.append({
-            "name": month_label,
-            "revenue": float(month_income),
-            "expenses": float(month_expense),
-            "profit": float(month_income - month_expense)
-        })
+        history_data.append(
+            {
+                "name": month_label,
+                "revenue": float(month_income),
+                "expenses": float(month_expense),
+                "profit": float(month_income - month_expense),
+            }
+        )
 
     return {
         "summary": {
@@ -108,7 +122,7 @@ def get_analytics(
             "total_expenses": float(total_expenses),
             "profit": float(profit),
             "active_jobs": active_jobs,
-            "total_candidates": total_candidates
+            "total_candidates": total_candidates,
         },
-        "history": history_data
+        "history": history_data,
     }
