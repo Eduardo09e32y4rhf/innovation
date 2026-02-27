@@ -94,6 +94,6 @@ def notify_application_status_change(
         "old_status": old_status,
         "new_status": new_status,
         "recipient_email": recipient_email,
-        "recipient_phone": recipient_phone
+        "recipient_phone": recipient_phone,
     }
     trigger_n8n_webhook(n8n_payload)
