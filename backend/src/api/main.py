@@ -22,12 +22,14 @@ from api.v1.endpoints import (
     projects_advanced,
     killer_questions,
     webhooks,
+    analytics,
 )
 import domain.models  # Garante o registro de todos os modelos
 from core.config import settings
 from contextlib import asynccontextmanager
 from core.superintendent import superintendent
 from core.security.vpn_block import vpn_blocker_middleware
+import uvicorn
 
 
 @asynccontextmanager
@@ -79,8 +81,14 @@ app.include_router(projects_advanced.router)
 app.include_router(killer_questions.router)
 # ── Webhooks (Integration with n8n) ──
 app.include_router(webhooks.router)
+app.include_router(analytics.router, prefix="/api/analytics")
 
 
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run("api.main:app", host="0.0.0.0", port=port, reload=True)
