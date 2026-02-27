@@ -27,3 +27,4 @@ innovation.db
 .DS_Store
 Thumbs.db
 keys_status.json
+.env*

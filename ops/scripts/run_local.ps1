@@ -3,7 +3,7 @@
 # Requisito: Python 3.11+ instalado
 
 $ErrorActionPreference = "Continue"
-$ROOT = $PSScriptRoot
+$ROOT = Resolve-Path "$PSScriptRoot\..\.."
 
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host " Innovation.ia — Iniciando modo local   " -ForegroundColor Cyan

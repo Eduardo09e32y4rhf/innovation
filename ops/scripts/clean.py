@@ -4,7 +4,7 @@ from pathlib import Path
 
 def cleanup():
     print("--- Iniciando limpeza do Innovation.ia ---")
-    root = Path.cwd()
+    root = Path(__file__).resolve().parents[2]
     
     # 1. Pastas duplicadas ou experimentais
     folders_to_consider = ["services", "gateway", "ai_engine", "ops"]
