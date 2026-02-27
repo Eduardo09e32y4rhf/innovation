@@ -27,9 +27,11 @@ services:
   auth_service:
     build: ./services/auth
     container_name: auth_service
+    env_file:
+      - .env
     environment:
       - DATABASE_URL=postgresql://user:secure_pass@postgres:5432/innovation
-      - SECRET_KEY=innovation_v2_premium_dark
+      - SECRET_KEY=${SECRET_KEY:-innovation_v2_premium_dark}
     networks:
       - innovation_net
     depends_on:
@@ -39,19 +41,34 @@ services:
   ai_service:
     build: ./services/ai
     container_name: ai_service
+    env_file:
+      - .env
+    environment:
+      - GEMINI_API_KEYS=${GEMINI_API_KEYS}
+      - GEMINI_API_KEY=${GEMINI_API_KEYS}
     networks:
       - innovation_net
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8002/api/ai/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   core_service:
     build: ./services/core
     container_name: core_service
+    env_file:
+      - .env
     environment:
       - DATABASE_URL=postgresql://user:secure_pass@postgres:5432/innovation
-      - SECRET_KEY=innovation_v2_premium_dark
+      - SECRET_KEY=${SECRET_KEY:-innovation_v2_premium_dark}
+      - MP_ACCESS_TOKEN=${MP_ACCESS_TOKEN}
+      - BASE_URL=${BASE_URL:-http://localhost:8000}
     networks:
       - innovation_net
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
 
   frontend:
     build:

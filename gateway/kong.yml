@@ -32,7 +32,7 @@ services:
       - name: auth-route
         paths:
           - /api/auth
-        strip_path: true
+        strip_path: false
 
   - name: ai_service
     url: http://ai_service:8002
@@ -40,7 +40,7 @@ services:
       - name: ai-route
         paths:
           - /api/ai
-        strip_path: true
+        strip_path: false
 
   - name: core_service
     url: http://core_service:8003
@@ -48,4 +48,4 @@ services:
       - name: core-route
         paths:
           - /api/core
-        strip_path: true
+        strip_path: false

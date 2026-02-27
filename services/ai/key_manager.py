@@ -4,8 +4,9 @@ import threading
 class AIKeyManager:
     def __init__(self):
         # Carrega chaves do ambiente
-        gemini_keys = os.getenv("GEMINI_KEYS", "").split(",")
-        self.gemini_keys = [k.strip() for k in gemini_keys if k.strip()]
+        # Suporta GEMINI_API_KEYS (múltiplas, separadas por vírgula) ou GEMINI_API_KEY (singular)
+        gemini_keys_raw = os.getenv("GEMINI_API_KEYS", os.getenv("GEMINI_API_KEY", "")).split(",")
+        self.gemini_keys = [k.strip() for k in gemini_keys_raw if k.strip()]
         
         self.exhausted_keys = set()
         self.lock = threading.Lock()

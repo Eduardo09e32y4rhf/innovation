@@ -2,12 +2,12 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: 'standalone',
-  /* config options here */
   async rewrites() {
+    const GATEWAY = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
     return [
       {
         source: '/api/:path*',
-        destination: `${process.env.API_URL || 'http://innovation_gateway:8000'}/api/:path*`,
+        destination: `${GATEWAY}/api/:path*`,
       },
     ];
   },
