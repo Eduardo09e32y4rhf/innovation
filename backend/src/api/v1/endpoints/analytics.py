@@ -11,6 +11,7 @@ from datetime import datetime, timedelta
 
 router = APIRouter(prefix="/api/analytics", tags=["Analytics"])
 
+
 @router.get("/")
 async def get_analytics_data(
     current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
@@ -48,33 +49,43 @@ async def get_analytics_data(
         month_date = (this_month_start - timedelta(days=i * 30)).replace(day=1)
         next_month_date = (month_date + timedelta(days=32)).replace(day=1)
 
-        m_income = get_sum([
-            Transaction.type == "income",
-            Transaction.created_at >= month_date,
-            Transaction.created_at < next_month_date
-        ])
-        m_expense = get_sum([
-            Transaction.type == "expense",
-            Transaction.created_at >= month_date,
-            Transaction.created_at < next_month_date
-        ])
+        m_income = get_sum(
+            [
+                Transaction.type == "income",
+                Transaction.created_at >= month_date,
+                Transaction.created_at < next_month_date,
+            ]
+        )
+        m_expense = get_sum(
+            [
+                Transaction.type == "expense",
+                Transaction.created_at >= month_date,
+                Transaction.created_at < next_month_date,
+            ]
+        )
 
-        chart_data.append({
-            "name": month_date.strftime("%b"),
-            "revenue": m_income,
-            "expenses": m_expense,
-            "profit": m_income - m_expense
-        })
+        chart_data.append(
+            {
+                "name": month_date.strftime("%b"),
+                "revenue": m_income,
+                "expenses": m_expense,
+                "profit": m_income - m_expense,
+            }
+        )
 
     # Contagens
-    active_jobs = db.query(Job).filter(
-        Job.company_id == current_user.id,
-        Job.status == "published"
-    ).count()
+    active_jobs = (
+        db.query(Job)
+        .filter(Job.company_id == current_user.id, Job.status == "published")
+        .count()
+    )
 
-    total_candidates = db.query(Application).join(Job).filter(
-        Job.company_id == current_user.id
-    ).count()
+    total_candidates = (
+        db.query(Application)
+        .join(Job)
+        .filter(Job.company_id == current_user.id)
+        .count()
+    )
 
     return {
         "summary": {
@@ -82,7 +93,7 @@ async def get_analytics_data(
             "profit": total_profit,
             "expenses": total_expenses,
             "active_jobs": active_jobs,
-            "candidates": total_candidates
+            "candidates": total_candidates,
         },
-        "chart_data": chart_data
+        "chart_data": chart_data,
     }
