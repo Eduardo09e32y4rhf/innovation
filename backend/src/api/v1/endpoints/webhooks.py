@@ -8,6 +8,7 @@ import logging
 router = APIRouter(prefix="/api/webhooks", tags=["Webhooks"])
 logger = logging.getLogger(__name__)
 
+
 @router.post("/n8n/callback")
 async def n8n_callback(request: Request, db: Session = Depends(get_db)):
     """
@@ -46,7 +47,9 @@ async def n8n_callback(request: Request, db: Session = Depends(get_db)):
                     # db.add(history)
 
                     db.commit()
-                    logger.info(f"Aplicação {app_id} atualizada para {new_status} via webhook")
+                    logger.info(
+                        f"Aplicação {app_id} atualizada para {new_status} via webhook"
+                    )
 
         return {"status": "received", "payload": payload}
     except Exception as e:

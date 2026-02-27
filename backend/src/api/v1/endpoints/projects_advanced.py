@@ -151,14 +151,16 @@ def fire_event(
             "action_config": trigger.action_config,
             "context": context,
             "company_id": company.id,
-            "user_id": current_user.id
+            "user_id": current_user.id,
         }
 
         # Call n8n
         trigger_n8n_webhook(payload)
 
         fired.append(payload)
-        logger.info(f"Disparado webhook n8n para fluxo {trigger.name} (ID {trigger.id})")
+        logger.info(
+            f"Disparado webhook n8n para fluxo {trigger.name} (ID {trigger.id})"
+        )
 
     return {"fired": len(fired), "executions": fired}
 

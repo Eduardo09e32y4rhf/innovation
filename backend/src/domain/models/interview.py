@@ -13,7 +13,9 @@ class Interview(Base):
     interviewer_id = Column(Integer, ForeignKey("users.id"), nullable=False)
 
     status = Column(String(50), default="scheduled")  # scheduled, completed, cancelled
-    type = Column(String(50), nullable=True)  # technical, cultural_fit, portfolio_review
+    type = Column(
+        String(50), nullable=True
+    )  # technical, cultural_fit, portfolio_review
     location = Column(String(100), nullable=True)  # Online - Zoom, Presencial
     notes = Column(Text, nullable=True)
 
@@ -25,9 +27,17 @@ class Interview(Base):
     recommendation = Column(String(50), nullable=True)  # Hire, Reject, Hold
 
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
-    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    updated_at = Column(
+        DateTime,
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )
 
     # Relationships
     application = relationship("Application", backref="interviews")
-    candidate = relationship("User", foreign_keys=[candidate_id], backref="candidate_interviews")
-    interviewer = relationship("User", foreign_keys=[interviewer_id], backref="interviewer_interviews")
+    candidate = relationship(
+        "User", foreign_keys=[candidate_id], backref="candidate_interviews"
+    )
+    interviewer = relationship(
+        "User", foreign_keys=[interviewer_id], backref="interviewer_interviews"
+    )

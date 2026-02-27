@@ -13,6 +13,7 @@ from pydantic import BaseModel
 
 router = APIRouter(prefix="/api/interviews", tags=["Interviews"])
 
+
 class InterviewCreate(BaseModel):
     application_id: int
     interviewer_id: int
@@ -21,15 +22,18 @@ class InterviewCreate(BaseModel):
     location: str
     notes: Optional[str] = None
 
+
 class InterviewUpdate(BaseModel):
     status: Optional[str] = None
     scheduled_date: Optional[datetime] = None
     notes: Optional[str] = None
 
+
 class InterviewFeedback(BaseModel):
     feedback: str
     score: float
     recommendation: str
+
 
 @router.get("")
 async def list_interviews(
@@ -40,9 +44,15 @@ async def list_interviews(
     """
     Lista todas as entrevistas, filtrando por empresa do usuário atual.
     """
-    company_id = current_user.active_company_id or current_user.id # Fallback if direct user
+    company_id = (
+        current_user.active_company_id or current_user.id
+    )  # Fallback if direct user
 
-    query = db.query(Interview).join(Application).filter(Application.company_id == company_id)
+    query = (
+        db.query(Interview)
+        .join(Application)
+        .filter(Application.company_id == company_id)
+    )
 
     if status:
         query = query.filter(Interview.status == status)
@@ -51,18 +61,24 @@ async def list_interviews(
 
     result = []
     for i in interviews:
-        result.append({
-            "id": i.id,
-            "candidate_name": i.candidate.name if i.candidate else "N/A",
-            "candidate_email": i.candidate.email if i.candidate else "N/A",
-            "job_title": i.application.job.title if i.application and i.application.job else "N/A",
-            "scheduled_date": i.scheduled_date,
-            "interviewer": i.interviewer.name if i.interviewer else "N/A",
-            "status": i.status,
-            "type": i.type,
-            "location": i.location,
-            "score": i.score
-        })
+        result.append(
+            {
+                "id": i.id,
+                "candidate_name": i.candidate.name if i.candidate else "N/A",
+                "candidate_email": i.candidate.email if i.candidate else "N/A",
+                "job_title": (
+                    i.application.job.title
+                    if i.application and i.application.job
+                    else "N/A"
+                ),
+                "scheduled_date": i.scheduled_date,
+                "interviewer": i.interviewer.name if i.interviewer else "N/A",
+                "status": i.status,
+                "type": i.type,
+                "location": i.location,
+                "score": i.score,
+            }
+        )
 
     return {"interviews": result, "total": len(result)}
 
@@ -91,14 +107,17 @@ async def schedule_interview(
         type=data.type,
         location=data.location,
         notes=data.notes,
-        status="scheduled"
+        status="scheduled",
     )
 
     db.add(new_interview)
     db.commit()
     db.refresh(new_interview)
 
-    return {"message": "Entrevista agendada com sucesso", "interview_id": new_interview.id}
+    return {
+        "message": "Entrevista agendada com sucesso",
+        "interview_id": new_interview.id,
+    }
 
 
 @router.put("/{interview_id}")
@@ -132,7 +151,7 @@ async def update_interview(
     return {
         "message": "Entrevista atualizada com sucesso",
         "interview_id": interview_id,
-        "status": interview.status
+        "status": interview.status,
     }
 
 
@@ -187,11 +206,16 @@ async def get_interview_calendar(
     company_id = current_user.active_company_id or current_user.id
 
     # Filtrar entrevistas do mês/ano
-    interviews = db.query(Interview).join(Application).filter(
-        Application.company_id == company_id,
-        extract('month', Interview.scheduled_date) == month,
-        extract('year', Interview.scheduled_date) == year
-    ).all()
+    interviews = (
+        db.query(Interview)
+        .join(Application)
+        .filter(
+            Application.company_id == company_id,
+            extract("month", Interview.scheduled_date) == month,
+            extract("year", Interview.scheduled_date) == year,
+        )
+        .all()
+    )
 
     calendar_data = {}
 
@@ -200,13 +224,19 @@ async def get_interview_calendar(
         if day_key not in calendar_data:
             calendar_data[day_key] = []
 
-        calendar_data[day_key].append({
-            "id": i.id,
-            "time": i.scheduled_date.strftime("%H:%M"),
-            "candidate": i.candidate.name if i.candidate else "Candidato",
-            "job": i.application.job.title if i.application and i.application.job else "Vaga",
-            "type": i.type,
-            "status": i.status
-        })
+        calendar_data[day_key].append(
+            {
+                "id": i.id,
+                "time": i.scheduled_date.strftime("%H:%M"),
+                "candidate": i.candidate.name if i.candidate else "Candidato",
+                "job": (
+                    i.application.job.title
+                    if i.application and i.application.job
+                    else "Vaga"
+                ),
+                "type": i.type,
+                "status": i.status,
+            }
+        )
 
     return {"month": month, "year": year, "interviews": calendar_data}
