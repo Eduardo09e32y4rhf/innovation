@@ -1,26 +1,40 @@
-import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
-import './globals.css'
-import AnnouncementBanner from '../components/AnnouncementBanner'
+import { Metadata } from 'next';
+import Footer from '@/components/ui/Footer';
+import Navbar from '@/components/ui/Navbar';
+import { Toaster } from '@/components/ui/Toasts/toaster';
+import { PropsWithChildren, Suspense } from 'react';
+import { getURL } from '@/utils/helpers';
+import 'styles/main.css';
 
-const inter = Inter({ subsets: ['latin'] })
+const title = 'Next.js Subscription Starter';
+const description = 'Brought to you by Vercel, Stripe, and Supabase.';
 
 export const metadata: Metadata = {
-  title: 'Innovation.ia Enterprise',
-  description: 'Sistema Operacional de IA Empresarial',
-}
+  metadataBase: new URL(getURL()),
+  title: title,
+  description: description,
+  openGraph: {
+    title: title,
+    description: description
+  }
+};
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default async function RootLayout({ children }: PropsWithChildren) {
   return (
-    <html lang="pt-BR" className="dark">
-      <body className={`${inter.className} min-h-screen bg-black text-white antialiased`}>
-        <AnnouncementBanner />
-        {children}
+    <html lang="en">
+      <body className="bg-black">
+        <Navbar />
+        <main
+          id="skip"
+          className="min-h-[calc(100dvh-4rem)] md:min-h[calc(100dvh-5rem)]"
+        >
+          {children}
+        </main>
+        <Footer />
+        <Suspense>
+          <Toaster />
+        </Suspense>
       </body>
     </html>
-  )
+  );
 }
