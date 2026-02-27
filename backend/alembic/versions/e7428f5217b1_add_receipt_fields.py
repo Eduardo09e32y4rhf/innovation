@@ -5,6 +5,7 @@ Revises: d0346c349405
 Create Date: 2026-03-05 10:00:00.000000
 
 """
+
 from typing import Sequence, Union
 
 from alembic import op
@@ -23,7 +24,10 @@ def upgrade() -> None:
         "transactions",
         sa.Column("attachment_url", sa.String(length=500), nullable=True),
     )
-    op.add_column("transactions", sa.Column("ai_metadata", sa.Text(), nullable=True))
+    op.add_column(
+        "transactions",
+        sa.Column("ai_metadata", sa.Text(), nullable=True),
+    )
 
 
 def downgrade() -> None:
