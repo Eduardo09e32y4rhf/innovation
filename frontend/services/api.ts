@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-    baseURL: '/api',
+    baseURL: process.env.NEXT_PUBLIC_API_URL || '/api',
     headers: { 'Content-Type': 'application/json' },
 });
 
@@ -111,6 +111,27 @@ export const ATSService = {
         const res = await api.post('/ai/rank-candidate', { resume_text: resumeText, job_description: jobDescription });
         return res.data;
     },
+    // New Interview endpoints
+    getInterviews: async (status?: string) => {
+        const res = await api.get('/interviews', { params: { status } });
+        return res.data;
+    },
+    scheduleInterview: async (data: any) => {
+        const res = await api.post('/interviews', data);
+        return res.data;
+    },
+    updateInterview: async (id: number, data: any) => {
+        const res = await api.put(`/interviews/${id}`, data);
+        return res.data;
+    },
+    addInterviewFeedback: async (id: number, data: any) => {
+        const res = await api.post(`/interviews/${id}/feedback`, data);
+        return res.data;
+    },
+    getInterviewCalendar: async (month?: number, year?: number) => {
+        const res = await api.get('/interviews/calendar', { params: { month, year } });
+        return res.data;
+    }
 };
 
 // ── FINANCE ──────────────────────────────────────────────────────────────
