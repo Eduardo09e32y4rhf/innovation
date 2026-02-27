@@ -21,6 +21,7 @@ from api.v1.endpoints import (
     finance_advanced,
     projects_advanced,
     killer_questions,
+    webhooks,
 )
 import domain.models  # Garante o registro de todos os modelos
 from core.config import settings
@@ -76,6 +77,8 @@ app.include_router(csc_advanced.router)
 app.include_router(finance_advanced.router)
 app.include_router(projects_advanced.router)
 app.include_router(killer_questions.router)
+# ── Webhooks (Integration with n8n) ──
+app.include_router(webhooks.router)
 
 
 @app.get("/health")
