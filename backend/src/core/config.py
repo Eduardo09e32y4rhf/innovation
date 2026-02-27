@@ -37,6 +37,9 @@ class Settings(BaseSettings):
         "http://localhost:8000"  # Default for local dev, override in prod/ngrok
     )
 
+    # n8n Settings
+    N8N_WEBHOOK_URL: str | None = None
+
     model_config = SettingsConfigDict(
         env_file=BASE_DIR / ".env",
         env_file_encoding="utf-8",
