@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     # External Services
     REDIS_URL: str = "redis://localhost:6379/0"
     GEMINI_API_KEYS: str | None = None
-    ALLOWED_ORIGINS: str = "http://localhost:3000,http://187.77.49.207"
+    ALLOWED_ORIGINS: str = "http://localhost:3000"
 
     # Google OAuth
     GOOGLE_CLIENT_ID: str | None = None

@@ -2,6 +2,7 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from api.v1.endpoints import (
+    analytics,
     jobs,
     applications,
     ai,
@@ -79,8 +80,14 @@ app.include_router(projects_advanced.router)
 app.include_router(killer_questions.router)
 # ── Webhooks (Integration with n8n) ──
 app.include_router(webhooks.router)
+app.include_router(analytics.router)
 
 
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+if __name__ == "__main__":
+    import uvicorn
+    import os
+    uvicorn.run("api.main:app", host="0.0.0.0", port=int(os.getenv("PORT", 8000)), reload=True)
