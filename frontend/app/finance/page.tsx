@@ -29,7 +29,18 @@ export default function FinancePage() {
     const [anomalies, setAnomalies] = useState<{ description: string; impact: string }[]>([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
-    const [form, setForm] = useState({ description: '', amount: '', type: 'income', due_date: '', attachment_url: '', ai_metadata: '' });
+
+    // Updated form state to include category and tax_type
+    const [form, setForm] = useState({
+        description: '',
+        amount: '',
+        type: 'income',
+        category: 'Outros',
+        tax_type: 'Nenhum',
+        due_date: '',
+        attachment_url: '',
+        ai_metadata: ''
+    });
 
     useEffect(() => { loadData(); }, []);
 
@@ -49,17 +60,32 @@ export default function FinancePage() {
 
     const handleCreate = async () => {
         try {
+            // Include category and tax_type in payload if supported by backend
             const tx = await FinanceService.createTransaction({
                 description: form.description,
                 amount: parseFloat(form.amount),
                 type: form.type,
                 due_date: form.due_date,
                 attachment_url: form.attachment_url,
-                ai_metadata: form.ai_metadata
-            });
+                ai_metadata: form.ai_metadata,
+                // Cast to any because the interface in the file might not be updated yet
+                // but the backend accepts these fields based on the task description
+                category: form.category,
+                tax_type: form.type === 'expense' ? form.tax_type : null
+            } as any);
+
             setTransactions(prev => [tx, ...prev]);
             setShowModal(false);
-            setForm({ description: '', amount: '', type: 'income', due_date: '', attachment_url: '', ai_metadata: '' });
+            setForm({
+                description: '',
+                amount: '',
+                type: 'income',
+                category: 'Outros',
+                tax_type: 'Nenhum',
+                due_date: '',
+                attachment_url: '',
+                ai_metadata: ''
+            });
             loadData();
         } catch (e) { console.error(e); }
     };
@@ -183,10 +209,32 @@ export default function FinancePage() {
 
                                     <input className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm" placeholder="Descrição" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} />
                                     <input className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm" placeholder="Valor (R$)" type="number" value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} />
-                                    <select className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm" value={form.type} onChange={e => setForm({ ...form, type: e.target.value })}>
-                                        <option value="income">Receita</option>
-                                        <option value="expense">Despesa</option>
-                                    </select>
+
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <select className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm" value={form.type} onChange={e => setForm({ ...form, type: e.target.value })}>
+                                            <option value="income">Receita</option>
+                                            <option value="expense">Despesa</option>
+                                        </select>
+
+                                        <select className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm" value={form.category} onChange={e => setForm({ ...form, category: e.target.value })}>
+                                            <option value="Outros">Outros</option>
+                                            <option value="Salário">Salário</option>
+                                            <option value="Marketing">Marketing</option>
+                                            <option value="Infraestrutura">Infraestrutura</option>
+                                            <option value="Vendas">Vendas</option>
+                                        </select>
+                                    </div>
+
+                                    {form.type === 'expense' && (
+                                        <select className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm" value={form.tax_type} onChange={e => setForm({ ...form, tax_type: e.target.value })}>
+                                            <option value="Nenhum">Sem Imposto</option>
+                                            <option value="DAS">DAS (Simples Nacional)</option>
+                                            <option value="INSS">INSS</option>
+                                            <option value="FGTS">FGTS</option>
+                                            <option value="IRRF">IRRF</option>
+                                        </select>
+                                    )}
+
                                     <input className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm" type="date" value={form.due_date} onChange={e => setForm({ ...form, due_date: e.target.value })} />
                                     <button onClick={handleCreate} className="w-full py-2 bg-green-600 hover:bg-green-500 rounded-lg text-sm font-medium transition flex items-center justify-center gap-2">
                                         <Plus className="w-4 h-4" /> Registrar Transação

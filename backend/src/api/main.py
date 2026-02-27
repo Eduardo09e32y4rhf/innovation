@@ -22,6 +22,7 @@ from api.v1.endpoints import (
     projects_advanced,
     killer_questions,
     webhooks,
+    companies,
 )
 import domain.models  # Garante o registro de todos os modelos
 from core.config import settings
@@ -71,6 +72,7 @@ app.include_router(projects.router)
 app.include_router(rh.router)
 app.include_router(finance.router)
 app.include_router(support.router)
+app.include_router(companies.router)
 # ── Advanced Modules (MASTERPLAN completion) ──
 app.include_router(rh_advanced.router)
 app.include_router(csc_advanced.router)

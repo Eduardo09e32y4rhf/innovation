@@ -196,11 +196,12 @@ export default function DashboardPage() {
             sparkColor: '#22c55e', sparkline: metrics?.revenue?.chart_data?.map((d: any) => d.value) ?? [0, 0, 0, 0, 0],
             progress: 0,
         },
+        // Display Payroll costs (expenses with category 'salary')
         {
-            title: 'Lucro Líquido', prefix: 'R$ ', suffix: '', raw: metrics?.profit?.current ?? 0,
-            change: `+${metrics?.profit?.change_percent ?? 0}%`,
-            icon: TrendingUp, color: 'text-blue-400', bg: 'bg-blue-500/10', barColor: 'bg-blue-500',
-            sparkColor: '#3b82f6', sparkline: metrics?.profit?.chart_data?.map((d: any) => d.value) ?? [0, 0, 0, 0, 0],
+            title: 'Folha de Pagamento', prefix: 'R$ ', suffix: '', raw: metrics?.costs?.breakdown?.salaries ?? 0,
+            change: 'Custo com salários',
+            icon: Users, color: 'text-blue-400', bg: 'bg-blue-500/10', barColor: 'bg-blue-500',
+            sparkColor: '#3b82f6', sparkline: [0, 0, 0, 0, metrics?.costs?.breakdown?.salaries ?? 0],
             progress: 0,
         },
         {

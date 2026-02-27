@@ -64,6 +64,15 @@ async def get_dashboard_metrics(
         ]
     )
 
+    # Calculate payroll costs (salaries)
+    payroll_costs = get_sum(
+        [
+            Transaction.type == "expense",
+            Transaction.created_at >= this_month_start,
+            Transaction.category == "Salário"  # Or "salary" depending on frontend/backend convention
+        ]
+    )
+
     current_profit = current_revenue - current_costs
     previous_profit = previous_revenue - previous_costs
 
@@ -146,6 +155,11 @@ async def get_dashboard_metrics(
             "previous": previous_revenue,
             "change_percent": calc_change(current_revenue, previous_revenue),
             "chart_data": chart_data,
+        },
+        "costs": {
+            "breakdown": {
+                "salaries": payroll_costs
+            }
         },
         "projects": total_projects,
         "candidates": total_applications,

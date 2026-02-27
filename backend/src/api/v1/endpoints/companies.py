@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -7,6 +7,7 @@ from core.dependencies import get_current_user, require_role
 from core.roles import Role
 from infrastructure.database.sql.dependencies import get_db
 from domain.models.company import Company
+from domain.models.user import User
 
 router = APIRouter(prefix="/companies", tags=["Companies"])
 
@@ -36,7 +37,7 @@ def get_my_company(
 def create_company(
     payload: dict,
     db: Session = Depends(get_db),
-    current_user=Depends(require_role(Role.COMPANY)),
+    current_user=Depends(get_current_user),  # Changed from require_role(Role.COMPANY)
 ):
     required_fields = ["razao_social", "cnpj", "cidade", "uf"]
     missing = [field for field in required_fields if not payload.get(field)]
@@ -62,8 +63,16 @@ def create_company(
         status=payload.get("status", "active"),
     )
     db.add(company)
+
+    # Update user role to COMPANY
+    user = db.query(User).filter(User.id == current_user.id).first()
+    if user:
+        user.role = Role.COMPANY
+        db.add(user)
+
     db.commit()
     db.refresh(company)
+
     return {
         "id": company.id,
         "owner_user_id": company.owner_user_id,

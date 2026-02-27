@@ -113,6 +113,10 @@ export function Sidebar() {
                     <LogOut className="w-4 h-4" /> Sair
                 </button>
             </div>
+
+            <div className="p-4 text-center border-t border-purple-500/10">
+                <span className="text-xs text-gray-500">Sede: Osasco (Virtual)</span>
+            </div>
         </aside>
     );
 }
