@@ -4,7 +4,7 @@ from unittest.mock import MagicMock
 from datetime import datetime
 
 # Adjust path to include backend source
-sys.path.append('backend/src')
+sys.path.append("backend/src")
 
 # Import the function to test
 # Since we might not have all dependencies installed in this environment (like fastapi, sqlalchemy),
@@ -20,6 +20,7 @@ except ImportError:
     # But usually standard libraries are available.
     print("Skipping test due to missing dependencies in environment")
     sys.exit(0)
+
 
 class TestAnalytics(unittest.TestCase):
     def test_get_analytics_structure(self):
@@ -56,5 +57,6 @@ class TestAnalytics(unittest.TestCase):
         self.assertEqual(len(result["history"]), 6)
         self.assertEqual(result["history"][0]["revenue"], 1000.0)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()
