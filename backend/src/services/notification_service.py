@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 import logging
-import httpx
 from twilio.rest import Client as TwilioClient
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail
@@ -53,19 +52,6 @@ def send_sms(payload: NotificationPayload) -> bool:
         return False
 
 
-def trigger_n8n_webhook(payload: dict) -> None:
-    webhook_url = settings.N8N_WEBHOOK_URL
-    if not webhook_url:
-        return
-
-    try:
-        # Usar timeout curto para não bloquear. Idealmente seria async, mas aqui é sync.
-        # Se for chamado de contexto async, deveria usar httpx.AsyncClient ou run_in_threadpool
-        httpx.post(webhook_url, json=payload, timeout=5.0)
-    except Exception as e:
-        logger.error(f"Erro ao chamar n8n webhook: {e}")
-
-
 def notify_application_status_change(
     *,
     recipient_email: str | None,
@@ -86,14 +72,3 @@ def notify_application_status_change(
     )
     send_email(payload)
     send_sms(payload)
-
-    # Trigger n8n Workflow
-    n8n_payload = {
-        "event": "application_status_change",
-        "application_id": application_id,
-        "old_status": old_status,
-        "new_status": new_status,
-        "recipient_email": recipient_email,
-        "recipient_phone": recipient_phone,
-    }
-    trigger_n8n_webhook(n8n_payload)

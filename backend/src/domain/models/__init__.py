@@ -30,6 +30,3 @@ from domain.models.workflow_trigger import WorkflowTrigger
 from domain.models.purchase_request import PurchaseRequest
 from domain.models.csm_models import KBArticle, TicketRating, WebhookSubscription
 from domain.models.gamification import Mission, UserMission
-from domain.models.interview import Interview
-from domain.models.attendance import Attendance
-from domain.models.rh_ticket import RHTicket

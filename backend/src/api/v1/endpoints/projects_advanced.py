@@ -7,17 +7,15 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import Optional, List
-import logging
 
 from infrastructure.database.sql.dependencies import get_db
 from core.dependencies import get_current_user
 from domain.models.user import User
 from domain.models.workflow_trigger import WorkflowTrigger
 from domain.models.purchase_request import PurchaseRequest
-from services.notification_service import trigger_n8n_webhook
 
 router = APIRouter(prefix="/api/projects/v2", tags=["projects-advanced"])
-logger = logging.getLogger(__name__)
+
 
 # ─── WORKFLOW TRIGGERS ─────────────────────────────────────────────────────────
 
@@ -123,7 +121,8 @@ def fire_event(
     current_user: User = Depends(get_current_user),
 ):
     """
-    Dispara um evento e executa todos os fluxos matching via n8n.
+    Dispara um evento e executa todos os fluxos matching.
+    Retorna os fluxos executados (simulação - sem integração externa real).
     """
     from domain.models.company import Company
 
@@ -143,25 +142,16 @@ def fire_event(
 
     fired = []
     for trigger in triggers:
-        payload = {
-            "trigger_id": trigger.id,
-            "trigger_name": trigger.name,
-            "event": event,
-            "action_type": trigger.action_type,
-            "action_config": trigger.action_config,
-            "context": context,
-            "company_id": company.id,
-            "user_id": current_user.id,
-        }
-
-        # Call n8n
-        trigger_n8n_webhook(payload)
-
-        fired.append(payload)
-        logger.info(
-            f"Disparado webhook n8n para fluxo {trigger.name} (ID {trigger.id})"
+        # Log execution
+        fired.append(
+            {
+                "trigger_id": trigger.id,
+                "name": trigger.name,
+                "action_type": trigger.action_type,
+                "action_config": trigger.action_config,
+                "status": "queued",
+            }
         )
-
     return {"fired": len(fired), "executions": fired}
 
 

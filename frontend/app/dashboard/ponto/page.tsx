@@ -1,157 +1,241 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Clock, Play, Square, Pause } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Clock, LogIn, LogOut, Calendar, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import AppLayout from '../../../components/AppLayout';
-import api from '../../../services/api';
 
-// Simple Clock component
-function DigitalClock() {
-    const [time, setTime] = useState('');
+interface TimeBankEntry {
+    id: number;
+    type: 'credit' | 'debit';
+    hours: number;
+    reason: string;
+    created_at: string;
+    status: string;
+}
 
-    useEffect(() => {
-        const timer = setInterval(() => {
-            setTime(new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
-        }, 1000);
-        return () => clearInterval(timer);
-    }, []);
-
-    return (
-        <div className="text-6xl font-black font-mono text-white tracking-widest bg-gray-900/50 px-8 py-4 rounded-2xl border border-white/5 shadow-2xl">
-            {time}
-        </div>
-    );
+interface BalanceData {
+    total_credit_hours: number;
+    total_debit_hours: number;
+    balance_hours: number;
+    entries: TimeBankEntry[];
 }
 
 export default function PontoPage() {
-    const [status, setStatus] = useState<'idle' | 'working' | 'break'>('idle');
-    const [lastRecord, setLastRecord] = useState<any>(null);
-    const [todayHistory, setTodayHistory] = useState<any[]>([]);
-    const [loading, setLoading] = useState(false);
+    const [currentTime, setCurrentTime] = useState(new Date());
+    const [balance, setBalance] = useState<BalanceData | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [lastAction, setLastAction] = useState<string | null>(null);
+    const [notification, setNotification] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
 
+    // Tick clock every second
     useEffect(() => {
-        loadHistory();
+        const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+        return () => clearInterval(timer);
     }, []);
 
-    const loadHistory = async () => {
-        try {
-            const res = await api.get('/rh/attendance/history?limit=5');
-            // Assuming the API returns a list of records, we filter for today to check status
-            const records = res.data;
-            setTodayHistory(records);
+    const getToken = () => {
+        if (typeof window !== 'undefined') {
+            return localStorage.getItem('token');
+        }
+        return null;
+    };
 
-            // Simple logic to determine current status based on last record
-            // Real implementation would depend on backend logic
-            if (records.length > 0) {
-                const last = records[0];
-                const today = new Date().toISOString().split('T')[0];
-                if (last.date === today && !last.exit_time) {
-                    setStatus('working');
-                    setLastRecord(last);
-                } else {
-                    setStatus('idle');
-                }
+    const showNotification = (type: 'success' | 'error', msg: string) => {
+        setNotification({ type, msg });
+        setTimeout(() => setNotification(null), 4000);
+    };
+
+    const fetchBalance = useCallback(async () => {
+        const token = getToken();
+        if (!token) {
+            window.location.href = '/login';
+            return;
+        }
+        try {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/rh/v2/time-bank/balance`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (res.status === 401) { window.location.href = '/login'; return; }
+            if (res.ok) {
+                const data = await res.json();
+                setBalance(data);
             }
-        } catch (error) {
-            console.error("Failed to load attendance history", error);
-        }
-    };
-
-    const handleClockIn = async () => {
-        setLoading(true);
-        try {
-            await api.post('/rh/attendance/clock-in', { record_type: 'normal' });
-            setStatus('working');
-            loadHistory();
-        } catch (error) {
-            console.error("Clock in failed", error);
-            alert("Erro ao bater ponto. Tente novamente.");
+        } catch {
+            // silently fail — show cached or empty state
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
 
-    const handleClockOut = async () => {
-        setLoading(true);
+    useEffect(() => { fetchBalance(); }, [fetchBalance]);
+
+    const handlePonto = async (type: 'credit' | 'debit') => {
+        if (isSubmitting) return; // Anti-double-click
+        setIsSubmitting(true);
+
+        const token = getToken();
+        if (!token) { window.location.href = '/login'; return; }
+
+        const reason = type === 'credit' ? 'Entrada registrada via portal' : 'Saída registrada via portal';
+
         try {
-            await api.post('/rh/attendance/clock-out');
-            setStatus('idle');
-            loadHistory();
-        } catch (error) {
-            console.error("Clock out failed", error);
-            alert("Erro ao encerrar expediente. Tente novamente.");
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/rh/v2/time-bank`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({ type, hours: 1, reason }),
+            });
+
+            if (res.status === 401) { window.location.href = '/login'; return; }
+
+            if (res.ok) {
+                setLastAction(type);
+                showNotification('success', type === 'credit' ? '✅ Entrada registrada com sucesso!' : '✅ Saída registrada com sucesso!');
+                await fetchBalance();
+            } else {
+                const err = await res.json();
+                showNotification('error', err.detail || 'Erro ao registrar ponto');
+            }
+        } catch {
+            showNotification('error', 'Erro de conexão com o servidor');
         } finally {
-            setLoading(false);
+            // 3-second cooldown before re-enabling the button
+            setTimeout(() => setIsSubmitting(false), 3000);
         }
     };
+
+    const formatHours = (h: number) => {
+        const hrs = Math.floor(Math.abs(h));
+        const mins = Math.round((Math.abs(h) - hrs) * 60);
+        return `${hrs}h${mins > 0 ? ` ${mins}m` : ''}`;
+    };
+
+    const todayEntries = balance?.entries?.filter(e => {
+        const d = new Date(e.created_at);
+        const today = new Date();
+        return d.toDateString() === today.toDateString();
+    }) ?? [];
 
     return (
-        <AppLayout title="Meu Ponto">
-            <div className="flex flex-col items-center justify-center min-h-[80vh] gap-12 p-8">
+        <AppLayout title="Ponto Eletrônico">
+            <div className="min-h-screen bg-gray-950 text-white p-6">
+                {/* Notification Toast */}
+                {notification && (
+                    <div className={`fixed top-6 right-6 z-50 flex items-center gap-3 px-5 py-3 rounded-xl shadow-2xl transition-all duration-300 ${notification.type === 'success'
+                        ? 'bg-green-500/20 border border-green-500/40 text-green-300'
+                        : 'bg-red-500/20 border border-red-500/40 text-red-300'
+                        }`}>
+                        {notification.type === 'success' ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
+                        {notification.msg}
+                    </div>
+                )}
 
-                <div className="text-center space-y-2">
-                    <h2 className="text-gray-400 text-sm uppercase tracking-widest">Horário de Brasília</h2>
-                    <DigitalClock />
-                    <p className="text-gray-500 text-xs mt-4">
-                        {new Date().toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-                    </p>
-                </div>
+                <div className="max-w-4xl mx-auto">
+                    {/* Header */}
+                    <div className="mb-8">
+                        <h1 className="text-3xl font-black bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
+                            Ponto Eletrônico
+                        </h1>
+                        <p className="text-gray-400 mt-1">Registre sua entrada e saída com segurança</p>
+                    </div>
 
-                <div className="flex flex-col items-center gap-6">
-                    {status === 'idle' ? (
-                        <button
-                            onClick={handleClockIn}
-                            disabled={loading}
-                            className="group relative flex items-center justify-center w-64 h-64 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 shadow-[0_0_60px_-15px_rgba(16,185,129,0.5)] hover:shadow-[0_0_100px_-10px_rgba(16,185,129,0.7)] hover:scale-105 transition-all duration-300"
-                        >
-                            <div className="flex flex-col items-center gap-2 text-white">
-                                <Play className="w-16 h-16 fill-current" />
-                                <span className="text-xl font-bold uppercase tracking-widest">Iniciar</span>
+                    {/* Clock Card */}
+                    <div className="relative bg-gradient-to-br from-purple-900/40 to-blue-900/40 border border-purple-500/30 rounded-2xl p-10 mb-6 text-center overflow-hidden">
+                        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(139,92,246,0.15)_0%,transparent_70%)]" />
+                        <Clock className="w-12 h-12 text-purple-400 mx-auto mb-4" />
+                        <div className="text-6xl font-mono font-black text-white tracking-widest">
+                            {currentTime.toLocaleTimeString('pt-BR')}
+                        </div>
+                        <div className="text-gray-400 mt-2 text-lg">
+                            {currentTime.toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                        </div>
+
+                        {/* Ponto Buttons */}
+                        <div className="flex gap-4 justify-center mt-8">
+                            <button
+                                onClick={() => handlePonto('credit')}
+                                disabled={isSubmitting || lastAction === 'credit'}
+                                className="flex items-center gap-2 px-8 py-4 bg-green-500/20 hover:bg-green-500/30 border border-green-500/40 text-green-300 rounded-xl font-bold text-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {isSubmitting && lastAction !== 'debit' ? (
+                                    <Loader2 className="w-5 h-5 animate-spin" />
+                                ) : (
+                                    <LogIn className="w-5 h-5" />
+                                )}
+                                Entrada
+                            </button>
+                            <button
+                                onClick={() => handlePonto('debit')}
+                                disabled={isSubmitting || lastAction === 'debit'}
+                                className="flex items-center gap-2 px-8 py-4 bg-red-500/20 hover:bg-red-500/30 border border-red-500/40 text-red-300 rounded-xl font-bold text-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {isSubmitting && lastAction !== 'credit' ? (
+                                    <Loader2 className="w-5 h-5 animate-spin" />
+                                ) : (
+                                    <LogOut className="w-5 h-5" />
+                                )}
+                                Saída
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Stats Grid */}
+                    {loading ? (
+                        <div className="flex items-center justify-center h-32">
+                            <Loader2 className="w-8 h-8 animate-spin text-purple-400" />
+                        </div>
+                    ) : balance ? (
+                        <div className="grid grid-cols-3 gap-4 mb-6">
+                            <div className="bg-gray-900/60 border border-gray-800 rounded-xl p-5 text-center">
+                                <div className="text-sm text-gray-500 mb-1">Total de Créditos</div>
+                                <div className="text-2xl font-bold text-green-400">{formatHours(balance.total_credit_hours)}</div>
                             </div>
-                            <div className="absolute inset-0 rounded-full border-4 border-white/20 animate-pulse" />
-                        </button>
-                    ) : (
-                        <button
-                            onClick={handleClockOut}
-                            disabled={loading}
-                            className="group relative flex items-center justify-center w-64 h-64 rounded-full bg-gradient-to-br from-red-500 to-rose-600 shadow-[0_0_60px_-15px_rgba(244,63,94,0.5)] hover:shadow-[0_0_100px_-10px_rgba(244,63,94,0.7)] hover:scale-105 transition-all duration-300"
-                        >
-                            <div className="flex flex-col items-center gap-2 text-white">
-                                <Square className="w-16 h-16 fill-current" />
-                                <span className="text-xl font-bold uppercase tracking-widest">Encerrar</span>
+                            <div className="bg-gray-900/60 border border-gray-800 rounded-xl p-5 text-center">
+                                <div className="text-sm text-gray-500 mb-1">Total de Débitos</div>
+                                <div className="text-2xl font-bold text-red-400">{formatHours(balance.total_debit_hours)}</div>
                             </div>
-                            <div className="absolute inset-0 rounded-full border-4 border-white/20 animate-pulse" />
-                        </button>
-                    )}
-
-                    <p className="text-gray-400 text-sm">
-                        {status === 'idle' ? 'Pronto para começar?' : 'Jornada em andamento...'}
-                    </p>
-                </div>
-
-                {/* Recent History Mini-View */}
-                <div className="w-full max-w-md bg-white/5 rounded-xl border border-white/10 p-4">
-                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Últimos Registros</h3>
-                    <div className="space-y-3">
-                        {todayHistory.length === 0 ? (
-                            <p className="text-center text-gray-600 text-sm py-4">Nenhum registro recente</p>
-                        ) : (
-                            todayHistory.slice(0, 3).map((record: any) => (
-                                <div key={record.id} className="flex items-center justify-between text-sm p-3 bg-black/20 rounded-lg">
-                                    <div className="flex items-center gap-3">
-                                        <div className={`w-2 h-2 rounded-full ${record.exit_time ? 'bg-gray-500' : 'bg-green-500'}`} />
-                                        <span className="text-white font-medium">{new Date(record.date).toLocaleDateString('pt-BR')}</span>
-                                    </div>
-                                    <div className="flex items-center gap-4 text-gray-400">
-                                        <span>Entrada: {record.entry_time?.slice(0, 5) || '--:--'}</span>
-                                        <span>Saída: {record.exit_time?.slice(0, 5) || '--:--'}</span>
-                                    </div>
+                            <div className="bg-gray-900/60 border border-gray-800 rounded-xl p-5 text-center">
+                                <div className="text-sm text-gray-500 mb-1">Saldo do Banco de Horas</div>
+                                <div className={`text-2xl font-bold ${balance.balance_hours >= 0 ? 'text-blue-400' : 'text-orange-400'}`}>
+                                    {balance.balance_hours >= 0 ? '+' : ''}{formatHours(balance.balance_hours)}
                                 </div>
-                            ))
+                            </div>
+                        </div>
+                    ) : null}
+
+                    {/* Today's Entries */}
+                    <div className="bg-gray-900/60 border border-gray-800 rounded-xl p-5">
+                        <div className="flex items-center gap-2 mb-4">
+                            <Calendar className="w-5 h-5 text-purple-400" />
+                            <h3 className="font-bold text-gray-200">Registros de Hoje</h3>
+                        </div>
+                        {todayEntries.length === 0 ? (
+                            <p className="text-gray-500 text-sm text-center py-4">Nenhum registro hoje ainda</p>
+                        ) : (
+                            <div className="space-y-2">
+                                {todayEntries.map((e) => (
+                                    <div key={e.id} className="flex items-center justify-between py-2 border-b border-gray-800">
+                                        <div className="flex items-center gap-3">
+                                            <div className={`w-2 h-2 rounded-full ${e.type === 'credit' ? 'bg-green-400' : 'bg-red-400'}`} />
+                                            <span className="text-gray-300 text-sm">{e.reason}</span>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <span className={`text-sm font-medium ${e.type === 'credit' ? 'text-green-400' : 'text-red-400'}`}>
+                                                {e.type === 'credit' ? '+' : '-'}{formatHours(e.hours)}
+                                            </span>
+                                            <span className="text-gray-500 text-xs">
+                                                {new Date(e.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                            </span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
                         )}
                     </div>
                 </div>
-
             </div>
         </AppLayout>
     );

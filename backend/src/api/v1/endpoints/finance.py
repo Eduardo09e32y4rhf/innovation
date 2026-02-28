@@ -12,7 +12,7 @@ from decimal import Decimal
 from datetime import datetime, time
 from services.audit_service import log_event
 
-router = APIRouter(prefix="/api/finance", tags=["finance"])
+router = APIRouter(prefix="/finance", tags=["finance"])
 
 
 @router.get("/summary")

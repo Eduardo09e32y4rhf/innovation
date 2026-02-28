@@ -21,31 +21,6 @@ services:
         limits:
           memory: 2G # Proteção contra Out-Of-Memory na VPS
 
-  # 🧠 FLOWISE - MOTOR DE IA
-  flowise:
-    image: flowiseai/flowise:latest
-    container_name: innovation_flowise
-    restart: unless-stopped
-    ports:
-      - "3001:3000" # Exposto na porta 3001 (host) -> 3000 (container)
-    environment:
-      - PORT=3000
-      - DATABASE_PATH=/root/.flowise
-      - APIKEY_PATH=/root/.flowise
-      - SECRET_KEY=secure_flowise_secret
-      - LOG_LEVEL=info
-    volumes:
-      - flowise_data:/root/.flowise
-    networks:
-      - app-network
-    deploy:
-      resources:
-        limits:
-          memory: 1G
-
 networks:
   app-network:
     external: true
-
-volumes:
-  flowise_data:

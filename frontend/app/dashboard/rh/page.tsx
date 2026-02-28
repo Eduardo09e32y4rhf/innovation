@@ -1,358 +1,377 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Plus, Users, CheckCircle, Target, Award, Trophy, Medal, TrendingUp, Heart } from 'lucide-react';
-import api from '../../../services/api';
+import { useState, useEffect, useCallback } from 'react';
+import {
+    Users, FileText, Clock, Star, Award, Loader2, Plus,
+    ChevronRight, HeartHandshake, CheckCircle, AlertCircle, X
+} from 'lucide-react';
 import AppLayout from '../../../components/AppLayout';
 
-// ─── BADGES CONFIG ────────────────────────────────────────────────────────────
-const BADGES = [
-    { id: 'pioneer', name: 'Pioneiro', desc: 'Primeiro a completar o onboarding', icon: '🚀', color: 'from-blue-500 to-cyan-500', earned: true },
-    { id: 'top_recruiter', name: 'Top Recruta', desc: 'Indicou 5+ candidatos contratados', icon: '🎯', color: 'from-purple-500 to-pink-500', earned: true },
-    { id: 'team_player', name: 'Team Player', desc: 'Avaliação 360° acima de 8.5', icon: '🤝', color: 'from-green-500 to-emerald-500', earned: true },
-    { id: 'pdi_master', name: 'PDI Master', desc: 'Completou 100% das metas do trimestre', icon: '🏆', color: 'from-yellow-500 to-orange-500', earned: false },
-    { id: 'mentor', name: 'Mentor', desc: 'Realizou 10+ mentorias registradas', icon: '🧠', color: 'from-indigo-500 to-purple-500', earned: false },
-    { id: 'early_bird', name: 'Pontualidade', desc: '30 dias seguidos sem atraso', icon: '⏰', color: 'from-teal-500 to-green-500', earned: true },
-    { id: 'innovator', name: 'Inovador', desc: 'Sugeriu melhoria implementada', icon: '💡', color: 'from-pink-500 to-rose-500', earned: false },
-    { id: 'five_star', name: '5 Estrelas', desc: 'CSAT perfeito em 3 atendimentos', icon: '⭐', color: 'from-amber-400 to-yellow-500', earned: true },
-];
+interface PDIGoal {
+    id: number;
+    title: string;
+    description?: string;
+    quarter: string;
+    progress: number;
+    completed: boolean;
+}
 
-const RANKING = [
-    { name: 'Ana Silva', points: 1250, badges: 7, avatar: 'AS' },
-    { name: 'Carlos Santos', points: 980, badges: 5, avatar: 'CS' },
-    { name: 'Maria Oliveira', points: 870, badges: 6, avatar: 'MO' },
-    { name: 'João Pereira', points: 720, badges: 4, avatar: 'JP' },
-    { name: 'Você', points: 650, badges: 5, avatar: 'EU' },
-];
+interface LeaveRequest {
+    id: number;
+    start_date: string;
+    end_date: string;
+    reason: string;
+    status: string;
+}
 
-const MOODS = [
-    { emoji: '😄', label: 'Ótimo', value: 5, color: 'text-green-400 border-green-500/30 hover:bg-green-500/10' },
-    { emoji: '🙂', label: 'Bem', value: 4, color: 'text-blue-400 border-blue-500/30 hover:bg-blue-500/10' },
-    { emoji: '😐', label: 'Normal', value: 3, color: 'text-yellow-400 border-yellow-500/30 hover:bg-yellow-500/10' },
-    { emoji: '😕', label: 'Ruim', value: 2, color: 'text-orange-400 border-orange-500/30 hover:bg-orange-500/10' },
-    { emoji: '😢', label: 'Péssimo', value: 1, color: 'text-red-400 border-red-500/30 hover:bg-red-500/10' },
-];
+interface Review360 {
+    id: number;
+    score: number;
+    feedback?: string;
+    relationship: string;
+    period: string;
+}
 
-export default function RHAdvancedPage() {
-    const [pdiGoals, setPdiGoals] = useState<any[]>([]);
-    const [activeTab, setActiveTab] = useState<'360' | 'pdi' | 'gamification' | 'pulse'>('360');
+interface Payslip {
+    id: number;
+    reference_month: string;
+    gross_salary: number;
+    net_salary: number;
+    deductions: number;
+}
+
+type Tab = 'pdi' | 'licencas' | 'reviews' | 'holerites';
+
+export default function RhDashboardPage() {
+    const [activeTab, setActiveTab] = useState<Tab>('pdi');
+    const [pdiGoals, setPdiGoals] = useState<PDIGoal[]>([]);
+    const [leaves, setLeaves] = useState<LeaveRequest[]>([]);
+    const [reviews, setReviews] = useState<Review360[]>([]);
+    const [payslips, setPayslips] = useState<Payslip[]>([]);
     const [loading, setLoading] = useState(true);
+    const [notification, setNotification] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
 
-    // Forms
-    const [reviewForm, setReviewForm] = useState({ subject_user_id: '', relationship: 'peer', score: 8, feedback: '', period: 'Q1-2026', skills: {} });
+    // New PDI Form
+    const [showPdiForm, setShowPdiForm] = useState(false);
     const [pdiForm, setPdiForm] = useState({ title: '', description: '', quarter: 'Q1-2026' });
-    const [showForm, setShowForm] = useState(false);
 
-    // Pulse
-    const [selectedMood, setSelectedMood] = useState<number | null>(null);
-    const [pulseComment, setPulseComment] = useState('');
-    const [pulseSent, setPulseSent] = useState(false);
+    const getToken = () => typeof window !== 'undefined' ? localStorage.getItem('token') : null;
 
-    const loadData = async () => {
+    const apiFetch = async (path: string, options?: RequestInit) => {
+        const token = getToken();
+        if (!token) { window.location.href = '/login'; throw new Error('No token'); }
+        const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+        const res = await fetch(`${BASE}${path}`, {
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+                ...((options?.headers as Record<string, string>) ?? {}),
+            },
+        });
+        if (res.status === 401) { window.location.href = '/login'; throw new Error('Unauthorized'); }
+        if (!res.ok) throw new Error(`API error ${res.status}`);
+        return res.json();
+    };
+
+    const showNotif = (type: 'success' | 'error', msg: string) => {
+        setNotification({ type, msg });
+        setTimeout(() => setNotification(null), 4000);
+    };
+
+    const loadAll = useCallback(async () => {
+        setLoading(true);
         try {
-            const [pdi] = await Promise.all([
-                api.get('/rh/pdi').then(r => r.data).catch(() => []),
+            const [pdi, lv, py] = await Promise.allSettled([
+                apiFetch('/api/rh/v2/pdi'),
+                apiFetch('/api/rh/leave-requests'),
+                apiFetch('/api/rh/v2/payslips/me'),
             ]);
-            setPdiGoals(Array.isArray(pdi) ? pdi : []);
-        } catch { } finally { setLoading(false); }
+            if (pdi.status === 'fulfilled') setPdiGoals(pdi.value);
+            if (lv.status === 'fulfilled') setLeaves(lv.value);
+            if (py.status === 'fulfilled') setPayslips(py.value);
+        } finally {
+            setLoading(false);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    useEffect(() => { loadAll(); }, [loadAll]);
+
+    const handleCreatePDI = async () => {
+        if (!pdiForm.title.trim()) return;
+        try {
+            const newGoal = await apiFetch('/api/rh/v2/pdi', {
+                method: 'POST',
+                body: JSON.stringify(pdiForm),
+            });
+            setPdiGoals(prev => [...prev, newGoal]);
+            setShowPdiForm(false);
+            setPdiForm({ title: '', description: '', quarter: 'Q1-2026' });
+            showNotif('success', 'Meta PDI criada com sucesso!');
+        } catch {
+            showNotif('error', 'Erro ao criar meta PDI');
+        }
     };
 
-    useEffect(() => { loadData(); }, []);
-
-    const submitReview = async () => {
-        if (!reviewForm.subject_user_id) return;
-        await api.post('/rh/performance-reviews', { ...reviewForm, employee_id: Number(reviewForm.subject_user_id) });
-        setShowForm(false);
-        setReviewForm({ subject_user_id: '', relationship: 'peer', score: 8, feedback: '', period: 'Q1-2026', skills: {} });
+    const handleUpdateProgress = async (goalId: number, progress: number) => {
+        try {
+            const updated = await apiFetch(`/api/rh/v2/pdi/${goalId}/progress?progress=${progress}`, { method: 'PATCH' });
+            setPdiGoals(prev => prev.map(g => g.id === goalId ? updated : g));
+            showNotif('success', 'Progresso atualizado!');
+        } catch {
+            showNotif('error', 'Erro ao atualizar progresso');
+        }
     };
 
-    const createPDI = async () => {
-        if (!pdiForm.title) return;
-        // Mock PDI creation for now as endpoint might differ
-        // await api.post('/rh/pdi', pdiForm);
-        setPdiGoals(prev => [...prev, { id: Date.now(), ...pdiForm, progress: 0 }]);
-        setPdiForm({ title: '', description: '', quarter: 'Q1-2026' });
-        setShowForm(false);
+    const statusColor: Record<string, string> = {
+        pending: 'text-yellow-400 bg-yellow-500/10 border-yellow-500/30',
+        approved: 'text-green-400 bg-green-500/10 border-green-500/30',
+        rejected: 'text-red-400 bg-red-500/10 border-red-500/30',
     };
 
-    const updateProgress = async (goalId: number, progress: number) => {
-        // await api.patch(`/rh/pdi/${goalId}/progress?progress=${progress}`);
-        setPdiGoals(prev => prev.map(g => g.id === goalId ? { ...g, progress } : g));
-    };
-
-    const submitPulse = () => {
-        if (selectedMood === null) return;
-        // In a real app, this would POST to the backend
-        api.post('/rh/pulse', { score: selectedMood, comment: pulseComment }).catch(() => {});
-        setPulseSent(true);
-        setTimeout(() => {
-            setPulseSent(false);
-            setSelectedMood(null);
-            setPulseComment('');
-        }, 3000);
-    };
-
-    const TABS = [
-        { key: '360' as const, label: '🔄 Avaliação 360°' },
-        { key: 'pdi' as const, label: '🎯 PDI' },
-        { key: 'gamification' as const, label: '🏆 Conquistas' },
-        { key: 'pulse' as const, label: '💗 Pulso' },
+    const tabs: { id: Tab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+        { id: 'pdi', label: 'Meu PDI', icon: Award },
+        { id: 'licencas', label: 'Licenças', icon: FileText },
+        { id: 'reviews', label: 'Avaliações 360°', icon: Star },
+        { id: 'holerites', label: 'Holerites', icon: Clock },
     ];
 
     return (
-        <AppLayout title="RH Avançado">
-            <div className="p-8">
-                <div className="mb-8">
-                    <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">RH Avançado</h1>
-                    <p className="text-gray-400 mt-1">Avaliação 360°, PDI, Gamificação e Pesquisa de Pulso</p>
-                </div>
-
-                {/* Tabs */}
-                <div className="flex gap-2 mb-6 flex-wrap">
-                    {TABS.map(tab => (
-                        <button key={tab.key} onClick={() => { setActiveTab(tab.key); setShowForm(false); }}
-                            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${activeTab === tab.key ? 'bg-purple-600 text-white' : 'bg-gray-900 text-gray-400 hover:text-white'}`}>
-                            {tab.label}
-                        </button>
-                    ))}
-                </div>
-
-                {/* 360° REVIEWS */}
-                {activeTab === '360' && (
-                    <div>
-                        <div className="flex justify-between mb-4">
-                            <div />
-                            <button onClick={() => setShowForm(!showForm)}
-                                className="bg-purple-600 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2 hover:bg-purple-700 transition">
-                                <Plus className="w-4 h-4" /> Nova Avaliação
-                            </button>
-                        </div>
-                        {showForm && (
-                            <div className="bg-gray-900 border border-purple-500/30 rounded-xl p-5 mb-6">
-                                <h3 className="font-semibold mb-4 text-white">Avaliar Colaborador</h3>
-                                <div className="grid grid-cols-2 gap-3">
-                                    <input value={reviewForm.subject_user_id} onChange={e => setReviewForm(p => ({ ...p, subject_user_id: e.target.value }))}
-                                        placeholder="ID do colaborador avaliado"
-                                        className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500" />
-                                    <select value={reviewForm.relationship} onChange={e => setReviewForm(p => ({ ...p, relationship: e.target.value }))}
-                                        className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500">
-                                        <option value="peer">Par</option>
-                                        <option value="manager">Gestor</option>
-                                        <option value="subordinate">Subordinado</option>
-                                    </select>
-                                    <div className="col-span-2">
-                                        <label className="text-gray-400 text-xs mb-1 block">Nota: {reviewForm.score}/10</label>
-                                        <input type="range" min={1} max={10} value={reviewForm.score}
-                                            onChange={e => setReviewForm(p => ({ ...p, score: Number(e.target.value) }))}
-                                            className="w-full accent-purple-500" />
-                                    </div>
-                                    <textarea value={reviewForm.feedback} onChange={e => setReviewForm(p => ({ ...p, feedback: e.target.value }))}
-                                        placeholder="Feedback (pontos fortes e melhorias)"
-                                        rows={3}
-                                        className="col-span-2 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500" />
-                                </div>
-                                <button onClick={submitReview} className="mt-3 bg-purple-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-purple-700 transition">
-                                    Enviar Avaliação
-                                </button>
-                            </div>
-                        )}
-                        <div className="bg-gray-900 border border-purple-500/20 rounded-xl p-8 text-center">
-                            <Users className="w-12 h-12 text-purple-400 mx-auto mb-3" />
-                            <p className="text-gray-400">Cycle Q1-2026 aguardando avaliações</p>
-                            <p className="text-gray-600 text-sm mt-1">Avalie um ID de colaborador acima para ver os resultados</p>
-                        </div>
+        <AppLayout title="Painel de RH">
+            <div className="min-h-screen bg-gray-950 text-white p-6">
+                {/* Notification */}
+                {notification && (
+                    <div className={`fixed top-6 right-6 z-50 flex items-center gap-3 px-5 py-3 rounded-xl shadow-2xl ${notification.type === 'success'
+                        ? 'bg-green-500/20 border border-green-500/40 text-green-300'
+                        : 'bg-red-500/20 border border-red-500/40 text-red-300'
+                        }`}>
+                        {notification.type === 'success' ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
+                        {notification.msg}
                     </div>
                 )}
 
-                {/* PDI */}
-                {activeTab === 'pdi' && (
-                    <div>
-                        <div className="flex justify-between mb-4">
-                            <div />
-                            <button onClick={() => setShowForm(!showForm)}
-                                className="bg-purple-600 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2 hover:bg-purple-700 transition">
-                                <Plus className="w-4 h-4" /> Nova Meta
-                            </button>
+                <div className="max-w-5xl mx-auto">
+                    {/* Header */}
+                    <div className="mb-8">
+                        <div className="flex items-center gap-3 mb-2">
+                            <HeartHandshake className="w-8 h-8 text-purple-400" />
+                            <h1 className="text-3xl font-black bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                                Painel de RH
+                            </h1>
                         </div>
-                        {showForm && (
-                            <div className="bg-gray-900 border border-purple-500/30 rounded-xl p-5 mb-6">
-                                <h3 className="font-semibold mb-4 text-white">Nova Meta PDI</h3>
-                                <div className="space-y-3">
-                                    <input value={pdiForm.title} onChange={e => setPdiForm(p => ({ ...p, title: e.target.value }))}
-                                        placeholder="Título da meta (ex: Aprender Python avançado)"
-                                        className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500" />
-                                    <input value={pdiForm.description} onChange={e => setPdiForm(p => ({ ...p, description: e.target.value }))}
-                                        placeholder="Descrição e como medir o progresso"
-                                        className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500" />
-                                    <select value={pdiForm.quarter} onChange={e => setPdiForm(p => ({ ...p, quarter: e.target.value }))}
-                                        className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500">
-                                        <option>Q1-2026</option><option>Q2-2026</option><option>Q3-2026</option><option>Q4-2026</option>
-                                    </select>
-                                </div>
-                                <button onClick={createPDI} className="mt-3 bg-purple-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-purple-700 transition">
-                                    Criar Meta
-                                </button>
-                            </div>
-                        )}
-                        <div className="space-y-4">
-                            {pdiGoals.map(goal => (
-                                <div key={goal.id} className="bg-gray-900 border border-purple-500/20 rounded-xl p-5">
-                                    <div className="flex items-start justify-between mb-3">
-                                        <div>
-                                            <h3 className="font-semibold text-white">{goal.title}</h3>
-                                            <p className="text-gray-400 text-sm">{goal.description}</p>
-                                            <span className="text-xs text-purple-400 mt-1 block">{goal.quarter}</span>
-                                        </div>
-                                        {goal.completed && <CheckCircle className="w-5 h-5 text-green-400 shrink-0" />}
-                                    </div>
-                                    <div className="flex items-center gap-3">
-                                        <div className="flex-1 bg-gray-800 rounded-full h-3">
-                                            <div className={`h-3 rounded-full transition-all ${goal.completed ? 'bg-green-500' : 'bg-purple-500'}`}
-                                                style={{ width: `${goal.progress || 0}%` }} />
-                                        </div>
-                                        <span className="text-white text-sm font-bold w-10">{goal.progress || 0}%</span>
-                                        <input type="range" min={0} max={100} value={goal.progress || 0}
-                                            onChange={e => updateProgress(goal.id, Number(e.target.value))}
-                                            className="w-24 accent-purple-500" />
-                                    </div>
-                                </div>
-                            ))}
-                            {pdiGoals.length === 0 && (
-                                <div className="text-center py-12 text-gray-500">
-                                    <Target className="w-10 h-10 mx-auto mb-3 opacity-30" />
-                                    <p>Nenhuma meta criada ainda</p>
-                                </div>
-                            )}
-                        </div>
+                        <p className="text-gray-400">Acompanhe seu desenvolvimento, licenças e documentos</p>
                     </div>
-                )}
 
-                {/* GAMIFICATION */}
-                {activeTab === 'gamification' && (
-                    <div className="space-y-6">
-                        {/* Points Summary */}
-                        <div className="grid grid-cols-3 gap-4">
-                            <div className="bg-gradient-to-br from-yellow-500/10 to-orange-500/10 border border-yellow-500/20 rounded-xl p-5 text-center">
-                                <Trophy className="w-8 h-8 text-yellow-400 mx-auto mb-2" />
-                                <p className="text-3xl font-black text-yellow-400">650</p>
-                                <p className="text-xs text-gray-500 mt-1">Pontos Totais</p>
-                            </div>
-                            <div className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 border border-purple-500/20 rounded-xl p-5 text-center">
-                                <Medal className="w-8 h-8 text-purple-400 mx-auto mb-2" />
-                                <p className="text-3xl font-black text-purple-400">{BADGES.filter(b => b.earned).length}/{BADGES.length}</p>
-                                <p className="text-xs text-gray-500 mt-1">Badges Conquistados</p>
-                            </div>
-                            <div className="bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border border-blue-500/20 rounded-xl p-5 text-center">
-                                <TrendingUp className="w-8 h-8 text-blue-400 mx-auto mb-2" />
-                                <p className="text-3xl font-black text-blue-400">#5</p>
-                                <p className="text-xs text-gray-500 mt-1">Ranking na Empresa</p>
-                            </div>
+                    {/* Tabs */}
+                    <div className="flex gap-1 bg-gray-900 border border-gray-800 rounded-xl p-1 mb-6">
+                        {tabs.map(tab => {
+                            const Icon = tab.icon;
+                            return (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => setActiveTab(tab.id)}
+                                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-sm font-medium transition-all ${activeTab === tab.id
+                                        ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/20'
+                                        : 'text-gray-500 hover:text-gray-300'
+                                        }`}
+                                >
+                                    <Icon className="w-4 h-4" />
+                                    <span className="hidden sm:inline">{tab.label}</span>
+                                </button>
+                            );
+                        })}
+                    </div>
+
+                    {loading ? (
+                        <div className="flex items-center justify-center h-48">
+                            <Loader2 className="w-8 h-8 animate-spin text-purple-400" />
                         </div>
+                    ) : (
+                        <>
+                            {/* PDI Tab */}
+                            {activeTab === 'pdi' && (
+                                <div>
+                                    <div className="flex items-center justify-between mb-4">
+                                        <h2 className="font-bold text-gray-200">Plano de Desenvolvimento Individual</h2>
+                                        <button
+                                            onClick={() => setShowPdiForm(!showPdiForm)}
+                                            className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-xl text-sm font-medium transition"
+                                        >
+                                            <Plus className="w-4 h-4" /> Nova Meta
+                                        </button>
+                                    </div>
 
-                        {/* Badges Grid */}
-                        <div>
-                            <h3 className="text-lg font-bold text-white mb-4">Suas Conquistas</h3>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                {BADGES.map(badge => (
-                                    <div key={badge.id}
-                                        className={`relative rounded-xl p-4 text-center border transition-all duration-300
-                                            ${badge.earned
-                                                ? `bg-gradient-to-br ${badge.color}/10 border-gray-700 hover:scale-105`
-                                                : 'bg-gray-900/50 border-gray-800 opacity-40 grayscale'}`}
-                                    >
-                                        <span className="text-4xl block mb-2">{badge.icon}</span>
-                                        <h4 className="text-sm font-bold text-white">{badge.name}</h4>
-                                        <p className="text-[10px] text-gray-500 mt-1">{badge.desc}</p>
-                                        {badge.earned && (
-                                            <div className="absolute -top-1 -right-1 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
-                                                <CheckCircle className="w-3 h-3 text-white" />
+                                    {/* PDI Form */}
+                                    {showPdiForm && (
+                                        <div className="bg-gray-900/60 border border-purple-500/30 rounded-xl p-5 mb-4">
+                                            <div className="flex items-center justify-between mb-4">
+                                                <h3 className="font-medium text-gray-200">Nova Meta PDI</h3>
+                                                <button onClick={() => setShowPdiForm(false)} className="text-gray-500 hover:text-gray-300">
+                                                    <X className="w-4 h-4" />
+                                                </button>
                                             </div>
-                                        )}
-                                        {!badge.earned && (
-                                            <span className="text-[9px] text-gray-600 mt-2 block uppercase tracking-wider">Bloqueado</span>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* Ranking */}
-                        <div>
-                            <h3 className="text-lg font-bold text-white mb-4">Ranking da Empresa</h3>
-                            <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
-                                {RANKING.map((person, i) => (
-                                    <div key={i} className={`flex items-center gap-4 p-4 border-b border-gray-800/50 last:border-b-0
-                                        ${person.name === 'Você' ? 'bg-purple-500/10' : ''}`}>
-                                        <span className={`text-lg font-black w-8 ${i < 3 ? 'text-yellow-400' : 'text-gray-600'}`}>
-                                            {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`}
-                                        </span>
-                                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-xs font-bold text-white">
-                                            {person.avatar}
+                                            <div className="space-y-3">
+                                                <input
+                                                    type="text"
+                                                    placeholder="Título da meta"
+                                                    value={pdiForm.title}
+                                                    onChange={e => setPdiForm(p => ({ ...p, title: e.target.value }))}
+                                                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-gray-200 placeholder-gray-500 focus:outline-none focus:border-purple-500"
+                                                />
+                                                <input
+                                                    type="text"
+                                                    placeholder="Descrição (opcional)"
+                                                    value={pdiForm.description}
+                                                    onChange={e => setPdiForm(p => ({ ...p, description: e.target.value }))}
+                                                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-gray-200 placeholder-gray-500 focus:outline-none focus:border-purple-500"
+                                                />
+                                                <select
+                                                    value={pdiForm.quarter}
+                                                    onChange={e => setPdiForm(p => ({ ...p, quarter: e.target.value }))}
+                                                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-gray-200 focus:outline-none focus:border-purple-500"
+                                                >
+                                                    {['Q1-2026', 'Q2-2026', 'Q3-2026', 'Q4-2026'].map(q => (
+                                                        <option key={q} value={q}>{q}</option>
+                                                    ))}
+                                                </select>
+                                                <button
+                                                    onClick={handleCreatePDI}
+                                                    className="w-full py-2.5 bg-purple-600 hover:bg-purple-700 rounded-lg text-sm font-medium transition"
+                                                >
+                                                    Criar Meta
+                                                </button>
+                                            </div>
                                         </div>
-                                        <div className="flex-1">
-                                            <p className={`text-sm font-medium ${person.name === 'Você' ? 'text-purple-300' : 'text-white'}`}>{person.name}</p>
-                                            <p className="text-xs text-gray-500">{person.badges} badges</p>
-                                        </div>
-                                        <span className="text-sm font-bold text-purple-400">{person.points} pts</span>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                )}
+                                    )}
 
-                {/* PULSE SURVEY */}
-                {activeTab === 'pulse' && (
-                    <div className="max-w-2xl mx-auto">
-                        <div className="bg-gray-900 border border-purple-500/20 rounded-2xl p-8 text-center">
-                            <Heart className="w-12 h-12 text-pink-400 mx-auto mb-4 animate-pulse" />
-                            <h3 className="text-xl font-bold text-white mb-2">Como você está se sentindo hoje?</h3>
-                            <p className="text-gray-500 text-sm mb-8">Sua resposta é anônima e nos ajuda a melhorar o ambiente de trabalho.</p>
-
-                            {pulseSent ? (
-                                <div className="py-8">
-                                    <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                                        <CheckCircle className="w-8 h-8 text-green-400" />
-                                    </div>
-                                    <p className="text-green-400 font-bold text-lg">Obrigado pelo seu feedback!</p>
-                                    <p className="text-gray-500 text-sm mt-1">Contribuição registrada com sucesso.</p>
-                                </div>
-                            ) : (
-                                <>
-                                    <div className="flex justify-center gap-4 mb-8">
-                                        {MOODS.map(mood => (
-                                            <button
-                                                key={mood.value}
-                                                onClick={() => setSelectedMood(mood.value)}
-                                                className={`w-16 h-16 rounded-2xl border-2 flex flex-col items-center justify-center transition-all duration-200 ${mood.color}
-                                                    ${selectedMood === mood.value ? 'scale-110 ring-2 ring-purple-500 bg-gray-800' : 'bg-gray-800/50'}`}
-                                            >
-                                                <span className="text-2xl">{mood.emoji}</span>
-                                                <span className="text-[9px] mt-0.5 text-gray-400">{mood.label}</span>
-                                            </button>
+                                    <div className="space-y-3">
+                                        {pdiGoals.length === 0 ? (
+                                            <p className="text-center text-gray-500 py-8">Nenhuma meta PDI criada. Clique em &quot;Nova Meta&quot;!</p>
+                                        ) : pdiGoals.map(goal => (
+                                            <div key={goal.id} className="bg-gray-900/60 border border-gray-800 rounded-xl p-5">
+                                                <div className="flex items-start justify-between mb-3">
+                                                    <div>
+                                                        <h4 className="font-medium text-gray-200">{goal.title}</h4>
+                                                        {goal.description && <p className="text-sm text-gray-500 mt-0.5">{goal.description}</p>}
+                                                        <span className="text-xs text-purple-400 mt-1 inline-block">{goal.quarter}</span>
+                                                    </div>
+                                                    {goal.completed && <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0" />}
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <div className="flex justify-between text-xs text-gray-500">
+                                                        <span>Progresso</span>
+                                                        <span>{goal.progress.toFixed(0)}%</span>
+                                                    </div>
+                                                    <div className="bg-gray-800 rounded-full h-2">
+                                                        <div
+                                                            className="h-full rounded-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-500"
+                                                            style={{ width: `${goal.progress}%` }}
+                                                        />
+                                                    </div>
+                                                    <input
+                                                        type="range"
+                                                        min={0} max={100} step={5}
+                                                        defaultValue={goal.progress}
+                                                        onMouseUp={e => handleUpdateProgress(goal.id, Number((e.target as HTMLInputElement).value))}
+                                                        className="w-full accent-purple-500 mt-1"
+                                                    />
+                                                </div>
+                                            </div>
                                         ))}
                                     </div>
-
-                                    <textarea
-                                        value={pulseComment}
-                                        onChange={e => setPulseComment(e.target.value)}
-                                        placeholder="Quer deixar um comentário? (opcional)"
-                                        rows={3}
-                                        className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-purple-500 placeholder-gray-600 mb-4"
-                                    />
-
-                                    <button
-                                        onClick={submitPulse}
-                                        disabled={selectedMood === null}
-                                        className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-8 py-3 rounded-xl font-medium text-sm hover:opacity-90 transition disabled:opacity-30 disabled:cursor-not-allowed"
-                                    >
-                                        Enviar meu Pulso
-                                    </button>
-                                </>
+                                </div>
                             )}
+
+                            {/* Licenças Tab */}
+                            {activeTab === 'licencas' && (
+                                <div className="space-y-3">
+                                    <h2 className="font-bold text-gray-200 mb-4">Minhas Solicitações de Licença</h2>
+                                    {leaves.length === 0 ? (
+                                        <p className="text-center text-gray-500 py-8">Nenhuma solicitação de licença encontrada.</p>
+                                    ) : leaves.map(leave => (
+                                        <div key={leave.id} className="bg-gray-900/60 border border-gray-800 rounded-xl p-5 flex items-center justify-between">
+                                            <div>
+                                                <p className="font-medium text-gray-200">{leave.reason}</p>
+                                                <p className="text-sm text-gray-500 mt-0.5">
+                                                    {new Date(leave.start_date).toLocaleDateString('pt-BR')} — {new Date(leave.end_date).toLocaleDateString('pt-BR')}
+                                                </p>
+                                            </div>
+                                            <span className={`px-3 py-1 rounded-full text-xs font-medium border ${statusColor[leave.status] ?? 'text-gray-400 bg-gray-800 border-gray-700'}`}>
+                                                {leave.status === 'pending' ? 'Pendente' : leave.status === 'approved' ? 'Aprovado' : 'Rejeitado'}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* Reviews 360 Tab */}
+                            {activeTab === 'reviews' && (
+                                <div>
+                                    <h2 className="font-bold text-gray-200 mb-4">Avaliações 360°</h2>
+                                    {reviews.length === 0 ? (
+                                        <div className="text-center py-12 text-gray-500">
+                                            <Star className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                                            <p>Nenhuma avaliação recebida ainda.</p>
+                                            <p className="text-sm mt-1">As avaliações aparecerão aqui quando você receber feedback da equipe.</p>
+                                        </div>
+                                    ) : reviews.map(r => (
+                                        <div key={r.id} className="bg-gray-900/60 border border-gray-800 rounded-xl p-5 mb-3">
+                                            <div className="flex justify-between items-start">
+                                                <div>
+                                                    <span className="text-xs text-purple-400 uppercase tracking-wider">{r.relationship}</span>
+                                                    <p className="text-gray-300 mt-1">{r.feedback}</p>
+                                                    <p className="text-xs text-gray-500 mt-1">{r.period}</p>
+                                                </div>
+                                                <div className="flex items-center gap-1">
+                                                    <span className="text-2xl font-black text-yellow-400">{r.score}</span>
+                                                    <Star className="w-5 h-5 text-yellow-400 fill-yellow-400" />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* Holerites Tab */}
+                            {activeTab === 'holerites' && (
+                                <div>
+                                    <h2 className="font-bold text-gray-200 mb-4">Meus Holerites</h2>
+                                    {payslips.length === 0 ? (
+                                        <p className="text-center text-gray-500 py-8">Nenhum holerite disponível.</p>
+                                    ) : payslips.map(p => (
+                                        <div key={p.id} className="bg-gray-900/60 border border-gray-800 rounded-xl p-5 mb-3">
+                                            <div className="flex justify-between items-center">
+                                                <div>
+                                                    <p className="font-medium text-gray-200">{p.reference_month}</p>
+                                                    <p className="text-sm text-gray-500 mt-0.5">Bruto: R$ {p.gross_salary.toFixed(2)} / Líquido: R$ {p.net_salary.toFixed(2)}</p>
+                                                </div>
+                                                <div className="text-right">
+                                                    <div className="text-green-400 font-bold">R$ {p.net_salary.toFixed(2)}</div>
+                                                    <div className="text-xs text-red-400">— R$ {p.deductions.toFixed(2)} descontos</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </>
+                    )}
+
+                    {/* Link to Kanban */}
+                    <div className="mt-8 bg-gradient-to-r from-purple-900/30 to-blue-900/30 border border-purple-500/20 rounded-xl p-5 flex items-center justify-between">
+                        <div>
+                            <h3 className="font-bold text-gray-200">Gestão de Tickets / Reembolsos</h3>
+                            <p className="text-sm text-gray-400 mt-0.5">Arraste e organize solicitações no Kanban de RH</p>
                         </div>
+                        <a
+                            href="/csc"
+                            className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-xl text-sm font-medium transition"
+                        >
+                            <Users className="w-4 h-4" /> Abrir Kanban <ChevronRight className="w-4 h-4" />
+                        </a>
                     </div>
-                )}
+                </div>
             </div>
         </AppLayout>
     );

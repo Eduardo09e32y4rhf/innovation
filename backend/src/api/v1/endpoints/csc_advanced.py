@@ -132,6 +132,27 @@ def assign_queue(
     ticket.queue = queue
     db.commit()
     db.refresh(ticket)
+
+    # ── n8n Webhook — ticket moved ───────────────────────────────────────────────
+    n8n_url = os.environ.get("N8N_WEBHOOK_URL")
+    if n8n_url:
+        payload = {
+            "event": "ticket.queue_changed",
+            "ticket_id": ticket_id,
+            "new_queue": queue,
+            "company_id": company_id,
+            "moved_by": current_user.email if hasattr(current_user, "email") else current_user.id,
+        }
+        def _fire_n8n_sync():
+            try:
+                import httpx as _httpx
+                _httpx.post(n8n_url, json=payload, timeout=4)
+            except Exception:
+                pass  # Never block request if n8n is down
+
+        from threading import Thread
+        Thread(target=_fire_n8n_sync, daemon=True).start()
+
     return {"ok": True, "ticket_id": ticket_id, "queue": queue}
 
 

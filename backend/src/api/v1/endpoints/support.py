@@ -6,7 +6,7 @@ from domain.models.user import User
 from services.support_service import support_service
 from pydantic import BaseModel
 
-router = APIRouter(prefix="/api/support", tags=["support"])
+router = APIRouter(prefix="/support", tags=["support"])
 
 
 class TicketCreate(BaseModel):

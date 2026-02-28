@@ -1,216 +1,235 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import api from '../../../services/api';
-import {
-    AreaChart,
-    Area,
-    XAxis,
-    YAxis,
-    CartesianGrid,
-    Tooltip,
-    ResponsiveContainer,
-    BarChart,
-    Bar,
-    Legend
-} from 'recharts';
-import { Loader2, TrendingUp, TrendingDown, DollarSign, Briefcase } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { BarChart3, TrendingUp, AlertTriangle, Star, Loader2, RefreshCw, Users, Clock } from 'lucide-react';
 import AppLayout from '../../../components/AppLayout';
 
-interface AnalyticsData {
-    summary: {
-        total_revenue: number;
-        total_expenses: number;
-        profit: number;
-        active_jobs: number;
-        total_candidates: number;
-    };
-    history: {
-        name: string;
-        revenue: number;
-        expenses: number;
-        profit: number;
-    }[];
+interface CSATSummary {
+    average: number;
+    total: number;
+    distribution: Record<string, number>;
 }
 
-const KPICard = ({ title, value, subValue, icon, className }: { title: string; value: string; subValue?: string; icon: React.ReactNode; className?: string }) => {
-    return (
-        <div className={`p-4 rounded-xl border flex items-center justify-between ${className}`}>
-            <div>
-                <p className="text-gray-400 text-sm font-medium">{title}</p>
-                <p className="text-2xl font-bold mt-1 text-white">{value}</p>
-                {subValue && <p className="text-xs text-gray-500 mt-1">{subValue}</p>}
-            </div>
-            <div className="p-3 bg-gray-900/50 rounded-lg border border-gray-700/50">
-                {icon}
-            </div>
-        </div>
-    );
+interface SpikeData {
+    tickets_last_hour: number;
+    hourly_average_24h: number;
+    spike_ratio: number;
+    is_spike: boolean;
+    severity: 'normal' | 'warning' | 'critical';
+    top_offenders: { category: string; count: number }[];
 }
 
-const formatCurrency = (value: number | undefined) => {
-    if (value === undefined) return 'R$ 0,00';
-    return new Intl.NumberFormat('pt-BR', {
-        style: 'currency',
-        currency: 'BRL'
-    }).format(value);
-};
+interface TimeBankBalance {
+    total_credit_hours: number;
+    total_debit_hours: number;
+    balance_hours: number;
+}
 
 export default function AnalyticsPage() {
-    const [data, setData] = useState<AnalyticsData | null>(null);
+    const [csat, setCsat] = useState<CSATSummary | null>(null);
+    const [spike, setSpike] = useState<SpikeData | null>(null);
+    const [timeBank, setTimeBank] = useState<TimeBankBalance | null>(null);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
+    const [refreshing, setRefreshing] = useState(false);
 
-    useEffect(() => {
-        const fetchAnalytics = async () => {
-            try {
-                // Mock data for initial display if API fails or is not ready
-                const mockData = {
-                    summary: {
-                        total_revenue: 150000,
-                        total_expenses: 50000,
-                        profit: 100000,
-                        active_jobs: 12,
-                        total_candidates: 340
-                    },
-                    history: [
-                        { name: 'Jan', revenue: 4000, expenses: 2400, profit: 2400 },
-                        { name: 'Feb', revenue: 3000, expenses: 1398, profit: 2210 },
-                        { name: 'Mar', revenue: 2000, expenses: 9800, profit: 2290 },
-                        { name: 'Apr', revenue: 2780, expenses: 3908, profit: 2000 },
-                        { name: 'May', revenue: 1890, expenses: 4800, profit: 2181 },
-                        { name: 'Jun', revenue: 2390, expenses: 3800, profit: 2500 },
-                    ]
-                };
+    const getToken = () => typeof window !== 'undefined' ? localStorage.getItem('token') : null;
 
-                // Attempt to fetch real data
-                try {
-                   const response = await api.get('/analytics');
-                   setData(response.data);
-                } catch (e) {
-                   console.warn("Using mock data for analytics");
-                   setData(mockData);
-                }
-            } catch (err) {
-                console.error('Failed to fetch analytics', err);
-                setError('Falha ao carregar dados de analytics.');
-            } finally {
-                setLoading(false);
-            }
-        };
+    const apiFetch = async (path: string) => {
+        const token = getToken();
+        if (!token) { window.location.href = '/login'; throw new Error('No token'); }
+        const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+        const res = await fetch(`${BASE}${path}`, {
+            headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.status === 401) { window.location.href = '/login'; throw new Error('Unauthorized'); }
+        if (!res.ok) throw new Error(`API error ${res.status}`);
+        return res.json();
+    };
 
-        fetchAnalytics();
+    const loadData = useCallback(async () => {
+        try {
+            const [csatData, spikeData, bankData] = await Promise.allSettled([
+                apiFetch('/api/support/v2/csat/summary'),
+                apiFetch('/api/support/v2/analytics/spikes'),
+                apiFetch('/api/rh/v2/time-bank/balance'),
+            ]);
+            if (csatData.status === 'fulfilled') setCsat(csatData.value);
+            if (spikeData.status === 'fulfilled') setSpike(spikeData.value);
+            if (bankData.status === 'fulfilled') setTimeBank(bankData.value);
+        } finally {
+            setLoading(false);
+            setRefreshing(false);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
+    useEffect(() => { loadData(); }, [loadData]);
 
-    if (loading) {
-        return (
-            <AppLayout title="Analytics & BI">
-                <div className="flex h-full items-center justify-center bg-[#050508] text-white">
-                    <Loader2 className="h-10 w-10 animate-spin text-blue-500" />
-                </div>
-            </AppLayout>
-        );
-    }
+    const handleRefresh = async () => {
+        setRefreshing(true);
+        await loadData();
+    };
 
-    if (error || !data) {
-        return (
-            <AppLayout title="Analytics & BI">
-                <div className="flex h-full items-center justify-center bg-[#050508] text-white">
-                    <p className="text-red-400">{error || 'Nenhum dado disponível'}</p>
-                </div>
-            </AppLayout>
-        );
-    }
+    const getSeverityColor = (severity?: string) => {
+        if (severity === 'critical') return 'text-red-400 bg-red-500/10 border-red-500/30';
+        if (severity === 'warning') return 'text-yellow-400 bg-yellow-500/10 border-yellow-500/30';
+        return 'text-green-400 bg-green-500/10 border-green-500/30';
+    };
+
+    const renderStars = (avg: number) => {
+        return [1, 2, 3, 4, 5].map(i => (
+            <Star
+                key={i}
+                className={`w-5 h-5 ${i <= Math.round(avg) ? 'text-yellow-400 fill-yellow-400' : 'text-gray-700'}`}
+            />
+        ));
+    };
+
+    const maxBar = csat ? Math.max(...Object.values(csat.distribution)) : 1;
 
     return (
-        <AppLayout title="Analytics & BI">
-            <div className="flex flex-col h-full bg-[#050508] text-white overflow-y-auto">
-                <div className="p-6 border-b border-gray-800">
-                    <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-600">
-                        Dashboard Financeiro & Operacional
-                    </h1>
-                    <p className="text-gray-400 text-sm mt-1">Visão consolidada de performance</p>
-                </div>
-
-                <div className="p-6 space-y-6">
-                    {/* KPI Cards */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                        <KPICard
-                            title="Receita Total"
-                            value={formatCurrency(data.summary.total_revenue)}
-                            icon={<TrendingUp className="text-green-400" />}
-                            className="border-green-500/20 bg-green-500/5"
-                        />
-                        <KPICard
-                            title="Despesas"
-                            value={formatCurrency(data.summary.total_expenses)}
-                            icon={<TrendingDown className="text-red-400" />}
-                            className="border-red-500/20 bg-red-500/5"
-                        />
-                        <KPICard
-                            title="Lucro Líquido"
-                            value={formatCurrency(data.summary.profit)}
-                            icon={<DollarSign className="text-blue-400" />}
-                            className="border-blue-500/20 bg-blue-500/5"
-                        />
-                        <KPICard
-                            title="Vagas Ativas"
-                            value={data.summary.active_jobs.toString()}
-                            subValue={`${data.summary.total_candidates} Candidatos`}
-                            icon={<Briefcase className="text-purple-400" />}
-                            className="border-purple-500/20 bg-purple-500/5"
-                        />
+        <AppLayout title="B.I. Analytics">
+            <div className="min-h-screen bg-gray-950 text-white p-6">
+                <div className="max-w-5xl mx-auto">
+                    {/* Header */}
+                    <div className="flex items-center justify-between mb-8">
+                        <div>
+                            <h1 className="text-3xl font-black bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
+                                B.I. Analytics
+                            </h1>
+                            <p className="text-gray-400 mt-1">Visão em tempo real do desempenho operacional</p>
+                        </div>
+                        <button
+                            onClick={handleRefresh}
+                            disabled={refreshing}
+                            className="flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-xl text-gray-300 text-sm transition-all"
+                        >
+                            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+                            Atualizar
+                        </button>
                     </div>
 
-                    {/* Charts Row */}
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-96">
-                        {/* Area Chart: Evolution */}
-                        <div className="p-4 rounded-2xl border border-gray-800 bg-gray-900 flex flex-col h-full">
-                            <h3 className="text-lg font-semibold mb-4 text-gray-200">Evolução Financeira</h3>
-                            <div className="flex-1 min-h-0">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <AreaChart data={data.history}>
-                                        <defs>
-                                            <linearGradient id="colorProfit" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="5%" stopColor="#8884d8" stopOpacity={0.8}/>
-                                                <stop offset="95%" stopColor="#8884d8" stopOpacity={0}/>
-                                            </linearGradient>
-                                        </defs>
-                                        <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                                        <XAxis dataKey="name" stroke="#9CA3AF" />
-                                        <YAxis stroke="#9CA3AF" tickFormatter={(val) => `R$ ${val / 1000}k`} />
-                                        <Tooltip
-                                            contentStyle={{ backgroundColor: '#1F2937', borderColor: '#374151', color: '#fff' }}
-                                            formatter={(value: any) => formatCurrency(value)}
-                                        />
-                                        <Area type="monotone" dataKey="profit" stroke="#8884d8" fillOpacity={1} fill="url(#colorProfit)" name="Lucro" />
-                                    </AreaChart>
-                                </ResponsiveContainer>
+                    {loading ? (
+                        <div className="flex items-center justify-center h-64">
+                            <div className="text-center">
+                                <Loader2 className="w-10 h-10 animate-spin text-purple-400 mx-auto mb-3" />
+                                <p className="text-gray-500">Carregando dados do servidor...</p>
                             </div>
                         </div>
+                    ) : (
+                        <div className="space-y-6">
+                            {/* Top KPI Cards */}
+                            <div className="grid grid-cols-3 gap-4">
+                                <div className="bg-gray-900/60 border border-gray-800 rounded-xl p-5">
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <Star className="w-5 h-5 text-yellow-400" />
+                                        <span className="text-sm text-gray-400">Satisfação Média (CSAT)</span>
+                                    </div>
+                                    <div className="text-3xl font-black text-white">
+                                        {csat ? csat.average.toFixed(1) : '—'}<span className="text-base text-gray-500">/5</span>
+                                    </div>
+                                    <div className="flex gap-1 mt-2">{csat ? renderStars(csat.average) : null}</div>
+                                    <p className="text-xs text-gray-500 mt-1">{csat?.total ?? 0} avaliações</p>
+                                </div>
 
-                        {/* Bar Chart: Income vs Expenses */}
-                        <div className="p-4 rounded-2xl border border-gray-800 bg-gray-900 flex flex-col h-full">
-                            <h3 className="text-lg font-semibold mb-4 text-gray-200">Receitas vs Despesas</h3>
-                            <div className="flex-1 min-h-0">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={data.history}>
-                                        <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                                        <XAxis dataKey="name" stroke="#9CA3AF" />
-                                        <YAxis stroke="#9CA3AF" tickFormatter={(val) => `R$ ${val / 1000}k`} />
-                                        <Tooltip
-                                            contentStyle={{ backgroundColor: '#1F2937', borderColor: '#374151', color: '#fff' }}
-                                            formatter={(value: any) => formatCurrency(value)}
-                                        />
-                                        <Legend />
-                                        <Bar dataKey="revenue" name="Receita" fill="#10B981" radius={[4, 4, 0, 0]} />
-                                        <Bar dataKey="expenses" name="Despesas" fill="#EF4444" radius={[4, 4, 0, 0]} />
-                                    </BarChart>
-                                </ResponsiveContainer>
+                                <div className={`border rounded-xl p-5 ${getSeverityColor(spike?.severity)}`}>
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <AlertTriangle className="w-5 h-5" />
+                                        <span className="text-sm opacity-80">Tickets — Última Hora</span>
+                                    </div>
+                                    <div className="text-3xl font-black">{spike?.tickets_last_hour ?? '—'}</div>
+                                    <p className="text-xs opacity-60 mt-1">
+                                        Média: {spike?.hourly_average_24h?.toFixed(1) ?? '—'} / hora
+                                        {spike?.is_spike ? ' — ⚠️ SPIKE DETECTADO' : ''}
+                                    </p>
+                                </div>
+
+                                <div className="bg-gray-900/60 border border-gray-800 rounded-xl p-5">
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <Clock className="w-5 h-5 text-blue-400" />
+                                        <span className="text-sm text-gray-400">Banco de Horas (Saldo)</span>
+                                    </div>
+                                    <div className={`text-3xl font-black ${(timeBank?.balance_hours ?? 0) >= 0 ? 'text-blue-400' : 'text-orange-400'}`}>
+                                        {timeBank ? `${timeBank.balance_hours >= 0 ? '+' : ''}${Math.floor(timeBank.balance_hours)}h` : '—'}
+                                    </div>
+                                    <p className="text-xs text-gray-500 mt-1">
+                                        {timeBank ? `${Math.floor(timeBank.total_credit_hours)}h crédito / ${Math.floor(timeBank.total_debit_hours)}h débito` : 'Carregando...'}
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* CSAT Distribution Chart */}
+                            {csat && (
+                                <div className="bg-gray-900/60 border border-gray-800 rounded-xl p-6">
+                                    <div className="flex items-center gap-2 mb-6">
+                                        <BarChart3 className="w-5 h-5 text-purple-400" />
+                                        <h3 className="font-bold text-gray-200">Distribuição de Notas CSAT</h3>
+                                    </div>
+                                    <div className="space-y-3">
+                                        {[5, 4, 3, 2, 1].map(score => {
+                                            const count = csat.distribution[String(score)] ?? 0;
+                                            const pct = maxBar > 0 ? (count / maxBar) * 100 : 0;
+                                            return (
+                                                <div key={score} className="flex items-center gap-3">
+                                                    <div className="flex items-center gap-1 w-16">
+                                                        <span className="text-yellow-400 text-sm font-bold">{score}</span>
+                                                        <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
+                                                    </div>
+                                                    <div className="flex-1 bg-gray-800 rounded-full h-3 overflow-hidden">
+                                                        <div
+                                                            className="h-full rounded-full bg-gradient-to-r from-purple-500 to-blue-500 transition-all duration-700"
+                                                            style={{ width: `${pct}%` }}
+                                                        />
+                                                    </div>
+                                                    <span className="text-gray-400 text-sm w-8 text-right">{count}</span>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Spike Top Offenders */}
+                            {spike && (spike.top_offenders?.length ?? 0) > 0 && (
+                                <div className="bg-gray-900/60 border border-gray-800 rounded-xl p-6">
+                                    <div className="flex items-center gap-2 mb-4">
+                                        <TrendingUp className="w-5 h-5 text-red-400" />
+                                        <h3 className="font-bold text-gray-200">Categorias em Alta (Última Hora)</h3>
+                                    </div>
+                                    <div className="grid grid-cols-3 gap-3">
+                                        {spike.top_offenders?.map((off, i) => (
+                                            <div key={i} className="bg-gray-800/60 rounded-xl p-4 border border-gray-700">
+                                                <div className="text-sm text-gray-400">{off.category}</div>
+                                                <div className="text-2xl font-black text-white mt-1">{off.count}</div>
+                                                <div className="text-xs text-gray-500">tickets</div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Employees Placeholder */}
+                            <div className="bg-gray-900/60 border border-gray-800 rounded-xl p-6">
+                                <div className="flex items-center gap-2 mb-4">
+                                    <Users className="w-5 h-5 text-green-400" />
+                                    <h3 className="font-bold text-gray-200">Resumo Equipe</h3>
+                                </div>
+                                <div className="grid grid-cols-4 gap-4 text-center">
+                                    {[
+                                        { label: 'Crédito Total (h)', value: Math.floor(timeBank?.total_credit_hours ?? 0), color: 'text-green-400' },
+                                        { label: 'Débito Total (h)', value: Math.floor(timeBank?.total_debit_hours ?? 0), color: 'text-red-400' },
+                                        { label: 'Tickets Abertos', value: spike?.tickets_last_hour ?? 0, color: 'text-yellow-400' },
+                                        { label: 'Score CSAT', value: csat ? `${csat.average.toFixed(1)}/5` : '—', color: 'text-blue-400' },
+                                    ].map((stat, i) => (
+                                        <div key={i} className="bg-gray-800/40 rounded-xl p-4">
+                                            <div className={`text-2xl font-black ${stat.color}`}>{stat.value}</div>
+                                            <div className="text-xs text-gray-500 mt-1">{stat.label}</div>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    )}
                 </div>
             </div>
         </AppLayout>

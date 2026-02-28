@@ -193,7 +193,35 @@ def update_application(
                 old_status=old_status,
                 new_status=status_value,
             )
-        except Exception as e:
+        except Exception:
             pass  # Non-critical failure
+
+        # ── n8n Webhook ─────────────────────────────────────────────────────────
+        if status_value == "approved":
+            import asyncio
+            n8n_url = os.environ.get("N8N_WEBHOOK_URL")
+            if n8n_url:
+                async def _fire_n8n():
+                    try:
+                        async with httpx.AsyncClient(timeout=5) as client:
+                            await client.post(n8n_url, json={
+                                "event": "candidate.approved",
+                                "application_id": app.id,
+                                "candidate_email": getattr(app.candidate, "email", None),
+                                "candidate_name": getattr(app.candidate, "name", None),
+                                "job_id": app.job_id,
+                                "company_id": company_id,
+                            })
+                    except Exception:
+                        pass  # n8n offline — do not block approval
+
+                try:
+                    loop = asyncio.get_event_loop()
+                    if loop.is_running():
+                        asyncio.ensure_future(_fire_n8n())
+                    else:
+                        loop.run_until_complete(_fire_n8n())
+                except Exception:
+                    pass  # Never fail the main request because of n8n
 
     return app

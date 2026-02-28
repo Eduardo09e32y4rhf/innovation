@@ -21,15 +21,12 @@ from api.v1.endpoints import (
     finance_advanced,
     projects_advanced,
     killer_questions,
-    webhooks,
-    analytics,
 )
 import domain.models  # Garante o registro de todos os modelos
 from core.config import settings
 from contextlib import asynccontextmanager
 from core.superintendent import superintendent
 from core.security.vpn_block import vpn_blocker_middleware
-import uvicorn
 
 
 @asynccontextmanager
@@ -49,46 +46,38 @@ app.middleware("http")(vpn_blocker_middleware)
 # usando a chave definida no settings.GEMINI_API_KEYS
 
 
-# Middleware CORS
+# Middleware CORS - Unified for dev
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.ALLOWED_ORIGINS.split(","),
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 # Incluir Roteadores da API
-app.include_router(auth.router)
-app.include_router(jobs.router)
-app.include_router(applications.router)
-app.include_router(enterprise.router)
-app.include_router(payments.router)
-app.include_router(ai.router)
-app.include_router(matching.router)
-app.include_router(dashboard.router)
-app.include_router(interviews.router)
-app.include_router(ai_services.router)
-app.include_router(projects.router)
-app.include_router(rh.router)
-app.include_router(finance.router)
-app.include_router(support.router)
+app.include_router(auth.router, prefix="/api")
+app.include_router(jobs.router, prefix="/api")
+app.include_router(applications.router, prefix="/api")
+app.include_router(enterprise.router, prefix="/api")
+app.include_router(payments.router, prefix="/api")
+app.include_router(ai.router, prefix="/api")
+app.include_router(matching.router, prefix="/api")
+app.include_router(dashboard.router, prefix="/api")
+app.include_router(interviews.router, prefix="/api")
+app.include_router(ai_services.router, prefix="/api")
+app.include_router(projects.router, prefix="/api")
+app.include_router(rh.router, prefix="/api")
+app.include_router(finance.router, prefix="/api")
+app.include_router(support.router, prefix="/api")
 # ── Advanced Modules (MASTERPLAN completion) ──
-app.include_router(rh_advanced.router)
-app.include_router(csc_advanced.router)
-app.include_router(finance_advanced.router)
-app.include_router(projects_advanced.router)
-app.include_router(killer_questions.router)
-# ── Webhooks (Integration with n8n) ──
-app.include_router(webhooks.router)
-app.include_router(analytics.router, prefix="/api/analytics")
+app.include_router(rh_advanced.router, prefix="/api")
+app.include_router(csc_advanced.router, prefix="/api")
+app.include_router(finance_advanced.router, prefix="/api")
+app.include_router(projects_advanced.router, prefix="/api")
+app.include_router(killer_questions.router, prefix="/api")
 
 
 @app.get("/health")
 def health():
     return {"status": "ok"}
-
-
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8000))
-    uvicorn.run("api.main:app", host="0.0.0.0", port=port, reload=True)

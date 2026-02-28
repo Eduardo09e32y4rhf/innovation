@@ -15,10 +15,7 @@ class Settings(BaseSettings):
     # External Services
     REDIS_URL: str = "redis://localhost:6379/0"
     GEMINI_API_KEYS: str | None = None
-    # Updated ALLOWED_ORIGINS to include production domains
-    ALLOWED_ORIGINS: str = (
-        "http://localhost:3000,https://app.innovationia.com.br,https://ia.innovationia.com.br,https://bi.innovationia.com.br"
-    )
+    ALLOWED_ORIGINS: str = "http://localhost:3000,http://187.77.49.207"
 
     # Google OAuth
     GOOGLE_CLIENT_ID: str | None = None
@@ -39,9 +36,6 @@ class Settings(BaseSettings):
     BASE_URL: str = (
         "http://localhost:8000"  # Default for local dev, override in prod/ngrok
     )
-
-    # n8n Settings
-    N8N_WEBHOOK_URL: str | None = None
 
     model_config = SettingsConfigDict(
         env_file=BASE_DIR / ".env",

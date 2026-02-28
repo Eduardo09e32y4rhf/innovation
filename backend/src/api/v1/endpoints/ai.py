@@ -18,7 +18,7 @@ from infrastructure.database.sql.dependencies import get_db
 from sqlalchemy.orm import Session
 from services import audit_service
 
-router = APIRouter(prefix="/api/ai", tags=["ai-chat"])
+router = APIRouter(prefix="/ai", tags=["ai-chat"])
 
 from fastapi.responses import StreamingResponse
 import asyncio

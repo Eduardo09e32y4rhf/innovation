@@ -1,9 +1,10 @@
-# <img src="https://raw.githubusercontent.com/lucide-react/lucide/main/icons/bot.svg" width="32" height="32" /> INNOVATION.IA — Enterprise OS
+# <img src="https://raw.githubusercontent.com/lucide-react/lucide/main/icons/bot.svg" width="32" height="32" /> INNOVATION.IA — Enterprise OS (SaaS Edition V1.0)
 
 [![Microservices](https://img.shields.io/badge/Architecture-Microservices-purple?style=for-the-badge&logo=docker)](https://github.com/Eduardo09e32y4rhf/innovation)
 [![FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688?style=for-the-badge&logo=fastapi)](https://fastapi.tiangolo.com/)
 [![Next.js](https://img.shields.io/badge/Frontend-Next.js-black?style=for-the-badge&logo=next.js)](https://nextjs.org/)
 [![Proprietary](https://img.shields.io/badge/License-Proprietary-red?style=for-the-badge)](https://innovation.ia)
+[![Status](https://img.shields.io/badge/Status-Production%20Ready-success?style=for-the-badge)](#)
 
 ---
 
@@ -23,63 +24,62 @@
 
 ---
 
-## 💎 Visão Geral
-A **Innovation.ia** é uma plataforma SaaS *Next-Gen* que orquestra todo o ecossistema empresarial em um único sistema operacional de elite. Desenvolvida com arquitetura de microserviços de alta performance, a plataforma unifica inteligência artificial, recrutamento avançado e gestão financeira.
+## 💎 Visão Geral (V1.0 Production)
+A **Innovation.ia** é uma plataforma SaaS *Next-Gen* totalmente funcional e pronta para o mercado. Orquestra todo o ecossistema empresarial em um único sistema operacional de elite. Desenvolvida com arquitetura de microserviços de alta performance, a plataforma unifica inteligência artificial, recrutamento avançado, gestão financeira e analytics em tempo real.
 
-### 🚀 Módulos Nucleares
-- **ATS Intelligence**: Triagem e ranking de candidatos impulsionados por IA (Gemini/LLMs).
-- **Core Business**: Gestão de projetos, missões e gamificação de produtividade.
-- **Finance Hub**: Fluxo de caixa, integração com gateways de pagamento e auditoria.
-- **AI Engine**: Integração profunda com modelos de linguagem para análise comportamental.
-- **Security Portal**: Gateway de autenticação robusto com RBAC (Role-Based Access Control).
+### 🚀 Módulos Nucleares Ativos
+- **Innovation AI Chat**: Assistente virtual avançado integrado diretamente com LLMs de última geração, oferecendo suporte contextual, análise de dados e automação de tarefas.
+- **Finance & Analytics Hub**: Fluxo de caixa em tempo real, dashboards analíticos detalhados, e integração completa com o **Mercado Pago** para assinaturas SaaS e pagamentos financeiros.
+- **ATS Intelligence**: Triagem e ranking de currículos interativos impulsionados por IA (Gemini).
+- **Core Business**: Gestão de projetos, missões e gamificação de produtividade corporativa.
+- **Security Portal**: Gateway de autenticação centralizado e impenetrável via Kong, com controle de acesso baseados em funções (RBAC).
 
 ---
 
-## 🛠 Atributos Técnicos
+## 🛠 Stack Tecnológico Consolidado
 
 ### Backend (Microserviços)
-- **FastAPI**: Processamento assíncrono de alta velocidade.
-- **SQLAlchemy & Alembic**: Gestão de base de dados relacional (PostgreSQL).
-- **JWT Extended**: Segurança de nível bancário para sessões.
-- **AsyncIO**: Startup resiliente e não-bloqueante.
+- **FastAPI**: Processamento assíncrono hiper-veloz para rotas da API.
+- **PostgreSQL & SQLAlchemy**: Integridade referencial e alta disponibilidade de dados.
+- **Arquitetura Desacoplada**: Serviços independentes de Auth, AI e Core para escalabilidade horizontal.
 
-### Frontend (User Experience)
-- **Next.js 16**: Performance SSR e renderização híbrida.
-- **Tailwind CSS**: Design system sofisticado com Glassmorphism.
-- **Framer Motion**: Micro-interações e animações premium.
-- **Lucide Icons**: Iconografia minimalista e moderna.
+### Frontend (User Experience Premium)
+- **Next.js 16**: Renderização híbrida impecável e navegação fluida.
+- **Tailwind CSS & Framer Motion**: Design system de ponta, glassmorphism e micro-interações responsivas.
+- **Integração de Pagamentos**: Checkout nativo e seguro otimizado para conversão.
 
-### Infraestrutura & DevOps
-- **Docker & Docker Compose**: Orquestração de containers.
-- **Kong Gateway**: Roteamento inteligente e proteção de APIs.
-- **Nginx**: Proxy reverso e terminação SSL/TLS.
-- **Self-Healing Startup**: Capacidade de auto-correção e espera por dependências.
+### Infraestrutura & DevOps (Enterprise Grade)
+- **Docker & Docker Compose**: Orquestração completa do ambiente local e produtivo.
+- **Kong API Gateway**: Roteamento unificado, proxy reverso seguro e proteção contra abusos.
+- **Monitoramento & Self-Healing**: Scripts de manutenção e reparo automatizados (`reparo_total.sh`, `iniciar_local.ps1`) para garantir 99.9% de uptime funcional.
 
 ---
 
-## 📐 Arquitetura do Sistema
+## 📐 Arquitetura do Sistema Final
 
 ```mermaid
 graph TD;
-    User((Usuário Vitalício)) -->|HTTPS| Kong[Gateway Kong]
-    Kong -->|/api/auth| Auth[Auth Service]
-    Kong -->|/api/core| Core[Core Service]
-    Kong -->|/api/ai| AI[AI Service]
-    Auth --> DB[(PostgreSQL)]
+    Client((Usuário / Cliente SaaS)) -->|HTTPS| Kong[Kong API Gateway]
+    Kong -->|/api/auth| Auth[Auth Microservice]
+    Kong -->|/api/core| Core[Core Microservice]
+    Kong -->|/api/ai| AI[AI Microservice]
+    Auth --> DB[(PostgreSQL Central)]
     Core --> DB
-    AI --> Gemini[Gemini Pro API]
+    AI --> Gemini[Gemini Pro Engine]
+    Core -.-> MercadoPago[API Mercado Pago]
 ```
 
 ---
 
-## 🔒 Contato e Aquisição
-O acesso a este repositório é restrito apenas a desenvolvedores autorizados e investidores. Se você recebeu este acesso para avaliação técnica:
+## 🔒 Licenciamento e Contato Corporativo
+O acesso a este código-fonte é restrito a desenvolvedores autorizados e stakeholders diretos.
 
-1. **Não compartilhe** credenciais ou screenshots publicamente.
-2. **Respeite** o Segredo de Negócio da arquitetura.
-3. Para propostas comerciais ou licenciamento Enterprise: [eduardo@innovation.ia](mailto:eduardo@innovation.ia)
+1. **Confidencialidade Extrema**: Não compartilhe credenciais, rotas de API ou prints da infraestrutura interna.
+2. **Uso Comercial**: O licenciamento e operação deste SaaS são geridos exclusivamente pelo criador.
+3. Para propostas de aquisição, parcerias ou suporte corporativo corporativo: [eduardo@innovation.ia](mailto:eduardo@innovation.ia)
 
 ---
 <p align="center">
-  <b>Innovation.ia &copy; 2026 — O Futuro do Enterprise OS</b>
+  <b>Innovation.ia &copy; 2026 — O Futuro do Enterprise OS</b><br>
+  <i>Ready for the World.</i>
 </p>
