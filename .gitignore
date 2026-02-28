@@ -16,6 +16,9 @@ innovation.db
 # Environment
 .env
 .env.local
+.env.prod
+*.pem
+*.jwt
 
 # IDE
 .vscode/
