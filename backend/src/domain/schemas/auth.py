@@ -56,3 +56,6 @@ class UserOut(BaseModel):
     created_at: datetime | None = None
     phone: str | None = None
     two_factor_enabled: bool | None = None
+    trial_expires_at: datetime | None = None
+    subscription_status: str | None = None
+    subscription_plan: str | None = None

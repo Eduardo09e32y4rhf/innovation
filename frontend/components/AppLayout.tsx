@@ -17,6 +17,8 @@ interface UserProfile {
     name: string;
     email: string;
     role?: string;
+    subscription_status?: string;
+    trial_expires_at?: string;
 }
 
 // ─── HELPERS ────────────────────────────────────────────────────────────────
@@ -251,7 +253,16 @@ export default function AppLayout({
 
     useEffect(() => {
         AuthService.me()
-            .then(setUser)
+            .then((u: UserProfile) => {
+                if (u.subscription_status !== 'active' && u.trial_expires_at) {
+                    const expiresAt = new Date(u.trial_expires_at);
+                    if (new Date() > expiresAt) {
+                        router.push('/pricing?expired=true');
+                        return;
+                    }
+                }
+                setUser(u);
+            })
             .catch(() => {
                 router.push('/login');
             });
@@ -277,6 +288,18 @@ export default function AppLayout({
 
             <div className={`flex-1 flex flex-col min-h-screen relative z-10 transition-all duration-300 ${isSidebarOpen ? 'lg:ml-[240px]' : 'lg:ml-[240px]'}`}>
                 <TopBar user={user} title={title} onToggleSidebar={() => setIsSidebarOpen(true)} />
+
+                {user && user.subscription_status !== 'active' && user.trial_expires_at && new Date(user.trial_expires_at) > new Date() && (
+                    <div className="bg-gradient-to-r from-orange-500/20 to-pink-500/20 border-b border-orange-500/30 px-4 py-2 flex items-center justify-between shrink-0">
+                        <p className="text-[11px] text-orange-200">
+                            <strong>Teste Grátis:</strong> Seu acesso expira em {Math.ceil((new Date(user.trial_expires_at).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} dias. Após isso, os recursos estarão bloqueados.
+                        </p>
+                        <Link href="/pricing" className="text-[10px] font-bold uppercase tracking-wider bg-orange-500 hover:bg-orange-600 text-white px-3 py-1.5 rounded transition">
+                            Assinar Premium
+                        </Link>
+                    </div>
+                )}
+
                 <main className="flex-1 overflow-y-auto">
                     {children}
                 </main>

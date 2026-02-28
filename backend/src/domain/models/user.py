@@ -30,6 +30,9 @@ class User(Base):
     subscription_plan = Column(
         String(50), default="starter"
     )  # starter, pro, enterprise
+    
+    # Data de expiração do teste grátis
+    trial_expires_at = Column(DateTime, nullable=True)
 
     # Perfil (Candidato)
     bio = Column(Text, nullable=True)

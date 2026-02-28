@@ -12,6 +12,7 @@ from core.security import (
 )
 from domain.models.company import Company
 from domain.models.user import User
+from datetime import datetime, timedelta, timezone
 
 logger = logging.getLogger(__name__)
 
@@ -50,6 +51,7 @@ def register_user(
         role=role,
         phone=phone,
         company_name=company_name,
+        trial_expires_at=datetime.now(timezone.utc) + timedelta(days=30),
     )
     db.add(user)
     db.flush()  # garante user.id

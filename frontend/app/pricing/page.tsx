@@ -3,7 +3,8 @@
 import { motion } from 'framer-motion';
 import { Check, Zap, Building2, Rocket } from 'lucide-react';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { PaymentService } from '../../services/api';
 
 const plans = [
@@ -71,6 +72,14 @@ const plans = [
 
 export default function PricingPage() {
     const [loading, setLoading] = useState<string | null>(null);
+    const [isExpired, setIsExpired] = useState(false);
+    const searchParams = useSearchParams();
+
+    useEffect(() => {
+        if (searchParams?.get('expired') === 'true') {
+            setIsExpired(true);
+        }
+    }, [searchParams]);
 
     const handleCheckout = async (planId: string) => {
         const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
@@ -108,6 +117,16 @@ export default function PricingPage() {
             </nav>
 
             <section className="py-20 px-4 text-center">
+                {isExpired && (
+                    <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="max-w-xl mx-auto mb-8 bg-red-500/10 border border-red-500/20 text-red-400 px-6 py-4 rounded-2xl flex items-center justify-center gap-3">
+                        <span className="text-2xl">⚠️</span>
+                        <div className="text-left text-sm">
+                            <h3 className="font-bold text-red-300 text-base">Seu período de teste expirou</h3>
+                            <p>Para continuar acessando todos os recursos da inovation.ia, escolha um plano premium abaixo.</p>
+                        </div>
+                    </motion.div>
+                )}
+
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-purple-500/30 bg-purple-500/10 text-purple-300 text-sm mb-6">
                         <span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse" />
@@ -157,8 +176,8 @@ export default function PricingPage() {
                                 onClick={() => handleCheckout(plan.id)}
                                 disabled={loading === plan.id}
                                 className={`w-full py-3 rounded-xl font-semibold text-sm transition mb-8 ${plan.popular
-                                        ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white shadow-lg shadow-purple-500/20'
-                                        : 'bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700'
+                                    ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white shadow-lg shadow-purple-500/20'
+                                    : 'bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700'
                                     } disabled:opacity-50 disabled:cursor-not-allowed`}
                             >
                                 {loading === plan.id ? 'Redirecionando...' : `Assinar ${plan.name}`}
