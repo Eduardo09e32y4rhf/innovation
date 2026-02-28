@@ -88,7 +88,7 @@ function Sidebar({ user, isOpen, onClose }: { user: UserProfile | null, isOpen: 
                     <Link href="/" className="text-lg font-black tracking-tighter" onClick={onClose}>
                         INNOV<span className="text-[#8b5cf6]">A</span>TION IA
                     </Link>
-                    <button onClick={onClose} className="lg:hidden text-white/40 hover:text-white p-1">
+                    <button onClick={onClose} className="lg:hidden text-white/40 hover:text-white p-1" aria-label="Close Sidebar">
                         <X className="w-5 h-5" />
                     </button>
                 </div>
@@ -194,6 +194,7 @@ function TopBar({ user, title, onToggleSidebar }: { user: UserProfile | null; ti
             <button
                 onClick={onToggleSidebar}
                 className="lg:hidden p-2 -ml-2 text-white/40 hover:text-white transition-colors"
+                aria-label="Toggle Sidebar"
             >
                 <Menu className="w-5 h-5" />
             </button>
@@ -204,6 +205,7 @@ function TopBar({ user, title, onToggleSidebar }: { user: UserProfile | null; ti
                     onClick={() => router.back()}
                     className="flex items-center gap-2 text-white/40 hover:text-white transition-all px-2 py-1.5 rounded-lg hover:bg-white/5 shrink-0"
                     title="Voltar"
+                    aria-label="Go Back"
                 >
                     <ArrowLeft className="w-4 h-4" />
                     <span className="text-xs hidden sm:inline">Voltar</span>
@@ -220,7 +222,7 @@ function TopBar({ user, title, onToggleSidebar }: { user: UserProfile | null; ti
 
             {/* Right side */}
             <div className="flex items-center gap-3 shrink-0">
-                <button className="relative text-white/30 hover:text-white transition">
+                <button className="relative text-white/30 hover:text-white transition" aria-label="Notifications">
                     <Bell className="w-4 h-4" />
                     <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-[#8b5cf6] rounded-full text-[8px] flex items-center justify-center font-bold">3</span>
                 </button>
