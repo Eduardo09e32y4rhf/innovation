@@ -18,7 +18,7 @@ export default function DashboardLayout({
 
     return (
         <div className="flex min-h-screen bg-[#000000] text-white">
-            <Sidebar user={user} isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+            <Sidebar />
             <div className="flex-1 lg:ml-[240px]">
                 {children}
             </div>

@@ -2,7 +2,7 @@ import { toDateTime } from '@/utils/helpers';
 import { stripe } from '@/utils/stripe/config';
 import { createClient } from '@supabase/supabase-js';
 import Stripe from 'stripe';
-import type { Database, Tables, TablesInsert } from 'types_db';
+import type { Database, Tables, TablesInsert } from '@/types_db';
 
 type Product = Tables<'products'>;
 type Price = Tables<'prices'>;
@@ -13,8 +13,8 @@ const TRIAL_PERIOD_DAYS = 0;
 // Note: supabaseAdmin uses the SERVICE_ROLE_KEY which you must only use in a secure server-side context
 // as it has admin privileges and overwrites RLS policies!
 const supabaseAdmin = createClient<Database>(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-  process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+  process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://mock.supabase.co',
+  process.env.SUPABASE_SERVICE_ROLE_KEY || 'mock-key'
 );
 
 const upsertProductRecord = async (product: Stripe.Product) => {
@@ -229,37 +229,37 @@ const manageSubscriptionStatusChange = async (
     expand: ['default_payment_method']
   });
   // Upsert the latest status of the subscription object.
+  const subData: any = subscription;
   const subscriptionData: TablesInsert<'subscriptions'> = {
-    id: subscription.id,
+    id: subData.id,
     user_id: uuid,
-    metadata: subscription.metadata,
-    status: subscription.status,
-    price_id: subscription.items.data[0].price.id,
+    metadata: subData.metadata,
+    status: subData.status,
+    price_id: subData.items.data[0].price.id,
     //TODO check quantity on subscription
-    // @ts-ignore
-    quantity: subscription.quantity,
-    cancel_at_period_end: subscription.cancel_at_period_end,
-    cancel_at: subscription.cancel_at
-      ? toDateTime(subscription.cancel_at).toISOString()
+    quantity: subData.quantity,
+    cancel_at_period_end: subData.cancel_at_period_end,
+    cancel_at: subData.cancel_at
+      ? toDateTime(subData.cancel_at).toISOString()
       : null,
-    canceled_at: subscription.canceled_at
-      ? toDateTime(subscription.canceled_at).toISOString()
+    canceled_at: subData.canceled_at
+      ? toDateTime(subData.canceled_at).toISOString()
       : null,
     current_period_start: toDateTime(
-      subscription.current_period_start
+      subData.current_period_start
     ).toISOString(),
     current_period_end: toDateTime(
-      subscription.current_period_end
+      subData.current_period_end
     ).toISOString(),
-    created: toDateTime(subscription.created).toISOString(),
-    ended_at: subscription.ended_at
-      ? toDateTime(subscription.ended_at).toISOString()
+    created: toDateTime(subData.created).toISOString(),
+    ended_at: subData.ended_at
+      ? toDateTime(subData.ended_at).toISOString()
       : null,
-    trial_start: subscription.trial_start
-      ? toDateTime(subscription.trial_start).toISOString()
+    trial_start: subData.trial_start
+      ? toDateTime(subData.trial_start).toISOString()
       : null,
-    trial_end: subscription.trial_end
-      ? toDateTime(subscription.trial_end).toISOString()
+    trial_end: subData.trial_end
+      ? toDateTime(subData.trial_end).toISOString()
       : null
   };
 

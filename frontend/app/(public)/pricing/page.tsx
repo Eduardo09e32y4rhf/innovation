@@ -3,7 +3,7 @@
 import { motion } from 'framer-motion';
 import { Check, Zap, Building2, Rocket } from 'lucide-react';
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { PaymentService } from '@/services/api';
 
@@ -70,7 +70,7 @@ const plans = [
     },
 ];
 
-export default function PricingPage() {
+function PricingContent() {
     const [loading, setLoading] = useState<string | null>(null);
     const [isExpired, setIsExpired] = useState(false);
     const searchParams = useSearchParams();
@@ -205,5 +205,13 @@ export default function PricingPage() {
                 </div>
             </section>
         </div>
+    );
+}
+
+export default function PricingPage() {
+    return (
+        <Suspense fallback={<div>Carregando...</div>}>
+            <PricingContent />
+        </Suspense>
     );
 }

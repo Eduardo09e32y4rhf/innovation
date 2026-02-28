@@ -1,11 +1,11 @@
 import Stripe from 'stripe';
 
 export const stripe = new Stripe(
-  process.env.STRIPE_SECRET_KEY_LIVE ?? process.env.STRIPE_SECRET_KEY ?? '',
+  process.env.STRIPE_SECRET_KEY_LIVE ?? process.env.STRIPE_SECRET_KEY ?? 'sk_test_mock',
   {
     // https://github.com/stripe/stripe-node#configuration
     // https://stripe.com/docs/api/versioning
-    // @ts-ignore
+    // @ts-expect-error
     apiVersion: null,
     // Register this as an official Stripe plugin.
     // https://stripe.com/docs/building-plugins#setappinfo

@@ -6,10 +6,12 @@ import { type Provider } from '@supabase/supabase-js';
 import { Github } from 'lucide-react';
 import { useState } from 'react';
 
+import React from 'react';
+
 type OAuthProviders = {
   name: Provider;
   displayName: string;
-  icon: JSX.Element;
+  icon: React.JSX.Element;
 };
 
 export default function OauthSignIn() {

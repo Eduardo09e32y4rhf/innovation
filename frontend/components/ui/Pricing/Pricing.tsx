@@ -76,6 +76,7 @@ export default function Pricing({ user, products, subscription }: Props) {
     }
 
     const stripe = await getStripe();
+    // @ts-expect-error Stripe type isn't fully comprehensive here
     stripe?.redirectToCheckout({ sessionId });
 
     setPriceIdLoading(undefined);
