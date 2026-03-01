@@ -1,0 +1,4 @@
+## 2024-05-18 - [HIGH] Missing Authentication on Webhook Endpoint
+**Vulnerability:** The `/api/webhooks/n8n/callback` endpoint processed data without verifying its source or authenticity, making it susceptible to Broken Access Control.
+**Learning:** Even internal endpoints or webhooks not intended for direct user consumption must implement authentication. Relying on an endpoint being "hidden" or obscure is security by obscurity and an invalid defense. Also learned that when implementing token verification, `secrets.compare_digest` must be used instead of standard string equality (`==`) to prevent timing attacks.
+**Prevention:** Always require an authentication mechanism (e.g., webhook secret, API key, HMAC signature) on endpoints that accept external data payloads. Use constant-time comparison for secrets.
