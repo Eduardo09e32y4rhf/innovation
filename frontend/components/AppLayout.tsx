@@ -6,7 +6,7 @@ import {
     LayoutDashboard, MessageSquare, DollarSign, Briefcase,
     Users, LifeBuoy, LogOut, ChevronRight,
     Bell, Settings, ArrowLeft, Flame, Trophy, Menu, X,
-    HeartHandshake, Timer, BarChart3
+    HeartHandshake, Timer, BarChart3, ShieldCheck, Zap
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { AuthService } from '../services/api';
@@ -53,16 +53,18 @@ const MAIN_MENU = [
     { name: 'Chat IA', href: '/chat-ia', icon: MessageSquare },
     { name: 'Financeiro', href: '/finance', icon: DollarSign },
     { name: 'Vagas (ATS)', href: '/ats', icon: Briefcase },
-    { name: 'Meus Chamados (Suporte)', href: '/support', icon: LifeBuoy },
+    { name: 'Meu Ponto', href: '/dashboard/ponto', icon: Timer },
+    { name: 'Gestão Avançada de RH', href: '/dashboard/rh', icon: ShieldCheck },
+    { name: 'BI Analytics', href: '/dashboard/analytics', icon: BarChart3 },
+    { name: 'Insights', href: '/dashboard/insights', icon: Zap },
+    { name: 'Meus Chamados', href: '/support', icon: LifeBuoy },
     { name: 'Onboarding', href: '/onboarding', icon: Users },
+];
+
+const ADVANCED_MENU = [
     { name: 'Painel de RH', href: '/dashboard/rh', icon: HeartHandshake },
     { name: 'Meu Ponto', href: '/dashboard/ponto', icon: Timer },
     { name: 'B.I. Analytics', href: '/dashboard/analytics', icon: BarChart3 },
-];
-
-const ADMIN_MENU = [
-    { name: 'Gestão de Usuários', href: '/dashboard/users', icon: Users },
-    { name: 'Gestão de Reembolso', href: '/dashboard/finance-admin', icon: DollarSign },
     { name: 'Gestão de Chamados', href: '/dashboard/support-admin', icon: LifeBuoy },
 ];
 
@@ -150,7 +152,7 @@ function Sidebar({ user, isOpen, onClose }: { user: UserProfile | null, isOpen: 
                         <>
                             <p className="text-[8px] text-white/20 uppercase tracking-[0.2em] mb-2 px-2 mt-4">Avançado e Admin</p>
                             <div className="space-y-0.5">
-                                {ADMIN_MENU.map((item) => {
+                                {ADVANCED_MENU.map((item) => {
                                     const active = pathname === item.href;
                                     const Icon = item.icon;
                                     return (
