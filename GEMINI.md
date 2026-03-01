@@ -17,8 +17,8 @@ O sistema é composto pelos seguintes componentes principais:
 - **Tecnologia:** Python, FastAPI, SQLAlchemy, PostgreSQL.
 - **Módulos:**
   - `auth`: Gestão de usuários e permissões (RBAC).
-  - `ai`: Integração com Gemini Pro para análise de currículos e DISC.
-  - `core`: Lógica de negócios, missões e gamificação.
+  - `ai`: Integração avançada com Gemini Pro (análise de currículos e DISC) e modelo Veo (geração de vídeo).
+  - `core`: Lógica de negócios, missões, gamificação e gerenciamento dinâmico de chaves API de IA.
   - `finance`: Integração com Mercado Pago e fluxo de caixa.
 
 ### 3. Frontend (Next.js)
@@ -39,7 +39,7 @@ O sistema é composto pelos seguintes componentes principais:
 ### Backend (Python/FastAPI)
 - Use Pydantic para validação de dados.
 - Siga o padrão de Repositórios/Serviços para separação de preocupações.
-- As rotas de IA utilizam um sistema de rotação de chaves (`core/ai_key_manager.py`).
+- As rotas de IA utilizam um sistema escalável de rotação de chaves via `AI Key Manager` para garantir alta disponibilidade dos modelos Gemini e Veo.
 
 ### Frontend (Next.js/React)
 - Componentes reutilizáveis em `frontend/src/components/ui`.

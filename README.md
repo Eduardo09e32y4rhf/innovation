@@ -31,6 +31,7 @@ A **Innovation.ia** é uma plataforma SaaS *Next-Gen* totalmente funcional e pro
 - **Innovation AI Chat**: Assistente virtual avançado integrado diretamente com LLMs de última geração, oferecendo suporte contextual, análise de dados e automação de tarefas.
 - **Finance & Analytics Hub**: Fluxo de caixa em tempo real, dashboards analíticos detalhados, e integração completa com o **Mercado Pago** para assinaturas SaaS e pagamentos financeiros.
 - **ATS Intelligence**: Triagem e ranking de currículos interativos impulsionados por IA (Gemini).
+- **Gerenciamento de Chaves de IA**: Sistema de rotação dinâmica de múltiplas chaves API para modelos avançados (incluindo Gemini e Veo para geração de vídeo), garantindo 100% de uptime e escalabilidade horizontal.
 - **Core Business**: Gestão de projetos, missões e gamificação de produtividade corporativa.
 - **Security Portal**: Gateway de autenticação centralizado e impenetrável via Kong, com controle de acesso baseados em funções (RBAC).
 
