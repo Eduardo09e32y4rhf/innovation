@@ -6,11 +6,15 @@ const nextConfig: NextConfig = {
   images: { unoptimized: true },
   turbopack: {},
   async rewrites() {
-    const GATEWAY = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+    const GATEWAY = process.env.API_URL || 'http://gateway:8000';
     return [
       {
         source: '/api/:path*',
         destination: `${GATEWAY}/api/:path*`,
+      },
+      {
+        source: '/auth/:path*',
+        destination: `${GATEWAY}/auth/:path*`,
       },
     ];
   },
