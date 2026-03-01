@@ -96,29 +96,48 @@ function Sidebar({ user, isOpen, onClose }: { user: UserProfile | null, isOpen: 
                 </div>
 
                 {/* User profile */}
-                {user && (
-                    <div className="px-4 py-4 border-b border-white/5 shrink-0">
-                        <div className="flex items-center gap-3">
-                            <div className="relative shrink-0">
-                                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#8b5cf6] to-[#7c3aed] flex items-center justify-center text-white font-black text-xs shadow-lg shadow-[#8b5cf6]/30">
-                                    {getInitials(user.name)}
-                                </div>
-                                <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-black" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                                <p className="text-xs font-bold text-white truncate">{user.name}</p>
-                                <div className="flex items-center gap-1 mt-0.5">
-                                    <Flame className="w-2.5 h-2.5 text-orange-400" />
-                                    <span className="text-[9px] text-orange-400 font-medium">Ativo</span>
+                <div className="px-4 py-4 border-b border-white/5 shrink-0 min-h-[105px]">
+                    {!user ? (
+                        <div className="animate-pulse space-y-4">
+                            <div className="flex items-center gap-3">
+                                <div className="w-9 h-9 rounded-xl bg-white/5" />
+                                <div className="flex-1 space-y-2">
+                                    <div className="h-2 bg-white/10 rounded w-20" />
+                                    <div className="h-1.5 bg-white/5 rounded w-12" />
                                 </div>
                             </div>
-                            <span className="text-[9px] bg-yellow-400/20 text-yellow-300 px-1.5 py-0.5 rounded font-black shrink-0">Nv.7</span>
+                            <div className="space-y-1.5">
+                                <div className="flex justify-between">
+                                    <div className="h-1.5 bg-white/5 rounded w-10" />
+                                    <div className="h-1.5 bg-white/5 rounded w-8" />
+                                </div>
+                                <div className="h-1 bg-white/5 rounded-full" />
+                            </div>
                         </div>
-                        <div className="mt-3">
-                            <XpBar xp={2340} maxXp={3000} level={7} />
-                        </div>
-                    </div>
-                )}
+                    ) : (
+                        <>
+                            <div className="flex items-center gap-3">
+                                <div className="relative shrink-0">
+                                    <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#8b5cf6] to-[#7c3aed] flex items-center justify-center text-white font-black text-xs shadow-lg shadow-[#8b5cf6]/30">
+                                        {getInitials(user.name)}
+                                    </div>
+                                    <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-black" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-xs font-bold text-white truncate">{user.name}</p>
+                                    <div className="flex items-center gap-1 mt-0.5">
+                                        <Flame className="w-2.5 h-2.5 text-orange-400" />
+                                        <span className="text-[9px] text-orange-400 font-medium">Ativo</span>
+                                    </div>
+                                </div>
+                                <span className="text-[9px] bg-yellow-400/20 text-yellow-300 px-1.5 py-0.5 rounded font-black shrink-0">Nv.7</span>
+                            </div>
+                            <div className="mt-3">
+                                <XpBar xp={2340} maxXp={3000} level={7} />
+                            </div>
+                        </>
+                    )}
+                </div>
 
                 {/* Nav */}
                 <nav className="flex-1 px-3 py-4 overflow-y-auto">
@@ -292,7 +311,7 @@ export default function AppLayout({
 
             <Sidebar user={user} isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
 
-            <div className={`flex-1 flex flex-col min-h-screen relative z-10 transition-all duration-300 ${isSidebarOpen ? 'lg:ml-[240px]' : 'lg:ml-[240px]'}`}>
+            <div className={`flex-1 flex flex-col min-h-screen relative z-10 lg:ml-[240px]`}>
                 <TopBar user={user} title={title} onToggleSidebar={() => setIsSidebarOpen(true)} />
 
                 {user && user.subscription_status !== 'active' && user.trial_expires_at && new Date(user.trial_expires_at) > new Date() && (
