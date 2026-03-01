@@ -72,13 +72,20 @@ async def get_matched_candidates(
     if job.company_id != current_user.id:
         raise HTTPException(403, "Sem permissão")
 
+    from sqlalchemy.orm import joinedload
+
     # Buscar candidaturas
-    applications = db.query(Application).filter(Application.job_id == job_id).all()
+    applications = (
+        db.query(Application)
+        .options(joinedload(Application.candidate))
+        .filter(Application.job_id == job_id)
+        .all()
+    )
 
     results = []
 
     for app in applications:
-        candidate = db.query(User).filter(User.id == app.candidate_id).first()
+        candidate = app.candidate
 
         if not candidate:
             continue

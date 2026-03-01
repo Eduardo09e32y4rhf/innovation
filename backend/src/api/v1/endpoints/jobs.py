@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 import logging
 
@@ -180,11 +180,16 @@ def get_job_applications(
     if not job:
         raise HTTPException(404, "Vaga não encontrada")
 
-    applications = db.query(Application).filter(Application.job_id == job_id).all()
+    applications = (
+        db.query(Application)
+        .options(joinedload(Application.candidate))
+        .filter(Application.job_id == job_id)
+        .all()
+    )
 
     result = []
     for app in applications:
-        candidate = db.query(User).filter(User.id == app.candidate_id).first()
+        candidate = app.candidate
         result.append(
             {
                 "id": app.id,
