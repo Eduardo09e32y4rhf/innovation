@@ -29,23 +29,23 @@ api.interceptors.response.use(
 // ── AUTH ────────────────────────────────────────────────────────────────
 export const AuthService = {
     login: async (email: string, password: string) => {
-        const res = await api.post('/auth/login', { email, password });
+        const res = await api.post('/api/auth/login', { email, password });
         return res.data;
     },
     register: async (data: Record<string, string>) => {
-        const res = await api.post('/auth/register', data);
+        const res = await api.post('/api/auth/register', data);
         return res.data;
     },
     me: async () => {
-        const res = await api.get('/auth/me');
+        const res = await api.get('/api/auth/me');
         return res.data;
     },
     forgotPassword: async (email: string) => {
-        const res = await api.post('/auth/forgot-password', { email });
+        const res = await api.post('/api/auth/forgot-password', { email });
         return res.data;
     },
     resetPassword: async (data: Record<string, string>) => {
-        const res = await api.post('/auth/reset-password', data);
+        const res = await api.post('/api/auth/reset-password', data);
         return res.data;
     },
 };
