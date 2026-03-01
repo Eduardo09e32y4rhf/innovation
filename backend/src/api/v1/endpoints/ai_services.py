@@ -359,3 +359,63 @@ Responda SOMENTE com JSON válido, sem markdown.
         raise HTTPException(
             status_code=500, detail=f"Erro ao sugerir perguntas após rotação: {e}"
         )
+# ─── RECEIPT OCR (ZERO PAPEL) ──────────────────────────────────────────────────
+
+
+@router.post("/parse-receipt")
+async def parse_receipt(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Usa Gemini 2.0 Flash (Vision) para extrair dados de um cupom fiscal/recibo.
+    """
+    import base64
+    content = await file.read()
+    base64_image = base64.b64encode(content).decode("utf-8")
+
+    contents = [
+        {
+            "mime_type": file.content_type or "image/jpeg",
+            "data": base64_image
+        },
+        "Extraia os dados deste recibo/cupom fiscal."
+    ]
+
+    system_instruction = """Você é um especialista em contabilidade e OCR. 
+Extraia os seguintes campos do recibo e retorne APENAS um JSON válido:
+- supplier (nome do estabelecimento/posto)
+- amount (valor total numérico, use ponto para decimas)
+- date (data no formato ISO YYYY-MM-DD, se encontrar)
+- category (estime a categoria: Combustível, Alimentação, Viagem, etc.)
+- currency (moeda, ex: BRL)
+- items (lista de itens detectados, ex: [{"desc": "Gasolina", "qty": 20, "price": 100}])
+"""
+
+    try:
+        response_text = await _gemini_generate_with_retry(
+            model="gemini-2.0-flash",
+            contents=contents,
+            system_instruction=system_instruction,
+            config={"response_mime_type": "application/json"},
+        )
+        import json, re
+        raw = re.sub(r"```json|```", "", response_text.strip()).strip()
+        data = json.loads(raw)
+        
+        # Log event for audit and gamification
+        db = next(get_db())
+        from services.audit_service import log_event
+        log_event(
+            db, 
+            "receipt_scanned", 
+            user_id=current_user.id, 
+            details=f"Supplier: {data.get('supplier')}, Amount: {data.get('amount')}"
+        )
+        
+        return data
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erro ao processar recibo: {str(e)}"
+        )

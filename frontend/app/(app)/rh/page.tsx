@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Sidebar } from '@/components/Sidebar';
 import { Star, Users, TrendingUp, Target, Clock, Plus, CheckCircle, ChevronRight, Award, Trophy, Medal, Smile, Meh, Frown, Heart, ThumbsUp } from 'lucide-react';
 import api from '@/services/api';
+import { ATSKanban } from '@/components/ats/ATSKanban';
 
 // ─── BADGES CONFIG ────────────────────────────────────────────────────────────
 const BADGES = [
@@ -38,7 +39,7 @@ export default function RHAdvancedPage() {
     const [pdiGoals, setPdiGoals] = useState<any[]>([]);
     const [timeBalance, setTimeBalance] = useState<any>(null);
     const [payslips, setPayslips] = useState<any[]>([]);
-    const [activeTab, setActiveTab] = useState<'360' | 'pdi' | 'timebank' | 'payslips' | 'gamification' | 'pulse'>('360');
+    const [activeTab, setActiveTab] = useState<'ats' | '360' | 'pdi' | 'timebank' | 'payslips' | 'gamification' | 'pulse'>('ats');
     const [loading, setLoading] = useState(true);
 
     // Forms
@@ -106,6 +107,7 @@ export default function RHAdvancedPage() {
     };
 
     const TABS = [
+        { key: 'ats' as const, label: '🚀 ATS (Recrutamento)' },
         { key: '360' as const, label: '🔄 Avaliação 360°' },
         { key: 'pdi' as const, label: '🎯 PDI' },
         { key: 'timebank' as const, label: '⏱ Banco de Horas' },
@@ -119,19 +121,22 @@ export default function RHAdvancedPage() {
             <Sidebar />
             <main className="ml-[280px] flex-1 p-8">
                 <div className="mb-8">
-                    <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">RH Avançado</h1>
-                    <p className="text-gray-400 mt-1">Avaliação 360°, PDI, Banco de Horas, Holerites, Gamificação e Pesquisa de Pulso</p>
+                    <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">RH Cognitivo & ATS</h1>
+                    <p className="text-gray-400 mt-1">Gestão de Talentos com IA, Ponto Biométrico, PDI e Holerites</p>
                 </div>
 
                 {/* Tabs */}
                 <div className="flex gap-2 mb-6 flex-wrap">
                     {TABS.map(tab => (
                         <button key={tab.key} onClick={() => { setActiveTab(tab.key); setShowForm(false); }}
-                            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${activeTab === tab.key ? 'bg-purple-600 text-white' : 'bg-gray-900 text-gray-400 hover:text-white'}`}>
+                            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${activeTab === tab.key ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/20' : 'bg-gray-900 border border-gray-800 text-gray-400 hover:text-white hover:border-gray-700'}`}>
                             {tab.label}
                         </button>
                     ))}
                 </div>
+
+                {/* ATS KANBAN */}
+                {activeTab === 'ats' && <ATSKanban />}
 
                 {/* 360° REVIEWS */}
                 {activeTab === '360' && (

@@ -275,4 +275,24 @@ export const NotificationService = {
     },
 };
 
+// ── AI SERVICES ─────────────────────────────────────────────────────────
+export const AIService = {
+    parseReceipt: async (file: File) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        const res = await api.post('/api/ai/parse-receipt', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+        });
+        return res.data;
+    },
+    parseResume: async (file: File) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        const res = await api.post('/api/ai/parse-resume', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+        });
+        return res.data;
+    },
+};
+
 export default api;

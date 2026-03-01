@@ -1,9 +1,9 @@
 'use client';
 
 import AppLayout from '@/components/AppLayout';
-import { BadgeDollarSign, TrendingUp, CreditCard, Wallet, ArrowUpRight, ArrowDownRight, Download, Plus, X, Upload, ScanLine } from 'lucide-react';
+import { BadgeDollarSign, TrendingUp, CreditCard, Wallet, ArrowUpRight, ArrowDownRight, Download, Plus, X, Upload, ScanLine, Loader2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { FinanceService } from '@/services/api';
+import { FinanceService, AIService } from '@/services/api';
 
 interface Transaction {
     id: number;
@@ -30,6 +30,7 @@ export default function FinancePage() {
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
     const [form, setForm] = useState({ description: '', amount: '', type: 'income', due_date: '', attachment_url: '', ai_metadata: '' });
+    const [isScanning, setIsScanning] = useState(false);
 
     useEffect(() => { loadData(); }, []);
 
@@ -45,6 +46,27 @@ export default function FinancePage() {
             setTransactions(t);
         } catch (e) { console.error(e); }
         finally { setLoading(false); }
+    };
+
+    const handleOCR = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setIsScanning(true);
+        try {
+            const data = await AIService.parseReceipt(file);
+            setForm({
+                ...form,
+                description: data.supplier || '',
+                amount: data.amount?.toString() || '',
+                type: data.category?.toLowerCase().includes('receita') ? 'income' : 'expense',
+                due_date: data.date || new Date().toISOString().split('T')[0]
+            });
+        } catch (error) {
+            console.error('OCR Error:', error);
+        } finally {
+            setIsScanning(false);
+        }
     };
 
     const handleCreate = async () => {
@@ -167,18 +189,27 @@ export default function FinancePage() {
                                 <div className="space-y-3">
 
                                     {/* Upload Area */}
-                                    <div className="border border-zinc-700 border-dashed rounded-lg p-4 flex flex-col items-center justify-center bg-zinc-800/50 hover:bg-zinc-800 transition cursor-pointer group">
-                                        <div className="flex gap-2 mb-2 items-center">
-                                            <Upload className="w-5 h-5 text-gray-400 group-hover:text-white" />
-                                            <ScanLine className="w-5 h-5 text-green-400 group-hover:text-green-300" />
-                                        </div>
-                                        <span className="text-xs text-gray-400 text-center mb-2">Arraste um comprovante ou <span className="text-green-400 font-medium">Scanear com IA</span></span>
-                                        <input
-                                            className="w-full bg-zinc-900 border border-zinc-700 rounded px-2 py-1 text-xs text-gray-300 focus:border-green-500 focus:outline-none"
-                                            placeholder="Cole a URL do comprovante (Zero Papel)..."
-                                            value={form.attachment_url}
-                                            onChange={e => setForm({ ...form, attachment_url: e.target.value })}
-                                        />
+                                    <div className="relative border border-zinc-700 border-dashed rounded-lg p-4 flex flex-col items-center justify-center bg-zinc-800/50 hover:bg-zinc-800 transition cursor-pointer group min-h-[120px]">
+                                        {isScanning ? (
+                                            <div className="flex flex-col items-center">
+                                                <Loader2 className="w-8 h-8 animate-spin text-green-400 mb-2" />
+                                                <span className="text-xs text-green-400 animate-pulse font-medium">Extraindo dados com IA...</span>
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <div className="flex gap-2 mb-2 items-center">
+                                                    <Upload className="w-5 h-5 text-gray-400 group-hover:text-white" />
+                                                    <ScanLine className="w-5 h-5 text-green-400 group-hover:text-green-300" />
+                                                </div>
+                                                <span className="text-xs text-gray-400 text-center mb-2">Arraste um comprovante ou <span className="text-green-400 font-medium whitespace-nowrap">Scanear com IA</span></span>
+                                                <input
+                                                    type="file"
+                                                    accept="image/*,application/pdf"
+                                                    className="absolute inset-0 opacity-0 cursor-pointer"
+                                                    onChange={handleOCR}
+                                                />
+                                            </>
+                                        )}
                                     </div>
 
                                     <input className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm" placeholder="Descrição" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} />
