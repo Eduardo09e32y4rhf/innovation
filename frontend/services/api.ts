@@ -256,4 +256,23 @@ export const SystemConfigService = {
     },
 };
 
+export const NotificationService = {
+    getNotifications: async (unreadOnly: boolean = false) => {
+        const res = await api.get('/api/notifications', { params: { unread_only: unreadOnly } });
+        return res.data;
+    },
+    markAsRead: async (id: number) => {
+        const res = await api.patch(`/api/notifications/${id}/read`);
+        return res.data;
+    },
+    markAllAsRead: async () => {
+        const res = await api.post('/api/notifications/read-all');
+        return res.data;
+    },
+    clearAll: async () => {
+        const res = await api.delete('/api/notifications');
+        return res.data;
+    },
+};
+
 export default api;

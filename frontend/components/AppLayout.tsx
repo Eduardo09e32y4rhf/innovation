@@ -6,12 +6,24 @@ import {
     LayoutDashboard, MessageSquare, DollarSign, Briefcase,
     Users, LifeBuoy, LogOut, ChevronRight,
     Bell, Settings, ArrowLeft, Flame, Trophy, Menu, X,
-    HeartHandshake, Timer, BarChart3, ShieldCheck, Zap
+    HeartHandshake, Timer, BarChart3, ShieldCheck, Zap,
+    CheckCircle2, AlertCircle, Info, Trash2
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
-import { AuthService } from '../services/api';
+import { useEffect, useState, useRef } from 'react';
+import { AuthService, NotificationService } from '../services/api';
+import { motion, AnimatePresence } from 'framer-motion';
 
 // ─── TYPES ──────────────────────────────────────────────────────────────────
+interface Notification {
+    id: number;
+    type: string;
+    title: string;
+    message: string;
+    read: boolean;
+    link?: string;
+    created_at: string;
+}
+
 interface UserProfile {
     id: number;
     name: string;
@@ -64,6 +76,122 @@ const MAIN_MENU = [
 const ADVANCED_MENU = [
     { name: 'Gestão de Chamados', href: '/dashboard/support-admin', icon: LifeBuoy },
 ];
+
+// ─── NOTIFICATION DROPDOWN ──────────────────────────────────────────────────
+function NotificationDropdown({ onClose }: { onClose: () => void }) {
+    const [notifications, setNotifications] = useState<Notification[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    const fetchNotifications = async () => {
+        try {
+            const data = await NotificationService.getNotifications();
+            setNotifications(data);
+        } catch (error) {
+            console.error('Failed to fetch notifications', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchNotifications();
+    }, []);
+
+    const markAsRead = async (id: number) => {
+        try {
+            await NotificationService.markAsRead(id);
+            setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+        } catch (error) { console.error(error); }
+    };
+
+    const clearAll = async () => {
+        try {
+            await NotificationService.clearAll();
+            setNotifications([]);
+        } catch (error) { console.error(error); }
+    };
+
+    const getTypeStyles = (type: string) => {
+        switch (type) {
+            case 'success': return { icon: CheckCircle2, color: 'text-green-400', bg: 'bg-green-400/10' };
+            case 'warning': return { icon: AlertCircle, color: 'text-yellow-400', bg: 'bg-yellow-400/10' };
+            case 'error': return { icon: AlertCircle, color: 'text-red-400', bg: 'bg-red-400/10' };
+            default: return { icon: Info, color: 'text-blue-400', bg: 'bg-blue-400/10' };
+        }
+    };
+
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+            className="absolute right-0 mt-2 w-80 bg-[#0a0a0a] border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-[100] backdrop-blur-xl"
+        >
+            <div className="px-4 py-3 border-b border-white/5 flex items-center justify-between">
+                <span className="text-xs font-bold text-white uppercase tracking-wider">Notificações</span>
+                {notifications.length > 0 && (
+                    <button onClick={clearAll} className="p-1.5 text-white/30 hover:text-red-400 transition-colors rounded-lg hover:bg-white/5">
+                        <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                )}
+            </div>
+
+            <div className="max-h-[350px] overflow-y-auto custom-scrollbar">
+                {loading ? (
+                    <div className="p-10 flex flex-col items-center justify-center gap-2">
+                        <div className="w-6 h-6 border-2 border-[#8b5cf6] border-t-transparent rounded-full animate-spin" />
+                        <span className="text-[10px] text-white/20 font-medium">Buscando alertas...</span>
+                    </div>
+                ) : notifications.length === 0 ? (
+                    <div className="p-10 flex flex-col items-center justify-center text-center opacity-20">
+                        <Bell className="w-10 h-10 mb-2" />
+                        <p className="text-xs font-medium">Tudo limpo por aqui</p>
+                    </div>
+                ) : (
+                    <div className="divide-y divide-white/5">
+                        {notifications.map((n) => {
+                            const { icon: Icon, color, bg } = getTypeStyles(n.type);
+                            return (
+                                <div
+                                    key={n.id}
+                                    className={`p-4 hover:bg-white/5 transition-colors cursor-pointer group relative ${!n.read ? 'bg-[#8b5cf6]/5' : ''}`}
+                                    onClick={() => !n.read && markAsRead(n.id)}
+                                >
+                                    <div className="flex gap-3">
+                                        <div className={`w-8 h-8 rounded-lg ${bg} flex items-center justify-center shrink-0`}>
+                                            <Icon className={`w-4 h-4 ${color}`} />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center justify-between mb-0.5">
+                                                <p className={`text-xs font-bold truncate ${!n.read ? 'text-white' : 'text-white/60'}`}>{n.title}</p>
+                                                {!n.read && <div className="w-1.5 h-1.5 bg-[#8b5cf6] rounded-full shrink-0 ml-2" />}
+                                            </div>
+                                            <p className="text-[11px] text-white/40 leading-relaxed line-clamp-2">{n.message}</p>
+                                            <span className="text-[9px] text-white/20 mt-2 block italic">
+                                                {new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
+            </div>
+
+            {notifications.length > 0 && (
+                <div className="px-4 py-2 border-t border-white/5 bg-white/[0.02]">
+                    <button
+                        onClick={() => NotificationService.markAllAsRead().then(fetchNotifications)}
+                        className="w-full text-center text-[10px] text-[#8b5cf6] font-bold hover:text-[#a78bfa] transition-colors py-1"
+                    >
+                        Marcar todas como lidas
+                    </button>
+                </div>
+            )}
+        </motion.div>
+    );
+}
 
 // ─── SIDEBAR ────────────────────────────────────────────────────────────────
 function Sidebar({ user, isOpen, onClose }: { user: UserProfile | null, isOpen: boolean, onClose: () => void }) {
@@ -212,6 +340,32 @@ function TopBar({ user, title, onToggleSidebar }: { user: UserProfile | null; ti
     const router = useRouter();
     const pathname = usePathname();
     const isHome = pathname === '/dashboard';
+    const [showNotifications, setShowNotifications] = useState(false);
+    const [unreadCount, setUnreadCount] = useState(0);
+    const dropdownRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const fetchUnread = async () => {
+            try {
+                const data = await NotificationService.getNotifications(true);
+                setUnreadCount(data.length);
+            } catch (err) { console.error(err); }
+        };
+        fetchUnread();
+        const interval = setInterval(fetchUnread, 30000); // Check every 30s
+        return () => clearInterval(interval);
+    }, []);
+
+    // Close on click outside
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+                setShowNotifications(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     return (
         <header className="sticky top-0 z-50 bg-black/60 backdrop-blur-xl border-b border-white/5 px-4 sm:px-6 py-3 flex items-center gap-3 sm:gap-4">
@@ -245,10 +399,25 @@ function TopBar({ user, title, onToggleSidebar }: { user: UserProfile | null; ti
 
             {/* Right side */}
             <div className="flex items-center gap-3 shrink-0">
-                <button className="relative text-white/30 hover:text-white transition">
-                    <Bell className="w-4 h-4" />
-                    <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-[#8b5cf6] rounded-full text-[8px] flex items-center justify-center font-bold">3</span>
-                </button>
+                <div className="relative" ref={dropdownRef}>
+                    <button
+                        onClick={() => setShowNotifications(!showNotifications)}
+                        className={`relative p-2 rounded-xl transition-all ${showNotifications ? 'bg-white/10 text-white' : 'text-white/30 hover:text-white hover:bg-white/5'}`}
+                    >
+                        <Bell className="w-4 h-4" />
+                        {unreadCount > 0 && (
+                            <span className="absolute top-1.5 right-1.5 w-3.5 h-3.5 bg-[#8b5cf6] rounded-full text-[8px] flex items-center justify-center font-bold text-white shadow-lg shadow-[#8b5cf6]/40">
+                                {unreadCount > 9 ? '9+' : unreadCount}
+                            </span>
+                        )}
+                    </button>
+
+                    <AnimatePresence>
+                        {showNotifications && (
+                            <NotificationDropdown onClose={() => setShowNotifications(false)} />
+                        )}
+                    </AnimatePresence>
+                </div>
 
                 {user && (
                     <div className="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-full border border-white/8 cursor-default">

@@ -22,6 +22,7 @@ from api.v1.endpoints import (
     projects_advanced,
     killer_questions,
     ai_admin,
+    notifications,
 )
 import domain.models  # Garante o registro de todos os modelos
 from core.config import settings
@@ -78,6 +79,7 @@ app.include_router(finance_advanced.router, prefix="/api")
 app.include_router(projects_advanced.router, prefix="/api")
 app.include_router(killer_questions.router, prefix="/api")
 app.include_router(ai_admin.router, prefix="/api")
+app.include_router(notifications.router, prefix="/api")
 
 
 @app.get("/health")
