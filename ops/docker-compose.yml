@@ -139,7 +139,7 @@ services:
       - gateway
 
   gateway:
-    image: kong:3.4-alpine
+    image: kong:3.4
     container_name: innovation_gateway
     restart: always
     deploy:
