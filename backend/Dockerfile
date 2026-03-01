@@ -9,15 +9,15 @@ RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copiar requirements primeiro para aproveitar o cache do Docker
-COPY requirements.txt .
+# Copiar requirements da pasta backend (já que o contexto do docker-compose é a raiz do projeto)
+COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copiar o restante do código
 COPY . .
 
-# PYTHONPATH aponta para onde os pacotes (api, core, etc) estão
-ENV PYTHONPATH=/app/src:/app
+# PYTHONPATH aponta para onde os pacotes (api, core, etc) estão (suportando tanto o contexto backend/ quanto o contexto root /)
+ENV PYTHONPATH=/app/backend/src:/app/src:/app
 
 # Expor a porta
 EXPOSE 8000
