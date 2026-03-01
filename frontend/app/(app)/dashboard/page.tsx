@@ -416,7 +416,7 @@ export default function DashboardPage() {
                                 { label: 'Vagas', href: '/ats', icon: Briefcase, color: 'text-pink-400', bg: 'bg-pink-500/10' },
                                 { label: 'Financeiro', href: '/finance', icon: DollarSign, color: 'text-green-400', bg: 'bg-green-500/10' },
                                 { label: 'Projetos', href: '/projects', icon: FileText, color: 'text-orange-400', bg: 'bg-orange-500/10' },
-                                { label: 'Suporte', href: '/support', icon: LifeBuoy, color: 'text-blue-400', bg: 'bg-blue-500/10' },
+                                { label: 'Meus Chamados', href: '/support', icon: LifeBuoy, color: 'text-blue-400', bg: 'bg-blue-500/10' },
                                 { label: 'RH', href: '/rh', icon: HeartHandshake, color: 'text-teal-400', bg: 'bg-teal-500/10' },
                             ].map((item, i) => {
                                 const Icon = item.icon;

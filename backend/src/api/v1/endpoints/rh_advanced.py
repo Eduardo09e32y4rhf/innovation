@@ -145,6 +145,8 @@ class TimeBankEntry(BaseModel):
     type: str  # credit | debit
     hours: float
     reason: Optional[str] = None
+    created_at: Optional[str] = None
+
 
 
 @router.post("/time-bank")
@@ -165,6 +167,15 @@ def add_time_bank_entry(
         hours=data.hours,
         reason=data.reason,
     )
+    if data.created_at:
+        try:
+            from datetime import timezone
+            # Convert string to datetime, handling Z or timezone offsets
+            dt = datetime.fromisoformat(data.created_at.replace("Z", "+00:00"))
+            entry.created_at = dt.astimezone(timezone.utc).replace(tzinfo=None)
+        except ValueError:
+            pass
+
     db.add(entry)
     db.commit()
     db.refresh(entry)
