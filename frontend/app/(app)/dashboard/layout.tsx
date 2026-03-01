@@ -13,12 +13,12 @@ export default function DashboardLayout({
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
     useEffect(() => {
-        AuthService.me().then(setUser).catch(() => {});
+        AuthService.me().then(setUser).catch(() => { });
     }, []);
 
     return (
         <div className="flex min-h-screen bg-[#000000] text-white">
-            <Sidebar user={user} isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+            <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
             <div className="flex-1 lg:ml-[240px]">
                 {children}
             </div>
