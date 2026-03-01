@@ -62,9 +62,6 @@ const MAIN_MENU = [
 ];
 
 const ADVANCED_MENU = [
-    { name: 'Painel de RH', href: '/dashboard/rh', icon: HeartHandshake },
-    { name: 'Meu Ponto', href: '/dashboard/ponto', icon: Timer },
-    { name: 'B.I. Analytics', href: '/dashboard/analytics', icon: BarChart3 },
     { name: 'Gestão de Chamados', href: '/dashboard/support-admin', icon: LifeBuoy },
 ];
 
