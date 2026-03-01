@@ -26,8 +26,6 @@ services:
         limits:
           cpus: '0.25'
           memory: 256M
-    ports:
-      - "6379:6379"
 
   auth_service:
     build:
