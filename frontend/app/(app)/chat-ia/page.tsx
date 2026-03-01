@@ -306,7 +306,7 @@ export default function ChatIAPage() {
                                 )}
                             </div>
 
-                            <button onClick={clearChat} className="p-3 text-gray-500 hover:text-red-400 transition-colors rounded-2xl bg-gray-900/40 hover:bg-gray-800 group" title="Limpar conversa">
+                            <button onClick={clearChat} className="p-3 text-gray-500 hover:text-red-400 transition-colors rounded-2xl bg-gray-900/40 hover:bg-gray-800 group" title="Limpar conversa" aria-label="Limpar conversa">
                                 <Trash2 className="w-5 h-5" />
                             </button>
                         </div>
@@ -388,6 +388,7 @@ export default function ChatIAPage() {
                                                                                     <button
                                                                                         onClick={() => copyToClipboard(String(children).replace(/\n$/, ''), msg.id)}
                                                                                         className="bg-gray-800/80 hover:bg-gray-700 p-1.5 rounded-lg border border-white/10 backdrop-blur-md"
+                                                                                        aria-label="Copiar código"
                                                                                     >
                                                                                         <Copy className="w-3.5 h-3.5 text-gray-400" />
                                                                                     </button>
@@ -460,7 +461,7 @@ export default function ChatIAPage() {
                                 />
                                 <div className="flex items-center justify-between px-6 pb-4 pt-1">
                                     <div className="flex items-center gap-4 text-gray-600">
-                                        <button className="hover:text-gray-300 transition-colors" title="Anexar">
+                                        <button className="hover:text-gray-300 transition-colors" title="Anexar" aria-label="Anexar arquivo">
                                             <div className="w-5 h-5 border-2 border-current rounded-md flex items-center justify-center text-[10px] font-bold">+</div>
                                         </button>
                                         <div className="w-[1px] h-3 bg-gray-800" />
@@ -470,6 +471,7 @@ export default function ChatIAPage() {
                                     <button
                                         onClick={() => loading ? stopGeneration() : sendMessage()}
                                         disabled={!input.trim() && !loading}
+                                        aria-label={loading ? "Parar geração" : "Enviar mensagem"}
                                         className={`p-3 rounded-2xl transition-all duration-300 shadow-xl
                                         ${(input.trim() || loading)
                                                 ? `bg-blue-600 text-white shadow-blue-500/20 scale-110`
