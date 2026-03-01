@@ -1,10 +1,13 @@
-version: '3.8'
-
 services:
   db:
     image: postgres:15-alpine
     container_name: innovation_db
     restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
@@ -18,22 +21,82 @@ services:
     image: redis:7-alpine
     container_name: innovation_redis
     restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 256M
     ports:
       - "6379:6379"
 
-  api:
+  auth_service:
+    build:
+      context: ../services/auth
+      dockerfile: Dockerfile
+    container_name: innovation_auth
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-innovation_db}
+      - SECRET_KEY=${SECRET_KEY}
+    depends_on:
+      - db
+
+  ai_service:
+    build:
+      context: ../services/ai
+      dockerfile: Dockerfile
+    container_name: innovation_ai_service
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
+    environment:
+      - GEMINI_API_KEYS=${GEMINI_API_KEYS}
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - redis
+
+  core_service:
+    build:
+      context: ../services/core
+      dockerfile: Dockerfile
+    container_name: innovation_core_service
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-innovation_db}
+    depends_on:
+      - db
+
+  api_monolith:
     build:
       context: ..
       dockerfile: backend/Dockerfile
-    container_name: innovation_api
+    container_name: innovation_api_monolith
     restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-innovation_db}
       - REDIS_URL=redis://redis:6379/0
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GEMINI_API_KEYS=${GEMINI_API_KEYS}
       - SECRET_KEY=${SECRET_KEY}
     ports:
-      - "8000:8000"
+      - "8005:8000"
     depends_on:
       - db
       - redis
@@ -44,15 +107,65 @@ services:
       dockerfile: backend/Dockerfile
     container_name: innovation_worker
     restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
     command: celery -A ai_engine.worker worker --loglevel=info
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-innovation_db}
       - REDIS_URL=redis://redis:6379/0
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GEMINI_API_KEYS=${GEMINI_API_KEYS}
       - PYTHONPATH=/app/backend/src:/app
     depends_on:
       - redis
       - db
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    container_name: innovation_frontend
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '0.75'
+          memory: 1G
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - gateway
+
+  gateway:
+    image: kong:3.4-alpine
+    container_name: innovation_gateway
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 256M
+    environment:
+      - KONG_DATABASE=off
+      - KONG_DECLARATIVE_CONFIG=/usr/local/kong/declarative/kong.yml
+      - KONG_PROXY_ACCESS_LOG=/dev/stdout
+      - KONG_ADMIN_ACCESS_LOG=/dev/stdout
+      - KONG_PROXY_ERROR_LOG=/dev/stderr
+      - KONG_ADMIN_ERROR_LOG=/dev/stderr
+      - KONG_ADMIN_LISTEN=0.0.0.0:8001, 0.0.0.0:8444 ssl
+    volumes:
+      - ../gateway/kong.yml:/usr/local/kong/declarative/kong.yml
+    ports:
+      - "8000:8000"
+      - "8443:8443"
+    depends_on:
+      - auth_service
+      - ai_service
+      - core_service
 
 volumes:
   postgres_data:

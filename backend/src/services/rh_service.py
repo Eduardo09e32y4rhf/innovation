@@ -77,4 +77,32 @@ class RHService:
         return review
 
 
+    @staticmethod
+    def create_leave_request(
+        db: Session, employee_id: int, start_date: str, end_date: str, reason: str
+    ):
+        from domain.models.leave_request import LeaveRequest
+        from datetime import datetime
+
+        leave = LeaveRequest(
+            employee_id=employee_id,
+            start_date=datetime.fromisoformat(start_date),
+            end_date=datetime.fromisoformat(end_date),
+            reason=reason,
+            status="pending",
+        )
+        db.add(leave)
+        db.commit()
+        db.refresh(leave)
+        return leave
+
+    @staticmethod
+    def list_leave_requests(db: Session, user_id: int, user_role: str):
+        from domain.models.leave_request import LeaveRequest
+
+        if user_role in ["admin", "company"]:
+            return db.query(LeaveRequest).all()
+        return db.query(LeaveRequest).filter(LeaveRequest.employee_id == user_id).all()
+
+
 rh_service = RHService()

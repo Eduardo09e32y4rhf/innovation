@@ -21,6 +21,7 @@ from api.v1.endpoints import (
     finance_advanced,
     projects_advanced,
     killer_questions,
+    ai_admin,
 )
 import domain.models  # Garante o registro de todos os modelos
 from core.config import settings
@@ -32,11 +33,11 @@ from core.security.vpn_block import vpn_blocker_middleware
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup: Initialize Superintendent AI
-    print("🤖 Innovation.ia Superintendent: Online")
+    print("[AI] Innovation.ia Superintendent: Online")
     await superintendent.run_check()
     yield
     # Shutdown
-    print("🤖 Innovation.ia Superintendent: Offline")
+    print("[AI] Innovation.ia Superintendent: Offline")
 
 
 app = FastAPI(title="Innovation.ia - Elite Recruitment", lifespan=lifespan)
@@ -76,6 +77,7 @@ app.include_router(csc_advanced.router, prefix="/api")
 app.include_router(finance_advanced.router, prefix="/api")
 app.include_router(projects_advanced.router, prefix="/api")
 app.include_router(killer_questions.router, prefix="/api")
+app.include_router(ai_admin.router, prefix="/api")
 
 
 @app.get("/health")

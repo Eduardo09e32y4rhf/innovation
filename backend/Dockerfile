@@ -23,4 +23,5 @@ ENV PYTHONPATH=/app/src:/app
 EXPOSE 8000
 
 # Única fonte de verdade para o comando
-CMD ["sh", "-c", "uvicorn api.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+# Usamos Gunicorn com 2 workers para evitar pico de memória
+CMD ["gunicorn", "-w", "2", "-k", "uvicorn.workers.UvicornWorker", "api.main:app", "--bind", "0.0.0.0:8000", "--timeout", "120"]

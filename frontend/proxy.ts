@@ -25,7 +25,7 @@ const PROTECTED_PATHS = [
  * Por isso usamos um cookie 'auth_token' para validação no middleware.
  * O cliente deve setar esse cookie no login: document.cookie = `auth_token=${token}; path=/; max-age=86400`
  */
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
     const { pathname } = request.nextUrl;
 
     const isProtected = PROTECTED_PATHS.some(p => pathname.startsWith(p));

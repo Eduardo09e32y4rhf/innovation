@@ -38,20 +38,9 @@ async def create_leave(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    from domain.models.leave_request import LeaveRequest
-    from datetime import datetime
-
-    leave = LeaveRequest(
-        employee_id=current_user.id,
-        start_date=datetime.fromisoformat(data.start_date),
-        end_date=datetime.fromisoformat(data.end_date),
-        reason=data.reason,
-        status="pending",
+    return rh_service.create_leave_request(
+        db, current_user.id, data.start_date, data.end_date, data.reason
     )
-    db.add(leave)
-    db.commit()
-    db.refresh(leave)
-    return leave
 
 
 @router.get("/leave-requests")
@@ -59,13 +48,7 @@ async def list_leaves(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    from domain.models.leave_request import LeaveRequest
-
-    if current_user.role in ["admin", "company"]:
-        return db.query(LeaveRequest).all()
-    return (
-        db.query(LeaveRequest).filter(LeaveRequest.employee_id == current_user.id).all()
-    )
+    return rh_service.list_leave_requests(db, current_user.id, current_user.role)
 
 
 @router.post("/performance-reviews")

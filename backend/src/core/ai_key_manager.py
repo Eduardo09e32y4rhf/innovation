@@ -11,9 +11,31 @@ class AIKeyManager:
 
     def __init__(self):
         self.status_file = Path(__file__).parent.parent.parent / "keys_status.json"
+        self.dynamic_keys_file = Path(__file__).parent.parent.parent / "dynamic_keys.json"
         self._keys = []
+        self._dynamic_keys = []
         self._load_keys()
         self._load_status()
+        self._load_dynamic_keys()
+
+    def _load_dynamic_keys(self):
+        try:
+            if self.dynamic_keys_file.exists():
+                with open(self.dynamic_keys_file, "r") as f:
+                    content = f.read().strip()
+                    if content:
+                        self._dynamic_keys = json.loads(content)
+                    else:
+                        self._dynamic_keys = []
+            else:
+                self._dynamic_keys = []
+        except Exception as e:
+            print(f"⚠️ Erro ao carregar chaves dinâmicas: {e}")
+            self._dynamic_keys = []
+
+    def _save_dynamic_keys(self):
+        with open(self.dynamic_keys_file, "w") as f:
+            json.dump(self._dynamic_keys, f)
 
     def _load_keys(self):
         # Tenta carregar a nova variável (múltiplas chaves)
@@ -68,7 +90,48 @@ class AIKeyManager:
                 print("❌ CRÍTICO: Todas as chaves do Gemini foram exaustas!")
 
     def get_all_active_keys(self):
-        return [k for k in self._keys if k not in self.exhausted_keys]
+        all_keys = self._keys + self._dynamic_keys
+        return [k for k in all_keys if k not in self.exhausted_keys]
+
+    def add_key(self, key: str):
+        """Adiciona uma nova chave dinamicamente."""
+        key = key.strip()
+        if key and key not in self._keys and key not in self._dynamic_keys:
+            self._dynamic_keys.append(key)
+            self._save_dynamic_keys()
+            # Se estava exausta, remove do status
+            if key in self.exhausted_keys:
+                self.exhausted_keys.remove(key)
+                self._save_status()
+            return True
+        return False
+
+    def remove_key(self, key: str):
+        """Remove uma chave dinâmica."""
+        if key in self._dynamic_keys:
+            self._dynamic_keys.remove(key)
+            self._save_dynamic_keys()
+            return True
+        return False
+
+    def get_keys_info(self):
+        """Retorna informações sobre todas as chaves (mascaradas)."""
+        info = []
+        for k in self._keys:
+            info.append({
+                "key": f"{k[:10]}...{k[-4:]}",
+                "id": k,
+                "type": "static",
+                "status": "exhausted" if k in self.exhausted_keys else "active"
+            })
+        for k in self._dynamic_keys:
+            info.append({
+                "key": f"{k[:10]}...{k[-4:]}",
+                "id": k,
+                "type": "dynamic",
+                "status": "exhausted" if k in self.exhausted_keys else "active"
+            })
+        return info
 
 
 ai_key_manager = AIKeyManager()

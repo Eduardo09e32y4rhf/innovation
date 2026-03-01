@@ -11,6 +11,7 @@ import { useEffect, useState } from 'react';
 import AppLayout from '@/components/AppLayout';
 import { AuthService, DashboardService } from '@/services/api';
 import GamificationDashboard from '@/components/GamificationDashboard';
+import AIKeyManager from '@/components/AIKeyManager';
 
 // ─── TYPES ────────────────────────────────────────────────────────────────
 interface UserProfile {
@@ -431,6 +432,14 @@ export default function DashboardPage() {
                             })}
                         </div>
                     </div>
+
+                    {/* ── ADMIN: AI KEY MANAGEMENT ───────────────────────────────────── */}
+                    {user?.role === 'admin' && (
+                        <div>
+                            <h2 className="text-sm font-bold text-white/60 uppercase tracking-widest mb-4">Administração de IA</h2>
+                            <AIKeyManager />
+                        </div>
+                    )}
 
                 </div>
 

@@ -1,7 +1,7 @@
 # iniciar_local.ps1 — Innovation.ia Dev Server
 # Abre janelas separadas para backend e frontend mostrando erros em tempo real
 
-$ROOT = Split-Path -Parent $MyInvocation.MyCommand.Path
+$ROOT = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 
 # Lê as variáveis do .env
 $OPENAI_KEY = "<SUA_CHAVE_OPENAI_AQUI>"
@@ -17,27 +17,31 @@ Write-Host "====================================================" -ForegroundCol
 # ── BACKEND ──────────────────────────────────────────────────────────────────
 Write-Host "`n[1/2] Abrindo backend..." -ForegroundColor Yellow
 
-$backendCmd = "cd '$ROOT\backend'; " +
-"`$env:PYTHONPATH='src'; " +
-"`$env:OPENAI_API_KEY='$OPENAI_KEY'; " +
-"`$env:GEMINI_API_KEYS='$GEMINI_KEYS'; " +
-"`$env:MP_ACCESS_TOKEN='$MP_TOKEN'; " +
-"`$env:SECRET_KEY='$SECRET_KEY'; " +
-"`$env:DATABASE_URL='$DATABASE_URL'; " +
-"`$env:ALLOWED_ORIGINS='http://localhost:3000'; " +
-"Write-Host '>>> BACKEND: http://localhost:8000/docs' -ForegroundColor Green; " +
-"python -m uvicorn src.api.main:app --host 0.0.0.0 --port 8000 --reload"
+$backendCmd = @"
+cd '$ROOT\backend';
+`$env:PYTHONPATH='src';
+`$env:OPENAI_API_KEY='$OPENAI_KEY';
+`$env:GEMINI_API_KEYS='$GEMINI_KEYS';
+`$env:MP_ACCESS_TOKEN='$MP_TOKEN';
+`$env:SECRET_KEY='$SECRET_KEY';
+`$env:DATABASE_URL='$DATABASE_URL';
+`$env:ALLOWED_ORIGINS='http://localhost:3000';
+Write-Host '>>> BACKEND: http://localhost:8000/docs' -ForegroundColor Green;
+python -m uvicorn src.api.main:app --host 0.0.0.0 --port 8000 --reload
+"@
 
-Start-Process powershell -ArgumentList "-NoExit", "-Command", $backendCmd
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "$backendCmd"
 
 Start-Sleep -Seconds 2
 
 # ── FRONTEND ─────────────────────────────────────────────────────────────────
 Write-Host "[2/2] Abrindo frontend..." -ForegroundColor Yellow
 
-$frontendCmd = "cd '$ROOT\frontend'; " +
-"Write-Host '>>> FRONTEND: http://localhost:3000' -ForegroundColor Green; " +
-"npm run dev"
+$frontendCmd = @"
+cd '$ROOT\frontend';
+Write-Host '>>> FRONTEND: http://localhost:3000' -ForegroundColor Green;
+npm run dev
+"@
 
 Start-Process powershell -ArgumentList "-NoExit", "-Command", $frontendCmd
 
