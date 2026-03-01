@@ -75,7 +75,7 @@ export default function Pricing({ user, products, subscription }: Props) {
       );
     }
 
-    const stripe = await getStripe();
+    const stripe = await getStripe() as any;
     stripe?.redirectToCheckout({ sessionId });
 
     setPriceIdLoading(undefined);

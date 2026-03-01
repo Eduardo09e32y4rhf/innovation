@@ -70,7 +70,9 @@ const plans = [
     },
 ];
 
-export default function PricingPage() {
+import { Suspense } from 'react';
+
+function PricingContent() {
     const [loading, setLoading] = useState<string | null>(null);
     const [isExpired, setIsExpired] = useState(false);
     const searchParams = useSearchParams();
@@ -104,18 +106,7 @@ export default function PricingPage() {
     };
 
     return (
-        <div className="min-h-screen bg-black text-white">
-            {/* Nav */}
-            <nav className="border-b border-zinc-800 py-4 px-8 flex justify-between items-center">
-                <Link href="/" className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-600">
-                    Innovation.ia
-                </Link>
-                <div className="flex gap-4">
-                    <Link href="/login" className="text-zinc-400 hover:text-white text-sm transition">Login</Link>
-                    <Link href="/register" className="px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded-lg text-sm font-medium transition">Começar Grátis</Link>
-                </div>
-            </nav>
-
+        <>
             <section className="py-20 px-4 text-center">
                 {isExpired && (
                     <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="max-w-xl mx-auto mb-8 bg-red-500/10 border border-red-500/20 text-red-400 px-6 py-4 rounded-2xl flex items-center justify-center gap-3">
@@ -204,6 +195,27 @@ export default function PricingPage() {
                     </p>
                 </div>
             </section>
+        </>
+    );
+}
+
+export default function PricingPage() {
+    return (
+        <div className="min-h-screen bg-black text-white">
+            {/* Nav */}
+            <nav className="border-b border-zinc-800 py-4 px-8 flex justify-between items-center">
+                <Link href="/" className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-600">
+                    Innovation.ia
+                </Link>
+                <div className="flex gap-4">
+                    <Link href="/login" className="text-zinc-400 hover:text-white text-sm transition">Login</Link>
+                    <Link href="/register" className="px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded-lg text-sm font-medium transition">Começar Grátis</Link>
+                </div>
+            </nav>
+
+            <Suspense fallback={<div className="flex justify-center py-20">Carregando planos...</div>}>
+                <PricingContent />
+            </Suspense>
         </div>
     );
 }

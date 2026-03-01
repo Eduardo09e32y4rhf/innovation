@@ -8,7 +8,13 @@ import {
     HeartHandshake, Clock, BookOpen, Zap, Activity, BarChart3, Timer
 } from 'lucide-react';
 
-export function Sidebar() {
+interface SidebarProps {
+    user?: any;
+    isOpen?: boolean;
+    onClose?: () => void;
+}
+
+export function Sidebar({ user, isOpen, onClose }: SidebarProps) {
     const pathname = usePathname();
 
     const mainMenu = [

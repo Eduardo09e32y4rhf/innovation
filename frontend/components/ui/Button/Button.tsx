@@ -1,8 +1,7 @@
 'use client';
 
-import cn from 'classnames';
+import { clsx as cn } from 'clsx';
 import React, { forwardRef, useRef, ButtonHTMLAttributes } from 'react';
-import { mergeRefs } from 'react-merge-refs';
 
 import LoadingDots from '@/components/ui/LoadingDots';
 
@@ -13,7 +12,20 @@ interface Props extends ButtonHTMLAttributes<HTMLButtonElement> {
   active?: boolean;
   width?: number;
   loading?: boolean;
-  Component?: React.ComponentType;
+  Component?: React.ElementType;
+}
+
+// Simple ref merging function
+function mergeRefs<T = any>(refs: Array<React.MutableRefObject<T> | React.LegacyRef<T> | undefined | null>): React.RefCallback<T> {
+  return (value) => {
+    refs.forEach((ref) => {
+      if (typeof ref === 'function') {
+        ref(value);
+      } else if (ref != null) {
+        (ref as React.MutableRefObject<T | null>).current = value;
+      }
+    });
+  };
 }
 
 const Button = forwardRef<HTMLButtonElement, Props>((props, buttonRef) => {
@@ -32,12 +44,10 @@ const Button = forwardRef<HTMLButtonElement, Props>((props, buttonRef) => {
   const ref = useRef(null);
   const rootClassName = cn(
     styles.root,
-    {
-      [styles.slim]: variant === 'slim',
-      [styles.loading]: loading,
-      [styles.disabled]: disabled
-    },
-    className
+    className,
+    variant === 'slim' && styles.slim,
+    loading && styles.loading,
+    disabled && styles.disabled
   );
   return (
     <Component

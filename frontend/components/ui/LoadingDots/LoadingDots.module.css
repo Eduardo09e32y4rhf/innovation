@@ -19,6 +19,8 @@
   animation-delay: 0.4s;
 }
 
+@reference "../../../app/globals.css";
+
 @keyframes blink {
   0% {
     opacity: 0.2;

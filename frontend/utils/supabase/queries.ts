@@ -1,12 +1,12 @@
 import { SupabaseClient } from '@supabase/supabase-js';
 import { cache } from 'react';
 
-export const getUser = cache(async (supabase: SupabaseClient<any, "public", any>) => {
+export const getUser = async (supabase: SupabaseClient<any, "public", any>) => {
   const {
     data: { user }
   } = await supabase.auth.getUser();
   return user;
-});
+};
 
 export const getSubscription = cache(async (supabase: SupabaseClient<any, "public", any>) => {
   const { data: subscription, error } = await supabase
