@@ -1,18 +1,16 @@
 import Stripe from 'stripe';
 
+// ✅ Exporta uma instância lazy-safe do Stripe
+// A chave pode ficar vazia no build — só é chamada em runtime (dentro de funções)
 export const stripe = new Stripe(
-  process.env.STRIPE_SECRET_KEY_LIVE ?? process.env.STRIPE_SECRET_KEY ?? '',
+  process.env.STRIPE_SECRET_KEY_LIVE ?? process.env.STRIPE_SECRET_KEY ?? 'sk_test_placeholder',
   {
-    // https://github.com/stripe/stripe-node#configuration
-    // https://stripe.com/docs/api/versioning
     // @ts-ignore
     apiVersion: null,
-    // Register this as an official Stripe plugin.
-    // https://stripe.com/docs/building-plugins#setappinfo
     appInfo: {
-      name: 'Next.js Subscription Starter',
-      version: '0.0.0',
-      url: 'https://github.com/vercel/nextjs-subscription-payments'
+      name: 'Innovation.ia SaaS',
+      version: '2.0.0',
+      url: 'https://innovation.ia'
     }
   }
 );

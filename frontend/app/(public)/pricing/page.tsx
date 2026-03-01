@@ -70,7 +70,9 @@ const plans = [
     },
 ];
 
-export default function PricingPage() {
+import { Suspense } from 'react';
+
+function PricingContent() {
     const [loading, setLoading] = useState<string | null>(null);
     const [isExpired, setIsExpired] = useState(false);
     const searchParams = useSearchParams();
@@ -205,5 +207,13 @@ export default function PricingPage() {
                 </div>
             </section>
         </div>
+    );
+}
+
+export default function PricingPage() {
+    return (
+        <Suspense fallback={<div className="min-h-screen bg-black text-white flex items-center justify-center">Carregando planos...</div>}>
+            <PricingContent />
+        </Suspense>
     );
 }
