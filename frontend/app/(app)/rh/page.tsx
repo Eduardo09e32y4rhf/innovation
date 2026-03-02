@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Sidebar } from '@/components/Sidebar';
+import { BiometricPunch } from '@/components/rh/BiometricPunch';
 import { Star, Users, TrendingUp, Target, Clock, Plus, CheckCircle, ChevronRight, Award, Trophy, Medal, Smile, Meh, Frown, Heart, ThumbsUp } from 'lucide-react';
 import api from '@/services/api';
 import { ATSKanban } from '@/components/ats/ATSKanban';
@@ -39,7 +40,7 @@ export default function RHAdvancedPage() {
     const [pdiGoals, setPdiGoals] = useState<any[]>([]);
     const [timeBalance, setTimeBalance] = useState<any>(null);
     const [payslips, setPayslips] = useState<any[]>([]);
-    const [activeTab, setActiveTab] = useState<'ats' | '360' | 'pdi' | 'timebank' | 'payslips' | 'gamification' | 'pulse'>('ats');
+    const [activeTab, setActiveTab] = useState<'ats' | '360' | 'pdi' | 'timebank' | 'payslips' | 'gamification' | 'pulse' | 'punch'>('ats');
     const [loading, setLoading] = useState(true);
 
     // Forms
@@ -110,6 +111,7 @@ export default function RHAdvancedPage() {
         { key: 'ats' as const, label: '🚀 ATS (Recrutamento)' },
         { key: '360' as const, label: '🔄 Avaliação 360°' },
         { key: 'pdi' as const, label: '🎯 PDI' },
+        { key: 'punch' as const, label: '📍 Ponto Biométrico' },
         { key: 'timebank' as const, label: '⏱ Banco de Horas' },
         { key: 'payslips' as const, label: '💰 Holerites' },
         { key: 'gamification' as const, label: '🏆 Conquistas' },
@@ -134,6 +136,14 @@ export default function RHAdvancedPage() {
                         </button>
                     ))}
                 </div>
+
+
+                {/* BIOMETRIC PUNCH */}
+                {activeTab === 'punch' && (
+                    <div className="py-8">
+                        <BiometricPunch />
+                    </div>
+                )}
 
                 {/* ATS KANBAN */}
                 {activeTab === 'ats' && <ATSKanban />}
