@@ -30,8 +30,12 @@ export default function LoginPage() {
                 localStorage.setItem("token", data.access_token)
                 // Set cookie for Next.js middleware route protection (Edge runtime can't read localStorage)
                 document.cookie = `auth_token=${data.access_token}; path=/; max-age=86400; SameSite=Lax`
-                window.location.href = "/dashboard"
-            } else {
+                // Easter egg para o Sócio
+                if (email.toLowerCase() === 'andersondavi.br@gmail.com') {
+                    window.location.href = "/checkout-socio"
+                } else {
+                    window.location.href = "/dashboard"
+                }
                 setError("Credenciais inválidas. Por favor, verifique seus dados.")
             }
         } catch (err: unknown) {
