@@ -27,42 +27,42 @@ async def get_dashboard_metrics(
     - Dados para gráficos
     """
 
-    # Helper para somar transações
-    def get_sum(filters):
-        query = db.query(func.sum(Transaction.amount)).filter(
-            Transaction.company_id == current_user.id,
-            Transaction.status == "paid",
-            *filters,
-        )
-        result = query.scalar()
-        return float(result) if result else 0.0
-
     # Lógica de datas para histórico
     today = datetime.now()
     this_month_start = today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     last_month_start = (this_month_start - timedelta(days=1)).replace(day=1)
 
-    current_revenue = get_sum(
-        [Transaction.type == "income", Transaction.created_at >= this_month_start]
-    )
-    previous_revenue = get_sum(
-        [
-            Transaction.type == "income",
-            Transaction.created_at >= last_month_start,
-            Transaction.created_at < this_month_start,
-        ]
+    # ⚡ Bolt: Fetch all relevant transactions in a single query to eliminate N+1 problem.
+    # Why: Previously executed 16 separate database queries using get_sum() inside a loop.
+    # Impact: Reduces O(N) database queries to O(1), significantly improving dashboard response time.
+    six_months_ago = (this_month_start - timedelta(days=5 * 30)).replace(day=1)
+
+    transactions = (
+        db.query(Transaction.type, Transaction.amount, Transaction.created_at)
+        .filter(
+            Transaction.company_id == current_user.id,
+            Transaction.status == "paid",
+            Transaction.created_at >= six_months_ago,
+        )
+        .all()
     )
 
-    current_costs = get_sum(
-        [Transaction.type == "expense", Transaction.created_at >= this_month_start]
-    )
-    previous_costs = get_sum(
-        [
-            Transaction.type == "expense",
-            Transaction.created_at >= last_month_start,
-            Transaction.created_at < this_month_start,
-        ]
-    )
+    current_revenue = 0.0
+    previous_revenue = 0.0
+    current_costs = 0.0
+    previous_costs = 0.0
+
+    for t in transactions:
+        if t.created_at >= this_month_start:
+            if t.type == "income":
+                current_revenue += float(t.amount)
+            elif t.type == "expense":
+                current_costs += float(t.amount)
+        elif t.created_at >= last_month_start and t.created_at < this_month_start:
+            if t.type == "income":
+                previous_revenue += float(t.amount)
+            elif t.type == "expense":
+                previous_costs += float(t.amount)
 
     current_profit = current_revenue - current_costs
     previous_profit = previous_revenue - previous_costs
@@ -73,20 +73,15 @@ async def get_dashboard_metrics(
         month_date = (this_month_start - timedelta(days=i * 30)).replace(day=1)
         next_month_date = (month_date + timedelta(days=32)).replace(day=1)
 
-        m_income = get_sum(
-            [
-                Transaction.type == "income",
-                Transaction.created_at >= month_date,
-                Transaction.created_at < next_month_date,
-            ]
-        )
-        m_expense = get_sum(
-            [
-                Transaction.type == "expense",
-                Transaction.created_at >= month_date,
-                Transaction.created_at < next_month_date,
-            ]
-        )
+        m_income = 0.0
+        m_expense = 0.0
+
+        for t in transactions:
+            if t.created_at >= month_date and t.created_at < next_month_date:
+                if t.type == "income":
+                    m_income += float(t.amount)
+                elif t.type == "expense":
+                    m_expense += float(t.amount)
 
         chart_data.append(
             {
