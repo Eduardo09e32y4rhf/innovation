@@ -457,17 +457,21 @@ async def landing_plan(data: LandingPlanRequest):
         print(f"❌ Erro no simulador: {e}")
         raise HTTPException(500, detail=str(e))
 
+
 class VeoRequest(BaseModel):
     prompt: str
     image_base64: Optional[str] = None
     aspect_ratio: Optional[str] = "16:9"
 
+
 @router.post("/veo/generate")
-async def generate_video(data: VeoRequest, current_user: User = Depends(get_current_user)):
+async def generate_video(
+    data: VeoRequest, current_user: User = Depends(get_current_user)
+):
     """Gera um vídeo usando Veo 3.0 via Gemini API."""
     if not genai:
         raise HTTPException(503, "SDK Google GenAI não instalado.")
-    
+
     active_keys = ai_key_manager.get_all_active_keys()
     if not active_keys:
         raise HTTPException(503, "Sem chaves do Gemini disponíveis.")
@@ -475,24 +479,24 @@ async def generate_video(data: VeoRequest, current_user: User = Depends(get_curr
     for api_key in active_keys:
         try:
             client = genai.Client(api_key=api_key)
-            
+
             # Preparar o vídeo
             kwargs = {
                 "model": "veo-3.0-generate-001",
                 "prompt": data.prompt,
-                "config": {"aspect_ratio": data.aspect_ratio}
+                "config": {"aspect_ratio": data.aspect_ratio},
             }
-            
+
             if data.image_base64:
                 # O SDK espera um objeto com image_bytes e mime_type
                 kwargs["image"] = {
                     "image_bytes": data.image_base64,
-                    "mime_type": "image/png"
+                    "mime_type": "image/png",
                 }
 
             operation = client.models.generate_videos(**kwargs)
             return {"operation_name": operation.name}
-            
+
         except Exception as e:
             if "429" in str(e) or "quota" in str(e).lower():
                 ai_key_manager.mark_as_exhausted(api_key)

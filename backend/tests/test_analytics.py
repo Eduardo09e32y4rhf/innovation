@@ -8,6 +8,7 @@ from domain.models.job import Job
 from domain.models.finance import Transaction
 from domain.models.application import Application
 
+
 # Mocking database session and query results
 class MockQuery:
     def __init__(self, result=None):
@@ -27,6 +28,7 @@ class MockQuery:
 
     def all(self):
         return []
+
 
 def test_get_analytics_structure():
     # Setup mocks
@@ -67,6 +69,7 @@ def test_get_analytics_structure():
     assert result["summary"]["active_jobs"] == 5
     assert len(result["history"]) == 6
     assert result["history"][0]["revenue"] == 1000.0
+
 
 if __name__ == "__main__":
     test_get_analytics_structure()
