@@ -148,7 +148,6 @@ class TimeBankEntry(BaseModel):
     created_at: Optional[str] = None
 
 
-
 @router.post("/time-bank")
 def add_time_bank_entry(
     data: TimeBankEntry,
@@ -170,6 +169,7 @@ def add_time_bank_entry(
     if data.created_at:
         try:
             from datetime import timezone
+
             # Convert string to datetime, handling Z or timezone offsets
             dt = datetime.fromisoformat(data.created_at.replace("Z", "+00:00"))
             entry.created_at = dt.astimezone(timezone.utc).replace(tzinfo=None)
