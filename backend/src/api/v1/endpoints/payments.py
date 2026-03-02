@@ -141,10 +141,15 @@ async def mp_webhook(request: Request, db: Session = Depends(get_db)):
     x_request_id = request.headers.get("x-request-id")
 
     import os
+    import secrets
 
     mp_secret = os.getenv("MP_WEBHOOK_SECRET")
 
-    if mp_secret and x_signature and x_request_id:
+    if mp_secret:
+        if not x_signature or not x_request_id:
+            raise HTTPException(
+                status_code=401, detail="Missing signature headers for MP webhook"
+            )
         try:
             import hmac
             import hashlib
@@ -172,12 +177,20 @@ async def mp_webhook(request: Request, db: Session = Depends(get_db)):
                     ).hexdigest()
 
                     # Log failure but proceed for resilience unless strict mode
-                    if calculated != v1:
+                    if not secrets.compare_digest(calculated, v1):
                         print(
                             f"⚠️ Assinatura Webhook MP inválida. Esperado: {v1}, Calc: {calculated}"
                         )
+                        raise HTTPException(
+                            status_code=401, detail="Assinatura MP inválida"
+                        )
+        except HTTPException:
+            raise
         except Exception as e:
             print(f"Erro ao verificar assinatura MP: {e}")
+            raise HTTPException(
+                status_code=500, detail="Erro ao verificar assinatura MP"
+            )
 
     # Mercado Pago envia notificações de subscription_preapproval ou payment
     # Verificamos o type, action ou topic
