@@ -141,16 +141,23 @@ def assign_queue(
             "ticket_id": ticket_id,
             "new_queue": queue,
             "company_id": company_id,
-            "moved_by": current_user.email if hasattr(current_user, "email") else current_user.id,
+            "moved_by": (
+                current_user.email
+                if hasattr(current_user, "email")
+                else current_user.id
+            ),
         }
+
         def _fire_n8n_sync():
             try:
                 import httpx as _httpx
+
                 _httpx.post(n8n_url, json=payload, timeout=4)
             except Exception:
                 pass  # Never block request if n8n is down
 
         from threading import Thread
+
         Thread(target=_fire_n8n_sync, daemon=True).start()
 
     return {"ok": True, "ticket_id": ticket_id, "queue": queue}

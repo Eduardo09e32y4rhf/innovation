@@ -11,7 +11,9 @@ class AIKeyManager:
 
     def __init__(self):
         self.status_file = Path(__file__).parent.parent.parent / "keys_status.json"
-        self.dynamic_keys_file = Path(__file__).parent.parent.parent / "dynamic_keys.json"
+        self.dynamic_keys_file = (
+            Path(__file__).parent.parent.parent / "dynamic_keys.json"
+        )
         self._keys = []
         self._dynamic_keys = []
         self._load_keys()
@@ -118,19 +120,23 @@ class AIKeyManager:
         """Retorna informações sobre todas as chaves (mascaradas)."""
         info = []
         for k in self._keys:
-            info.append({
-                "key": f"{k[:10]}...{k[-4:]}",
-                "id": k,
-                "type": "static",
-                "status": "exhausted" if k in self.exhausted_keys else "active"
-            })
+            info.append(
+                {
+                    "key": f"{k[:10]}...{k[-4:]}",
+                    "id": k,
+                    "type": "static",
+                    "status": "exhausted" if k in self.exhausted_keys else "active",
+                }
+            )
         for k in self._dynamic_keys:
-            info.append({
-                "key": f"{k[:10]}...{k[-4:]}",
-                "id": k,
-                "type": "dynamic",
-                "status": "exhausted" if k in self.exhausted_keys else "active"
-            })
+            info.append(
+                {
+                    "key": f"{k[:10]}...{k[-4:]}",
+                    "id": k,
+                    "type": "dynamic",
+                    "status": "exhausted" if k in self.exhausted_keys else "active",
+                }
+            )
         return info
 
 

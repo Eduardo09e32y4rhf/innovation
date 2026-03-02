@@ -199,19 +199,28 @@ def update_application(
         # ── n8n Webhook ─────────────────────────────────────────────────────────
         if status_value == "approved":
             import asyncio
+
             n8n_url = os.environ.get("N8N_WEBHOOK_URL")
             if n8n_url:
+
                 async def _fire_n8n():
                     try:
                         async with httpx.AsyncClient(timeout=5) as client:
-                            await client.post(n8n_url, json={
-                                "event": "candidate.approved",
-                                "application_id": app.id,
-                                "candidate_email": getattr(app.candidate, "email", None),
-                                "candidate_name": getattr(app.candidate, "name", None),
-                                "job_id": app.job_id,
-                                "company_id": company_id,
-                            })
+                            await client.post(
+                                n8n_url,
+                                json={
+                                    "event": "candidate.approved",
+                                    "application_id": app.id,
+                                    "candidate_email": getattr(
+                                        app.candidate, "email", None
+                                    ),
+                                    "candidate_name": getattr(
+                                        app.candidate, "name", None
+                                    ),
+                                    "job_id": app.job_id,
+                                    "company_id": company_id,
+                                },
+                            )
                     except Exception:
                         pass  # n8n offline — do not block approval
 

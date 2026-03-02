@@ -359,6 +359,8 @@ Responda SOMENTE com JSON válido, sem markdown.
         raise HTTPException(
             status_code=500, detail=f"Erro ao sugerir perguntas após rotação: {e}"
         )
+
+
 # ─── RECEIPT OCR (ZERO PAPEL) ──────────────────────────────────────────────────
 
 
@@ -371,15 +373,13 @@ async def parse_receipt(
     Usa Gemini 2.0 Flash (Vision) para extrair dados de um cupom fiscal/recibo.
     """
     import base64
+
     content = await file.read()
     base64_image = base64.b64encode(content).decode("utf-8")
 
     contents = [
-        {
-            "mime_type": file.content_type or "image/jpeg",
-            "data": base64_image
-        },
-        "Extraia os dados deste recibo/cupom fiscal."
+        {"mime_type": file.content_type or "image/jpeg", "data": base64_image},
+        "Extraia os dados deste recibo/cupom fiscal.",
     ]
 
     system_instruction = """Você é um especialista em contabilidade e OCR. 
@@ -400,22 +400,23 @@ Extraia os seguintes campos do recibo e retorne APENAS um JSON válido:
             config={"response_mime_type": "application/json"},
         )
         import json, re
+
         raw = re.sub(r"```json|```", "", response_text.strip()).strip()
         data = json.loads(raw)
-        
+
         # Log event for audit and gamification
         db = next(get_db())
         from services.audit_service import log_event
+
         log_event(
-            db, 
-            "receipt_scanned", 
-            user_id=current_user.id, 
-            details=f"Supplier: {data.get('supplier')}, Amount: {data.get('amount')}"
+            db,
+            "receipt_scanned",
+            user_id=current_user.id,
+            details=f"Supplier: {data.get('supplier')}, Amount: {data.get('amount')}",
         )
-        
+
         return data
     except Exception as e:
         raise HTTPException(
-            status_code=500,
-            detail=f"Erro ao processar recibo: {str(e)}"
+            status_code=500, detail=f"Erro ao processar recibo: {str(e)}"
         )
