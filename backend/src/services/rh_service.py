@@ -76,7 +76,6 @@ class RHService:
         db.refresh(review)
         return review
 
-
     @staticmethod
     def create_leave_request(
         db: Session, employee_id: int, start_date: str, end_date: str, reason: str
