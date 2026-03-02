@@ -69,26 +69,64 @@ export default function CheckoutSocioPage() {
                             </div>
 
                             <div className="p-6 space-y-4">
-                                <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 flex items-center gap-3">
-                                    <div className="w-10 h-10 bg-[#009ee3]/10 rounded-full flex items-center justify-center shrink-0">
-                                        <CreditCard className="w-5 h-5 text-[#009ee3]" />
+                                <form onSubmit={(e) => { e.preventDefault(); handlePay(); }} className="space-y-3">
+                                    <div className="space-y-1">
+                                        <label className="text-xs font-semibold text-gray-600 ml-1">Número do Cartão</label>
+                                        <div className="relative">
+                                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                                <CreditCard className="w-4 h-4 text-gray-400" />
+                                            </div>
+                                            <input
+                                                type="text"
+                                                placeholder="0000 0000 0000 0000"
+                                                className="w-full h-10 pl-10 pr-3 rounded-lg border border-gray-200 text-sm focus:border-[#009ee3] focus:ring-1 focus:ring-[#009ee3] outline-none transition-all shadow-sm"
+                                                required
+                                            />
+                                        </div>
                                     </div>
-                                    <div className="flex-1">
-                                        <p className="text-sm font-semibold text-gray-800">Cartão de Crédito</p>
-                                        <p className="text-xs text-gray-500">Mastercard final 4321</p>
+                                    <div className="space-y-1">
+                                        <label className="text-xs font-semibold text-gray-600 ml-1">Nome do Titular (Como no cartão)</label>
+                                        <input
+                                            type="text"
+                                            placeholder="Ex: INNOVATION IA"
+                                            className="w-full h-10 px-3 rounded-lg border border-gray-200 text-sm focus:border-[#009ee3] focus:ring-1 focus:ring-[#009ee3] outline-none transition-all shadow-sm"
+                                            required
+                                        />
                                     </div>
-                                </div>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="space-y-1">
+                                            <label className="text-xs font-semibold text-gray-600 ml-1">Vencimento</label>
+                                            <input
+                                                type="text"
+                                                placeholder="MM/AA"
+                                                maxLength={5}
+                                                className="w-full h-10 px-3 rounded-lg border border-gray-200 text-sm focus:border-[#009ee3] focus:ring-1 focus:ring-[#009ee3] outline-none transition-all shadow-sm"
+                                                required
+                                            />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <label className="text-xs font-semibold text-gray-600 ml-1">CVV</label>
+                                            <input
+                                                type="text"
+                                                placeholder="123"
+                                                maxLength={4}
+                                                className="w-full h-10 px-3 rounded-lg border border-gray-200 text-sm focus:border-[#009ee3] focus:ring-1 focus:ring-[#009ee3] outline-none transition-all shadow-sm"
+                                                required
+                                            />
+                                        </div>
+                                    </div>
 
-                                <button
-                                    onClick={handlePay}
-                                    className="w-full h-14 bg-[#009ee3] hover:bg-[#008cc9] text-white rounded-xl font-bold text-lg transition-colors shadow-lg shadow-[#009ee3]/30 flex items-center justify-center gap-2"
-                                >
-                                    Pagar R$ 9,99
-                                    <Lock className="w-4 h-4 opacity-70" />
-                                </button>
+                                    <button
+                                        type="submit"
+                                        className="w-full h-12 mt-4 bg-[#009ee3] hover:bg-[#008cc9] text-white rounded-xl font-bold text-base transition-colors shadow-lg shadow-[#009ee3]/30 flex items-center justify-center gap-2"
+                                    >
+                                        Pagar R$ 9,99
+                                        <Lock className="w-4 h-4 opacity-70" />
+                                    </button>
+                                </form>
 
-                                <p className="text-center text-xs text-gray-400 mt-4">
-                                    Pagamento seguro via Mercado Pago
+                                <p className="text-center text-xs text-gray-400 mt-2">
+                                    Ambiente 100% Seguro Mercado Pago
                                 </p>
                             </div>
                         </div>
