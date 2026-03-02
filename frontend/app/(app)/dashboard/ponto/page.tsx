@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Clock, LogIn, LogOut, Calendar, CheckCircle, AlertCircle, Loader2, Edit3, X } from 'lucide-react';
 import AppLayout from '@/components/AppLayout';
+import { BiometricPunch } from '@/components/rh/BiometricPunch';
 
 interface TimeBankEntry {
     id: number;
@@ -219,6 +220,11 @@ export default function PontoPage() {
                                 </button>
                             </div>
                         </div>
+                    </div>
+
+                    {/* Biometric Punch Section - Nível Militar */}
+                    <div className="mb-12">
+                        <BiometricPunch onSuccess={() => fetchBalance()} />
                     </div>
 
                     {/* Stats Grid */}

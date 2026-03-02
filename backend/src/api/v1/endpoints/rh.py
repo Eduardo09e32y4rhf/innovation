@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from infrastructure.database.sql.dependencies import get_db
 from core.dependencies import get_current_user
 from domain.models.user import User
+from domain.models.attendance import Attendance
 from services.rh_service import rh_service
 from pydantic import BaseModel
 from typing import Optional
@@ -19,6 +20,14 @@ class LeaveCreate(BaseModel):
 class PulseCreate(BaseModel):
     score: int
     comment: Optional[str] = None
+
+
+class BiometricPunchCreate(BaseModel):
+    photo_base64: str
+    latitude: float
+    longitude: float
+    accuracy: float
+    device_fingerprint: str
 
 
 @router.post("/onboarding/{onboarding_id}/upload")
@@ -95,3 +104,21 @@ async def get_badges(
         "badges": user.badges if user.badges else "[]",
         "points": user.points if user.points else 0,
     }
+
+
+@router.post("/punch-biometric")
+async def punch_biometric(
+    data: BiometricPunchCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    # Aqui delegamos para o serviço que vai processar a IA e o Banco
+    return await rh_service.process_biometric_punch(
+        db, 
+        current_user.id, 
+        data.photo_base64, 
+        data.latitude, 
+        data.longitude, 
+        data.accuracy, 
+        data.device_fingerprint
+    )

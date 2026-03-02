@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Camera, MapPin, ShieldCheck, CheckCircle, AlertCircle, Fingerprint } from 'lucide-react';
 
-export function BiometricPunch() {
+export function BiometricPunch({ onSuccess }: { onSuccess?: () => void }) {
     const [step, setStep] = useState<'idle' | 'capturing' | 'processing' | 'success' | 'error'>('idle');
     const [location, setLocation] = useState<{ lat: number; lng: number; accuracy: number } | null>(null);
     const [errorMsg, setErrorMsg] = useState<string>('');
@@ -51,7 +51,7 @@ export function BiometricPunch() {
                     setLocation({ lat: latitude, lng: longitude, accuracy });
 
                     // Após 2s, capturamos a foto e mandamos
-                    setTimeout(() => processBiometrics(), 2000);
+                    setTimeout(() => processBiometrics(latitude, longitude, accuracy), 2000);
                 },
                 (err) => {
                     setErrorMsg('Erro de GPS: ' + err.message);
@@ -68,8 +68,8 @@ export function BiometricPunch() {
         }
     };
 
-    const processBiometrics = () => {
-        if (!videoRef.current || !canvasRef.current || !location) return;
+    const processBiometrics = async (lat: number, lng: number, acc: number) => {
+        if (!videoRef.current || !canvasRef.current) return;
 
         // Capture frame
         const video = videoRef.current;
@@ -78,25 +78,49 @@ export function BiometricPunch() {
         canvas.height = video.videoHeight;
 
         const ctx = canvas.getContext('2d');
+        let imageData = '';
         if (ctx) {
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            // const imageData = canvas.toDataURL('image/jpeg', 0.8); // Base64 for submission
+            imageData = canvas.toDataURL('image/jpeg', 0.8); // Base64 for submission
         }
 
         stopCamera();
         setStep('processing');
 
-        // Mocking API call to backend AI / Gemini Flash OCR & Face Match
-        setTimeout(() => {
-            // Sucesso Simulado
-            setStep('success');
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/rh/punch-biometric`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                    photo_base64: imageData,
+                    latitude: lat,
+                    longitude: lng,
+                    accuracy: acc,
+                    device_fingerprint: `${navigator.userAgent}-${screen.width}x${screen.height}`,
+                }),
+            });
 
-            // Reverte para o inicio após 3s
-            setTimeout(() => {
-                setStep('idle');
-                setLocation(null);
-            }, 3000);
-        }, 1500);
+            if (res.ok) {
+                setStep('success');
+                // Reverte para o inicio após 3s
+                setTimeout(() => {
+                    setStep('idle');
+                    setLocation(null);
+                    if (onSuccess) onSuccess();
+                }, 3000);
+            } else {
+                const err = await res.json();
+                setErrorMsg(err.detail || 'Falha na validação biométrica');
+                setStep('error');
+            }
+        } catch (err) {
+            setErrorMsg('Erro de rede ou servidor indisponível');
+            setStep('error');
+        }
     };
 
     return (
@@ -177,9 +201,9 @@ export function BiometricPunch() {
                             : 'bg-gray-800 text-gray-500 cursor-not-allowed border border-gray-700'}`}
                 >
                     {step === 'idle' ? 'Bater Ponto Agora' :
-                     step === 'capturing' ? 'Analisando...' :
-                     step === 'processing' ? 'Autenticando...' :
-                     step === 'success' ? 'Registrado' : 'Bloqueado'}
+                        step === 'capturing' ? 'Analisando...' :
+                            step === 'processing' ? 'Autenticando...' :
+                                step === 'success' ? 'Registrado' : 'Bloqueado'}
                 </button>
 
                 {step === 'idle' && (

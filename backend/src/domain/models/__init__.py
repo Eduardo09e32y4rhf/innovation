@@ -19,6 +19,7 @@ from domain.models.onboarding import Onboarding
 from domain.models.performance_review import PerformanceReview
 from domain.models.ticket import Ticket
 from domain.models.time_entry import TimeEntry
+from domain.models.attendance import Attendance
 
 # ── MASTERPLAN advanced models ──
 from domain.models.killer_question import KillerQuestion

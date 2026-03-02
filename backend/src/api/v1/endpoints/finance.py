@@ -11,6 +11,7 @@ from typing import List
 from decimal import Decimal
 from datetime import datetime, time
 from services.audit_service import log_event
+from services.bank_hub_service import bank_hub_service
 
 router = APIRouter(prefix="/finance", tags=["finance"])
 
@@ -19,7 +20,7 @@ router = APIRouter(prefix="/finance", tags=["finance"])
 async def get_summary(
     db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
 ):
-    if current_user.role.lower() != "company":
+    if current_user.role.lower() != "company" and current_user.role.lower() != "admin":
         raise HTTPException(status_code=403, detail="Acesso não autorizado")
     return finance_service.get_cash_flow_summary(db, current_user.id)
 
@@ -28,7 +29,7 @@ async def get_summary(
 async def get_prediction(
     db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
 ):
-    if current_user.role.lower() != "company":
+    if current_user.role.lower() != "company" and current_user.role.lower() != "admin":
         raise HTTPException(status_code=403, detail="Acesso não autorizado")
     return finance_service.ai_cash_flow_prediction(db, current_user.id)
 
@@ -40,7 +41,7 @@ async def get_transactions(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    if current_user.role.lower() != "company":
+    if current_user.role.lower() != "company" and current_user.role.lower() != "admin":
         raise HTTPException(status_code=403, detail="Acesso não autorizado")
 
     return (
@@ -59,7 +60,7 @@ async def create_transaction(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    if current_user.role.lower() != "company":
+    if current_user.role.lower() != "company" and current_user.role.lower() != "admin":
         raise HTTPException(status_code=403, detail="Acesso não autorizado")
 
     try:
@@ -105,7 +106,7 @@ async def create_transaction(
 async def get_anomalies(
     db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
 ):
-    if current_user.role.lower() != "company":
+    if current_user.role.lower() != "company" and current_user.role.lower() != "admin":
         raise HTTPException(status_code=403, detail="Acesso não autorizado")
     return finance_service.detect_anomalies(db, current_user.id)
 
@@ -114,7 +115,7 @@ async def get_anomalies(
 async def get_taxes(
     db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
 ):
-    if current_user.role.lower() != "company":
+    if current_user.role.lower() != "company" and current_user.role.lower() != "admin":
         raise HTTPException(status_code=403, detail="Acesso não autorizado")
     return finance_service.get_tax_summary(db, current_user.id)
 
@@ -126,7 +127,7 @@ async def get_logs(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    if current_user.role.lower() != "company":
+    if current_user.role.lower() != "company" and current_user.role.lower() != "admin":
         raise HTTPException(status_code=403, detail="Acesso não autorizado")
 
     return (
@@ -137,3 +138,21 @@ async def get_logs(
         .limit(limit)
         .all()
     )
+
+
+@router.get("/bank-hub")
+async def get_bank_hub(
+    db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
+):
+    if current_user.role.lower() != "company" and current_user.role.lower() != "admin":
+        raise HTTPException(status_code=403, detail="Acesso não autorizado")
+    return await bank_hub_service.get_consolidated_balance(current_user.id)
+
+
+@router.get("/burn-rate")
+async def get_burn_rate(
+    db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
+):
+    if current_user.role.lower() != "company" and current_user.role.lower() != "admin":
+        raise HTTPException(status_code=403, detail="Acesso não autorizado")
+    return await bank_hub_service.get_burn_rate(db, current_user.id)
