@@ -1,9 +1,11 @@
+import os
+import secrets
+import logging
 from fastapi import APIRouter, Request, HTTPException, Depends
 from sqlalchemy.orm import Session
 from infrastructure.database.sql.dependencies import get_db
 from domain.models.application import Application
 from domain.models.application_status_history import ApplicationStatusHistory
-import logging
 
 router = APIRouter(prefix="/api/webhooks", tags=["Webhooks"])
 logger = logging.getLogger(__name__)
@@ -11,6 +13,15 @@ logger = logging.getLogger(__name__)
 
 @router.post("/n8n/callback")
 async def n8n_callback(request: Request, db: Session = Depends(get_db)):
+    expected_secret = os.getenv("N8N_WEBHOOK_SECRET")
+    if expected_secret:
+        provided_secret = request.headers.get("X-N8N-Webhook-Secret")
+        if not provided_secret or not secrets.compare_digest(
+            provided_secret, expected_secret
+        ):
+            logger.warning("Tentativa de acesso não autorizado ao webhook do n8n")
+            raise HTTPException(status_code=401, detail="Não autorizado")
+
     """
     Recebe callbacks do n8n.
     Payload esperado:
