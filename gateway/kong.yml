@@ -49,3 +49,11 @@ services:
         paths:
           - /api/core
         strip_path: false
+
+  - name: api_monolith
+    url: http://api_monolith:8000
+    routes:
+      - name: monolith-fallback
+        paths:
+          - /api
+        strip_path: false
