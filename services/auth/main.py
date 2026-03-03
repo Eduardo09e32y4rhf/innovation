@@ -72,6 +72,8 @@ async def check_db_ready():
 
 @app.on_event("startup")
 async def startup_event():
+    if not SECRET_KEY:
+        raise RuntimeError("SECRET_KEY environment variable is not set")
     asyncio.create_task(check_db_ready())
 
 

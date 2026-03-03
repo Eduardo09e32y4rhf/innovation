@@ -4,6 +4,16 @@
 $ROOT = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 
 # Lê as variáveis do .env
+$envFile = "$ROOT\.env"
+if (Test-Path $envFile) {
+    Get-Content $envFile | Where-Object { $_ -match "^[^#]+=.*" } | ForEach-Object {
+        $name, $value = $_.Split('=', 2)
+        [Environment]::SetEnvironmentVariable($name, $value.Trim(), "Process")
+    }
+    Write-Host "Variáveis de ambiente carregadas de .env" -ForegroundColor Green
+} else {
+    Write-Host "Arquivo .env não encontrado. Iniciando sem variáveis adicionais." -ForegroundColor Yellow
+}
 $DATABASE_URL = "sqlite:///$ROOT/backend/innovation_rh.db"
 
 Write-Host "====================================================" -ForegroundColor Cyan
