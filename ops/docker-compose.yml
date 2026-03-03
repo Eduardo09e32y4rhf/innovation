@@ -11,7 +11,7 @@ services:
           cpus: '0.50'
           memory: 512M
     environment:
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@${POSTGRES_HOST:-172.17.0.1}:5432/${POSTGRES_DB:-innovation_db}
+      - DATABASE_URL=mysql+pymysql://${MYSQL_USER:-root}:${MYSQL_PASSWORD:-Jm8FEr7BJO8rfDtc}@${MYSQL_HOST:-172.17.0.1}:3306/${MYSQL_DB:-innovation_db}
       - SECRET_KEY=${SECRET_KEY}
 
   ai_service:
@@ -44,7 +44,7 @@ services:
           cpus: '0.50'
           memory: 512M
     environment:
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@${POSTGRES_HOST:-172.17.0.1}:5432/${POSTGRES_DB:-innovation_db}
+      - DATABASE_URL=mysql+pymysql://${MYSQL_USER:-root}:${MYSQL_PASSWORD:-Jm8FEr7BJO8rfDtc}@${MYSQL_HOST:-172.17.0.1}:3306/${MYSQL_DB:-innovation_db}
 
   api_monolith:
     build:
@@ -58,7 +58,7 @@ services:
           cpus: '0.50'
           memory: 512M
     environment:
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@${POSTGRES_HOST:-172.17.0.1}:5432/${POSTGRES_DB:-innovation_db}
+      - DATABASE_URL=mysql+pymysql://${MYSQL_USER:-root}:${MYSQL_PASSWORD:-Jm8FEr7BJO8rfDtc}@${MYSQL_HOST:-172.17.0.1}:3306/${MYSQL_DB:-innovation_db}
       - REDIS_URL=redis://${REDIS_HOST:-172.17.0.1}:6379/0
       - GEMINI_API_KEYS=${GEMINI_API_KEYS}
       - SECRET_KEY=${SECRET_KEY}
@@ -80,7 +80,7 @@ services:
           memory: 512M
     command: celery -A ai_engine.worker worker --loglevel=info
     environment:
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@${POSTGRES_HOST:-172.17.0.1}:5432/${POSTGRES_DB:-innovation_db}
+      - DATABASE_URL=mysql+pymysql://${MYSQL_USER:-root}:${MYSQL_PASSWORD:-Jm8FEr7BJO8rfDtc}@${MYSQL_HOST:-172.17.0.1}:3306/${MYSQL_DB:-innovation_db}
       - REDIS_URL=redis://${REDIS_HOST:-172.17.0.1}:6379/0
       - GEMINI_API_KEYS=${GEMINI_API_KEYS}
       - PYTHONPATH=/app/backend/src:/app
