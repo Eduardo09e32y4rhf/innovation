@@ -11,7 +11,7 @@ services:
           cpus: '0.50'
           memory: 512M
     environment:
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-user_N7khBY}:${POSTGRES_PASSWORD:-password_Zs6bid}@${POSTGRES_HOST:-172.17.0.1}:5432/${POSTGRES_DB:-innovation_db}
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-user_N7khBY}:${POSTGRES_PASSWORD:-password_Zs6bid}@${POSTGRES_HOST:-209.50.241.30}:5432/${POSTGRES_DB:-innovation_db}
       - SECRET_KEY=${SECRET_KEY}
 
   ai_service:
@@ -27,8 +27,8 @@ services:
           memory: 512M
     environment:
       - GEMINI_API_KEYS=${GEMINI_API_KEYS}
-      - REDIS_URL=redis://:redis_pTEpH8@${REDIS_HOST:-172.17.0.1}:6379/0
-      - HOST_IP=172.17.0.1
+      - REDIS_URL=redis://:redis_pTEpH8@${REDIS_HOST:-209.50.241.30}:6379/0
+      - HOST_IP=209.50.241.30
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
@@ -44,7 +44,7 @@ services:
           cpus: '0.50'
           memory: 512M
     environment:
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-user_N7khBY}:${POSTGRES_PASSWORD:-password_Zs6bid}@${POSTGRES_HOST:-172.17.0.1}:5432/${POSTGRES_DB:-innovation_db}
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-user_N7khBY}:${POSTGRES_PASSWORD:-password_Zs6bid}@${POSTGRES_HOST:-209.50.241.30}:5432/${POSTGRES_DB:-innovation_db}
 
   api_monolith:
     build:
@@ -58,8 +58,8 @@ services:
           cpus: '0.50'
           memory: 512M
     environment:
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-user_N7khBY}:${POSTGRES_PASSWORD:-password_Zs6bid}@${POSTGRES_HOST:-172.17.0.1}:5432/${POSTGRES_DB:-innovation_db}
-      - REDIS_URL=redis://:redis_pTEpH8@${REDIS_HOST:-172.17.0.1}:6379/0
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-user_N7khBY}:${POSTGRES_PASSWORD:-password_Zs6bid}@${POSTGRES_HOST:-209.50.241.30}:5432/${POSTGRES_DB:-innovation_db}
+      - REDIS_URL=redis://:redis_pTEpH8@${REDIS_HOST:-209.50.241.30}:6379/0
       - GEMINI_API_KEYS=${GEMINI_API_KEYS}
       - SECRET_KEY=${SECRET_KEY}
     extra_hosts:
@@ -80,8 +80,8 @@ services:
           memory: 512M
     command: celery -A ai_engine.worker worker --loglevel=info
     environment:
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-user_N7khBY}:${POSTGRES_PASSWORD:-password_Zs6bid}@${POSTGRES_HOST:-172.17.0.1}:5432/${POSTGRES_DB:-innovation_db}
-      - REDIS_URL=redis://:redis_pTEpH8@${REDIS_HOST:-172.17.0.1}:6379/0
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-user_N7khBY}:${POSTGRES_PASSWORD:-password_Zs6bid}@${POSTGRES_HOST:-209.50.241.30}:5432/${POSTGRES_DB:-innovation_db}
+      - REDIS_URL=redis://:redis_pTEpH8@${REDIS_HOST:-209.50.241.30}:6379/0
       - GEMINI_API_KEYS=${GEMINI_API_KEYS}
       - PYTHONPATH=/app/backend/src:/app
     extra_hosts:
