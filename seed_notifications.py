@@ -8,6 +8,7 @@ from infrastructure.database.sql.session import SessionLocal
 from domain.models.notification import Notification
 from domain.models.user import User
 
+
 def seed_notifications():
     db = SessionLocal()
     try:
@@ -18,33 +19,35 @@ def seed_notifications():
             return
 
         print(f"Criando notificações para: {user.name}")
-        
+
         notifications = [
             {
                 "title": "Bem-vindo ao Novo Painel!",
                 "message": "Agora você tem um sistema de notificações ativo. Fique de olho nos alertas do sistema aqui.",
-                "type": "success"
+                "type": "success",
             },
             {
                 "title": "Ponto Eletrônico Atualizado",
                 "message": "A função de registro manual de ponto já está disponível no seu dashboard.",
-                "type": "info"
+                "type": "info",
             },
             {
                 "title": "Inteligência Artificial Ativa",
                 "message": "Seus insights de RH foram processados com sucesso pelo modelo Gemini Pro.",
-                "type": "success"
-            }
+                "type": "success",
+            },
         ]
 
         for n in notifications:
-            db.add(Notification(
-                user_id=user.id,
-                title=n["title"],
-                message=n["message"],
-                type=n["type"]
-            ))
-        
+            db.add(
+                Notification(
+                    user_id=user.id,
+                    title=n["title"],
+                    message=n["message"],
+                    type=n["type"],
+                )
+            )
+
         db.commit()
         print("Notificações criadas com sucesso!")
     except Exception as e:
@@ -52,6 +55,7 @@ def seed_notifications():
         db.rollback()
     finally:
         db.close()
+
 
 if __name__ == "__main__":
     seed_notifications()

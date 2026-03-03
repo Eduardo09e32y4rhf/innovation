@@ -26,9 +26,10 @@ app.add_middleware(
 
 ROUTES = {
     "/api/auth": "http://localhost:8001",
-    "/api/ai":   "http://localhost:8002",
+    "/api/ai": "http://localhost:8002",
     "/api/core": "http://localhost:8003",
 }
+
 
 async def proxy(request: Request, target_base: str):
     url = target_base + str(request.url.path)
@@ -60,26 +61,40 @@ async def proxy(request: Request, target_base: str):
             return JSONResponse(
                 content=resp.json() if "json" in content_type else resp.text,
                 status_code=resp.status_code,
-                headers={k: v for k, v in resp.headers.items() if k.lower() not in ["content-encoding", "transfer-encoding"]},
+                headers={
+                    k: v
+                    for k, v in resp.headers.items()
+                    if k.lower() not in ["content-encoding", "transfer-encoding"]
+                },
             )
         except httpx.ConnectError:
             return JSONResponse(
-                {"error": f"Serviço em {target_base} não está disponível. Verifique se o backend está rodando."},
-                status_code=503
+                {
+                    "error": f"Serviço em {target_base} não está disponível. Verifique se o backend está rodando."
+                },
+                status_code=503,
             )
 
 
-@app.api_route("/api/auth/{path:path}", methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"])
+@app.api_route(
+    "/api/auth/{path:path}",
+    methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+)
 async def auth_proxy(request: Request, path: str):
     return await proxy(request, "http://localhost:8001")
 
 
-@app.api_route("/api/ai/{path:path}", methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"])
+@app.api_route(
+    "/api/ai/{path:path}", methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
+)
 async def ai_proxy(request: Request, path: str):
     return await proxy(request, "http://localhost:8002")
 
 
-@app.api_route("/api/core/{path:path}", methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"])
+@app.api_route(
+    "/api/core/{path:path}",
+    methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+)
 async def core_proxy(request: Request, path: str):
     return await proxy(request, "http://localhost:8003")
 
@@ -90,9 +105,9 @@ async def root():
         "gateway": "Innovation.ia Local Gateway",
         "routes": {
             "/api/auth/*": "http://localhost:8001",
-            "/api/ai/*":   "http://localhost:8002",
+            "/api/ai/*": "http://localhost:8002",
             "/api/core/*": "http://localhost:8003",
-        }
+        },
     }
 
 

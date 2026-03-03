@@ -2,8 +2,8 @@ from pydantic import BaseModel
 from typing import Optional, List, Any
 from datetime import datetime
 
-
 # ── JOBS ─────────────────────────────────────────────────────────────────────
+
 
 class JobBase(BaseModel):
     title: str
@@ -26,6 +26,7 @@ class JobOut(JobBase):
 
 # ── APPLICATIONS ─────────────────────────────────────────────────────────────
 
+
 class ApplicationCreate(BaseModel):
     job_id: int
     candidate_id: Optional[int] = None
@@ -44,6 +45,7 @@ class ApplicationOut(BaseModel):
 
 
 # ── TRANSACTIONS ──────────────────────────────────────────────────────────────
+
 
 class TransactionBase(BaseModel):
     amount: float
@@ -68,6 +70,7 @@ class TransactionOut(TransactionBase):
 
 # ── PROJECTS ──────────────────────────────────────────────────────────────────
 
+
 class ProjectBase(BaseModel):
     name: str
     description: Optional[str] = None
@@ -87,6 +90,7 @@ class ProjectOut(ProjectBase):
 
 
 # ── TASKS ─────────────────────────────────────────────────────────────────────
+
 
 class TaskBase(BaseModel):
     title: str
@@ -112,6 +116,7 @@ class TaskOut(TaskBase):
 
 # ── TICKETS ───────────────────────────────────────────────────────────────────
 
+
 class TicketBase(BaseModel):
     subject: str
     description: str
@@ -136,6 +141,7 @@ class TicketOut(TicketBase):
 
 # ── LEAVE REQUESTS ────────────────────────────────────────────────────────────
 
+
 class LeaveRequestCreate(BaseModel):
     start_date: str
     end_date: str
@@ -157,12 +163,14 @@ class LeaveRequestOut(BaseModel):
 
 # ── PULSE SURVEY ──────────────────────────────────────────────────────────────
 
+
 class PulseSurveyCreate(BaseModel):
     score: int
     comment: Optional[str] = None
 
 
 # ── SYSTEM ANNOUNCEMENTS ──────────────────────────────────────────────────────
+
 
 class SystemAnnouncementBase(BaseModel):
     message: str

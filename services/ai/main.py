@@ -22,6 +22,7 @@ app.add_middleware(
 # HEALTH
 # ─────────────────────────────────────────────────────────────────
 
+
 @app.get("/api/ai/health")
 async def health_check():
     return {"status": "healthy", "service": "ai-service"}
@@ -30,6 +31,7 @@ async def health_check():
 # ─────────────────────────────────────────────────────────────────
 # MODELS — lista os modelos disponíveis para o frontend
 # ─────────────────────────────────────────────────────────────────
+
 
 @app.get("/api/ai/models")
 async def list_models():
@@ -42,7 +44,7 @@ async def list_models():
                 "plan": "Starter",
                 "available": True,
                 "icon": "⚡",
-                "model_id": "gemini-2.0-flash"
+                "model_id": "gemini-2.0-flash",
             },
             {
                 "id": "gemini-pro",
@@ -51,7 +53,7 @@ async def list_models():
                 "plan": "Growth",
                 "available": True,
                 "icon": "🚀",
-                "model_id": "gemini-1.5-pro"
+                "model_id": "gemini-1.5-pro",
             },
             {
                 "id": "claude",
@@ -60,7 +62,7 @@ async def list_models():
                 "plan": "Enterprise",
                 "available": False,
                 "icon": "🧠",
-                "locked_message": "Disponível no plano Enterprise"
+                "locked_message": "Disponível no plano Enterprise",
             },
         ]
     }
@@ -70,13 +72,16 @@ async def list_models():
 # CHAT — request/response padrão
 # ─────────────────────────────────────────────────────────────────
 
+
 @app.post("/api/ai/chat", response_model=ChatResponse)
 async def chat(data: ChatRequest):
     model_map = {
         "gemini-flash": "gemini-2.0-flash",
         "gemini-pro": "gemini-1.5-pro",
     }
-    model = model_map.get(data.model or "gemini-flash", data.model or "gemini-2.0-flash")
+    model = model_map.get(
+        data.model or "gemini-flash", data.model or "gemini-2.0-flash"
+    )
     try:
         answer = await ask_gemini(data.question, data.history or [], model)
         return ChatResponse(answer=answer, model_used=model)
@@ -89,19 +94,22 @@ async def chat(data: ChatRequest):
 # Aliases: /api/ai/ask-stream  e  /api/ai/chat/stream
 # ─────────────────────────────────────────────────────────────────
 
+
 async def _stream_response(data: ChatRequest):
     model_map = {
         "gemini-flash": "gemini-2.0-flash",
         "gemini-pro": "gemini-1.5-pro",
     }
-    model = model_map.get(data.model or "gemini-flash", data.model or "gemini-2.0-flash")
+    model = model_map.get(
+        data.model or "gemini-flash", data.model or "gemini-2.0-flash"
+    )
     return StreamingResponse(
         ask_gemini_stream(data.question, data.history or [], model),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",
             "X-Accel-Buffering": "no",
-        }
+        },
     )
 
 
@@ -121,6 +129,7 @@ async def chat_stream(data: ChatRequest):
 # RANK CANDIDATE — usado pelo ATS
 # ─────────────────────────────────────────────────────────────────
 
+
 @app.post("/api/ai/rank-candidate")
 async def rank_candidate(data: dict):
     resume_text = data.get("resume_text", "")
@@ -137,9 +146,11 @@ Responda APENAS com JSON: {{"score": 85, "summary": "...", "strengths": ["..."],
 
     try:
         from ai_logic import ask_gemini
+
         answer = await ask_gemini(question, [], "gemini-2.0-flash")
         import json, re
-        match = re.search(r'\{.*\}', answer, re.DOTALL)
+
+        match = re.search(r"\{.*\}", answer, re.DOTALL)
         if match:
             return json.loads(match.group())
         return {"score": 0, "summary": answer, "strengths": [], "gaps": []}

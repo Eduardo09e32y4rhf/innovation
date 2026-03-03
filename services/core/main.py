@@ -10,15 +10,23 @@ import mercadopago
 from database import get_db, Base, engine
 import models
 from schemas import (
-    JobCreate, JobOut,
-    ApplicationCreate, ApplicationOut,
-    TransactionCreate, TransactionOut,
-    ProjectCreate, ProjectOut,
-    TaskCreate, TaskOut,
-    TicketCreate, TicketOut,
-    LeaveRequestCreate, LeaveRequestOut,
+    JobCreate,
+    JobOut,
+    ApplicationCreate,
+    ApplicationOut,
+    TransactionCreate,
+    TransactionOut,
+    ProjectCreate,
+    ProjectOut,
+    TaskCreate,
+    TaskOut,
+    TicketCreate,
+    TicketOut,
+    LeaveRequestCreate,
+    LeaveRequestOut,
     PulseSurveyCreate,
-    SystemAnnouncementCreate, SystemAnnouncementOut,
+    SystemAnnouncementCreate,
+    SystemAnnouncementOut,
 )
 
 # Configuração de Logs
@@ -40,8 +48,8 @@ BASE_URL = os.getenv("BASE_URL", "http://localhost:8000")
 
 # Planos SaaS
 SAAS_PLANS = {
-    "starter":    {"name": "Starter",    "price": 299.0,  "currency": "BRL"},
-    "growth":     {"name": "Growth",     "price": 799.0,  "currency": "BRL"},
+    "starter": {"name": "Starter", "price": 299.0, "currency": "BRL"},
+    "growth": {"name": "Growth", "price": 799.0, "currency": "BRL"},
     "enterprise": {"name": "Enterprise", "price": 1999.0, "currency": "BRL"},
 }
 
@@ -58,7 +66,7 @@ async def startup_event():
 
 async def get_current_user(
     token: HTTPAuthorizationCredentials = Depends(security),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     try:
         payload = jwt.decode(token.credentials, SECRET_KEY, algorithms=[ALGORITHM])
@@ -88,29 +96,56 @@ app.add_middleware(
 # DASHBOARD
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 @app.get("/api/core/dashboard/metrics")
 async def get_dashboard_metrics(
-    current_user: models.User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
     def get_sum(filters):
-        result = db.query(func.sum(models.Transaction.amount)).filter(
-            models.Transaction.user_id == current_user.id,
-            models.Transaction.status == "paid",
-            *filters,
-        ).scalar()
+        result = (
+            db.query(func.sum(models.Transaction.amount))
+            .filter(
+                models.Transaction.user_id == current_user.id,
+                models.Transaction.status == "paid",
+                *filters,
+            )
+            .scalar()
+        )
         return float(result) if result else 0.0
 
     today = datetime.now()
     this_month_start = today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
-    current_revenue = get_sum([models.Transaction.type == "income", models.Transaction.created_at >= this_month_start])
-    current_costs = get_sum([models.Transaction.type == "expense", models.Transaction.created_at >= this_month_start])
+    current_revenue = get_sum(
+        [
+            models.Transaction.type == "income",
+            models.Transaction.created_at >= this_month_start,
+        ]
+    )
+    current_costs = get_sum(
+        [
+            models.Transaction.type == "expense",
+            models.Transaction.created_at >= this_month_start,
+        ]
+    )
     current_profit = current_revenue - current_costs
 
-    active_jobs = db.query(models.Job).filter(models.Job.company_id == current_user.id, models.Job.status == "active").count()
-    total_applications = db.query(models.Application).join(models.Job).filter(models.Job.company_id == current_user.id).count()
-    total_projects = db.query(models.Project).filter(models.Project.company_id == current_user.id).count()
+    active_jobs = (
+        db.query(models.Job)
+        .filter(models.Job.company_id == current_user.id, models.Job.status == "active")
+        .count()
+    )
+    total_applications = (
+        db.query(models.Application)
+        .join(models.Job)
+        .filter(models.Job.company_id == current_user.id)
+        .count()
+    )
+    total_projects = (
+        db.query(models.Project)
+        .filter(models.Project.company_id == current_user.id)
+        .count()
+    )
 
     user_points = current_user.points or 0
     level = (user_points // 500) + 1
@@ -121,59 +156,88 @@ async def get_dashboard_metrics(
             "points": user_points,
             "level": level,
             "xp_in_level": user_points % 500,
-            "next_level_xp": 500
+            "next_level_xp": 500,
         },
-        "revenue": {"current": current_revenue, "change_percent": 0.0, "chart_data": []},
-        "projects": {"current": total_projects, "change_percent": 0.0, "chart_data": []},
-        "candidates": {"current": total_applications, "change_percent": 0.0, "chart_data": []},
+        "revenue": {
+            "current": current_revenue,
+            "change_percent": 0.0,
+            "chart_data": [],
+        },
+        "projects": {
+            "current": total_projects,
+            "change_percent": 0.0,
+            "chart_data": [],
+        },
+        "candidates": {
+            "current": total_applications,
+            "change_percent": 0.0,
+            "chart_data": [],
+        },
         "active_jobs": active_jobs,
-        "profit": {"current": current_profit, "change_percent": 0.0}
+        "profit": {"current": current_profit, "change_percent": 0.0},
     }
 
 
 @app.get("/api/core/dashboard/heatmap")
 async def get_activity_heatmap(
-    current_user: models.User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
     twelve_weeks_ago = datetime.now() - timedelta(weeks=12)
-    activity_counts = db.query(
-        func.date(models.AuditLog.created_at).label('date'),
-        func.count(models.AuditLog.id).label('count')
-    ).filter(
-        models.AuditLog.user_id == current_user.id,
-        models.AuditLog.created_at >= twelve_weeks_ago
-    ).group_by(func.date(models.AuditLog.created_at)).all()
+    activity_counts = (
+        db.query(
+            func.date(models.AuditLog.created_at).label("date"),
+            func.count(models.AuditLog.id).label("count"),
+        )
+        .filter(
+            models.AuditLog.user_id == current_user.id,
+            models.AuditLog.created_at >= twelve_weeks_ago,
+        )
+        .group_by(func.date(models.AuditLog.created_at))
+        .all()
+    )
     return {str(row.date): row.count for row in activity_counts}
 
 
 @app.get("/api/core/dashboard/missions")
 async def get_missions(
-    current_user: models.User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
-    all_missions = db.query(models.Mission).filter(models.Mission.is_active == True).all()
+    all_missions = (
+        db.query(models.Mission).filter(models.Mission.is_active == True).all()
+    )
     today_start = datetime.combine(datetime.now(timezone.utc).date(), time.min)
     done_ids = [
-        um.mission_id for um in db.query(models.UserMission).filter(
+        um.mission_id
+        for um in db.query(models.UserMission)
+        .filter(
             models.UserMission.user_id == current_user.id,
-            models.UserMission.completed_at >= today_start
-        ).all()
+            models.UserMission.completed_at >= today_start,
+        )
+        .all()
     ]
     return [
-        {"id": m.id, "title": m.title, "description": m.description, "xp_reward": m.xp_reward, "done": m.id in done_ids}
+        {
+            "id": m.id,
+            "title": m.title,
+            "description": m.description,
+            "xp_reward": m.xp_reward,
+            "done": m.id in done_ids,
+        }
         for m in all_missions
     ]
 
 
 @app.get("/api/core/dashboard/recent-activity")
 async def get_recent_activity(
-    current_user: models.User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
-    logs = db.query(models.AuditLog).filter(
-        models.AuditLog.user_id == current_user.id
-    ).order_by(models.AuditLog.created_at.desc()).limit(20).all()
+    logs = (
+        db.query(models.AuditLog)
+        .filter(models.AuditLog.user_id == current_user.id)
+        .order_by(models.AuditLog.created_at.desc())
+        .limit(20)
+        .all()
+    )
     return {
         "activities": [
             {
@@ -187,30 +251,35 @@ async def get_recent_activity(
         ],
         "metadata": {
             "message": "Feed de atividade carregado",
-            "updated_at": datetime.now(timezone.utc).isoformat()
-        }
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        },
     }
 
 
 @app.get("/api/core/dashboard/kanban")
 async def get_kanban(
-    current_user: models.User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
     tasks = db.query(models.Task).filter(models.Task.user_id == current_user.id).all()
     columns = {"todo": [], "in_progress": [], "done": []}
     for t in tasks:
         status = t.status if t.status in columns else "todo"
-        columns[status].append({
-            "id": t.id, "title": t.title, "description": t.description,
-            "priority": t.priority, "due_date": t.due_date
-        })
+        columns[status].append(
+            {
+                "id": t.id,
+                "title": t.title,
+                "description": t.description,
+                "priority": t.priority,
+                "due_date": t.due_date,
+            }
+        )
     return columns
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # JOBS / ATS
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 @app.get("/api/core/jobs", response_model=List[JobOut])
 async def list_jobs(db: Session = Depends(get_db)):
@@ -219,8 +288,7 @@ async def list_jobs(db: Session = Depends(get_db)):
 
 @app.get("/api/core/jobs/company", response_model=List[JobOut])
 async def list_company_jobs(
-    current_user: models.User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
     return db.query(models.Job).filter(models.Job.company_id == current_user.id).all()
 
@@ -229,7 +297,7 @@ async def list_company_jobs(
 async def create_job(
     data: JobCreate,
     current_user: models.User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     job = models.Job(**data.dict(), company_id=current_user.id)
     db.add(job)
@@ -243,9 +311,13 @@ async def update_job(
     job_id: int,
     data: dict,
     current_user: models.User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
-    job = db.query(models.Job).filter(models.Job.id == job_id, models.Job.company_id == current_user.id).first()
+    job = (
+        db.query(models.Job)
+        .filter(models.Job.id == job_id, models.Job.company_id == current_user.id)
+        .first()
+    )
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
     for k, v in data.items():
@@ -259,9 +331,13 @@ async def update_job(
 async def delete_job(
     job_id: int,
     current_user: models.User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
-    job = db.query(models.Job).filter(models.Job.id == job_id, models.Job.company_id == current_user.id).first()
+    job = (
+        db.query(models.Job)
+        .filter(models.Job.id == job_id, models.Job.company_id == current_user.id)
+        .first()
+    )
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
     db.delete(job)
@@ -273,21 +349,27 @@ async def delete_job(
 async def get_job_applications(
     job_id: int,
     current_user: models.User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
-    return db.query(models.Application).filter(models.Application.job_id == job_id).all()
+    return (
+        db.query(models.Application).filter(models.Application.job_id == job_id).all()
+    )
 
 
 @app.post("/api/core/applications", response_model=ApplicationOut)
 async def apply_to_job(
     data: ApplicationCreate,
     current_user: models.User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
-    existing = db.query(models.Application).filter(
-        models.Application.job_id == data.job_id,
-        models.Application.candidate_id == current_user.id
-    ).first()
+    existing = (
+        db.query(models.Application)
+        .filter(
+            models.Application.job_id == data.job_id,
+            models.Application.candidate_id == current_user.id,
+        )
+        .first()
+    )
     if existing:
         raise HTTPException(status_code=400, detail="Candidatura já enviada")
     app_obj = models.Application(job_id=data.job_id, candidate_id=current_user.id)
@@ -301,16 +383,20 @@ async def apply_to_job(
 # FINANCE
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 @app.get("/api/core/finance/summary")
 async def get_finance_summary(
-    current_user: models.User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
     def get_sum(type_filter):
-        result = db.query(func.sum(models.Transaction.amount)).filter(
-            models.Transaction.user_id == current_user.id,
-            models.Transaction.type == type_filter
-        ).scalar()
+        result = (
+            db.query(func.sum(models.Transaction.amount))
+            .filter(
+                models.Transaction.user_id == current_user.id,
+                models.Transaction.type == type_filter,
+            )
+            .scalar()
+        )
         return float(result) if result else 0.0
 
     total_income = get_sum("income")
@@ -319,25 +405,28 @@ async def get_finance_summary(
         "total_income": total_income,
         "total_expense": total_expense,
         "balance": total_income - total_expense,
-        "currency": "BRL"
+        "currency": "BRL",
     }
 
 
 @app.get("/api/core/finance/transactions", response_model=List[TransactionOut])
 async def get_transactions(
-    current_user: models.User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
-    return db.query(models.Transaction).filter(
-        models.Transaction.user_id == current_user.id
-    ).order_by(models.Transaction.created_at.desc()).limit(100).all()
+    return (
+        db.query(models.Transaction)
+        .filter(models.Transaction.user_id == current_user.id)
+        .order_by(models.Transaction.created_at.desc())
+        .limit(100)
+        .all()
+    )
 
 
 @app.post("/api/core/finance/transactions", response_model=TransactionOut)
 async def create_transaction(
     data: TransactionCreate,
     current_user: models.User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     tx = models.Transaction(
         user_id=current_user.id,
@@ -345,7 +434,7 @@ async def create_transaction(
         type=data.type,
         category=data.category,
         description=data.description,
-        status="paid"
+        status="paid",
     )
     db.add(tx)
     db.commit()
@@ -365,33 +454,50 @@ async def get_finance_anomalies(current_user: models.User = Depends(get_current_
 
 @app.get("/api/core/finance/logs")
 async def get_finance_logs(
-    current_user: models.User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
-    logs = db.query(models.AuditLog).filter(
-        models.AuditLog.user_id == current_user.id,
-        models.AuditLog.entity_type == "transaction"
-    ).order_by(models.AuditLog.created_at.desc()).limit(50).all()
-    return [{"id": l.id, "action": l.action, "details": l.details, "created_at": l.created_at} for l in logs]
+    logs = (
+        db.query(models.AuditLog)
+        .filter(
+            models.AuditLog.user_id == current_user.id,
+            models.AuditLog.entity_type == "transaction",
+        )
+        .order_by(models.AuditLog.created_at.desc())
+        .limit(50)
+        .all()
+    )
+    return [
+        {
+            "id": l.id,
+            "action": l.action,
+            "details": l.details,
+            "created_at": l.created_at,
+        }
+        for l in logs
+    ]
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # PROJECTS
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 @app.get("/api/core/projects/", response_model=List[ProjectOut])
 async def list_projects(
-    current_user: models.User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
-    return db.query(models.Project).filter(models.Project.company_id == current_user.id).all()
+    return (
+        db.query(models.Project)
+        .filter(models.Project.company_id == current_user.id)
+        .all()
+    )
 
 
 @app.post("/api/core/projects/", response_model=ProjectOut)
 async def create_project(
     data: ProjectCreate,
     current_user: models.User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     proj = models.Project(**data.dict(), company_id=current_user.id)
     db.add(proj)
@@ -404,12 +510,16 @@ async def create_project(
 async def delete_project(
     project_id: int,
     current_user: models.User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
-    proj = db.query(models.Project).filter(
-        models.Project.id == project_id,
-        models.Project.company_id == current_user.id
-    ).first()
+    proj = (
+        db.query(models.Project)
+        .filter(
+            models.Project.id == project_id,
+            models.Project.company_id == current_user.id,
+        )
+        .first()
+    )
     if not proj:
         raise HTTPException(status_code=404, detail="Project not found")
     db.delete(proj)
@@ -421,17 +531,24 @@ async def delete_project(
 async def get_project_stats(
     project_id: int,
     current_user: models.User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     total = db.query(models.Task).filter(models.Task.project_id == project_id).count()
-    done = db.query(models.Task).filter(models.Task.project_id == project_id, models.Task.status == "done").count()
-    return {"total_tasks": total, "done_tasks": done, "progress": (done / total * 100) if total else 0}
+    done = (
+        db.query(models.Task)
+        .filter(models.Task.project_id == project_id, models.Task.status == "done")
+        .count()
+    )
+    return {
+        "total_tasks": total,
+        "done_tasks": done,
+        "progress": (done / total * 100) if total else 0,
+    }
 
 
 @app.get("/api/core/projects/all-tasks", response_model=List[TaskOut])
 async def get_all_tasks(
-    current_user: models.User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
     return db.query(models.Task).filter(models.Task.user_id == current_user.id).all()
 
@@ -440,7 +557,7 @@ async def get_all_tasks(
 async def create_task(
     data: TaskCreate,
     current_user: models.User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     task = models.Task(**data.dict(), user_id=current_user.id)
     db.add(task)
@@ -454,9 +571,13 @@ async def update_task(
     task_id: int,
     data: dict,
     current_user: models.User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
-    task = db.query(models.Task).filter(models.Task.id == task_id, models.Task.user_id == current_user.id).first()
+    task = (
+        db.query(models.Task)
+        .filter(models.Task.id == task_id, models.Task.user_id == current_user.id)
+        .first()
+    )
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
     for k, v in data.items():
@@ -470,7 +591,7 @@ async def update_task(
 async def start_time_tracking(
     task_id: int,
     current_user: models.User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     entry = models.TimeEntry(task_id=task_id, user_id=current_user.id)
     db.add(entry)
@@ -483,12 +604,15 @@ async def start_time_tracking(
 async def stop_time_tracking(
     entry_id: int,
     current_user: models.User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
-    entry = db.query(models.TimeEntry).filter(
-        models.TimeEntry.id == entry_id,
-        models.TimeEntry.user_id == current_user.id
-    ).first()
+    entry = (
+        db.query(models.TimeEntry)
+        .filter(
+            models.TimeEntry.id == entry_id, models.TimeEntry.user_id == current_user.id
+        )
+        .first()
+    )
     if not entry:
         raise HTTPException(status_code=404, detail="Time entry not found")
     entry.ended_at = datetime.now(timezone.utc)
@@ -501,26 +625,28 @@ async def stop_time_tracking(
 # SUPPORT
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 @app.get("/api/core/support/tickets", response_model=List[TicketOut])
 async def get_tickets(
-    current_user: models.User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
-    return db.query(models.Ticket).filter(models.Ticket.user_id == current_user.id).all()
+    return (
+        db.query(models.Ticket).filter(models.Ticket.user_id == current_user.id).all()
+    )
 
 
 @app.post("/api/core/support/tickets", response_model=TicketOut)
 async def create_ticket(
     data: TicketCreate,
     current_user: models.User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     subject = data.subject or data.title or "Sem título"
     ticket = models.Ticket(
         user_id=current_user.id,
         subject=subject,
         description=data.description,
-        priority=data.priority or "medium"
+        priority=data.priority or "medium",
     )
     db.add(ticket)
     db.commit()
@@ -539,7 +665,7 @@ async def get_system_status():
             {"name": "Database", "status": "operational"},
         ],
         "overall": "operational",
-        "updated_at": datetime.now(timezone.utc).isoformat()
+        "updated_at": datetime.now(timezone.utc).isoformat(),
     }
 
 
@@ -547,35 +673,42 @@ async def get_system_status():
 async def get_smart_reply(
     ticket_id: int,
     description: Optional[str] = None,
-    current_user: models.User = Depends(get_current_user)
+    current_user: models.User = Depends(get_current_user),
 ):
-    return {"reply": f"Obrigado por entrar em contato! Nossa equipe analisará seu ticket #{ticket_id} em breve."}
+    return {
+        "reply": f"Obrigado por entrar em contato! Nossa equipe analisará seu ticket #{ticket_id} em breve."
+    }
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # RH
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 @app.get("/api/core/rh/leave-requests", response_model=List[LeaveRequestOut])
 async def get_leave_requests(
-    current_user: models.User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
-    return db.query(models.LeaveRequest).filter(models.LeaveRequest.user_id == current_user.id).all()
+    return (
+        db.query(models.LeaveRequest)
+        .filter(models.LeaveRequest.user_id == current_user.id)
+        .all()
+    )
 
 
 @app.post("/api/core/rh/leave-requests", response_model=LeaveRequestOut)
 async def create_leave_request(
     data: LeaveRequestCreate,
     current_user: models.User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     from datetime import date
+
     req = models.LeaveRequest(
         user_id=current_user.id,
         start_date=datetime.fromisoformat(data.start_date),
         end_date=datetime.fromisoformat(data.end_date),
-        reason=data.reason
+        reason=data.reason,
     )
     db.add(req)
     db.commit()
@@ -587,12 +720,10 @@ async def create_leave_request(
 async def submit_pulse(
     data: PulseSurveyCreate,
     current_user: models.User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     pulse = models.PulseSurvey(
-        user_id=current_user.id,
-        score=data.score,
-        comment=data.comment
+        user_id=current_user.id, score=data.score, comment=data.comment
     )
     db.add(pulse)
     db.commit()
@@ -601,8 +732,7 @@ async def submit_pulse(
 
 @app.get("/api/core/rh/employees/{employee_id}/badges")
 async def get_employee_badges(
-    employee_id: int,
-    current_user: models.User = Depends(get_current_user)
+    employee_id: int, current_user: models.User = Depends(get_current_user)
 ):
     return {"badges": [], "employee_id": employee_id}
 
@@ -611,10 +741,10 @@ async def get_employee_badges(
 # PAYMENTS — MERCADO PAGO REAL
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 @app.post("/api/core/payments/checkout")
 async def create_checkout(
-    data: dict,
-    current_user: models.User = Depends(get_current_user)
+    data: dict, current_user: models.User = Depends(get_current_user)
 ):
     plan_id = data.get("plan", "starter")
     plan = SAAS_PLANS.get(plan_id)
@@ -626,7 +756,7 @@ async def create_checkout(
             "checkout_url": f"/pricing?plan={plan_id}&success=demo",
             "init_point": None,
             "plan": plan_id,
-            "message": "Mercado Pago não configurado (modo demo)"
+            "message": "Mercado Pago não configurado (modo demo)",
         }
 
     try:
@@ -666,7 +796,9 @@ async def create_checkout(
 
         if result.get("status") not in [200, 201]:
             logger.error(f"MP Error: {result}")
-            raise HTTPException(status_code=500, detail="Erro ao criar preferência no Mercado Pago")
+            raise HTTPException(
+                status_code=500, detail="Erro ao criar preferência no Mercado Pago"
+            )
 
         return {
             "init_point": preference.get("init_point"),
@@ -707,7 +839,11 @@ async def payment_webhook(request: Request, db: Session = Depends(get_db)):
                     parts = ext_ref.split("|")
                     if len(parts) == 2:
                         user_id, plan_id = parts
-                        user = db.query(models.User).filter(models.User.id == int(user_id)).first()
+                        user = (
+                            db.query(models.User)
+                            .filter(models.User.id == int(user_id))
+                            .first()
+                        )
                         if user:
                             # Atualiza role/plano do usuário
                             user.role = plan_id  # starter | growth | enterprise
@@ -715,11 +851,13 @@ async def payment_webhook(request: Request, db: Session = Depends(get_db)):
                                 user_id=user.id,
                                 action="payment_approved",
                                 entity_type="plan",
-                                details=f"Plano {plan_id} ativado via Mercado Pago. Payment ID: {payment_id}"
+                                details=f"Plano {plan_id} ativado via Mercado Pago. Payment ID: {payment_id}",
                             )
                             db.add(audit)
                             db.commit()
-                            logger.info(f"✅ Plano {plan_id} ativado para user {user_id}")
+                            logger.info(
+                                f"✅ Plano {plan_id} ativado para user {user_id}"
+                            )
             except Exception as e:
                 logger.error(f"Webhook error: {e}")
 
@@ -729,17 +867,13 @@ async def payment_webhook(request: Request, db: Session = Depends(get_db)):
 @app.get("/api/core/payments/plans")
 async def list_plans():
     """Lista os planos SaaS disponíveis."""
-    return {
-        "plans": [
-            {"id": k, **v}
-            for k, v in SAAS_PLANS.items()
-        ]
-    }
+    return {"plans": [{"id": k, **v} for k, v in SAAS_PLANS.items()]}
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # ENTERPRISE
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 @app.get("/api/core/enterprise/analytics/realtime")
 async def get_realtime_analytics(current_user: models.User = Depends(get_current_user)):
@@ -748,19 +882,18 @@ async def get_realtime_analytics(current_user: models.User = Depends(get_current
         "requests_per_minute": 0,
         "error_rate": 0.0,
         "avg_response_time_ms": 0,
-        "updated_at": datetime.now(timezone.utc).isoformat()
+        "updated_at": datetime.now(timezone.utc).isoformat(),
     }
 
 
 @app.post("/api/core/enterprise/support/chat")
 async def enterprise_support_chat(
-    data: dict,
-    current_user: models.User = Depends(get_current_user)
+    data: dict, current_user: models.User = Depends(get_current_user)
 ):
     message = data.get("message", "")
     return {
         "reply": f"Suporte Enterprise recebeu sua mensagem. Em breve um especialista responderá.",
-        "ticket_id": None
+        "ticket_id": None,
     }
 
 
@@ -768,24 +901,32 @@ async def enterprise_support_chat(
 # SYSTEM ANNOUNCEMENTS
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 @app.get("/api/core/system/announcements", response_model=List[SystemAnnouncementOut])
 async def list_announcements(db: Session = Depends(get_db)):
     now = datetime.now(timezone.utc)
-    return db.query(models.SystemAnnouncement).filter(
-        models.SystemAnnouncement.is_active == True,
-        models.SystemAnnouncement.start_at <= now,
-        (models.SystemAnnouncement.end_at == None) | (models.SystemAnnouncement.end_at >= now)
-    ).all()
+    return (
+        db.query(models.SystemAnnouncement)
+        .filter(
+            models.SystemAnnouncement.is_active == True,
+            models.SystemAnnouncement.start_at <= now,
+            (models.SystemAnnouncement.end_at == None)
+            | (models.SystemAnnouncement.end_at >= now),
+        )
+        .all()
+    )
 
 
 @app.post("/api/core/system/announcements", response_model=SystemAnnouncementOut)
 async def create_announcement(
     data: SystemAnnouncementCreate,
     current_user: models.User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     if current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Apenas admins podem criar anúncios")
+        raise HTTPException(
+            status_code=403, detail="Apenas admins podem criar anúncios"
+        )
     announcement = models.SystemAnnouncement(**data.dict())
     db.add(announcement)
     db.commit()
@@ -797,6 +938,7 @@ async def create_announcement(
 # HEALTH
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 @app.get("/api/core/health")
 async def health_check():
     return {"status": "healthy", "service": "core-service"}
@@ -804,4 +946,5 @@ async def health_check():
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run("main:app", host="0.0.0.0", port=8003, reload=True)

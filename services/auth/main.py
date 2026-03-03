@@ -47,18 +47,22 @@ async def check_db_ready():
 
             db = SessionLocal()
             try:
-                admin = db.query(models.User).filter(models.User.email == "admin@innovation.ia").first()
+                admin = (
+                    db.query(models.User)
+                    .filter(models.User.email == "admin@innovation.ia")
+                    .first()
+                )
                 if not admin:
                     logger.info("👤 Criando usuário admin padrão...")
                     salt = bcrypt.gensalt()
-                    hashed = bcrypt.hashpw("admin123".encode('utf-8'), salt)
+                    hashed = bcrypt.hashpw("admin123".encode("utf-8"), salt)
                     admin = models.User(
                         email="admin@innovation.ia",
                         full_name="Administrador Master",
                         role="admin",
-                        hashed_password=hashed.decode('utf-8'),
+                        hashed_password=hashed.decode("utf-8"),
                         is_active=True,
-                        is_superuser=True
+                        is_superuser=True,
                     )
                     db.add(admin)
                     db.commit()
@@ -67,7 +71,9 @@ async def check_db_ready():
                 db.close()
             break
         except Exception as e:
-            logger.warning(f"⏳ Banco de Dados não está pronto. Tentativa {i+1}/{max_retries}. Erro: {str(e)[:50]}")
+            logger.warning(
+                f"⏳ Banco de Dados não está pronto. Tentativa {i+1}/{max_retries}. Erro: {str(e)[:50]}"
+            )
             await asyncio.sleep(3)
 
 
@@ -86,7 +92,7 @@ def get_db():
 
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     try:
         token = credentials.credentials
@@ -106,6 +112,7 @@ async def get_current_user(
 # HEALTH
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 @app.get("/api/auth/health")
 async def health():
     return {"status": "healthy", "service": "auth-service"}
@@ -114,6 +121,7 @@ async def health():
 # ─────────────────────────────────────────────────────────────────────────────
 # USER
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 @app.get("/api/auth/me", response_model=schemas.UserResponse)
 async def me(current_user: models.User = Depends(get_current_user)):
@@ -125,7 +133,7 @@ async def me(current_user: models.User = Depends(get_current_user)):
         "role": current_user.role,
         "is_active": current_user.is_active,
         "is_superuser": current_user.is_superuser,
-        "created_at": current_user.created_at
+        "created_at": current_user.created_at,
     }
 
 
@@ -133,17 +141,20 @@ async def me(current_user: models.User = Depends(get_current_user)):
 # AUTH
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 @app.post("/api/auth/login", response_model=schemas.TokenResponse)
 async def login(credentials: schemas.LoginRequest, db: Session = Depends(get_db)):
     user = db.query(models.User).filter(models.User.email == credentials.email).first()
-    if not user or not bcrypt.checkpw(credentials.password.encode('utf-8'), user.hashed_password.encode('utf-8')):
+    if not user or not bcrypt.checkpw(
+        credentials.password.encode("utf-8"), user.hashed_password.encode("utf-8")
+    ):
         raise HTTPException(status_code=401, detail="Email ou senha incorretos")
 
     token_data = {
         "sub": str(user.id),
         "email": user.email,
         "role": user.role,
-        "exp": datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        "exp": datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
     }
     token = jwt.encode(token_data, SECRET_KEY, algorithm=ALGORITHM)
 
@@ -151,13 +162,15 @@ async def login(credentials: schemas.LoginRequest, db: Session = Depends(get_db)
         "access_token": token,
         "token_type": "bearer",
         "role": user.role,
-        "is_new_user": False
+        "is_new_user": False,
     }
 
 
 @app.post("/api/auth/register", response_model=schemas.UserResponse)
 async def register(user_data: schemas.UserCreate, db: Session = Depends(get_db)):
-    existing = db.query(models.User).filter(models.User.email == user_data.email).first()
+    existing = (
+        db.query(models.User).filter(models.User.email == user_data.email).first()
+    )
     if existing:
         raise HTTPException(status_code=400, detail="Email já cadastrado")
 
@@ -165,13 +178,13 @@ async def register(user_data: schemas.UserCreate, db: Session = Depends(get_db))
     real_name = user_data.name or user_data.full_name or "Usuário Innovation"
 
     salt = bcrypt.gensalt()
-    hashed = bcrypt.hashpw(user_data.password.encode('utf-8'), salt)
+    hashed = bcrypt.hashpw(user_data.password.encode("utf-8"), salt)
     new_user = models.User(
         email=user_data.email,
         full_name=real_name,
         role=user_data.role or "candidate",
-        hashed_password=hashed.decode('utf-8'),
-        is_active=True
+        hashed_password=hashed.decode("utf-8"),
+        is_active=True,
     )
     db.add(new_user)
     db.commit()
@@ -185,18 +198,22 @@ async def register(user_data: schemas.UserCreate, db: Session = Depends(get_db))
         "role": new_user.role,
         "is_active": new_user.is_active,
         "is_superuser": new_user.is_superuser,
-        "created_at": new_user.created_at
+        "created_at": new_user.created_at,
     }
 
 
 @app.post("/api/auth/forgot-password")
-async def forgot_password(request: schemas.ForgotPasswordRequest, db: Session = Depends(get_db)):
+async def forgot_password(
+    request: schemas.ForgotPasswordRequest, db: Session = Depends(get_db)
+):
     # Mock: evita 404 no Frontend
     db.query(models.User).filter(models.User.email == request.email).first()
     return {"message": "Se o e-mail existir, um link de recuperação será enviado."}
 
 
 @app.post("/api/auth/reset-password")
-async def reset_password(request: schemas.ResetPasswordRequest, db: Session = Depends(get_db)):
+async def reset_password(
+    request: schemas.ResetPasswordRequest, db: Session = Depends(get_db)
+):
     # Mock: evita 404 no Frontend
     return {"message": "Senha redefinida com sucesso."}

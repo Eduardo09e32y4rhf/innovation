@@ -114,11 +114,11 @@ async def punch_biometric(
 ):
     # Aqui delegamos para o serviço que vai processar a IA e o Banco
     return await rh_service.process_biometric_punch(
-        db, 
-        current_user.id, 
-        data.photo_base64, 
-        data.latitude, 
-        data.longitude, 
-        data.accuracy, 
-        data.device_fingerprint
+        db,
+        current_user.id,
+        data.photo_base64,
+        data.latitude,
+        data.longitude,
+        data.accuracy,
+        data.device_fingerprint,
     )
