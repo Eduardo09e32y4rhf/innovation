@@ -5,22 +5,31 @@ from anthropic import Anthropic
 from key_manager import ai_key_manager
 from schemas import ChatMessage
 
-SYSTEM_PROMPT = """Você é o assistente inteligente da Innovation.ia...""" # Abrevied for now
+SYSTEM_PROMPT = (
+    """Você é o assistente inteligente da Innovation.ia..."""  # Abrevied for now
+)
+
 
 async def ask_gemini(question: str, history: list[ChatMessage], model_name: str):
     active_keys = ai_key_manager.get_all_active_keys()
-    
+
     for api_key in active_keys:
         try:
             client = genai.Client(api_key=api_key)
             chat_history = []
             for msg in history:
-                chat_history.append({"role": "user" if msg.role == "user" else "model", "parts": [{"text": msg.content}]})
-            
+                chat_history.append(
+                    {
+                        "role": "user" if msg.role == "user" else "model",
+                        "parts": [{"text": msg.content}],
+                    }
+                )
+
             response = client.models.generate_content(
                 model=model_name,
-                contents=chat_history + [{"role": "user", "parts": [{"text": question}]}],
-                config={"system_instruction": SYSTEM_PROMPT, "temperature": 0.7}
+                contents=chat_history
+                + [{"role": "user", "parts": [{"text": question}]}],
+                config={"system_instruction": SYSTEM_PROMPT, "temperature": 0.7},
             )
             return response.text
         except Exception as e:
@@ -30,6 +39,7 @@ async def ask_gemini(question: str, history: list[ChatMessage], model_name: str)
             raise e
     return "Todas as chaves falharam."
 
+
 async def ask_gemini_stream(question: str, history: list[ChatMessage], model_name: str):
     active_keys = ai_key_manager.get_all_active_keys()
     for api_key in active_keys:
@@ -37,12 +47,18 @@ async def ask_gemini_stream(question: str, history: list[ChatMessage], model_nam
             client = genai.Client(api_key=api_key)
             chat_history = []
             for msg in history:
-                chat_history.append({"role": "user" if msg.role == "user" else "model", "parts": [{"text": msg.content}]})
-            
+                chat_history.append(
+                    {
+                        "role": "user" if msg.role == "user" else "model",
+                        "parts": [{"text": msg.content}],
+                    }
+                )
+
             stream = client.models.generate_content_stream(
                 model=model_name,
-                contents=chat_history + [{"role": "user", "parts": [{"text": question}]}],
-                config={"system_instruction": SYSTEM_PROMPT, "temperature": 0.7}
+                contents=chat_history
+                + [{"role": "user", "parts": [{"text": question}]}],
+                config={"system_instruction": SYSTEM_PROMPT, "temperature": 0.7},
             )
             for chunk in stream:
                 if chunk.text:

@@ -1,4 +1,14 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Numeric, Boolean, Float
+from sqlalchemy import (
+    Column,
+    Integer,
+    String,
+    Text,
+    DateTime,
+    ForeignKey,
+    Numeric,
+    Boolean,
+    Float,
+)
 from datetime import datetime, timezone
 from database import Base
 
@@ -27,7 +37,9 @@ class Application(Base):
     id = Column(Integer, primary_key=True, index=True)
     job_id = Column(Integer, ForeignKey("jobs.id"))
     candidate_id = Column(Integer, ForeignKey("users.id"))
-    status = Column(String(50), default="pending")  # pending, interview, hired, rejected
+    status = Column(
+        String(50), default="pending"
+    )  # pending, interview, hired, rejected
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     match_score = Column(Numeric(5, 2), default=0.0)
 
