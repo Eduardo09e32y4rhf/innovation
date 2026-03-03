@@ -1,27 +1,4 @@
 services:
-  db:
-    image: postgres:15-alpine
-    container_name: innovation_db
-    restart: always
-    deploy:
-      resources:
-        limits:
-          cpus: '0.50'
-          memory: 512M
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      POSTGRES_DB: ${POSTGRES_DB:-innovation_db}
-    healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-innovation_db}" ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-
   auth_service:
     build:
       context: ../services/auth
@@ -34,11 +11,8 @@ services:
           cpus: '0.50'
           memory: 512M
     environment:
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-innovation_db}
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@${POSTGRES_HOST:-172.17.0.1}:5432/${POSTGRES_DB:-innovation_db}
       - SECRET_KEY=${SECRET_KEY}
-    depends_on:
-      db:
-        condition: service_healthy
 
   ai_service:
     build:
@@ -70,10 +44,7 @@ services:
           cpus: '0.50'
           memory: 512M
     environment:
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-innovation_db}
-    depends_on:
-      db:
-        condition: service_healthy
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@${POSTGRES_HOST:-172.17.0.1}:5432/${POSTGRES_DB:-innovation_db}
 
   api_monolith:
     build:
@@ -87,7 +58,7 @@ services:
           cpus: '0.50'
           memory: 512M
     environment:
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-innovation_db}
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@${POSTGRES_HOST:-172.17.0.1}:5432/${POSTGRES_DB:-innovation_db}
       - REDIS_URL=redis://${REDIS_HOST:-172.17.0.1}:6379/0
       - GEMINI_API_KEYS=${GEMINI_API_KEYS}
       - SECRET_KEY=${SECRET_KEY}
@@ -95,9 +66,6 @@ services:
       - "host.docker.internal:host-gateway"
     ports:
       - "8005:8000"
-    depends_on:
-      db:
-        condition: service_healthy
 
   ai_worker:
     build:
@@ -112,15 +80,12 @@ services:
           memory: 512M
     command: celery -A ai_engine.worker worker --loglevel=info
     environment:
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-innovation_db}
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@${POSTGRES_HOST:-172.17.0.1}:5432/${POSTGRES_DB:-innovation_db}
       - REDIS_URL=redis://${REDIS_HOST:-172.17.0.1}:6379/0
       - GEMINI_API_KEYS=${GEMINI_API_KEYS}
       - PYTHONPATH=/app/backend/src:/app
     extra_hosts:
       - "host.docker.internal:host-gateway"
-    depends_on:
-      db:
-        condition: service_healthy
 
   frontend:
     build:
@@ -166,6 +131,3 @@ services:
       - auth_service
       - ai_service
       - core_service
-
-volumes:
-  postgres_data:
