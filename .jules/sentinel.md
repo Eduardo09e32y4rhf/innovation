@@ -7,3 +7,8 @@
 **Vulnerability:** The Mercado Pago webhook endpoint (`backend/src/api/v1/endpoints/payments.py`) correctly computed the expected HMAC signature for incoming payloads, but was using a weak comparison operator (`!=`) to check it. More critically, if the signature did not match, the code only logged a warning and continued executing the request instead of raising a 401 Unauthorized error. This allowed attackers to craft malicious webhook payloads and trick the system into approving fake payments or upgrading plans without any actual payment on Mercado Pago.
 **Learning:** Checking for signature validity is meaningless if an invalid result does not block the operation. Webhook signature validation errors must immediately reject the request with a 4xx error. Furthermore, string comparisons of cryptographic hashes (like HMACs) must use `secrets.compare_digest` to prevent timing attacks.
 **Prevention:** Always use `secrets.compare_digest` for signature validation and ensure `HTTPException` is raised or the function terminates if the signature fails verification.
+
+## 2025-03-03 - Exposing Environment Variables in Public Repository Scripts
+**Vulnerability:** Scripts (`run_local_debug.ps1`, `run_local.ps1`, `iniciar_local.ps1`) expose API keys for Gemini, Mercado Pago, and hardcoded `SECRET_KEY`. Furthermore, backend config uses a hardcoded default `SECRET_KEY` instead of failing if not set in the environment.
+**Learning:** Hardcoded defaults in scripts or configuration can lead to accidental exposure and severe security vulnerabilities in production.
+**Prevention:** Remove keys from the scripts and require `SECRET_KEY` to be set via environment variable.

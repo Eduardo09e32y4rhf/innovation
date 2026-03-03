@@ -17,7 +17,6 @@ pip install fastapi uvicorn[standard] sqlalchemy pydantic[email] python-jose[cry
 Write-Host "`n[2/4] Iniciando Auth Service (porta 8001)..." -ForegroundColor Yellow
 $authEnv = @{
     DATABASE_URL = "sqlite:///$ROOT/innovation_auth.db"
-    SECRET_KEY = "innovation_v2_premium_dark"
 }
 $authProc = Start-Process -PassThru -FilePath "python" `
     -ArgumentList "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8001", "--reload" `

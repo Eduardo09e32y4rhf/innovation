@@ -4,10 +4,6 @@
 $ROOT = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 
 # Lê as variáveis do .env
-$OPENAI_KEY = "<SUA_CHAVE_OPENAI_AQUI>"
-$GEMINI_KEYS = "AIzaSyD9ejCdvSK5_oGIOKUCJgkBngNvWKGhwQo"
-$MP_TOKEN = "TEST-6557276044940245-122113-96e11c5a6415e5d9d5af0957ff0dc294-419957141"
-$SECRET_KEY = "innovation_v2_premium_dark"
 $DATABASE_URL = "sqlite:///$ROOT/backend/innovation_rh.db"
 
 Write-Host "====================================================" -ForegroundColor Cyan
@@ -20,10 +16,6 @@ Write-Host "`n[1/2] Abrindo backend..." -ForegroundColor Yellow
 $backendCmd = @"
 cd '$ROOT\backend';
 `$env:PYTHONPATH='src';
-`$env:OPENAI_API_KEY='$OPENAI_KEY';
-`$env:GEMINI_API_KEYS='$GEMINI_KEYS';
-`$env:MP_ACCESS_TOKEN='$MP_TOKEN';
-`$env:SECRET_KEY='$SECRET_KEY';
 `$env:DATABASE_URL='$DATABASE_URL';
 `$env:ALLOWED_ORIGINS='http://localhost:3000';
 Write-Host '>>> BACKEND: http://localhost:8000/docs' -ForegroundColor Green;
