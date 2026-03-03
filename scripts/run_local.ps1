@@ -5,6 +5,18 @@
 $ErrorActionPreference = "Continue"
 $ROOT = $PSScriptRoot
 
+# Lê as variáveis do .env
+$envFile = "$ROOT\..\.env"
+if (Test-Path $envFile) {
+    Get-Content $envFile | Where-Object { $_ -match "^[^#]+=.*" } | ForEach-Object {
+        $name, $value = $_.Split('=', 2)
+        [Environment]::SetEnvironmentVariable($name, $value.Trim(), "Process")
+    }
+    Write-Host "Variáveis de ambiente carregadas de .env" -ForegroundColor Green
+} else {
+    Write-Host "Arquivo .env não encontrado. Iniciando sem variáveis adicionais." -ForegroundColor Yellow
+}
+
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host " Innovation.ia — Iniciando modo local   " -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
@@ -17,7 +29,6 @@ pip install fastapi uvicorn[standard] sqlalchemy pydantic[email] python-jose[cry
 Write-Host "`n[2/4] Iniciando Auth Service (porta 8001)..." -ForegroundColor Yellow
 $authEnv = @{
     DATABASE_URL = "sqlite:///$ROOT/innovation_auth.db"
-    SECRET_KEY = "innovation_v2_premium_dark"
 }
 $authProc = Start-Process -PassThru -FilePath "python" `
     -ArgumentList "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8001", "--reload" `

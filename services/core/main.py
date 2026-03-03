@@ -32,7 +32,7 @@ from sqlalchemy import func
 
 app = FastAPI(title="Innovation IA - Core Service")
 security = HTTPBearer()
-SECRET_KEY = os.getenv("SECRET_KEY", "innovation_v2_premium_dark")
+SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = "HS256"
 AI_SERVICE_URL = os.getenv("AI_SERVICE_URL", "http://ai_service:8002")
 MP_ACCESS_TOKEN = os.getenv("MP_ACCESS_TOKEN", "")
@@ -48,6 +48,8 @@ SAAS_PLANS = {
 
 @app.on_event("startup")
 async def startup_event():
+    if not SECRET_KEY:
+        raise RuntimeError("SECRET_KEY environment variable is not set")
     logger.info("🚀 Iniciando Core Service e verificando DB...")
     try:
         Base.metadata.create_all(bind=engine)

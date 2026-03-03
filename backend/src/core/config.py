@@ -6,7 +6,7 @@ BASE_DIR = Path(__file__).resolve().parents[2]  # backend/
 
 class Settings(BaseSettings):
     DATABASE_URL: str = "sqlite:///./innovation_rh.db"
-    SECRET_KEY: str = "innovation_v2_premium_dark"
+    SECRET_KEY: str
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30  # 30 minutos para segurança
     REFRESH_TOKEN_EXPIRE_DAYS: int = 30  # 30 dias para manter usuário logado

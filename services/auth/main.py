@@ -13,6 +13,7 @@ import os
 from database import engine, SessionLocal, Base
 import models
 import schemas
+from security import SECRET_KEY, ALGORITHM
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -28,8 +29,6 @@ app.add_middleware(
 )
 
 security = HTTPBearer()
-SECRET_KEY = os.getenv("SECRET_KEY", "innovation_v2_premium_dark")
-ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
 
@@ -73,6 +72,8 @@ async def check_db_ready():
 
 @app.on_event("startup")
 async def startup_event():
+    if not SECRET_KEY:
+        raise RuntimeError("SECRET_KEY environment variable is not set")
     asyncio.create_task(check_db_ready())
 
 
