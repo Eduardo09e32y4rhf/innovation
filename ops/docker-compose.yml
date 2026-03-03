@@ -22,16 +22,6 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
-  redis:
-    image: redis:7-alpine
-    container_name: innovation_redis
-    restart: always
-    deploy:
-      resources:
-        limits:
-          cpus: '0.25'
-          memory: 256M
-
   auth_service:
     build:
       context: ../services/auth
@@ -63,9 +53,10 @@ services:
           memory: 512M
     environment:
       - GEMINI_API_KEYS=${GEMINI_API_KEYS}
-      - REDIS_URL=redis://redis:6379/0
-    depends_on:
-      - redis
+      - REDIS_URL=redis://${REDIS_HOST:-172.17.0.1}:6379/0
+      - HOST_IP=172.17.0.1
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   core_service:
     build:
@@ -97,16 +88,16 @@ services:
           memory: 512M
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-innovation_db}
-      - REDIS_URL=redis://redis:6379/0
+      - REDIS_URL=redis://${REDIS_HOST:-172.17.0.1}:6379/0
       - GEMINI_API_KEYS=${GEMINI_API_KEYS}
       - SECRET_KEY=${SECRET_KEY}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - "8005:8000"
     depends_on:
       db:
         condition: service_healthy
-      redis:
-        condition: service_started
 
   ai_worker:
     build:
@@ -122,12 +113,12 @@ services:
     command: celery -A ai_engine.worker worker --loglevel=info
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-innovation_db}
-      - REDIS_URL=redis://redis:6379/0
+      - REDIS_URL=redis://${REDIS_HOST:-172.17.0.1}:6379/0
       - GEMINI_API_KEYS=${GEMINI_API_KEYS}
       - PYTHONPATH=/app/backend/src:/app
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
-      redis:
-        condition: service_started
       db:
         condition: service_healthy
 
