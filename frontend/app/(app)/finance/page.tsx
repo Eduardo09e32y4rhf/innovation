@@ -93,21 +93,21 @@ export default function FinancePage() {
         { title: "Despesas Pagas", value: fmt(summary.total_expenses), icon: Wallet, color: "text-red-400" },
         { title: "Saldo Atual", value: fmt(summary.balance), icon: TrendingUp, color: "text-emerald-400" },
         { title: "Receita Pendente", value: fmt(summary.pending_income), icon: CreditCard, color: "text-purple-400" },
-    ] : Array(4).fill({ title: "Carregando...", value: "...", icon: BadgeDollarSign, color: "text-gray-400" });
+    ] : Array(4).fill({ title: "Carregando...", value: "...", icon: BadgeDollarSign, color: "text-slate-500" });
 
     return (
         <AppLayout title="Gestão Financeira">
-            <div className="text-white">
+            <div className="text-slate-900">
                 <main className="p-8 overflow-y-auto">
                     <header className="flex justify-between items-center mb-8">
                         <div>
                             <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-green-400 to-emerald-600">
                                 Gestão Financeira
                             </h1>
-                            <p className="text-gray-400 mt-1">Fluxo de caixa em tempo real</p>
+                            <p className="text-slate-500 mt-1">Fluxo de caixa em tempo real</p>
                         </div>
                         <div className="flex gap-3">
-                            <button className="flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg text-sm border border-gray-700 transition">
+                            <button className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-gray-700 rounded-lg text-sm border border-gray-700 transition">
                                 <Download className="w-4 h-4" /> Exportar
                             </button>
                             <button
@@ -127,8 +127,8 @@ export default function FinancePage() {
                                     <kpi.icon className={`w-16 h-16 ${kpi.color}`} />
                                 </div>
                                 <div className="relative z-10">
-                                    <p className="text-gray-400 text-sm font-medium mb-1">{kpi.title}</p>
-                                    <h3 className="text-2xl font-bold text-white">{kpi.value}</h3>
+                                    <p className="text-slate-500 text-sm font-medium mb-1">{kpi.title}</p>
+                                    <h3 className="text-2xl font-bold text-slate-900">{kpi.value}</h3>
                                 </div>
                             </div>
                         ))}
@@ -150,26 +150,26 @@ export default function FinancePage() {
                     <div className="glass-panel rounded-2xl p-6">
                         <h3 className="text-lg font-semibold mb-4">Transações Registradas</h3>
                         {loading ? (
-                            <p className="text-gray-500 text-sm">Carregando...</p>
+                            <p className="text-slate-400 text-sm">Carregando...</p>
                         ) : transactions.length === 0 ? (
-                            <p className="text-gray-500 text-sm text-center py-8">Nenhuma transação registrada. Clique em &ldquo;Nova Transação&rdquo; para começar.</p>
+                            <p className="text-slate-400 text-sm text-center py-8">Nenhuma transação registrada. Clique em &ldquo;Nova Transação&rdquo; para começar.</p>
                         ) : (
                             <div className="space-y-3">
                                 {transactions.map((tx) => (
-                                    <div key={tx.id} className="flex items-center justify-between p-3 hover:bg-white/5 rounded-xl transition">
+                                    <div key={tx.id} className="flex items-center justify-between p-3 hover:bg-purple-500/5 rounded-xl transition">
                                         <div className="flex items-center gap-3">
                                             <div className={`w-10 h-10 rounded-full flex items-center justify-center ${tx.type === 'income' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
                                                 {tx.type === 'income' ? <ArrowUpRight className="w-5 h-5" /> : <ArrowDownRight className="w-5 h-5" />}
                                             </div>
                                             <div>
                                                 <p className="text-sm font-medium">{tx.description}</p>
-                                                <p className="text-xs text-gray-500">
+                                                <p className="text-xs text-slate-400">
                                                     {tx.due_date} · {tx.status}
                                                     {tx.attachment_url && <span className="ml-2 text-blue-400">📎</span>}
                                                 </p>
                                             </div>
                                         </div>
-                                        <span className={`text-sm font-bold ${tx.type === 'income' ? 'text-green-400' : 'text-gray-400'}`}>
+                                        <span className={`text-sm font-bold ${tx.type === 'income' ? 'text-green-400' : 'text-slate-500'}`}>
                                             {tx.type === 'income' ? '+' : '-'} {fmt(tx.amount)}
                                         </span>
                                     </div>
@@ -180,11 +180,11 @@ export default function FinancePage() {
 
                     {/* Modal Nova Transação */}
                     {showModal && (
-                        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+                        <div className="fixed inset-0 bg-white/60 flex items-center justify-center z-50">
                             <div className="bg-zinc-900 border border-zinc-700 rounded-2xl p-6 w-full max-w-md">
                                 <div className="flex justify-between items-center mb-4">
                                     <h3 className="text-lg font-semibold">Nova Transação</h3>
-                                    <button onClick={() => setShowModal(false)}><X className="w-5 h-5 text-gray-400" /></button>
+                                    <button onClick={() => setShowModal(false)}><X className="w-5 h-5 text-slate-500" /></button>
                                 </div>
                                 <div className="space-y-3">
 
@@ -198,10 +198,10 @@ export default function FinancePage() {
                                         ) : (
                                             <>
                                                 <div className="flex gap-2 mb-2 items-center">
-                                                    <Upload className="w-5 h-5 text-gray-400 group-hover:text-white" />
+                                                    <Upload className="w-5 h-5 text-slate-500 group-hover:text-slate-900" />
                                                     <ScanLine className="w-5 h-5 text-green-400 group-hover:text-green-300" />
                                                 </div>
-                                                <span className="text-xs text-gray-400 text-center mb-2">Arraste um comprovante ou <span className="text-green-400 font-medium whitespace-nowrap">Scanear com IA</span></span>
+                                                <span className="text-xs text-slate-500 text-center mb-2">Arraste um comprovante ou <span className="text-green-400 font-medium whitespace-nowrap">Scanear com IA</span></span>
                                                 <input
                                                     type="file"
                                                     accept="image/*,application/pdf"
