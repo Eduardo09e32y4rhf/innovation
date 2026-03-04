@@ -221,21 +221,21 @@ export default function ChatIAPage() {
     return (
         <AppLayout title="Chat IA — Innovation.ia">
             <div className="flex h-[calc(100vh-57px)] bg-[#050508] text-gray-100 overflow-hidden font-sans">
-                <main className="flex-1 flex flex-col h-full relative max-w-5xl mx-auto border-x border-gray-800/30 bg-gray-950/20 shadow-2xl">
+                <main className="flex-1 flex flex-col h-full relative max-w-5xl mx-auto border-x border-gray-800/30 bg-slate-50/20 shadow-2xl">
                     {/* Header Estilo Premium */}
-                    <header className="px-6 py-4 border-b border-gray-800/50 flex justify-between items-center bg-gray-950/40 backdrop-blur-2xl sticky top-0 z-40">
+                    <header className="px-6 py-4 border-b border-gray-800/50 flex justify-between items-center bg-slate-50/40 backdrop-blur-2xl sticky top-0 z-40">
                         <div className="flex items-center gap-4">
                             <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${gradientClass} flex items-center justify-center p-[1px] shadow-lg shadow-blue-500/10`}>
-                                <div className="w-full h-full rounded-2xl bg-gray-950 flex items-center justify-center">
-                                    <SelectedIcon className="w-6 h-6 text-white" />
+                                <div className="w-full h-full rounded-2xl bg-slate-50 flex items-center justify-center">
+                                    <SelectedIcon className="w-6 h-6 text-slate-900" />
                                 </div>
                             </div>
                             <div>
-                                <h2 className="text-xl font-bold tracking-tight text-white">Innovation<span className="text-blue-400">.ia</span></h2>
+                                <h2 className="text-xl font-bold tracking-tight text-slate-900">Innovation<span className="text-blue-400">.ia</span></h2>
                                 <div className="flex items-center gap-2">
                                     <div className="flex items-center gap-1.5">
                                         <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
-                                        <span className="text-[11px] font-medium text-gray-400 uppercase tracking-widest">
+                                        <span className="text-[11px] font-medium text-slate-500 uppercase tracking-widest">
                                             {currentModel?.name || 'IA'} • ONLINE
                                         </span>
                                     </div>
@@ -247,17 +247,17 @@ export default function ChatIAPage() {
                             <div className="relative group">
                                 <button
                                     onClick={() => setShowModelSelector(!showModelSelector)}
-                                    className="flex items-center gap-3 bg-gray-900/50 border border-gray-700/50 hover:border-blue-500/50 rounded-2xl px-4 py-2.5 text-sm transition-all duration-300 backdrop-blur-md shadow-lg"
+                                    className="flex items-center gap-3 bg-purple-500/50 border border-gray-700/50 hover:border-blue-500/50 rounded-2xl px-4 py-2.5 text-sm transition-all duration-300 backdrop-blur-md shadow-lg"
                                 >
                                     <span className="text-lg">{currentModel?.icon || '⚡'}</span>
                                     <span className="font-semibold text-gray-200">{currentModel?.name?.split('1.5 ')[1] || 'Flash'}</span>
-                                    <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform ${showModelSelector ? 'rotate-180' : ''}`} />
+                                    <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${showModelSelector ? 'rotate-180' : ''}`} />
                                 </button>
 
                                 {showModelSelector && (
-                                    <div className="absolute right-0 top-full mt-3 w-80 bg-gray-900/90 border border-gray-700/50 rounded-3xl shadow-2xl backdrop-blur-2xl overflow-hidden z-50 animate-in fade-in zoom-in duration-200">
-                                        <div className="p-4 border-b border-gray-800/50 bg-gray-950/30">
-                                            <p className="text-[10px] text-gray-500 font-bold uppercase tracking-[0.2em]">Selecione Inteligência</p>
+                                    <div className="absolute right-0 top-full mt-3 w-80 bg-white/90 border border-gray-700/50 rounded-3xl shadow-2xl backdrop-blur-2xl overflow-hidden z-50 animate-in fade-in zoom-in duration-200">
+                                        <div className="p-4 border-b border-gray-800/50 bg-slate-50/30">
+                                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em]">Selecione Inteligência</p>
                                         </div>
                                         <div className="p-2 space-y-1">
                                             {models.map(model => {
@@ -275,15 +275,15 @@ export default function ChatIAPage() {
                                                             }
                                                         }}
                                                         className={`w-full p-4 flex items-start gap-4 rounded-2xl transition-all duration-200 group
-                                                        ${isSelected ? 'bg-blue-500/10 border border-blue-500/20' : 'hover:bg-gray-800/50 border border-transparent'}
+                                                        ${isSelected ? 'bg-blue-500/10 border border-blue-500/20' : 'hover:bg-slate-100/50 border border-transparent'}
                                                         ${!model.available ? 'opacity-40 grayscale cursor-not-allowed' : 'cursor-pointer'}`}
                                                     >
                                                         <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center shrink-0 shadow-lg`}>
-                                                            {model.available ? <Icon className="w-5 h-5 text-white" /> : <Lock className="w-5 h-5 text-white" />}
+                                                            {model.available ? <Icon className="w-5 h-5 text-slate-900" /> : <Lock className="w-5 h-5 text-slate-900" />}
                                                         </div>
                                                         <div className="flex-1 min-w-0">
                                                             <div className="flex items-center justify-between">
-                                                                <span className="text-sm font-bold text-white mb-0.5">{model.name}</span>
+                                                                <span className="text-sm font-bold text-slate-900 mb-0.5">{model.name}</span>
                                                                 <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider
                                                                     ${model.plan === 'Starter' ? 'bg-blue-500/20 text-blue-400' :
                                                                         model.plan === 'Growth' ? 'bg-purple-500/20 text-purple-400' :
@@ -291,7 +291,7 @@ export default function ChatIAPage() {
                                                                     {model.plan}
                                                                 </span>
                                                             </div>
-                                                            <p className="text-[11px] text-gray-400 leading-relaxed line-clamp-2">{model.description}</p>
+                                                            <p className="text-[11px] text-slate-500 leading-relaxed line-clamp-2">{model.description}</p>
                                                             {!model.available && (
                                                                 <div className="mt-2 text-[10px] text-red-300/80 font-medium flex items-center gap-1.5 italic">
                                                                     <div className="w-1 h-1 bg-red-400 rounded-full" /> {model.locked_message || 'Requer upgrade'}
@@ -306,7 +306,7 @@ export default function ChatIAPage() {
                                 )}
                             </div>
 
-                            <button onClick={clearChat} className="p-3 text-gray-500 hover:text-red-400 transition-colors rounded-2xl bg-gray-900/40 hover:bg-gray-800 group" title="Limpar conversa" aria-label="Limpar conversa">
+                            <button onClick={clearChat} className="p-3 text-slate-400 hover:text-red-400 transition-colors rounded-2xl bg-white/40 hover:bg-slate-100 group" title="Limpar conversa" aria-label="Limpar conversa">
                                 <Trash2 className="w-5 h-5" />
                             </button>
                         </div>
@@ -318,12 +318,12 @@ export default function ChatIAPage() {
                             <div className="flex flex-col items-center justify-center h-full py-20 text-center animate-in fade-in slide-in-from-bottom-5 duration-700">
                                 <div className={`w-24 h-24 bg-gradient-to-br ${gradientClass} rounded-[2.5rem] flex items-center justify-center mb-8 shadow-2xl shadow-blue-500/20 relative group overflow-hidden`}>
                                     <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                    <Sparkles className="w-12 h-12 text-white animate-pulse" />
+                                    <Sparkles className="w-12 h-12 text-slate-900 animate-pulse" />
                                 </div>
                                 <h1 className="text-4xl font-extrabold mb-4 bg-gradient-to-r from-white via-blue-100 to-gray-400 bg-clip-text text-transparent">
                                     Intelligence
                                 </h1>
-                                <p className="max-w-md text-gray-400 text-base leading-relaxed mb-12">
+                                <p className="max-w-md text-slate-500 text-base leading-relaxed mb-12">
                                     Seu motor de IA especializado em RH estratégico, análise financeira de folha e gestão de talentos.
                                 </p>
 
@@ -332,12 +332,12 @@ export default function ChatIAPage() {
                                         <button
                                             key={i}
                                             onClick={() => sendMessage(prompt.text)}
-                                            className="group text-left p-5 bg-gray-900/30 border border-gray-800/50 rounded-3xl hover:border-blue-500/40 hover:bg-gray-900/60 transition-all duration-300"
+                                            className="group text-left p-5 bg-white/30 border border-gray-800/50 rounded-3xl hover:border-blue-500/40 hover:bg-white/60 transition-all duration-300"
                                         >
                                             <p className="text-sm font-semibold text-gray-200 group-hover:text-blue-300 transition-colors mb-2">{prompt.text}</p>
                                             <div className="flex items-center gap-2">
                                                 <div className="w-1 h-1 bg-gray-600 rounded-full" />
-                                                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{prompt.category}</span>
+                                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{prompt.category}</span>
                                             </div>
                                         </button>
                                     ))}
@@ -351,19 +351,19 @@ export default function ChatIAPage() {
                                         className={`flex gap-6 animate-in fade-in slide-in-from-bottom-2 duration-300 ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
                                     >
                                         <div className={`flex gap-4 max-w-[90%] md:max-w-[80%] ${msg.sender === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-                                            <div className={`w-10 h-10 rounded-2xl flex items-center justify-center text-white shrink-0 shadow-lg mt-1
+                                            <div className={`w-10 h-10 rounded-2xl flex items-center justify-center text-slate-900 shrink-0 shadow-lg mt-1
                                             ${msg.sender === 'user'
                                                     ? 'bg-blue-600'
                                                     : `bg-gradient-to-br ${MODEL_COLORS[selectedModel] || MODEL_COLORS['gemini-flash']}`}`}
                                             >
-                                                {msg.sender === 'user' ? <User className="w-5 h-5 text-white" /> : <SelectedIcon className="w-5 h-5 text-white" />}
+                                                {msg.sender === 'user' ? <User className="w-5 h-5 text-slate-900" /> : <SelectedIcon className="w-5 h-5 text-slate-900" />}
                                             </div>
 
                                             <div className={`relative flex flex-col gap-2 rounded-3xl p-5 text-sm md:text-base leading-relaxed
                                             ${msg.sender === 'user'
-                                                    ? 'bg-blue-600 text-white rounded-tr-sm shadow-xl shadow-blue-900/10'
-                                                    : 'bg-gray-900/50 border border-gray-800 text-gray-100 rounded-tl-sm shadow-inner shadow-black/20'}
-                                            ${msg.isThinking ? 'bg-gray-900/30 border-dashed animate-pulse min-w-[200px]' : ''}`}
+                                                    ? 'bg-blue-600 text-slate-900 rounded-tr-sm shadow-xl shadow-blue-900/10'
+                                                    : 'bg-purple-500/50 border border-gray-800 text-gray-100 rounded-tl-sm shadow-inner shadow-purple-900/5'}
+                                            ${msg.isThinking ? 'bg-white/30 border-dashed animate-pulse min-w-[200px]' : ''}`}
                                             >
                                                 {msg.isThinking ? (
                                                     <div className="flex items-center gap-4 py-2">
@@ -372,11 +372,11 @@ export default function ChatIAPage() {
                                                             <div className="w-2.5 h-2.5 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '200ms' }} />
                                                             <div className="w-2.5 h-2.5 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '400ms' }} />
                                                         </div>
-                                                        <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Processando Inteligência...</span>
+                                                        <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Processando Inteligência...</span>
                                                     </div>
                                                 ) : (
                                                     <>
-                                                        <div className="prose prose-invert prose-blue max-w-none text-gray-100 prose-p:leading-relaxed prose-pre:bg-gray-950 prose-pre:border prose-pre:border-white/10 prose-pre:rounded-2xl">
+                                                        <div className="prose prose-invert prose-blue max-w-none text-gray-100 prose-p:leading-relaxed prose-pre:bg-slate-50 prose-pre:border prose-pre:border-purple-200 prose-pre:rounded-2xl">
                                                             <ReactMarkdown
                                                                 remarkPlugins={[remarkGfm]}
                                                                 components={{
@@ -387,24 +387,24 @@ export default function ChatIAPage() {
                                                                                 <div className="absolute top-0 right-0 p-2 opacity-0 group-hover/code:opacity-100 transition-opacity z-10">
                                                                                     <button
                                                                                         onClick={() => copyToClipboard(String(children).replace(/\n$/, ''), msg.id)}
-                                                                                        className="bg-gray-800/80 hover:bg-gray-700 p-1.5 rounded-lg border border-white/10 backdrop-blur-md"
+                                                                                        className="bg-slate-100/80 hover:bg-gray-700 p-1.5 rounded-lg border border-purple-200 backdrop-blur-md"
                                                                                         aria-label="Copiar código"
                                                                                     >
-                                                                                        <Copy className="w-3.5 h-3.5 text-gray-400" />
+                                                                                        <Copy className="w-3.5 h-3.5 text-slate-500" />
                                                                                     </button>
                                                                                 </div>
                                                                                 <SyntaxHighlighter
                                                                                     style={vscDarkPlus}
                                                                                     language={match[1]}
                                                                                     PreTag="div"
-                                                                                    className="!bg-gray-950 !rounded-2xl !p-5 !m-0 !text-xs md:!text-sm border border-white/5 shadow-2xl"
+                                                                                    className="!bg-slate-50 !rounded-2xl !p-5 !m-0 !text-xs md:!text-sm border border-purple-200 shadow-2xl"
                                                                                     {...props}
                                                                                 >
                                                                                     {String(children).replace(/\n$/, '')}
                                                                                 </SyntaxHighlighter>
                                                                             </div>
                                                                         ) : (
-                                                                            <code className="bg-gray-800/80 text-blue-300 px-2 py-0.5 rounded-lg text-[0.85em] font-mono border border-white/5" {...props}>
+                                                                            <code className="bg-slate-100/80 text-blue-300 px-2 py-0.5 rounded-lg text-[0.85em] font-mono border border-purple-200" {...props}>
                                                                                 {children}
                                                                             </code>
                                                                         );
@@ -420,7 +420,7 @@ export default function ChatIAPage() {
                                                                 <div className="flex gap-2">
                                                                     <button
                                                                         onClick={() => copyToClipboard(msg.text, msg.id)}
-                                                                        className="flex items-center gap-2 px-3 py-1.5 bg-gray-800/40 hover:bg-gray-800 rounded-xl text-[10px] font-bold text-gray-500 hover:text-white transition-all uppercase tracking-wider"
+                                                                        className="flex items-center gap-2 px-3 py-1.5 bg-slate-100/40 hover:bg-slate-100 rounded-xl text-[10px] font-bold text-slate-400 hover:text-slate-900 transition-all uppercase tracking-wider"
                                                                     >
                                                                         {copiedId === msg.id ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
                                                                         {copiedId === msg.id ? 'Copiado' : 'Copiar'}
@@ -446,10 +446,10 @@ export default function ChatIAPage() {
                     </div>
 
                     {/* Input Area - Moderna e Flutuante */}
-                    <div className="p-6 bg-gray-950/20 backdrop-blur-xl border-t border-gray-800/40">
+                    <div className="p-6 bg-slate-50/20 backdrop-blur-xl border-t border-gray-800/40">
                         <div className="max-w-4xl mx-auto relative group">
                             <div className="absolute -inset-1 bg-gradient-to-r from-blue-600/20 to-purple-600/20 rounded-[2rem] blur opacity-0 group-focus-within:opacity-100 transition-opacity" />
-                            <div className="relative bg-gray-900/80 border border-gray-700/50 rounded-[2rem] shadow-2xl focus-within:border-blue-500/50 transition-all overflow-hidden flex flex-col">
+                            <div className="relative bg-white/80 border border-gray-700/50 rounded-[2rem] shadow-2xl focus-within:border-blue-500/50 transition-all overflow-hidden flex flex-col">
                                 <textarea
                                     ref={textareaRef}
                                     value={input}
@@ -461,10 +461,10 @@ export default function ChatIAPage() {
                                 />
                                 <div className="flex items-center justify-between px-6 pb-4 pt-1">
                                     <div className="flex items-center gap-4 text-gray-600">
-                                        <button className="hover:text-gray-300 transition-colors" title="Anexar" aria-label="Anexar arquivo">
+                                        <button className="hover:text-slate-600 transition-colors" title="Anexar" aria-label="Anexar arquivo">
                                             <div className="w-5 h-5 border-2 border-current rounded-md flex items-center justify-center text-[10px] font-bold">+</div>
                                         </button>
-                                        <div className="w-[1px] h-3 bg-gray-800" />
+                                        <div className="w-[1px] h-3 bg-slate-100" />
                                         <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40">Streaming Ativo</span>
                                     </div>
 
@@ -474,8 +474,8 @@ export default function ChatIAPage() {
                                         aria-label={loading ? "Parar geração" : "Enviar mensagem"}
                                         className={`p-3 rounded-2xl transition-all duration-300 shadow-xl
                                         ${(input.trim() || loading)
-                                                ? `bg-blue-600 text-white shadow-blue-500/20 scale-110`
-                                                : 'bg-gray-800 text-gray-600 scale-100 opacity-50'}`}
+                                                ? `bg-blue-600 text-slate-900 shadow-blue-500/20 scale-110`
+                                                : 'bg-slate-100 text-gray-600 scale-100 opacity-50'}`}
                                     >
                                         {loading ? <StopCircle className="w-5 h-5" /> : <Send className="w-5 h-5" />}
                                     </button>

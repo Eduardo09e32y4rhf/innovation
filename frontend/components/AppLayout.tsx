@@ -73,14 +73,14 @@ function XpBar({
   return (
     <div className="w-full">
       <div className="flex items-center justify-between mb-1">
-        <span className="text-[9px] text-white/30 font-medium">
+        <span className="text-[9px] text-slate-900/30 font-medium">
           Nível {level} → {level + 1}
         </span>
         <span className="text-[9px] text-[#8b5cf6] font-bold">
           {xp}/{maxXp} XP
         </span>
       </div>
-      <div className="h-1 bg-white/5 rounded-full overflow-hidden">
+      <div className="h-1 bg-purple-500/5 rounded-full overflow-hidden">
         <div
           className="h-full rounded-full bg-gradient-to-r from-[#8b5cf6] to-[#a78bfa] transition-all duration-1000"
           style={{ width: `${pct}%` }}
@@ -182,16 +182,16 @@ function NotificationDropdown({ onClose }: { onClose: () => void }) {
       initial={{ opacity: 0, y: 10, scale: 0.95 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: 10, scale: 0.95 }}
-      className="absolute right-0 mt-2 w-80 bg-[#0a0a0a] border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-[100] backdrop-blur-xl"
+      className="absolute right-0 mt-2 w-80 bg-[#0a0a0a] border border-purple-200 rounded-2xl shadow-2xl overflow-hidden z-[100] backdrop-blur-xl"
     >
-      <div className="px-4 py-3 border-b border-white/5 flex items-center justify-between">
-        <span className="text-xs font-bold text-white uppercase tracking-wider">
+      <div className="px-4 py-3 border-b border-purple-200 flex items-center justify-between">
+        <span className="text-xs font-bold text-slate-900 uppercase tracking-wider">
           Notificações
         </span>
         {notifications.length > 0 && (
           <button
             onClick={clearAll}
-            className="p-1.5 text-white/30 hover:text-red-400 transition-colors rounded-lg hover:bg-white/5"
+            className="p-1.5 text-slate-900/30 hover:text-red-400 transition-colors rounded-lg hover:bg-purple-500/5"
             aria-label="Limpar notificações"
           >
             <Trash2 className="w-3.5 h-3.5" />
@@ -203,7 +203,7 @@ function NotificationDropdown({ onClose }: { onClose: () => void }) {
         {loading ? (
           <div className="p-10 flex flex-col items-center justify-center gap-2">
             <div className="w-6 h-6 border-2 border-[#8b5cf6] border-t-transparent rounded-full animate-spin" />
-            <span className="text-[10px] text-white/20 font-medium">
+            <span className="text-[10px] text-slate-900/20 font-medium">
               Buscando alertas...
             </span>
           </div>
@@ -219,7 +219,7 @@ function NotificationDropdown({ onClose }: { onClose: () => void }) {
               return (
                 <div
                   key={n.id}
-                  className={`p-4 hover:bg-white/5 transition-colors cursor-pointer group relative ${!n.read ? 'bg-[#8b5cf6]/5' : ''}`}
+                  className={`p-4 hover:bg-purple-500/5 transition-colors cursor-pointer group relative ${!n.read ? 'bg-[#8b5cf6]/5' : ''}`}
                   onClick={() => !n.read && markAsRead(n.id)}
                 >
                   <div className="flex gap-3">
@@ -231,7 +231,7 @@ function NotificationDropdown({ onClose }: { onClose: () => void }) {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-0.5">
                         <p
-                          className={`text-xs font-bold truncate ${!n.read ? 'text-white' : 'text-white/60'}`}
+                          className={`text-xs font-bold truncate ${!n.read ? 'text-slate-900' : 'text-slate-900/60'}`}
                         >
                           {n.title}
                         </p>
@@ -239,10 +239,10 @@ function NotificationDropdown({ onClose }: { onClose: () => void }) {
                           <div className="w-1.5 h-1.5 bg-[#8b5cf6] rounded-full shrink-0 ml-2" />
                         )}
                       </div>
-                      <p className="text-[11px] text-white/40 leading-relaxed line-clamp-2">
+                      <p className="text-[11px] text-slate-900/40 leading-relaxed line-clamp-2">
                         {n.message}
                       </p>
-                      <span className="text-[9px] text-white/20 mt-2 block italic">
+                      <span className="text-[9px] text-slate-900/20 mt-2 block italic">
                         {new Date(n.created_at).toLocaleTimeString([], {
                           hour: '2-digit',
                           minute: '2-digit'
@@ -258,7 +258,7 @@ function NotificationDropdown({ onClose }: { onClose: () => void }) {
       </div>
 
       {notifications.length > 0 && (
-        <div className="px-4 py-2 border-t border-white/5 bg-white/[0.02]">
+        <div className="px-4 py-2 border-t border-purple-200 bg-purple-500/[0.02]">
           <button
             onClick={() =>
               NotificationService.markAllAsRead().then(fetchNotifications)
@@ -296,15 +296,15 @@ function Sidebar({
     <>
       {/* Overlay for mobile */}
       <div
-        className={`fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] lg:hidden transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+        className={`fixed inset-0 bg-white/60 backdrop-blur-sm z-[60] lg:hidden transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
         onClick={onClose}
       />
 
       <aside
-        className={`fixed left-0 top-0 bottom-0 w-[240px] bg-black/80 backdrop-blur-2xl border-r border-white/5 z-[70] flex flex-col transition-transform duration-300 ease-in-out lg:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
+        className={`fixed left-0 top-0 bottom-0 w-[240px] bg-white/80 backdrop-blur-2xl border-r border-purple-200 z-[70] flex flex-col transition-transform duration-300 ease-in-out lg:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
       >
         {/* Logo */}
-        <div className="px-5 py-5 border-b border-white/5 flex items-center justify-between shrink-0">
+        <div className="px-5 py-5 border-b border-purple-200 flex items-center justify-between shrink-0">
           <Link
             href="/"
             className="text-lg font-black tracking-tighter"
@@ -314,7 +314,7 @@ function Sidebar({
           </Link>
           <button
             onClick={onClose}
-            className="lg:hidden text-white/40 hover:text-white p-1"
+            className="lg:hidden text-slate-900/40 hover:text-slate-900 p-1"
             aria-label="Fechar menu"
           >
             <X className="w-5 h-5" />
@@ -322,35 +322,35 @@ function Sidebar({
         </div>
 
         {/* User profile */}
-        <div className="px-4 py-4 border-b border-white/5 shrink-0 min-h-[105px]">
+        <div className="px-4 py-4 border-b border-purple-200 shrink-0 min-h-[105px]">
           {!user ? (
             <div className="animate-pulse space-y-4">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-white/5" />
+                <div className="w-9 h-9 rounded-xl bg-purple-500/5" />
                 <div className="flex-1 space-y-2">
                   <div className="h-2 bg-white/10 rounded w-20" />
-                  <div className="h-1.5 bg-white/5 rounded w-12" />
+                  <div className="h-1.5 bg-purple-500/5 rounded w-12" />
                 </div>
               </div>
               <div className="space-y-1.5">
                 <div className="flex justify-between">
-                  <div className="h-1.5 bg-white/5 rounded w-10" />
-                  <div className="h-1.5 bg-white/5 rounded w-8" />
+                  <div className="h-1.5 bg-purple-500/5 rounded w-10" />
+                  <div className="h-1.5 bg-purple-500/5 rounded w-8" />
                 </div>
-                <div className="h-1 bg-white/5 rounded-full" />
+                <div className="h-1 bg-purple-500/5 rounded-full" />
               </div>
             </div>
           ) : (
             <>
               <div className="flex items-center gap-3">
                 <div className="relative shrink-0">
-                  <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#8b5cf6] to-[#7c3aed] flex items-center justify-center text-white font-black text-xs shadow-lg shadow-[#8b5cf6]/30">
+                  <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#8b5cf6] to-[#7c3aed] flex items-center justify-center text-slate-900 font-black text-xs shadow-lg shadow-[#8b5cf6]/30">
                     {getInitials(user.name)}
                   </div>
                   <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-black" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-bold text-white truncate">
+                  <p className="text-xs font-bold text-slate-900 truncate">
                     {user.name}
                   </p>
                   <div className="flex items-center gap-1 mt-0.5">
@@ -373,7 +373,7 @@ function Sidebar({
 
         {/* Nav */}
         <nav className="flex-1 px-3 py-4 overflow-y-auto">
-          <p className="text-[8px] text-white/20 uppercase tracking-[0.2em] mb-2 px-2">
+          <p className="text-[8px] text-slate-900/20 uppercase tracking-[0.2em] mb-2 px-2">
             Principal
           </p>
           <div className="space-y-0.5">
@@ -388,12 +388,12 @@ function Sidebar({
                   onClick={onClose}
                   className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group ${
                     active
-                      ? 'bg-[#8b5cf6]/15 text-white border border-[#8b5cf6]/20'
-                      : 'text-white/40 hover:text-white hover:bg-white/5'
+                      ? 'bg-[#8b5cf6]/15 text-slate-900 border border-[#8b5cf6]/20'
+                      : 'text-slate-900/40 hover:text-slate-900 hover:bg-purple-500/5'
                   }`}
                 >
                   <Icon
-                    className={`w-4 h-4 shrink-0 transition-colors ${active ? 'text-[#8b5cf6]' : 'group-hover:text-white/80'}`}
+                    className={`w-4 h-4 shrink-0 transition-colors ${active ? 'text-[#8b5cf6]' : 'group-hover:text-slate-900/80'}`}
                   />
                   <span className="text-sm font-medium">{item.name}</span>
                   {active && (
@@ -406,7 +406,7 @@ function Sidebar({
 
           {user?.role === 'admin' && (
             <>
-              <p className="text-[8px] text-white/20 uppercase tracking-[0.2em] mb-2 px-2 mt-4">
+              <p className="text-[8px] text-slate-900/20 uppercase tracking-[0.2em] mb-2 px-2 mt-4">
                 Avançado e Admin
               </p>
               <div className="space-y-0.5">
@@ -420,12 +420,12 @@ function Sidebar({
                       onClick={onClose}
                       className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group ${
                         active
-                          ? 'bg-[#8b5cf6]/15 text-white border border-[#8b5cf6]/20'
-                          : 'text-white/40 hover:text-white hover:bg-white/5'
+                          ? 'bg-[#8b5cf6]/15 text-slate-900 border border-[#8b5cf6]/20'
+                          : 'text-slate-900/40 hover:text-slate-900 hover:bg-purple-500/5'
                       }`}
                     >
                       <Icon
-                        className={`w-4 h-4 shrink-0 transition-colors ${active ? 'text-[#8b5cf6]' : 'group-hover:text-white/80'}`}
+                        className={`w-4 h-4 shrink-0 transition-colors ${active ? 'text-[#8b5cf6]' : 'group-hover:text-slate-900/80'}`}
                       />
                       <span className="text-sm font-medium">{item.name}</span>
                       {active && (
@@ -440,7 +440,7 @@ function Sidebar({
         </nav>
 
         {/* Footer */}
-        <div className="px-3 py-3 border-t border-white/5 shrink-0">
+        <div className="px-3 py-3 border-t border-purple-200 shrink-0">
           <button
             onClick={handleLogout}
             className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-red-400/50 hover:text-red-400 hover:bg-red-500/10 transition-all text-sm"
@@ -500,11 +500,11 @@ function TopBar({
   }, []);
 
   return (
-    <header className="sticky top-0 z-50 bg-black/60 backdrop-blur-xl border-b border-white/5 px-4 sm:px-6 py-3 flex items-center gap-3 sm:gap-4">
+    <header className="sticky top-0 z-50 bg-white/60 backdrop-blur-xl border-b border-purple-200 px-4 sm:px-6 py-3 flex items-center gap-3 sm:gap-4">
       {/* Mobile menu toggle */}
       <button
         onClick={onToggleSidebar}
-        className="lg:hidden p-2 -ml-2 text-white/40 hover:text-white transition-colors"
+        className="lg:hidden p-2 -ml-2 text-slate-900/40 hover:text-slate-900 transition-colors"
         aria-label="Abrir menu"
       >
         <Menu className="w-5 h-5" />
@@ -514,7 +514,7 @@ function TopBar({
       {!isHome && (
         <button
           onClick={() => router.back()}
-          className="flex items-center gap-2 text-white/40 hover:text-white transition-all px-2 py-1.5 rounded-lg hover:bg-white/5 shrink-0"
+          className="flex items-center gap-2 text-slate-900/40 hover:text-slate-900 transition-all px-2 py-1.5 rounded-lg hover:bg-purple-500/5 shrink-0"
           title="Voltar"
         >
           <ArrowLeft className="w-4 h-4" />
@@ -525,7 +525,7 @@ function TopBar({
       {/* Page title */}
       <div className="flex items-center gap-2 flex-1 min-w-0">
         <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse shrink-0" />
-        <span className="text-xs text-white/30 font-medium truncate">
+        <span className="text-xs text-slate-900/30 font-medium truncate">
           {title ?? 'Sistema operacional'}
         </span>
       </div>
@@ -535,12 +535,12 @@ function TopBar({
         <div className="relative" ref={dropdownRef}>
           <button
             onClick={() => setShowNotifications(!showNotifications)}
-            className={`relative p-2 rounded-xl transition-all ${showNotifications ? 'bg-white/10 text-white' : 'text-white/30 hover:text-white hover:bg-white/5'}`}
+            className={`relative p-2 rounded-xl transition-all ${showNotifications ? 'bg-white/10 text-slate-900' : 'text-slate-900/30 hover:text-slate-900 hover:bg-purple-500/5'}`}
             aria-label="Notificações"
           >
             <Bell className="w-4 h-4" />
             {unreadCount > 0 && (
-              <span className="absolute top-1.5 right-1.5 w-3.5 h-3.5 bg-[#8b5cf6] rounded-full text-[8px] flex items-center justify-center font-bold text-white shadow-lg shadow-[#8b5cf6]/40">
+              <span className="absolute top-1.5 right-1.5 w-3.5 h-3.5 bg-[#8b5cf6] rounded-full text-[8px] flex items-center justify-center font-bold text-slate-900 shadow-lg shadow-[#8b5cf6]/40">
                 {unreadCount > 9 ? '9+' : unreadCount}
               </span>
             )}
@@ -556,11 +556,11 @@ function TopBar({
         </div>
 
         {user && (
-          <div className="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-full border border-white/8 cursor-default">
-            <div className="w-5 h-5 rounded-full bg-gradient-to-br from-[#8b5cf6] to-[#7c3aed] flex items-center justify-center text-white font-black text-[9px]">
+          <div className="flex items-center gap-2 bg-purple-500/5 px-3 py-1.5 rounded-full border border-purple-200 cursor-default">
+            <div className="w-5 h-5 rounded-full bg-gradient-to-br from-[#8b5cf6] to-[#7c3aed] flex items-center justify-center text-slate-900 font-black text-[9px]">
               {getInitials(user.name)}
             </div>
-            <span className="text-xs font-medium text-white hidden sm:inline">
+            <span className="text-xs font-medium text-slate-900 hidden sm:inline">
               {user.name.split(' ')[0]}
             </span>
           </div>
@@ -612,7 +612,7 @@ export default function AppLayout({
   }, []);
 
   return (
-    <div className="flex min-h-screen bg-[#000000] text-white">
+    <div className="flex min-h-screen bg-slate-50 text-slate-900">
       {/* Ambient glow */}
       <div className="fixed top-0 right-0 w-[500px] h-[400px] bg-[#8b5cf6]/5 rounded-full blur-[150px] pointer-events-none z-0" />
 
@@ -647,7 +647,7 @@ export default function AppLayout({
               </p>
               <Link
                 href="/pricing"
-                className="text-[10px] font-bold uppercase tracking-wider bg-orange-500 hover:bg-orange-600 text-white px-3 py-1.5 rounded transition"
+                className="text-[10px] font-bold uppercase tracking-wider bg-orange-500 hover:bg-orange-600 text-slate-900 px-3 py-1.5 rounded transition"
               >
                 Assinar Premium
               </Link>

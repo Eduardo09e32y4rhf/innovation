@@ -16,8 +16,8 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="pt-BR" className="dark">
-      <body className={`${inter.className} min-h-screen bg-black text-white antialiased`}>
+    <html lang="pt-BR" className="light">
+      <body className={`${inter.className} min-h-screen bg-slate-50 text-slate-900 antialiased`}>
         <AnnouncementBanner />
         {children}
       </body>

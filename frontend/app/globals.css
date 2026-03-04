@@ -1,99 +1,54 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-:root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
-  --background-end-rgb: 255, 255, 255;
-}
-
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --foreground-rgb: 255, 255, 255;
-    --background-start-rgb: 0, 0, 0;
-    --background-end-rgb: 0, 0, 0;
+    --background: 210 40% 98%;
+    --foreground: 222.2 84% 4.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+
+    --primary: 262.1 83.3% 57.8%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 262.1 83.3% 57.8%;
+
+    --radius: 0.5rem;
   }
 }
 
-body {
-  color: rgb(var(--foreground-rgb));
-  background: linear-gradient(to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))) rgb(var(--background-start-rgb));
-}
-
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
   }
 }
 
-/* Custom Enterprise Scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+.glass-panel {
+  @apply bg-white/60 backdrop-blur-xl border border-purple-200/50 shadow-[0_8px_32px_0_rgba(139,92,246,0.1)];
 }
 
-::-webkit-scrollbar-track {
-  background: #09090b;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #27272a;
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #3f3f46;
-}
-
-@layer components {
-  .glass-panel {
-    background-color: rgba(3, 7, 18, 0.7);
-    @apply backdrop-blur-xl border border-white/5 shadow-xl;
-  }
-
-  .glass-card {
-    background-color: rgba(0, 0, 0, 0.4);
-    @apply backdrop-blur-md border border-white/10 rounded-xl transition-all duration-300;
-  }
-
-  .glass-card:hover {
-    @apply border-purple-500/30;
-  }
-
-  .gradient-text {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-cyan-400;
-  }
-
-  .sidebar-link {
-    @apply flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 transition-all duration-200;
-  }
-
-  .sidebar-link:hover {
-    color: white;
-    background-color: rgba(255, 255, 255, 0.05);
-  }
-
-  .sidebar-link.active {
-    background-color: rgba(168, 85, 247, 0.1);
-    @apply text-purple-400 border-l-2 border-purple-500 rounded-l-none;
-  }
-}
-
-.animate-float {
-  animation: float 6s ease-in-out infinite;
-}
-
-@keyframes float {
-  0% {
-    transform: translateY(0px);
-  }
-
-  50% {
-    transform: translateY(-10px);
-  }
-
-  100% {
-    transform: translateY(0px);
-  }
+.glass-card {
+  @apply bg-white/70 backdrop-blur-lg border border-purple-100 shadow-sm hover:shadow-md hover:border-purple-300/50 transition-all duration-300;
 }
