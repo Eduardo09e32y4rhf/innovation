@@ -17,10 +17,10 @@ A plataforma Innovation.ia foi construída com os mais rigorosos padrões de seg
 ---
 
 ## 🚀 A Visão: Super ERP Cognitivo
-A **Innovation.ia** evoluiu de um Dashboard de IA para o **Sistema Operativo Central (ERP + ATS)** definitivo. Nosso objetivo é substituir ecossistemas legados e fragmentados (como TOTVS, Protheus, Gupy) por uma plataforma única, nativa em IA, onde a empresa opera 100% do seu tempo.
+A **Innovation.ia** evoluiu de um Dashboard de IA para o **Sistema Operativo Central (ERP + ATS)** definitivo. Nosso objetivo é substituir ecossistemas legados e fragmentados por uma plataforma única, nativa em IA, onde a empresa opera 100% do seu tempo.
 
 ### 💎 O que nos torna Superiores?
-- **Pilar 1: ATS de Elite (O "Killer" da Gupy)**: Recrutamento autônomo com Ranking via RAG e Kanban de alta performance.
+- **Pilar 1: ATS de Elite**: Recrutamento autônomo com Ranking via RAG e Kanban de alta performance.
 - **Pilar 2: Finanças "Zero Papel"**: OCR avançado com Gemini 2.0 Flash para leitura de notas e recibos sem digitação manual.
 - **Pilar 3: Automação n8n & WhatsApp**: Integração profunda com mensageria para processos de RH e suporte.
 
@@ -29,7 +29,7 @@ A **Innovation.ia** evoluiu de um Dashboard de IA para o **Sistema Operativo Cen
 ## 🛠 Módulos em Destaque (Fase 1 Atualizada)
 
 ### 📊 ATS Intelligence & Kanban
-- **Alta Performance**: Interface inspirada no Trello/Gupy com animações fluidas (Framer Motion).
+- **Alta Performance**: Interface inspirada no Trello com animações fluidas (Framer Motion).
 - **Match Score IA**: Visualização direta da compatibilidade do candidato no card do Kanban.
 
 ### 💰 Finanças Zero Papel
