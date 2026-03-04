@@ -108,7 +108,7 @@ export default function ProjectsPage() {
                             <option value={0}>Projeto...</option>
                             {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                         </select>
-                        <button onClick={createTask} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-sm font-medium transition">
+                        <button onClick={createTask} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-sm font-medium transition" aria-label="Criar nova tarefa">
                             <Plus className="w-4 h-4" />
                         </button>
                     </div>
@@ -131,14 +131,15 @@ export default function ProjectsPage() {
                                             <p className="text-xs text-gray-500 mb-3">{task.estimated_hours}h · R${task.cost_per_hour}/h</p>
                                             <div className="flex gap-2">
                                                 {col !== 'todo' && (
-                                                    <button onClick={() => moveTask(task.id, COLUMNS[COLUMNS.indexOf(col) - 1])} className="text-xs px-2 py-1 rounded bg-zinc-700 hover:bg-zinc-600 transition">←</button>
+                                                    <button onClick={() => moveTask(task.id, COLUMNS[COLUMNS.indexOf(col) - 1])} className="text-xs px-2 py-1 rounded bg-zinc-700 hover:bg-zinc-600 transition" aria-label="Mover para a coluna anterior">←</button>
                                                 )}
                                                 {col !== 'done' && (
-                                                    <button onClick={() => moveTask(task.id, COLUMNS[COLUMNS.indexOf(col) + 1])} className="text-xs px-2 py-1 rounded bg-zinc-700 hover:bg-zinc-600 transition">→</button>
+                                                    <button onClick={() => moveTask(task.id, COLUMNS[COLUMNS.indexOf(col) + 1])} className="text-xs px-2 py-1 rounded bg-zinc-700 hover:bg-zinc-600 transition" aria-label="Mover para a próxima coluna">→</button>
                                                 )}
                                                 <button
                                                     onClick={() => handleTimeToggle(task)}
                                                     className={`text-xs px-2 py-1 rounded transition flex items-center gap-1 ${activeTracking[task.id] ? 'bg-red-600 hover:bg-red-500' : 'bg-green-700 hover:bg-green-600'}`}
+                                                    aria-label={activeTracking[task.id] ? "Parar rastreamento de tempo" : "Iniciar rastreamento de tempo"}
                                                 >
                                                     {activeTracking[task.id] ? <Square className="w-3 h-3" /> : <Play className="w-3 h-3" />}
                                                     {activeTracking[task.id] ? 'Stop' : 'Play'}
