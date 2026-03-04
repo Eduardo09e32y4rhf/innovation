@@ -83,7 +83,7 @@ export default function ChatIAPage() {
             .catch(() => {
                 setModels([
                     { id: 'gemini-flash', name: 'Gemini 1.5 Flash', description: 'Rápido e eficiente', plan: 'Starter', available: true, icon: '⚡' },
-                    { id: 'gemini-pro', name: 'Gemini 1.5 Pro', description: 'Análises profundas', plan: 'Growth', available: true, icon: '🚀' },
+                    { id: 'gemini-pro', name: 'Gemini 3.1 Pro', description: 'Análises profundas', plan: 'Growth', available: true, icon: '🚀' },
                     { id: 'claude', name: 'Claude 3.5 Sonnet', description: 'Premium Enterprise', plan: 'Enterprise', available: false, icon: '🧠', locked_message: 'Contate o admin' },
                 ]);
             });

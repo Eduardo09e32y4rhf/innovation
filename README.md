@@ -51,8 +51,8 @@ A **Innovation.ia** evoluiu de um Dashboard de IA para o **Sistema Operativo Cen
 
 ## 📈 Roadmap para o Futuro Próximo
 
-- **Fase 3 (Próxima)**: Integração Governamental Direta (**SEFAZ/NF-e**) e Super ATS com Interviews Automáticas via n8n.
-- **Fase 4**: Conciliação Bancária 100% Autônoma (XML + DDA + Extrato).
+- **Fase 3 (Próxima)** : Integração Governamental Direta ( SEFAZ/NF-e ) e Super ATS com Entrevistas Automáticas via n8n.
+- **Fase 4** : Conciliação Bancária 100% Autônoma (XML + DDA + Extrato)
 
 ---
 
