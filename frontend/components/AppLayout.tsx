@@ -29,7 +29,7 @@ import {
   Trash2
 } from 'lucide-react';
 import { useEffect, useState, useRef } from 'react';
-import { AuthService, NotificationService } from '../services/api';
+import { AuthService, DashboardService, NotificationService } from '../services/api';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // ─── TYPES ──────────────────────────────────────────────────────────────────
@@ -50,6 +50,13 @@ interface UserProfile {
   role?: string;
   subscription_status?: string;
   trial_expires_at?: string;
+}
+
+interface GamificationData {
+  points: number;
+  level: number;
+  xp_in_level: number;
+  next_level_xp: number;
 }
 
 // ─── HELPERS ────────────────────────────────────────────────────────────────
@@ -276,10 +283,12 @@ function NotificationDropdown({ onClose }: { onClose: () => void }) {
 // ─── SIDEBAR ────────────────────────────────────────────────────────────────
 function Sidebar({
   user,
+  gamification,
   isOpen,
   onClose
 }: {
   user: UserProfile | null;
+  gamification: GamificationData;
   isOpen: boolean;
   onClose: () => void;
 }) {
@@ -361,11 +370,11 @@ function Sidebar({
                   </div>
                 </div>
                 <span className="text-[9px] bg-yellow-400/15 text-yellow-300 px-1.5 py-0.5 rounded font-black shrink-0 border border-yellow-400/20">
-                  Nv.7
+                  Nv.{gamification.level}
                 </span>
               </div>
               <div className="mt-3">
-                <XpBar xp={2340} maxXp={3000} level={7} />
+                <XpBar xp={gamification.xp_in_level} maxXp={gamification.next_level_xp} level={gamification.level} />
               </div>
             </>
           )}
@@ -387,8 +396,8 @@ function Sidebar({
                   href={item.href}
                   onClick={onClose}
                   className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group ${active
-                      ? 'bg-[#8b5cf6]/20 text-white border border-[#8b5cf6]/40 shadow-sm shadow-[#8b5cf6]/10'
-                      : 'text-purple-300/50 hover:text-white hover:bg-purple-500/10'
+                    ? 'bg-[#8b5cf6]/20 text-white border border-[#8b5cf6]/40 shadow-sm shadow-[#8b5cf6]/10'
+                    : 'text-purple-300/50 hover:text-white hover:bg-purple-500/10'
                     }`}
                 >
                   <Icon
@@ -418,8 +427,8 @@ function Sidebar({
                       href={item.href}
                       onClick={onClose}
                       className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group ${active
-                          ? 'bg-[#8b5cf6]/20 text-white border border-[#8b5cf6]/40'
-                          : 'text-purple-300/50 hover:text-white hover:bg-purple-500/10'
+                        ? 'bg-[#8b5cf6]/20 text-white border border-[#8b5cf6]/40'
+                        : 'text-purple-300/50 hover:text-white hover:bg-purple-500/10'
                         }`}
                     >
                       <Icon
@@ -578,6 +587,9 @@ export default function AppLayout({
 }) {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [gamification, setGamification] = useState<GamificationData>({
+    points: 0, level: 1, xp_in_level: 0, next_level_xp: 1000
+  });
 
   const router = useRouter();
 
@@ -596,6 +608,20 @@ export default function AppLayout({
       .catch(() => {
         router.push('/login');
       });
+
+    // Busca dados reais de gamificação (XP, nível)
+    DashboardService.getMetrics()
+      .then((m: any) => {
+        if (m?.user) {
+          setGamification({
+            points: m.user.points ?? 0,
+            level: m.user.level ?? 1,
+            xp_in_level: m.user.xp_in_level ?? 0,
+            next_level_xp: m.user.next_level_xp ?? 1000,
+          });
+        }
+      })
+      .catch(() => { });
   }, [router]);
 
   // Close sidebar on window resize if greater than lg breakpoint
@@ -617,6 +643,7 @@ export default function AppLayout({
 
       <Sidebar
         user={user}
+        gamification={gamification}
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
       />
