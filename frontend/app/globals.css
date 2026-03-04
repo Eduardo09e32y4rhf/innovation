@@ -52,3 +52,15 @@
 .glass-card {
   @apply bg-white/70 backdrop-blur-lg border border-purple-100 shadow-sm hover:shadow-md hover:border-purple-300/50 transition-all duration-300;
 }
+
+@theme {
+  --color-border: #e5e7eb;
+  --color-background: #ffffff;
+  --color-foreground: #000000;
+  --color-primary: #111827;
+  --color-primary-foreground: #f9fafb;
+  --color-muted: #f3f4f6;
+  --color-muted-foreground: #6b7280;
+  --color-card: #ffffff;
+  --color-card-foreground: #020817;
+}

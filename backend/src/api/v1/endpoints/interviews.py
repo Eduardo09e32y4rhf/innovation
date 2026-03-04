@@ -6,7 +6,7 @@ from infrastructure.database.sql.dependencies import get_db
 from core.dependencies import get_current_user
 from domain.models.user import User
 
-router = APIRouter(prefix="/api/interviews", tags=["Interviews"])
+router = APIRouter(prefix="/interviews", tags=["Interviews"])
 
 
 @router.get("")

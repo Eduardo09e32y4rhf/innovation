@@ -23,6 +23,18 @@ from api.v1.endpoints import (
     killer_questions,
     ai_admin,
     notifications,
+    companies,
+    users,
+    documents,
+    terms,
+    plans,
+    audit_logs,
+    subscriptions,
+    webhooks,
+    analytics,
+    candidates,
+    services_documents,
+    services_full,
 )
 import domain.models  # Garante o registro de todos os modelos
 from core.config import settings
@@ -72,6 +84,18 @@ app.include_router(projects.router, prefix="/api")
 app.include_router(rh.router, prefix="/api")
 app.include_router(finance.router, prefix="/api")
 app.include_router(support.router, prefix="/api")
+app.include_router(companies.router, prefix="/api")
+app.include_router(users.router, prefix="/api")
+app.include_router(documents.router, prefix="/api")
+app.include_router(terms.router, prefix="/api")
+app.include_router(plans.router, prefix="/api")
+app.include_router(audit_logs.router, prefix="/api")
+app.include_router(subscriptions.router, prefix="/api")
+app.include_router(webhooks.router, prefix="/api")
+app.include_router(analytics.router, prefix="/api")
+app.include_router(candidates.router, prefix="/api")
+app.include_router(services_documents.router, prefix="/api")
+app.include_router(services_full.router, prefix="/api")
 # ── Advanced Modules (MASTERPLAN completion) ──
 app.include_router(rh_advanced.router, prefix="/api")
 app.include_router(csc_advanced.router, prefix="/api")

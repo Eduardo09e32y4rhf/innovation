@@ -1,11 +1,18 @@
 import os
 import pytest
+from pydantic import ValidationError
 
 
 def test_config_raises_if_secret_key_missing(monkeypatch):
     monkeypatch.delenv("SECRET_KEY", raising=False)
 
-    with pytest.raises(Exception):
+    # Reload settings module to test validation
+    import sys
+
+    if "core.config" in sys.modules:
+        del sys.modules["core.config"]
+
+    with pytest.raises(ValidationError):
         from core.config import Settings
 
         Settings()
@@ -13,6 +20,10 @@ def test_config_raises_if_secret_key_missing(monkeypatch):
 
 def test_config_loads_with_secret_key(monkeypatch):
     monkeypatch.setenv("SECRET_KEY", "my_secret_key")
+    import sys
+
+    if "core.config" in sys.modules:
+        del sys.modules["core.config"]
     try:
         from core.config import Settings
 
