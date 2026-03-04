@@ -1,4 +1,6 @@
-@import "tailwindcss";
+import os
+
+globals_css = """@import "tailwindcss";
 
 :root {
   --foreground-rgb: 0, 0, 0;
@@ -97,3 +99,8 @@ body {
     transform: translateY(0px);
   }
 }
+"""
+with open('frontend/app/globals.css', 'w') as f:
+    f.write(globals_css)
+
+print("Modifications applied!")
