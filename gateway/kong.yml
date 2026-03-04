@@ -33,7 +33,6 @@ services:
         paths:
           - /api/auth
         strip_path: false
-        priority: 100
 
   - name: ai_service
     url: http://ai_service:8002
@@ -42,7 +41,6 @@ services:
         paths:
           - /api/ai
         strip_path: false
-        priority: 90
 
   - name: core_service
     url: http://core_service:8003
@@ -51,7 +49,6 @@ services:
         paths:
           - /api/core
         strip_path: false
-        priority: 80
 
   - name: api_monolith
     url: http://api_monolith:8000
@@ -60,4 +57,3 @@ services:
         paths:
           - /api
         strip_path: false
-        priority: 10
