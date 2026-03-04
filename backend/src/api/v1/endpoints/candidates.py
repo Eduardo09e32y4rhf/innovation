@@ -136,5 +136,25 @@ async def get_candidate_resume(
     db: Session = Depends(get_db),
 ):
     """Baixar currículo do candidato"""
-    # TODO: Implementar download de currículo
-    return {"message": "Feature em desenvolvimento"}
+    from domain.models.document import Document
+
+    # Procura um documento do tipo 'resume' associado ao usuário
+    # Assumindo que o document_url pode ser usado para download/redirecionamento
+    document = (
+        db.query(Document)
+        .filter(Document.user_id == candidate_id, Document.type == "resume")
+        .order_by(Document.created_at.desc())
+        .first()
+    )
+
+    if not document:
+        raise HTTPException(
+            status_code=404, detail="Currículo não encontrado para este candidato."
+        )
+
+    # Se a URL não existir, ou se quisermos retornar apenas a URL
+    return {
+        "candidate_id": candidate_id,
+        "resume_url": document.file_url,
+        "filename": document.filename,
+    }
