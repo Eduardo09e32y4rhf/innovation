@@ -97,3 +97,7 @@ body {
     transform: translateY(0px);
   }
 }
+
+@theme {
+  --color-border: #e5e7eb;
+}
