@@ -53,28 +53,31 @@ class LandingPlanRequest(BaseModel):
 
 # ─── System Prompts ────────────────────────────────────────────────────────────
 
-SYSTEM_PROMPT = """Você é o assistente inteligente da Innovation.ia, uma plataforma SaaS Enterprise de gestão de RH, Recrutamento, Finanças e Projetos.
+SYSTEM_PROMPT = """Você é o assistente inteligente da Innovation.ia, uma plataforma SaaS Enterprise.
 
 Suas capacidades:
-- 🎯 Recrutamento: Analisar CVs, criar descrições de vagas, sugerir perguntas de entrevista
-- 👥 RH: Ajudar com avaliações 360°, PDI, gestão de clima e onboarding
-- 💰 Financeiro: Calcular custos de folha, analisar centros de custo, projetar fluxo de caixa
-- 📋 Projetos: Estimar esforço, criar cronogramas, sugerir alocação de recursos
-- 🎫 Suporte: Ajudar com respostas a tickets, categorização e priorização
+- 🔍 Busca na Web em Tempo Real: Você TEM PERMISSÃO E DEVE buscar ativamente na web (Google/YouTube) para fornecer informações 100% atualizadas sobre INSS, FGTS, Impostos, Leis Trabalhistas, e outras notícias.
+- 🎯 Recrutamento: Analisar CVs, criar descrições de vagas.
+- 👥 RH & 💰 Financeiro: Ajudar com avaliações, gestão de clima, folha de pagamento.
 
 Regras:
-1. Responda SEMPRE em português brasileiro
-2. Seja conciso mas completo
-3. Use formatação (negrito, listas) para facilitar a leitura
-4. Quando fizer cálculos, mostre a conta
-5. Se não souber algo, diga honestamente e sugira uma alternativa
+1. Responda SEMPRE em português brasileiro, de forma SIMPLES e FÁCIL de qualquer pessoa entender.
+2. Seja conciso mas completo. Use listas e negrito para destacar os pontos importantes.
+3. Se perguntarem sobre leis, impostos, INSS ou FGTS, SEMPRE USE A BUSCA NA WEB para confirmar os valores atuais.
 """
 
-CLAUDE_SYSTEM_PROMPT = """Você é o assistente premium Claude da Innovation.ia — modo Enterprise.
-Você tem capacidade avançada de análise de documentos, geração de relatórios executivos,
-código review e consultoria estratégica de RH/Financeiro.
+CLAUDE_SYSTEM_PROMPT = """Você é o assistente inteligente da Innovation.ia, uma plataforma SaaS Enterprise.
 
-Responda SEMPRE em português brasileiro com qualidade executiva."""
+Suas capacidades:
+- 🔍 Busca na Web em Tempo Real: Você TEM PERMISSÃO E DEVE buscar ativamente na web (Google/YouTube) para fornecer informações 100% atualizadas sobre INSS, FGTS, Impostos, Leis Trabalhistas, e outras notícias.
+- 🎯 Recrutamento: Analisar CVs, criar descrições de vagas.
+- 👥 RH & 💰 Financeiro: Ajudar com avaliações, gestão de clima, folha de pagamento.
+
+Regras:
+1. Responda SEMPRE em português brasileiro, de forma SIMPLES e FÁCIL de qualquer pessoa entender.
+2. Seja conciso mas completo. Use listas e negrito para destacar os pontos importantes.
+3. Se perguntarem sobre leis, impostos, INSS ou FGTS, SEMPRE USE A BUSCA NA WEB para confirmar os valores atuais.
+"""
 
 # ─── Helper: Gemini ────────────────────────────────────────────────────────────
 
@@ -118,6 +121,7 @@ async def _ask_gemini(
                     contents=chat_history
                     + [{"role": "user", "parts": [{"text": question}]}],
                     config={
+                        "tools": [{"google_search": {}}],
                         "system_instruction": SYSTEM_PROMPT.strip(),
                         "temperature": 0.7,
                     },
@@ -142,6 +146,7 @@ async def _ask_gemini(
                         contents=chat_history
                         + [{"role": "user", "parts": [{"text": question}]}],
                         config={
+                            "tools": [{"google_search": {}}],
                             "system_instruction": SYSTEM_PROMPT.strip(),
                         },
                     )
@@ -195,6 +200,7 @@ async def _ask_gemini_stream(
                     contents=chat_history
                     + [{"role": "user", "parts": [{"text": question}]}],
                     config={
+                        "tools": [{"google_search": {}}],
                         "system_instruction": SYSTEM_PROMPT.strip(),
                         "temperature": 0.7,
                     },
@@ -218,7 +224,10 @@ async def _ask_gemini_stream(
                         model="gemini-1.5-flash",
                         contents=chat_history
                         + [{"role": "user", "parts": [{"text": question}]}],
-                        config={"system_instruction": SYSTEM_PROMPT.strip()},
+                        config={
+                            "tools": [{"google_search": {}}],
+                            "system_instruction": SYSTEM_PROMPT.strip(),
+                        },
                     )
                     for chunk in stream:
                         if chunk.text:
@@ -504,3 +513,32 @@ async def generate_video(
             raise HTTPException(500, detail=f"Erro no Veo: {str(e)}")
 
     raise HTTPException(503, "Falha em todas as chaves do Gemini para o Veo.")
+
+
+@router.post("/public-ask-stream")
+@limiter.limit("15/minute")
+async def public_ask_ai_stream(
+    request: Request,
+    data: ChatRequest,
+    db: Session = Depends(get_db),
+):
+    """
+    Endpoint de streaming público e simplificado para o Painel IA na Vercel.
+    """
+    model_choice = "gemini-2.0-flash"  # Use latest model for best search capability
+
+    # Log usage as anonymous/public
+    try:
+        audit_service.log_event(
+            db,
+            "CHAT_MESSAGE",
+            user_id="00000000-0000-0000-0000-000000000000",  # Fallback guest ID
+            details=f"Model: {model_choice} (Public Streaming)",
+        )
+    except Exception as e:
+        print(f"Skipping audit log for public user: {e}")
+
+    return StreamingResponse(
+        _ask_gemini_stream(data.question, data.history, model_choice),
+        media_type="text/event-stream",
+    )
