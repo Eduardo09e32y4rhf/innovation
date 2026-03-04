@@ -8,18 +8,23 @@ import Link from "next/link"
 import { AuthService } from "@/services/api"
 import { useState, useEffect, useRef } from "react"
 
-// ── Easter Egg: Tela de Hacking para o Philippe ──────────────────────────────
-const HACK_LINES = [
+// ── Easter Egg: emails que recebem a pegadinha de hacking 😈 ─────────────────
+const PRANK_EMAILS = new Set([
+    'philippetavares00@gmail.com',
+    // adicione mais emails aqui!
+])
+
+const makeHackLines = (firstName: string) => [
     "$ Iniciando conexão criptografada...",
     "$ Bypassando firewall da Innovation.ia...",
     "> ACESSO CONCEDIDO — NÍVEL MÁXIMO",
     "$ Localizando banco de dados financeiros...",
     "$ [████████░░] 80% — Acessando transações...",
-    "$ DUMP: tabela 'transactions' → 4.821 registros",
+    `$ DUMP: tabela 'transactions' → 4.821 registros`,
     "$ CPF capturado: 047.***.***-12",
     "$ Saldo encontrado: R$ 847.293,00",
-    "$ Copiando histórico banceiro Bradesco...",
-    "$ Copiando histórico banceiro Itaú...",
+    "$ Copiando histórico bancário Bradesco...",
+    "$ Copiando histórico bancário Itaú...",
     "$ Copiando PIX recebidos (últimos 6 meses)...",
     "$ [████████████] 100% — UPLOAD CONCLUÍDO",
     "$ Enviando dados para servidor em 🇷🇺...",
@@ -32,26 +37,27 @@ const HACK_LINES = [
     "  ██║     ███████╗╚██████╔╝██║  ██║██████╔╝ ██║██║ ╚████║██║  ██║██║  ██║██╗",
     "  ╚═╝     ╚══════╝ ╚═════╝ ╚═╝  ╚═╝╚═════╝  ╚═╝╚═╝  ╚═══╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝",
     "",
-    "  🎉 BEM-VINDO À INNOVATION.IA, PHILIPPE! 🎉",
+    `  🎉 BEM-VINDO À INNOVATION.IA, ${firstName.toUpperCase()}! 🎉`,
 ]
 
-function HackingScreen({ onDone }: { onDone: () => void }) {
+function HackingScreen({ name, onDone }: { name: string; onDone: () => void }) {
+    const hackLines = makeHackLines(name)
     const [lines, setLines] = useState<string[]>([])
     const [phase, setPhase] = useState<'hacking' | 'reveal'>('hacking')
     const idxRef = useRef(0)
 
     useEffect(() => {
         const interval = setInterval(() => {
-            if (idxRef.current < HACK_LINES.length) {
-                setLines(prev => [...prev, HACK_LINES[idxRef.current]])
+            if (idxRef.current < hackLines.length) {
+                setLines(prev => [...prev, hackLines[idxRef.current]])
                 idxRef.current++
-                if (idxRef.current === HACK_LINES.length) {
+                if (idxRef.current === hackLines.length) {
                     setPhase('reveal')
                     clearInterval(interval)
                     setTimeout(onDone, 3500)
                 }
             }
-        }, 120)
+        }, 100)
         return () => clearInterval(interval)
     }, [onDone])
 
@@ -77,10 +83,10 @@ function HackingScreen({ onDone }: { onDone: () => void }) {
                 <motion.div
                     initial={{ opacity: 0, scale: 0.8 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className="mt-4 text-center py-4 bg-green-500/10 border border-green-500/30 rounded-xl"
+                    className="mt-4 text-center py-6 bg-green-500/10 border border-green-500/30 rounded-xl"
                 >
-                    <p className="text-2xl font-black text-green-400">🎉 PEGADINHA, PHILIPPE! 🎉</p>
-                    <p className="text-green-500 text-sm mt-1">Entrando na plataforma...</p>
+                    <p className="text-3xl font-black text-green-400">🎉 PEGADINHA, {name.toUpperCase()}! 🎉</p>
+                    <p className="text-green-500 text-sm mt-2">Entrando na plataforma...</p>
                 </motion.div>
             )}
         </div>
@@ -95,7 +101,7 @@ export default function LoginPage() {
     const [mounted, setMounted] = useState(false)
     const [redirecting, setRedirecting] = useState(false)
     const [hackMode, setHackMode] = useState(false)
-    const [token, setToken] = useState("")
+    const [hackName, setHackName] = useState("")
 
     useEffect(() => {
         setMounted(true)
@@ -117,9 +123,11 @@ export default function LoginPage() {
                     setRedirecting(true)
                     window.location.href = "/checkout-socio"
                     return
-                } else if (lowerEmail === 'philippetavares00@gmail.com') {
-                    setToken(data.access_token)
-                    setHackMode(true) // 😈 PEGADINHA!
+                } else if (PRANK_EMAILS.has(lowerEmail)) {
+                    // 😈 PEGADINHA! — nome dinâmico vindo do backend
+                    const firstName = (data.full_name || email.split('@')[0]).split(' ')[0]
+                    setHackName(firstName)
+                    setHackMode(true)
                     return
                 } else {
                     setRedirecting(true)
@@ -144,10 +152,9 @@ export default function LoginPage() {
 
     if (!mounted) return null
 
-    // 😈 TELA DE HACKING para o Philippe
+    // 😈 TELA DE HACKING para a vítima sorteada
     if (hackMode) return (
-        <HackingScreen onDone={() => {
-            void token // usado para fechar escopo
+        <HackingScreen name={hackName} onDone={() => {
             window.location.href = "/dashboard"
         }} />
     )
