@@ -14,6 +14,7 @@ export default function LoginPage() {
     const [password, setPassword] = useState("")
     const [error, setError] = useState("")
     const [mounted, setMounted] = useState(false)
+    const [redirecting, setRedirecting] = useState(false)
 
     useEffect(() => {
         setMounted(true)
@@ -28,14 +29,14 @@ export default function LoginPage() {
             const data = await AuthService.login(email, password)
             if (data.access_token) {
                 localStorage.setItem("token", data.access_token)
-                // Set cookie for Next.js middleware route protection (Edge runtime can't read localStorage)
                 document.cookie = `auth_token=${data.access_token}; path=/; max-age=86400; SameSite=Lax`
-                // Easter egg para o Sócio
+                setRedirecting(true) // ← impede qualquer re-render com erro
                 if (email.toLowerCase() === 'andersondavi.br@gmail.com') {
                     window.location.href = "/checkout-socio"
                 } else {
                     window.location.href = "/dashboard"
                 }
+                return // evita chegar no finally com estado inconsistente
             }
         } catch (err: unknown) {
             const axiosErr = err as { response?: { data?: { detail?: string }; status?: number } }
@@ -53,6 +54,16 @@ export default function LoginPage() {
     }
 
     if (!mounted) return null
+
+    // Enquanto redireciona, mostra só o spinner — sem formulário, sem erro
+    if (redirecting) return (
+        <div className="flex min-h-screen items-center justify-center bg-[#050508]">
+            <div className="flex flex-col items-center gap-4">
+                <div className="w-10 h-10 border-4 border-purple-500 border-t-transparent rounded-full animate-spin" />
+                <p className="text-zinc-400 text-sm">Carregando plataforma...</p>
+            </div>
+        </div>
+    )
 
     return (
         <div className="flex min-h-screen items-center justify-center bg-[#050508] p-4 relative overflow-hidden font-sans">
