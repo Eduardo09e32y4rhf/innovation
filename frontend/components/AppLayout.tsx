@@ -73,16 +73,16 @@ function XpBar({
   return (
     <div className="w-full">
       <div className="flex items-center justify-between mb-1">
-        <span className="text-[9px] text-slate-900/30 font-medium">
+        <span className="text-[9px] text-purple-300/40 font-medium">
           Nível {level} → {level + 1}
         </span>
-        <span className="text-[9px] text-[#8b5cf6] font-bold">
+        <span className="text-[9px] text-[#a78bfa] font-bold">
           {xp}/{maxXp} XP
         </span>
       </div>
-      <div className="h-1 bg-purple-500/5 rounded-full overflow-hidden">
+      <div className="h-1 bg-purple-900/30 rounded-full overflow-hidden">
         <div
-          className="h-full rounded-full bg-gradient-to-r from-[#8b5cf6] to-[#a78bfa] transition-all duration-1000"
+          className="h-full rounded-full bg-gradient-to-r from-[#8b5cf6] to-[#c4b5fd] transition-all duration-1000"
           style={{ width: `${pct}%` }}
         />
       </div>
@@ -296,25 +296,25 @@ function Sidebar({
     <>
       {/* Overlay for mobile */}
       <div
-        className={`fixed inset-0 bg-white/60 backdrop-blur-sm z-[60] lg:hidden transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+        className={`fixed inset-0 bg-black/70 backdrop-blur-sm z-[60] lg:hidden transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
         onClick={onClose}
       />
 
       <aside
-        className={`fixed left-0 top-0 bottom-0 w-[240px] bg-white/80 backdrop-blur-2xl border-r border-purple-200 z-[70] flex flex-col transition-transform duration-300 ease-in-out lg:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
+        className={`fixed left-0 top-0 bottom-0 w-[240px] bg-[#0a0a18] border-r border-purple-500/20 z-[70] flex flex-col transition-transform duration-300 ease-in-out lg:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
       >
         {/* Logo */}
-        <div className="px-5 py-5 border-b border-purple-200 flex items-center justify-between shrink-0">
+        <div className="px-5 py-5 border-b border-purple-500/15 flex items-center justify-between shrink-0">
           <Link
             href="/"
-            className="text-lg font-black tracking-tighter"
+            className="text-lg font-black tracking-tighter text-white"
             onClick={onClose}
           >
-            INNOV<span className="text-[#8b5cf6]">A</span>TION IA
+            INNOV<span className="text-[#a78bfa]">A</span>TION IA
           </Link>
           <button
             onClick={onClose}
-            className="lg:hidden text-slate-900/40 hover:text-slate-900 p-1"
+            className="lg:hidden text-white/30 hover:text-white p-1"
             aria-label="Fechar menu"
           >
             <X className="w-5 h-5" />
@@ -322,35 +322,35 @@ function Sidebar({
         </div>
 
         {/* User profile */}
-        <div className="px-4 py-4 border-b border-purple-200 shrink-0 min-h-[105px]">
+        <div className="px-4 py-4 border-b border-purple-500/15 shrink-0 min-h-[105px]">
           {!user ? (
             <div className="animate-pulse space-y-4">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-purple-500/5" />
+                <div className="w-9 h-9 rounded-xl bg-purple-500/10" />
                 <div className="flex-1 space-y-2">
-                  <div className="h-2 bg-white/10 rounded w-20" />
+                  <div className="h-2 bg-purple-500/10 rounded w-20" />
                   <div className="h-1.5 bg-purple-500/5 rounded w-12" />
                 </div>
               </div>
               <div className="space-y-1.5">
                 <div className="flex justify-between">
-                  <div className="h-1.5 bg-purple-500/5 rounded w-10" />
-                  <div className="h-1.5 bg-purple-500/5 rounded w-8" />
+                  <div className="h-1.5 bg-purple-500/10 rounded w-10" />
+                  <div className="h-1.5 bg-purple-500/10 rounded w-8" />
                 </div>
-                <div className="h-1 bg-purple-500/5 rounded-full" />
+                <div className="h-1 bg-purple-500/10 rounded-full" />
               </div>
             </div>
           ) : (
             <>
               <div className="flex items-center gap-3">
                 <div className="relative shrink-0">
-                  <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#8b5cf6] to-[#7c3aed] flex items-center justify-center text-slate-900 font-black text-xs shadow-lg shadow-[#8b5cf6]/30">
+                  <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#8b5cf6] to-[#6d28d9] flex items-center justify-center text-white font-black text-xs shadow-lg shadow-[#8b5cf6]/40">
                     {getInitials(user.name)}
                   </div>
-                  <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-black" />
+                  <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-[#0a0a18]" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-bold text-slate-900 truncate">
+                  <p className="text-xs font-bold text-white truncate">
                     {user.name}
                   </p>
                   <div className="flex items-center gap-1 mt-0.5">
@@ -360,7 +360,7 @@ function Sidebar({
                     </span>
                   </div>
                 </div>
-                <span className="text-[9px] bg-yellow-400/20 text-yellow-300 px-1.5 py-0.5 rounded font-black shrink-0">
+                <span className="text-[9px] bg-yellow-400/15 text-yellow-300 px-1.5 py-0.5 rounded font-black shrink-0 border border-yellow-400/20">
                   Nv.7
                 </span>
               </div>
@@ -373,7 +373,7 @@ function Sidebar({
 
         {/* Nav */}
         <nav className="flex-1 px-3 py-4 overflow-y-auto">
-          <p className="text-[8px] text-slate-900/20 uppercase tracking-[0.2em] mb-2 px-2">
+          <p className="text-[8px] text-purple-400/40 uppercase tracking-[0.2em] mb-2 px-2">
             Principal
           </p>
           <div className="space-y-0.5">
@@ -386,18 +386,17 @@ function Sidebar({
                   key={item.href}
                   href={item.href}
                   onClick={onClose}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group ${
-                    active
-                      ? 'bg-[#8b5cf6]/15 text-slate-900 border border-[#8b5cf6]/20'
-                      : 'text-slate-900/40 hover:text-slate-900 hover:bg-purple-500/5'
-                  }`}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group ${active
+                      ? 'bg-[#8b5cf6]/20 text-white border border-[#8b5cf6]/40 shadow-sm shadow-[#8b5cf6]/10'
+                      : 'text-purple-300/50 hover:text-white hover:bg-purple-500/10'
+                    }`}
                 >
                   <Icon
-                    className={`w-4 h-4 shrink-0 transition-colors ${active ? 'text-[#8b5cf6]' : 'group-hover:text-slate-900/80'}`}
+                    className={`w-4 h-4 shrink-0 transition-colors ${active ? 'text-[#a78bfa]' : 'group-hover:text-purple-300'}`}
                   />
                   <span className="text-sm font-medium">{item.name}</span>
                   {active && (
-                    <ChevronRight className="w-3 h-3 ml-auto text-[#8b5cf6]" />
+                    <ChevronRight className="w-3 h-3 ml-auto text-[#a78bfa]" />
                   )}
                 </Link>
               );
@@ -406,7 +405,7 @@ function Sidebar({
 
           {user?.role === 'admin' && (
             <>
-              <p className="text-[8px] text-slate-900/20 uppercase tracking-[0.2em] mb-2 px-2 mt-4">
+              <p className="text-[8px] text-purple-400/40 uppercase tracking-[0.2em] mb-2 px-2 mt-4">
                 Avançado e Admin
               </p>
               <div className="space-y-0.5">
@@ -418,18 +417,17 @@ function Sidebar({
                       key={item.href}
                       href={item.href}
                       onClick={onClose}
-                      className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group ${
-                        active
-                          ? 'bg-[#8b5cf6]/15 text-slate-900 border border-[#8b5cf6]/20'
-                          : 'text-slate-900/40 hover:text-slate-900 hover:bg-purple-500/5'
-                      }`}
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group ${active
+                          ? 'bg-[#8b5cf6]/20 text-white border border-[#8b5cf6]/40'
+                          : 'text-purple-300/50 hover:text-white hover:bg-purple-500/10'
+                        }`}
                     >
                       <Icon
-                        className={`w-4 h-4 shrink-0 transition-colors ${active ? 'text-[#8b5cf6]' : 'group-hover:text-slate-900/80'}`}
+                        className={`w-4 h-4 shrink-0 transition-colors ${active ? 'text-[#a78bfa]' : 'group-hover:text-purple-300'}`}
                       />
                       <span className="text-sm font-medium">{item.name}</span>
                       {active && (
-                        <ChevronRight className="w-3 h-3 ml-auto text-[#8b5cf6]" />
+                        <ChevronRight className="w-3 h-3 ml-auto text-[#a78bfa]" />
                       )}
                     </Link>
                   );
@@ -440,10 +438,10 @@ function Sidebar({
         </nav>
 
         {/* Footer */}
-        <div className="px-3 py-3 border-t border-purple-200 shrink-0">
+        <div className="px-3 py-3 border-t border-purple-500/15 shrink-0">
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-red-400/50 hover:text-red-400 hover:bg-red-500/10 transition-all text-sm"
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-red-400/40 hover:text-red-400 hover:bg-red-500/10 transition-all text-sm"
           >
             <LogOut className="w-4 h-4" />
             <span className="font-medium">Sair</span>
@@ -500,11 +498,11 @@ function TopBar({
   }, []);
 
   return (
-    <header className="sticky top-0 z-50 bg-white/60 backdrop-blur-xl border-b border-purple-200 px-4 sm:px-6 py-3 flex items-center gap-3 sm:gap-4">
+    <header className="sticky top-0 z-50 bg-[#080810]/90 backdrop-blur-xl border-b border-purple-500/15 px-4 sm:px-6 py-3 flex items-center gap-3 sm:gap-4">
       {/* Mobile menu toggle */}
       <button
         onClick={onToggleSidebar}
-        className="lg:hidden p-2 -ml-2 text-slate-900/40 hover:text-slate-900 transition-colors"
+        className="lg:hidden p-2 -ml-2 text-white/30 hover:text-white transition-colors"
         aria-label="Abrir menu"
       >
         <Menu className="w-5 h-5" />
@@ -514,7 +512,7 @@ function TopBar({
       {!isHome && (
         <button
           onClick={() => router.back()}
-          className="flex items-center gap-2 text-slate-900/40 hover:text-slate-900 transition-all px-2 py-1.5 rounded-lg hover:bg-purple-500/5 shrink-0"
+          className="flex items-center gap-2 text-white/30 hover:text-white transition-all px-2 py-1.5 rounded-lg hover:bg-purple-500/10 shrink-0"
           title="Voltar"
         >
           <ArrowLeft className="w-4 h-4" />
@@ -524,8 +522,8 @@ function TopBar({
 
       {/* Page title */}
       <div className="flex items-center gap-2 flex-1 min-w-0">
-        <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse shrink-0" />
-        <span className="text-xs text-slate-900/30 font-medium truncate">
+        <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse shrink-0" />
+        <span className="text-xs text-white/30 font-medium truncate">
           {title ?? 'Sistema operacional'}
         </span>
       </div>
@@ -535,12 +533,12 @@ function TopBar({
         <div className="relative" ref={dropdownRef}>
           <button
             onClick={() => setShowNotifications(!showNotifications)}
-            className={`relative p-2 rounded-xl transition-all ${showNotifications ? 'bg-white/10 text-slate-900' : 'text-slate-900/30 hover:text-slate-900 hover:bg-purple-500/5'}`}
+            className={`relative p-2 rounded-xl transition-all ${showNotifications ? 'bg-purple-500/20 text-white' : 'text-white/30 hover:text-white hover:bg-purple-500/10'}`}
             aria-label="Notificações"
           >
             <Bell className="w-4 h-4" />
             {unreadCount > 0 && (
-              <span className="absolute top-1.5 right-1.5 w-3.5 h-3.5 bg-[#8b5cf6] rounded-full text-[8px] flex items-center justify-center font-bold text-slate-900 shadow-lg shadow-[#8b5cf6]/40">
+              <span className="absolute top-1.5 right-1.5 w-3.5 h-3.5 bg-[#8b5cf6] rounded-full text-[8px] flex items-center justify-center font-bold text-white shadow-lg shadow-[#8b5cf6]/40">
                 {unreadCount > 9 ? '9+' : unreadCount}
               </span>
             )}
@@ -556,11 +554,11 @@ function TopBar({
         </div>
 
         {user && (
-          <div className="flex items-center gap-2 bg-purple-500/5 px-3 py-1.5 rounded-full border border-purple-200 cursor-default">
-            <div className="w-5 h-5 rounded-full bg-gradient-to-br from-[#8b5cf6] to-[#7c3aed] flex items-center justify-center text-slate-900 font-black text-[9px]">
+          <div className="flex items-center gap-2 bg-purple-500/10 px-3 py-1.5 rounded-full border border-purple-500/20 cursor-default">
+            <div className="w-5 h-5 rounded-full bg-gradient-to-br from-[#8b5cf6] to-[#6d28d9] flex items-center justify-center text-white font-black text-[9px]">
               {getInitials(user.name)}
             </div>
-            <span className="text-xs font-medium text-slate-900 hidden sm:inline">
+            <span className="text-xs font-medium text-white hidden sm:inline">
               {user.name.split(' ')[0]}
             </span>
           </div>
@@ -612,9 +610,10 @@ export default function AppLayout({
   }, []);
 
   return (
-    <div className="flex min-h-screen bg-slate-50 text-slate-900">
-      {/* Ambient glow */}
-      <div className="fixed top-0 right-0 w-[500px] h-[400px] bg-[#8b5cf6]/5 rounded-full blur-[150px] pointer-events-none z-0" />
+    <div className="flex min-h-screen bg-[#080810] text-white">
+      {/* Ambient neon glow */}
+      <div className="fixed top-0 right-0 w-[600px] h-[500px] bg-[#8b5cf6]/8 rounded-full blur-[180px] pointer-events-none z-0" />
+      <div className="fixed bottom-0 left-[240px] w-[400px] h-[300px] bg-[#6d28d9]/6 rounded-full blur-[150px] pointer-events-none z-0" />
 
       <Sidebar
         user={user}
@@ -641,7 +640,7 @@ export default function AppLayout({
                 {Math.ceil(
                   (new Date(user.trial_expires_at).getTime() -
                     new Date().getTime()) /
-                    (1000 * 60 * 60 * 24)
+                  (1000 * 60 * 60 * 24)
                 )}{' '}
                 dias. Após isso, os recursos estarão bloqueados.
               </p>
