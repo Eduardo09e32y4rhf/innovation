@@ -5,6 +5,8 @@ from sqlalchemy.orm import Session
 from infrastructure.database.sql.dependencies import get_db
 from core.dependencies import get_current_user
 from domain.models.user import User
+from domain.models.interview import Interview
+from sqlalchemy import extract
 
 router = APIRouter(prefix="/interviews", tags=["Interviews"])
 
@@ -16,51 +18,45 @@ async def list_interviews(
     db: Session = Depends(get_db),
 ):
     """
-    Lista todas as entrevistas
+    Lista todas as entrevistas (relacionadas à empresa do usuário)
     """
-    # Dados mockados
-    interviews = [
-        {
-            "id": 1,
-            "candidate_name": "João Silva",
-            "candidate_email": "joao@email.com",
-            "job_title": "Senior Python Developer",
-            "scheduled_date": "2023-06-15T14:00:00",
-            "interviewer": "Carlos Manager",
-            "status": "scheduled",
-            "type": "technical",
-            "location": "Online - Google Meet",
-        },
-        {
-            "id": 2,
-            "candidate_name": "Maria Santos",
-            "candidate_email": "maria@email.com",
-            "job_title": "UX Designer",
-            "scheduled_date": "2023-06-16T10:00:00",
-            "interviewer": "Ana Lead",
-            "status": "scheduled",
-            "type": "portfolio_review",
-            "location": "Presencial - Escritório SP",
-        },
-        {
-            "id": 3,
-            "candidate_name": "Pedro Costa",
-            "candidate_email": "pedro@email.com",
-            "job_title": "Data Scientist",
-            "scheduled_date": "2023-06-10T15:00:00",
-            "interviewer": "Carlos Manager",
-            "status": "completed",
-            "type": "technical",
-            "location": "Online - Zoom",
-            "feedback": "Excelente conhecimento técnico",
-            "score": 9.5,
-        },
-    ]
+    company_id = current_user.active_company_id
+    if not company_id and current_user.role != "admin":
+        return {"interviews": [], "total": 0}
+
+    query = db.query(Interview)
+    if company_id:
+        query = query.filter(Interview.company_id == company_id)
 
     if status:
-        interviews = [i for i in interviews if i["status"] == status]
+        query = query.filter(Interview.status == status)
 
-    return {"interviews": interviews, "total": len(interviews)}
+    interviews = query.all()
+
+    # Retorna num formato amigável para o frontend
+    result = []
+    for interview in interviews:
+        result.append(
+            {
+                "id": interview.id,
+                "application_id": interview.application_id,
+                "interviewer_id": interview.interviewer_id,
+                "scheduled_date": (
+                    interview.scheduled_date.isoformat()
+                    if interview.scheduled_date
+                    else None
+                ),
+                "status": interview.status,
+                "type": interview.type,
+                "location": interview.location,
+                "notes": interview.notes,
+                "score": interview.score,
+                "feedback": interview.feedback,
+                "recommendation": getattr(interview, "recommendation", None),
+            }
+        )
+
+    return {"interviews": result, "total": len(result)}
 
 
 @router.post("")
@@ -77,20 +73,31 @@ async def schedule_interview(
     """
     Agenda uma nova entrevista
     """
-    # TODO: Implementar criação real no banco
-    new_interview = {
-        "id": 999,
-        "application_id": application_id,
-        "scheduled_date": scheduled_date.isoformat(),
-        "interviewer_id": interviewer_id,
-        "type": interview_type,
-        "location": location,
-        "notes": notes,
-        "status": "scheduled",
-        "created_at": datetime.now().isoformat(),
-    }
+    company_id = current_user.active_company_id
 
-    return {"message": "Entrevista agendada com sucesso", "interview": new_interview}
+    new_interview = Interview(
+        company_id=company_id,
+        application_id=application_id,
+        scheduled_date=scheduled_date,
+        interviewer_id=interviewer_id,
+        type=interview_type,
+        location=location,
+        notes=notes,
+        status="scheduled",
+    )
+
+    db.add(new_interview)
+    db.commit()
+    db.refresh(new_interview)
+
+    return {
+        "message": "Entrevista agendada com sucesso",
+        "interview": {
+            "id": new_interview.id,
+            "scheduled_date": new_interview.scheduled_date.isoformat(),
+            "status": new_interview.status,
+        },
+    }
 
 
 @router.put("/{interview_id}")
@@ -104,10 +111,20 @@ async def update_interview(
     """
     Atualiza uma entrevista existente
     """
-    # TODO: Implementar atualização real
+    interview = db.query(Interview).filter(Interview.id == interview_id).first()
+    if not interview:
+        raise HTTPException(status_code=404, detail="Entrevista não encontrada")
+
+    if status:
+        interview.status = status
+    if scheduled_date:
+        interview.scheduled_date = scheduled_date
+
+    db.commit()
     return {
         "message": "Entrevista atualizada com sucesso",
-        "interview_id": interview_id,
+        "interview_id": interview.id,
+        "status": interview.status,
     }
 
 
@@ -126,7 +143,25 @@ async def add_interview_feedback(
     if score < 0 or score > 10:
         raise HTTPException(status_code=400, detail="Score deve estar entre 0 e 10")
 
-    # TODO: Salvar feedback no banco
+    interview = db.query(Interview).filter(Interview.id == interview_id).first()
+    if not interview:
+        raise HTTPException(status_code=404, detail="Entrevista não encontrada")
+
+    interview.feedback = feedback
+    interview.score = score
+    # Usando campo notes caso recommendation não exista explicitamente no model
+    if hasattr(interview, "recommendation"):
+        interview.recommendation = recommendation
+    else:
+        if interview.notes:
+            interview.notes += f"\nRecomendação: {recommendation}"
+        else:
+            interview.notes = f"Recomendação: {recommendation}"
+
+    interview.status = "completed"
+
+    db.commit()
+
     return {
         "message": "Feedback registrado com sucesso",
         "interview_id": interview_id,
@@ -150,26 +185,30 @@ async def get_interview_calendar(
     if not year:
         year = datetime.now().year
 
-    # Dados mockados
-    calendar_data = {
-        "2023-06-15": [
+    company_id = current_user.active_company_id
+
+    query = db.query(Interview)
+    if company_id:
+        query = query.filter(Interview.company_id == company_id)
+
+    interviews = query.filter(
+        extract("month", Interview.scheduled_date) == month,
+        extract("year", Interview.scheduled_date) == year,
+    ).all()
+
+    calendar_data = {}
+    for i in interviews:
+        date_str = i.scheduled_date.date().isoformat()
+        if date_str not in calendar_data:
+            calendar_data[date_str] = []
+        calendar_data[date_str].append(
             {
-                "id": 1,
-                "time": "14:00",
-                "candidate": "João Silva",
-                "job": "Senior Python Developer",
-                "type": "technical",
+                "id": i.id,
+                "time": i.scheduled_date.strftime("%H:%M"),
+                "candidate": f"Candidato App {i.application_id}",  # Placeholder if join is too heavy
+                "job": "Vaga Relacionada",
+                "type": i.type,
             }
-        ],
-        "2023-06-16": [
-            {
-                "id": 2,
-                "time": "10:00",
-                "candidate": "Maria Santos",
-                "job": "UX Designer",
-                "type": "portfolio_review",
-            }
-        ],
-    }
+        )
 
     return {"month": month, "year": year, "interviews": calendar_data}
