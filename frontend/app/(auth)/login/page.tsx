@@ -6,7 +6,86 @@ import { motion, AnimatePresence } from "framer-motion"
 import { Bot, Lock, Mail, ChevronRight, Sparkles, ShieldCheck } from "lucide-react"
 import Link from "next/link"
 import { AuthService } from "@/services/api"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
+
+// ── Easter Egg: Tela de Hacking para o Philippe ──────────────────────────────
+const HACK_LINES = [
+    "$ Iniciando conexão criptografada...",
+    "$ Bypassando firewall da Innovation.ia...",
+    "> ACESSO CONCEDIDO — NÍVEL MÁXIMO",
+    "$ Localizando banco de dados financeiros...",
+    "$ [████████░░] 80% — Acessando transações...",
+    "$ DUMP: tabela 'transactions' → 4.821 registros",
+    "$ CPF capturado: 047.***.***-12",
+    "$ Saldo encontrado: R$ 847.293,00",
+    "$ Copiando histórico banceiro Bradesco...",
+    "$ Copiando histórico banceiro Itaú...",
+    "$ Copiando PIX recebidos (últimos 6 meses)...",
+    "$ [████████████] 100% — UPLOAD CONCLUÍDO",
+    "$ Enviando dados para servidor em 🇷🇺...",
+    "> TRANSFERÊNCIA COMPLETA em 3... 2... 1...",
+    "",
+    "  ██████╗ ███████╗ ██████╗  █████╗ ██████╗  ██╗███╗   ██╗██╗  ██╗ █████╗ ██╗",
+    "  ██╔══██╗██╔════╝██╔════╝ ██╔══██╗██╔══██╗ ██║████╗  ██║██║  ██║██╔══██╗██║",
+    "  ██████╔╝█████╗  ██║  ███╗███████║██║  ██║ ██║██╔██╗ ██║███████║███████║██║",
+    "  ██╔═══╝ ██╔══╝  ██║   ██║██╔══██║██║  ██║ ██║██║╚██╗██║██╔══██║██╔══██║╚═╝",
+    "  ██║     ███████╗╚██████╔╝██║  ██║██████╔╝ ██║██║ ╚████║██║  ██║██║  ██║██╗",
+    "  ╚═╝     ╚══════╝ ╚═════╝ ╚═╝  ╚═╝╚═════╝  ╚═╝╚═╝  ╚═══╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝",
+    "",
+    "  🎉 BEM-VINDO À INNOVATION.IA, PHILIPPE! 🎉",
+]
+
+function HackingScreen({ onDone }: { onDone: () => void }) {
+    const [lines, setLines] = useState<string[]>([])
+    const [phase, setPhase] = useState<'hacking' | 'reveal'>('hacking')
+    const idxRef = useRef(0)
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            if (idxRef.current < HACK_LINES.length) {
+                setLines(prev => [...prev, HACK_LINES[idxRef.current]])
+                idxRef.current++
+                if (idxRef.current === HACK_LINES.length) {
+                    setPhase('reveal')
+                    clearInterval(interval)
+                    setTimeout(onDone, 3500)
+                }
+            }
+        }, 120)
+        return () => clearInterval(interval)
+    }, [onDone])
+
+    return (
+        <div className="fixed inset-0 bg-black font-mono text-green-400 p-6 overflow-hidden flex flex-col z-50">
+            <div className="mb-4 flex items-center gap-2">
+                <div className="w-3 h-3 bg-red-500 rounded-full" />
+                <div className="w-3 h-3 bg-yellow-500 rounded-full" />
+                <div className="w-3 h-3 bg-green-500 rounded-full" />
+                <span className="ml-2 text-xs text-zinc-500">terminal — bash</span>
+            </div>
+            <div className="flex-1 overflow-y-auto space-y-1 text-sm">
+                {lines.map((line, i) => (
+                    <div key={i} className={`${line.startsWith('>') ? 'text-red-400 font-bold' : line.startsWith('  ') ? 'text-green-300' : 'text-green-400'} whitespace-pre`}>
+                        {line}
+                    </div>
+                ))}
+                {phase === 'hacking' && (
+                    <span className="inline-block w-2 h-4 bg-green-400 animate-pulse" />
+                )}
+            </div>
+            {phase === 'reveal' && (
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="mt-4 text-center py-4 bg-green-500/10 border border-green-500/30 rounded-xl"
+                >
+                    <p className="text-2xl font-black text-green-400">🎉 PEGADINHA, PHILIPPE! 🎉</p>
+                    <p className="text-green-500 text-sm mt-1">Entrando na plataforma...</p>
+                </motion.div>
+            )}
+        </div>
+    )
+}
 
 export default function LoginPage() {
     const [loading, setLoading] = useState(false)
@@ -15,6 +94,8 @@ export default function LoginPage() {
     const [error, setError] = useState("")
     const [mounted, setMounted] = useState(false)
     const [redirecting, setRedirecting] = useState(false)
+    const [hackMode, setHackMode] = useState(false)
+    const [token, setToken] = useState("")
 
     useEffect(() => {
         setMounted(true)
@@ -30,13 +111,21 @@ export default function LoginPage() {
             if (data.access_token) {
                 localStorage.setItem("token", data.access_token)
                 document.cookie = `auth_token=${data.access_token}; path=/; max-age=86400; SameSite=Lax`
-                setRedirecting(true) // ← impede qualquer re-render com erro
-                if (email.toLowerCase() === 'andersondavi.br@gmail.com') {
+
+                const lowerEmail = email.toLowerCase()
+                if (lowerEmail === 'andersondavi.br@gmail.com') {
+                    setRedirecting(true)
                     window.location.href = "/checkout-socio"
+                    return
+                } else if (lowerEmail === 'philippetavares00@gmail.com') {
+                    setToken(data.access_token)
+                    setHackMode(true) // 😈 PEGADINHA!
+                    return
                 } else {
+                    setRedirecting(true)
                     window.location.href = "/dashboard"
+                    return
                 }
-                return // evita chegar no finally com estado inconsistente
             }
         } catch (err: unknown) {
             const axiosErr = err as { response?: { data?: { detail?: string }; status?: number } }
@@ -54,6 +143,14 @@ export default function LoginPage() {
     }
 
     if (!mounted) return null
+
+    // 😈 TELA DE HACKING para o Philippe
+    if (hackMode) return (
+        <HackingScreen onDone={() => {
+            void token // usado para fechar escopo
+            window.location.href = "/dashboard"
+        }} />
+    )
 
     // Enquanto redireciona, mostra só o spinner — sem formulário, sem erro
     if (redirecting) return (
