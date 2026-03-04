@@ -1,4 +1,5 @@
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from datetime import datetime, timedelta
 from domain.models.finance import Transaction, CostCenter
 import google.genai as genai
@@ -8,25 +9,37 @@ import os
 class FinanceService:
     @staticmethod
     def get_cash_flow_summary(db: Session, company_id: int):
-        transactions = (
-            db.query(Transaction).filter(Transaction.company_id == company_id).all()
+        # ⚡ Bolt: Fetch aggregated data directly from DB to eliminate O(N) memory/processing overhead.
+        # Why: Previously, this fetched all transactions into memory and used Python loops to sum amounts.
+        # Impact: Dramatically reduces memory usage and speeds up response time for companies with large transaction histories.
+        results = (
+            db.query(
+                Transaction.type,
+                Transaction.status,
+                func.sum(Transaction.amount).label("total"),
+            )
+            .filter(Transaction.company_id == company_id)
+            .group_by(Transaction.type, Transaction.status)
+            .all()
         )
-        income = sum(
-            t.amount for t in transactions if t.type == "income" and t.status == "paid"
-        )
-        expenses = sum(
-            t.amount for t in transactions if t.type == "expense" and t.status == "paid"
-        )
-        pending_income = sum(
-            t.amount
-            for t in transactions
-            if t.type == "income" and t.status == "pending"
-        )
-        pending_expenses = sum(
-            t.amount
-            for t in transactions
-            if t.type == "expense" and t.status == "pending"
-        )
+
+        income = 0
+        expenses = 0
+        pending_income = 0
+        pending_expenses = 0
+
+        for t_type, t_status, total in results:
+            val = float(total) if total else 0
+            if t_type == "income":
+                if t_status == "paid":
+                    income += val
+                elif t_status == "pending":
+                    pending_income += val
+            elif t_type == "expense":
+                if t_status == "paid":
+                    expenses += val
+                elif t_status == "pending":
+                    pending_expenses += val
 
         return {
             "balance": income - expenses,
