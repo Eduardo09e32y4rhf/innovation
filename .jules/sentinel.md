@@ -12,3 +12,8 @@
 **Vulnerability:** Scripts (`run_local_debug.ps1`, `run_local.ps1`, `iniciar_local.ps1`) expose API keys for Gemini, Mercado Pago, and hardcoded `SECRET_KEY`. Furthermore, backend config uses a hardcoded default `SECRET_KEY` instead of failing if not set in the environment.
 **Learning:** Hardcoded defaults in scripts or configuration can lead to accidental exposure and severe security vulnerabilities in production.
 **Prevention:** Remove keys from the scripts and require `SECRET_KEY` to be set via environment variable.
+
+## 2025-03-04 - Authentication Bypass and Information Leakage in n8n Webhook
+**Vulnerability:** The `/api/webhooks/n8n/callback` endpoint had an authentication bypass vulnerability because it only checked the `X-N8N-Webhook-Secret` header if the `N8N_WEBHOOK_SECRET` environment variable was set. If the environment variable was missing, the endpoint allowed unauthenticated access. Furthermore, the endpoint leaked internal error details in the 500 response (`detail=str(e)`).
+**Learning:** Security controls should fail closed, not open. If a required security configuration (like a webhook secret) is missing, the application should reject all requests to that endpoint, rather than allowing them through. Also, error messages should be generic to avoid leaking sensitive information.
+**Prevention:** Always ensure that security checks fail closed (e.g., `if not expected_secret: raise HTTPException(...)`). Never expose raw exception strings (`str(e)`) in HTTP responses to external clients.

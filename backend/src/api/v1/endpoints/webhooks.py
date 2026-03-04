@@ -14,13 +14,18 @@ logger = logging.getLogger(__name__)
 @router.post("/n8n/callback")
 async def n8n_callback(request: Request, db: Session = Depends(get_db)):
     expected_secret = os.getenv("N8N_WEBHOOK_SECRET")
-    if expected_secret:
-        provided_secret = request.headers.get("X-N8N-Webhook-Secret")
-        if not provided_secret or not secrets.compare_digest(
-            provided_secret, expected_secret
-        ):
-            logger.warning("Tentativa de acesso não autorizado ao webhook do n8n")
-            raise HTTPException(status_code=401, detail="Não autorizado")
+    if not expected_secret:
+        logger.error(
+            "N8N_WEBHOOK_SECRET não configurado. Rejeitando requisição por segurança."
+        )
+        raise HTTPException(status_code=500, detail="Erro de configuração interna")
+
+    provided_secret = request.headers.get("X-N8N-Webhook-Secret")
+    if not provided_secret or not secrets.compare_digest(
+        provided_secret, expected_secret
+    ):
+        logger.warning("Tentativa de acesso não autorizado ao webhook do n8n")
+        raise HTTPException(status_code=401, detail="Não autorizado")
 
     """
     Recebe callbacks do n8n.
@@ -65,4 +70,4 @@ async def n8n_callback(request: Request, db: Session = Depends(get_db)):
         return {"status": "received", "payload": payload}
     except Exception as e:
         logger.error(f"Erro no webhook n8n: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Erro interno ao processar webhook")
