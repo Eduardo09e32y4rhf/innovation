@@ -296,3 +296,45 @@ export const AIService = {
 };
 
 export default api;
+
+
+export const CompanyService = {
+    getMyCompany: async () => {
+        const res = await api.get('/api/companies/me');
+        return res.data;
+    },
+    createCompany: async (data: Record<string, unknown>) => {
+        const res = await api.post('/api/companies', data);
+        return res.data;
+    },
+    updateCompany: async (id: string, data: Record<string, unknown>) => {
+        const res = await api.put(`/api/companies/${id}`, data);
+        return res.data;
+    }
+};
+
+
+export const UsersService = {
+    getProfile: async () => {
+        const res = await api.get('/api/users/me');
+        return res.data;
+    },
+    updateProfile: async (data: Record<string, unknown>) => {
+        const res = await api.put('/api/users/me', data);
+        return res.data;
+    }
+};
+
+export const AnalyticsService = {
+    getOverview: async () => {
+        const res = await api.get('/api/analytics/overview');
+        return res.data;
+    }
+};
+
+export const SubscriptionsService = {
+    getMySubscription: async () => {
+        const res = await api.get('/api/subscriptions/me');
+        return res.data;
+    }
+};
