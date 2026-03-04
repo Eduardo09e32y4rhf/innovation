@@ -36,11 +36,17 @@ export default function LoginPage() {
                 } else {
                     window.location.href = "/dashboard"
                 }
-                setError("Credenciais inválidas. Por favor, verifique seus dados.")
             }
         } catch (err: unknown) {
-            const error = err as { response?: { data?: { detail?: string } } }
-            setError(error.response?.data?.detail || "Erro de conexão. Tente novamente em alguns instantes.")
+            const axiosErr = err as { response?: { data?: { detail?: string }; status?: number } }
+            const detail = axiosErr?.response?.data?.detail
+            if (detail) {
+                setError(detail)
+            } else if (axiosErr?.response?.status === 401) {
+                setError("Credenciais inválidas. Verifique seu email e senha.")
+            } else {
+                setError("Erro de conexão. Tente novamente em alguns instantes.")
+            }
         } finally {
             setLoading(false)
         }
