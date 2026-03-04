@@ -48,12 +48,12 @@ async def list_models():
             },
             {
                 "id": "gemini-pro",
-                "name": "Gemini 1.5 Pro",
+                "name": "Gemini 3.1 Pro",
                 "description": "Análises profundas, documentos longos e raciocínio complexo.",
                 "plan": "Growth",
                 "available": True,
                 "icon": "🚀",
-                "model_id": "gemini-1.5-pro",
+                "model_id": "gemini-3.1-pro",
             },
             {
                 "id": "claude",
@@ -77,7 +77,7 @@ async def list_models():
 async def chat(data: ChatRequest):
     model_map = {
         "gemini-flash": "gemini-2.0-flash",
-        "gemini-pro": "gemini-1.5-pro",
+        "gemini-pro": "gemini-3.1-pro",
     }
     model = model_map.get(
         data.model or "gemini-flash", data.model or "gemini-2.0-flash"
@@ -98,7 +98,7 @@ async def chat(data: ChatRequest):
 async def _stream_response(data: ChatRequest):
     model_map = {
         "gemini-flash": "gemini-2.0-flash",
-        "gemini-pro": "gemini-1.5-pro",
+        "gemini-pro": "gemini-3.1-pro",
     }
     model = model_map.get(
         data.model or "gemini-flash", data.model or "gemini-2.0-flash"

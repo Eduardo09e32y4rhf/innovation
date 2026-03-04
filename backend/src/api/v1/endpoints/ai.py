@@ -1,7 +1,7 @@
 """
 AI Chat Endpoint — Tiered Model Access
 - Gemini 1.5 Flash  → Plano Starter (básico)
-- Gemini 1.5 Pro    → Plano Growth  (avançado)
+- Gemini 3.1 Pro    → Plano Growth  (avançado)
 - Claude 3.5 Sonnet → Apenas admin-unlocked / personalizado
 """
 
@@ -402,7 +402,7 @@ async def list_models(current_user: User = Depends(get_current_user)):
             },
             {
                 "id": "gemini-pro",
-                "name": "Gemini 1.5 Pro",
+                "name": "Gemini 3.1 Pro",
                 "description": "Análises profundas e respostas detalhadas",
                 "plan": "Growth",
                 "available": True,
