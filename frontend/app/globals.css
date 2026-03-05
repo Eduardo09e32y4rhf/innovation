@@ -35,10 +35,19 @@
 @layer base {
   * {
     border-color: var(--color-border);
+    box-sizing: border-box;
   }
+
+  html {
+    scrollbar-gutter: stable;
+    overflow-x: hidden;
+  }
+
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
+    overflow-x: hidden;
+    width: 100%;
   }
 }
 

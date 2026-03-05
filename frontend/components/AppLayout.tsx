@@ -636,10 +636,10 @@ export default function AppLayout({
   }, []);
 
   return (
-    <div className="flex min-h-screen bg-[#080810] text-white">
-      {/* Ambient neon glow */}
-      <div className="fixed top-0 right-0 w-[600px] h-[500px] bg-[#8b5cf6]/8 rounded-full blur-[180px] pointer-events-none z-0" />
-      <div className="fixed bottom-0 left-[240px] w-[400px] h-[300px] bg-[#6d28d9]/6 rounded-full blur-[150px] pointer-events-none z-0" />
+    <div className="flex min-h-screen bg-[#080810] text-white overflow-x-hidden">
+      {/* Ambient neon glow - fixed position, never shifts layout */}
+      <div className="fixed top-0 right-0 w-[600px] h-[500px] bg-[#8b5cf6]/8 rounded-full blur-[180px] pointer-events-none z-0" aria-hidden />
+      <div className="fixed bottom-0 left-[240px] w-[400px] h-[300px] bg-[#6d28d9]/6 rounded-full blur-[150px] pointer-events-none z-0" aria-hidden />
 
       <Sidebar
         user={user}
@@ -648,9 +648,8 @@ export default function AppLayout({
         onClose={() => setIsSidebarOpen(false)}
       />
 
-      <div
-        className={`flex-1 flex flex-col min-h-screen relative z-10 lg:ml-[240px]`}
-      >
+      {/* Main content — fixed offset, never shifts */}
+      <div className="flex flex-col min-h-screen w-full lg:pl-[240px] relative z-10">
         <TopBar
           user={user}
           title={title}
@@ -673,14 +672,14 @@ export default function AppLayout({
               </p>
               <Link
                 href="/pricing"
-                className="text-[10px] font-bold uppercase tracking-wider bg-orange-500 hover:bg-orange-600 text-slate-900 px-3 py-1.5 rounded transition"
+                className="text-[10px] font-bold uppercase tracking-wider bg-orange-500 hover:bg-orange-600 text-white px-3 py-1.5 rounded transition"
               >
                 Assinar Premium
               </Link>
             </div>
           )}
 
-        <main className="flex-1 overflow-y-auto">{children}</main>
+        <main className="flex-1 overflow-x-hidden overflow-y-auto">{children}</main>
       </div>
     </div>
   );
