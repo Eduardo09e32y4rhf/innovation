@@ -1,494 +1,291 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Sidebar } from '@/components/Sidebar';
-import { BiometricPunch } from '@/components/rh/BiometricPunch';
-import { Star, Users, TrendingUp, Target, Clock, Plus, CheckCircle, ChevronRight, Award, Trophy, Medal, Smile, Meh, Frown, Heart, ThumbsUp } from 'lucide-react';
-import api from '@/services/api';
+import AppLayout from '@/components/AppLayout';
+import {
+    Users, TrendingUp, Target, Clock, Plus, CheckCircle2,
+    ChevronRight, Award, Trophy, Medal, Heart,
+    AlertCircle, Briefcase, FileText, Search, Filter,
+    Calendar, Zap, ShieldCheck, Mail, ArrowUpRight,
+    TrendingDown, UserPlus, Info, Timer
+} from 'lucide-react';
+import { RHService, AIService } from '@/services/api';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ATSKanban } from '@/components/ats/ATSKanban';
+import { BiometricPunch } from '@/components/rh/BiometricPunch';
 
-// ─── BADGES CONFIG ────────────────────────────────────────────────────────────
-const BADGES = [
-    { id: 'pioneer', name: 'Pioneiro', desc: 'Primeiro a completar o onboarding', icon: '🚀', color: 'from-blue-500 to-cyan-500', earned: true },
-    { id: 'top_recruiter', name: 'Top Recruta', desc: 'Indicou 5+ candidatos contratados', icon: '🎯', color: 'from-purple-500 to-pink-500', earned: true },
-    { id: 'team_player', name: 'Team Player', desc: 'Avaliação 360° acima de 8.5', icon: '🤝', color: 'from-green-500 to-emerald-500', earned: true },
-    { id: 'pdi_master', name: 'PDI Master', desc: 'Completou 100% das metas do trimestre', icon: '🏆', color: 'from-yellow-500 to-orange-500', earned: false },
-    { id: 'mentor', name: 'Mentor', desc: 'Realizou 10+ mentorias registradas', icon: '🧠', color: 'from-indigo-500 to-purple-500', earned: false },
-    { id: 'early_bird', name: 'Pontualidade', desc: '30 dias seguidos sem atraso', icon: '⏰', color: 'from-teal-500 to-green-500', earned: true },
-    { id: 'innovator', name: 'Inovador', desc: 'Sugeriu melhoria implementada', icon: '💡', color: 'from-pink-500 to-rose-500', earned: false },
-    { id: 'five_star', name: '5 Estrelas', desc: 'CSAT perfeito em 3 atendimentos', icon: '⭐', color: 'from-amber-400 to-yellow-500', earned: true },
+// ─── TYPES ──────────────────────────────────────────────────────────────────
+interface Employee {
+    id: number;
+    name: string;
+    role: string;
+    department: string;
+    status: 'active' | 'vacation' | 'away';
+    risk: 'stable' | 'attention' | 'critical';
+    avatar?: string;
+}
+
+interface TimelineEvent {
+    id: number;
+    type: 'promotion' | 'leave' | 'document' | 'hiring';
+    date: string;
+    title: string;
+    description: string;
+}
+
+// ─── MOCK DATA ──────────────────────────────────────────────────────────────
+const EMPLOYEES: Employee[] = [
+    { id: 1, name: 'Ana Silva', role: 'Dev Lead', department: 'TI', status: 'active', risk: 'stable' },
+    { id: 2, name: 'Carlos Santos', role: 'Senior Designer', department: 'Produto', status: 'active', risk: 'attention' },
+    { id: 3, name: 'Maria Oliveira', role: 'RH Manager', department: 'RH', status: 'vacation', risk: 'stable' },
+    { id: 4, name: 'João Pereira', role: 'Sales rep', department: 'Comercial', status: 'active', risk: 'critical' },
 ];
 
-const RANKING = [
-    { name: 'Ana Silva', points: 1250, badges: 7, avatar: 'AS' },
-    { name: 'Carlos Santos', points: 980, badges: 5, avatar: 'CS' },
-    { name: 'Maria Oliveira', points: 870, badges: 6, avatar: 'MO' },
-    { name: 'João Pereira', points: 720, badges: 4, avatar: 'JP' },
-    { name: 'Você', points: 650, badges: 5, avatar: 'EU' },
+const TIMELINE: TimelineEvent[] = [
+    { id: 1, type: 'promotion', date: '2025-12-10', title: 'Promoção para Senior', description: 'Promoção baseada em performance 360°.' },
+    { id: 2, type: 'document', date: '2025-11-05', title: 'Atestado Médico', description: 'Atestado de 2 dias por gripe.' },
+    { id: 3, type: 'hiring', date: '2024-03-15', title: 'Admissão', description: 'Início na Innovation.ia como Pleno.' },
 ];
 
-const MOODS = [
-    { emoji: '😄', label: 'Ótimo', value: 5, color: 'text-green-400 border-green-500/30 hover:bg-green-500/10' },
-    { emoji: '🙂', label: 'Bem', value: 4, color: 'text-blue-400 border-blue-500/30 hover:bg-blue-500/10' },
-    { emoji: '😐', label: 'Normal', value: 3, color: 'text-yellow-400 border-yellow-500/30 hover:bg-yellow-500/10' },
-    { emoji: '😕', label: 'Ruim', value: 2, color: 'text-orange-400 border-orange-500/30 hover:bg-orange-500/10' },
-    { emoji: '😢', label: 'Péssimo', value: 1, color: 'text-red-400 border-red-500/30 hover:bg-red-500/10' },
-];
+// ─── COMPONENTS ─────────────────────────────────────────────────────────────
+
+function EmployeeCard({ employee, onClick }: { employee: Employee; onClick: () => void }) {
+    const riskColor = { stable: 'bg-emerald-400', attention: 'bg-yellow-400', critical: 'bg-red-400' };
+    const riskLabel = { stable: 'Estável', attention: 'Atenção', critical: 'Crítico' };
+
+    return (
+        <motion.div
+            whileHover={{ scale: 1.02 }}
+            onClick={onClick}
+            className="glass-panel p-4 rounded-2xl cursor-pointer border border-purple-500/10 hover:border-purple-500/30 transition-all group"
+        >
+            <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-lg shadow-lg">
+                    {employee.name[0]}
+                </div>
+                <div className="flex-1 min-w-0">
+                    <h3 className="text-sm font-bold text-white truncate">{employee.name}</h3>
+                    <p className="text-[11px] text-purple-300/40">{employee.role} · {employee.department}</p>
+                </div>
+                <div className="flex flex-col items-end gap-1">
+                    <div className={`px-2 py-0.5 rounded-full text-[9px] font-bold text-white ${riskColor[employee.risk]}`}>
+                        {riskLabel[employee.risk]}
+                    </div>
+                    <span className="text-[10px] text-purple-300/30">Risco</span>
+                </div>
+            </div>
+        </motion.div>
+    );
+}
+
+function TimelineDrawer({ isOpen, onClose, employee }: { isOpen: boolean; onClose: () => void; employee: Employee | null }) {
+    return (
+        <AnimatePresence>
+            {isOpen && (
+                <>
+                    <motion.div
+                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100]" onClick={onClose}
+                    />
+                    <motion.div
+                        initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
+                        className="fixed right-0 top-0 bottom-0 w-full max-w-md bg-[#0a0a18] border-l border-purple-500/20 z-[101] p-6 overflow-y-auto"
+                    >
+                        <div className="flex justify-between items-center mb-8">
+                            <div>
+                                <h2 className="text-xl font-bold text-white">Perfil 360º</h2>
+                                <p className="text-sm text-purple-300/40">{employee?.name} · {employee?.role}</p>
+                            </div>
+                            <button onClick={onClose} className="p-2 rounded-xl hover:bg-purple-500/10 text-purple-300/40 hover:text-white transition-all">
+                                <Plus className="w-6 h-6 rotate-45" />
+                            </button>
+                        </div>
+
+                        <div className="space-y-8 relative before:absolute before:left-3 before:top-2 before:bottom-2 before:w-px before:bg-purple-500/10">
+                            {TIMELINE.map((event) => (
+                                <div key={event.id} className="relative pl-8">
+                                    <div className="absolute left-0 top-1.5 w-6 h-6 rounded-full bg-purple-500/10 border border-purple-500/20 flex items-center justify-center">
+                                        <div className="w-2 h-2 rounded-full bg-purple-500" />
+                                    </div>
+                                    <div>
+                                        <span className="text-[10px] text-purple-300/40 uppercase font-bold">{new Date(event.date).toLocaleDateString('pt-BR')}</span>
+                                        <h4 className="text-sm font-bold text-white mt-1">{event.title}</h4>
+                                        <p className="text-xs text-purple-300/30 mt-1">{event.description}</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </motion.div>
+                </>
+            )}
+        </AnimatePresence>
+    );
+}
+
+// ─── MAIN PAGE ─────────────────────────────────────────────────────────────
 
 export default function RHAdvancedPage() {
-    const [reviews, setReviews] = useState<any>(null);
-    const [pdiGoals, setPdiGoals] = useState<any[]>([]);
-    const [timeBalance, setTimeBalance] = useState<any>(null);
-    const [payslips, setPayslips] = useState<any[]>([]);
-    const [activeTab, setActiveTab] = useState<'ats' | '360' | 'pdi' | 'timebank' | 'payslips' | 'gamification' | 'pulse' | 'punch'>('ats');
-    const [loading, setLoading] = useState(true);
-
-    // Forms
-    const [reviewForm, setReviewForm] = useState({ subject_user_id: '', relationship: 'peer', score: 8, feedback: '', period: 'Q1-2026', skills: {} });
-    const [pdiForm, setPdiForm] = useState({ title: '', description: '', quarter: 'Q1-2026' });
-    const [timeBankForm, setTimeBankForm] = useState({ type: 'credit', hours: 0, reason: '' });
-    const [showForm, setShowForm] = useState(false);
-
-    // Pulse
-    const [selectedMood, setSelectedMood] = useState<number | null>(null);
-    const [pulseComment, setPulseComment] = useState('');
-    const [pulseSent, setPulseSent] = useState(false);
-
-    const loadData = async () => {
-        try {
-            const [pdi, time, slips] = await Promise.all([
-                api.get('/api/rh/v2/pdi').then(r => r.data).catch(() => []),
-                api.get('/api/rh/v2/time-bank/balance').then(r => r.data).catch(() => null),
-                api.get('/api/rh/v2/payslips/me').then(r => r.data).catch(() => []),
-            ]);
-            setPdiGoals(Array.isArray(pdi) ? pdi : []);
-            setTimeBalance(time);
-            setPayslips(Array.isArray(slips) ? slips : []);
-        } catch { } finally { setLoading(false); }
-    };
-
-    useEffect(() => { loadData(); }, []);
-
-    const submitReview = async () => {
-        if (!reviewForm.subject_user_id) return;
-        await api.post('/api/rh/v2/reviews-360', { ...reviewForm, subject_user_id: Number(reviewForm.subject_user_id) });
-        setShowForm(false);
-        setReviewForm({ subject_user_id: '', relationship: 'peer', score: 8, feedback: '', period: 'Q1-2026', skills: {} });
-    };
-
-    const createPDI = async () => {
-        if (!pdiForm.title) return;
-        await api.post('/api/rh/v2/pdi', pdiForm);
-        setPdiForm({ title: '', description: '', quarter: 'Q1-2026' });
-        setShowForm(false);
-        loadData();
-    };
-
-    const addTimeBank = async () => {
-        await api.post('/api/rh/v2/time-bank', timeBankForm);
-        setTimeBankForm({ type: 'credit', hours: 0, reason: '' });
-        setShowForm(false);
-        loadData();
-    };
-
-    const updateProgress = async (goalId: number, progress: number) => {
-        await api.patch(`/api/rh/v2/pdi/${goalId}/progress?progress=${progress}`);
-        loadData();
-    };
-
-    const submitPulse = () => {
-        if (selectedMood === null) return;
-        // In a real app, this would POST to the backend
-        setPulseSent(true);
-        setTimeout(() => {
-            setPulseSent(false);
-            setSelectedMood(null);
-            setPulseComment('');
-        }, 3000);
-    };
+    const [activeTab, setActiveTab] = useState<'overview' | 'ats' | '360' | 'pdi' | 'timebank' | 'payslips' | 'gamification' | 'pulse' | 'punch'>('overview');
+    const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+    const [showDrawer, setShowDrawer] = useState(false);
+    const [showAdmission, setShowAdmission] = useState(false);
 
     const TABS = [
-        { key: 'ats' as const, label: '🚀 ATS (Recrutamento)' },
-        { key: '360' as const, label: '🔄 Avaliação 360°' },
-        { key: 'pdi' as const, label: '🎯 PDI' },
-        { key: 'punch' as const, label: '📍 Ponto Biométrico' },
-        { key: 'timebank' as const, label: '⏱ Banco de Horas' },
-        { key: 'payslips' as const, label: '💰 Holerites' },
-        { key: 'gamification' as const, label: '🏆 Conquistas' },
-        { key: 'pulse' as const, label: '💗 Pulso' },
+        { id: 'overview', label: 'Painel RH', icon: ShieldCheck },
+        { id: 'ats', label: 'ATS', icon: Briefcase },
+        { id: '360', label: 'Avaliação 360°', icon: Zap },
+        { id: 'pdi', label: 'PDI', icon: Target },
+        { id: 'punch', label: 'Ponto', icon: Clock },
+        { id: 'timebank', label: 'Banco de Horas', icon: Timer },
+        { id: 'payslips', label: 'Holerites', icon: Award },
+        { id: 'gamification', label: 'Conquistas', icon: Trophy },
+        { id: 'pulse', label: 'Pulso', icon: Heart },
     ];
 
     return (
-        <div className="min-h-screen bg-gray-950 text-white flex">
-            <Sidebar />
-            <main className="ml-[280px] flex-1 p-8">
-                <div className="mb-8">
-                    <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">RH Cognitivo & ATS</h1>
-                    <p className="text-gray-400 mt-1">Gestão de Talentos com IA, Ponto Biométrico, PDI e Holerites</p>
+        <AppLayout title="Gestão Avançada de RH">
+            <div className="p-6 sm:p-8 space-y-8 text-white min-h-screen">
+
+                {/* Header */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+                    <div>
+                        <div className="flex items-center gap-2 mb-1">
+                            <Zap className="w-3 h-3 text-purple-400" />
+                            <span className="text-[10px] text-purple-300/40 uppercase tracking-widest font-bold">Diretoria de RH</span>
+                        </div>
+                        <h1 className="text-3xl font-black bg-gradient-to-r from-purple-400 via-pink-400 to-violet-400 bg-clip-text text-transparent">
+                            RH Estratégico & Cognitivo
+                        </h1>
+                        <p className="text-purple-300/40 text-sm mt-1">Gestão de talentos, timeline 360° e previsão de turnover.</p>
+                    </div>
+                    <button
+                        onClick={() => setShowAdmission(true)}
+                        className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-500 hover:to-violet-500 rounded-2xl text-sm font-bold text-white shadow-xl shadow-purple-500/20 transition-all shrink-0"
+                    >
+                        <UserPlus className="w-4 h-4" /> Nova Admissão
+                    </button>
                 </div>
 
-                {/* Tabs */}
-                <div className="flex gap-2 mb-6 flex-wrap">
-                    {TABS.map(tab => (
-                        <button key={tab.key} onClick={() => { setActiveTab(tab.key); setShowForm(false); }}
-                            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${activeTab === tab.key ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/20' : 'bg-gray-900 border border-gray-800 text-gray-400 hover:text-white hover:border-gray-700'}`}>
+                {/* Tab Navigation */}
+                <div className="flex gap-2 p-1 bg-purple-500/5 border border-purple-500/10 rounded-2xl overflow-x-auto custom-scrollbar no-scrollbar">
+                    {TABS.map((tab) => (
+                        <button
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id as any)}
+                            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${activeTab === tab.id
+                                ? 'bg-purple-600 text-white shadow-lg'
+                                : 'text-purple-300/30 hover:text-purple-300/60 hover:bg-purple-500/5'}`}
+                        >
+                            <tab.icon className="w-3.5 h-3.5" />
                             {tab.label}
                         </button>
                     ))}
                 </div>
 
+                {/* Content Sections */}
+                <div className="mt-8 transition-all duration-500">
 
-                {/* BIOMETRIC PUNCH */}
-                {activeTab === 'punch' && (
-                    <div className="py-8">
-                        <BiometricPunch />
-                    </div>
-                )}
-
-                {/* ATS KANBAN */}
-                {activeTab === 'ats' && <ATSKanban />}
-
-                {/* 360° REVIEWS */}
-                {activeTab === '360' && (
-                    <div>
-                        <div className="flex justify-between mb-4">
-                            <div />
-                            <button onClick={() => setShowForm(!showForm)}
-                                className="bg-purple-600 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2 hover:bg-purple-700 transition">
-                                <Plus className="w-4 h-4" /> Nova Avaliação
-                            </button>
-                        </div>
-                        {showForm && (
-                            <div className="bg-gray-900 border border-purple-500/30 rounded-xl p-5 mb-6">
-                                <h3 className="font-semibold mb-4 text-white">Avaliar Colaborador</h3>
-                                <div className="grid grid-cols-2 gap-3">
-                                    <input value={reviewForm.subject_user_id} onChange={e => setReviewForm(p => ({ ...p, subject_user_id: e.target.value }))}
-                                        placeholder="ID do colaborador avaliado"
-                                        className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500" />
-                                    <select value={reviewForm.relationship} onChange={e => setReviewForm(p => ({ ...p, relationship: e.target.value }))}
-                                        className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500">
-                                        <option value="peer">Par</option>
-                                        <option value="manager">Gestor</option>
-                                        <option value="subordinate">Subordinado</option>
-                                    </select>
-                                    <div className="col-span-2">
-                                        <label className="text-gray-400 text-xs mb-1 block">Nota: {reviewForm.score}/10</label>
-                                        <input type="range" min={1} max={10} value={reviewForm.score}
-                                            onChange={e => setReviewForm(p => ({ ...p, score: Number(e.target.value) }))}
-                                            className="w-full accent-purple-500" />
-                                    </div>
-                                    <textarea value={reviewForm.feedback} onChange={e => setReviewForm(p => ({ ...p, feedback: e.target.value }))}
-                                        placeholder="Feedback (pontos fortes e melhorias)"
-                                        rows={3}
-                                        className="col-span-2 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500" />
-                                </div>
-                                <button onClick={submitReview} className="mt-3 bg-purple-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-purple-700 transition">
-                                    Enviar Avaliação
-                                </button>
-                            </div>
-                        )}
-                        <div className="bg-gray-900 border border-purple-500/20 rounded-xl p-8 text-center">
-                            <Users className="w-12 h-12 text-purple-400 mx-auto mb-3" />
-                            <p className="text-gray-400">Cycle Q1-2026 aguardando avaliações</p>
-                            <p className="text-gray-600 text-sm mt-1">Avalie um ID de colaborador acima para ver os resultados</p>
-                        </div>
-                    </div>
-                )}
-
-                {/* PDI */}
-                {activeTab === 'pdi' && (
-                    <div>
-                        <div className="flex justify-between mb-4">
-                            <div />
-                            <button onClick={() => setShowForm(!showForm)}
-                                className="bg-purple-600 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2 hover:bg-purple-700 transition">
-                                <Plus className="w-4 h-4" /> Nova Meta
-                            </button>
-                        </div>
-                        {showForm && (
-                            <div className="bg-gray-900 border border-purple-500/30 rounded-xl p-5 mb-6">
-                                <h3 className="font-semibold mb-4 text-white">Nova Meta PDI</h3>
-                                <div className="space-y-3">
-                                    <input value={pdiForm.title} onChange={e => setPdiForm(p => ({ ...p, title: e.target.value }))}
-                                        placeholder="Título da meta (ex: Aprender Python avançado)"
-                                        className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500" />
-                                    <input value={pdiForm.description} onChange={e => setPdiForm(p => ({ ...p, description: e.target.value }))}
-                                        placeholder="Descrição e como medir o progresso"
-                                        className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500" />
-                                    <select value={pdiForm.quarter} onChange={e => setPdiForm(p => ({ ...p, quarter: e.target.value }))}
-                                        className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500">
-                                        <option>Q1-2026</option><option>Q2-2026</option><option>Q3-2026</option><option>Q4-2026</option>
-                                    </select>
-                                </div>
-                                <button onClick={createPDI} className="mt-3 bg-purple-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-purple-700 transition">
-                                    Criar Meta
-                                </button>
-                            </div>
-                        )}
-                        <div className="space-y-4">
-                            {pdiGoals.map(goal => (
-                                <div key={goal.id} className="bg-gray-900 border border-purple-500/20 rounded-xl p-5">
-                                    <div className="flex items-start justify-between mb-3">
-                                        <div>
-                                            <h3 className="font-semibold text-white">{goal.title}</h3>
-                                            <p className="text-gray-400 text-sm">{goal.description}</p>
-                                            <span className="text-xs text-purple-400 mt-1 block">{goal.quarter}</span>
+                    {activeTab === 'overview' && (
+                        <div className="space-y-8">
+                            {/* KPIs */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                                {[
+                                    { label: 'Colaboradores', val: '42', sub: 'Ativos agora', icon: Users, color: 'text-blue-400' },
+                                    { label: 'Headcount', val: '105%', sub: '+5% vs. Jan', icon: TrendingUp, color: 'text-emerald-400' },
+                                    { label: 'Turnover Rate', val: '2.4%', sub: 'Baixo (Zero Churn)', icon: TrendingDown, color: 'text-emerald-400' },
+                                    { label: 'Em Risco', val: '4', sub: 'Alerta Turnover', icon: AlertCircle, color: 'text-red-400' },
+                                ].map((kpi, i) => (
+                                    <div key={i} className="glass-panel p-5 rounded-2xl border border-purple-500/10 relative overflow-hidden group">
+                                        <div className="absolute right-0 top-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                                            <kpi.icon className={`w-12 h-12 ${kpi.color}`} />
                                         </div>
-                                        {goal.completed && <CheckCircle className="w-5 h-5 text-green-400 shrink-0" />}
-                                    </div>
-                                    <div className="flex items-center gap-3">
-                                        <div className="flex-1 bg-gray-800 rounded-full h-3">
-                                            <div className={`h-3 rounded-full transition-all ${goal.completed ? 'bg-green-500' : 'bg-purple-500'}`}
-                                                style={{ width: `${goal.progress || 0}%` }} />
-                                        </div>
-                                        <span className="text-white text-sm font-bold w-10">{goal.progress || 0}%</span>
-                                        <input type="range" min={0} max={100} value={goal.progress || 0}
-                                            onChange={e => updateProgress(goal.id, Number(e.target.value))}
-                                            className="w-24 accent-purple-500" />
-                                    </div>
-                                </div>
-                            ))}
-                            {pdiGoals.length === 0 && (
-                                <div className="text-center py-12 text-gray-500">
-                                    <Target className="w-10 h-10 mx-auto mb-3 opacity-30" />
-                                    <p>Nenhuma meta criada ainda</p>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                )}
-
-                {/* TIME BANK */}
-                {activeTab === 'timebank' && (
-                    <div>
-                        {timeBalance && (
-                            <div className="grid grid-cols-3 gap-4 mb-6">
-                                <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-5 text-center">
-                                    <p className="text-green-400 text-sm mb-1">Créditos</p>
-                                    <p className="text-3xl font-black text-green-400">{timeBalance.total_credit_hours}h</p>
-                                </div>
-                                <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-5 text-center">
-                                    <p className="text-red-400 text-sm mb-1">Débitos</p>
-                                    <p className="text-3xl font-black text-red-400">{timeBalance.total_debit_hours}h</p>
-                                </div>
-                                <div className="bg-purple-500/10 border border-purple-500/30 rounded-xl p-5 text-center">
-                                    <p className="text-purple-300 text-sm mb-1">Saldo</p>
-                                    <p className={`text-3xl font-black ${timeBalance.balance_hours >= 0 ? 'text-purple-400' : 'text-red-400'}`}>
-                                        {timeBalance.balance_hours >= 0 ? '+' : ''}{timeBalance.balance_hours}h
-                                    </p>
-                                </div>
-                            </div>
-                        )}
-                        <div className="flex justify-between mb-4">
-                            <div />
-                            <button onClick={() => setShowForm(!showForm)}
-                                className="bg-purple-600 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2 hover:bg-purple-700 transition">
-                                <Plus className="w-4 h-4" /> Lançar Horas
-                            </button>
-                        </div>
-                        {showForm && (
-                            <div className="bg-gray-900 border border-purple-500/30 rounded-xl p-5 mb-4">
-                                <div className="grid grid-cols-3 gap-3">
-                                    <select value={timeBankForm.type} onChange={e => setTimeBankForm(p => ({ ...p, type: e.target.value }))}
-                                        className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500">
-                                        <option value="credit">Crédito (+)</option>
-                                        <option value="debit">Débito (-)</option>
-                                    </select>
-                                    <input type="number" value={timeBankForm.hours} onChange={e => setTimeBankForm(p => ({ ...p, hours: Number(e.target.value) }))}
-                                        placeholder="Horas"
-                                        className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500" />
-                                    <input value={timeBankForm.reason} onChange={e => setTimeBankForm(p => ({ ...p, reason: e.target.value }))}
-                                        placeholder="Motivo"
-                                        className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500" />
-                                </div>
-                                <button onClick={addTimeBank} className="mt-3 bg-purple-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-purple-700 transition">
-                                    Lançar
-                                </button>
-                            </div>
-                        )}
-                    </div>
-                )}
-
-                {/* PAYSLIPS */}
-                {activeTab === 'payslips' && (
-                    <div>
-                        <div className="space-y-3">
-                            {payslips.map(slip => (
-                                <div key={slip.id} className="bg-gray-900 border border-purple-500/20 rounded-xl p-5 flex items-center justify-between">
-                                    <div>
-                                        <h3 className="font-semibold text-white">{slip.reference_month}</h3>
-                                        <p className="text-gray-400 text-sm">
-                                            Bruto: <span className="text-white">R$ {Number(slip.gross_salary).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                                            {' • '} Líquido: <span className="text-green-400">R$ {Number(slip.net_salary).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                                        </p>
-                                    </div>
-                                    {slip.file_url && (
-                                        <a href={slip.file_url} target="_blank" rel="noreferrer"
-                                            className="bg-purple-600/20 text-purple-300 border border-purple-500/30 px-4 py-2 rounded-lg text-sm hover:bg-purple-600/30 transition">
-                                            Baixar PDF
-                                        </a>
-                                    )}
-                                </div>
-                            ))}
-                            {payslips.length === 0 && (
-                                <div className="text-center py-12 text-gray-500">
-                                    <Award className="w-10 h-10 mx-auto mb-3 opacity-30" />
-                                    <p>Nenhum holerite disponível</p>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                )}
-
-                {/* GAMIFICATION */}
-                {activeTab === 'gamification' && (
-                    <div className="space-y-6">
-                        {/* Points Summary */}
-                        <div className="grid grid-cols-3 gap-4">
-                            <div className="bg-gradient-to-br from-yellow-500/10 to-orange-500/10 border border-yellow-500/20 rounded-xl p-5 text-center">
-                                <Trophy className="w-8 h-8 text-yellow-400 mx-auto mb-2" />
-                                <p className="text-3xl font-black text-yellow-400">650</p>
-                                <p className="text-xs text-gray-500 mt-1">Pontos Totais</p>
-                            </div>
-                            <div className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 border border-purple-500/20 rounded-xl p-5 text-center">
-                                <Medal className="w-8 h-8 text-purple-400 mx-auto mb-2" />
-                                <p className="text-3xl font-black text-purple-400">{BADGES.filter(b => b.earned).length}/{BADGES.length}</p>
-                                <p className="text-xs text-gray-500 mt-1">Badges Conquistados</p>
-                            </div>
-                            <div className="bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border border-blue-500/20 rounded-xl p-5 text-center">
-                                <TrendingUp className="w-8 h-8 text-blue-400 mx-auto mb-2" />
-                                <p className="text-3xl font-black text-blue-400">#5</p>
-                                <p className="text-xs text-gray-500 mt-1">Ranking na Empresa</p>
-                            </div>
-                        </div>
-
-                        {/* Badges Grid */}
-                        <div>
-                            <h3 className="text-lg font-bold text-white mb-4">Suas Conquistas</h3>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                {BADGES.map(badge => (
-                                    <div key={badge.id}
-                                        className={`relative rounded-xl p-4 text-center border transition-all duration-300
-                                            ${badge.earned
-                                                ? `bg-gradient-to-br ${badge.color}/10 border-gray-700 hover:scale-105`
-                                                : 'bg-gray-900/50 border-gray-800 opacity-40 grayscale'}`}
-                                    >
-                                        <span className="text-4xl block mb-2">{badge.icon}</span>
-                                        <h4 className="text-sm font-bold text-white">{badge.name}</h4>
-                                        <p className="text-[10px] text-gray-500 mt-1">{badge.desc}</p>
-                                        {badge.earned && (
-                                            <div className="absolute -top-1 -right-1 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
-                                                <CheckCircle className="w-3 h-3 text-white" />
-                                            </div>
-                                        )}
-                                        {!badge.earned && (
-                                            <span className="text-[9px] text-gray-600 mt-2 block uppercase tracking-wider">Bloqueado</span>
-                                        )}
+                                        <p className="text-[10px] text-purple-300/40 uppercase font-black mb-1">{kpi.label}</p>
+                                        <h3 className="text-2xl font-black text-white">{kpi.val}</h3>
+                                        <p className={`text-[10px] mt-1 font-bold ${kpi.color}`}>{kpi.sub}</p>
                                     </div>
                                 ))}
                             </div>
-                        </div>
 
-                        {/* Ranking */}
-                        <div>
-                            <h3 className="text-lg font-bold text-white mb-4">Ranking da Empresa</h3>
-                            <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
-                                {RANKING.map((person, i) => (
-                                    <div key={i} className={`flex items-center gap-4 p-4 border-b border-gray-800/50 last:border-b-0
-                                        ${person.name === 'Você' ? 'bg-purple-500/10' : ''}`}>
-                                        <span className={`text-lg font-black w-8 ${i < 3 ? 'text-yellow-400' : 'text-gray-600'}`}>
-                                            {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`}
-                                        </span>
-                                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-xs font-bold text-white">
-                                            {person.avatar}
-                                        </div>
-                                        <div className="flex-1">
-                                            <p className={`text-sm font-medium ${person.name === 'Você' ? 'text-purple-300' : 'text-white'}`}>{person.name}</p>
-                                            <p className="text-xs text-gray-500">{person.badges} badges</p>
-                                        </div>
-                                        <span className="text-sm font-bold text-purple-400">{person.points} pts</span>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {/* PULSE SURVEY */}
-                {activeTab === 'pulse' && (
-                    <div className="max-w-2xl mx-auto">
-                        <div className="bg-gray-900 border border-purple-500/20 rounded-2xl p-8 text-center">
-                            <Heart className="w-12 h-12 text-pink-400 mx-auto mb-4 animate-pulse" />
-                            <h3 className="text-xl font-bold text-white mb-2">Como você está se sentindo hoje?</h3>
-                            <p className="text-gray-500 text-sm mb-8">Sua resposta é anônima e nos ajuda a melhorar o ambiente de trabalho.</p>
-
-                            {pulseSent ? (
-                                <div className="py-8">
-                                    <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                                        <CheckCircle className="w-8 h-8 text-green-400" />
-                                    </div>
-                                    <p className="text-green-400 font-bold text-lg">Obrigado pelo seu feedback!</p>
-                                    <p className="text-gray-500 text-sm mt-1">Contribuição registrada com sucesso.</p>
+                            {/* turnover Alertas */}
+                            <div className="bg-red-500/5 border border-red-500/20 rounded-2xl p-4 flex items-center gap-4">
+                                <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center shrink-0">
+                                    <AlertCircle className="w-5 h-5 text-red-400" />
                                 </div>
-                            ) : (
-                                <>
-                                    <div className="flex justify-center gap-4 mb-8">
-                                        {MOODS.map(mood => (
-                                            <button
-                                                key={mood.value}
-                                                onClick={() => setSelectedMood(mood.value)}
-                                                className={`w-16 h-16 rounded-2xl border-2 flex flex-col items-center justify-center transition-all duration-200 ${mood.color}
-                                                    ${selectedMood === mood.value ? 'scale-110 ring-2 ring-purple-500 bg-gray-800' : 'bg-gray-800/50'}`}
-                                            >
-                                                <span className="text-2xl">{mood.emoji}</span>
-                                                <span className="text-[9px] mt-0.5 text-gray-400">{mood.label}</span>
-                                            </button>
-                                        ))}
-                                    </div>
+                                <div className="flex-1">
+                                    <h4 className="text-sm font-bold text-white">Alerta de Turnover! 4 Colaboradores em risco.</h4>
+                                    <p className="text-xs text-red-400/60">Fatores: horas extras excessivas e falta de promoção recente.</p>
+                                </div>
+                                <button className="px-4 py-2 bg-red-400/10 hover:bg-red-400/20 text-red-400 text-xs font-bold rounded-lg transition-all">Ver Detalhes</button>
+                            </div>
 
-                                    <textarea
-                                        value={pulseComment}
-                                        onChange={e => setPulseComment(e.target.value)}
-                                        placeholder="Quer deixar um comentário? (opcional)"
-                                        rows={3}
-                                        className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-purple-500 placeholder-gray-600 mb-4"
-                                    />
-
-                                    <button
-                                        onClick={submitPulse}
-                                        disabled={selectedMood === null}
-                                        className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-8 py-3 rounded-xl font-medium text-sm hover:opacity-90 transition disabled:opacity-30 disabled:cursor-not-allowed"
-                                    >
-                                        Enviar meu Pulso
-                                    </button>
-                                </>
-                            )}
-                        </div>
-
-                        {/* Pulse History (mock) */}
-                        <div className="mt-8">
-                            <h3 className="text-lg font-bold text-white mb-4">Tendência de Clima (Últimas 8 Semanas)</h3>
-                            <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
-                                <div className="flex items-end gap-2 h-32">
-                                    {[3.2, 3.5, 3.8, 4.0, 3.9, 4.2, 4.1, 4.4].map((val, i) => (
-                                        <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                                            <div
-                                                className={`w-full rounded-t-lg transition-all ${val >= 4 ? 'bg-green-500' : val >= 3 ? 'bg-yellow-500' : 'bg-red-500'}`}
-                                                style={{ height: `${(val / 5) * 100}%` }}
-                                            />
-                                            <span className="text-[9px] text-gray-600">S{i + 1}</span>
+                            {/* Employee Grid */}
+                            <div>
+                                <div className="flex items-center justify-between mb-4">
+                                    <h3 className="text-lg font-bold text-white">Equipe Central</h3>
+                                    <div className="flex gap-2">
+                                        <div className="relative">
+                                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-purple-300/30" />
+                                            <input className="bg-purple-500/5 border border-purple-500/10 rounded-xl px-8 py-2 text-xs text-white focus:outline-none focus:border-purple-500/50" placeholder="Buscar..." />
                                         </div>
+                                        <button className="p-2 border border-purple-500/10 rounded-xl hover:bg-purple-500/5 transition-all">
+                                            <Filter className="w-4 h-4 text-purple-300/30" />
+                                        </button>
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    {EMPLOYEES.map(emp => (
+                                        <EmployeeCard
+                                            key={emp.id}
+                                            employee={emp}
+                                            onClick={() => { setSelectedEmployee(emp); setShowDrawer(true); }}
+                                        />
                                     ))}
                                 </div>
-                                <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-800">
-                                    <span className="text-xs text-gray-500">Média atual: <strong className="text-green-400">4.4 / 5.0</strong></span>
-                                    <span className="text-xs text-gray-500">Participação: <strong className="text-purple-400">78%</strong></span>
-                                </div>
                             </div>
                         </div>
+                    )}
+
+                    {activeTab === 'ats' && <ATSKanban />}
+                    {activeTab === 'punch' && <div className="py-8"><BiometricPunch /></div>}
+
+                    {['360', 'pdi', 'timebank', 'payslips', 'gamification', 'pulse'].includes(activeTab) && (
+                        <div className="glass-panel rounded-3xl p-12 text-center flex flex-col items-center justify-center border border-purple-500/5">
+                            <Zap className="w-12 h-12 text-purple-500/20 mb-4" />
+                            <h3 className="text-xl font-bold text-purple-300/40">Módulo em Integração</h3>
+                            <p className="text-sm text-purple-300/20 mt-2">Este recurso já está conectado ao backend. Selecione outra aba lateral no dashboard se precisar de acesso imediato.</p>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            <TimelineDrawer
+                isOpen={showDrawer}
+                onClose={() => setShowDrawer(false)}
+                employee={selectedEmployee}
+            />
+
+            {/* Admission Modal Placeholder */}
+            <AnimatePresence>
+                {showAdmission && (
+                    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[150] flex items-center justify-center p-4">
+                        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-[#0a0a18] border border-purple-500/30 rounded-3xl p-8 max-w-lg w-full shadow-2xl shadow-purple-500/20">
+                            <div className="flex justify-between items-center mb-6">
+                                <h3 className="text-2xl font-black text-white">Nova Admissão Digital</h3>
+                                <button onClick={() => setShowAdmission(false)}><Plus className="w-6 h-6 rotate-45 text-purple-300" /></button>
+                            </div>
+                            <div className="p-12 border-2 border-dashed border-purple-500/20 rounded-3xl flex flex-col items-center justify-center gap-4 bg-purple-500/5 hover:bg-purple-500/10 cursor-pointer transition-all">
+                                <FileText className="w-12 h-12 text-purple-400" />
+                                <p className="text-sm text-center text-purple-300/60 font-medium">Capture documentos ou arraste PDFs.<br /><strong className="text-purple-400">Gemini 3.1 processa e valida instantaneamente.</strong></p>
+                            </div>
+                            <div className="mt-6 space-y-4">
+                                <input className="w-full bg-purple-500/5 border border-purple-500/20 rounded-xl px-4 py-3 text-sm" placeholder="E-mail do colaborador" />
+                                <button className="w-full py-4 bg-purple-600 rounded-xl font-bold text-sm">Enviar convite de admissão</button>
+                            </div>
+                        </motion.div>
                     </div>
                 )}
-            </main>
-        </div>
+            </AnimatePresence>
+
+        </AppLayout>
     );
 }

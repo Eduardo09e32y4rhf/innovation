@@ -119,8 +119,8 @@ export const FinanceService = {
         const res = await api.get('/api/finance/summary');
         return res.data;
     },
-    getTransactions: async () => {
-        const res = await api.get('/api/finance/transactions');
+    getTransactions: async (params?: { type?: string; status?: string; search?: string }) => {
+        const res = await api.get('/api/finance/transactions', { params });
         return res.data;
     },
     getPrediction: async () => {
@@ -131,12 +131,35 @@ export const FinanceService = {
         const res = await api.get('/api/finance/anomalies');
         return res.data;
     },
-    createTransaction: async (data: { description: string; amount: number; type: string; due_date: string; attachment_url?: string; ai_metadata?: string }) => {
+    createTransaction: async (data: {
+        description: string; amount: number; type: string;
+        due_date: string; category?: string; status?: string;
+        attachment_url?: string; ai_metadata?: string;
+    }) => {
         const res = await api.post('/api/finance/transactions', data);
+        return res.data;
+    },
+    updateTransaction: async (id: number, data: Record<string, unknown>) => {
+        const res = await api.patch(`/api/finance/transactions/${id}`, data);
+        return res.data;
+    },
+    deleteTransaction: async (id: number) => {
+        await api.delete(`/api/finance/transactions/${id}`);
+    },
+    bulkUpdateStatus: async (ids: number[], status: string) => {
+        const res = await api.post('/api/finance/transactions/bulk-status', { ids, status });
+        return res.data;
+    },
+    exportTransactions: async (params?: { type?: string; status?: string }) => {
+        const res = await api.get('/api/finance/transactions/export', { params, responseType: 'blob' });
         return res.data;
     },
     getLogs: async () => {
         const res = await api.get('/api/finance/logs');
+        return res.data;
+    },
+    getCashflowChart: async (period: 'week' | 'month' | 'year' = 'month') => {
+        const res = await api.get('/api/finance/cashflow', { params: { period } });
         return res.data;
     },
 };
@@ -202,6 +225,22 @@ export const SupportService = {
 
 // ── RH ───────────────────────────────────────────────────────────────────
 export const RHService = {
+    getEmployees: async () => {
+        const res = await api.get('/api/rh/v2/employees');
+        return res.data;
+    },
+    getEmployeeTimeline: async (id: number) => {
+        const res = await api.get(`/api/rh/v2/employees/${id}/timeline`);
+        return res.data;
+    },
+    getTurnoverAlerts: async () => {
+        const res = await api.get('/api/rh/v2/turnover-alerts');
+        return res.data;
+    },
+    createAdmission: async (data: Record<string, unknown>) => {
+        const res = await api.post('/api/rh/v2/admission', data);
+        return res.data;
+    },
     getLeaveRequests: async () => {
         const res = await api.get('/api/rh/leave-requests');
         return res.data;

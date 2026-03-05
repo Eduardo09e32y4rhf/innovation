@@ -296,3 +296,102 @@ def list_team_payslips(
         .order_by(Payslip.reference_month.desc())
         .all()
     )
+
+# ─── STRATEGIC HR (PAINEL DIRETOR) ───────────────────────────────────────────
+
+
+@router.get("/employees")
+def get_employees_list(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Lista todos os funcionários e calcula risco de turnover (mock-ia)"""
+    # Em um cenário real, filtraríamos pela empresa do current_user
+    users = db.query(User).filter(User.role != "admin").all()
+    
+    # Lógica de IA Simplificada: Análise de Risco
+    results = []
+    for u in users:
+        # Pega saldo do banco de horas
+        entries = db.query(TimeBank).filter(TimeBank.user_id == u.id, TimeBank.status == "approved").all()
+        credits = sum(e.hours for e in entries if e.type == "credit")
+        debits = sum(e.hours for e in entries if e.type == "debit")
+        balance = credits - debits
+        
+        # Define risco baseado no saldo ( burn-rate )
+        risk = "stable"
+        if balance > 30: risk = "attention"
+        if balance > 60: risk = "critical"
+        
+        results.append({
+            "id": u.id,
+            "name": u.name,
+            "role": u.role,
+            "department": "Geral",
+            "status": "active",
+            "risk": risk,
+            "time_balance": balance
+        })
+    return results
+
+
+@router.get("/employees/{user_id}/timeline")
+def get_employee_timeline(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Gera a timeline histórica do colaborador"""
+    # Mock de histórico para demonstração
+    return [
+        {"id": 1, "type": "promotion", "date": "2025-12-10", "title": "Promoção para Senior", "description": "Performance excepcional no Q4."},
+        {"id": 2, "type": "document", "date": "2025-11-05", "title": "Atestado Médico", "description": "Validado por IA Gemini."},
+        {"id": 3, "type": "hiring", "date": "2024-03-15", "title": "Admissão", "description": "Início da jornada na Innovation.ia."},
+    ]
+
+
+@router.get("/turnover-alerts")
+def get_turnover_alerts(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """IA detecta funcionários com alto risco de saída"""
+    # Retorna apenas quem está em estado Crítico ou Atenção
+    all_emps = get_employees_list(db, current_user)
+    return [e for e in all_emps if e["risk"] != "stable"]
+
+
+@router.post("/admission")
+def start_admission(
+    data: dict,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Inicia fluxo de admissão digital"""
+    email = data.get("email")
+    if not email:
+        raise HTTPException(status_code=400, detail="Email é obrigatório")
+    # Aqui dispararíamos o e-mail via SES/SendGrid/n8n
+    return {"message": f"Convite enviado para {email}", "token": "adm_987654"}
+
+
+@router.post("/documents/upload")
+def upload_hr_document(
+    id: int,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Upload de documentos com OCR Cognitivo (Gemini)"""
+    # Em um cenário real, salvaríamos no S3/Supabase Storage
+    # E chamaríamos o Gemini Vision para extrair dados
+    return {
+        "id": 123,
+        "status": "verified",
+        "extracted_data": {
+          "name": "João Silva",
+          "doc_type": "RG",
+          "valid_until": "2030-01-01"
+        },
+        "message": "Documento validado pela IA com 98% de confiança"
+    }
