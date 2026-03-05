@@ -44,9 +44,7 @@ def get_user_xp(current_user: User = Depends(get_current_user)):
     next_level_xp = user_level * 1000
 
     return UserXPOut(
-        level=user_level,
-        current_xp=xp_in_level,
-        next_level_xp=next_level_xp
+        level=user_level, current_xp=xp_in_level, next_level_xp=next_level_xp
     )
 
 
@@ -59,7 +57,7 @@ def add_user_xp(
     try:
         # Initial values
         current_user.current_xp = (current_user.current_xp or 0) + xp_data.xp
-        current_user.points = (current_user.points or 0) + xp_data.xp # Sync points
+        current_user.points = (current_user.points or 0) + xp_data.xp  # Sync points
         current_user.level = current_user.level or 1
 
         next_level_xp = current_user.level * 1000
@@ -76,9 +74,11 @@ def add_user_xp(
         return UserXPOut(
             level=current_user.level,
             current_xp=current_user.current_xp,
-            next_level_xp=next_level_xp
+            next_level_xp=next_level_xp,
         )
     except Exception as e:
         db.rollback()
-        logger.error(f"Erro interno ao adicionar XP para usuário {current_user.id}: {str(e)}")
+        logger.error(
+            f"Erro interno ao adicionar XP para usuário {current_user.id}: {str(e)}"
+        )
         raise HTTPException(status_code=500, detail="Erro interno ao adicionar XP")

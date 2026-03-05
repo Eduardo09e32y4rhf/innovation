@@ -109,7 +109,7 @@ async def get_dashboard_metrics(
     )
 
     # Gamificação
-    user_points = current_user.current_xp or 0
+    user_points = current_user.points or 0
     user_level = current_user.level or 1
     xp_in_level = current_user.current_xp or 0
     next_level_xp = user_level * 1000
