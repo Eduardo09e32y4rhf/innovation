@@ -50,9 +50,7 @@ def calculate_match_score(job: Job, candidate: User) -> dict:
         "recommendation": (
             "Entrevistar"
             if score >= 70
-            else "Revisar"
-            if score >= 50
-            else "Baixa compatibilidade"
+            else "Revisar" if score >= 50 else "Baixa compatibilidade"
         ),
     }
 
