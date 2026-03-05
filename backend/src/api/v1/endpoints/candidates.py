@@ -125,7 +125,9 @@ async def get_candidate_profile(
         raise
     except Exception as e:
         print(f"Erro interno ao buscar perfil do candidato {candidate_id}: {str(e)}")
-        raise HTTPException(status_code=500, detail="Erro interno ao buscar perfil do candidato")
+        raise HTTPException(
+            status_code=500, detail="Erro interno ao buscar perfil do candidato"
+        )
 
 
 @router.get("/{candidate_id}/resume")
