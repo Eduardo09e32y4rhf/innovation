@@ -45,6 +45,7 @@ services:
           memory: 512M
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-user_N7khBY}:${POSTGRES_PASSWORD:-password_Zs6bid}@${POSTGRES_HOST:-209.50.241.30}:5432/${POSTGRES_DB:-innovation_db}
+      - SECRET_KEY=${SECRET_KEY}
 
   api_monolith:
     build:
@@ -83,6 +84,7 @@ services:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-user_N7khBY}:${POSTGRES_PASSWORD:-password_Zs6bid}@${POSTGRES_HOST:-209.50.241.30}:5432/${POSTGRES_DB:-innovation_db}
       - REDIS_URL=redis://:redis_pTEpH8@${REDIS_HOST:-209.50.241.30}:6379/0
       - GEMINI_API_KEYS=${GEMINI_API_KEYS}
+      - SECRET_KEY=${SECRET_KEY}
       - PYTHONPATH=/app/backend/src:/app
     extra_hosts:
       - "host.docker.internal:host-gateway"
