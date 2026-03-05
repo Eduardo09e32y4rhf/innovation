@@ -113,6 +113,10 @@ export default function LoginPage() {
         setError("")
 
         try {
+            // Limpa sessão antiga agressivamente antes de novo login
+            localStorage.removeItem("token")
+            document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;'
+
             const data = await AuthService.login(email, password)
             if (data.access_token) {
                 localStorage.setItem("token", data.access_token)
