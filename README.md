@@ -28,6 +28,11 @@ A **Innovation.ia** evoluiu de um Dashboard de IA para o **Sistema Operativo Cen
 
 ## 🛠 Módulos em Destaque (Fase 1 Atualizada)
 
+### 💻 Terminal Cognitivo (Gemini CLI)
+- **Desenvolvimento e Automação**: Interface de linha de comando integrada ao ecossistema para gerenciar interações com a API e validar o AI Key Manager.
+- **Eficiência**: Ferramenta projetada para devs executarem automações e testes rápidos de prompts ou rotinas de OCR.
+
+
 ### 📊 ATS Intelligence & Kanban
 - **Alta Performance**: Interface inspirada no Trello com animações fluidas (Framer Motion).
 - **Match Score IA**: Visualização direta da compatibilidade do candidato no card do Kanban.
