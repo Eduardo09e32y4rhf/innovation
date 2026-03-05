@@ -1,11 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from infrastructure.database.sql.dependencies import get_db
 from domain.models.job import Job
 from domain.models.application import Application
 from domain.models.user import User
 from core.dependencies import get_current_user
-from typing import List
 import re
 
 router = APIRouter(prefix="/api/matching", tags=["matching"])
@@ -72,13 +71,20 @@ async def get_matched_candidates(
     if job.company_id != current_user.id:
         raise HTTPException(403, "Sem permissão")
 
-    # Buscar candidaturas
-    applications = db.query(Application).filter(Application.job_id == job_id).all()
+    # ⚡ Bolt: Eliminate N+1 query problem by fetching candidate with application in a single query
+    # Why: Previously executed a database query for each application inside the loop.
+    # Impact: Reduces O(N) database queries to O(1), significantly improving endpoint response time for jobs with many applications.
+    applications = (
+        db.query(Application)
+        .options(joinedload(Application.candidate))
+        .filter(Application.job_id == job_id)
+        .all()
+    )
 
     results = []
 
     for app in applications:
-        candidate = db.query(User).filter(User.id == app.candidate_id).first()
+        candidate = app.candidate
 
         if not candidate:
             continue
