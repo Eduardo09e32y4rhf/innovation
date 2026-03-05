@@ -5,7 +5,6 @@ from domain.models.user import User
 from domain.models.application import Application
 from domain.models.job import Job
 from core.dependencies import get_current_user
-from typing import List, Dict, Any
 
 router = APIRouter(prefix="/api/candidates", tags=["candidates"])
 
@@ -37,7 +36,6 @@ async def list_candidates(
         )
 
         candidates_list = []
-        seen_candidates = set()
 
         # O mockup do frontend espera:
         # [{"nome": "João", "vaga": "Dev", "score": 95, "email": "...", "data": "..."}]
@@ -62,8 +60,8 @@ async def list_candidates(
         return candidates_list
 
     except Exception as e:
-        print(f"Error listing candidates: {e}")
-        raise HTTPException(500, f"Erro ao listar candidatos: {str(e)}")
+        print(f"Erro interno ao listar candidatos: {str(e)}")
+        raise HTTPException(status_code=500, detail="Erro interno ao listar candidatos")
 
 
 @router.get("/{candidate_id}")
@@ -126,7 +124,10 @@ async def get_candidate_profile(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(500, f"Erro ao buscar candidato: {str(e)}")
+        print(f"Erro interno ao buscar perfil do candidato {candidate_id}: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail="Erro interno ao buscar perfil do candidato"
+        )
 
 
 @router.get("/{candidate_id}/resume")

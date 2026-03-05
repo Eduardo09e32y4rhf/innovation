@@ -1,10 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 import logging
 
 from core.dependencies import (
-    get_current_user,
     require_active_company,
     require_company_subscription,
     require_role,
@@ -13,7 +12,6 @@ from core.roles import Role
 from infrastructure.database.sql.dependencies import get_db
 from domain.models.job import Job
 from domain.models.application import Application
-from domain.models.user import User
 from domain.schemas.job import JobCreate, JobOut, JobUpdate
 from services.audit_service import log_event
 
@@ -46,8 +44,8 @@ def list_jobs(
         return jobs
 
     except Exception as e:
-        logger.error(f"Erro ao listar vagas: {str(e)}")
-        raise HTTPException(500, str(e))
+        logger.error(f"Erro interno ao listar vagas: {str(e)}")
+        raise HTTPException(status_code=500, detail="Erro interno ao listar vagas")
 
 
 @router.get("/company", response_model=List[JobOut])
@@ -107,8 +105,8 @@ def create_job(
         return job
     except Exception as e:
         db.rollback()
-        logger.error(f"Erro ao criar vaga: {str(e)}")
-        raise HTTPException(500, str(e))
+        logger.error(f"Erro interno ao criar vaga: {str(e)}")
+        raise HTTPException(status_code=500, detail="Erro interno ao criar vaga")
 
 
 @router.patch("/{job_id}", response_model=JobOut)
