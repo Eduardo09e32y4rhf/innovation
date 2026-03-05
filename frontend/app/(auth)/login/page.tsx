@@ -6,92 +6,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { Bot, Lock, Mail, ChevronRight, Sparkles, ShieldCheck } from "lucide-react"
 import Link from "next/link"
 import { AuthService } from "@/services/api"
-import { useState, useEffect, useRef } from "react"
-
-// ── Easter Egg: emails que recebem a pegadinha de hacking 😈 ─────────────────
-const PRANK_EMAILS = new Set([
-    'philippetavares00@gmail.com',
-    // adicione mais emails aqui!
-])
-
-const makeHackLines = (firstName: string) => [
-    "$ Iniciando conexão criptografada...",
-    "$ Bypassando firewall da Innovation.ia...",
-    "> ACESSO CONCEDIDO — NÍVEL MÁXIMO",
-    "$ Localizando banco de dados financeiros...",
-    "$ [████████░░] 80% — Acessando transações...",
-    `$ DUMP: tabela 'transactions' → 4.821 registros`,
-    "$ CPF capturado: 047.***.***-12",
-    "$ Saldo encontrado: R$ 847.293,00",
-    "$ Copiando histórico bancário Bradesco...",
-    "$ Copiando histórico bancário Itaú...",
-    "$ Copiando PIX recebidos (últimos 6 meses)...",
-    "$ [████████████] 100% — UPLOAD CONCLUÍDO",
-    "$ Enviando dados para servidor em 🇷🇺...",
-    "> TRANSFERÊNCIA COMPLETA em 3... 2... 1...",
-    "",
-    "  ██████╗ ███████╗ ██████╗  █████╗ ██████╗  ██╗███╗   ██╗██╗  ██╗ █████╗ ██╗",
-    "  ██╔══██╗██╔════╝██╔════╝ ██╔══██╗██╔══██╗ ██║████╗  ██║██║  ██║██╔══██╗██║",
-    "  ██████╔╝█████╗  ██║  ███╗███████║██║  ██║ ██║██╔██╗ ██║███████║███████║██║",
-    "  ██╔═══╝ ██╔══╝  ██║   ██║██╔══██║██║  ██║ ██║██║╚██╗██║██╔══██║██╔══██║╚═╝",
-    "  ██║     ███████╗╚██████╔╝██║  ██║██████╔╝ ██║██║ ╚████║██║  ██║██║  ██║██╗",
-    "  ╚═╝     ╚══════╝ ╚═════╝ ╚═╝  ╚═╝╚═════╝  ╚═╝╚═╝  ╚═══╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝",
-    "",
-    `  🎉 BEM-VINDO À INNOVATION.IA, ${firstName.toUpperCase()}! 🎉`,
-]
-
-function HackingScreen({ name, onDone }: { name: string; onDone: () => void }) {
-    const hackLines = makeHackLines(name)
-    const [lines, setLines] = useState<string[]>([])
-    const [phase, setPhase] = useState<'hacking' | 'reveal'>('hacking')
-    const idxRef = useRef(0)
-
-    useEffect(() => {
-        const interval = setInterval(() => {
-            if (idxRef.current < hackLines.length) {
-                setLines(prev => [...prev, hackLines[idxRef.current]])
-                idxRef.current++
-                if (idxRef.current === hackLines.length) {
-                    setPhase('reveal')
-                    clearInterval(interval)
-                    setTimeout(onDone, 3500)
-                }
-            }
-        }, 100)
-        return () => clearInterval(interval)
-    }, [onDone])
-
-    return (
-        <div className="fixed inset-0 bg-black font-mono text-green-400 p-6 overflow-hidden flex flex-col z-50">
-            <div className="mb-4 flex items-center gap-2">
-                <div className="w-3 h-3 bg-red-500 rounded-full" />
-                <div className="w-3 h-3 bg-yellow-500 rounded-full" />
-                <div className="w-3 h-3 bg-green-500 rounded-full" />
-                <span className="ml-2 text-xs text-zinc-500">terminal — bash</span>
-            </div>
-            <div className="flex-1 overflow-y-auto space-y-1 text-sm">
-                {lines.map((line, i) => (
-                    <div key={i} className={`${line.startsWith('>') ? 'text-red-400 font-bold' : line.startsWith('  ') ? 'text-green-300' : 'text-green-400'} whitespace-pre`}>
-                        {line}
-                    </div>
-                ))}
-                {phase === 'hacking' && (
-                    <span className="inline-block w-2 h-4 bg-green-400 animate-pulse" />
-                )}
-            </div>
-            {phase === 'reveal' && (
-                <motion.div
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="mt-4 text-center py-6 bg-green-500/10 border border-green-500/30 rounded-xl"
-                >
-                    <p className="text-3xl font-black text-green-400">🎉 PEGADINHA, {name.toUpperCase()}! 🎉</p>
-                    <p className="text-green-500 text-sm mt-2">Entrando na plataforma...</p>
-                </motion.div>
-            )}
-        </div>
-    )
-}
+import { useState, useEffect } from "react"
 
 export default function LoginPage() {
     const [loading, setLoading] = useState(false)
@@ -100,8 +15,6 @@ export default function LoginPage() {
     const [error, setError] = useState("")
     const [mounted, setMounted] = useState(false)
     const [redirecting, setRedirecting] = useState(false)
-    const [hackMode, setHackMode] = useState(false)
-    const [hackName, setHackName] = useState("")
 
     useEffect(() => {
         setMounted(true)
@@ -113,7 +26,7 @@ export default function LoginPage() {
         setError("")
 
         try {
-            // Limpa sessão antiga agressivamente antes de novo login
+            // Limpa sessão anterior antes de novo login
             localStorage.removeItem("token")
             document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;'
 
@@ -121,23 +34,9 @@ export default function LoginPage() {
             if (data.access_token) {
                 localStorage.setItem("token", data.access_token)
                 document.cookie = `auth_token=${data.access_token}; path=/; max-age=86400; SameSite=Lax`
-
-                const lowerEmail = email.toLowerCase()
-                if (lowerEmail === 'andersondavi.br@gmail.com') {
-                    setRedirecting(true)
-                    window.location.href = "/checkout-socio"
-                    return
-                } else if (PRANK_EMAILS.has(lowerEmail)) {
-                    // 😈 PEGADINHA! — nome dinâmico vindo do backend
-                    const firstName = (data.full_name || email.split('@')[0]).split(' ')[0]
-                    setHackName(firstName)
-                    setHackMode(true)
-                    return
-                } else {
-                    setRedirecting(true)
-                    window.location.href = "/dashboard"
-                    return
-                }
+                setRedirecting(true)
+                window.location.href = "/dashboard"
+                return
             }
         } catch (err: unknown) {
             const axiosErr = err as { response?: { data?: { detail?: string }; status?: number } }
@@ -156,14 +55,7 @@ export default function LoginPage() {
 
     if (!mounted) return null
 
-    // 😈 TELA DE HACKING para a vítima sorteada
-    if (hackMode) return (
-        <HackingScreen name={hackName} onDone={() => {
-            window.location.href = "/dashboard"
-        }} />
-    )
-
-    // Enquanto redireciona, mostra só o spinner — sem formulário, sem erro
+    // Spinner durante redirecionamento
     if (redirecting) return (
         <div className="flex min-h-screen items-center justify-center bg-[#050508]">
             <div className="flex flex-col items-center gap-4">
@@ -175,14 +67,12 @@ export default function LoginPage() {
 
     return (
         <div className="flex min-h-screen items-center justify-center bg-[#050508] p-4 relative overflow-hidden font-sans">
-            {/* Ultra-Premium Background Elements */}
+            {/* Background */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
                 <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-purple-600/20 rounded-full blur-[120px] animate-pulse" />
                 <div className="absolute -bottom-[10%] -right-[10%] w-[40%] h-[40%] bg-blue-600/20 rounded-full blur-[120px] animate-pulse" style={{ animationDelay: '2s' }} />
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[radial-gradient(circle_at_center,rgba(139,92,246,0.05)_0%,transparent_70%)]" />
-
-                {/* Subtle Grid Pattern */}
-                <div className="absolute inset-0 opacity-[0.03] bg-[grid-white-pattern] [mask-image:radial-gradient(ellipse_at_center,white,transparent)]"
+                <div className="absolute inset-0 opacity-[0.03]"
                     style={{ backgroundImage: 'radial-gradient(circle, #fff 1px, transparent 1px)', backgroundSize: '32px 32px' }} />
             </div>
 
