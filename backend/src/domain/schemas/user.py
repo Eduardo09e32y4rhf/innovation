@@ -3,6 +3,16 @@ from typing import Optional
 from pydantic import BaseModel, EmailStr, ConfigDict, Field
 
 
+class UserXPOut(BaseModel):
+    level: int
+    current_xp: int
+    next_level_xp: int
+
+
+class UserAddXPIn(BaseModel):
+    xp: int = Field(..., gt=0, description="Amount of XP to add")
+
+
 # Schemas de Entrada (Request)
 class UserCreate(BaseModel):
     full_name: str = Field(..., max_length=200)
