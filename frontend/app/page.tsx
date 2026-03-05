@@ -175,6 +175,8 @@ export default function HomePage() {
 
           {/* Hamburger mobile */}
           <button
+            aria-label="Toggle menu"
+            aria-expanded={isMenuOpen}
             className={`md:hidden ${scrolled ? 'text-zinc-900' : 'text-white'}`}
             onClick={() => setIsMenuOpen(!isMenuOpen)}
           >
