@@ -4,8 +4,10 @@ from infrastructure.database.sql.dependencies import get_db
 from core.dependencies import get_current_user
 from domain.models.user import User
 from domain.schemas.user import UserOut, UserUpdate
+import logging
 
 router = APIRouter(prefix="/users", tags=["Users"])
+logger = logging.getLogger(__name__)
 
 
 @router.get("/me", response_model=UserOut)
@@ -31,4 +33,5 @@ def update_user_me(
         return user
     except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Erro interno ao atualizar usuário {current_user.id}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Erro interno ao atualizar usuário")
