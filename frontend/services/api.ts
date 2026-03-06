@@ -134,7 +134,7 @@ export const FinanceService = {
     createTransaction: async (data: {
         description: string; amount: number; type: string;
         due_date: string; category?: string; status?: string;
-        attachment_url?: string; ai_metadata?: string;
+        attachment_url?: string; ai_metadata?: string; tax_type?: string;
     }) => {
         const res = await api.post('/api/finance/transactions', data);
         return res.data;

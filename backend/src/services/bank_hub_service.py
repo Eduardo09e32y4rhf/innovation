@@ -61,7 +61,6 @@ class BankHubService:
             category="operational",
             status="paid",
             due_date=datetime.now() - timedelta(days=1),
-            bank_account=bank_account_id,
         )
 
         recent_tx2 = Transaction(
@@ -72,7 +71,6 @@ class BankHubService:
             category="sales",
             status="paid",
             due_date=datetime.now() - timedelta(hours=5),
-            bank_account=bank_account_id,
         )
 
         db.add(recent_tx1)

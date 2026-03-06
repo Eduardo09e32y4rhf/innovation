@@ -77,12 +77,12 @@ async def import_ofx(
     created = []
     for tx in transactions:
         new_tx = Transaction(
-            user_id=current_user.id,
+            company_id=current_user.id,
             description=tx["description"] or "Importado OFX",
             amount=tx["amount"],
             type=tx["type"],
             category="Importação OFX",
-            date=(
+            due_date=(
                 datetime.fromisoformat(tx["date"])
                 if tx.get("date")
                 else datetime.utcnow()
@@ -176,7 +176,7 @@ def get_cost_centers(
     transactions = (
         db.query(Transaction)
         .filter(
-            Transaction.user_id == current_user.id,
+            Transaction.company_id == current_user.id,
             Transaction.type == "debit",
         )
         .all()
@@ -222,12 +222,12 @@ def add_voucher(
     """Armazena comprovante/nota fiscal linkado a uma transação."""
     # Store as a transaction with metadata
     tx = Transaction(
-        user_id=current_user.id,
+        company_id=current_user.id,
         description=f"[COFRE] {data.description}",
         amount=data.amount,
         type="debit",
         category="Cofre Digital",
-        date=datetime.fromisoformat(data.date) if data.date else datetime.utcnow(),
+        due_date=datetime.fromisoformat(data.date) if data.date else datetime.utcnow(),
     )
     db.add(tx)
     db.commit()
@@ -250,7 +250,7 @@ def list_vouchers(
     vouchers = (
         db.query(Transaction)
         .filter(
-            Transaction.user_id == current_user.id,
+            Transaction.company_id == current_user.id,
             Transaction.category == "Cofre Digital",
         )
         .order_by(Transaction.id.desc())

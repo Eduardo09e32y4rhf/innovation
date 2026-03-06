@@ -7,10 +7,21 @@ import os
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./innovation_auth.db")
 
 # SQLite precisa de connect_args especial
-connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
-
-# Engine
-engine = create_engine(DATABASE_URL, connect_args=connect_args)
+if DATABASE_URL.startswith("sqlite"):
+    connect_args = {"check_same_thread": False}
+    engine = create_engine(DATABASE_URL, connect_args=connect_args)
+else:
+    # PostgreSQL: adiciona timeouts para evitar conexões penduradas
+    connect_args = {"connect_timeout": 5}
+    engine = create_engine(
+        DATABASE_URL,
+        connect_args=connect_args,
+        pool_pre_ping=True,        # Valida conexão antes de usar
+        pool_timeout=10,           # Timeout para obter conexão do pool
+        pool_recycle=300,          # Recicla conexões a cada 5 min
+        pool_size=5,               # Tamanho do pool
+        max_overflow=10,           # Conexões extras além do pool
+    )
 
 # Session
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

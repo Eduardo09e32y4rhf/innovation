@@ -41,10 +41,16 @@ from core.config import settings
 from contextlib import asynccontextmanager
 from core.superintendent import superintendent
 from core.security.vpn_block import vpn_blocker_middleware
+from infrastructure.database.sql.session import engine
+from infrastructure.database.sql.base import Base
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Startup: Initialize Database Tables
+    print("[DB] Sincronizando tabelas do banco de dados...")
+    Base.metadata.create_all(bind=engine)
+
     # Startup: Initialize Superintendent AI
     print("[AI] Innovation.ia Superintendent: Online")
     await superintendent.run_check()
@@ -78,7 +84,7 @@ app.include_router(enterprise.router, prefix="/api")
 app.include_router(payments.router, prefix="/api")
 app.include_router(ai.router, prefix="/api")
 app.include_router(matching.router, prefix="/api")
-app.include_router(dashboard.router, prefix="/api")
+app.include_router(dashboard.router)
 app.include_router(interviews.router, prefix="/api")
 app.include_router(ai_services.router, prefix="/api")
 app.include_router(projects.router, prefix="/api")

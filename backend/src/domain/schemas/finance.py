@@ -8,9 +8,8 @@ class TransactionCreate(BaseModel):
     amount: Decimal = Field(..., max_digits=10, decimal_places=2)
     type: str = Field(..., max_length=20)  # income, expense
     tax_type: str | None = Field(default=None, max_length=20)  # DAS, INSS, FGTS, etc.
-    category: str | None = Field(
-        default=None, max_length=50
-    )  # salary, infrastructure, marketing
+    category: str | None = Field(default=None, max_length=50)
     due_date: date
+    status: str | None = Field(default=None, max_length=20)  # paid, pending, overdue
     attachment_url: str | None = Field(default=None, max_length=500)
     ai_metadata: str | None = Field(default=None)

@@ -114,6 +114,7 @@ async def get_current_user(
 # ─────────────────────────────────────────────────────────────────────────────
 
 
+@app.get("/health")
 @app.get("/api/auth/health")
 async def health():
     return {"status": "healthy", "service": "auth-service"}

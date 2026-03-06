@@ -21,7 +21,7 @@ class AuditLog(Base):
         Integer, ForeignKey("users.id"), nullable=True
     )
     company_id: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("companies.id"), nullable=True
+        Integer, ForeignKey("users.id"), nullable=True
     )
 
     action: Mapped[str] = mapped_column(String(120), nullable=False)
@@ -35,5 +35,5 @@ class AuditLog(Base):
         nullable=False,
     )
 
-    user: Mapped["User | None"] = relationship("User")
-    company: Mapped["Company | None"] = relationship("Company")
+    user: Mapped["User | None"] = relationship("User", foreign_keys=[user_id])
+    company: Mapped["User | None"] = relationship("User", foreign_keys=[company_id])
