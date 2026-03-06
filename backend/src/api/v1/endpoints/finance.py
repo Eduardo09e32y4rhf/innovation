@@ -98,7 +98,9 @@ async def create_transaction(
         return transaction
     except Exception as e:
         db.rollback()
-        logger.error(f"Erro interno ao criar transação para usuário {current_user.id}: {e}")
+        logger.error(
+            f"Erro interno ao criar transação para usuário {current_user.id}: {e}"
+        )
         raise HTTPException(
             status_code=500, detail="Erro interno ao criar transação financeira."
         )

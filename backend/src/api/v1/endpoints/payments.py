@@ -64,7 +64,9 @@ async def checkout(
         return {"init_point": pref["init_point"], "plan": data.plan, "price": price}
     except Exception as e:
         print(f"Erro ao criar preferência no Mercado Pago para {current_user.id}: {e}")
-        raise HTTPException(status_code=500, detail="Erro ao processar pagamento no Mercado Pago.")
+        raise HTTPException(
+            status_code=500, detail="Erro ao processar pagamento no Mercado Pago."
+        )
 
 
 # 1. CRIA O LINK DE PAGAMENTO (legacy route)
