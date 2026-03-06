@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from infrastructure.database.sql.dependencies import get_db
 from core.dependencies import get_current_user
@@ -7,11 +7,12 @@ from domain.models.finance import Transaction
 from services.finance_service import finance_service
 from domain.models.audit_log import AuditLog
 from domain.schemas.finance import TransactionCreate
-from typing import List
-from decimal import Decimal
 from datetime import datetime, time
+import logging
 from services.audit_service import log_event
 from services.bank_hub_service import bank_hub_service
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/finance", tags=["finance"])
 
@@ -97,8 +98,9 @@ async def create_transaction(
         return transaction
     except Exception as e:
         db.rollback()
+        logger.error(f"Erro interno ao criar transação para usuário {current_user.id}: {e}")
         raise HTTPException(
-            status_code=500, detail="Erro ao criar transação: " + str(e)
+            status_code=500, detail="Erro interno ao criar transação financeira."
         )
 
 

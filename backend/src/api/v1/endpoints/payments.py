@@ -8,7 +8,6 @@ from domain.models.user import User
 from domain.models.subscription import Subscription
 from domain.models.company import Company
 from api.v1.endpoints.auth import get_current_user
-from typing import Optional
 
 router = APIRouter(prefix="/api/payments", tags=["payments"])
 
@@ -64,7 +63,8 @@ async def checkout(
         pref = response["response"]
         return {"init_point": pref["init_point"], "plan": data.plan, "price": price}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro Mercado Pago: {e}")
+        print(f"Erro ao criar preferência no Mercado Pago para {current_user.id}: {e}")
+        raise HTTPException(status_code=500, detail="Erro ao processar pagamento no Mercado Pago.")
 
 
 # 1. CRIA O LINK DE PAGAMENTO (legacy route)
