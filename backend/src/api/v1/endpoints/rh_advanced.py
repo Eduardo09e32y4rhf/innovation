@@ -298,6 +298,7 @@ def list_team_payslips(
         .all()
     )
 
+
 # ─── STRATEGIC HR (PAINEL DIRETOR) ───────────────────────────────────────────
 
 
@@ -309,7 +310,7 @@ def get_employees_list(
     """Lista todos os funcionários e calcula risco de turnover (mock-ia)"""
     # Em um cenário real, filtraríamos pela empresa do current_user
     users = db.query(User).filter(User.role != "admin").all()
-    
+
     # ⚡ Bolt: Fetch all relevant TimeBank entries in a single query to eliminate N+1 problem.
     # Why: Previously executed a database query for TimeBank entries inside a loop over all non-admin users.
     # Impact: Reduces O(N) database queries to O(1), significantly improving the employees list response time.
@@ -317,7 +318,7 @@ def get_employees_list(
         db.query(
             TimeBank.user_id,
             TimeBank.type,
-            func.sum(TimeBank.hours).label("total_hours")
+            func.sum(TimeBank.hours).label("total_hours"),
         )
         .filter(TimeBank.status == "approved")
         .group_by(TimeBank.user_id, TimeBank.type)
@@ -338,21 +339,25 @@ def get_employees_list(
         credits = user_tb["credit"]
         debits = user_tb["debit"]
         balance = credits - debits
-        
+
         # Define risco baseado no saldo ( burn-rate )
         risk = "stable"
-        if balance > 30: risk = "attention"
-        if balance > 60: risk = "critical"
-        
-        results.append({
-            "id": u.id,
-            "name": u.name,
-            "role": u.role,
-            "department": "Geral",
-            "status": "active",
-            "risk": risk,
-            "time_balance": balance
-        })
+        if balance > 30:
+            risk = "attention"
+        if balance > 60:
+            risk = "critical"
+
+        results.append(
+            {
+                "id": u.id,
+                "name": u.name,
+                "role": u.role,
+                "department": "Geral",
+                "status": "active",
+                "risk": risk,
+                "time_balance": balance,
+            }
+        )
     return results
 
 
@@ -365,9 +370,27 @@ def get_employee_timeline(
     """Gera a timeline histórica do colaborador"""
     # Mock de histórico para demonstração
     return [
-        {"id": 1, "type": "promotion", "date": "2025-12-10", "title": "Promoção para Senior", "description": "Performance excepcional no Q4."},
-        {"id": 2, "type": "document", "date": "2025-11-05", "title": "Atestado Médico", "description": "Validado por IA Gemini."},
-        {"id": 3, "type": "hiring", "date": "2024-03-15", "title": "Admissão", "description": "Início da jornada na Innovation.ia."},
+        {
+            "id": 1,
+            "type": "promotion",
+            "date": "2025-12-10",
+            "title": "Promoção para Senior",
+            "description": "Performance excepcional no Q4.",
+        },
+        {
+            "id": 2,
+            "type": "document",
+            "date": "2025-11-05",
+            "title": "Atestado Médico",
+            "description": "Validado por IA Gemini.",
+        },
+        {
+            "id": 3,
+            "type": "hiring",
+            "date": "2024-03-15",
+            "title": "Admissão",
+            "description": "Início da jornada na Innovation.ia.",
+        },
     ]
 
 
@@ -410,9 +433,9 @@ def upload_hr_document(
         "id": 123,
         "status": "verified",
         "extracted_data": {
-          "name": "João Silva",
-          "doc_type": "RG",
-          "valid_until": "2030-01-01"
+            "name": "João Silva",
+            "doc_type": "RG",
+            "valid_until": "2030-01-01",
         },
-        "message": "Documento validado pela IA com 98% de confiança"
+        "message": "Documento validado pela IA com 98% de confiança",
     }
