@@ -68,7 +68,14 @@ const KanbanCard = ({ candidato }: { candidato: any }) => {
     return (
         <div className="bg-[#18181b] border border-zinc-800 hover:border-zinc-600 p-4 rounded-xl cursor-grab active:cursor-grabbing transition-all group flex flex-col gap-3 shadow-sm relative">
 
-            <div className="absolute left-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 text-zinc-600 transition-opacity">
+            <div
+                className="absolute left-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 text-zinc-600 transition-opacity cursor-grab active:cursor-grabbing"
+                draggable
+                onDragStart={(e) => {
+                    e.dataTransfer.setData('candidatoId', candidato.id.toString());
+                    e.dataTransfer.setData('originalFase', candidato.fase);
+                }}
+            >
                 <GripVertical size={14} />
             </div>
 
@@ -141,6 +148,22 @@ export default function RecrutamentoPage() {
     const [candidatos, setCandidatos] = useState(candidatosIniciais);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
 
+    const onDrop = (e: React.DragEvent, targetFase: string) => {
+        e.preventDefault();
+        const id = parseInt(e.dataTransfer.getData('candidatoId'));
+        const originalFase = e.dataTransfer.getData('originalFase');
+
+        if (originalFase === targetFase) return;
+
+        setCandidatos(prev => prev.map(c =>
+            c.id === id ? { ...c, fase: targetFase } : c
+        ));
+    };
+
+    const onDragOver = (e: React.DragEvent) => {
+        e.preventDefault();
+    };
+
     const analisarCurriculosIA = () => {
         setIsAnalyzing(true);
         setTimeout(() => {
@@ -158,7 +181,7 @@ export default function RecrutamentoPage() {
 
     return (
         <AppLayout title={`Recrutamento IA — ${vagaSelecionada.titulo}`}>
-            <div className="h-full flex flex-col overflow-hidden selection:bg-indigo-500/30">
+            <div className="h-full flex flex-col overflow-hidden selection:bg-indigo-500/30 bg-[#0a0a18]">
 
                 {/* BARRA DE FERRAMENTAS E IA */}
                 <div className="bg-[#0f0f13]/50 backdrop-blur-md px-6 py-3 border-b border-zinc-800/80 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 flex-shrink-0">
@@ -202,7 +225,11 @@ export default function RecrutamentoPage() {
                 <div className="flex-1 overflow-x-auto overflow-y-hidden p-4 md:p-6 custom-scrollbar">
                     <div className="flex gap-4 h-full min-w-max pb-2">
 
-                        <div className="w-[300px] md:w-[320px] flex flex-col flex-shrink-0 bg-[#0f0f13]/40 border border-zinc-800/50 rounded-xl overflow-hidden">
+                        <div
+                            className="w-[300px] md:w-[320px] flex flex-col flex-shrink-0 bg-[#0f0f13]/40 border border-zinc-800/50 rounded-xl overflow-hidden"
+                            onDragOver={onDragOver}
+                            onDrop={(e) => onDrop(e, 'novos')}
+                        >
                             <div className="p-3 border-b border-zinc-800/80 flex justify-between items-center bg-[#141418]/60">
                                 <h3 className="font-semibold text-zinc-300 text-sm flex items-center gap-2 uppercase tracking-wide">
                                     <span className="w-2 h-2 rounded-full bg-zinc-600"></span>
@@ -212,7 +239,7 @@ export default function RecrutamentoPage() {
                                     {getCandidatos('novos').length}
                                 </span>
                             </div>
-                            <div className="flex-1 overflow-y-auto p-2.5 space-y-2.5 custom-scrollbar">
+                            <div className="flex-1 overflow-y-auto p-2.5 space-y-2.5 custom-scrollbar min-h-[100px]">
                                 {getCandidatos('novos').map(c => <KanbanCard key={c.id} candidato={c} />)}
                                 {getCandidatos('novos').length === 0 && (
                                     <div className="text-center p-6 border border-dashed border-zinc-800 rounded-lg text-zinc-600 text-xs font-medium m-2">
@@ -222,7 +249,11 @@ export default function RecrutamentoPage() {
                             </div>
                         </div>
 
-                        <div className="w-[300px] md:w-[320px] flex flex-col flex-shrink-0 bg-[#8b5cf6]/5 border border-[#8b5cf6]/20 rounded-xl overflow-hidden ring-1 ring-[#8b5cf6]/10 shadow-[0_0_30px_rgba(139,92,246,0.03)]">
+                        <div
+                            className="w-[300px] md:w-[320px] flex flex-col flex-shrink-0 bg-[#8b5cf6]/5 border border-[#8b5cf6]/20 rounded-xl overflow-hidden ring-1 ring-[#8b5cf6]/10 shadow-[0_0_30px_rgba(139,92,246,0.03)]"
+                            onDragOver={onDragOver}
+                            onDrop={(e) => onDrop(e, 'triagem')}
+                        >
                             <div className="p-3 border-b border-[#8b5cf6]/30 flex justify-between items-center bg-[#8b5cf6]/10">
                                 <h3 className="font-bold text-[#a78bfa] text-sm flex items-center gap-2 uppercase tracking-wide">
                                     <Sparkles size={14} />
@@ -232,14 +263,18 @@ export default function RecrutamentoPage() {
                                     {getCandidatos('triagem').length}
                                 </span>
                             </div>
-                            <div className="flex-1 overflow-y-auto p-2.5 space-y-2.5 custom-scrollbar">
+                            <div className="flex-1 overflow-y-auto p-2.5 space-y-2.5 custom-scrollbar min-h-[100px]">
                                 {getCandidatos('triagem')
                                     .sort((a, b) => (b.matchIA || 0) - (a.matchIA || 0))
                                     .map(c => <KanbanCard key={c.id} candidato={c} />)}
                             </div>
                         </div>
 
-                        <div className="w-[300px] md:w-[320px] flex flex-col flex-shrink-0 bg-[#0f0f13]/40 border border-zinc-800/50 rounded-xl overflow-hidden">
+                        <div
+                            className="w-[300px] md:w-[320px] flex flex-col flex-shrink-0 bg-[#0f0f13]/40 border border-zinc-800/50 rounded-xl overflow-hidden"
+                            onDragOver={onDragOver}
+                            onDrop={(e) => onDrop(e, 'entrevista')}
+                        >
                             <div className="p-3 border-b border-zinc-800/80 flex justify-between items-center bg-[#141418]/60">
                                 <h3 className="font-semibold text-zinc-300 text-sm flex items-center gap-2 uppercase tracking-wide">
                                     <span className="w-2 h-2 rounded-full bg-blue-500"></span>
@@ -249,12 +284,16 @@ export default function RecrutamentoPage() {
                                     {getCandidatos('entrevista').length}
                                 </span>
                             </div>
-                            <div className="flex-1 overflow-y-auto p-2.5 space-y-2.5 custom-scrollbar">
+                            <div className="flex-1 overflow-y-auto p-2.5 space-y-2.5 custom-scrollbar min-h-[100px]">
                                 {getCandidatos('entrevista').map(c => <KanbanCard key={c.id} candidato={c} />)}
                             </div>
                         </div>
 
-                        <div className="w-[300px] md:w-[320px] flex flex-col flex-shrink-0 bg-[#0f0f13]/40 border border-zinc-800/50 rounded-xl overflow-hidden">
+                        <div
+                            className="w-[300px] md:w-[320px] flex flex-col flex-shrink-0 bg-[#0f0f13]/40 border border-zinc-800/50 rounded-xl overflow-hidden"
+                            onDragOver={onDragOver}
+                            onDrop={(e) => onDrop(e, 'proposta')}
+                        >
                             <div className="p-3 border-b border-zinc-800/80 flex justify-between items-center bg-[#141418]/60">
                                 <h3 className="font-semibold text-zinc-300 text-sm flex items-center gap-2 uppercase tracking-wide">
                                     <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
@@ -264,7 +303,7 @@ export default function RecrutamentoPage() {
                                     {getCandidatos('proposta').length}
                                 </span>
                             </div>
-                            <div className="flex-1 overflow-y-auto p-2.5 space-y-2.5 custom-scrollbar">
+                            <div className="flex-1 overflow-y-auto p-2.5 space-y-2.5 custom-scrollbar min-h-[100px]">
                                 {getCandidatos('proposta').map(c => <KanbanCard key={c.id} candidato={c} />)}
                             </div>
                         </div>
