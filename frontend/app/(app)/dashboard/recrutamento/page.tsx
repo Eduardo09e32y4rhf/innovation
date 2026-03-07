@@ -117,7 +117,7 @@ const KanbanCard = ({ candidato }: { candidato: any }) => {
 
             <div className="flex flex-wrap gap-1.5 pl-2">
                 {candidato.tags.map((tag: string) => (
-                    <span key={tag} className="text-[10px] font-bold bg-slate-50 border border-slate-200 text-slate-600 px-2 py-0.5 rounded-md">
+                    <span key={tag} className="text-[10px] font-bold bg-blue-50 border border-blue-100 text-blue-700 px-2 py-0.5 rounded-md">
                         {tag}
                     </span>
                 ))}
