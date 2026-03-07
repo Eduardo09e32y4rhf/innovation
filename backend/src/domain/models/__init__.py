@@ -13,7 +13,7 @@ from domain.models.candidate import Candidate
 from domain.models.project import Project
 from domain.models.task import Task
 from domain.models.compliance import PulseSurvey
-from domain.models.finance import Transaction, CostCenter
+from domain.models.finance import Transaction, CostCenter, DasMei
 from domain.models.leave_request import LeaveRequest
 from domain.models.onboarding import Onboarding
 from domain.models.performance_review import PerformanceReview

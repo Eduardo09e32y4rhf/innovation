@@ -164,6 +164,26 @@ export const FinanceService = {
     },
 };
 
+// ── DAS MEI ───────────────────────────────────────────────────────────────
+export const DasMeiService = {
+    /** Retorna o DAS da competência atual (dados do banco + links para PGMEI) */
+    getAtual: async () => {
+        const res = await api.get('/api/finance/das/competencia-atual');
+        return res.data;
+    },
+    /** Histórico de DAS dos últimos 12 meses */
+    getHistorico: async () => {
+        const res = await api.get('/api/finance/das/historico');
+        return res.data;
+    },
+    /** Marca o DAS como pago e registra como transação financeira */
+    marcarPago: async (competencia: string, codigo_barras?: string) => {
+        const res = await api.post('/api/finance/das/marcar-pago', { competencia, codigo_barras });
+        return res.data;
+    },
+};
+
+
 // ── PROJECTS ─────────────────────────────────────────────────────────────
 export const ProjectService = {
     getProjects: async () => {

@@ -12,7 +12,7 @@ import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
     ResponsiveContainer, Legend
 } from 'recharts';
-import { FinanceService } from '@/services/api';
+import { FinanceService, DasMeiService } from '@/services/api';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // ─── TYPES ───────────────────────────────────────────────────────────────────
@@ -25,6 +25,18 @@ interface Transaction {
     due_date: string;
     category?: string;
     tax_type?: string;
+}
+
+interface DasMei {
+    id: number;
+    competencia: string;
+    valor_das: number;
+    vencimento: string;
+    status: 'pending' | 'paid' | 'overdue';
+    link_pgmei: string;
+    link_pgmei_pdf: string;
+    cnpj?: string | null;
+    paid_at?: string | null;
 }
 
 interface Summary {
@@ -258,6 +270,8 @@ const urgencyLabel = (tx: Transaction): string => {
 export default function FinancePage() {
     const [summary, setSummary] = useState<Summary | null>(null);
     const [transactions, setTransactions] = useState<Transaction[]>([]);
+    const [dasMei, setDasMei] = useState<DasMei | null>(null);
+    const [markingPaid, setMarkingPaid] = useState(false);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [showModal, setShowModal] = useState(false);
@@ -272,15 +286,17 @@ export default function FinancePage() {
     const loadData = useCallback(async () => {
         setRefreshing(true);
         try {
-            const [s, t] = await Promise.all([
+            const [s, t, das] = await Promise.all([
                 FinanceService.getSummary().catch(() => ({
                     balance: 0, total_income: 0, total_expenses: 0,
                     pending_income: 0, pending_expenses: 0
                 })),
                 FinanceService.getTransactions().catch(() => []),
+                DasMeiService.getAtual().catch(() => null),
             ]);
             setSummary(s);
             setTransactions(Array.isArray(t) ? t : []);
+            if (das) setDasMei(das);
         } finally {
             setLoading(false);
             setRefreshing(false);
@@ -293,6 +309,20 @@ export default function FinancePage() {
         await FinanceService.createTransaction(data);
         setShowModal(false);
         await loadData();
+    };
+
+    const handleMarcarDasPago = async () => {
+        if (!dasMei) return;
+        setMarkingPaid(true);
+        try {
+            const result = await DasMeiService.marcarPago(dasMei.competencia);
+            setDasMei(prev => prev ? { ...prev, status: 'paid', paid_at: new Date().toISOString() } : prev);
+            await loadData(); // refresh transactions
+        } catch (e) {
+            console.error('Erro ao marcar DAS como pago:', e);
+        } finally {
+            setMarkingPaid(false);
+        }
     };
 
     // ── Derived data ───────────────────────────────────────────────────────────
@@ -451,7 +481,7 @@ export default function FinancePage() {
                         )}
                     </div>
 
-                    {/* DAS MEI Card */}
+                    {/* DAS MEI Card — Real data from DB + Gov portal link */}
                     <div className="bg-gradient-to-b from-indigo-950/80 to-slate-900 border border-indigo-500/25 rounded-3xl p-6 relative overflow-hidden flex flex-col justify-between">
                         <div className="absolute top-0 right-0 w-28 h-28 bg-indigo-500/10 rounded-bl-[90px] pointer-events-none" />
                         <div>
@@ -459,31 +489,69 @@ export default function FinancePage() {
                                 <div className="p-3 bg-indigo-500/20 rounded-xl text-indigo-400 border border-indigo-500/30">
                                     <FileText size={22} />
                                 </div>
-                                <span className={`px-3 py-1 text-xs font-bold uppercase tracking-widest rounded-full flex items-center gap-1 border ${dasOverdue
-                                    ? 'bg-rose-500/10 border-rose-500/20 text-rose-400'
-                                    : dasDiff <= 5
-                                        ? 'bg-amber-500/10 border-amber-500/20 text-amber-400'
-                                        : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'}`}>
-                                    <AlertCircle size={12} />
-                                    {dasOverdue ? 'Vencido' : dasDiff <= 5 ? 'Urgente' : 'Em Dia'}
-                                </span>
+                                {dasMei && (
+                                    <span className={`px-3 py-1 text-xs font-bold uppercase tracking-widest rounded-full flex items-center gap-1 border ${dasMei.status === 'paid'
+                                            ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                                            : dasMei.status === 'overdue'
+                                                ? 'bg-rose-500/10 border-rose-500/20 text-rose-400'
+                                                : 'bg-amber-500/10 border-amber-500/20 text-amber-400'
+                                        }`}>
+                                        <AlertCircle size={12} />
+                                        {dasMei.status === 'paid' ? 'Pago ✓' : dasMei.status === 'overdue' ? 'Vencido' : 'Pendente'}
+                                    </span>
+                                )}
                             </div>
                             <h2 className="text-lg font-bold text-white mt-3">Guia DAS (MEI)</h2>
-                            <p className="text-slate-400 text-sm">Competência: {monthName}/{year}</p>
-                            <p className="text-3xl font-black text-white tracking-tighter mt-3 mb-1">R$ 75,60</p>
-                            <p className={`text-xs font-bold mb-5 ${dasOverdue ? 'text-rose-400' : 'text-slate-400'}`}>
-                                Vence: {dasDue.toLocaleDateString('pt-BR')}
-                                {!dasOverdue && dasDiff >= 0 && ` · ${dasDiff}d restantes`}
-                                {dasOverdue && ' · ATRASADO'}
+                            <p className="text-slate-400 text-sm">
+                                Competência: {dasMei
+                                    ? (() => { const [y, m] = dasMei.competencia.split('-'); return `${MONTHS_PT[parseInt(m) - 1]}/${y}`; })()
+                                    : `${monthName}/${year}`}
+                            </p>
+                            {dasMei?.cnpj && (
+                                <p className="text-xs text-slate-500 mt-0.5">CNPJ: {dasMei.cnpj}</p>
+                            )}
+                            <p className="text-3xl font-black text-white tracking-tighter mt-3 mb-1">
+                                {dasMei ? fmtBRL(dasMei.valor_das) : 'R$ 75,60'}
+                            </p>
+                            <p className={`text-xs font-bold mb-5 ${dasMei?.status === 'overdue' ? 'text-rose-400' : dasMei?.status === 'paid' ? 'text-emerald-400' : 'text-slate-400'}`}>
+                                {dasMei?.status === 'paid'
+                                    ? `Pago em ${dasMei.paid_at ? new Date(dasMei.paid_at).toLocaleDateString('pt-BR') : '—'}`
+                                    : dasMei?.vencimento
+                                        ? (() => {
+                                            const d = new Date(dasMei.vencimento + 'T00:00:00');
+                                            const diff = Math.ceil((d.getTime() - Date.now()) / 86_400_000);
+                                            return `Vence: ${d.toLocaleDateString('pt-BR')}${diff >= 0 ? ` · ${diff}d restantes` : ' · ATRASADO'}`;
+                                        })()
+                                        : 'Carregando...'}
                             </p>
                         </div>
                         <div className="space-y-2.5">
-                            <button className="w-full flex items-center justify-center gap-2 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-bold text-sm transition-all shadow-lg shadow-indigo-900">
-                                Pagar via Pix
-                            </button>
-                            <button className="w-full flex items-center justify-center gap-2 py-3 bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-300 rounded-2xl font-bold text-sm transition-all">
-                                <Copy size={15} /> Copiar Código de Barras
-                            </button>
+                            {dasMei?.status !== 'paid' ? (
+                                <>
+                                    <a
+                                        href={dasMei?.link_pgmei || 'https://www8.receita.fazenda.gov.br/SimplesNacional/Aplicacoes/ATBHE/pgmei.app/Identificacao'}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="w-full flex items-center justify-center gap-2 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-bold text-sm transition-all shadow-lg shadow-indigo-900">
+                                        Gerar DAS no Gov.br →
+                                    </a>
+                                    <button
+                                        onClick={handleMarcarDasPago}
+                                        disabled={markingPaid || !dasMei}
+                                        className="w-full flex items-center justify-center gap-2 py-3 bg-slate-950 hover:bg-emerald-900/30 border border-slate-800 hover:border-emerald-500/30 text-slate-300 hover:text-emerald-400 rounded-2xl font-bold text-sm transition-all disabled:opacity-50">
+                                        {markingPaid ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
+                                        {markingPaid ? 'Registrando...' : 'Já Paguei — Confirmar'}
+                                    </button>
+                                </>
+                            ) : (
+                                <div className="flex items-center gap-2 py-3 px-4 bg-emerald-900/20 border border-emerald-500/20 rounded-2xl text-emerald-400 text-sm font-bold justify-center">
+                                    <CheckCircle2 size={16} /> DAS quitado esta competência!
+                                </div>
+                            )}
+                            <a href="https://mei.receita.economia.gov.br/pgmei" target="_blank" rel="noopener noreferrer"
+                                className="w-full flex items-center justify-center py-2 text-slate-600 hover:text-indigo-400 text-xs font-bold transition-all">
+                                Acessar Portal MEI completo ↗
+                            </a>
                         </div>
                     </div>
                 </div>
