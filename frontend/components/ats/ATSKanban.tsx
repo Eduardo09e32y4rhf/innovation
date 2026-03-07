@@ -160,6 +160,7 @@ export function ATSKanban() {
                                                     <button
                                                         onClick={() => moveCandidate(candidate.id, COLUMNS[(COLUMNS.findIndex(cl => cl.id === col.id) + 1) % COLUMNS.length].id)}
                                                         className="p-1.5 rounded-lg bg-gray-800 text-gray-400 hover:bg-purple-600 hover:text-white transition-all"
+                                                        aria-label="Avançar candidato"
                                                     >
                                                         <ChevronRight className="w-3.5 h-3.5" />
                                                     </button>
