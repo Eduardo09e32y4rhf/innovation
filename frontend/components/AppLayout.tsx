@@ -307,20 +307,20 @@ function Sidebar({
       />
 
       <aside
-        className={`fixed left-0 top-0 bottom-0 w-[240px] bg-[#0a0a18] border-r border-purple-500/20 z-[70] flex flex-col transition-transform duration-300 ease-in-out lg:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
+        className={`fixed left-0 top-0 bottom-0 w-[240px] bg-white border-r border-slate-200 z-[70] flex flex-col transition-transform duration-300 ease-in-out lg:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'} shadow-xl shadow-slate-200/50`}
       >
         {/* Logo */}
         <div className="px-5 py-5 border-b border-purple-500/15 flex items-center justify-between shrink-0">
           <Link
             href="/"
-            className="text-xl font-black tracking-tighter text-white drop-shadow-[0_2px_2px_rgba(0,0,0,1)]"
+            className="text-xl font-black tracking-tighter text-slate-900 drop-shadow-[0_1px_1px_rgba(0,0,0,0.1)]"
             onClick={onClose}
           >
-            INNOV<span className="text-[#a78bfa] drop-shadow-[0_2px_2px_rgba(0,0,0,1)]">A</span>TION IA
+            INNOV<span className="text-blue-600">A</span>TION IA
           </Link>
           <button
             onClick={onClose}
-            className="lg:hidden text-white/30 hover:text-white p-1"
+            className="lg:hidden text-slate-400 hover:text-slate-900 p-1 transition-colors"
             aria-label="Fechar menu"
           >
             <X className="w-5 h-5" />
@@ -328,7 +328,7 @@ function Sidebar({
         </div>
 
         {/* User profile */}
-        <div className="px-4 py-4 border-b border-purple-500/15 shrink-0 min-h-[105px]">
+        <div className="px-4 py-4 border-b border-slate-100 shrink-0 min-h-[105px] bg-slate-50/50">
           {!user ? (
             <div className="animate-pulse space-y-4">
               <div className="flex items-center gap-3">
@@ -350,23 +350,23 @@ function Sidebar({
             <>
               <div className="flex items-center gap-3">
                 <div className="relative shrink-0">
-                  <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#8b5cf6] to-[#6d28d9] flex items-center justify-center text-white font-black text-xs shadow-lg shadow-[#8b5cf6]/40">
+                  <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center text-white font-black text-xs shadow-lg shadow-blue-200">
                     {getInitials(user.name)}
                   </div>
-                  <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-[#0a0a18]" />
+                  <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-white" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold text-white truncate drop-shadow-[0_2px_2px_rgba(0,0,0,1)]">
+                  <p className="text-sm font-black text-slate-900 truncate drop-shadow-[0_1px_1px_rgba(0,0,0,0.1)]">
                     {user.name}
                   </p>
                   <div className="flex items-center gap-1 mt-0.5">
-                    <Flame className="w-2.5 h-2.5 text-orange-400" />
-                    <span className="text-[9px] text-orange-400 font-medium">
+                    <Flame className="w-2.5 h-2.5 text-orange-500" />
+                    <span className="text-[9px] text-orange-500 font-bold uppercase tracking-wider">
                       Ativo
                     </span>
                   </div>
                 </div>
-                <span className="text-[9px] bg-yellow-400/15 text-yellow-300 px-1.5 py-0.5 rounded font-black shrink-0 border border-yellow-400/20">
+                <span className="text-[9px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-black shrink-0 border border-amber-200 shadow-sm">
                   Nv.{gamification.level}
                 </span>
               </div>
@@ -378,9 +378,9 @@ function Sidebar({
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 px-3 py-4 overflow-y-auto">
-          <p className="text-[8px] text-purple-400/40 uppercase tracking-[0.2em] mb-2 px-2">
-            Principal
+        <nav className="flex-1 px-3 py-4 overflow-y-auto custom-scrollbar">
+          <p className="text-[9px] text-slate-400 font-black uppercase tracking-[0.2em] mb-3 px-3">
+            Explorar
           </p>
           <div className="space-y-0.5">
             {MAIN_MENU.map((item) => {
@@ -393,16 +393,16 @@ function Sidebar({
                   href={item.href}
                   onClick={onClose}
                   className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group ${active
-                    ? 'bg-[#8b5cf6]/20 text-white border border-[#8b5cf6]/40 shadow-sm shadow-[#8b5cf6]/10'
-                    : 'text-purple-300/50 hover:text-white hover:bg-purple-500/10'
+                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-100 scale-[1.02]'
+                    : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
                     }`}
                 >
                   <Icon
-                    className={`w-5 h-5 shrink-0 transition-colors drop-shadow-[0_2px_2px_rgba(0,0,0,1)] ${active ? 'text-[#a78bfa]' : 'group-hover:text-purple-300'}`}
+                    className={`w-5 h-5 shrink-0 transition-colors ${active ? 'text-white' : 'text-slate-300 group-hover:text-slate-600'}`}
                   />
-                  <span className="text-sm font-bold tracking-wide drop-shadow-[0_2px_2px_rgba(0,0,0,1)]">{item.name}</span>
+                  <span className={`text-sm font-bold tracking-wide ${active ? 'drop-shadow-[0_1px_2px_rgba(0,0,0,0.3)]' : 'drop-shadow-[0_1px_1px_rgba(0,0,0,0.05)]'}`}>{item.name}</span>
                   {active && (
-                    <ChevronRight className="w-3 h-3 ml-auto text-[#a78bfa]" />
+                    <ChevronRight className="w-3 h-3 ml-auto text-white" />
                   )}
                 </Link>
               );
@@ -411,7 +411,7 @@ function Sidebar({
 
           {user?.role === 'admin' && (
             <>
-              <p className="text-[8px] text-purple-400/40 uppercase tracking-[0.2em] mb-2 px-2 mt-4">
+              <p className="text-[9px] text-slate-400 font-black uppercase tracking-[0.2em] mb-3 px-3 mt-6">
                 Avançado e Admin
               </p>
               <div className="space-y-0.5">
@@ -424,16 +424,16 @@ function Sidebar({
                       href={item.href}
                       onClick={onClose}
                       className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group ${active
-                        ? 'bg-[#8b5cf6]/20 text-white border border-[#8b5cf6]/40'
-                        : 'text-purple-300/50 hover:text-white hover:bg-purple-500/10'
+                        ? 'bg-blue-600 text-white shadow-lg shadow-blue-100 scale-[1.02]'
+                        : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
                         }`}
                     >
                       <Icon
-                        className={`w-5 h-5 shrink-0 transition-colors drop-shadow-[0_2px_2px_rgba(0,0,0,1)] ${active ? 'text-[#a78bfa]' : 'group-hover:text-purple-300'}`}
+                        className={`w-5 h-5 shrink-0 transition-colors drop-shadow-[0_1px_1px_rgba(0,0,0,0.1)] ${active ? 'text-white' : 'text-slate-300 group-hover:text-slate-600'}`}
                       />
-                      <span className="text-sm font-bold tracking-wide drop-shadow-[0_2px_2px_rgba(0,0,0,1)]">{item.name}</span>
+                      <span className={`text-sm font-bold tracking-wide ${active ? 'drop-shadow-[0_1px_2px_rgba(0,0,0,0.3)]' : 'drop-shadow-[0_1px_1px_rgba(0,0,0,0.05)]'}`}>{item.name}</span>
                       {active && (
-                        <ChevronRight className="w-3 h-3 ml-auto text-[#a78bfa]" />
+                        <ChevronRight className="w-3 h-3 ml-auto text-white" />
                       )}
                     </Link>
                   );
@@ -444,7 +444,7 @@ function Sidebar({
         </nav>
 
         {/* Footer */}
-        <div className="px-3 py-3 border-t border-purple-500/15 shrink-0">
+        <div className="px-3 py-3 border-t border-slate-100 shrink-0">
           <button
             onClick={handleLogout}
             className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-red-400/40 hover:text-red-400 hover:bg-red-500/10 transition-all text-sm"
@@ -504,7 +504,7 @@ function TopBar({
   }, []);
 
   return (
-    <header className="sticky top-0 z-50 bg-[#080810]/90 backdrop-blur-xl border-b border-purple-500/15 px-4 sm:px-6 py-3 flex items-center gap-3 sm:gap-4">
+    <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-xl border-b border-slate-200 px-4 sm:px-6 py-3 flex items-center gap-3 sm:gap-4 shadow-sm">
       {/* Mobile menu toggle */}
       <button
         onClick={onToggleSidebar}
@@ -518,18 +518,18 @@ function TopBar({
       {!isHome && (
         <button
           onClick={() => router.back()}
-          className="flex items-center gap-2 text-white/30 hover:text-white transition-all px-2 py-1.5 rounded-lg hover:bg-purple-500/10 shrink-0"
+          className="flex items-center gap-2 text-slate-400 hover:text-slate-900 transition-all px-2 py-1.5 rounded-lg hover:bg-slate-100 shrink-0"
           title="Voltar"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span className="text-xs hidden sm:inline">Voltar</span>
+          <span className="text-xs hidden sm:inline font-bold">Voltar</span>
         </button>
       )}
 
       {/* Page title */}
       <div className="flex items-center gap-2 flex-1 min-w-0">
-        <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse shrink-0 drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)]" />
-        <span className="text-sm text-white font-bold truncate drop-shadow-[0_2px_2px_rgba(0,0,0,1)] tracking-wide">
+        <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shrink-0 drop-shadow-[0_1px_1px_rgba(0,0,0,0.2)]" />
+        <span className="text-sm text-slate-900 font-black truncate drop-shadow-[0_1px_1px_rgba(0,0,0,0.1)] tracking-wide uppercase">
           {title ?? 'Sistema operacional'}
         </span>
       </div>
@@ -560,11 +560,11 @@ function TopBar({
         </div>
 
         {user && (
-          <div className="flex items-center gap-2 bg-purple-500/10 px-3 py-1.5 rounded-full border border-purple-500/20 cursor-default">
-            <div className="w-5 h-5 rounded-full bg-gradient-to-br from-[#8b5cf6] to-[#6d28d9] flex items-center justify-center text-white font-black text-[9px]">
+          <div className="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-full border border-slate-200 cursor-default shadow-inner">
+            <div className="w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center text-white font-black text-[9px] shadow-sm">
               {getInitials(user.name)}
             </div>
-            <span className="text-sm font-bold tracking-wide drop-shadow-[0_2px_2px_rgba(0,0,0,1)] text-white hidden sm:inline">
+            <span className="text-sm font-black tracking-wide drop-shadow-[0_1px_1px_rgba(0,0,0,0.1)] text-slate-900 hidden sm:inline">
               {user.name.split(' ')[0]}
             </span>
           </div>

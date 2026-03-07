@@ -66,7 +66,6 @@ const KanbanCard = ({ candidato }: { candidato: any }) => {
     const match = getMatchStatus(candidato.matchIA);
 
     return (
-    return (
         <div className="bg-white border border-slate-200 hover:border-blue-400 p-4 rounded-xl cursor-grab active:cursor-grabbing transition-all group flex flex-col gap-3 shadow-sm relative">
 
             <div
@@ -223,7 +222,10 @@ export default function RecrutamentoPage() {
                 </div>
 
                 {/* QUADRO KANBAN */}
-                        <div 
+                <div className="flex-1 overflow-x-auto overflow-y-hidden p-4 md:p-6 custom-scrollbar">
+                    <div className="flex gap-4 h-full min-w-max pb-2">
+
+                        <div
                             className="w-[300px] md:w-[320px] flex flex-col flex-shrink-0 bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm"
                             onDragOver={onDragOver}
                             onDrop={(e) => onDrop(e, 'novos')}
@@ -242,7 +244,7 @@ export default function RecrutamentoPage() {
                             </div>
                         </div>
 
-                        <div 
+                        <div
                             className="w-[300px] md:w-[320px] flex flex-col flex-shrink-0 bg-blue-50/20 border border-blue-100 rounded-xl overflow-hidden shadow-sm"
                             onDragOver={onDragOver}
                             onDrop={(e) => onDrop(e, 'triagem')}
@@ -263,7 +265,7 @@ export default function RecrutamentoPage() {
                             </div>
                         </div>
 
-                        <div 
+                        <div
                             className="w-[300px] md:w-[320px] flex flex-col flex-shrink-0 bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm"
                             onDragOver={onDragOver}
                             onDrop={(e) => onDrop(e, 'entrevista')}
@@ -282,7 +284,7 @@ export default function RecrutamentoPage() {
                             </div>
                         </div>
 
-                        <div 
+                        <div
                             className="w-[300px] md:w-[320px] flex flex-col flex-shrink-0 bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm"
                             onDragOver={onDragOver}
                             onDrop={(e) => onDrop(e, 'proposta')}
@@ -307,10 +309,10 @@ export default function RecrutamentoPage() {
                 <style jsx>{`
           .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
           .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-          .custom-scrollbar::-webkit-scrollbar-thumb { background: #27272a; border-radius: 8px; }
-          .custom-scrollbar:hover::-webkit-scrollbar-thumb { background: #3f3f46; }
+          .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 8px; }
+          .custom-scrollbar:hover::-webkit-scrollbar-thumb { background: #94a3b8; }
         `}</style>
-            </div >
-        </AppLayout >
+            </div>
+        </AppLayout>
     );
 }
