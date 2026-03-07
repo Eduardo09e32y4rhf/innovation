@@ -1,7 +1,7 @@
 'use client';
 
 import AppLayout from '@/components/AppLayout';
-import { Plus, Play, Square, Trash2, Loader2, Search, Filter, Calendar, Layout, ChevronRight, X, Clock, DollarSign, Rocket } from 'lucide-react';
+import { Plus, Play, Square, Trash2, Loader2, Search, Filter, Calendar, Layout, ChevronRight, X, Clock, DollarSign, Rocket, CheckCircle2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { ProjectService } from '@/services/api';
 import { motion, AnimatePresence } from 'framer-motion';

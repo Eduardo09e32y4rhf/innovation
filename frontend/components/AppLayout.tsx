@@ -598,6 +598,7 @@ export default function AppLayout({
   });
 
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     AuthService.me()
