@@ -62,7 +62,6 @@ services:
     environment:
       - DATABASE_URL=postgresql://user:secure_pass@postgres:5432/innovation
       - SECRET_KEY=${SECRET_KEY:-innovation_v2_premium_dark}
-      - MP_ACCESS_TOKEN=${MP_ACCESS_TOKEN}
       - BASE_URL=${BASE_URL:-http://localhost:8000}
     networks:
       - innovation_net

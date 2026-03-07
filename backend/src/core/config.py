@@ -31,8 +31,7 @@ class Settings(BaseSettings):
     SENDGRID_API_KEY: str | None = None
     EMAIL_FROM: str = "no-reply@innovation.ia"
 
-    # Mercado Pago Settings
-    MP_ACCESS_TOKEN: str | None = None
+    # Asaas Settings (Opcionais se usar env puro, mas se quiser pode adicionar)
     BASE_URL: str = (
         "http://localhost:8000"  # Default for local dev, override in prod/ngrok
     )

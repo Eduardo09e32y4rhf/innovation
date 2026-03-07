@@ -310,13 +310,28 @@ async def ask_ai(
     # Gate Claude access — only for admin or enterprise users
     if model_choice == "claude":
         user_role = getattr(current_user, "role", "user")
-        user_plan = getattr(current_user, "plan", "starter")
-        if user_role != "admin" and user_plan not in ("enterprise", "custom"):
+        user_plan = getattr(current_user, "subscription_plan", "FREE").upper()
+        if user_role != "admin" and user_plan not in ("ENTERPRISE", "CUSTOM"):
             return {
                 "answer": "⚠️ **O modelo Claude está disponível apenas para planos Enterprise ou usuários autorizados pelo administrador.** Use o Gemini Flash (básico) ou Gemini Pro (avançado).",
                 "model_used": "blocked",
                 "error": True,
             }
+
+    # Gate AI Access based on user plan
+    user_plan = getattr(current_user, "subscription_plan", "FREE").upper()
+    
+    if user_plan in ["FREE", "BASIC", "STARTER"]:
+        return {
+            "answer": "⚠️ Seu plano atual não permite acesso livre à IA. Faça upgrade para o plano COMPLETE ou ENTERPRISE para desbloquear as funcionalidades cognitivas!",
+            "model_used": "blocked",
+            "error": True,
+        }
+    
+    if user_plan == "COMPLETE":
+        # Aqui você pode adicionar lógica de contagem de limite, por ex:
+        # if current_user.points < 0: return bloqueio...
+        pass
 
     try:
         if model_choice == "claude":
@@ -360,6 +375,14 @@ async def ask_ai_stream(
     Endpoint de streaming para resposta em tempo real.
     """
     model_choice = (data.model or "gemini-flash").lower()
+
+    # Gate AI Access based on user plan
+    user_plan = getattr(current_user, "subscription_plan", "FREE").upper()
+    
+    if user_plan in ["FREE", "BASIC", "STARTER"]:
+        yield "data: ⚠️ Seu plano atual não permite acesso livre à IA. Faça upgrade para o plano COMPLETE ou ENTERPRISE para desbloquear as funcionalidades cognitivas!\n\n"
+        yield "data: [DONE]\n\n"
+        return
 
     # Log usage and award XP
     db = next(get_db())

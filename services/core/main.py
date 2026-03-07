@@ -5,7 +5,7 @@ from typing import List, Optional
 import os
 import logging
 import httpx
-import mercadopago
+import httpx
 
 from database import get_db, Base, engine
 import models
@@ -749,120 +749,17 @@ async def create_checkout(
     data: dict, current_user: models.User = Depends(get_current_user)
 ):
     plan_id = data.get("plan", "starter")
-    plan = SAAS_PLANS.get(plan_id)
-    if not plan:
-        raise HTTPException(status_code=400, detail="Plano inválido")
-
-    if not MP_ACCESS_TOKEN:
-        return {
-            "checkout_url": f"/pricing?plan={plan_id}&success=demo",
-            "init_point": None,
-            "plan": plan_id,
-            "message": "Mercado Pago não configurado (modo demo)",
-        }
-
-    try:
-        sdk = mercadopago.SDK(MP_ACCESS_TOKEN)
-        preference_data = {
-            "items": [
-                {
-                    "id": plan_id,
-                    "title": f"Innovation.ia — Plano {plan['name']}",
-                    "description": f"Assinatura mensal do plano {plan['name']}",
-                    "quantity": 1,
-                    "currency_id": "BRL",
-                    "unit_price": plan["price"],
-                }
-            ],
-            "payer": {
-                "email": current_user.email,
-                "name": current_user.full_name or current_user.email,
-            },
-            "back_urls": {
-                "success": f"{BASE_URL}/dashboard?payment=success&plan={plan_id}",
-                "failure": f"{BASE_URL}/pricing?payment=failed",
-                "pending": f"{BASE_URL}/pricing?payment=pending",
-            },
-            "auto_return": "approved",
-            "external_reference": f"{current_user.id}|{plan_id}",
-            "notification_url": f"{BASE_URL}/api/core/payments/webhook",
-            "statement_descriptor": "INNOVATION.IA",
-            "metadata": {
-                "user_id": current_user.id,
-                "plan": plan_id,
-            },
-        }
-
-        result = sdk.preference().create(preference_data)
-        preference = result.get("response", {})
-
-        if result.get("status") not in [200, 201]:
-            logger.error(f"MP Error: {result}")
-            raise HTTPException(
-                status_code=500, detail="Erro ao criar preferência no Mercado Pago"
-            )
-
-        return {
-            "init_point": preference.get("init_point"),
-            "sandbox_init_point": preference.get("sandbox_init_point"),
-            "preference_id": preference.get("id"),
-            "plan": plan_id,
-            "price": plan["price"],
-        }
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Mercado Pago error: {e}")
-        raise HTTPException(status_code=500, detail=f"Erro no pagamento: {str(e)}")
+    return {
+        "checkout_url": f"/pricing?plan={plan_id}&success=demo",
+        "init_point": None,
+        "plan": plan_id,
+        "message": "Pagamentos integrados via Asaas no backend principal.",
+    }
 
 
 @app.post("/api/core/payments/webhook")
 async def payment_webhook(request: Request, db: Session = Depends(get_db)):
-    """Webhook do Mercado Pago: atualiza plano do usuário após pagamento aprovado."""
-    try:
-        body = await request.json()
-    except Exception:
-        return {"status": "ignored"}
-
-    logger.info(f"MP Webhook recebido: {body}")
-
-    # MP envia tipo 'payment' com id
-    if body.get("type") == "payment" and MP_ACCESS_TOKEN:
-        payment_id = body.get("data", {}).get("id")
-        if payment_id:
-            try:
-                sdk = mercadopago.SDK(MP_ACCESS_TOKEN)
-                payment = sdk.payment().get(payment_id)
-                pdata = payment.get("response", {})
-
-                if pdata.get("status") == "approved":
-                    ext_ref = pdata.get("external_reference", "")
-                    parts = ext_ref.split("|")
-                    if len(parts) == 2:
-                        user_id, plan_id = parts
-                        user = (
-                            db.query(models.User)
-                            .filter(models.User.id == int(user_id))
-                            .first()
-                        )
-                        if user:
-                            # Atualiza role/plano do usuário
-                            user.role = plan_id  # starter | growth | enterprise
-                            audit = models.AuditLog(
-                                user_id=user.id,
-                                action="payment_approved",
-                                entity_type="plan",
-                                details=f"Plano {plan_id} ativado via Mercado Pago. Payment ID: {payment_id}",
-                            )
-                            db.add(audit)
-                            db.commit()
-                            logger.info(
-                                f"✅ Plano {plan_id} ativado para user {user_id}"
-                            )
-            except Exception as e:
-                logger.error(f"Webhook error: {e}")
-
+    """Webhook movido para o serviço principal usando Asaas."""
     return {"status": "ok"}
 
 

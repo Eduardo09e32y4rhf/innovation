@@ -13,7 +13,6 @@ services:
       - REDIS_URL=redis://cache:6379/0
       - SECRET_KEY=${SECRET_KEY:-innovation_v2_premium_dark}
       - GEMINI_API_KEYS=${GEMINI_API_KEYS}
-      - MP_ACCESS_TOKEN=${MP_ACCESS_TOKEN}
       - ALLOWED_ORIGINS=*
       - PORT=8000
     volumes:

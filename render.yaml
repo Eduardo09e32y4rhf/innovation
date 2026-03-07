@@ -23,8 +23,6 @@ services:
         value: "src"
       - key: GEMINI_API_KEYS
         sync: false
-      - key: MP_ACCESS_TOKEN
-        sync: false
 
   - type: web
     name: innovation-frontend

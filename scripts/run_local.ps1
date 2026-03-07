@@ -23,7 +23,7 @@ Write-Host "========================================" -ForegroundColor Cyan
 
 # Instalar dependências globais necessárias
 Write-Host "`n[1/4] Instalando dependências Python..." -ForegroundColor Yellow
-pip install fastapi uvicorn[standard] sqlalchemy pydantic[email] python-jose[cryptography] bcrypt pyjwt python-multipart python-dotenv google-genai mercadopago httpx --quiet
+pip install fastapi uvicorn[standard] sqlalchemy pydantic[email] python-jose[cryptography] bcrypt pyjwt python-multipart python-dotenv google-genai httpx --quiet
 
 # Iniciar Auth Service na porta 8001
 Write-Host "`n[2/4] Iniciando Auth Service (porta 8001)..." -ForegroundColor Yellow

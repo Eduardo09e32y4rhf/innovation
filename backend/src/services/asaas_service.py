@@ -56,9 +56,9 @@ class AsaasService:
         print(f"Erro ao criar customer no Asaas: {create_response.text}")
         return None
 
-    def processar_novo_assinante(self, user: User, amount: float, due_date: str, db: Session):
+    def assinar_plano(self, user: User, plan_name: str, amount: float, next_due_date: str, db: Session):
         """
-        Passo B: Gerar a cobrança e retornar link de pagamento ou detalhes
+        Passo B: Gerar a assinatura recorrente e retornar detalhes (invoiceUrl).
         """
         customer_id = self._get_or_create_customer(user, db)
         if not customer_id:
@@ -68,19 +68,20 @@ class AsaasService:
             "customer": customer_id,
             "billingType": "UNDEFINED", # Deixa o cliente escolher no checkout (BOLETO, PIX, CREDIT_CARD)
             "value": amount,
-            "dueDate": due_date,
-            "description": "Assinatura Innovation.ia Enterprise",
+            "nextDueDate": next_due_date,
+            "cycle": "MONTHLY",
+            "description": f"Plano {plan_name.upper()} - Innovation.ia",
             "externalReference": str(user.id),
-            "postalService": False
+            "updatePendingPayments": True # Atualiza pagamentos pendentes da propria assinatura
         }
 
-        # Cria cobranca no asaas
-        response = requests.post(f"{self.url}/payments", json=payload, headers=self.headers)
+        # Cria a assinatura no asaas
+        response = requests.post(f"{self.url}/subscriptions", json=payload, headers=self.headers)
         
         if response.status_code == 200:
             return response.json()
         else:
-            print(f"Erro ao criar cobrança Asaas: {response.text}")
-            raise Exception("Falha ao criar cobrança.")
+            print(f"Erro ao criar assinatura Asaas: {response.text}")
+            raise Exception("Falha ao criar assinatura.")
 
 asaas_service = AsaasService()

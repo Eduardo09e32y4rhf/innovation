@@ -7,4 +7,3 @@ python-dotenv==1.2.1
 alembic
 httpx
 python-jose[cryptography]
-mercadopago

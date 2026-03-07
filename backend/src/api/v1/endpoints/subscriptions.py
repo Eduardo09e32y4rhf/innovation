@@ -35,7 +35,7 @@ def get_my_subscription(
         "company_id": sub.company_id,
         "plan_id": sub.plan_id,
         "status": sub.status,
-        "mp_preapproval_id": sub.mp_preapproval_id,
+        "asaas_subscription_id": sub.asaas_subscription_id,
     }
 
 
@@ -73,7 +73,7 @@ def create_subscription(
         company_id=company_id,
         plan_id=plan_id,
         status="pending",
-        mp_preapproval_id=payload.get("mp_preapproval_id"),
+        asaas_subscription_id=payload.get("asaas_subscription_id"),
     )
     db.add(sub)
     db.commit()
@@ -92,5 +92,5 @@ def create_subscription(
         "company_id": sub.company_id,
         "plan_id": sub.plan_id,
         "status": sub.status,
-        "mp_preapproval_id": sub.mp_preapproval_id,
+        "asaas_subscription_id": sub.asaas_subscription_id,
     }

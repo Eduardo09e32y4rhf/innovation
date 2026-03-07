@@ -58,7 +58,6 @@ services:
       - SECRET_KEY=${JWT_SECRET_KEY:-innovation_v2_premium_dark}
       # APIs externas
       - GEMINI_API_KEYS=${GEMINI_API_KEYS}
-      - MP_ACCESS_TOKEN=${MERCADO_PAGO_API_KEY}
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-*}
       - BASE_URL=http://187.77.49.207
       - PYTHONPATH=/app/src:/app
