@@ -101,27 +101,18 @@ function XpBar({
 // ─── MENU CONFIG ──────────────────────────────────
 const MAIN_MENU = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'ERP Cockpit', href: '/dashboard/cockpit', icon: LayoutDashboard },
   { name: 'Chat IA', href: '/chat-ia', icon: MessageSquare },
   { name: 'Financeiro', href: '/finance', icon: DollarSign },
-  { name: 'Plano de Ação', href: '/dashboard/plano-acao', icon: Zap },
-  { name: 'Recrutamento IA', href: '/dashboard/recrutamento', icon: Sparkles },
-  { name: 'Vagas (ATS)', href: '/ats', icon: Briefcase },
+  { name: 'Recrutamento (ATS)', href: '/dashboard/recrutamento', icon: Briefcase },
   { name: 'Meu Ponto', href: '/dashboard/ponto', icon: Timer },
-  { name: 'Gestão Estratégica de RH', href: '/rh', icon: ShieldCheck },
-  { name: 'Meu PDI / Perfil', href: '/dashboard/rh', icon: Users },
-  { name: 'BI Analytics', href: '/dashboard/analytics', icon: BarChart3 },
-  { name: 'Insights', href: '/dashboard/insights', icon: Zap },
-  { name: 'Meus Chamados', href: '/support', icon: LifeBuoy },
-  { name: 'Onboarding', href: '/onboarding', icon: Users }
+  { name: 'Painel de RH', href: '/dashboard/rh', icon: Users },
+  { name: 'BI & Insights', href: '/dashboard/analytics', icon: BarChart3 },
+  { name: 'Suporte', href: '/support', icon: LifeBuoy }
 ];
 
 const ADVANCED_MENU = [
-  {
-    name: 'Gestão de Chamados',
-    href: '/dashboard/support-admin',
-    icon: LifeBuoy
-  }
+  { name: 'Gestão de Chamados', href: '/dashboard/support-admin', icon: LifeBuoy },
+  { name: 'Plano de Ação', href: '/dashboard/plano-acao', icon: Zap }
 ];
 
 // ─── NOTIFICATION DROPDOWN ──────────────────────────────────────────────────
@@ -322,10 +313,10 @@ function Sidebar({
         <div className="px-5 py-5 border-b border-purple-500/15 flex items-center justify-between shrink-0">
           <Link
             href="/"
-            className="text-lg font-black tracking-tighter text-white"
+            className="text-xl font-black tracking-tighter text-white drop-shadow-[0_2px_2px_rgba(0,0,0,1)]"
             onClick={onClose}
           >
-            INNOV<span className="text-[#a78bfa]">A</span>TION IA
+            INNOV<span className="text-[#a78bfa] drop-shadow-[0_2px_2px_rgba(0,0,0,1)]">A</span>TION IA
           </Link>
           <button
             onClick={onClose}
@@ -365,7 +356,7 @@ function Sidebar({
                   <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-[#0a0a18]" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-bold text-white truncate">
+                  <p className="text-sm font-bold text-white truncate drop-shadow-[0_2px_2px_rgba(0,0,0,1)]">
                     {user.name}
                   </p>
                   <div className="flex items-center gap-1 mt-0.5">
@@ -407,9 +398,9 @@ function Sidebar({
                     }`}
                 >
                   <Icon
-                    className={`w-4 h-4 shrink-0 transition-colors ${active ? 'text-[#a78bfa]' : 'group-hover:text-purple-300'}`}
+                    className={`w-5 h-5 shrink-0 transition-colors drop-shadow-[0_2px_2px_rgba(0,0,0,1)] ${active ? 'text-[#a78bfa]' : 'group-hover:text-purple-300'}`}
                   />
-                  <span className="text-sm font-medium">{item.name}</span>
+                  <span className="text-sm font-bold tracking-wide drop-shadow-[0_2px_2px_rgba(0,0,0,1)]">{item.name}</span>
                   {active && (
                     <ChevronRight className="w-3 h-3 ml-auto text-[#a78bfa]" />
                   )}
@@ -438,9 +429,9 @@ function Sidebar({
                         }`}
                     >
                       <Icon
-                        className={`w-4 h-4 shrink-0 transition-colors ${active ? 'text-[#a78bfa]' : 'group-hover:text-purple-300'}`}
+                        className={`w-5 h-5 shrink-0 transition-colors drop-shadow-[0_2px_2px_rgba(0,0,0,1)] ${active ? 'text-[#a78bfa]' : 'group-hover:text-purple-300'}`}
                       />
-                      <span className="text-sm font-medium">{item.name}</span>
+                      <span className="text-sm font-bold tracking-wide drop-shadow-[0_2px_2px_rgba(0,0,0,1)]">{item.name}</span>
                       {active && (
                         <ChevronRight className="w-3 h-3 ml-auto text-[#a78bfa]" />
                       )}
@@ -458,8 +449,8 @@ function Sidebar({
             onClick={handleLogout}
             className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-red-400/40 hover:text-red-400 hover:bg-red-500/10 transition-all text-sm"
           >
-            <LogOut className="w-4 h-4" />
-            <span className="font-medium">Sair</span>
+            <LogOut className="w-5 h-5 drop-shadow-[0_2px_2px_rgba(0,0,0,1)]" />
+            <span className="font-bold tracking-wide drop-shadow-[0_2px_2px_rgba(0,0,0,1)]">Sair</span>
           </button>
         </div>
       </aside>
@@ -537,8 +528,8 @@ function TopBar({
 
       {/* Page title */}
       <div className="flex items-center gap-2 flex-1 min-w-0">
-        <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse shrink-0" />
-        <span className="text-xs text-white/30 font-medium truncate">
+        <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse shrink-0 drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)]" />
+        <span className="text-sm text-white font-bold truncate drop-shadow-[0_2px_2px_rgba(0,0,0,1)] tracking-wide">
           {title ?? 'Sistema operacional'}
         </span>
       </div>
@@ -573,7 +564,7 @@ function TopBar({
             <div className="w-5 h-5 rounded-full bg-gradient-to-br from-[#8b5cf6] to-[#6d28d9] flex items-center justify-center text-white font-black text-[9px]">
               {getInitials(user.name)}
             </div>
-            <span className="text-xs font-medium text-white hidden sm:inline">
+            <span className="text-sm font-bold tracking-wide drop-shadow-[0_2px_2px_rgba(0,0,0,1)] text-white hidden sm:inline">
               {user.name.split(' ')[0]}
             </span>
           </div>
