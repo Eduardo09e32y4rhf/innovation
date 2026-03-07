@@ -42,7 +42,7 @@ export default function FlowiseWidget({
               customIconSrc: 'https://raw.githubusercontent.com/walkxcode/dashboard-icons/main/svg/google-messages.svg',
             },
             chatWindow: {
-              welcomeMessage: 'Olá! Sou a Ana IA, sua assistente de RH e Finanças. Como posso ajudar?',
+              welcomeMessage: 'Olá! Sou a InnovationIA, sua assistente de RH e Finanças. Como posso ajudar?',
               backgroundColor: '#1f2937',
               height: 700,
               width: 400,

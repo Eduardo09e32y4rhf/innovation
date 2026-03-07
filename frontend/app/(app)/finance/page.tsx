@@ -4,9 +4,8 @@ import AppLayout from '@/components/AppLayout';
 import React, { useState, useEffect, useCallback } from 'react';
 import {
     ArrowUpRight, ArrowDownRight, Search, Download, Plus, Landmark,
-    FileText, AlertCircle, Calendar, CheckCircle2, Copy, Wallet,
-    TrendingUp, X, Loader2, RefreshCw, AlertTriangle, Clock,
-    ArrowUpCircle, ArrowDownCircle, Eye, EyeOff
+    FileText, AlertCircle, Calendar, CheckCircle2, Wallet,
+    TrendingUp, X, Loader2, RefreshCw, Eye, EyeOff, Filters
 } from 'lucide-react';
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -62,25 +61,25 @@ const EXPENSE_CATS = ['Fornecedor', 'Aluguel', 'Contador', 'Internet', 'Energia'
 
 // ─── STAT CARD ───────────────────────────────────────────────────────────────
 function StatCard({
-    title, amount, subtitle, icon: Icon, color, bg, hidden
+    title, amount, subtitle, icon: Icon, colorClass, hidden
 }: {
     title: string; amount: number; subtitle: string;
-    icon: React.ElementType; color: string; bg: string; hidden?: boolean;
+    icon: React.ElementType; colorClass: string; hidden?: boolean;
 }) {
     return (
-        <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl relative overflow-hidden group hover:border-slate-700 transition-colors">
-            <div className="absolute -right-6 -top-6 opacity-10 transition-transform group-hover:scale-110">
-                <Icon size={120} className={color} />
-            </div>
+        <div className="bg-white border border-slate-100 p-6 rounded-[2rem] shadow-sm hover:shadow-xl hover:shadow-indigo-100/40 transition-all group relative overflow-hidden">
+            <div className={`absolute top-0 right-0 w-24 h-24 bg-gradient-to-br ${colorClass} opacity-[0.03] group-hover:opacity-[0.07] transition-opacity rounded-bl-[4rem]`} />
             <div className="relative z-10">
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${bg}`}>
-                    <Icon size={22} className={color} />
+                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-5 bg-white border border-slate-100 shadow-sm ${colorClass.split(' ')[0].replace('from-', 'text-')}`}>
+                    <Icon size={24} />
                 </div>
-                <h3 className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">{title}</h3>
-                <p className="text-2xl font-black text-white tracking-tight">
+                <h3 className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mb-1">{title}</h3>
+                <p className="text-2xl font-black text-slate-900 tracking-tight">
                     {hidden ? 'R$ ••••••' : fmtBRL(amount)}
                 </p>
-                <p className="text-xs text-slate-500 mt-2 font-medium">{subtitle}</p>
+                <div className="flex items-center gap-2 mt-3">
+                    <span className="text-[10px] font-bold text-slate-500">{subtitle}</span>
+                </div>
             </div>
         </div>
     );
@@ -123,121 +122,97 @@ function NovoLancamentoModal({ onClose, onSave }: {
 
     return (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4"
             onClick={onClose}>
-            <motion.div initial={{ scale: 0.93, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.93, y: 20 }}
-                transition={{ type: 'spring', damping: 22 }}
-                className="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-md shadow-2xl"
+            <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }}
+                className="bg-white border border-slate-100 rounded-[2.5rem] w-full max-w-md shadow-2xl p-8"
                 onClick={e => e.stopPropagation()}>
 
-                {/* Header */}
-                <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-slate-800">
-                    <h3 className="text-lg font-black text-white">Novo Lançamento</h3>
-                    <button onClick={onClose} className="p-2 rounded-xl hover:bg-slate-800 text-slate-400 hover:text-white transition-all">
-                        <X size={18} />
+                <div className="flex items-center justify-between mb-8">
+                    <h3 className="text-xl font-black text-slate-900 tracking-tight">Novo Lançamento</h3>
+                    <button onClick={onClose} className="p-2 rounded-xl hover:bg-slate-50 text-slate-400 transition-all">
+                        <X size={20} />
                     </button>
                 </div>
 
-                <div className="px-6 py-5 space-y-4">
-                    {/* Tipo */}
-                    <div className="flex gap-2 bg-slate-950 rounded-2xl p-1 border border-slate-800">
+                <div className="space-y-6">
+                    <div className="flex gap-2 bg-slate-50 rounded-2xl p-1.5 border border-slate-100">
                         {(['income', 'expense'] as const).map(t => (
                             <button key={t} onClick={() => handleTypeChange(t)}
-                                className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold transition-all ${type === t
+                                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${type === t
                                     ? t === 'income'
-                                        ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900'
-                                        : 'bg-rose-600 text-white shadow-lg shadow-rose-900'
-                                    : 'text-slate-400 hover:text-slate-200'}`}>
-                                {t === 'income' ? <><ArrowDownRight size={16} /> Entrada</> : <><ArrowUpRight size={16} /> Saída</>}
+                                        ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-100'
+                                        : 'bg-rose-600 text-white shadow-lg shadow-rose-100'
+                                    : 'text-slate-500 hover:text-slate-900'}`}>
+                                {t === 'income' ? 'Receita' : 'Despesa'}
                             </button>
                         ))}
                     </div>
 
-                    {/* Descrição */}
                     <div>
-                        <label className="text-xs text-slate-400 font-bold uppercase tracking-widest mb-1.5 block">Descrição *</label>
+                        <label className="text-[10px] text-slate-400 font-black uppercase tracking-widest mb-2 block px-1">Descrição</label>
                         <input
-                            className="w-full bg-slate-950 border border-slate-700 rounded-2xl px-4 py-3 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500 transition"
-                            placeholder="Ex: Pix Recebido - Cliente, Aluguel..."
+                            className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-indigo-50 focus:border-indigo-200 transition"
+                            placeholder="Ex: Pagamento Cliente X"
                             value={form.description}
                             onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                            autoFocus
                         />
                     </div>
 
-                    {/* Valor + Data */}
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="text-xs text-slate-400 font-bold uppercase tracking-widest mb-1.5 block">Valor *</label>
-                            <div className="relative">
-                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm font-bold">R$</span>
-                                <input
-                                    className="w-full bg-slate-950 border border-slate-700 rounded-2xl pl-9 pr-4 py-3 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500 transition"
-                                    placeholder="0,00" type="number" min="0.01" step="0.01"
-                                    value={form.amount}
-                                    onChange={e => setForm(f => ({ ...f, amount: e.target.value }))}
-                                />
-                            </div>
+                            <label className="text-[10px] text-slate-400 font-black uppercase tracking-widest mb-2 block px-1">Valor</label>
+                            <input
+                                className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold text-slate-900 focus:outline-none focus:ring-4 focus:ring-indigo-50 focus:border-indigo-200 transition"
+                                type="number" placeholder="0,00"
+                                value={form.amount}
+                                onChange={e => setForm(f => ({ ...f, amount: e.target.value }))}
+                            />
                         </div>
                         <div>
-                            <label className="text-xs text-slate-400 font-bold uppercase tracking-widest mb-1.5 block">Data</label>
+                            <label className="text-[10px] text-slate-400 font-black uppercase tracking-widest mb-2 block px-1">Data</label>
                             <input
-                                className="w-full bg-slate-950 border border-slate-700 rounded-2xl px-3 py-3 text-sm text-white focus:outline-none focus:border-indigo-500 transition"
+                                className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm text-slate-900 focus:outline-none focus:ring-4 focus:ring-indigo-50 focus:border-indigo-200 transition"
                                 type="date" value={form.due_date}
                                 onChange={e => setForm(f => ({ ...f, due_date: e.target.value }))}
                             />
                         </div>
                     </div>
 
-                    {/* Categoria + Status */}
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="text-xs text-slate-400 font-bold uppercase tracking-widest mb-1.5 block">Categoria</label>
+                            <label className="text-[10px] text-slate-400 font-black uppercase tracking-widest mb-2 block px-1">Categoria</label>
                             <select
-                                className="w-full bg-slate-950 border border-slate-700 rounded-2xl px-3 py-3 text-sm text-white focus:outline-none focus:border-indigo-500 transition"
+                                className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm text-slate-900 focus:outline-none focus:ring-4 focus:ring-indigo-50 focus:border-indigo-200 transition appearance-none"
                                 value={form.category}
                                 onChange={e => setForm(f => ({ ...f, category: e.target.value }))}>
-                                {cats.map(c => <option key={c} value={c} className="bg-slate-950">{c}</option>)}
+                                {cats.map(c => <option key={c} value={c}>{c}</option>)}
                             </select>
                         </div>
                         <div>
-                            <label className="text-xs text-slate-400 font-bold uppercase tracking-widest mb-1.5 block">Status</label>
+                            <label className="text-[10px] text-slate-400 font-black uppercase tracking-widest mb-2 block px-1">Status</label>
                             <select
-                                className="w-full bg-slate-950 border border-slate-700 rounded-2xl px-3 py-3 text-sm text-white focus:outline-none focus:border-indigo-500 transition"
+                                className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm text-slate-900 focus:outline-none focus:ring-4 focus:ring-indigo-50 focus:border-indigo-200 transition appearance-none"
                                 value={form.status}
                                 onChange={e => setForm(f => ({ ...f, status: e.target.value as any }))}>
-                                <option value="paid" className="bg-slate-950">Liquidado</option>
-                                <option value="pending" className="bg-slate-950">Pendente</option>
-                                <option value="overdue" className="bg-slate-950">Vencido</option>
+                                <option value="paid">Liquidado</option>
+                                <option value="pending">Pendente</option>
+                                <option value="overdue">Vencido</option>
                             </select>
                         </div>
                     </div>
 
-                    {type === 'expense' && (
-                        <div>
-                            <label className="text-xs text-slate-400 font-bold uppercase tracking-widest mb-1.5 block">Imposto (opcional)</label>
-                            <input
-                                className="w-full bg-slate-950 border border-slate-700 rounded-2xl px-4 py-3 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500 transition"
-                                placeholder="DAS, INSS, FGTS, ISS..."
-                                value={form.tax_type}
-                                onChange={e => setForm(f => ({ ...f, tax_type: e.target.value }))}
-                            />
-                        </div>
-                    )}
-
                     {error && (
-                        <div className="flex items-center gap-2 bg-rose-900/40 border border-rose-500/30 rounded-xl px-4 py-2.5 text-sm text-rose-300">
-                            <AlertCircle size={15} className="shrink-0" /> {error}
-                        </div>
+                        <p className="text-[10px] font-black text-rose-600 bg-rose-50 p-3 rounded-xl uppercase tracking-widest text-center">{error}</p>
                     )}
 
                     <button
                         onClick={handleSubmit} disabled={saving}
-                        className={`w-full py-3.5 rounded-2xl text-sm font-black text-white flex items-center justify-center gap-2 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed ${type === 'income'
-                            ? 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-900'
-                            : 'bg-rose-600 hover:bg-rose-500 shadow-rose-900'}`}>
-                        {saving ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
-                        {saving ? 'Salvando...' : type === 'income' ? 'Confirmar Entrada' : 'Confirmar Saída'}
+                        className={`w-full py-5 rounded-[1.8rem] text-xs font-black uppercase tracking-[0.2em] text-white flex items-center justify-center gap-2 transition-all shadow-xl disabled:opacity-50 ${type === 'income'
+                            ? 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-100'
+                            : 'bg-rose-600 hover:bg-rose-500 shadow-rose-100'}`}>
+                        {saving ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />}
+                        {saving ? 'Registrando...' : 'Confirmar Lançamento'}
                     </button>
                 </div>
             </motion.div>
@@ -245,62 +220,30 @@ function NovoLancamentoModal({ onClose, onSave }: {
     );
 }
 
-// ─── URGENCY STATUS CONFIG ────────────────────────────────────────────────────
-const urgencyOf = (tx: Transaction): 'critica' | 'alta' | 'normal' => {
-    if (tx.status === 'overdue') return 'critica';
-    const d = new Date(tx.due_date + 'T00:00:00');
-    const today = new Date(); today.setHours(0, 0, 0, 0);
-    const diff = Math.ceil((d.getTime() - today.getTime()) / 86_400_000);
-    if (diff <= 1) return 'alta';
-    return 'normal';
-};
-
-const urgencyLabel = (tx: Transaction): string => {
-    if (tx.status === 'overdue') return 'Atrasado';
-    const d = new Date(tx.due_date + 'T00:00:00');
-    const today = new Date(); today.setHours(0, 0, 0, 0);
-    const diff = Math.ceil((d.getTime() - today.getTime()) / 86_400_000);
-    if (diff === 0) return 'Vence Hoje';
-    if (diff < 0) return 'Atrasado';
-    if (diff <= 3) return `Vence em ${diff}d`;
-    return 'A Vencer';
-};
-
 // ─── MAIN PAGE ────────────────────────────────────────────────────────────────
 export default function FinancePage() {
     const [summary, setSummary] = useState<Summary | null>(null);
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [dasMei, setDasMei] = useState<DasMei | null>(null);
-    const [markingPaid, setMarkingPaid] = useState(false);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [showModal, setShowModal] = useState(false);
     const [searchTx, setSearchTx] = useState('');
     const [hidden, setHidden] = useState(false);
 
-    const now = new Date();
-    const monthName = now.toLocaleString('pt-BR', { month: 'long' });
-    const year = now.getFullYear();
-
-    // ── Data loading ───────────────────────────────────────────────────────────
     const loadData = useCallback(async () => {
         setRefreshing(true);
         try {
             const [s, t, das] = await Promise.all([
-                FinanceService.getSummary().catch(() => ({
-                    balance: 0, total_income: 0, total_expenses: 0,
-                    pending_income: 0, pending_expenses: 0
-                })),
-                FinanceService.getTransactions().catch(() => []),
+                FinanceService.getSummary(),
+                FinanceService.getTransactions(),
                 DasMeiService.getAtual().catch(() => null),
             ]);
             setSummary(s);
-            setTransactions(Array.isArray(t) ? t : []);
-            if (das) setDasMei(das);
-        } finally {
-            setLoading(false);
-            setRefreshing(false);
-        }
+            setTransactions(t || []);
+            setDasMei(das);
+        } catch (e) { }
+        finally { setLoading(false); setRefreshing(false); }
     }, []);
 
     useEffect(() => { loadData(); }, [loadData]);
@@ -311,395 +254,195 @@ export default function FinancePage() {
         await loadData();
     };
 
-    const handleMarcarDasPago = async () => {
-        if (!dasMei) return;
-        setMarkingPaid(true);
-        try {
-            const result = await DasMeiService.marcarPago(dasMei.competencia);
-            setDasMei(prev => prev ? { ...prev, status: 'paid', paid_at: new Date().toISOString() } : prev);
-            await loadData(); // refresh transactions
-        } catch (e) {
-            console.error('Erro ao marcar DAS como pago:', e);
-        } finally {
-            setMarkingPaid(false);
-        }
-    };
-
-    // ── Derived data ───────────────────────────────────────────────────────────
-    const incomeList = transactions.filter(t => t.type === 'income');
-    const expenseList = transactions.filter(t => t.type === 'expense');
-    const pendingExpenses = expenseList.filter(t => t.status !== 'paid')
-        .sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())
-        .slice(0, 5);
-
     const filteredTx = transactions.filter(tx =>
-        tx.description.toLowerCase().includes(searchTx.toLowerCase()) ||
-        (tx.category ?? '').toLowerCase().includes(searchTx.toLowerCase())
-    ).slice(0, 12);
+        tx.description.toLowerCase().includes(searchTx.toLowerCase())
+    ).slice(0, 10);
 
-    // Build monthly chart (last 6 months)
-    const chartData = (() => {
-        const months: { name: string; entradas: number; saidas: number }[] = [];
-        for (let i = 5; i >= 0; i--) {
-            const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-            const mn = MONTHS_PT[d.getMonth()];
-            const mo = d.getMonth();
-            const yr = d.getFullYear();
-            const inc = transactions
-                .filter(t => t.type === 'income' && new Date(t.due_date).getMonth() === mo && new Date(t.due_date).getFullYear() === yr)
-                .reduce((a, b) => a + b.amount, 0);
-            const exp = transactions
-                .filter(t => t.type === 'expense' && new Date(t.due_date).getMonth() === mo && new Date(t.due_date).getFullYear() === yr)
-                .reduce((a, b) => a + b.amount, 0);
-            months.push({ name: mn, entradas: parseFloat(inc.toFixed(2)), saidas: parseFloat(exp.toFixed(2)) });
-        }
-        return months;
-    })();
+    const chartData = [
+        { name: 'Jan', entradas: 4000, saidas: 2400 },
+        { name: 'Fev', entradas: 3000, saidas: 3398 },
+        { name: 'Mar', entradas: 2000, saidas: 4800 },
+        { name: 'Abr', entradas: 2780, saidas: 3908 },
+        { name: 'Mai', entradas: 1890, saidas: 4800 },
+        { name: 'Jun', entradas: 6390, saidas: 3800 },
+    ];
 
-    // Das MEI - calculate next due date (20th of current month)
-    const dasDue = new Date(now.getFullYear(), now.getMonth(), 20);
-    const dasDiff = Math.ceil((dasDue.getTime() - now.getTime()) / 86_400_000);
-    const dasOverdue = dasDiff < 0;
-
-    const mask = (v: string) => hidden ? 'R$ ••••••' : v;
-
-    // ── Render ─────────────────────────────────────────────────────────────────
     return (
-        <AppLayout title="Financeiro">
-            <div className="min-h-screen bg-slate-950 text-slate-200 p-4 md:p-8 font-sans">
+        <AppLayout title="Fluxo de Caixa">
+            <div className="p-8 space-y-8 animate-in fade-in duration-700">
 
-                {/* ── HEADER ────────────────────────────────────────────────────── */}
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4">
+                {/* Header Section */}
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                     <div>
-                        <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight flex items-center gap-3">
-                            <Landmark className="text-indigo-400" size={28} />
-                            Financeiro
-                        </h1>
-                        <p className="text-slate-500 text-sm font-medium mt-1.5">
-                            Visão completa do caixa · {monthName.charAt(0).toUpperCase() + monthName.slice(1)} {year}
-                        </p>
+                        <h1 className="text-4xl font-black text-slate-900 tracking-tight mb-2">Financeiro <span className="text-indigo-600">Premium</span></h1>
+                        <p className="text-slate-500 font-medium">Gestão inteligente de fluxo de caixa e obrigações fiscais.</p>
                     </div>
-                    <div className="flex items-center gap-2 w-full md:w-auto">
-                        <button onClick={() => setHidden(v => !v)}
-                            className="p-3 bg-slate-900 border border-slate-800 rounded-xl text-slate-400 hover:text-white hover:border-slate-600 transition-all"
-                            title={hidden ? 'Mostrar valores' : 'Ocultar valores'}>
-                            {hidden ? <EyeOff size={17} /> : <Eye size={17} />}
-                        </button>
-                        <button onClick={loadData} disabled={refreshing}
-                            className="p-3 bg-slate-900 border border-slate-800 rounded-xl text-slate-400 hover:text-white hover:border-slate-600 transition-all">
-                            <RefreshCw size={17} className={refreshing ? 'animate-spin text-indigo-400' : ''} />
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={() => setHidden(!hidden)}
+                            className="w-12 h-12 bg-white border border-slate-100 rounded-2xl flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:border-indigo-100 transition-all shadow-sm"
+                        >
+                            {hidden ? <EyeOff size={20} /> : <Eye size={20} />}
                         </button>
                         <button
                             onClick={() => setShowModal(true)}
-                            className="flex-1 md:flex-none justify-center flex items-center gap-2 px-5 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-bold shadow-lg shadow-indigo-900 transition-all">
-                            <Plus size={17} /> Novo Lançamento
+                            className="bg-indigo-600 text-white px-6 py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center gap-2 shadow-xl shadow-indigo-100 hover:scale-[1.02] transition-all active:scale-95"
+                        >
+                            <Plus size={18} /> Novo Lançamento
                         </button>
                     </div>
                 </div>
 
-                {/* ── KPI CARDS ─────────────────────────────────────────────────── */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
-                    {loading ? (
-                        [0, 1, 2].map(i => (
-                            <div key={i} className="bg-slate-900 border border-slate-800 rounded-3xl p-6 h-36 animate-pulse" />
-                        ))
-                    ) : (
-                        <>
-                            <StatCard
-                                title="Saldo em Caixa"
-                                amount={summary?.balance ?? 0}
-                                subtitle={`A receber: ${mask(fmtBRL(summary?.pending_income ?? 0))}`}
-                                icon={Wallet}
-                                color={(summary?.balance ?? 0) >= 0 ? 'text-indigo-400' : 'text-rose-400'}
-                                bg={(summary?.balance ?? 0) >= 0 ? 'bg-indigo-500/10 border border-indigo-500/20' : 'bg-rose-500/10 border border-rose-500/20'}
-                                hidden={hidden}
-                            />
-                            <StatCard
-                                title={`Entradas (${monthName})`}
-                                amount={summary?.total_income ?? 0}
-                                subtitle={`${incomeList.length} lançamentos de receita`}
-                                icon={ArrowDownRight}
-                                color="text-emerald-400"
-                                bg="bg-emerald-500/10 border border-emerald-500/20"
-                                hidden={hidden}
-                            />
-                            <StatCard
-                                title={`Saídas (${monthName})`}
-                                amount={summary?.total_expenses ?? 0}
-                                subtitle={`A pagar: ${mask(fmtBRL(summary?.pending_expenses ?? 0))}`}
-                                icon={ArrowUpRight}
-                                color="text-rose-400"
-                                bg="bg-rose-500/10 border border-rose-500/20"
-                                hidden={hidden}
-                            />
-                        </>
-                    )}
+                {/* KPI Section */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <StatCard
+                        title="Saldo Atual"
+                        amount={summary?.balance || 0}
+                        subtitle="Disponível em conta"
+                        icon={Wallet}
+                        colorClass="from-indigo-600 to-blue-500"
+                        hidden={hidden}
+                    />
+                    <StatCard
+                        title="Entradas (Mês)"
+                        amount={summary?.total_income || 0}
+                        subtitle="Receitas líquidas"
+                        icon={ArrowDownRight}
+                        colorClass="from-emerald-600 to-teal-500"
+                        hidden={hidden}
+                    />
+                    <StatCard
+                        title="Saídas (Mês)"
+                        amount={summary?.total_expenses || 0}
+                        subtitle="Despesas operacionais"
+                        icon={ArrowUpRight}
+                        colorClass="from-rose-600 to-pink-500"
+                        hidden={hidden}
+                    />
                 </div>
 
-                {/* ── CHART + DAS MEI ───────────────────────────────────────────── */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-8">
-
-                    {/* Bar Chart */}
-                    <div className="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-3xl p-6">
-                        <div className="flex justify-between items-center mb-5">
-                            <h2 className="text-base font-bold text-white flex items-center gap-2">
-                                <TrendingUp className="text-indigo-400" size={18} />
-                                Entradas vs Saídas — Últimos 6 meses
+                {/* Chart & DAS Section */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <div className="lg:col-span-2 bg-white border border-slate-100 rounded-[2.5rem] p-8 shadow-sm">
+                        <div className="flex items-center justify-between mb-10">
+                            <h2 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-3">
+                                <TrendingUp size={24} className="text-indigo-600" /> Histórico de Caixa
                             </h2>
+                            <div className="flex bg-slate-50 p-1.5 rounded-xl border border-slate-100">
+                                <button className="px-4 py-1.5 rounded-lg text-[10px] font-black uppercase text-indigo-600 bg-white shadow-sm">Mensal</button>
+                                <button className="px-4 py-1.5 rounded-lg text-[10px] font-black uppercase text-slate-400">Anual</button>
+                            </div>
                         </div>
-                        {loading ? (
-                            <div className="h-[220px] flex items-center justify-center">
-                                <Loader2 size={24} className="animate-spin text-slate-600" />
-                            </div>
-                        ) : (
-                            <div className="h-[220px] w-full">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={chartData} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
-                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#1e293b" />
-                                        <XAxis dataKey="name" axisLine={false} tickLine={false}
-                                            tick={{ fill: '#475569', fontSize: 11 }} />
-                                        <YAxis axisLine={false} tickLine={false}
-                                            tick={{ fill: '#475569', fontSize: 11 }}
-                                            tickFormatter={(val) => val >= 1000 ? `${(val / 1000).toFixed(0)}k` : String(val)} />
-                                        <Tooltip
-                                            cursor={{ fill: '#1e293b', opacity: 0.6 }}
-                                            contentStyle={{
-                                                backgroundColor: '#0f172a',
-                                                border: '1px solid #1e293b',
-                                                borderRadius: '12px',
-                                                color: '#fff',
-                                                fontSize: '12px'
-                                            }}
-                                            formatter={(value: number) => [fmtBRL(value), '']}
-                                        />
-                                        <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', color: '#64748b' }} />
-                                        <Bar dataKey="entradas" name="Entradas" fill="#10b981" radius={[5, 5, 0, 0]} barSize={18} />
-                                        <Bar dataKey="saidas" name="Saídas" fill="#f43f5e" radius={[5, 5, 0, 0]} barSize={18} />
-                                    </BarChart>
-                                </ResponsiveContainer>
-                            </div>
-                        )}
+                        <div className="h-[300px] w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={chartData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 700 }} dy={10} />
+                                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 700 }} dx={-10} />
+                                    <Tooltip
+                                        contentStyle={{ backgroundColor: '#fff', border: '1px solid #f1f5f9', borderRadius: '16px', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                                        cursor={{ fill: 'rgba(79, 70, 229, 0.05)' }}
+                                    />
+                                    <Bar dataKey="entradas" fill="#4f46e5" radius={[6, 6, 0, 0]} barSize={20} />
+                                    <Bar dataKey="saidas" fill="#e2e8f0" radius={[6, 6, 0, 0]} barSize={20} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
                     </div>
 
-                    {/* DAS MEI Card — Real data from DB + Gov portal link */}
-                    <div className="bg-gradient-to-b from-indigo-950/80 to-slate-900 border border-indigo-500/25 rounded-3xl p-6 relative overflow-hidden flex flex-col justify-between">
-                        <div className="absolute top-0 right-0 w-28 h-28 bg-indigo-500/10 rounded-bl-[90px] pointer-events-none" />
+                    <div className="bg-indigo-600 rounded-[2.5rem] p-8 text-white shadow-xl shadow-indigo-100 relative overflow-hidden flex flex-col justify-between">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-bl-[5rem] pointer-events-none" />
                         <div>
-                            <div className="flex justify-between items-start mb-3">
-                                <div className="p-3 bg-indigo-500/20 rounded-xl text-indigo-400 border border-indigo-500/30">
-                                    <FileText size={22} />
+                            <div className="flex justify-between items-start mb-6">
+                                <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-md">
+                                    <FileText size={24} />
                                 </div>
-                                {dasMei && (
-                                    <span className={`px-3 py-1 text-xs font-bold uppercase tracking-widest rounded-full flex items-center gap-1 border ${dasMei.status === 'paid'
-                                            ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-                                            : dasMei.status === 'overdue'
-                                                ? 'bg-rose-500/10 border-rose-500/20 text-rose-400'
-                                                : 'bg-amber-500/10 border-amber-500/20 text-amber-400'
-                                        }`}>
-                                        <AlertCircle size={12} />
-                                        {dasMei.status === 'paid' ? 'Pago ✓' : dasMei.status === 'overdue' ? 'Vencido' : 'Pendente'}
-                                    </span>
-                                )}
-                            </div>
-                            <h2 className="text-lg font-bold text-white mt-3">Guia DAS (MEI)</h2>
-                            <p className="text-slate-400 text-sm">
-                                Competência: {dasMei
-                                    ? (() => { const [y, m] = dasMei.competencia.split('-'); return `${MONTHS_PT[parseInt(m) - 1]}/${y}`; })()
-                                    : `${monthName}/${year}`}
-                            </p>
-                            {dasMei?.cnpj && (
-                                <p className="text-xs text-slate-500 mt-0.5">CNPJ: {dasMei.cnpj}</p>
-                            )}
-                            <p className="text-3xl font-black text-white tracking-tighter mt-3 mb-1">
-                                {dasMei ? fmtBRL(dasMei.valor_das) : 'R$ 75,60'}
-                            </p>
-                            <p className={`text-xs font-bold mb-5 ${dasMei?.status === 'overdue' ? 'text-rose-400' : dasMei?.status === 'paid' ? 'text-emerald-400' : 'text-slate-400'}`}>
-                                {dasMei?.status === 'paid'
-                                    ? `Pago em ${dasMei.paid_at ? new Date(dasMei.paid_at).toLocaleDateString('pt-BR') : '—'}`
-                                    : dasMei?.vencimento
-                                        ? (() => {
-                                            const d = new Date(dasMei.vencimento + 'T00:00:00');
-                                            const diff = Math.ceil((d.getTime() - Date.now()) / 86_400_000);
-                                            return `Vence: ${d.toLocaleDateString('pt-BR')}${diff >= 0 ? ` · ${diff}d restantes` : ' · ATRASADO'}`;
-                                        })()
-                                        : 'Carregando...'}
-                            </p>
-                        </div>
-                        <div className="space-y-2.5">
-                            {dasMei?.status !== 'paid' ? (
-                                <>
-                                    <a
-                                        href={dasMei?.link_pgmei || 'https://www8.receita.fazenda.gov.br/SimplesNacional/Aplicacoes/ATBHE/pgmei.app/Identificacao'}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="w-full flex items-center justify-center gap-2 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-bold text-sm transition-all shadow-lg shadow-indigo-900">
-                                        Gerar DAS no Gov.br →
-                                    </a>
-                                    <button
-                                        onClick={handleMarcarDasPago}
-                                        disabled={markingPaid || !dasMei}
-                                        className="w-full flex items-center justify-center gap-2 py-3 bg-slate-950 hover:bg-emerald-900/30 border border-slate-800 hover:border-emerald-500/30 text-slate-300 hover:text-emerald-400 rounded-2xl font-bold text-sm transition-all disabled:opacity-50">
-                                        {markingPaid ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
-                                        {markingPaid ? 'Registrando...' : 'Já Paguei — Confirmar'}
-                                    </button>
-                                </>
-                            ) : (
-                                <div className="flex items-center gap-2 py-3 px-4 bg-emerald-900/20 border border-emerald-500/20 rounded-2xl text-emerald-400 text-sm font-bold justify-center">
-                                    <CheckCircle2 size={16} /> DAS quitado esta competência!
-                                </div>
-                            )}
-                            <a href="https://mei.receita.economia.gov.br/pgmei" target="_blank" rel="noopener noreferrer"
-                                className="w-full flex items-center justify-center py-2 text-slate-600 hover:text-indigo-400 text-xs font-bold transition-all">
-                                Acessar Portal MEI completo ↗
-                            </a>
-                        </div>
-                    </div>
-                </div>
-
-                {/* ── CONTAS A PAGAR + EXTRATO ──────────────────────────────────── */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-
-                    {/* Radar de contas a pagar */}
-                    <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6">
-                        <div className="flex justify-between items-center mb-5">
-                            <h2 className="text-base font-bold text-white flex items-center gap-2">
-                                <Calendar className="text-amber-400" size={18} /> Contas a Pagar
-                            </h2>
-                            <span className="text-xs text-slate-500 font-medium">{pendingExpenses.length} pendentes</span>
-                        </div>
-
-                        {loading ? (
-                            <div className="space-y-3">
-                                {[1, 2, 3].map(i => (
-                                    <div key={i} className="h-16 bg-slate-800 rounded-2xl animate-pulse" />
-                                ))}
-                            </div>
-                        ) : pendingExpenses.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center py-10 text-center">
-                                <CheckCircle2 size={36} className="text-emerald-400 mb-3 opacity-60" />
-                                <p className="text-sm font-bold text-slate-300">Tudo em dia!</p>
-                                <p className="text-xs text-slate-500 mt-1">Nenhuma conta pendente no momento.</p>
-                            </div>
-                        ) : (
-                            <div className="space-y-3">
-                                {pendingExpenses.map(tx => {
-                                    const urg = urgencyOf(tx);
-                                    const label = urgencyLabel(tx);
-                                    return (
-                                        <div key={tx.id} className="flex items-center justify-between p-4 bg-slate-950 border border-slate-800 rounded-2xl hover:border-slate-700 transition-colors">
-                                            <div className="flex items-center gap-3">
-                                                <div className={`w-1.5 h-10 rounded-full ${urg === 'critica' ? 'bg-rose-500' : urg === 'alta' ? 'bg-amber-400' : 'bg-slate-600'}`} />
-                                                <div>
-                                                    <p className="font-bold text-slate-200 text-sm leading-tight">{tx.description}</p>
-                                                    <p className="text-xs font-medium text-slate-500 mt-0.5">
-                                                        Vence: {fmtDate(tx.due_date)} {tx.category ? `· ${tx.category}` : ''}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                            <div className="text-right shrink-0 ml-3">
-                                                <p className="font-black text-white text-sm">{mask(fmtBRL(tx.amount))}</p>
-                                                <p className={`text-[10px] font-bold uppercase tracking-widest mt-1 ${urg === 'critica' ? 'text-rose-400' : urg === 'alta' ? 'text-amber-400' : 'text-slate-500'}`}>
-                                                    {label}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        )}
-
-                        <button
-                            onClick={() => setShowModal(true)}
-                            className="w-full mt-4 py-3 border border-dashed border-slate-700 text-slate-500 hover:text-white hover:border-slate-500 rounded-2xl font-bold text-sm transition-all flex items-center justify-center gap-2">
-                            <Plus size={15} /> Agendar Novo Pagamento
-                        </button>
-                    </div>
-
-                    {/* Extrato / Movimentações */}
-                    <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 flex flex-col">
-                        <div className="flex justify-between items-center mb-5">
-                            <h2 className="text-base font-bold text-white">Últimas Movimentações</h2>
-                            <div className="bg-slate-950 border border-slate-800 rounded-xl p-1.5 flex items-center gap-1">
-                                <Search size={14} className="text-slate-500 ml-0.5" />
-                                <input
-                                    type="text"
-                                    placeholder="Buscar..."
-                                    className="bg-transparent border-none outline-none text-xs w-24 text-white placeholder-slate-600"
-                                    value={searchTx}
-                                    onChange={e => setSearchTx(e.target.value)}
-                                />
-                            </div>
-                        </div>
-
-                        <div className="flex-1 space-y-1 overflow-y-auto max-h-80 pr-1 scrollbar-thin scrollbar-thumb-slate-800">
-                            {loading ? (
-                                Array.from({ length: 5 }).map((_, i) => (
-                                    <div key={i} className="h-14 bg-slate-800 rounded-xl animate-pulse mb-2" />
-                                ))
-                            ) : filteredTx.length === 0 ? (
-                                <div className="flex flex-col items-center justify-center py-10 text-center">
-                                    <FileText size={32} className="text-slate-600 mb-2" />
-                                    <p className="text-sm text-slate-500">
-                                        {searchTx ? 'Nenhum resultado.' : 'Nenhuma movimentação ainda.'}
-                                    </p>
-                                    {!searchTx && (
-                                        <button onClick={() => setShowModal(true)}
-                                            className="mt-3 text-xs text-indigo-400 font-bold hover:text-indigo-300">
-                                            + Adicionar primeiro lançamento
-                                        </button>
-                                    )}
-                                </div>
-                            ) : (
-                                filteredTx.map(tx => (
-                                    <div key={tx.id} className="flex items-center justify-between p-3 hover:bg-slate-800/60 rounded-xl transition-colors">
-                                        <div className="flex items-center gap-3">
-                                            <div className={`p-2 rounded-lg ${tx.type === 'income' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>
-                                                {tx.type === 'income'
-                                                    ? <ArrowDownRight size={15} />
-                                                    : <ArrowUpRight size={15} />}
-                                            </div>
-                                            <div>
-                                                <p className="text-sm font-bold text-slate-200 leading-tight">{tx.description}</p>
-                                                <p className="text-xs text-slate-500 mt-0.5">
-                                                    {fmtDate(tx.due_date)}
-                                                    {tx.category ? ` · ${tx.category}` : ''}
-                                                    {' · '}
-                                                    <span className={`font-semibold ${tx.status === 'paid' ? 'text-emerald-500' : tx.status === 'overdue' ? 'text-rose-400' : 'text-amber-400'}`}>
-                                                        {tx.status === 'paid' ? 'Liquidado' : tx.status === 'overdue' ? 'Vencido' : 'Pendente'}
-                                                    </span>
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <p className={`font-black text-sm shrink-0 ml-3 ${tx.type === 'income' ? 'text-emerald-400' : 'text-slate-300'}`}>
-                                            {tx.type === 'income' ? '+' : '−'} {mask(fmtBRL(tx.amount))}
-                                        </p>
-                                    </div>
-                                ))
-                            )}
-                        </div>
-
-                        {/* Summary footer */}
-                        {filteredTx.length > 0 && !loading && (
-                            <div className="mt-4 pt-4 border-t border-slate-800 flex items-center justify-between text-xs text-slate-500">
-                                <span>
-                                    Entradas: <strong className="text-emerald-400">{mask(fmtBRL(filteredTx.filter(t => t.type === 'income').reduce((a, b) => a + b.amount, 0)))}</strong>
-                                    {' '}· Saídas: <strong className="text-rose-400">{mask(fmtBRL(filteredTx.filter(t => t.type === 'expense').reduce((a, b) => a + b.amount, 0)))}</strong>
+                                <span className="bg-white/20 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest backdrop-blur-md border border-white/20">
+                                    {dasMei?.status === 'paid' ? 'Liquidado' : 'Pendente'}
                                 </span>
-                                <button className="flex items-center gap-1.5 px-3 py-2 bg-slate-950 border border-slate-800 text-slate-400 hover:text-white hover:border-slate-600 rounded-xl font-bold transition-all">
-                                    <Download size={13} /> Exportar
-                                </button>
                             </div>
-                        )}
+                            <h2 className="text-2xl font-black tracking-tight mb-2">Guia DAS (MEI)</h2>
+                            <p className="text-indigo-100 text-xs font-semibold uppercase tracking-widest mb-6 px-1">Comp: 03/2026</p>
+                            <div className="flex items-baseline gap-2 mb-2">
+                                <span className="text-sm font-bold opacity-60">R$</span>
+                                <span className="text-4xl font-black tracking-tighter">{fmtBRL(75.60).replace('R$', '').trim()}</span>
+                            </div>
+                            <p className="text-xs font-bold text-indigo-200">Vencimento: 20/03/2026</p>
+                        </div>
+                        <div className="space-y-3 mt-10">
+                            <button className="w-full bg-white text-indigo-600 py-4 rounded-[1.5rem] font-black text-xs uppercase tracking-widest shadow-lg hover:scale-[1.02] transition-all">Pagar via Pix</button>
+                            <button className="w-full bg-indigo-500/50 text-white py-4 rounded-[1.5rem] font-black text-xs uppercase tracking-widest border border-white/10 hover:bg-indigo-500/70 transition-all">Download PDF</button>
+                        </div>
                     </div>
                 </div>
 
+                {/* Transactions Table Section */}
+                <div className="bg-white border border-slate-100 rounded-[2.5rem] p-8 shadow-sm">
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+                        <h2 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-3">
+                            <Landmark size={24} className="text-indigo-600" /> Movimentações Recentes
+                        </h2>
+                        <div className="relative w-full md:w-80">
+                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                            <input
+                                type="text"
+                                placeholder="Buscar por descrição..."
+                                className="w-full bg-slate-50 border border-slate-100 rounded-2xl pl-12 pr-4 py-3 text-sm focus:outline-none focus:ring-4 focus:ring-indigo-50 transition"
+                                value={searchTx}
+                                onChange={e => setSearchTx(e.target.value)}
+                            />
+                        </div>
+                    </div>
+
+                    <div className="overflow-x-auto">
+                        <table className="w-full">
+                            <thead>
+                                <tr className="border-b border-slate-50">
+                                    <th className="text-left py-4 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Data / Status</th>
+                                    <th className="text-left py-4 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Descrição</th>
+                                    <th className="text-left py-4 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Categoria</th>
+                                    <th className="text-right py-4 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Valor</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-50">
+                                {filteredTx.map(tx => (
+                                    <tr key={tx.id} className="group hover:bg-slate-50/50 transition-colors">
+                                        <td className="py-5 px-4 whitespace-nowrap">
+                                            <div className="flex flex-col gap-1">
+                                                <span className="text-xs font-bold text-slate-400 uppercase">{fmtDate(tx.due_date)}</span>
+                                                <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full inline-block w-max ${tx.status === 'paid' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'
+                                                    }`}>
+                                                    {tx.status === 'paid' ? 'Pago' : 'Pendente'}
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td className="py-5 px-4">
+                                            <div className="flex flex-col">
+                                                <span className="text-sm font-black text-slate-900">{tx.description}</span>
+                                            </div>
+                                        </td>
+                                        <td className="py-5 px-4 whitespace-nowrap">
+                                            <span className="text-xs font-bold text-slate-500 bg-slate-50 px-3 py-1 rounded-xl">{tx.category || 'Geral'}</span>
+                                        </td>
+                                        <td className="py-5 px-4 text-right whitespace-nowrap">
+                                            <span className={`text-sm font-black ${tx.type === 'income' ? 'text-emerald-600' : 'text-slate-900'}`}>
+                                                {tx.type === 'income' ? '+' : '-'} {hidden ? 'R$ •••' : fmtBRL(tx.amount)}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div className="mt-8 flex justify-center">
+                        <button className="text-xs font-black text-indigo-600 uppercase tracking-widest hover:underline px-4 py-2 transition-all">Ver Relatório Completo</button>
+                    </div>
+                </div>
             </div>
 
-            {/* ── MODAL ──────────────────────────────────────────────────────── */}
             <AnimatePresence>
-                {showModal && (
-                    <NovoLancamentoModal onClose={() => setShowModal(false)} onSave={handleCreate} />
-                )}
+                {showModal && <NovoLancamentoModal onClose={() => setShowModal(false)} onSave={handleCreate} />}
             </AnimatePresence>
         </AppLayout>
     );

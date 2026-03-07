@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
+  Sparkles,
   LayoutDashboard,
   MessageSquare,
   DollarSign,
@@ -100,8 +101,11 @@ function XpBar({
 // ─── MENU CONFIG ──────────────────────────────────
 const MAIN_MENU = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+  { name: 'ERP Cockpit', href: '/dashboard/cockpit', icon: LayoutDashboard },
   { name: 'Chat IA', href: '/chat-ia', icon: MessageSquare },
   { name: 'Financeiro', href: '/finance', icon: DollarSign },
+  { name: 'Plano de Ação', href: '/dashboard/plano-acao', icon: Zap },
+  { name: 'Recrutamento IA', href: '/dashboard/recrutamento', icon: Sparkles },
   { name: 'Vagas (ATS)', href: '/ats', icon: Briefcase },
   { name: 'Meu Ponto', href: '/dashboard/ponto', icon: Timer },
   { name: 'Gestão Estratégica de RH', href: '/rh', icon: ShieldCheck },
@@ -638,20 +642,118 @@ export default function AppLayout({
   }, []);
 
   return (
-    <div className="flex min-h-screen bg-[#080810] text-white overflow-x-hidden">
-      {/* Ambient neon glow - fixed position, never shifts layout */}
-      <div className="fixed top-0 right-0 w-[600px] h-[500px] bg-[#8b5cf6]/8 rounded-full blur-[180px] pointer-events-none z-0" aria-hidden />
-      <div className="fixed bottom-0 left-[240px] w-[400px] h-[300px] bg-[#6d28d9]/6 rounded-full blur-[150px] pointer-events-none z-0" aria-hidden />
+    <div className="flex min-h-screen bg-slate-50 font-sans text-slate-900 selection:bg-indigo-100 selection:text-indigo-900 overflow-x-hidden">
+      {/* Ambient background glows */}
+      <div className="fixed top-0 right-0 w-[600px] h-[500px] bg-indigo-100/40 rounded-full blur-[180px] pointer-events-none z-0" aria-hidden />
+      <div className="fixed bottom-0 left-[240px] w-[400px] h-[300px] bg-purple-100/30 rounded-full blur-[150px] pointer-events-none z-0" aria-hidden />
 
-      <Sidebar
-        user={user}
-        gamification={gamification}
-        isOpen={isSidebarOpen}
-        onClose={() => setIsSidebarOpen(false)}
-      />
+      {/* Sidebar Overlay */}
+      <AnimatePresence>
+        {isSidebarOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setIsSidebarOpen(false)}
+            className="lg:hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[80]"
+          />
+        )}
+      </AnimatePresence>
 
-      {/* Main content — fixed offset, never shifts */}
-      <div className="flex flex-col min-h-screen w-full lg:pl-[240px] relative z-10">
+      {/* Sidebar */}
+      <aside className={`
+        fixed inset-y-0 left-0 w-[260px] bg-white border-r border-slate-100 z-[90] flex flex-col transition-transform duration-300
+        ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+      `}>
+        {/* Logo */}
+        <div className="flex items-center gap-3 p-8">
+          <div className="w-10 h-10 bg-indigo-600 text-white rounded-[0.8rem] flex items-center justify-center shadow-lg shadow-indigo-100">
+            <Sparkles size={22} />
+          </div>
+          <span className="font-black text-2xl tracking-tighter text-slate-900">Innovation<span className="text-indigo-600">.ia</span></span>
+        </div>
+
+        {/* User Card */}
+        <div className="px-6 mb-6">
+          <div className="bg-slate-50 border border-slate-50 rounded-2xl p-4 flex flex-col gap-3 shadow-inner">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 bg-white rounded-xl flex items-center justify-center font-black text-indigo-600 shadow-sm shrink-0">
+                {user ? getInitials(user.name) : 'U'}
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-black text-slate-900 truncate">{user?.name || 'Carregando...'}</p>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest truncate">Nv. {gamification.level} • VIP</p>
+              </div>
+            </div>
+            <XpBar xp={gamification.xp_in_level} maxXp={gamification.next_level_xp} level={gamification.level} />
+          </div>
+        </div>
+
+        {/* Navigation */}
+        <nav className="flex-1 px-4 space-y-1 overflow-y-auto pt-2">
+          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em] mb-4 px-2">Navegação Principal</p>
+          {MAIN_MENU.map((item) => {
+            const active = pathname === item.href || pathname?.startsWith(item.href + '/');
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => setIsSidebarOpen(false)}
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${active
+                  ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-100 hover:scale-[1.02]'
+                  : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
+                  }`}
+              >
+                <Icon
+                  className={`w-[18px] h-[18px] shrink-0 transition-colors ${active ? 'text-white' : 'text-slate-300 group-hover:text-slate-500'}`}
+                />
+                <span className="text-sm font-black">{item.name}</span>
+              </Link>
+            );
+          })}
+
+          {user?.role === 'admin' && (
+            <>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em] mb-4 px-2 mt-8">Administração</p>
+              {ADVANCED_MENU.map((item) => {
+                const active = pathname === item.href;
+                const Icon = item.icon;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setIsSidebarOpen(false)}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${active
+                      ? 'bg-slate-900 text-white shadow-xl'
+                      : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
+                      }`}
+                  >
+                    <Icon className={`w-[18px] h-[18px] shrink-0 ${active ? 'text-white' : 'text-slate-300'}`} />
+                    <span className="text-sm font-black">{item.name}</span>
+                  </Link>
+                );
+              })}
+            </>
+          )}
+        </nav>
+
+        {/* Footer */}
+        <div className="p-6 border-t border-slate-50 mt-auto">
+          <button
+            onClick={() => {
+              localStorage.removeItem('token');
+              window.location.href = '/login';
+            }}
+            className="w-full flex items-center justify-center gap-2 bg-rose-50 text-rose-600 py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all hover:bg-rose-100"
+          >
+            <LogOut size={14} /> Sair do Sistema
+          </button>
+        </div>
+      </aside>
+
+      {/* Main Content Area */}
+      <div className="flex flex-col min-h-screen w-full lg:pl-[260px] relative z-10 transition-all duration-300">
         <TopBar
           user={user}
           title={title}
@@ -662,21 +764,17 @@ export default function AppLayout({
           user.subscription_status !== 'active' &&
           user.trial_expires_at &&
           new Date(user.trial_expires_at) > new Date() && (
-            <div className="bg-gradient-to-r from-orange-500/20 to-pink-500/20 border-b border-orange-500/30 px-4 py-2 flex items-center justify-between shrink-0">
-              <p className="text-[11px] text-orange-200">
-                <strong>Teste Grátis:</strong> Seu acesso expira em{' '}
-                {Math.ceil(
-                  (new Date(user.trial_expires_at).getTime() -
-                    new Date().getTime()) /
-                  (1000 * 60 * 60 * 24)
-                )}{' '}
-                dias. Após isso, os recursos estarão bloqueados.
+            <div className="bg-gradient-to-r from-amber-500 to-orange-600 px-6 py-2.5 flex items-center justify-between shrink-0 shadow-lg relative z-20">
+              <p className="text-xs font-bold text-white flex items-center gap-2">
+                <Info size={14} />
+                <strong>Período de Demonstração:</strong> Seu acesso expira em{' '}
+                {Math.ceil((new Date(user.trial_expires_at).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} dias.
               </p>
               <Link
                 href="/pricing"
-                className="text-[10px] font-bold uppercase tracking-wider bg-orange-500 hover:bg-orange-600 text-white px-3 py-1.5 rounded transition"
+                className="text-[10px] font-black uppercase tracking-widest bg-white text-orange-600 px-4 py-1.5 rounded-lg transition hover:scale-105 shadow-md"
               >
-                Assinar Premium
+                Assinar Enterprise
               </Link>
             </div>
           )}

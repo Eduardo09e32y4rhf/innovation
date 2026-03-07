@@ -31,58 +31,59 @@ export default function GamificationDashboard({ user, missions, achievements }: 
 
     return (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
             {/* ── Progress Card (Level & XP) ─────────────────────────────────── */}
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="lg:col-span-1 relative overflow-hidden bg-white/[0.03] border border-white/10 rounded-3xl p-6 backdrop-blur-xl group hover:border-[#8b5cf6]/40 transition-all duration-500"
+                className="lg:col-span-1 relative overflow-hidden bg-white border border-slate-100 rounded-[2.5rem] p-8 shadow-sm group hover:shadow-xl hover:shadow-indigo-100/40 transition-all duration-500"
             >
                 {/* Visual Glows */}
-                <div className="absolute -top-24 -right-24 w-48 h-48 bg-[#8b5cf6]/20 rounded-full blur-[80px] group-hover:bg-[#8b5cf6]/30 transition-all duration-700" />
+                <div className="absolute -top-24 -right-24 w-48 h-48 bg-indigo-50 rounded-full blur-[80px] group-hover:bg-indigo-100/50 transition-all duration-700" />
 
-                <div className="relative z-10 space-y-6">
+                <div className="relative z-10 space-y-8">
                     <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#8b5cf6] to-[#7c3aed] flex items-center justify-center shadow-lg shadow-[#8b5cf6]/40">
-                                <Trophy className="w-6 h-6 text-white" />
+                        <div className="flex items-center gap-4">
+                            <div className="w-14 h-14 rounded-2xl bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-100 group-hover:scale-110 transition-transform">
+                                <Trophy className="w-7 h-7 text-white" />
                             </div>
                             <div>
-                                <h3 className="text-sm font-bold text-white/60 uppercase tracking-widest">Nível Atual</h3>
-                                <p className="text-3xl font-black text-white">Lvl {user.level}</p>
+                                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Rank Atual</h3>
+                                <p className="text-3xl font-black text-slate-900 tracking-tight italic">Level {user.level}</p>
                             </div>
                         </div>
                         <div className="text-right">
-                            <div className="flex items-center gap-1.5 justify-end text-orange-400 font-black">
-                                <Flame className="w-4 h-4 fill-orange-400" />
-                                <span>7 Dias</span>
+                            <div className="flex items-center gap-1.5 justify-end text-orange-500 font-black">
+                                <Flame className="w-4 h-4 fill-orange-500" />
+                                <span className="text-sm">7 Dias</span>
                             </div>
-                            <p className="text-[10px] text-white/30 uppercase font-bold">Streak Ativa</p>
+                            <p className="text-[9px] text-slate-300 uppercase font-black tracking-widest">Streak Ativa</p>
                         </div>
                     </div>
 
                     <div className="space-y-3">
-                        <div className="flex justify-between items-end">
-                            <span className="text-xs font-bold text-white/80">Progresso do Nível</span>
-                            <span className="text-[10px] text-[#a78bfa] font-black">{user.xp_in_level} / {user.next_level_xp} XP</span>
+                        <div className="flex justify-between items-end px-1">
+                            <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest">Evolução Cognitiva</span>
+                            <span className="text-[10px] text-indigo-600 font-black">{user.xp_in_level} / {user.next_level_xp} XP</span>
                         </div>
-                        <div className="h-3 bg-white/5 rounded-full overflow-hidden p-0.5 border border-white/5">
+                        <div className="h-4 bg-slate-50 rounded-full overflow-hidden p-1 border border-slate-100 shadow-inner">
                             <motion.div
                                 initial={{ width: 0 }}
                                 animate={{ width: `${xpPercentage}%` }}
                                 transition={{ duration: 1.5, ease: "circOut" }}
-                                className="h-full rounded-full bg-gradient-to-r from-[#8b5cf6] via-[#a78bfa] to-[#c4b5fd] shadow-[0_0_15px_rgba(139,92,246,0.5)]"
+                                className="h-full rounded-full bg-gradient-to-r from-indigo-600 via-indigo-500 to-blue-400 shadow-sm"
                             />
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3">
-                        <div className="bg-white/5 border border-white/5 rounded-2xl p-3 text-center">
-                            <p className="text-[10px] text-white/40 uppercase font-bold mb-1">Total XP</p>
-                            <p className="text-lg font-black text-white">{user.points.toLocaleString()}</p>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="bg-slate-50/50 border border-slate-100 rounded-[1.8rem] p-4 text-center group-hover:bg-white transition-colors">
+                            <p className="text-[9px] text-slate-400 uppercase font-black tracking-widest mb-1">Total acumulado</p>
+                            <p className="text-xl font-black text-slate-900">{user.points.toLocaleString()}</p>
                         </div>
-                        <div className="bg-white/5 border border-white/5 rounded-2xl p-3 text-center">
-                            <p className="text-[10px] text-white/40 uppercase font-bold mb-1">Rank Global</p>
-                            <p className="text-lg font-black text-[#a78bfa]">#142</p>
+                        <div className="bg-slate-50/50 border border-slate-100 rounded-[1.8rem] p-4 text-center group-hover:bg-white transition-colors">
+                            <p className="text-[9px] text-slate-400 uppercase font-black tracking-widest mb-1">Posição Global</p>
+                            <p className="text-xl font-black text-indigo-600">#142</p>
                         </div>
                     </div>
                 </div>
@@ -93,23 +94,23 @@ export default function GamificationDashboard({ user, missions, achievements }: 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
-                className="lg:col-span-1 relative overflow-hidden bg-white/[0.03] border border-white/10 rounded-3xl p-6 backdrop-blur-xl group hover:border-[#ec4899]/40 transition-all duration-500"
+                className="lg:col-span-1 relative overflow-hidden bg-white border border-slate-100 rounded-[2.5rem] p-8 shadow-sm group hover:shadow-xl hover:shadow-pink-100/40 transition-all duration-500"
             >
-                <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-[#ec4899]/10 rounded-full blur-[80px] group-hover:bg-[#ec4899]/20 transition-all duration-700" />
+                <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-pink-50 rounded-full blur-[80px] group-hover:bg-pink-100/50 transition-all duration-700" />
 
                 <div className="relative z-10 h-full flex flex-col">
-                    <div className="flex items-center justify-between mb-6">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-pink-500/20 flex items-center justify-center">
-                                <Rocket className="w-5 h-5 text-pink-400" />
+                    <div className="flex items-center justify-between mb-8">
+                        <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-2xl bg-rose-50 flex items-center justify-center text-rose-500 shadow-inner group-hover:scale-110 transition-transform">
+                                <Rocket size={24} />
                             </div>
-                            <h3 className="text-sm font-bold text-white uppercase tracking-widest">Missões Diárias</h3>
+                            <h3 className="text-xs font-black text-slate-900 uppercase tracking-[0.2em]">Missões Diárias</h3>
                         </div>
-                        <div className="relative w-12 h-12 flex items-center justify-center">
+                        <div className="relative w-14 h-14 flex items-center justify-center">
                             <svg className="w-full h-full -rotate-90" viewBox="0 0 40 40">
-                                <circle cx="20" cy="20" r="18" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="3" />
+                                <circle cx="20" cy="20" r="18" fill="none" stroke="#f1f5f9" strokeWidth="4" />
                                 <motion.circle
-                                    cx="20" cy="20" r="18" fill="none" stroke="#ec4899" strokeWidth="3"
+                                    cx="20" cy="20" r="18" fill="none" stroke="#e11d48" strokeWidth="4"
                                     strokeDasharray="113.1"
                                     initial={{ strokeDashoffset: 113.1 }}
                                     animate={{ strokeDashoffset: 113.1 * (1 - missionProgress / 100) }}
@@ -117,40 +118,40 @@ export default function GamificationDashboard({ user, missions, achievements }: 
                                     strokeLinecap="round"
                                 />
                             </svg>
-                            <span className="absolute text-[10px] font-black text-white">{Math.round(missionProgress)}%</span>
+                            <span className="absolute text-[10px] font-black text-slate-900">{Math.round(missionProgress)}%</span>
                         </div>
                     </div>
 
-                    <div className="space-y-2.5 flex-1">
-                        {missions.map((m, i) => (
+                    <div className="space-y-3 flex-1">
+                        {missions.slice(0, 3).map((m, i) => (
                             <motion.div
                                 key={m.id}
                                 whileHover={{ x: 5 }}
-                                className={`group/item flex items-center gap-3 p-2.5 rounded-2xl border transition-all ${m.done
-                                        ? 'bg-green-500/5 border-green-500/20 opacity-60'
-                                        : 'bg-white/5 border-white/5 hover:border-white/20'
+                                className={`flex items-center gap-4 p-4 rounded-2xl border transition-all ${m.done
+                                    ? 'bg-emerald-50 border-emerald-100 opacity-60'
+                                    : 'bg-slate-50 border-transparent hover:border-slate-200 hover:bg-white'
                                     }`}
                             >
-                                <div className={`w-6 h-6 rounded-lg flex items-center justify-center transition-colors ${m.done ? 'bg-green-500/20 text-green-400' : 'bg-white/5 text-white/20'
+                                <div className={`w-8 h-8 rounded-xl flex items-center justify-center transition-colors ${m.done ? 'bg-emerald-500 text-white' : 'bg-white text-slate-300'
                                     }`}>
-                                    <CheckCircle2 className="w-3.5 h-3.5" />
+                                    <CheckCircle2 className="w-5 h-5" />
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <p className={`text-xs font-bold truncate ${m.done ? 'text-green-400/80 line-through' : 'text-white/80'}`}>
+                                    <p className={`text-[11px] font-black uppercase tracking-tight truncate ${m.done ? 'text-emerald-700 line-through' : 'text-slate-900'}`}>
                                         {m.title}
                                     </p>
-                                    <p className="text-[9px] text-white/30 truncate">{m.description || 'Complete esta tarefa para ganhar XP'}</p>
+                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest truncate">{m.description || 'Tarefa cognitiva'}</p>
                                 </div>
-                                <div className="text-[10px] font-black text-pink-400 shrink-0">
-                                    +{m.xp_reward} XP
+                                <div className="text-[10px] font-black text-rose-600 shrink-0">
+                                    +{m.xp_reward}
                                 </div>
                             </motion.div>
                         ))}
                     </div>
 
-                    <button className="mt-4 w-full py-2.5 rounded-xl bg-white/5 border border-white/10 text-[11px] font-bold text-white/60 hover:bg-white/10 hover:text-white transition-all flex items-center justify-center gap-2 group/btn">
-                        Ver histórico de missões
-                        <ChevronRight className="w-3 h-3 group-hover/btn:translate-x-1 transition-transform" />
+                    <button className="mt-6 w-full py-4 rounded-2xl bg-white border border-slate-100 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-indigo-600 hover:border-indigo-100 hover:shadow-lg transition-all flex items-center justify-center gap-2 group/btn">
+                        Histórico de Missões
+                        <ChevronRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
                     </button>
                 </div>
             </motion.div>
@@ -160,62 +161,62 @@ export default function GamificationDashboard({ user, missions, achievements }: 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
-                className="lg:col-span-1 relative overflow-hidden bg-white/[0.03] border border-white/10 rounded-3xl p-6 backdrop-blur-xl group hover:border-[#3b82f6]/40 transition-all duration-500"
+                className="lg:col-span-1 relative overflow-hidden bg-white border border-slate-100 rounded-[2.5rem] p-8 shadow-sm group hover:shadow-xl hover:shadow-blue-100/40 transition-all duration-500"
             >
-                <div className="absolute -top-12 -left-12 w-32 h-32 bg-[#3b82f6]/10 rounded-full blur-[60px] group-hover:bg-[#3b82f6]/20 transition-all duration-700" />
+                <div className="absolute -top-12 -left-12 w-32 h-32 bg-blue-50 rounded-full blur-[60px] group-hover:bg-blue-100/50 transition-all duration-700" />
 
                 <div className="relative z-10">
-                    <div className="flex items-center justify-between mb-6">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center">
-                                <Target className="w-5 h-5 text-blue-400" />
+                    <div className="flex items-center justify-between mb-8">
+                        <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600 shadow-inner group-hover:scale-110 transition-transform">
+                                <Target size={24} />
                             </div>
-                            <h3 className="text-sm font-bold text-white uppercase tracking-widest">Conquistas</h3>
+                            <h3 className="text-xs font-black text-slate-900 uppercase tracking-[0.2em]">Conquistas</h3>
                         </div>
-                        <span className="text-[10px] font-black text-white/30 uppercase tracking-tighter">
-                            {achievements.filter(a => a.earned).length} / {achievements.length} desbloqueadas
+                        <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">
+                            {achievements.filter(a => a.earned).length} / {achievements.length}
                         </span>
                     </div>
 
-                    <div className="grid grid-cols-4 gap-4">
-                        <AnimatePresence>
-                            {achievements.map((a, i) => (
-                                <motion.div
-                                    key={i}
-                                    whileHover={{ scale: 1.1, rotate: 5 }}
-                                    className="relative flex flex-col items-center gap-2"
-                                >
-                                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl transition-all duration-500 ${a.earned
-                                            ? 'bg-gradient-to-br from-white/10 to-white/5 border border-white/20 shadow-lg shadow-black/20 grayscale-0'
-                                            : 'bg-white/[0.02] border border-white/5 grayscale opacity-20'
-                                        }`}>
-                                        {a.icon}
-                                        {a.earned && (
-                                            <motion.div
-                                                initial={{ scale: 0 }}
-                                                animate={{ scale: 1 }}
-                                                className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-blue-500 flex items-center justify-center shadow-lg"
-                                            >
-                                                <Star className="w-2.5 h-2.5 text-white fill-white" />
-                                            </motion.div>
-                                        )}
-                                    </div>
-                                    <span className={`text-[9px] font-bold text-center leading-tight ${a.earned ? 'text-white/60' : 'text-white/10'}`}>
-                                        {a.label}
-                                    </span>
-                                </motion.div>
-                            ))}
-                        </AnimatePresence>
+                    <div className="grid grid-cols-4 gap-4 mb-8">
+                        {achievements.slice(0, 8).map((a, i) => (
+                            <motion.div
+                                key={i}
+                                whileHover={{ scale: 1.1, rotate: 5 }}
+                                className="relative flex flex-col items-center gap-2"
+                            >
+                                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl transition-all duration-500 ${a.earned
+                                    ? 'bg-white border-2 border-indigo-100 shadow-lg shadow-indigo-100/30'
+                                    : 'bg-slate-50 border border-slate-100 grayscale opacity-20'
+                                    }`}>
+                                    {a.icon}
+                                    {a.earned && (
+                                        <motion.div
+                                            initial={{ scale: 0 }}
+                                            animate={{ scale: 1 }}
+                                            className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-indigo-600 flex items-center justify-center shadow-lg border-2 border-white"
+                                        >
+                                            <Star size={10} className="text-white fill-white" />
+                                        </motion.div>
+                                    )}
+                                </div>
+                                <span className={`text-[8px] font-black uppercase text-center leading-tight tracking-widest ${a.earned ? 'text-slate-900' : 'text-slate-200'}`}>
+                                    {a.label}
+                                </span>
+                            </motion.div>
+                        ))}
                     </div>
 
-                    <div className="mt-8 p-4 rounded-2xl bg-gradient-to-br from-[#3b82f6]/20 to-transparent border border-blue-500/20">
-                        <div className="flex items-start gap-3">
-                            <Zap className="w-5 h-5 text-blue-400 shrink-0" />
-                            <div>
-                                <p className="text-xs font-bold text-white">Próximo Desafio</p>
-                                <p className="text-[10px] text-white/50 mt-0.5">Complete 5 chats com IA hoje para ganhar a medalha "Comunicador de Elite".</p>
-                                <div className="mt-2 h-1 bg-white/10 rounded-full overflow-hidden">
-                                    <div className="h-full bg-blue-500 w-[60%]" />
+                    <div className="p-6 rounded-[2rem] bg-indigo-50 border border-indigo-100 relative group">
+                        <div className="flex items-start gap-4">
+                            <div className="p-3 bg-white rounded-xl shadow-sm">
+                                <Zap className="w-6 h-6 text-indigo-600" />
+                            </div>
+                            <div className="flex-1">
+                                <p className="text-[10px] font-black text-indigo-900 uppercase tracking-widest">Próximo Desafio</p>
+                                <p className="text-[10px] text-indigo-700/70 font-bold mt-1 leading-relaxed lowercase italic tracking-tight">Complete 5 chats com IA hoje para desbloquear "Comunicador de Elite".</p>
+                                <div className="mt-4 h-1.5 bg-white/50 rounded-full overflow-hidden">
+                                    <div className="h-full bg-indigo-600 w-[60%]" />
                                 </div>
                             </div>
                         </div>
