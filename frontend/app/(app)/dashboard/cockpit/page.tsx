@@ -454,7 +454,7 @@ const TabAssistente = () => (
                 <Bot size={48} />
             </div>
         </div>
-        <h2 className="text-3xl font-black text-slate-900 tracking-tight">Ana Inteligência Artificial</h2>
+        <h2 className="text-3xl font-black text-slate-900 tracking-tight">INNOVATIONT Inteligência Artificial</h2>
         <p className="max-w-md text-center mt-3 text-slate-500 font-medium">Sua copiloto para gestão corporativa. Conectada ao Gemini Pro para suporte em tempo real.</p>
         <button className="mt-10 bg-slate-900 text-white px-8 py-4 rounded-2xl font-black shadow-2xl flex items-center gap-3 hover:scale-105 transition-all">
             <MessageSquare size={20} /> Iniciar Conversa
