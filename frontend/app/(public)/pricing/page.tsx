@@ -92,7 +92,9 @@ function PricingContent() {
         setLoading(planId);
         try {
             const res = await PaymentService.createCheckout(planId);
-            if (res.init_point) {
+            if (res.invoiceUrl) {
+                window.location.href = res.invoiceUrl;
+            } else if (res.init_point) {
                 window.location.href = res.init_point;
             } else if (res.checkout_url) {
                 window.location.href = res.checkout_url;
