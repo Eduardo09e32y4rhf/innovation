@@ -5,6 +5,7 @@ Complementa o rh.py existente com os novos módulos.
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime
@@ -309,13 +310,33 @@ def get_employees_list(
     # Em um cenário real, filtraríamos pela empresa do current_user
     users = db.query(User).filter(User.role != "admin").all()
     
+    # ⚡ Bolt: Eagerly load all approved TimeBank hours grouped by user and type in a single query to eliminate O(N) queries loop
+    # Why: Previously executed N separate database queries for each user's time bank balance inside a loop.
+    # Impact: Reduces N+1 queries to O(1), significantly improving the employees list response time.
+    balances_query = (
+        db.query(
+            TimeBank.user_id,
+            TimeBank.type,
+            func.sum(TimeBank.hours).label("total_hours"),
+        )
+        .filter(TimeBank.status == "approved")
+        .group_by(TimeBank.user_id, TimeBank.type)
+        .all()
+    )
+
+    balances_map = {}
+    for user_id, type_, hours in balances_query:
+        if user_id not in balances_map:
+            balances_map[user_id] = {"credit": 0.0, "debit": 0.0}
+        balances_map[user_id][type_] = float(hours or 0)
+
     # Lógica de IA Simplificada: Análise de Risco
     results = []
     for u in users:
-        # Pega saldo do banco de horas
-        entries = db.query(TimeBank).filter(TimeBank.user_id == u.id, TimeBank.status == "approved").all()
-        credits = sum(e.hours for e in entries if e.type == "credit")
-        debits = sum(e.hours for e in entries if e.type == "debit")
+        # Pega saldo do banco de horas do mapa (O(1))
+        user_balance = balances_map.get(u.id, {"credit": 0.0, "debit": 0.0})
+        credits = user_balance.get("credit", 0.0)
+        debits = user_balance.get("debit", 0.0)
         balance = credits - debits
         
         # Define risco baseado no saldo ( burn-rate )

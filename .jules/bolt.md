@@ -6,3 +6,7 @@
 ## 2024-05-19 - [Database vs In-Memory Aggregation for Transactions]
 **Learning:** Fetching all transaction records into memory just to calculate sum totals (like cash flow summary, total taxes, analytics) causes severe memory footprint and latency overheads as user data grows. This codebase pattern frequently caused performance regressions in dashboard endpoints.
 **Action:** When calculating sums or aggregates, always use `func.sum()` combined with `group_by()` in SQLAlchemy to offload the computation to the database. Avoid fetching large lists of objects (using `.all()`) if only aggregate values are needed.
+
+## 2025-03-05 - [TimeBank Balance Calculation using SQL Aggregations]
+**Learning:** Found an N+1 query vulnerability when iterating through `users` in `get_employees_list` within `backend/src/api/v1/endpoints/rh_advanced.py`. Each iteration queried the database for the user's TimeBank entries (`db.query(TimeBank).filter(...).all()`), resulting in excessive database calls and memory usage due to pulling full ORM objects.
+**Action:** Used `func.sum()` combined with `.group_by()` in SQLAlchemy to compute the credit/debit totals for all users in a single aggregated query, replacing the N+1 loop with an O(1) query and a quick hash map lookup.
