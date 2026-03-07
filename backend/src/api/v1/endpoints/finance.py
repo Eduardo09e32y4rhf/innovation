@@ -79,7 +79,9 @@ async def get_transactions(
         )
     except Exception as e:
         logger.error(f"[finance/transactions GET] {e}")
-        raise HTTPException(status_code=500, detail=f"Erro ao buscar transações: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Erro ao buscar transações: {str(e)}"
+        )
 
 
 # ── POST /finance/transactions ─────────────────────────────────────────────────
@@ -101,8 +103,10 @@ async def create_transaction(
             company_id=current_user.id,
             attachment_url=data.attachment_url,
             ai_metadata=data.ai_metadata,
-            status=data.status if data.status else (
-                "paid" if data.type == "income" else "pending"
+            status=(
+                data.status
+                if data.status
+                else ("paid" if data.type == "income" else "pending")
             ),
         )
         db.add(transaction)
@@ -129,7 +133,9 @@ async def create_transaction(
     except Exception as e:
         db.rollback()
         logger.error(f"[finance/transactions POST] {e}")
-        raise HTTPException(status_code=500, detail=f"Erro ao criar transação: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Erro ao criar transação: {str(e)}"
+        )
 
 
 # ── GET /finance/anomalies ─────────────────────────────────────────────────────

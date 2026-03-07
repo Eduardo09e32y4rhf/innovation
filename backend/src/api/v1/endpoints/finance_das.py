@@ -30,13 +30,13 @@ router = APIRouter(prefix="/finance/das", tags=["finance-das"])
 
 # ── Valores do MEI 2026 ───────────────────────────────────────────────────────
 # Baseado na Resolução CGSN nº 175/2023 e atualização 2026
-VALOR_INSS_MEI = Decimal("71.60")    # 5% do salário mínimo R$1.412 = R$70,60 + acréscimo
-VALOR_ICMS_MEI = Decimal("1.00")     # Comércio/Indústria
-VALOR_ISS_MEI = Decimal("5.00")      # Serviços
+VALOR_INSS_MEI = Decimal("71.60")  # 5% do salário mínimo R$1.412 = R$70,60 + acréscimo
+VALOR_ICMS_MEI = Decimal("1.00")  # Comércio/Indústria
+VALOR_ISS_MEI = Decimal("5.00")  # Serviços
 
 
 class DasMeiPagarRequest(BaseModel):
-    competencia: str   # 'YYYY-MM' ex: '2026-03'
+    competencia: str  # 'YYYY-MM' ex: '2026-03'
     codigo_barras: Optional[str] = None
 
 
@@ -60,11 +60,17 @@ def _get_vencimento(competencia: str) -> date:
     return date(ano_seguinte, mes_seguinte, 20)
 
 
-def _get_or_create_das(db: Session, company_id: int, competencia: str, cnpj: Optional[str] = None) -> DasMei:
+def _get_or_create_das(
+    db: Session, company_id: int, competencia: str, cnpj: Optional[str] = None
+) -> DasMei:
     """Busca ou cria o registro DAS para a competência."""
-    das = db.query(DasMei).filter(
-        and_(DasMei.company_id == company_id, DasMei.competencia == competencia)
-    ).first()
+    das = (
+        db.query(DasMei)
+        .filter(
+            and_(DasMei.company_id == company_id, DasMei.competencia == competencia)
+        )
+        .first()
+    )
 
     if not das:
         vencimento = _get_vencimento(competencia)
@@ -88,7 +94,9 @@ def _get_or_create_das(db: Session, company_id: int, competencia: str, cnpj: Opt
 
 def _build_response(das: DasMei, cnpj: Optional[str]) -> dict:
     """Monta a resposta com links para o portal do governo."""
-    cnpj_raw = (cnpj or das.cnpj or "").replace(".", "").replace("/", "").replace("-", "")
+    cnpj_raw = (
+        (cnpj or das.cnpj or "").replace(".", "").replace("/", "").replace("-", "")
+    )
 
     # Link direto para o PGMEI (Portal de Geração do DAS MEI — Receita Federal)
     link_pgmei = f"https://www8.receita.fazenda.gov.br/SimplesNacional/Aplicacoes/ATBHE/pgmei.app/Identificacao"
@@ -126,7 +134,9 @@ async def get_das_atual(
 
         # Buscar CNPJ da empresa do usuário
         cnpj = None
-        company = db.query(Company).filter(Company.owner_user_id == current_user.id).first()
+        company = (
+            db.query(Company).filter(Company.owner_user_id == current_user.id).first()
+        )
         if company:
             cnpj = company.cnpj
 
@@ -172,7 +182,9 @@ async def get_das_historico(
             .all()
         )
         cnpj = None
-        company = db.query(Company).filter(Company.owner_user_id == current_user.id).first()
+        company = (
+            db.query(Company).filter(Company.owner_user_id == current_user.id).first()
+        )
         if company:
             cnpj = company.cnpj
 
@@ -191,14 +203,25 @@ async def marcar_das_pago(
 ):
     """Marca o DAS de uma competência como pago e registra como transação."""
     try:
-        das = db.query(DasMei).filter(
-            and_(DasMei.company_id == current_user.id, DasMei.competencia == data.competencia)
-        ).first()
+        das = (
+            db.query(DasMei)
+            .filter(
+                and_(
+                    DasMei.company_id == current_user.id,
+                    DasMei.competencia == data.competencia,
+                )
+            )
+            .first()
+        )
 
         if not das:
             # Cria o das se não existir
             cnpj = None
-            company = db.query(Company).filter(Company.owner_user_id == current_user.id).first()
+            company = (
+                db.query(Company)
+                .filter(Company.owner_user_id == current_user.id)
+                .first()
+            )
             if company:
                 cnpj = company.cnpj
             das = _get_or_create_das(db, current_user.id, data.competencia, cnpj)
@@ -209,13 +232,17 @@ async def marcar_das_pago(
             das.codigo_barras = data.codigo_barras
 
         # Registra como transação financeira (despesa paga)
-        tx_existente = db.query(Transaction).filter(
-            and_(
-                Transaction.company_id == current_user.id,
-                Transaction.tax_type == "DAS",
-                Transaction.category == f"DAS MEI {das.competencia}",
+        tx_existente = (
+            db.query(Transaction)
+            .filter(
+                and_(
+                    Transaction.company_id == current_user.id,
+                    Transaction.tax_type == "DAS",
+                    Transaction.category == f"DAS MEI {das.competencia}",
+                )
             )
-        ).first()
+            .first()
+        )
 
         if not tx_existente:
             venc_dt = datetime.combine(das.vencimento, datetime.min.time())
@@ -236,9 +263,14 @@ async def marcar_das_pago(
         db.refresh(das)
 
         cnpj = das.cnpj
-        return {**_build_response(das, cnpj), "message": "DAS marcado como pago com sucesso!"}
+        return {
+            **_build_response(das, cnpj),
+            "message": "DAS marcado como pago com sucesso!",
+        }
 
     except Exception as e:
         db.rollback()
         logger.error(f"[das/marcar-pago] {e}")
-        raise HTTPException(status_code=500, detail=f"Erro ao marcar DAS como pago: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Erro ao marcar DAS como pago: {str(e)}"
+        )

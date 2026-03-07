@@ -297,6 +297,7 @@ def list_team_payslips(
         .all()
     )
 
+
 # ─── STRATEGIC HR (PAINEL DIRETOR) ───────────────────────────────────────────
 
 
@@ -308,30 +309,38 @@ def get_employees_list(
     """Lista todos os funcionários e calcula risco de turnover (mock-ia)"""
     # Em um cenário real, filtraríamos pela empresa do current_user
     users = db.query(User).filter(User.role != "admin").all()
-    
+
     # Lógica de IA Simplificada: Análise de Risco
     results = []
     for u in users:
         # Pega saldo do banco de horas
-        entries = db.query(TimeBank).filter(TimeBank.user_id == u.id, TimeBank.status == "approved").all()
+        entries = (
+            db.query(TimeBank)
+            .filter(TimeBank.user_id == u.id, TimeBank.status == "approved")
+            .all()
+        )
         credits = sum(e.hours for e in entries if e.type == "credit")
         debits = sum(e.hours for e in entries if e.type == "debit")
         balance = credits - debits
-        
+
         # Define risco baseado no saldo ( burn-rate )
         risk = "stable"
-        if balance > 30: risk = "attention"
-        if balance > 60: risk = "critical"
-        
-        results.append({
-            "id": u.id,
-            "name": u.name,
-            "role": u.role,
-            "department": "Geral",
-            "status": "active",
-            "risk": risk,
-            "time_balance": balance
-        })
+        if balance > 30:
+            risk = "attention"
+        if balance > 60:
+            risk = "critical"
+
+        results.append(
+            {
+                "id": u.id,
+                "name": u.name,
+                "role": u.role,
+                "department": "Geral",
+                "status": "active",
+                "risk": risk,
+                "time_balance": balance,
+            }
+        )
     return results
 
 
@@ -344,9 +353,27 @@ def get_employee_timeline(
     """Gera a timeline histórica do colaborador"""
     # Mock de histórico para demonstração
     return [
-        {"id": 1, "type": "promotion", "date": "2025-12-10", "title": "Promoção para Senior", "description": "Performance excepcional no Q4."},
-        {"id": 2, "type": "document", "date": "2025-11-05", "title": "Atestado Médico", "description": "Validado por IA Gemini."},
-        {"id": 3, "type": "hiring", "date": "2024-03-15", "title": "Admissão", "description": "Início da jornada na Innovation.ia."},
+        {
+            "id": 1,
+            "type": "promotion",
+            "date": "2025-12-10",
+            "title": "Promoção para Senior",
+            "description": "Performance excepcional no Q4.",
+        },
+        {
+            "id": 2,
+            "type": "document",
+            "date": "2025-11-05",
+            "title": "Atestado Médico",
+            "description": "Validado por IA Gemini.",
+        },
+        {
+            "id": 3,
+            "type": "hiring",
+            "date": "2024-03-15",
+            "title": "Admissão",
+            "description": "Início da jornada na Innovation.ia.",
+        },
     ]
 
 
@@ -389,9 +416,9 @@ def upload_hr_document(
         "id": 123,
         "status": "verified",
         "extracted_data": {
-          "name": "João Silva",
-          "doc_type": "RG",
-          "valid_until": "2030-01-01"
+            "name": "João Silva",
+            "doc_type": "RG",
+            "valid_until": "2030-01-01",
         },
-        "message": "Documento validado pela IA com 98% de confiança"
+        "message": "Documento validado pela IA com 98% de confiança",
     }
