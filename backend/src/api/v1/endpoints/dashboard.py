@@ -158,6 +158,17 @@ async def get_dashboard_metrics(
                 {"month": d["month"], "value": d["profit"]} for d in chart_data
             ],
         },
+        "most_frequented": [
+            {"module": row[0] or "Geral", "count": row[1]}
+            for row in db.query(
+                AuditLog.entity_type, func.count(AuditLog.id)
+            )
+            .filter(AuditLog.user_id == current_user.id)
+            .group_by(AuditLog.entity_type)
+            .order_by(func.count(AuditLog.id).desc())
+            .limit(4)
+            .all()
+        ]
     }
 
 
@@ -220,85 +231,45 @@ async def get_kanban_board(
     Colunas: A Fazer | Em Progresso | Em Revisão | Concluído
     """
 
-    kanban_data = {
-        "columns": [
-            {
-                "id": "todo",
-                "title": "A Fazer",
-                "color": "#6B7280",
-                "cards": [
-                    {
-                        "id": "job_1",
-                        "title": "Candidato para Senior Python Developer",
-                        "job_title": "Senior Python Developer",
-                        "candidates_count": 5,
-                        "priority": "high",
-                        "avatars": ["JD", "MS"],
-                    }
-                ],
-            },
-            {
-                "id": "in_progress",
-                "title": "Em Progresso",
-                "color": "#3B82F6",
-                "cards": [
-                    {
-                        "id": "job_2",
-                        "title": "Candidato para Senior Python Developer",
-                        "job_title": "Senior Python Developer",
-                        "candidates_count": 3,
-                        "priority": "medium",
-                        "status": "Entrevista Hoje",
-                        "avatars": ["AB", "CD"],
-                    },
-                    {
-                        "id": "job_3",
-                        "title": "Designer",
-                        "job_title": "UI/UX Designer",
-                        "candidates_count": 2,
-                        "priority": "low",
-                        "status": "Análise de Portfólio",
-                        "avatars": ["EF"],
-                    },
-                ],
-            },
-            {
-                "id": "review",
-                "title": "Em Revisão",
-                "color": "#F59E0B",
-                "cards": [
-                    {
-                        "id": "job_4",
-                        "title": "Candidato para Devto Revisto",
-                        "job_title": "Full Stack Developer",
-                        "candidates_count": 1,
-                        "priority": "high",
-                        "status": "Aguardando Aprovação",
-                        "avatars": ["GH", "IJ"],
-                    }
-                ],
-            },
-            {
-                "id": "done",
-                "title": "Concluído",
-                "color": "#10B981",
-                "cards": [
-                    {
-                        "id": "job_5",
-                        "title": "Candidato para Senior Sector Developer",
-                        "job_title": "Senior Backend Developer",
-                        "candidates_count": 1,
-                        "priority": "completed",
-                        "status": "Contratado",
-                        "completed_date": "2023-06-10",
-                        "avatars": ["KL", "MN"],
-                    }
-                ],
-            },
-        ]
+    # Map statuses to kanban columns
+    status_map = {
+        "received": "todo",
+        "in_review": "in_progress",
+        "approved": "review",
+        "hired": "done"
+    }
+    
+    # Initialize columns
+    columns = {
+        "todo": {"id": "todo", "title": "A Fazer", "color": "#6B7280", "cards": []},
+        "in_progress": {"id": "in_progress", "title": "Em Progresso", "color": "#3B82F6", "cards": []},
+        "review": {"id": "review", "title": "Em Revisão", "color": "#F59E0B", "cards": []},
+        "done": {"id": "done", "title": "Concluído", "color": "#10B981", "cards": []}
     }
 
-    return kanban_data
+    # Fetch real applications
+    apps = (
+        db.query(Application)
+        .join(Job)
+        .filter(Job.company_id == current_user.id)
+        .order_by(Application.created_at.desc())
+        .limit(50)
+        .all()
+    )
+
+    for app in apps:
+        col_id = status_map.get(app.status, "todo")
+        columns[col_id]["cards"].append({
+            "id": f"app_{app.id}",
+            "title": f"Candidato: {getattr(app.candidate, 'full_name', 'Anônimo')}",
+            "job_title": app.job.title if app.job else "Vaga Desconhecida",
+            "match_score": app.match_score or 0,
+            "priority": "high" if (app.match_score or 0) > 0.8 else "medium",
+            "status": app.status.replace("_", " ").title(),
+            "avatars": [getattr(app.candidate, 'full_name', 'U')[:2].upper()]
+        })
+
+    return {"columns": list(columns.values())}
 
 
 @router.get("/recent-activity")

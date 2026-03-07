@@ -5,16 +5,19 @@ from domain.models.user import User
 
 # XP Mapping for different actions
 XP_MAP = {
-    "CHAT_MESSAGE": 10,
-    "JOB_CREATE": 50,
-    "APPLICATION_CREATE": 20,
-    "TRANSACTION_CREATE": 15,
-    "PROJECT_CREATE": 40,
-    "TASK_COMPLETE": 30,
-    "LOGIN": 5,
-    "TICKET_CREATE": 15,
-    "JOB_UPDATE": 10,
+    "CHAT_MESSAGE": 15,
+    "JOB_CREATE": 100,
+    "APPLICATION_CREATE": 30,
+    "APPLICATION_STATUS_UPDATED": 25,
+    "TRANSACTION_CREATE": 20,
+    "PROJECT_CREATE": 80,
+    "TASK_COMPLETE": 50,
+    "LOGIN": 10,
+    "TICKET_CREATE": 25,
+    "JOB_UPDATE": 15,
     "JOB_DELETE": 5,
+    "AI_ANALYSIS_REQUEST": 40,
+    "FINANCE_REPORT_GENERATE": 35
 }
 
 from domain.models.gamification import Mission, UserMission

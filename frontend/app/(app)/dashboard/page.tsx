@@ -74,7 +74,6 @@ export default function DashboardPage() {
 
     useEffect(() => {
         const load = async () => {
-            setLoading(true);
             try {
                 const [u, m, a] = await Promise.all([
                     AuthService.me().catch(() => null),
@@ -89,6 +88,8 @@ export default function DashboardPage() {
             }
         };
         load();
+        const interval = setInterval(load, 30000); // Auto-refresh every 30 seconds
+        return () => clearInterval(interval);
     }, []);
 
     const stats = [
@@ -235,15 +236,54 @@ export default function DashboardPage() {
                             </div>
                         </div>
 
-                        {/* Fast Links */}
+                        {/* Top Features - Dynamic Short-term analytics */}
+                        {metrics?.most_frequented && metrics.most_frequented.length > 0 && (
+                            <div className="space-y-6">
+                                <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Módulos Frequentados (IA Insight)</h2>
+                                <div className="grid grid-cols-2 gap-4">
+                                    {metrics.most_frequented.map((feat: any, i: number) => {
+                                        const iconMap: any = {
+                                            'finance': DollarSign,
+                                            'application': Users,
+                                            'job': Briefcase,
+                                            'project': Rocket,
+                                            'chat': MessageSquare,
+                                            'task': Clock
+                                        };
+                                        const colorMap: any = {
+                                            'finance': { color: 'text-emerald-600', bg: 'bg-emerald-50' },
+                                            'application': { color: 'text-indigo-600', bg: 'bg-indigo-50' },
+                                            'job': { color: 'text-rose-600', bg: 'bg-rose-50' },
+                                            'project': { color: 'text-amber-600', bg: 'bg-amber-50' },
+                                            'chat': { color: 'text-indigo-600', bg: 'bg-indigo-50' },
+                                            'task': { color: 'text-blue-600', bg: 'bg-blue-50' }
+                                        };
+                                        const Icon = iconMap[feat.module] || Zap;
+                                        const col = colorMap[feat.module] || { color: 'text-slate-600', bg: 'bg-slate-50' };
+
+                                        return (
+                                            <div key={i} className="flex flex-col items-center gap-3 p-6 bg-white border border-slate-100 rounded-[2rem] hover:border-indigo-100 shadow-sm transition-all group">
+                                                <div className={`w-12 h-12 rounded-2xl ${col.bg} flex items-center justify-center ${col.color} shadow-inner`}>
+                                                    <Icon size={20} />
+                                                </div>
+                                                <div className="text-center">
+                                                    <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest block">{feat.module === 'application' ? 'Talentos' : feat.module.charAt(0).toUpperCase() + feat.module.slice(1)}</span>
+                                                    <span className="text-[9px] font-bold text-slate-400">{feat.count} ações</span>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Standard Navigation Shortcuts */}
                         <div className="space-y-6">
-                            <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Atalhos Premium</h2>
+                            <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Acesso Rápido</h2>
                             <div className="grid grid-cols-2 gap-4">
                                 {[
                                     { label: 'Finanças', icon: DollarSign, href: '/finance', color: 'text-emerald-600', bg: 'bg-emerald-50' },
-                                    { label: 'Talentos', icon: Users, href: '/rh', color: 'text-indigo-600', bg: 'bg-indigo-50' },
-                                    { label: 'Recrutamento', icon: Briefcase, href: '/ats', color: 'text-rose-600', bg: 'bg-rose-50' },
-                                    { label: 'Projetos', icon: Rocket, href: '/projects', color: 'text-amber-600', bg: 'bg-amber-50' }
+                                    { label: 'Talentos', icon: Users, href: '/rh', color: 'text-indigo-600', bg: 'bg-indigo-50' }
                                 ].map((link, i) => {
                                     const Icon = link.icon || Rocket;
                                     return (
