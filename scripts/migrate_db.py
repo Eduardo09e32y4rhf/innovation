@@ -3,11 +3,13 @@
 Script de migração do banco de dados — executa dentro do container api_monolith.
 Uso: docker exec innovation_api_monolith python3 /app/scripts/migrate_db.py
 """
+
 import sys
 import os
 
 # Adicionar o src ao path
-sys.path.insert(0, '/app/backend/src')
+sys.path.insert(0, "/app/backend/src")
+
 
 def run_migration():
     print("════════════════════════════════════")
@@ -17,6 +19,7 @@ def run_migration():
     try:
         from infrastructure.database.sql.session import engine
         from sqlalchemy import text
+
         print(f"✅ Conectado ao banco!")
     except Exception as e:
         print(f"❌ Erro ao conectar: {e}")
@@ -24,37 +27,75 @@ def run_migration():
 
     SQL_MIGRATIONS = [
         # Colunas faltantes na tabela users
-        ("two_factor_enabled", "ALTER TABLE users ADD COLUMN IF NOT EXISTS two_factor_enabled BOOLEAN DEFAULT FALSE"),
+        (
+            "two_factor_enabled",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS two_factor_enabled BOOLEAN DEFAULT FALSE",
+        ),
         ("phone", "ALTER TABLE users ADD COLUMN IF NOT EXISTS phone VARCHAR(30)"),
-        ("current_xp", "ALTER TABLE users ADD COLUMN IF NOT EXISTS current_xp INTEGER DEFAULT 0"),
+        (
+            "current_xp",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS current_xp INTEGER DEFAULT 0",
+        ),
         ("level", "ALTER TABLE users ADD COLUMN IF NOT EXISTS level INTEGER DEFAULT 1"),
         ("bio", "ALTER TABLE users ADD COLUMN IF NOT EXISTS bio TEXT"),
         ("skills", "ALTER TABLE users ADD COLUMN IF NOT EXISTS skills TEXT"),
         ("experience", "ALTER TABLE users ADD COLUMN IF NOT EXISTS experience TEXT"),
         ("education", "ALTER TABLE users ADD COLUMN IF NOT EXISTS education TEXT"),
-        ("company_name", "ALTER TABLE users ADD COLUMN IF NOT EXISTS company_name VARCHAR(200)"),
-        ("brand_logo", "ALTER TABLE users ADD COLUMN IF NOT EXISTS brand_logo VARCHAR(500)"),
-        ("brand_color_primary", "ALTER TABLE users ADD COLUMN IF NOT EXISTS brand_color_primary VARCHAR(20) DEFAULT '#820AD1'"),
-        ("brand_color_secondary", "ALTER TABLE users ADD COLUMN IF NOT EXISTS brand_color_secondary VARCHAR(20) DEFAULT '#0f172a'"),
+        (
+            "company_name",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS company_name VARCHAR(200)",
+        ),
+        (
+            "brand_logo",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS brand_logo VARCHAR(500)",
+        ),
+        (
+            "brand_color_primary",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS brand_color_primary VARCHAR(20) DEFAULT '#820AD1'",
+        ),
+        (
+            "brand_color_secondary",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS brand_color_secondary VARCHAR(20) DEFAULT '#0f172a'",
+        ),
         ("badges", "ALTER TABLE users ADD COLUMN IF NOT EXISTS badges TEXT"),
-        ("points", "ALTER TABLE users ADD COLUMN IF NOT EXISTS points INTEGER DEFAULT 0"),
-        ("subscription_status", "ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_status VARCHAR(50) DEFAULT 'inactive'"),
-        ("subscription_plan", "ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_plan VARCHAR(50) DEFAULT 'starter'"),
-        ("trial_expires_at", "ALTER TABLE users ADD COLUMN IF NOT EXISTS trial_expires_at TIMESTAMP"),
-        ("updated_at", "ALTER TABLE users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW()"),
+        (
+            "points",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS points INTEGER DEFAULT 0",
+        ),
+        (
+            "subscription_status",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_status VARCHAR(50) DEFAULT 'inactive'",
+        ),
+        (
+            "subscription_plan",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_plan VARCHAR(50) DEFAULT 'starter'",
+        ),
+        (
+            "trial_expires_at",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS trial_expires_at TIMESTAMP",
+        ),
+        (
+            "updated_at",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW()",
+        ),
     ]
 
     TABLE_MIGRATIONS = [
         # Tabela de centros de custo
-        ("cost_centers", """
+        (
+            "cost_centers",
+            """
             CREATE TABLE IF NOT EXISTS cost_centers (
                 id SERIAL PRIMARY KEY,
                 name VARCHAR(100) NOT NULL,
                 company_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE
             )
-        """),
+        """,
+        ),
         # Tabela de transações financeiras
-        ("transactions", """
+        (
+            "transactions",
+            """
             CREATE TABLE IF NOT EXISTS transactions (
                 id SERIAL PRIMARY KEY,
                 description VARCHAR(200) NOT NULL,
@@ -71,9 +112,12 @@ def run_migration():
                 ai_metadata TEXT,
                 created_at TIMESTAMP DEFAULT NOW()
             )
-        """),
+        """,
+        ),
         # Tabela do DAS MEI
-        ("das_mei", """
+        (
+            "das_mei",
+            """
             CREATE TABLE IF NOT EXISTS das_mei (
                 id SERIAL PRIMARY KEY,
                 company_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -89,7 +133,8 @@ def run_migration():
                 created_at TIMESTAMP DEFAULT NOW(),
                 UNIQUE(company_id, competencia)
             )
-        """),
+        """,
+        ),
     ]
 
     INDEX_MIGRATIONS = [
@@ -136,11 +181,15 @@ def run_migration():
         # 4. Verificação final
         print("\n▶ Verificação final:")
         try:
-            result = conn.execute(text("SELECT COUNT(*) as total FROM information_schema.tables WHERE table_schema='public'"))
+            result = conn.execute(
+                text(
+                    "SELECT COUNT(*) as total FROM information_schema.tables WHERE table_schema='public'"
+                )
+            )
             row = result.fetchone()
             print(f"   📊 Total de tabelas no banco: {row[0]}")
 
-            for table in ['transactions', 'cost_centers', 'das_mei']:
+            for table in ["transactions", "cost_centers", "das_mei"]:
                 try:
                     r = conn.execute(text(f"SELECT COUNT(*) FROM {table}"))
                     count = r.fetchone()[0]

@@ -1,4 +1,13 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, Numeric, ForeignKey, Date
+from sqlalchemy import (
+    Column,
+    Integer,
+    String,
+    Text,
+    DateTime,
+    Numeric,
+    ForeignKey,
+    Date,
+)
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
 from infrastructure.database.sql.base import Base
@@ -10,9 +19,9 @@ class Transaction(Base):
     id = Column(Integer, primary_key=True, index=True)
     description = Column(String(200), nullable=False)
     amount = Column(Numeric(10, 2), nullable=False)
-    type = Column(String(20), nullable=False)      # income, expense
-    tax_type = Column(String(20), nullable=True)   # DAS, INSS, FGTS, etc.
-    status = Column(String(20), default="pending") # pending, paid, overdue, cancelled
+    type = Column(String(20), nullable=False)  # income, expense
+    tax_type = Column(String(20), nullable=True)  # DAS, INSS, FGTS, etc.
+    status = Column(String(20), default="pending")  # pending, paid, overdue, cancelled
 
     due_date = Column(DateTime, nullable=False)
     payment_date = Column(DateTime, nullable=True)
@@ -42,6 +51,7 @@ class CostCenter(Base):
 
 class DasMei(Base):
     """Armazena dados do DAS MEI por competência para cada empresa/MEI."""
+
     __tablename__ = "das_mei"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -49,7 +59,7 @@ class DasMei(Base):
 
     # Identificação
     cnpj = Column(String(20), nullable=True)
-    competencia = Column(String(7), nullable=False)      # 'YYYY-MM' ex: '2026-03'
+    competencia = Column(String(7), nullable=False)  # 'YYYY-MM' ex: '2026-03'
 
     # Valores (valor padrão MEI 2026 = R$ 75,60 + ICMS/ISS opcionais)
     valor_das = Column(Numeric(10, 2), nullable=False, default=75.60)
