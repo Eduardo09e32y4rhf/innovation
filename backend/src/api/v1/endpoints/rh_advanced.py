@@ -5,6 +5,7 @@ Complementa o rh.py existente com os novos módulos.
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
@@ -310,17 +311,37 @@ def get_employees_list(
     # Em um cenário real, filtraríamos pela empresa do current_user
     users = db.query(User).filter(User.role != "admin").all()
 
+    # ⚡ Bolt: Fetch all relevant time bank balances in a single query to eliminate N+1 problem.
+    # Why: Previously executed a separate database query for each employee's time bank balance inside a loop.
+    # Impact: Reduces O(N) database queries to O(1), significantly improving endpoint response time for large teams.
+    user_ids = [u.id for u in users]
+    balances_query = (
+        db.query(
+            TimeBank.user_id,
+            TimeBank.type,
+            func.sum(TimeBank.hours).label("total_hours"),
+        )
+        .filter(
+            TimeBank.status == "approved",
+            TimeBank.user_id.in_(user_ids)
+        )
+        .group_by(TimeBank.user_id, TimeBank.type)
+        .all()
+    ) if user_ids else []
+
+    balances_map = {}
+    for user_id, t_type, total_hours in balances_query:
+        if user_id not in balances_map:
+            balances_map[user_id] = {"credit": 0.0, "debit": 0.0}
+        balances_map[user_id][t_type] = float(total_hours or 0)
+
     # Lógica de IA Simplificada: Análise de Risco
     results = []
     for u in users:
         # Pega saldo do banco de horas
-        entries = (
-            db.query(TimeBank)
-            .filter(TimeBank.user_id == u.id, TimeBank.status == "approved")
-            .all()
-        )
-        credits = sum(e.hours for e in entries if e.type == "credit")
-        debits = sum(e.hours for e in entries if e.type == "debit")
+        user_balance = balances_map.get(u.id, {"credit": 0.0, "debit": 0.0})
+        credits = user_balance.get("credit", 0.0)
+        debits = user_balance.get("debit", 0.0)
         balance = credits - debits
 
         # Define risco baseado no saldo ( burn-rate )
