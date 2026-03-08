@@ -316,18 +316,19 @@ def get_employees_list(
     # Impact: Reduces O(N) database queries to O(1), significantly improving endpoint response time for large teams.
     user_ids = [u.id for u in users]
     balances_query = (
-        db.query(
-            TimeBank.user_id,
-            TimeBank.type,
-            func.sum(TimeBank.hours).label("total_hours"),
+        (
+            db.query(
+                TimeBank.user_id,
+                TimeBank.type,
+                func.sum(TimeBank.hours).label("total_hours"),
+            )
+            .filter(TimeBank.status == "approved", TimeBank.user_id.in_(user_ids))
+            .group_by(TimeBank.user_id, TimeBank.type)
+            .all()
         )
-        .filter(
-            TimeBank.status == "approved",
-            TimeBank.user_id.in_(user_ids)
-        )
-        .group_by(TimeBank.user_id, TimeBank.type)
-        .all()
-    ) if user_ids else []
+        if user_ids
+        else []
+    )
 
     balances_map = {}
     for user_id, t_type, total_hours in balances_query:
