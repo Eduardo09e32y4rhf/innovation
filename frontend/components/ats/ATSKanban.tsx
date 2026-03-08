@@ -101,7 +101,13 @@ export function ATSKanban() {
                                     {filteredCandidates.filter(c => c.status === col.id).length}
                                 </span>
                             </div>
-                            <MoreVertical className="w-4 h-4 text-gray-500 cursor-pointer hover:text-white" />
+                            <button
+                                className="text-gray-500 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 rounded p-1"
+                                aria-label={`Opções da coluna ${col.label}`}
+                                title="Opções da coluna"
+                            >
+                                <MoreVertical className="w-4 h-4" />
+                            </button>
                         </div>
 
                         {/* Candidates List */}
@@ -159,7 +165,9 @@ export function ATSKanban() {
                                                 <div className="flex gap-2">
                                                     <button
                                                         onClick={() => moveCandidate(candidate.id, COLUMNS[(COLUMNS.findIndex(cl => cl.id === col.id) + 1) % COLUMNS.length].id)}
-                                                        className="p-1.5 rounded-lg bg-gray-800 text-gray-400 hover:bg-purple-600 hover:text-white transition-all"
+                                                        className="p-1.5 rounded-lg bg-gray-800 text-gray-400 hover:bg-purple-600 hover:text-white transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
+                                                        aria-label="Avançar candidato para a próxima etapa"
+                                                        title="Avançar candidato"
                                                     >
                                                         <ChevronRight className="w-3.5 h-3.5" />
                                                     </button>
@@ -182,12 +190,15 @@ export function ATSKanban() {
 
                 {/* Blank Column (Add Stage) */}
                 <div className="w-80 flex-shrink-0">
-                    <div className="h-full rounded-2xl border-2 border-dashed border-gray-800 flex flex-col items-center justify-center opacity-30 hover:opacity-100 hover:border-purple-500/50 transition-all cursor-pointer group">
+                    <button
+                        className="w-full h-full rounded-2xl border-2 border-dashed border-gray-800 flex flex-col items-center justify-center opacity-30 hover:opacity-100 hover:border-purple-500/50 transition-all cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
+                        aria-label="Adicionar nova etapa"
+                    >
                         <div className="w-12 h-12 rounded-full bg-gray-800 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
                             <Plus className="w-6 h-6 text-gray-400 group-hover:text-purple-400" />
                         </div>
                         <p className="text-sm font-medium text-gray-500 group-hover:text-purple-400">Adicionar Etapa</p>
-                    </div>
+                    </button>
                 </div>
             </div>
         </div>
