@@ -81,14 +81,14 @@ function XpBar({
   return (
     <div className="w-full">
       <div className="flex items-center justify-between mb-1">
-        <span className="text-[9px] text-purple-300/40 font-medium">
+        <span className="text-[9px] text-blue-500/40 font-medium">
           Nível {level} → {level + 1}
         </span>
         <span className="text-[9px] text-[#a78bfa] font-bold">
           {xp}/{maxXp} XP
         </span>
       </div>
-      <div className="h-1 bg-purple-900/30 rounded-full overflow-hidden">
+      <div className="h-1 bg-blue-600/30 rounded-full overflow-hidden">
         <div
           className="h-full rounded-full bg-gradient-to-r from-[#8b5cf6] to-[#c4b5fd] transition-all duration-1000"
           style={{ width: `${pct}%` }}
@@ -185,16 +185,16 @@ function NotificationDropdown({ onClose }: { onClose: () => void }) {
       initial={{ opacity: 0, y: 10, scale: 0.95 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: 10, scale: 0.95 }}
-      className="absolute right-0 mt-2 w-80 bg-[#0a0a0a] border border-purple-200 rounded-2xl shadow-2xl overflow-hidden z-[100] backdrop-blur-xl"
+      className="absolute right-0 mt-2 w-80 bg-[#0a0a0a] border border-blue-200 rounded-2xl shadow-2xl overflow-hidden z-[100] backdrop-blur-xl"
     >
-      <div className="px-4 py-3 border-b border-purple-200 flex items-center justify-between">
+      <div className="px-4 py-3 border-b border-blue-200 flex items-center justify-between">
         <span className="text-xs font-bold text-slate-900 uppercase tracking-wider">
           Notificações
         </span>
         {notifications.length > 0 && (
           <button
             onClick={clearAll}
-            className="p-1.5 text-slate-900/30 hover:text-red-400 transition-colors rounded-lg hover:bg-purple-500/5"
+            className="p-1.5 text-slate-900/30 hover:text-red-400 transition-colors rounded-lg hover:bg-blue-500/5"
             aria-label="Limpar notificações"
           >
             <Trash2 className="w-3.5 h-3.5" />
@@ -222,7 +222,7 @@ function NotificationDropdown({ onClose }: { onClose: () => void }) {
               return (
                 <div
                   key={n.id}
-                  className={`p-4 hover:bg-purple-500/5 transition-colors cursor-pointer group relative ${!n.read ? 'bg-[#8b5cf6]/5' : ''}`}
+                  className={`p-4 hover:bg-blue-500/5 transition-colors cursor-pointer group relative ${!n.read ? 'bg-[#8b5cf6]/5' : ''}`}
                   onClick={() => !n.read && markAsRead(n.id)}
                 >
                   <div className="flex gap-3">
@@ -261,7 +261,7 @@ function NotificationDropdown({ onClose }: { onClose: () => void }) {
       </div>
 
       {notifications.length > 0 && (
-        <div className="px-4 py-2 border-t border-purple-200 bg-purple-500/[0.02]">
+        <div className="px-4 py-2 border-t border-blue-200 bg-blue-500/[0.02]">
           <button
             onClick={() =>
               NotificationService.markAllAsRead().then(fetchNotifications)
@@ -302,7 +302,7 @@ function Sidebar({
     <>
       {/* Overlay for mobile */}
       <div
-        className={`fixed inset-0 bg-black/70 backdrop-blur-sm z-[60] lg:hidden transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+        className={`fixed inset-0 bg-white/70 backdrop-blur-sm z-[60] lg:hidden transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
         onClick={onClose}
       />
 
@@ -310,7 +310,7 @@ function Sidebar({
         className={`fixed left-0 top-0 bottom-0 w-[240px] bg-white border-r border-slate-200 z-[70] flex flex-col transition-transform duration-300 ease-in-out lg:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'} shadow-xl shadow-slate-200/50`}
       >
         {/* Logo */}
-        <div className="px-5 py-5 border-b border-purple-500/15 flex items-center justify-between shrink-0">
+        <div className="px-5 py-5 border-b border-blue-500/15 flex items-center justify-between shrink-0">
           <Link
             href="/"
             className="text-xl font-black tracking-tighter text-slate-900 drop-shadow-[0_1px_1px_rgba(0,0,0,0.1)]"
@@ -332,25 +332,25 @@ function Sidebar({
           {!user ? (
             <div className="animate-pulse space-y-4">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-purple-500/10" />
+                <div className="w-9 h-9 rounded-xl bg-blue-500/10" />
                 <div className="flex-1 space-y-2">
-                  <div className="h-2 bg-purple-500/10 rounded w-20" />
-                  <div className="h-1.5 bg-purple-500/5 rounded w-12" />
+                  <div className="h-2 bg-blue-500/10 rounded w-20" />
+                  <div className="h-1.5 bg-blue-500/5 rounded w-12" />
                 </div>
               </div>
               <div className="space-y-1.5">
                 <div className="flex justify-between">
-                  <div className="h-1.5 bg-purple-500/10 rounded w-10" />
-                  <div className="h-1.5 bg-purple-500/10 rounded w-8" />
+                  <div className="h-1.5 bg-blue-500/10 rounded w-10" />
+                  <div className="h-1.5 bg-blue-500/10 rounded w-8" />
                 </div>
-                <div className="h-1 bg-purple-500/10 rounded-full" />
+                <div className="h-1 bg-blue-500/10 rounded-full" />
               </div>
             </div>
           ) : (
             <>
               <div className="flex items-center gap-3">
                 <div className="relative shrink-0">
-                  <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center text-white font-black text-xs shadow-lg shadow-blue-200">
+                  <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center text-slate-900 font-black text-xs shadow-lg shadow-blue-200">
                     {getInitials(user.name)}
                   </div>
                   <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-white" />
@@ -394,15 +394,15 @@ function Sidebar({
                   onClick={onClose}
                   className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group ${active
                     ? 'bg-blue-600 text-white shadow-lg shadow-blue-100 scale-[1.02]'
-                    : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
+                    : 'text-slate-9000 hover:text-slate-900 hover:bg-slate-50'
                     }`}
                 >
                   <Icon
-                    className={`w-5 h-5 shrink-0 transition-colors ${active ? 'text-white' : 'text-slate-300 group-hover:text-slate-600'}`}
+                    className={`w-5 h-5 shrink-0 transition-colors ${active ? 'text-slate-900' : 'text-slate-700 group-hover:text-slate-600'}`}
                   />
                   <span className={`text-sm font-bold tracking-wide ${active ? 'drop-shadow-[0_1px_2px_rgba(0,0,0,0.3)]' : 'drop-shadow-[0_1px_1px_rgba(0,0,0,0.05)]'}`}>{item.name}</span>
                   {active && (
-                    <ChevronRight className="w-3 h-3 ml-auto text-white" />
+                    <ChevronRight className="w-3 h-3 ml-auto text-slate-900" />
                   )}
                 </Link>
               );
@@ -425,15 +425,15 @@ function Sidebar({
                       onClick={onClose}
                       className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group ${active
                         ? 'bg-blue-600 text-white shadow-lg shadow-blue-100 scale-[1.02]'
-                        : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
+                        : 'text-slate-9000 hover:text-slate-900 hover:bg-slate-50'
                         }`}
                     >
                       <Icon
-                        className={`w-5 h-5 shrink-0 transition-colors drop-shadow-[0_1px_1px_rgba(0,0,0,0.1)] ${active ? 'text-white' : 'text-slate-300 group-hover:text-slate-600'}`}
+                        className={`w-5 h-5 shrink-0 transition-colors drop-shadow-[0_1px_1px_rgba(0,0,0,0.1)] ${active ? 'text-slate-900' : 'text-slate-700 group-hover:text-slate-600'}`}
                       />
                       <span className={`text-sm font-bold tracking-wide ${active ? 'drop-shadow-[0_1px_2px_rgba(0,0,0,0.3)]' : 'drop-shadow-[0_1px_1px_rgba(0,0,0,0.05)]'}`}>{item.name}</span>
                       {active && (
-                        <ChevronRight className="w-3 h-3 ml-auto text-white" />
+                        <ChevronRight className="w-3 h-3 ml-auto text-slate-900" />
                       )}
                     </Link>
                   );
@@ -508,7 +508,7 @@ function TopBar({
       {/* Mobile menu toggle */}
       <button
         onClick={onToggleSidebar}
-        className="lg:hidden p-2 -ml-2 text-white/30 hover:text-white transition-colors"
+        className="lg:hidden p-2 -ml-2 text-slate-900/30 hover:text-slate-900 transition-colors"
         aria-label="Abrir menu"
       >
         <Menu className="w-5 h-5" />
@@ -539,12 +539,12 @@ function TopBar({
         <div className="relative" ref={dropdownRef}>
           <button
             onClick={() => setShowNotifications(!showNotifications)}
-            className={`relative p-2 rounded-xl transition-all ${showNotifications ? 'bg-purple-500/20 text-white' : 'text-white/30 hover:text-white hover:bg-purple-500/10'}`}
+            className={`relative p-2 rounded-xl transition-all ${showNotifications ? 'bg-blue-500/20 text-slate-900' : 'text-slate-900/30 hover:text-slate-900 hover:bg-blue-500/10'}`}
             aria-label="Notificações"
           >
             <Bell className="w-4 h-4" />
             {unreadCount > 0 && (
-              <span className="absolute top-1.5 right-1.5 w-3.5 h-3.5 bg-[#8b5cf6] rounded-full text-[8px] flex items-center justify-center font-bold text-white shadow-lg shadow-[#8b5cf6]/40">
+              <span className="absolute top-1.5 right-1.5 w-3.5 h-3.5 bg-[#8b5cf6] rounded-full text-[8px] flex items-center justify-center font-bold text-slate-900 shadow-lg shadow-[#8b5cf6]/40">
                 {unreadCount > 9 ? '9+' : unreadCount}
               </span>
             )}
@@ -561,7 +561,7 @@ function TopBar({
 
         {user && (
           <div className="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-full border border-slate-200 cursor-default shadow-inner">
-            <div className="w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center text-white font-black text-[9px] shadow-sm">
+            <div className="w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center text-slate-900 font-black text-[9px] shadow-sm">
               {getInitials(user.name)}
             </div>
             <span className="text-sm font-black tracking-wide drop-shadow-[0_1px_1px_rgba(0,0,0,0.1)] text-slate-900 hidden sm:inline">
@@ -637,7 +637,7 @@ export default function AppLayout({
     <div className="flex min-h-screen bg-slate-50 font-sans text-slate-900 selection:bg-indigo-100 selection:text-indigo-900 overflow-x-hidden">
       {/* Ambient background glows */}
       <div className="fixed top-0 right-0 w-[600px] h-[500px] bg-indigo-100/40 rounded-full blur-[180px] pointer-events-none z-0" aria-hidden />
-      <div className="fixed bottom-0 left-[240px] w-[400px] h-[300px] bg-purple-100/30 rounded-full blur-[150px] pointer-events-none z-0" aria-hidden />
+      <div className="fixed bottom-0 left-[240px] w-[400px] h-[300px] bg-blue-100/30 rounded-full blur-[150px] pointer-events-none z-0" aria-hidden />
 
       {/* Sidebar Overlay */}
       <AnimatePresence>
@@ -647,7 +647,7 @@ export default function AppLayout({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setIsSidebarOpen(false)}
-            className="lg:hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[80]"
+            className="lg:hidden fixed inset-0 bg-slate-50/60 backdrop-blur-sm z-[80]"
           />
         )}
       </AnimatePresence>
@@ -694,11 +694,11 @@ export default function AppLayout({
                 onClick={() => setIsSidebarOpen(false)}
                 className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${active
                   ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-100 hover:scale-[1.02]'
-                  : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
+                  : 'text-slate-9000 hover:bg-slate-50 hover:text-slate-900'
                   }`}
               >
                 <Icon
-                  className={`w-[18px] h-[18px] shrink-0 transition-colors ${active ? 'text-white' : 'text-slate-300 group-hover:text-slate-500'}`}
+                  className={`w-[18px] h-[18px] shrink-0 transition-colors ${active ? 'text-slate-900' : 'text-slate-700 group-hover:text-slate-9000'}`}
                 />
                 <span className="text-sm font-black">{item.name}</span>
               </Link>
@@ -717,11 +717,11 @@ export default function AppLayout({
                     href={item.href}
                     onClick={() => setIsSidebarOpen(false)}
                     className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${active
-                      ? 'bg-slate-900 text-white shadow-xl'
-                      : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
+                      ? 'bg-slate-50 text-slate-900 shadow-xl'
+                      : 'text-slate-9000 hover:bg-slate-50 hover:text-slate-900'
                       }`}
                   >
-                    <Icon className={`w-[18px] h-[18px] shrink-0 ${active ? 'text-white' : 'text-slate-300'}`} />
+                    <Icon className={`w-[18px] h-[18px] shrink-0 ${active ? 'text-slate-900' : 'text-slate-700'}`} />
                     <span className="text-sm font-black">{item.name}</span>
                   </Link>
                 );
@@ -757,7 +757,7 @@ export default function AppLayout({
           user.trial_expires_at &&
           new Date(user.trial_expires_at) > new Date() && (
             <div className="bg-gradient-to-r from-amber-500 to-orange-600 px-6 py-2.5 flex items-center justify-between shrink-0 shadow-lg relative z-20">
-              <p className="text-xs font-bold text-white flex items-center gap-2">
+              <p className="text-xs font-bold text-slate-900 flex items-center gap-2">
                 <Info size={14} />
                 <strong>Período de Demonstração:</strong> Seu acesso expira em{' '}
                 {Math.ceil((new Date(user.trial_expires_at).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} dias.

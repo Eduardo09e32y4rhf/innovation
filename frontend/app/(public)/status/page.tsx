@@ -72,9 +72,9 @@ export default function StatusPage() {
     const uptimes = { api: '99.97%', db: '99.99%', ai: '99.80%', payments: '99.95%', email: '99.90%', worker: '99.85%' };
 
     return (
-        <div className="min-h-screen bg-gray-950 text-white">
+        <div className="min-h-screen bg-gray-950 text-slate-900">
             {/* Header */}
-            <div className="border-b border-purple-500/20 bg-gray-900/80 backdrop-blur-xl sticky top-0 z-10">
+            <div className="border-b border-blue-500/20 bg-white/80 backdrop-blur-xl sticky top-0 z-10">
                 <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <span className="text-2xl font-black bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
@@ -83,7 +83,7 @@ export default function StatusPage() {
                         <span className="text-gray-500 text-sm">/ Status</span>
                     </div>
                     <button onClick={checkHealth} disabled={checking}
-                        className="flex items-center gap-2 text-gray-400 hover:text-white text-sm transition">
+                        className="flex items-center gap-2 text-gray-400 hover:text-slate-900 text-sm transition">
                         <RefreshCw className={`w-4 h-4 ${checking ? 'animate-spin' : ''}`} />
                         Atualizar
                     </button>
@@ -100,8 +100,8 @@ export default function StatusPage() {
 
                 {/* Services */}
                 <div className="mb-10">
-                    <h2 className="text-lg font-semibold text-white mb-4">Componentes do Sistema</h2>
-                    <div className="bg-gray-900 border border-purple-500/20 rounded-2xl overflow-hidden divide-y divide-gray-800">
+                    <h2 className="text-lg font-semibold text-slate-900 mb-4">Componentes do Sistema</h2>
+                    <div className="bg-white border border-blue-500/20 rounded-2xl overflow-hidden divide-y divide-gray-800">
                         {SERVICES.map(service => {
                             const status = services[service.key] || 'operational';
                             const sc = svcConfig[status];
@@ -110,7 +110,7 @@ export default function StatusPage() {
                                 <div key={service.key} className="flex items-center justify-between px-6 py-4">
                                     <div className="flex items-center gap-3">
                                         <Icon className="w-5 h-5 text-gray-500" />
-                                        <span className="text-white">{service.name}</span>
+                                        <span className="text-slate-900">{service.name}</span>
                                     </div>
                                     <div className="flex items-center gap-6">
                                         <span className="text-gray-500 text-sm">{uptimes[service.key as keyof typeof uptimes]} uptime</span>
@@ -127,8 +127,8 @@ export default function StatusPage() {
 
                 {/* Uptime chart (visual bars) */}
                 <div className="mb-10">
-                    <h2 className="text-lg font-semibold text-white mb-4">Disponibilidade (90 dias)</h2>
-                    <div className="bg-gray-900 border border-purple-500/20 rounded-2xl p-6">
+                    <h2 className="text-lg font-semibold text-slate-900 mb-4">Disponibilidade (90 dias)</h2>
+                    <div className="bg-white border border-blue-500/20 rounded-2xl p-6">
                         {SERVICES.map(service => (
                             <div key={service.key} className="mb-4">
                                 <div className="flex justify-between text-sm mb-1">
@@ -158,12 +158,12 @@ export default function StatusPage() {
 
                 {/* Incidents */}
                 <div>
-                    <h2 className="text-lg font-semibold text-white mb-4">Histórico de Incidentes</h2>
+                    <h2 className="text-lg font-semibold text-slate-900 mb-4">Histórico de Incidentes</h2>
                     <div className="space-y-3">
                         {INCIDENTS.map(incident => (
-                            <div key={incident.id} className="bg-gray-900 border border-purple-500/20 rounded-xl p-5">
+                            <div key={incident.id} className="bg-white border border-blue-500/20 rounded-xl p-5">
                                 <div className="flex items-start justify-between mb-2">
-                                    <h3 className="text-white font-medium">{incident.title}</h3>
+                                    <h3 className="text-slate-900 font-medium">{incident.title}</h3>
                                     <span className="text-green-400 text-xs bg-green-500/10 px-2 py-0.5 rounded-full">✓ Resolvido</span>
                                 </div>
                                 <p className="text-gray-400 text-sm">{incident.resolution}</p>

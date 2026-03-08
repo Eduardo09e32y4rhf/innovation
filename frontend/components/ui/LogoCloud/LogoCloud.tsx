@@ -10,7 +10,7 @@ export default function LogoCloud() {
             <img
               src="/nextjs.svg"
               alt="Next.js Logo"
-              className="h-6 sm:h-12 text-white"
+              className="h-6 sm:h-12 text-slate-900"
             />
           </a>
         </div>
@@ -19,7 +19,7 @@ export default function LogoCloud() {
             <img
               src="/vercel.svg"
               alt="Vercel.com Logo"
-              className="h-6 text-white"
+              className="h-6 text-slate-900"
             />
           </a>
         </div>
@@ -28,7 +28,7 @@ export default function LogoCloud() {
             <img
               src="/stripe.svg"
               alt="stripe.com Logo"
-              className="h-12 text-white"
+              className="h-12 text-slate-900"
             />
           </a>
         </div>
@@ -37,7 +37,7 @@ export default function LogoCloud() {
             <img
               src="/supabase.svg"
               alt="supabase.io Logo"
-              className="h-10 text-white"
+              className="h-10 text-slate-900"
             />
           </a>
         </div>
@@ -46,7 +46,7 @@ export default function LogoCloud() {
             <img
               src="/github.svg"
               alt="github.com Logo"
-              className="h-8 text-white"
+              className="h-8 text-slate-900"
             />
           </a>
         </div>

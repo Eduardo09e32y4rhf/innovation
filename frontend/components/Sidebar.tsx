@@ -45,7 +45,7 @@ export function Sidebar() {
     };
 
     return (
-        <aside className="fixed left-0 top-0 bottom-0 w-[280px] bg-gray-950/95 backdrop-blur-xl border-r border-purple-500/20 z-50 flex flex-col">
+        <aside className="fixed left-0 top-0 bottom-0 w-[280px] bg-gray-950/95 backdrop-blur-xl border-r border-blue-500/20 z-50 flex flex-col">
             <div className="p-6">
                 <h1 className="text-2xl font-black gradient-text">INNOVATION.IA</h1>
                 <p className="text-xs text-gray-600 mt-0.5">Enterprise Platform</p>
@@ -63,7 +63,7 @@ export function Sidebar() {
                                 href={item.href}
                                 className={`sidebar-link ${isActive ? 'active' : ''}`}
                             >
-                                <Icon className={`w-5 h-5 ${isActive ? 'text-purple-400' : 'text-gray-500'}`} />
+                                <Icon className={`w-5 h-5 ${isActive ? 'text-blue-600' : 'text-gray-500'}`} />
                                 <span className="font-medium">{item.name}</span>
                             </Link>
                         );
@@ -81,7 +81,7 @@ export function Sidebar() {
                                 href={item.href}
                                 className={`sidebar-link ${isActive ? 'active' : ''}`}
                             >
-                                <Icon className={`w-5 h-5 ${isActive ? 'text-purple-400' : 'text-gray-500'}`} />
+                                <Icon className={`w-5 h-5 ${isActive ? 'text-blue-600' : 'text-gray-500'}`} />
                                 <span className="font-medium">{item.name}</span>
                             </Link>
                         );
@@ -99,7 +99,7 @@ export function Sidebar() {
                                 href={item.href}
                                 className={`sidebar-link ${isActive ? 'active' : ''}`}
                             >
-                                <Icon className={`w-5 h-5 ${isActive ? 'text-purple-400' : 'text-gray-500'}`} />
+                                <Icon className={`w-5 h-5 ${isActive ? 'text-blue-600' : 'text-gray-500'}`} />
                                 <span className="font-medium">{item.name}</span>
                             </Link>
                         );
@@ -107,7 +107,7 @@ export function Sidebar() {
                 </div>
             </nav>
 
-            <div className="p-4 border-t border-purple-500/10">
+            <div className="p-4 border-t border-blue-500/10">
                 <button
                     onClick={handleLogout}
                     className="w-full py-2 bg-red-500/10 text-red-400 rounded-lg hover:bg-red-500/20 transition text-sm font-medium flex items-center justify-center gap-2"

@@ -74,7 +74,7 @@ export function KanbanBoard({ columns, onMove, loading = false }: KanbanBoardPro
     if (loading) {
         return (
             <div className="flex items-center justify-center h-48">
-                <Loader2 className="w-8 h-8 animate-spin text-purple-400" />
+                <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
             </div>
         );
     }
@@ -92,7 +92,7 @@ export function KanbanBoard({ columns, onMove, loading = false }: KanbanBoardPro
                 >
                     {/* Column Header */}
                     <div className={`flex items-center justify-between mb-3 px-3 py-2 rounded-xl border ${col.color}`}>
-                        <span className="font-bold text-sm text-white">{col.label}</span>
+                        <span className="font-bold text-sm text-slate-900">{col.label}</span>
                         <span className="text-xs text-gray-400 bg-gray-700/50 px-2 py-0.5 rounded-full">
                             {col.tickets.length}
                         </span>
@@ -101,8 +101,8 @@ export function KanbanBoard({ columns, onMove, loading = false }: KanbanBoardPro
                     {/* Drop Zone */}
                     <div
                         className={`min-h-[200px] rounded-xl border-2 border-dashed transition-all duration-200 p-2 space-y-2 ${draggingOver === col.id
-                                ? 'border-purple-500/60 bg-purple-500/10'
-                                : 'border-gray-800 bg-gray-900/30'
+                                ? 'border-blue-500/60 bg-blue-500/10'
+                                : 'border-gray-800 bg-white/30'
                             }`}
                     >
                         {col.tickets.length === 0 ? (
@@ -122,8 +122,8 @@ export function KanbanBoard({ columns, onMove, loading = false }: KanbanBoardPro
                                 >
                                     {/* Moving indicator */}
                                     {movingId === ticket.id && (
-                                        <div className="absolute inset-0 flex items-center justify-center bg-gray-900/80 rounded-r-xl z-10">
-                                            <Loader2 className="w-5 h-5 animate-spin text-purple-400" />
+                                        <div className="absolute inset-0 flex items-center justify-center bg-white/80 rounded-r-xl z-10">
+                                            <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
                                         </div>
                                     )}
 

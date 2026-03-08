@@ -24,7 +24,7 @@ interface Project {
 
 const COLUMNS = ['todo', 'in_progress', 'done'];
 const COLUMN_LABELS: Record<string, string> = { todo: 'Backlog', in_progress: 'Produção', done: 'Concluído' };
-const COLUMN_COLORS: Record<string, string> = { todo: 'bg-slate-100 text-slate-500', in_progress: 'bg-indigo-50 text-indigo-600', done: 'bg-emerald-50 text-emerald-600' };
+const COLUMN_COLORS: Record<string, string> = { todo: 'bg-slate-100 text-slate-9000', in_progress: 'bg-indigo-50 text-indigo-600', done: 'bg-emerald-50 text-emerald-600' };
 
 export default function ProjectsPage() {
     const [projects, setProjects] = useState<Project[]>([]);
@@ -87,7 +87,7 @@ export default function ProjectsPage() {
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                     <div>
                         <h1 className="text-4xl font-black text-slate-900 tracking-tight mb-2">Projetos <span className="text-indigo-600">& Kanban</span></h1>
-                        <p className="text-slate-500 font-medium tracking-tight">Orquestração avançada de entregas e produtividade em tempo real.</p>
+                        <p className="text-slate-9000 font-medium tracking-tight">Orquestração avançada de entregas e produtividade em tempo real.</p>
                     </div>
 
                     <div className="flex items-center gap-3">
@@ -108,7 +108,7 @@ export default function ProjectsPage() {
                         </div>
                         <div>
                             <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mb-1">Carga Horária</p>
-                            <p className="text-2xl font-black text-slate-900 tracking-tight">428h <span className="text-xs text-slate-300 font-bold tracking-normal italic uppercase">/mês</span></p>
+                            <p className="text-2xl font-black text-slate-900 tracking-tight">428h <span className="text-xs text-slate-700 font-bold tracking-normal italic uppercase">/mês</span></p>
                         </div>
                     </div>
                     <div className="bg-white border border-slate-100 p-6 rounded-[2rem] shadow-sm flex items-center gap-5">
@@ -117,7 +117,7 @@ export default function ProjectsPage() {
                         </div>
                         <div>
                             <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mb-1">Entregas</p>
-                            <p className="text-2xl font-black text-slate-900 tracking-tight">12 <span className="text-xs text-slate-300 font-bold tracking-normal italic uppercase">concluídas</span></p>
+                            <p className="text-2xl font-black text-slate-900 tracking-tight">12 <span className="text-xs text-slate-700 font-bold tracking-normal italic uppercase">concluídas</span></p>
                         </div>
                     </div>
                     <div className="bg-white border border-slate-100 p-6 rounded-[2rem] shadow-sm flex items-center gap-5">
@@ -126,7 +126,7 @@ export default function ProjectsPage() {
                         </div>
                         <div>
                             <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mb-1">Backlog</p>
-                            <p className="text-2xl font-black text-slate-900 tracking-tight">{tasks.length} <span className="text-xs text-slate-300 font-bold tracking-normal italic uppercase">pendentes</span></p>
+                            <p className="text-2xl font-black text-slate-900 tracking-tight">{tasks.length} <span className="text-xs text-slate-700 font-bold tracking-normal italic uppercase">pendentes</span></p>
                         </div>
                     </div>
                 </div>
@@ -145,7 +145,7 @@ export default function ProjectsPage() {
                         </div>
                         <div className="flex gap-2 w-full md:w-auto">
                             <select
-                                className="flex-1 md:w-60 bg-slate-50 border border-transparent rounded-[1.5rem] px-6 py-4 text-xs font-black uppercase tracking-widest focus:bg-white focus:border-indigo-100 outline-none transition-all appearance-none text-slate-500"
+                                className="flex-1 md:w-60 bg-slate-50 border border-transparent rounded-[1.5rem] px-6 py-4 text-xs font-black uppercase tracking-widest focus:bg-white focus:border-indigo-100 outline-none transition-all appearance-none text-slate-9000"
                                 value={newTask.project_id}
                                 onChange={e => setNewTask({ ...newTask, project_id: parseInt(e.target.value) })}
                             >
@@ -191,16 +191,16 @@ export default function ProjectsPage() {
                                             <div className="flex items-center justify-between pt-4 border-t border-slate-50">
                                                 <div className="flex gap-2">
                                                     {col !== 'todo' && (
-                                                        <button onClick={() => moveTask(task.id, COLUMNS[COLUMNS.indexOf(col) - 1])} className="w-8 h-8 rounded-xl bg-slate-50 text-slate-300 hover:bg-slate-100 hover:text-slate-600 transition-all flex items-center justify-center">←</button>
+                                                        <button onClick={() => moveTask(task.id, COLUMNS[COLUMNS.indexOf(col) - 1])} className="w-8 h-8 rounded-xl bg-slate-50 text-slate-700 hover:bg-slate-100 hover:text-slate-600 transition-all flex items-center justify-center">←</button>
                                                     )}
                                                     {col !== 'done' && (
-                                                        <button onClick={() => moveTask(task.id, COLUMNS[COLUMNS.indexOf(col) + 1])} className="w-8 h-8 rounded-xl bg-slate-50 text-slate-300 hover:bg-slate-100 hover:text-slate-600 transition-all flex items-center justify-center">→</button>
+                                                        <button onClick={() => moveTask(task.id, COLUMNS[COLUMNS.indexOf(col) + 1])} className="w-8 h-8 rounded-xl bg-slate-50 text-slate-700 hover:bg-slate-100 hover:text-slate-600 transition-all flex items-center justify-center">→</button>
                                                     )}
                                                 </div>
 
                                                 <button
                                                     onClick={() => handleTimeToggle(task)}
-                                                    className={`h-8 px-4 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-1.5 ${activeTracking[task.id] ? 'bg-rose-500 text-white shadow-lg shadow-rose-100' : 'bg-emerald-600 text-white shadow-lg shadow-emerald-100'}`}
+                                                    className={`h-8 px-4 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-1.5 ${activeTracking[task.id] ? 'bg-rose-500 text-slate-900 shadow-lg shadow-rose-100' : 'bg-emerald-600 text-slate-900 shadow-lg shadow-emerald-100'}`}
                                                 >
                                                     {activeTracking[task.id] ? <Square size={12} fill="currentColor" /> : <Play size={12} fill="currentColor" />}
                                                     {activeTracking[task.id] ? 'Stop' : 'Play'}
@@ -218,7 +218,7 @@ export default function ProjectsPage() {
             {/* Create Project Modal */}
             <AnimatePresence>
                 {showForm && (
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4" onClick={() => setShowForm(false)}>
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-50/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4" onClick={() => setShowForm(false)}>
                         <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} className="bg-white w-full max-w-md p-10 rounded-[2.8rem] shadow-2xl relative" onClick={e => e.stopPropagation()}>
                             <div className="flex justify-between items-center mb-10">
                                 <h2 className="text-2xl font-black text-slate-900 tracking-tight">Novo Escopo</h2>

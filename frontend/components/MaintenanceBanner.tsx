@@ -18,7 +18,7 @@ const BANNER_STYLES = {
         iconColor: 'text-yellow-200',
     },
     warning: {
-        bg: 'bg-gradient-to-r from-red-600/90 to-pink-600/90',
+        bg: 'bg-gradient-to-r from-red-600/90 to-red-700/90',
         border: 'border-red-500/30',
         icon: AlertTriangle,
         iconColor: 'text-red-200',
@@ -71,15 +71,15 @@ export function MaintenanceBanner() {
         <div className={`fixed top-0 left-0 right-0 z-[100] ${style.bg} ${style.border} border-b backdrop-blur-xl`}>
             <div className="max-w-7xl mx-auto px-4 py-2.5 flex items-center justify-center gap-3">
                 <Icon className={`w-4 h-4 ${style.iconColor} shrink-0 animate-pulse`} />
-                <p className="text-sm text-white font-medium">
+                <p className="text-sm text-slate-900 font-medium">
                     {banner.message}
                     {banner.eta && (
-                        <span className="text-white/70 ml-2">(Previsão: {banner.eta})</span>
+                        <span className="text-slate-900/70 ml-2">(Previsão: {banner.eta})</span>
                     )}
                 </p>
                 <button
                     onClick={() => setDismissed(true)}
-                    className="text-white/60 hover:text-white transition ml-2 shrink-0"
+                    className="text-slate-900/60 hover:text-slate-900 transition ml-2 shrink-0"
                     aria-label="Dismiss banner"
                 >
                     <X className="w-4 h-4" />

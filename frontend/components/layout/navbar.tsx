@@ -7,24 +7,24 @@ export function Navbar() {
     const [isOpen, setIsOpen] = useState(false)
 
     return (
-        <nav className="fixed top-0 z-50 w-full border-b border-zinc-800 bg-black/50 backdrop-blur-lg">
+        <nav className="fixed top-0 z-50 w-full border-b border-zinc-800 bg-white/50 backdrop-blur-lg">
             <div className="container mx-auto flex h-16 items-center justify-between px-4">
                 <Link href="/" className="flex items-center space-x-2">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-pink-500">
-                        <Bot className="h-5 w-5 text-white" />
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-blue-600">
+                        <Bot className="h-5 w-5 text-slate-900" />
                     </div>
                     <span className="text-xl font-bold tracking-tight">Innovation.ia</span>
                 </Link>
 
                 {/* Desktop Menu */}
                 <div className="hidden md:flex md:items-center md:space-x-8">
-                    <Link href="/solutions" className="text-sm font-medium text-zinc-400 hover:text-white transition-colors">
+                    <Link href="/solutions" className="text-sm font-medium text-zinc-400 hover:text-slate-900 transition-colors">
                         Soluções
                     </Link>
-                    <Link href="/pricing" className="text-sm font-medium text-zinc-400 hover:text-white transition-colors">
+                    <Link href="/pricing" className="text-sm font-medium text-zinc-400 hover:text-slate-900 transition-colors">
                         Preços
                     </Link>
-                    <Link href="/about" className="text-sm font-medium text-zinc-400 hover:text-white transition-colors">
+                    <Link href="/about" className="text-sm font-medium text-zinc-400 hover:text-slate-900 transition-colors">
                         Sobre
                     </Link>
                     <div className="flex items-center space-x-4">
@@ -45,15 +45,15 @@ export function Navbar() {
 
             {/* Mobile Menu */}
             {isOpen && (
-                <div className="border-b border-zinc-800 bg-black md:hidden">
+                <div className="border-b border-zinc-800 bg-white md:hidden">
                     <div className="flex flex-col space-y-4 p-4">
-                        <Link href="/solutions" className="text-sm font-medium text-zinc-400 hover:text-white">
+                        <Link href="/solutions" className="text-sm font-medium text-zinc-400 hover:text-slate-900">
                             Soluções
                         </Link>
-                        <Link href="/pricing" className="text-sm font-medium text-zinc-400 hover:text-white">
+                        <Link href="/pricing" className="text-sm font-medium text-zinc-400 hover:text-slate-900">
                             Preços
                         </Link>
-                        <Link href="/about" className="text-sm font-medium text-zinc-400 hover:text-white">
+                        <Link href="/about" className="text-sm font-medium text-zinc-400 hover:text-slate-900">
                             Sobre
                         </Link>
                         <hr className="border-zinc-800" />
