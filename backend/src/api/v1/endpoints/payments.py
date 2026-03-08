@@ -99,13 +99,16 @@ async def asaas_webhook(request: Request, db: Session = Depends(get_db)):
     asaas_token = request.headers.get("asaas-access-token")
 
     import os
+    import secrets
     expected_token = os.getenv("ASAAS_WEBHOOK_TOKEN")
 
-    if expected_token:
-        # Se você configurou no Asaas um token na URL de Webhook, compare aqui.
-        if asaas_token != expected_token:
-            print("⚠️ Token de Webhook do Asaas inválido.")
-            raise HTTPException(status_code=401, detail="Token Asaas inválido")
+    if not expected_token:
+        print("⚠️ Token de Webhook do Asaas não configurado. Rejeitando requisição por segurança.")
+        raise HTTPException(status_code=500, detail="Erro de configuração interna")
+
+    if not asaas_token or not secrets.compare_digest(asaas_token, expected_token):
+        print("⚠️ Token de Webhook do Asaas inválido.")
+        raise HTTPException(status_code=401, detail="Token Asaas inválido")
     
     event = data.get("event")
     payment_data = data.get("payment", {})
