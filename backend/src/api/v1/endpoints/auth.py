@@ -21,8 +21,11 @@ from services.auth_service import authenticate_user, register_user
 from services.two_factor_service import request_code, verify_code
 from core.config import settings
 import httpx
+import logging
 from core.security import create_access_token, create_refresh_token
 from starlette.concurrency import run_in_threadpool
+
+logger = logging.getLogger(__name__)
 
 limiter = Limiter(key_func=get_remote_address)
 router = APIRouter(prefix="/api/auth", tags=["Auth"])
@@ -147,10 +150,10 @@ async def forgot_password(data: dict, db: Session = Depends(get_db)):
         # Don't reveal if user exists for security, just return success
         return {"message": "Se o email existir, um link de recuperação será enviado."}
 
-    token = create_reset_token(user.id)
+    _ = create_reset_token(user.id)
     # Em um app real, enviaria o e-mail aqui.
     # Por enquanto, apenas retornamos sucesso. O token seria incluído no link do e-mail.
-    print(f"DEBUG: Password reset token for {email}: {token}")
+    logger.info(f"Password reset requested for user {user.id}")
     return {"message": "Link de recuperação enviado com sucesso."}
 
 

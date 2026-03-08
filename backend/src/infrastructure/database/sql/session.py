@@ -26,11 +26,11 @@ else:
         echo=False,
         future=True,
         connect_args=_connect_args,
-        pool_pre_ping=True,        # Valida conexão antes de usar
-        pool_timeout=10,           # Timeout para obter conexão do pool
-        pool_recycle=300,          # Recicla conexões a cada 5 min
-        pool_size=5,               # Tamanho do pool
-        max_overflow=10,           # Conexões extras além do pool
+        pool_pre_ping=True,  # Valida conexão antes de usar
+        pool_timeout=10,  # Timeout para obter conexão do pool
+        pool_recycle=300,  # Recicla conexões a cada 5 min
+        pool_size=5,  # Tamanho do pool
+        max_overflow=10,  # Conexões extras além do pool
     )
 
 SessionLocal = sessionmaker(
