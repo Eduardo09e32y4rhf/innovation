@@ -144,7 +144,12 @@ export default function SupportPage() {
                             <div className="bg-zinc-900 border border-zinc-700 rounded-2xl p-6 w-full max-w-md">
                                 <div className="flex justify-between items-center mb-4">
                                     <h3 className="text-lg font-semibold">Abrir Chamado</h3>
-                                    <button onClick={() => setShowModal(false)}><X className="w-5 h-5 text-gray-400" /></button>
+                                    <button
+                                        onClick={() => setShowModal(false)}
+                                        aria-label="Fechar"
+                                    >
+                                        <X className="w-5 h-5 text-gray-400" />
+                                    </button>
                                 </div>
                                 <div className="space-y-3">
                                     <input className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm" placeholder="Título do problema" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} />

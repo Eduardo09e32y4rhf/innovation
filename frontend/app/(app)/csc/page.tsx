@@ -297,7 +297,13 @@ export default function CSCPage() {
                         <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} className="bg-white w-full max-w-xl p-10 rounded-[2.8rem] shadow-2xl relative" onClick={e => e.stopPropagation()}>
                             <div className="flex justify-between items-center mb-10">
                                 <h2 className="text-2xl font-black text-slate-900 tracking-tight">Novo Conhecimento</h2>
-                                <button onClick={() => setShowArticleForm(false)} className="p-3 bg-slate-50 rounded-2xl text-slate-400 hover:bg-slate-100 transition-all"><X size={20} /></button>
+                                <button
+                                    onClick={() => setShowArticleForm(false)}
+                                    className="p-3 bg-slate-50 rounded-2xl text-slate-400 hover:bg-slate-100 transition-all"
+                                    aria-label="Fechar"
+                                >
+                                    <X size={20} />
+                                </button>
                             </div>
 
                             <div className="space-y-6">

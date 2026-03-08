@@ -134,7 +134,10 @@ export default function ATSPage() {
                                 <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
                                 <input type="text" placeholder="Filtrar vagas..." className="w-full bg-slate-50 border border-slate-100 rounded-xl py-2.5 pl-11 pr-4 text-xs font-medium focus:ring-4 focus:ring-indigo-50 outline-none transition-all" />
                             </div>
-                            <button className="p-2.5 bg-slate-50 rounded-xl border border-slate-100 text-slate-400 hover:text-indigo-600 transition-all">
+                            <button
+                                className="p-2.5 bg-slate-50 rounded-xl border border-slate-100 text-slate-400 hover:text-indigo-600 transition-all"
+                                aria-label="Filtrar vagas"
+                            >
                                 <Filter size={18} />
                             </button>
                         </div>
@@ -214,7 +217,13 @@ export default function ATSPage() {
                         <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} className="bg-white w-full max-w-xl p-10 rounded-[2.8rem] shadow-2xl relative" onClick={e => e.stopPropagation()}>
                             <div className="flex justify-between items-center mb-10">
                                 <h2 className="text-2xl font-black text-slate-900 tracking-tight">Nova Oportunidade</h2>
-                                <button onClick={() => setShowCreate(false)} className="p-3 bg-slate-50 rounded-2xl text-slate-400 hover:bg-slate-100 transition-all"><X size={20} /></button>
+                                <button
+                                    onClick={() => setShowCreate(false)}
+                                    className="p-3 bg-slate-50 rounded-2xl text-slate-400 hover:bg-slate-100 transition-all"
+                                    aria-label="Fechar"
+                                >
+                                    <X size={20} />
+                                </button>
                             </div>
 
                             <div className="space-y-6">
