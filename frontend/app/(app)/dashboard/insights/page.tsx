@@ -61,7 +61,7 @@ export default function InsightsPage() {
                         <button
                             onClick={runAnalysis}
                             disabled={analyzing}
-                            className="relative group overflow-hidden bg-white text-black px-8 py-4 rounded-2xl font-bold transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
+                            className="relative group overflow-hidden bg-white border border-slate-200 border-black/5 shadow-sm text-black px-8 py-4 rounded-2xl font-bold transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
                         >
                             <div className="relative z-10 flex items-center gap-2">
                                 {analyzing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
@@ -178,7 +178,7 @@ export default function InsightsPage() {
                             </div>
                             <div className="flex gap-2">
                                 {['7D', '1M', '3M', '1Y'].map(t => (
-                                    <button key={t} className={`px-3 py-1.5 rounded-lg text-[10px] font-black transition-all ${t === '1M' ? 'bg-white text-black' : 'text-white/40 hover:text-white'}`}>
+                                    <button key={t} className={`px-3 py-1.5 rounded-lg text-[10px] font-black transition-all ${t === '1M' ? 'bg-white border border-slate-200 border-black/5 shadow-sm text-black' : 'text-white/40 hover:text-white'}`}>
                                         {t}
                                     </button>
                                 ))}
@@ -192,7 +192,7 @@ export default function InsightsPage() {
                                         className="w-full bg-gradient-to-t from-purple-600/20 to-purple-500 rounded-t-lg transition-all duration-1000 group-hover:from-purple-500 group-hover:to-purple-300 relative"
                                         style={{ height: `${val}%` }}
                                     >
-                                        <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-white text-black text-[9px] font-black px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-white border border-slate-200 border-black/5 shadow-sm text-black text-[9px] font-black px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity">
                                             {val}
                                         </div>
                                     </div>

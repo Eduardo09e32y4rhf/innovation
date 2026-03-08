@@ -66,7 +66,7 @@ const KanbanCard = ({ candidato }: { candidato: any }) => {
     const match = getMatchStatus(candidato.matchIA);
 
     return (
-        <div className="bg-white border border-slate-200 hover:border-blue-400 p-4 rounded-xl cursor-grab active:cursor-grabbing transition-all group flex flex-col gap-3 shadow-sm relative">
+        <div className="bg-white border border-slate-200 border-black/5 shadow-sm border border-slate-200 hover:border-blue-400 p-4 rounded-xl cursor-grab active:cursor-grabbing transition-all group flex flex-col gap-3 shadow-sm relative">
 
             <div
                 className="absolute left-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 text-slate-400 transition-opacity cursor-grab active:cursor-grabbing"
@@ -184,7 +184,7 @@ export default function RecrutamentoPage() {
             <div className="h-full flex flex-col overflow-hidden selection:bg-blue-500/30 bg-slate-50">
 
                 {/* BARRA DE FERRAMENTAS E IA */}
-                <div className="bg-white px-6 py-3 border-b border-slate-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 flex-shrink-0 shadow-sm">
+                <div className="bg-white border border-slate-200 border-black/5 shadow-sm px-6 py-3 border-b border-slate-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 flex-shrink-0 shadow-sm">
 
                     <div className="flex items-center gap-2 w-full md:w-auto">
                         <div className="relative w-full md:w-72">
@@ -195,7 +195,7 @@ export default function RecrutamentoPage() {
                                 className="w-full bg-slate-50 border border-slate-200 rounded-md py-1.5 pl-8 pr-3 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 ring-blue-500/50 transition-all text-slate-900 placeholder:text-slate-400"
                             />
                         </div>
-                        <button className="bg-white border border-slate-200 hover:border-slate-300 p-1.5 rounded-md text-slate-400 transition-colors shadow-sm">
+                        <button className="bg-white border border-slate-200 border-black/5 shadow-sm border border-slate-200 hover:border-slate-300 p-1.5 rounded-md text-slate-400 transition-colors shadow-sm">
                             <Filter size={16} />
                         </button>
                     </div>
@@ -226,7 +226,7 @@ export default function RecrutamentoPage() {
                     <div className="flex gap-4 h-full min-w-max pb-2">
 
                         <div
-                            className="w-[300px] md:w-[320px] flex flex-col flex-shrink-0 bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm"
+                            className="w-[300px] md:w-[320px] flex flex-col flex-shrink-0 bg-white border border-slate-200 border-black/5 shadow-sm border border-slate-200 rounded-xl overflow-hidden shadow-sm"
                             onDragOver={onDragOver}
                             onDrop={(e) => onDrop(e, 'novos')}
                         >
@@ -266,7 +266,7 @@ export default function RecrutamentoPage() {
                         </div>
 
                         <div
-                            className="w-[300px] md:w-[320px] flex flex-col flex-shrink-0 bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm"
+                            className="w-[300px] md:w-[320px] flex flex-col flex-shrink-0 bg-white border border-slate-200 border-black/5 shadow-sm border border-slate-200 rounded-xl overflow-hidden shadow-sm"
                             onDragOver={onDragOver}
                             onDrop={(e) => onDrop(e, 'entrevista')}
                         >
@@ -285,7 +285,7 @@ export default function RecrutamentoPage() {
                         </div>
 
                         <div
-                            className="w-[300px] md:w-[320px] flex flex-col flex-shrink-0 bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm"
+                            className="w-[300px] md:w-[320px] flex flex-col flex-shrink-0 bg-white border border-slate-200 border-black/5 shadow-sm border border-slate-200 rounded-xl overflow-hidden shadow-sm"
                             onDragOver={onDragOver}
                             onDrop={(e) => onDrop(e, 'proposta')}
                         >

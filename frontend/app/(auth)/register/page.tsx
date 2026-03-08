@@ -176,7 +176,7 @@ export default function RegisterPage() {
                                 </div>
 
                                 <Button
-                                    className="w-full h-12 bg-white text-black hover:bg-zinc-200 rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all relative overflow-hidden group shadow-xl shadow-white/5 mt-4"
+                                    className="w-full h-12 bg-white border border-slate-200 border-black/5 shadow-sm text-black hover:bg-zinc-200 rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all relative overflow-hidden group shadow-xl shadow-white/5 mt-4"
                                     disabled={loading || success}
                                 >
                                     <span className="relative z-10 flex items-center justify-center gap-2">

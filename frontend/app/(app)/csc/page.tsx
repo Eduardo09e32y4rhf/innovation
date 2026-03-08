@@ -84,7 +84,7 @@ export default function CSCPage() {
 
                 {/* Dashboard KPIs */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                    <div className="bg-white border border-slate-100 p-6 rounded-[2rem] shadow-sm flex items-center gap-5">
+                    <div className="bg-white border border-slate-200 border-black/5 shadow-sm border border-slate-100 p-6 rounded-[2rem] shadow-sm flex items-center gap-5">
                         <div className="w-14 h-14 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600 shadow-inner">
                             <Layers size={24} />
                         </div>
@@ -93,7 +93,7 @@ export default function CSCPage() {
                             <p className="text-2xl font-black text-slate-900 tracking-tight">{totalTickets}</p>
                         </div>
                     </div>
-                    <div className="bg-white border border-slate-100 p-6 rounded-[2rem] shadow-sm flex items-center gap-5">
+                    <div className="bg-white border border-slate-200 border-black/5 shadow-sm border border-slate-100 p-6 rounded-[2rem] shadow-sm flex items-center gap-5">
                         <div className="w-14 h-14 rounded-2xl bg-amber-50 flex items-center justify-center text-amber-600 shadow-inner">
                             <Star size={24} />
                         </div>
@@ -102,7 +102,7 @@ export default function CSCPage() {
                             <p className="text-2xl font-black text-slate-900 tracking-tight">{csat?.average || '—'}</p>
                         </div>
                     </div>
-                    <div className={`bg-white border p-6 rounded-[2rem] shadow-sm flex items-center gap-5 ${spikes?.is_spike ? 'border-rose-200 bg-rose-50/30' : 'border-slate-100'}`}>
+                    <div className={`bg-white border border-slate-200 border-black/5 shadow-sm border p-6 rounded-[2rem] shadow-sm flex items-center gap-5 ${spikes?.is_spike ? 'border-rose-200 bg-rose-50/30' : 'border-slate-100'}`}>
                         <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-inner ${spikes?.is_spike ? 'bg-rose-100 text-rose-600' : 'bg-slate-50 text-slate-400'}`}>
                             <TrendingUp size={24} />
                         </div>
@@ -111,7 +111,7 @@ export default function CSCPage() {
                             <p className={`text-2xl font-black tracking-tight ${spikes?.is_spike ? 'text-rose-600' : 'text-slate-900'}`}>{spikes?.tickets_last_hour ?? '0'}</p>
                         </div>
                     </div>
-                    <div className="bg-white border border-slate-100 p-6 rounded-[2rem] shadow-sm flex items-center gap-5">
+                    <div className="bg-white border border-slate-200 border-black/5 shadow-sm border border-slate-100 p-6 rounded-[2rem] shadow-sm flex items-center gap-5">
                         <div className="w-14 h-14 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-600 shadow-inner">
                             <BookOpen size={24} />
                         </div>
@@ -123,7 +123,7 @@ export default function CSCPage() {
                 </div>
 
                 {/* Tabs */}
-                <div className="bg-white border border-slate-100 p-2 rounded-[2.2rem] shadow-sm flex gap-2">
+                <div className="bg-white border border-slate-200 border-black/5 shadow-sm border border-slate-100 p-2 rounded-[2.2rem] shadow-sm flex gap-2">
                     {[
                         { id: 'queues', label: 'Filas & SLA', icon: Layers },
                         { id: 'kb', label: 'Base de Conhecimento', icon: BookOpen },
@@ -147,27 +147,27 @@ export default function CSCPage() {
                 </div>
 
                 {/* Content Area */}
-                <div className="bg-white border border-slate-100 rounded-[2.5rem] p-8 shadow-sm min-h-[500px]">
+                <div className="bg-white border border-slate-200 border-black/5 shadow-sm border border-slate-100 rounded-[2.5rem] p-8 shadow-sm min-h-[500px]">
                     <AnimatePresence mode="wait">
                         {activeTab === 'queues' && (
                             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} key="queues" className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                 {QUEUES.map(queue => {
                                     const q = queues[queue] || { count: 0, sla_hours: 0, tickets: [] };
                                     return (
-                                        <div key={queue} className="p-6 rounded-[2.2rem] bg-slate-50/50 border border-slate-100 hover:border-indigo-100 hover:bg-white transition-all group">
+                                        <div key={queue} className="p-6 rounded-[2.2rem] bg-slate-50/50 border border-slate-100 hover:border-indigo-100 hover:bg-white border border-slate-200 border-black/5 shadow-sm transition-all group">
                                             <div className="flex items-center justify-between mb-6">
                                                 <div>
                                                     <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest">{queue} — {QUEUE_LABELS[queue]}</h3>
                                                     <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">SLA Objetivo: {q.sla_hours}h</p>
                                                 </div>
-                                                <div className="w-12 h-12 rounded-2xl bg-white border border-slate-100 flex items-center justify-center shadow-sm">
+                                                <div className="w-12 h-12 rounded-2xl bg-white border border-slate-200 border-black/5 shadow-sm border border-slate-100 flex items-center justify-center shadow-sm">
                                                     <span className="text-lg font-black text-indigo-600">{q.count}</span>
                                                 </div>
                                             </div>
 
                                             <div className="space-y-2">
                                                 {q.tickets?.slice(0, 4).map((t: any) => (
-                                                    <div key={t.id} className="flex items-center justify-between p-3 bg-white border border-slate-50 rounded-xl group-hover:border-slate-100 transition-all">
+                                                    <div key={t.id} className="flex items-center justify-between p-3 bg-white border border-slate-200 border-black/5 shadow-sm border border-slate-50 rounded-xl group-hover:border-slate-100 transition-all">
                                                         <span className="text-[11px] font-bold text-slate-600 truncate flex-1 tracking-tight pr-4">{t.title}</span>
                                                         <span className={`px-2.5 py-1 rounded-full text-[8px] font-black uppercase tracking-widest border ${t.sla_breached ? 'bg-rose-50 text-rose-600 border-rose-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100'
                                                             }`}>
@@ -196,7 +196,7 @@ export default function CSCPage() {
                                         <input
                                             type="text"
                                             placeholder="Buscar na inteligência coletiva..."
-                                            className="w-full bg-slate-50 border border-transparent rounded-[1.8rem] px-14 py-4 text-sm font-medium focus:bg-white focus:border-indigo-100 outline-none transition-all"
+                                            className="w-full bg-slate-50 border border-transparent rounded-[1.8rem] px-14 py-4 text-sm font-medium focus:bg-white border border-slate-200 border-black/5 shadow-sm focus:border-indigo-100 outline-none transition-all"
                                             value={kbSearch}
                                             onChange={e => setKbSearch(e.target.value)}
                                         />
@@ -208,7 +208,7 @@ export default function CSCPage() {
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     {filteredKb.map(article => (
-                                        <div key={article.id} className="p-8 rounded-[2.5rem] bg-white border border-slate-100 hover:border-indigo-100 shadow-sm hover:shadow-xl hover:shadow-indigo-100/20 transition-all cursor-pointer group">
+                                        <div key={article.id} className="p-8 rounded-[2.5rem] bg-white border border-slate-200 border-black/5 shadow-sm border border-slate-100 hover:border-indigo-100 shadow-sm hover:shadow-xl hover:shadow-indigo-100/20 transition-all cursor-pointer group">
                                             <div className="flex justify-between items-start mb-4">
                                                 <span className="bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border border-indigo-100">{article.category || 'Geral'}</span>
                                             </div>
@@ -255,7 +255,7 @@ export default function CSCPage() {
                                     </div>
                                 </div>
 
-                                <div className="bg-white border border-slate-100 p-8 rounded-[2.5rem] shadow-sm">
+                                <div className="bg-white border border-slate-200 border-black/5 shadow-sm border border-slate-100 p-8 rounded-[2.5rem] shadow-sm">
                                     <div className="flex items-center gap-3 mb-8">
                                         <Star size={24} className="text-amber-500" />
                                         <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Satisfação CSAT</h3>
@@ -294,7 +294,7 @@ export default function CSCPage() {
             <AnimatePresence>
                 {showArticleForm && (
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4" onClick={() => setShowArticleForm(false)}>
-                        <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} className="bg-white w-full max-w-xl p-10 rounded-[2.8rem] shadow-2xl relative" onClick={e => e.stopPropagation()}>
+                        <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} className="bg-white border border-slate-200 border-black/5 shadow-sm w-full max-w-xl p-10 rounded-[2.8rem] shadow-2xl relative" onClick={e => e.stopPropagation()}>
                             <div className="flex justify-between items-center mb-10">
                                 <h2 className="text-2xl font-black text-slate-900 tracking-tight">Novo Conhecimento</h2>
                                 <button onClick={() => setShowArticleForm(false)} className="p-3 bg-slate-50 rounded-2xl text-slate-400 hover:bg-slate-100 transition-all"><X size={20} /></button>

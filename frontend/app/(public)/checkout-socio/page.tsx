@@ -55,9 +55,9 @@ export default function CheckoutSocioPage() {
                         exit={{ opacity: 0, scale: 1.05 }}
                         className="w-full max-w-md mt-10 px-4 relative z-10"
                     >
-                        <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+                        <div className="bg-white border border-slate-200 border-black/5 shadow-sm rounded-2xl shadow-xl overflow-hidden">
                             <div className="bg-[#009ee3]/10 p-6 flex flex-col items-center border-b border-gray-100">
-                                <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-sm mb-3">
+                                <div className="w-16 h-16 bg-white border border-slate-200 border-black/5 shadow-sm rounded-full flex items-center justify-center shadow-sm mb-3">
                                     <span className="text-2xl">🚀</span>
                                 </div>
                                 <h1 className="text-xl font-bold text-gray-800">Assinatura Innovation.ia</h1>

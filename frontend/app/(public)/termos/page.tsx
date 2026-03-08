@@ -23,7 +23,7 @@ export default function TermosDeUso() {
         <div className="min-h-screen bg-zinc-50 text-zinc-900 font-sans selection:bg-violet-200 selection:text-violet-900">
 
             {/* Navbar Simples */}
-            <nav className="bg-white border-b border-zinc-200 py-4 sticky top-0 z-50">
+            <nav className="bg-white border border-slate-200 border-black/5 shadow-sm border-b border-zinc-200 py-4 sticky top-0 z-50">
                 <div className="max-w-4xl mx-auto px-6 flex items-center justify-between">
                     <button
                         onClick={() => {
@@ -47,7 +47,7 @@ export default function TermosDeUso() {
             </nav>
 
             {/* Cabeçalho do Documento */}
-            <header className="pt-20 pb-12 px-6 bg-white border-b border-zinc-100">
+            <header className="pt-20 pb-12 px-6 bg-white border border-slate-200 border-black/5 shadow-sm border-b border-zinc-100">
                 <div className="max-w-4xl mx-auto text-center">
                     <div className="inline-flex items-center justify-center w-16 h-16 bg-violet-100 text-violet-700 rounded-2xl mb-6 shadow-sm">
                         <FileText size={32} />
@@ -63,7 +63,7 @@ export default function TermosDeUso() {
 
             {/* Conteúdo dos Termos */}
             <main className="py-16 px-6">
-                <div className="max-w-3xl mx-auto bg-white p-8 md:p-12 rounded-[2.5rem] shadow-xl shadow-zinc-200/50 border border-zinc-100">
+                <div className="max-w-3xl mx-auto bg-white border border-slate-200 border-black/5 shadow-sm p-8 md:p-12 rounded-[2.5rem] shadow-xl shadow-zinc-200/50 border border-zinc-100">
                     <div className="prose prose-zinc prose-lg max-w-none">
 
                         <p className="text-xl text-zinc-600 font-medium mb-8">

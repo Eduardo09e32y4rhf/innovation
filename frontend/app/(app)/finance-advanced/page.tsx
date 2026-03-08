@@ -68,7 +68,7 @@ export default function FinanceAdvancedPage() {
                 </div>
 
                 {/* Tabs Multi-Select */}
-                <div className="bg-white border border-slate-100 p-2 rounded-[2.2rem] shadow-sm flex flex-wrap gap-2">
+                <div className="bg-white border border-slate-200 border-black/5 shadow-sm border border-slate-100 p-2 rounded-[2.2rem] shadow-sm flex flex-wrap gap-2">
                     {[
                         { id: 'costs', label: 'Centros de Custo', icon: PieChart },
                         { id: 'payroll', label: 'Custo da Folha', icon: Building2 },
@@ -93,7 +93,7 @@ export default function FinanceAdvancedPage() {
                 </div>
 
                 {/* Content Area */}
-                <div className="bg-white border border-slate-100 rounded-[2.5rem] p-10 shadow-sm min-h-[500px]">
+                <div className="bg-white border border-slate-200 border-black/5 shadow-sm border border-slate-100 rounded-[2.5rem] p-10 shadow-sm min-h-[500px]">
                     <AnimatePresence mode="wait">
                         {activeTab === 'costs' && (
                             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} key="costs">
@@ -112,7 +112,7 @@ export default function FinanceAdvancedPage() {
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                         <div className="space-y-4">
                                             {costCenters.cost_centers?.map((c: any, i: number) => (
-                                                <div key={c.category} className="group p-5 rounded-2xl bg-white border border-slate-100 hover:border-indigo-100 hover:shadow-lg transition-all">
+                                                <div key={c.category} className="group p-5 rounded-2xl bg-white border border-slate-200 border-black/5 shadow-sm border border-slate-100 hover:border-indigo-100 hover:shadow-lg transition-all">
                                                     <div className="flex items-center justify-between mb-3">
                                                         <span className="text-xs font-black text-slate-900 uppercase tracking-widest">{c.category}</span>
                                                         <span className="text-xs font-black text-indigo-600">R$ {Number(c.total).toLocaleString('pt-BR')}</span>
@@ -149,7 +149,7 @@ export default function FinanceAdvancedPage() {
                                     <h2 className="text-xl font-black text-slate-900 uppercase tracking-tighter flex items-center gap-3">
                                         <Building2 size={24} className="text-indigo-600" /> Simulador de Custo Real (Folha)
                                     </h2>
-                                    <button onClick={addEmployee} className="text-[10px] font-black uppercase text-indigo-600 tracking-widest bg-indigo-50 px-4 py-2 rounded-xl border border-indigo-100 hover:bg-white transition-all">Adicionar Talento</button>
+                                    <button onClick={addEmployee} className="text-[10px] font-black uppercase text-indigo-600 tracking-widest bg-indigo-50 px-4 py-2 rounded-xl border border-indigo-100 hover:bg-white border border-slate-200 border-black/5 shadow-sm transition-all">Adicionar Talento</button>
                                 </div>
 
                                 <div className="space-y-4">
@@ -157,19 +157,19 @@ export default function FinanceAdvancedPage() {
                                         <div key={i} className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-slate-50/50 p-6 rounded-3xl border border-slate-100">
                                             <div className="space-y-2">
                                                 <label className="text-[9px] font-black uppercase text-slate-400 tracking-widest ml-1">Colaborador</label>
-                                                <input value={emp.employee_name} onChange={e => updateEmployee(i, 'employee_name', e.target.value)} placeholder="Nome" className="w-full bg-white border border-slate-100 rounded-xl px-4 py-3 text-xs font-bold focus:ring-4 focus:ring-indigo-50 outline-none" />
+                                                <input value={emp.employee_name} onChange={e => updateEmployee(i, 'employee_name', e.target.value)} placeholder="Nome" className="w-full bg-white border border-slate-200 border-black/5 shadow-sm border border-slate-100 rounded-xl px-4 py-3 text-xs font-bold focus:ring-4 focus:ring-indigo-50 outline-none" />
                                             </div>
                                             <div className="space-y-2">
                                                 <label className="text-[9px] font-black uppercase text-slate-400 tracking-widest ml-1">Salário Bruto</label>
-                                                <input type="number" value={emp.gross_salary} onChange={e => updateEmployee(i, 'gross_salary', Number(e.target.value))} placeholder="R$ 0,00" className="w-full bg-white border border-slate-100 rounded-xl px-4 py-3 text-xs font-bold focus:ring-4 focus:ring-indigo-50 outline-none" />
+                                                <input type="number" value={emp.gross_salary} onChange={e => updateEmployee(i, 'gross_salary', Number(e.target.value))} placeholder="R$ 0,00" className="w-full bg-white border border-slate-200 border-black/5 shadow-sm border border-slate-100 rounded-xl px-4 py-3 text-xs font-bold focus:ring-4 focus:ring-indigo-50 outline-none" />
                                             </div>
                                             <div className="space-y-2">
                                                 <label className="text-[9px] font-black uppercase text-slate-400 tracking-widest ml-1">Benefícios</label>
-                                                <input type="number" value={emp.benefits} onChange={e => updateEmployee(i, 'benefits', Number(e.target.value))} placeholder="R$ 0,00" className="w-full bg-white border border-slate-100 rounded-xl px-4 py-3 text-xs font-bold focus:ring-4 focus:ring-indigo-50 outline-none" />
+                                                <input type="number" value={emp.benefits} onChange={e => updateEmployee(i, 'benefits', Number(e.target.value))} placeholder="R$ 0,00" className="w-full bg-white border border-slate-200 border-black/5 shadow-sm border border-slate-100 rounded-xl px-4 py-3 text-xs font-bold focus:ring-4 focus:ring-indigo-50 outline-none" />
                                             </div>
                                             <div className="space-y-2">
                                                 <label className="text-[9px] font-black uppercase text-slate-400 tracking-widest ml-1">Equipamentos</label>
-                                                <input type="number" value={emp.equipment_cost} onChange={e => updateEmployee(i, 'equipment_cost', Number(e.target.value))} placeholder="R$ 0,00" className="w-full bg-white border border-slate-100 rounded-xl px-4 py-3 text-xs font-bold focus:ring-4 focus:ring-indigo-50 outline-none" />
+                                                <input type="number" value={emp.equipment_cost} onChange={e => updateEmployee(i, 'equipment_cost', Number(e.target.value))} placeholder="R$ 0,00" className="w-full bg-white border border-slate-200 border-black/5 shadow-sm border border-slate-100 rounded-xl px-4 py-3 text-xs font-bold focus:ring-4 focus:ring-indigo-50 outline-none" />
                                             </div>
                                         </div>
                                     ))}
@@ -190,25 +190,25 @@ export default function FinanceAdvancedPage() {
                                         </div>
                                         <div className="grid grid-cols-1 gap-4">
                                             {payroll.breakdown?.map((emp: any) => (
-                                                <div key={emp.employee} className="bg-slate-50 border border-slate-100 p-6 rounded-3xl group transition-all hover:bg-white hover:border-indigo-100 hover:shadow-lg">
+                                                <div key={emp.employee} className="bg-slate-50 border border-slate-100 p-6 rounded-3xl group transition-all hover:bg-white border border-slate-200 border-black/5 shadow-sm hover:border-indigo-100 hover:shadow-lg">
                                                     <div className="flex justify-between items-center mb-4">
                                                         <span className="text-sm font-black text-slate-900 uppercase tracking-tighter">{emp.employee}</span>
                                                         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Fator Overhead: <span className="text-indigo-600">{emp.overhead_factor}x</span></span>
                                                     </div>
                                                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-                                                        <div className="p-4 bg-white rounded-2xl border border-slate-100 shadow-sm">
+                                                        <div className="p-4 bg-white border border-slate-200 border-black/5 shadow-sm rounded-2xl border border-slate-100 shadow-sm">
                                                             <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest mb-1">Custo Real</p>
                                                             <p className="text-sm font-black text-emerald-600">R$ {Number(emp.total_real_cost).toLocaleString('pt-BR')}</p>
                                                         </div>
-                                                        <div className="p-4 bg-white rounded-2xl border border-slate-100 shadow-sm">
+                                                        <div className="p-4 bg-white border border-slate-200 border-black/5 shadow-sm rounded-2xl border border-slate-100 shadow-sm">
                                                             <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest mb-1">INSS Patronal</p>
                                                             <p className="text-sm font-black text-rose-500">R$ {Number(emp.inss_patronal).toLocaleString('pt-BR')}</p>
                                                         </div>
-                                                        <div className="p-4 bg-white rounded-2xl border border-slate-100 shadow-sm">
+                                                        <div className="p-4 bg-white border border-slate-200 border-black/5 shadow-sm rounded-2xl border border-slate-100 shadow-sm">
                                                             <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest mb-1">FGTS</p>
                                                             <p className="text-sm font-black text-amber-500">R$ {Number(emp.fgts).toLocaleString('pt-BR')}</p>
                                                         </div>
-                                                        <div className="p-4 bg-white rounded-2xl border border-slate-100 shadow-sm">
+                                                        <div className="p-4 bg-white border border-slate-200 border-black/5 shadow-sm rounded-2xl border border-slate-100 shadow-sm">
                                                             <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest mb-1">Provisões</p>
                                                             <p className="text-sm font-black text-indigo-600">R$ {Number(emp.total_real_cost - emp.gross_salary - emp.inss_patronal - emp.fgts).toLocaleString('pt-BR')}</p>
                                                         </div>
@@ -253,7 +253,7 @@ export default function FinanceAdvancedPage() {
 
                                 <div className="grid grid-cols-1 gap-4">
                                     {vouchers.map(v => (
-                                        <div key={v.id} className="flex items-center justify-between p-6 bg-slate-50 border border-slate-100 rounded-3xl hover:bg-white hover:shadow-lg hover:border-indigo-100 transition-all group">
+                                        <div key={v.id} className="flex items-center justify-between p-6 bg-slate-50 border border-slate-100 rounded-3xl hover:bg-white border border-slate-200 border-black/5 shadow-sm hover:shadow-lg hover:border-indigo-100 transition-all group">
                                             <div className="flex items-center gap-4">
                                                 <div className="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600 shadow-inner group-hover:scale-110 transition-transform">
                                                     <FileText size={20} />
@@ -265,7 +265,7 @@ export default function FinanceAdvancedPage() {
                                             </div>
                                             <div className="flex items-center gap-6">
                                                 <p className="text-sm font-black text-slate-900">R$ {Number(v.amount).toLocaleString('pt-BR')}</p>
-                                                <button className="w-10 h-10 rounded-xl bg-white border border-slate-100 flex items-center justify-center text-slate-300 hover:text-indigo-600 hover:border-indigo-100 transition-all shadow-sm">
+                                                <button className="w-10 h-10 rounded-xl bg-white border border-slate-200 border-black/5 shadow-sm border border-slate-100 flex items-center justify-center text-slate-300 hover:text-indigo-600 hover:border-indigo-100 transition-all shadow-sm">
                                                     <ChevronRight size={18} />
                                                 </button>
                                             </div>

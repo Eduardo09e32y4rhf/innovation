@@ -102,7 +102,7 @@ export default function ProjectsPage() {
 
                 {/* KPI Section */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="bg-white border border-slate-100 p-6 rounded-[2rem] shadow-sm flex items-center gap-5">
+                    <div className="bg-white border border-slate-200 border-black/5 shadow-sm border border-slate-100 p-6 rounded-[2rem] shadow-sm flex items-center gap-5">
                         <div className="w-14 h-14 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600 shadow-inner">
                             <Rocket size={24} />
                         </div>
@@ -111,7 +111,7 @@ export default function ProjectsPage() {
                             <p className="text-2xl font-black text-slate-900 tracking-tight">428h <span className="text-xs text-slate-300 font-bold tracking-normal italic uppercase">/mês</span></p>
                         </div>
                     </div>
-                    <div className="bg-white border border-slate-100 p-6 rounded-[2rem] shadow-sm flex items-center gap-5">
+                    <div className="bg-white border border-slate-200 border-black/5 shadow-sm border border-slate-100 p-6 rounded-[2rem] shadow-sm flex items-center gap-5">
                         <div className="w-14 h-14 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-600 shadow-inner">
                             <CheckCircle2 size={24} />
                         </div>
@@ -120,7 +120,7 @@ export default function ProjectsPage() {
                             <p className="text-2xl font-black text-slate-900 tracking-tight">12 <span className="text-xs text-slate-300 font-bold tracking-normal italic uppercase">concluídas</span></p>
                         </div>
                     </div>
-                    <div className="bg-white border border-slate-100 p-6 rounded-[2rem] shadow-sm flex items-center gap-5">
+                    <div className="bg-white border border-slate-200 border-black/5 shadow-sm border border-slate-100 p-6 rounded-[2rem] shadow-sm flex items-center gap-5">
                         <div className="w-14 h-14 rounded-2xl bg-amber-50 flex items-center justify-center text-amber-600 shadow-inner">
                             <Clock size={24} />
                         </div>
@@ -133,11 +133,11 @@ export default function ProjectsPage() {
 
                 {/* Add Task Bar */}
                 {projects.length > 0 && (
-                    <div className="bg-white border border-slate-100 rounded-[2rem] p-4 flex flex-col md:flex-row gap-4 shadow-sm items-center">
+                    <div className="bg-white border border-slate-200 border-black/5 shadow-sm border border-slate-100 rounded-[2rem] p-4 flex flex-col md:flex-row gap-4 shadow-sm items-center">
                         <div className="relative flex-1 w-full">
                             <Plus className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                             <input
-                                className="w-full bg-slate-50 border border-transparent rounded-[1.5rem] px-12 py-4 text-sm font-medium focus:bg-white focus:border-indigo-100 outline-none transition-all"
+                                className="w-full bg-slate-50 border border-transparent rounded-[1.5rem] px-12 py-4 text-sm font-medium focus:bg-white border border-slate-200 border-black/5 shadow-sm focus:border-indigo-100 outline-none transition-all"
                                 placeholder="Descreva a nova tarefa cognitivamente..."
                                 value={newTask.title}
                                 onChange={e => setNewTask({ ...newTask, title: e.target.value })}
@@ -145,7 +145,7 @@ export default function ProjectsPage() {
                         </div>
                         <div className="flex gap-2 w-full md:w-auto">
                             <select
-                                className="flex-1 md:w-60 bg-slate-50 border border-transparent rounded-[1.5rem] px-6 py-4 text-xs font-black uppercase tracking-widest focus:bg-white focus:border-indigo-100 outline-none transition-all appearance-none text-slate-500"
+                                className="flex-1 md:w-60 bg-slate-50 border border-transparent rounded-[1.5rem] px-6 py-4 text-xs font-black uppercase tracking-widest focus:bg-white border border-slate-200 border-black/5 shadow-sm focus:border-indigo-100 outline-none transition-all appearance-none text-slate-500"
                                 value={newTask.project_id}
                                 onChange={e => setNewTask({ ...newTask, project_id: parseInt(e.target.value) })}
                             >
@@ -162,7 +162,7 @@ export default function ProjectsPage() {
                 {/* Kanban Board */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                     {loading ? (
-                        [1, 2, 3].map(i => <div key={i} className="h-[600px] bg-white border border-slate-100 rounded-[2.5rem] animate-pulse" />)
+                        [1, 2, 3].map(i => <div key={i} className="h-[600px] bg-white border border-slate-200 border-black/5 shadow-sm border border-slate-100 rounded-[2.5rem] animate-pulse" />)
                     ) : (
                         COLUMNS.map(col => (
                             <div key={col} className="bg-slate-50/50 border border-slate-100 rounded-[2.5rem] p-6 flex flex-col min-h-[600px]">
@@ -171,7 +171,7 @@ export default function ProjectsPage() {
                                         <div className={`w-2 h-2 rounded-full ${col === 'todo' ? 'bg-slate-300' : col === 'in_progress' ? 'bg-indigo-600 animate-pulse' : 'bg-emerald-500'}`} />
                                         <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">{COLUMN_LABELS[col]}</h3>
                                     </div>
-                                    <span className="bg-white px-3 py-1 rounded-full text-[10px] font-black text-slate-400 border border-slate-100">{getTasksByColumn(col).length}</span>
+                                    <span className="bg-white border border-slate-200 border-black/5 shadow-sm px-3 py-1 rounded-full text-[10px] font-black text-slate-400 border border-slate-100">{getTasksByColumn(col).length}</span>
                                 </div>
 
                                 <div className="space-y-4 flex-1">
@@ -179,7 +179,7 @@ export default function ProjectsPage() {
                                         <motion.div
                                             layout
                                             key={task.id}
-                                            className="bg-white border border-slate-100 p-6 rounded-[2rem] shadow-sm hover:shadow-xl hover:shadow-indigo-100/30 transition-all group cursor-move"
+                                            className="bg-white border border-slate-200 border-black/5 shadow-sm border border-slate-100 p-6 rounded-[2rem] shadow-sm hover:shadow-xl hover:shadow-indigo-100/30 transition-all group cursor-move"
                                         >
                                             <p className="text-sm font-black text-slate-900 mb-2 leading-tight uppercase tracking-tight">{task.title}</p>
                                             <div className="flex items-center gap-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">
@@ -219,7 +219,7 @@ export default function ProjectsPage() {
             <AnimatePresence>
                 {showForm && (
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4" onClick={() => setShowForm(false)}>
-                        <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} className="bg-white w-full max-w-md p-10 rounded-[2.8rem] shadow-2xl relative" onClick={e => e.stopPropagation()}>
+                        <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} className="bg-white border border-slate-200 border-black/5 shadow-sm w-full max-w-md p-10 rounded-[2.8rem] shadow-2xl relative" onClick={e => e.stopPropagation()}>
                             <div className="flex justify-between items-center mb-10">
                                 <h2 className="text-2xl font-black text-slate-900 tracking-tight">Novo Escopo</h2>
                                 <button onClick={() => setShowForm(false)} className="p-3 bg-slate-50 rounded-2xl text-slate-400 hover:bg-slate-100 transition-all"><X size={20} /></button>

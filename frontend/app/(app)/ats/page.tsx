@@ -24,10 +24,10 @@ interface ApplicationStat {
 // ─── STAT CARD ───────────────────────────────────────────────────────────────
 function StatCard({ title, value, icon: Icon, colorClass }: any) {
     return (
-        <div className="bg-white border border-slate-100 p-6 rounded-[2rem] shadow-sm hover:shadow-xl hover:shadow-indigo-100/40 transition-all group relative overflow-hidden">
+        <div className="bg-white border border-slate-200 border-black/5 shadow-sm border border-slate-100 p-6 rounded-[2rem] shadow-sm hover:shadow-xl hover:shadow-indigo-100/40 transition-all group relative overflow-hidden">
             <div className={`absolute top-0 right-0 w-24 h-24 bg-gradient-to-br ${colorClass} opacity-[0.03] group-hover:opacity-[0.07] transition-opacity rounded-bl-[4rem]`} />
             <div className="relative z-10 flex items-center gap-5">
-                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center bg-white border border-slate-100 shadow-sm ${colorClass.split(' ')[0].replace('from-', 'text-')}`}>
+                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center bg-white border border-slate-200 border-black/5 shadow-sm border border-slate-100 shadow-sm ${colorClass.split(' ')[0].replace('from-', 'text-')}`}>
                     <Icon size={24} />
                 </div>
                 <div>
@@ -123,7 +123,7 @@ export default function ATSPage() {
                 </div>
 
                 {/* Main Content Area */}
-                <div className="bg-white border border-slate-100 rounded-[2.5rem] p-8 shadow-sm">
+                <div className="bg-white border border-slate-200 border-black/5 shadow-sm border border-slate-100 rounded-[2.5rem] p-8 shadow-sm">
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-10">
                         <h2 className="text-xl font-black text-slate-900 uppercase tracking-tighter flex items-center gap-3">
                             <FileText size={24} className="text-indigo-600" /> Pipeline de Oportunidades
@@ -154,7 +154,7 @@ export default function ATSPage() {
                     ) : (
                         <div className="grid grid-cols-1 gap-4">
                             {jobs.map((job) => (
-                                <div key={job.id} className="group flex flex-col md:flex-row items-center justify-between p-6 bg-white border border-slate-100 rounded-[1.8rem] hover:border-indigo-100 hover:shadow-xl hover:shadow-indigo-100/30 transition-all cursor-pointer">
+                                <div key={job.id} className="group flex flex-col md:flex-row items-center justify-between p-6 bg-white border border-slate-200 border-black/5 shadow-sm border border-slate-100 rounded-[1.8rem] hover:border-indigo-100 hover:shadow-xl hover:shadow-indigo-100/30 transition-all cursor-pointer">
                                     <div className="flex items-center gap-5 w-full md:w-auto mb-4 md:mb-0">
                                         <div className="w-14 h-14 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600 shadow-inner group-hover:scale-110 transition-transform">
                                             <FileText size={24} />
@@ -211,7 +211,7 @@ export default function ATSPage() {
             <AnimatePresence>
                 {showCreate && (
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4" onClick={() => setShowCreate(false)}>
-                        <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} className="bg-white w-full max-w-xl p-10 rounded-[2.8rem] shadow-2xl relative" onClick={e => e.stopPropagation()}>
+                        <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} className="bg-white border border-slate-200 border-black/5 shadow-sm w-full max-w-xl p-10 rounded-[2.8rem] shadow-2xl relative" onClick={e => e.stopPropagation()}>
                             <div className="flex justify-between items-center mb-10">
                                 <h2 className="text-2xl font-black text-slate-900 tracking-tight">Nova Oportunidade</h2>
                                 <button onClick={() => setShowCreate(false)} className="p-3 bg-slate-50 rounded-2xl text-slate-400 hover:bg-slate-100 transition-all"><X size={20} /></button>

@@ -49,7 +49,7 @@ const TabDashboard = ({ metrics, activity }: { metrics: any; activity: any[] }) 
                     <p className="text-slate-500 text-sm mt-1">Sua central de comando unificada e sincronizada.</p>
                 </div>
                 <div className="flex gap-3 w-full md:w-auto">
-                    <select className="flex-1 md:flex-none bg-white border border-slate-200 text-slate-700 text-sm rounded-xl px-4 py-2 outline-none focus:ring-2 ring-indigo-500 shadow-sm">
+                    <select className="flex-1 md:flex-none bg-white border border-slate-200 border-black/5 shadow-sm border border-slate-200 text-slate-700 text-sm rounded-xl px-4 py-2 outline-none focus:ring-2 ring-indigo-500 shadow-sm">
                         <option>Março 2026</option>
                         <option>Fevereiro 2026</option>
                     </select>
@@ -67,7 +67,7 @@ const TabDashboard = ({ metrics, activity }: { metrics: any; activity: any[] }) 
                     { title: 'Vagas Ativas', value: `${metrics?.active_jobs || 12} posições`, trend: 'Alta urgência', icon: Briefcase, color: 'text-indigo-600', bg: 'bg-indigo-50' },
                     { title: 'Time Ativo', value: metrics?.employees_count || '48', trend: '2 de Férias', icon: Users, color: 'text-amber-600', bg: 'bg-amber-50' }
                 ].map((s, i) => (
-                    <div key={i} className="bg-white border border-slate-100 p-5 rounded-2xl shadow-sm hover:shadow-md transition-shadow group">
+                    <div key={i} className="bg-white border border-slate-200 border-black/5 shadow-sm border border-slate-100 p-5 rounded-2xl shadow-sm hover:shadow-md transition-shadow group">
                         <div className="flex justify-between items-start mb-3">
                             <div className={`p-2 rounded-lg ${s.bg} ${s.color}`}>
                                 <s.icon size={18} />
@@ -84,7 +84,7 @@ const TabDashboard = ({ metrics, activity }: { metrics: any; activity: any[] }) 
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Gráfico Financeiro */}
-                <div className="lg:col-span-2 bg-white border border-slate-100 rounded-2xl p-6 shadow-sm flex flex-col">
+                <div className="lg:col-span-2 bg-white border border-slate-200 border-black/5 shadow-sm border border-slate-100 rounded-2xl p-6 shadow-sm flex flex-col">
                     <div className="flex justify-between items-center mb-6">
                         <h3 className="font-bold text-slate-800 flex items-center gap-2">
                             <Activity size={18} className="text-indigo-600" /> Fluxo de Caixa Mensal
@@ -110,7 +110,7 @@ const TabDashboard = ({ metrics, activity }: { metrics: any; activity: any[] }) 
                 </div>
 
                 {/* Agenda do Dia (Mocked but Premium) */}
-                <div className="bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden flex flex-col">
+                <div className="bg-white border border-slate-200 border-black/5 shadow-sm border border-slate-100 rounded-2xl shadow-sm overflow-hidden flex flex-col">
                     <div className="p-4 border-b border-slate-50 bg-slate-50/50 flex justify-between items-center">
                         <h3 className="font-bold text-slate-800 flex items-center gap-2">
                             <CalendarDays size={18} className="text-indigo-600" /> Agenda de Hoje
@@ -166,20 +166,20 @@ const TabFinanceiro = ({ summary, transactions, dasMei }: { summary: any; transa
         {/* Painel de Integrações */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div className="bg-emerald-50/50 border border-emerald-100 p-4 rounded-2xl flex items-center gap-4 transition-all hover:bg-emerald-50">
-                <div className="p-3 bg-white text-emerald-600 rounded-xl shadow-sm"><Landmark size={20} /></div>
+                <div className="p-3 bg-white border border-slate-200 border-black/5 shadow-sm text-emerald-600 rounded-xl shadow-sm"><Landmark size={20} /></div>
                 <div>
                     <p className="text-[10px] font-bold text-emerald-700/60 uppercase tracking-widest">Open Finance</p>
                     <p className="text-sm font-black text-slate-900">Banco Itaú PJ <span className="text-emerald-600 text-[10px] ml-1 px-1.5 py-0.5 bg-emerald-100 rounded">ON</span></p>
                 </div>
             </div>
             <div className="bg-indigo-50/50 border border-indigo-100 p-4 rounded-2xl flex items-center gap-4 transition-all hover:bg-indigo-50">
-                <div className="p-3 bg-white text-indigo-600 rounded-xl shadow-sm"><Building2 size={20} /></div>
+                <div className="p-3 bg-white border border-slate-200 border-black/5 shadow-sm text-indigo-600 rounded-xl shadow-sm"><Building2 size={20} /></div>
                 <div>
                     <p className="text-[10px] font-bold text-indigo-700/60 uppercase tracking-widest">Governo / e-CAC</p>
                     <p className="text-sm font-black text-slate-900">Sefaz/Receita <span className="text-indigo-600 text-[10px] ml-1 px-1.5 py-0.5 bg-indigo-100 rounded">SYNC</span></p>
                 </div>
             </div>
-            <div className="bg-white border border-slate-200 border-dashed p-4 rounded-2xl flex justify-center items-center cursor-pointer hover:bg-slate-50 transition-all">
+            <div className="bg-white border border-slate-200 border-black/5 shadow-sm border border-slate-200 border-dashed p-4 rounded-2xl flex justify-center items-center cursor-pointer hover:bg-slate-50 transition-all">
                 <p className="text-sm font-black text-indigo-600 flex items-center gap-2"><Plus size={16} /> Vincular Outra Conta</p>
             </div>
         </div>
@@ -196,14 +196,14 @@ const TabFinanceiro = ({ summary, transactions, dasMei }: { summary: any; transa
                         <h3 className="text-xl font-bold mb-1">Guia DAS (MEI)</h3>
                         <p className="text-slate-400 text-xs mb-6">Competência: Fevereiro / 2026</p>
                         <p className="text-4xl font-black mb-8 tracking-tighter">R$ 75,60</p>
-                        <button className="w-full bg-white text-slate-900 py-3.5 rounded-xl text-sm font-black transition-all hover:scale-[1.02] active:scale-[0.98] shadow-xl">
+                        <button className="w-full bg-white border border-slate-200 border-black/5 shadow-sm text-slate-900 py-3.5 rounded-xl text-sm font-black transition-all hover:scale-[1.02] active:scale-[0.98] shadow-xl">
                             Gerar Boleto / Pix
                         </button>
                     </div>
                 </div>
 
                 {/* Contas a Pagar */}
-                <div className="bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden">
+                <div className="bg-white border border-slate-200 border-black/5 shadow-sm border border-slate-100 rounded-2xl shadow-sm overflow-hidden">
                     <div className="p-4 border-b border-slate-50 bg-slate-50/50 flex justify-between items-center">
                         <h3 className="font-bold text-slate-800 flex items-center gap-2">
                             <ClockIcon size={16} className="text-slate-400" /> Próximos Vencimentos
@@ -229,7 +229,7 @@ const TabFinanceiro = ({ summary, transactions, dasMei }: { summary: any; transa
             </div>
 
             {/* Extrato Principal */}
-            <div className="lg:col-span-2 bg-white border border-slate-100 rounded-3xl shadow-sm overflow-hidden flex flex-col">
+            <div className="lg:col-span-2 bg-white border border-slate-200 border-black/5 shadow-sm border border-slate-100 rounded-3xl shadow-sm overflow-hidden flex flex-col">
                 <div className="p-5 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <h3 className="font-bold text-slate-900">Movimentação Consolidada</h3>
                     <div className="relative w-full sm:w-64">
@@ -296,7 +296,7 @@ const TabPonto = () => {
             animate={{ opacity: 1, scale: 1 }}
             className="max-w-xl mx-auto mt-10 md:mt-20 px-4"
         >
-            <div className="bg-white border border-slate-100 rounded-[3rem] p-8 md:p-12 shadow-2xl text-center relative overflow-hidden">
+            <div className="bg-white border border-slate-200 border-black/5 shadow-sm border border-slate-100 rounded-[3rem] p-8 md:p-12 shadow-2xl text-center relative overflow-hidden">
                 <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
                 <div className="flex justify-center mb-8">
                     <div className="p-4 bg-indigo-50 text-indigo-600 rounded-[2rem] shadow-inner">
@@ -384,7 +384,7 @@ const TabConfig = ({ user, company }: { user: UserProfile | null; company: any }
                 </button>
             </div>
 
-            <div className="flex-1 bg-white border border-slate-100 rounded-3xl shadow-sm p-8">
+            <div className="flex-1 bg-white border border-slate-200 border-black/5 shadow-sm border border-slate-100 rounded-3xl shadow-sm p-8">
                 {sub === 'profile' && (
                     <div className="space-y-6">
                         <div className="flex items-center gap-6 mb-8">
@@ -436,7 +436,7 @@ const TabConfig = ({ user, company }: { user: UserProfile | null; company: any }
                                 <span className="text-3xl font-black">R$ 99,90</span>
                                 <span className="text-sm opacity-60">/mês</span>
                             </div>
-                            <button className="bg-white text-indigo-700 px-6 py-2.5 rounded-xl font-bold text-sm shadow-xl">Gerenciar Assinatura</button>
+                            <button className="bg-white border border-slate-200 border-black/5 shadow-sm text-indigo-700 px-6 py-2.5 rounded-xl font-bold text-sm shadow-xl">Gerenciar Assinatura</button>
                         </div>
                     </div>
                 )}
@@ -450,7 +450,7 @@ const TabAssistente = () => (
     <div className="h-full flex flex-col items-center justify-center py-20">
         <div className="relative mb-10">
             <div className="absolute inset-0 bg-indigo-400 rounded-full blur-3xl opacity-20 animate-pulse"></div>
-            <div className="relative w-24 h-24 bg-white border border-indigo-100 rounded-[2.5rem] flex items-center justify-center text-indigo-600 shadow-2xl">
+            <div className="relative w-24 h-24 bg-white border border-slate-200 border-black/5 shadow-sm border border-indigo-100 rounded-[2.5rem] flex items-center justify-center text-indigo-600 shadow-2xl">
                 <Bot size={48} />
             </div>
         </div>
@@ -528,7 +528,7 @@ export default function ModernDashboard() {
         <div className="min-h-screen bg-slate-50 font-sans flex flex-col lg:flex-row text-slate-900 selection:bg-indigo-100 overflow-hidden">
 
             {/* MOBILE HEADER */}
-            <div className="lg:hidden flex items-center justify-between bg-white p-5 border-b border-slate-100 z-[100]">
+            <div className="lg:hidden flex items-center justify-between bg-white border border-slate-200 border-black/5 shadow-sm p-5 border-b border-slate-100 z-[100]">
                 <div className="flex items-center gap-3 font-black text-xl tracking-tighter">
                     <div className="w-8 h-8 bg-indigo-600 text-white rounded-lg flex items-center justify-center"><Bot size={18} /></div>
                     Innovation
@@ -553,7 +553,7 @@ export default function ModernDashboard() {
 
             {/* SIDEBAR */}
             <aside className={`
-        fixed inset-y-0 left-0 w-72 bg-white border-r border-slate-100 z-[90] flex flex-col transition-transform duration-300
+        fixed inset-y-0 left-0 w-72 bg-white border border-slate-200 border-black/5 shadow-sm border-r border-slate-100 z-[90] flex flex-col transition-transform duration-300
         ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
                 <div className="hidden lg:flex items-center gap-3 p-8">
@@ -565,7 +565,7 @@ export default function ModernDashboard() {
 
                 <div className="px-6 mb-6">
                     <div className="bg-slate-50 border border-slate-50 rounded-2xl p-4 flex items-center gap-4 shadow-inner">
-                        <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center font-black text-indigo-600 shadow-sm">
+                        <div className="w-10 h-10 bg-white border border-slate-200 border-black/5 shadow-sm rounded-xl flex items-center justify-center font-black text-indigo-600 shadow-sm">
                             {user?.name?.[0] || 'U'}
                         </div>
                         <div className="min-w-0">
@@ -599,11 +599,11 @@ export default function ModernDashboard() {
             </aside>
 
             {/* MAIN CONTENT AREA */}
-            <main className="flex-1 flex flex-col h-screen overflow-hidden bg-white lg:bg-slate-50/50">
+            <main className="flex-1 flex flex-col h-screen overflow-hidden bg-white border border-slate-200 border-black/5 shadow-sm lg:bg-slate-50/50">
 
                 {/* TOP SEARCH BAR */}
                 <header className="hidden lg:flex h-20 px-10 items-center justify-between border-b border-slate-100 bg-white/80 backdrop-blur-md sticky top-0 z-10">
-                    <div className="flex items-center gap-3 bg-slate-50 border border-slate-100 focus-within:bg-white focus-within:ring-4 ring-indigo-50 rounded-2xl px-5 py-2.5 w-[500px] transition-all">
+                    <div className="flex items-center gap-3 bg-slate-50 border border-slate-100 focus-within:bg-white border border-slate-200 border-black/5 shadow-sm focus-within:ring-4 ring-indigo-50 rounded-2xl px-5 py-2.5 w-[500px] transition-all">
                         <Search size={18} className="text-slate-300" />
                         <input type="text" placeholder="Procurar transações, contratos, colaboradores..." className="bg-transparent border-none outline-none text-sm text-slate-700 w-full placeholder:text-slate-400 font-medium" />
                     </div>
@@ -614,7 +614,7 @@ export default function ModernDashboard() {
                             <span className="text-[10px] font-black text-emerald-700 uppercase tracking-widest">Sincronizado</span>
                         </div>
 
-                        <button className="relative p-2.5 bg-white border border-slate-100 rounded-xl text-slate-400 hover:text-indigo-600 transition-all shadow-sm">
+                        <button className="relative p-2.5 bg-white border border-slate-200 border-black/5 shadow-sm border border-slate-100 rounded-xl text-slate-400 hover:text-indigo-600 transition-all shadow-sm">
                             <Bell size={20} />
                             <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-white shadow-lg shadow-rose-200"></span>
                         </button>

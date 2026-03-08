@@ -40,7 +40,7 @@ function StatCard({ title, value, detail, icon: Icon, colorClass, trend }: any) 
             <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${colorClass} opacity-[0.04] group-hover:opacity-[0.08] transition-opacity rounded-bl-full`} />
             <div className="relative z-10 flex flex-col h-full justify-between gap-4">
                 <div className="flex justify-between items-start">
-                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center bg-white shadow-sm border border-slate-100 ${colorClass.split(' ')[0].replace('from-', 'text-')}`}>
+                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center bg-white border border-slate-200 border-black/5 shadow-sm shadow-sm border border-slate-100 ${colorClass.split(' ')[0].replace('from-', 'text-')}`}>
                         <Icon size={22} strokeWidth={2} />
                     </div>
                     {trend && (
@@ -76,7 +76,7 @@ function EmployeeCard({ employee, onClick }: { employee: Employee; onClick: () =
             layout
             whileHover={{ y: -2 }}
             onClick={onClick}
-            className="bg-white border border-slate-200/60 p-4 rounded-[1.25rem] cursor-pointer shadow-sm hover:shadow-md hover:border-indigo-200 transition-all group flex items-center gap-4"
+            className="bg-white border border-slate-200 border-black/5 shadow-sm border border-slate-200/60 p-4 rounded-[1.25rem] cursor-pointer shadow-sm hover:shadow-md hover:border-indigo-200 transition-all group flex items-center gap-4"
         >
             <div className="relative">
                 <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-indigo-50 to-indigo-100/50 border border-indigo-100 flex items-center justify-center text-indigo-700 font-semibold text-lg shadow-sm">
@@ -124,7 +124,7 @@ function TimelineDrawer({ isOpen, onClose, employee }: { isOpen: boolean; onClos
                     <motion.div
                         initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
                         transition={{ type: "spring", damping: 25, stiffness: 200 }}
-                        className="fixed right-0 top-0 bottom-0 w-full max-w-md bg-white z-[101] shadow-2xl p-6 sm:p-8 overflow-y-auto border-l border-slate-200"
+                        className="fixed right-0 top-0 bottom-0 w-full max-w-md bg-white border border-slate-200 border-black/5 shadow-sm z-[101] shadow-2xl p-6 sm:p-8 overflow-y-auto border-l border-slate-200"
                     >
                         <div className="flex justify-between items-start mb-8">
                             <div className="flex items-center gap-4">
@@ -168,8 +168,8 @@ function TimelineDrawer({ isOpen, onClose, employee }: { isOpen: boolean; onClos
                                     initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.05 }}
                                     key={event.id} className="relative pl-10"
                                 >
-                                    <div className="absolute left-[8px] top-1.5 w-4 h-4 rounded-full bg-white border-[3px] border-indigo-500 shadow-sm z-10" />
-                                    <div className="bg-white border border-slate-200/60 p-4 rounded-2xl group hover:border-indigo-200 hover:shadow-md hover:shadow-indigo-50/50 transition-all">
+                                    <div className="absolute left-[8px] top-1.5 w-4 h-4 rounded-full bg-white border border-slate-200 border-black/5 shadow-sm border-[3px] border-indigo-500 shadow-sm z-10" />
+                                    <div className="bg-white border border-slate-200 border-black/5 shadow-sm border border-slate-200/60 p-4 rounded-2xl group hover:border-indigo-200 hover:shadow-md hover:shadow-indigo-50/50 transition-all">
                                         <div className="flex justify-between items-start mb-1.5">
                                             <h4 className="text-[13px] font-semibold text-slate-800">{event.title}</h4>
                                             <span className="text-[11px] font-medium text-slate-400 bg-slate-50 px-2 py-0.5 rounded-md">{event.date}</span>
@@ -211,7 +211,7 @@ function AdmissionModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
                     />
                     <motion.div
                         initial={{ scale: 0.95, opacity: 0, y: 10 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 10 }}
-                        className="bg-white w-full max-w-sm p-8 rounded-[2rem] shadow-2xl relative z-10 text-center border border-slate-100"
+                        className="bg-white border border-slate-200 border-black/5 shadow-sm w-full max-w-sm p-8 rounded-[2rem] shadow-2xl relative z-10 text-center border border-slate-100"
                     >
                         <div className="w-16 h-16 bg-gradient-to-tr from-indigo-50 to-indigo-100 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-indigo-50 text-indigo-600 shadow-inner">
                             <UserPlus size={28} />
@@ -388,7 +388,7 @@ export default function AdvancedRHPage() {
                                     </div>
                                 ) : (
                                     employees.filter(e => e.risk !== 'stable').map(emp => (
-                                        <div key={emp.id} className="flex items-center gap-3 p-3.5 rounded-[1.25rem] bg-white border border-rose-100/50 shadow-sm hover:shadow-md hover:border-rose-200 transition-all cursor-pointer group" onClick={() => { setSelectedEmp(emp); setIsDrawerOpen(true); }}>
+                                        <div key={emp.id} className="flex items-center gap-3 p-3.5 rounded-[1.25rem] bg-white border border-slate-200 border-black/5 shadow-sm border border-rose-100/50 shadow-sm hover:shadow-md hover:border-rose-200 transition-all cursor-pointer group" onClick={() => { setSelectedEmp(emp); setIsDrawerOpen(true); }}>
                                             <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-rose-50 to-rose-100 flex items-center justify-center font-bold text-rose-600 shadow-sm">
                                                 {emp.name[0]}
                                             </div>
@@ -427,7 +427,7 @@ export default function AdvancedRHPage() {
                                         <span className="text-indigo-200">12 docs validados</span>
                                     </div>
                                     <div className="h-1.5 bg-white/20 rounded-full overflow-hidden">
-                                        <motion.div initial={{ width: 0 }} animate={{ width: '100%' }} transition={{ duration: 1.5, delay: 0.5 }} className="h-full bg-white w-full rounded-full shadow-[0_0_10px_white]" />
+                                        <motion.div initial={{ width: 0 }} animate={{ width: '100%' }} transition={{ duration: 1.5, delay: 0.5 }} className="h-full bg-white border border-slate-200 border-black/5 shadow-sm w-full rounded-full shadow-[0_0_10px_white]" />
                                     </div>
                                     <p className="text-[11px] leading-relaxed text-indigo-100 pt-1">
                                         "A plataforma validou 12 novos documentos via IA hoje, economizando aproximadamente 4h de triagem humana."

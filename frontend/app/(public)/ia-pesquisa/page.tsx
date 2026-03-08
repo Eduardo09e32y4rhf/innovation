@@ -136,7 +136,7 @@ export default function IAPublicaPage() {
     return (
         <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-900">
             {/* Header Simples */}
-            <header className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between shadow-sm sticky top-0 z-10">
+            <header className="bg-white border border-slate-200 border-black/5 shadow-sm border-b border-slate-200 px-6 py-4 flex items-center justify-between shadow-sm sticky top-0 z-10">
                 <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-md">
                         <Sparkles className="w-5 h-5" />
@@ -174,7 +174,7 @@ export default function IAPublicaPage() {
                                 <button
                                     key={i}
                                     onClick={() => sendMessage(s)}
-                                    className="bg-white border border-slate-200 hover:border-blue-400 text-slate-700 text-sm px-4 py-2 rounded-full shadow-sm hover:shadow transition-all"
+                                    className="bg-white border border-slate-200 border-black/5 shadow-sm border border-slate-200 hover:border-blue-400 text-slate-700 text-sm px-4 py-2 rounded-full shadow-sm hover:shadow transition-all"
                                 >
                                     {s}
                                 </button>
@@ -194,7 +194,7 @@ export default function IAPublicaPage() {
                                 <div className={`px-5 py-4 rounded-2xl max-w-[85%] text-[15px] leading-relaxed shadow-sm
                                     ${msg.sender === 'user'
                                         ? 'bg-blue-600 text-white rounded-tr-sm'
-                                        : 'bg-white border border-slate-200 text-slate-800 rounded-tl-sm'}`}
+                                        : 'bg-white border border-slate-200 border-black/5 shadow-sm border border-slate-200 text-slate-800 rounded-tl-sm'}`}
                                 >
                                     {msg.isThinking ? (
                                         <div className="flex items-center gap-2 text-slate-500">
@@ -229,7 +229,7 @@ export default function IAPublicaPage() {
             {/* Input Footer */}
             <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-t from-white via-white to-transparent pt-10 pb-6 px-4">
                 <div className="max-w-3xl mx-auto relative">
-                    <div className="bg-white border border-slate-300 shadow-xl rounded-[2rem] p-2 flex items-end focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 transition-all">
+                    <div className="bg-white border border-slate-200 border-black/5 shadow-sm border border-slate-300 shadow-xl rounded-[2rem] p-2 flex items-end focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 transition-all">
                         <textarea
                             value={input}
                             onChange={(e) => setInput(e.target.value)}

@@ -35,7 +35,7 @@ export default function AccountPage() {
       <div className="p-8 max-w-4xl mx-auto space-y-10 animate-in fade-in duration-700">
 
         {/* Header Profile */}
-        <div className="flex flex-col md:flex-row items-center gap-8 bg-white border border-slate-100 p-10 rounded-[3rem] shadow-sm">
+        <div className="flex flex-col md:flex-row items-center gap-8 bg-white border border-slate-200 border-black/5 shadow-sm border border-slate-100 p-10 rounded-[3rem] shadow-sm">
           <div className="w-32 h-32 rounded-[2.5rem] bg-indigo-600 flex items-center justify-center text-white text-5xl font-black shadow-xl shadow-indigo-100">
             {user?.name?.[0] || 'U'}
           </div>
@@ -57,7 +57,7 @@ export default function AccountPage() {
           {sections.map((section, idx) => (
             <div key={idx} className="space-y-6">
               <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-4">{section.title}</h2>
-              <div className="bg-white border border-slate-100 rounded-[2.5rem] p-4 shadow-sm space-y-1">
+              <div className="bg-white border border-slate-200 border-black/5 shadow-sm border border-slate-100 rounded-[2.5rem] p-4 shadow-sm space-y-1">
                 {section.items.map((item, i) => {
                   const Icon = item.icon;
                   return (
@@ -83,11 +83,11 @@ export default function AccountPage() {
 
         {/* Danger Zone / Global Actions */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <button className="flex items-center justify-center gap-3 p-6 bg-white border border-slate-100 rounded-[2rem] hover:border-indigo-100 transition-all group shadow-sm">
+          <button className="flex items-center justify-center gap-3 p-6 bg-white border border-slate-200 border-black/5 shadow-sm border border-slate-100 rounded-[2rem] hover:border-indigo-100 transition-all group shadow-sm">
             <Bell size={20} className="text-slate-400 group-hover:text-indigo-600" />
             <span className="text-[10px] font-black uppercase tracking-widest text-slate-900">Notificações</span>
           </button>
-          <button className="flex items-center justify-center gap-3 p-6 bg-white border border-slate-100 rounded-[2rem] hover:border-indigo-100 transition-all group shadow-sm">
+          <button className="flex items-center justify-center gap-3 p-6 bg-white border border-slate-200 border-black/5 shadow-sm border border-slate-100 rounded-[2rem] hover:border-indigo-100 transition-all group shadow-sm">
             <Settings size={20} className="text-slate-400 group-hover:text-indigo-600" />
             <span className="text-[10px] font-black uppercase tracking-widest text-slate-900">Preferências</span>
           </button>

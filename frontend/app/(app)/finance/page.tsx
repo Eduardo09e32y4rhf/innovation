@@ -67,10 +67,10 @@ function StatCard({
     icon: React.ElementType; colorClass: string; hidden?: boolean;
 }) {
     return (
-        <div className="bg-white border border-slate-100 p-6 rounded-[2rem] shadow-sm hover:shadow-xl hover:shadow-indigo-100/40 transition-all group relative overflow-hidden">
+        <div className="bg-white border border-slate-200 border-black/5 shadow-sm border border-slate-100 p-6 rounded-[2rem] shadow-sm hover:shadow-xl hover:shadow-indigo-100/40 transition-all group relative overflow-hidden">
             <div className={`absolute top-0 right-0 w-24 h-24 bg-gradient-to-br ${colorClass} opacity-[0.03] group-hover:opacity-[0.07] transition-opacity rounded-bl-[4rem]`} />
             <div className="relative z-10">
-                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-5 bg-white border border-slate-100 shadow-sm ${colorClass.split(' ')[0].replace('from-', 'text-')}`}>
+                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-5 bg-white border border-slate-200 border-black/5 shadow-sm border border-slate-100 shadow-sm ${colorClass.split(' ')[0].replace('from-', 'text-')}`}>
                     <Icon size={24} />
                 </div>
                 <h3 className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mb-1">{title}</h3>
@@ -125,7 +125,7 @@ function NovoLancamentoModal({ onClose, onSave }: {
             className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4"
             onClick={onClose}>
             <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }}
-                className="bg-white border border-slate-100 rounded-[2.5rem] w-full max-w-md shadow-2xl p-8"
+                className="bg-white border border-slate-200 border-black/5 shadow-sm border border-slate-100 rounded-[2.5rem] w-full max-w-md shadow-2xl p-8"
                 onClick={e => e.stopPropagation()}>
 
                 <div className="flex items-center justify-between mb-8">
@@ -280,7 +280,7 @@ export default function FinancePage() {
                     <div className="flex items-center gap-3">
                         <button
                             onClick={() => setHidden(!hidden)}
-                            className="w-12 h-12 bg-white border border-slate-100 rounded-2xl flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:border-indigo-100 transition-all shadow-sm"
+                            className="w-12 h-12 bg-white border border-slate-200 border-black/5 shadow-sm border border-slate-100 rounded-2xl flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:border-indigo-100 transition-all shadow-sm"
                         >
                             {hidden ? <EyeOff size={20} /> : <Eye size={20} />}
                         </button>
@@ -323,13 +323,13 @@ export default function FinancePage() {
 
                 {/* Chart & DAS Section */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    <div className="lg:col-span-2 bg-white border border-slate-100 rounded-[2.5rem] p-8 shadow-sm">
+                    <div className="lg:col-span-2 bg-white border border-slate-200 border-black/5 shadow-sm border border-slate-100 rounded-[2.5rem] p-8 shadow-sm">
                         <div className="flex items-center justify-between mb-10">
                             <h2 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-3">
                                 <TrendingUp size={24} className="text-indigo-600" /> Histórico de Caixa
                             </h2>
                             <div className="flex bg-slate-50 p-1.5 rounded-xl border border-slate-100">
-                                <button className="px-4 py-1.5 rounded-lg text-[10px] font-black uppercase text-indigo-600 bg-white shadow-sm">Mensal</button>
+                                <button className="px-4 py-1.5 rounded-lg text-[10px] font-black uppercase text-indigo-600 bg-white border border-slate-200 border-black/5 shadow-sm shadow-sm">Mensal</button>
                                 <button className="px-4 py-1.5 rounded-lg text-[10px] font-black uppercase text-slate-400">Anual</button>
                             </div>
                         </div>
@@ -370,14 +370,14 @@ export default function FinancePage() {
                             <p className="text-xs font-bold text-indigo-200">Vencimento: 20/03/2026</p>
                         </div>
                         <div className="space-y-3 mt-10">
-                            <button className="w-full bg-white text-indigo-600 py-4 rounded-[1.5rem] font-black text-xs uppercase tracking-widest shadow-lg hover:scale-[1.02] transition-all">Pagar via Pix</button>
+                            <button className="w-full bg-white border border-slate-200 border-black/5 shadow-sm text-indigo-600 py-4 rounded-[1.5rem] font-black text-xs uppercase tracking-widest shadow-lg hover:scale-[1.02] transition-all">Pagar via Pix</button>
                             <button className="w-full bg-indigo-500/50 text-white py-4 rounded-[1.5rem] font-black text-xs uppercase tracking-widest border border-white/10 hover:bg-indigo-500/70 transition-all">Download PDF</button>
                         </div>
                     </div>
                 </div>
 
                 {/* Transactions Table Section */}
-                <div className="bg-white border border-slate-100 rounded-[2.5rem] p-8 shadow-sm">
+                <div className="bg-white border border-slate-200 border-black/5 shadow-sm border border-slate-100 rounded-[2.5rem] p-8 shadow-sm">
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
                         <h2 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-3">
                             <Landmark size={24} className="text-indigo-600" /> Movimentações Recentes

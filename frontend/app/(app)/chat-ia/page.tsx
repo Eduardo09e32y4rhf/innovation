@@ -190,7 +190,7 @@ export default function ChatIAPage() {
     return (
         <AppLayout title="InnovationIA — Inteligência Cognitiva">
             <div className="flex h-[calc(100vh-64px)] bg-slate-50 overflow-hidden font-sans">
-                <main className="flex-1 flex flex-col h-full relative max-w-5xl mx-auto bg-white shadow-2xl border-x border-slate-100">
+                <main className="flex-1 flex flex-col h-full relative max-w-5xl mx-auto bg-white border border-slate-200 border-black/5 shadow-sm shadow-2xl border-x border-slate-100">
 
                     {/* Header Premium */}
                     <header className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-white/80 backdrop-blur-md sticky top-0 z-40">
@@ -219,7 +219,7 @@ export default function ChatIAPage() {
                                 </button>
 
                                 {showModelSelector && (
-                                    <div className="absolute right-0 top-full mt-3 w-80 bg-white border border-slate-200 rounded-3xl shadow-2xl overflow-hidden z-50 animate-in fade-in zoom-in duration-200">
+                                    <div className="absolute right-0 top-full mt-3 w-80 bg-white border border-slate-200 border-black/5 shadow-sm border border-slate-200 rounded-3xl shadow-2xl overflow-hidden z-50 animate-in fade-in zoom-in duration-200">
                                         <div className="p-4 border-b border-slate-50 bg-slate-50/50">
                                             <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Cérebros Disponíveis</p>
                                         </div>
@@ -235,7 +235,7 @@ export default function ChatIAPage() {
                                                     }}
                                                     className={`w-full p-4 flex items-start gap-4 rounded-2xl transition-all group ${selectedModel === model.id ? 'bg-indigo-50 border border-indigo-100' : 'hover:bg-slate-50 border border-transparent'} ${!model.available ? 'opacity-50 grayscale cursor-not-allowed' : 'cursor-pointer'}`}
                                                 >
-                                                    <div className="w-10 h-10 rounded-xl bg-white border border-slate-100 flex items-center justify-center shrink-0 shadow-sm text-lg">
+                                                    <div className="w-10 h-10 rounded-xl bg-white border border-slate-200 border-black/5 shadow-sm border border-slate-100 flex items-center justify-center shrink-0 shadow-sm text-lg">
                                                         {model.icon}
                                                     </div>
                                                     <div className="flex-1 text-left min-w-0">
@@ -269,7 +269,7 @@ export default function ChatIAPage() {
                                         <button
                                             key={i}
                                             onClick={() => sendMessage(prompt.text)}
-                                            className="text-left p-5 bg-slate-50 border border-slate-100 rounded-3xl hover:border-indigo-300 hover:bg-white hover:shadow-xl transition-all group"
+                                            className="text-left p-5 bg-slate-50 border border-slate-100 rounded-3xl hover:border-indigo-300 hover:bg-white border border-slate-200 border-black/5 shadow-sm hover:shadow-xl transition-all group"
                                         >
                                             <p className="text-sm font-bold text-slate-800 mb-2 group-hover:text-indigo-600 transition-colors">{prompt.text}</p>
                                             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{prompt.category}</span>
@@ -282,7 +282,7 @@ export default function ChatIAPage() {
                                 {messages.map((msg) => (
                                     <div key={msg.id} className={`flex gap-4 ${msg.sender === 'user' ? 'justify-end' : 'justify-start'} animate-in fade-in duration-300`}>
                                         <div className={`flex gap-4 max-w-[85%] ${msg.sender === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-                                            <div className={`w-10 h-10 rounded-xl shrink-0 flex items-center justify-center shadow-sm border ${msg.sender === 'user' ? 'bg-indigo-600 border-indigo-500 text-white' : 'bg-white border-slate-100 text-indigo-600'}`}>
+                                            <div className={`w-10 h-10 rounded-xl shrink-0 flex items-center justify-center shadow-sm border ${msg.sender === 'user' ? 'bg-indigo-600 border-indigo-500 text-white' : 'bg-white border border-slate-200 border-black/5 shadow-sm border-slate-100 text-indigo-600'}`}>
                                                 {msg.sender === 'user' ? <User size={20} /> : <Bot size={20} />}
                                             </div>
                                             <div className={`p-5 rounded-2xl text-sm leading-relaxed shadow-sm ${msg.sender === 'user' ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-slate-50 text-slate-800 border border-slate-100 rounded-tl-none'}`}>
@@ -318,7 +318,7 @@ export default function ChatIAPage() {
                     </div>
 
                     {/* Input Area */}
-                    <div className="p-6 bg-white border-t border-slate-100">
+                    <div className="p-6 bg-white border border-slate-200 border-black/5 shadow-sm border-t border-slate-100">
                         <div className="max-w-4xl mx-auto relative group">
                             <div className="bg-slate-50 border border-slate-200 rounded-[2rem] focus-within:ring-4 ring-indigo-50 focus-within:border-indigo-300 transition-all flex flex-col shadow-inner">
                                 <textarea
