@@ -10,6 +10,7 @@ class AsaasService:
         self.api_key = os.getenv("ASAAS_API_KEY")
         if not self.api_key:
             import warnings
+
             warnings.warn("ASAAS_API_KEY environment variable is not set.")
 
         self.url = os.getenv("ASAAS_API_URL", "https://sandbox.asaas.com/api/v3")
