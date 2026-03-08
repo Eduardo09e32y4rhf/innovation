@@ -22,7 +22,9 @@ class Subscription(Base):
         Integer, ForeignKey("plans.id"), nullable=False
     )
 
-    asaas_subscription_id: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    asaas_subscription_id: Mapped[str | None] = mapped_column(
+        String(120), nullable=True
+    )
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending")
 
     created_at: Mapped[datetime] = mapped_column(
