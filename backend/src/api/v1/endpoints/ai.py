@@ -320,14 +320,14 @@ async def ask_ai(
 
     # Gate AI Access based on user plan
     user_plan = getattr(current_user, "subscription_plan", "FREE").upper()
-    
+
     if user_plan in ["FREE", "BASIC", "STARTER"]:
         return {
             "answer": "⚠️ Seu plano atual não permite acesso livre à IA. Faça upgrade para o plano COMPLETE ou ENTERPRISE para desbloquear as funcionalidades cognitivas!",
             "model_used": "blocked",
             "error": True,
         }
-    
+
     if user_plan == "COMPLETE":
         # Aqui você pode adicionar lógica de contagem de limite, por ex:
         # if current_user.points < 0: return bloqueio...
@@ -378,7 +378,7 @@ async def ask_ai_stream(
 
     # Gate AI Access based on user plan
     user_plan = getattr(current_user, "subscription_plan", "FREE").upper()
-    
+
     if user_plan in ["FREE", "BASIC", "STARTER"]:
         yield "data: ⚠️ Seu plano atual não permite acesso livre à IA. Faça upgrade para o plano COMPLETE ou ENTERPRISE para desbloquear as funcionalidades cognitivas!\n\n"
         yield "data: [DONE]\n\n"

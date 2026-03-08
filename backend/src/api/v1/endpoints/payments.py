@@ -17,9 +17,6 @@ class CheckoutRequest(BaseModel):
     plan: str
 
 
-
-
-
 # 0. CHECKOUT UNIFICADO (usado pela página /pricing)
 @router.post("/checkout")
 async def checkout(
@@ -36,12 +33,21 @@ async def checkout(
     try:
         # Determine due date (example: +7 days)
         import datetime
-        due_date = (datetime.datetime.now() + datetime.timedelta(days=7)).strftime("%Y-%m-%d")
-        
+
+        due_date = (datetime.datetime.now() + datetime.timedelta(days=7)).strftime(
+            "%Y-%m-%d"
+        )
+
         # Process the customer and generate subscription via AsaasService
-        response = asaas_service.assinar_plano(current_user, data.plan, price, due_date, db)
-        
-        return {"invoiceUrl": response.get("invoiceUrl"), "plan": data.plan, "price": price}
+        response = asaas_service.assinar_plano(
+            current_user, data.plan, price, due_date, db
+        )
+
+        return {
+            "invoiceUrl": response.get("invoiceUrl"),
+            "plan": data.plan,
+            "price": price,
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro Asaas: {e}")
 
@@ -63,9 +69,14 @@ async def create_preference(
     # Integration with Asaas
     try:
         import datetime
-        due_date = (datetime.datetime.now() + datetime.timedelta(days=7)).strftime("%Y-%m-%d")
-        response = asaas_service.assinar_plano(current_user, plan_type, price, due_date, db)
-        
+
+        due_date = (datetime.datetime.now() + datetime.timedelta(days=7)).strftime(
+            "%Y-%m-%d"
+        )
+        response = asaas_service.assinar_plano(
+            current_user, plan_type, price, due_date, db
+        )
+
         # O link de checkout para fatura/assinatura
         invoice_url = response.get("invoiceUrl")
         payment_id = response.get("id")
@@ -78,9 +89,7 @@ async def create_preference(
         return {"checkout_url": invoice_url, "payment_id": payment_id}
     except Exception as e:
         print(f"Erro ao criar assinatura no Asaas: {e}")
-        raise HTTPException(
-            status_code=500, detail="Erro ao comunicar com Asaas"
-        )
+        raise HTTPException(status_code=500, detail="Erro ao comunicar com Asaas")
 
 
 # 2. RECEBE A CONFIRMAÇÃO (WEBHOOK ASAAS)
@@ -99,6 +108,7 @@ async def asaas_webhook(request: Request, db: Session = Depends(get_db)):
     asaas_token = request.headers.get("asaas-access-token")
 
     import os
+
     expected_token = os.getenv("ASAAS_WEBHOOK_TOKEN")
 
     if expected_token:
@@ -106,7 +116,7 @@ async def asaas_webhook(request: Request, db: Session = Depends(get_db)):
         if asaas_token != expected_token:
             print("⚠️ Token de Webhook do Asaas inválido.")
             raise HTTPException(status_code=401, detail="Token Asaas inválido")
-    
+
     event = data.get("event")
     payment_data = data.get("payment", {})
     external_ref = payment_data.get("externalReference")
@@ -114,7 +124,7 @@ async def asaas_webhook(request: Request, db: Session = Depends(get_db)):
 
     if not external_ref:
         return {"status": "ignored_no_external_reference"}
-    
+
     user = db.query(User).filter(User.id == int(external_ref)).first()
     if not user:
         return {"status": "ignored_user_not_found"}
@@ -134,37 +144,42 @@ async def asaas_webhook(request: Request, db: Session = Depends(get_db)):
                 plan_name = "FREE"
 
             user.subscription_plan = plan_name
-            print(f"✅ Pagamento Asaas recebido/confirmado para user {user.id} -> Plano: {plan_name}")
+            print(
+                f"✅ Pagamento Asaas recebido/confirmado para user {user.id} -> Plano: {plan_name}"
+            )
 
             # Atualiza assinatura na tabela
             company = db.query(Company).filter(Company.owner_user_id == user.id).first()
             company_id = company.id if company else 1
-            
-            # Aqui deveriamos pegar o plan_id correspondente 
+
+            # Aqui deveriamos pegar o plan_id correspondente
             # (simplificando para ID estático baseado no valor, o ideal eh dar match no nome)
-            
+
             sub = db.query(Subscription).filter(Subscription.user_id == user.id).first()
             if not sub:
                 sub = Subscription(
                     user_id=user.id,
                     company_id=company_id,
                     plan_id=1,  # Default, you might want to fetch the real plan.id
-                    asaas_subscription_id=payment_data.get("subscription") or payment_data.get("id"),
+                    asaas_subscription_id=payment_data.get("subscription")
+                    or payment_data.get("id"),
                     status="active",
                 )
                 db.add(sub)
             else:
                 sub.status = "active"
-                sub.asaas_subscription_id = payment_data.get("subscription") or payment_data.get("id")
-            
+                sub.asaas_subscription_id = payment_data.get(
+                    "subscription"
+                ) or payment_data.get("id")
+
         elif event in ["PAYMENT_OVERDUE", "SUBSCRIPTION_DELETED", "PAYMENT_REFUNDED"]:
             status_map = {
                 "PAYMENT_OVERDUE": "overdue",
                 "SUBSCRIPTION_DELETED": "cancelled",
-                "PAYMENT_REFUNDED": "refunded"
+                "PAYMENT_REFUNDED": "refunded",
             }
             new_status = status_map.get(event, "inactive")
-            
+
             user.subscription_status = new_status
             user.subscription_plan = "FREE"
             if event == "SUBSCRIPTION_DELETED":
@@ -176,7 +191,9 @@ async def asaas_webhook(request: Request, db: Session = Depends(get_db)):
             sub = db.query(Subscription).filter(Subscription.user_id == user.id).first()
             if sub:
                 sub.status = new_status
-            print(f"⚠️ Evento Asaas '{event}' para user {user.id} -> Downgrade para FREE.")
+            print(
+                f"⚠️ Evento Asaas '{event}' para user {user.id} -> Downgrade para FREE."
+            )
 
         db.commit()
 

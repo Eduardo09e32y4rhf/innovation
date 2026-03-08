@@ -26,14 +26,15 @@ PLANS = [
         "name": "ENTERPRISE",
         "price": "0.00",  # Sob consulta, mas o banco requer string.
         "features": "Recursos ilimitados, Whitelabel, Service Desk.",
-    }
+    },
 ]
+
 
 def seed_plans():
     db = SessionLocal()
     try:
         print("🌱 Seeding Plans...")
-        
+
         for p_data in PLANS:
             existing = db.query(Plan).filter(Plan.name == p_data["name"]).first()
             if existing:
@@ -44,7 +45,7 @@ def seed_plans():
                 print(f"Creating Plan {p_data['name']}...")
                 new_plan = Plan(**p_data)
                 db.add(new_plan)
-                
+
         db.commit()
         print("✅ Plans seeded successfully!")
     except Exception as e:
@@ -52,6 +53,7 @@ def seed_plans():
         db.rollback()
     finally:
         db.close()
+
 
 if __name__ == "__main__":
     seed_plans()
