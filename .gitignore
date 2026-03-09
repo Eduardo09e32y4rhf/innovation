@@ -7,26 +7,44 @@ __pycache__/
 venv/
 ENV/
 
-# Database
+# Knowledge & Memory
+innovation_knowledge.json
+keys_status.json
+dynamic_keys.json
+
+# Temporary & Logs
+*.log
+commit.txt
+git_history.txt
+dev.pid
+frontend.log
+backend/logs/
+
+# Frontend (Node/Next)
+node_modules/
+.next/
+out/
+build/
+.vercel
+
+# Databases
 *.db
 *.sqlite
 *.sqlite3
-innovation.db
 
-# Environment
+# Environment & Secrets
 .env
-.env.local
-.env.prod
+.env*
+!.env.microservices.example
 *.pem
+*.key
 *.jwt
+*.cert
 
-# IDE
+# IDE & OS
 .vscode/
 .idea/
-*.swp
-*.swo
-
-# OS
 .DS_Store
 Thumbs.db
-keys_status.json
+*.swp
+*.swo
