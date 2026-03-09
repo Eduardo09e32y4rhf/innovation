@@ -9,15 +9,15 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@ai-sdk/openai": "^3.0.41",
-    "ai": "^4.0.0",
+    "@ai-sdk/openai": "^4.0.2",
+    "ai": "^4.0.12",
     "lucide-react": "^0.454.0",
-    "next": "latest",
-    "react": "latest",
-    "react-dom": "latest",
-    "tailwindcss": "latest",
-    "@tailwindcss/postcss": "latest",
-    "postcss": "latest"
+    "next": "15.1.6",
+    "react": "19.0.0",
+    "react-dom": "19.0.0",
+    "tailwindcss": "^3.4.1",
+    "postcss": "^8.4.31",
+    "autoprefixer": "^10.4.16"
   },
   "devDependencies": {
     "@types/node": "^20",
