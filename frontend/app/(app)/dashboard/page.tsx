@@ -141,7 +141,7 @@ export default function DashboardPage() {
                         <h1 className="text-4xl font-black text-slate-900 tracking-tight mb-1 uppercase">
                             Bem-vindo, <span className="text-indigo-600">{user?.name?.split(' ')[0] || 'Inovador'}</span>
                         </h1>
-                        <p className="text-slate-500 font-medium tracking-tight">Seu ecossistema cognitivo está operando em <span className="text-emerald-600 font-black italic">Alta Performance.</span></p>
+                        <p className="text-slate-9000 font-medium tracking-tight">Seu ecossistema cognitivo está operando em <span className="text-emerald-600 font-black italic">Alta Performance.</span></p>
                     </div>
 
                     <div className="flex items-center gap-3">
@@ -179,7 +179,7 @@ export default function DashboardPage() {
                                 ))
                             ) : activities.length === 0 ? (
                                 <div className="text-center py-20 grayscale opacity-40">
-                                    <Activity size={48} className="mx-auto mb-4 text-slate-300" />
+                                    <Activity size={48} className="mx-auto mb-4 text-slate-700" />
                                     <p className="text-xs font-black uppercase text-slate-400 tracking-widest">Aguardando telemetria neural...</p>
                                 </div>
                             ) : (
@@ -198,9 +198,9 @@ export default function DashboardPage() {
                                                     </span>
                                                 </p>
                                             </div>
-                                            <p className="text-xs text-slate-500 font-medium line-clamp-1">{item.message}</p>
+                                            <p className="text-xs text-slate-9000 font-medium line-clamp-1">{item.message}</p>
                                         </div>
-                                        <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-300 group-hover:bg-indigo-600 group-hover:text-white transition-all cursor-pointer">
+                                        <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-700 group-hover:bg-indigo-600 group-hover:text-slate-900 transition-all cursor-pointer">
                                             <ChevronRight size={18} />
                                         </div>
                                     </div>
@@ -216,7 +216,7 @@ export default function DashboardPage() {
                             <h2 className="text-xl font-black text-slate-900 uppercase tracking-tighter flex items-center gap-3">
                                 <Sparkles size={24} className="text-indigo-600" /> Inteligência Ativa
                             </h2>
-                            <div className="bg-indigo-600 rounded-[2.5rem] p-8 text-white shadow-xl shadow-indigo-100 relative overflow-hidden group">
+                            <div className="bg-indigo-600 rounded-[2.5rem] p-8 text-slate-900 shadow-xl shadow-indigo-100 relative overflow-hidden group">
                                 <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-bl-[5rem] pointer-events-none" />
                                 <div className="relative z-10 flex flex-col h-full justify-between gap-8">
                                     <div className="flex items-center gap-4">

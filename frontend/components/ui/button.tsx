@@ -15,15 +15,15 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
                 className={cn(
                     "inline-flex items-center justify-center rounded-xl font-medium transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
                     {
-                        "bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:scale-105 shadow-lg shadow-purple-500/25 border-0":
+                        "bg-gradient-to-r from-blue-600 to-blue-700 text-slate-900 hover:scale-105 shadow-lg shadow-blue-500/25 border-0":
                             variant === "primary",
-                        "bg-zinc-800 text-zinc-100 hover:bg-zinc-700 border border-zinc-700":
+                        "bg-zinc-800 text-zinc-900 hover:bg-zinc-700 border border-zinc-700":
                             variant === "secondary",
-                        "hover:bg-zinc-800/50 text-zinc-300 hover:text-white":
+                        "hover:bg-zinc-800/50 text-zinc-700 hover:text-slate-900":
                             variant === "ghost",
                         "bg-red-500/10 text-red-500 hover:bg-red-500/20 border border-red-500/50":
                             variant === "destructive",
-                        "border border-zinc-700 bg-transparent hover:bg-zinc-800 text-zinc-100":
+                        "border border-zinc-700 bg-transparent hover:bg-zinc-800 text-zinc-900":
                             variant === "outline",
                         "h-10 px-4 py-2": size === "default",
                         "h-9 px-3 text-xs": size === "sm",

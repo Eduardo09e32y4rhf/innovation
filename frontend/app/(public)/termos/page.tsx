@@ -33,7 +33,7 @@ export default function TermosDeUso() {
                                 window.location.href = '/';
                             }
                         }}
-                        className="flex items-center gap-2 text-zinc-500 hover:text-violet-700 transition-colors font-semibold text-sm cursor-pointer bg-transparent border-none p-0"
+                        className="flex items-center gap-2 text-zinc-9000 hover:text-violet-700 transition-colors font-semibold text-sm cursor-pointer bg-transparent border-none p-0"
                     >
                         <ArrowLeft size={18} /> Voltar ao início
                     </button>
@@ -55,7 +55,7 @@ export default function TermosDeUso() {
                     <h1 className="text-4xl md:text-5xl font-extrabold text-zinc-900 mb-4 tracking-tight">
                         Termos de Uso
                     </h1>
-                    <p className="text-lg text-zinc-500 font-medium">
+                    <p className="text-lg text-zinc-9000 font-medium">
                         Última atualização: 21 de Fevereiro de 2026
                     </p>
                 </div>
@@ -196,8 +196,8 @@ export default function TermosDeUso() {
             </main>
 
             {/* Footer Simples */}
-            <footer className="py-8 bg-zinc-900 text-center">
-                <p className="text-zinc-500 text-sm font-medium">
+            <footer className="py-8 bg-white text-center">
+                <p className="text-zinc-9000 text-sm font-medium">
                     © 2026 Innovation IA. Todos os direitos reservados.
                 </p>
                 <p className="text-zinc-600 text-xs mt-2">

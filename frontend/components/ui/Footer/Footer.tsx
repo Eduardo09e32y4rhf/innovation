@@ -5,8 +5,8 @@ import GitHub from '@/components/icons/GitHub';
 
 export default function Footer() {
   return (
-    <footer className="mx-auto max-w-[1920px] px-6 bg-zinc-900">
-      <div className="grid grid-cols-1 gap-8 py-12 text-white transition-colors duration-150 border-b lg:grid-cols-12 border-zinc-600 bg-zinc-900">
+    <footer className="mx-auto max-w-[1920px] px-6 bg-white">
+      <div className="grid grid-cols-1 gap-8 py-12 text-slate-900 transition-colors duration-150 border-b lg:grid-cols-12 border-zinc-600 bg-white">
         <div className="col-span-1 lg:col-span-2">
           <Link
             href="/"
@@ -23,7 +23,7 @@ export default function Footer() {
             <li className="py-3 md:py-0 md:pb-4">
               <Link
                 href="/"
-                className="text-white transition duration-150 ease-in-out hover:text-zinc-200"
+                className="text-slate-900 transition duration-150 ease-in-out hover:text-zinc-800"
               >
                 Home
               </Link>
@@ -31,7 +31,7 @@ export default function Footer() {
             <li className="py-3 md:py-0 md:pb-4">
               <Link
                 href="/"
-                className="text-white transition duration-150 ease-in-out hover:text-zinc-200"
+                className="text-slate-900 transition duration-150 ease-in-out hover:text-zinc-800"
               >
                 About
               </Link>
@@ -39,7 +39,7 @@ export default function Footer() {
             <li className="py-3 md:py-0 md:pb-4">
               <Link
                 href="/"
-                className="text-white transition duration-150 ease-in-out hover:text-zinc-200"
+                className="text-slate-900 transition duration-150 ease-in-out hover:text-zinc-800"
               >
                 Careers
               </Link>
@@ -47,7 +47,7 @@ export default function Footer() {
             <li className="py-3 md:py-0 md:pb-4">
               <Link
                 href="/"
-                className="text-white transition duration-150 ease-in-out hover:text-zinc-200"
+                className="text-slate-900 transition duration-150 ease-in-out hover:text-zinc-800"
               >
                 Blog
               </Link>
@@ -57,14 +57,14 @@ export default function Footer() {
         <div className="col-span-1 lg:col-span-2">
           <ul className="flex flex-col flex-initial md:flex-1">
             <li className="py-3 md:py-0 md:pb-4">
-              <p className="font-bold text-white transition duration-150 ease-in-out hover:text-zinc-200">
+              <p className="font-bold text-slate-900 transition duration-150 ease-in-out hover:text-zinc-800">
                 LEGAL
               </p>
             </li>
             <li className="py-3 md:py-0 md:pb-4">
               <Link
                 href="/"
-                className="text-white transition duration-150 ease-in-out hover:text-zinc-200"
+                className="text-slate-900 transition duration-150 ease-in-out hover:text-zinc-800"
               >
                 Privacy Policy
               </Link>
@@ -72,14 +72,14 @@ export default function Footer() {
             <li className="py-3 md:py-0 md:pb-4">
               <Link
                 href="/"
-                className="text-white transition duration-150 ease-in-out hover:text-zinc-200"
+                className="text-slate-900 transition duration-150 ease-in-out hover:text-zinc-800"
               >
                 Terms of Use
               </Link>
             </li>
           </ul>
         </div>
-        <div className="flex items-start col-span-1 text-white lg:col-span-6 lg:justify-end">
+        <div className="flex items-start col-span-1 text-slate-900 lg:col-span-6 lg:justify-end">
           <div className="flex items-center h-10 space-x-6">
             <a
               aria-label="Github Repository"
@@ -90,19 +90,19 @@ export default function Footer() {
           </div>
         </div>
       </div>
-      <div className="flex flex-col items-center justify-between py-12 space-y-4 md:flex-row bg-zinc-900">
+      <div className="flex flex-col items-center justify-between py-12 space-y-4 md:flex-row bg-white">
         <div>
           <span>
             &copy; {new Date().getFullYear()} ACME, Inc. All rights reserved.
           </span>
         </div>
         <div className="flex items-center">
-          <span className="text-white">Crafted by</span>
+          <span className="text-slate-900">Crafted by</span>
           <a href="https://vercel.com" aria-label="Vercel.com Link">
             <img
               src="/vercel.svg"
               alt="Vercel.com Logo"
-              className="inline-block h-6 ml-4 text-white"
+              className="inline-block h-6 ml-4 text-slate-900"
             />
           </a>
         </div>

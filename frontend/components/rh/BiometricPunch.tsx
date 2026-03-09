@@ -124,18 +124,18 @@ export function BiometricPunch({ onSuccess }: { onSuccess?: () => void }) {
     };
 
     return (
-        <div className="max-w-md mx-auto bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden shadow-2xl relative">
+        <div className="max-w-md mx-auto bg-white border border-gray-800 rounded-2xl overflow-hidden shadow-2xl relative">
             <div className="p-6 text-center">
-                <div className="w-16 h-16 bg-purple-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-purple-500/20">
-                    <Fingerprint className="w-8 h-8 text-purple-400" />
+                <div className="w-16 h-16 bg-blue-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-blue-500/20">
+                    <Fingerprint className="w-8 h-8 text-blue-600" />
                 </div>
-                <h2 className="text-xl font-bold text-white mb-2">Ponto Militar</h2>
+                <h2 className="text-xl font-bold text-slate-900 mb-2">Ponto Militar</h2>
                 <p className="text-sm text-gray-400 mb-8">
                     Autenticação biométrica e rastreio anti-mock.
                 </p>
 
                 {/* VISUAL FEEDBACK AREA */}
-                <div className="relative h-64 w-full bg-black rounded-xl border border-gray-800 overflow-hidden mb-8 flex flex-col items-center justify-center">
+                <div className="relative h-64 w-full bg-white rounded-xl border border-gray-800 overflow-hidden mb-8 flex flex-col items-center justify-center">
 
                     {step === 'idle' && (
                         <div className="text-gray-600 flex flex-col items-center">
@@ -147,9 +147,9 @@ export function BiometricPunch({ onSuccess }: { onSuccess?: () => void }) {
                     {step === 'capturing' && (
                         <>
                             <video ref={videoRef} className="absolute inset-0 w-full h-full object-cover" muted playsInline />
-                            <div className="absolute inset-0 border-4 border-purple-500/50 rounded-xl pointer-events-none animate-pulse"></div>
+                            <div className="absolute inset-0 border-4 border-blue-500/50 rounded-xl pointer-events-none animate-pulse"></div>
                             <div className="absolute bottom-4 left-0 w-full flex justify-center gap-2 px-4">
-                                <span className="bg-black/60 backdrop-blur text-[10px] text-green-400 px-3 py-1 rounded-full flex items-center gap-1 border border-green-500/30">
+                                <span className="bg-white/60 backdrop-blur text-[10px] text-green-400 px-3 py-1 rounded-full flex items-center gap-1 border border-green-500/30">
                                     <MapPin className="w-3 h-3" />
                                     {location ? `Travado (${location.accuracy.toFixed(0)}m)` : 'Buscando Satélite...'}
                                 </span>
@@ -159,8 +159,8 @@ export function BiometricPunch({ onSuccess }: { onSuccess?: () => void }) {
 
                     {step === 'processing' && (
                         <div className="flex flex-col items-center">
-                            <ShieldCheck className="w-12 h-12 text-purple-400 mb-4 animate-bounce" />
-                            <p className="text-sm text-purple-300 font-medium">Validando Face Match...</p>
+                            <ShieldCheck className="w-12 h-12 text-blue-600 mb-4 animate-bounce" />
+                            <p className="text-sm text-blue-500 font-medium">Validando Face Match...</p>
                             <p className="text-[10px] text-gray-500 mt-1">Comparando com base segura via Gemini Flash</p>
                         </div>
                     )}
@@ -180,7 +180,7 @@ export function BiometricPunch({ onSuccess }: { onSuccess?: () => void }) {
                             <p className="text-xs text-gray-400 mt-1">{errorMsg}</p>
                             <button
                                 onClick={() => setStep('idle')}
-                                className="mt-4 px-4 py-1.5 border border-gray-700 rounded-lg text-xs text-white hover:bg-gray-800"
+                                className="mt-4 px-4 py-1.5 border border-gray-700 rounded-lg text-xs text-slate-900 hover:bg-gray-800"
                             >
                                 Tentar Novamente
                             </button>
@@ -197,7 +197,7 @@ export function BiometricPunch({ onSuccess }: { onSuccess?: () => void }) {
                     disabled={step !== 'idle'}
                     className={`w-full py-4 rounded-xl font-bold text-lg uppercase tracking-wide transition-all duration-300 flex items-center justify-center gap-2
                         ${step === 'idle'
-                            ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:opacity-90 hover:scale-[1.02] shadow-lg shadow-purple-500/25 cursor-pointer'
+                            ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-slate-900 hover:opacity-90 hover:scale-[1.02] shadow-lg shadow-blue-500/25 cursor-pointer'
                             : 'bg-gray-800 text-gray-500 cursor-not-allowed border border-gray-700'}`}
                 >
                     {step === 'idle' ? 'Bater Ponto Agora' :

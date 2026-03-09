@@ -78,7 +78,7 @@ function StatCard({
                     {hidden ? 'R$ ••••••' : fmtBRL(amount)}
                 </p>
                 <div className="flex items-center gap-2 mt-3">
-                    <span className="text-[10px] font-bold text-slate-500">{subtitle}</span>
+                    <span className="text-[10px] font-bold text-slate-9000">{subtitle}</span>
                 </div>
             </div>
         </div>
@@ -122,7 +122,7 @@ function NovoLancamentoModal({ onClose, onSave }: {
 
     return (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4"
+            className="fixed inset-0 bg-slate-50/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4"
             onClick={onClose}>
             <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }}
                 className="bg-white border border-slate-100 rounded-[2.5rem] w-full max-w-md shadow-2xl p-8"
@@ -141,9 +141,9 @@ function NovoLancamentoModal({ onClose, onSave }: {
                             <button key={t} onClick={() => handleTypeChange(t)}
                                 className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${type === t
                                     ? t === 'income'
-                                        ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-100'
-                                        : 'bg-rose-600 text-white shadow-lg shadow-rose-100'
-                                    : 'text-slate-500 hover:text-slate-900'}`}>
+                                        ? 'bg-emerald-600 text-slate-900 shadow-lg shadow-emerald-100'
+                                        : 'bg-rose-600 text-slate-900 shadow-lg shadow-rose-100'
+                                    : 'text-slate-9000 hover:text-slate-900'}`}>
                                 {t === 'income' ? 'Receita' : 'Despesa'}
                             </button>
                         ))}
@@ -208,7 +208,7 @@ function NovoLancamentoModal({ onClose, onSave }: {
 
                     <button
                         onClick={handleSubmit} disabled={saving}
-                        className={`w-full py-5 rounded-[1.8rem] text-xs font-black uppercase tracking-[0.2em] text-white flex items-center justify-center gap-2 transition-all shadow-xl disabled:opacity-50 ${type === 'income'
+                        className={`w-full py-5 rounded-[1.8rem] text-xs font-black uppercase tracking-[0.2em] text-slate-900 flex items-center justify-center gap-2 transition-all shadow-xl disabled:opacity-50 ${type === 'income'
                             ? 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-100'
                             : 'bg-rose-600 hover:bg-rose-500 shadow-rose-100'}`}>
                         {saving ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />}
@@ -275,7 +275,7 @@ export default function FinancePage() {
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                     <div>
                         <h1 className="text-4xl font-black text-slate-900 tracking-tight mb-2">Financeiro <span className="text-indigo-600">Premium</span></h1>
-                        <p className="text-slate-500 font-medium">Gestão inteligente de fluxo de caixa e obrigações fiscais.</p>
+                        <p className="text-slate-9000 font-medium">Gestão inteligente de fluxo de caixa e obrigações fiscais.</p>
                     </div>
                     <div className="flex items-center gap-3">
                         <button
@@ -350,7 +350,7 @@ export default function FinancePage() {
                         </div>
                     </div>
 
-                    <div className="bg-indigo-600 rounded-[2.5rem] p-8 text-white shadow-xl shadow-indigo-100 relative overflow-hidden flex flex-col justify-between">
+                    <div className="bg-indigo-600 rounded-[2.5rem] p-8 text-slate-900 shadow-xl shadow-indigo-100 relative overflow-hidden flex flex-col justify-between">
                         <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-bl-[5rem] pointer-events-none" />
                         <div>
                             <div className="flex justify-between items-start mb-6">
@@ -371,7 +371,7 @@ export default function FinancePage() {
                         </div>
                         <div className="space-y-3 mt-10">
                             <button className="w-full bg-white text-indigo-600 py-4 rounded-[1.5rem] font-black text-xs uppercase tracking-widest shadow-lg hover:scale-[1.02] transition-all">Pagar via Pix</button>
-                            <button className="w-full bg-indigo-500/50 text-white py-4 rounded-[1.5rem] font-black text-xs uppercase tracking-widest border border-white/10 hover:bg-indigo-500/70 transition-all">Download PDF</button>
+                            <button className="w-full bg-indigo-500/50 text-slate-900 py-4 rounded-[1.5rem] font-black text-xs uppercase tracking-widest border border-white/10 hover:bg-indigo-500/70 transition-all">Download PDF</button>
                         </div>
                     </div>
                 </div>
@@ -422,7 +422,7 @@ export default function FinancePage() {
                                             </div>
                                         </td>
                                         <td className="py-5 px-4 whitespace-nowrap">
-                                            <span className="text-xs font-bold text-slate-500 bg-slate-50 px-3 py-1 rounded-xl">{tx.category || 'Geral'}</span>
+                                            <span className="text-xs font-bold text-slate-9000 bg-slate-50 px-3 py-1 rounded-xl">{tx.category || 'Geral'}</span>
                                         </td>
                                         <td className="py-5 px-4 text-right whitespace-nowrap">
                                             <span className={`text-sm font-black ${tx.type === 'income' ? 'text-emerald-600' : 'text-slate-900'}`}>
