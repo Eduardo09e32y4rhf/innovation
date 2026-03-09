@@ -350,13 +350,9 @@ export default function FinancePage() {
                         </div>
                     </div>
 
-<<<<<<< HEAD
-                    <div className="bg-indigo-600 rounded-[2.5rem] p-8 text-white shadow-xl shadow-indigo-100 relative overflow-hidden flex flex-col justify-between">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-white border-slate-200 border-black/5 shadow-sm/10 rounded-bl-[5rem] pointer-events-none" />
-=======
                     <div className="bg-indigo-600 rounded-[2.5rem] p-8 text-slate-900 shadow-xl shadow-indigo-100 relative overflow-hidden flex flex-col justify-between">
                         <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-bl-[5rem] pointer-events-none" />
->>>>>>> 73e3b8acfec7b8c39719e808c5e32ff2dd4f4465
+
                         <div>
                             <div className="flex justify-between items-start mb-6">
                                 <div className="p-3 bg-white border-slate-200 border-black/5 shadow-sm/20 rounded-2xl backdrop-blur-md">
@@ -375,13 +371,9 @@ export default function FinancePage() {
                             <p className="text-xs font-bold text-indigo-200">Vencimento: 20/03/2026</p>
                         </div>
                         <div className="space-y-3 mt-10">
-<<<<<<< HEAD
-                            <button className="w-full bg-white border-slate-200 border-black/5 shadow-sm text-indigo-600 py-4 rounded-[1.5rem] font-black text-xs uppercase tracking-widest shadow-lg hover:scale-[1.02] transition-all">Pagar via Pix</button>
-                            <button className="w-full bg-indigo-500/50 text-white py-4 rounded-[1.5rem] font-black text-xs uppercase tracking-widest border-white/10 hover:bg-indigo-500/70 transition-all">Download PDF</button>
-=======
                             <button className="w-full bg-white text-indigo-600 py-4 rounded-[1.5rem] font-black text-xs uppercase tracking-widest shadow-lg hover:scale-[1.02] transition-all">Pagar via Pix</button>
                             <button className="w-full bg-indigo-500/50 text-slate-900 py-4 rounded-[1.5rem] font-black text-xs uppercase tracking-widest border border-white/10 hover:bg-indigo-500/70 transition-all">Download PDF</button>
->>>>>>> 73e3b8acfec7b8c39719e808c5e32ff2dd4f4465
+
                         </div>
                     </div>
                 </div>

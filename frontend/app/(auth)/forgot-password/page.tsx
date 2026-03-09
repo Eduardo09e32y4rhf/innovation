@@ -60,13 +60,9 @@ export default function ForgotPasswordPage() {
                         className="group relative"
                     >
                         <div className="absolute -inset-1 bg-gradient-to-r from-purple-600 to-blue-600 rounded-2xl blur opacity-40 group-hover:opacity-100 transition duration-1000 group-hover:duration-200"></div>
-<<<<<<< HEAD
-                        <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-[#0a0a0f] border-white/10 mb-6 transition-all duration-300">
-                            <Lock className="h-8 w-8 text-purple-400 group-hover:text-white transition-colors" />
-=======
                         <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-[#0a0a0f] border border-white/10 mb-6 transition-all duration-300">
                             <Lock className="h-8 w-8 text-blue-600 group-hover:text-slate-900 transition-colors" />
->>>>>>> 73e3b8acfec7b8c39719e808c5e32ff2dd4f4465
+
                         </div>
                     </motion.div>
 
@@ -121,22 +117,16 @@ export default function ForgotPasswordPage() {
                                             placeholder="seu@endereco.com"
                                             value={email}
                                             onChange={(e) => setEmail(e.target.value)}
-<<<<<<< HEAD
-                                            className="w-full h-12 rounded-2xl border-white/5 bg-white border-slate-200 border-black/5 shadow-sm/5 px-4 pl-11 text-sm text-white placeholder:text-zinc-600 focus:bg-white border-slate-200 border-black/5 shadow-sm/10 focus:border-purple-500/50 focus:outline-none focus:ring-4 focus:ring-purple-500/10 transition-all"
-=======
                                             className="w-full h-12 rounded-2xl border border-white/5 bg-white/5 px-4 pl-11 text-sm text-slate-900 placeholder:text-zinc-600 focus:bg-white/10 focus:border-blue-500/50 focus:outline-none focus:ring-4 focus:ring-blue-500/10 transition-all"
->>>>>>> 73e3b8acfec7b8c39719e808c5e32ff2dd4f4465
+
                                             required
                                         />
                                     </div>
                                 </div>
 
                                 <Button
-<<<<<<< HEAD
-                                    className="w-full h-12 bg-white border-slate-200 border-black/5 shadow-sm text-black hover:bg-zinc-200 rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all relative overflow-hidden group shadow-xl shadow-white/5"
-=======
                                     className="w-full h-12 bg-white text-slate-900 hover:bg-zinc-200 rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all relative overflow-hidden group shadow-xl shadow-white/5"
->>>>>>> 73e3b8acfec7b8c39719e808c5e32ff2dd4f4465
+
                                     disabled={loading || !!message}
                                 >
                                     <span className="relative z-10 flex items-center justify-center gap-2">

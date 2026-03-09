@@ -132,13 +132,9 @@ function PricingContent() {
                 )}
 
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-<<<<<<< HEAD
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border-purple-500/30 bg-purple-500/10 text-purple-300 text-sm mb-6">
-                        <span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse" />
-=======
                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-blue-500/30 bg-blue-500/10 text-blue-500 text-sm mb-6">
                         <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
->>>>>>> 73e3b8acfec7b8c39719e808c5e32ff2dd4f4465
+
                         Sem taxa de setup · Cancele quando quiser
                     </div>
                     <h1 className="text-5xl font-bold mb-4">
@@ -185,13 +181,9 @@ function PricingContent() {
                                 onClick={() => handleCheckout(plan.id)}
                                 disabled={loading === plan.id}
                                 className={`w-full py-3 rounded-xl font-semibold text-sm transition mb-8 ${plan.popular
-<<<<<<< HEAD
-                                    ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white shadow-lg shadow-purple-500/20'
-                                    : 'bg-zinc-800 hover:bg-zinc-700 text-white border-zinc-700'
-=======
                                     ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-slate-900 shadow-lg shadow-blue-500/20'
                                     : 'bg-zinc-800 hover:bg-zinc-700 text-slate-900 border border-zinc-700'
->>>>>>> 73e3b8acfec7b8c39719e808c5e32ff2dd4f4465
+
                                     } disabled:opacity-50 disabled:cursor-not-allowed`}
                             >
                                 {loading === plan.id ? 'Redirecionando...' : `Assinar ${plan.name}`}

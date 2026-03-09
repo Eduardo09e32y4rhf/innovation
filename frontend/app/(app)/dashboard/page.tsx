@@ -216,13 +216,9 @@ export default function DashboardPage() {
                             <h2 className="text-xl font-black text-slate-900 uppercase tracking-tighter flex items-center gap-3">
                                 <Sparkles size={24} className="text-indigo-600" /> Inteligência Ativa
                             </h2>
-<<<<<<< HEAD
-                            <div className="bg-indigo-600 rounded-[2.5rem] p-8 text-white shadow-xl shadow-indigo-100 relative overflow-hidden group">
-                                <div className="absolute top-0 right-0 w-32 h-32 bg-white border-slate-200 border-black/5 shadow-sm/10 rounded-bl-[5rem] pointer-events-none" />
-=======
                             <div className="bg-indigo-600 rounded-[2.5rem] p-8 text-slate-900 shadow-xl shadow-indigo-100 relative overflow-hidden group">
                                 <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-bl-[5rem] pointer-events-none" />
->>>>>>> 73e3b8acfec7b8c39719e808c5e32ff2dd4f4465
+
                                 <div className="relative z-10 flex flex-col h-full justify-between gap-8">
                                     <div className="flex items-center gap-4">
                                         <div className="p-3 bg-white border-slate-200 border-black/5 shadow-sm/20 rounded-2xl backdrop-blur-md">

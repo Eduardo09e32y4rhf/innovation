@@ -128,11 +128,8 @@ export default function HomePage() {
           {/* Logo */}
           <div className="flex items-center gap-2 cursor-pointer">
             <div
-<<<<<<< HEAD
-              className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-lg ${scrolled ? 'bg-violet-700' : 'bg-white border-slate-200 border-black/5 shadow-sm'
-=======
               className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-lg ${scrolled ? 'bg-blue-600' : 'bg-white'
->>>>>>> 73e3b8acfec7b8c39719e808c5e32ff2dd4f4465
+
                 }`}
             >
               <Zap size={22} className={scrolled ? 'text-slate-900' : 'text-violet-700'} />
@@ -169,13 +166,9 @@ export default function HomePage() {
             <button
               onClick={goToRegister}
               className={`px-6 py-2.5 rounded-full font-bold text-sm shadow-xl transition-all hover:-translate-y-1 ${scrolled
-<<<<<<< HEAD
-                ? 'bg-violet-700 text-white hover:bg-violet-800'
-                : 'bg-white border-slate-200 border-black/5 shadow-sm text-violet-800 hover:bg-zinc-100'
-=======
                 ? 'bg-blue-600 text-white hover:bg-blue-600'
                 : 'bg-white text-violet-800 hover:bg-zinc-100'
->>>>>>> 73e3b8acfec7b8c39719e808c5e32ff2dd4f4465
+
                 }`}
             >
               Abra a sua conta
@@ -213,11 +206,8 @@ export default function HomePage() {
 
         <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-16 items-center relative z-10">
           <div className="text-center lg:text-left">
-<<<<<<< HEAD
-            <div className="inline-flex items-center gap-2 bg-white border-slate-200 border-black/5 shadow-sm/10 border-white/20 text-white px-5 py-2 rounded-full text-sm font-bold mb-8 backdrop-blur-md">
-=======
             <div className="inline-flex items-center gap-2 bg-white/10 border border-white/20 text-slate-900 px-5 py-2 rounded-full text-sm font-bold mb-8 backdrop-blur-md">
->>>>>>> 73e3b8acfec7b8c39719e808c5e32ff2dd4f4465
+
               <Sparkles size={16} className="text-fuchsia-300" /> O futuro do trabalho chegou
             </div>
 

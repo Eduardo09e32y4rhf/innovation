@@ -145,11 +145,8 @@ export default function ProjectsPage() {
                         </div>
                         <div className="flex gap-2 w-full md:w-auto">
                             <select
-<<<<<<< HEAD
-                                className="flex-1 md:w-60 bg-slate-50 border-transparent rounded-[1.5rem] px-6 py-4 text-xs font-black uppercase tracking-widest focus:bg-white border-slate-200 border-black/5 shadow-sm focus:border-indigo-100 outline-none transition-all appearance-none text-slate-500"
-=======
                                 className="flex-1 md:w-60 bg-slate-50 border border-transparent rounded-[1.5rem] px-6 py-4 text-xs font-black uppercase tracking-widest focus:bg-white focus:border-indigo-100 outline-none transition-all appearance-none text-slate-9000"
->>>>>>> 73e3b8acfec7b8c39719e808c5e32ff2dd4f4465
+
                                 value={newTask.project_id}
                                 onChange={e => setNewTask({ ...newTask, project_id: parseInt(e.target.value) })}
                             >
@@ -222,13 +219,9 @@ export default function ProjectsPage() {
             {/* Create Project Modal */}
             <AnimatePresence>
                 {showForm && (
-<<<<<<< HEAD
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4" onClick={() => setShowForm(false)}>
-                        <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} className="bg-white border-slate-200 border-black/5 shadow-sm w-full max-w-md p-10 rounded-[2.8rem] shadow-2xl relative" onClick={e => e.stopPropagation()}>
-=======
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-50/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4" onClick={() => setShowForm(false)}>
                         <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} className="bg-white w-full max-w-md p-10 rounded-[2.8rem] shadow-2xl relative" onClick={e => e.stopPropagation()}>
->>>>>>> 73e3b8acfec7b8c39719e808c5e32ff2dd4f4465
+
                             <div className="flex justify-between items-center mb-10">
                                 <h2 className="text-2xl font-black text-slate-900 tracking-tight">Novo Escopo</h2>
                                 <button onClick={() => setShowForm(false)} className="p-3 bg-slate-50 rounded-2xl text-slate-400 hover:bg-slate-100 transition-all"><X size={20} /></button>

@@ -105,18 +105,6 @@ export default function ProjectsAdvancedPage() {
                         </div>
 
                         {showWfForm && (
-<<<<<<< HEAD
-                            <div className="bg-gray-900 border-purple-500/30 rounded-xl p-5 mb-6">
-                                <h3 className="font-semibold text-white mb-4">Criar Automação</h3>
-                                <div className="grid grid-cols-2 gap-3">
-                                    <input value={wfForm.name} onChange={e => setWfForm(p => ({ ...p, name: e.target.value }))}
-                                        placeholder="Nome do fluxo"
-                                        className="col-span-2 bg-gray-800 border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500" />
-                                    <div>
-                                        <label className="text-gray-400 text-xs mb-1 block">Gatilho (Quando...)</label>
-                                        <select value={wfForm.trigger_event} onChange={e => setWfForm(p => ({ ...p, trigger_event: e.target.value }))}
-                                            className="w-full bg-gray-800 border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500">
-=======
                             <div className="bg-white border border-blue-500/30 rounded-xl p-5 mb-6">
                                 <h3 className="font-semibold text-slate-900 mb-4">Criar Automação</h3>
                                 <div className="grid grid-cols-2 gap-3">
@@ -127,7 +115,7 @@ export default function ProjectsAdvancedPage() {
                                         <label className="text-gray-400 text-xs mb-1 block">Gatilho (Quando...)</label>
                                         <select value={wfForm.trigger_event} onChange={e => setWfForm(p => ({ ...p, trigger_event: e.target.value }))}
                                             className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-slate-900 text-sm focus:outline-none focus:border-blue-500">
->>>>>>> 73e3b8acfec7b8c39719e808c5e32ff2dd4f4465
+
                                             <option value="task_moved_to_done">Tarefa movida para Concluído</option>
                                             <option value="ticket_created">Ticket criado</option>
                                             <option value="task_overdue">Tarefa atrasada</option>
@@ -137,11 +125,8 @@ export default function ProjectsAdvancedPage() {
                                     <div>
                                         <label className="text-gray-400 text-xs mb-1 block">Ação (Então...)</label>
                                         <select value={wfForm.action_type} onChange={e => setWfForm(p => ({ ...p, action_type: e.target.value }))}
-<<<<<<< HEAD
-                                            className="w-full bg-gray-800 border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500">
-=======
                                             className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-slate-900 text-sm focus:outline-none focus:border-blue-500">
->>>>>>> 73e3b8acfec7b8c39719e808c5e32ff2dd4f4465
+
                                             <option value="send_email">Enviar E-mail</option>
                                             <option value="create_ticket">Criar Ticket</option>
                                             <option value="notify">Notificação Interna</option>
@@ -149,17 +134,11 @@ export default function ProjectsAdvancedPage() {
                                     </div>
                                     <input value={wfForm.action_config.to} onChange={e => setWfForm(p => ({ ...p, action_config: { ...p.action_config, to: e.target.value } }))}
                                         placeholder="Para (email ou usuário)"
-<<<<<<< HEAD
-                                        className="bg-gray-800 border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500" />
-                                    <input value={wfForm.action_config.subject} onChange={e => setWfForm(p => ({ ...p, action_config: { ...p.action_config, subject: e.target.value } }))}
-                                        placeholder="Assunto"
-                                        className="bg-gray-800 border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500" />
-=======
                                         className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-slate-900 text-sm focus:outline-none focus:border-blue-500" />
                                     <input value={wfForm.action_config.subject} onChange={e => setWfForm(p => ({ ...p, action_config: { ...p.action_config, subject: e.target.value } }))}
                                         placeholder="Assunto"
                                         className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-slate-900 text-sm focus:outline-none focus:border-blue-500" />
->>>>>>> 73e3b8acfec7b8c39719e808c5e32ff2dd4f4465
+
                                 </div>
                                 <button onClick={createWorkflow} className="mt-3 bg-blue-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-600 transition">
                                     Criar Fluxo
@@ -208,19 +187,6 @@ export default function ProjectsAdvancedPage() {
                         </div>
 
                         {showPurchForm && (
-<<<<<<< HEAD
-                            <div className="bg-gray-900 border-purple-500/30 rounded-xl p-5 mb-6">
-                                <h3 className="font-semibold text-white mb-4">Solicitar Compra / Reembolso</h3>
-                                <div className="grid grid-cols-3 gap-3">
-                                    <input value={purchForm.description} onChange={e => setPurchForm(p => ({ ...p, description: e.target.value }))}
-                                        placeholder="Descrição"
-                                        className="col-span-2 bg-gray-800 border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500" />
-                                    <input type="number" value={purchForm.amount} onChange={e => setPurchForm(p => ({ ...p, amount: Number(e.target.value) }))}
-                                        placeholder="Valor (R$)"
-                                        className="bg-gray-800 border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500" />
-                                    <select value={purchForm.category} onChange={e => setPurchForm(p => ({ ...p, category: e.target.value }))}
-                                        className="bg-gray-800 border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500">
-=======
                             <div className="bg-white border border-blue-500/30 rounded-xl p-5 mb-6">
                                 <h3 className="font-semibold text-slate-900 mb-4">Solicitar Compra / Reembolso</h3>
                                 <div className="grid grid-cols-3 gap-3">
@@ -232,7 +198,7 @@ export default function ProjectsAdvancedPage() {
                                         className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-slate-900 text-sm focus:outline-none focus:border-blue-500" />
                                     <select value={purchForm.category} onChange={e => setPurchForm(p => ({ ...p, category: e.target.value }))}
                                         className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-slate-900 text-sm focus:outline-none focus:border-blue-500">
->>>>>>> 73e3b8acfec7b8c39719e808c5e32ff2dd4f4465
+
                                         <option value="equipment">Equipamentos</option>
                                         <option value="software">Software</option>
                                         <option value="travel">Viagem</option>
@@ -277,11 +243,8 @@ export default function ProjectsAdvancedPage() {
 
                         <div className="space-y-2">
                             {purchases.filter(r => r.status !== 'pending').map(req => (
-<<<<<<< HEAD
-                                <div key={req.id} className="bg-gray-900 border-purple-500/10 rounded-xl p-4 flex items-center justify-between">
-=======
                                 <div key={req.id} className="bg-white border border-blue-500/10 rounded-xl p-4 flex items-center justify-between">
->>>>>>> 73e3b8acfec7b8c39719e808c5e32ff2dd4f4465
+
                                     <div>
                                         <p className="text-slate-900 text-sm">{req.description}</p>
                                         <p className="text-gray-400 text-sm">R$ {Number(req.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} • {req.category}</p>

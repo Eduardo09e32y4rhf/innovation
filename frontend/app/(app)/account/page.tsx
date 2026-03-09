@@ -35,13 +35,9 @@ export default function AccountPage() {
       <div className="p-8 max-w-4xl mx-auto space-y-10 animate-in fade-in duration-700">
 
         {/* Header Profile */}
-<<<<<<< HEAD
-        <div className="flex flex-col md:flex-row items-center gap-8 bg-white border-slate-200 border-black/5 shadow-sm border-slate-100 p-10 rounded-[3rem] shadow-sm">
-          <div className="w-32 h-32 rounded-[2.5rem] bg-indigo-600 flex items-center justify-center text-white text-5xl font-black shadow-xl shadow-indigo-100">
-=======
         <div className="flex flex-col md:flex-row items-center gap-8 bg-white border border-slate-100 p-10 rounded-[3rem] shadow-sm">
           <div className="w-32 h-32 rounded-[2.5rem] bg-indigo-600 flex items-center justify-center text-slate-900 text-5xl font-black shadow-xl shadow-indigo-100">
->>>>>>> 73e3b8acfec7b8c39719e808c5e32ff2dd4f4465
+
             {user?.name?.[0] || 'U'}
           </div>
           <div className="text-center md:text-left flex-1">

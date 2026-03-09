@@ -428,13 +428,9 @@ const TabConfig = ({ user, company }: { user: UserProfile | null; company: any }
 
                 {sub === 'billing' && (
                     <div className="space-y-6">
-<<<<<<< HEAD
-                        <div className="p-6 bg-gradient-to-br from-indigo-600 to-purple-700 rounded-2xl text-white shadow-xl">
-                            <span className="bg-white border-slate-200 border-black/5 shadow-sm/20 text-white text-[10px] font-black px-2 py-0.5 rounded uppercase mb-4 inline-block tracking-widest">Plano Enterprise</span>
-=======
                         <div className="p-6 bg-gradient-to-br from-indigo-600 to-purple-700 rounded-2xl text-slate-900 shadow-xl">
                             <span className="bg-white/20 text-slate-900 text-[10px] font-black px-2 py-0.5 rounded uppercase mb-4 inline-block tracking-widest">Plano Enterprise</span>
->>>>>>> 73e3b8acfec7b8c39719e808c5e32ff2dd4f4465
+
                             <h4 className="text-2xl font-black mb-1">Innovation Force</h4>
                             <p className="opacity-80 text-xs mb-6">Próxima renovação em 10 de Abril, 2026</p>
                             <div className="flex items-baseline gap-1 mb-6">
@@ -607,15 +603,10 @@ export default function ModernDashboard() {
             <main className="flex-1 flex flex-col h-screen overflow-hidden bg-white border-slate-200 border-black/5 shadow-sm lg:bg-slate-50/50">
 
                 {/* TOP SEARCH BAR */}
-<<<<<<< HEAD
-                <header className="hidden lg:flex h-20 px-10 items-center justify-between border-b border-slate-100 bg-white border-slate-200 border-black/5 shadow-sm/80 backdrop-blur-md sticky top-0 z-10">
-                    <div className="flex items-center gap-3 bg-slate-50 border-slate-100 focus-within:bg-white border-slate-200 border-black/5 shadow-sm focus-within:ring-4 ring-indigo-50 rounded-2xl px-5 py-2.5 w-[500px] transition-all">
-                        <Search size={18} className="text-slate-300" />
-=======
                 <header className="hidden lg:flex h-20 px-10 items-center justify-between border-b border-slate-100 bg-white/80 backdrop-blur-md sticky top-0 z-10">
                     <div className="flex items-center gap-3 bg-slate-50 border border-slate-100 focus-within:bg-white focus-within:ring-4 ring-indigo-50 rounded-2xl px-5 py-2.5 w-[500px] transition-all">
                         <Search size={18} className="text-slate-700" />
->>>>>>> 73e3b8acfec7b8c39719e808c5e32ff2dd4f4465
+
                         <input type="text" placeholder="Procurar transações, contratos, colaboradores..." className="bg-transparent border-none outline-none text-sm text-slate-700 w-full placeholder:text-slate-400 font-medium" />
                     </div>
 

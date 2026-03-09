@@ -196,22 +196,6 @@ export default function FinanceAdvancedPage() {
                                                         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Fator Overhead: <span className="text-indigo-600">{emp.overhead_factor}x</span></span>
                                                     </div>
                                                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-<<<<<<< HEAD
-                                                        <div className="p-4 bg-white border-slate-200 border-black/5 shadow-sm rounded-2xl border-slate-100 shadow-sm">
-                                                            <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest mb-1">Custo Real</p>
-                                                            <p className="text-sm font-black text-emerald-600">R$ {Number(emp.total_real_cost).toLocaleString('pt-BR')}</p>
-                                                        </div>
-                                                        <div className="p-4 bg-white border-slate-200 border-black/5 shadow-sm rounded-2xl border-slate-100 shadow-sm">
-                                                            <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest mb-1">INSS Patronal</p>
-                                                            <p className="text-sm font-black text-rose-500">R$ {Number(emp.inss_patronal).toLocaleString('pt-BR')}</p>
-                                                        </div>
-                                                        <div className="p-4 bg-white border-slate-200 border-black/5 shadow-sm rounded-2xl border-slate-100 shadow-sm">
-                                                            <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest mb-1">FGTS</p>
-                                                            <p className="text-sm font-black text-amber-500">R$ {Number(emp.fgts).toLocaleString('pt-BR')}</p>
-                                                        </div>
-                                                        <div className="p-4 bg-white border-slate-200 border-black/5 shadow-sm rounded-2xl border-slate-100 shadow-sm">
-                                                            <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest mb-1">Provisões</p>
-=======
                                                         <div className="p-4 bg-white rounded-2xl border border-slate-100 shadow-sm">
                                                             <p className="text-[9px] font-black text-slate-700 uppercase tracking-widest mb-1">Custo Real</p>
                                                             <p className="text-sm font-black text-emerald-600">R$ {Number(emp.total_real_cost).toLocaleString('pt-BR')}</p>
@@ -226,7 +210,7 @@ export default function FinanceAdvancedPage() {
                                                         </div>
                                                         <div className="p-4 bg-white rounded-2xl border border-slate-100 shadow-sm">
                                                             <p className="text-[9px] font-black text-slate-700 uppercase tracking-widest mb-1">Provisões</p>
->>>>>>> 73e3b8acfec7b8c39719e808c5e32ff2dd4f4465
+
                                                             <p className="text-sm font-black text-indigo-600">R$ {Number(emp.total_real_cost - emp.gross_salary - emp.inss_patronal - emp.fgts).toLocaleString('pt-BR')}</p>
                                                         </div>
                                                     </div>
@@ -282,11 +266,8 @@ export default function FinanceAdvancedPage() {
                                             </div>
                                             <div className="flex items-center gap-6">
                                                 <p className="text-sm font-black text-slate-900">R$ {Number(v.amount).toLocaleString('pt-BR')}</p>
-<<<<<<< HEAD
-                                                <button className="w-10 h-10 rounded-xl bg-white border-slate-200 border-black/5 shadow-sm border-slate-100 flex items-center justify-center text-slate-300 hover:text-indigo-600 hover:border-indigo-100 transition-all shadow-sm">
-=======
                                                 <button className="w-10 h-10 rounded-xl bg-white border border-slate-100 flex items-center justify-center text-slate-700 hover:text-indigo-600 hover:border-indigo-100 transition-all shadow-sm">
->>>>>>> 73e3b8acfec7b8c39719e808c5e32ff2dd4f4465
+
                                                     <ChevronRight size={18} />
                                                 </button>
                                             </div>

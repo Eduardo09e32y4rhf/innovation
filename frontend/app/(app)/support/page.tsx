@@ -84,13 +84,9 @@ export default function SupportPage() {
 
                     {/* System Status */}
                     {status && (
-<<<<<<< HEAD
-                        <div className="mb-6 flex gap-4 p-4 bg-zinc-900 border-zinc-800 rounded-xl">
-                            <span className="text-sm text-gray-400 font-medium">Status do Sistema:</span>
-=======
                         <div className="mb-6 flex gap-4 p-4 bg-white border border-slate-200 rounded-xl">
                             <span className="text-sm text-slate-500 font-medium">Status do Sistema:</span>
->>>>>>> 73e3b8acfec7b8c39719e808c5e32ff2dd4f4465
+
                             {Object.entries(status).map(([k, v]) => (
                                 <div key={k} className="flex items-center gap-2">
                                     <span className={`w-2 h-2 rounded-full ${statusColor(v as string)}`} />
@@ -119,11 +115,8 @@ export default function SupportPage() {
                         ) : (
                             <div className="space-y-4">
                                 {tickets.map(ticket => (
-<<<<<<< HEAD
-                                    <div key={ticket.id} className="border-zinc-800 rounded-xl p-4 hover:border-zinc-600 transition">
-=======
                                     <div key={ticket.id} className="border border-slate-200 rounded-xl p-4 hover:border-slate-300 transition">
->>>>>>> 73e3b8acfec7b8c39719e808c5e32ff2dd4f4465
+
                                         <div className="flex items-start justify-between">
                                             <div>
                                                 <div className="flex items-center gap-3 mb-1">
@@ -138,11 +131,8 @@ export default function SupportPage() {
                                             </button>
                                         </div>
                                         {smartReply[ticket.id] && (
-<<<<<<< HEAD
-                                            <div className="mt-3 p-3 bg-purple-900/20 border-purple-500/20 rounded-lg text-sm text-purple-200">
-=======
                                             <div className="mt-3 p-3 bg-blue-600/20 border border-blue-500/20 rounded-lg text-sm text-blue-800">
->>>>>>> 73e3b8acfec7b8c39719e808c5e32ff2dd4f4465
+
                                                 <strong>Sugestão IA:</strong> {smartReply[ticket.id]}
                                             </div>
                                         )}
@@ -153,25 +143,17 @@ export default function SupportPage() {
                     </div>
 
                     {showModal && (
-<<<<<<< HEAD
-                        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-                            <div className="bg-zinc-900 border-zinc-700 rounded-2xl p-6 w-full max-w-md">
-=======
                         <div className="fixed inset-0 bg-white/60 flex items-center justify-center z-50">
                             <div className="bg-white border border-slate-200 rounded-2xl p-6 w-full max-w-md">
->>>>>>> 73e3b8acfec7b8c39719e808c5e32ff2dd4f4465
+
                                 <div className="flex justify-between items-center mb-4">
                                     <h3 className="text-lg font-semibold">Abrir Chamado</h3>
                                     <button onClick={() => setShowModal(false)}><X className="w-5 h-5 text-slate-500" /></button>
                                 </div>
                                 <div className="space-y-3">
-<<<<<<< HEAD
-                                    <input className="w-full bg-zinc-800 border-zinc-700 rounded-lg px-3 py-2 text-sm" placeholder="Título do problema" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} />
-                                    <textarea className="w-full bg-zinc-800 border-zinc-700 rounded-lg px-3 py-2 text-sm" rows={4} placeholder="Descreva o problema em detalhes..." value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} />
-=======
                                     <input className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm" placeholder="Título do problema" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} />
                                     <textarea className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm" rows={4} placeholder="Descreva o problema em detalhes..." value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} />
->>>>>>> 73e3b8acfec7b8c39719e808c5e32ff2dd4f4465
+
                                     <button onClick={createTicket} className="w-full py-2 bg-orange-600 hover:bg-orange-500 rounded-lg text-sm font-medium transition">
                                         Enviar Chamado
                                     </button>

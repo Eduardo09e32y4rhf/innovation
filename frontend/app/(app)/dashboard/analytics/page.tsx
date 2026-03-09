@@ -120,11 +120,8 @@ export default function AnalyticsPage() {
                         <div className="space-y-6">
                             {/* Top KPI Cards */}
                             <div className="grid grid-cols-3 gap-4">
-<<<<<<< HEAD
-                                <div className="bg-gray-900/60 border-gray-800 rounded-xl p-5">
-=======
                                 <div className="bg-white/60 border border-gray-800 rounded-xl p-5">
->>>>>>> 73e3b8acfec7b8c39719e808c5e32ff2dd4f4465
+
                                     <div className="flex items-center gap-2 mb-3">
                                         <Star className="w-5 h-5 text-yellow-400" />
                                         <span className="text-sm text-gray-400">Satisfação Média (CSAT)</span>
@@ -148,11 +145,8 @@ export default function AnalyticsPage() {
                                     </p>
                                 </div>
 
-<<<<<<< HEAD
-                                <div className="bg-gray-900/60 border-gray-800 rounded-xl p-5">
-=======
                                 <div className="bg-white/60 border border-gray-800 rounded-xl p-5">
->>>>>>> 73e3b8acfec7b8c39719e808c5e32ff2dd4f4465
+
                                     <div className="flex items-center gap-2 mb-3">
                                         <Clock className="w-5 h-5 text-blue-400" />
                                         <span className="text-sm text-gray-400">Banco de Horas (Saldo)</span>
@@ -168,11 +162,8 @@ export default function AnalyticsPage() {
 
                             {/* CSAT Distribution Chart */}
                             {csat && (
-<<<<<<< HEAD
-                                <div className="bg-gray-900/60 border-gray-800 rounded-xl p-6">
-=======
                                 <div className="bg-white/60 border border-gray-800 rounded-xl p-6">
->>>>>>> 73e3b8acfec7b8c39719e808c5e32ff2dd4f4465
+
                                     <div className="flex items-center gap-2 mb-6">
                                         <BarChart3 className="w-5 h-5 text-blue-600" />
                                         <h3 className="font-bold text-gray-200">Distribuição de Notas CSAT</h3>
@@ -203,11 +194,8 @@ export default function AnalyticsPage() {
 
                             {/* Spike Top Offenders */}
                             {spike && (spike.top_offenders?.length ?? 0) > 0 && (
-<<<<<<< HEAD
-                                <div className="bg-gray-900/60 border-gray-800 rounded-xl p-6">
-=======
                                 <div className="bg-white/60 border border-gray-800 rounded-xl p-6">
->>>>>>> 73e3b8acfec7b8c39719e808c5e32ff2dd4f4465
+
                                     <div className="flex items-center gap-2 mb-4">
                                         <TrendingUp className="w-5 h-5 text-red-400" />
                                         <h3 className="font-bold text-gray-200">Categorias em Alta (Última Hora)</h3>
@@ -225,11 +213,8 @@ export default function AnalyticsPage() {
                             )}
 
                             {/* Employees Placeholder */}
-<<<<<<< HEAD
-                            <div className="bg-gray-900/60 border-gray-800 rounded-xl p-6">
-=======
                             <div className="bg-white/60 border border-gray-800 rounded-xl p-6">
->>>>>>> 73e3b8acfec7b8c39719e808c5e32ff2dd4f4465
+
                                 <div className="flex items-center gap-2 mb-4">
                                     <Users className="w-5 h-5 text-green-400" />
                                     <h3 className="font-bold text-gray-200">Resumo Equipe</h3>

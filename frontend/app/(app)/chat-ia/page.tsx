@@ -282,11 +282,8 @@ export default function ChatIAPage() {
                                 {messages.map((msg) => (
                                     <div key={msg.id} className={`flex gap-4 ${msg.sender === 'user' ? 'justify-end' : 'justify-start'} animate-in fade-in duration-300`}>
                                         <div className={`flex gap-4 max-w-[85%] ${msg.sender === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-<<<<<<< HEAD
-                                            <div className={`w-10 h-10 rounded-xl shrink-0 flex items-center justify-center shadow-sm border ${msg.sender === 'user' ? 'bg-indigo-600 border-indigo-500 text-white' : 'bg-white border-slate-200 border-black/5 shadow-sm border-slate-100 text-indigo-600'}`}>
-=======
                                             <div className={`w-10 h-10 rounded-xl shrink-0 flex items-center justify-center shadow-sm border ${msg.sender === 'user' ? 'bg-indigo-600 border-indigo-500 text-slate-900' : 'bg-white border-slate-100 text-indigo-600'}`}>
->>>>>>> 73e3b8acfec7b8c39719e808c5e32ff2dd4f4465
+
                                                 {msg.sender === 'user' ? <User size={20} /> : <Bot size={20} />}
                                             </div>
                                             <div className={`p-5 rounded-2xl text-sm leading-relaxed shadow-sm ${msg.sender === 'user' ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-slate-50 text-slate-800 border-slate-100 rounded-tl-none'}`}>

@@ -142,24 +142,16 @@ function TimelineDrawer({ isOpen, onClose, employee }: { isOpen: boolean; onClos
                         </div>
 
                         <div className="grid grid-cols-2 gap-3 mb-8">
-<<<<<<< HEAD
-                            <div className="bg-slate-50 p-4 rounded-2xl border-slate-100/80">
-                                <p className="text-[11px] text-slate-500 font-medium tracking-wide mb-1 flex items-center gap-1.5"><Sparkles size={12} /> Status Cognitivo</p>
-=======
                             <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100/80">
                                 <p className="text-[11px] text-slate-9000 font-medium tracking-wide mb-1 flex items-center gap-1.5"><Sparkles size={12} /> Status Cognitivo</p>
->>>>>>> 73e3b8acfec7b8c39719e808c5e32ff2dd4f4465
+
                                 <div className="flex items-center gap-1.5 text-emerald-600 font-semibold text-sm">
                                     98.4% Estável
                                 </div>
                             </div>
-<<<<<<< HEAD
-                            <div className="bg-slate-50 p-4 rounded-2xl border-slate-100/80">
-                                <p className="text-[11px] text-slate-500 font-medium tracking-wide mb-1 flex items-center gap-1.5"><Timer size={12} /> Tempo de Empresa</p>
-=======
                             <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100/80">
                                 <p className="text-[11px] text-slate-9000 font-medium tracking-wide mb-1 flex items-center gap-1.5"><Timer size={12} /> Tempo de Empresa</p>
->>>>>>> 73e3b8acfec7b8c39719e808c5e32ff2dd4f4465
+
                                 <div className="flex items-center gap-1.5 text-slate-800 font-semibold text-sm">
                                     2a 4m
                                 </div>
@@ -417,15 +409,10 @@ export default function AdvancedRHPage() {
                             </div>
                         </div>
 
-<<<<<<< HEAD
-                        <div className="bg-gradient-to-br from-indigo-600 to-violet-700 rounded-[2rem] p-6 sm:p-8 text-white shadow-xl shadow-indigo-200/50 group relative overflow-hidden">
-                            <div className="absolute top-0 right-0 w-32 h-32 bg-white border-slate-200 border-black/5 shadow-sm/5 rounded-bl-[4rem] pointer-events-none" />
-                            <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-white border-slate-200 border-black/5 shadow-sm/10 blur-3xl rounded-full pointer-events-none" />
-=======
                         <div className="bg-gradient-to-br from-indigo-600 to-violet-700 rounded-[2rem] p-6 sm:p-8 text-slate-900 shadow-xl shadow-indigo-200/50 group relative overflow-hidden">
                             <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-bl-[4rem] pointer-events-none" />
                             <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-white/10 blur-3xl rounded-full pointer-events-none" />
->>>>>>> 73e3b8acfec7b8c39719e808c5e32ff2dd4f4465
+
 
                             <div className="relative z-10">
                                 <div className="flex justify-between items-start mb-6">

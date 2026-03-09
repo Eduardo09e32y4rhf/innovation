@@ -209,11 +209,8 @@ export default function OnboardingPage() {
                             </div>
                             {completed < 3 && <p className="text-xs text-zinc-9000">Envie pelo menos 3 documentos para gerar o contrato.</p>}
                             {contract && (
-<<<<<<< HEAD
-                                <div className="mt-4 p-4 bg-zinc-900 border-zinc-700 rounded-xl text-sm text-zinc-300 whitespace-pre-wrap max-h-64 overflow-y-auto">
-=======
                                 <div className="mt-4 p-4 bg-white border border-zinc-700 rounded-xl text-sm text-zinc-700 whitespace-pre-wrap max-h-64 overflow-y-auto">
->>>>>>> 73e3b8acfec7b8c39719e808c5e32ff2dd4f4465
+
                                     {contract}
                                 </div>
                             )}

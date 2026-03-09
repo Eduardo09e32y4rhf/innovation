@@ -146,13 +146,9 @@ export default function ATSPage() {
                             <p className="text-[10px] font-black uppercase text-slate-700 tracking-[0.2em]">Sincronizando banco de talentos...</p>
                         </div>
                     ) : jobs.length === 0 ? (
-<<<<<<< HEAD
-                        <div className="text-center py-20 bg-slate-50/50 rounded-[2rem] border-dashed border-slate-100">
-                            <Briefcase className="w-16 h-16 mx-auto mb-4 text-slate-200" />
-=======
                         <div className="text-center py-20 bg-slate-50/50 rounded-[2rem] border border-dashed border-slate-100">
                             <Briefcase className="w-16 h-16 mx-auto mb-4 text-slate-800" />
->>>>>>> 73e3b8acfec7b8c39719e808c5e32ff2dd4f4465
+
                             <p className="text-sm font-black text-slate-400 uppercase tracking-widest">Nenhuma vaga publicada no momento.</p>
                             <button onClick={() => setShowCreate(true)} className="mt-4 text-indigo-600 font-black uppercase text-xs hover:underline">Iniciar Processo Seletivo</button>
                         </div>
@@ -193,13 +189,9 @@ export default function ATSPage() {
                 </div>
 
                 {/* Newsletter / IA Tip */}
-<<<<<<< HEAD
-                <div className="bg-indigo-600 rounded-[2.5rem] p-10 text-white shadow-xl shadow-indigo-100 relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-48 h-48 bg-white border-slate-200 border-black/5 shadow-sm/10 rounded-bl-[10rem] pointer-events-none" />
-=======
                 <div className="bg-indigo-600 rounded-[2.5rem] p-10 text-slate-900 shadow-xl shadow-indigo-100 relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-bl-[10rem] pointer-events-none" />
->>>>>>> 73e3b8acfec7b8c39719e808c5e32ff2dd4f4465
+
                     <div className="relative z-10 max-w-2xl">
                         <h2 className="text-3xl font-black tracking-tight mb-4 italic">Otimize com Recrutamento Neural.</h2>
                         <p className="text-indigo-100 font-medium leading-relaxed mb-8">Nossa IA analisa automaticamente o currículo, realiza o teste DISC e classifica os candidatos com base na cultura da sua empresa, economizando até 80% do tempo de triagem.</p>
@@ -220,13 +212,9 @@ export default function ATSPage() {
             {/* Create Job Modal */}
             <AnimatePresence>
                 {showCreate && (
-<<<<<<< HEAD
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4" onClick={() => setShowCreate(false)}>
-                        <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} className="bg-white border-slate-200 border-black/5 shadow-sm w-full max-w-xl p-10 rounded-[2.8rem] shadow-2xl relative" onClick={e => e.stopPropagation()}>
-=======
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-50/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4" onClick={() => setShowCreate(false)}>
                         <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} className="bg-white w-full max-w-xl p-10 rounded-[2.8rem] shadow-2xl relative" onClick={e => e.stopPropagation()}>
->>>>>>> 73e3b8acfec7b8c39719e808c5e32ff2dd4f4465
+
                             <div className="flex justify-between items-center mb-10">
                                 <h2 className="text-2xl font-black text-slate-900 tracking-tight">Nova Oportunidade</h2>
                                 <button onClick={() => setShowCreate(false)} className="p-3 bg-slate-50 rounded-2xl text-slate-400 hover:bg-slate-100 transition-all"><X size={20} /></button>
