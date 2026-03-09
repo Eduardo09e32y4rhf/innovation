@@ -1,11 +1,11 @@
 'use client';
 
 import { useChat } from 'ai/react';
-import { Rocket, Search, MoreVertical, Bot, Send, MessageSquare } from 'lucide-react';
+import { Rocket, Search, MoreVertical, Bot, Send, MessageSquare, AlertCircle } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 
 export default function StrategistChat() {
-    const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
+    const { messages, input, handleInputChange, handleSubmit, isLoading, error } = useChat({
         api: '/api/chat',
     });
 
@@ -86,8 +86,8 @@ export default function StrategistChat() {
                                 )}
 
                                 <div className={`p-5 rounded-2xl shadow-xl max-w-[80%] ${m.role === 'user'
-                                        ? 'bg-blue-600 text-white rounded-tr-none'
-                                        : 'bg-white/5 backdrop-blur-md border border-white/10 rounded-tl-none'
+                                    ? 'bg-blue-600 text-white rounded-tr-none'
+                                    : 'bg-white/5 backdrop-blur-md border border-white/10 rounded-tl-none'
                                     }`}>
                                     <p className="text-sm leading-relaxed">{m.content}</p>
                                 </div>
@@ -102,9 +102,14 @@ export default function StrategistChat() {
                     </div>
                 </section>
 
-                {/* Input Footer */}
                 <footer className="p-6">
                     <form onSubmit={handleSubmit} className="max-w-3xl mx-auto relative group">
+                        {error && (
+                            <div className="mb-4 p-4 bg-red-500/10 border border-red-500/50 rounded-xl text-red-200 text-xs flex items-center gap-3 animate-pulse">
+                                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                                <span>Erro: {error.message || "IA offline. Verifique a NVIDIA_API_KEY na Vercel."}</span>
+                            </div>
+                        )}
                         <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-cyan-500 rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-1000"></div>
                         <div className="relative flex items-center">
                             <input
