@@ -160,15 +160,13 @@ async def get_dashboard_metrics(
         },
         "most_frequented": [
             {"module": row[0] or "Geral", "count": row[1]}
-            for row in db.query(
-                AuditLog.entity_type, func.count(AuditLog.id)
-            )
+            for row in db.query(AuditLog.entity_type, func.count(AuditLog.id))
             .filter(AuditLog.user_id == current_user.id)
             .group_by(AuditLog.entity_type)
             .order_by(func.count(AuditLog.id).desc())
             .limit(4)
             .all()
-        ]
+        ],
     }
 
 
@@ -236,15 +234,25 @@ async def get_kanban_board(
         "received": "todo",
         "in_review": "in_progress",
         "approved": "review",
-        "hired": "done"
+        "hired": "done",
     }
-    
+
     # Initialize columns
     columns = {
         "todo": {"id": "todo", "title": "A Fazer", "color": "#6B7280", "cards": []},
-        "in_progress": {"id": "in_progress", "title": "Em Progresso", "color": "#3B82F6", "cards": []},
-        "review": {"id": "review", "title": "Em Revisão", "color": "#F59E0B", "cards": []},
-        "done": {"id": "done", "title": "Concluído", "color": "#10B981", "cards": []}
+        "in_progress": {
+            "id": "in_progress",
+            "title": "Em Progresso",
+            "color": "#3B82F6",
+            "cards": [],
+        },
+        "review": {
+            "id": "review",
+            "title": "Em Revisão",
+            "color": "#F59E0B",
+            "cards": [],
+        },
+        "done": {"id": "done", "title": "Concluído", "color": "#10B981", "cards": []},
     }
 
     # Fetch real applications
@@ -259,15 +267,17 @@ async def get_kanban_board(
 
     for app in apps:
         col_id = status_map.get(app.status, "todo")
-        columns[col_id]["cards"].append({
-            "id": f"app_{app.id}",
-            "title": f"Candidato: {getattr(app.candidate, 'full_name', 'Anônimo')}",
-            "job_title": app.job.title if app.job else "Vaga Desconhecida",
-            "match_score": app.match_score or 0,
-            "priority": "high" if (app.match_score or 0) > 0.8 else "medium",
-            "status": app.status.replace("_", " ").title(),
-            "avatars": [getattr(app.candidate, 'full_name', 'U')[:2].upper()]
-        })
+        columns[col_id]["cards"].append(
+            {
+                "id": f"app_{app.id}",
+                "title": f"Candidato: {getattr(app.candidate, 'full_name', 'Anônimo')}",
+                "job_title": app.job.title if app.job else "Vaga Desconhecida",
+                "match_score": app.match_score or 0,
+                "priority": "high" if (app.match_score or 0) > 0.8 else "medium",
+                "status": app.status.replace("_", " ").title(),
+                "avatars": [getattr(app.candidate, "full_name", "U")[:2].upper()],
+            }
+        )
 
     return {"columns": list(columns.values())}
 
