@@ -35,19 +35,24 @@ export default function AccountPage() {
       <div className="p-8 max-w-4xl mx-auto space-y-10 animate-in fade-in duration-700">
 
         {/* Header Profile */}
+<<<<<<< HEAD
         <div className="flex flex-col md:flex-row items-center gap-8 bg-white border-slate-200 border-black/5 shadow-sm border-slate-100 p-10 rounded-[3rem] shadow-sm">
           <div className="w-32 h-32 rounded-[2.5rem] bg-indigo-600 flex items-center justify-center text-white text-5xl font-black shadow-xl shadow-indigo-100">
+=======
+        <div className="flex flex-col md:flex-row items-center gap-8 bg-white border border-slate-100 p-10 rounded-[3rem] shadow-sm">
+          <div className="w-32 h-32 rounded-[2.5rem] bg-indigo-600 flex items-center justify-center text-slate-900 text-5xl font-black shadow-xl shadow-indigo-100">
+>>>>>>> 73e3b8acfec7b8c39719e808c5e32ff2dd4f4465
             {user?.name?.[0] || 'U'}
           </div>
           <div className="text-center md:text-left flex-1">
             <h1 className="text-4xl font-black text-slate-900 tracking-tight mb-2 uppercase">{user?.name || 'Carregando...'}</h1>
-            <p className="text-slate-500 font-medium tracking-tight mb-6">{user?.email}</p>
+            <p className="text-slate-9000 font-medium tracking-tight mb-6">{user?.email}</p>
             <div className="flex flex-wrap justify-center md:justify-start gap-3">
               <span className="bg-indigo-50 text-indigo-600 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border-indigo-100 italic">Enterprise Elite</span>
               <span className="bg-emerald-50 text-emerald-600 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border-emerald-100">Ativo</span>
             </div>
           </div>
-          <button className="flex items-center gap-2 bg-slate-900 text-white px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:scale-[1.02] transition-all">
+          <button className="flex items-center gap-2 bg-slate-50 text-slate-900 px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:scale-[1.02] transition-all">
             Editar Perfil
           </button>
         </div>
@@ -67,12 +72,12 @@ export default function AccountPage() {
                           <Icon size={18} />
                         </div>
                         <div>
-                          <p className="text-[10px] font-black uppercase text-slate-300 tracking-widest leading-none mb-1">{item.label}</p>
+                          <p className="text-[10px] font-black uppercase text-slate-700 tracking-widest leading-none mb-1">{item.label}</p>
                           <p className="text-sm font-black text-slate-900">{item.value}</p>
                           {item.detail && <p className="text-[9px] font-bold text-indigo-600/60 uppercase mt-0.5">{item.detail}</p>}
                         </div>
                       </div>
-                      <ChevronRight size={16} className="text-slate-300 group-hover:text-indigo-600 transition-all" />
+                      <ChevronRight size={16} className="text-slate-700 group-hover:text-indigo-600 transition-all" />
                     </div>
                   );
                 })}
@@ -99,7 +104,7 @@ export default function AccountPage() {
 
         {/* Footer Info */}
         <div className="text-center pt-10">
-          <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.3em]">Innovation.ia v4.2.0 • Enterprise OS</p>
+          <p className="text-[10px] font-black text-slate-700 uppercase tracking-[0.3em]">Innovation.ia v4.2.0 • Enterprise OS</p>
         </div>
       </div>
     </AppLayout>

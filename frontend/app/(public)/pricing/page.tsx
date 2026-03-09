@@ -32,8 +32,8 @@ const plans = [
         price: 799,
         icon: Zap,
         color: 'from-purple-500 to-pink-500',
-        border: 'border-purple-500/50',
-        glow: 'shadow-purple-500/20',
+        border: 'border-blue-500/50',
+        glow: 'shadow-blue-500/20',
         description: 'Para equipes em crescimento',
         popular: true,
         features: [
@@ -108,15 +108,15 @@ function PricingContent() {
     };
 
     return (
-        <div className="min-h-screen bg-black text-white">
+        <div className="min-h-screen bg-white text-slate-900">
             {/* Nav */}
             <nav className="border-b border-zinc-800 py-4 px-8 flex justify-between items-center">
                 <Link href="/" className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-600">
                     Innovation.ia
                 </Link>
                 <div className="flex gap-4">
-                    <Link href="/login" className="text-zinc-400 hover:text-white text-sm transition">Login</Link>
-                    <Link href="/register" className="px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded-lg text-sm font-medium transition">Começar Grátis</Link>
+                    <Link href="/login" className="text-zinc-400 hover:text-slate-900 text-sm transition">Login</Link>
+                    <Link href="/register" className="px-4 py-2 bg-blue-500 hover:bg-blue-500 rounded-lg text-sm font-medium transition">Começar Grátis</Link>
                 </div>
             </nav>
 
@@ -132,8 +132,13 @@ function PricingContent() {
                 )}
 
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+<<<<<<< HEAD
                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border-purple-500/30 bg-purple-500/10 text-purple-300 text-sm mb-6">
                         <span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse" />
+=======
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-blue-500/30 bg-blue-500/10 text-blue-500 text-sm mb-6">
+                        <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+>>>>>>> 73e3b8acfec7b8c39719e808c5e32ff2dd4f4465
                         Sem taxa de setup · Cancele quando quiser
                     </div>
                     <h1 className="text-5xl font-bold mb-4">
@@ -156,7 +161,7 @@ function PricingContent() {
                             initial={{ opacity: 0, y: 30 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: i * 0.1 }}
-                            className={`relative rounded-2xl border ${plan.border} bg-zinc-900/50 p-8 shadow-xl ${plan.glow} ${plan.popular ? 'ring-2 ring-purple-500 scale-105' : ''}`}
+                            className={`relative rounded-2xl border ${plan.border} bg-white/50 p-8 shadow-xl ${plan.glow} ${plan.popular ? 'ring-2 ring-blue-500 scale-105' : ''}`}
                         >
                             {plan.popular && (
                                 <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full text-xs font-bold">
@@ -165,7 +170,7 @@ function PricingContent() {
                             )}
 
                             <div className={`inline-flex p-3 rounded-xl bg-gradient-to-r ${plan.color} mb-4`}>
-                                <plan.icon className="w-6 h-6 text-white" />
+                                <plan.icon className="w-6 h-6 text-slate-900" />
                             </div>
 
                             <h3 className="text-2xl font-bold mb-1">{plan.name}</h3>
@@ -180,8 +185,13 @@ function PricingContent() {
                                 onClick={() => handleCheckout(plan.id)}
                                 disabled={loading === plan.id}
                                 className={`w-full py-3 rounded-xl font-semibold text-sm transition mb-8 ${plan.popular
+<<<<<<< HEAD
                                     ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white shadow-lg shadow-purple-500/20'
                                     : 'bg-zinc-800 hover:bg-zinc-700 text-white border-zinc-700'
+=======
+                                    ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-slate-900 shadow-lg shadow-blue-500/20'
+                                    : 'bg-zinc-800 hover:bg-zinc-700 text-slate-900 border border-zinc-700'
+>>>>>>> 73e3b8acfec7b8c39719e808c5e32ff2dd4f4465
                                     } disabled:opacity-50 disabled:cursor-not-allowed`}
                             >
                                 {loading === plan.id ? 'Redirecionando...' : `Assinar ${plan.name}`}
@@ -189,7 +199,7 @@ function PricingContent() {
 
                             <ul className="space-y-3">
                                 {plan.features.map((f, j) => (
-                                    <li key={j} className="flex items-center gap-3 text-sm text-zinc-300">
+                                    <li key={j} className="flex items-center gap-3 text-sm text-zinc-700">
                                         <Check className="w-4 h-4 text-green-400 shrink-0" />
                                         {f}
                                     </li>
@@ -200,9 +210,9 @@ function PricingContent() {
                 </div>
 
                 <div className="max-w-2xl mx-auto mt-16 text-center">
-                    <p className="text-zinc-500 text-sm">
+                    <p className="text-zinc-9000 text-sm">
                         Precisa de algo personalizado?{' '}
-                        <a href="mailto:vendas@innovation.ia" className="text-purple-400 hover:text-purple-300">
+                        <a href="mailto:vendas@innovation.ia" className="text-blue-600 hover:text-blue-500">
                             Fale com nosso time de vendas →
                         </a>
                     </p>
@@ -214,7 +224,7 @@ function PricingContent() {
 
 export default function PricingPage() {
     return (
-        <Suspense fallback={<div className="min-h-screen bg-black text-white flex items-center justify-center">Carregando planos...</div>}>
+        <Suspense fallback={<div className="min-h-screen bg-white text-slate-900 flex items-center justify-center">Carregando planos...</div>}>
             <PricingContent />
         </Suspense>
     );

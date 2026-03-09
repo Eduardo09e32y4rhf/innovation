@@ -139,7 +139,7 @@ export default function RhDashboardPage() {
 
     return (
         <AppLayout title="Painel de RH">
-            <div className="min-h-screen bg-gray-950 text-white p-6">
+            <div className="min-h-screen bg-gray-950 text-slate-900 p-6">
                 {/* Notification */}
                 {notification && (
                     <div className={`fixed top-6 right-6 z-50 flex items-center gap-3 px-5 py-3 rounded-xl shadow-2xl ${notification.type === 'success'
@@ -155,7 +155,7 @@ export default function RhDashboardPage() {
                     {/* Header */}
                     <div className="mb-8">
                         <div className="flex items-center gap-3 mb-2">
-                            <HeartHandshake className="w-8 h-8 text-purple-400" />
+                            <HeartHandshake className="w-8 h-8 text-blue-600" />
                             <h1 className="text-3xl font-black bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
                                 Painel de RH
                             </h1>
@@ -164,7 +164,11 @@ export default function RhDashboardPage() {
                     </div>
 
                     {/* Tabs */}
+<<<<<<< HEAD
                     <div className="flex gap-1 bg-gray-900 border-gray-800 rounded-xl p-1 mb-6">
+=======
+                    <div className="flex gap-1 bg-white border border-gray-800 rounded-xl p-1 mb-6">
+>>>>>>> 73e3b8acfec7b8c39719e808c5e32ff2dd4f4465
                         {tabs.map(tab => {
                             const Icon = tab.icon;
                             return (
@@ -172,7 +176,7 @@ export default function RhDashboardPage() {
                                     key={tab.id}
                                     onClick={() => setActiveTab(tab.id)}
                                     className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-sm font-medium transition-all ${activeTab === tab.id
-                                        ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/20'
+                                        ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/20'
                                         : 'text-gray-500 hover:text-gray-300'
                                         }`}
                                 >
@@ -185,7 +189,7 @@ export default function RhDashboardPage() {
 
                     {loading ? (
                         <div className="flex items-center justify-center h-48">
-                            <Loader2 className="w-8 h-8 animate-spin text-purple-400" />
+                            <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
                         </div>
                     ) : (
                         <>
@@ -196,7 +200,7 @@ export default function RhDashboardPage() {
                                         <h2 className="font-bold text-gray-200">Plano de Desenvolvimento Individual</h2>
                                         <button
                                             onClick={() => setShowPdiForm(!showPdiForm)}
-                                            className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-xl text-sm font-medium transition"
+                                            className="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 rounded-xl text-sm font-medium transition"
                                         >
                                             <Plus className="w-4 h-4" /> Nova Meta
                                         </button>
@@ -204,7 +208,11 @@ export default function RhDashboardPage() {
 
                                     {/* PDI Form */}
                                     {showPdiForm && (
+<<<<<<< HEAD
                                         <div className="bg-gray-900/60 border-purple-500/30 rounded-xl p-5 mb-4">
+=======
+                                        <div className="bg-white/60 border border-blue-500/30 rounded-xl p-5 mb-4">
+>>>>>>> 73e3b8acfec7b8c39719e808c5e32ff2dd4f4465
                                             <div className="flex items-center justify-between mb-4">
                                                 <h3 className="font-medium text-gray-200">Nova Meta PDI</h3>
                                                 <button onClick={() => setShowPdiForm(false)} className="text-gray-500 hover:text-gray-300">
@@ -217,19 +225,31 @@ export default function RhDashboardPage() {
                                                     placeholder="Título da meta"
                                                     value={pdiForm.title}
                                                     onChange={e => setPdiForm(p => ({ ...p, title: e.target.value }))}
+<<<<<<< HEAD
                                                     className="w-full bg-gray-800 border-gray-700 rounded-lg px-4 py-2.5 text-gray-200 placeholder-gray-500 focus:outline-none focus:border-purple-500"
+=======
+                                                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-gray-200 placeholder-gray-500 focus:outline-none focus:border-blue-500"
+>>>>>>> 73e3b8acfec7b8c39719e808c5e32ff2dd4f4465
                                                 />
                                                 <input
                                                     type="text"
                                                     placeholder="Descrição (opcional)"
                                                     value={pdiForm.description}
                                                     onChange={e => setPdiForm(p => ({ ...p, description: e.target.value }))}
+<<<<<<< HEAD
                                                     className="w-full bg-gray-800 border-gray-700 rounded-lg px-4 py-2.5 text-gray-200 placeholder-gray-500 focus:outline-none focus:border-purple-500"
+=======
+                                                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-gray-200 placeholder-gray-500 focus:outline-none focus:border-blue-500"
+>>>>>>> 73e3b8acfec7b8c39719e808c5e32ff2dd4f4465
                                                 />
                                                 <select
                                                     value={pdiForm.quarter}
                                                     onChange={e => setPdiForm(p => ({ ...p, quarter: e.target.value }))}
+<<<<<<< HEAD
                                                     className="w-full bg-gray-800 border-gray-700 rounded-lg px-4 py-2.5 text-gray-200 focus:outline-none focus:border-purple-500"
+=======
+                                                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-gray-200 focus:outline-none focus:border-blue-500"
+>>>>>>> 73e3b8acfec7b8c39719e808c5e32ff2dd4f4465
                                                 >
                                                     {['Q1-2026', 'Q2-2026', 'Q3-2026', 'Q4-2026'].map(q => (
                                                         <option key={q} value={q}>{q}</option>
@@ -237,7 +257,7 @@ export default function RhDashboardPage() {
                                                 </select>
                                                 <button
                                                     onClick={handleCreatePDI}
-                                                    className="w-full py-2.5 bg-purple-600 hover:bg-purple-700 rounded-lg text-sm font-medium transition"
+                                                    className="w-full py-2.5 bg-blue-500 hover:bg-blue-600 rounded-lg text-sm font-medium transition"
                                                 >
                                                     Criar Meta
                                                 </button>
@@ -249,12 +269,16 @@ export default function RhDashboardPage() {
                                         {pdiGoals.length === 0 ? (
                                             <p className="text-center text-gray-500 py-8">Nenhuma meta PDI criada. Clique em &quot;Nova Meta&quot;!</p>
                                         ) : pdiGoals.map(goal => (
+<<<<<<< HEAD
                                             <div key={goal.id} className="bg-gray-900/60 border-gray-800 rounded-xl p-5">
+=======
+                                            <div key={goal.id} className="bg-white/60 border border-gray-800 rounded-xl p-5">
+>>>>>>> 73e3b8acfec7b8c39719e808c5e32ff2dd4f4465
                                                 <div className="flex items-start justify-between mb-3">
                                                     <div>
                                                         <h4 className="font-medium text-gray-200">{goal.title}</h4>
                                                         {goal.description && <p className="text-sm text-gray-500 mt-0.5">{goal.description}</p>}
-                                                        <span className="text-xs text-purple-400 mt-1 inline-block">{goal.quarter}</span>
+                                                        <span className="text-xs text-blue-600 mt-1 inline-block">{goal.quarter}</span>
                                                     </div>
                                                     {goal.completed && <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0" />}
                                                 </div>
@@ -290,7 +314,11 @@ export default function RhDashboardPage() {
                                     {leaves.length === 0 ? (
                                         <p className="text-center text-gray-500 py-8">Nenhuma solicitação de licença encontrada.</p>
                                     ) : leaves.map(leave => (
+<<<<<<< HEAD
                                         <div key={leave.id} className="bg-gray-900/60 border-gray-800 rounded-xl p-5 flex items-center justify-between">
+=======
+                                        <div key={leave.id} className="bg-white/60 border border-gray-800 rounded-xl p-5 flex items-center justify-between">
+>>>>>>> 73e3b8acfec7b8c39719e808c5e32ff2dd4f4465
                                             <div>
                                                 <p className="font-medium text-gray-200">{leave.reason}</p>
                                                 <p className="text-sm text-gray-500 mt-0.5">
@@ -316,10 +344,14 @@ export default function RhDashboardPage() {
                                             <p className="text-sm mt-1">As avaliações aparecerão aqui quando você receber feedback da equipe.</p>
                                         </div>
                                     ) : reviews.map(r => (
+<<<<<<< HEAD
                                         <div key={r.id} className="bg-gray-900/60 border-gray-800 rounded-xl p-5 mb-3">
+=======
+                                        <div key={r.id} className="bg-white/60 border border-gray-800 rounded-xl p-5 mb-3">
+>>>>>>> 73e3b8acfec7b8c39719e808c5e32ff2dd4f4465
                                             <div className="flex justify-between items-start">
                                                 <div>
-                                                    <span className="text-xs text-purple-400 uppercase tracking-wider">{r.relationship}</span>
+                                                    <span className="text-xs text-blue-600 uppercase tracking-wider">{r.relationship}</span>
                                                     <p className="text-gray-300 mt-1">{r.feedback}</p>
                                                     <p className="text-xs text-gray-500 mt-1">{r.period}</p>
                                                 </div>
@@ -340,7 +372,11 @@ export default function RhDashboardPage() {
                                     {payslips.length === 0 ? (
                                         <p className="text-center text-gray-500 py-8">Nenhum holerite disponível.</p>
                                     ) : payslips.map(p => (
+<<<<<<< HEAD
                                         <div key={p.id} className="bg-gray-900/60 border-gray-800 rounded-xl p-5 mb-3">
+=======
+                                        <div key={p.id} className="bg-white/60 border border-gray-800 rounded-xl p-5 mb-3">
+>>>>>>> 73e3b8acfec7b8c39719e808c5e32ff2dd4f4465
                                             <div className="flex justify-between items-center">
                                                 <div>
                                                     <p className="font-medium text-gray-200">{p.reference_month}</p>
@@ -359,14 +395,18 @@ export default function RhDashboardPage() {
                     )}
 
                     {/* Link to Kanban */}
+<<<<<<< HEAD
                     <div className="mt-8 bg-gradient-to-r from-purple-900/30 to-blue-900/30 border-purple-500/20 rounded-xl p-5 flex items-center justify-between">
+=======
+                    <div className="mt-8 bg-gradient-to-r from-purple-900/30 to-blue-900/30 border border-blue-500/20 rounded-xl p-5 flex items-center justify-between">
+>>>>>>> 73e3b8acfec7b8c39719e808c5e32ff2dd4f4465
                         <div>
                             <h3 className="font-bold text-gray-200">Gestão de Tickets / Reembolsos</h3>
                             <p className="text-sm text-gray-400 mt-0.5">Arraste e organize solicitações no Kanban de RH</p>
                         </div>
                         <a
                             href="/csc"
-                            className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-xl text-sm font-medium transition"
+                            className="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 rounded-xl text-sm font-medium transition"
                         >
                             <Users className="w-4 h-4" /> Abrir Kanban <ChevronRight className="w-4 h-4" />
                         </a>

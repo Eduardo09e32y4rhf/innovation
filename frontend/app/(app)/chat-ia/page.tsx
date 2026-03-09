@@ -241,9 +241,9 @@ export default function ChatIAPage() {
                                                     <div className="flex-1 text-left min-w-0">
                                                         <div className="flex items-center justify-between mb-0.5">
                                                             <span className="text-sm font-black text-slate-900">{model.name}</span>
-                                                            <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-200 text-slate-500 font-bold uppercase">{model.plan}</span>
+                                                            <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-200 text-slate-9000 font-bold uppercase">{model.plan}</span>
                                                         </div>
-                                                        <p className="text-[11px] text-slate-500 line-clamp-2">{model.description}</p>
+                                                        <p className="text-[11px] text-slate-9000 line-clamp-2">{model.description}</p>
                                                     </div>
                                                 </button>
                                             ))}
@@ -262,7 +262,7 @@ export default function ChatIAPage() {
                                     <Sparkles size={48} className="text-indigo-600 animate-pulse" />
                                 </div>
                                 <h1 className="text-4xl font-black text-slate-900 tracking-tight mb-4">Como posso ajudar?</h1>
-                                <p className="max-w-md text-slate-500 font-medium mb-12">Sou a assistente especial da Innovation.ia.</p>
+                                <p className="max-w-md text-slate-9000 font-medium mb-12">Sou a assistente especial da Innovation.ia.</p>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
                                     {QUICK_PROMPTS.map((prompt, i) => (
@@ -282,7 +282,11 @@ export default function ChatIAPage() {
                                 {messages.map((msg) => (
                                     <div key={msg.id} className={`flex gap-4 ${msg.sender === 'user' ? 'justify-end' : 'justify-start'} animate-in fade-in duration-300`}>
                                         <div className={`flex gap-4 max-w-[85%] ${msg.sender === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+<<<<<<< HEAD
                                             <div className={`w-10 h-10 rounded-xl shrink-0 flex items-center justify-center shadow-sm border ${msg.sender === 'user' ? 'bg-indigo-600 border-indigo-500 text-white' : 'bg-white border-slate-200 border-black/5 shadow-sm border-slate-100 text-indigo-600'}`}>
+=======
+                                            <div className={`w-10 h-10 rounded-xl shrink-0 flex items-center justify-center shadow-sm border ${msg.sender === 'user' ? 'bg-indigo-600 border-indigo-500 text-slate-900' : 'bg-white border-slate-100 text-indigo-600'}`}>
+>>>>>>> 73e3b8acfec7b8c39719e808c5e32ff2dd4f4465
                                                 {msg.sender === 'user' ? <User size={20} /> : <Bot size={20} />}
                                             </div>
                                             <div className={`p-5 rounded-2xl text-sm leading-relaxed shadow-sm ${msg.sender === 'user' ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-slate-50 text-slate-800 border-slate-100 rounded-tl-none'}`}>
@@ -293,7 +297,7 @@ export default function ChatIAPage() {
                                                         <div className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                                                     </div>
                                                 ) : (
-                                                    <div className="prose prose-slate max-w-none prose-p:leading-relaxed prose-pre:bg-slate-900 prose-pre:text-white prose-pre:rounded-xl">
+                                                    <div className="prose prose-slate max-w-none prose-p:leading-relaxed prose-pre:bg-slate-50 prose-pre:text-slate-900 prose-pre:rounded-xl">
                                                         <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.text}</ReactMarkdown>
                                                     </div>
                                                 )}
@@ -348,7 +352,7 @@ export default function ChatIAPage() {
                                 </div>
                             </div>
                         </div>
-                        <p className="text-center mt-4 text-[10px] font-black text-slate-300 uppercase tracking-widest">Innovation Force Engine • Produzido por Gemini Pro</p>
+                        <p className="text-center mt-4 text-[10px] font-black text-slate-700 uppercase tracking-widest">Innovation Force Engine • Produzido por Gemini Pro</p>
                     </div>
                 </main>
             </div>

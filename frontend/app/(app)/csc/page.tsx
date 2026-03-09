@@ -69,7 +69,7 @@ export default function CSCPage() {
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                     <div>
                         <h1 className="text-4xl font-black text-slate-900 tracking-tight mb-2">Service <span className="text-indigo-600">Desk</span></h1>
-                        <p className="text-slate-500 font-medium tracking-tight">Gestão de chamados, base de conhecimento e análise de SLA.</p>
+                        <p className="text-slate-9000 font-medium tracking-tight">Gestão de chamados, base de conhecimento e análise de SLA.</p>
                     </div>
 
                     <div className="flex items-center gap-3">
@@ -178,7 +178,7 @@ export default function CSCPage() {
                                                 {q.count === 0 && (
                                                     <div className="text-center py-6">
                                                         <CheckCircle size={24} className="mx-auto mb-2 text-emerald-200" />
-                                                        <p className="text-[10px] font-black uppercase text-slate-300 tracking-widest">Fila em conformidade</p>
+                                                        <p className="text-[10px] font-black uppercase text-slate-700 tracking-widest">Fila em conformidade</p>
                                                     </div>
                                                 )}
                                             </div>
@@ -213,13 +213,13 @@ export default function CSCPage() {
                                                 <span className="bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border-indigo-100">{article.category || 'Geral'}</span>
                                             </div>
                                             <h3 className="text-lg font-black text-slate-900 group-hover:text-indigo-600 transition-colors uppercase tracking-tight mb-3">{article.title}</h3>
-                                            <p className="text-xs text-slate-500 font-medium line-clamp-2 leading-relaxed mb-6">{article.content}</p>
+                                            <p className="text-xs text-slate-9000 font-medium line-clamp-2 leading-relaxed mb-6">{article.content}</p>
                                             <div className="flex items-center justify-between pt-6 border-t border-slate-50">
-                                                <div className="flex items-center gap-4 text-[9px] font-black text-slate-300 uppercase tracking-widest">
+                                                <div className="flex items-center gap-4 text-[9px] font-black text-slate-700 uppercase tracking-widest">
                                                     <span className="flex items-center gap-1"><BookOpen size={12} /> {article.views || 0}</span>
                                                     <span className="flex items-center gap-1"><ThumbsUp size={12} /> {article.helpful_votes || 0}</span>
                                                 </div>
-                                                <ChevronRight size={18} className="text-slate-200 group-hover:text-indigo-600" />
+                                                <ChevronRight size={18} className="text-slate-800 group-hover:text-indigo-600" />
                                             </div>
                                         </div>
                                     ))}
@@ -244,11 +244,11 @@ export default function CSCPage() {
                                         </div>
                                         <div className="flex justify-between border-t border-slate-200 pt-4">
                                             <div>
-                                                <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest">Ratio de Spike</p>
+                                                <p className="text-[9px] font-black text-slate-700 uppercase tracking-widest">Ratio de Spike</p>
                                                 <p className="text-xl font-black text-slate-900">{spikes?.spike_ratio || '1.0'}x</p>
                                             </div>
                                             <div className="text-right">
-                                                <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest">Média 24h</p>
+                                                <p className="text-[9px] font-black text-slate-700 uppercase tracking-widest">Média 24h</p>
                                                 <p className="text-xl font-black text-slate-900">{spikes?.hourly_average_24h || '0'}</p>
                                             </div>
                                         </div>
@@ -264,7 +264,7 @@ export default function CSCPage() {
                                         <div className="text-center">
                                             <p className="text-7xl font-black text-slate-900 tracking-tighter">{csat?.average || '0'}</p>
                                             <div className="flex justify-center mt-2 group gap-0.5">
-                                                {[1, 2, 3, 4, 5].map(i => <Star key={i} size={14} className={i <= (csat?.average || 0) ? 'text-amber-500 fill-amber-500' : 'text-slate-200'} />)}
+                                                {[1, 2, 3, 4, 5].map(i => <Star key={i} size={14} className={i <= (csat?.average || 0) ? 'text-amber-500 fill-amber-500' : 'text-slate-800'} />)}
                                             </div>
                                         </div>
                                         <div className="flex-1 space-y-2">
@@ -293,8 +293,13 @@ export default function CSCPage() {
             {/* Article Modal */}
             <AnimatePresence>
                 {showArticleForm && (
+<<<<<<< HEAD
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4" onClick={() => setShowArticleForm(false)}>
                         <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} className="bg-white border-slate-200 border-black/5 shadow-sm w-full max-w-xl p-10 rounded-[2.8rem] shadow-2xl relative" onClick={e => e.stopPropagation()}>
+=======
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-50/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4" onClick={() => setShowArticleForm(false)}>
+                        <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} className="bg-white w-full max-w-xl p-10 rounded-[2.8rem] shadow-2xl relative" onClick={e => e.stopPropagation()}>
+>>>>>>> 73e3b8acfec7b8c39719e808c5e32ff2dd4f4465
                             <div className="flex justify-between items-center mb-10">
                                 <h2 className="text-2xl font-black text-slate-900 tracking-tight">Novo Conhecimento</h2>
                                 <button onClick={() => setShowArticleForm(false)} className="p-3 bg-slate-50 rounded-2xl text-slate-400 hover:bg-slate-100 transition-all"><X size={20} /></button>

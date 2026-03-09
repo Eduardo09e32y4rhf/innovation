@@ -55,12 +55,16 @@ export default function BankHubPage() {
                     {/* Header */}
                     <div className="flex justify-between items-end mb-10">
                         <div>
-                            <h1 className="text-4xl font-black text-white mb-2">Hub Bancário</h1>
+                            <h1 className="text-4xl font-black text-slate-900 mb-2">Hub Bancário</h1>
                             <p className="text-gray-400">Visão consolidada de todas as suas contas através do Open Finance.</p>
                         </div>
                         <button
                             onClick={fetchHubData}
+<<<<<<< HEAD
                             className="flex items-center gap-2 px-4 py-2 bg-purple-600/20 border-purple-500/40 text-purple-400 rounded-xl hover:bg-purple-600/30 transition-all"
+=======
+                            className="flex items-center gap-2 px-4 py-2 bg-blue-500/20 border border-blue-500/40 text-blue-600 rounded-xl hover:bg-blue-500/30 transition-all"
+>>>>>>> 73e3b8acfec7b8c39719e808c5e32ff2dd4f4465
                         >
                             <RefreshCcw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
                             Atualizar Agora
@@ -74,18 +78,26 @@ export default function BankHubPage() {
                                 <span className="text-sm font-bold text-indigo-300 uppercase tracking-widest flex items-center gap-2 mb-2">
                                     <ShieldCheck className="w-4 h-4" /> Saldo Consolidado Seguro
                                 </span>
-                                <div className="text-6xl font-black text-white tracking-tighter">
+                                <div className="text-6xl font-black text-slate-900 tracking-tighter">
                                     {loading ? '---' : formatCurrency(data?.total_balance || 0)}
                                 </div>
                             </div>
                             <div className="flex gap-4">
+<<<<<<< HEAD
                                 <div className="bg-black/30 backdrop-blur-md p-6 rounded-3xl border-white/5 min-w-[180px]">
+=======
+                                <div className="bg-white/30 backdrop-blur-md p-6 rounded-3xl border border-white/5 min-w-[180px]">
+>>>>>>> 73e3b8acfec7b8c39719e808c5e32ff2dd4f4465
                                     <span className="text-xs text-gray-500 block mb-1">Burn Rate Mensal</span>
                                     <span className="text-xl font-bold text-red-400 flex items-center gap-1">
                                         <TrendingDown className="w-4 h-4" /> R$ 12.500
                                     </span>
                                 </div>
+<<<<<<< HEAD
                                 <div className="bg-black/30 backdrop-blur-md p-6 rounded-3xl border-white/5 min-w-[180px]">
+=======
+                                <div className="bg-white/30 backdrop-blur-md p-6 rounded-3xl border border-white/5 min-w-[180px]">
+>>>>>>> 73e3b8acfec7b8c39719e808c5e32ff2dd4f4465
                                     <span className="text-xs text-gray-500 block mb-1">Runway Estimado</span>
                                     <span className="text-xl font-bold text-green-400">8.5 meses</span>
                                 </div>
@@ -96,22 +108,29 @@ export default function BankHubPage() {
                     {/* Bank Cards Grid */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {data?.banks.map((bank, idx) => (
+<<<<<<< HEAD
                             <div key={idx} className="group bg-gray-900/50 border-gray-800 rounded-3xl p-8 hover:border-purple-500/50 transition-all duration-300 hover:scale-[1.02]">
                                 <div className="flex justify-between items-start mb-10">
                                     <div className="w-14 h-14 bg-white border-slate-200 border-black/5 shadow-sm/5 rounded-2xl flex items-center justify-center border-white/10 group-hover:bg-purple-500/20 group-hover:border-purple-500/30 transition-all">
                                         <Landmark className="w-7 h-7 text-gray-400 group-hover:text-purple-400" />
+=======
+                            <div key={idx} className="group bg-white/50 border border-gray-800 rounded-3xl p-8 hover:border-blue-500/50 transition-all duration-300 hover:scale-[1.02]">
+                                <div className="flex justify-between items-start mb-10">
+                                    <div className="w-14 h-14 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10 group-hover:bg-blue-500/20 group-hover:border-blue-500/30 transition-all">
+                                        <Landmark className="w-7 h-7 text-gray-400 group-hover:text-blue-600" />
+>>>>>>> 73e3b8acfec7b8c39719e808c5e32ff2dd4f4465
                                     </div>
                                     <span className="bg-green-500/10 text-green-400 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest border-green-500/20">
                                         Conectado
                                     </span>
                                 </div>
                                 <h3 className="text-xl font-bold text-gray-300 mb-1">{bank.bank}</h3>
-                                <div className="text-3xl font-black text-white">
+                                <div className="text-3xl font-black text-slate-900">
                                     {formatCurrency(bank.balance)}
                                 </div>
                                 <div className="mt-8 flex justify-between items-center text-xs text-gray-600">
                                     <span>Última sinc. há 5 min</span>
-                                    <a href="#" className="text-purple-400 hover:underline">Ver extrato</a>
+                                    <a href="#" className="text-blue-600 hover:underline">Ver extrato</a>
                                 </div>
                             </div>
                         ))}

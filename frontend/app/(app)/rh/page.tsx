@@ -51,7 +51,7 @@ function StatCard({ title, value, detail, icon: Icon, colorClass, trend }: any) 
                     )}
                 </div>
                 <div>
-                    <h3 className="text-[13px] font-medium text-slate-500 mb-1">{title}</h3>
+                    <h3 className="text-[13px] font-medium text-slate-9000 mb-1">{title}</h3>
                     <div className="flex items-baseline gap-2">
                         <span className="text-3xl font-bold text-slate-800 tracking-tight">{value}</span>
                         <span className="text-xs font-medium text-slate-400">{detail}</span>
@@ -86,7 +86,7 @@ function EmployeeCard({ employee, onClick }: { employee: Employee; onClick: () =
             </div>
             <div className="flex-1 min-w-0">
                 <h3 className="text-sm font-semibold text-slate-800 truncate group-hover:text-indigo-600 transition-colors tracking-tight">{employee.name}</h3>
-                <p className="text-[12px] text-slate-500 truncate mt-0.5">{employee.role} <span className="text-slate-300 mx-1">•</span> {employee.department}</p>
+                <p className="text-[12px] text-slate-9000 truncate mt-0.5">{employee.role} <span className="text-slate-700 mx-1">•</span> {employee.department}</p>
             </div>
             <div className="flex flex-col items-end gap-2">
                 <div className={`px-2.5 py-0.5 rounded-full text-[10px] font-semibold tracking-wide border ${riskStyles[employee.risk]}`}>
@@ -119,7 +119,7 @@ function TimelineDrawer({ isOpen, onClose, employee }: { isOpen: boolean; onClos
                 <>
                     <motion.div
                         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-[100]" onClick={onClose}
+                        className="fixed inset-0 bg-slate-50/20 backdrop-blur-sm z-[100]" onClick={onClose}
                     />
                     <motion.div
                         initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
@@ -128,7 +128,7 @@ function TimelineDrawer({ isOpen, onClose, employee }: { isOpen: boolean; onClos
                     >
                         <div className="flex justify-between items-start mb-8">
                             <div className="flex items-center gap-4">
-                                <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-indigo-500 to-violet-600 flex items-center justify-center text-xl font-bold text-white shadow-lg shadow-indigo-200">
+                                <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-indigo-500 to-violet-600 flex items-center justify-center text-xl font-bold text-slate-900 shadow-lg shadow-indigo-200">
                                     {employee?.name[0]}
                                 </div>
                                 <div>
@@ -142,14 +142,24 @@ function TimelineDrawer({ isOpen, onClose, employee }: { isOpen: boolean; onClos
                         </div>
 
                         <div className="grid grid-cols-2 gap-3 mb-8">
+<<<<<<< HEAD
                             <div className="bg-slate-50 p-4 rounded-2xl border-slate-100/80">
                                 <p className="text-[11px] text-slate-500 font-medium tracking-wide mb-1 flex items-center gap-1.5"><Sparkles size={12} /> Status Cognitivo</p>
+=======
+                            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100/80">
+                                <p className="text-[11px] text-slate-9000 font-medium tracking-wide mb-1 flex items-center gap-1.5"><Sparkles size={12} /> Status Cognitivo</p>
+>>>>>>> 73e3b8acfec7b8c39719e808c5e32ff2dd4f4465
                                 <div className="flex items-center gap-1.5 text-emerald-600 font-semibold text-sm">
                                     98.4% Estável
                                 </div>
                             </div>
+<<<<<<< HEAD
                             <div className="bg-slate-50 p-4 rounded-2xl border-slate-100/80">
                                 <p className="text-[11px] text-slate-500 font-medium tracking-wide mb-1 flex items-center gap-1.5"><Timer size={12} /> Tempo de Empresa</p>
+=======
+                            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100/80">
+                                <p className="text-[11px] text-slate-9000 font-medium tracking-wide mb-1 flex items-center gap-1.5"><Timer size={12} /> Tempo de Empresa</p>
+>>>>>>> 73e3b8acfec7b8c39719e808c5e32ff2dd4f4465
                                 <div className="flex items-center gap-1.5 text-slate-800 font-semibold text-sm">
                                     2a 4m
                                 </div>
@@ -174,7 +184,7 @@ function TimelineDrawer({ isOpen, onClose, employee }: { isOpen: boolean; onClos
                                             <h4 className="text-[13px] font-semibold text-slate-800">{event.title}</h4>
                                             <span className="text-[11px] font-medium text-slate-400 bg-slate-50 px-2 py-0.5 rounded-md">{event.date}</span>
                                         </div>
-                                        <p className="text-[13px] text-slate-500 leading-relaxed">{event.description}</p>
+                                        <p className="text-[13px] text-slate-9000 leading-relaxed">{event.description}</p>
                                     </div>
                                 </motion.div>
                             ))}
@@ -207,7 +217,7 @@ function AdmissionModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
                 <div className="fixed inset-0 flex items-center justify-center z-[200] p-4">
                     <motion.div
                         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        className="absolute inset-0 bg-slate-900/30 backdrop-blur-sm" onClick={onClose}
+                        className="absolute inset-0 bg-slate-50/30 backdrop-blur-sm" onClick={onClose}
                     />
                     <motion.div
                         initial={{ scale: 0.95, opacity: 0, y: 10 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 10 }}
@@ -218,7 +228,7 @@ function AdmissionModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
                         </div>
 
                         <h2 className="text-2xl font-bold text-slate-800 mb-2 tracking-tight">Admissão Cognitiva</h2>
-                        <p className="text-[13px] text-slate-500 mb-8 px-2 leading-relaxed">
+                        <p className="text-[13px] text-slate-9000 mb-8 px-2 leading-relaxed">
                             Inicie o onboarding "Zero Papel". O talento receberá um link seguro para envio de documentos.
                         </p>
 
@@ -232,7 +242,7 @@ function AdmissionModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
                         ) : (
                             <div className="space-y-5">
                                 <div className="relative text-left">
-                                    <label className="text-[11px] font-semibold text-slate-500 mb-1.5 block ml-1 uppercase tracking-wide">E-mail do Talento</label>
+                                    <label className="text-[11px] font-semibold text-slate-9000 mb-1.5 block ml-1 uppercase tracking-wide">E-mail do Talento</label>
                                     <div className="relative">
                                         <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                                         <input
@@ -251,7 +261,7 @@ function AdmissionModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
                                     </button>
                                     <button
                                         onClick={handleSend} disabled={!email || sending}
-                                        className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-xl shadow-md shadow-indigo-200 transition-all text-sm disabled:opacity-50 disabled:hover:bg-indigo-600 flex justify-center items-center gap-2"
+                                        className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-slate-900 font-semibold py-3 rounded-xl shadow-md shadow-indigo-200 transition-all text-sm disabled:opacity-50 disabled:hover:bg-indigo-600 flex justify-center items-center gap-2"
                                     >
                                         {sending ? (
                                             <><div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" /> Processando</>
@@ -301,12 +311,12 @@ export default function AdvancedRHPage() {
                 {/* Header */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white border-slate-200 border-black/5 shadow-sm/70 backdrop-blur-xl p-6 rounded-[2rem] border-slate-200/60 shadow-sm">
                     <div className="flex items-center gap-5">
-                        <div className="w-14 h-14 bg-gradient-to-tr from-indigo-600 to-violet-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-200 text-white">
+                        <div className="w-14 h-14 bg-gradient-to-tr from-indigo-600 to-violet-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-200 text-slate-900">
                             <Heart size={26} />
                         </div>
                         <div>
                             <h1 className="text-2xl font-bold text-slate-800 tracking-tight">Pessoas & Cultura</h1>
-                            <p className="text-[13px] text-slate-500 font-medium">Gestão inteligente e desenvolvimento continuado de talentos.</p>
+                            <p className="text-[13px] text-slate-9000 font-medium">Gestão inteligente e desenvolvimento continuado de talentos.</p>
                         </div>
                     </div>
 
@@ -321,7 +331,7 @@ export default function AdvancedRHPage() {
                         </div>
                         <button
                             onClick={() => setIsModalOpen(true)}
-                            className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-semibold text-[13px] flex items-center gap-2 shadow-sm shadow-indigo-200 transition-all"
+                            className="bg-indigo-600 hover:bg-indigo-700 text-slate-900 px-5 py-2.5 rounded-xl font-semibold text-[13px] flex items-center gap-2 shadow-sm shadow-indigo-200 transition-all"
                         >
                             <UserPlus size={16} /> <span className="hidden sm:inline">Nova Admissão</span>
                         </button>
@@ -384,7 +394,7 @@ export default function AdvancedRHPage() {
                                         <div className="w-12 h-12 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-3 border-emerald-100/50">
                                             <ShieldCheck className="text-emerald-500" size={24} />
                                         </div>
-                                        <p className="text-[13px] font-medium text-slate-500">Nenhum risco detectado pela análise cognitiva.</p>
+                                        <p className="text-[13px] font-medium text-slate-9000">Nenhum risco detectado pela análise cognitiva.</p>
                                     </div>
                                 ) : (
                                     employees.filter(e => e.risk !== 'stable').map(emp => (
@@ -398,7 +408,7 @@ export default function AdvancedRHPage() {
                                                     <TrendingDown size={12} /> {emp.risk === 'critical' ? 'Risco Alto' : 'Atenção Necessária'}
                                                 </p>
                                             </div>
-                                            <div className="p-1.5 rounded-lg text-slate-300 group-hover:text-rose-500 transition-colors">
+                                            <div className="p-1.5 rounded-lg text-slate-700 group-hover:text-rose-500 transition-colors">
                                                 <ChevronRight size={18} />
                                             </div>
                                         </div>
@@ -407,9 +417,15 @@ export default function AdvancedRHPage() {
                             </div>
                         </div>
 
+<<<<<<< HEAD
                         <div className="bg-gradient-to-br from-indigo-600 to-violet-700 rounded-[2rem] p-6 sm:p-8 text-white shadow-xl shadow-indigo-200/50 group relative overflow-hidden">
                             <div className="absolute top-0 right-0 w-32 h-32 bg-white border-slate-200 border-black/5 shadow-sm/5 rounded-bl-[4rem] pointer-events-none" />
                             <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-white border-slate-200 border-black/5 shadow-sm/10 blur-3xl rounded-full pointer-events-none" />
+=======
+                        <div className="bg-gradient-to-br from-indigo-600 to-violet-700 rounded-[2rem] p-6 sm:p-8 text-slate-900 shadow-xl shadow-indigo-200/50 group relative overflow-hidden">
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-bl-[4rem] pointer-events-none" />
+                            <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-white/10 blur-3xl rounded-full pointer-events-none" />
+>>>>>>> 73e3b8acfec7b8c39719e808c5e32ff2dd4f4465
 
                             <div className="relative z-10">
                                 <div className="flex justify-between items-start mb-6">

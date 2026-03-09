@@ -49,15 +49,15 @@ export default function JobsPage() {
     };
 
     return (
-        <div className="min-h-screen bg-black text-white">
+        <div className="min-h-screen bg-white text-slate-900">
             {/* Nav */}
-            <nav className="border-b border-zinc-800 py-4 px-8 flex justify-between items-center sticky top-0 bg-black/80 backdrop-blur z-10">
+            <nav className="border-b border-zinc-800 py-4 px-8 flex justify-between items-center sticky top-0 bg-white/80 backdrop-blur z-10">
                 <Link href="/" className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-600">
                     Innovation.ia
                 </Link>
                 <div className="flex gap-4">
-                    <Link href="/login" className="text-zinc-400 hover:text-white text-sm transition">Login</Link>
-                    <Link href="/register" className="px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded-lg text-sm font-medium transition">Criar Conta</Link>
+                    <Link href="/login" className="text-zinc-400 hover:text-slate-900 text-sm transition">Login</Link>
+                    <Link href="/register" className="px-4 py-2 bg-blue-500 hover:bg-blue-500 rounded-lg text-sm font-medium transition">Criar Conta</Link>
                 </div>
             </nav>
 
@@ -72,8 +72,13 @@ export default function JobsPage() {
                     </h1>
                     <p className="text-zinc-400 mb-8">Candidaturas analisadas em segundos. Menos espera, mais oportunidade.</p>
 
+<<<<<<< HEAD
                     <div className="max-w-xl mx-auto flex items-center gap-3 bg-zinc-900 border-zinc-700 rounded-xl px-4 py-3">
                         <Search className="w-5 h-5 text-zinc-500" />
+=======
+                    <div className="max-w-xl mx-auto flex items-center gap-3 bg-white border border-zinc-700 rounded-xl px-4 py-3">
+                        <Search className="w-5 h-5 text-zinc-9000" />
+>>>>>>> 73e3b8acfec7b8c39719e808c5e32ff2dd4f4465
                         <input
                             className="flex-1 bg-transparent text-sm outline-none"
                             placeholder="Buscar vagas por título ou skills..."
@@ -87,9 +92,9 @@ export default function JobsPage() {
             {/* Jobs */}
             <section className="px-4 pb-20 max-w-4xl mx-auto">
                 {loading ? (
-                    <div className="text-center py-12 text-zinc-500">Carregando vagas...</div>
+                    <div className="text-center py-12 text-zinc-9000">Carregando vagas...</div>
                 ) : filtered.length === 0 ? (
-                    <div className="text-center py-12 text-zinc-500">
+                    <div className="text-center py-12 text-zinc-9000">
                         {search ? 'Nenhuma vaga encontrada para essa busca.' : 'Nenhuma vaga aberta no momento.'}
                     </div>
                 ) : (
@@ -100,25 +105,33 @@ export default function JobsPage() {
                                 initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: i * 0.05 }}
+<<<<<<< HEAD
                                 className="border-zinc-800 hover:border-purple-500/50 rounded-2xl p-6 transition cursor-pointer group"
+=======
+                                className="border border-zinc-800 hover:border-blue-500/50 rounded-2xl p-6 transition cursor-pointer group"
+>>>>>>> 73e3b8acfec7b8c39719e808c5e32ff2dd4f4465
                                 onClick={() => setSelected(job)}
                             >
                                 <div className="flex justify-between items-start">
                                     <div>
                                         <div className="flex items-center gap-2 mb-2">
+<<<<<<< HEAD
                                             <span className="text-xs px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-400 border-purple-500/20">
+=======
+                                            <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 border border-blue-500/20">
+>>>>>>> 73e3b8acfec7b8c39719e808c5e32ff2dd4f4465
                                                 {job.type || 'CLT'}
                                             </span>
                                             <span className="text-xs text-green-400">● Aberta</span>
                                         </div>
-                                        <h3 className="text-lg font-semibold text-white group-hover:text-purple-400 transition">{job.title}</h3>
-                                        <p className="text-zinc-500 text-sm mt-1 line-clamp-2">{job.description}</p>
+                                        <h3 className="text-lg font-semibold text-slate-900 group-hover:text-blue-600 transition">{job.title}</h3>
+                                        <p className="text-zinc-9000 text-sm mt-1 line-clamp-2">{job.description}</p>
                                     </div>
-                                    <button className="ml-4 px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded-lg text-sm font-medium transition whitespace-nowrap">
+                                    <button className="ml-4 px-4 py-2 bg-blue-500 hover:bg-blue-500 rounded-lg text-sm font-medium transition whitespace-nowrap">
                                         Candidatar-se
                                     </button>
                                 </div>
-                                <div className="flex items-center gap-4 mt-4 text-xs text-zinc-500">
+                                <div className="flex items-center gap-4 mt-4 text-xs text-zinc-9000">
                                     {job.location && <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{job.location}</span>}
                                     {job.salary && <span className="flex items-center gap-1"><Briefcase className="w-3 h-3" />{job.salary}</span>}
                                     <span className="flex items-center gap-1"><Clock className="w-3 h-3" />Candidaturas abertas</span>
@@ -131,8 +144,13 @@ export default function JobsPage() {
 
             {/* Modal Candidatura */}
             {selected && (
+<<<<<<< HEAD
                 <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
                     <div className="bg-zinc-900 border-zinc-700 rounded-2xl p-6 w-full max-w-lg">
+=======
+                <div className="fixed inset-0 bg-white/70 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white border border-zinc-700 rounded-2xl p-6 w-full max-w-lg">
+>>>>>>> 73e3b8acfec7b8c39719e808c5e32ff2dd4f4465
                         <div className="flex justify-between items-start mb-4">
                             <div>
                                 <h3 className="text-lg font-bold">{selected.title}</h3>
@@ -145,7 +163,7 @@ export default function JobsPage() {
                             <div className="text-center py-8">
                                 <div className="text-5xl mb-4">✅</div>
                                 <p className="text-green-400 font-semibold">Candidatura enviada com sucesso!</p>
-                                <p className="text-zinc-500 text-sm mt-1">Nossa IA analisará seu perfil em segundos.</p>
+                                <p className="text-zinc-9000 text-sm mt-1">Nossa IA analisará seu perfil em segundos.</p>
                             </div>
                         ) : (
                             <>

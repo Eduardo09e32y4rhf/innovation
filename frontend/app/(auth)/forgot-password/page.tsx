@@ -42,7 +42,7 @@ export default function ForgotPasswordPage() {
         <div className="flex min-h-screen items-center justify-center bg-[#050508] p-4 relative overflow-hidden font-sans">
             {/* Ultra-Premium Background Elements */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-purple-600/20 rounded-full blur-[120px] animate-pulse" />
+                <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-blue-500/20 rounded-full blur-[120px] animate-pulse" />
                 <div className="absolute -bottom-[10%] -right-[10%] w-[40%] h-[40%] bg-blue-600/20 rounded-full blur-[120px] animate-pulse" style={{ animationDelay: '2s' }} />
             </div>
 
@@ -60,22 +60,27 @@ export default function ForgotPasswordPage() {
                         className="group relative"
                     >
                         <div className="absolute -inset-1 bg-gradient-to-r from-purple-600 to-blue-600 rounded-2xl blur opacity-40 group-hover:opacity-100 transition duration-1000 group-hover:duration-200"></div>
+<<<<<<< HEAD
                         <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-[#0a0a0f] border-white/10 mb-6 transition-all duration-300">
                             <Lock className="h-8 w-8 text-purple-400 group-hover:text-white transition-colors" />
+=======
+                        <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-[#0a0a0f] border border-white/10 mb-6 transition-all duration-300">
+                            <Lock className="h-8 w-8 text-blue-600 group-hover:text-slate-900 transition-colors" />
+>>>>>>> 73e3b8acfec7b8c39719e808c5e32ff2dd4f4465
                         </div>
                     </motion.div>
 
-                    <h1 className="text-3xl font-black tracking-tighter text-white mb-2">
-                        RECUPERAR <span className="text-purple-500">A</span>CESSO
+                    <h1 className="text-3xl font-black tracking-tighter text-slate-900 mb-2">
+                        RECUPERAR <span className="text-blue-500">A</span>CESSO
                     </h1>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Security Recovery Protocol</p>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-9000">Security Recovery Protocol</p>
                 </div>
 
                 <div className="relative">
-                    <Card className="relative border-white/[0.08] bg-black/40 backdrop-blur-3xl rounded-[2rem] shadow-2xl overflow-hidden">
+                    <Card className="relative border-white/[0.08] bg-white/40 backdrop-blur-3xl rounded-[2rem] shadow-2xl overflow-hidden">
                         <CardHeader className="pt-8 pb-4">
-                            <CardTitle className="text-xl font-bold text-white text-center">Esqueceu sua chave?</CardTitle>
-                            <CardDescription className="text-zinc-500 text-center px-4">Insira seu e-mail corporativo para receber as instruções de redefinição.</CardDescription>
+                            <CardTitle className="text-xl font-bold text-slate-900 text-center">Esqueceu sua chave?</CardTitle>
+                            <CardDescription className="text-zinc-9000 text-center px-4">Insira seu e-mail corporativo para receber as instruções de redefinição.</CardDescription>
                         </CardHeader>
 
                         <CardContent className="px-8 pb-8">
@@ -106,24 +111,32 @@ export default function ForgotPasswordPage() {
                                 </AnimatePresence>
 
                                 <div className="space-y-2">
-                                    <label className="text-[10px] uppercase tracking-widest font-black text-zinc-500 ml-1">Enterprise Email</label>
+                                    <label className="text-[10px] uppercase tracking-widest font-black text-zinc-9000 ml-1">Enterprise Email</label>
                                     <div className="relative group">
                                         <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                            <Mail className="h-4 w-4 text-zinc-600 group-focus-within:text-purple-400 transition-colors" />
+                                            <Mail className="h-4 w-4 text-zinc-600 group-focus-within:text-blue-600 transition-colors" />
                                         </div>
                                         <input
                                             type="email"
                                             placeholder="seu@endereco.com"
                                             value={email}
                                             onChange={(e) => setEmail(e.target.value)}
+<<<<<<< HEAD
                                             className="w-full h-12 rounded-2xl border-white/5 bg-white border-slate-200 border-black/5 shadow-sm/5 px-4 pl-11 text-sm text-white placeholder:text-zinc-600 focus:bg-white border-slate-200 border-black/5 shadow-sm/10 focus:border-purple-500/50 focus:outline-none focus:ring-4 focus:ring-purple-500/10 transition-all"
+=======
+                                            className="w-full h-12 rounded-2xl border border-white/5 bg-white/5 px-4 pl-11 text-sm text-slate-900 placeholder:text-zinc-600 focus:bg-white/10 focus:border-blue-500/50 focus:outline-none focus:ring-4 focus:ring-blue-500/10 transition-all"
+>>>>>>> 73e3b8acfec7b8c39719e808c5e32ff2dd4f4465
                                             required
                                         />
                                     </div>
                                 </div>
 
                                 <Button
+<<<<<<< HEAD
                                     className="w-full h-12 bg-white border-slate-200 border-black/5 shadow-sm text-black hover:bg-zinc-200 rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all relative overflow-hidden group shadow-xl shadow-white/5"
+=======
+                                    className="w-full h-12 bg-white text-slate-900 hover:bg-zinc-200 rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all relative overflow-hidden group shadow-xl shadow-white/5"
+>>>>>>> 73e3b8acfec7b8c39719e808c5e32ff2dd4f4465
                                     disabled={loading || !!message}
                                 >
                                     <span className="relative z-10 flex items-center justify-center gap-2">
@@ -136,7 +149,7 @@ export default function ForgotPasswordPage() {
 
                         <CardFooter className="flex flex-col space-y-6 bg-white border-slate-200 border-black/5 shadow-sm/[0.02] border-t border-white/[0.05] p-8">
                             <div className="text-center">
-                                <Link href="/login" className="inline-flex items-center gap-2 text-xs font-black text-zinc-400 hover:text-white transition-colors uppercase tracking-widest">
+                                <Link href="/login" className="inline-flex items-center gap-2 text-xs font-black text-zinc-400 hover:text-slate-900 transition-colors uppercase tracking-widest">
                                     <ArrowLeft className="w-4 h-4" />
                                     Voltar para o login
                                 </Link>

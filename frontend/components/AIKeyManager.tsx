@@ -98,17 +98,17 @@ export default function AIKeyManager() {
         >
             <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-violet-500/20 flex items-center justify-center">
-                        <Key className="w-5 h-5 text-violet-400" />
+                    <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center">
+                        <Key className="w-5 h-5 text-blue-600" />
                     </div>
                     <div>
-                        <h3 className="text-lg font-bold text-white">Gerenciador de Chaves IA</h3>
-                        <p className="text-xs text-white/40 uppercase font-black tracking-widest">Controle de Tokens & Rotação</p>
+                        <h3 className="text-lg font-bold text-slate-900">Gerenciador de Chaves IA</h3>
+                        <p className="text-xs text-slate-900/40 uppercase font-black tracking-widest">Controle de Tokens & Rotação</p>
                     </div>
                 </div>
                 <button
                     onClick={handleReset}
-                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-[10px] font-black text-white/60 hover:bg-white/10 hover:text-white transition-all uppercase"
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-[10px] font-black text-slate-900/60 hover:bg-white/10 hover:text-slate-900 transition-all uppercase"
                 >
                     <RefreshCw className="w-3 h-3" />
                     Resetar Status
@@ -121,12 +121,12 @@ export default function AIKeyManager() {
                     placeholder="Cole aqui a nova GEMINI_API_KEY..."
                     value={newKey}
                     onChange={(e) => setNewKey(e.target.value)}
-                    className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-violet-500/50 transition-all"
+                    className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-blue-500/50 transition-all"
                 />
                 <button
                     type="submit"
                     disabled={loading}
-                    className="bg-violet-600 hover:bg-violet-500 text-white font-bold px-4 py-2.5 rounded-xl transition-all flex items-center gap-2 disabled:opacity-50"
+                    className="bg-blue-500 hover:bg-blue-500 text-white font-bold px-4 py-2.5 rounded-xl transition-all flex items-center gap-2 disabled:opacity-50"
                 >
                     <Plus className="w-4 h-4" />
                     Adicionar
@@ -147,9 +147,9 @@ export default function AIKeyManager() {
                             <div className="flex items-center gap-4">
                                 <div className={`w-2 h-2 rounded-full ${k.status === 'active' ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]' : 'bg-red-500 opacity-50'}`} />
                                 <div>
-                                    <p className="text-sm font-mono text-white/80">{k.key}</p>
+                                    <p className="text-sm font-mono text-slate-900/80">{k.key}</p>
                                     <div className="flex gap-2 mt-1">
-                                        <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded ${k.type === 'static' ? 'bg-blue-500/20 text-blue-400' : 'bg-violet-500/20 text-violet-400'}`}>
+                                        <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded ${k.type === 'static' ? 'bg-blue-500/20 text-blue-400' : 'bg-blue-500/20 text-blue-600'}`}>
                                             {k.type}
                                         </span>
                                         <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded ${k.status === 'active' ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}`}>

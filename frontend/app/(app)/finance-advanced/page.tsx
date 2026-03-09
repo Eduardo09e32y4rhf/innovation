@@ -63,7 +63,7 @@ export default function FinanceAdvancedPage() {
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                     <div>
                         <h1 className="text-4xl font-black text-slate-900 tracking-tight mb-2">Financeiro <span className="text-indigo-600">Pro</span></h1>
-                        <p className="text-slate-500 font-medium tracking-tight">Centros de custo, folha real e conciliação bancária via OFX.</p>
+                        <p className="text-slate-9000 font-medium tracking-tight">Centros de custo, folha real e conciliação bancária via OFX.</p>
                     </div>
                 </div>
 
@@ -121,7 +121,7 @@ export default function FinanceAdvancedPage() {
                                                         <div className="h-full bg-indigo-600 rounded-full" style={{ width: `${c.percentage}%` }} />
                                                     </div>
                                                     <div className="flex justify-between mt-2">
-                                                        <span className="text-[9px] font-bold text-slate-300 uppercase tracking-widest">{c.count} lançamentos</span>
+                                                        <span className="text-[9px] font-bold text-slate-700 uppercase tracking-widest">{c.count} lançamentos</span>
                                                         <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{c.percentage}% do total</span>
                                                     </div>
                                                 </div>
@@ -129,14 +129,14 @@ export default function FinanceAdvancedPage() {
                                         </div>
                                         <div className="flex items-center justify-center p-10 bg-slate-50 rounded-[2rem] border-dashed border-slate-200">
                                             <div className="text-center">
-                                                <BarChart size={48} className="mx-auto mb-4 text-slate-300" />
+                                                <BarChart size={48} className="mx-auto mb-4 text-slate-700" />
                                                 <p className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Visualização Neural de Custos</p>
                                             </div>
                                         </div>
                                     </div>
                                 ) : (
                                     <div className="text-center py-20 grayscale opacity-40">
-                                        <PieChart size={64} className="mx-auto mb-4 text-slate-300" />
+                                        <PieChart size={64} className="mx-auto mb-4 text-slate-700" />
                                         <p className="text-xs font-black uppercase text-slate-400 tracking-widest">Nenhuma métrica financeira processada.</p>
                                     </div>
                                 )}
@@ -196,6 +196,7 @@ export default function FinanceAdvancedPage() {
                                                         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Fator Overhead: <span className="text-indigo-600">{emp.overhead_factor}x</span></span>
                                                     </div>
                                                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+<<<<<<< HEAD
                                                         <div className="p-4 bg-white border-slate-200 border-black/5 shadow-sm rounded-2xl border-slate-100 shadow-sm">
                                                             <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest mb-1">Custo Real</p>
                                                             <p className="text-sm font-black text-emerald-600">R$ {Number(emp.total_real_cost).toLocaleString('pt-BR')}</p>
@@ -210,6 +211,22 @@ export default function FinanceAdvancedPage() {
                                                         </div>
                                                         <div className="p-4 bg-white border-slate-200 border-black/5 shadow-sm rounded-2xl border-slate-100 shadow-sm">
                                                             <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest mb-1">Provisões</p>
+=======
+                                                        <div className="p-4 bg-white rounded-2xl border border-slate-100 shadow-sm">
+                                                            <p className="text-[9px] font-black text-slate-700 uppercase tracking-widest mb-1">Custo Real</p>
+                                                            <p className="text-sm font-black text-emerald-600">R$ {Number(emp.total_real_cost).toLocaleString('pt-BR')}</p>
+                                                        </div>
+                                                        <div className="p-4 bg-white rounded-2xl border border-slate-100 shadow-sm">
+                                                            <p className="text-[9px] font-black text-slate-700 uppercase tracking-widest mb-1">INSS Patronal</p>
+                                                            <p className="text-sm font-black text-rose-500">R$ {Number(emp.inss_patronal).toLocaleString('pt-BR')}</p>
+                                                        </div>
+                                                        <div className="p-4 bg-white rounded-2xl border border-slate-100 shadow-sm">
+                                                            <p className="text-[9px] font-black text-slate-700 uppercase tracking-widest mb-1">FGTS</p>
+                                                            <p className="text-sm font-black text-amber-500">R$ {Number(emp.fgts).toLocaleString('pt-BR')}</p>
+                                                        </div>
+                                                        <div className="p-4 bg-white rounded-2xl border border-slate-100 shadow-sm">
+                                                            <p className="text-[9px] font-black text-slate-700 uppercase tracking-widest mb-1">Provisões</p>
+>>>>>>> 73e3b8acfec7b8c39719e808c5e32ff2dd4f4465
                                                             <p className="text-sm font-black text-indigo-600">R$ {Number(emp.total_real_cost - emp.gross_salary - emp.inss_patronal - emp.fgts).toLocaleString('pt-BR')}</p>
                                                         </div>
                                                     </div>
@@ -248,7 +265,7 @@ export default function FinanceAdvancedPage() {
                                     <h2 className="text-xl font-black text-slate-900 uppercase tracking-tighter flex items-center gap-3">
                                         <ShieldCheck size={24} className="text-indigo-600" /> Cofre Digital
                                     </h2>
-                                    <button className="bg-slate-900 text-white px-6 py-2.5 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg">Upload Seguro</button>
+                                    <button className="bg-slate-50 text-slate-900 px-6 py-2.5 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg">Upload Seguro</button>
                                 </div>
 
                                 <div className="grid grid-cols-1 gap-4">
@@ -265,7 +282,11 @@ export default function FinanceAdvancedPage() {
                                             </div>
                                             <div className="flex items-center gap-6">
                                                 <p className="text-sm font-black text-slate-900">R$ {Number(v.amount).toLocaleString('pt-BR')}</p>
+<<<<<<< HEAD
                                                 <button className="w-10 h-10 rounded-xl bg-white border-slate-200 border-black/5 shadow-sm border-slate-100 flex items-center justify-center text-slate-300 hover:text-indigo-600 hover:border-indigo-100 transition-all shadow-sm">
+=======
+                                                <button className="w-10 h-10 rounded-xl bg-white border border-slate-100 flex items-center justify-center text-slate-700 hover:text-indigo-600 hover:border-indigo-100 transition-all shadow-sm">
+>>>>>>> 73e3b8acfec7b8c39719e808c5e32ff2dd4f4465
                                                     <ChevronRight size={18} />
                                                 </button>
                                             </div>
@@ -273,7 +294,7 @@ export default function FinanceAdvancedPage() {
                                     ))}
                                     {vouchers.length === 0 && (
                                         <div className="text-center py-20 grayscale opacity-40">
-                                            <FileText size={64} className="mx-auto mb-4 text-slate-300" />
+                                            <FileText size={64} className="mx-auto mb-4 text-slate-700" />
                                             <p className="text-xs font-black uppercase text-slate-400 tracking-widest">Cofre digital vazio.</p>
                                         </div>
                                     )}

@@ -27,7 +27,7 @@ export default function CheckoutSocioPage() {
         <div className="min-h-screen bg-[#f5f5f5] flex flex-col items-center font-sans relative overflow-hidden">
             {/* Header Fake Mercado Pago */}
             <header className="w-full bg-[#009ee3] h-14 flex items-center justify-center shadow-sm relative z-10">
-                <div className="flex items-center gap-2 text-white">
+                <div className="flex items-center gap-2 text-slate-900">
                     <ShieldCheck className="w-5 h-5" />
                     <span className="font-bold tracking-tight">Mercado Pago</span>
                 </div>
@@ -43,7 +43,7 @@ export default function CheckoutSocioPage() {
                         className="flex-1 flex flex-col items-center justify-center mt-20"
                     >
                         <div className="w-12 h-12 border-4 border-[#009ee3] border-t-transparent rounded-full animate-spin mb-4" />
-                        <p className="text-zinc-500 font-medium">Carregando ambiente seguro...</p>
+                        <p className="text-zinc-9000 font-medium">Carregando ambiente seguro...</p>
                     </motion.div>
                 )}
 
@@ -118,7 +118,7 @@ export default function CheckoutSocioPage() {
 
                                     <button
                                         type="submit"
-                                        className="w-full h-12 mt-4 bg-[#009ee3] hover:bg-[#008cc9] text-white rounded-xl font-bold text-base transition-colors shadow-lg shadow-[#009ee3]/30 flex items-center justify-center gap-2"
+                                        className="w-full h-12 mt-4 bg-[#009ee3] hover:bg-[#008cc9] text-slate-900 rounded-xl font-bold text-base transition-colors shadow-lg shadow-[#009ee3]/30 flex items-center justify-center gap-2"
                                     >
                                         Pagar R$ 9,99
                                         <Lock className="w-4 h-4 opacity-70" />
@@ -139,7 +139,7 @@ export default function CheckoutSocioPage() {
                         initial={{ opacity: 0, scale: 0.5, rotate: -10 }}
                         animate={{ opacity: 1, scale: 1, rotate: 0 }}
                         transition={{ type: "spring", bounce: 0.6 }}
-                        className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/90 backdrop-blur-md px-4"
+                        className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/90 backdrop-blur-md px-4"
                     >
                         {/* Confetti Explosion Effect via CSS + Framer Motion */}
                         <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -177,16 +177,16 @@ export default function CheckoutSocioPage() {
                             transition={{ duration: 0.6 }}
                             className="bg-gradient-to-br from-green-400 to-emerald-600 w-24 h-24 rounded-full flex items-center justify-center shadow-[0_0_50px_rgba(52,211,153,0.5)] mb-8 border-4 border-white/20"
                         >
-                            <CheckCircle2 className="w-12 h-12 text-white" />
+                            <CheckCircle2 className="w-12 h-12 text-slate-900" />
                         </motion.div>
 
                         <motion.h1
                             initial={{ y: 20, opacity: 0 }}
                             animate={{ y: 0, opacity: 1 }}
                             transition={{ delay: 0.3 }}
-                            className="text-5xl md:text-7xl font-black text-white text-center tracking-tighter mb-4 drop-shadow-[0_0_15px_rgba(255,255,255,0.3)] uppercase"
+                            className="text-5xl md:text-7xl font-black text-slate-900 text-center tracking-tighter mb-4 drop-shadow-[0_0_15px_rgba(255,255,255,0.3)] uppercase"
                         >
-                            Bem Vindo <span className="text-purple-400">Anderson</span>!
+                            Bem Vindo <span className="text-blue-600">Anderson</span>!
                         </motion.h1>
 
                         <motion.div
@@ -204,7 +204,7 @@ export default function CheckoutSocioPage() {
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             transition={{ delay: 2 }}
-                            className="text-white/40 mt-12 text-sm max-w-xs text-center font-medium"
+                            className="text-slate-900/40 mt-12 text-sm max-w-xs text-center font-medium"
                         >
                             Redirecionando para o Dashboard Enterprise Premium em instantes...
                         </motion.p>

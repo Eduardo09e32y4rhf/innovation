@@ -88,7 +88,7 @@ export default function OnboardingPage() {
         if (status === 'validated') return <CheckCircle className="w-5 h-5 text-green-400" />;
         if (status === 'uploaded') return <Clock className="w-5 h-5 text-yellow-400 animate-pulse" />;
         if (status === 'error') return <AlertCircle className="w-5 h-5 text-red-400" />;
-        return <Upload className="w-5 h-5 text-zinc-500" />;
+        return <Upload className="w-5 h-5 text-zinc-9000" />;
     };
 
     const statusLabel = (status: DocStep['status']) => ({
@@ -100,7 +100,7 @@ export default function OnboardingPage() {
 
     return (
         <AppLayout title="Onboarding Digital">
-            <div className="text-white">
+            <div className="text-slate-900">
                 <main className="p-8 overflow-y-auto">
                     <div className="max-w-3xl mx-auto">
                         <div className="mb-8">
@@ -113,7 +113,7 @@ export default function OnboardingPage() {
                         {/* Progress */}
                         <div className="glass-panel rounded-2xl p-6 mb-6">
                             <div className="flex justify-between items-center mb-3">
-                                <span className="text-sm font-medium text-zinc-300">Progresso da Admissão</span>
+                                <span className="text-sm font-medium text-zinc-700">Progresso da Admissão</span>
                                 <span className="text-sm font-bold text-teal-400">{completed}/{total} documentos</span>
                             </div>
                             <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
@@ -122,7 +122,7 @@ export default function OnboardingPage() {
                                     style={{ width: `${progress}%` }}
                                 />
                             </div>
-                            <p className="text-xs text-zinc-500 mt-2">{progress}% completo</p>
+                            <p className="text-xs text-zinc-9000 mt-2">{progress}% completo</p>
                         </div>
 
                         {/* Checklist de Departamentos */}
@@ -143,7 +143,7 @@ export default function OnboardingPage() {
                                         ) : (
                                             <Clock className="w-4 h-4 text-zinc-600 shrink-0" />
                                         )}
-                                        <span className={item.done ? 'text-zinc-300' : 'text-zinc-600'}>{item.label}</span>
+                                        <span className={item.done ? 'text-zinc-700' : 'text-zinc-600'}>{item.label}</span>
                                     </div>
                                 ))}
                             </div>
@@ -161,13 +161,13 @@ export default function OnboardingPage() {
                                     <div key={step.id} className={`flex items-center justify-between p-4 rounded-xl border transition ${step.status === 'validated' ? 'border-green-500/30 bg-green-500/5' :
                                         step.status === 'uploaded' ? 'border-yellow-500/30 bg-yellow-500/5' :
                                             step.status === 'error' ? 'border-red-500/30 bg-red-500/5' :
-                                                'border-zinc-800 bg-zinc-900/30 hover:border-zinc-600'
+                                                'border-zinc-800 bg-white/30 hover:border-zinc-600'
                                         }`}>
                                         <div className="flex items-center gap-3">
                                             {statusIcon(step.status)}
                                             <div>
                                                 <p className="text-sm font-medium">{step.label}</p>
-                                                {step.file && <p className="text-xs text-zinc-500">{step.file}</p>}
+                                                {step.file && <p className="text-xs text-zinc-9000">{step.file}</p>}
                                                 {!step.required && <span className="text-xs text-zinc-600">Opcional</span>}
                                             </div>
                                         </div>
@@ -207,9 +207,13 @@ export default function OnboardingPage() {
                                     {loadingContract ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Gerar Rascunho'}
                                 </button>
                             </div>
-                            {completed < 3 && <p className="text-xs text-zinc-500">Envie pelo menos 3 documentos para gerar o contrato.</p>}
+                            {completed < 3 && <p className="text-xs text-zinc-9000">Envie pelo menos 3 documentos para gerar o contrato.</p>}
                             {contract && (
+<<<<<<< HEAD
                                 <div className="mt-4 p-4 bg-zinc-900 border-zinc-700 rounded-xl text-sm text-zinc-300 whitespace-pre-wrap max-h-64 overflow-y-auto">
+=======
+                                <div className="mt-4 p-4 bg-white border border-zinc-700 rounded-xl text-sm text-zinc-700 whitespace-pre-wrap max-h-64 overflow-y-auto">
+>>>>>>> 73e3b8acfec7b8c39719e808c5e32ff2dd4f4465
                                     {contract}
                                 </div>
                             )}

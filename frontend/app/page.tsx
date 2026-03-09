@@ -128,36 +128,40 @@ export default function HomePage() {
           {/* Logo */}
           <div className="flex items-center gap-2 cursor-pointer">
             <div
+<<<<<<< HEAD
               className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-lg ${scrolled ? 'bg-violet-700' : 'bg-white border-slate-200 border-black/5 shadow-sm'
+=======
+              className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-lg ${scrolled ? 'bg-blue-600' : 'bg-white'
+>>>>>>> 73e3b8acfec7b8c39719e808c5e32ff2dd4f4465
                 }`}
             >
-              <Zap size={22} className={scrolled ? 'text-white' : 'text-violet-700'} />
+              <Zap size={22} className={scrolled ? 'text-slate-900' : 'text-violet-700'} />
             </div>
             <span
-              className={`text-2xl font-bold tracking-tight ${scrolled ? 'text-zinc-900' : 'text-white'
+              className={`text-2xl font-bold tracking-tight ${scrolled ? 'text-zinc-900' : 'text-slate-900'
                 }`}
             >
               Innovation
-              <span className={scrolled ? 'text-violet-700' : 'text-violet-300'}>IA</span>
+              <span className={scrolled ? 'text-violet-700' : 'text-blue-500'}>IA</span>
             </span>
           </div>
 
           {/* Links desktop */}
           <div
-            className={`hidden md:flex items-center gap-8 text-sm font-semibold ${scrolled ? 'text-zinc-600' : 'text-white/80'
+            className={`hidden md:flex items-center gap-8 text-sm font-semibold ${scrolled ? 'text-zinc-600' : 'text-slate-900/80'
               }`}
           >
-            <a href="#historia" className={`transition-colors ${scrolled ? 'hover:text-violet-700' : 'hover:text-white'}`}>Evolução</a>
-            <a href="#simulador" className={`transition-colors ${scrolled ? 'hover:text-violet-700' : 'hover:text-white'}`}>Simulador</a>
-            <a href="#solucao" className={`transition-colors ${scrolled ? 'hover:text-violet-700' : 'hover:text-white'}`}>Solução</a>
-            <a href="#precos" className={`transition-colors ${scrolled ? 'hover:text-violet-700' : 'hover:text-white'}`}>Preços</a>
+            <a href="#historia" className={`transition-colors ${scrolled ? 'hover:text-violet-700' : 'hover:text-slate-900'}`}>Evolução</a>
+            <a href="#simulador" className={`transition-colors ${scrolled ? 'hover:text-violet-700' : 'hover:text-slate-900'}`}>Simulador</a>
+            <a href="#solucao" className={`transition-colors ${scrolled ? 'hover:text-violet-700' : 'hover:text-slate-900'}`}>Solução</a>
+            <a href="#precos" className={`transition-colors ${scrolled ? 'hover:text-violet-700' : 'hover:text-slate-900'}`}>Preços</a>
           </div>
 
           {/* Acções desktop */}
           <div className="hidden md:flex items-center gap-4">
             <button
               onClick={() => (window.location.href = '/login')}
-              className={`text-sm font-bold transition-colors ${scrolled ? 'text-zinc-600 hover:text-violet-700' : 'text-white hover:text-violet-200'
+              className={`text-sm font-bold transition-colors ${scrolled ? 'text-zinc-600 hover:text-violet-700' : 'text-slate-900 hover:text-violet-200'
                 }`}
             >
               Login
@@ -165,8 +169,13 @@ export default function HomePage() {
             <button
               onClick={goToRegister}
               className={`px-6 py-2.5 rounded-full font-bold text-sm shadow-xl transition-all hover:-translate-y-1 ${scrolled
+<<<<<<< HEAD
                 ? 'bg-violet-700 text-white hover:bg-violet-800'
                 : 'bg-white border-slate-200 border-black/5 shadow-sm text-violet-800 hover:bg-zinc-100'
+=======
+                ? 'bg-blue-600 text-white hover:bg-blue-600'
+                : 'bg-white text-violet-800 hover:bg-zinc-100'
+>>>>>>> 73e3b8acfec7b8c39719e808c5e32ff2dd4f4465
                 }`}
             >
               Abra a sua conta
@@ -177,7 +186,7 @@ export default function HomePage() {
           <button
             aria-label="Toggle menu"
             aria-expanded={isMenuOpen}
-            className={`md:hidden ${scrolled ? 'text-zinc-900' : 'text-white'}`}
+            className={`md:hidden ${scrolled ? 'text-zinc-900' : 'text-slate-900'}`}
             onClick={() => setIsMenuOpen(!isMenuOpen)}
           >
             {isMenuOpen ? <X size={28} /> : <Menu size={28} />}
@@ -192,7 +201,7 @@ export default function HomePage() {
             <a href="#precos" className="text-lg font-semibold text-zinc-800" onClick={() => setIsMenuOpen(false)}>Preços</a>
             <hr className="my-2 border-zinc-100" />
             <button onClick={() => (window.location.href = '/login')} className="text-left text-lg font-bold text-zinc-600">Login</button>
-            <button onClick={goToRegister} className="bg-violet-700 text-white p-4 rounded-xl font-bold text-center mt-2">Abra a sua conta</button>
+            <button onClick={goToRegister} className="bg-blue-600 text-white p-4 rounded-xl font-bold text-center mt-2">Abra a sua conta</button>
           </div>
         )}
       </nav>
@@ -204,11 +213,15 @@ export default function HomePage() {
 
         <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-16 items-center relative z-10">
           <div className="text-center lg:text-left">
+<<<<<<< HEAD
             <div className="inline-flex items-center gap-2 bg-white border-slate-200 border-black/5 shadow-sm/10 border-white/20 text-white px-5 py-2 rounded-full text-sm font-bold mb-8 backdrop-blur-md">
+=======
+            <div className="inline-flex items-center gap-2 bg-white/10 border border-white/20 text-slate-900 px-5 py-2 rounded-full text-sm font-bold mb-8 backdrop-blur-md">
+>>>>>>> 73e3b8acfec7b8c39719e808c5e32ff2dd4f4465
               <Sparkles size={16} className="text-fuchsia-300" /> O futuro do trabalho chegou
             </div>
 
-            <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight text-white mb-6 leading-[1.1]">
+            <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight text-slate-900 mb-6 leading-[1.1]">
               A inteligência que{' '}
               <br className="hidden md:block" />
               <span className="text-fuchsia-300">trabalha por si.</span>
@@ -251,7 +264,7 @@ export default function HomePage() {
                 <Clock className="text-emerald-600" size={28} />
               </div>
               <div>
-                <p className="text-zinc-500 text-sm font-bold uppercase tracking-wider">Tempo Economizado</p>
+                <p className="text-zinc-9000 text-sm font-bold uppercase tracking-wider">Tempo Economizado</p>
                 <p className="text-3xl font-black text-zinc-900">15h / sem.</p>
               </div>
             </div>
@@ -365,12 +378,12 @@ export default function HomePage() {
       </section>
 
       {/* ── SIMULADOR DE ROI ───────────────────────────────────────────────── */}
-      <section id="simulador" className="py-24 bg-violet-800 px-6 relative overflow-hidden">
+      <section id="simulador" className="py-24 bg-blue-600 px-6 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-t from-violet-900 to-transparent opacity-80" />
 
         <div className="max-w-6xl mx-auto relative z-10">
           <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-extrabold text-white mb-6">
+            <h2 className="text-4xl md:text-5xl font-extrabold text-slate-900 mb-6">
               Descubra o impacto na sua rotina.
             </h2>
             <p className="text-xl text-violet-200 font-medium max-w-2xl mx-auto">
@@ -387,12 +400,12 @@ export default function HomePage() {
                 onChange={(e) => setBusinessType(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && generateInnovationPlan()}
                 placeholder="Ex: Analista de RH, Engenheiro, Vendedor..."
-                className="flex-1 bg-zinc-50 border-2 border-zinc-200 rounded-2xl px-8 py-5 focus:border-violet-600 focus:ring-4 focus:ring-violet-600/10 focus:outline-none text-xl font-medium transition-all"
+                className="flex-1 bg-zinc-50 border-2 border-zinc-200 rounded-2xl px-8 py-5 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 focus:outline-none text-xl font-medium transition-all"
               />
               <button
                 onClick={generateInnovationPlan}
                 disabled={isLoadingPlan || !businessType}
-                className="bg-violet-700 text-white px-10 py-5 rounded-2xl font-bold text-xl hover:bg-violet-800 transition-all disabled:bg-zinc-200 disabled:text-zinc-500 shadow-xl shadow-violet-700/20 flex items-center justify-center gap-3 active:scale-95"
+                className="bg-blue-600 text-white px-10 py-5 rounded-2xl font-bold text-xl hover:bg-blue-600 transition-all disabled:bg-zinc-200 disabled:text-zinc-9000 shadow-xl shadow-blue-600/20 flex items-center justify-center gap-3 active:scale-95"
               >
                 {isLoadingPlan ? (
                   <Loader2 className="animate-spin" size={28} />
@@ -403,7 +416,7 @@ export default function HomePage() {
             </div>
 
             {isLoadingPlan && (
-              <div className="text-center text-zinc-500 font-semibold animate-pulse text-lg">
+              <div className="text-center text-zinc-9000 font-semibold animate-pulse text-lg">
                 {loadingMessages[loadingStep]}
               </div>
             )}
@@ -417,7 +430,7 @@ export default function HomePage() {
                 ) : (
                   <div>
                     <h4 className="text-2xl font-extrabold text-zinc-900 mb-8 flex items-center gap-3">
-                      <HeartHandshake className="text-violet-600" size={32} /> A sua nova realidade:
+                      <HeartHandshake className="text-blue-600" size={32} /> A sua nova realidade:
                     </h4>
                     <div className="grid sm:grid-cols-3 gap-6">
                       {aiPlan!.map((p, i) => (
@@ -435,7 +448,7 @@ export default function HomePage() {
                     <div className="mt-12 text-center">
                       <button
                         onClick={goToRegister}
-                        className="bg-zinc-900 text-white px-10 py-4 rounded-full font-bold text-xl hover:scale-105 transition-transform flex items-center justify-center gap-3 mx-auto shadow-xl"
+                        className="bg-white text-slate-900 px-10 py-4 rounded-full font-bold text-xl hover:scale-105 transition-transform flex items-center justify-center gap-3 mx-auto shadow-xl"
                       >
                         Ativar estas vantagens agora <ArrowRight size={24} />
                       </button>
@@ -495,7 +508,7 @@ export default function HomePage() {
 
           <div className="bg-white border-slate-200 border-black/5 shadow-sm border-zinc-200 rounded-[3rem] p-12 md:p-20 shadow-2xl max-w-2xl mx-auto relative hover:shadow-violet-900/10 transition-shadow duration-500">
             {/* Badge */}
-            <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-violet-700 text-white px-8 py-3 rounded-full font-bold text-sm shadow-xl uppercase tracking-widest">
+            <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-blue-600 text-white px-8 py-3 rounded-full font-bold text-sm shadow-xl uppercase tracking-widest">
               Acesso Pro
             </div>
 
@@ -503,31 +516,31 @@ export default function HomePage() {
               <span className="text-7xl md:text-8xl font-black text-zinc-900 tracking-tighter">
                 R$ 9,99
               </span>
-              <span className="text-zinc-500 font-bold text-2xl">/mês</span>
+              <span className="text-zinc-9000 font-bold text-2xl">/mês</span>
             </div>
 
             <ul className="space-y-6 text-left max-w-sm mx-auto mb-14">
               <li className="flex items-center gap-4 text-xl font-semibold text-zinc-700">
-                <CheckCircle2 className="text-violet-600" size={28} /> Inteligência Multi-Modelo
+                <CheckCircle2 className="text-blue-600" size={28} /> Inteligência Multi-Modelo
               </li>
               <li className="flex items-center gap-4 text-xl font-semibold text-zinc-700">
-                <CheckCircle2 className="text-violet-600" size={28} /> Histórico Seguro na Cloud
+                <CheckCircle2 className="text-blue-600" size={28} /> Histórico Seguro na Cloud
               </li>
               <li className="flex items-center gap-4 text-xl font-semibold text-zinc-700">
-                <CheckCircle2 className="text-violet-600" size={28} /> Zero Taxas de Setup
+                <CheckCircle2 className="text-blue-600" size={28} /> Zero Taxas de Setup
               </li>
               <li className="flex items-center gap-4 text-xl font-semibold text-zinc-700">
-                <CheckCircle2 className="text-violet-600" size={28} /> Suporte Dedicado
+                <CheckCircle2 className="text-blue-600" size={28} /> Suporte Dedicado
               </li>
             </ul>
 
             <button
               onClick={goToRegister}
-              className="w-full py-6 bg-violet-700 text-white rounded-2xl font-black text-2xl hover:bg-violet-800 transition-all shadow-xl shadow-violet-700/20 active:scale-95"
+              className="w-full py-6 bg-blue-600 text-white rounded-2xl font-black text-2xl hover:bg-blue-600 transition-all shadow-xl shadow-blue-600/20 active:scale-95"
             >
               CRIAR CONTA AGORA
             </button>
-            <p className="mt-8 text-zinc-500 font-semibold">Garantia de satisfação imediata.</p>
+            <p className="mt-8 text-zinc-9000 font-semibold">Garantia de satisfação imediata.</p>
           </div>
         </div>
       </section>
@@ -541,7 +554,7 @@ export default function HomePage() {
               Innovation<span className="text-violet-700">IA</span>
             </span>
           </div>
-          <div className="flex gap-8 text-zinc-500 font-semibold">
+          <div className="flex gap-8 text-zinc-9000 font-semibold">
             <a href="/termos" className="hover:text-violet-700 transition-colors">Termos de Uso</a>
             <a href="#" className="hover:text-violet-700 transition-colors">Privacidade</a>
             <a href="#" className="hover:text-violet-700 transition-colors">Suporte</a>

@@ -28,8 +28,8 @@ const typeConfig = {
     magic: {
         icon: Zap,
         color: 'from-violet-500 to-indigo-500',
-        glow: 'shadow-violet-500/20',
-        bg: 'bg-violet-500/10',
+        glow: 'shadow-blue-500/20',
+        bg: 'bg-blue-500/10',
     }
 };
 
@@ -73,11 +73,11 @@ export default function QuestCard({ title, description, reward_xp, progress, typ
                 <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
                         <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${config.color} flex items-center justify-center shadow-lg ${config.glow}`}>
-                            <Icon className="w-5 h-5 text-white" />
+                            <Icon className="w-5 h-5 text-slate-900" />
                         </div>
                         <div>
-                            <h3 className="text-sm font-bold text-white tracking-wide">{title}</h3>
-                            <p className="text-[10px] text-white/40 uppercase font-black tracking-widest">{type} Quest</p>
+                            <h3 className="text-sm font-bold text-slate-900 tracking-wide">{title}</h3>
+                            <p className="text-[10px] text-slate-900/40 uppercase font-black tracking-widest">{type} Quest</p>
                         </div>
                     </div>
                     <div className="flex items-center gap-1 bg-white/5 border border-white/10 px-2 py-1 rounded-lg">
@@ -86,14 +86,14 @@ export default function QuestCard({ title, description, reward_xp, progress, typ
                     </div>
                 </div>
 
-                <p className="text-xs text-white/60 leading-relaxed min-h-[40px]">
+                <p className="text-xs text-slate-900/60 leading-relaxed min-h-[40px]">
                     {description}
                 </p>
 
                 <div className="space-y-2">
                     <div className="flex justify-between items-end">
-                        <span className="text-[10px] font-bold text-white/30 uppercase tracking-tighter">Progresso</span>
-                        <span className="text-[10px] font-black text-white">{progress}%</span>
+                        <span className="text-[10px] font-bold text-slate-900/30 uppercase tracking-tighter">Progresso</span>
+                        <span className="text-[10px] font-black text-slate-900">{progress}%</span>
                     </div>
                     <div className="h-2 bg-white/5 rounded-full overflow-hidden border border-white/5 p-[1px]">
                         <motion.div
@@ -123,8 +123,8 @@ export default function QuestCard({ title, description, reward_xp, progress, typ
                         onClick={handleCollect}
                         disabled={progress < 100 || isCollecting}
                         className={`w-full py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all duration-300 ${progress >= 100
-                            ? `bg-gradient-to-r ${config.color} text-white shadow-lg ${config.glow}`
-                            : 'bg-white/5 text-white/20 border border-white/5 cursor-not-allowed'
+                            ? `bg-gradient-to-r ${config.color} text-slate-900 shadow-lg ${config.glow}`
+                            : 'bg-white/5 text-slate-900/20 border border-white/5 cursor-not-allowed'
                             } ${isCollecting ? 'opacity-50' : ''}`}
                     >
                         {isCollecting ? 'Coletando...' : progress >= 100 ? 'Coletar Recompensa' : 'Em andamento'}

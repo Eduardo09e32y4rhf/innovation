@@ -45,7 +45,7 @@ export default function GamificationDashboard({ user, missions, achievements }: 
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
                             <div className="w-14 h-14 rounded-2xl bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-100 group-hover:scale-110 transition-transform">
-                                <Trophy className="w-7 h-7 text-white" />
+                                <Trophy className="w-7 h-7 text-slate-900" />
                             </div>
                             <div>
                                 <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Rank Atual</h3>
@@ -57,7 +57,7 @@ export default function GamificationDashboard({ user, missions, achievements }: 
                                 <Flame className="w-4 h-4 fill-orange-500" />
                                 <span className="text-sm">7 Dias</span>
                             </div>
-                            <p className="text-[9px] text-slate-300 uppercase font-black tracking-widest">Streak Ativa</p>
+                            <p className="text-[9px] text-slate-700 uppercase font-black tracking-widest">Streak Ativa</p>
                         </div>
                     </div>
 
@@ -94,9 +94,9 @@ export default function GamificationDashboard({ user, missions, achievements }: 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
-                className="lg:col-span-1 relative overflow-hidden bg-white border border-slate-100 rounded-[2.5rem] p-8 shadow-sm group hover:shadow-xl hover:shadow-pink-100/40 transition-all duration-500"
+                className="lg:col-span-1 relative overflow-hidden bg-white border border-slate-100 rounded-[2.5rem] p-8 shadow-sm group hover:shadow-xl hover:shadow-blue-100/40 transition-all duration-500"
             >
-                <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-pink-50 rounded-full blur-[80px] group-hover:bg-pink-100/50 transition-all duration-700" />
+                <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-blue-50 rounded-full blur-[80px] group-hover:bg-blue-100/50 transition-all duration-700" />
 
                 <div className="relative z-10 h-full flex flex-col">
                     <div className="flex items-center justify-between mb-8">
@@ -132,7 +132,7 @@ export default function GamificationDashboard({ user, missions, achievements }: 
                                     : 'bg-slate-50 border-transparent hover:border-slate-200 hover:bg-white'
                                     }`}
                             >
-                                <div className={`w-8 h-8 rounded-xl flex items-center justify-center transition-colors ${m.done ? 'bg-emerald-500 text-white' : 'bg-white text-slate-300'
+                                <div className={`w-8 h-8 rounded-xl flex items-center justify-center transition-colors ${m.done ? 'bg-emerald-500 text-slate-900' : 'bg-white text-slate-700'
                                     }`}>
                                     <CheckCircle2 className="w-5 h-5" />
                                 </div>
@@ -173,7 +173,7 @@ export default function GamificationDashboard({ user, missions, achievements }: 
                             </div>
                             <h3 className="text-xs font-black text-slate-900 uppercase tracking-[0.2em]">Conquistas</h3>
                         </div>
-                        <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">
+                        <span className="text-[10px] font-black text-slate-700 uppercase tracking-widest">
                             {achievements.filter(a => a.earned).length} / {achievements.length}
                         </span>
                     </div>
@@ -196,11 +196,11 @@ export default function GamificationDashboard({ user, missions, achievements }: 
                                             animate={{ scale: 1 }}
                                             className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-indigo-600 flex items-center justify-center shadow-lg border-2 border-white"
                                         >
-                                            <Star size={10} className="text-white fill-white" />
+                                            <Star size={10} className="text-slate-900 fill-white" />
                                         </motion.div>
                                     )}
                                 </div>
-                                <span className={`text-[8px] font-black uppercase text-center leading-tight tracking-widest ${a.earned ? 'text-slate-900' : 'text-slate-200'}`}>
+                                <span className={`text-[8px] font-black uppercase text-center leading-tight tracking-widest ${a.earned ? 'text-slate-900' : 'text-slate-800'}`}>
                                     {a.label}
                                 </span>
                             </motion.div>

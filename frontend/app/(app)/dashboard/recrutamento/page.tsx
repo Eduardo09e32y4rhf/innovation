@@ -45,11 +45,11 @@ const candidatosIniciais = [
 
 const Avatar = ({ name }: { name: string }) => {
     const initials = name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
-    const colors = ['bg-indigo-600', 'bg-blue-600', 'bg-violet-600', 'bg-emerald-600', 'bg-slate-700'];
+    const colors = ['bg-indigo-600', 'bg-blue-600', 'bg-blue-500', 'bg-emerald-600', 'bg-slate-700'];
     const colorIndex = name.charCodeAt(0) % colors.length;
 
     return (
-        <div className={`w-9 h-9 rounded-md flex items-center justify-center text-white text-xs font-bold shadow-sm ${colors[colorIndex]}`}>
+        <div className={`w-9 h-9 rounded-md flex items-center justify-center text-slate-900 text-xs font-bold shadow-sm ${colors[colorIndex]}`}>
             {initials}
         </div>
     );
@@ -57,7 +57,7 @@ const Avatar = ({ name }: { name: string }) => {
 
 const KanbanCard = ({ candidato }: { candidato: any }) => {
     const getMatchStatus = (score: number | null) => {
-        if (!score) return { color: 'text-zinc-500', bg: 'bg-zinc-800/50', border: 'border-zinc-800', bar: 'w-0', label: 'Análise Pendente' };
+        if (!score) return { color: 'text-zinc-9000', bg: 'bg-zinc-800/50', border: 'border-zinc-800', bar: 'w-0', label: 'Análise Pendente' };
         if (score >= 90) return { color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', bar: 'bg-emerald-500', label: 'Excelente Fit' };
         if (score >= 75) return { color: 'text-indigo-400', bg: 'bg-indigo-500/10', border: 'border-indigo-500/20', bar: 'bg-indigo-500', label: 'Bom Fit' };
         return { color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20', bar: 'bg-amber-500', label: 'Atenção' };
@@ -86,7 +86,7 @@ const KanbanCard = ({ candidato }: { candidato: any }) => {
                         <h4 className="font-bold text-slate-900 text-sm group-hover:text-blue-600 transition-colors leading-tight">
                             {candidato.nome}
                         </h4>
-                        <div className="flex items-center gap-1.5 text-xs text-slate-500 mt-0.5">
+                        <div className="flex items-center gap-1.5 text-xs text-slate-9000 mt-0.5">
                             <Briefcase size={12} />
                             <span className="line-clamp-1 font-medium">{candidato.cargoAtual}</span>
                         </div>
@@ -99,7 +99,7 @@ const KanbanCard = ({ candidato }: { candidato: any }) => {
 
             <div className={`mt-1 ml-2 p-2 rounded-lg border ${match.bg.replace('zinc-800/50', 'slate-100').replace('emerald-500/10', 'emerald-50').replace('indigo-500/10', 'blue-50').replace('amber-500/10', 'amber-50')} ${match.border.replace('zinc-800', 'slate-200').replace('20', '30')} flex flex-col gap-1.5`}>
                 <div className="flex justify-between items-center">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-1.5">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-9000 flex items-center gap-1.5">
                         {candidato.matchIA ? <Sparkles size={12} className={match.color.replace('400', '600').replace('400', '600')} /> : <BrainCircuit size={12} className="text-slate-400" />}
                         {match.label}
                     </span>
@@ -129,7 +129,7 @@ const KanbanCard = ({ candidato }: { candidato: any }) => {
                     <span className="flex items-center gap-1"><Building size={12} /> {candidato.experiencia}</span>
                 </div>
 
-                <button className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1.5 text-[10px] font-black text-blue-600 bg-blue-50 px-2 py-1 rounded-md hover:bg-blue-600 hover:text-white transition-all">
+                <button className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1.5 text-[10px] font-black text-blue-600 bg-blue-50 px-2 py-1 rounded-md hover:bg-blue-600 hover:text-slate-900 transition-all">
                     <MessageSquare size={12} /> Chat
                 </button>
             </div>
@@ -201,7 +201,7 @@ export default function RecrutamentoPage() {
                     </div>
 
                     <div className="flex flex-col md:flex-row items-start md:items-center gap-4 md:gap-6 w-full md:w-auto">
-                        <div className="flex items-center gap-4 text-xs font-bold text-slate-500">
+                        <div className="flex items-center gap-4 text-xs font-bold text-slate-9000">
                             <span><strong className="text-slate-900">{candidatos.length}</strong> no total</span>
                             <div className="w-1 h-1 rounded-full bg-slate-300"></div>
                             <span><strong className="text-blue-600">{candidatos.filter(c => c.matchIA).length}</strong> analisados</span>
@@ -210,7 +210,7 @@ export default function RecrutamentoPage() {
                         <button
                             onClick={analisarCurriculosIA}
                             disabled={isAnalyzing || getCandidatos('novos').length === 0}
-                            className="w-full md:w-auto bg-blue-600 hover:bg-blue-700 disabled:bg-slate-200 disabled:text-slate-400 text-white px-4 py-2 md:py-1.5 rounded-md text-sm font-black flex items-center justify-center gap-2 transition-all shadow-md active:scale-95"
+                            className="w-full md:w-auto bg-blue-600 hover:bg-blue-700 disabled:bg-slate-200 disabled:text-slate-400 text-slate-900 px-4 py-2 md:py-1.5 rounded-md text-sm font-black flex items-center justify-center gap-2 transition-all shadow-md active:scale-95"
                         >
                             {isAnalyzing ? (
                                 <><BrainCircuit size={16} className="animate-spin" /> Processando CVs...</>
