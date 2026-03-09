@@ -37,6 +37,8 @@ from api.v1.endpoints import (
     services_full,
     finance_das,
     innovation_chat,
+    ai_reports,
+    innovation_sync,
 )
 import domain.models  # Garante o registro de todos os modelos
 from core.config import settings
@@ -115,6 +117,8 @@ app.include_router(ai_admin.router, prefix="/api")
 app.include_router(notifications.router, prefix="/api")
 app.include_router(finance_das.router, prefix="/api")
 app.include_router(innovation_chat.router, prefix="/api")
+app.include_router(ai_reports.router, prefix="/api")
+app.include_router(innovation_sync.router, prefix="/api")
 
 
 @app.get("/health")

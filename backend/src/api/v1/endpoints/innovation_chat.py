@@ -1,67 +1,53 @@
-import os
-from typing import List, Optional
-
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
-from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
-from langchain_nvidia_ai_endpoints import ChatNVIDIA
-
-from infrastructure.database.sql.session import get_db
-from api.dependencies import get_current_user
+from typing import Dict, Any, Optional
+from core.dependencies import get_current_user
 from domain.models.user import User
+from services.innovation_independent_service import innovation_independent
+from pydantic import BaseModel
 
-router = APIRouter(prefix="/innovation-chat", tags=["InnovationIA Chat"])
+router = APIRouter(prefix="/innovation-ia", tags=["Innovation IA - Independente"])
 
-class ChatMessage(BaseModel):
-    role: str
-    content: str
+class InnovationRequest(BaseModel):
+    message: str
+    category: Optional[str] = "geral"
+    context: Optional[Dict[str, Any]] = None
 
-class ChatRequest(BaseModel):
-    question: str
-    history: Optional[List[ChatMessage]] = []
-
-@router.post("")
-async def innovation_chat_endpoint(
-    data: ChatRequest,
+@router.post("/chat")
+async def chat_innovation(
+    data: InnovationRequest,
     current_user: User = Depends(get_current_user)
 ):
     """
-    Endpoint for InnovationIA using ChatNVIDIA from LangChain.
+    Endpoint da Innovation IA Independente. 
+    Ela orquestra NVIDIA, Gemini e Claude para responder.
     """
-    api_key = os.getenv("NVIDIA_API_KEY")
-    if not api_key:
-        raise HTTPException(
-            status_code=500, detail="NVIDIA_API_KEY environment variable is missing"
-        )
+    answer = await innovation_independent.pensar_e_responder(data.message, data.category)
     
-    # Initialize the ChatNVIDIA model (using Nemotron-3-nano or a similar model)
-    try:
-        # We can configure the exact model from the NVIDIA catalog payload, 
-        # using Nemotron-3-nano as suggested by the LangChain integration docs, or default.
-        llm = ChatNVIDIA(model="nvidia/nemotron-3-nano-30b-a3b")
-        
-        # Format the message history into LangChain message objects
-        lc_messages = [
-            SystemMessage(content=(
-                "You are InnovationIA, an intelligent management agent for the Innovation.ia ecosystem. "
-                "You assist the user with HR, Finance, and Operations questions in Portuguese. "
-                "Always be helpful, concise, and proactive."
-            ))
-        ]
-        
-        for msg in data.history:
-            if msg.role == "user":
-                lc_messages.append(HumanMessage(content=msg.content))
-            else:
-                lc_messages.append(AIMessage(content=msg.content))
-        
-        # Append the current question
-        lc_messages.append(HumanMessage(content=data.question))
-        
-        response = llm.invoke(lc_messages)
-        
-        return {"answer": response.content}
-        
-    except Exception as e:
-        # Logging would be ideal here
-        raise HTTPException(status_code=500, detail=str(e))
+    return {
+        "agent": "Innovation IA v2 (Independente)",
+        "status": "Aprendendo e Evoluindo",
+        "answer": answer
+    }
+
+@router.post("/analise-contabil")
+async def analyze_accounting(
+    payload: Dict[str, Any],
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Análise especializada em contabilidade e folha.
+    """
+    answer = await innovation_ai.analisar_folha(payload)
+    return {"analysis": answer}
+
+@router.post("/suporte-legislativo")
+async def rh_support(
+    payload: Dict[str, Any],
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Suporte em legislação trabalhista.
+    """
+    situacao = payload.get("situacao", "")
+    answer = await innovation_ai.suporte_rh(situacao)
+    return {"guidance": answer}

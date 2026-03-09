@@ -1,153 +1,191 @@
 "use client"
 
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import React, { useState, useEffect } from 'react';
+import {
+    ShieldCheck,
+    Mail,
+    ArrowRight,
+    Zap,
+    ArrowLeft,
+    Lock,
+    Fingerprint,
+    Activity,
+    Globe
+} from 'lucide-react';
 import { motion, AnimatePresence } from "framer-motion"
-import { Bot, Mail, ChevronRight, Lock, ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import { AuthService } from "@/services/api"
-import { useState, useEffect } from "react"
+
+/**
+ * FORGOT PASSWORD ENTERPRISE ELITE - INNOVATION.IA
+ * Estética: White Panel / High Authority
+ */
 
 export default function ForgotPasswordPage() {
-    const [loading, setLoading] = useState(false)
-    const [email, setEmail] = useState("")
-    const [message, setMessage] = useState("")
-    const [error, setError] = useState("")
-    const [mounted, setMounted] = useState(false)
+    const [loading, setLoading] = useState(false);
+    const [email, setEmail] = useState("");
+    const [message, setMessage] = useState("");
+    const [error, setError] = useState("");
+    const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
-        setMounted(true)
-    }, [])
+        setMounted(true);
+    }, []);
 
     const handleResetRequest = async (e: React.FormEvent) => {
-        e.preventDefault()
-        setLoading(true)
-        setError("")
-        setMessage("")
+        e.preventDefault();
+        setLoading(true);
+        setError("");
+        setMessage("");
 
         try {
-            const data = await AuthService.forgotPassword(email)
-            setMessage(data.message || "Se o e-mail estiver cadastrado, você receberá instruções de recuperação.")
+            const data = await AuthService.forgotPassword(email);
+            setMessage(data.message || "Se o e-mail estiver cadastrado, você receberá instruções de recuperação.");
         } catch (err: any) {
-            console.error("Forgot password error:", err)
-            setError(err.response?.data?.detail || "Erro ao processar solicitação. Tente novamente.")
+            console.error("Forgot password error:", err);
+            setError(err.response?.data?.detail || "Erro ao processar solicitação. Tente novamente.");
         } finally {
-            setLoading(false)
+            setLoading(false);
         }
-    }
+    };
 
-    if (!mounted) return null
+    if (!mounted) return null;
 
     return (
-        <div className="flex min-h-screen items-center justify-center bg-[#050508] p-4 relative overflow-hidden font-sans">
-            {/* Ultra-Premium Background Elements */}
-            <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-blue-500/20 rounded-full blur-[120px] animate-pulse" />
-                <div className="absolute -bottom-[10%] -right-[10%] w-[40%] h-[40%] bg-blue-600/20 rounded-full blur-[120px] animate-pulse" style={{ animationDelay: '2s' }} />
-            </div>
+        <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-6 font-sans relative overflow-hidden selection:bg-blue-100 selection:text-blue-900">
 
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8, ease: "easeOut" }}
-                className="z-10 w-full max-w-md"
-            >
-                <div className="mb-10 text-center flex flex-col items-center">
-                    <motion.div
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        transition={{ type: "spring", stiffness: 260, damping: 20, delay: 0.2 }}
-                        className="group relative"
-                    >
-                        <div className="absolute -inset-1 bg-gradient-to-r from-purple-600 to-blue-600 rounded-2xl blur opacity-40 group-hover:opacity-100 transition duration-1000 group-hover:duration-200"></div>
-                        <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-[#0a0a0f] border border-white/10 mb-6 transition-all duration-300">
-                            <Lock className="h-8 w-8 text-blue-600 group-hover:text-slate-900 transition-colors" />
+            {/* CSS CUSTOMIZADO PARA SOMBRAS DE TEXTO E ANIMAÇÕES */}
+            <style jsx global>{`
+        .text-shadow-elite {
+          text-shadow: 2px 3px 6px rgba(0, 0, 0, 0.15);
+        }
+        .text-shadow-blue {
+          text-shadow: 0px 4px 12px rgba(37, 99, 235, 0.4);
+        }
+        .login-card-shadow {
+          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.08), 0 0 1px 1px rgba(0, 0, 0, 0.02);
+        }
+        @keyframes float {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-10px); }
+        }
+        .animate-float {
+          animation: float 5s ease-in-out infinite;
+        }
+      `}</style>
 
+            {/* ELEMENTOS DINÂMICOS DE FUNDO */}
+            <div className="absolute top-[-10%] right-[-5%] w-[40%] h-[40%] bg-blue-100/50 rounded-full blur-[120px] animate-pulse"></div>
+            <div className="absolute bottom-[-10%] left-[-5%] w-[30%] h-[30%] bg-indigo-100/50 rounded-full blur-[100px]"></div>
+
+            <div className="relative z-10 w-full max-w-[460px]">
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.7, ease: "easeOut" }}
+                >
+                    {/* LOGO AREA */}
+                    <div className="text-center mb-10 flex flex-col items-center">
+                        <div className="w-20 h-20 bg-white border border-slate-100 rounded-3xl flex items-center justify-center shadow-xl mb-6 animate-float">
+                            <Lock className="text-blue-600 fill-blue-600/10" size={36} />
                         </div>
-                    </motion.div>
+                        <h1 className="text-4xl font-black text-slate-900 tracking-tighter text-shadow-elite uppercase">
+                            Recuperar <span className="text-blue-600 text-shadow-blue">A</span>cesso
+                        </h1>
+                        <div className="mt-4 inline-flex items-center gap-2 px-4 py-1.5 bg-blue-50 border border-blue-100 rounded-full">
+                            <ShieldCheck size={14} className="text-blue-600" />
+                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-700">Security Recovery Protocol</span>
+                        </div>
+                    </div>
 
-                    <h1 className="text-3xl font-black tracking-tighter text-slate-900 mb-2">
-                        RECUPERAR <span className="text-blue-500">A</span>CESSO
-                    </h1>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-9000">Security Recovery Protocol</p>
-                </div>
+                    {/* CARD DE RECUPERAÇÃO */}
+                    <div className="bg-white rounded-[3rem] p-10 md:p-12 border border-slate-100 login-card-shadow relative">
 
-                <div className="relative">
-                    <Card className="relative border-white/[0.08] bg-white/40 backdrop-blur-3xl rounded-[2rem] shadow-2xl overflow-hidden">
-                        <CardHeader className="pt-8 pb-4">
-                            <CardTitle className="text-xl font-bold text-slate-900 text-center">Esqueceu sua chave?</CardTitle>
-                            <CardDescription className="text-zinc-9000 text-center px-4">Insira seu e-mail corporativo para receber as instruções de redefinição.</CardDescription>
-                        </CardHeader>
+                        <div className="absolute top-12 left-0 w-1.5 h-12 bg-blue-600 rounded-r-full"></div>
 
-                        <CardContent className="px-8 pb-8">
-                            <form onSubmit={handleResetRequest} className="space-y-5">
-                                <AnimatePresence mode="wait">
-                                    {error && (
-                                        <motion.div
-                                            initial={{ opacity: 0, height: 0 }}
-                                            animate={{ opacity: 1, height: 'auto' }}
-                                            exit={{ opacity: 0, height: 0 }}
-                                            className="bg-red-500/10 border-red-500/20 text-red-400 px-4 py-3 rounded-xl text-xs font-medium flex items-center gap-2 mb-2"
-                                        >
-                                            <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse shrink-0" />
-                                            {error}
-                                        </motion.div>
-                                    )}
-                                    {message && (
-                                        <motion.div
-                                            initial={{ opacity: 0, height: 0 }}
-                                            animate={{ opacity: 1, height: 'auto' }}
-                                            exit={{ opacity: 0, height: 0 }}
-                                            className="bg-green-500/10 border-green-500/20 text-green-400 px-4 py-3 rounded-xl text-xs font-medium flex items-center gap-2 mb-2"
-                                        >
-                                            <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse shrink-0" />
-                                            {message}
-                                        </motion.div>
-                                    )}
-                                </AnimatePresence>
+                        <div className="mb-10">
+                            <h2 className="text-2xl font-black text-slate-900 text-shadow-elite italic">Esqueceu sua chave?</h2>
+                            <p className="text-slate-400 text-sm font-bold uppercase tracking-widest mt-1">Insira seu e-mail para continuar</p>
+                        </div>
 
-                                <div className="space-y-2">
-                                    <label className="text-[10px] uppercase tracking-widest font-black text-zinc-9000 ml-1">Enterprise Email</label>
-                                    <div className="relative group">
-                                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                            <Mail className="h-4 w-4 text-zinc-600 group-focus-within:text-blue-600 transition-colors" />
-                                        </div>
-                                        <input
-                                            type="email"
-                                            placeholder="seu@endereco.com"
-                                            value={email}
-                                            onChange={(e) => setEmail(e.target.value)}
-                                            className="w-full h-12 rounded-2xl border border-white/5 bg-white/5 px-4 pl-11 text-sm text-slate-900 placeholder:text-zinc-600 focus:bg-white/10 focus:border-blue-500/50 focus:outline-none focus:ring-4 focus:ring-blue-500/10 transition-all"
+                        <form onSubmit={handleResetRequest} className="space-y-6">
 
-                                            required
-                                        />
+                            <AnimatePresence mode="wait">
+                                {error && (
+                                    <motion.div
+                                        initial={{ opacity: 0, height: 0 }}
+                                        animate={{ opacity: 1, height: 'auto' }}
+                                        exit={{ opacity: 0, height: 0 }}
+                                        className="bg-red-50 border border-red-100 text-red-600 px-4 py-3 rounded-2xl text-xs font-bold flex items-center gap-2 mb-2"
+                                    >
+                                        <div className="w-2 h-2 bg-red-600 rounded-full animate-pulse shrink-0" />
+                                        {error}
+                                    </motion.div>
+                                )}
+                                {message && (
+                                    <motion.div
+                                        initial={{ opacity: 0, height: 0 }}
+                                        animate={{ opacity: 1, height: 'auto' }}
+                                        className="bg-green-50 border border-green-100 text-green-600 px-4 py-3 rounded-2xl text-xs font-bold flex items-center gap-2 mb-2"
+                                    >
+                                        <div className="w-2 h-2 bg-green-600 rounded-full animate-pulse shrink-0" />
+                                        {message}
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+
+                            {/* EMAIL */}
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Enterprise Email</label>
+                                <div className="relative group">
+                                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-600 transition-colors">
+                                        <Mail size={20} />
                                     </div>
+                                    <input
+                                        type="email"
+                                        required
+                                        placeholder="email@empresa.com"
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
+                                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 pl-12 pr-4 outline-none focus:ring-4 focus:ring-blue-600/5 focus:border-blue-600 focus:bg-white transition-all text-slate-700 font-bold placeholder:text-slate-300 shadow-inner"
+                                    />
                                 </div>
-
-                                <Button
-                                    className="w-full h-12 bg-white text-slate-900 hover:bg-zinc-200 rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all relative overflow-hidden group shadow-xl shadow-white/5"
-
-                                    disabled={loading || !!message}
-                                >
-                                    <span className="relative z-10 flex items-center justify-center gap-2">
-                                        {loading ? "Processando..." : "Solicitar Redefinição"}
-                                        {!loading && <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />}
-                                    </span>
-                                </Button>
-                            </form>
-                        </CardContent>
-
-                        <CardFooter className="flex flex-col space-y-6 bg-white border-slate-200 border-black/5 shadow-sm/[0.02] border-t border-white/[0.05] p-8">
-                            <div className="text-center">
-                                <Link href="/login" className="inline-flex items-center gap-2 text-xs font-black text-zinc-400 hover:text-slate-900 transition-colors uppercase tracking-widest">
-                                    <ArrowLeft className="w-4 h-4" />
-                                    Voltar para o login
-                                </Link>
                             </div>
-                        </CardFooter>
-                    </Card>
-                </div>
-            </motion.div>
+
+                            <button
+                                type="submit"
+                                disabled={loading || !!message}
+                                className="w-full mt-4 group relative overflow-hidden py-5 rounded-2xl font-black text-sm uppercase tracking-[0.2em] transition-all active:scale-95 disabled:opacity-70 bg-blue-600 text-white shadow-xl shadow-blue-200"
+                            >
+                                <span className="relative z-10 flex items-center justify-center gap-3">
+                                    {loading ? (
+                                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                    ) : (
+                                        <>
+                                            Solicitar Redefinição
+                                            <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+                                        </>
+                                    )}
+                                </span>
+                                <div className="absolute inset-0 bg-blue-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                            </button>
+
+                        </form>
+
+                        <div className="mt-10 pt-8 border-t border-slate-50 flex flex-col items-center gap-6">
+                            <Link href="/login" className="flex items-center gap-2 text-xs font-black text-slate-400 hover:text-blue-600 transition-colors uppercase tracking-widest group/back">
+                                <ArrowLeft size={16} className="group-hover/back:-translate-x-1 transition-transform" />
+                                Voltar para o <span className="text-blue-600 border-b-2 border-blue-600/30 ml-1">LOGIN</span>
+                            </Link>
+                        </div>
+
+                    </div>
+
+                    <p className="text-center mt-10 text-[10px] font-black text-slate-400 uppercase tracking-[0.4em]">
+                        © 2026 INNOVATION SOFTWARE COMPANY • PROTOCOLO V6
+                    </p>
+                </motion.div>
+            </div>
         </div>
-    )
+    );
 }

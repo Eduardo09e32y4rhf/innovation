@@ -54,10 +54,39 @@ A **Innovation.ia** evoluiu de um Dashboard de IA para o **Sistema Operativo Cen
 
 ---
 
+### 🧠 Innovation IA (Independente e Híbrida)
+- **Cérebro na Vercel**: Orquestração Multi-IA (NVIDIA Mistral Large 3, Gemini 2.0 e Claude 3.5) rodando em infraestrutura serverless para alta disponibilidade e escalabilidade.
+- **Orquestração Multi-Model**: Uso inteligente da Razão (NVIDIA), Conhecimento Técnico (Gemini) e Aprendizado Evolutivo (Claude).
+- **Sincronização VPS**: Aprendizado contínuo onde o cérebro da Vercel alimenta o banco de conhecimento local na VPS, mantendo a IA dentro da VPN sempre atualizada.
+
+---
+
+## 📐 Arquitetura do Ecossistema (Híbrido)
+
+```mermaid
+graph TD;
+    Vercel[Vercel Brain - Front/IA] ---|Sync Knowledge| VPS[VPS - Core/DB]
+    Vercel -->|Reason| NVIDIA[NVIDIA Mistral Large 3]
+    Vercel -->|Technical| Gemini[Gemini 2.0 Flash]
+    Vercel -->|Evolution| Claude[Claude 3.5 Sonnet]
+    
+    VPS -->|Auth/Finance| Backend[FastAPI Backend]
+    Backend --> DB[(SQLite/PostgreSQL)]
+    Backend --> VPN[VPN Internal AI]
+```
+
+## 🛠 Módulos em Destaque (V2.1 Atualizada)
+
+### 💻 Terminal Cognitivo & CLI
+- **Innovation CLI**: Agora com suporte a `--rh`, permitindo consultar a IA especialista em RH e Contabilidade diretamente do terminal.
+- **Independent Sync**: Sincronização automática entre o cérebro serverless e o sistema legacy.
+
+---
+
 ## 📈 Roadmap para o Futuro Próximo
 
-- **Fase 3 (Próxima)** : Integração Governamental Direta ( SEFAZ/NF-e ) e Super ATS com Entrevistas Automáticas via n8n.
-- **Fase 4** : Conciliação Bancária 100% Autônoma (XML + DDA + Extrato)
+- **Fase 3 (Próxima)** : Integração Governamental Direta ( SEFAZ/NF-e ) e Micro-serviço de Auditoria Fiscal IA.
+- **Fase 4** : Conciliação Bancária 100% Autônoma e Dashboard de Gestão Híbrida.
 
 ---
 

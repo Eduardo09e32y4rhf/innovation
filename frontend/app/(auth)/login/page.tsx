@@ -1,204 +1,262 @@
 "use client"
 
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import React, { useState, useEffect } from 'react';
+import {
+    ShieldCheck,
+    Lock,
+    User,
+    Eye,
+    EyeOff,
+    ArrowRight,
+    Globe,
+    Fingerprint,
+    Zap,
+    Activity
+} from 'lucide-react';
 import { motion, AnimatePresence } from "framer-motion"
-import { Bot, Lock, Mail, ChevronRight, Sparkles, ShieldCheck } from "lucide-react"
 import Link from "next/link"
 import { AuthService } from "@/services/api"
-import { useState, useEffect } from "react"
+
+/**
+ * LOGIN ENTERPRISE ELITE - INNOVATION.IA
+ * Estética: White Panel / High Authority
+ * Destaques: Azul Cobalto e Sombras de Texto (Text Shadows)
+ * Experiência: Dinâmica, limpa e extremamente profissional.
+ */
 
 export default function LoginPage() {
-    const [loading, setLoading] = useState(false)
-    const [email, setEmail] = useState("")
-    const [password, setPassword] = useState("")
-    const [error, setError] = useState("")
-    const [mounted, setMounted] = useState(false)
-    const [redirecting, setRedirecting] = useState(false)
+    const [showPassword, setShowPassword] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const [error, setError] = useState("");
+    const [mounted, setMounted] = useState(false);
+    const [redirecting, setRedirecting] = useState(false);
 
     useEffect(() => {
-        setMounted(true)
-    }, [])
+        setMounted(true);
+    }, []);
 
     const handleLogin = async (e: React.FormEvent) => {
-        e.preventDefault()
-        setLoading(true)
-        setError("")
+        e.preventDefault();
+        setLoading(true);
+        setError("");
 
         try {
             // Limpa sessão anterior antes de novo login
-            localStorage.removeItem("token")
-            document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;'
+            localStorage.removeItem("token");
+            document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
 
-            const data = await AuthService.login(email, password)
+            const data = await AuthService.login(email, password);
             if (data.access_token) {
-                localStorage.setItem("token", data.access_token)
-                document.cookie = `auth_token=${data.access_token}; path=/; max-age=86400; SameSite=Lax`
-                setRedirecting(true)
-                window.location.href = "/dashboard"
-                return
+                localStorage.setItem("token", data.access_token);
+                document.cookie = `auth_token=${data.access_token}; path=/; max-age=86400; SameSite=Lax`;
+                setRedirecting(true);
+                window.location.href = "/dashboard";
+                return;
             }
-        } catch (err: unknown) {
-            const axiosErr = err as { response?: { data?: { detail?: string }; status?: number } }
-            const detail = axiosErr?.response?.data?.detail
+        } catch (err: any) {
+            const axiosErr = err as { response?: { data?: { detail?: string }; status?: number } };
+            const detail = axiosErr?.response?.data?.detail;
             if (detail) {
-                setError(detail)
+                setError(detail);
             } else if (axiosErr?.response?.status === 401) {
-                setError("Credenciais inválidas. Verifique seu email e senha.")
+                setError("Credenciais inválidas. Verifique seu email e senha.");
             } else {
-                setError("Erro de conexão. Tente novamente em alguns instantes.")
+                setError("Erro de conexão. Tente novamente em alguns instantes.");
             }
         } finally {
-            setLoading(false)
+            setLoading(false);
         }
-    }
+    };
 
-    if (!mounted) return null
+    if (!mounted) return null;
 
-    // Spinner durante redirecionamento
     if (redirecting) return (
-        <div className="flex min-h-screen items-center justify-center bg-slate-50">
-            <div className="flex flex-col items-center gap-4">
-                <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
-                <p className="text-slate-500 text-sm font-medium">Carregando plataforma...</p>
+        <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center font-sans tracking-tight">
+            <div className="flex flex-col items-center gap-6">
+                <div className="w-14 h-14 border-4 border-blue-600 border-t-transparent rounded-full animate-spin shadow-lg shadow-blue-100" />
+                <div className="text-center">
+                    <p className="text-slate-900 font-black uppercase tracking-[0.3em] text-[10px] mb-1">Acesso Autorizado</p>
+                    <p className="text-slate-400 font-bold text-xs">Inicializando Protocolos Enterprise...</p>
+                </div>
             </div>
         </div>
-    )
+    );
 
     return (
-        <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4 relative overflow-hidden font-sans">
-            {/* Background Decor */}
-            <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute top-[-10%] left-[-5%] w-[50%] h-[50%] bg-blue-100/40 rounded-full blur-[120px] animate-pulse" />
-                <div className="absolute bottom-[-10%] right-[-5%] w-[50%] h-[50%] bg-indigo-100/40 rounded-full blur-[120px] animate-pulse" style={{ animationDelay: '2s' }} />
-                <div className="absolute inset-0 opacity-[0.05]"
-                    style={{ backgroundImage: 'radial-gradient(circle, #000 1px, transparent 1px)', backgroundSize: '32px 32px' }} />
+        <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-6 font-sans relative overflow-hidden selection:bg-blue-100 selection:text-blue-900">
+
+            {/* CSS CUSTOMIZADO PARA SOMBRAS DE TEXTO E ANIMAÇÕES */}
+            <style jsx global>{`
+        .text-shadow-elite {
+          text-shadow: 2px 3px 6px rgba(0, 0, 0, 0.15);
+        }
+        .text-shadow-blue {
+          text-shadow: 0px 4px 12px rgba(37, 99, 235, 0.4);
+        }
+        .login-card-shadow {
+          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.08), 0 0 1px 1px rgba(0, 0, 0, 0.02);
+        }
+        @keyframes float {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-10px); }
+        }
+        .animate-float {
+          animation: float 5s ease-in-out infinite;
+        }
+      `}</style>
+
+            {/* ELEMENTOS DINÂMICOS DE FUNDO */}
+            <div className="absolute top-[-10%] right-[-5%] w-[40%] h-[40%] bg-blue-100/50 rounded-full blur-[120px] animate-pulse"></div>
+            <div className="absolute bottom-[-10%] left-[-5%] w-[30%] h-[30%] bg-indigo-100/50 rounded-full blur-[100px]"></div>
+
+            <div className="relative z-10 w-full max-w-[460px]">
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.7, ease: "easeOut" }}
+                >
+                    {/* LOGO AREA - ALTA RESPONSABILIDADE */}
+                    <div className="text-center mb-10 flex flex-col items-center">
+                        <div className="w-20 h-20 bg-white border border-slate-100 rounded-3xl flex items-center justify-center shadow-xl mb-6 animate-float">
+                            <Zap className="text-blue-600 fill-blue-600" size={36} />
+                        </div>
+                        <h1 className="text-4xl font-black text-slate-900 tracking-tighter text-shadow-elite">
+                            INNOV<span className="text-blue-600 text-shadow-blue">A</span>TION IA
+                        </h1>
+                        <div className="mt-4 inline-flex items-center gap-2 px-4 py-1.5 bg-blue-50 border border-blue-100 rounded-full">
+                            <ShieldCheck size={14} className="text-blue-600" />
+                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-700">Secure Enterprise Gateway</span>
+                        </div>
+                    </div>
+
+                    {/* CARD DE LOGIN BRANCO (ESTILO PAINEL) */}
+                    <div className="bg-white rounded-[3rem] p-10 md:p-12 border border-slate-100 login-card-shadow relative">
+
+                        {/* DETALHE AZUL DE ACENTO */}
+                        <div className="absolute top-12 left-0 w-1.5 h-12 bg-blue-600 rounded-r-full"></div>
+
+                        <div className="mb-10">
+                            <h2 className="text-2xl font-black text-slate-900 text-shadow-elite italic">Bem-vindo de volta</h2>
+                            <p className="text-slate-400 text-sm font-bold uppercase tracking-widest mt-1">Inicie a sua jornada de IA</p>
+                        </div>
+
+                        <form onSubmit={handleLogin} className="space-y-6">
+
+                            <AnimatePresence mode="wait">
+                                {error && (
+                                    <motion.div
+                                        initial={{ opacity: 0, height: 0 }}
+                                        animate={{ opacity: 1, height: 'auto' }}
+                                        exit={{ opacity: 0, height: 0 }}
+                                        className="bg-red-50 border border-red-100 text-red-600 px-4 py-3 rounded-2xl text-xs font-bold flex items-center gap-2 mb-2"
+                                    >
+                                        <div className="w-2 h-2 bg-red-600 rounded-full animate-pulse shrink-0" />
+                                        {error}
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+
+                            {/* ENTERPRISE ID */}
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Enterprise ID</label>
+                                <div className="relative group">
+                                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-600 transition-colors">
+                                        <User size={20} />
+                                    </div>
+                                    <input
+                                        type="email"
+                                        required
+                                        placeholder="exemplo@empresa.com"
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
+                                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 pl-12 pr-4 outline-none focus:ring-4 focus:ring-blue-600/5 focus:border-blue-600 focus:bg-white transition-all text-slate-700 font-bold placeholder:text-slate-300 shadow-inner"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* SECURITY KEY */}
+                            <div className="space-y-2">
+                                <div className="flex justify-between items-center px-1">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Security Key</label>
+                                    <Link href="/forgot-password" disabled={loading} className="text-[10px] font-black text-blue-600 hover:underline uppercase tracking-widest">Esqueceu?</Link>
+                                </div>
+                                <div className="relative group">
+                                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-600 transition-colors">
+                                        <Lock size={20} />
+                                    </div>
+                                    <input
+                                        type={showPassword ? "text" : "password"}
+                                        required
+                                        placeholder="••••••••••••"
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 pl-12 pr-12 outline-none focus:ring-4 focus:ring-blue-600/5 focus:border-blue-600 focus:bg-white transition-all text-slate-700 font-bold placeholder:text-slate-300 shadow-inner"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 hover:text-blue-600 transition-colors"
+                                    >
+                                        {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* BOTÃO PRINCIPAL DINÂMICO */}
+                            <button
+                                type="submit"
+                                disabled={loading}
+                                className="w-full mt-4 group relative overflow-hidden py-5 rounded-2xl font-black text-sm uppercase tracking-[0.2em] transition-all active:scale-95 disabled:opacity-70 bg-blue-600 text-white shadow-xl shadow-blue-200"
+                            >
+                                <span className="relative z-10 flex items-center justify-center gap-3">
+                                    {loading ? (
+                                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                    ) : (
+                                        <>
+                                            Inicializar Plataforma
+                                            <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+                                        </>
+                                    )}
+                                </span>
+                                {/* Efeito de brilho hover */}
+                                <div className="absolute inset-0 bg-blue-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                            </button>
+
+                        </form>
+
+                        {/* RODAPÉ DO CARD */}
+                        <div className="mt-10 pt-8 border-t border-slate-50 flex flex-col items-center gap-6">
+                            <Link href="/register" className="text-sm font-bold text-slate-400 hover:text-blue-600 transition-colors">
+                                Novo por aqui? <span className="text-blue-600 border-b-2 border-blue-600/30 ml-1 uppercase">CRIAR ENTERPRISE ID</span>
+                            </Link>
+
+                            <div className="flex gap-6 opacity-40 grayscale hover:grayscale-0 hover:opacity-100 transition-all cursor-default">
+                                <div className="flex items-center gap-1.5">
+                                    <Fingerprint size={14} className="text-slate-600" />
+                                    <span className="text-[9px] font-black uppercase tracking-tighter">Biometric Auth</span>
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                    <Activity size={14} className="text-slate-600" />
+                                    <span className="text-[9px] font-black uppercase tracking-tighter">Real-time Node</span>
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                    <Globe size={14} className="text-slate-600" />
+                                    <span className="text-[9px] font-black uppercase tracking-tighter">V6.0 Secure</span>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    {/* FOOTER EXTERNO */}
+                    <p className="text-center mt-10 text-[10px] font-black text-slate-400 uppercase tracking-[0.4em]">
+                        © 2026 INNOVATION SOFTWARE COMPANY • PROTOCOLO V6
+                    </p>
+                </motion.div>
             </div>
 
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8, ease: "easeOut" }}
-                className="z-10 w-full max-w-md"
-            >
-                <div className="mb-10 text-center flex flex-col items-center">
-                    <motion.div
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        transition={{ type: "spring", stiffness: 260, damping: 20, delay: 0.2 }}
-                        className="group relative"
-                    >
-                        <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-1000 group-hover:duration-200"></div>
-                        <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-white border border-slate-200 mb-6 shadow-sm transition-all duration-300">
-                            <Bot className="h-8 w-8 text-blue-600 transition-colors" />
-                        </div>
-                    </motion.div>
-
-                    <h1 className="text-3xl font-black tracking-tighter text-slate-900 mb-2">
-                        INNOV<span className="text-blue-600">A</span>TION IA
-                    </h1>
-                    <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white border border-slate-200 shadow-sm">
-                        <ShieldCheck className="w-3 h-3 text-blue-600" />
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Enterprise Access Gateway</p>
-                    </div>
-                </div>
-
-                <div className="relative">
-                    <Card className="relative border-slate-200 bg-white rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.1)] overflow-hidden">
-                        <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-blue-500 to-transparent" />
-
-                        <CardHeader className="pt-10 pb-4">
-                            <CardTitle className="text-2xl font-black text-slate-900 text-center tracking-tight">Bem-vindo de volta</CardTitle>
-                            <CardDescription className="text-slate-500 text-center font-medium mt-1">Inicie sua jornada no ecossistema de IA</CardDescription>
-                        </CardHeader>
-
-                        <CardContent className="px-8 pb-8">
-                            <form onSubmit={handleLogin} className="space-y-5">
-                                <AnimatePresence mode="wait">
-                                    {error && (
-                                        <motion.div
-                                            initial={{ opacity: 0, height: 0 }}
-                                            animate={{ opacity: 1, height: 'auto' }}
-                                            exit={{ opacity: 0, height: 0 }}
-                                            className="bg-red-500/10 border-red-500/20 text-red-400 px-4 py-3 rounded-xl text-xs font-medium flex items-center gap-2 mb-2"
-                                        >
-                                            <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse shrink-0" />
-                                            {error}
-                                        </motion.div>
-                                    )}
-                                </AnimatePresence>
-
-                                <div className="space-y-2">
-                                    <label className="text-[10px] uppercase tracking-widest font-black text-slate-500 ml-1">Enterprise ID</label>
-                                    <div className="relative group">
-                                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                            <Mail className="h-4 w-4 text-slate-400 group-focus-within:text-blue-600 transition-colors" />
-                                        </div>
-                                        <input
-                                            type="email"
-                                            placeholder="seu@endereco.com"
-                                            value={email}
-                                            onChange={(e) => setEmail(e.target.value)}
-                                            className="w-full h-12 rounded-2xl border border-slate-200 bg-slate-50 px-4 pl-11 text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-500/5 transition-all"
-                                            required
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <div className="flex items-center justify-between ml-1">
-                                        <label className="text-[10px] uppercase tracking-widest font-black text-slate-500">Security Key</label>
-                                        <Link href="/forgot-password" university-bold className="text-[10px] font-bold text-blue-600 hover:text-blue-700 transition-colors uppercase tracking-widest">Esqueceu?</Link>
-                                    </div>
-                                    <div className="relative group">
-                                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                            <Lock className="h-4 w-4 text-slate-400 group-focus-within:text-blue-600 transition-colors" />
-                                        </div>
-                                        <input
-                                            type="password"
-                                            placeholder="••••••••••••"
-                                            value={password}
-                                            onChange={(e) => setPassword(e.target.value)}
-                                            className="w-full h-12 rounded-2xl border border-slate-200 bg-slate-50 px-4 pl-11 text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-500/5 transition-all"
-                                            required
-                                        />
-                                    </div>
-                                </div>
-
-                                <Button
-                                    className="w-full h-14 bg-slate-900 text-white hover:bg-slate-800 rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all relative overflow-hidden group shadow-xl shadow-slate-200"
-                                    disabled={loading}
-                                >
-                                    <span className="relative z-10 flex items-center justify-center gap-2">
-                                        {loading ? "Autenticando..." : "Inicializar Plataforma"}
-                                        {!loading && <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />}
-                                    </span>
-                                </Button>
-                            </form>
-                        </CardContent>
-
-                        <CardFooter className="flex flex-col space-y-6 bg-slate-50 p-8">
-                            <div className="text-center">
-                                <p className="text-xs text-slate-500 font-medium">
-                                    Novo por aqui?{" "}
-                                    <Link href="/register" className="font-black text-slate-900 hover:text-blue-600 transition-colors uppercase tracking-widest ml-1">
-                                        Criar Enterprise ID
-                                    </Link>
-                                </p>
-                            </div>
-
-                            <div className="flex items-center gap-2 justify-center opacity-60">
-                                <Sparkles className="w-3 h-3 text-blue-600" />
-                                <span className="text-[8px] font-bold uppercase tracking-[0.3em] text-slate-400">NextGen OS Integrated</span>
-                            </div>
-                        </CardFooter>
-                    </Card>
-                </div>
-
-                <p className="mt-8 text-center text-[10px] text-zinc-600 uppercase tracking-[0.2em] font-medium opacity-50">
-                    &copy; 2026 Innovation.ia &bull; Security Protocol v4.2.0
-                </p>
-            </motion.div>
         </div>
-    )
+    );
 }

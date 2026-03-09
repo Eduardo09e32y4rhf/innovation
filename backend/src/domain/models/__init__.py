@@ -32,3 +32,4 @@ from domain.models.purchase_request import PurchaseRequest
 from domain.models.csm_models import KBArticle, TicketRating, WebhookSubscription
 from domain.models.gamification import Mission, UserMission
 from domain.models.notification import Notification
+from domain.models.report import Report
