@@ -122,7 +122,7 @@ function PricingContent() {
 
             <section className="py-20 px-4 text-center">
                 {isExpired && (
-                    <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="max-w-xl mx-auto mb-8 bg-red-500/10 border border-red-500/20 text-red-400 px-6 py-4 rounded-2xl flex items-center justify-center gap-3">
+                    <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="max-w-xl mx-auto mb-8 bg-red-500/10 border-red-500/20 text-red-400 px-6 py-4 rounded-2xl flex items-center justify-center gap-3">
                         <span className="text-2xl">⚠️</span>
                         <div className="text-left text-sm">
                             <h3 className="font-bold text-red-300 text-base">Seu período de teste expirou</h3>
@@ -132,7 +132,7 @@ function PricingContent() {
                 )}
 
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-purple-500/30 bg-purple-500/10 text-purple-300 text-sm mb-6">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border-purple-500/30 bg-purple-500/10 text-purple-300 text-sm mb-6">
                         <span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse" />
                         Sem taxa de setup · Cancele quando quiser
                     </div>
@@ -181,7 +181,7 @@ function PricingContent() {
                                 disabled={loading === plan.id}
                                 className={`w-full py-3 rounded-xl font-semibold text-sm transition mb-8 ${plan.popular
                                     ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white shadow-lg shadow-purple-500/20'
-                                    : 'bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700'
+                                    : 'bg-zinc-800 hover:bg-zinc-700 text-white border-zinc-700'
                                     } disabled:opacity-50 disabled:cursor-not-allowed`}
                             >
                                 {loading === plan.id ? 'Redirecionando...' : `Assinar ${plan.name}`}

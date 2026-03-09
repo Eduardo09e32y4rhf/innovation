@@ -32,11 +32,11 @@ function fmtBRL(v: number) {
 function StatCard({ stat, index, hidden }: { stat: any; index: number; hidden: boolean }) {
     const Icon = stat.icon;
     return (
-        <div className="bg-white border border-slate-100 p-6 rounded-[2rem] shadow-sm hover:shadow-xl hover:shadow-indigo-100/40 transition-all group relative overflow-hidden">
+        <div className="bg-white border-slate-200 border-black/5 shadow-sm border-slate-100 p-6 rounded-[2rem] shadow-sm hover:shadow-xl hover:shadow-indigo-100/40 transition-all group relative overflow-hidden">
             <div className={`absolute top-0 right-0 w-24 h-24 bg-gradient-to-br ${stat.colorClass} opacity-[0.03] group-hover:opacity-[0.07] transition-opacity rounded-bl-[4rem]`} />
             <div className="relative z-10">
                 <div className="flex justify-between items-start mb-5">
-                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center bg-white border border-slate-100 shadow-sm ${stat.colorClass.split(' ')[0].replace('from-', 'text-')}`}>
+                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center bg-white border-slate-200 border-black/5 shadow-sm border-slate-100 shadow-sm ${stat.colorClass.split(' ')[0].replace('from-', 'text-')}`}>
                         <Icon size={24} />
                     </div>
                     <div className={`flex items-center gap-1 text-[10px] font-black px-2.5 py-1 rounded-full ${stat.positive ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-50 text-slate-400'}`}>
@@ -145,7 +145,7 @@ export default function DashboardPage() {
                     </div>
 
                     <div className="flex items-center gap-3">
-                        <button onClick={() => setHidden(!hidden)} className="w-12 h-12 bg-white border border-slate-100 rounded-2xl flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:border-indigo-200 transition-all shadow-sm">
+                        <button onClick={() => setHidden(!hidden)} className="w-12 h-12 bg-white border-slate-200 border-black/5 shadow-sm border-slate-100 rounded-2xl flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:border-indigo-200 transition-all shadow-sm">
                             {hidden ? <EyeOff size={20} /> : <Eye size={20} />}
                         </button>
                         <div className="flex flex-col items-end mr-2">
@@ -172,7 +172,7 @@ export default function DashboardPage() {
                             <button className="text-[10px] font-black uppercase text-indigo-600 tracking-widest hover:underline">Ver Log Completo</button>
                         </div>
 
-                        <div className="bg-white border border-slate-100 rounded-[2.5rem] p-8 shadow-sm space-y-2">
+                        <div className="bg-white border-slate-200 border-black/5 shadow-sm border-slate-100 rounded-[2.5rem] p-8 shadow-sm space-y-2">
                             {loading ? (
                                 Array.from({ length: 5 }).map((_, i) => (
                                     <div key={i} className="h-20 bg-slate-50 rounded-3xl animate-pulse mb-3" />
@@ -184,7 +184,7 @@ export default function DashboardPage() {
                                 </div>
                             ) : (
                                 activities.slice(0, 6).map((item, i) => (
-                                    <div key={i} className="flex items-center gap-5 p-5 rounded-2xl bg-white border border-transparent hover:border-slate-100 hover:bg-slate-50/50 transition-all group">
+                                    <div key={i} className="flex items-center gap-5 p-5 rounded-2xl bg-white border-slate-200 border-black/5 shadow-sm border-transparent hover:border-slate-100 hover:bg-slate-50/50 transition-all group">
                                         <div className="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 shadow-inner shrink-0 group-hover:scale-110 transition-transform">
                                             {item.candidate_name ? <Users size={20} /> : <Zap size={20} />}
                                         </div>
@@ -217,10 +217,10 @@ export default function DashboardPage() {
                                 <Sparkles size={24} className="text-indigo-600" /> Inteligência Ativa
                             </h2>
                             <div className="bg-indigo-600 rounded-[2.5rem] p-8 text-white shadow-xl shadow-indigo-100 relative overflow-hidden group">
-                                <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-bl-[5rem] pointer-events-none" />
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-white border-slate-200 border-black/5 shadow-sm/10 rounded-bl-[5rem] pointer-events-none" />
                                 <div className="relative z-10 flex flex-col h-full justify-between gap-8">
                                     <div className="flex items-center gap-4">
-                                        <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-md">
+                                        <div className="p-3 bg-white border-slate-200 border-black/5 shadow-sm/20 rounded-2xl backdrop-blur-md">
                                             <Brain size={28} />
                                         </div>
                                         <div>
@@ -231,7 +231,7 @@ export default function DashboardPage() {
                                     <div>
                                         <p className="text-xs font-medium leading-relaxed italic opacity-90">"Como posso otimizar sua gestão financeira hoje? Notei 3 faturas pendentes que vencem amanhã."</p>
                                     </div>
-                                    <Link href="/chat-ia" className="w-full bg-white text-indigo-600 py-4 rounded-[1.5rem] font-black text-center text-[10px] uppercase tracking-widest shadow-lg hover:scale-[1.02] transition-all">Iniciar Diálogo</Link>
+                                    <Link href="/chat-ia" className="w-full bg-white border-slate-200 border-black/5 shadow-sm text-indigo-600 py-4 rounded-[1.5rem] font-black text-center text-[10px] uppercase tracking-widest shadow-lg hover:scale-[1.02] transition-all">Iniciar Diálogo</Link>
                                 </div>
                             </div>
                         </div>
@@ -262,7 +262,7 @@ export default function DashboardPage() {
                                         const col = colorMap[feat.module] || { color: 'text-slate-600', bg: 'bg-slate-50' };
 
                                         return (
-                                            <div key={i} className="flex flex-col items-center gap-3 p-6 bg-white border border-slate-100 rounded-[2rem] hover:border-indigo-100 shadow-sm transition-all group">
+                                            <div key={i} className="flex flex-col items-center gap-3 p-6 bg-white border-slate-200 border-black/5 shadow-sm border-slate-100 rounded-[2rem] hover:border-indigo-100 shadow-sm transition-all group">
                                                 <div className={`w-12 h-12 rounded-2xl ${col.bg} flex items-center justify-center ${col.color} shadow-inner`}>
                                                     <Icon size={20} />
                                                 </div>
@@ -287,7 +287,7 @@ export default function DashboardPage() {
                                 ].map((link, i) => {
                                     const Icon = link.icon || Rocket;
                                     return (
-                                        <Link key={i} href={link.href} className="flex flex-col items-center gap-3 p-6 bg-white border border-slate-100 rounded-[2rem] hover:border-indigo-100 hover:shadow-lg hover:shadow-indigo-100/30 transition-all group">
+                                        <Link key={i} href={link.href} className="flex flex-col items-center gap-3 p-6 bg-white border-slate-200 border-black/5 shadow-sm border-slate-100 rounded-[2rem] hover:border-indigo-100 hover:shadow-lg hover:shadow-indigo-100/30 transition-all group">
                                             <div className={`w-12 h-12 rounded-2xl ${link.bg} flex items-center justify-center ${link.color} shadow-inner group-hover:scale-110 transition-transform`}>
                                                 <Icon size={20} />
                                             </div>
@@ -306,7 +306,7 @@ export default function DashboardPage() {
                         <h2 className="text-xl font-black text-slate-900 uppercase tracking-tighter mb-8 flex items-center gap-3">
                             <Settings size={24} className="text-slate-400" /> Infraestrutura & Chaves
                         </h2>
-                        <div className="bg-white border border-slate-100 rounded-[2.5rem] p-4 shadow-sm overflow-hidden">
+                        <div className="bg-white border-slate-200 border-black/5 shadow-sm border-slate-100 rounded-[2.5rem] p-4 shadow-sm overflow-hidden">
                             <AIKeyManager />
                         </div>
                     </div>

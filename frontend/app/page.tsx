@@ -28,8 +28,8 @@ const FeatureCard = ({
   title: string;
   desc: string;
 }) => (
-  <div className="bg-zinc-50 p-10 rounded-[2.5rem] border border-zinc-200 hover:border-violet-300 transition-all duration-300 hover:-translate-y-2 group">
-    <div className="w-20 h-20 bg-white shadow-sm text-violet-700 rounded-2xl flex items-center justify-center mb-8 group-hover:scale-110 transition-transform">
+  <div className="bg-zinc-50 p-10 rounded-[2.5rem] border-zinc-200 hover:border-violet-300 transition-all duration-300 hover:-translate-y-2 group">
+    <div className="w-20 h-20 bg-white border-slate-200 border-black/5 shadow-sm text-violet-700 rounded-2xl flex items-center justify-center mb-8 group-hover:scale-110 transition-transform">
       {icon}
     </div>
     <h3 className="text-2xl font-bold text-zinc-900 mb-4">{title}</h3>
@@ -121,14 +121,14 @@ export default function HomePage() {
 
       {/* ── NAVBAR ─────────────────────────────────────────────────────────── */}
       <nav
-        className={`fixed top-0 w-full z-50 transition-all duration-300 ${scrolled ? 'bg-white shadow-lg py-4' : 'bg-transparent py-6'
+        className={`fixed top-0 w-full z-50 transition-all duration-300 ${scrolled ? 'bg-white border-slate-200 border-black/5 shadow-sm shadow-lg py-4' : 'bg-transparent py-6'
           }`}
       >
         <div className="max-w-7xl mx-auto px-6 flex justify-between items-center">
           {/* Logo */}
           <div className="flex items-center gap-2 cursor-pointer">
             <div
-              className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-lg ${scrolled ? 'bg-violet-700' : 'bg-white'
+              className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-lg ${scrolled ? 'bg-violet-700' : 'bg-white border-slate-200 border-black/5 shadow-sm'
                 }`}
             >
               <Zap size={22} className={scrolled ? 'text-white' : 'text-violet-700'} />
@@ -166,7 +166,7 @@ export default function HomePage() {
               onClick={goToRegister}
               className={`px-6 py-2.5 rounded-full font-bold text-sm shadow-xl transition-all hover:-translate-y-1 ${scrolled
                 ? 'bg-violet-700 text-white hover:bg-violet-800'
-                : 'bg-white text-violet-800 hover:bg-zinc-100'
+                : 'bg-white border-slate-200 border-black/5 shadow-sm text-violet-800 hover:bg-zinc-100'
                 }`}
             >
               Abra a sua conta
@@ -186,7 +186,7 @@ export default function HomePage() {
 
         {/* Mobile menu */}
         {isMenuOpen && (
-          <div className="md:hidden absolute top-full left-0 w-full bg-white border-b border-zinc-200 p-6 flex flex-col gap-4 shadow-2xl">
+          <div className="md:hidden absolute top-full left-0 w-full bg-white border-slate-200 border-black/5 shadow-sm border-b border-zinc-200 p-6 flex flex-col gap-4 shadow-2xl">
             <a href="#historia" className="text-lg font-semibold text-zinc-800" onClick={() => setIsMenuOpen(false)}>Evolução</a>
             <a href="#simulador" className="text-lg font-semibold text-zinc-800" onClick={() => setIsMenuOpen(false)}>Simulador</a>
             <a href="#precos" className="text-lg font-semibold text-zinc-800" onClick={() => setIsMenuOpen(false)}>Preços</a>
@@ -200,11 +200,11 @@ export default function HomePage() {
       {/* ── HERO ───────────────────────────────────────────────────────────── */}
       <section className="pt-40 pb-28 md:pt-52 md:pb-40 px-6 bg-gradient-to-br from-violet-900 via-violet-800 to-fuchsia-700 relative overflow-hidden">
         <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[1000px] bg-white rounded-full blur-[150px] opacity-10 pointer-events-none" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[1000px] bg-white border-slate-200 border-black/5 shadow-sm rounded-full blur-[150px] opacity-10 pointer-events-none" />
 
         <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-16 items-center relative z-10">
           <div className="text-center lg:text-left">
-            <div className="inline-flex items-center gap-2 bg-white/10 border border-white/20 text-white px-5 py-2 rounded-full text-sm font-bold mb-8 backdrop-blur-md">
+            <div className="inline-flex items-center gap-2 bg-white border-slate-200 border-black/5 shadow-sm/10 border-white/20 text-white px-5 py-2 rounded-full text-sm font-bold mb-8 backdrop-blur-md">
               <Sparkles size={16} className="text-fuchsia-300" /> O futuro do trabalho chegou
             </div>
 
@@ -223,7 +223,7 @@ export default function HomePage() {
             <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
               <button
                 onClick={goToRegister}
-                className="w-full sm:w-auto px-8 py-5 bg-white text-violet-900 rounded-full font-black text-xl hover:bg-zinc-100 transition-all hover:scale-105 shadow-[0_0_40px_-10px_rgba(255,255,255,0.5)] flex items-center justify-center gap-3"
+                className="w-full sm:w-auto px-8 py-5 bg-white border-slate-200 border-black/5 shadow-sm text-violet-900 rounded-full font-black text-xl hover:bg-zinc-100 transition-all hover:scale-105 shadow-[0_0_40px_-10px_rgba(255,255,255,0.5)] flex items-center justify-center gap-3"
               >
                 Começar por R$ 9,99 <ArrowRight size={22} />
               </button>
@@ -246,7 +246,7 @@ export default function HomePage() {
               className="relative rounded-[3rem] shadow-2xl object-cover h-[550px] w-full border-4 border-white/10"
             />
             {/* Floating Card — Social Proof */}
-            <div className="absolute bottom-10 -left-12 bg-white p-6 rounded-3xl shadow-2xl border border-zinc-100 flex items-center gap-5">
+            <div className="absolute bottom-10 -left-12 bg-white border-slate-200 border-black/5 shadow-sm p-6 rounded-3xl shadow-2xl border-zinc-100 flex items-center gap-5">
               <div className="w-14 h-14 bg-emerald-100 rounded-full flex items-center justify-center">
                 <Clock className="text-emerald-600" size={28} />
               </div>
@@ -260,7 +260,7 @@ export default function HomePage() {
       </section>
 
       {/* ── PROVA SOCIAL ───────────────────────────────────────────────────── */}
-      <section className="py-12 bg-white border-b border-zinc-200">
+      <section className="py-12 bg-white border-slate-200 border-black/5 shadow-sm border-b border-zinc-200">
         <div className="max-w-7xl mx-auto px-6 text-center">
           <p className="text-sm font-bold text-zinc-400 uppercase tracking-widest mb-8">
             Tecnologia que impulsiona as maiores equipas
@@ -379,7 +379,7 @@ export default function HomePage() {
             </p>
           </div>
 
-          <div className="bg-white rounded-[3rem] p-8 md:p-14 shadow-2xl max-w-4xl mx-auto border-4 border-violet-400/20">
+          <div className="bg-white border-slate-200 border-black/5 shadow-sm rounded-[3rem] p-8 md:p-14 shadow-2xl max-w-4xl mx-auto border-4 border-violet-400/20">
             <div className="flex flex-col sm:flex-row gap-4 mb-8">
               <input
                 type="text"
@@ -423,7 +423,7 @@ export default function HomePage() {
                       {aiPlan!.map((p, i) => (
                         <div
                           key={i}
-                          className="bg-zinc-50 p-8 rounded-[2rem] border border-zinc-200 hover:border-violet-300 transition-colors hover:shadow-lg"
+                          className="bg-zinc-50 p-8 rounded-[2rem] border-zinc-200 hover:border-violet-300 transition-colors hover:shadow-lg"
                         >
                           <div className="w-12 h-12 bg-violet-100 text-violet-700 font-black text-xl rounded-full flex items-center justify-center mb-6">
                             {i + 1}
@@ -449,7 +449,7 @@ export default function HomePage() {
       </section>
 
       {/* ── RECURSOS ───────────────────────────────────────────────────────── */}
-      <section id="solucao" className="py-24 bg-white px-6">
+      <section id="solucao" className="py-24 bg-white border-slate-200 border-black/5 shadow-sm px-6">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-20">
             <h2 className="text-4xl md:text-5xl font-extrabold text-zinc-900 mb-6 tracking-tight">
@@ -493,7 +493,7 @@ export default function HomePage() {
             Sem contratos bloqueados. Cancele com um clique se não amar a experiência.
           </p>
 
-          <div className="bg-white border border-zinc-200 rounded-[3rem] p-12 md:p-20 shadow-2xl max-w-2xl mx-auto relative hover:shadow-violet-900/10 transition-shadow duration-500">
+          <div className="bg-white border-slate-200 border-black/5 shadow-sm border-zinc-200 rounded-[3rem] p-12 md:p-20 shadow-2xl max-w-2xl mx-auto relative hover:shadow-violet-900/10 transition-shadow duration-500">
             {/* Badge */}
             <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-violet-700 text-white px-8 py-3 rounded-full font-bold text-sm shadow-xl uppercase tracking-widest">
               Acesso Pro
@@ -533,7 +533,7 @@ export default function HomePage() {
       </section>
 
       {/* ── FOOTER ─────────────────────────────────────────────────────────── */}
-      <footer className="py-16 bg-white border-t border-zinc-200 px-6">
+      <footer className="py-16 bg-white border-slate-200 border-black/5 shadow-sm border-t border-zinc-200 px-6">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8">
           <div className="flex items-center gap-3">
             <Zap size={24} className="text-violet-700 fill-violet-700" />

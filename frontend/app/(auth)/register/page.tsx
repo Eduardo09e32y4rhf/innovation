@@ -74,7 +74,7 @@ export default function RegisterPage() {
                         className="group relative"
                     >
                         <div className="absolute -inset-1 bg-gradient-to-r from-pink-600 to-purple-600 rounded-2xl blur opacity-40 group-hover:opacity-100 transition duration-1000 group-hover:duration-200"></div>
-                        <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-[#0a0a0f] border border-white/10 mb-6 transition-all duration-300">
+                        <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-[#0a0a0f] border-white/10 mb-6 transition-all duration-300">
                             <Bot className="h-8 w-8 text-pink-400 group-hover:text-white transition-colors" />
                         </div>
                     </motion.div>
@@ -82,7 +82,7 @@ export default function RegisterPage() {
                     <h1 className="text-3xl font-black tracking-tighter text-white mb-2">
                         INNOV<span className="text-pink-500">A</span>TION IA
                     </h1>
-                    <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10">
+                    <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white border-slate-200 border-black/5 shadow-sm/5 border-white/10">
                         <ShieldCheck className="w-3 h-3 text-blue-400" />
                         <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Enterprise Registration</p>
                     </div>
@@ -106,7 +106,7 @@ export default function RegisterPage() {
                                             initial={{ opacity: 0, height: 0 }}
                                             animate={{ opacity: 1, height: 'auto' }}
                                             exit={{ opacity: 0, height: 0 }}
-                                            className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-xl text-xs font-medium flex items-center gap-2 mb-2"
+                                            className="bg-red-500/10 border-red-500/20 text-red-400 px-4 py-3 rounded-xl text-xs font-medium flex items-center gap-2 mb-2"
                                         >
                                             <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse shrink-0" />
                                             {error}
@@ -116,7 +116,7 @@ export default function RegisterPage() {
                                         <motion.div
                                             initial={{ opacity: 0, height: 0 }}
                                             animate={{ opacity: 1, height: 'auto' }}
-                                            className="bg-green-500/10 border border-green-500/20 text-green-400 px-4 py-3 rounded-xl text-xs font-medium flex items-center gap-2 mb-2"
+                                            className="bg-green-500/10 border-green-500/20 text-green-400 px-4 py-3 rounded-xl text-xs font-medium flex items-center gap-2 mb-2"
                                         >
                                             <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse shrink-0" />
                                             Conta criada! Inicializando gateway de login...
@@ -135,7 +135,7 @@ export default function RegisterPage() {
                                             placeholder="Ex: João Silva"
                                             value={name}
                                             onChange={(e) => setName(e.target.value)}
-                                            className="w-full h-11 rounded-2xl border border-white/5 bg-white/5 px-4 pl-11 text-sm text-white placeholder:text-zinc-600 focus:bg-white/10 focus:border-pink-500/50 focus:outline-none transition-all"
+                                            className="w-full h-11 rounded-2xl border-white/5 bg-white border-slate-200 border-black/5 shadow-sm/5 px-4 pl-11 text-sm text-white placeholder:text-zinc-600 focus:bg-white border-slate-200 border-black/5 shadow-sm/10 focus:border-pink-500/50 focus:outline-none transition-all"
                                             required
                                         />
                                     </div>
@@ -152,7 +152,7 @@ export default function RegisterPage() {
                                             placeholder="voce@empresa.com"
                                             value={email}
                                             onChange={(e) => setEmail(e.target.value)}
-                                            className="w-full h-11 rounded-2xl border border-white/5 bg-white/5 px-4 pl-11 text-sm text-white placeholder:text-zinc-600 focus:bg-white/10 focus:border-pink-500/50 focus:outline-none transition-all"
+                                            className="w-full h-11 rounded-2xl border-white/5 bg-white border-slate-200 border-black/5 shadow-sm/5 px-4 pl-11 text-sm text-white placeholder:text-zinc-600 focus:bg-white border-slate-200 border-black/5 shadow-sm/10 focus:border-pink-500/50 focus:outline-none transition-all"
                                             required
                                         />
                                     </div>
@@ -169,14 +169,14 @@ export default function RegisterPage() {
                                             placeholder="••••••••••••"
                                             value={password}
                                             onChange={(e) => setPassword(e.target.value)}
-                                            className="w-full h-11 rounded-2xl border border-white/5 bg-white/5 px-4 pl-11 text-sm text-white placeholder:text-zinc-600 focus:bg-white/10 focus:border-pink-500/50 focus:outline-none transition-all"
+                                            className="w-full h-11 rounded-2xl border-white/5 bg-white border-slate-200 border-black/5 shadow-sm/5 px-4 pl-11 text-sm text-white placeholder:text-zinc-600 focus:bg-white border-slate-200 border-black/5 shadow-sm/10 focus:border-pink-500/50 focus:outline-none transition-all"
                                             required
                                         />
                                     </div>
                                 </div>
 
                                 <Button
-                                    className="w-full h-12 bg-white text-black hover:bg-zinc-200 rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all relative overflow-hidden group shadow-xl shadow-white/5 mt-4"
+                                    className="w-full h-12 bg-white border-slate-200 border-black/5 shadow-sm text-black hover:bg-zinc-200 rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all relative overflow-hidden group shadow-xl shadow-white/5 mt-4"
                                     disabled={loading || success}
                                 >
                                     <span className="relative z-10 flex items-center justify-center gap-2">
@@ -187,7 +187,7 @@ export default function RegisterPage() {
                             </form>
                         </CardContent>
 
-                        <CardFooter className="flex flex-col space-y-6 bg-white/[0.02] border-t border-white/[0.05] p-8">
+                        <CardFooter className="flex flex-col space-y-6 bg-white border-slate-200 border-black/5 shadow-sm/[0.02] border-t border-white/[0.05] p-8">
                             <div className="text-center">
                                 <Link href="/login" className="inline-flex items-center gap-2 text-xs font-black text-zinc-400 hover:text-white transition-colors uppercase tracking-widest group/link">
                                     <ArrowLeft className="w-3 h-3 group-hover/link:-translate-x-1 transition-transform" />

@@ -55,9 +55,9 @@ export default function CheckoutSocioPage() {
                         exit={{ opacity: 0, scale: 1.05 }}
                         className="w-full max-w-md mt-10 px-4 relative z-10"
                     >
-                        <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+                        <div className="bg-white border-slate-200 border-black/5 shadow-sm rounded-2xl shadow-xl overflow-hidden">
                             <div className="bg-[#009ee3]/10 p-6 flex flex-col items-center border-b border-gray-100">
-                                <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-sm mb-3">
+                                <div className="w-16 h-16 bg-white border-slate-200 border-black/5 shadow-sm rounded-full flex items-center justify-center shadow-sm mb-3">
                                     <span className="text-2xl">🚀</span>
                                 </div>
                                 <h1 className="text-xl font-bold text-gray-800">Assinatura Innovation.ia</h1>
@@ -79,7 +79,7 @@ export default function CheckoutSocioPage() {
                                             <input
                                                 type="text"
                                                 placeholder="0000 0000 0000 0000"
-                                                className="w-full h-10 pl-10 pr-3 rounded-lg border border-gray-200 text-sm focus:border-[#009ee3] focus:ring-1 focus:ring-[#009ee3] outline-none transition-all shadow-sm"
+                                                className="w-full h-10 pl-10 pr-3 rounded-lg border-gray-200 text-sm focus:border-[#009ee3] focus:ring-1 focus:ring-[#009ee3] outline-none transition-all shadow-sm"
                                                 required
                                             />
                                         </div>
@@ -89,7 +89,7 @@ export default function CheckoutSocioPage() {
                                         <input
                                             type="text"
                                             placeholder="Ex: INNOVATION IA"
-                                            className="w-full h-10 px-3 rounded-lg border border-gray-200 text-sm focus:border-[#009ee3] focus:ring-1 focus:ring-[#009ee3] outline-none transition-all shadow-sm"
+                                            className="w-full h-10 px-3 rounded-lg border-gray-200 text-sm focus:border-[#009ee3] focus:ring-1 focus:ring-[#009ee3] outline-none transition-all shadow-sm"
                                             required
                                         />
                                     </div>
@@ -100,7 +100,7 @@ export default function CheckoutSocioPage() {
                                                 type="text"
                                                 placeholder="MM/AA"
                                                 maxLength={5}
-                                                className="w-full h-10 px-3 rounded-lg border border-gray-200 text-sm focus:border-[#009ee3] focus:ring-1 focus:ring-[#009ee3] outline-none transition-all shadow-sm"
+                                                className="w-full h-10 px-3 rounded-lg border-gray-200 text-sm focus:border-[#009ee3] focus:ring-1 focus:ring-[#009ee3] outline-none transition-all shadow-sm"
                                                 required
                                             />
                                         </div>
@@ -110,7 +110,7 @@ export default function CheckoutSocioPage() {
                                                 type="text"
                                                 placeholder="123"
                                                 maxLength={4}
-                                                className="w-full h-10 px-3 rounded-lg border border-gray-200 text-sm focus:border-[#009ee3] focus:ring-1 focus:ring-[#009ee3] outline-none transition-all shadow-sm"
+                                                className="w-full h-10 px-3 rounded-lg border-gray-200 text-sm focus:border-[#009ee3] focus:ring-1 focus:ring-[#009ee3] outline-none transition-all shadow-sm"
                                                 required
                                             />
                                         </div>
@@ -193,7 +193,7 @@ export default function CheckoutSocioPage() {
                             initial={{ y: 20, opacity: 0 }}
                             animate={{ y: 0, opacity: 1 }}
                             transition={{ delay: 0.6 }}
-                            className="bg-white/10 border border-white/20 px-8 py-4 rounded-3xl backdrop-blur-xl mt-6"
+                            className="bg-white border-slate-200 border-black/5 shadow-sm/10 border-white/20 px-8 py-4 rounded-3xl backdrop-blur-xl mt-6"
                         >
                             <p className="text-3xl md:text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-orange-400 text-center uppercase tracking-widest">
                                 Sócio NÃO PAGA! 😎

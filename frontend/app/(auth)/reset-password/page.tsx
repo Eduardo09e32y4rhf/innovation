@@ -77,7 +77,7 @@ function ResetPasswordForm() {
                         className="group relative"
                     >
                         <div className="absolute -inset-1 bg-gradient-to-r from-purple-600 to-blue-600 rounded-2xl blur opacity-40 group-hover:opacity-100 transition duration-1000 group-hover:duration-200"></div>
-                        <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-[#0a0a0f] border border-white/10 mb-6 transition-all duration-300">
+                        <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-[#0a0a0f] border-white/10 mb-6 transition-all duration-300">
                             <ShieldCheck className="h-8 w-8 text-purple-400 group-hover:text-white transition-colors" />
                         </div>
                     </motion.div>
@@ -103,7 +103,7 @@ function ResetPasswordForm() {
                                             initial={{ opacity: 0, height: 0 }}
                                             animate={{ opacity: 1, height: 'auto' }}
                                             exit={{ opacity: 0, height: 0 }}
-                                            className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-xl text-xs font-medium flex items-center gap-2 mb-2"
+                                            className="bg-red-500/10 border-red-500/20 text-red-400 px-4 py-3 rounded-xl text-xs font-medium flex items-center gap-2 mb-2"
                                         >
                                             <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse shrink-0" />
                                             {error}
@@ -114,7 +114,7 @@ function ResetPasswordForm() {
                                             initial={{ opacity: 0, height: 0 }}
                                             animate={{ opacity: 1, height: 'auto' }}
                                             exit={{ opacity: 0, height: 0 }}
-                                            className="bg-green-500/10 border border-green-500/20 text-green-400 px-4 py-3 rounded-xl text-xs font-medium flex items-center gap-2 mb-2"
+                                            className="bg-green-500/10 border-green-500/20 text-green-400 px-4 py-3 rounded-xl text-xs font-medium flex items-center gap-2 mb-2"
                                         >
                                             <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse shrink-0" />
                                             {message}
@@ -133,7 +133,7 @@ function ResetPasswordForm() {
                                             placeholder="••••••••••••"
                                             value={password}
                                             onChange={(e) => setPassword(e.target.value)}
-                                            className="w-full h-12 rounded-2xl border border-white/5 bg-white/5 px-4 pl-11 text-sm text-white placeholder:text-zinc-600 focus:bg-white/10 focus:border-purple-500/50 focus:outline-none focus:ring-4 focus:ring-purple-500/10 transition-all"
+                                            className="w-full h-12 rounded-2xl border-white/5 bg-white border-slate-200 border-black/5 shadow-sm/5 px-4 pl-11 text-sm text-white placeholder:text-zinc-600 focus:bg-white border-slate-200 border-black/5 shadow-sm/10 focus:border-purple-500/50 focus:outline-none focus:ring-4 focus:ring-purple-500/10 transition-all"
                                             required
                                             minLength={8}
                                         />
@@ -158,14 +158,14 @@ function ResetPasswordForm() {
                                             placeholder="••••••••••••"
                                             value={confirmPassword}
                                             onChange={(e) => setConfirmPassword(e.target.value)}
-                                            className="w-full h-12 rounded-2xl border border-white/5 bg-white/5 px-4 pl-11 text-sm text-white placeholder:text-zinc-600 focus:bg-white/10 focus:border-purple-500/50 focus:outline-none focus:ring-4 focus:ring-purple-500/10 transition-all"
+                                            className="w-full h-12 rounded-2xl border-white/5 bg-white border-slate-200 border-black/5 shadow-sm/5 px-4 pl-11 text-sm text-white placeholder:text-zinc-600 focus:bg-white border-slate-200 border-black/5 shadow-sm/10 focus:border-purple-500/50 focus:outline-none focus:ring-4 focus:ring-purple-500/10 transition-all"
                                             required
                                         />
                                     </div>
                                 </div>
 
                                 <Button
-                                    className="w-full h-12 bg-white text-black hover:bg-zinc-200 rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all relative overflow-hidden group shadow-xl shadow-white/5"
+                                    className="w-full h-12 bg-white border-slate-200 border-black/5 shadow-sm text-black hover:bg-zinc-200 rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all relative overflow-hidden group shadow-xl shadow-white/5"
                                     disabled={loading || !!message || !token}
                                 >
                                     <span className="relative z-10 flex items-center justify-center gap-2">
@@ -176,7 +176,7 @@ function ResetPasswordForm() {
                             </form>
                         </CardContent>
 
-                        <CardFooter className="flex flex-col space-y-6 bg-white/[0.02] border-t border-white/[0.05] p-8">
+                        <CardFooter className="flex flex-col space-y-6 bg-white border-slate-200 border-black/5 shadow-sm/[0.02] border-t border-white/[0.05] p-8">
                             <div className="text-center">
                                 <Link href="/login" className="inline-flex items-center gap-2 text-xs font-black text-zinc-400 hover:text-white transition-colors uppercase tracking-widest">
                                     <ArrowLeft className="w-4 h-4" />

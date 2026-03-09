@@ -60,7 +60,7 @@ export default function BankHubPage() {
                         </div>
                         <button
                             onClick={fetchHubData}
-                            className="flex items-center gap-2 px-4 py-2 bg-purple-600/20 border border-purple-500/40 text-purple-400 rounded-xl hover:bg-purple-600/30 transition-all"
+                            className="flex items-center gap-2 px-4 py-2 bg-purple-600/20 border-purple-500/40 text-purple-400 rounded-xl hover:bg-purple-600/30 transition-all"
                         >
                             <RefreshCcw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
                             Atualizar Agora
@@ -68,7 +68,7 @@ export default function BankHubPage() {
                     </div>
 
                     {/* Total Balance Card */}
-                    <div className="relative bg-gradient-to-br from-indigo-900/40 to-purple-900/40 border border-white/10 rounded-[2.5rem] p-10 mb-10 overflow-hidden backdrop-blur-3xl shadow-2xl">
+                    <div className="relative bg-gradient-to-br from-indigo-900/40 to-purple-900/40 border-white/10 rounded-[2.5rem] p-10 mb-10 overflow-hidden backdrop-blur-3xl shadow-2xl">
                         <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
                             <div>
                                 <span className="text-sm font-bold text-indigo-300 uppercase tracking-widest flex items-center gap-2 mb-2">
@@ -79,13 +79,13 @@ export default function BankHubPage() {
                                 </div>
                             </div>
                             <div className="flex gap-4">
-                                <div className="bg-black/30 backdrop-blur-md p-6 rounded-3xl border border-white/5 min-w-[180px]">
+                                <div className="bg-black/30 backdrop-blur-md p-6 rounded-3xl border-white/5 min-w-[180px]">
                                     <span className="text-xs text-gray-500 block mb-1">Burn Rate Mensal</span>
                                     <span className="text-xl font-bold text-red-400 flex items-center gap-1">
                                         <TrendingDown className="w-4 h-4" /> R$ 12.500
                                     </span>
                                 </div>
-                                <div className="bg-black/30 backdrop-blur-md p-6 rounded-3xl border border-white/5 min-w-[180px]">
+                                <div className="bg-black/30 backdrop-blur-md p-6 rounded-3xl border-white/5 min-w-[180px]">
                                     <span className="text-xs text-gray-500 block mb-1">Runway Estimado</span>
                                     <span className="text-xl font-bold text-green-400">8.5 meses</span>
                                 </div>
@@ -96,12 +96,12 @@ export default function BankHubPage() {
                     {/* Bank Cards Grid */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {data?.banks.map((bank, idx) => (
-                            <div key={idx} className="group bg-gray-900/50 border border-gray-800 rounded-3xl p-8 hover:border-purple-500/50 transition-all duration-300 hover:scale-[1.02]">
+                            <div key={idx} className="group bg-gray-900/50 border-gray-800 rounded-3xl p-8 hover:border-purple-500/50 transition-all duration-300 hover:scale-[1.02]">
                                 <div className="flex justify-between items-start mb-10">
-                                    <div className="w-14 h-14 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10 group-hover:bg-purple-500/20 group-hover:border-purple-500/30 transition-all">
+                                    <div className="w-14 h-14 bg-white border-slate-200 border-black/5 shadow-sm/5 rounded-2xl flex items-center justify-center border-white/10 group-hover:bg-purple-500/20 group-hover:border-purple-500/30 transition-all">
                                         <Landmark className="w-7 h-7 text-gray-400 group-hover:text-purple-400" />
                                     </div>
-                                    <span className="bg-green-500/10 text-green-400 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest border border-green-500/20">
+                                    <span className="bg-green-500/10 text-green-400 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest border-green-500/20">
                                         Conectado
                                     </span>
                                 </div>

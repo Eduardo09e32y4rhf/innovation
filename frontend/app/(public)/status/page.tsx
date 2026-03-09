@@ -101,7 +101,7 @@ export default function StatusPage() {
                 {/* Services */}
                 <div className="mb-10">
                     <h2 className="text-lg font-semibold text-white mb-4">Componentes do Sistema</h2>
-                    <div className="bg-gray-900 border border-purple-500/20 rounded-2xl overflow-hidden divide-y divide-gray-800">
+                    <div className="bg-gray-900 border-purple-500/20 rounded-2xl overflow-hidden divide-y divide-gray-800">
                         {SERVICES.map(service => {
                             const status = services[service.key] || 'operational';
                             const sc = svcConfig[status];
@@ -128,7 +128,7 @@ export default function StatusPage() {
                 {/* Uptime chart (visual bars) */}
                 <div className="mb-10">
                     <h2 className="text-lg font-semibold text-white mb-4">Disponibilidade (90 dias)</h2>
-                    <div className="bg-gray-900 border border-purple-500/20 rounded-2xl p-6">
+                    <div className="bg-gray-900 border-purple-500/20 rounded-2xl p-6">
                         {SERVICES.map(service => (
                             <div key={service.key} className="mb-4">
                                 <div className="flex justify-between text-sm mb-1">
@@ -161,7 +161,7 @@ export default function StatusPage() {
                     <h2 className="text-lg font-semibold text-white mb-4">Histórico de Incidentes</h2>
                     <div className="space-y-3">
                         {INCIDENTS.map(incident => (
-                            <div key={incident.id} className="bg-gray-900 border border-purple-500/20 rounded-xl p-5">
+                            <div key={incident.id} className="bg-gray-900 border-purple-500/20 rounded-xl p-5">
                                 <div className="flex items-start justify-between mb-2">
                                     <h3 className="text-white font-medium">{incident.title}</h3>
                                     <span className="text-green-400 text-xs bg-green-500/10 px-2 py-0.5 rounded-full">✓ Resolvido</span>

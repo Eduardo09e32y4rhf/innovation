@@ -152,8 +152,8 @@ export default function PontoPage() {
                 {/* Notification Toast */}
                 {notification && (
                     <div className={`fixed top-6 right-6 z-50 flex items-center gap-3 px-5 py-3 rounded-xl shadow-2xl transition-all duration-300 ${notification.type === 'success'
-                        ? 'bg-green-500/20 border border-green-500/40 text-green-300'
-                        : 'bg-red-500/20 border border-red-500/40 text-red-300'
+                        ? 'bg-green-500/20 border-green-500/40 text-green-300'
+                        : 'bg-red-500/20 border-red-500/40 text-red-300'
                         }`}>
                         {notification.type === 'success' ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
                         {notification.msg}
@@ -171,7 +171,7 @@ export default function PontoPage() {
                         </div>
                         <button
                             onClick={() => setShowModal(true)}
-                            className="flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg text-sm transition-colors border border-gray-700"
+                            className="flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg text-sm transition-colors border-gray-700"
                         >
                             <Edit3 className="w-4 h-4" />
                             Registro Manual
@@ -179,7 +179,7 @@ export default function PontoPage() {
                     </div>
 
                     {/* Clock Card */}
-                    <div className="relative bg-gradient-to-br from-purple-900/40 to-blue-900/40 backdrop-blur-xl border border-purple-500/30 rounded-3xl p-10 mb-6 text-center shadow-2xl overflow-hidden">
+                    <div className="relative bg-gradient-to-br from-purple-900/40 to-blue-900/40 backdrop-blur-xl border-purple-500/30 rounded-3xl p-10 mb-6 text-center shadow-2xl overflow-hidden">
                         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(139,92,246,0.15)_0%,transparent_70%)]" />
 
                         <div className="relative z-10">
@@ -197,7 +197,7 @@ export default function PontoPage() {
                                 <button
                                     onClick={() => handlePonto('credit')}
                                     disabled={isSubmitting || lastAction === 'credit'}
-                                    className="flex items-center justify-center gap-3 px-10 py-5 bg-green-500/20 hover:bg-green-500/30 border border-green-500/50 text-green-300 rounded-2xl font-bold text-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_15px_rgba(34,197,94,0.2)] hover:shadow-[0_0_25px_rgba(34,197,94,0.3)] transform hover:-translate-y-1"
+                                    className="flex items-center justify-center gap-3 px-10 py-5 bg-green-500/20 hover:bg-green-500/30 border-green-500/50 text-green-300 rounded-2xl font-bold text-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_15px_rgba(34,197,94,0.2)] hover:shadow-[0_0_25px_rgba(34,197,94,0.3)] transform hover:-translate-y-1"
                                 >
                                     {isSubmitting && lastAction !== 'debit' ? (
                                         <Loader2 className="w-6 h-6 animate-spin" />
@@ -209,7 +209,7 @@ export default function PontoPage() {
                                 <button
                                     onClick={() => handlePonto('debit')}
                                     disabled={isSubmitting || lastAction === 'debit'}
-                                    className="flex items-center justify-center gap-3 px-10 py-5 bg-red-500/20 hover:bg-red-500/30 border border-red-500/50 text-red-300 rounded-2xl font-bold text-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_15px_rgba(239,68,68,0.2)] hover:shadow-[0_0_25px_rgba(239,68,68,0.3)] transform hover:-translate-y-1"
+                                    className="flex items-center justify-center gap-3 px-10 py-5 bg-red-500/20 hover:bg-red-500/30 border-red-500/50 text-red-300 rounded-2xl font-bold text-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_15px_rgba(239,68,68,0.2)] hover:shadow-[0_0_25px_rgba(239,68,68,0.3)] transform hover:-translate-y-1"
                                 >
                                     {isSubmitting && lastAction !== 'credit' ? (
                                         <Loader2 className="w-6 h-6 animate-spin" />
@@ -234,15 +234,15 @@ export default function PontoPage() {
                         </div>
                     ) : balance ? (
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                            <div className="bg-gray-900/60 backdrop-blur-md border border-gray-800 rounded-2xl p-6 text-center transform transition-all hover:scale-105">
+                            <div className="bg-gray-900/60 backdrop-blur-md border-gray-800 rounded-2xl p-6 text-center transform transition-all hover:scale-105">
                                 <div className="text-sm font-medium text-gray-500 mb-2 uppercase tracking-wider">Total Entradas</div>
                                 <div className="text-3xl font-black text-green-400">{formatHours(balance.total_credit_hours)}</div>
                             </div>
-                            <div className="bg-gray-900/60 backdrop-blur-md border border-gray-800 rounded-2xl p-6 text-center transform transition-all hover:scale-105">
+                            <div className="bg-gray-900/60 backdrop-blur-md border-gray-800 rounded-2xl p-6 text-center transform transition-all hover:scale-105">
                                 <div className="text-sm font-medium text-gray-500 mb-2 uppercase tracking-wider">Total Saídas</div>
                                 <div className="text-3xl font-black text-red-400">{formatHours(balance.total_debit_hours)}</div>
                             </div>
-                            <div className="bg-gray-900/60 backdrop-blur-md border border-gray-800 rounded-2xl p-6 text-center transform transition-all hover:scale-105 relative overflow-hidden">
+                            <div className="bg-gray-900/60 backdrop-blur-md border-gray-800 rounded-2xl p-6 text-center transform transition-all hover:scale-105 relative overflow-hidden">
                                 <div className={`absolute top-0 w-full h-1 left-0 ${balance.balance_hours >= 0 ? 'bg-blue-500' : 'bg-orange-500'}`} />
                                 <div className="text-sm font-medium text-gray-500 mb-2 uppercase tracking-wider">Saldo do Banco</div>
                                 <div className={`text-3xl font-black ${balance.balance_hours >= 0 ? 'text-blue-400' : 'text-orange-400'}`}>
@@ -253,7 +253,7 @@ export default function PontoPage() {
                     ) : null}
 
                     {/* Today's Entries */}
-                    <div className="bg-gray-900/60 backdrop-blur-md border border-gray-800 rounded-2xl p-6">
+                    <div className="bg-gray-900/60 backdrop-blur-md border-gray-800 rounded-2xl p-6">
                         <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-800/50">
                             <div className="flex items-center gap-3">
                                 <Calendar className="w-6 h-6 text-purple-400" />
@@ -272,7 +272,7 @@ export default function PontoPage() {
                         ) : (
                             <div className="space-y-3">
                                 {sortedEntries.map((e) => (
-                                    <div key={e.id} className="group flex items-center justify-between p-4 rounded-xl hover:bg-gray-800/50 transition-colors border border-transparent hover:border-gray-700">
+                                    <div key={e.id} className="group flex items-center justify-between p-4 rounded-xl hover:bg-gray-800/50 transition-colors border-transparent hover:border-gray-700">
                                         <div className="flex items-center gap-4">
                                             <div className={`flex items-center justify-center w-10 h-10 rounded-full ${e.type === 'credit' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
                                                 {e.type === 'credit' ? <LogIn className="w-5 h-5 ml-1" /> : <LogOut className="w-5 h-5 mr-1" />}
@@ -302,7 +302,7 @@ export default function PontoPage() {
                 {/* Manual Entry Modal */}
                 {showModal && (
                     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-                        <div className="bg-gray-900 border border-gray-700 rounded-3xl p-6 w-full max-w-md shadow-2xl transform transition-all">
+                        <div className="bg-gray-900 border-gray-700 rounded-3xl p-6 w-full max-w-md shadow-2xl transform transition-all">
                             <div className="flex justify-between items-center mb-6">
                                 <h3 className="text-xl font-bold text-white flex items-center gap-2">
                                     <Edit3 className="w-5 h-5 text-purple-400" />
@@ -332,14 +332,14 @@ export default function PontoPage() {
                                         <button
                                             type="button"
                                             onClick={() => setManualType('credit')}
-                                            className={`py-3 rounded-xl flex items-center justify-center gap-2 font-medium transition-colors ${manualType === 'credit' ? 'bg-green-500/20 text-green-400 border border-green-500/50' : 'bg-gray-800 text-gray-400 border border-transparent'}`}
+                                            className={`py-3 rounded-xl flex items-center justify-center gap-2 font-medium transition-colors ${manualType === 'credit' ? 'bg-green-500/20 text-green-400 border-green-500/50' : 'bg-gray-800 text-gray-400 border-transparent'}`}
                                         >
                                             <LogIn className="w-4 h-4" /> Entrada
                                         </button>
                                         <button
                                             type="button"
                                             onClick={() => setManualType('debit')}
-                                            className={`py-3 rounded-xl flex items-center justify-center gap-2 font-medium transition-colors ${manualType === 'debit' ? 'bg-red-500/20 text-red-400 border border-red-500/50' : 'bg-gray-800 text-gray-400 border border-transparent'}`}
+                                            className={`py-3 rounded-xl flex items-center justify-center gap-2 font-medium transition-colors ${manualType === 'debit' ? 'bg-red-500/20 text-red-400 border-red-500/50' : 'bg-gray-800 text-gray-400 border-transparent'}`}
                                         >
                                             <LogOut className="w-4 h-4" /> Saída
                                         </button>
@@ -353,7 +353,7 @@ export default function PontoPage() {
                                             type="date"
                                             value={manualDate}
                                             onChange={(e) => setManualDate(e.target.value)}
-                                            className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all [color-scheme:dark]"
+                                            className="w-full bg-gray-800 border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all [color-scheme:dark]"
                                             required
                                         />
                                     </div>
@@ -363,7 +363,7 @@ export default function PontoPage() {
                                             type="time"
                                             value={manualTime}
                                             onChange={(e) => setManualTime(e.target.value)}
-                                            className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all [color-scheme:dark]"
+                                            className="w-full bg-gray-800 border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all [color-scheme:dark]"
                                             required
                                         />
                                     </div>
@@ -376,7 +376,7 @@ export default function PontoPage() {
                                         placeholder="Ex: Esqueci de bater na entrada"
                                         value={manualReason}
                                         onChange={(e) => setManualReason(e.target.value)}
-                                        className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all"
+                                        className="w-full bg-gray-800 border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all"
                                         required
                                     />
                                 </div>

@@ -72,7 +72,7 @@ export default function JobsPage() {
                     </h1>
                     <p className="text-zinc-400 mb-8">Candidaturas analisadas em segundos. Menos espera, mais oportunidade.</p>
 
-                    <div className="max-w-xl mx-auto flex items-center gap-3 bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-3">
+                    <div className="max-w-xl mx-auto flex items-center gap-3 bg-zinc-900 border-zinc-700 rounded-xl px-4 py-3">
                         <Search className="w-5 h-5 text-zinc-500" />
                         <input
                             className="flex-1 bg-transparent text-sm outline-none"
@@ -100,13 +100,13 @@ export default function JobsPage() {
                                 initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: i * 0.05 }}
-                                className="border border-zinc-800 hover:border-purple-500/50 rounded-2xl p-6 transition cursor-pointer group"
+                                className="border-zinc-800 hover:border-purple-500/50 rounded-2xl p-6 transition cursor-pointer group"
                                 onClick={() => setSelected(job)}
                             >
                                 <div className="flex justify-between items-start">
                                     <div>
                                         <div className="flex items-center gap-2 mb-2">
-                                            <span className="text-xs px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20">
+                                            <span className="text-xs px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-400 border-purple-500/20">
                                                 {job.type || 'CLT'}
                                             </span>
                                             <span className="text-xs text-green-400">● Aberta</span>
@@ -132,7 +132,7 @@ export default function JobsPage() {
             {/* Modal Candidatura */}
             {selected && (
                 <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-                    <div className="bg-zinc-900 border border-zinc-700 rounded-2xl p-6 w-full max-w-lg">
+                    <div className="bg-zinc-900 border-zinc-700 rounded-2xl p-6 w-full max-w-lg">
                         <div className="flex justify-between items-start mb-4">
                             <div>
                                 <h3 className="text-lg font-bold">{selected.title}</h3>
@@ -152,7 +152,7 @@ export default function JobsPage() {
                                 <div className="mb-4">
                                     <label className="text-sm text-zinc-400 mb-2 block">Cole seu currículo / carta de apresentação</label>
                                     <textarea
-                                        className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm min-h-[180px]"
+                                        className="w-full bg-zinc-800 border-zinc-700 rounded-lg px-3 py-2 text-sm min-h-[180px]"
                                         placeholder="Cole aqui seu currículo em texto ou uma carta de apresentação..."
                                         value={cvText}
                                         onChange={e => setCvText(e.target.value)}

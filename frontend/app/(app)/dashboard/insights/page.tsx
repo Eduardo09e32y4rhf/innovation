@@ -47,7 +47,7 @@ export default function InsightsPage() {
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                         <div>
                             <div className="flex items-center gap-2 mb-2">
-                                <span className="bg-purple-500/20 text-purple-400 text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border border-purple-500/30">
+                                <span className="bg-purple-500/20 text-purple-400 text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border-purple-500/30">
                                     AI Engine v2.0
                                 </span>
                             </div>
@@ -61,7 +61,7 @@ export default function InsightsPage() {
                         <button
                             onClick={runAnalysis}
                             disabled={analyzing}
-                            className="relative group overflow-hidden bg-white text-black px-8 py-4 rounded-2xl font-bold transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
+                            className="relative group overflow-hidden bg-white border-slate-200 border-black/5 shadow-sm text-black px-8 py-4 rounded-2xl font-bold transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
                         >
                             <div className="relative z-10 flex items-center gap-2">
                                 {analyzing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
@@ -79,7 +79,7 @@ export default function InsightsPage() {
                             { label: 'Risco de Churn (RH)', value: '2.4%', trend: '-15%', icon: ShieldCheck, color: 'text-green-400', bg: 'bg-green-500/10' },
                             { label: 'Eficiência Financeira', value: 'R$ 142k', trend: '+12%', icon: TrendingUp, color: 'text-blue-400', bg: 'bg-blue-500/10' },
                         ].map((stat, i) => (
-                            <div key={i} className="bg-white/5 backdrop-blur-xl border border-white/10 p-6 rounded-3xl hover:border-white/20 transition-all group">
+                            <div key={i} className="bg-white border-slate-200 border-black/5 shadow-sm/5 backdrop-blur-xl border-white/10 p-6 rounded-3xl hover:border-white/20 transition-all group">
                                 <div className="flex items-center justify-between mb-4">
                                     <div className={`p-2 rounded-xl ${stat.bg} ${stat.color}`}>
                                         <stat.icon className="w-5 h-5" />
@@ -96,7 +96,7 @@ export default function InsightsPage() {
 
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         {/* Sentiment Analysis Card */}
-                        <div className="lg:col-span-2 bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-3xl border border-white/10 rounded-[2.5rem] p-8 relative overflow-hidden">
+                        <div className="lg:col-span-2 bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-3xl border-white/10 rounded-[2.5rem] p-8 relative overflow-hidden">
                             <div className="absolute top-0 right-0 p-8 opacity-10">
                                 <Brain className="w-32 h-32" />
                             </div>
@@ -117,7 +117,7 @@ export default function InsightsPage() {
                                             <span className="text-gray-300 font-medium">{item.label}</span>
                                             <span className="font-mono font-bold">{item.pct}%</span>
                                         </div>
-                                        <div className="h-2.5 bg-white/5 rounded-full overflow-hidden">
+                                        <div className="h-2.5 bg-white border-slate-200 border-black/5 shadow-sm/5 rounded-full overflow-hidden">
                                             <div
                                                 className={`h-full rounded-full bg-gradient-to-r ${item.color} transition-all duration-1000 ease-out`}
                                                 style={{ width: `${item.pct}%` }}
@@ -127,7 +127,7 @@ export default function InsightsPage() {
                                 ))}
                             </div>
 
-                            <div className="mt-10 p-6 bg-purple-500/10 border border-purple-500/20 rounded-2xl flex items-start gap-4">
+                            <div className="mt-10 p-6 bg-purple-500/10 border-purple-500/20 rounded-2xl flex items-start gap-4">
                                 <div className="bg-purple-500 p-2 rounded-lg">
                                     <Lightbulb className="w-5 h-5 text-white" />
                                 </div>
@@ -141,7 +141,7 @@ export default function InsightsPage() {
                         </div>
 
                         {/* Recent AI Recommendations */}
-                        <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-8">
+                        <div className="bg-white border-slate-200 border-black/5 shadow-sm/5 backdrop-blur-xl border-white/10 rounded-[2.5rem] p-8">
                             <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
                                 <Target className="w-5 h-5 text-blue-400" />
                                 Próximos Passos (AI)
@@ -153,7 +153,7 @@ export default function InsightsPage() {
                                     { title: 'Treinamento Soft Skills', desc: 'Foco em liderança para o time de RH.', priority: 'medium' },
                                     { title: 'Revisão de Infraestrutura', desc: 'Upgrading workers assíncronos.', priority: 'low' },
                                 ].map((rec, i) => (
-                                    <div key={i} className="p-4 rounded-2xl bg-white/[0.03] border border-white/5 hover:border-white/20 transition-all cursor-pointer group">
+                                    <div key={i} className="p-4 rounded-2xl bg-white border-slate-200 border-black/5 shadow-sm/[0.03] border-white/5 hover:border-white/20 transition-all cursor-pointer group">
                                         <div className="flex justify-between items-start mb-1">
                                             <h4 className="font-bold text-sm group-hover:text-blue-400 transition-colors">{rec.title}</h4>
                                             <div className={`w-2 h-2 rounded-full ${rec.priority === 'high' ? 'bg-red-400 shadow-[0_0_8px_rgba(248,113,113,0.5)]' : rec.priority === 'medium' ? 'bg-yellow-400' : 'bg-blue-400'}`} />
@@ -163,14 +163,14 @@ export default function InsightsPage() {
                                 ))}
                             </div>
 
-                            <button className="w-full mt-6 py-4 border border-white/10 rounded-2xl text-xs font-bold text-gray-400 hover:text-white hover:bg-white/5 transition-all">
+                            <button className="w-full mt-6 py-4 border-white/10 rounded-2xl text-xs font-bold text-gray-400 hover:text-white hover:bg-white border-slate-200 border-black/5 shadow-sm/5 transition-all">
                                 Ver Relatório Completo
                             </button>
                         </div>
                     </div>
 
                     {/* Performance Trends Section */}
-                    <div className="bg-white/5 border border-white/10 rounded-[2.5rem] p-8">
+                    <div className="bg-white border-slate-200 border-black/5 shadow-sm/5 border-white/10 rounded-[2.5rem] p-8">
                         <div className="flex items-center justify-between mb-8">
                             <div>
                                 <h3 className="text-xl font-bold text-white">Tendências de Performance</h3>
@@ -178,7 +178,7 @@ export default function InsightsPage() {
                             </div>
                             <div className="flex gap-2">
                                 {['7D', '1M', '3M', '1Y'].map(t => (
-                                    <button key={t} className={`px-3 py-1.5 rounded-lg text-[10px] font-black transition-all ${t === '1M' ? 'bg-white text-black' : 'text-white/40 hover:text-white'}`}>
+                                    <button key={t} className={`px-3 py-1.5 rounded-lg text-[10px] font-black transition-all ${t === '1M' ? 'bg-white border-slate-200 border-black/5 shadow-sm text-black' : 'text-white/40 hover:text-white'}`}>
                                         {t}
                                     </button>
                                 ))}
@@ -192,7 +192,7 @@ export default function InsightsPage() {
                                         className="w-full bg-gradient-to-t from-purple-600/20 to-purple-500 rounded-t-lg transition-all duration-1000 group-hover:from-purple-500 group-hover:to-purple-300 relative"
                                         style={{ height: `${val}%` }}
                                     >
-                                        <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-white text-black text-[9px] font-black px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-white border-slate-200 border-black/5 shadow-sm text-black text-[9px] font-black px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity">
                                             {val}
                                         </div>
                                     </div>

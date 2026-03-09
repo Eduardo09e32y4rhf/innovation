@@ -36,15 +36,15 @@ interface TimelineEvent {
 
 function StatCard({ title, value, detail, icon: Icon, colorClass, trend }: any) {
     return (
-        <div className="relative overflow-hidden bg-white/70 backdrop-blur-xl border border-slate-200/60 p-6 rounded-3xl shadow-sm hover:shadow-md transition-all group">
+        <div className="relative overflow-hidden bg-white border-slate-200 border-black/5 shadow-sm/70 backdrop-blur-xl border-slate-200/60 p-6 rounded-3xl shadow-sm hover:shadow-md transition-all group">
             <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${colorClass} opacity-[0.04] group-hover:opacity-[0.08] transition-opacity rounded-bl-full`} />
             <div className="relative z-10 flex flex-col h-full justify-between gap-4">
                 <div className="flex justify-between items-start">
-                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center bg-white shadow-sm border border-slate-100 ${colorClass.split(' ')[0].replace('from-', 'text-')}`}>
+                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center bg-white border-slate-200 border-black/5 shadow-sm border-slate-100 ${colorClass.split(' ')[0].replace('from-', 'text-')}`}>
                         <Icon size={22} strokeWidth={2} />
                     </div>
                     {trend && (
-                        <span className={`flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full ${trend.startsWith('+') || trend.startsWith('↑') ? 'bg-emerald-50 text-emerald-600 border border-emerald-100/50' : 'bg-amber-50 text-amber-600 border border-amber-100/50'}`}>
+                        <span className={`flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full ${trend.startsWith('+') || trend.startsWith('↑') ? 'bg-emerald-50 text-emerald-600 border-emerald-100/50' : 'bg-amber-50 text-amber-600 border-amber-100/50'}`}>
                             {trend.startsWith('+') || trend.startsWith('↑') ? <ArrowUpRight size={12} /> : null}
                             {trend}
                         </span>
@@ -76,10 +76,10 @@ function EmployeeCard({ employee, onClick }: { employee: Employee; onClick: () =
             layout
             whileHover={{ y: -2 }}
             onClick={onClick}
-            className="bg-white border border-slate-200/60 p-4 rounded-[1.25rem] cursor-pointer shadow-sm hover:shadow-md hover:border-indigo-200 transition-all group flex items-center gap-4"
+            className="bg-white border-slate-200 border-black/5 shadow-sm border-slate-200/60 p-4 rounded-[1.25rem] cursor-pointer shadow-sm hover:shadow-md hover:border-indigo-200 transition-all group flex items-center gap-4"
         >
             <div className="relative">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-indigo-50 to-indigo-100/50 border border-indigo-100 flex items-center justify-center text-indigo-700 font-semibold text-lg shadow-sm">
+                <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-indigo-50 to-indigo-100/50 border-indigo-100 flex items-center justify-center text-indigo-700 font-semibold text-lg shadow-sm">
                     {employee.name[0]}
                 </div>
                 <div className={`absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-white ${employee.status === 'active' ? 'bg-emerald-500' : 'bg-amber-500'} shadow-[0_0_0_1px_rgba(0,0,0,0.05)]`} />
@@ -124,7 +124,7 @@ function TimelineDrawer({ isOpen, onClose, employee }: { isOpen: boolean; onClos
                     <motion.div
                         initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
                         transition={{ type: "spring", damping: 25, stiffness: 200 }}
-                        className="fixed right-0 top-0 bottom-0 w-full max-w-md bg-white z-[101] shadow-2xl p-6 sm:p-8 overflow-y-auto border-l border-slate-200"
+                        className="fixed right-0 top-0 bottom-0 w-full max-w-md bg-white border-slate-200 border-black/5 shadow-sm z-[101] shadow-2xl p-6 sm:p-8 overflow-y-auto border-l border-slate-200"
                     >
                         <div className="flex justify-between items-start mb-8">
                             <div className="flex items-center gap-4">
@@ -142,13 +142,13 @@ function TimelineDrawer({ isOpen, onClose, employee }: { isOpen: boolean; onClos
                         </div>
 
                         <div className="grid grid-cols-2 gap-3 mb-8">
-                            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100/80">
+                            <div className="bg-slate-50 p-4 rounded-2xl border-slate-100/80">
                                 <p className="text-[11px] text-slate-500 font-medium tracking-wide mb-1 flex items-center gap-1.5"><Sparkles size={12} /> Status Cognitivo</p>
                                 <div className="flex items-center gap-1.5 text-emerald-600 font-semibold text-sm">
                                     98.4% Estável
                                 </div>
                             </div>
-                            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100/80">
+                            <div className="bg-slate-50 p-4 rounded-2xl border-slate-100/80">
                                 <p className="text-[11px] text-slate-500 font-medium tracking-wide mb-1 flex items-center gap-1.5"><Timer size={12} /> Tempo de Empresa</p>
                                 <div className="flex items-center gap-1.5 text-slate-800 font-semibold text-sm">
                                     2a 4m
@@ -160,7 +160,7 @@ function TimelineDrawer({ isOpen, onClose, employee }: { isOpen: boolean; onClos
                             {loading ? (
                                 [1, 2, 3].map(i => <div key={i} className="h-20 bg-slate-50 rounded-2xl animate-pulse ml-10" />)
                             ) : events.length === 0 ? (
-                                <div className="text-center py-10 bg-slate-50 rounded-2xl border border-dashed border-slate-200 ml-10">
+                                <div className="text-center py-10 bg-slate-50 rounded-2xl border-dashed border-slate-200 ml-10">
                                     <p className="text-[13px] font-medium text-slate-400">Nenhum evento registrado hoje.</p>
                                 </div>
                             ) : events.map((event, idx) => (
@@ -168,8 +168,8 @@ function TimelineDrawer({ isOpen, onClose, employee }: { isOpen: boolean; onClos
                                     initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.05 }}
                                     key={event.id} className="relative pl-10"
                                 >
-                                    <div className="absolute left-[8px] top-1.5 w-4 h-4 rounded-full bg-white border-[3px] border-indigo-500 shadow-sm z-10" />
-                                    <div className="bg-white border border-slate-200/60 p-4 rounded-2xl group hover:border-indigo-200 hover:shadow-md hover:shadow-indigo-50/50 transition-all">
+                                    <div className="absolute left-[8px] top-1.5 w-4 h-4 rounded-full bg-white border-slate-200 border-black/5 shadow-sm border-[3px] border-indigo-500 shadow-sm z-10" />
+                                    <div className="bg-white border-slate-200 border-black/5 shadow-sm border-slate-200/60 p-4 rounded-2xl group hover:border-indigo-200 hover:shadow-md hover:shadow-indigo-50/50 transition-all">
                                         <div className="flex justify-between items-start mb-1.5">
                                             <h4 className="text-[13px] font-semibold text-slate-800">{event.title}</h4>
                                             <span className="text-[11px] font-medium text-slate-400 bg-slate-50 px-2 py-0.5 rounded-md">{event.date}</span>
@@ -211,9 +211,9 @@ function AdmissionModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
                     />
                     <motion.div
                         initial={{ scale: 0.95, opacity: 0, y: 10 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 10 }}
-                        className="bg-white w-full max-w-sm p-8 rounded-[2rem] shadow-2xl relative z-10 text-center border border-slate-100"
+                        className="bg-white border-slate-200 border-black/5 shadow-sm w-full max-w-sm p-8 rounded-[2rem] shadow-2xl relative z-10 text-center border-slate-100"
                     >
-                        <div className="w-16 h-16 bg-gradient-to-tr from-indigo-50 to-indigo-100 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-indigo-50 text-indigo-600 shadow-inner">
+                        <div className="w-16 h-16 bg-gradient-to-tr from-indigo-50 to-indigo-100 rounded-2xl flex items-center justify-center mx-auto mb-6 border-indigo-50 text-indigo-600 shadow-inner">
                             <UserPlus size={28} />
                         </div>
 
@@ -237,7 +237,7 @@ function AdmissionModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
                                         <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                                         <input
                                             type="email" placeholder="nome@exemplo.com"
-                                            className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 pl-11 pr-4 text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all text-sm font-medium placeholder:text-slate-400"
+                                            className="w-full bg-slate-50 border-slate-200 rounded-xl py-3 pl-11 pr-4 text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all text-sm font-medium placeholder:text-slate-400"
                                             value={email} onChange={e => setEmail(e.target.value)}
                                         />
                                     </div>
@@ -299,7 +299,7 @@ export default function AdvancedRHPage() {
             <div className="p-6 sm:p-8 space-y-8 animate-in fade-in duration-500 min-h-screen">
 
                 {/* Header */}
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white/70 backdrop-blur-xl p-6 rounded-[2rem] border border-slate-200/60 shadow-sm">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white border-slate-200 border-black/5 shadow-sm/70 backdrop-blur-xl p-6 rounded-[2rem] border-slate-200/60 shadow-sm">
                     <div className="flex items-center gap-5">
                         <div className="w-14 h-14 bg-gradient-to-tr from-indigo-600 to-violet-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-200 text-white">
                             <Heart size={26} />
@@ -315,7 +315,7 @@ export default function AdvancedRHPage() {
                             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                             <input
                                 type="text" placeholder="Buscar talento..."
-                                className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 pl-10 pr-4 text-[13px] text-slate-800 placeholder:text-slate-400 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none"
+                                className="w-full bg-slate-50 border-slate-200 rounded-xl py-2.5 pl-10 pr-4 text-[13px] text-slate-800 placeholder:text-slate-400 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none"
                                 value={filter} onChange={e => setFilter(e.target.value)}
                             />
                         </div>
@@ -338,7 +338,7 @@ export default function AdvancedRHPage() {
                 {/* Main Content Area */}
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                     <div className="lg:col-span-8 space-y-6">
-                        <div className="bg-white/70 backdrop-blur-xl border border-slate-200/60 rounded-[2rem] p-6 sm:p-8 shadow-sm">
+                        <div className="bg-white border-slate-200 border-black/5 shadow-sm/70 backdrop-blur-xl border-slate-200/60 rounded-[2rem] p-6 sm:p-8 shadow-sm">
                             <div className="flex items-center justify-between mb-8">
                                 <h2 className="text-lg font-bold text-slate-800 tracking-tight flex items-center gap-2">
                                     <Users size={20} className="text-indigo-600" /> Quadro de Colaboradores
@@ -351,7 +351,7 @@ export default function AdvancedRHPage() {
 
                             {loading ? (
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {[1, 2, 3, 4, 5, 6].map(i => <div key={i} className="h-20 bg-slate-50 border border-slate-100 rounded-[1.25rem] animate-pulse" />)}
+                                    {[1, 2, 3, 4, 5, 6].map(i => <div key={i} className="h-20 bg-slate-50 border-slate-100 rounded-[1.25rem] animate-pulse" />)}
                                 </div>
                             ) : (
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -363,7 +363,7 @@ export default function AdvancedRHPage() {
                                         />
                                     ))}
                                     {filtered.length === 0 && (
-                                        <div className="col-span-full py-12 text-center text-slate-400 text-sm font-medium border border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
+                                        <div className="col-span-full py-12 text-center text-slate-400 text-sm font-medium border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
                                             Nenhum colaborador encontrado com os filtros atuais.
                                         </div>
                                     )}
@@ -373,22 +373,22 @@ export default function AdvancedRHPage() {
                     </div>
 
                     <div className="lg:col-span-4 space-y-6">
-                        <div className="bg-white/70 backdrop-blur-xl border border-rose-100/60 p-6 sm:p-8 rounded-[2rem] shadow-sm">
+                        <div className="bg-white border-slate-200 border-black/5 shadow-sm/70 backdrop-blur-xl border-rose-100/60 p-6 sm:p-8 rounded-[2rem] shadow-sm">
                             <h2 className="text-lg font-bold text-slate-800 tracking-tight flex items-center gap-2 mb-6">
                                 <AlertCircle size={20} className="text-rose-500" /> Alertas de Risco (IA)
                             </h2>
 
                             <div className="space-y-3">
                                 {employees.filter(e => e.risk !== 'stable').length === 0 ? (
-                                    <div className="text-center py-8 border border-dashed border-emerald-200/50 rounded-2xl bg-emerald-50/30">
-                                        <div className="w-12 h-12 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-3 border border-emerald-100/50">
+                                    <div className="text-center py-8 border-dashed border-emerald-200/50 rounded-2xl bg-emerald-50/30">
+                                        <div className="w-12 h-12 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-3 border-emerald-100/50">
                                             <ShieldCheck className="text-emerald-500" size={24} />
                                         </div>
                                         <p className="text-[13px] font-medium text-slate-500">Nenhum risco detectado pela análise cognitiva.</p>
                                     </div>
                                 ) : (
                                     employees.filter(e => e.risk !== 'stable').map(emp => (
-                                        <div key={emp.id} className="flex items-center gap-3 p-3.5 rounded-[1.25rem] bg-white border border-rose-100/50 shadow-sm hover:shadow-md hover:border-rose-200 transition-all cursor-pointer group" onClick={() => { setSelectedEmp(emp); setIsDrawerOpen(true); }}>
+                                        <div key={emp.id} className="flex items-center gap-3 p-3.5 rounded-[1.25rem] bg-white border-slate-200 border-black/5 shadow-sm border-rose-100/50 shadow-sm hover:shadow-md hover:border-rose-200 transition-all cursor-pointer group" onClick={() => { setSelectedEmp(emp); setIsDrawerOpen(true); }}>
                                             <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-rose-50 to-rose-100 flex items-center justify-center font-bold text-rose-600 shadow-sm">
                                                 {emp.name[0]}
                                             </div>
@@ -408,8 +408,8 @@ export default function AdvancedRHPage() {
                         </div>
 
                         <div className="bg-gradient-to-br from-indigo-600 to-violet-700 rounded-[2rem] p-6 sm:p-8 text-white shadow-xl shadow-indigo-200/50 group relative overflow-hidden">
-                            <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-bl-[4rem] pointer-events-none" />
-                            <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-white/10 blur-3xl rounded-full pointer-events-none" />
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-white border-slate-200 border-black/5 shadow-sm/5 rounded-bl-[4rem] pointer-events-none" />
+                            <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-white border-slate-200 border-black/5 shadow-sm/10 blur-3xl rounded-full pointer-events-none" />
 
                             <div className="relative z-10">
                                 <div className="flex justify-between items-start mb-6">
@@ -421,13 +421,13 @@ export default function AdvancedRHPage() {
                                         <p className="text-[11px] font-semibold text-indigo-200 tracking-wide">COMPLIANCE 100% DIGITAL</p>
                                     </div>
                                 </div>
-                                <div className="space-y-4 bg-white/10 backdrop-blur-sm border border-white/10 rounded-2xl p-4">
+                                <div className="space-y-4 bg-white border-slate-200 border-black/5 shadow-sm/10 backdrop-blur-sm border-white/10 rounded-2xl p-4">
                                     <div className="flex justify-between text-[11px] font-medium mb-2">
                                         <span>Automação Cognitiva</span>
                                         <span className="text-indigo-200">12 docs validados</span>
                                     </div>
-                                    <div className="h-1.5 bg-white/20 rounded-full overflow-hidden">
-                                        <motion.div initial={{ width: 0 }} animate={{ width: '100%' }} transition={{ duration: 1.5, delay: 0.5 }} className="h-full bg-white w-full rounded-full shadow-[0_0_10px_white]" />
+                                    <div className="h-1.5 bg-white border-slate-200 border-black/5 shadow-sm/20 rounded-full overflow-hidden">
+                                        <motion.div initial={{ width: 0 }} animate={{ width: '100%' }} transition={{ duration: 1.5, delay: 0.5 }} className="h-full bg-white border-slate-200 border-black/5 shadow-sm w-full rounded-full shadow-[0_0_10px_white]" />
                                     </div>
                                     <p className="text-[11px] leading-relaxed text-indigo-100 pt-1">
                                         "A plataforma validou 12 novos documentos via IA hoje, economizando aproximadamente 4h de triagem humana."

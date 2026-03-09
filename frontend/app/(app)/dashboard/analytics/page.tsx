@@ -102,7 +102,7 @@ export default function AnalyticsPage() {
                         <button
                             onClick={handleRefresh}
                             disabled={refreshing}
-                            className="flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-xl text-gray-300 text-sm transition-all"
+                            className="flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 border-gray-700 rounded-xl text-gray-300 text-sm transition-all"
                         >
                             <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
                             Atualizar
@@ -120,7 +120,7 @@ export default function AnalyticsPage() {
                         <div className="space-y-6">
                             {/* Top KPI Cards */}
                             <div className="grid grid-cols-3 gap-4">
-                                <div className="bg-gray-900/60 border border-gray-800 rounded-xl p-5">
+                                <div className="bg-gray-900/60 border-gray-800 rounded-xl p-5">
                                     <div className="flex items-center gap-2 mb-3">
                                         <Star className="w-5 h-5 text-yellow-400" />
                                         <span className="text-sm text-gray-400">Satisfação Média (CSAT)</span>
@@ -144,7 +144,7 @@ export default function AnalyticsPage() {
                                     </p>
                                 </div>
 
-                                <div className="bg-gray-900/60 border border-gray-800 rounded-xl p-5">
+                                <div className="bg-gray-900/60 border-gray-800 rounded-xl p-5">
                                     <div className="flex items-center gap-2 mb-3">
                                         <Clock className="w-5 h-5 text-blue-400" />
                                         <span className="text-sm text-gray-400">Banco de Horas (Saldo)</span>
@@ -160,7 +160,7 @@ export default function AnalyticsPage() {
 
                             {/* CSAT Distribution Chart */}
                             {csat && (
-                                <div className="bg-gray-900/60 border border-gray-800 rounded-xl p-6">
+                                <div className="bg-gray-900/60 border-gray-800 rounded-xl p-6">
                                     <div className="flex items-center gap-2 mb-6">
                                         <BarChart3 className="w-5 h-5 text-purple-400" />
                                         <h3 className="font-bold text-gray-200">Distribuição de Notas CSAT</h3>
@@ -191,14 +191,14 @@ export default function AnalyticsPage() {
 
                             {/* Spike Top Offenders */}
                             {spike && (spike.top_offenders?.length ?? 0) > 0 && (
-                                <div className="bg-gray-900/60 border border-gray-800 rounded-xl p-6">
+                                <div className="bg-gray-900/60 border-gray-800 rounded-xl p-6">
                                     <div className="flex items-center gap-2 mb-4">
                                         <TrendingUp className="w-5 h-5 text-red-400" />
                                         <h3 className="font-bold text-gray-200">Categorias em Alta (Última Hora)</h3>
                                     </div>
                                     <div className="grid grid-cols-3 gap-3">
                                         {spike.top_offenders?.map((off, i) => (
-                                            <div key={i} className="bg-gray-800/60 rounded-xl p-4 border border-gray-700">
+                                            <div key={i} className="bg-gray-800/60 rounded-xl p-4 border-gray-700">
                                                 <div className="text-sm text-gray-400">{off.category}</div>
                                                 <div className="text-2xl font-black text-white mt-1">{off.count}</div>
                                                 <div className="text-xs text-gray-500">tickets</div>
@@ -209,7 +209,7 @@ export default function AnalyticsPage() {
                             )}
 
                             {/* Employees Placeholder */}
-                            <div className="bg-gray-900/60 border border-gray-800 rounded-xl p-6">
+                            <div className="bg-gray-900/60 border-gray-800 rounded-xl p-6">
                                 <div className="flex items-center gap-2 mb-4">
                                     <Users className="w-5 h-5 text-green-400" />
                                     <h3 className="font-bold text-gray-200">Resumo Equipe</h3>

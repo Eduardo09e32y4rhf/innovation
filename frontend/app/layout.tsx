@@ -17,7 +17,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pt-BR" className="light">
-      <body className={`${inter.className} min-h-screen bg-slate-50 text-slate-900 antialiased`}>
+      <body className={`font-sans min-h-screen bg-slate-50 text-slate-900 antialiased`}>
         <AnnouncementBanner />
         {children}
       </body>
