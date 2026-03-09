@@ -9,9 +9,11 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@ai-sdk/openai": "^3.0.41",
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.98.0",
     "@types/react-syntax-highlighter": "^15.5.13",
+    "ai": "^6.0.116",
     "axios": "^1.13.6",
     "classnames": "^2.5.1",
     "clsx": "^2.1.1",
