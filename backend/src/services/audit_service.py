@@ -17,7 +17,7 @@ XP_MAP = {
     "JOB_UPDATE": 15,
     "JOB_DELETE": 5,
     "AI_ANALYSIS_REQUEST": 40,
-    "FINANCE_REPORT_GENERATE": 35
+    "FINANCE_REPORT_GENERATE": 35,
 }
 
 from domain.models.gamification import Mission, UserMission
