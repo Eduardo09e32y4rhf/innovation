@@ -1,7 +1,7 @@
 'use client';
 
-import { useChat } from 'ai/react';
-import { Rocket, Search, MoreVertical, Robot, Send, MessageSquare, CheckCircle2 } from 'lucide-react';
+import { useChat } from '@ai-sdk/react';
+import { Rocket, Search, MoreVertical, Bot, Send, MessageSquare, CheckCircle2 } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 
 export default function StrategistChat() {
@@ -88,7 +88,7 @@ export default function StrategistChat() {
                         {/* Boas vindas ou histórico */}
                         <div className="flex gap-4 mb-8">
                             <div className="w-8 h-8 rounded-lg bg-indigo-600 flex-shrink-0 flex items-center justify-center">
-                                <Robot className="text-white w-5 h-5" />
+                                <Bot className="text-white w-5 h-5" />
                             </div>
                             <div className="bg-white/5 backdrop-blur-md p-5 rounded-2xl rounded-tl-none border border-blue-500/10 shadow-2xl">
                                 <p className="text-sm leading-relaxed">
@@ -105,7 +105,7 @@ export default function StrategistChat() {
                             <div key={m.id} className={`flex gap-4 ${m.role === 'user' ? 'justify-end' : ''}`}>
                                 {m.role !== 'user' && (
                                     <div className="w-8 h-8 rounded-lg bg-indigo-600 flex-shrink-0 flex items-center justify-center">
-                                        <Robot className="text-white w-5 h-5" />
+                                        <Bot className="text-white w-5 h-5" />
                                     </div>
                                 )}
 
