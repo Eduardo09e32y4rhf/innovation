@@ -5,6 +5,7 @@ Complementa o rh.py existente com os novos módulos.
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
@@ -310,17 +311,32 @@ def get_employees_list(
     # Em um cenário real, filtraríamos pela empresa do current_user
     users = db.query(User).filter(User.role != "admin").all()
 
+    # ⚡ Bolt: Fetch all relevant time bank entries in a single query to eliminate N+1 problem.
+    # Why: Previously executed a separate query for each user's time bank entries inside the loop.
+    # Impact: Reduces O(N) database queries to O(1), significantly improving response time for large employee lists.
+    time_bank_query = (
+        db.query(TimeBank.user_id, TimeBank.type, func.sum(TimeBank.hours).label("total_hours"))
+        .filter(TimeBank.status == "approved")
+        .group_by(TimeBank.user_id, TimeBank.type)
+        .all()
+    )
+
+    time_balances = {}
+    for user_id, entry_type, total_hours in time_bank_query:
+        if user_id not in time_balances:
+            time_balances[user_id] = {"credit": 0.0, "debit": 0.0}
+
+        # handle decimal or float returns gracefully
+        if total_hours is not None:
+            time_balances[user_id][entry_type] = float(total_hours)
+
     # Lógica de IA Simplificada: Análise de Risco
     results = []
     for u in users:
-        # Pega saldo do banco de horas
-        entries = (
-            db.query(TimeBank)
-            .filter(TimeBank.user_id == u.id, TimeBank.status == "approved")
-            .all()
-        )
-        credits = sum(e.hours for e in entries if e.type == "credit")
-        debits = sum(e.hours for e in entries if e.type == "debit")
+        # Pega saldo do banco de horas da memória
+        user_balance = time_balances.get(u.id, {"credit": 0.0, "debit": 0.0})
+        credits = user_balance.get("credit", 0.0)
+        debits = user_balance.get("debit", 0.0)
         balance = credits - debits
 
         # Define risco baseado no saldo ( burn-rate )
