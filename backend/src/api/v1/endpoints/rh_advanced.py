@@ -315,7 +315,11 @@ def get_employees_list(
     # Why: Previously executed a separate query for each user's time bank entries inside the loop.
     # Impact: Reduces O(N) database queries to O(1), significantly improving response time for large employee lists.
     time_bank_query = (
-        db.query(TimeBank.user_id, TimeBank.type, func.sum(TimeBank.hours).label("total_hours"))
+        db.query(
+            TimeBank.user_id,
+            TimeBank.type,
+            func.sum(TimeBank.hours).label("total_hours"),
+        )
         .filter(TimeBank.status == "approved")
         .group_by(TimeBank.user_id, TimeBank.type)
         .all()
