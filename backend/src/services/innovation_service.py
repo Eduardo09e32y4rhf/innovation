@@ -6,12 +6,13 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+
 class InnovationService:
     def __init__(self):
         self.api_key = os.getenv("ANTHROPIC_API_KEY")
         self.api_url = "https://api.anthropic.com/v1/messages"
         self.model = "claude-3-5-sonnet-20241022"
-        
+
         # DEFINIÇÃO DA PERSONA: INNOVATION IA (RH & CONTABILIDADE)
         self.system_prompt = """Você é a INNOVATION IA, uma inteligência artificial de elite especializada em RH (Recursos Humanos) e Contabilidade voltada para o mercado brasileiro.
 
@@ -32,13 +33,20 @@ REGRAS DE RESPOSTA:
         Envia uma pergunta para a Innovation IA (Claude 3.5 Sonnet).
         """
         if not self.api_key:
-            raise HTTPException(503, "ANTHROPIC_API_KEY não configurada para a Innovation IA.")
+            raise HTTPException(
+                503, "ANTHROPIC_API_KEY não configurada para a Innovation IA."
+            )
 
         messages = []
         if context:
             messages.append({"role": "user", "content": f"Contexto: {context}"})
-            messages.append({"role": "assistant", "content": "Entendido. Estou pronto para analisar o contexto fornecido."})
-        
+            messages.append(
+                {
+                    "role": "assistant",
+                    "content": "Entendido. Estou pronto para analisar o contexto fornecido.",
+                }
+            )
+
         messages.append({"role": "user", "content": question})
 
         async with httpx.AsyncClient() as client:
@@ -55,7 +63,7 @@ REGRAS DE RESPOSTA:
                         "max_tokens": 4096,
                         "system": self.system_prompt,
                         "messages": messages,
-                        "temperature": 0.2, # Menor temperatura para precisão contábil
+                        "temperature": 0.2,  # Menor temperatura para precisão contábil
                     },
                     timeout=60.0,
                 )
@@ -82,5 +90,6 @@ REGRAS DE RESPOSTA:
         """
         prompt = f"Como o RH deve proceder legalmente e estrategicamente nesta situação: {situacao}"
         return await self.ask(prompt)
+
 
 innovation_ai = InnovationService()
