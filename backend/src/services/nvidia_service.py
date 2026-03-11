@@ -4,12 +4,12 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+
 class NvidiaService:
     def __init__(self):
         self.api_key = os.getenv("NVIDIA_API_KEY")
         self.client = OpenAI(
-            base_url="https://integrate.api.nvidia.com/v1",
-            api_key=self.api_key
+            base_url="https://integrate.api.nvidia.com/v1", api_key=self.api_key
         )
         self.model = "mistralai/mistral-large-3-675b-instruct-2512"
 
@@ -22,15 +22,15 @@ class NvidiaService:
                 "Você é um consultor estratégico de elite. Analise os seguintes dados da empresa "
                 f"e identifique 3 oportunidades críticas de melhoria ou crescimento: {enterprise_data}"
             )
-            
+
             completion = self.client.chat.completions.create(
                 model=self.model,
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.15,
                 max_tokens=2048,
-                top_p=1.0
+                top_p=1.0,
             )
-            
+
             return completion.choices[0].message.content
         except Exception as e:
             return f"Erro ao processar insights: {str(e)}"

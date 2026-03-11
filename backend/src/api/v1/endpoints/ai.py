@@ -381,11 +381,13 @@ async def ask_ai_stream(
 
     if user_plan in ["FREE", "BASIC", "STARTER"]:
         return StreamingResponse(
-            iter([
-                "data: ⚠️ Seu plano atual não permite acesso livre à IA. Faça upgrade para o plano COMPLETE ou ENTERPRISE para desbloquear as funcionalidades cognitivas!\n\n",
-                "data: [DONE]\n\n"
-            ]),
-            media_type="text/event-stream"
+            iter(
+                [
+                    "data: ⚠️ Seu plano atual não permite acesso livre à IA. Faça upgrade para o plano COMPLETE ou ENTERPRISE para desbloquear as funcionalidades cognitivas!\n\n",
+                    "data: [DONE]\n\n",
+                ]
+            ),
+            media_type="text/event-stream",
         )
 
     # Log usage and award XP
@@ -401,11 +403,13 @@ async def ask_ai_stream(
     if "claude" in model_choice:
         # Fallback para não-streaming se tentar claude no stream (ou implementar claude stream depois)
         return StreamingResponse(
-            iter([
-                "data: [ERROR] Streaming ainda não disponível para Claude. Use Gemini.\n\n",
-                "data: [DONE]\n\n"
-            ]),
-            media_type="text/event-stream"
+            iter(
+                [
+                    "data: [ERROR] Streaming ainda não disponível para Claude. Use Gemini.\n\n",
+                    "data: [DONE]\n\n",
+                ]
+            ),
+            media_type="text/event-stream",
         )
 
     return StreamingResponse(
