@@ -49,7 +49,8 @@ async def checkout(
             "price": price,
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro Asaas: {e}")
+        print(f"Erro Asaas: {e}")
+        raise HTTPException(status_code=500, detail="Erro ao processar pagamento")
 
 
 # 1. CRIA O LINK DE PAGAMENTO (legacy route)
