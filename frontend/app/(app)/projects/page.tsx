@@ -153,7 +153,7 @@ export default function ProjectsPage() {
                                 <option value={0}>Selecionar Projeto</option>
                                 {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                             </select>
-                            <button onClick={createTask} className="w-14 h-14 bg-indigo-600 text-white rounded-[1.5rem] flex items-center justify-center shadow-lg shadow-indigo-100 hover:scale-[1.05] active:scale-95 transition-all">
+                            <button aria-label="Criar Tarefa" onClick={createTask} className="w-14 h-14 bg-indigo-600 text-white rounded-[1.5rem] flex items-center justify-center shadow-lg shadow-indigo-100 hover:scale-[1.05] active:scale-95 transition-all">
                                 <ChevronRight size={24} />
                             </button>
                         </div>
@@ -192,14 +192,15 @@ export default function ProjectsPage() {
                                             <div className="flex items-center justify-between pt-4 border-t border-slate-50">
                                                 <div className="flex gap-2">
                                                     {col !== 'todo' && (
-                                                        <button onClick={() => moveTask(task.id, COLUMNS[COLUMNS.indexOf(col) - 1])} className="w-8 h-8 rounded-xl bg-slate-50 text-slate-700 hover:bg-slate-100 hover:text-slate-600 transition-all flex items-center justify-center">←</button>
+                                                        <button aria-label="Mover para a coluna anterior" onClick={() => moveTask(task.id, COLUMNS[COLUMNS.indexOf(col) - 1])} className="w-8 h-8 rounded-xl bg-slate-50 text-slate-700 hover:bg-slate-100 hover:text-slate-600 transition-all flex items-center justify-center">←</button>
                                                     )}
                                                     {col !== 'done' && (
-                                                        <button onClick={() => moveTask(task.id, COLUMNS[COLUMNS.indexOf(col) + 1])} className="w-8 h-8 rounded-xl bg-slate-50 text-slate-700 hover:bg-slate-100 hover:text-slate-600 transition-all flex items-center justify-center">→</button>
+                                                        <button aria-label="Mover para a próxima coluna" onClick={() => moveTask(task.id, COLUMNS[COLUMNS.indexOf(col) + 1])} className="w-8 h-8 rounded-xl bg-slate-50 text-slate-700 hover:bg-slate-100 hover:text-slate-600 transition-all flex items-center justify-center">→</button>
                                                     )}
                                                 </div>
 
                                                 <button
+                                                    aria-label={activeTracking[task.id] ? 'Parar timer' : 'Iniciar timer'}
                                                     onClick={() => handleTimeToggle(task)}
                                                     className={`h-8 px-4 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-1.5 ${activeTracking[task.id] ? 'bg-rose-500 text-slate-900 shadow-lg shadow-rose-100' : 'bg-emerald-600 text-slate-900 shadow-lg shadow-emerald-100'}`}
                                                 >
@@ -224,7 +225,7 @@ export default function ProjectsPage() {
 
                             <div className="flex justify-between items-center mb-10">
                                 <h2 className="text-2xl font-black text-slate-900 tracking-tight">Novo Escopo</h2>
-                                <button onClick={() => setShowForm(false)} className="p-3 bg-slate-50 rounded-2xl text-slate-400 hover:bg-slate-100 transition-all"><X size={20} /></button>
+                                <button aria-label="Fechar formulário" onClick={() => setShowForm(false)} className="p-3 bg-slate-50 rounded-2xl text-slate-400 hover:bg-slate-100 transition-all"><X size={20} /></button>
                             </div>
 
                             <div className="space-y-6">

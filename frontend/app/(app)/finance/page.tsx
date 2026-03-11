@@ -130,7 +130,7 @@ function NovoLancamentoModal({ onClose, onSave }: {
 
                 <div className="flex items-center justify-between mb-8">
                     <h3 className="text-xl font-black text-slate-900 tracking-tight">Novo Lançamento</h3>
-                    <button onClick={onClose} className="p-2 rounded-xl hover:bg-slate-50 text-slate-400 transition-all">
+                    <button aria-label="Fechar formulário" onClick={onClose} className="p-2 rounded-xl hover:bg-slate-50 text-slate-400 transition-all">
                         <X size={20} />
                     </button>
                 </div>
@@ -279,6 +279,7 @@ export default function FinancePage() {
                     </div>
                     <div className="flex items-center gap-3">
                         <button
+                            aria-label={hidden ? 'Mostrar valores' : 'Ocultar valores'}
                             onClick={() => setHidden(!hidden)}
                             className="w-12 h-12 bg-white border-slate-200 border-black/5 shadow-sm border-slate-100 rounded-2xl flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:border-indigo-100 transition-all shadow-sm"
                         >
