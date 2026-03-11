@@ -60,11 +60,31 @@ def test_get_analytics_structure():
     mock_query_obj.scalar.return_value = 1000.0
     mock_query_obj.count.return_value = 5
     mock_query_obj.group_by.return_value.all.side_effect = [
-        [("income", 1000.0), ("expense", 0.0)], # Totals query
-        [], [], [], [], [], [], # History queries (6 months x 1 for revenue since we optimized to 1 query in total history logic perhaps?)
-        [], [], [], [], [], [],
-        [], [], [], [], [], [],
-        [], [], [], [], [], [],
+        [("income", 1000.0), ("expense", 0.0)],  # Totals query
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],  # History queries (6 months x 1 for revenue since we optimized to 1 query in total history logic perhaps?)
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
     ]
 
     result = get_analytics(db=mock_db, current_user=mock_user)
