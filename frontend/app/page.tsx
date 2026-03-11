@@ -17,6 +17,7 @@ import {
   HeartHandshake,
   Sparkles,
 } from 'lucide-react';
+import { AIService } from '@/services/api';
 
 // ─── Componente auxiliar ────────────────────────────────────────────────────
 const FeatureCard = ({
@@ -80,36 +81,22 @@ export default function HomePage() {
     setErrorPlan('');
     setAiPlan(null);
 
-    const makeRequest = async (retries = 0): Promise<void> => {
-      try {
-        const response = await fetch('/api/ai/landing-plan', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ business_type: businessType }),
-        });
+    try {
+      const data = await AIService.getLandingPlan(businessType);
+      const text: string = data.answer || '';
 
-        if (!response.ok) {
-          throw new Error('Erro no servidor');
-        }
+      const points = text
+        .split('\n')
+        .map((line: string) => line.replace(/^[-*•\d.\s]+/, '').trim())
+        .filter((line: string) => line.length > 5)
+        .slice(0, 3);
 
-        const data = await response.json();
-        const text: string = data.answer || '';
-
-        const points = text
-          .split('\n')
-          .map((line: string) => line.replace(/^[-*•\d.\s]+/, '').trim())
-          .filter((line: string) => line.length > 5)
-          .slice(0, 3);
-
-        setAiPlan(points.length > 0 ? points : [text]);
-      } catch {
-        setErrorPlan('O simulador está em manutenção ou atingiu o limite. Tente em instantes.');
-      } finally {
-        setIsLoadingPlan(false);
-      }
-    };
-
-    await makeRequest();
+      setAiPlan(points.length > 0 ? points : [text]);
+    } catch (err: any) {
+      setErrorPlan('O simulador está em manutenção ou atingiu o limite. Tente em instantes.');
+    } finally {
+      setIsLoadingPlan(false);
+    }
   };
 
   const goToRegister = () => {

@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Camera, MapPin, ShieldCheck, CheckCircle, AlertCircle, Fingerprint } from 'lucide-react';
+import { AttendanceService } from '@/services/api';
 
 export function BiometricPunch({ onSuccess }: { onSuccess?: () => void }) {
     const [step, setStep] = useState<'idle' | 'capturing' | 'processing' | 'success' | 'error'>('idle');
@@ -88,37 +89,24 @@ export function BiometricPunch({ onSuccess }: { onSuccess?: () => void }) {
         setStep('processing');
 
         try {
-            const token = localStorage.getItem('token');
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/rh/punch-biometric`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify({
-                    photo_base64: imageData,
-                    latitude: lat,
-                    longitude: lng,
-                    accuracy: acc,
-                    device_fingerprint: `${navigator.userAgent}-${screen.width}x${screen.height}`,
-                }),
+            await AttendanceService.registerBiometricPunch({
+                photo_base64: imageData,
+                latitude: lat,
+                longitude: lng,
+                accuracy: acc,
+                device_fingerprint: `${navigator.userAgent}-${screen.width}x${screen.height}`,
             });
 
-            if (res.ok) {
-                setStep('success');
-                // Reverte para o inicio após 3s
-                setTimeout(() => {
-                    setStep('idle');
-                    setLocation(null);
-                    if (onSuccess) onSuccess();
-                }, 3000);
-            } else {
-                const err = await res.json();
-                setErrorMsg(err.detail || 'Falha na validação biométrica');
-                setStep('error');
-            }
-        } catch (err) {
-            setErrorMsg('Erro de rede ou servidor indisponível');
+            setStep('success');
+            // Reverte para o inicio após 3s
+            setTimeout(() => {
+                setStep('idle');
+                setLocation(null);
+                if (onSuccess) onSuccess();
+            }, 3000);
+        } catch (err: any) {
+            const detail = err.response?.data?.detail || 'Falha na validação biométrica';
+            setErrorMsg(detail);
             setStep('error');
         }
     };

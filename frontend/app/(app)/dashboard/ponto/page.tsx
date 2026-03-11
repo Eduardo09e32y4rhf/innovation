@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Clock, LogIn, LogOut, Calendar, CheckCircle, AlertCircle, Loader2, Edit3, X } from 'lucide-react';
 import AppLayout from '@/components/AppLayout';
 import { BiometricPunch } from '@/components/rh/BiometricPunch';
+import { AttendanceService } from '@/services/api';
 
 interface TimeBankEntry {
     id: number;
@@ -56,22 +57,14 @@ export default function PontoPage() {
     };
 
     const fetchBalance = useCallback(async () => {
-        const token = getToken();
-        if (!token) {
-            window.location.href = '/login';
-            return;
-        }
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/rh/v2/time-bank/balance`, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            if (res.status === 401) { window.location.href = '/login'; return; }
-            if (res.ok) {
-                const data = await res.json();
-                setBalance(data);
+            const data = await AttendanceService.getPunchBalance();
+            setBalance(data);
+        } catch (err: any) {
+            if (err.response?.status === 401) {
+                // api.ts interceptor should handle this, but keeping safety check
+                window.location.href = '/login';
             }
-        } catch {
-            // silently fail — show cached or empty state
         } finally {
             setLoading(false);
         }
@@ -82,9 +75,6 @@ export default function PontoPage() {
     const handlePonto = async (type: 'credit' | 'debit', manualData?: { date: string, time: string, reason: string }) => {
         if (isSubmitting) return; // Anti-double-click
         setIsSubmitting(true);
-
-        const token = getToken();
-        if (!token) { window.location.href = '/login'; return; }
 
         let reason = type === 'credit' ? 'Entrada registrada via portal' : 'Saída registrada via portal';
         let payload: any = { type, hours: 1 };
@@ -100,32 +90,18 @@ export default function PontoPage() {
         }
 
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/rh/v2/time-bank`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify(payload),
-            });
+            await AttendanceService.registerPunch(payload);
+            setLastAction(type);
+            showNotification('success', type === 'credit' ? '✅ Entrada registrada com sucesso!' : '✅ Saída registrada com sucesso!');
+            await fetchBalance();
 
-            if (res.status === 401) { window.location.href = '/login'; return; }
-
-            if (res.ok) {
-                setLastAction(type);
-                showNotification('success', type === 'credit' ? '✅ Entrada registrada com sucesso!' : '✅ Saída registrada com sucesso!');
-                await fetchBalance();
-
-                // reset modal fields
-                setManualDate('');
-                setManualTime('');
-                setManualReason('');
-            } else {
-                const err = await res.json();
-                showNotification('error', err.detail || 'Erro ao registrar ponto');
-            }
-        } catch {
-            showNotification('error', 'Erro de conexão com o servidor');
+            // reset modal fields
+            setManualDate('');
+            setManualTime('');
+            setManualReason('');
+        } catch (err: any) {
+            const detail = err.response?.data?.detail || 'Erro ao registrar ponto';
+            showNotification('error', detail);
         } finally {
             // 3-second cooldown before re-enabling the button
             setTimeout(() => setIsSubmitting(false), 3000);

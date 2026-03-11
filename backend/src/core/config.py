@@ -15,7 +15,10 @@ class Settings(BaseSettings):
     # External Services
     REDIS_URL: str = "redis://localhost:6379/0"
     GEMINI_API_KEYS: str | None = None
-    ALLOWED_ORIGINS: str = "http://localhost:3000,http://187.77.49.207"
+    ANTHROPIC_API_KEY: str | None = None
+    OPENAI_API_KEY: str | None = None
+    NVIDIA_API_KEY: str | None = None
+    ALLOWED_ORIGINS: str = "*"
 
     # Google OAuth
     GOOGLE_CLIENT_ID: str | None = None
@@ -31,7 +34,10 @@ class Settings(BaseSettings):
     SENDGRID_API_KEY: str | None = None
     EMAIL_FROM: str = "no-reply@innovation.ia"
 
-    # Asaas Settings (Opcionais se usar env puro, mas se quiser pode adicionar)
+    # Asaas & Mercado Pago Settings
+    ASAAS_API_KEY: str | None = None
+    MP_ACCESS_TOKEN: str | None = None
+    
     BASE_URL: str = (
         "http://localhost:8000"  # Default for local dev, override in prod/ngrok
     )

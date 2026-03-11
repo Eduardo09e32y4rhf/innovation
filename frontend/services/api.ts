@@ -279,6 +279,28 @@ export const RHService = {
     },
 };
 
+// ── ATTENDANCE / PONTO ───────────────────────────────────────────────────
+export const AttendanceService = {
+    getPunchBalance: async () => {
+        const res = await api.get('/api/rh/v2/time-bank/balance');
+        return res.data;
+    },
+    registerPunch: async (data: { type: 'credit' | 'debit'; hours: number; reason?: string; created_at?: string }) => {
+        const res = await api.post('/api/rh/v2/time-bank', data);
+        return res.data;
+    },
+    registerBiometricPunch: async (data: {
+        photo_base64: string;
+        latitude: number;
+        longitude: number;
+        accuracy: number;
+        device_fingerprint: string;
+    }) => {
+        const res = await api.post('/api/rh/punch-biometric', data);
+        return res.data;
+    },
+};
+
 // ── PAYMENTS ─────────────────────────────────────────────────────────────
 export const PaymentService = {
     createCheckout: async (plan: string) => {
@@ -350,6 +372,10 @@ export const AIService = {
         const res = await api.post('/api/ai/parse-resume', formData, {
             headers: { 'Content-Type': 'multipart/form-data' },
         });
+        return res.data;
+    },
+    getLandingPlan: async (businessType: string) => {
+        const res = await api.post('/api/ai/landing-plan', { business_type: businessType });
         return res.data;
     },
 };
