@@ -317,9 +317,7 @@ def get_employees_list(
     # Otimização: calcula os saldos de forma agregada via BD para evitar N+1 queries e carregamento de registros em memória (O(N))
     stats = (
         db.query(
-            TimeBank.user_id,
-            TimeBank.type,
-            func.sum(TimeBank.hours).label("total")
+            TimeBank.user_id, TimeBank.type, func.sum(TimeBank.hours).label("total")
         )
         .filter(TimeBank.status == "approved")
         .group_by(TimeBank.user_id, TimeBank.type)
