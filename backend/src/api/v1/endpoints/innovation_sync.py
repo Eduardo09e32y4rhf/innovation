@@ -40,6 +40,7 @@ async def sync_knowledge(data: Dict[str, Any]):
         return {"status": "Knowledge synchronized on VPS"}
     except Exception as e:
         import logging
+
         logger = logging.getLogger(__name__)
         logger.error(f"Erro ao sincronizar conhecimento: {str(e)}")
         return {"status": "error", "detail": "Erro interno ao processar sincronização"}
