@@ -36,6 +36,7 @@ build/
 .env
 .env*
 !.env.microservices.example
+!.env.example
 *.pem
 *.key
 *.jwt
