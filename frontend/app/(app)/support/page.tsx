@@ -148,7 +148,7 @@ export default function SupportPage() {
 
                                 <div className="flex justify-between items-center mb-4">
                                     <h3 className="text-lg font-semibold">Abrir Chamado</h3>
-                                    <button onClick={() => setShowModal(false)}><X className="w-5 h-5 text-slate-500" /></button>
+                                    <button onClick={() => setShowModal(false)} aria-label="Fechar modal"><X className="w-5 h-5 text-slate-500" /></button>
                                 </div>
                                 <div className="space-y-3">
                                     <input className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm" placeholder="Título do problema" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} />

@@ -5,6 +5,7 @@ Complementa o rh.py existente com os novos módulos.
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
@@ -310,18 +311,31 @@ def get_employees_list(
     # Em um cenário real, filtraríamos pela empresa do current_user
     users = db.query(User).filter(User.role != "admin").all()
 
+    if not users:
+        return []
+
+    # Otimização: calcula os saldos de forma agregada via BD para evitar N+1 queries e carregamento de registros em memória (O(N))
+    stats = (
+        db.query(
+            TimeBank.user_id, TimeBank.type, func.sum(TimeBank.hours).label("total")
+        )
+        .filter(TimeBank.status == "approved")
+        .group_by(TimeBank.user_id, TimeBank.type)
+        .all()
+    )
+
+    balances = {u.id: 0.0 for u in users}
+    for stat in stats:
+        if stat.user_id in balances:
+            if stat.type == "credit":
+                balances[stat.user_id] += stat.total
+            elif stat.type == "debit":
+                balances[stat.user_id] -= stat.total
+
     # Lógica de IA Simplificada: Análise de Risco
     results = []
     for u in users:
-        # Pega saldo do banco de horas
-        entries = (
-            db.query(TimeBank)
-            .filter(TimeBank.user_id == u.id, TimeBank.status == "approved")
-            .all()
-        )
-        credits = sum(e.hours for e in entries if e.type == "credit")
-        debits = sum(e.hours for e in entries if e.type == "debit")
-        balance = credits - debits
+        balance = balances[u.id]
 
         # Define risco baseado no saldo ( burn-rate )
         risk = "stable"

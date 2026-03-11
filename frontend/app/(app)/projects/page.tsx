@@ -224,7 +224,7 @@ export default function ProjectsPage() {
 
                             <div className="flex justify-between items-center mb-10">
                                 <h2 className="text-2xl font-black text-slate-900 tracking-tight">Novo Escopo</h2>
-                                <button onClick={() => setShowForm(false)} className="p-3 bg-slate-50 rounded-2xl text-slate-400 hover:bg-slate-100 transition-all"><X size={20} /></button>
+                                <button onClick={() => setShowForm(false)} className="p-3 bg-slate-50 rounded-2xl text-slate-400 hover:bg-slate-100 transition-all" aria-label="Fechar modal"><X size={20} /></button>
                             </div>
 
                             <div className="space-y-6">
