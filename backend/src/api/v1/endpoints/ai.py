@@ -380,9 +380,15 @@ async def ask_ai_stream(
     user_plan = getattr(current_user, "subscription_plan", "FREE").upper()
 
     if user_plan in ["FREE", "BASIC", "STARTER"]:
-        yield "data: ⚠️ Seu plano atual não permite acesso livre à IA. Faça upgrade para o plano COMPLETE ou ENTERPRISE para desbloquear as funcionalidades cognitivas!\n\n"
-        yield "data: [DONE]\n\n"
-        return
+        return StreamingResponse(
+            iter(
+                [
+                    "data: ⚠️ Seu plano atual não permite acesso livre à IA. Faça upgrade para o plano COMPLETE ou ENTERPRISE para desbloquear as funcionalidades cognitivas!\n\n",
+                    "data: [DONE]\n\n",
+                ]
+            ),
+            media_type="text/event-stream",
+        )
 
     # Log usage and award XP
     db = next(get_db())
