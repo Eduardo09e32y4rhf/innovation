@@ -45,15 +45,15 @@ export function Sidebar() {
     };
 
     return (
-        <aside className="fixed left-0 top-0 bottom-0 w-[280px] bg-gray-950/95 backdrop-blur-xl border-r border-blue-500/20 z-50 flex flex-col">
+        <aside className="fixed left-0 top-0 bottom-0 w-[280px] bg-white/80 backdrop-blur-xl border-r border-slate-200 z-50 flex flex-col shadow-sm">
             <div className="p-6">
-                <h1 className="text-2xl font-black gradient-text">INNOVATION.IA</h1>
-                <p className="text-xs text-gray-600 mt-0.5">Enterprise Platform</p>
+                <h1 className="text-2xl font-black text-slate-900 tracking-tighter">INNOV<span className="text-blue-600">A</span>TION IA</h1>
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Enterprise Platform</p>
             </div>
 
-            <nav className="flex-1 px-4 overflow-y-auto">
-                <p className="text-xs text-gray-600 uppercase tracking-widest mb-2 px-2">Principal</p>
-                <div className="space-y-1 mb-6">
+            <nav className="flex-1 px-4 overflow-y-auto pt-4 scrollbar-hide">
+                <p className="text-[10px] text-slate-400 font-extrabold uppercase tracking-[0.2em] mb-4 px-2">Principal</p>
+                <div className="space-y-1 mb-8">
                     {mainMenu.map((item) => {
                         const isActive = pathname === item.href;
                         const Icon = item.icon;
@@ -61,17 +61,17 @@ export function Sidebar() {
                             <Link
                                 key={item.href}
                                 href={item.href}
-                                className={`sidebar-link ${isActive ? 'active' : ''}`}
+                                className={isActive ? 'sidebar-link-active' : 'sidebar-link'}
                             >
-                                <Icon className={`w-5 h-5 ${isActive ? 'text-blue-600' : 'text-gray-500'}`} />
-                                <span className="font-medium">{item.name}</span>
+                                <Icon className="w-5 h-5 shrink-0" />
+                                <span className="font-bold">{item.name}</span>
                             </Link>
                         );
                     })}
                 </div>
 
-                <p className="text-xs text-gray-600 uppercase tracking-widest mb-2 mt-4 px-2">Avançado</p>
-                <div className="space-y-1 mb-6">
+                <p className="text-[10px] text-slate-400 font-extrabold uppercase tracking-[0.2em] mb-4 px-2">Avançado</p>
+                <div className="space-y-1 mb-8">
                     {advancedMenu.map((item) => {
                         const isActive = pathname === item.href;
                         const Icon = item.icon;
@@ -79,17 +79,17 @@ export function Sidebar() {
                             <Link
                                 key={item.href}
                                 href={item.href}
-                                className={`sidebar-link ${isActive ? 'active' : ''}`}
+                                className={isActive ? 'sidebar-link-active' : 'sidebar-link'}
                             >
-                                <Icon className={`w-5 h-5 ${isActive ? 'text-blue-600' : 'text-gray-500'}`} />
-                                <span className="font-medium">{item.name}</span>
+                                <Icon className="w-5 h-5 shrink-0" />
+                                <span className="font-bold">{item.name}</span>
                             </Link>
                         );
                     })}
                 </div>
 
-                <p className="text-xs text-gray-600 uppercase tracking-widest mb-2 px-2">Público</p>
-                <div className="space-y-1">
+                <p className="text-[10px] text-slate-400 font-extrabold uppercase tracking-[0.2em] mb-4 px-2">Público</p>
+                <div className="space-y-1 mb-8">
                     {publicMenu.map((item) => {
                         const isActive = pathname === item.href;
                         const Icon = item.icon;
@@ -97,22 +97,22 @@ export function Sidebar() {
                             <Link
                                 key={item.href}
                                 href={item.href}
-                                className={`sidebar-link ${isActive ? 'active' : ''}`}
+                                className={isActive ? 'sidebar-link-active' : 'sidebar-link'}
                             >
-                                <Icon className={`w-5 h-5 ${isActive ? 'text-blue-600' : 'text-gray-500'}`} />
-                                <span className="font-medium">{item.name}</span>
+                                <Icon className="w-5 h-5 shrink-0" />
+                                <span className="font-bold">{item.name}</span>
                             </Link>
                         );
                     })}
                 </div>
             </nav>
 
-            <div className="p-4 border-t border-blue-500/10">
+            <div className="p-4 border-t border-slate-100">
                 <button
                     onClick={handleLogout}
-                    className="w-full py-2 bg-red-500/10 text-red-400 rounded-lg hover:bg-red-500/20 transition text-sm font-medium flex items-center justify-center gap-2"
+                    className="w-full py-3 bg-rose-50 text-rose-600 rounded-2xl hover:bg-rose-100 transition text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2"
                 >
-                    <LogOut className="w-4 h-4" /> Sair
+                    <LogOut className="w-4 h-4" /> Sair do Sistema
                 </button>
             </div>
         </aside>

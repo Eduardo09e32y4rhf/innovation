@@ -86,7 +86,7 @@ const KanbanCard = ({ candidato }: { candidato: any }) => {
                         <h4 className="font-bold text-slate-900 text-sm group-hover:text-blue-600 transition-colors leading-tight">
                             {candidato.nome}
                         </h4>
-                        <div className="flex items-center gap-1.5 text-xs text-slate-9000 mt-0.5">
+                        <div className="flex items-center gap-1.5 text-xs text-slate-500 mt-0.5">
                             <Briefcase size={12} />
                             <span className="line-clamp-1 font-medium">{candidato.cargoAtual}</span>
                         </div>
@@ -99,7 +99,7 @@ const KanbanCard = ({ candidato }: { candidato: any }) => {
 
             <div className={`mt-1 ml-2 p-2 rounded-lg border ${match.bg.replace('zinc-800/50', 'slate-100').replace('emerald-500/10', 'emerald-50').replace('indigo-500/10', 'blue-50').replace('amber-500/10', 'amber-50')} ${match.border.replace('zinc-800', 'slate-200').replace('20', '30')} flex flex-col gap-1.5`}>
                 <div className="flex justify-between items-center">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-9000 flex items-center gap-1.5">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-1.5">
                         {candidato.matchIA ? <Sparkles size={12} className={match.color.replace('400', '600').replace('400', '600')} /> : <BrainCircuit size={12} className="text-slate-400" />}
                         {match.label}
                     </span>
@@ -201,7 +201,7 @@ export default function RecrutamentoPage() {
                     </div>
 
                     <div className="flex flex-col md:flex-row items-start md:items-center gap-4 md:gap-6 w-full md:w-auto">
-                        <div className="flex items-center gap-4 text-xs font-bold text-slate-9000">
+                        <div className="flex items-center gap-4 text-xs font-bold text-slate-500">
                             <span><strong className="text-slate-900">{candidatos.length}</strong> no total</span>
                             <div className="w-1 h-1 rounded-full bg-slate-300"></div>
                             <span><strong className="text-blue-600">{candidatos.filter(c => c.matchIA).length}</strong> analisados</span>

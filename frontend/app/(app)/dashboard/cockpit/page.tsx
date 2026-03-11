@@ -46,7 +46,7 @@ const TabDashboard = ({ metrics, activity }: { metrics: any; activity: any[] }) 
             <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-6 gap-4">
                 <div>
                     <h2 className="text-2xl font-black text-slate-900 tracking-tight">ERP Cockpit</h2>
-                    <p className="text-slate-9000 text-sm mt-1">Sua central de comando unificada e sincronizada.</p>
+                    <p className="text-slate-500 text-sm mt-1">Sua central de comando unificada e sincronizada.</p>
                 </div>
                 <div className="flex gap-3 w-full md:w-auto">
                     <select className="flex-1 md:flex-none bg-white border-slate-200 border-black/5 shadow-sm border-slate-200 text-slate-700 text-sm rounded-xl px-4 py-2 outline-none focus:ring-2 ring-indigo-500 shadow-sm">
@@ -72,11 +72,11 @@ const TabDashboard = ({ metrics, activity }: { metrics: any; activity: any[] }) 
                             <div className={`p-2 rounded-lg ${s.bg} ${s.color}`}>
                                 <s.icon size={18} />
                             </div>
-                            <p className={`text-xs font-bold ${s.trend.includes('+') ? 'text-emerald-600' : s.trend.includes('-') ? 'text-blue-600' : 'text-slate-9000'}`}>
+                            <p className={`text-xs font-bold ${s.trend.includes('+') ? 'text-emerald-600' : s.trend.includes('-') ? 'text-blue-600' : 'text-slate-500'}`}>
                                 {s.trend}
                             </p>
                         </div>
-                        <p className="text-slate-9000 text-[10px] font-bold uppercase tracking-widest">{s.title}</p>
+                        <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">{s.title}</p>
                         <p className="text-2xl font-black text-slate-900 mt-1">{s.value}</p>
                     </div>
                 ))}
@@ -156,7 +156,7 @@ const TabFinanceiro = ({ summary, transactions, dasMei }: { summary: any; transa
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-6 gap-4">
             <div>
                 <h2 className="text-2xl font-black text-slate-900 tracking-tight">Tesouraria & Caixa</h2>
-                <p className="text-slate-9000 text-sm mt-1">Gestão financeira unificada com Open Finance.</p>
+                <p className="text-slate-500 text-sm mt-1">Gestão financeira unificada com Open Finance.</p>
             </div>
             <button className="bg-indigo-600 hover:bg-indigo-700 text-slate-900 px-5 py-2.5 rounded-xl text-sm font-bold transition-all shadow-lg shadow-indigo-200 flex items-center gap-2">
                 <Plus size={16} /> Novo Lançamento
@@ -253,7 +253,7 @@ const TabFinanceiro = ({ summary, transactions, dasMei }: { summary: any; transa
                                     <td className="px-6 py-4">
                                         <div className="flex items-center gap-3">
                                             <div className={`w-2 h-2 rounded-full ${tx.status === 'paid' ? 'bg-emerald-500' : 'bg-amber-500'}`}></div>
-                                            <span className="text-[10px] font-bold text-slate-9000">{new Date(tx.due_date).toLocaleDateString()}</span>
+                                            <span className="text-[10px] font-bold text-slate-500">{new Date(tx.due_date).toLocaleDateString()}</span>
                                         </div>
                                     </td>
                                     <td className="px-6 py-4">
@@ -265,7 +265,7 @@ const TabFinanceiro = ({ summary, transactions, dasMei }: { summary: any; transa
                                         </div>
                                     </td>
                                     <td className="px-6 py-4">
-                                        <span className="bg-slate-100 text-slate-9000 text-[10px] px-2 py-1 rounded-md font-bold uppercase tracking-wider">{tx.category || 'Geral'}</span>
+                                        <span className="bg-slate-100 text-slate-500 text-[10px] px-2 py-1 rounded-md font-bold uppercase tracking-wider">{tx.category || 'Geral'}</span>
                                     </td>
                                     <td className={`px-6 py-4 text-sm font-black text-right ${tx.type === 'income' ? 'text-emerald-600' : 'text-slate-900'}`}>
                                         {tx.type === 'income' ? '+' : '-'} {formatCurrency(tx.amount)}
@@ -373,13 +373,13 @@ const TabConfig = ({ user, company }: { user: UserProfile | null; company: any }
         >
             <div className="w-full lg:w-64 space-y-1">
                 <h3 className="text-xl font-black text-slate-900 mb-6 px-4">Preferências</h3>
-                <button onClick={() => setSub('profile')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all ${sub === 'profile' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-9000 hover:bg-slate-50'}`}>
+                <button onClick={() => setSub('profile')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all ${sub === 'profile' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-500 hover:bg-slate-50'}`}>
                     <User size={18} /> Meu Perfil
                 </button>
-                <button onClick={() => setSub('company')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all ${sub === 'company' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-9000 hover:bg-slate-50'}`}>
+                <button onClick={() => setSub('company')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all ${sub === 'company' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-500 hover:bg-slate-50'}`}>
                     <Building2 size={18} /> Dados da Empresa
                 </button>
-                <button onClick={() => setSub('billing')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all ${sub === 'billing' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-9000 hover:bg-slate-50'}`}>
+                <button onClick={() => setSub('billing')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all ${sub === 'billing' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-500 hover:bg-slate-50'}`}>
                     <CreditCard size={18} /> Assinatura ERP
                 </button>
             </div>
@@ -393,7 +393,7 @@ const TabConfig = ({ user, company }: { user: UserProfile | null; company: any }
                             </div>
                             <div>
                                 <h4 className="text-xl font-black text-slate-900">{user?.name}</h4>
-                                <p className="text-sm text-slate-9000">{user?.email}</p>
+                                <p className="text-sm text-slate-500">{user?.email}</p>
                             </div>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -456,7 +456,7 @@ const TabAssistente = () => (
             </div>
         </div>
         <h2 className="text-3xl font-black text-slate-900 tracking-tight">INNOVATIONT Inteligência Artificial</h2>
-        <p className="max-w-md text-center mt-3 text-slate-9000 font-medium">Sua copiloto para gestão corporativa. Conectada ao Gemini Pro para suporte em tempo real.</p>
+        <p className="max-w-md text-center mt-3 text-slate-500 font-medium">Sua copiloto para gestão corporativa. Conectada ao Gemini Pro para suporte em tempo real.</p>
         <button className="mt-10 bg-slate-50 text-slate-900 px-8 py-4 rounded-2xl font-black shadow-2xl flex items-center gap-3 hover:scale-105 transition-all">
             <MessageSquare size={20} /> Iniciar Conversa
         </button>
@@ -583,7 +583,7 @@ export default function ModernDashboard() {
                             onClick={() => { setActiveTab(item.id); setIsMobileMenuOpen(false); }}
                             className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-black transition-all ${activeTab === item.id
                                 ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-100'
-                                : 'text-slate-9000 hover:bg-slate-50 hover:text-slate-900'
+                                : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
                                 }`}
                         >
                             <item.icon size={18} className={activeTab === item.id ? 'text-slate-900' : 'text-slate-700'} />
@@ -652,7 +652,7 @@ export default function ModernDashboard() {
                                 <div className="py-20 text-center">
                                     <Users size={48} className="mx-auto text-slate-800 mb-6" />
                                     <h3 className="text-xl font-black text-slate-900">Gestão Estratégica de Talentos</h3>
-                                    <p className="text-slate-9000 mt-2 max-w-sm mx-auto">Módulo avançado de RH para controle de folha, férias e organograma. Em breve integrado com inteligência de rede.</p>
+                                    <p className="text-slate-500 mt-2 max-w-sm mx-auto">Módulo avançado de RH para controle de folha, férias e organograma. Em breve integrado com inteligência de rede.</p>
                                     <button className="mt-8 bg-indigo-50 text-indigo-600 font-black px-6 py-3 rounded-xl hover:bg-indigo-100 transition-all uppercase text-xs tracking-widest">Acessar RH V2</button>
                                 </div>
                             )}

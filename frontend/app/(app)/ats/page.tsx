@@ -24,7 +24,7 @@ interface ApplicationStat {
 // ─── STAT CARD ───────────────────────────────────────────────────────────────
 function StatCard({ title, value, icon: Icon, colorClass }: any) {
     return (
-        <div className="bg-white border-slate-200 border-black/5 shadow-sm border-slate-100 p-6 rounded-[2rem] shadow-sm hover:shadow-xl hover:shadow-indigo-100/40 transition-all group relative overflow-hidden">
+        <div className="bg-white border-slate-200 border-black/5 shadow-sm border-slate-100 p-6 rounded-[2rem] shadow-sm hover:shadow-xl hover:shadow-blue-100/40 transition-all group relative overflow-hidden">
             <div className={`absolute top-0 right-0 w-24 h-24 bg-gradient-to-br ${colorClass} opacity-[0.03] group-hover:opacity-[0.07] transition-opacity rounded-bl-[4rem]`} />
             <div className="relative z-10 flex items-center gap-5">
                 <div className={`w-14 h-14 rounded-2xl flex items-center justify-center bg-white border-slate-200 border-black/5 shadow-sm border-slate-100 shadow-sm ${colorClass.split(' ')[0].replace('from-', 'text-')}`}>
@@ -88,13 +88,13 @@ export default function ATSPage() {
                 {/* Header */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                     <div>
-                        <h1 className="text-4xl font-black text-slate-900 tracking-tight mb-2">Recrutamento <span className="text-indigo-600">Cognitivo</span></h1>
-                        <p className="text-slate-9000 font-medium tracking-tight">Atraia os melhores talentos através de triagem neural e análise de perfil DISC.</p>
+                        <h1 className="text-4xl font-black text-slate-900 tracking-tight mb-2">Recrutamento <span className="text-blue-600">Cognitivo</span></h1>
+                        <p className="text-slate-500 font-medium tracking-tight">Atraia os melhores talentos através de triagem neural e análise de perfil DISC.</p>
                     </div>
 
                     <button
                         onClick={() => setShowCreate(true)}
-                        className="bg-indigo-600 text-white px-6 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2 shadow-xl shadow-indigo-100 hover:scale-[1.02] transition-all"
+                        className="bg-blue-600 text-white px-6 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2 shadow-xl shadow-blue-100 hover:scale-[1.02] transition-all"
                     >
                         <Plus size={18} /> Publicar Nova Vaga
                     </button>
@@ -126,7 +126,7 @@ export default function ATSPage() {
                 <div className="bg-white border-slate-200 border-black/5 shadow-sm border-slate-100 rounded-[2.5rem] p-8 shadow-sm">
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-10">
                         <h2 className="text-xl font-black text-slate-900 uppercase tracking-tighter flex items-center gap-3">
-                            <FileText size={24} className="text-indigo-600" /> Pipeline de Oportunidades
+                            <FileText size={24} className="text-blue-600" /> Pipeline de Oportunidades
                         </h2>
 
                         <div className="flex items-center gap-3 w-full md:w-auto">
@@ -134,7 +134,7 @@ export default function ATSPage() {
                                 <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
                                 <input type="text" placeholder="Filtrar vagas..." className="w-full bg-slate-50 border-slate-100 rounded-xl py-2.5 pl-11 pr-4 text-xs font-medium focus:ring-4 focus:ring-indigo-50 outline-none transition-all" />
                             </div>
-                            <button className="p-2.5 bg-slate-50 rounded-xl border-slate-100 text-slate-400 hover:text-indigo-600 transition-all">
+                            <button className="p-2.5 bg-slate-50 rounded-xl border-slate-100 text-slate-400 hover:text-blue-600 transition-all">
                                 <Filter size={18} />
                             </button>
                         </div>
@@ -150,35 +150,35 @@ export default function ATSPage() {
                             <Briefcase className="w-16 h-16 mx-auto mb-4 text-slate-800" />
 
                             <p className="text-sm font-black text-slate-400 uppercase tracking-widest">Nenhuma vaga publicada no momento.</p>
-                            <button onClick={() => setShowCreate(true)} className="mt-4 text-indigo-600 font-black uppercase text-xs hover:underline">Iniciar Processo Seletivo</button>
+                            <button onClick={() => setShowCreate(true)} className="mt-4 text-blue-600 font-black uppercase text-xs hover:underline">Iniciar Processo Seletivo</button>
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 gap-4">
                             {jobs.map((job) => (
-                                <div key={job.id} className="group flex flex-col md:flex-row items-center justify-between p-6 bg-white border-slate-200 border-black/5 shadow-sm border-slate-100 rounded-[1.8rem] hover:border-indigo-100 hover:shadow-xl hover:shadow-indigo-100/30 transition-all cursor-pointer">
+                                <div key={job.id} className="group flex flex-col md:flex-row items-center justify-between p-6 bg-white border-slate-200 border-black/5 shadow-sm border-slate-100 rounded-[1.8rem] hover:border-indigo-100 hover:shadow-xl hover:shadow-blue-100/30 transition-all cursor-pointer">
                                     <div className="flex items-center gap-5 w-full md:w-auto mb-4 md:mb-0">
-                                        <div className="w-14 h-14 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600 shadow-inner group-hover:scale-110 transition-transform">
+                                        <div className="w-14 h-14 rounded-2xl bg-indigo-50 flex items-center justify-center text-blue-600 shadow-inner group-hover:scale-110 transition-transform">
                                             <FileText size={24} />
                                         </div>
                                         <div>
-                                            <h3 className="text-lg font-black text-slate-900 group-hover:text-indigo-600 transition-colors uppercase tracking-tight">{job.title}</h3>
+                                            <h3 className="text-lg font-black text-slate-900 group-hover:text-blue-600 transition-colors uppercase tracking-tight">{job.title}</h3>
                                             <div className="flex items-center gap-3 mt-1">
                                                 <span className="flex items-center gap-1 text-[10px] font-bold text-slate-400 uppercase tracking-widest"><MapPin size={12} /> {job.location || 'Remoto'}</span>
                                                 <span className="w-1 h-1 bg-slate-200 rounded-full" />
-                                                <span className="flex items-center gap-1 text-[10px] font-bold text-indigo-600/60 uppercase tracking-widest"><Briefcase size={12} /> {job.type}</span>
+                                                <span className="flex items-center gap-1 text-[10px] font-bold text-blue-600/60 uppercase tracking-widest"><Briefcase size={12} /> {job.type}</span>
                                             </div>
                                         </div>
                                     </div>
 
                                     <div className="flex items-center gap-6 w-full md:w-auto justify-between md:justify-end border-t md:border-t-0 pt-4 md:pt-0">
                                         <div className="flex flex-col items-end gap-1">
-                                            <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border ${job.status === 'open' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-slate-50 text-slate-9000 border-slate-100'
+                                            <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border ${job.status === 'open' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-slate-50 text-slate-500 border-slate-100'
                                                 }`}>
                                                 {getPhaseLabel(job.status)}
                                             </span>
                                             <p className="text-[10px] font-black text-slate-700 uppercase tracking-widest leading-none mt-1">Status Global</p>
                                         </div>
-                                        <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-700 group-hover:bg-indigo-600 group-hover:text-slate-900 transition-all">
+                                        <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-700 group-hover:bg-blue-600 group-hover:text-slate-900 transition-all">
                                             <ChevronRight size={20} />
                                         </div>
                                     </div>
@@ -189,7 +189,7 @@ export default function ATSPage() {
                 </div>
 
                 {/* Newsletter / IA Tip */}
-                <div className="bg-indigo-600 rounded-[2.5rem] p-10 text-slate-900 shadow-xl shadow-indigo-100 relative overflow-hidden">
+                <div className="bg-blue-600 rounded-[2.5rem] p-10 text-slate-900 shadow-xl shadow-blue-100 relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-bl-[10rem] pointer-events-none" />
 
                     <div className="relative z-10 max-w-2xl">
@@ -236,7 +236,7 @@ export default function ATSPage() {
                                     <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Contrato</label>
                                     <div className="flex flex-wrap gap-2">
                                         {['CLT', 'PJ', 'Freelancer', 'Estágio'].map(t => (
-                                            <button key={t} onClick={() => setForm({ ...form, type: t })} className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${form.type === t ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100' : 'bg-slate-50 text-slate-400 border-slate-100'}`}>{t}</button>
+                                            <button key={t} onClick={() => setForm({ ...form, type: t })} className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${form.type === t ? 'bg-blue-600 text-white shadow-lg shadow-blue-100' : 'bg-slate-50 text-slate-400 border-slate-100'}`}>{t}</button>
                                         ))}
                                     </div>
                                 </div>
@@ -246,7 +246,7 @@ export default function ATSPage() {
                                     <textarea rows={4} className="w-full bg-slate-50 border-slate-100 rounded-2xl px-6 py-4 text-sm font-medium focus:ring-4 focus:ring-indigo-50 outline-none resize-none" placeholder="Detalhes da vaga..." value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} />
                                 </div>
 
-                                <button onClick={handleCreateJob} disabled={saving} className="w-full bg-indigo-600 text-white font-black py-5 rounded-[1.8rem] shadow-xl shadow-indigo-100 uppercase tracking-[0.2em] text-xs hover:scale-[1.02] active:scale-95 transition-all mt-4">
+                                <button onClick={handleCreateJob} disabled={saving} className="w-full bg-blue-600 text-white font-black py-5 rounded-[1.8rem] shadow-xl shadow-blue-100 uppercase tracking-[0.2em] text-xs hover:scale-[1.02] active:scale-95 transition-all mt-4">
                                     {saving ? 'PUBLICANDO...' : 'PUBLICAR VAGA AGORA'}
                                 </button>
                             </div>

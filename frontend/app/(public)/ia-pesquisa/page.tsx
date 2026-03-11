@@ -143,7 +143,7 @@ export default function IAPublicaPage() {
                     </div>
                     <div>
                         <h1 className="font-bold text-lg text-slate-800">IA de Pesquisa Rápida</h1>
-                        <p className="text-xs text-slate-9000">Busca em tempo real na Web (Google/YouTube)</p>
+                        <p className="text-xs text-slate-500">Busca em tempo real na Web (Google/YouTube)</p>
                     </div>
                 </div>
                 {messages.length > 0 && (
@@ -165,7 +165,7 @@ export default function IAPublicaPage() {
                             <Sparkles className="w-10 h-10" />
                         </div>
                         <h2 className="text-2xl font-bold mb-3 text-slate-800">Olá! O que você precisa saber hoje?</h2>
-                        <p className="text-slate-9000 max-w-md mb-8">
+                        <p className="text-slate-500 max-w-md mb-8">
                             Faça uma pergunta sobre Leis, FGTS, INSS, Impostos ou qualquer outro assunto. Eu busco as respostas mais atualizadas na internet para você.
                         </p>
 
@@ -197,7 +197,7 @@ export default function IAPublicaPage() {
                                         : 'bg-white border-slate-200 border-black/5 shadow-sm border-slate-200 text-slate-800 rounded-tl-sm'}`}
                                 >
                                     {msg.isThinking ? (
-                                        <div className="flex items-center gap-2 text-slate-9000">
+                                        <div className="flex items-center gap-2 text-slate-500">
                                             <div className="flex gap-1">
                                                 <div className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" />
                                                 <div className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />

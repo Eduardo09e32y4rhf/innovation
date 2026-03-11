@@ -185,7 +185,7 @@ function NotificationDropdown({ onClose }: { onClose: () => void }) {
       initial={{ opacity: 0, y: 10, scale: 0.95 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: 10, scale: 0.95 }}
-      className="absolute right-0 mt-2 w-80 bg-[#0a0a0a] border border-blue-200 rounded-2xl shadow-2xl overflow-hidden z-[100] backdrop-blur-xl"
+      className="absolute right-0 mt-2 w-80 glass-panel border border-slate-200 rounded-3xl shadow-2xl overflow-hidden z-[100]"
     >
       <div className="px-4 py-3 border-b border-blue-200 flex items-center justify-between">
         <span className="text-xs font-bold text-slate-900 uppercase tracking-wider">
@@ -302,7 +302,7 @@ function Sidebar({
     <>
       {/* Overlay for mobile */}
       <div
-        className={`fixed inset-0 bg-white/70 backdrop-blur-sm z-[60] lg:hidden transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+        className={`fixed inset-0 bg-slate-900/10 backdrop-blur-sm z-[60] lg:hidden transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
         onClick={onClose}
       />
 
@@ -394,7 +394,7 @@ function Sidebar({
                   onClick={onClose}
                   className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group ${active
                     ? 'bg-blue-600 text-white shadow-lg shadow-blue-100 scale-[1.02]'
-                    : 'text-slate-9000 hover:text-slate-900 hover:bg-slate-50'
+                    : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
                     }`}
                 >
                   <Icon
@@ -425,7 +425,7 @@ function Sidebar({
                       onClick={onClose}
                       className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group ${active
                         ? 'bg-blue-600 text-white shadow-lg shadow-blue-100 scale-[1.02]'
-                        : 'text-slate-9000 hover:text-slate-900 hover:bg-slate-50'
+                        : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
                         }`}
                     >
                       <Icon
@@ -447,10 +447,10 @@ function Sidebar({
         <div className="px-3 py-3 border-t border-slate-100 shrink-0">
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-red-400/40 hover:text-red-400 hover:bg-red-500/10 transition-all text-sm"
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-rose-500/60 hover:text-rose-600 hover:bg-rose-50 transition-all text-sm"
           >
-            <LogOut className="w-5 h-5 drop-shadow-[0_2px_2px_rgba(0,0,0,1)]" />
-            <span className="font-bold tracking-wide drop-shadow-[0_2px_2px_rgba(0,0,0,1)]">Sair</span>
+            <LogOut className="w-5 h-5" />
+            <span className="font-bold tracking-wide">Sair</span>
           </button>
         </div>
       </aside>
@@ -694,11 +694,11 @@ export default function AppLayout({
                 onClick={() => setIsSidebarOpen(false)}
                 className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${active
                   ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-100 hover:scale-[1.02]'
-                  : 'text-slate-9000 hover:bg-slate-50 hover:text-slate-900'
+                  : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
                   }`}
               >
                 <Icon
-                  className={`w-[18px] h-[18px] shrink-0 transition-colors ${active ? 'text-slate-900' : 'text-slate-700 group-hover:text-slate-9000'}`}
+                  className={`w-[18px] h-[18px] shrink-0 transition-colors ${active ? 'text-slate-900' : 'text-slate-700 group-hover:text-slate-500'}`}
                 />
                 <span className="text-sm font-black">{item.name}</span>
               </Link>
@@ -718,7 +718,7 @@ export default function AppLayout({
                     onClick={() => setIsSidebarOpen(false)}
                     className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${active
                       ? 'bg-slate-50 text-slate-900 shadow-xl'
-                      : 'text-slate-9000 hover:bg-slate-50 hover:text-slate-900'
+                      : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
                       }`}
                   >
                     <Icon className={`w-[18px] h-[18px] shrink-0 ${active ? 'text-slate-900' : 'text-slate-700'}`} />

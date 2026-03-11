@@ -42,7 +42,7 @@ export default function AccountPage() {
           </div>
           <div className="text-center md:text-left flex-1">
             <h1 className="text-4xl font-black text-slate-900 tracking-tight mb-2 uppercase">{user?.name || 'Carregando...'}</h1>
-            <p className="text-slate-9000 font-medium tracking-tight mb-6">{user?.email}</p>
+            <p className="text-slate-500 font-medium tracking-tight mb-6">{user?.email}</p>
             <div className="flex flex-wrap justify-center md:justify-start gap-3">
               <span className="bg-indigo-50 text-indigo-600 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border-indigo-100 italic">Enterprise Elite</span>
               <span className="bg-emerald-50 text-emerald-600 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border-emerald-100">Ativo</span>

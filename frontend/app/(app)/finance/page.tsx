@@ -5,7 +5,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
     ArrowUpRight, ArrowDownRight, Search, Download, Plus, Landmark,
     FileText, AlertCircle, Calendar, CheckCircle2, Wallet,
-    TrendingUp, X, Loader2, RefreshCw, Eye, EyeOff, Filters
+    TrendingUp, X, Loader2, RefreshCw, Eye, EyeOff, Filter
 } from 'lucide-react';
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -67,7 +67,7 @@ function StatCard({
     icon: React.ElementType; colorClass: string; hidden?: boolean;
 }) {
     return (
-        <div className="bg-white border-slate-200 border-black/5 shadow-sm border-slate-100 p-6 rounded-[2rem] shadow-sm hover:shadow-xl hover:shadow-indigo-100/40 transition-all group relative overflow-hidden">
+        <div className="bg-white border-slate-200 border-black/5 shadow-sm border-slate-100 p-6 rounded-[2rem] shadow-sm hover:shadow-xl hover:shadow-blue-100/40 transition-all group relative overflow-hidden">
             <div className={`absolute top-0 right-0 w-24 h-24 bg-gradient-to-br ${colorClass} opacity-[0.03] group-hover:opacity-[0.07] transition-opacity rounded-bl-[4rem]`} />
             <div className="relative z-10">
                 <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-5 bg-white border-slate-200 border-black/5 shadow-sm border-slate-100 shadow-sm ${colorClass.split(' ')[0].replace('from-', 'text-')}`}>
@@ -78,7 +78,7 @@ function StatCard({
                     {hidden ? 'R$ ••••••' : fmtBRL(amount)}
                 </p>
                 <div className="flex items-center gap-2 mt-3">
-                    <span className="text-[10px] font-bold text-slate-9000">{subtitle}</span>
+                    <span className="text-[10px] font-bold text-slate-500">{subtitle}</span>
                 </div>
             </div>
         </div>
@@ -143,7 +143,7 @@ function NovoLancamentoModal({ onClose, onSave }: {
                                     ? t === 'income'
                                         ? 'bg-emerald-600 text-slate-900 shadow-lg shadow-emerald-100'
                                         : 'bg-rose-600 text-slate-900 shadow-lg shadow-rose-100'
-                                    : 'text-slate-9000 hover:text-slate-900'}`}>
+                                    : 'text-slate-500 hover:text-slate-900'}`}>
                                 {t === 'income' ? 'Receita' : 'Despesa'}
                             </button>
                         ))}
@@ -274,19 +274,19 @@ export default function FinancePage() {
                 {/* Header Section */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                     <div>
-                        <h1 className="text-4xl font-black text-slate-900 tracking-tight mb-2">Financeiro <span className="text-indigo-600">Premium</span></h1>
-                        <p className="text-slate-9000 font-medium">Gestão inteligente de fluxo de caixa e obrigações fiscais.</p>
+                        <h1 className="text-4xl font-black text-slate-900 tracking-tight mb-2">Financeiro <span className="text-blue-600">Premium</span></h1>
+                        <p className="text-slate-500 font-medium">Gestão inteligente de fluxo de caixa e obrigações fiscais.</p>
                     </div>
                     <div className="flex items-center gap-3">
                         <button
                             onClick={() => setHidden(!hidden)}
-                            className="w-12 h-12 bg-white border-slate-200 border-black/5 shadow-sm border-slate-100 rounded-2xl flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:border-indigo-100 transition-all shadow-sm"
+                            className="w-12 h-12 bg-white border-slate-200 border-black/5 shadow-sm border-slate-100 rounded-2xl flex items-center justify-center text-slate-400 hover:text-blue-600 hover:border-blue-100 transition-all shadow-sm"
                         >
                             {hidden ? <EyeOff size={20} /> : <Eye size={20} />}
                         </button>
                         <button
                             onClick={() => setShowModal(true)}
-                            className="bg-indigo-600 text-white px-6 py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center gap-2 shadow-xl shadow-indigo-100 hover:scale-[1.02] transition-all active:scale-95"
+                            className="bg-blue-600 text-white px-6 py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center gap-2 shadow-xl shadow-blue-100 hover:scale-[1.02] transition-all active:scale-95"
                         >
                             <Plus size={18} /> Novo Lançamento
                         </button>
@@ -326,10 +326,10 @@ export default function FinancePage() {
                     <div className="lg:col-span-2 bg-white border-slate-200 border-black/5 shadow-sm border-slate-100 rounded-[2.5rem] p-8 shadow-sm">
                         <div className="flex items-center justify-between mb-10">
                             <h2 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-3">
-                                <TrendingUp size={24} className="text-indigo-600" /> Histórico de Caixa
+                                <TrendingUp size={24} className="text-blue-600" /> Histórico de Caixa
                             </h2>
                             <div className="flex bg-slate-50 p-1.5 rounded-xl border-slate-100">
-                                <button className="px-4 py-1.5 rounded-lg text-[10px] font-black uppercase text-indigo-600 bg-white border-slate-200 border-black/5 shadow-sm">Mensal</button>
+                                <button className="px-4 py-1.5 rounded-lg text-[10px] font-black uppercase text-blue-600 bg-white border-slate-200 border-black/5 shadow-sm">Mensal</button>
                                 <button className="px-4 py-1.5 rounded-lg text-[10px] font-black uppercase text-slate-400">Anual</button>
                             </div>
                         </div>
@@ -350,7 +350,7 @@ export default function FinancePage() {
                         </div>
                     </div>
 
-                    <div className="bg-indigo-600 rounded-[2.5rem] p-8 text-slate-900 shadow-xl shadow-indigo-100 relative overflow-hidden flex flex-col justify-between">
+                    <div className="bg-blue-600 rounded-[2.5rem] p-8 text-white shadow-xl shadow-blue-100 relative overflow-hidden flex flex-col justify-between">
                         <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-bl-[5rem] pointer-events-none" />
 
                         <div>
@@ -371,7 +371,7 @@ export default function FinancePage() {
                             <p className="text-xs font-bold text-indigo-200">Vencimento: 20/03/2026</p>
                         </div>
                         <div className="space-y-3 mt-10">
-                            <button className="w-full bg-white text-indigo-600 py-4 rounded-[1.5rem] font-black text-xs uppercase tracking-widest shadow-lg hover:scale-[1.02] transition-all">Pagar via Pix</button>
+                            <button className="w-full bg-white text-blue-600 py-4 rounded-[1.5rem] font-black text-xs uppercase tracking-widest shadow-lg hover:scale-[1.02] transition-all">Pagar via Pix</button>
                             <button className="w-full bg-indigo-500/50 text-slate-900 py-4 rounded-[1.5rem] font-black text-xs uppercase tracking-widest border border-white/10 hover:bg-indigo-500/70 transition-all">Download PDF</button>
 
                         </div>
@@ -382,7 +382,7 @@ export default function FinancePage() {
                 <div className="bg-white border-slate-200 border-black/5 shadow-sm border-slate-100 rounded-[2.5rem] p-8 shadow-sm">
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
                         <h2 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-3">
-                            <Landmark size={24} className="text-indigo-600" /> Movimentações Recentes
+                            <Landmark size={24} className="text-blue-600" /> Movimentações Recentes
                         </h2>
                         <div className="relative w-full md:w-80">
                             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
@@ -424,7 +424,7 @@ export default function FinancePage() {
                                             </div>
                                         </td>
                                         <td className="py-5 px-4 whitespace-nowrap">
-                                            <span className="text-xs font-bold text-slate-9000 bg-slate-50 px-3 py-1 rounded-xl">{tx.category || 'Geral'}</span>
+                                            <span className="text-xs font-bold text-slate-500 bg-slate-50 px-3 py-1 rounded-xl">{tx.category || 'Geral'}</span>
                                         </td>
                                         <td className="py-5 px-4 text-right whitespace-nowrap">
                                             <span className={`text-sm font-black ${tx.type === 'income' ? 'text-emerald-600' : 'text-slate-900'}`}>
@@ -438,7 +438,7 @@ export default function FinancePage() {
                     </div>
 
                     <div className="mt-8 flex justify-center">
-                        <button className="text-xs font-black text-indigo-600 uppercase tracking-widest hover:underline px-4 py-2 transition-all">Ver Relatório Completo</button>
+                        <button className="text-xs font-black text-blue-600 uppercase tracking-widest hover:underline px-4 py-2 transition-all">Ver Relatório Completo</button>
                     </div>
                 </div>
             </div>

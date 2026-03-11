@@ -32,7 +32,7 @@ function fmtBRL(v: number) {
 function StatCard({ stat, index, hidden }: { stat: any; index: number; hidden: boolean }) {
     const Icon = stat.icon;
     return (
-        <div className="bg-white border-slate-200 border-black/5 shadow-sm border-slate-100 p-6 rounded-[2rem] shadow-sm hover:shadow-xl hover:shadow-indigo-100/40 transition-all group relative overflow-hidden">
+        <div className="bg-white border-slate-200 border-black/5 shadow-sm border-slate-100 p-6 rounded-[2rem] shadow-sm hover:shadow-xl hover:shadow-blue-100/40 transition-all group relative overflow-hidden">
             <div className={`absolute top-0 right-0 w-24 h-24 bg-gradient-to-br ${stat.colorClass} opacity-[0.03] group-hover:opacity-[0.07] transition-opacity rounded-bl-[4rem]`} />
             <div className="relative z-10">
                 <div className="flex justify-between items-start mb-5">
@@ -139,18 +139,18 @@ export default function DashboardPage() {
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                     <div>
                         <h1 className="text-4xl font-black text-slate-900 tracking-tight mb-1 uppercase">
-                            Bem-vindo, <span className="text-indigo-600">{user?.name?.split(' ')[0] || 'Inovador'}</span>
+                            Bem-vindo, <span className="text-blue-600">{user?.name?.split(' ')[0] || 'Inovador'}</span>
                         </h1>
-                        <p className="text-slate-9000 font-medium tracking-tight">Seu ecossistema cognitivo está operando em <span className="text-emerald-600 font-black italic">Alta Performance.</span></p>
+                        <p className="text-slate-500 font-medium tracking-tight">Seu ecossistema cognitivo está operando em <span className="text-emerald-600 font-black italic">Alta Performance.</span></p>
                     </div>
 
                     <div className="flex items-center gap-3">
-                        <button onClick={() => setHidden(!hidden)} className="w-12 h-12 bg-white border-slate-200 border-black/5 shadow-sm border-slate-100 rounded-2xl flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:border-indigo-200 transition-all shadow-sm">
+                        <button onClick={() => setHidden(!hidden)} className="w-12 h-12 bg-white border-slate-200 border-black/5 shadow-sm border-slate-100 rounded-2xl flex items-center justify-center text-slate-400 hover:text-blue-600 hover:border-indigo-200 transition-all shadow-sm">
                             {hidden ? <EyeOff size={20} /> : <Eye size={20} />}
                         </button>
                         <div className="flex flex-col items-end mr-2">
                             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Nível de Acesso</span>
-                            <span className="text-xs font-black text-indigo-600 uppercase tracking-widest bg-indigo-50 px-3 py-1 rounded-full mt-1">Enterprise Elite</span>
+                            <span className="text-xs font-black text-blue-600 uppercase tracking-widest bg-blue-50 px-3 py-1 rounded-full mt-1">Enterprise Elite</span>
                         </div>
                     </div>
                 </div>
@@ -167,9 +167,9 @@ export default function DashboardPage() {
                     <div className="lg:col-span-8 space-y-8">
                         <div className="flex items-center justify-between px-2">
                             <h2 className="text-xl font-black text-slate-900 uppercase tracking-tighter flex items-center gap-3">
-                                <Activity size={24} className="text-indigo-600" /> Atividade em Tempo Real
+                                <Activity size={24} className="text-blue-600" /> Atividade em Tempo Real
                             </h2>
-                            <button className="text-[10px] font-black uppercase text-indigo-600 tracking-widest hover:underline">Ver Log Completo</button>
+                            <button className="text-[10px] font-black uppercase text-blue-600 tracking-widest hover:underline">Ver Log Completo</button>
                         </div>
 
                         <div className="bg-white border-slate-200 border-black/5 shadow-sm border-slate-100 rounded-[2.5rem] p-8 shadow-sm space-y-2">
@@ -185,7 +185,7 @@ export default function DashboardPage() {
                             ) : (
                                 activities.slice(0, 6).map((item, i) => (
                                     <div key={i} className="flex items-center gap-5 p-5 rounded-2xl bg-white border-slate-200 border-black/5 shadow-sm border-transparent hover:border-slate-100 hover:bg-slate-50/50 transition-all group">
-                                        <div className="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 shadow-inner shrink-0 group-hover:scale-110 transition-transform">
+                                        <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 shadow-inner shrink-0 group-hover:scale-110 transition-transform">
                                             {item.candidate_name ? <Users size={20} /> : <Zap size={20} />}
                                         </div>
                                         <div className="flex-1 min-w-0">
@@ -198,9 +198,9 @@ export default function DashboardPage() {
                                                     </span>
                                                 </p>
                                             </div>
-                                            <p className="text-xs text-slate-9000 font-medium line-clamp-1">{item.message}</p>
+                                            <p className="text-xs text-slate-500 font-medium line-clamp-1">{item.message}</p>
                                         </div>
-                                        <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-700 group-hover:bg-indigo-600 group-hover:text-slate-900 transition-all cursor-pointer">
+                                        <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-700 group-hover:bg-blue-600 group-hover:text-slate-900 transition-all cursor-pointer">
                                             <ChevronRight size={18} />
                                         </div>
                                     </div>
@@ -214,14 +214,14 @@ export default function DashboardPage() {
                         {/* IA Manager */}
                         <div className="space-y-6">
                             <h2 className="text-xl font-black text-slate-900 uppercase tracking-tighter flex items-center gap-3">
-                                <Sparkles size={24} className="text-indigo-600" /> Inteligência Ativa
+                                <Sparkles size={24} className="text-blue-600" /> Inteligência Ativa
                             </h2>
-                            <div className="bg-indigo-600 rounded-[2.5rem] p-8 text-slate-900 shadow-xl shadow-indigo-100 relative overflow-hidden group">
+                            <div className="bg-blue-600 rounded-[2.5rem] p-8 text-white shadow-xl shadow-blue-100 relative overflow-hidden group">
                                 <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-bl-[5rem] pointer-events-none" />
 
                                 <div className="relative z-10 flex flex-col h-full justify-between gap-8">
                                     <div className="flex items-center gap-4">
-                                        <div className="p-3 bg-white border-slate-200 border-black/5 shadow-sm/20 rounded-2xl backdrop-blur-md">
+                                        <div className="p-3 bg-white/20 border border-white/30 rounded-2xl backdrop-blur-md text-white">
                                             <Brain size={28} />
                                         </div>
                                         <div>
@@ -232,7 +232,7 @@ export default function DashboardPage() {
                                     <div>
                                         <p className="text-xs font-medium leading-relaxed italic opacity-90">"Como posso otimizar sua gestão financeira hoje? Notei 3 faturas pendentes que vencem amanhã."</p>
                                     </div>
-                                    <Link href="/chat-ia" className="w-full bg-white border-slate-200 border-black/5 shadow-sm text-indigo-600 py-4 rounded-[1.5rem] font-black text-center text-[10px] uppercase tracking-widest shadow-lg hover:scale-[1.02] transition-all">Iniciar Diálogo</Link>
+                                    <Link href="/chat-ia" className="w-full bg-white text-blue-600 py-4 rounded-[1.5rem] font-black text-center text-[10px] uppercase tracking-widest shadow-lg hover:scale-[1.02] transition-all">Iniciar Diálogo</Link>
                                 </div>
                             </div>
                         </div>
@@ -253,17 +253,17 @@ export default function DashboardPage() {
                                         };
                                         const colorMap: any = {
                                             'finance': { color: 'text-emerald-600', bg: 'bg-emerald-50' },
-                                            'application': { color: 'text-indigo-600', bg: 'bg-indigo-50' },
+                                            'application': { color: 'text-blue-600', bg: 'bg-blue-50' },
                                             'job': { color: 'text-rose-600', bg: 'bg-rose-50' },
                                             'project': { color: 'text-amber-600', bg: 'bg-amber-50' },
-                                            'chat': { color: 'text-indigo-600', bg: 'bg-indigo-50' },
+                                            'chat': { color: 'text-blue-600', bg: 'bg-blue-50' },
                                             'task': { color: 'text-blue-600', bg: 'bg-blue-50' }
                                         };
                                         const Icon = iconMap[feat.module] || Zap;
                                         const col = colorMap[feat.module] || { color: 'text-slate-600', bg: 'bg-slate-50' };
 
                                         return (
-                                            <div key={i} className="flex flex-col items-center gap-3 p-6 bg-white border-slate-200 border-black/5 shadow-sm border-slate-100 rounded-[2rem] hover:border-indigo-100 shadow-sm transition-all group">
+                                            <div key={i} className="flex flex-col items-center gap-3 p-6 bg-white border-slate-200 border-black/5 shadow-sm border-slate-100 rounded-[2rem] hover:border-blue-100 shadow-sm transition-all group">
                                                 <div className={`w-12 h-12 rounded-2xl ${col.bg} flex items-center justify-center ${col.color} shadow-inner`}>
                                                     <Icon size={20} />
                                                 </div>
@@ -284,11 +284,11 @@ export default function DashboardPage() {
                             <div className="grid grid-cols-2 gap-4">
                                 {[
                                     { label: 'Finanças', icon: DollarSign, href: '/finance', color: 'text-emerald-600', bg: 'bg-emerald-50' },
-                                    { label: 'Talentos', icon: Users, href: '/rh', color: 'text-indigo-600', bg: 'bg-indigo-50' }
+                                    { label: 'Talentos', icon: Users, href: '/rh', color: 'text-blue-600', bg: 'bg-blue-50' }
                                 ].map((link, i) => {
                                     const Icon = link.icon || Rocket;
                                     return (
-                                        <Link key={i} href={link.href} className="flex flex-col items-center gap-3 p-6 bg-white border-slate-200 border-black/5 shadow-sm border-slate-100 rounded-[2rem] hover:border-indigo-100 hover:shadow-lg hover:shadow-indigo-100/30 transition-all group">
+                                        <Link key={i} href={link.href} className="flex flex-col items-center gap-3 p-6 bg-white border-slate-200 border-black/5 shadow-sm border-slate-100 rounded-[2rem] hover:border-blue-100 hover:shadow-lg hover:shadow-blue-100/30 transition-all group">
                                             <div className={`w-12 h-12 rounded-2xl ${link.bg} flex items-center justify-center ${link.color} shadow-inner group-hover:scale-110 transition-transform`}>
                                                 <Icon size={20} />
                                             </div>

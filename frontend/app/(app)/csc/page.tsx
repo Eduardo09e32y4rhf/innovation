@@ -69,7 +69,7 @@ export default function CSCPage() {
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                     <div>
                         <h1 className="text-4xl font-black text-slate-900 tracking-tight mb-2">Service <span className="text-indigo-600">Desk</span></h1>
-                        <p className="text-slate-9000 font-medium tracking-tight">Gestão de chamados, base de conhecimento e análise de SLA.</p>
+                        <p className="text-slate-500 font-medium tracking-tight">Gestão de chamados, base de conhecimento e análise de SLA.</p>
                     </div>
 
                     <div className="flex items-center gap-3">
@@ -213,7 +213,7 @@ export default function CSCPage() {
                                                 <span className="bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border-indigo-100">{article.category || 'Geral'}</span>
                                             </div>
                                             <h3 className="text-lg font-black text-slate-900 group-hover:text-indigo-600 transition-colors uppercase tracking-tight mb-3">{article.title}</h3>
-                                            <p className="text-xs text-slate-9000 font-medium line-clamp-2 leading-relaxed mb-6">{article.content}</p>
+                                            <p className="text-xs text-slate-500 font-medium line-clamp-2 leading-relaxed mb-6">{article.content}</p>
                                             <div className="flex items-center justify-between pt-6 border-t border-slate-50">
                                                 <div className="flex items-center gap-4 text-[9px] font-black text-slate-700 uppercase tracking-widest">
                                                     <span className="flex items-center gap-1"><BookOpen size={12} /> {article.views || 0}</span>

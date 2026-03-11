@@ -76,12 +76,12 @@ export default function ProjectsAdvancedPage() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-950 text-slate-900 flex">
+        <div className="min-h-screen bg-slate-50 text-slate-900 flex">
             <Sidebar />
-            <main className="ml-[280px] flex-1 p-8">
-                <div className="mb-8">
-                    <h1 className="text-3xl font-bold gradient-text">Projetos Avançado</h1>
-                    <p className="text-gray-400 mt-1">Automação de Fluxos e Aprovações de Compra</p>
+            <main className="ml-[280px] flex-1 p-12">
+                <div className="mb-12">
+                    <h1 className="text-4xl font-black text-slate-900 tracking-tight uppercase">Projetos <span className="text-blue-600">Avançado</span></h1>
+                    <p className="text-slate-500 font-medium mt-1">Automação de Fluxos e Aprovações de Compra</p>
                 </div>
 
                 {/* Tabs */}
@@ -134,10 +134,10 @@ export default function ProjectsAdvancedPage() {
                                     </div>
                                     <input value={wfForm.action_config.to} onChange={e => setWfForm(p => ({ ...p, action_config: { ...p.action_config, to: e.target.value } }))}
                                         placeholder="Para (email ou usuário)"
-                                        className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-slate-900 text-sm focus:outline-none focus:border-blue-500" />
+                                        className="bg-white border border-slate-200 rounded-2xl px-4 py-3 text-slate-900 text-sm focus:outline-none focus:border-blue-500 shadow-sm" />
                                     <input value={wfForm.action_config.subject} onChange={e => setWfForm(p => ({ ...p, action_config: { ...p.action_config, subject: e.target.value } }))}
                                         placeholder="Assunto"
-                                        className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-slate-900 text-sm focus:outline-none focus:border-blue-500" />
+                                        className="bg-white border border-slate-200 rounded-2xl px-4 py-3 text-slate-900 text-sm focus:outline-none focus:border-blue-500 shadow-sm" />
 
                                 </div>
                                 <button onClick={createWorkflow} className="mt-3 bg-blue-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-600 transition">
@@ -192,12 +192,12 @@ export default function ProjectsAdvancedPage() {
                                 <div className="grid grid-cols-3 gap-3">
                                     <input value={purchForm.description} onChange={e => setPurchForm(p => ({ ...p, description: e.target.value }))}
                                         placeholder="Descrição"
-                                        className="col-span-2 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-slate-900 text-sm focus:outline-none focus:border-blue-500" />
+                                        className="col-span-2 bg-white border border-slate-200 rounded-2xl px-4 py-3 text-slate-900 text-sm focus:outline-none focus:border-blue-500 shadow-sm" />
                                     <input type="number" value={purchForm.amount} onChange={e => setPurchForm(p => ({ ...p, amount: Number(e.target.value) }))}
                                         placeholder="Valor (R$)"
-                                        className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-slate-900 text-sm focus:outline-none focus:border-blue-500" />
+                                        className="bg-white border border-slate-200 rounded-2xl px-4 py-3 text-slate-900 text-sm focus:outline-none focus:border-blue-500 shadow-sm" />
                                     <select value={purchForm.category} onChange={e => setPurchForm(p => ({ ...p, category: e.target.value }))}
-                                        className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-slate-900 text-sm focus:outline-none focus:border-blue-500">
+                                        className="bg-white border border-slate-200 rounded-2xl px-4 py-3 text-slate-900 text-sm focus:outline-none focus:border-blue-500 shadow-sm appearance-none cursor-pointer">
 
                                         <option value="equipment">Equipamentos</option>
                                         <option value="software">Software</option>

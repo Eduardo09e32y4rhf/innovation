@@ -241,9 +241,9 @@ export default function ChatIAPage() {
                                                     <div className="flex-1 text-left min-w-0">
                                                         <div className="flex items-center justify-between mb-0.5">
                                                             <span className="text-sm font-black text-slate-900">{model.name}</span>
-                                                            <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-200 text-slate-9000 font-bold uppercase">{model.plan}</span>
+                                                            <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-200 text-slate-500 font-bold uppercase">{model.plan}</span>
                                                         </div>
-                                                        <p className="text-[11px] text-slate-9000 line-clamp-2">{model.description}</p>
+                                                        <p className="text-[11px] text-slate-500 line-clamp-2">{model.description}</p>
                                                     </div>
                                                 </button>
                                             ))}
@@ -262,7 +262,7 @@ export default function ChatIAPage() {
                                     <Sparkles size={48} className="text-indigo-600 animate-pulse" />
                                 </div>
                                 <h1 className="text-4xl font-black text-slate-900 tracking-tight mb-4">Como posso ajudar?</h1>
-                                <p className="max-w-md text-slate-9000 font-medium mb-12">Sou a assistente especial da Innovation.ia.</p>
+                                <p className="max-w-md text-slate-500 font-medium mb-12">Sou a assistente especial da Innovation.ia.</p>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
                                     {QUICK_PROMPTS.map((prompt, i) => (

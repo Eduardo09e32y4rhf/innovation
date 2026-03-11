@@ -24,7 +24,7 @@ interface Project {
 
 const COLUMNS = ['todo', 'in_progress', 'done'];
 const COLUMN_LABELS: Record<string, string> = { todo: 'Backlog', in_progress: 'Produção', done: 'Concluído' };
-const COLUMN_COLORS: Record<string, string> = { todo: 'bg-slate-100 text-slate-9000', in_progress: 'bg-indigo-50 text-indigo-600', done: 'bg-emerald-50 text-emerald-600' };
+const COLUMN_COLORS: Record<string, string> = { todo: 'bg-slate-100 text-slate-500', in_progress: 'bg-indigo-50 text-indigo-600', done: 'bg-emerald-50 text-emerald-600' };
 
 export default function ProjectsPage() {
     const [projects, setProjects] = useState<Project[]>([]);
@@ -87,7 +87,7 @@ export default function ProjectsPage() {
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                     <div>
                         <h1 className="text-4xl font-black text-slate-900 tracking-tight mb-2">Projetos <span className="text-indigo-600">& Kanban</span></h1>
-                        <p className="text-slate-9000 font-medium tracking-tight">Orquestração avançada de entregas e produtividade em tempo real.</p>
+                        <p className="text-slate-500 font-medium tracking-tight">Orquestração avançada de entregas e produtividade em tempo real.</p>
                     </div>
 
                     <div className="flex items-center gap-3">
@@ -145,7 +145,7 @@ export default function ProjectsPage() {
                         </div>
                         <div className="flex gap-2 w-full md:w-auto">
                             <select
-                                className="flex-1 md:w-60 bg-slate-50 border border-transparent rounded-[1.5rem] px-6 py-4 text-xs font-black uppercase tracking-widest focus:bg-white focus:border-indigo-100 outline-none transition-all appearance-none text-slate-9000"
+                                className="flex-1 md:w-60 bg-slate-50 border border-transparent rounded-[1.5rem] px-6 py-4 text-xs font-black uppercase tracking-widest focus:bg-white focus:border-indigo-100 outline-none transition-all appearance-none text-slate-500"
 
                                 value={newTask.project_id}
                                 onChange={e => setNewTask({ ...newTask, project_id: parseInt(e.target.value) })}

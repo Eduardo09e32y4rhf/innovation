@@ -63,7 +63,7 @@ export default function FinanceAdvancedPage() {
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                     <div>
                         <h1 className="text-4xl font-black text-slate-900 tracking-tight mb-2">Financeiro <span className="text-indigo-600">Pro</span></h1>
-                        <p className="text-slate-9000 font-medium tracking-tight">Centros de custo, folha real e conciliação bancária via OFX.</p>
+                        <p className="text-slate-500 font-medium tracking-tight">Centros de custo, folha real e conciliação bancária via OFX.</p>
                     </div>
                 </div>
 

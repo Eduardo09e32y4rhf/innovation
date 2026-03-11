@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 @theme {
-  --color-background: #ffffff;
+  --color-background: #f8fafc;
   --color-foreground: #0f172a;
   --color-border: #e2e8f0;
 
@@ -17,19 +17,19 @@
   --secondary: #f1f5f9;
   --secondary-foreground: #0f172a;
 
-  --muted: #f8fafc;
+  --muted: #f1f5f9;
   --muted-foreground: #64748b;
 
-  --accent: #f1f5f9;
-  --accent-foreground: #0f172a;
+  --accent: #eff6ff;
+  --accent-foreground: #1e40af;
 
   --destructive: #ef4444;
   --destructive-foreground: #ffffff;
 
   --input: #e2e8f0;
-  --ring: #2563eb;
+  --ring: #3b82f6;
 
-  --radius: 0.5rem;
+  --radius: 1rem;
 }
 
 @layer base {
@@ -52,29 +52,24 @@
 }
 
 @utility glass-panel {
-  background-color: rgba(255, 255, 255, 0.8);
+  background-color: rgba(255, 255, 255, 0.7);
   backdrop-filter: blur(24px);
-  border: 1px solid rgba(226, 232, 240, 0.8);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(226, 232, 240, 0.5);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
 }
 
 @utility glass-card {
-  background-color: rgba(255, 255, 255, 0.9);
+  background-color: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(16px);
-  border: 1px solid rgba(226, 232, 240, 0.8);
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-  transition-property: all;
-  transition-duration: 300ms;
+  border: 1px solid rgba(226, 232, 240, 0.5);
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
 }
 
-@theme {
-  --color-border: #e2e8f0;
-  --color-background: #ffffff;
-  --color-foreground: #0f172a;
-  --color-primary: #2563eb;
-  --color-primary-foreground: #ffffff;
-  --color-muted: #f8fafc;
-  --color-muted-foreground: #64748b;
-  --color-card: #ffffff;
-  --color-card-foreground: #0f172a;
+@utility sidebar-link {
+  @apply flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-200 text-slate-500 hover:bg-blue-50 hover:text-blue-600 font-bold;
+}
+
+@utility sidebar-link-active {
+  @apply flex items-center gap-3 px-4 py-3 rounded-2xl bg-blue-600 text-white shadow-lg shadow-blue-100 font-bold hover:bg-blue-700 transition-all;
 }
