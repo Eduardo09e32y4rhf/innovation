@@ -63,6 +63,8 @@ services:
       - PYTHONPATH=/app/src:/app
     env_file:
       - .env.prod
+    networks:
+      - innovation_network
 
   frontend:
     build:
@@ -74,6 +76,8 @@ services:
       - API_URL=http://backend:8000
     depends_on:
       - backend
+    networks:
+      - innovation_network
 
   nginx:
     image: nginx:latest
@@ -89,6 +93,12 @@ services:
       interval: 30s
       timeout: 5s
       retries: 3
+    networks:
+      - innovation_network
+
+networks:
+  innovation_network:
+    driver: bridge
 
 volumes:
   postgres_data:
