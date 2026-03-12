@@ -32,7 +32,8 @@ router = APIRouter(prefix="/api/auth", tags=["Auth"])
 
 
 @router.post("/register", response_model=UserOut)
-def register(data: RegisterRequest, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+def register(request: Request, data: RegisterRequest, db: Session = Depends(get_db)):
     try:
         return register_user(
             db,
@@ -143,7 +144,8 @@ def list_users(
 
 
 @router.post("/forgot-password")
-async def forgot_password(data: dict, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+async def forgot_password(request: Request, data: dict, db: Session = Depends(get_db)):
     email = data.get("email")
     user = db.query(User).filter(User.email == email).first()
     if not user:
@@ -158,7 +160,8 @@ async def forgot_password(data: dict, db: Session = Depends(get_db)):
 
 
 @router.post("/reset-password")
-async def reset_password(data: dict, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+async def reset_password(request: Request, data: dict, db: Session = Depends(get_db)):
     token = data.get("token")
     new_password = data.get("password")
 
@@ -208,7 +211,8 @@ async def google_login():
 
 
 @router.post("/google-callback", response_model=Token)
-async def google_callback(code: str, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+async def google_callback(request: Request, code: str, db: Session = Depends(get_db)):
     """
     Troca o code pelo token, busca info do user e loga/registra.
     Retorna também 'role' e 'is_new_user' para o front decidir redirecionamento.
