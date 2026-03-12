@@ -87,7 +87,7 @@ export default function ForgotPasswordPage() {
                     {/* LOGO AREA */}
                     <div className="text-center mb-10 flex flex-col items-center">
                         <div className="w-20 h-20 bg-white border border-slate-100 rounded-3xl flex items-center justify-center shadow-xl mb-6 animate-float">
-                            <Lock className="text-blue-600 fill-blue-600/10" size={36} />
+                            <Zap className="text-blue-600 fill-blue-600" size={36} />
                         </div>
                         <h1 className="text-4xl font-black text-slate-900 tracking-tighter text-shadow-elite uppercase">
                             Recuperar <span className="text-blue-600 text-shadow-blue">A</span>cesso

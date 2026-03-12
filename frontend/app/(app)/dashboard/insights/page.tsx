@@ -52,10 +52,10 @@ export default function InsightsPage() {
                                     AI Engine v2.0
                                 </span>
                             </div>
-                            <h1 className="text-4xl md:text-5xl font-black tracking-tight bg-gradient-to-r from-white via-white to-white/40 bg-clip-text text-transparent">
-                                Inteligência <span className="text-blue-500">&</span> Insights
+                            <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight">
+                                Inteligência <span className="text-blue-600">&</span> Insights
                             </h1>
-                            <p className="text-slate-500 mt-2 text-lg max-w-2xl">
+                            <p className="text-slate-500 mt-2 text-lg max-w-2xl font-medium tracking-tight">
                                 Análise preditiva e recomendações estratégicas baseadas no comportamento organizacional e financeiro.
                             </p>
                         </div>
@@ -99,7 +99,7 @@ export default function InsightsPage() {
 
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         {/* Sentiment Analysis Card */}
-                        <div className="lg:col-span-2 bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-3xl border border-slate-200 rounded-[2.5rem] p-8 relative overflow-hidden">
+                        <div className="lg:col-span-2 bg-white border border-slate-200 rounded-[2.5rem] p-8 relative overflow-hidden shadow-sm">
 
                             <div className="absolute top-0 right-0 p-8 opacity-10">
                                 <Brain className="w-32 h-32" />

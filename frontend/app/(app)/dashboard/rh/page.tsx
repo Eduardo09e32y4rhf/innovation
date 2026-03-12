@@ -139,46 +139,47 @@ export default function RhDashboardPage() {
 
     return (
         <AppLayout title="Painel de RH">
-            <div className="min-h-screen bg-gray-950 text-slate-900 p-6">
+            <div className="min-h-screen bg-slate-50 text-slate-900 p-8 relative">
                 {/* Notification */}
                 {notification && (
-                    <div className={`fixed top-6 right-6 z-50 flex items-center gap-3 px-5 py-3 rounded-xl shadow-2xl ${notification.type === 'success'
-                        ? 'bg-green-500/20 border-green-500/40 text-green-300'
-                        : 'bg-red-500/20 border-red-500/40 text-red-300'
+                    <div className={`fixed top-8 right-8 z-50 flex items-center gap-3 px-6 py-4 rounded-2xl shadow-2xl transition-all duration-300 animate-in slide-in-from-right ${notification.type === 'success'
+                        ? 'bg-emerald-50 border border-emerald-100 text-emerald-600'
+                        : 'bg-rose-50 border border-rose-100 text-rose-600'
                         }`}>
                         {notification.type === 'success' ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
-                        {notification.msg}
+                        <span className="text-xs font-black uppercase tracking-tight">{notification.msg}</span>
                     </div>
                 )}
 
-                <div className="max-w-5xl mx-auto">
+                <div className="max-w-5xl mx-auto space-y-10 animate-in fade-in duration-700">
                     {/* Header */}
-                    <div className="mb-8">
-                        <div className="flex items-center gap-3 mb-2">
-                            <HeartHandshake className="w-8 h-8 text-blue-600" />
-                            <h1 className="text-3xl font-black bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                                Painel de RH
+                    <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                        <div>
+                            <h1 className="text-4xl font-black text-slate-900 tracking-tight mb-1 uppercase">
+                                Painel <span className="text-blue-600">de RH</span>
                             </h1>
+                            <p className="text-slate-500 font-medium tracking-tight">Acompanhe seu desenvolvimento, licenças e documentos</p>
                         </div>
-                        <p className="text-gray-400">Acompanhe seu desenvolvimento, licenças e documentos</p>
+                        <div className="w-16 h-16 bg-white border border-slate-100 rounded-2xl flex items-center justify-center shadow-sm">
+                            <HeartHandshake className="w-10 h-10 text-blue-600" />
+                        </div>
                     </div>
 
                     {/* Tabs */}
-                    <div className="flex gap-1 bg-white border border-gray-800 rounded-xl p-1 mb-6">
-
+                    <div className="flex gap-2 bg-white border border-slate-100 rounded-[1.8rem] p-2 shadow-sm">
                         {tabs.map(tab => {
                             const Icon = tab.icon;
                             return (
                                 <button
                                     key={tab.id}
                                     onClick={() => setActiveTab(tab.id)}
-                                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-sm font-medium transition-all ${activeTab === tab.id
-                                        ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/20'
-                                        : 'text-gray-500 hover:text-gray-300'
+                                    className={`flex-1 flex items-center justify-center gap-2 py-3.5 px-4 rounded-[1.2rem] text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === tab.id
+                                        ? 'bg-blue-600 text-white shadow-xl shadow-blue-100'
+                                        : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'
                                         }`}
                                 >
                                     <Icon className="w-4 h-4" />
-                                    <span className="hidden sm:inline">{tab.label}</span>
+                                    <span className="hidden lg:inline">{tab.label}</span>
                                 </button>
                             );
                         })}
@@ -193,11 +194,11 @@ export default function RhDashboardPage() {
                             {/* PDI Tab */}
                             {activeTab === 'pdi' && (
                                 <div>
-                                    <div className="flex items-center justify-between mb-4">
-                                        <h2 className="font-bold text-gray-200">Plano de Desenvolvimento Individual</h2>
+                                    <div className="flex items-center justify-between mb-6">
+                                        <h2 className="text-xl font-black text-slate-900 uppercase tracking-tight italic">Plano de Desenvolvimento</h2>
                                         <button
                                             onClick={() => setShowPdiForm(!showPdiForm)}
-                                            className="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 rounded-xl text-sm font-medium transition"
+                                            className="flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 rounded-2xl text-white font-black text-[10px] uppercase tracking-widest transition-all shadow-xl shadow-blue-100"
                                         >
                                             <Plus className="w-4 h-4" /> Nova Meta
                                         </button>
@@ -205,73 +206,84 @@ export default function RhDashboardPage() {
 
                                     {/* PDI Form */}
                                     {showPdiForm && (
-                                        <div className="bg-white/60 border border-blue-500/30 rounded-xl p-5 mb-4">
-
-                                            <div className="flex items-center justify-between mb-4">
-                                                <h3 className="font-medium text-gray-200">Nova Meta PDI</h3>
-                                                <button onClick={() => setShowPdiForm(false)} className="text-gray-500 hover:text-gray-300">
-                                                    <X className="w-4 h-4" />
+                                        <div className="bg-white border-2 border-blue-50 rounded-[2.5rem] p-8 mb-8 shadow-xl animate-in slide-in-from-top">
+                                            <div className="flex items-center justify-between mb-8">
+                                                <div>
+                                                    <h3 className="text-xl font-black text-slate-900 italic">Criar Meta PDI</h3>
+                                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Defina seus objetivos trimestrais</p>
+                                                </div>
+                                                <button onClick={() => setShowPdiForm(false)} className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 hover:text-slate-900 transition-all">
+                                                    <X size={20} />
                                                 </button>
                                             </div>
-                                            <div className="space-y-3">
-                                                <input
-                                                    type="text"
-                                                    placeholder="Título da meta"
-                                                    value={pdiForm.title}
-                                                    onChange={e => setPdiForm(p => ({ ...p, title: e.target.value }))}
-                                                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-gray-200 placeholder-gray-500 focus:outline-none focus:border-blue-500"
-
-                                                />
-                                                <input
-                                                    type="text"
-                                                    placeholder="Descrição (opcional)"
-                                                    value={pdiForm.description}
-                                                    onChange={e => setPdiForm(p => ({ ...p, description: e.target.value }))}
-                                                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-gray-200 placeholder-gray-500 focus:outline-none focus:border-blue-500"
-
-                                                />
-                                                <select
-                                                    value={pdiForm.quarter}
-                                                    onChange={e => setPdiForm(p => ({ ...p, quarter: e.target.value }))}
-                                                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-gray-200 focus:outline-none focus:border-blue-500"
-
-                                                >
-                                                    {['Q1-2026', 'Q2-2026', 'Q3-2026', 'Q4-2026'].map(q => (
-                                                        <option key={q} value={q}>{q}</option>
-                                                    ))}
-                                                </select>
+                                            <div className="space-y-5">
+                                                <div className="space-y-2">
+                                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Título da Meta</label>
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Ex: Refatoração do AI Engine"
+                                                        value={pdiForm.title}
+                                                        onChange={e => setPdiForm(p => ({ ...p, title: e.target.value }))}
+                                                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-slate-900 font-bold focus:ring-4 focus:ring-blue-600/5 focus:border-blue-600 outline-none transition-all placeholder:text-slate-300"
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Descrição</label>
+                                                    <input
+                                                        type="text"
+                                                        placeholder="O que você pretende alcançar?"
+                                                        value={pdiForm.description}
+                                                        onChange={e => setPdiForm(p => ({ ...p, description: e.target.value }))}
+                                                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-slate-900 font-bold focus:ring-4 focus:ring-blue-600/5 focus:border-blue-600 outline-none transition-all placeholder:text-slate-300"
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Trimestre Alvo</label>
+                                                    <select
+                                                        value={pdiForm.quarter}
+                                                        onChange={e => setPdiForm(p => ({ ...p, quarter: e.target.value }))}
+                                                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-slate-900 font-bold focus:ring-4 focus:ring-blue-600/5 focus:border-blue-600 outline-none transition-all"
+                                                    >
+                                                        {['Q1-2026', 'Q2-2026', 'Q3-2026', 'Q4-2026'].map(q => (
+                                                            <option key={q} value={q}>{q}</option>
+                                                        ))}
+                                                    </select>
+                                                </div>
                                                 <button
                                                     onClick={handleCreatePDI}
-                                                    className="w-full py-2.5 bg-blue-500 hover:bg-blue-600 rounded-lg text-sm font-medium transition"
+                                                    className="w-full py-5 bg-blue-600 hover:bg-blue-700 rounded-2xl text-white font-black text-[10px] uppercase tracking-[0.2em] transition-all shadow-xl shadow-blue-100 mt-4"
                                                 >
-                                                    Criar Meta
+                                                    Salvar Meta PDI
                                                 </button>
                                             </div>
                                         </div>
                                     )}
 
-                                    <div className="space-y-3">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         {pdiGoals.length === 0 ? (
-                                            <p className="text-center text-gray-500 py-8">Nenhuma meta PDI criada. Clique em &quot;Nova Meta&quot;!</p>
+                                            <div className="col-span-2 text-center py-20 bg-white border border-slate-100 rounded-[2.5rem] p-8">
+                                                <Award className="w-12 h-12 text-slate-200 mx-auto mb-4" />
+                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Nenhum objetivo definido ainda</p>
+                                            </div>
                                         ) : pdiGoals.map(goal => (
-                                            <div key={goal.id} className="bg-white/60 border border-gray-800 rounded-xl p-5">
-
-                                                <div className="flex items-start justify-between mb-3">
+                                            <div key={goal.id} className="bg-white border-slate-200 border-black/5 shadow-sm border-slate-100 rounded-[2.5rem] p-8 hover:shadow-lg transition-all relative overflow-hidden group">
+                                                <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-blue-600 to-indigo-500 opacity-[0.03] rounded-bl-[4rem]" />
+                                                <div className="flex items-start justify-between mb-6">
                                                     <div>
-                                                        <h4 className="font-medium text-gray-200">{goal.title}</h4>
-                                                        {goal.description && <p className="text-sm text-gray-500 mt-0.5">{goal.description}</p>}
-                                                        <span className="text-xs text-blue-600 mt-1 inline-block">{goal.quarter}</span>
+                                                        <h4 className="text-lg font-black text-slate-900 tracking-tight italic">{goal.title}</h4>
+                                                        {goal.description && <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">{goal.description}</p>}
+                                                        <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest mt-3 inline-block px-3 py-1 bg-blue-50 rounded-full">{goal.quarter}</span>
                                                     </div>
-                                                    {goal.completed && <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0" />}
+                                                    {goal.completed && <div className="w-10 h-10 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-500"><CheckCircle size={24} /></div>}
                                                 </div>
-                                                <div className="space-y-2">
-                                                    <div className="flex justify-between text-xs text-gray-500">
-                                                        <span>Progresso</span>
-                                                        <span>{goal.progress.toFixed(0)}%</span>
+                                                <div className="space-y-3">
+                                                    <div className="flex justify-between items-end">
+                                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Core Progress</span>
+                                                        <span className="text-2xl font-black text-slate-900 tracking-tighter">{goal.progress.toFixed(0)}%</span>
                                                     </div>
-                                                    <div className="bg-gray-800 rounded-full h-2">
+                                                    <div className="bg-slate-50 border border-slate-100 rounded-full h-3 overflow-hidden">
                                                         <div
-                                                            className="h-full rounded-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-500"
+                                                            className="h-full rounded-full bg-gradient-to-r from-blue-600 to-indigo-500 transition-all duration-1000"
                                                             style={{ width: `${goal.progress}%` }}
                                                         />
                                                     </div>
@@ -280,7 +292,7 @@ export default function RhDashboardPage() {
                                                         min={0} max={100} step={5}
                                                         defaultValue={goal.progress}
                                                         onMouseUp={e => handleUpdateProgress(goal.id, Number((e.target as HTMLInputElement).value))}
-                                                        className="w-full accent-purple-500 mt-1"
+                                                        className="w-full accent-blue-600 mt-2"
                                                     />
                                                 </div>
                                             </div>
@@ -291,20 +303,27 @@ export default function RhDashboardPage() {
 
                             {/* Licenças Tab */}
                             {activeTab === 'licencas' && (
-                                <div className="space-y-3">
-                                    <h2 className="font-bold text-gray-200 mb-4">Minhas Solicitações de Licença</h2>
+                                <div className="space-y-4">
+                                    <h2 className="text-xl font-black text-slate-900 uppercase tracking-tight mb-8">Protocolos de Licença</h2>
                                     {leaves.length === 0 ? (
-                                        <p className="text-center text-gray-500 py-8">Nenhuma solicitação de licença encontrada.</p>
+                                        <div className="text-center py-20 bg-white border border-slate-100 rounded-[2.5rem] p-8">
+                                            <FileText className="w-12 h-12 text-slate-200 mx-auto mb-4" />
+                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Sem solicitações ativas</p>
+                                        </div>
                                     ) : leaves.map(leave => (
-                                        <div key={leave.id} className="bg-white/60 border border-gray-800 rounded-xl p-5 flex items-center justify-between">
-
-                                            <div>
-                                                <p className="font-medium text-gray-200">{leave.reason}</p>
-                                                <p className="text-sm text-gray-500 mt-0.5">
-                                                    {new Date(leave.start_date).toLocaleDateString('pt-BR')} — {new Date(leave.end_date).toLocaleDateString('pt-BR')}
-                                                </p>
+                                        <div key={leave.id} className="bg-white border-slate-200 border-black/5 shadow-sm border-slate-100 rounded-[2rem] p-8 flex items-center justify-between hover:border-blue-100 transition-all">
+                                            <div className="flex items-center gap-6">
+                                                <div className="w-14 h-14 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400">
+                                                    <FileText size={28} />
+                                                </div>
+                                                <div>
+                                                    <p className="text-lg font-black text-slate-900 tracking-tight italic">{leave.reason}</p>
+                                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
+                                                        {new Date(leave.start_date).toLocaleDateString('pt-BR')} — {new Date(leave.end_date).toLocaleDateString('pt-BR')}
+                                                    </p>
+                                                </div>
                                             </div>
-                                            <span className={`px-3 py-1 rounded-full text-xs font-medium border ${statusColor[leave.status] ?? 'text-gray-400 bg-gray-800 border-gray-700'}`}>
+                                            <span className={`px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest border transition-all ${statusColor[leave.status]?.includes('green') ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : statusColor[leave.status]?.includes('yellow') ? 'bg-amber-50 border-amber-100 text-amber-600' : 'bg-rose-50 border-rose-100 text-rose-600'}`}>
                                                 {leave.status === 'pending' ? 'Pendente' : leave.status === 'approved' ? 'Aprovado' : 'Rejeitado'}
                                             </span>
                                         </div>
@@ -314,26 +333,29 @@ export default function RhDashboardPage() {
 
                             {/* Reviews 360 Tab */}
                             {activeTab === 'reviews' && (
-                                <div>
-                                    <h2 className="font-bold text-gray-200 mb-4">Avaliações 360°</h2>
+                                <div className="space-y-6">
+                                    <h2 className="text-xl font-black text-slate-900 uppercase tracking-tight mb-8">Avaliações 360°</h2>
                                     {reviews.length === 0 ? (
-                                        <div className="text-center py-12 text-gray-500">
-                                            <Star className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                                            <p>Nenhuma avaliação recebida ainda.</p>
-                                            <p className="text-sm mt-1">As avaliações aparecerão aqui quando você receber feedback da equipe.</p>
+                                        <div className="text-center py-20 bg-white border border-slate-100 rounded-[2.5rem] p-8">
+                                            <Star className="w-12 h-12 text-slate-200 mx-auto mb-4" />
+                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Sem avaliações processadas</p>
                                         </div>
                                     ) : reviews.map(r => (
-                                        <div key={r.id} className="bg-white/60 border border-gray-800 rounded-xl p-5 mb-3">
-
+                                        <div key={r.id} className="bg-white border-slate-200 border-black/5 shadow-sm border-slate-100 rounded-[2.5rem] p-8 hover:shadow-lg transition-all relative overflow-hidden group">
+                                            <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-amber-600 to-orange-500 opacity-[0.03] rounded-bl-[4rem]" />
                                             <div className="flex justify-between items-start">
-                                                <div>
-                                                    <span className="text-xs text-blue-600 uppercase tracking-wider">{r.relationship}</span>
-                                                    <p className="text-gray-300 mt-1">{r.feedback}</p>
-                                                    <p className="text-xs text-gray-500 mt-1">{r.period}</p>
+                                                <div className="flex-1">
+                                                    <span className="text-[10px] font-black text-blue-600 uppercase tracking-[0.2em] px-3 py-1 bg-blue-50 rounded-full">{r.relationship}</span>
+                                                    <p className="text-slate-600 mt-4 leading-relaxed font-medium italic">&quot;{r.feedback}&quot;</p>
+                                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-4">{r.period}</p>
                                                 </div>
-                                                <div className="flex items-center gap-1">
-                                                    <span className="text-2xl font-black text-yellow-400">{r.score}</span>
-                                                    <Star className="w-5 h-5 text-yellow-400 fill-yellow-400" />
+                                                <div className="flex flex-col items-center ml-8 pt-2">
+                                                    <span className="text-4xl font-black text-slate-900 tracking-tighter">{r.score}</span>
+                                                    <div className="flex gap-0.5 mt-1">
+                                                        {[...Array(5)].map((_, i) => (
+                                                            <Star key={i} size={10} className={`${i < Math.floor(r.score) ? 'text-amber-500 fill-amber-500' : 'text-slate-200'}`} />
+                                                        ))}
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -343,42 +365,57 @@ export default function RhDashboardPage() {
 
                             {/* Holerites Tab */}
                             {activeTab === 'holerites' && (
-                                <div>
-                                    <h2 className="font-bold text-gray-200 mb-4">Meus Holerites</h2>
+                                <div className="space-y-6">
+                                    <h2 className="text-xl font-black text-slate-900 uppercase tracking-tight mb-8">Histórico de Holerites</h2>
                                     {payslips.length === 0 ? (
-                                        <p className="text-center text-gray-500 py-8">Nenhum holerite disponível.</p>
-                                    ) : payslips.map(p => (
-                                        <div key={p.id} className="bg-white/60 border border-gray-800 rounded-xl p-5 mb-3">
-
-                                            <div className="flex justify-between items-center">
-                                                <div>
-                                                    <p className="font-medium text-gray-200">{p.reference_month}</p>
-                                                    <p className="text-sm text-gray-500 mt-0.5">Bruto: R$ {p.gross_salary.toFixed(2)} / Líquido: R$ {p.net_salary.toFixed(2)}</p>
-                                                </div>
-                                                <div className="text-right">
-                                                    <div className="text-green-400 font-bold">R$ {p.net_salary.toFixed(2)}</div>
-                                                    <div className="text-xs text-red-400">— R$ {p.deductions.toFixed(2)} descontos</div>
-                                                </div>
-                                            </div>
+                                        <div className="text-center py-20 bg-white border border-slate-100 rounded-[2.5rem] p-8">
+                                            <Clock className="w-12 h-12 text-slate-200 mx-auto mb-4" />
+                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Sem documentos disponíveis</p>
                                         </div>
-                                    ))}
+                                    ) : (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            {payslips.map(p => (
+                                                <div key={p.id} className="bg-white border-slate-200 border-black/5 shadow-sm border-slate-100 rounded-[2.5rem] p-8 hover:shadow-lg transition-all group border-l-4 border-l-emerald-500">
+                                                    <div className="flex justify-between items-center mb-6">
+                                                        <div>
+                                                            <p className="text-lg font-black text-slate-900 tracking-tight italic">{p.reference_month}</p>
+                                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Ref: Protocolo Financeiro</p>
+                                                        </div>
+                                                        <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600">
+                                                            <Clock size={24} />
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex justify-between items-end border-t border-slate-50 pt-6">
+                                                        <div>
+                                                            <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Deduções: R$ {p.deductions.toFixed(2)}</div>
+                                                            <div className="text-[10px] font-bold text-slate-400">Bruto: R$ {p.gross_salary.toFixed(2)}</div>
+                                                        </div>
+                                                        <div className="text-right">
+                                                            <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Líquido Final</span>
+                                                            <span className="text-3xl font-black text-emerald-600 tracking-tighter">R$ {p.net_salary.toFixed(2)}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </>
                     )}
 
                     {/* Link to Kanban */}
-                    <div className="mt-8 bg-gradient-to-r from-purple-900/30 to-blue-900/30 border border-blue-500/20 rounded-xl p-5 flex items-center justify-between">
-
+                    <div className="bg-white border-2 border-blue-50 rounded-[3rem] p-10 flex flex-col md:flex-row items-center justify-between gap-8 shadow-xl relative overflow-hidden group">
+                        <div className="absolute top-0 left-0 w-2 w-full h-2 bg-gradient-to-r from-blue-600 to-indigo-500" />
                         <div>
-                            <h3 className="font-bold text-gray-200">Gestão de Tickets / Reembolsos</h3>
-                            <p className="text-sm text-gray-400 mt-0.5">Arraste e organize solicitações no Kanban de RH</p>
+                            <h3 className="text-2xl font-black text-slate-900 tracking-tight italic">Gestão de Tickets / Reembolsos</h3>
+                            <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mt-1">Protocolos de suporte neural e administrativo</p>
                         </div>
                         <a
                             href="/csc"
-                            className="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 rounded-xl text-sm font-medium transition"
+                            className="w-full md:w-auto flex items-center justify-center gap-3 px-10 py-5 bg-blue-600 hover:bg-blue-700 rounded-2xl text-white font-black text-[10px] uppercase tracking-[0.2em] transition-all shadow-xl shadow-blue-100 group-hover:scale-105"
                         >
-                            <Users className="w-4 h-4" /> Abrir Kanban <ChevronRight className="w-4 h-4" />
+                            <Users size={20} /> Central de Soluções <ChevronRight size={20} />
                         </a>
                     </div>
                 </div>

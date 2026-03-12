@@ -57,10 +57,10 @@ const Avatar = ({ name }: { name: string }) => {
 
 const KanbanCard = ({ candidato }: { candidato: any }) => {
     const getMatchStatus = (score: number | null) => {
-        if (!score) return { color: 'text-zinc-9000', bg: 'bg-zinc-800/50', border: 'border-zinc-800', bar: 'w-0', label: 'Análise Pendente' };
-        if (score >= 90) return { color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', bar: 'bg-emerald-500', label: 'Excelente Fit' };
-        if (score >= 75) return { color: 'text-indigo-400', bg: 'bg-indigo-500/10', border: 'border-indigo-500/20', bar: 'bg-indigo-500', label: 'Bom Fit' };
-        return { color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20', bar: 'bg-amber-500', label: 'Atenção' };
+        if (!score) return { color: 'text-slate-400', bg: 'bg-slate-50', border: 'border-slate-100', bar: 'w-0', label: 'Análise Pendente' };
+        if (score >= 90) return { color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-100', bar: 'bg-emerald-500', label: 'Excelente Fit' };
+        if (score >= 75) return { color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-100', bar: 'bg-blue-500', label: 'Bom Fit' };
+        return { color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-100', bar: 'bg-amber-500', label: 'Atenção' };
     };
 
     const match = getMatchStatus(candidato.matchIA);
@@ -210,7 +210,7 @@ export default function RecrutamentoPage() {
                         <button
                             onClick={analisarCurriculosIA}
                             disabled={isAnalyzing || getCandidatos('novos').length === 0}
-                            className="w-full md:w-auto bg-blue-600 hover:bg-blue-700 disabled:bg-slate-200 disabled:text-slate-400 text-slate-900 px-4 py-2 md:py-1.5 rounded-md text-sm font-black flex items-center justify-center gap-2 transition-all shadow-md active:scale-95"
+                            className="w-full md:w-auto bg-blue-600 hover:bg-blue-700 disabled:bg-slate-100 disabled:text-slate-400 text-white px-6 py-3 rounded-xl text-sm font-black flex items-center justify-center gap-2 transition-all shadow-xl shadow-blue-100 active:scale-95"
                         >
                             {isAnalyzing ? (
                                 <><BrainCircuit size={16} className="animate-spin" /> Processando CVs...</>
