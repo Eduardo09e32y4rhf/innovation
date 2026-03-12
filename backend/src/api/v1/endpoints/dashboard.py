@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from typing import Optional
 from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, contains_eager
 from sqlalchemy import func
 from infrastructure.database.sql.dependencies import get_db
 from core.dependencies import get_current_user
@@ -260,8 +260,8 @@ async def get_kanban_board(
     # ⚡ Bolt: Eliminate N+1 query problem by eagerly loading related entities
     apps = (
         db.query(Application)
-        .options(joinedload(Application.job), joinedload(Application.candidate))
         .join(Job)
+        .options(contains_eager(Application.job), joinedload(Application.candidate))
         .filter(Job.company_id == current_user.id)
         .order_by(Application.created_at.desc())
         .limit(50)
