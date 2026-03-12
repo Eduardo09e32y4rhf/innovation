@@ -10,3 +10,7 @@
 ## 2024-03-01 - Avoid O(N) memory allocations via `.all()` inside iterative loops
 **Learning:** Found an endpoints in `rh_advanced.py` fetching ORM records (`TimeBank`) via `.all()` inside a `for u in users` loop, accumulating values manually via `sum()`. For huge record sets, querying related records in a loop causes an O(N) memory scale-up alongside an N+1 query regression.
 **Action:** When a loop iterates over database objects to count or aggregate fields, replace the loop with a single SQLAlchemy aggregation query (`func.sum` and `group_by`). This solves the N+1 problem and keeps Python memory strictly bounded to the result size rather than materializing all records into Python objects.
+
+## 2024-05-20 - Eliminate N+1 Queries on Dashboard Kanban via joinedload
+**Learning:** The `/kanban` endpoint in the dashboard iterated through 50 `Application` cards to format the response payload. For each card, it accessed `app.candidate` and `app.job` relationships. Because these were lazy-loaded by default, SQLAlchemy made an additional query per relationship per card, generating ~100 separate database queries. This is a severe N+1 bottleneck.
+**Action:** When iterating over queried entities to build an output list, explicitly define eager loading using `.options(joinedload(Model.relationship))` for any related entities accessed during the loop. This minimizes the workload to a single large database request rather than many tiny requests, dramatically speeding up API response times on high-iteration lists.
