@@ -21,3 +21,8 @@
 **Vulnerability:** Several backend endpoints (`users.py`, `jobs.py`, `candidates.py`) were returning the raw output of Python exceptions (`str(e)`) directly to users via HTTP 500 response bodies.
 **Learning:** Returning `str(e)` directly in HTTP responses can leak sensitive internal details, database structure (SQLAlchemy errors), or logic to malicious actors. This violates the principle of failing securely and "Never expose raw exception strings (`str(e)`) in HTTP responses to external clients."
 **Prevention:** Catch exceptions, log `str(e)` securely on the backend using Python`s `logging` library, and return a sanitized, generic error message (e.g. "Erro interno ao processar a requisição") to the client.
+
+## 2025-03-04 - [MEDIUM] Missing Rate Limiting on Authentication Endpoints
+**Vulnerability:** Core authentication and recovery endpoints (`/register`, `/forgot-password`, `/reset-password`, `/google-callback`) lacked rate limiting. This exposes the application to brute-force attacks, account enumeration, credential stuffing, and DoS attacks against sensitive functionality.
+**Learning:** Unprotected auth endpoints are high-value targets. When applying `slowapi` rate limiting (`@limiter.limit(...)`) to FastAPI endpoints, a common pitfall is forgetting that the endpoint signature must explicitly include a `request: Request` parameter. Without it, the limiter cannot extract the client's IP or identity to enforce the limit, and depending on the implementation, might crash or fail open.
+**Prevention:** Apply rate limiting (e.g., `slowapi`) to all authentication, password recovery, and sensitive action endpoints by default. Ensure the necessary `Request` object is injected into the endpoint signature so the rate limiter functions correctly.
