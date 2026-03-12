@@ -380,9 +380,11 @@ async def ask_ai_stream(
     user_plan = getattr(current_user, "subscription_plan", "FREE").upper()
 
     if user_plan in ["FREE", "BASIC", "STARTER"]:
-        yield "data: ⚠️ Seu plano atual não permite acesso livre à IA. Faça upgrade para o plano COMPLETE ou ENTERPRISE para desbloquear as funcionalidades cognitivas!\n\n"
-        yield "data: [DONE]\n\n"
-        return
+        async def plan_limit_generator():
+            yield "data: ⚠️ Seu plano atual não permite acesso livre à IA. Faça upgrade para o plano COMPLETE ou ENTERPRISE para desbloquear as funcionalidades cognitivas!\n\n"
+            yield "data: [DONE]\n\n"
+        
+        return StreamingResponse(plan_limit_generator(), media_type="text/event-stream")
 
     # Log usage and award XP
     db = next(get_db())
@@ -396,13 +398,12 @@ async def ask_ai_stream(
     # Por enquanto apenas Gemini suporta streaming nativo nesta implementação
     if "claude" in model_choice:
         # Fallback para não-streaming se tentar claude no stream (ou implementar claude stream depois)
+        async def claude_fallback_generator():
+            yield f"data: [ERROR] Streaming ainda não disponível para Claude. Use Gemini.\n\n"
+            yield "data: [DONE]\n\n"
+            
         return StreamingResponse(
-            iter(
-                [
-                    f"data: [ERROR] Streaming ainda não disponível para Claude. Use Gemini.\n\n",
-                    "data: [DONE]\n\n",
-                ]
-            ),
+            claude_fallback_generator(),
             media_type="text/event-stream",
         )
 
