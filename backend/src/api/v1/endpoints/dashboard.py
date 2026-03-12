@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
-from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from typing import Optional
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session, joinedload, contains_eager
 from sqlalchemy import func
 from infrastructure.database.sql.dependencies import get_db
 from core.dependencies import get_current_user
@@ -11,6 +11,7 @@ from domain.models.job import Job
 from domain.models.application import Application
 from domain.models.project import Project
 from domain.models.audit_log import AuditLog
+from domain.models.gamification import Mission, UserMission
 
 router = APIRouter(prefix="/api/dashboard", tags=["Dashboard"])
 
@@ -256,9 +257,11 @@ async def get_kanban_board(
     }
 
     # Fetch real applications
+    # ⚡ Bolt: Eliminate N+1 query problem by eagerly loading related entities
     apps = (
         db.query(Application)
         .join(Job)
+        .options(contains_eager(Application.job), joinedload(Application.candidate))
         .filter(Job.company_id == current_user.id)
         .order_by(Application.created_at.desc())
         .limit(50)
@@ -341,9 +344,6 @@ async def get_activity_heatmap(
     return heatmap_data
 
 
-from domain.models.gamification import Mission, UserMission
-
-
 @router.get("/missions")
 async def get_missions(
     current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
@@ -352,7 +352,7 @@ async def get_missions(
     from datetime import time, timezone
 
     # Active missions
-    all_missions = db.query(Mission).filter(Mission.is_active == True).all()
+    all_missions = db.query(Mission).filter(Mission.is_active.is_(True)).all()
 
     # Done today
     today_start = datetime.combine(datetime.now(timezone.utc).date(), time.min)
