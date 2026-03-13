@@ -10,3 +10,7 @@
 ## 2024-03-01 - Avoid O(N) memory allocations via `.all()` inside iterative loops
 **Learning:** Found an endpoints in `rh_advanced.py` fetching ORM records (`TimeBank`) via `.all()` inside a `for u in users` loop, accumulating values manually via `sum()`. For huge record sets, querying related records in a loop causes an O(N) memory scale-up alongside an N+1 query regression.
 **Action:** When a loop iterates over database objects to count or aggregate fields, replace the loop with a single SQLAlchemy aggregation query (`func.sum` and `group_by`). This solves the N+1 problem and keeps Python memory strictly bounded to the result size rather than materializing all records into Python objects.
+
+## 2024-05-20 - [Avoid N+1 Queries in Serialized Entity Lists]
+**Learning:** Found an N+1 query vulnerability in `backend/src/api/v1/endpoints/dashboard.py` within `get_kanban_board()`. The endpoint fetched up to 50 `Application` records, and in a loop, accessed `app.candidate` and `app.job` to serialize data for the frontend. Because these relationships were lazily loaded, SQLAlchemy issued a separate SELECT query for the candidate and job in each iteration, resulting in up to 101 queries (1 + 50*2).
+**Action:** Used `.options(joinedload(Application.candidate), joinedload(Application.job))` in the main `Application` query to fetch all required relationships in a single database roundtrip. Always use eager loading (joinedload, selectinload) for related objects when iterating over ORM collections to prevent hidden database latency spikes.
