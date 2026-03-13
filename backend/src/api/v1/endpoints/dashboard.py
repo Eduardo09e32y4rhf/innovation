@@ -1,7 +1,8 @@
+from domain.models.gamification import Mission, UserMission
 from datetime import datetime, timedelta
-from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from typing import List, Optional  # noqa: F401
+from fastapi import APIRouter, Depends, HTTPException  # noqa: F401
+from sqlalchemy.orm import Session, joinedload, contains_eager
 from sqlalchemy import func
 from infrastructure.database.sql.dependencies import get_db
 from core.dependencies import get_current_user
@@ -255,10 +256,13 @@ async def get_kanban_board(
         "done": {"id": "done", "title": "Concluído", "color": "#10B981", "cards": []},
     }
 
-    # Fetch real applications
+    # ⚡ Bolt: Fetch real applications eagerly loading relationships to avoid N+1 queries.
+    # Why: In the loop below, `app.candidate` and `app.job` are accessed.
+    # Impact: Reduces queries from potentially 101 to 1.
     apps = (
         db.query(Application)
         .join(Job)
+        .options(joinedload(Application.candidate), contains_eager(Application.job))
         .filter(Job.company_id == current_user.id)
         .order_by(Application.created_at.desc())
         .limit(50)
@@ -341,9 +345,6 @@ async def get_activity_heatmap(
     return heatmap_data
 
 
-from domain.models.gamification import Mission, UserMission
-
-
 @router.get("/missions")
 async def get_missions(
     current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
@@ -352,7 +353,7 @@ async def get_missions(
     from datetime import time, timezone
 
     # Active missions
-    all_missions = db.query(Mission).filter(Mission.is_active == True).all()
+    all_missions = db.query(Mission).filter(Mission.is_active.is_(True)).all()
 
     # Done today
     today_start = datetime.combine(datetime.now(timezone.utc).date(), time.min)
