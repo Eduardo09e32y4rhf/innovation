@@ -37,7 +37,7 @@ class Settings(BaseSettings):
     # Asaas & Mercado Pago Settings
     ASAAS_API_KEY: str | None = None
     MP_ACCESS_TOKEN: str | None = None
-    
+
     BASE_URL: str = (
         "http://localhost:8000"  # Default for local dev, override in prod/ngrok
     )
