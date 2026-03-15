@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload, contains_eager
 from sqlalchemy import func
 from infrastructure.database.sql.dependencies import get_db
 from core.dependencies import get_current_user
@@ -255,10 +255,12 @@ async def get_kanban_board(
         "done": {"id": "done", "title": "Concluído", "color": "#10B981", "cards": []},
     }
 
+    # ⚡ Bolt: Prevent N+1 query problem by eagerly loading candidate and job relationships.
     # Fetch real applications
     apps = (
         db.query(Application)
         .join(Job)
+        .options(joinedload(Application.candidate), contains_eager(Application.job))
         .filter(Job.company_id == current_user.id)
         .order_by(Application.created_at.desc())
         .limit(50)
@@ -352,7 +354,7 @@ async def get_missions(
     from datetime import time, timezone
 
     # Active missions
-    all_missions = db.query(Mission).filter(Mission.is_active == True).all()
+    all_missions = db.query(Mission).filter(Mission.is_active.is_(True)).all()
 
     # Done today
     today_start = datetime.combine(datetime.now(timezone.utc).date(), time.min)
