@@ -1,14 +1,12 @@
 from fastapi import APIRouter, Depends, Request, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
-from core.config import settings
 from infrastructure.database.sql.dependencies import get_db
 from domain.models.user import User
 from domain.models.subscription import Subscription
 from domain.models.company import Company
 from api.v1.endpoints.auth import get_current_user
 from services.asaas_service import asaas_service
-from typing import Optional
 
 router = APIRouter(prefix="/api/payments", tags=["payments"])
 
@@ -22,6 +20,7 @@ class CheckoutRequest(BaseModel):
 async def checkout(
     data: CheckoutRequest,
     current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ):
     """Cria preferência e retorna init_point para a página de pricing."""
     prices = {"starter": 299.0, "growth": 799.0, "enterprise": 1999.0}
@@ -49,13 +48,18 @@ async def checkout(
             "price": price,
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro Asaas: {e}")
+        print(f"Erro interno no Asaas: {e}")
+        raise HTTPException(
+            status_code=500, detail="Erro interno ao processar o pagamento."
+        )
 
 
 # 1. CRIA O LINK DE PAGAMENTO (legacy route)
 @router.post("/create-preference/{plan_type}")
 async def create_preference(
-    plan_type: str, current_user: User = Depends(get_current_user)
+    plan_type: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ):
     """
     Cria uma assinatura (Preapproval) no Mercado Pago.
