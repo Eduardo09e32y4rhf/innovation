@@ -232,9 +232,7 @@ async def google_callback(code: str, db: Session = Depends(get_db)):
         resp = await client.post(token_url, data=payload)
         if resp.status_code != 200:
             logger.error(f"Falha ao obter token Google: {resp.text}")
-            raise HTTPException(
-                status_code=400, detail="Falha ao obter token Google."
-            )
+            raise HTTPException(status_code=400, detail="Falha ao obter token Google.")
 
         token_data = resp.json()
         access_token = token_data.get("access_token")

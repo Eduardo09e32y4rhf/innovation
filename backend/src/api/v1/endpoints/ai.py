@@ -380,10 +380,11 @@ async def ask_ai_stream(
     user_plan = getattr(current_user, "subscription_plan", "FREE").upper()
 
     if user_plan in ["FREE", "BASIC", "STARTER"]:
+
         async def plan_limit_generator():
             yield "data: ⚠️ Seu plano atual não permite acesso livre à IA. Faça upgrade para o plano COMPLETE ou ENTERPRISE para desbloquear as funcionalidades cognitivas!\n\n"
             yield "data: [DONE]\n\n"
-        
+
         return StreamingResponse(plan_limit_generator(), media_type="text/event-stream")
 
     # Log usage and award XP
@@ -401,7 +402,7 @@ async def ask_ai_stream(
         async def claude_fallback_generator():
             yield f"data: [ERROR] Streaming ainda não disponível para Claude. Use Gemini.\n\n"
             yield "data: [DONE]\n\n"
-            
+
         return StreamingResponse(
             claude_fallback_generator(),
             media_type="text/event-stream",
@@ -537,7 +538,10 @@ async def generate_video(
             print(f"Erro no Veo: {e}")
             raise HTTPException(500, detail="Erro interno ao gerar vídeo com Veo.")
 
-    raise HTTPException(503, "Serviço de geração de vídeo temporariamente indisponível. Tente novamente mais tarde.")
+    raise HTTPException(
+        503,
+        "Serviço de geração de vídeo temporariamente indisponível. Tente novamente mais tarde.",
+    )
 
 
 @router.post("/public-ask-stream")
