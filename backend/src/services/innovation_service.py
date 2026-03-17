@@ -1,7 +1,7 @@
 import os
 import httpx
 from fastapi import HTTPException
-from typing import List, Optional, Dict, Any
+from typing import Optional, Dict, Any
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -70,12 +70,20 @@ REGRAS DE RESPOSTA:
 
                 if response.status_code != 200:
                     error_detail = response.json()
-                    raise HTTPException(502, f"Erro na Innovation IA: {error_detail}")
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.error(f"Erro na Innovation IA API (Status {response.status_code}): {error_detail}")
+                    raise HTTPException(502, "Erro interno na Innovation IA. A API retornou erro.")
 
                 result = response.json()
                 return result["content"][0]["text"]
+            except HTTPException:
+                raise
             except Exception as e:
-                raise HTTPException(500, f"Falha crítica na Innovation IA: {str(e)}")
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"Falha crítica na Innovation IA: {e}")
+                raise HTTPException(500, "Falha crítica ao processar requisição na Innovation IA.")
 
     async def analisar_folha(self, dados_folha: Dict[str, Any]) -> str:
         """

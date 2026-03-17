@@ -6,8 +6,6 @@ AI Chat Endpoint — Tiered Model Access
 """
 
 import os
-import json
-import re
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from typing import Optional, List
@@ -236,10 +234,10 @@ async def _ask_gemini_stream(
                     yield "data: [DONE]\n\n"
                     return
                 raise e
-        except Exception as inner_e:
+        except Exception:
             continue
 
-    yield f"data: [ERROR] Falha crítica: {str(inner_e)}\n\n"
+    yield "data: [ERROR] Falha crítica: Erro interno no simulador.\n\n"
 
 
 # ─── Helper: Claude ────────────────────────────────────────────────────────────
@@ -399,7 +397,7 @@ async def ask_ai_stream(
     if "claude" in model_choice:
         # Fallback para não-streaming se tentar claude no stream (ou implementar claude stream depois)
         async def claude_fallback_generator():
-            yield f"data: [ERROR] Streaming ainda não disponível para Claude. Use Gemini.\n\n"
+            yield "data: [ERROR] Streaming ainda não disponível para Claude. Use Gemini.\n\n"
             yield "data: [DONE]\n\n"
             
         return StreamingResponse(
@@ -487,8 +485,10 @@ async def landing_plan(data: LandingPlanRequest):
         answer = await _ask_gemini(user_query, [], "gemini-1.5-flash")
         return {"answer": answer}
     except Exception as e:
-        print(f"❌ Erro no simulador: {e}")
-        raise HTTPException(500, detail=str(e))
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Erro no simulador: {e}")
+        raise HTTPException(500, detail="Erro interno ao processar simulação.")
 
 
 class VeoRequest(BaseModel):
@@ -534,7 +534,10 @@ async def generate_video(
             if "429" in str(e) or "quota" in str(e).lower():
                 ai_key_manager.mark_as_exhausted(api_key)
                 continue
-            raise HTTPException(500, detail=f"Erro no Veo: {str(e)}")
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Erro no Veo: {e}")
+            raise HTTPException(500, detail="Erro interno na geração de vídeo.")
 
     raise HTTPException(503, "Falha em todas as chaves do Gemini para o Veo.")
 
