@@ -71,9 +71,14 @@ REGRAS DE RESPOSTA:
                 if response.status_code != 200:
                     error_detail = response.json()
                     import logging
+
                     logger = logging.getLogger(__name__)
-                    logger.error(f"Erro na Innovation IA API (Status {response.status_code}): {error_detail}")
-                    raise HTTPException(502, "Erro interno na Innovation IA. A API retornou erro.")
+                    logger.error(
+                        f"Erro na Innovation IA API (Status {response.status_code}): {error_detail}"
+                    )
+                    raise HTTPException(
+                        502, "Erro interno na Innovation IA. A API retornou erro."
+                    )
 
                 result = response.json()
                 return result["content"][0]["text"]
@@ -81,9 +86,12 @@ REGRAS DE RESPOSTA:
                 raise
             except Exception as e:
                 import logging
+
                 logger = logging.getLogger(__name__)
                 logger.error(f"Falha crítica na Innovation IA: {e}")
-                raise HTTPException(500, "Falha crítica ao processar requisição na Innovation IA.")
+                raise HTTPException(
+                    500, "Falha crítica ao processar requisição na Innovation IA."
+                )
 
     async def analisar_folha(self, dados_folha: Dict[str, Any]) -> str:
         """
