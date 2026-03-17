@@ -134,7 +134,7 @@ export default function ATSPage() {
                                 <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
                                 <input type="text" placeholder="Filtrar vagas..." className="w-full bg-slate-50 border-slate-100 rounded-xl py-2.5 pl-11 pr-4 text-xs font-medium focus:ring-4 focus:ring-indigo-50 outline-none transition-all" />
                             </div>
-                            <button className="p-2.5 bg-slate-50 rounded-xl border-slate-100 text-slate-400 hover:text-blue-600 transition-all">
+                            <button className="p-2.5 bg-slate-50 rounded-xl border-slate-100 text-slate-400 hover:text-blue-600 transition-all" aria-label="Filtrar vagas">
                                 <Filter size={18} />
                             </button>
                         </div>
