@@ -2,11 +2,11 @@
 Finance Advanced — OFX Import, Payroll Cost, Cost Centers, Digital Voucher
 """
 
-import io
 import re
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from pydantic import BaseModel
 from typing import Optional, List
 
@@ -173,32 +173,47 @@ def get_cost_centers(
     current_user: User = Depends(get_current_user),
 ):
     """Agrupa transações por categoria (centro de custo)."""
-    transactions = (
-        db.query(Transaction)
+    # ⚡ Bolt: Fetch aggregated data directly from DB to eliminate O(N) memory/processing overhead.
+    # Why: Previously, this fetched all debit transactions into memory and used Python loops to group and sum amounts.
+    # Impact: Dramatically reduces memory footprint and latency for companies with large transaction histories.
+    aggregated_results = (
+        db.query(
+            func.coalesce(Transaction.category, "Outros").label("category"),
+            func.sum(Transaction.amount).label("total"),
+            func.count(Transaction.id).label("count"),
+        )
         .filter(
             Transaction.company_id == current_user.id,
             Transaction.type == "debit",
         )
+        .group_by(func.coalesce(Transaction.category, "Outros"))
         .all()
     )
 
-    centers: dict = {}
-    for tx in transactions:
-        cat = getattr(tx, "category", "Outros") or "Outros"
-        if cat not in centers:
-            centers[cat] = {"category": cat, "total": 0.0, "count": 0}
-        centers[cat]["total"] += tx.amount
-        centers[cat]["count"] += 1
+    centers_list = []
+    total_spend = 0.0
 
-    total_spend = sum(v["total"] for v in centers.values())
-    for v in centers.values():
+    for cat, total, count in aggregated_results:
+        # If category was an empty string rather than NULL, map it to "Outros"
+        final_cat = cat if cat else "Outros"
+        val = float(total) if total else 0.0
+        total_spend += val
+
+        # We might have multiple rows if some were "" and some were NULL before coalesce,
+        # so we merge them if necessary
+        existing = next((c for c in centers_list if c["category"] == final_cat), None)
+        if existing:
+            existing["total"] += val
+            existing["count"] += count
+        else:
+            centers_list.append({"category": final_cat, "total": val, "count": count})
+
+    for v in centers_list:
         v["percentage"] = round(v["total"] / total_spend * 100, 1) if total_spend else 0
 
     return {
         "total_spend": round(total_spend, 2),
-        "cost_centers": sorted(
-            centers.values(), key=lambda x: x["total"], reverse=True
-        ),
+        "cost_centers": sorted(centers_list, key=lambda x: x["total"], reverse=True),
     }
 
 
