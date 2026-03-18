@@ -122,6 +122,7 @@ export default function AIKeyManager() {
                     value={newKey}
                     onChange={(e) => setNewKey(e.target.value)}
                     className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-blue-500/50 transition-all"
+                    aria-label="Nova chave da API"
                 />
                 <button
                     type="submit"
@@ -161,6 +162,8 @@ export default function AIKeyManager() {
                             <button
                                 onClick={() => handleRemoveKey(k.id)}
                                 className="p-2 rounded-lg bg-red-500/0 hover:bg-red-500/10 text-red-500/40 hover:text-red-500 transition-all"
+                                aria-label="Remover chave"
+                                title="Remover chave"
                             >
                                 <Trash2 className="w-4 h-4" />
                             </button>
