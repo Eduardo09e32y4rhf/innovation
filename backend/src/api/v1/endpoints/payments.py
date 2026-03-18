@@ -1,14 +1,12 @@
 from fastapi import APIRouter, Depends, Request, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
-from core.config import settings
 from infrastructure.database.sql.dependencies import get_db
 from domain.models.user import User
 from domain.models.subscription import Subscription
 from domain.models.company import Company
 from api.v1.endpoints.auth import get_current_user
 from services.asaas_service import asaas_service
-from typing import Optional
 
 router = APIRouter(prefix="/api/payments", tags=["payments"])
 
@@ -49,7 +47,8 @@ async def checkout(
             "price": price,
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro Asaas: {e}")
+        print(f"Erro no checkout Asaas: {e}")
+        raise HTTPException(status_code=500, detail="Erro interno ao processar checkout.")
 
 
 # 1. CRIA O LINK DE PAGAMENTO (legacy route)

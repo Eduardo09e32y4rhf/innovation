@@ -99,7 +99,7 @@ def _build_response(das: DasMei, cnpj: Optional[str]) -> dict:
     )
 
     # Link direto para o PGMEI (Portal de Geração do DAS MEI — Receita Federal)
-    link_pgmei = f"https://www8.receita.fazenda.gov.br/SimplesNacional/Aplicacoes/ATBHE/pgmei.app/Identificacao"
+    link_pgmei = "https://www8.receita.fazenda.gov.br/SimplesNacional/Aplicacoes/ATBHE/pgmei.app/Identificacao"
     if cnpj_raw:
         link_pgmei = f"https://www8.receita.fazenda.gov.br/SimplesNacional/Aplicacoes/ATBHE/pgmei.app/Identificacao?cnpj={cnpj_raw}"
 
@@ -272,5 +272,5 @@ async def marcar_das_pago(
         db.rollback()
         logger.error(f"[das/marcar-pago] {e}")
         raise HTTPException(
-            status_code=500, detail=f"Erro ao marcar DAS como pago: {str(e)}"
+            status_code=500, detail="Erro interno ao marcar DAS como pago."
         )
