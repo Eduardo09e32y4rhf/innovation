@@ -48,7 +48,9 @@ async def checkout(
         }
     except Exception as e:
         print(f"Erro no checkout Asaas: {e}")
-        raise HTTPException(status_code=500, detail="Erro interno ao processar checkout.")
+        raise HTTPException(
+            status_code=500, detail="Erro interno ao processar checkout."
+        )
 
 
 # 1. CRIA O LINK DE PAGAMENTO (legacy route)
