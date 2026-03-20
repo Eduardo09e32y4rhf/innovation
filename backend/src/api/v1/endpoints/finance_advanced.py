@@ -2,11 +2,11 @@
 Finance Advanced — OFX Import, Payroll Cost, Cost Centers, Digital Voucher
 """
 
-import io
 import re
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from pydantic import BaseModel
 from typing import Optional, List
 
@@ -173,22 +173,30 @@ def get_cost_centers(
     current_user: User = Depends(get_current_user),
 ):
     """Agrupa transações por categoria (centro de custo)."""
-    transactions = (
-        db.query(Transaction)
+    # ⚡ Bolt: Fetch aggregated data directly from DB to eliminate O(N) memory/processing overhead.
+    # Why: Previously, this fetched all debit transactions into memory and used Python loops to sum amounts.
+    # Impact: Dramatically reduces memory usage and speeds up response time for companies with large transaction histories.
+    results = (
+        db.query(
+            Transaction.category,
+            func.sum(Transaction.amount).label("total"),
+            func.count(Transaction.id).label("count"),
+        )
         .filter(
             Transaction.company_id == current_user.id,
             Transaction.type == "debit",
         )
+        .group_by(Transaction.category)
         .all()
     )
 
     centers: dict = {}
-    for tx in transactions:
-        cat = getattr(tx, "category", "Outros") or "Outros"
+    for category, total, count in results:
+        cat = category or "Outros"
         if cat not in centers:
             centers[cat] = {"category": cat, "total": 0.0, "count": 0}
-        centers[cat]["total"] += tx.amount
-        centers[cat]["count"] += 1
+        centers[cat]["total"] += float(total) if total else 0.0
+        centers[cat]["count"] += count
 
     total_spend = sum(v["total"] for v in centers.values())
     for v in centers.values():
