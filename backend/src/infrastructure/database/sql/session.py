@@ -5,15 +5,17 @@ from sqlalchemy.orm import sessionmaker
 
 from core.config import DATABASE_URL
 
+db_url_str = str(DATABASE_URL)
+
 # Fix for Render (postgres:// -> postgresql://)
-if str(DATABASE_URL).startswith("postgres://"):
-    DATABASE_URL = str(DATABASE_URL).replace("postgres://", "postgresql://", 1)
+if db_url_str.startswith("postgres://"):
+    db_url_str = db_url_str.replace("postgres://", "postgresql://", 1)
 
 _connect_args = {}
-if str(DATABASE_URL).startswith("sqlite"):
+if db_url_str.startswith("sqlite"):
     _connect_args = {"check_same_thread": False}
     engine = create_engine(
-        DATABASE_URL,
+        db_url_str,
         echo=False,
         future=True,
         connect_args=_connect_args,
@@ -22,7 +24,7 @@ else:
     # PostgreSQL: timeouts para evitar conexões penduradas
     _connect_args = {"connect_timeout": 5}
     engine = create_engine(
-        DATABASE_URL,
+        db_url_str,
         echo=False,
         future=True,
         connect_args=_connect_args,
