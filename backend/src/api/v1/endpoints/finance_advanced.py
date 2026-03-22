@@ -179,7 +179,9 @@ def get_cost_centers(
     # Impact: Dramatically reduces memory usage and speeds up response time for companies with large transaction histories.
     aggregated_results = (
         db.query(
-            func.coalesce(func.nullif(Transaction.category, ""), "Outros").label("category"),
+            func.coalesce(func.nullif(Transaction.category, ""), "Outros").label(
+                "category"
+            ),
             func.sum(Transaction.amount).label("total"),
             func.count(Transaction.id).label("count"),
         )
@@ -191,7 +193,9 @@ def get_cost_centers(
         .all()
     )
 
-    total_spend = sum((float(row.total) if row.total else 0.0) for row in aggregated_results)
+    total_spend = sum(
+        (float(row.total) if row.total else 0.0) for row in aggregated_results
+    )
 
     cost_centers = []
     for row in aggregated_results:
@@ -210,9 +214,7 @@ def get_cost_centers(
 
     return {
         "total_spend": round(total_spend, 2),
-        "cost_centers": sorted(
-            cost_centers, key=lambda x: x["total"], reverse=True
-        ),
+        "cost_centers": sorted(cost_centers, key=lambda x: x["total"], reverse=True),
     }
 
 
