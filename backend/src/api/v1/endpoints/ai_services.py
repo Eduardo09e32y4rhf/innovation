@@ -13,6 +13,9 @@ from typing import Optional
 from infrastructure.database.sql.dependencies import get_db
 from core.dependencies import get_current_user
 from domain.models.user import User
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/ai", tags=["ai-services"])
 
@@ -417,6 +420,7 @@ Extraia os seguintes campos do recibo e retorne APENAS um JSON válido:
 
         return data
     except Exception as e:
+        logger.error(f"Erro ao processar recibo: {str(e)}")
         raise HTTPException(
-            status_code=500, detail=f"Erro ao processar recibo: {str(e)}"
+            status_code=500, detail="Erro interno ao processar o recibo."
         )

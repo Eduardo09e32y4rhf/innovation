@@ -80,7 +80,7 @@ async def get_transactions(
     except Exception as e:
         logger.error(f"[finance/transactions GET] {e}")
         raise HTTPException(
-            status_code=500, detail=f"Erro ao buscar transações: {str(e)}"
+            status_code=500, detail="Erro interno ao buscar as transações."
         )
 
 
@@ -134,7 +134,7 @@ async def create_transaction(
         db.rollback()
         logger.error(f"[finance/transactions POST] {e}")
         raise HTTPException(
-            status_code=500, detail=f"Erro ao criar transação: {str(e)}"
+            status_code=500, detail="Erro interno ao criar a transação."
         )
 
 

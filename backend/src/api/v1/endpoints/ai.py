@@ -488,7 +488,7 @@ async def landing_plan(data: LandingPlanRequest):
         return {"answer": answer}
     except Exception as e:
         print(f"❌ Erro no simulador: {e}")
-        raise HTTPException(500, detail=str(e))
+        raise HTTPException(500, detail="Erro interno ao processar a simulação.")
 
 
 class VeoRequest(BaseModel):
@@ -534,7 +534,8 @@ async def generate_video(
             if "429" in str(e) or "quota" in str(e).lower():
                 ai_key_manager.mark_as_exhausted(api_key)
                 continue
-            raise HTTPException(500, detail=f"Erro no Veo: {str(e)}")
+            print(f"❌ Erro no Veo: {e}")
+            raise HTTPException(500, detail="Erro interno ao gerar o vídeo.")
 
     raise HTTPException(503, "Falha em todas as chaves do Gemini para o Veo.")
 
