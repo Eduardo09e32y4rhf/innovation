@@ -520,6 +520,7 @@ function TopBar({
           onClick={() => router.back()}
           className="flex items-center gap-2 text-slate-400 hover:text-slate-900 transition-all px-2 py-1.5 rounded-lg hover:bg-slate-100 shrink-0"
           title="Voltar"
+          aria-label="Voltar para a página anterior"
         >
           <ArrowLeft className="w-4 h-4" />
           <span className="text-xs hidden sm:inline font-bold">Voltar</span>

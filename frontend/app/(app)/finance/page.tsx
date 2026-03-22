@@ -130,7 +130,7 @@ function NovoLancamentoModal({ onClose, onSave }: {
 
                 <div className="flex items-center justify-between mb-8">
                     <h3 className="text-xl font-black text-slate-900 tracking-tight">Novo Lançamento</h3>
-                    <button onClick={onClose} className="p-2 rounded-xl hover:bg-slate-50 text-slate-400 transition-all">
+                    <button onClick={onClose} className="p-2 rounded-xl hover:bg-slate-50 text-slate-400 transition-all" aria-label="Fechar modal">
                         <X size={20} />
                     </button>
                 </div>
