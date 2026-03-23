@@ -21,3 +21,8 @@
 **Vulnerability:** Several backend endpoints (`users.py`, `jobs.py`, `candidates.py`) were returning the raw output of Python exceptions (`str(e)`) directly to users via HTTP 500 response bodies.
 **Learning:** Returning `str(e)` directly in HTTP responses can leak sensitive internal details, database structure (SQLAlchemy errors), or logic to malicious actors. This violates the principle of failing securely and "Never expose raw exception strings (`str(e)`) in HTTP responses to external clients."
 **Prevention:** Catch exceptions, log `str(e)` securely on the backend using Python`s `logging` library, and return a sanitized, generic error message (e.g. "Erro interno ao processar a requisição") to the client.
+
+## 2026-03-23 - Prevent Information Leakage in API Error Responses
+**Vulnerability:** Multiple API endpoints were returning internal exception details directly to the client via `HTTPException(500, detail=str(e))` or in JSON responses.
+**Learning:** This is a recurring anti-pattern in this codebase where developer debugging convenience (returning the exact stack trace or error message string) accidentally leads to information disclosure that could be leveraged by attackers.
+**Prevention:** Always catch exceptions, log the exact error internally using `logger.error()` or `print()`, and return a generic, static error message to the client (e.g., 'Erro interno ao processar a requisição').

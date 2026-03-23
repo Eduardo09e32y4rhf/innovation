@@ -44,7 +44,7 @@ def list_jobs(
         return jobs
 
     except Exception as e:
-        logger.error(f"Erro interno ao listar vagas: {str(e)}")
+        logger.error(f"Erro interno ao listar vagas: {e}")
         raise HTTPException(status_code=500, detail="Erro interno ao listar vagas")
 
 
@@ -105,7 +105,7 @@ def create_job(
         return job
     except Exception as e:
         db.rollback()
-        logger.error(f"Erro interno ao criar vaga: {str(e)}")
+        logger.error(f"Erro interno ao criar vaga: {e}")
         raise HTTPException(status_code=500, detail="Erro interno ao criar vaga")
 
 

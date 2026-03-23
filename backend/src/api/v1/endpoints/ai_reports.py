@@ -1,3 +1,4 @@
+import logging
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import Dict, Any
@@ -7,6 +8,8 @@ from domain.models.user import User
 from domain.models.report import Report
 from services.nvidia_service import NvidiaService
 from pydantic import BaseModel
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/ai-reports", tags=["AI Reports"])
 nvidia_service = NvidiaService()
@@ -62,9 +65,10 @@ async def generate_management_insight(
         raise
     except Exception as e:
         db.rollback()
+        logger.error(f"Erro ao processar insight: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Erro ao processar insight: {str(e)}",
+            detail="Erro interno ao processar insight",
         )
 
 
