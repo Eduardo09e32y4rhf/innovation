@@ -182,7 +182,7 @@ def get_cost_centers(
         db.query(
             cat_expr.label("category"),
             func.sum(Transaction.amount).label("total"),
-            func.count(Transaction.id).label("count"),
+            func.count(Transaction.id).label("tx_count"),
         )
         .filter(
             Transaction.company_id == current_user.id,
@@ -201,8 +201,10 @@ def get_cost_centers(
             {
                 "category": row.category,
                 "total": total_val,
-                "count": row.count,
-                "percentage": round(total_val / total_spend * 100, 1) if total_spend else 0,
+                "count": row.tx_count,
+                "percentage": (
+                    round(total_val / total_spend * 100, 1) if total_spend else 0
+                ),
             }
         )
 
