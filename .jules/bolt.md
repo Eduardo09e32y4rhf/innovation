@@ -10,3 +10,7 @@
 ## 2024-03-01 - Avoid O(N) memory allocations via `.all()` inside iterative loops
 **Learning:** Found an endpoints in `rh_advanced.py` fetching ORM records (`TimeBank`) via `.all()` inside a `for u in users` loop, accumulating values manually via `sum()`. For huge record sets, querying related records in a loop causes an O(N) memory scale-up alongside an N+1 query regression.
 **Action:** When a loop iterates over database objects to count or aggregate fields, replace the loop with a single SQLAlchemy aggregation query (`func.sum` and `group_by`). This solves the N+1 problem and keeps Python memory strictly bounded to the result size rather than materializing all records into Python objects.
+
+## 2024-06-05 - Avoid .all() and handle duplicate groups in SQLAlchemy
+**Learning:** When grouping or aggregating transactions by category in the backend (e.g., `get_cost_centers`), using `.all()` to fetch all records and aggregating in memory causes O(N) memory and performance bottlenecks. Furthermore, using a string label like `.group_by('category')` with `func.coalesce(func.nullif(Transaction.category, ''), 'Outros')` can cause duplicate groups or `ArgumentError`s in SQLAlchemy 2.0+.
+**Action:** Use database-level aggregations (`func.sum`, `func.count`). Crucially, when dealing with nullable or empty string categories, use `func.coalesce(func.nullif(Transaction.category, ''), 'Outros')` in the SELECT clause, and pass *this exact expression* (not a string label) to `.group_by()` to ensure proper grouping and prevent SQLAlchemy 2.0+ errors.
