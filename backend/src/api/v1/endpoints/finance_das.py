@@ -272,5 +272,5 @@ async def marcar_das_pago(
         db.rollback()
         logger.error(f"[das/marcar-pago] {e}")
         raise HTTPException(
-            status_code=500, detail=f"Erro ao marcar DAS como pago: {str(e)}"
+            status_code=500, detail="Erro interno ao marcar DAS como pago."
         )

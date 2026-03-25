@@ -62,9 +62,12 @@ async def generate_management_insight(
         raise
     except Exception as e:
         db.rollback()
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"[ai_reports] Erro ao processar insight: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Erro ao processar insight: {str(e)}",
+            detail="Erro interno ao processar insight.",
         )
 
 
