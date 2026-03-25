@@ -135,7 +135,7 @@ export default function InnovationIAChat() {
             {/* INPUT DE MENSAGEM */}
             <footer className="p-4 bg-white border-t border-slate-200">
                 <div className="max-w-4xl mx-auto flex items-end gap-2 bg-slate-50 border border-slate-200 rounded-2xl p-2 focus-within:border-indigo-400 focus-within:ring-1 focus-within:ring-indigo-400 transition-all">
-                    <button className="p-2 text-slate-400 hover:text-indigo-500 transition-colors">
+                    <button aria-label="Anexar arquivo" className="p-2 text-slate-400 hover:text-indigo-500 transition-colors">
                         <Paperclip size={20} />
                     </button>
 

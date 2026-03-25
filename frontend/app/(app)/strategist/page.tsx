@@ -77,8 +77,8 @@ export default function StrategistChat() {
                         <p className="text-xs text-slate-400">Modelo: Mistral Large 3 via Vercel Edge</p>
                     </div>
                     <div className="flex gap-3">
-                        <button className="p-2 hover:bg-white/5 rounded-lg transition text-slate-400"><Search className="w-5 h-5" /></button>
-                        <button className="p-2 hover:bg-white/5 rounded-lg transition text-slate-400"><MoreVertical className="w-5 h-5" /></button>
+                        <button aria-label="Buscar" className="p-2 hover:bg-white/5 rounded-lg transition text-slate-400"><Search className="w-5 h-5" /></button>
+                        <button aria-label="Mais opções" className="p-2 hover:bg-white/5 rounded-lg transition text-slate-400"><MoreVertical className="w-5 h-5" /></button>
                     </div>
                 </header>
 
