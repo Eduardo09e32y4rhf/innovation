@@ -133,9 +133,7 @@ async def create_transaction(
     except Exception as e:
         db.rollback()
         logger.error(f"[finance/transactions POST] {e}")
-        raise HTTPException(
-            status_code=500, detail="Erro interno ao criar transação."
-        )
+        raise HTTPException(status_code=500, detail="Erro interno ao criar transação.")
 
 
 # ── GET /finance/anomalies ─────────────────────────────────────────────────────

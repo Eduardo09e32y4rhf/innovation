@@ -418,6 +418,4 @@ Extraia os seguintes campos do recibo e retorne APENAS um JSON válido:
         return data
     except Exception as e:
         print(f"❌ Erro ao processar recibo: {e}")
-        raise HTTPException(
-            status_code=500, detail="Erro interno ao processar recibo."
-        )
+        raise HTTPException(status_code=500, detail="Erro interno ao processar recibo.")
