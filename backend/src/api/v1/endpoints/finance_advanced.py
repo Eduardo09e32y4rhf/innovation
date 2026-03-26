@@ -2,11 +2,11 @@
 Finance Advanced — OFX Import, Payroll Cost, Cost Centers, Digital Voucher
 """
 
-import io
 import re
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from pydantic import BaseModel
 from typing import Optional, List
 
@@ -173,31 +173,45 @@ def get_cost_centers(
     current_user: User = Depends(get_current_user),
 ):
     """Agrupa transações por categoria (centro de custo)."""
-    transactions = (
-        db.query(Transaction)
+    # ⚡ Bolt: Use database-level aggregation to prevent N+1 queries and high memory usage
+    # Why: Fetching all transactions into memory causes O(N) memory scaling and is slow for large datasets
+    # Impact: Reduces memory usage to O(1) and speeds up query execution significantly
+    category_expr = func.coalesce(func.nullif(Transaction.category, ''), 'Outros')
+
+    results = (
+        db.query(
+            category_expr.label("category"),
+            func.sum(Transaction.amount).label("total"),
+            func.count(Transaction.id).label("count")
+        )
         .filter(
             Transaction.company_id == current_user.id,
             Transaction.type == "debit",
         )
+        .group_by(category_expr)
         .all()
     )
 
-    centers: dict = {}
-    for tx in transactions:
-        cat = getattr(tx, "category", "Outros") or "Outros"
-        if cat not in centers:
-            centers[cat] = {"category": cat, "total": 0.0, "count": 0}
-        centers[cat]["total"] += tx.amount
-        centers[cat]["count"] += 1
+    centers = []
+    total_spend = 0.0
+    for row in results:
+        cat = row.category
+        total = float(row.total or 0.0)
+        count = row.count or 0
+        total_spend += total
+        centers.append({
+            "category": cat,
+            "total": total,
+            "count": count
+        })
 
-    total_spend = sum(v["total"] for v in centers.values())
-    for v in centers.values():
+    for v in centers:
         v["percentage"] = round(v["total"] / total_spend * 100, 1) if total_spend else 0
 
     return {
         "total_spend": round(total_spend, 2),
         "cost_centers": sorted(
-            centers.values(), key=lambda x: x["total"], reverse=True
+            centers, key=lambda x: x["total"], reverse=True
         ),
     }
 
