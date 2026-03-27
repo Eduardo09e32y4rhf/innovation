@@ -7,6 +7,7 @@ import re
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from pydantic import BaseModel
 from typing import Optional, List
 
@@ -173,32 +174,44 @@ def get_cost_centers(
     current_user: User = Depends(get_current_user),
 ):
     """Agrupa transações por categoria (centro de custo)."""
-    transactions = (
-        db.query(Transaction)
+    # ⚡ Bolt: Use database aggregation to group transactions by category.
+    # Why: Previously fetched all debit transactions via .all() and grouped them in-memory, causing an O(N) memory and processing bottleneck.
+    # Impact: Reduces memory usage to O(1) and leverages the database engine for faster grouping.
+    category_expr = func.coalesce(func.nullif(Transaction.category, ""), "Outros")
+
+    aggregated = (
+        db.query(
+            category_expr.label("category"),
+            func.sum(Transaction.amount).label("total"),
+            func.count(Transaction.id).label("tx_count"),
+        )
         .filter(
             Transaction.company_id == current_user.id,
             Transaction.type == "debit",
         )
+        .group_by(category_expr)
         .all()
     )
 
-    centers: dict = {}
-    for tx in transactions:
-        cat = getattr(tx, "category", "Outros") or "Outros"
-        if cat not in centers:
-            centers[cat] = {"category": cat, "total": 0.0, "count": 0}
-        centers[cat]["total"] += tx.amount
-        centers[cat]["count"] += 1
+    centers = []
+    total_spend = sum((row.total or 0.0) for row in aggregated)
 
-    total_spend = sum(v["total"] for v in centers.values())
-    for v in centers.values():
-        v["percentage"] = round(v["total"] / total_spend * 100, 1) if total_spend else 0
+    for row in aggregated:
+        cat_total = row.total or 0.0
+        centers.append(
+            {
+                "category": row.category,
+                "total": cat_total,
+                "count": row.tx_count,
+                "percentage": (
+                    round(cat_total / total_spend * 100, 1) if total_spend else 0
+                ),
+            }
+        )
 
     return {
         "total_spend": round(total_spend, 2),
-        "cost_centers": sorted(
-            centers.values(), key=lambda x: x["total"], reverse=True
-        ),
+        "cost_centers": sorted(centers, key=lambda x: x["total"], reverse=True),
     }
 
 
