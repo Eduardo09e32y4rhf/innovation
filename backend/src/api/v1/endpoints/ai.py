@@ -237,9 +237,10 @@ async def _ask_gemini_stream(
                     return
                 raise e
         except Exception as inner_e:
+            print(f"❌ Erro crítico com chave na stream: {inner_e}")
             continue
 
-    yield f"data: [ERROR] Falha crítica: {str(inner_e)}\n\n"
+    yield f"data: [ERROR] Falha crítica ao processar a requisição de IA.\n\n"
 
 
 # ─── Helper: Claude ────────────────────────────────────────────────────────────
@@ -358,8 +359,9 @@ async def ask_ai(
     except HTTPException:
         raise
     except Exception as e:
+        print(f"❌ Erro em ask_ai: {e}")
         return {
-            "answer": f"Erro ao processar: {str(e)}",
+            "answer": "Erro interno ao processar a requisição de IA.",
             "model_used": model_choice,
             "error": True,
         }
@@ -488,7 +490,7 @@ async def landing_plan(data: LandingPlanRequest):
         return {"answer": answer}
     except Exception as e:
         print(f"❌ Erro no simulador: {e}")
-        raise HTTPException(500, detail=str(e))
+        raise HTTPException(500, detail="Erro interno ao processar o simulador.")
 
 
 class VeoRequest(BaseModel):
@@ -534,9 +536,10 @@ async def generate_video(
             if "429" in str(e) or "quota" in str(e).lower():
                 ai_key_manager.mark_as_exhausted(api_key)
                 continue
-            raise HTTPException(500, detail=f"Erro no Veo: {str(e)}")
+            print(f"❌ Erro no Veo ({api_key[:10]}...): {e}")
+            raise HTTPException(500, detail="Erro interno ao processar geração de vídeo com Veo.")
 
-    raise HTTPException(503, "Falha em todas as chaves do Gemini para o Veo.")
+    raise HTTPException(503, "Falha na geração de vídeo (serviço indisponível).")
 
 
 @router.post("/public-ask-stream")
