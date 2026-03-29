@@ -261,7 +261,7 @@ async def get_kanban_board(
     # Impact: Reduces database queries from 1 + 2N to 1, significantly improving the endpoint's response time.
     apps = (
         db.query(Application)
-        .join(Job)
+        .join(Application.job)
         .filter(Job.company_id == current_user.id)
         .options(joinedload(Application.candidate), contains_eager(Application.job))
         .order_by(Application.created_at.desc())
