@@ -346,8 +346,8 @@ export default function AdvancedRHPage() {
                                     <Users size={20} className="text-blue-600" /> Quadro de Colaboradores
                                 </h2>
                                 <div className="flex gap-1">
-                                    <button className="p-2 text-slate-400 hover:text-blue-600 hover:bg-indigo-50 rounded-xl transition-colors"><Filter size={18} /></button>
-                                    <button className="p-2 text-slate-400 hover:text-blue-600 hover:bg-indigo-50 rounded-xl transition-colors"><ArrowUpRight size={18} /></button>
+                                    <button aria-label="Filtrar colaboradores" className="p-2 text-slate-400 hover:text-blue-600 hover:bg-indigo-50 rounded-xl transition-colors"><Filter size={18} /></button>
+                                    <button aria-label="Exportar relatório" className="p-2 text-slate-400 hover:text-blue-600 hover:bg-indigo-50 rounded-xl transition-colors"><ArrowUpRight size={18} /></button>
                                 </div>
                             </div>
 
