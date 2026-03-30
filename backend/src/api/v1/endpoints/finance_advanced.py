@@ -178,13 +178,13 @@ def get_cost_centers(
     # Why: Fetching all transaction records into memory just to calculate sum totals causes severe memory footprint and latency overheads as user data grows.
     # Impact: Reduces O(N) memory allocation and Python looping to a single O(1) database aggregation query.
 
-    category_expr = func.coalesce(func.nullif(Transaction.category, ''), 'Outros')
+    category_expr = func.coalesce(func.nullif(Transaction.category, ""), "Outros")
 
     aggs = (
         db.query(
             category_expr.label("category"),
             func.sum(Transaction.amount).label("total"),
-            func.count(Transaction.id).label("tx_count")
+            func.count(Transaction.id).label("tx_count"),
         )
         .filter(
             Transaction.company_id == current_user.id,
