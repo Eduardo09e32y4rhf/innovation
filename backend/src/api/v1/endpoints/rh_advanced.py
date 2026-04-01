@@ -188,6 +188,10 @@ def get_time_bank_balance(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    # ⚡ Bolt: Use a single O(N) Python iteration to calculate totals instead of multiple list comprehensions.
+    # Why: Previously executed multiple `sum(e.hours for e in entries if e.type == ...)` loops. This meant
+    # iterating the entire entries list multiple times in Python, which is O(2N) and slow for large arrays.
+    # Impact: Reduces iteration overhead by computing both credit and debit balances in a single O(N) pass.
     entries = (
         db.query(TimeBank)
         .filter(
@@ -196,8 +200,15 @@ def get_time_bank_balance(
         )
         .all()
     )
-    credits = sum(e.hours for e in entries if e.type == "credit")
-    debits = sum(e.hours for e in entries if e.type == "debit")
+
+    credits = 0.0
+    debits = 0.0
+    for e in entries:
+        if e.type == "credit":
+            credits += e.hours
+        elif e.type == "debit":
+            debits += e.hours
+
     return {
         "total_credit_hours": credits,
         "total_debit_hours": debits,
