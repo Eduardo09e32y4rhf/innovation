@@ -161,6 +161,8 @@ export default function AIKeyManager() {
                             <button
                                 onClick={() => handleRemoveKey(k.id)}
                                 className="p-2 rounded-lg bg-red-500/0 hover:bg-red-500/10 text-red-500/40 hover:text-red-500 transition-all"
+                                aria-label="Remover chave"
+                                title="Remover chave"
                             >
                                 <Trash2 className="w-4 h-4" />
                             </button>
