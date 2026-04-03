@@ -7,6 +7,7 @@ import re
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from pydantic import BaseModel
 from typing import Optional, List
 
@@ -173,26 +174,42 @@ def get_cost_centers(
     current_user: User = Depends(get_current_user),
 ):
     """Agrupa transações por categoria (centro de custo)."""
-    transactions = (
-        db.query(Transaction)
+
+    # ⚡ Bolt: Offload aggregation to the database using GROUP BY instead of fetching all records into memory.
+    # Why: Eliminates O(N) memory overhead and reduces Python processing latency for large transaction datasets.
+    # Impact: Significantly improves response time for companies with large transaction histories.
+    cat_expr = func.coalesce(func.nullif(Transaction.category, ""), "Outros")
+    grouped_tx = (
+        db.query(
+            cat_expr.label("category_name"),
+            func.sum(Transaction.amount).label("total"),
+            func.count(Transaction.id).label("tx_count"),
+        )
         .filter(
             Transaction.company_id == current_user.id,
             Transaction.type == "debit",
         )
+        .group_by(cat_expr)
         .all()
     )
 
-    centers: dict = {}
-    for tx in transactions:
-        cat = getattr(tx, "category", "Outros") or "Outros"
-        if cat not in centers:
-            centers[cat] = {"category": cat, "total": 0.0, "count": 0}
-        centers[cat]["total"] += tx.amount
-        centers[cat]["count"] += 1
+    centers = {}
+    total_spend = 0.0
+    for row in grouped_tx:
+        cat_name = row.category_name
+        tot = float(row.total or 0.0)
+        cnt = row.tx_count
+        centers[cat_name] = {
+            "category": cat_name,
+            "total": tot,
+            "count": cnt,
+        }
+        total_spend += tot
 
-    total_spend = sum(v["total"] for v in centers.values())
     for v in centers.values():
-        v["percentage"] = round(v["total"] / total_spend * 100, 1) if total_spend else 0
+        v["percentage"] = (
+            round(v["total"] / total_spend * 100, 1) if total_spend > 0 else 0
+        )
 
     return {
         "total_spend": round(total_spend, 2),
