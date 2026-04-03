@@ -81,6 +81,7 @@ export function MaintenanceBanner() {
                     onClick={() => setDismissed(true)}
                     className="text-slate-900/60 hover:text-slate-900 transition ml-2 shrink-0"
                     aria-label="Dismiss banner"
+                    title="Dismiss banner"
                 >
                     <X className="w-4 h-4" />
                 </button>
