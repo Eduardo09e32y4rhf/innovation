@@ -7,6 +7,7 @@ import re
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from pydantic import BaseModel
 from typing import Optional, List
 
@@ -173,22 +174,34 @@ def get_cost_centers(
     current_user: User = Depends(get_current_user),
 ):
     """Agrupa transações por categoria (centro de custo)."""
-    transactions = (
-        db.query(Transaction)
+
+    # ⚡ Bolt: Fetch aggregated transaction data directly from the database instead of fetching all records.
+    # Why: Previously fetched all individual transaction objects into memory with `.all()`, causing an O(N) memory allocation problem and slow response times.
+    # Impact: Offloads computation to the database, strictly bounding memory and reducing processing overhead.
+
+    cat_expr = func.coalesce(func.nullif(Transaction.category, ""), "Outros")
+
+    aggregated_transactions = (
+        db.query(
+            cat_expr.label("category"),
+            func.sum(Transaction.amount).label("total"),
+            func.count(Transaction.id).label("tx_count"),
+        )
         .filter(
             Transaction.company_id == current_user.id,
             Transaction.type == "debit",
         )
+        .group_by(cat_expr)
         .all()
     )
 
     centers: dict = {}
-    for tx in transactions:
-        cat = getattr(tx, "category", "Outros") or "Outros"
-        if cat not in centers:
-            centers[cat] = {"category": cat, "total": 0.0, "count": 0}
-        centers[cat]["total"] += tx.amount
-        centers[cat]["count"] += 1
+    for row in aggregated_transactions:
+        cat = row.category
+        total = float(row.total or 0.0)
+        count = row.tx_count or 0
+
+        centers[cat] = {"category": cat, "total": total, "count": count}
 
     total_spend = sum(v["total"] for v in centers.values())
     for v in centers.values():
