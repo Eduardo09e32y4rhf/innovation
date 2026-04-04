@@ -144,12 +144,14 @@ async def me(current_user: models.User = Depends(get_current_user)):
 # ─────────────────────────────────────────────────────────────────────────────
 
 
+from security import verify_password, get_password_hash
+
+
 @app.post("/api/auth/login", response_model=schemas.TokenResponse)
 async def login(credentials: schemas.LoginRequest, db: Session = Depends(get_db)):
     user = db.query(models.User).filter(models.User.email == credentials.email).first()
-    if not user or not bcrypt.checkpw(
-        credentials.password.encode("utf-8"), user.hashed_password.encode("utf-8")
-    ):
+
+    if not user or not verify_password(credentials.password, user.hashed_password):
         raise HTTPException(status_code=401, detail="Email ou senha incorretos")
 
     token_data = {
@@ -179,13 +181,11 @@ async def register(user_data: schemas.UserCreate, db: Session = Depends(get_db))
     # Harmonização 'name' -> 'full_name'
     real_name = user_data.name or user_data.full_name or "Usuário Innovation"
 
-    salt = bcrypt.gensalt()
-    hashed = bcrypt.hashpw(user_data.password.encode("utf-8"), salt)
     new_user = models.User(
         email=user_data.email,
         full_name=real_name,
         role=user_data.role or "candidate",
-        hashed_password=hashed.decode("utf-8"),
+        hashed_password=get_password_hash(user_data.password),
         is_active=True,
     )
     db.add(new_user)

@@ -21,3 +21,8 @@
 **Vulnerability:** Several backend endpoints (`users.py`, `jobs.py`, `candidates.py`) were returning the raw output of Python exceptions (`str(e)`) directly to users via HTTP 500 response bodies.
 **Learning:** Returning `str(e)` directly in HTTP responses can leak sensitive internal details, database structure (SQLAlchemy errors), or logic to malicious actors. This violates the principle of failing securely and "Never expose raw exception strings (`str(e)`) in HTTP responses to external clients."
 **Prevention:** Catch exceptions, log `str(e)` securely on the backend using Python`s `logging` library, and return a sanitized, generic error message (e.g. "Erro interno ao processar a requisição") to the client.
+
+## 2024-04-04 - [Fix] Remove passlib dependency to prevent Denial of Service via long passwords
+**Vulnerability:** The legacy `passlib` library relies on an older implementation of `bcrypt`. Modern versions of the `bcrypt` library throw a `ValueError` for passwords longer than 72 bytes. When unhandled, this crash bubbles up to the framework, causing a 500 error which acts as a Denial of Service (DoS) attack vector against the authentication endpoints.
+**Learning:** Migrating from legacy/unmaintained crypto wrappers (`passlib`) to direct usage of underlying libraries (`bcrypt`) exposes internal library behaviors (like `ValueError` for long passwords) that must be explicitly handled.
+**Prevention:** Wrap all direct cryptography functions, specifically `bcrypt.checkpw`, in `try...except` blocks that securely catch parsing/value errors and safely fail the authentication request without exposing system state or crashing the worker process.
