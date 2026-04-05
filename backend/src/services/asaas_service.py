@@ -7,10 +7,7 @@ from domain.models.user import User
 class AsaasService:
     def __init__(self):
         # Defaulting to sandbox url if not provided in environment variables
-        self.api_key = os.getenv(
-            "ASAAS_API_KEY",
-            "$aact_hmlg_000MzkwODA2MWY2OGM3MWRlMDU2NWM3MzJlNzZmNGZhZGY6OjU0Y2ZlOGViLTZlYjgtNDRkNC1iNGU3LWQ5YzRiODY2MGJkODo6JGFhY2hfZDRmN2FlNTktNTYxNi00MmIzLWE4MDMtYjQxZjYzOWQ0ZDQx",
-        )
+        self.api_key = os.getenv("ASAAS_API_KEY", "")
         self.url = os.getenv("ASAAS_API_URL", "https://sandbox.asaas.com/api/v3")
         self.headers = {
             "access_token": self.api_key,
