@@ -153,7 +153,7 @@ export default function ProjectsPage() {
                                 <option value={0}>Selecionar Projeto</option>
                                 {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                             </select>
-                            <button onClick={createTask} className="w-14 h-14 bg-indigo-600 text-white rounded-[1.5rem] flex items-center justify-center shadow-lg shadow-indigo-100 hover:scale-[1.05] active:scale-95 transition-all">
+                            <button onClick={createTask} className="w-14 h-14 bg-indigo-600 text-white rounded-[1.5rem] flex items-center justify-center shadow-lg shadow-indigo-100 hover:scale-[1.05] active:scale-95 transition-all focus-visible:ring-2 focus-visible:ring-indigo-500 outline-none" aria-label="Criar Tarefa" title="Criar Tarefa">
                                 <ChevronRight size={24} />
                             </button>
                         </div>
@@ -192,10 +192,10 @@ export default function ProjectsPage() {
                                             <div className="flex items-center justify-between pt-4 border-t border-slate-50">
                                                 <div className="flex gap-2">
                                                     {col !== 'todo' && (
-                                                        <button onClick={() => moveTask(task.id, COLUMNS[COLUMNS.indexOf(col) - 1])} className="w-8 h-8 rounded-xl bg-slate-50 text-slate-700 hover:bg-slate-100 hover:text-slate-600 transition-all flex items-center justify-center">←</button>
+                                                        <button onClick={() => moveTask(task.id, COLUMNS[COLUMNS.indexOf(col) - 1])} className="w-8 h-8 rounded-xl bg-slate-50 text-slate-700 hover:bg-slate-100 hover:text-slate-600 transition-all flex items-center justify-center focus-visible:ring-2 focus-visible:ring-indigo-500 outline-none" aria-label="Mover para coluna anterior" title="Mover para coluna anterior">←</button>
                                                     )}
                                                     {col !== 'done' && (
-                                                        <button onClick={() => moveTask(task.id, COLUMNS[COLUMNS.indexOf(col) + 1])} className="w-8 h-8 rounded-xl bg-slate-50 text-slate-700 hover:bg-slate-100 hover:text-slate-600 transition-all flex items-center justify-center">→</button>
+                                                        <button onClick={() => moveTask(task.id, COLUMNS[COLUMNS.indexOf(col) + 1])} className="w-8 h-8 rounded-xl bg-slate-50 text-slate-700 hover:bg-slate-100 hover:text-slate-600 transition-all flex items-center justify-center focus-visible:ring-2 focus-visible:ring-indigo-500 outline-none" aria-label="Mover para próxima coluna" title="Mover para próxima coluna">→</button>
                                                     )}
                                                 </div>
 
