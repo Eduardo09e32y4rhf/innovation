@@ -129,7 +129,10 @@ class PayrollRequest(BaseModel):
 
 
 @router.post("/payroll-cost")
-def calculate_payroll_cost(data: PayrollRequest):
+def calculate_payroll_cost(
+    data: PayrollRequest,
+    current_user: User = Depends(get_current_user),
+):
     """Calcula custo REAL da folha incluindo impostos e benefícios."""
     total = 0.0
     breakdown = []
