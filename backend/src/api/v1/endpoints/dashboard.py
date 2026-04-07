@@ -356,13 +356,17 @@ async def get_missions(
 
     # Done today
     today_start = datetime.combine(datetime.now(timezone.utc).date(), time.min)
-    done_ids = [
+
+    # ⚡ Bolt: Use a set comprehension for done_ids to avoid O(N) list lookups in the loop below.
+    # Why: In Python, "in" operator is O(N) for lists but O(1) for sets.
+    # Impact: Reduces membership checking complexity from O(N*M) to O(N+M) for missions.
+    done_ids = {
         um.mission_id
         for um in db.query(UserMission)
         .filter(UserMission.user_id == current_user.id)
         .filter(UserMission.completed_at >= today_start)
         .all()
-    ]
+    }
 
     result = []
     for m in all_missions:
