@@ -1,5 +1,6 @@
 from playwright.sync_api import sync_playwright
 
+
 def run_cuj(page):
     page.goto("http://localhost:3000/jobs")
     page.wait_for_timeout(500)
@@ -35,8 +36,10 @@ def run_cuj(page):
 
     page.wait_for_timeout(1000)
 
+
 if __name__ == "__main__":
     import os
+
     os.makedirs("/home/jules/verification/screenshots", exist_ok=True)
     os.makedirs("/home/jules/verification/videos", exist_ok=True)
 
@@ -44,7 +47,7 @@ if __name__ == "__main__":
         browser = p.chromium.launch(headless=True)
         context = browser.new_context(
             record_video_dir="/home/jules/verification/videos",
-            viewport={"width": 1280, "height": 720}
+            viewport={"width": 1280, "height": 720},
         )
         page = context.new_page()
         try:
