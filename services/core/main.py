@@ -85,12 +85,16 @@ async def get_current_user(
 
 
 # CORS
+allowed_origins = os.getenv(
+    "ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000"
+).split(",")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization", "Accept", "X-Requested-With"],
 )
 
 

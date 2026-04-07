@@ -10,12 +10,16 @@ from ai_logic import ask_gemini, ask_gemini_stream
 app = FastAPI(title="Innovation IA - AI Service")
 
 # CORS
+allowed_origins = os.getenv(
+    "ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000"
+).split(",")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization", "Accept", "X-Requested-With"],
 )
 
 # ─────────────────────────────────────────────────────────────────
