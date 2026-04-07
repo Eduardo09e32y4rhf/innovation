@@ -76,6 +76,7 @@ export default function JobsPage() {
                         <Search className="w-5 h-5 text-zinc-9000" />
 
                         <input
+                            aria-label="Buscar vagas"
                             className="flex-1 bg-transparent text-sm outline-none"
                             placeholder="Buscar vagas por título ou skills..."
                             value={search}
@@ -117,7 +118,7 @@ export default function JobsPage() {
                                         <h3 className="text-lg font-semibold text-slate-900 group-hover:text-blue-600 transition">{job.title}</h3>
                                         <p className="text-zinc-9000 text-sm mt-1 line-clamp-2">{job.description}</p>
                                     </div>
-                                    <button className="ml-4 px-4 py-2 bg-blue-500 hover:bg-blue-500 rounded-lg text-sm font-medium transition whitespace-nowrap">
+                                    <button className="ml-4 px-4 py-2 bg-blue-500 hover:bg-blue-500 rounded-lg text-sm font-medium transition whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
                                         Candidatar-se
                                     </button>
                                 </div>
@@ -142,7 +143,14 @@ export default function JobsPage() {
                                 <h3 className="text-lg font-bold">{selected.title}</h3>
                                 <p className="text-zinc-400 text-sm">{selected.location} · {selected.type}</p>
                             </div>
-                            <button onClick={() => setSelected(null)}><X className="w-5 h-5 text-zinc-400" /></button>
+                            <button
+                                onClick={() => setSelected(null)}
+                                aria-label="Fechar modal"
+                                title="Fechar"
+                                className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded p-1"
+                            >
+                                <X className="w-5 h-5 text-zinc-400" />
+                            </button>
                         </div>
 
                         {success ? (
@@ -165,7 +173,7 @@ export default function JobsPage() {
                                 <button
                                     onClick={handleApply}
                                     disabled={applying || !cvText}
-                                    className="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 rounded-xl text-sm font-semibold transition disabled:opacity-50"
+                                    className="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 rounded-xl text-sm font-semibold transition disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                                 >
                                     <Upload className="w-4 h-4 inline mr-2" />
                                     {applying ? 'Enviando para IA...' : 'Enviar Candidatura'}

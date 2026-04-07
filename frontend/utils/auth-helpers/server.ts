@@ -7,7 +7,7 @@ import { getURL, getErrorRedirect, getStatusRedirect } from 'utils/helpers';
 import { getAuthTypes } from 'utils/auth-helpers/settings';
 
 function isValidEmail(email: string) {
-  var regex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/;
+  const regex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/;
   return regex.test(email);
 }
 
@@ -48,7 +48,7 @@ export async function signInWithEmail(formData: FormData) {
   }
 
   const supabase = createClient();
-  let options = {
+  const options = {
     emailRedirectTo: callbackURL,
     shouldCreateUser: true
   };
