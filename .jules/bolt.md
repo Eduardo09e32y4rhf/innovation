@@ -10,3 +10,6 @@
 ## 2024-03-01 - Avoid O(N) memory allocations via `.all()` inside iterative loops
 **Learning:** Found an endpoints in `rh_advanced.py` fetching ORM records (`TimeBank`) via `.all()` inside a `for u in users` loop, accumulating values manually via `sum()`. For huge record sets, querying related records in a loop causes an O(N) memory scale-up alongside an N+1 query regression.
 **Action:** When a loop iterates over database objects to count or aggregate fields, replace the loop with a single SQLAlchemy aggregation query (`func.sum` and `group_by`). This solves the N+1 problem and keeps Python memory strictly bounded to the result size rather than materializing all records into Python objects.
+## 2024-05-18 - [Eliminated N+1 Query in Kanban Board]
+**Learning:** Eager loading a relationship with `contains_eager()` requires an explicitly defined `join()` mapping exactly to the relationship path on the parent model (e.g., `.join(Application.job)`) rather than just joining the generic target table (`.join(Job)`).
+**Action:** When implementing SQLAlchemy query optimizations for N+1 problems using `contains_eager()`, always refactor existing `TargetModel` joins to use the `ParentModel.relationship` syntax to ensure SQLAlchemy successfully aligns the join with the eager load options.
