@@ -333,7 +333,11 @@ export default function ChatIAPage() {
                                 />
                                 <div className="flex items-center justify-between px-6 pb-4">
                                     <div className="flex items-center gap-3 text-slate-400">
-                                        <button className="p-2 hover:bg-slate-200 rounded-xl transition-colors">
+                                        <button
+                                            className="p-2 hover:bg-slate-200 rounded-xl transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                                            aria-label="Anexar arquivo"
+                                            title="Anexar arquivo"
+                                        >
                                             <Paperclip size={18} />
                                         </button>
                                         <div className="w-px h-4 bg-slate-200 mx-1" />

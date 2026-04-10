@@ -136,7 +136,12 @@ function TimelineDrawer({ isOpen, onClose, employee }: { isOpen: boolean; onClos
                                     <p className="text-blue-600 text-[13px] font-medium">{employee?.role}</p>
                                 </div>
                             </div>
-                            <button onClick={onClose} className="p-2 rounded-full bg-slate-50 hover:bg-slate-100 text-slate-400 transition-colors">
+                            <button
+                                onClick={onClose}
+                                className="p-2 rounded-full bg-slate-50 hover:bg-slate-100 text-slate-400 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                                aria-label="Fechar detalhes"
+                                title="Fechar detalhes"
+                            >
                                 <X size={20} />
                             </button>
                         </div>
@@ -346,8 +351,16 @@ export default function AdvancedRHPage() {
                                     <Users size={20} className="text-blue-600" /> Quadro de Colaboradores
                                 </h2>
                                 <div className="flex gap-1">
-                                    <button className="p-2 text-slate-400 hover:text-blue-600 hover:bg-indigo-50 rounded-xl transition-colors"><Filter size={18} /></button>
-                                    <button className="p-2 text-slate-400 hover:text-blue-600 hover:bg-indigo-50 rounded-xl transition-colors"><ArrowUpRight size={18} /></button>
+                                    <button
+                                        className="p-2 text-slate-400 hover:text-blue-600 hover:bg-indigo-50 rounded-xl transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                                        aria-label="Filtrar colaboradores"
+                                        title="Filtrar colaboradores"
+                                    ><Filter size={18} /></button>
+                                    <button
+                                        className="p-2 text-slate-400 hover:text-blue-600 hover:bg-indigo-50 rounded-xl transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                                        aria-label="Exportar colaboradores"
+                                        title="Exportar colaboradores"
+                                    ><ArrowUpRight size={18} /></button>
                                 </div>
                             </div>
 

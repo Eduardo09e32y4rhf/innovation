@@ -153,7 +153,12 @@ export default function ProjectsPage() {
                                 <option value={0}>Selecionar Projeto</option>
                                 {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                             </select>
-                            <button onClick={createTask} className="w-14 h-14 bg-indigo-600 text-white rounded-[1.5rem] flex items-center justify-center shadow-lg shadow-indigo-100 hover:scale-[1.05] active:scale-95 transition-all">
+                            <button
+                                onClick={createTask}
+                                className="w-14 h-14 bg-indigo-600 text-white rounded-[1.5rem] flex items-center justify-center shadow-lg shadow-indigo-100 hover:scale-[1.05] active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+                                aria-label="Criar tarefa"
+                                title="Criar tarefa"
+                            >
                                 <ChevronRight size={24} />
                             </button>
                         </div>
