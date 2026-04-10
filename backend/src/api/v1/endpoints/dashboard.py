@@ -68,27 +68,35 @@ async def get_dashboard_metrics(
     previous_profit = previous_revenue - previous_costs
 
     # Dados para o gráfico de evolução (últimos 6 meses)
-    chart_data = []
+    # ⚡ Bolt: Agrupa dados do gráfico de evolução em um único loop O(N).
+    # Why: Previously executed an O(N*6) nested loop to filter transactions for each month.
+    # Impact: Reduces iteration count, optimizing dashboard performance.
+    monthly_data = {}
     for i in range(5, -1, -1):
-        month_date = (this_month_start - timedelta(days=i * 30)).replace(day=1)
-        next_month_date = (month_date + timedelta(days=32)).replace(day=1)
+        m_date = (this_month_start - timedelta(days=i * 30)).replace(day=1)
+        monthly_data[m_date.strftime("%Y-%m")] = {
+            "month": m_date.strftime("%b"),
+            "revenue": 0.0,
+            "expense": 0.0
+        }
 
-        m_income = 0.0
-        m_expense = 0.0
+    for t in transactions:
+        m_key = t.created_at.strftime("%Y-%m")
+        if m_key in monthly_data:
+            if t.type == "income":
+                monthly_data[m_key]["revenue"] += float(t.amount)
+            elif t.type == "expense":
+                monthly_data[m_key]["expense"] += float(t.amount)
 
-        for t in transactions:
-            if t.created_at >= month_date and t.created_at < next_month_date:
-                if t.type == "income":
-                    m_income += float(t.amount)
-                elif t.type == "expense":
-                    m_expense += float(t.amount)
-
+    chart_data = []
+    for m_key in sorted(monthly_data.keys()):
+        data = monthly_data[m_key]
         chart_data.append(
             {
-                "month": month_date.strftime("%b"),
-                "revenue": m_income,
-                "profit": m_income - m_expense,
-                "value": m_income,  # Usado pelo frontend simples
+                "month": data["month"],
+                "revenue": data["revenue"],
+                "profit": data["revenue"] - data["expense"],
+                "value": data["revenue"],  # Usado pelo frontend simples
             }
         )
 

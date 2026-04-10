@@ -10,3 +10,7 @@
 ## 2024-03-01 - Avoid O(N) memory allocations via `.all()` inside iterative loops
 **Learning:** Found an endpoints in `rh_advanced.py` fetching ORM records (`TimeBank`) via `.all()` inside a `for u in users` loop, accumulating values manually via `sum()`. For huge record sets, querying related records in a loop causes an O(N) memory scale-up alongside an N+1 query regression.
 **Action:** When a loop iterates over database objects to count or aggregate fields, replace the loop with a single SQLAlchemy aggregation query (`func.sum` and `group_by`). This solves the N+1 problem and keeps Python memory strictly bounded to the result size rather than materializing all records into Python objects.
+
+## 2025-04-10 - Dashboard Data Aggregation Iteration
+**Learning:** Found a nested loop O(N*6) iterating over all transactions multiple times to calculate chart data for the last 6 months. This pattern is inefficient for large datasets as it loops through all transactions for every month iteration.
+**Action:** Replaced the nested loops with a single O(N) pass over the fetched transactions. Initialized a dictionary with keys in the "YYYY-MM" format and then mapped each transaction to its corresponding month bucket using `t.created_at.strftime("%Y-%m")` to accumulate sums. This technique is highly effective for reducing Python-side aggregation latency when processing a large list of in-memory ORM objects.
