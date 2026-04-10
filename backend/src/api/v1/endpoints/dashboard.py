@@ -77,7 +77,7 @@ async def get_dashboard_metrics(
         monthly_data[m_date.strftime("%Y-%m")] = {
             "month": m_date.strftime("%b"),
             "revenue": 0.0,
-            "expense": 0.0
+            "expense": 0.0,
         }
 
     for t in transactions:
