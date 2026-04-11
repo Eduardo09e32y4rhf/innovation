@@ -1,125 +1,99 @@
-# <img src="https://raw.githubusercontent.com/lucide-react/lucide/main/icons/bot.svg" width="32" height="32" /> INNOVATION.IA — Super ERP Cognitivo (V2.0)
+# <img src="https://raw.githubusercontent.com/lucide-react/lucide/main/icons/bot.svg" width="32" height="32" /> INNOVATION.IA — Super ERP Cognitivo (V2.0 @Pro)
 
 [![Microservices](https://img.shields.io/badge/Architecture-Microservices-purple?style=for-the-badge&logo=docker)](https://github.com/Eduardo09e32y4rhf/innovation)
 [![FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688?style=for-the-badge&logo=fastapi)](https://fastapi.tiangolo.com/)
 [![Next.js](https://img.shields.io/badge/Frontend-Next.js-black?style=for-the-badge&logo=next.js)](https://nextjs.org/)
-[![Status](https://img.shields.io/badge/Status-Phase%202%20Complete-success?style=for-the-badge)](#)
+[![Status](https://img.shields.io/badge/Status-Pro%20Roadmap%20Complete-success?style=for-the-badge)](#)
 
+A **Innovation.ia** evoluiu de um Dashboard de IA para o **Sistema Operativo Central (ERP + ATS + Marketing)** definitivo. Nosso objetivo é substituir ecossistemas legados e fragmentados por uma plataforma única, nativa em IA, onde a empresa opera 100% do seu tempo de forma hiperautomatizada.
+
+---
+
+## 💎 As 3 "Killer Features" B2B (Diferenciais Exclusivos)
+
+Acabamos de integrar um novo arsenal B2B focado em **Zero-Touch Operation**, projetado especificamente para que nossos clientes B2B substituam concorrentes caríssimos no mercado:
+
+### 1. 📱 Recrutador e RH Omnichannel (WhatsApp AI Integrado)
+O ATS e o RH não usam mais apenas o e-mail. Construímos um **Microserviço Node.js/Baileys** 100% dedicado rotendo pelo Kong.
+*   **Ação:** O candidato aplica no portal "Careers". Imediatamente o WhatsApp oficial da empresa envia: *"Olá, vi sua inscrição! Vamos fazer uma rápida entrevista por aqui?"*
+*   **Magia:** IA filtra o candidato na primeira etapa de conversas via WhatsApp, poupando centenas de horas de Headhunters.
+
+### 2. 🧩 Construtor de Automação Visual (O seu "Zapier" Interno)
+Incorporamos nosso aclamado **FlowBuilder Visual Drag-and-Drop** de versões anteriores nativamente dentro do ecossistema V2.
+*   **Ação:** Donos de empresas agora criam fluxos visuais complexos: `[Novo Funcionário Registrado] ➡️ [IA gera Contrato no Google Docs] ➡️ [Bot envia Docusign e WhatsApp]` sem escrever uma linha de código.
+
+### 3. 📢 Gerente de Marketing Autônomo (Auto-Employer Branding)
+O que antes era feito manualmente agora é _Zero-Touch_. Integramos nossos scripts avançados "Prosolution" para o serviço de Marketing.
+*   **Ação:** O setor de RH cria uma vaga de Dev na plataforma.
+*   **Magia:** O microserviço imediatamente aciona a IA para desenhar templates/copy, gerar hashtags para conversão corporativa, e **posta automaticamente** a vaga no Instagram e LinkedIn corporativos utilizando uma arquitetura _headless_.
+
+---
 
 ## 🔒 Segurança de Nível Bancário (Bank-Grade Security)
-A plataforma Innovation.ia foi construída com os mais rigorosos padrões de segurança, garantindo que nenhum dado seja interceptado ou roubado.
-- **Criptografia de Ponta-a-Ponta:** Utilizamos protocolos de segurança avançados (HSTS) para forçar conexões sempre criptografadas (HTTPS).
-- **Proteção Contra Injeção e Execução de Scripts:** Políticas estritas de CSP (Content-Security-Policy) previnem a execução de códigos maliciosos.
-- **Anti-Sniffing e XSS:** Configurações de cabeçalhos nosniff e proteção XSS ativa garantem a integridade dos arquivos (como notas fiscais) e protegem as interfaces.
-- **Blindagem do Servidor:** Ocultamento de versões do servidor e frameworks (Nginx, Next.js) para mitigar fingerprinting e evitar ataques direcionados.
----
-
-## 📁 Estrutura do Projeto (Organizada)
-O ecossistema está organizado para garantir o isolamento e a escalabilidade dos microserviços:
-
-- **`backend/`**: O coração da plataforma (FastAPI).
-- **`frontend/`**: Interface de usuário premium (Next.js).
-- **`ai_engine/`**: Processamento pesado e trabalhadores de IA.
-- **`gateway/`**: Ponto único de entrada e roteamento.
-- **`infrastructure/`**: Configurações de DevOps, Kubernetes e operações de infra.
-- **`scripts/`**: Utilitários para inicialização, migração e manutenção do sistema.
-- **`docs/`**: Documentação técnica e metadados (`/metadata`).
-- **`examples/`**: Projetos de exemplo e laboratório de novos módulos.
+A plataforma Innovation.ia foi construída com os mais rigorosos padrões de segurança:
+- **Criptografia e Rastreio Distribuído:** Middleware de *Correlation-ID* para rastreamento ponta-a-ponta. Autenticação JWT roscada a Microserviços (sem monolitos quebráveis).
+- **Proteção Contra Injeção e XSS:** Políticas estritas de CSP (Content-Security-Policy).
+- **Anti-Sniffing:** Configurações de cabeçalhos nosniff garantem a integridade dos arquivos confidenciais.
+- **Blindagem do Servidor:** Gateway focado (Kong API Gateway) orquestrando ratelimits e interceptando tráfego na linha de frente (`localhost:8000`).
 
 ---
 
-## 🚀 A Visão: Super ERP Cognitivo
-A **Innovation.ia** evoluiu de um Dashboard de IA para o **Sistema Operativo Central (ERP + ATS)** definitivo. Nosso objetivo é substituir ecossistemas legados e fragmentados por uma plataforma única, nativa em IA, onde a empresa opera 100% do seu tempo.
+## 📁 Arquitetura do Ecossistema (Microserviços)
 
-### 💎 O que nos torna Superiores?
-- **Pilar 1: ATS de Elite**: Recrutamento autônomo com Ranking via RAG e Kanban de alta performance.
-- **Pilar 2: Finanças "Zero Papel"**: OCR avançado com Gemini 2.0 Flash para leitura de notas e recibos sem digitação manual.
-- **Pilar 3: Automação n8n & WhatsApp**: Integração profunda com mensageria para processos de RH e suporte.
+O sistema foi refatorado do conceito monolítico para uma operação pronta para "Enterprise" orquestrada puramente em containers com *Wait-For-Postgres* para garantia contra *race conditions*:
 
----
-
-## 🛠 Módulos em Destaque (Fase 1 Atualizada)
-
-### 💻 Terminal Cognitivo (Gemini CLI)
-- **Desenvolvimento e Automação**: Interface de linha de comando integrada ao ecossistema para gerenciar interações com a API e validar o AI Key Manager.
-- **Eficiência**: Ferramenta projetada para devs executarem automações e testes rápidos de prompts ou rotinas de OCR.
-
-
-### 📊 ATS Intelligence & Kanban
-- **Alta Performance**: Interface inspirada no Trello com animações fluidas (Framer Motion).
-- **Match Score IA**: Visualização direta da compatibilidade do candidato no card do Kanban.
-
-### 💰 Finanças Zero Papel
-- **Scanner Inteligente**: Upload de PDFs ou Fotos que extrai automaticamente Fornecedor, Valor, Data e Itens.
-- **Cash Flow Prediction**: Previsão de fluxo de caixa baseada em comportamento histórico.
-
-### 🤖 AI Key Manager
-- **Resiliência Total**: Rotação dinâmica de chaves Gemini/Veo para garantir 100% de disponibilidade.
-
----
-
-### � Ponto Militar Biométrico
-- **Segurança Antifraude**: Reconhecimento Facial integrado e validação rigorosa de GPS com detecção de Mock Location.
-
-### 🏦 Hub Bancário Open Finance
-- **Consolidação em Tempo Real**: Visualização de múltiplas contas (Inter, Nubank, Itaú) em uma interface unificada.
-
----
-
-### 🧠 Innovation IA (Independente e Híbrida)
-- **Cérebro na Vercel**: Orquestração Multi-IA (NVIDIA Mistral Large 3, Gemini 2.0 e Claude 3.5) rodando em infraestrutura serverless para alta disponibilidade e escalabilidade.
-- **Orquestração Multi-Model**: Uso inteligente da Razão (NVIDIA), Conhecimento Técnico (Gemini) e Aprendizado Evolutivo (Claude).
-- **Sincronização VPS**: Aprendizado contínuo onde o cérebro da Vercel alimenta o banco de conhecimento local na VPS, mantendo a IA dentro da VPN sempre atualizada.
-
----
-
-## 📐 Arquitetura do Ecossistema (Híbrido)
+- **`apps/backend/`**: O coração FastAPI quebrado em Entrypoints isolados:
+  - `auth_main.py`: Serviço de Credenciais.
+  - `core_main.py`: ATS de Vagas, Kanban e Finanças.
+  - `ai_main.py`: Microsserviço robusto pesado para IA/GenAI.
+- **`apps/whatsapp_service/`**: Microserviço autônomo (Express + Baileys) integrado ao RMQ/HTTP.
+- **`apps/frontend/`**: Interface de usuário premium (Next.js) potencializado com **TanStack Query** para caching hiperveloz.
+- **`apps/gateway/`**: Kong API mapeando a porta unificada.
 
 ```mermaid
 graph TD;
-    Vercel[Vercel Brain - Front/IA] ---|Sync Knowledge| VPS[VPS - Core/DB]
-    Vercel -->|Reason| NVIDIA[NVIDIA Mistral Large 3]
-    Vercel -->|Technical| Gemini[Gemini 2.0 Flash]
-    Vercel -->|Evolution| Claude[Claude 3.5 Sonnet]
+    Client((SaaS Users)) -->|HTTPS / PWA| Kong[Kong API Gateway :8000]
     
-    VPS -->|Auth/Finance| Backend[FastAPI Backend]
-    Backend --> DB[(SQLite/PostgreSQL)]
-    Backend --> VPN[VPN Internal AI]
+    Kong -->|/api/auth| Auth[Auth Microservice :8001]
+    Kong -->|/api/core| Core[ATS & Finance :8003]
+    Kong -->|/api/ai| AI[AI Subsystem :8002]
+    Kong -->|/api/whatsapp| Wbot[WhatsApp Omnichannel :8004]
+    
+    Core -->|Event/Automação| Marketing[Marketing Autônomo]
+    Core -->|Webhooks| Payments[Asaas Pagamentos]
+    Finance -->|Sync| OpenFinance[Hub Inteligente Nubank/Pluggy]
+
+    Auth --> DB[(PostgreSQL Central)]
+    Core --> DB
+    AI --> DB
 ```
 
-## 🛠 Módulos em Destaque (V2.1 Atualizada)
+---
 
-### 💻 Terminal Cognitivo & CLI
-- **Innovation CLI**: Agora com suporte a `--rh`, permitindo consultar a IA especialista em RH e Contabilidade diretamente do terminal.
-- **Independent Sync**: Sincronização automática entre o cérebro serverless e o sistema legacy.
+## 🛠 Módulos Complementares
+
+### 💰 Finanças Zero Papel
+- **Scanner Inteligente**: Upload de PDFs ou Fotos que extrai automaticamente Fornecedor, Valor, Data e Itens integrado ao webhook do *Asaas* ativando pagamentos e fluxo em tempo real.
+- **Cash Flow Prediction**: Previsão preditiva e gestão de pagadoria de folha do próprio ATS.
+
+###  Ponto Militar Biométrico
+- **Segurança Antifraude**: Reconhecimento Facial integrado e validação rigorosa de GPS com detecção de Mock Location.
+
+### 🤖 AI Key Manager
+- **Resiliência Total**: Rotação dinâmica de chaves Gemini/Veo/Claude/Mistral para garantir 100% de disponibilidade. Não dependemos de uma só nuvem!
 
 ---
 
 ## 📈 Roadmap para o Futuro Próximo
 
-- **Fase 3 (Próxima)** : Integração Governamental Direta ( SEFAZ/NF-e ) e Micro-serviço de Auditoria Fiscal IA.
-- **Fase 4** : Conciliação Bancária 100% Autônoma e Dashboard de Gestão Híbrida.
-
----
-
-## 📐 Arquitetura do Ecossistema
-
-```mermaid
-graph TD;
-    Client((Usuário Super ERP)) -->|PWA / Mobile| Kong[Kong API Gateway]
-    Kong -->|/api/auth| Auth[Auth Microservice]
-    Kong -->|/api/finance| Finance[Finance Microservice]
-    Kong -->|/api/ai| AI[AI Engine - Gemini 2.0]
-    AI --> RAG[CV Ranker / OCR Service]
-    Finance --> OpenFinance[Belvo/Pluggy Integration]
-    Auth --> DB[(PostgreSQL Central)]
-```
+- **Fase 3 (Próxima)** : Integração Governamental Direta (SEFAZ/NF-e) com Agente de Auditoria Fiscal IA.
+- **Fase 4** : Conciliação Bancária 100% Autônoma Operada via Chat estilo "Jarvis Financeiro" + Dashboard Híbrido Web3.
 
 ---
 
 ## ⚠️ PROPRIEDADE INTELECTUAL
 **SISTEMA PRIVADO E CONFIDENCIAL** — Propriedade exclusiva de **Eduardo Silva / Innovation.ia**.  
-Qualquer reprodução ou distribuição sem autorização é estritamente proibida e sujeita a penalidades legais.
+Qualquer reprodução ou distribuição sem autorização é estritamente proibida e sujeita a penalidades legais agressivas.
 
 ---
 <p align="center">
