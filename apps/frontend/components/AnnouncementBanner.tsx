@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AlertCircle, AlertTriangle, Info, X } from 'lucide-react';
-import { SystemConfigService } from '../services/api';
+import { SystemConfigService } from '@/lib/api';
 
 interface Announcement {
     id: number;

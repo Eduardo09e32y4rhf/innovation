@@ -100,6 +100,43 @@ export const api = {
 };
 
 /**
+ * Auth Service
+ */
+export const AuthService = {
+    me: () => api.get<any>('/api/users/me'),
+    login: (credentials: any) => api.post<any>('/api/auth/login', credentials, { skipAuth: true }),
+};
+
+/**
+ * Dashboard Service
+ */
+export const DashboardService = {
+    getMetrics: () => api.get<any>('/api/dashboard/metrics'),
+};
+
+/**
+ * Notification Service
+ */
+export const NotificationService = {
+    getNotifications: (unreadOnly = false) => 
+        api.get<any[]>(`/api/notifications${unreadOnly ? '?unread=true' : ''}`),
+    markAsRead: (id: number) => api.patch(`/api/notifications/${id}/read`),
+    markAllAsRead: () => api.post('/api/notifications/read-all', {}),
+    clearAll: () => api.delete('/api/notifications/clear'),
+};
+
+/**
+ * System Configuration Service
+ */
+export const SystemConfigService = {
+    getAnnouncements: async () => {
+        return [
+            { id: 1, message: "🚀 Innovation.ia v2.0 Enterprise: Sistema Omnichannel Ativo!", type: "info" }
+        ];
+    }
+};
+
+/**
  * Check if current session is authenticated
  */
 export function isAuthenticated(): boolean {
@@ -116,3 +153,15 @@ export function logout(): void {
         window.location.href = '/login';
     }
 }
+
+/**
+ * System Configuration Service
+ * Mocked for now to prevent build errors.
+ */
+export const SystemConfigService = {
+  getAnnouncements: async () => {
+    return [
+      { id: 1, message: "🚀 Innovation.ia v2.0 Enterprise: Sistema Omnichannel Ativo!", type: "info" }
+    ];
+  }
+};

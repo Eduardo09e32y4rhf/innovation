@@ -1,6 +1,6 @@
 import React from 'react';
 import { render } from '@testing-library/react';
-import AppLayout from '../components/AppLayout';
+import AppLayout from './components/AppLayout';
 
 // Just mock Next navigation
 jest.mock('next/navigation', () => ({
@@ -12,7 +12,7 @@ jest.mock('next/navigation', () => ({
 }));
 
 // Provide a mock user so it renders
-jest.mock('../services/api', () => ({
+jest.mock('./services/api', () => ({
   AuthService: {
     me: jest.fn().mockResolvedValue({ id: 1, name: 'Test User', email: 't@t.com', role: 'admin', subscription_status: 'active' }),
   },
