@@ -130,6 +130,24 @@ def apply_to_job(
         entity_type="application",
         entity_id=app.id,
     )
+
+    # ── Integração WhatsApp Omnichannel (Node.js) ─────────────────────────
+    # Aciona o bot Baileys copiado do innovation-v1
+    try:
+        if getattr(current_user, "phone", None):
+            import requests
+            # Kong Gateway internamente roteia :8004
+            url_whatsapp = "http://whatsapp_service:8004/api/whatsapp/send"
+            msg = (
+                f"Olá {current_user.full_name}! 👋\n\n"
+                f"Vi que você se inscreveu para a vaga de *{job.title}* na Innovation.ia. "
+                "Podemos fazer uma rápida entrevista por aqui? Digite 'SIM' para começar."
+            )
+            requests.post(url_whatsapp, json={"number": current_user.phone, "message": msg}, timeout=2)
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning(f"Erro ao disparar WhatsApp de Recrutamento: {e}")
+
     return app
 
 

@@ -102,6 +102,14 @@ def create_job(
             entity_type="job",
             entity_id=job.id,
         )
+
+        try:
+            from services.marketing_service import MarketingAutonomo
+            # Executa a automação de marketing de recrutamento B2B
+            MarketingAutonomo.automatizar_anuncio_vaga(job)
+        except Exception as e:
+            logger.warning(f"Erro no marketing autônomo: {e}")
+
         return job
     except Exception as e:
         db.rollback()

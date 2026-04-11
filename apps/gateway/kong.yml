@@ -147,3 +147,14 @@ services:
         paths:
           - /api/webhooks
         strip_path: false
+
+  # ── WhatsApp Omnichannel Service (Node.js) ───────────────────────────────
+  - name: whatsapp_service
+    url: http://whatsapp_service:8004
+    connect_timeout: 10000
+    read_timeout: 30000
+    routes:
+      - name: whatsapp-route
+        paths:
+          - /api/whatsapp
+        strip_path: false

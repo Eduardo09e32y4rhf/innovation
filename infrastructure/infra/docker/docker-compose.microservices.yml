@@ -158,6 +158,22 @@ services:
     networks:
       - innovation_net
 
+  # ── WhatsApp Omnichannel (Node.js) ──────────────────────────────────────────
+  whatsapp_service:
+    build:
+      context: ../../../apps/whatsapp_service
+      dockerfile: Dockerfile
+    container_name: whatsapp_service
+    restart: unless-stopped
+    ports:
+      - "8004:8004"
+    environment:
+      - NODE_ENV=development
+      - PORT=8004
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+    networks:
+      - innovation_net
+
   # ── PostgreSQL ──────────────────────────────────────────────────────────────
   postgres:
     image: postgres:16-alpine
