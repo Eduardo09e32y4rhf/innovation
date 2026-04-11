@@ -151,7 +151,7 @@ services:
     ports:
       - "8080:3000"
     environment:
-      NEXT_PUBLIC_API_URL: http://localhost:8000   # Aponta para o Kong
+      NEXT_PUBLIC_API_URL: http://vps8369.panel.icontainer.net:8000   # Aponta para o Kong na VPS
     depends_on:
       kong:
         condition: service_healthy
