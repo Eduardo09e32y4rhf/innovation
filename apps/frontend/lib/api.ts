@@ -154,14 +154,3 @@ export function logout(): void {
     }
 }
 
-/**
- * System Configuration Service
- * Mocked for now to prevent build errors.
- */
-export const SystemConfigService = {
-  getAnnouncements: async () => {
-    return [
-      { id: 1, message: "🚀 Innovation.ia v2.0 Enterprise: Sistema Omnichannel Ativo!", type: "info" }
-    ];
-  }
-};
