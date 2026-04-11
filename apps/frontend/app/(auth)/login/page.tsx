@@ -47,7 +47,7 @@ export default function LoginPage() {
             localStorage.removeItem("token");
             document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
 
-            const data = await AuthService.login(email, password);
+            const data = await AuthService.login({ email, password });
             if (data.access_token) {
                 localStorage.setItem("token", data.access_token);
                 document.cookie = `auth_token=${data.access_token}; path=/; max-age=86400; SameSite=Lax`;
