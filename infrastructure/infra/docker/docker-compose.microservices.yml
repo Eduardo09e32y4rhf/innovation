@@ -1,109 +1,185 @@
 version: '3.8'
 
+# ═══════════════════════════════════════════════════════════════════════════
+# Innovation.ia — Docker Compose Microserviços @Pro
+#
+# Como rodar:
+#   docker-compose -f infrastructure/infra/docker/docker-compose.microservices.yml up --build
+#
+# Arquitetura:
+#   Frontend (8080) → Kong Gateway (8000) → auth_service(8001)
+#                                         → ai_service(8002)
+#                                         → core_service(8003)
+#   Todos os serviços compartilham o mesmo PostgreSQL
+# ═══════════════════════════════════════════════════════════════════════════
+
 services:
+
+  # ── Kong API Gateway ────────────────────────────────────────────────────────
   kong:
-    image: kong:3.4
+    image: kong:3.6-ubuntu
     container_name: innovation_gateway
+    restart: unless-stopped
     environment:
-      - KONG_DATABASE=off
-      - KONG_DECLARATIVE_CONFIG=/usr/local/kong/declarative/kong.yml
-      - KONG_PROXY_ACCESS_LOG=/dev/stdout
-      - KONG_ADMIN_ACCESS_LOG=/dev/stdout
-      - KONG_PROXY_ERROR_LOG=/dev/stderr
-      - KONG_ADMIN_ERROR_LOG=/dev/stderr
+      KONG_DATABASE: "off"
+      KONG_DECLARATIVE_CONFIG: /usr/local/kong/declarative/kong.yml
+      KONG_PROXY_ACCESS_LOG: /dev/stdout
+      KONG_ADMIN_ACCESS_LOG: /dev/stdout
+      KONG_PROXY_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_LISTEN: "0.0.0.0:8001"
     volumes:
-      - ./gateway/kong.yml:/usr/local/kong/declarative/kong.yml
+      - ../../../apps/gateway/kong.yml:/usr/local/kong/declarative/kong.yml:ro
     ports:
-      - "8000:8000" # Proxy
-      - "8001:8001" # Admin
+      - "8000:8000"   # Proxy — ponto único de entrada para o frontend
+      - "8001:8001"   # Admin API (acessível apenas internamente em prod)
     networks:
       - innovation_net
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8000/" ]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-
-  auth_service:
-    build: ./services/auth
-    container_name: auth_service
-    env_file:
-      - .env
-    environment:
-      - DATABASE_URL=postgresql://user:secure_pass@postgres:5432/innovation
-      - SECRET_KEY=${SECRET_KEY:-innovation_v2_premium_dark}
-    networks:
-      - innovation_net
-    depends_on:
-      postgres:
-        condition: service_healthy
-
-  ai_service:
-    build: ./services/ai
-    container_name: ai_service
-    env_file:
-      - .env
-    environment:
-      - GEMINI_API_KEYS=${GEMINI_API_KEYS}
-      - GEMINI_API_KEY=${GEMINI_API_KEYS}
-    networks:
-      - innovation_net
-    healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8002/api/ai/health" ]
+      test: ["CMD", "kong", "health"]
       interval: 10s
       timeout: 5s
       retries: 5
+    depends_on:
+      auth_service:
+        condition: service_healthy
+      ai_service:
+        condition: service_healthy
+      core_service:
+        condition: service_healthy
 
-  core_service:
-    build: ./services/core
-    container_name: core_service
+  # ── Auth Service ────────────────────────────────────────────────────────────
+  auth_service:
+    build:
+      context: ../../../apps/backend
+      dockerfile: Dockerfile
+    container_name: auth_service
+    restart: unless-stopped
+    command: >
+      gunicorn -w 2 -k uvicorn.workers.UvicornWorker
+      api.auth_main:app --bind 0.0.0.0:8001 --timeout 60
     env_file:
-      - .env
+      - ../../../.env
     environment:
-      - DATABASE_URL=postgresql://user:secure_pass@postgres:5432/innovation
-      - SECRET_KEY=${SECRET_KEY:-innovation_v2_premium_dark}
-      - BASE_URL=${BASE_URL:-http://localhost:8000}
+      DATABASE_URL: postgresql://innovation_user:innovation_pass@postgres:5432/innovation_db
+      SECRET_KEY: ${SECRET_KEY:-innovation_v2_premium_dark}
+      PYTHONPATH: /app/src:/app
+    ports:
+      - "8011:8001"   # Expose para debug local; remover em produção
     networks:
       - innovation_net
     depends_on:
       postgres:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
 
+  # ── AI Service ──────────────────────────────────────────────────────────────
+  ai_service:
+    build:
+      context: ../../../apps/backend
+      dockerfile: Dockerfile
+    container_name: ai_service
+    restart: unless-stopped
+    command: >
+      gunicorn -w 2 -k uvicorn.workers.UvicornWorker
+      api.ai_main:app --bind 0.0.0.0:8002 --timeout 120
+    env_file:
+      - ../../../.env
+    environment:
+      DATABASE_URL: postgresql://innovation_user:innovation_pass@postgres:5432/innovation_db
+      GEMINI_API_KEYS: ${GEMINI_API_KEYS}
+      NVIDIA_API_KEY: ${NVIDIA_API_KEY}
+      PYTHONPATH: /app/src:/app
+    ports:
+      - "8012:8002"   # Debug local
+    networks:
+      - innovation_net
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  # ── Core Service ────────────────────────────────────────────────────────────
+  core_service:
+    build:
+      context: ../../../apps/backend
+      dockerfile: Dockerfile
+    container_name: core_service
+    restart: unless-stopped
+    command: >
+      gunicorn -w 2 -k uvicorn.workers.UvicornWorker
+      api.core_main:app --bind 0.0.0.0:8003 --timeout 90
+    env_file:
+      - ../../../.env
+    environment:
+      DATABASE_URL: postgresql://innovation_user:innovation_pass@postgres:5432/innovation_db
+      SECRET_KEY: ${SECRET_KEY:-innovation_v2_premium_dark}
+      BASE_URL: ${BASE_URL:-http://localhost:8000}
+      MP_ACCESS_TOKEN: ${MP_ACCESS_TOKEN}
+      PYTHONPATH: /app/src:/app
+    ports:
+      - "8013:8003"   # Debug local
+    networks:
+      - innovation_net
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8003/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 25s
+
+  # ── Frontend ────────────────────────────────────────────────────────────────
   frontend:
     build:
-      context: ./frontend
+      context: ../../../apps/frontend
       dockerfile: Dockerfile
     container_name: innovation_frontend
-    restart: always
+    restart: unless-stopped
     ports:
       - "8080:3000"
     environment:
-      - API_URL=http://innovation_gateway:8000
+      NEXT_PUBLIC_API_URL: http://localhost:8000   # Aponta para o Kong
     depends_on:
-      - kong
+      kong:
+        condition: service_healthy
     networks:
       - innovation_net
 
+  # ── PostgreSQL ──────────────────────────────────────────────────────────────
   postgres:
-    image: postgres:15-alpine
-    container_name: innovation_db_v2
+    image: postgres:16-alpine
+    container_name: innovation_db
+    restart: unless-stopped
     environment:
-      - POSTGRES_USER=user
-      - POSTGRES_PASSWORD=secure_pass
-      - POSTGRES_DB=innovation
+      POSTGRES_USER: innovation_user
+      POSTGRES_PASSWORD: innovation_pass
+      POSTGRES_DB: innovation_db
     volumes:
-      - postgres_data_v2:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
     networks:
       - innovation_net
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U user -d innovation" ]
+      test: ["CMD-SHELL", "pg_isready -U innovation_user -d innovation_db"]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
 
 networks:
   innovation_net:
     driver: bridge
 
 volumes:
-  postgres_data_v2:
+  postgres_data:

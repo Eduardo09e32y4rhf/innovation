@@ -1,10 +1,13 @@
 _format_version: "3.0"
 
+# ── Plugin CORS Global ────────────────────────────────────────────────────────
 plugins:
   - name: cors
     config:
       origins:
-        - "*"
+        - "http://localhost:3000"
+        - "http://localhost:8080"
+        - "https://*.vercel.app"
       methods:
         - GET
         - POST
@@ -14,46 +17,133 @@ plugins:
         - OPTIONS
       headers:
         - Accept
-        - Accept-Version
-        - Content-Length
-        - Content-MD5
-        - Content-Type
-        - Date
         - Authorization
+        - Content-Type
+        - X-Correlation-ID
       exposed_headers:
         - Authorization
+        - X-Correlation-ID
+        - X-Response-Time-Ms
       credentials: true
       max_age: 3600
 
+# ── Serviços e Rotas ──────────────────────────────────────────────────────────
+
 services:
+
+  # ── Auth Service: Autenticação, Usuários, Assinaturas ─────────────────────
   - name: auth_service
     url: http://auth_service:8001
+    connect_timeout: 10000
+    read_timeout: 30000
     routes:
-      - name: auth-route
+      - name: auth-login-register
         paths:
           - /api/auth
         strip_path: false
+      - name: users-route
+        paths:
+          - /api/users
+        strip_path: false
+      - name: companies-route
+        paths:
+          - /api/companies
+        strip_path: false
+      - name: subscriptions-route
+        paths:
+          - /api/subscriptions
+        strip_path: false
+      - name: plans-route
+        paths:
+          - /api/plans
+        strip_path: false
+      - name: audit-route
+        paths:
+          - /api/audit
+        strip_path: false
 
+  # ── AI Service: Gemini, DISC, OCR, Chat ──────────────────────────────────
   - name: ai_service
     url: http://ai_service:8002
+    connect_timeout: 15000
+    read_timeout: 120000   # IA pode demorar mais
     routes:
       - name: ai-route
         paths:
           - /api/ai
         strip_path: false
-
-  - name: core_service
-    url: http://core_service:8003
-    routes:
-      - name: core-route
+      - name: ai-admin-route
         paths:
-          - /api/core
+          - /api/ai-admin
+        strip_path: false
+      - name: ai-reports-route
+        paths:
+          - /api/ai-reports
+        strip_path: false
+      - name: chat-route
+        paths:
+          - /api/chat
+        strip_path: false
+      - name: innovation-sync-route
+        paths:
+          - /api/innovation-sync
+        strip_path: false
+      - name: killer-questions-route
+        paths:
+          - /api/killer-questions
         strip_path: false
 
-  - name: api_monolith
-    url: http://api_monolith:8000
+  # ── Core Service: Negócios — RH, Finanças, Projetos, Vagas ───────────────
+  - name: core_service
+    url: http://core_service:8003
+    connect_timeout: 10000
+    read_timeout: 60000
     routes:
-      - name: monolith-fallback
+      - name: jobs-route
         paths:
-          - /api
+          - /api/jobs
+        strip_path: false
+      - name: applications-route
+        paths:
+          - /api/applications
+        strip_path: false
+      - name: dashboard-route
+        paths:
+          - /api/dashboard
+        strip_path: false
+      - name: finance-route
+        paths:
+          - /api/finance
+        strip_path: false
+      - name: rh-route
+        paths:
+          - /api/rh
+        strip_path: false
+      - name: projects-route
+        paths:
+          - /api/projects
+        strip_path: false
+      - name: support-route
+        paths:
+          - /api/support
+        strip_path: false
+      - name: payments-route
+        paths:
+          - /api/payments
+        strip_path: false
+      - name: notifications-route
+        paths:
+          - /api/notifications
+        strip_path: false
+      - name: analytics-route
+        paths:
+          - /api/analytics
+        strip_path: false
+      - name: candidates-route
+        paths:
+          - /api/candidates
+        strip_path: false
+      - name: webhooks-route
+        paths:
+          - /api/webhooks
         strip_path: false

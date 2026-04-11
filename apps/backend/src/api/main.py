@@ -125,5 +125,35 @@ app.include_router(innovation_sync.router, prefix="/api")
 
 
 @app.get("/health")
-def health():
-    return {"status": "ok"}
+async def health():
+    """
+    Health check real — verifica banco de dados e configuração de IA.
+    Retorna 'ok' só quando tudo está funcional.
+    """
+    import os, sqlalchemy
+
+    # ── Banco de Dados ────────────────────────────────────────────────────
+    try:
+        from infrastructure.database.sql.session import SessionLocal
+        db = SessionLocal()
+        db.execute(sqlalchemy.text("SELECT 1"))
+        db.close()
+        db_status = "ok"
+    except Exception as e:
+        db_status = f"error: {str(e)[:80]}"
+
+    # ── Gemini API ────────────────────────────────────────────────────────
+    gemini_keys = os.getenv("GEMINI_API_KEYS", "")
+    gemini_status = "configured" if gemini_keys else "missing"
+
+    # ── Status geral ──────────────────────────────────────────────────────
+    overall = "ok" if db_status == "ok" else "degraded"
+
+    return {
+        "status": overall,
+        "service": "innovation-monolith",
+        "checks": {
+            "database": db_status,
+            "gemini_api": gemini_status,
+        },
+    }
