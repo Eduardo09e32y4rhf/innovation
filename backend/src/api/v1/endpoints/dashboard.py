@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func
 from infrastructure.database.sql.dependencies import get_db
 from core.dependencies import get_current_user
@@ -256,10 +256,14 @@ async def get_kanban_board(
     }
 
     # Fetch real applications
+    # ⚡ Bolt: Added joinedload for candidate and job to fix N+1 query problem
+    # Why: The loop below accesses app.candidate and app.job, which previously triggered 2 new queries per application.
+    # Impact: Reduces queries from potentially 1 + (50 * 2) = 101 to just 1 query for the kanban board.
     apps = (
         db.query(Application)
         .join(Job)
         .filter(Job.company_id == current_user.id)
+        .options(joinedload(Application.candidate), joinedload(Application.job))
         .order_by(Application.created_at.desc())
         .limit(50)
         .all()
