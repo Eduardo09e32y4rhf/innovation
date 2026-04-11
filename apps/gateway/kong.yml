@@ -5,10 +5,7 @@ plugins:
   - name: cors
     config:
       origins:
-        - "http://localhost:3000"
-        - "http://localhost:8080"
-        - "http://vps8369.panel.icontainer.net:8080"
-        - "https://*.vercel.app"
+        - "*"
       methods:
         - GET
         - POST

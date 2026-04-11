@@ -3,6 +3,10 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   output: 'standalone',
   poweredByHeader: false,
+  devIndicators: {
+    appIsrStatus: false,
+    buildActivity: false,
+  },
   typescript: { ignoreBuildErrors: true },
   images: { unoptimized: true },
   turbopack: {},
