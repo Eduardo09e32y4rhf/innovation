@@ -11,7 +11,10 @@ class AsaasService:
             "ASAAS_API_KEY",
             "$aact_hmlg_000MzkwODA2MWY2OGM3MWRlMDU2NWM3MzJlNzZmNGZhZGY6OjU0Y2ZlOGViLTZlYjgtNDRkNC1iNGU3LWQ5YzRiODY2MGJkODo6JGFhY2hfZDRmN2FlNTktNTYxNi00MmIzLWE4MDMtYjQxZjYzOWQ0ZDQx",
         )
-        self.url = os.getenv("ASAAS_API_URL", "https://sandbox.asaas.com/api/v3")
+        # PRODUÇÃO: https://api.asaas.com/v3
+        # SANDBOX (testes): https://sandbox.asaas.com/api/v3
+        # Configure ASAAS_API_URL no .env para sobrescrever
+        self.url = os.getenv("ASAAS_API_URL", "https://api.asaas.com/v3")
         self.headers = {
             "access_token": self.api_key,
             "Content-Type": "application/json",

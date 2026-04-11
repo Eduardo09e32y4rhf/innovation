@@ -12,7 +12,19 @@ A plataforma Innovation.ia foi construída com os mais rigorosos padrões de seg
 - **Proteção Contra Injeção e Execução de Scripts:** Políticas estritas de CSP (Content-Security-Policy) previnem a execução de códigos maliciosos.
 - **Anti-Sniffing e XSS:** Configurações de cabeçalhos nosniff e proteção XSS ativa garantem a integridade dos arquivos (como notas fiscais) e protegem as interfaces.
 - **Blindagem do Servidor:** Ocultamento de versões do servidor e frameworks (Nginx, Next.js) para mitigar fingerprinting e evitar ataques direcionados.
-- Nenhuma senha, arquivo ou transação trafega sem a máxima segurança, tornando o sistema confiável como um banco.
+---
+
+## 📁 Estrutura do Projeto (Organizada)
+O ecossistema está organizado para garantir o isolamento e a escalabilidade dos microserviços:
+
+- **`backend/`**: O coração da plataforma (FastAPI).
+- **`frontend/`**: Interface de usuário premium (Next.js).
+- **`ai_engine/`**: Processamento pesado e trabalhadores de IA.
+- **`gateway/`**: Ponto único de entrada e roteamento.
+- **`infrastructure/`**: Configurações de DevOps, Kubernetes e operações de infra.
+- **`scripts/`**: Utilitários para inicialização, migração e manutenção do sistema.
+- **`docs/`**: Documentação técnica e metadados (`/metadata`).
+- **`examples/`**: Projetos de exemplo e laboratório de novos módulos.
 
 ---
 

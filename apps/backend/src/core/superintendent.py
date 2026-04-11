@@ -1,23 +1,32 @@
 """
 Innovation.ia - IA Superintendente
-Gerencia TODO o projeto, avalia erros e toma decisões autônomas
+Gerencia todo o projeto, avalia erros e toma decisões autônomas
+
+ATUALIZADO: Usa Gemini (google-genai) ao invés de OpenAI.
+Garante que nunca entre em "simulation mode" enquanto o GEMINI_API_KEY estiver configurado.
 """
 
 import os
 import logging
-from typing import List, Any
+from typing import List, Any, Optional
 
-# Conditional imports to avoid crashing if libraries aren't installed yet
+logger = logging.getLogger(__name__)
+
+# Tenta importar LangChain com suporte ao Gemini
+try:
+    from langchain_google_genai import ChatGoogleGenerativeAI
+    _LANGCHAIN_GEMINI = True
+except ImportError:
+    _LANGCHAIN_GEMINI = False
+    logger.warning("langchain-google-genai não instalado. Execute: pip install langchain-google-genai")
+
 try:
     from langchain.agents import AgentExecutor, create_openai_functions_agent
-    from langchain_openai import ChatOpenAI
     from langchain_core.prompts import ChatPromptTemplate
     from langchain.tools import Tool
+    _LANGCHAIN_AVAILABLE = True
 except ImportError:
-    # Mock classes for initial setup without full dependencies
-    class ChatOpenAI:
-        def __init__(self, **kwargs):
-            pass
+    _LANGCHAIN_AVAILABLE = False
 
     class Tool:
         def __init__(self, **kwargs):
@@ -25,7 +34,7 @@ except ImportError:
 
     class AgentExecutor:
         def invoke(self, *args, **kwargs):
-            return {"output": "Agent Simulation: Action Completed"}
+            return {"output": "Superintendent: LangChain não instalado"}
 
     def create_openai_functions_agent(*args):
         pass
@@ -36,34 +45,46 @@ except ImportError:
             return None
 
 
-logger = logging.getLogger(__name__)
-
-
 class SuperintendentAI:
     """
-    IA Matriz que controla todo o sistema Innovation.ia
+    IA Matriz que monitora e gerencia o sistema Innovation.ia.
+    Usa Gemini Pro via LangChain. Fallback gracioso se não configurado.
     """
 
     def __init__(self):
-        self.api_key = os.getenv("OPENAI_API_KEY")
         self.llm = self._setup_llm()
         self.memory = []
         self.tools = self._setup_tools()
         self.agent = self._create_agent()
 
-    def _setup_llm(self):
-        if not self.api_key:
-            logger.warning(
-                "OPENAI_API_KEY not found. SuperintendentAI operating in simulation mode."
-            )
-            return None
-        try:
-            return ChatOpenAI(
-                model="gpt-4-turbo-preview", temperature=0, api_key=self.api_key
-            )
-        except Exception as e:
-            logger.warning(f"Could not initialize ChatOpenAI: {e}")
-            return None
+    def _setup_llm(self) -> Optional[Any]:
+        """Configura o LLM usando Gemini (prioridade) ou retorna None."""
+        # Tenta Gemini via LangChain
+        if _LANGCHAIN_GEMINI:
+            try:
+                from core.ai_key_manager import ai_key_manager
+                keys = ai_key_manager.get_all_active_keys()
+                gemini_key = keys[0] if keys else os.getenv("GEMINI_API_KEY", "")
+            except Exception:
+                gemini_key = os.getenv("GEMINI_API_KEY", "")
+
+            if gemini_key:
+                try:
+                    llm = ChatGoogleGenerativeAI(
+                        model="gemini-1.5-flash",
+                        google_api_key=gemini_key,
+                        temperature=0,
+                    )
+                    logger.info("✅ SuperintendentAI inicializado com Gemini 1.5 Flash")
+                    return llm
+                except Exception as e:
+                    logger.warning(f"Falha ao inicializar Gemini para Superintendent: {e}")
+
+        logger.warning(
+            "⚠️ SuperintendentAI em modo passivo. "
+            "Configure GEMINI_API_KEY e instale langchain-google-genai para ativar."
+        )
+        return None
 
     def _setup_tools(self) -> List[Any]:
         """Ferramentas disponíveis para a IA"""

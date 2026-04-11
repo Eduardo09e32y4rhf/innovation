@@ -96,8 +96,15 @@ async def create_preference(
 @router.post("/webhook")
 async def asaas_webhook(request: Request, db: Session = Depends(get_db)):
     """
-    Recebe notificações do Asaas.
-    Processa eventos como PAYMENT_RECEIVED, PAYMENT_CONFIRMED, PAYMENT_OVERDUE, PAYMENT_REFUNDED.
+    Recebe notificações do Asaas (produção: https://api.asaas.com/v3).
+
+    Eventos tratados:
+    - PAYMENT_RECEIVED / PAYMENT_CONFIRMED → Ativa assinatura
+    - PAYMENT_OVERDUE → Bloqueia acesso, downgrade FREE
+    - PAYMENT_DELETED → Cancela assinatura imediatamente
+    - SUBSCRIPTION_DELETED → Cancela assinatura
+    - PAYMENT_REFUNDED → Estorno, rebaixa plano
+    - PAYMENT_CHARGEBACK_REQUESTED → Alerta crítico ao admin
     """
     try:
         data = await request.json()
@@ -177,33 +184,72 @@ async def asaas_webhook(request: Request, db: Session = Depends(get_db)):
                     "subscription"
                 ) or payment_data.get("id")
 
-        elif event in ["PAYMENT_OVERDUE", "SUBSCRIPTION_DELETED", "PAYMENT_REFUNDED"]:
+        elif event in ["PAYMENT_OVERDUE", "SUBSCRIPTION_DELETED", "PAYMENT_REFUNDED", "PAYMENT_DELETED"]:
             status_map = {
                 "PAYMENT_OVERDUE": "overdue",
                 "SUBSCRIPTION_DELETED": "cancelled",
                 "PAYMENT_REFUNDED": "refunded",
+                "PAYMENT_DELETED": "cancelled",
             }
             new_status = status_map.get(event, "inactive")
 
             user.subscription_status = new_status
             user.subscription_plan = "FREE"
-            if event == "SUBSCRIPTION_DELETED":
-                # For cancelation, keep active until cycle ends? For simplicity, immediate fallback to FREE
-                user.is_active = True  # O usuario continua ativo no sistema, so no plano FREE (ou False dependo do negocio)
-            else:
-                user.is_active = False
+
+            # SUBSCRIPTION_DELETED: usuário perde premium mas mantém conta
+            # PAYMENT_OVERDUE: bloqueia acesso imediatamente até regularizar
+            user.is_active = event == "SUBSCRIPTION_DELETED"
 
             sub = db.query(Subscription).filter(Subscription.user_id == user.id).first()
             if sub:
                 sub.status = new_status
-            print(
-                f"⚠️ Evento Asaas '{event}' para user {user.id} -> Downgrade para FREE."
+
+            import logging
+            logging.getLogger(__name__).warning(
+                f"⚠️ Evento Asaas '{event}' para user {user.id} (email: {user.email}) → Downgrade para FREE."
+            )
+
+        elif event == "PAYMENT_CHARGEBACK_REQUESTED":
+            # Chargeback é sinal de fraude — bloquear usuário e alertar admin
+            user.is_active = False
+            user.subscription_status = "chargeback"
+            user.subscription_plan = "FREE"
+
+            sub = db.query(Subscription).filter(Subscription.user_id == user.id).first()
+            if sub:
+                sub.status = "chargeback"
+
+            # Cria notificação de alerta para todos os admins
+            try:
+                from domain.models.user import User as UserModel
+                from domain.models.notification import Notification
+                admins = db.query(UserModel).filter(UserModel.role == "admin").all()
+                for admin in admins:
+                    alert = Notification(
+                        user_id=admin.id,
+                        title="🚨 Chargeback Detectado",
+                        message=(
+                            f"O usuário {user.full_name} ({user.email}) solicitou chargeback. "
+                            f"Conta bloqueada automaticamente. Valor: R${payment_data.get('value', 0):.2f}. "
+                            "Acesse o painel Asaas para mais detalhes."
+                        ),
+                        type="alert",
+                    )
+                    db.add(alert)
+            except Exception as notif_err:
+                import logging
+                logging.getLogger(__name__).error(f"Falha ao criar notificação de chargeback: {notif_err}")
+
+            import logging
+            logging.getLogger(__name__).critical(
+                f"🚨 CHARGEBACK: user {user.id} ({user.email}) | Valor: R${payment_data.get('value', 0)}"
             )
 
         db.commit()
 
     except Exception as e:
-        print(f"Erro processando webhook Asaas: {e}")
+        import logging
+        logging.getLogger(__name__).error(f"Erro processando webhook Asaas event '{event}': {e}")
         db.rollback()
 
     return {"status": "received"}

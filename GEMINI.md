@@ -13,7 +13,7 @@ O sistema é composto pelos seguintes componentes principais:
 - **Função:** Ponto de entrada único, autenticação centralizada e roteamento.
 
 ### 2. Backend (FastAPI)
-- **Caminho:** `/backend`
+- **Caminho:** `apps/backend`
 - **Tecnologia:** Python, FastAPI, SQLAlchemy, PostgreSQL.
 - **Módulos:**
   - `auth`: Gestão de usuários e permissões (RBAC).
@@ -22,12 +22,12 @@ O sistema é composto pelos seguintes componentes principais:
   - `finance`: Integração com Mercado Pago e fluxo de caixa.
 
 ### 3. Frontend (Next.js)
-- **Caminho:** `/frontend`
+- **Caminho:** `apps/frontend`
 - **Tecnologia:** React, Next.js 16+, Tailwind CSS, Framer Motion.
 - **Características:** Dashboard premium, glassmorphism e micro-animações.
 
 ### 4. AI Engine
-- **Caminho:** `/ai_engine`
+- **Caminho:** `apps/ai_engine`
 - **Função:** Trabalhadores (workers) assíncronos para processamento pesado de IA.
 
 ### 5. Infraestrutura

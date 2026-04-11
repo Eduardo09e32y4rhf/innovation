@@ -1,0 +1,94 @@
+# ==============================================================================
+# Innovation.ia — Backend Dependencies
+# Versão limpa (sem duplicatas) + novas dependências para produção
+# ==============================================================================
+
+# --- Core Web Framework ---
+fastapi==0.128.0
+uvicorn[standard]==0.34.0
+gunicorn==23.0.0
+starlette==0.50.0
+
+# --- Database ---
+sqlalchemy==2.0.46
+alembic
+psycopg2-binary==2.9.11       # PostgreSQL (produção)
+greenlet==3.3.1
+
+# --- Auth & Security ---
+python-jose==3.5.0
+passlib==1.7.4
+bcrypt==5.0.0
+python-multipart
+
+# --- Validation ---
+pydantic==2.12.5
+pydantic-settings==2.12.0
+pydantic_core==2.41.5
+annotated-types==0.7.0
+typing_extensions==4.15.0
+typing-inspection==0.4.2
+email-validator
+
+# --- Environment ---
+python-dotenv==1.2.1
+
+# --- HTTP Client ---
+httpx
+requests
+
+# --- AI: Google Gemini (principal) ---
+google-genai                       # SDK Google GenAI (Gemini 1.5, 2.0, Veo)
+langchain>=0.1.0                   # Base LangChain
+langchain-community>=0.0.10
+langchain-google-genai>=1.0.0      # LangChain + Gemini (para o Superintendent)
+
+# --- AI: Anthropic Claude (opcional, Enterprise) ---
+# anthropic                        # Descomentar se usar Claude direto
+
+# --- AI: OpenAI (legado — manter por compatibilidade de imports) ---
+langchain-openai>=0.0.5
+
+# --- Rate Limiting ---
+slowapi
+
+# --- Storage: AWS S3 (fotos biométricas) ---
+boto3>=1.34.0                      # AWS SDK (S3 para fotos biométricas)
+
+# --- Storage: Redis (cache e filas) ---
+redis>=5.0.0
+celery>=5.3.0
+arq>=0.25.0
+
+# --- Email ---
+sendgrid==6.11.0
+
+# --- SMS / WhatsApp ---
+twilio==9.2.2
+
+# --- Templates ---
+jinja2
+
+# --- Networking ---
+anyio==4.12.1
+h11==0.16.0
+idna==3.11
+
+# --- Crypto ---
+pyasn1==0.6.2
+rsa==4.9.1
+ecdsa==0.19.1
+six==1.17.0
+
+# --- Payments (legacy import — pode remover após limpar código Stripe) ---
+stripe
+
+# --- Monitoring ---
+prometheus-client>=0.19.0
+
+# --- Testing ---
+pytest
+
+# --- Utils ---
+click==8.3.1
+colorama==0.4.6

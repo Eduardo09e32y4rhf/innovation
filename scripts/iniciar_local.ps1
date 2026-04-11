@@ -12,40 +12,26 @@ if (Test-Path $envFile) {
     }
     Write-Host "Variáveis de ambiente carregadas de .env" -ForegroundColor Green
 } else {
-    Write-Host "Arquivo .env não encontrado. Iniciando sem variáveis adicionais." -ForegroundColor Yellow
+    Write-Host "Arquivo .env não encontrado. Usando defaults." -ForegroundColor Yellow
 }
-$DATABASE_URL = "sqlite:///$ROOT/backend/innovation_rh.db"
 
 Write-Host "====================================================" -ForegroundColor Cyan
-Write-Host "  Innovation.ia — Iniciando em modo desenvolvimento  " -ForegroundColor Cyan
+Write-Host "  Innovation.ia — Iniciando Servidores...           " -ForegroundColor Cyan
 Write-Host "====================================================" -ForegroundColor Cyan
 
 # ── BACKEND ──────────────────────────────────────────────────────────────────
 Write-Host "`n[1/2] Abrindo backend..." -ForegroundColor Yellow
 
-$backendCmd = @"
-cd '$ROOT\backend';
-`$env:PYTHONPATH='src';
-`$env:DATABASE_URL='$DATABASE_URL';
-`$env:ALLOWED_ORIGINS='http://localhost:3000';
-Write-Host '>>> BACKEND: http://localhost:8000/docs' -ForegroundColor Green;
-python -m uvicorn src.api.main:app --host 0.0.0.0 --port 8000 --reload
-"@
-
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "$backendCmd"
+$backendCmd = '-NoExit -Command "cd ''' + $ROOT + '\apps\backend''; $env:PYTHONPATH=''src''; $env:ALLOWED_ORIGINS=''http://localhost:3000''; Write-Host ''>>> BACKEND: http://localhost:8000'' -ForegroundColor Green; python -m uvicorn src.api.main:app --host 0.0.0.0 --port 8000 --env-file ..\..\.env"'
+Start-Process powershell -ArgumentList $backendCmd
 
 Start-Sleep -Seconds 2
 
 # ── FRONTEND ─────────────────────────────────────────────────────────────────
 Write-Host "[2/2] Abrindo frontend..." -ForegroundColor Yellow
 
-$frontendCmd = @"
-cd '$ROOT\frontend';
-Write-Host '>>> FRONTEND: http://localhost:3000' -ForegroundColor Green;
-npm run dev
-"@
-
-Start-Process powershell -ArgumentList "-NoExit", "-Command", $frontendCmd
+$frontendCmd = '-NoExit -Command "cd ''' + $ROOT + '\apps\frontend''; Write-Host ''>>> FRONTEND: http://localhost:3000'' -ForegroundColor Green; npm run dev"'
+Start-Process powershell -ArgumentList $frontendCmd
 
 # ── INFO ─────────────────────────────────────────────────────────────────────
 Write-Host "`n====================================================" -ForegroundColor Green
