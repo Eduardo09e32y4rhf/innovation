@@ -4,10 +4,10 @@ from enum import Enum
 
 
 class Role(str, Enum):
-    COMPANY = "COMPANY"
-    SERVICES = "SERVICES"
-    SAC = "SAC"
-    ADM = "ADM"
+    COMPANY = "company"
+    SERVICES = "services"
+    SAC = "sac"
+    ADM = "adm"
 
 
 INTERNAL_ROLES = {Role.SERVICES, Role.SAC, Role.ADM}

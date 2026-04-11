@@ -9,6 +9,9 @@ class JobBase(BaseModel):
     description: str
     location: str | None = None
     status: str = "open"
+    requirements: str | None = None
+    salary: str | None = None
+    type: str | None = None  # matches 'type' in model
 
 
 class JobCreate(JobBase):
