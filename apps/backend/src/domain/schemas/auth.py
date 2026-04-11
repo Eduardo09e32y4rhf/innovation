@@ -1,15 +1,16 @@
 from __future__ import annotations
 
+import re
 from datetime import datetime
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 
 class RegisterRequest(BaseModel):
     # Mantém compatibilidade (antigo só tinha email/password/company_name)
     name: str | None = Field(default=None, min_length=2, max_length=120)
     email: EmailStr
-    password: str = Field(min_length=6)
-    phone: str | None = Field(default=None, max_length=30)
+    password: str = Field(min_length=6, max_length=128)
+    phone: str | None = Field(default=None, pattern=r"^\+?\d{8,15}$", max_length=30)
 
     # Role selection (defaults to candidate)
     role: str | None = Field(default="candidate", pattern="^(company|candidate)$")
@@ -23,11 +24,21 @@ class RegisterRequest(BaseModel):
     cidade: str | None = Field(default=None, max_length=120)
     uf: str | None = Field(default=None, min_length=2, max_length=2)
 
-    cep: str | None = Field(default=None, max_length=20)
+    cep: str | None = Field(default=None, pattern=r"^\d{5}-?\d{3}$", max_length=10)
     street: str | None = Field(default=None, max_length=200)
     number: str | None = Field(default=None, max_length=20)
     complement: str | None = Field(default=None, max_length=100)
     neighborhood: str | None = Field(default=None, max_length=100)
+
+    @field_validator("cnpj")
+    @classmethod
+    def validate_cnpj(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
+        cleaned = re.sub(r"\D", "", v)
+        if len(cleaned) != 14:
+            raise ValueError("CNPJ inválido. Deve conter 14 dígitos.")
+        return cleaned
 
 
 class LoginRequest(BaseModel):

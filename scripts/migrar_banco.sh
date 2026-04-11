@@ -9,6 +9,26 @@ echo "════════════════════════�
 echo "  MIGRAÇÃO DO BANCO DE DADOS"
 echo "════════════════════════════════════"
 
+# ── Wait-for-Postgres: Aguarda o banco estar PRONTO antes de migrar ────────
+# Evita race condition em Docker onde o container sobe mas o Postgres
+# ainda está inicializando (erro: "Connection refused" no Alembic).
+echo "▶ Aguardando PostgreSQL ficar pronto..."
+MAX_RETRIES=30
+RETRY_INTERVAL=2
+RETRIES=0
+
+until docker exec innovation_db pg_isready -U user_N7khBY -d innovation_db -q 2>/dev/null; do
+  RETRIES=$((RETRIES + 1))
+  if [ "$RETRIES" -ge "$MAX_RETRIES" ]; then
+    echo "✗ ERRO: PostgreSQL não respondeu após $((MAX_RETRIES * RETRY_INTERVAL))s. Abortando."
+    exit 1
+  fi
+  echo "  Aguardando... tentativa $RETRIES/$MAX_RETRIES"
+  sleep "$RETRY_INTERVAL"
+done
+
+echo "✓ PostgreSQL pronto. Iniciando migração..."
+
 # SQL de migração — adiciona colunas faltantes e cria tabelas financeiras
 SQL=$(cat <<'ENDSQL'
 -- ── Colunas faltantes na tabela users ────────────────────────────────

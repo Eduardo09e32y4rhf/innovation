@@ -1,6 +1,7 @@
 import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from api.middleware.correlation_id import CorrelationIdMiddleware
 from api.v1.endpoints import (
     jobs,
     applications,
@@ -79,6 +80,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+# Middleware de Correlação — rastreabilidade Frontend ↔ Backend
+app.add_middleware(CorrelationIdMiddleware)
 
 # Incluir Roteadores da API
 app.include_router(auth.router)

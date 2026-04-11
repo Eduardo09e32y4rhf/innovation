@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
 import AnnouncementBanner from '@/components/AnnouncementBanner'
+import { ReactQueryProvider } from '@/components/providers/ReactQueryProvider'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -18,8 +19,10 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" className="light">
       <body className={`font-sans min-h-screen bg-slate-50 text-slate-900 antialiased`}>
-        <AnnouncementBanner />
-        {children}
+        <ReactQueryProvider>
+          <AnnouncementBanner />
+          {children}
+        </ReactQueryProvider>
       </body>
     </html>
   )
