@@ -2,60 +2,12 @@
 
 import React, { useState, useEffect } from 'react';
 import {
-  ShieldCheck,
-  Zap,
-  CheckCircle2,
-  Users,
-  ArrowRight,
-  BarChart3,
-  Menu,
-  X,
-  Loader2,
-  TrendingUp,
-  MessageSquare,
-  Clock,
-  HeartHandshake,
-  Sparkles,
+  Cpu, Menu, PlayCircle, TrendingUp, Check, Users, Terminal, Bot, Smartphone, GitMerge, UserCheck, FileSignature, DollarSign, Linkedin, Sparkles, Megaphone, Code2, Shield, Zap, Lock, Receipt, ScanFace, Key, CheckCircle2, X as XIcon, ArrowRight, AlertTriangle
 } from 'lucide-react';
-import { AIService } from '@/services/api';
 
-// ─── Componente auxiliar ────────────────────────────────────────────────────
-const FeatureCard = ({
-  icon,
-  title,
-  desc,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  desc: string;
-}) => (
-  <div className="bg-zinc-50 p-10 rounded-[2.5rem] border-zinc-200 hover:border-violet-300 transition-all duration-300 hover:-translate-y-2 group">
-    <div className="w-20 h-20 bg-white border-slate-200 border-black/5 shadow-sm text-violet-700 rounded-2xl flex items-center justify-center mb-8 group-hover:scale-110 transition-transform">
-      {icon}
-    </div>
-    <h3 className="text-2xl font-bold text-zinc-900 mb-4">{title}</h3>
-    <p className="text-zinc-600 font-medium leading-relaxed text-lg">{desc}</p>
-  </div>
-);
-
-// ─── Landing Page Principal ─────────────────────────────────────────────────
 export default function HomePage() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-
-  // Simulador de ROI
-  const [businessType, setBusinessType] = useState('');
-  const [aiPlan, setAiPlan] = useState<string[] | null>(null);
-  const [isLoadingPlan, setIsLoadingPlan] = useState(false);
-  const [loadingStep, setLoadingStep] = useState(0);
-  const [errorPlan, setErrorPlan] = useState('');
-
-  const loadingMessages = [
-    'A analisar o seu perfil de negócio...',
-    'A cruzar dados de eficiência...',
-    'A calcular horas poupadas...',
-    'A desenhar o seu plano de ROI...',
-  ];
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -63,481 +15,565 @@ export default function HomePage() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (isLoadingPlan) {
-      interval = setInterval(() => {
-        setLoadingStep((prev) => (prev + 1) % loadingMessages.length);
-      }, 1500);
-    } else {
-      setLoadingStep(0);
-    }
-    return () => clearInterval(interval);
-  }, [isLoadingPlan]);
-
-  const generateInnovationPlan = async () => {
-    if (!businessType) return;
-    setIsLoadingPlan(true);
-    setErrorPlan('');
-    setAiPlan(null);
-
-    try {
-      const data = await AIService.getLandingPlan(businessType);
-      const text: string = data.answer || '';
-
-      const points = text
-        .split('\n')
-        .map((line: string) => line.replace(/^[-*•\d.\s]+/, '').trim())
-        .filter((line: string) => line.length > 5)
-        .slice(0, 3);
-
-      setAiPlan(points.length > 0 ? points : [text]);
-    } catch (err: any) {
-      setErrorPlan('O simulador está em manutenção ou atingiu o limite. Tente em instantes.');
-    } finally {
-      setIsLoadingPlan(false);
-    }
-  };
-
   const goToRegister = () => {
     window.location.href = '/register';
   };
 
+  const goToLogin = () => {
+    window.location.href = '/login';
+  };
+
   return (
-    <div className="min-h-screen bg-zinc-50 text-zinc-900 font-sans selection:bg-violet-300 selection:text-violet-900">
+    <div className="bg-[#020617] text-slate-50 font-sans selection:bg-purple-500 selection:text-white relative overflow-x-hidden min-h-screen">
+      <style dangerouslySetInnerHTML={{ __html: `
+        .glass-card {
+            background: rgba(30, 41, 59, 0.4);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            border-radius: 1rem;
+        }
+        .gradient-text {
+            background: linear-gradient(135deg, #c084fc 0%, #2dd4bf 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .blob-purple {
+            position: absolute;
+            background: radial-gradient(circle, rgba(147,51,234,0.2) 0%, rgba(0,0,0,0) 70%);
+            width: 60vw; height: 60vw; max-width: 800px; max-height: 800px;
+            border-radius: 50%; z-index: 0; filter: blur(60px);
+            animation: float 20s infinite ease-in-out alternate;
+        }
+        .blob-teal {
+            position: absolute;
+            background: radial-gradient(circle, rgba(20,184,166,0.15) 0%, rgba(0,0,0,0) 70%);
+            width: 50vw; height: 50vw; max-width: 600px; max-height: 600px;
+            border-radius: 50%; z-index: 0; filter: blur(60px);
+            animation: float 25s infinite ease-in-out alternate-reverse;
+        }
+        @keyframes float {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(30px, 50px); }
+        }
+        @keyframes chatPop {
+            0% { opacity: 0; transform: translateY(20px) scale(0.95); }
+            10% { opacity: 1; transform: translateY(0) scale(1); }
+            90% { opacity: 1; transform: translateY(0) scale(1); }
+            100% { opacity: 0; transform: translateY(-20px) scale(0.95); }
+        }
+        @keyframes typingDot {
+            0%, 100% { transform: translateY(0); opacity: 0.5; }
+            50% { transform: translateY(-3px); opacity: 1; }
+        }
+        .anim-chat-1 { animation: chatPop 8s infinite; }
+        .anim-chat-2 { animation: chatPop 8s infinite 2s; opacity: 0; animation-fill-mode: backwards; }
+        .anim-chat-3 { animation: chatPop 8s infinite 4s; opacity: 0; animation-fill-mode: backwards; }
+        .typing-dot { animation: typingDot 1.4s infinite ease-in-out; }
+        .typing-dot:nth-child(1) { animation-delay: 0s; }
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes flowPulse {
+            0% { box-shadow: 0 0 0 0 rgba(147, 51, 234, 0.4); border-color: #9333ea; }
+            50% { box-shadow: 0 0 20px 5px rgba(20, 184, 166, 0.6); border-color: #2dd4bf; }
+            100% { box-shadow: 0 0 0 0 rgba(147, 51, 234, 0.4); border-color: #9333ea; }
+        }
+        @keyframes lineGlow {
+            0% { background-position: 200% center; }
+            100% { background-position: -200% center; }
+        }
+        .anim-flow-node { animation: flowPulse 3s infinite; }
+        .anim-flow-line {
+            background: linear-gradient(90deg, #334155 0%, #9333ea 50%, #334155 100%);
+            background-size: 200% auto;
+            animation: lineGlow 3s linear infinite;
+        }
+        @keyframes typeText {
+            0% { width: 0; }
+            50%, 100% { width: 100%; }
+        }
+        @keyframes blinkCursor {
+            0%, 100% { border-color: transparent; }
+            50% { border-color: #2dd4bf; }
+        }
+        .anim-typewriter {
+            display: inline-block;
+            overflow: hidden;
+            white-space: nowrap;
+            border-right: 2px solid #2dd4bf;
+            animation: typeText 4s steps(40, end) infinite, blinkCursor 0.75s step-end infinite;
+        }
+      `}} />
 
-      {/* ── NAVBAR ─────────────────────────────────────────────────────────── */}
-      <nav
-        className={`fixed top-0 w-full z-50 transition-all duration-300 ${scrolled ? 'bg-white border-slate-200 border-black/5 shadow-sm shadow-lg py-4' : 'bg-transparent py-6'
-          }`}
-      >
-        <div className="max-w-7xl mx-auto px-6 flex justify-between items-center">
-          {/* Logo */}
-          <div className="flex items-center gap-2 cursor-pointer">
-            <div
-              className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-lg ${scrolled ? 'bg-blue-600' : 'bg-white'
+      {/* Navbar Fixa */}
+      <nav className={`fixed w-full z-50 transition-all duration-300 ${scrolled ? 'bg-slate-950/90 backdrop-blur-md border-b border-slate-700/50' : 'bg-transparent py-2'}`}>
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="flex items-center justify-between h-16 md:h-20">
+                  <div className="flex items-center gap-2 md:gap-3 cursor-pointer" onClick={() => window.scrollTo(0,0)}>
+                      <div className="p-1.5 md:p-2 bg-gradient-to-br from-purple-600 to-teal-500 rounded-lg">
+                          <Cpu className="text-white w-5 h-5 md:w-6 md:h-6" />
+                      </div>
+                      <span className="font-bold text-lg md:text-2xl tracking-tight">INNOVATION<span className="text-purple-500">.IA</span></span>
+                  </div>
+                  
+                  {/* Menu Desktop */}
+                  <div className="hidden md:flex items-center space-x-6 lg:space-x-8">
+                      <a href="#solucoes" className="text-sm font-medium text-slate-300 hover:text-white transition-colors">Visão</a>
+                      <a href="#recursos" className="text-sm font-medium text-slate-300 hover:text-white transition-colors">Demos</a>
+                      <a href="#arquitetura" className="text-sm font-medium text-slate-300 hover:text-white transition-colors">Infra</a>
+                      <a href="#precos" className="text-sm font-medium text-slate-300 hover:text-white transition-colors">Planos</a>
+                      <button onClick={goToLogin} className="text-sm font-medium text-slate-300 hover:text-white transition-colors">Login</button>
+                      <button onClick={goToRegister} className="px-5 py-2.5 rounded-lg bg-white text-slate-900 font-bold text-sm hover:bg-slate-200 transition-all shadow-lg hover:shadow-white/20">Acessar Plataforma</button>
+                  </div>
 
-                }`}
-            >
-              <Zap size={22} className={scrolled ? 'text-slate-900' : 'text-violet-700'} />
-            </div>
-            <span
-              className={`text-2xl font-bold tracking-tight ${scrolled ? 'text-zinc-900' : 'text-slate-900'
-                }`}
-            >
-              Innovation
-              <span className={scrolled ? 'text-violet-700' : 'text-blue-500'}>IA</span>
-            </span>
+                  {/* Menu Mobile */}
+                  <div className="md:hidden">
+                      <button className="text-slate-300 hover:text-white p-2" onClick={() => setIsMenuOpen(!isMenuOpen)}>
+                          {isMenuOpen ? <XIcon className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+                      </button>
+                  </div>
+              </div>
           </div>
-
-          {/* Links desktop */}
-          <div
-            className={`hidden md:flex items-center gap-8 text-sm font-semibold ${scrolled ? 'text-zinc-600' : 'text-slate-900/80'
-              }`}
-          >
-            <a href="#historia" className={`transition-colors ${scrolled ? 'hover:text-violet-700' : 'hover:text-slate-900'}`}>Evolução</a>
-            <a href="#simulador" className={`transition-colors ${scrolled ? 'hover:text-violet-700' : 'hover:text-slate-900'}`}>Simulador</a>
-            <a href="#solucao" className={`transition-colors ${scrolled ? 'hover:text-violet-700' : 'hover:text-slate-900'}`}>Solução</a>
-            <a href="#precos" className={`transition-colors ${scrolled ? 'hover:text-violet-700' : 'hover:text-slate-900'}`}>Preços</a>
-          </div>
-
-          {/* Acções desktop */}
-          <div className="hidden md:flex items-center gap-4">
-            <button
-              onClick={() => (window.location.href = '/login')}
-              className={`text-sm font-bold transition-colors ${scrolled ? 'text-zinc-600 hover:text-violet-700' : 'text-slate-900 hover:text-violet-200'
-                }`}
-            >
-              Login
-            </button>
-            <button
-              onClick={goToRegister}
-              className={`px-6 py-2.5 rounded-full font-bold text-sm shadow-xl transition-all hover:-translate-y-1 ${scrolled
-                ? 'bg-blue-600 text-white hover:bg-blue-600'
-                : 'bg-white text-violet-800 hover:bg-zinc-100'
-
-                }`}
-            >
-              Abra a sua conta
-            </button>
-          </div>
-
-          {/* Hamburger mobile */}
-          <button
-            aria-label="Toggle menu"
-            aria-expanded={isMenuOpen}
-            className={`md:hidden ${scrolled ? 'text-zinc-900' : 'text-slate-900'}`}
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-          >
-            {isMenuOpen ? <X size={28} /> : <Menu size={28} />}
-          </button>
-        </div>
-
-        {/* Mobile menu */}
-        {isMenuOpen && (
-          <div className="md:hidden absolute top-full left-0 w-full bg-white border-slate-200 border-black/5 shadow-sm border-b border-zinc-200 p-6 flex flex-col gap-4 shadow-2xl">
-            <a href="#historia" className="text-lg font-semibold text-zinc-800" onClick={() => setIsMenuOpen(false)}>Evolução</a>
-            <a href="#simulador" className="text-lg font-semibold text-zinc-800" onClick={() => setIsMenuOpen(false)}>Simulador</a>
-            <a href="#precos" className="text-lg font-semibold text-zinc-800" onClick={() => setIsMenuOpen(false)}>Preços</a>
-            <hr className="my-2 border-zinc-100" />
-            <button onClick={() => (window.location.href = '/login')} className="text-left text-lg font-bold text-zinc-600">Login</button>
-            <button onClick={goToRegister} className="bg-blue-600 text-white p-4 rounded-xl font-bold text-center mt-2">Abra a sua conta</button>
-          </div>
-        )}
+          {/* Mobile dropdown */}
+          {isMenuOpen && (
+              <div className="md:hidden absolute top-full left-0 w-full bg-slate-900 border-b border-slate-800 p-4 flex flex-col gap-4 shadow-2xl">
+                  <a href="#solucoes" className="text-slate-300 font-medium" onClick={() => setIsMenuOpen(false)}>Visão</a>
+                  <a href="#recursos" className="text-slate-300 font-medium" onClick={() => setIsMenuOpen(false)}>Demos</a>
+                  <button onClick={goToLogin} className="text-left text-slate-300 font-medium">Login</button>
+                  <button onClick={goToRegister} className="bg-purple-600 text-white p-3 rounded-lg font-bold text-center mt-2">Acessar Plataforma</button>
+              </div>
+          )}
       </nav>
 
-      {/* ── HERO ───────────────────────────────────────────────────────────── */}
-      <section className="pt-40 pb-28 md:pt-52 md:pb-40 px-6 bg-gradient-to-br from-violet-900 via-violet-800 to-fuchsia-700 relative overflow-hidden">
-        <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[1000px] bg-white border-slate-200 border-black/5 shadow-sm rounded-full blur-[150px] opacity-10 pointer-events-none" />
+      {/* Slide 1: Hero Section */}
+      <section className="relative min-h-[90vh] flex items-center pt-24 pb-12 overflow-hidden">
+          <div className="blob-purple top-[-5%] left-[-5%]"></div>
+          <div className="blob-teal bottom-[5%] right-[-5%]"></div>
 
-        <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-16 items-center relative z-10">
-          <div className="text-center lg:text-left">
-            <div className="inline-flex items-center gap-2 bg-white/10 border border-white/20 text-slate-900 px-5 py-2 rounded-full text-sm font-bold mb-8 backdrop-blur-md">
-
-              <Sparkles size={16} className="text-fuchsia-300" /> O futuro do trabalho chegou
-            </div>
-
-            <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight text-slate-900 mb-6 leading-[1.1]">
-              A inteligência que{' '}
-              <br className="hidden md:block" />
-              <span className="text-fuchsia-300">trabalha por si.</span>
-            </h1>
-
-            <p className="text-xl text-violet-100 mb-10 leading-relaxed max-w-2xl mx-auto lg:mx-0 font-medium">
-              Esqueça planilhas complexas e dezenas de ferramentas caras. Tenha as melhores
-              Inteligências Artificiais do mundo (Gemini, Claude e GPT) num único sistema focado em
-              facilitar a sua rotina.
-            </p>
-
-            <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
-              <button
-                onClick={goToRegister}
-                className="w-full sm:w-auto px-8 py-5 bg-white border-slate-200 border-black/5 shadow-sm text-violet-900 rounded-full font-black text-xl hover:bg-zinc-100 transition-all hover:scale-105 shadow-[0_0_40px_-10px_rgba(255,255,255,0.5)] flex items-center justify-center gap-3"
-              >
-                Começar por R$ 9,99 <ArrowRight size={22} />
-              </button>
-              <span className="text-violet-200 font-semibold flex items-center gap-2 mt-4 sm:mt-0">
-                <ShieldCheck size={20} className="text-emerald-400" /> Cancele quando quiser
-              </span>
-            </div>
-          </div>
-
-          {/* Imagem Hero */}
-          <div className="relative hidden lg:block">
-            <div className="absolute inset-0 bg-fuchsia-500 rounded-[3rem] rotate-6 opacity-30" />
-            <img
-              src="https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=1000&q=80"
-              onError={(e) => {
-                (e.target as HTMLImageElement).src =
-                  'https://placehold.co/1000x550/e2e8f0/475569?text=Innovation+IA';
-              }}
-              alt="Profissional a usar Innovation IA"
-              className="relative rounded-[3rem] shadow-2xl object-cover h-[550px] w-full border-4 border-white/10"
-            />
-            {/* Floating Card — Social Proof */}
-            <div className="absolute bottom-10 -left-12 bg-white border-slate-200 border-black/5 shadow-sm p-6 rounded-3xl shadow-2xl border-zinc-100 flex items-center gap-5">
-              <div className="w-14 h-14 bg-emerald-100 rounded-full flex items-center justify-center">
-                <Clock className="text-emerald-600" size={28} />
-              </div>
-              <div>
-                <p className="text-zinc-9000 text-sm font-bold uppercase tracking-wider">Tempo Economizado</p>
-                <p className="text-3xl font-black text-zinc-900">15h / sem.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── PROVA SOCIAL ───────────────────────────────────────────────────── */}
-      <section className="py-12 bg-white border-slate-200 border-black/5 shadow-sm border-b border-zinc-200">
-        <div className="max-w-7xl mx-auto px-6 text-center">
-          <p className="text-sm font-bold text-zinc-400 uppercase tracking-widest mb-8">
-            Tecnologia que impulsiona as maiores equipas
-          </p>
-          <div className="flex flex-wrap justify-center gap-12 md:gap-24 opacity-30 grayscale">
-            <span className="text-2xl font-black tracking-tighter">GEMINI</span>
-            <span className="text-2xl font-black tracking-tighter">CLAUDE</span>
-            <span className="text-2xl font-black tracking-tighter">OPENAI</span>
-            <span className="text-2xl font-black tracking-tighter">HOSTINGER</span>
-          </div>
-        </div>
-      </section>
-
-      {/* ── HISTÓRIA E EVOLUÇÃO ────────────────────────────────────────────── */}
-      <section id="historia" className="py-24 bg-zinc-50 px-6">
-        <div className="max-w-4xl mx-auto text-center mb-24">
-          <h2 className="text-4xl md:text-6xl font-extrabold text-zinc-900 mb-6 tracking-tight">
-            O mundo mudou.
-            <br /> A sua rotina também deve.
-          </h2>
-          <p className="text-xl text-zinc-600 font-medium">
-            Entendemos a frustração de usar sistemas lentos e caros. Por isso, criámos a central
-            definitiva de produtividade.
-          </p>
-        </div>
-
-        <div className="max-w-6xl mx-auto space-y-32">
-          {/* O Problema */}
-          <div className="flex flex-col md:flex-row items-center gap-16">
-            <div className="flex-1 order-2 md:order-1">
-              <div className="w-16 h-16 bg-red-100 rounded-2xl flex items-center justify-center mb-8 shadow-sm">
-                <Users className="text-red-600" size={32} />
-              </div>
-              <h3 className="text-4xl font-extrabold text-zinc-900 mb-6">
-                A forma antiga e cansativa.
-              </h3>
-              <p className="text-xl text-zinc-600 leading-relaxed mb-8">
-                Pagar assinaturas em dólares, gerir dezenas de abas abertas e lidar com interfaces
-                confusas em inglês. Um verdadeiro caos que rouba a sua energia.
-              </p>
-              <ul className="space-y-4">
-                <li className="flex items-center gap-4 text-zinc-600 font-semibold text-lg">
-                  <X className="text-red-500 bg-red-100 p-1 rounded-full" size={28} /> Custos altos
-                  (Dólar + IOF)
-                </li>
-                <li className="flex items-center gap-4 text-zinc-600 font-semibold text-lg">
-                  <X className="text-red-500 bg-red-100 p-1 rounded-full" size={28} /> Perda de
-                  foco constante
-                </li>
-              </ul>
-            </div>
-            <div className="flex-1 order-1 md:order-2">
-              <img
-                src="https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=800&q=80"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src =
-                    'https://placehold.co/800x600/e2e8f0/475569?text=Rotina+Cansativa';
-                }}
-                alt="Profissional frustrado"
-                className="rounded-[2.5rem] shadow-2xl grayscale opacity-90 border-8 border-white"
-              />
-            </div>
-          </div>
-
-          {/* A Solução */}
-          <div className="flex flex-col md:flex-row items-center gap-16">
-            <div className="flex-1">
-              <img
-                src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=800&q=80"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src =
-                    'https://placehold.co/800x600/e2e8f0/475569?text=Equipa+Inovadora';
-                }}
-                alt="Equipa colaborando"
-                className="rounded-[2.5rem] shadow-2xl border-8 border-white"
-              />
-            </div>
-            <div className="flex-1">
-              <div className="w-16 h-16 bg-violet-100 rounded-2xl flex items-center justify-center mb-8 shadow-sm">
-                <Zap className="text-violet-700" size={32} />
-              </div>
-              <h3 className="text-4xl font-extrabold text-zinc-900 mb-6">
-                A revolução Innovation IA.
-              </h3>
-              <p className="text-xl text-zinc-600 leading-relaxed mb-8">
-                Centralizámos as mentes mais brilhantes do planeta num único ambiente seguro, em
-                português e faturado em reais. Simples e rápido.
-              </p>
-              <ul className="space-y-4">
-                <li className="flex items-center gap-4 text-zinc-800 font-bold text-lg">
-                  <CheckCircle2 className="text-emerald-500 bg-emerald-100 p-1 rounded-full" size={28} />
-                  Preço único em Real (R$)
-                </li>
-                <li className="flex items-center gap-4 text-zinc-800 font-bold text-lg">
-                  <CheckCircle2 className="text-emerald-500 bg-emerald-100 p-1 rounded-full" size={28} />
-                  Inteligência Multi-Modelo
-                </li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── SIMULADOR DE ROI ───────────────────────────────────────────────── */}
-      <section id="simulador" className="py-24 bg-blue-600 px-6 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-t from-violet-900 to-transparent opacity-80" />
-
-        <div className="max-w-6xl mx-auto relative z-10">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-extrabold text-slate-900 mb-6">
-              Descubra o impacto na sua rotina.
-            </h2>
-            <p className="text-xl text-violet-200 font-medium max-w-2xl mx-auto">
-              Diga-nos a sua profissão ou negócio. O nosso simulador de IA mostrará como R$ 9,99
-              se transformam em dezenas de horas livres.
-            </p>
-          </div>
-
-          <div className="bg-white border-slate-200 border-black/5 shadow-sm rounded-[3rem] p-8 md:p-14 shadow-2xl max-w-4xl mx-auto border-4 border-violet-400/20">
-            <div className="flex flex-col sm:flex-row gap-4 mb-8">
-              <input
-                type="text"
-                value={businessType}
-                onChange={(e) => setBusinessType(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && generateInnovationPlan()}
-                placeholder="Ex: Analista de RH, Engenheiro, Vendedor..."
-                className="flex-1 bg-zinc-50 border-2 border-zinc-200 rounded-2xl px-8 py-5 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 focus:outline-none text-xl font-medium transition-all"
-              />
-              <button
-                onClick={generateInnovationPlan}
-                disabled={isLoadingPlan || !businessType}
-                className="bg-blue-600 text-white px-10 py-5 rounded-2xl font-bold text-xl hover:bg-blue-600 transition-all disabled:bg-zinc-200 disabled:text-zinc-9000 shadow-xl shadow-blue-600/20 flex items-center justify-center gap-3 active:scale-95"
-              >
-                {isLoadingPlan ? (
-                  <Loader2 className="animate-spin" size={28} />
-                ) : (
-                  'Ver Vantagens'
-                )}
-              </button>
-            </div>
-
-            {isLoadingPlan && (
-              <div className="text-center text-zinc-9000 font-semibold animate-pulse text-lg">
-                {loadingMessages[loadingStep]}
-              </div>
-            )}
-
-            {(aiPlan || errorPlan) && (
-              <div className="border-t border-zinc-100 pt-10 mt-8">
-                {errorPlan ? (
-                  <div className="p-6 bg-red-50 text-red-600 rounded-2xl font-bold text-center text-lg">
-                    {errorPlan}
+          <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+              <div className="text-center max-w-4xl mx-auto">
+                  <div className="inline-flex items-center gap-2 px-4 py-1.5 md:px-5 md:py-2 rounded-full glass-card border-slate-700 mb-6 md:mb-8 border border-purple-500/50 shadow-[0_0_15px_rgba(147,51,234,0.3)]">
+                      <span className="w-2 h-2 rounded-full bg-teal-400 animate-pulse"></span>
+                      <span className="text-xs md:text-sm text-slate-100 font-semibold tracking-wide">V2.0 Lançada • 100% Zero-Touch</span>
                   </div>
-                ) : (
-                  <div>
-                    <h4 className="text-2xl font-extrabold text-zinc-900 mb-8 flex items-center gap-3">
-                      <HeartHandshake className="text-blue-600" size={32} /> A sua nova realidade:
-                    </h4>
-                    <div className="grid sm:grid-cols-3 gap-6">
-                      {aiPlan!.map((p, i) => (
-                        <div
-                          key={i}
-                          className="bg-zinc-50 p-8 rounded-[2rem] border-zinc-200 hover:border-violet-300 transition-colors hover:shadow-lg"
-                        >
-                          <div className="w-12 h-12 bg-violet-100 text-violet-700 font-black text-xl rounded-full flex items-center justify-center mb-6">
-                            {i + 1}
-                          </div>
-                          <p className="text-zinc-800 font-semibold text-lg leading-relaxed">{p}</p>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="mt-12 text-center">
-                      <button
-                        onClick={goToRegister}
-                        className="bg-white text-slate-900 px-10 py-4 rounded-full font-bold text-xl hover:scale-105 transition-transform flex items-center justify-center gap-3 mx-auto shadow-xl"
-                      >
-                        Ativar estas vantagens agora <ArrowRight size={24} />
+                  
+                  <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight mb-6 leading-[1.15]">
+                      O Único Super ERP que o seu <br className="hidden sm:block" />
+                      <span className="gradient-text">CEO, RH e CTO</span> vão amar.
+                  </h1>
+                  
+                  <p className="text-base sm:text-lg lg:text-xl text-slate-300 font-light mb-8 md:mb-10 max-w-3xl mx-auto leading-relaxed px-2">
+                      Chega de assinar 5 sistemas legados que não se comunicam. A <strong>Innovation.ia</strong> unifica Finanças, Recrutamento e Marketing em um <em>cérebro de Inteligência Artificial</em> que trabalha sozinho.
+                  </p>
+                  
+                  <div className="flex flex-col sm:flex-row justify-center gap-4 px-4 sm:px-0">
+                      <button onClick={goToRegister} className="w-full sm:w-auto px-6 py-3.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-sm md:text-base rounded-xl transition-all shadow-[0_0_20px_rgba(147,51,234,0.4)] flex items-center justify-center gap-2">
+                          Experimentar Agora <PlayCircle className="w-5 h-5" />
                       </button>
-                    </div>
+                      <button onClick={goToLogin} className="w-full sm:w-auto px-6 py-3.5 bg-slate-800/80 hover:bg-slate-700 text-white font-semibold text-sm md:text-base rounded-xl transition-all border border-slate-600 backdrop-blur-md flex items-center justify-center">
+                          Já tenho conta
+                      </button>
                   </div>
-                )}
               </div>
-            )}
+
+              {/* Faixa de Métricas */}
+              <div className="mt-16 md:mt-20 grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6 max-w-5xl mx-auto">
+                  <div className="glass-card p-5 md:p-6 border-l-4 border-l-purple-500 text-center transform hover:-translate-y-1 transition-transform">
+                      <div className="text-3xl md:text-4xl font-extrabold text-white mb-1 md:mb-2">-80%</div>
+                      <div className="text-xs md:text-sm text-slate-400 font-bold uppercase tracking-wider">Tempo no RH</div>
+                      <p className="text-[10px] md:text-xs text-slate-500 mt-1.5 md:mt-2">IA entrevista via WhatsApp.</p>
+                  </div>
+                  <div className="glass-card p-5 md:p-6 border-l-4 border-l-teal-500 text-center transform hover:-translate-y-1 transition-transform">
+                      <div class="text-3xl md:text-4xl font-extrabold text-white mb-1 md:mb-2">100%</div>
+                      <div className="text-xs md:text-sm text-slate-400 font-bold uppercase tracking-wider">API-First</div>
+                      <p className="text-[10px] md:text-xs text-slate-500 mt-1.5 md:mt-2">Webhooks e Microserviços.</p>
+                  </div>
+                  <div className="glass-card p-5 md:p-6 border-l-4 border-l-blue-500 text-center transform hover:-translate-y-1 transition-transform">
+                      <div className="text-3xl md:text-4xl font-extrabold text-white mb-1 md:mb-2">1/3</div>
+                      <div className="text-xs md:text-sm text-slate-400 font-bold uppercase tracking-wider">Do Custo</div>
+                      <p className="text-[10px] md:text-xs text-slate-500 mt-1.5 md:mt-2">Adeus assinaturas inúteis.</p>
+                  </div>
+              </div>
           </div>
-        </div>
       </section>
 
-      {/* ── RECURSOS ───────────────────────────────────────────────────────── */}
-      <section id="solucao" className="py-24 bg-white border-slate-200 border-black/5 shadow-sm px-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-20">
-            <h2 className="text-4xl md:text-5xl font-extrabold text-zinc-900 mb-6 tracking-tight">
-              Criado para pessoas.
-              <br className="hidden md:block" /> Movido a Inteligência.
-            </h2>
-            <p className="text-xl text-zinc-600 font-medium max-w-2xl mx-auto">
-              Não precisa de ser um programador. A nossa plataforma é tão intuitiva como enviar uma
-              mensagem no WhatsApp.
-            </p>
-          </div>
+      {/* Personas */}
+      <section id="solucoes" className="py-16 md:py-24 bg-slate-900 border-y border-slate-800 relative z-10">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="text-center mb-12 md:mb-16">
+                  <span className="text-purple-400 font-bold tracking-wider uppercase text-xs md:text-sm mb-2 block">Feito para todo o time</span>
+                  <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 md:mb-6">Uma plataforma. <span className="text-teal-400">Três visões de poder.</span></h2>
+              </div>
 
-          <div className="grid md:grid-cols-3 gap-10">
-            <FeatureCard
-              icon={<MessageSquare size={36} />}
-              title="Interface Fluida"
-              desc="Um chat limpo e direto ao ponto. Faça perguntas, peça análises ou redija e-mails como se falasse com o melhor assistente do mundo."
-            />
-            <FeatureCard
-              icon={<ShieldCheck size={36} />}
-              title="Cofre Digital"
-              desc="Privacidade não é negociável. Os dados da sua empresa nunca são usados para treinar os modelos abertos ao público."
-            />
-            <FeatureCard
-              icon={<BarChart3 size={36} />}
-              title="Modelos Premium"
-              desc="Democratizamos o acesso ao Claude 3.5 e GPT-4o. Escolha a mente artificial mais adequada para o desafio do dia."
-            />
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
+                  {/* Donos/Gestores */}
+                  <div className="bg-gradient-to-b from-slate-800 to-slate-900 p-6 md:p-8 rounded-2xl border border-slate-700 hover:border-purple-500 transition-colors group">
+                      <div className="w-12 h-12 md:w-14 md:h-14 bg-purple-900/50 rounded-xl flex items-center justify-center mb-5 md:mb-6 group-hover:scale-110 transition-transform">
+                          <TrendingUp className="text-purple-400 w-6 h-6 md:w-8 md:h-8" />
+                      </div>
+                      <h3 className="text-xl md:text-2xl font-bold text-white mb-3 md:mb-4">Para Donos & CEOs</h3>
+                      <p className="text-slate-400 mb-5 md:mb-6 text-sm leading-relaxed">Assuma o controle. Pare de queimar caixa com processos lentos. Tenha sua empresa na palma da mão com previsões guiadas por IA.</p>
+                      <ul className="space-y-2 md:space-y-3 text-xs md:text-sm text-slate-300">
+                          <li className="flex items-start gap-2"><Check className="text-purple-400 w-4 h-4 mt-0.5" /> Previsão Preditiva de Caixa</li>
+                          <li className="flex items-start gap-2"><Check className="text-purple-400 w-4 h-4 mt-0.5" /> Corte brutal de custos SaaS</li>
+                          <li className="flex items-start gap-2"><Check className="text-purple-400 w-4 h-4 mt-0.5" /> Relatórios em Tempo Real</li>
+                      </ul>
+                  </div>
+
+                  {/* RH */}
+                  <div className="bg-gradient-to-b from-slate-800 to-slate-900 p-6 md:p-8 rounded-2xl border border-slate-700 hover:border-teal-500 transition-colors group">
+                      <div className="w-12 h-12 md:w-14 md:h-14 bg-teal-900/50 rounded-xl flex items-center justify-center mb-5 md:mb-6 group-hover:scale-110 transition-transform">
+                          <Users className="text-teal-400 w-6 h-6 md:w-8 md:h-8" />
+                      </div>
+                      <h3 className="text-xl md:text-2xl font-bold text-white mb-3 md:mb-4">Para Gestores de RH</h3>
+                      <p className="text-slate-400 mb-5 md:mb-6 text-sm leading-relaxed">Chega de ler PDFs. A IA conversa com candidatos no WhatsApp, avalia o fit técnico e te entrega os 3 melhores. Foque em pessoas.</p>
+                      <ul className="space-y-2 md:space-y-3 text-xs md:text-sm text-slate-300">
+                          <li className="flex items-start gap-2"><Check className="text-teal-400 w-4 h-4 mt-0.5" /> Triagem 100% Autônoma</li>
+                          <li className="flex items-start gap-2"><Check className="text-teal-400 w-4 h-4 mt-0.5" /> Postagem Auto no LinkedIn</li>
+                          <li className="flex items-start gap-2"><Check className="text-teal-400 w-4 h-4 mt-0.5" /> Contratos gerados sem cliques</li>
+                      </ul>
+                  </div>
+
+                  {/* Devs/CTOs */}
+                  <div className="bg-gradient-to-b from-slate-800 to-slate-900 p-6 md:p-8 rounded-2xl border border-slate-700 hover:border-blue-500 transition-colors group">
+                      <div className="w-12 h-12 md:w-14 md:h-14 bg-blue-900/50 rounded-xl flex items-center justify-center mb-5 md:mb-6 group-hover:scale-110 transition-transform">
+                          <Terminal className="text-blue-400 w-6 h-6 md:w-8 md:h-8" />
+                      </div>
+                      <h3 className="text-xl md:text-2xl font-bold text-white mb-3 md:mb-4">Para CTOs & Devs</h3>
+                      <p className="text-slate-400 mb-5 md:mb-6 text-sm leading-relaxed">Esqueça monolitos. Entregamos uma infraestrutura robusta e escalável. Integração fácil, doc limpa e segurança de banco.</p>
+                      <ul className="space-y-2 md:space-y-3 text-xs md:text-sm text-slate-300">
+                          <li className="flex items-start gap-2"><Check className="text-blue-400 w-4 h-4 mt-0.5" /> Microserviços (FastAPI/Node)</li>
+                          <li className="flex items-start gap-2"><Check className="text-blue-400 w-4 h-4 mt-0.5" /> Kong Gateway + JWT</li>
+                          <li className="flex items-start gap-2"><Check className="text-blue-400 w-4 h-4 mt-0.5" /> Rotação Dinâmica de API Keys</li>
+                      </ul>
+                  </div>
+              </div>
           </div>
-        </div>
       </section>
 
-      {/* ── PREÇOS ─────────────────────────────────────────────────────────── */}
-      <section id="precos" className="py-24 bg-zinc-50 px-6 border-t border-zinc-200">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-4xl md:text-6xl font-extrabold text-zinc-900 mb-6 tracking-tight">
-            Transparência total.
-            <br /> Um plano, tudo incluído.
-          </h2>
-          <p className="text-xl text-zinc-600 font-medium mb-16">
-            Sem contratos bloqueados. Cancele com um clique se não amar a experiência.
-          </p>
+      {/* Killer Features */}
+      <section id="recursos" className="py-16 md:py-24 relative bg-[#060b19] z-10">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="text-center mb-16 md:mb-20">
+                  <span className="text-teal-400 font-bold tracking-wider uppercase text-xs md:text-sm mb-2 block">Sistema em Ação</span>
+                  <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 md:mb-6">As 3 <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-indigo-400">"Killer Features"</span></h2>
+                  <p className="text-sm md:text-lg text-slate-400 max-w-2xl mx-auto">Diferenciais práticos que aniquilam os processos manuais da sua equipe.</p>
+              </div>
 
-          <div className="bg-white border-slate-200 border-black/5 shadow-sm border-zinc-200 rounded-[3rem] p-12 md:p-20 shadow-2xl max-w-2xl mx-auto relative hover:shadow-violet-900/10 transition-shadow duration-500">
-            {/* Badge */}
-            <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-blue-600 text-white px-8 py-3 rounded-full font-bold text-sm shadow-xl uppercase tracking-widest">
-              Acesso Pro
-            </div>
+              <div className="space-y-20 md:space-y-32">
+                  
+                  {/* DEMO 1: WhatsApp HR */}
+                  <div className="flex flex-col lg:flex-row items-center gap-10 lg:gap-16">
+                      <div className="lg:w-1/2 w-full order-2 lg:order-1">
+                          <div className="glass-card p-4 md:p-6 border-green-500/30 bg-slate-900/50 shadow-[0_0_40px_rgba(34,197,94,0.1)] h-[350px] flex flex-col justify-end overflow-hidden relative">
+                              <div className="absolute top-0 left-0 w-full bg-slate-800 p-3 flex items-center gap-3 border-b border-slate-700 z-10">
+                                  <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center"><Bot className="w-5 h-5 text-white" /></div>
+                                  <div>
+                                      <h4 className="text-sm font-bold text-white leading-tight">Innovation.ia Bot</h4>
+                                      <p className="text-[10px] text-green-400">Online</p>
+                                  </div>
+                              </div>
+                              <div className="space-y-4 pt-16 font-sans">
+                                  <div className="flex items-end gap-2 anim-chat-1">
+                                      <div className="bg-slate-800 text-xs md:text-sm p-3 rounded-2xl rounded-bl-none text-slate-200 max-w-[85%] border border-slate-700 shadow-sm">
+                                          Fiz minha inscrição no portal para a vaga de Desenvolvedor.
+                                      </div>
+                                  </div>
+                                  <div className="flex items-end gap-2 flex-row-reverse anim-chat-2">
+                                      <div className="bg-green-700 text-xs md:text-sm p-3 rounded-2xl rounded-br-none text-white max-w-[85%] shadow-md">
+                                          Olá! Sou a IA de recrutamento. Vi seu currículo! Vamos testar seus conhecimentos agora? Como você escalaria um banco PostgreSQL em produção? 🚀
+                                      </div>
+                                  </div>
+                                  <div className="flex items-end gap-2 flex-row-reverse anim-chat-3">
+                                      <div className="bg-slate-800 border border-slate-700 p-3 rounded-2xl rounded-br-none text-slate-300 shadow-md flex gap-1">
+                                          <span className="w-1.5 h-1.5 bg-slate-400 rounded-full typing-dot"></span>
+                                          <span className="w-1.5 h-1.5 bg-slate-400 rounded-full typing-dot"></span>
+                                          <span className="w-1.5 h-1.5 bg-slate-400 rounded-full typing-dot"></span>
+                                      </div>
+                                  </div>
+                              </div>
+                          </div>
+                      </div>
+                      <div className="lg:w-1/2 w-full order-1 lg:order-2">
+                          <div className="w-12 h-12 md:w-14 md:h-14 rounded-xl bg-green-500/20 border border-green-500/50 flex items-center justify-center mb-4 md:mb-6">
+                              <Smartphone className="text-green-400 w-6 h-6 md:w-7 md:h-7" />
+                          </div>
+                          <h3 className="text-2xl md:text-3xl font-bold mb-3 md:mb-4">Recrutador IA no WhatsApp</h3>
+                          <p className="text-sm md:text-base text-slate-400 mb-6 leading-relaxed">
+                              O candidato aplica na vaga e a mágica acontece. A IA inicia a entrevista imediatamente via WhatsApp. Sem e-mails ignorados, sem atrasos. Apenas os aprovados chegam à mesa do RH.
+                          </p>
+                          <div className="flex flex-wrap gap-3">
+                              <span className="bg-green-900/40 text-green-400 border border-green-500/30 px-3 py-1 rounded-md text-xs font-bold">100% Autônomo</span>
+                              <span className="bg-slate-800 border border-slate-700 px-3 py-1 rounded-md text-xs text-slate-300">Integração Baileys/Node</span>
+                          </div>
+                      </div>
+                  </div>
 
-            <div className="mb-12">
-              <span className="text-7xl md:text-8xl font-black text-zinc-900 tracking-tighter">
-                R$ 9,99
-              </span>
-              <span className="text-zinc-9000 font-bold text-2xl">/mês</span>
-            </div>
+                  {/* DEMO 2: FlowBuilder */}
+                  <div className="flex flex-col lg:flex-row items-center gap-10 lg:gap-16">
+                      <div className="lg:w-1/2 w-full">
+                          <div className="w-12 h-12 md:w-14 md:h-14 rounded-xl bg-purple-500/20 border border-purple-500/50 flex items-center justify-center mb-4 md:mb-6">
+                              <GitMerge className="text-purple-400 w-6 h-6 md:w-7 md:h-7" />
+                          </div>
+                          <h3 className="text-2xl md:text-3xl font-bold mb-3 md:mb-4">Automação Visual (FlowBuilder)</h3>
+                          <p className="text-sm md:text-base text-slate-400 mb-6 leading-relaxed">
+                              O seu "Zapier" interno. Conecte o RH ao Financeiro arrastando blocos. O funcionário é aprovado? A plataforma gera o contrato, envia para assinatura e lança o salário no contas a pagar automaticamente.
+                          </p>
+                      </div>
+                      <div className="lg:w-1/2 w-full">
+                          <div className="glass-card p-6 border-purple-500/30 bg-slate-900/50 shadow-[0_0_40px_rgba(147,51,234,0.1)] h-[250px] md:h-[300px] flex items-center justify-center">
+                              <div className="flex flex-col md:flex-row items-center w-full justify-between gap-4 px-2 md:px-4">
+                                  <div className="bg-slate-800 p-3 md:p-4 rounded-xl border border-slate-600 z-10 anim-flow-node flex flex-col items-center gap-2">
+                                      <UserCheck className="text-white w-5 h-5 md:w-6 md:h-6" />
+                                      <span className="text-[10px] text-slate-300 font-mono">Gatilho RH</span>
+                                  </div>
+                                  <div className="hidden md:block flex-1 h-1 anim-flow-line rounded-full"></div>
+                                  <div className="md:hidden w-1 h-8 anim-flow-line rounded-full"></div>
+                                  <div className="bg-purple-900 p-3 md:p-4 rounded-xl border border-purple-500 z-10 anim-flow-node flex flex-col items-center gap-2" style={{animationDelay: "1s"}}>
+                                      <FileSignature className="text-white w-5 h-5 md:w-6 md:h-6" />
+                                      <span className="text-[10px] text-slate-300 font-mono">Gerar Docs</span>
+                                  </div>
+                                  <div className="hidden md:block flex-1 h-1 anim-flow-line rounded-full" style={{animationDelay: "1s"}}></div>
+                                  <div className="md:hidden w-1 h-8 anim-flow-line rounded-full" style={{animationDelay: "1s"}}></div>
+                                  <div className="bg-teal-900 p-3 md:p-4 rounded-xl border border-teal-500 z-10 anim-flow-node flex flex-col items-center gap-2" style={{animationDelay: "2s"}}>
+                                      <DollarSign className="text-white w-5 h-5 md:w-6 md:h-6" />
+                                      <span className="text-[10px] text-slate-300 font-mono">Pagar ERP</span>
+                                  </div>
+                              </div>
+                          </div>
+                      </div>
+                  </div>
 
-            <ul className="space-y-6 text-left max-w-sm mx-auto mb-14">
-              <li className="flex items-center gap-4 text-xl font-semibold text-zinc-700">
-                <CheckCircle2 className="text-blue-600" size={28} /> Inteligência Multi-Modelo
-              </li>
-              <li className="flex items-center gap-4 text-xl font-semibold text-zinc-700">
-                <CheckCircle2 className="text-blue-600" size={28} /> Histórico Seguro na Cloud
-              </li>
-              <li className="flex items-center gap-4 text-xl font-semibold text-zinc-700">
-                <CheckCircle2 className="text-blue-600" size={28} /> Zero Taxas de Setup
-              </li>
-              <li className="flex items-center gap-4 text-xl font-semibold text-zinc-700">
-                <CheckCircle2 className="text-blue-600" size={28} /> Suporte Dedicado
-              </li>
-            </ul>
-
-            <button
-              onClick={goToRegister}
-              className="w-full py-6 bg-blue-600 text-white rounded-2xl font-black text-2xl hover:bg-blue-600 transition-all shadow-xl shadow-blue-600/20 active:scale-95"
-            >
-              CRIAR CONTA AGORA
-            </button>
-            <p className="mt-8 text-zinc-9000 font-semibold">Garantia de satisfação imediata.</p>
+                  {/* DEMO 3: Marketing Headless */}
+                  <div className="flex flex-col lg:flex-row items-center gap-10 lg:gap-16">
+                      <div className="lg:w-1/2 w-full order-2 lg:order-1">
+                          <div className="glass-card p-4 md:p-6 border-teal-500/30 bg-slate-900/50 shadow-[0_0_40px_rgba(20,184,166,0.1)] flex items-center justify-center relative overflow-hidden">
+                              <div className="absolute inset-0 bg-gradient-to-br from-teal-500/5 to-purple-500/5"></div>
+                              <div className="bg-slate-950 border border-slate-800 rounded-xl w-full max-w-sm shadow-2xl z-10 transform transition-transform hover:scale-105">
+                                  <div className="p-3 border-b border-slate-800 flex justify-between items-center">
+                                      <div className="flex items-center gap-2">
+                                          <div className="w-6 h-6 bg-[#0a66c2] rounded text-white flex items-center justify-center"><Linkedin className="w-3 h-3" /></div>
+                                          <span className="text-xs font-bold text-slate-200">Auto-Post</span>
+                                      </div>
+                                      <span className="text-[9px] bg-teal-900/50 text-teal-400 px-2 py-0.5 rounded border border-teal-500/30 flex items-center gap-1 animate-pulse"><Sparkles className="w-2 h-2" /> IA Ativa</span>
+                                  </div>
+                                  <div className="p-4">
+                                      <div className="h-2 bg-slate-800 rounded w-full mb-2"></div>
+                                      <div className="h-2 bg-slate-800 rounded w-5/6 mb-4"></div>
+                                      <div className="w-full h-28 bg-gradient-to-r from-slate-800 to-slate-700 rounded-lg flex items-center justify-center border border-slate-600">
+                                          <span className="text-slate-400 font-bold text-sm tracking-widest uppercase">Imagem Gerada</span>
+                                      </div>
+                                  </div>
+                              </div>
+                          </div>
+                      </div>
+                      <div className="lg:w-1/2 w-full order-1 lg:order-2">
+                          <div className="w-12 h-12 md:w-14 md:h-14 rounded-xl bg-teal-500/20 border border-teal-500/50 flex items-center justify-center mb-4 md:mb-6">
+                              <Megaphone className="text-teal-400 w-6 h-6 md:w-7 md:h-7" />
+                          </div>
+                          <h3 className="text-2xl md:text-3xl font-bold mb-3 md:mb-4">Marketing Zero-Touch</h3>
+                          <p className="text-sm md:text-base text-slate-400 mb-6 leading-relaxed">
+                              Esqueça o Canva e designers lentos. A IA lê a descrição da vaga e desenha artes exclusivas, cria copy persuasiva com hashtags otimizadas (SEO) e posta direto no LinkedIn e Instagram corporativos.
+                          </p>
+                      </div>
+                  </div>
+              </div>
           </div>
-        </div>
       </section>
 
-      {/* ── FOOTER ─────────────────────────────────────────────────────────── */}
-      <footer className="py-16 bg-white border-slate-200 border-black/5 shadow-sm border-t border-zinc-200 px-6">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8">
-          <div className="flex items-center gap-3">
-            <Zap size={24} className="text-violet-700 fill-violet-700" />
-            <span className="text-2xl font-bold text-zinc-900">
-              Innovation<span className="text-violet-700">IA</span>
-            </span>
+      {/* Tech Specs */}
+      <section id="arquitetura" className="py-16 md:py-24 bg-slate-950 relative border-y border-slate-800 overflow-hidden z-10">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+              <div className="text-center mb-12 md:mb-16">
+                  <span className="bg-slate-900 text-blue-400 border border-blue-500/30 px-3 py-1 rounded-full text-[10px] md:text-xs font-bold uppercase tracking-widest inline-flex items-center gap-2 mb-4"><Code2 className="w-3 h-3 md:w-4 md:h-4" /> Tech Specs (Para CTOs)</span>
+                  <h2 className="text-3xl md:text-4xl font-bold mb-4">Engenharia <span className="text-blue-400">Enterprise</span></h2>
+                  <p className="text-sm md:text-base text-slate-400 max-w-2xl mx-auto">Arquitetura de microsserviços pronta para escalar. Sem gargalos. Sem desculpas.</p>
+              </div>
+
+              <div className="max-w-3xl mx-auto bg-[#0d1117] rounded-xl border border-slate-800 shadow-2xl mb-12 overflow-hidden font-mono text-xs md:text-sm">
+                  <div className="bg-slate-900 px-4 py-2 border-b border-slate-800 flex items-center gap-2">
+                      <div className="w-2.5 h-2.5 rounded-full bg-red-500"></div>
+                      <div className="w-2.5 h-2.5 rounded-full bg-yellow-500"></div>
+                      <div className="w-2.5 h-2.5 rounded-full bg-green-500"></div>
+                      <span className="ml-4 text-slate-500 text-[10px] md:text-xs">deploy.sh</span>
+                  </div>
+                  <div className="p-4 md:p-6 text-slate-300">
+                      <p className="text-blue-400 mb-2">$ docker-compose up -d --build</p>
+                      <p className="mb-1 text-slate-400">[+] Building architecture...</p>
+                      <p className="mb-1"><span className="text-green-400">✔</span> Container kong-gateway <span className="text-slate-500">Started (Port 8000)</span></p>
+                      <p className="mb-1"><span className="text-green-400">✔</span> Container fastapi-core <span className="text-slate-500">Started (ATS/ERP)</span></p>
+                      <p className="mb-3"><span className="text-green-400">✔</span> Container ai-engine <span className="text-slate-500">Started (LLM Router)</span></p>
+                      <p className="text-purple-400 anim-typewriter w-max">System is ready and secure. Waiting for requests...</p>
+                  </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="bg-slate-900/50 p-6 rounded-xl border border-slate-800 hover:border-slate-600 transition-colors">
+                      <Shield className="text-blue-400 w-8 h-8 mb-4" />
+                      <h4 className="font-bold text-white text-lg mb-2">Kong API Gateway</h4>
+                      <p className="text-xs md:text-sm text-slate-400">Gerenciamento de tráfego, Rate Limiting e interceptação na linha de frente. Segurança de banco de dados nativa.</p>
+                  </div>
+                  <div className="bg-slate-900/50 p-6 rounded-xl border border-slate-800 hover:border-slate-600 transition-colors">
+                      <Zap className="text-purple-400 w-8 h-8 mb-4" />
+                      <h4 className="font-bold text-white text-lg mb-2">FastAPI Desacoplado</h4>
+                      <p className="text-xs md:text-sm text-slate-400">Entrypoints isolados. Se a IA estiver processando dados pesados, o ERP Financeiro não perde 1ms de performance.</p>
+                  </div>
+                  <div className="bg-slate-900/50 p-6 rounded-xl border border-slate-800 hover:border-slate-600 transition-colors">
+                      <Lock className="text-teal-400 w-8 h-8 mb-4" />
+                      <h4 className="font-bold text-white text-lg mb-2">JWT & CSP Rigoroso</h4>
+                      <p className="text-xs md:text-sm text-slate-400">Políticas contra injeção e XSS. Middleware de Correlation-ID para rastrear qualquer anomalia de ponta a ponta.</p>
+                  </div>
+              </div>
           </div>
-          <div className="flex gap-8 text-zinc-9000 font-semibold">
-            <a href="/termos" className="hover:text-violet-700 transition-colors">Termos de Uso</a>
-            <a href="#" className="hover:text-violet-700 transition-colors">Privacidade</a>
-            <a href="#" className="hover:text-violet-700 transition-colors">Suporte</a>
+      </section>
+
+      {/* Modules */}
+      <section id="modulos" className="py-16 md:py-24 relative bg-slate-900 z-10">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <h2 className="text-3xl md:text-4xl font-bold mb-10 md:mb-12 text-center">Módulos Extras (Add-ons)</h2>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
+                  <div className="bg-slate-800/80 p-6 md:p-8 rounded-2xl border-t-4 border-yellow-500 shadow-lg hover:-translate-y-2 transition-transform">
+                      <Receipt className="w-8 h-8 md:w-10 md:h-10 text-yellow-500 mb-4" />
+                      <h4 className="font-bold text-lg md:text-xl text-white mb-2 md:mb-3">Scanner Financeiro</h4>
+                      <p className="text-slate-400 text-xs md:text-sm leading-relaxed">Faça upload de Notas Fiscais em PDF. A IA extrai fornecedor, valor e cadastra direto no contas a pagar.</p>
+                  </div>
+                  
+                  <div className="bg-slate-800/80 p-6 md:p-8 rounded-2xl border-t-4 border-red-500 shadow-lg hover:-translate-y-2 transition-transform">
+                      <ScanFace className="w-8 h-8 md:w-10 md:h-10 text-red-500 mb-4" />
+                      <h4 className="font-bold text-lg md:text-xl text-white mb-2 md:mb-3">Ponto Biométrico</h4>
+                      <p className="text-slate-400 text-xs md:text-sm leading-relaxed">Segurança antifraude. Bater ponto exige Reconhecimento Facial e GPS avançado (bloqueia Mock Location).</p>
+                  </div>
+                  
+                  <div className="bg-slate-800/80 p-6 md:p-8 rounded-2xl border-t-4 border-blue-500 shadow-lg hover:-translate-y-2 transition-transform">
+                      <Key className="w-8 h-8 md:w-10 md:h-10 text-blue-500 mb-4" />
+                      <h4 className="font-bold text-lg md:text-xl text-white mb-2 md:mb-3">AI Key Manager</h4>
+                      <p className="text-slate-400 text-xs md:text-sm leading-relaxed">Rotação automática de chaves (Gemini, Claude, GPT). Se um provedor global cair, a sua empresa continua online.</p>
+                  </div>
+              </div>
           </div>
-          <p className="text-zinc-400 font-medium">© 2026 Innovation IA. Todos os direitos reservados.</p>
-        </div>
+      </section>
+
+      {/* Pricing */}
+      <section id="precos" className="py-16 md:py-24 bg-[#020617] border-t border-slate-800 z-10 relative">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="text-center mb-12 md:mb-16">
+                  <h2 className="text-3xl md:text-4xl font-bold mb-3 md:mb-4">Planos Escaláveis</h2>
+                  <p className="text-sm md:text-base text-slate-400 max-w-xl mx-auto">Mais barato do que assinar 5 ferramentas separadas. O ROI é pago logo na primeira semana de automação.</p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 max-w-6xl mx-auto items-center">
+                  <div className="bg-slate-900/50 p-6 md:p-8 rounded-2xl border border-slate-800 relative">
+                      <h3 className="text-lg md:text-xl font-bold text-white mb-1 md:mb-2">Growth</h3>
+                      <p className="text-slate-400 text-xs md:text-sm mb-6">Para times menores.</p>
+                      <div className="mb-6">
+                          <span className="text-3xl md:text-4xl font-extrabold text-white">R$ 1.490</span><span className="text-xs md:text-sm text-slate-500">/mês</span>
+                      </div>
+                      <ul className="space-y-3 mb-8 text-xs md:text-sm text-slate-300">
+                          <li className="flex items-center gap-2"><Check className="w-4 h-4 text-purple-400" /> ERP Core & Finanças</li>
+                          <li className="flex items-center gap-2"><Check className="w-4 h-4 text-purple-400" /> ATS Básico (Email)</li>
+                          <li className="flex items-center gap-2 opacity-30"><XIcon className="w-4 h-4" /> RH WhatsApp AI</li>
+                          <li className="flex items-center gap-2 opacity-30"><XIcon className="w-4 h-4" /> Marketing Autônomo</li>
+                      </ul>
+                      <button onClick={goToRegister} className="w-full py-3 bg-slate-800 hover:bg-slate-700 text-white font-semibold rounded-lg text-sm border border-slate-700 transition-colors">Selecionar</button>
+                  </div>
+
+                  <div className="bg-slate-800 p-6 md:p-8 rounded-2xl border-2 border-purple-500 relative transform md:-translate-y-4 shadow-[0_0_30px_rgba(147,51,234,0.15)] z-10">
+                      <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-gradient-to-r from-purple-500 to-teal-400 text-white text-[10px] md:text-xs font-bold px-3 py-1.5 rounded-full uppercase tracking-wide">Mais Popular</div>
+                      <h3 className="text-xl md:text-2xl font-bold text-white mb-1 md:mb-2">Pro V2.0</h3>
+                      <p className="text-slate-300 text-xs md:text-sm mb-6">A operação Zero-Touch total.</p>
+                      <div className="mb-6">
+                          <span className="text-3xl md:text-4xl font-extrabold text-white">R$ 3.890</span><span className="text-xs md:text-sm text-slate-400">/mês</span>
+                      </div>
+                      <ul className="space-y-3 mb-8 text-xs md:text-sm text-white font-medium">
+                          <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-teal-400" /> 100% Plano Growth</li>
+                          <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-teal-400" /> RH Omnichannel WhatsApp</li>
+                          <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-teal-400" /> Automação FlowBuilder Livre</li>
+                          <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-teal-400" /> Marketing Headless (LinkedIn/IG)</li>
+                          <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-teal-400" /> Ponto Biométrico Inteligente</li>
+                      </ul>
+                      <button onClick={goToRegister} className="w-full py-3.5 bg-gradient-to-r from-purple-600 to-teal-500 hover:from-purple-500 hover:to-teal-400 text-white font-bold rounded-lg shadow-lg text-sm transition-all hover:scale-[1.02]">Acelerar Operação</button>
+                  </div>
+
+                  <div className="bg-slate-900/50 p-6 md:p-8 rounded-2xl border border-slate-800 relative">
+                      <h3 className="text-lg md:text-xl font-bold text-white mb-1 md:mb-2">Enterprise</h3>
+                      <p className="text-slate-400 text-xs md:text-sm mb-6">Infraestrutura dedicada.</p>
+                      <div className="mb-6 flex items-end h-10">
+                          <span className="text-2xl md:text-3xl font-extrabold text-white leading-none">Consultoria</span>
+                      </div>
+                      <ul className="space-y-3 mb-8 text-xs md:text-sm text-slate-300">
+                          <li className="flex items-center gap-2"><Check className="w-4 h-4 text-blue-400" /> Instalação On-Premise</li>
+                          <li className="flex items-center gap-2"><Check className="w-4 h-4 text-blue-400" /> Acesso Full API/Webhooks</li>
+                          <li className="flex items-center gap-2"><Check className="w-4 h-4 text-blue-400" /> Suporte SLA Dedicado</li>
+                          <li className="flex items-center gap-2"><Check className="w-4 h-4 text-blue-400" /> Integração com Legados (SAP/Totvs)</li>
+                      </ul>
+                      <button onClick={goToRegister} className="w-full py-3 bg-transparent border border-slate-600 hover:border-slate-400 text-white font-semibold rounded-lg text-sm transition-colors">Falar com Vendas</button>
+                  </div>
+              </div>
+          </div>
+      </section>
+
+      {/* CTA Final */}
+      <section id="contato" className="py-16 md:py-24 relative overflow-hidden bg-slate-950 z-10">
+          <div className="absolute inset-0 bg-gradient-to-t from-purple-900/10 to-transparent z-0"></div>
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 relative z-10 text-center glass-card p-8 md:p-12 border-purple-500/20 shadow-2xl">
+              <h2 className="text-3xl md:text-4xl font-bold mb-4 md:mb-6">Pronto para a Hiperautomação?</h2>
+              <p className="text-sm md:text-lg text-slate-400 mb-8 md:mb-10 max-w-2xl mx-auto">Agende uma demonstração ao vivo e veja a Innovation.ia reduzindo 80% do trabalho braçal da sua equipe na prática.</p>
+              
+              <form className="max-w-md mx-auto space-y-4">
+                  <input type="email" placeholder="Seu e-mail corporativo" className="w-full px-4 py-3.5 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white focus:outline-none focus:border-purple-500 transition-colors" />
+                  <button type="button" onClick={goToRegister} className="w-full px-6 py-4 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold rounded-xl hover:scale-[1.02] transition-transform text-sm md:text-base shadow-lg flex items-center justify-center gap-2">
+                      Agendar Demo VIP <ArrowRight className="w-4 h-4" />
+                  </button>
+                  <p className="text-[10px] md:text-xs text-slate-500 mt-4"><Lock className="w-3 h-3 inline mr-1" /> Dados 100% seguros. Não enviamos spam.</p>
+              </form>
+          </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="bg-[#020617] py-12 md:py-16 border-t border-slate-800 z-10 relative">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
+                  <div className="md:col-span-2 text-center md:text-left">
+                      <div className="flex items-center justify-center md:justify-start gap-2 mb-4">
+                          <Cpu className="text-purple-400 w-5 h-5" />
+                          <span className="font-bold text-lg tracking-wider">INNOVATION<span className="text-purple-500">.IA</span></span>
+                      </div>
+                      <p className="text-slate-500 text-xs md:text-sm max-w-sm mx-auto md:mx-0">O primeiro Super ERP Cognitivo. Automatizando o presente para você construir o futuro.</p>
+                  </div>
+                  
+                  <div className="text-center md:text-left hidden md:block">
+                      <h4 className="font-bold text-white mb-4 text-sm">Produto</h4>
+                      <ul className="space-y-2 text-xs md:text-sm text-slate-400">
+                          <li><a href="#" className="hover:text-purple-400 transition-colors">FlowBuilder</a></li>
+                          <li><a href="#" className="hover:text-purple-400 transition-colors">RH Omnichannel</a></li>
+                          <li><a href="#precos" className="hover:text-purple-400 transition-colors">Preços</a></li>
+                      </ul>
+                  </div>
+                  
+                  <div className="text-center md:text-left hidden md:block">
+                      <h4 className="font-bold text-white mb-4 text-sm">Empresa</h4>
+                      <ul className="space-y-2 text-xs md:text-sm text-slate-400">
+                          <li><a href="#" className="hover:text-purple-400 transition-colors">Sobre</a></li>
+                          <li><a href="#" className="hover:text-purple-400 transition-colors">API Docs</a></li>
+                          <li><a href="#" className="hover:text-purple-400 transition-colors">Segurança</a></li>
+                      </ul>
+                  </div>
+              </div>
+
+              <div className="p-3 bg-red-900/10 border border-red-900/30 rounded-lg text-center max-w-2xl mx-auto mb-6">
+                  <p className="text-[9px] md:text-[10px] text-red-300/50 uppercase tracking-wider">
+                      <AlertTriangle className="w-3 h-3 inline mr-1" />
+                      Sistema Privado e Confidencial — Propriedade exclusiva de Eduardo Silva / Innovation.ia.
+                  </p>
+              </div>
+
+              <div className="text-center text-slate-600 text-xs flex flex-col items-center justify-center mt-6 border-t border-slate-800 pt-6">
+                  <p className="font-semibold text-slate-500 tracking-widest uppercase text-[10px] mb-2">Designed for Dominance</p>
+                  <p>Innovation.ia &copy; 2026.</p>
+              </div>
+          </div>
       </footer>
     </div>
   );
