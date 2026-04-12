@@ -1,0 +1,14 @@
+--- apps/frontend/lib/api.ts
++++ apps/frontend/lib/api.ts
+@@ -141,5 +141,12 @@
+     },
+ };
+
++export const FinanceService = {};
++export const DasMeiService = {};
++export const ProjectService = {};
++export const RHService = {};
++export const SupportService = {};
++export const PaymentService = {};
++
+ export default api;

@@ -1,0 +1,13 @@
+--- apps/frontend/lib/api.ts
++++ apps/frontend/lib/api.ts
+@@ -156,3 +156,10 @@
+         window.location.href = '/login';
+     }
+ }
++
++export const FinanceService = {} as any;
++export const DasMeiService = {} as any;
++export const ProjectService = {} as any;
++export const RHService = {} as any;
++export const SupportService = {} as any;
++export const PaymentService = {} as any;

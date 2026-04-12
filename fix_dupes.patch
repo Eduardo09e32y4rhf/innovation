@@ -1,0 +1,38 @@
+--- apps/frontend/lib/api.ts
++++ apps/frontend/lib/api.ts
+@@ -155,32 +155,10 @@
+         localStorage.removeItem('user_role');
+         window.location.href = '/login';
+     }
+ }
+
+-export const FinanceService = {} as any;
+-export const DasMeiService = {} as any;
+-export const ProjectService = {} as any;
+-export const RHService = {} as any;
+-export const SupportService = {} as any;
+-export const PaymentService = {} as any;
+-
+ export const CompanyService = {} as any;
+-export const DasMeiService = {} as any;
+-export const DashboardService = {} as any;
++export const DasMeiService = {} as any;
+ export const ProjectService = {} as any;
+ export const PaymentService = {} as any;
+ export const RHService = {} as any;
+ export const FinanceService = {} as any;
+ export const SupportService = {} as any;
+ export const AttendanceService = {} as any;
+ export const ATSService = {} as any;
+-
+-export const CompanyService = {} as any;
+-export const DasMeiService = {} as any;
+-export const DashboardService = {} as any;
+-export const ProjectService = {} as any;
+-export const PaymentService = {} as any;
+-export const RHService = {} as any;
+-export const FinanceService = {} as any;
+-export const SupportService = {} as any;
+-export const AttendanceService = {} as any;
+-export const ATSService = {} as any;
+-export const SystemConfigService = {} as any;
