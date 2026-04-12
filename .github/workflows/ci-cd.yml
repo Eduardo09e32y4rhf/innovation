@@ -62,7 +62,7 @@ jobs:
         cache-dependency-path: './apps/frontend/pnpm-lock.yaml'
         
     - name: Install Dependencies
-      run: pnpm install
+      run: pnpm install --no-frozen-lockfile
       
     - name: Build Next.js App
       run: pnpm build

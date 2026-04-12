@@ -32,6 +32,7 @@ sys.path.insert(0, str(SRC_DIR))
 
 # Carrega .env
 from dotenv import load_dotenv
+
 load_dotenv(BASE_DIR / ".env")
 
 DATABASE_URL = os.getenv("DATABASE_URL", "")
@@ -71,6 +72,7 @@ def check_postgres_url():
     # Mascara a senha no log
     try:
         from urllib.parse import urlparse
+
         parsed = urlparse(url)
         masked = f"{parsed.scheme}://{parsed.username}:***@{parsed.hostname}:{parsed.port}{parsed.path}"
         print(f"   {masked}")
@@ -85,8 +87,11 @@ def test_connection(url: str):
     print("\n🔌 Testando conexão com PostgreSQL...")
     try:
         import psycopg2
+
         # psycopg2 usa format diferente de SQLAlchemy
-        conn_url = url.replace("postgresql://", "").replace("postgresql+psycopg2://", "")
+        conn_url = url.replace("postgresql://", "").replace(
+            "postgresql+psycopg2://", ""
+        )
         conn = psycopg2.connect(url)
         conn.close()
         print("   ✅ Conexão OK!")
@@ -137,6 +142,7 @@ def _create_tables_fallback():
         from infrastructure.database.sql.base import Base
         from infrastructure.database.sql.session import engine
         import domain.models  # noqa — garante que todos os models são importados
+
         Base.metadata.create_all(bind=engine)
         print("   ✅ Tabelas criadas via create_all!")
     except Exception as e:
@@ -188,7 +194,9 @@ def migrate_data_from_sqlite():
 
             try:
                 with sqlite_engine.connect() as s_conn:
-                    rows = s_conn.execute(text(f'SELECT * FROM "{table_name}"')).fetchall()
+                    rows = s_conn.execute(
+                        text(f'SELECT * FROM "{table_name}"')
+                    ).fetchall()
 
                 if not rows:
                     print(f"   ⚪ Tabela '{table_name}': vazia")
@@ -215,7 +223,9 @@ def migrate_data_from_sqlite():
 
     except Exception as e:
         print(f"   ❌ Erro geral na migração de dados: {e}")
-        print("   Você pode migrar manualmente usando pg_dump ou importando dados via admin.")
+        print(
+            "   Você pode migrar manualmente usando pg_dump ou importando dados via admin."
+        )
 
 
 def show_next_steps():
