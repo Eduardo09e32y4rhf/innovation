@@ -18,11 +18,13 @@ plugins:
         - Authorization
         - Content-Type
         - X-Correlation-ID
+        - Origin
+        - X-Requested-With
       exposed_headers:
         - Authorization
         - X-Correlation-ID
         - X-Response-Time-Ms
-      credentials: true
+      credentials: false
       max_age: 3600
 
 # ── Serviços e Rotas ──────────────────────────────────────────────────────────

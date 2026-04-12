@@ -151,6 +151,11 @@ export function logout(): void {
         localStorage.removeItem('token');
         localStorage.removeItem('user_role');
         window.location.href = '/login';
-    }
 }
 
+export const FinanceService = { getMetrics: async () => ({}) };
+export const CompanyService = { getDetails: async () => ({}) };
+export const PaymentService = { getPlans: async () => [] };
+export const ProjectService = { getProjects: async () => [] };
+export const RHService = { getStats: async () => ({}) };
+export const SupportService = { getTickets: async () => [] };

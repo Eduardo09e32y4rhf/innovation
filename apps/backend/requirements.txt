@@ -21,6 +21,10 @@ passlib==1.7.4
 bcrypt==5.0.0
 python-multipart
 
+# --- IAM V2.0 (Identity & Permissions) ---
+casbin>=1.31.0
+SQLAlchemy-Continuum>=1.4.0
+
 # --- Validation ---
 pydantic==2.12.5
 pydantic-settings==2.12.0
@@ -48,6 +52,10 @@ langchain-google-genai>=1.0.0      # LangChain + Gemini (para o Superintendent)
 
 # --- AI: OpenAI (legado — manter por compatibilidade de imports) ---
 langchain-openai>=0.0.5
+
+# --- AI: V2.0 Architecture Core ---
+litellm>=1.20.0
+instructor>=1.0.0
 
 # --- Rate Limiting ---
 slowapi

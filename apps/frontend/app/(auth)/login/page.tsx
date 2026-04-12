@@ -56,11 +56,19 @@ export default function LoginPage() {
                 return;
             }
         } catch (err: any) {
-            const axiosErr = err as { response?: { data?: { detail?: string }; status?: number } };
-            const detail = axiosErr?.response?.data?.detail;
+            console.error("Login error:", err);
+            
+            // Suporte para o novo layout de API (Error object)
+            const errorMessage = err?.message || "";
+            
+            // Suporte legado (Axios-style error)
+            const detail = err?.response?.data?.detail;
+
             if (detail) {
                 setError(detail);
-            } else if (axiosErr?.response?.status === 401) {
+            } else if (errorMessage) {
+                setError(errorMessage);
+            } else if (err?.response?.status === 401) {
                 setError("Credenciais inválidas. Verifique seu email e senha.");
             } else {
                 setError("Erro de conexão. Tente novamente em alguns instantes.");
