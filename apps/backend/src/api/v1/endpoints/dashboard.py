@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload, contains_eager
 from sqlalchemy import func
 from infrastructure.database.sql.dependencies import get_db
 from core.dependencies import get_current_user
@@ -255,11 +255,15 @@ async def get_kanban_board(
         "done": {"id": "done", "title": "Concluído", "color": "#10B981", "cards": []},
     }
 
-    # Fetch real applications
+    # ⚡ Bolt: Eliminate N+1 query problem for kanban board rendering
+    # Why: Previously, accessing `app.candidate` and `app.job` inside the loop triggered N+1 queries.
+    # Impact: Reduces database queries from O(N) to O(1) by eagerly loading relationships.
+    # Learning: Use contains_eager for Job since it's already joined, and joinedload for Candidate.
     apps = (
         db.query(Application)
-        .join(Job)
+        .join(Application.job)
         .filter(Job.company_id == current_user.id)
+        .options(contains_eager(Application.job), joinedload(Application.candidate))
         .order_by(Application.created_at.desc())
         .limit(50)
         .all()
