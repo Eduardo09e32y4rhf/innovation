@@ -4,7 +4,13 @@
  * Handles 401 by redirecting to /login.
  */
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const getBaseUrl = () => {
+    const url = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+    // Se for URL relativa (/api), remove o BASE_URL para usar o path direto e deixar o Next.js gerenciar o roteamento
+    if (url.startsWith('/') && !url.includes('://')) return '';
+    return url;
+};
+const BASE_URL = getBaseUrl();
 
 function getToken(): string | null {
     if (typeof window !== 'undefined') {
@@ -151,6 +157,7 @@ export function logout(): void {
         localStorage.removeItem('token');
         localStorage.removeItem('user_role');
         window.location.href = '/login';
+    }
 }
 
 export const FinanceService = { getMetrics: async () => ({}) };

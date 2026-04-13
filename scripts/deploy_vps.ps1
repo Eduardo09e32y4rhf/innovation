@@ -1,6 +1,6 @@
 $vpsUser = "root"
-$vpsIp = "209.50.241.30"
-$vpsPath = "/root/innovation.ia"
+$vpsIp = "23.106.44.75"
+$vpsPath = "/root/innovation"
 
 Write-Host "============================================="
 Write-Host "🚀 Iniciando Deploy para o VPS ($vpsIp)..."
