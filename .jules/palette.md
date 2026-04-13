@@ -4,3 +4,6 @@
 ## 2025-03-05 - Missing ARIA Labels on Icon-only Custom UI Buttons
 **Learning:** Found multiple instances where critical interactive elements (like advancing a candidate in ATS Kanban, or column options) were implemented either as naked `svg` elements (`<MoreVertical>`) or `<button>` elements with just an icon (`<ChevronRight>`). While visually clear to sighted users, these lacked `aria-label` attributes and focus-visible rings, rendering them completely inaccessible to screen readers and difficult to navigate via keyboard.
 **Action:** Always wrap interactive icons in a semantic `<button>` tag, provide descriptive `aria-label` and `title` attributes, and ensure `focus-visible` styles are explicitly added using Tailwind.
+## 2025-03-05 - Missing ARIA Labels on Announcement Banners
+**Learning:** Found an icon-only button without an `aria-label` attribute in the layout `AnnouncementBanner` (`frontend/components/AnnouncementBanner.tsx`). It also lacked a keyboard focus state, making the dismiss action obscure for screen readers and keyboard users.
+**Action:** When creating dismissable banners or modal dialogs, always ensure to provide an `aria-label` and `title` to the close button, along with explicit `focus-visible` styles using Tailwind.
