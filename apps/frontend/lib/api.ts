@@ -151,6 +151,7 @@ export function logout(): void {
         localStorage.removeItem('token');
         localStorage.removeItem('user_role');
         window.location.href = '/login';
+    }
 }
 
 export const FinanceService = { getMetrics: async () => ({}) };
