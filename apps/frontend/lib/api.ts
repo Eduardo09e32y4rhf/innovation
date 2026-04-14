@@ -168,3 +168,9 @@ export const RHService = { getStats: async () => ({}) };
 export const SupportService = { getTickets: async () => [] };
 export const DasMeiService = { getDetails: async () => ({}) };
 export const AttendanceService = { getRecords: async () => [] };
+export const ATSService = {
+    getPublicJobs: async () => [],
+    getCompanyJobs: async () => [],
+    applyToJob: async (id: number, data: any) => ({}),
+    createJob: async (data: any) => ({})
+};
