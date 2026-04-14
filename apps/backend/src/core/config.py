@@ -28,14 +28,14 @@ class Settings(BaseSettings):
     # Obrigatório — gerar com: python -c "import secrets; print(secrets.token_hex(32))"
     SECRET_KEY: str = "dev-secret-key-mude-em-producao"
     ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440   # 24h
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440  # 24h
     REFRESH_TOKEN_EXPIRE_DAYS: int = 30
     TERMS_VERSION: str = "v1"
 
     # ── Google Gemini ────────────────────────────────────────────────────────
     # Suporta múltiplas chaves para rotação automática
-    GEMINI_API_KEYS: str | None = None         # lista separada por vírgula (legacy)
-    GEMINI_API_KEY_1: str | None = None        # preferido
+    GEMINI_API_KEYS: str | None = None  # lista separada por vírgula (legacy)
+    GEMINI_API_KEY_1: str | None = None  # preferido
     GEMINI_API_KEY_2: str | None = None
     GEMINI_API_KEY_3: str | None = None
     GEMINI_API_KEY_4: str | None = None
@@ -50,9 +50,9 @@ class Settings(BaseSettings):
 
     # ── Pagamentos — Asaas ──────────────────────────────────────────────────
     ASAAS_API_KEY: str | None = None
-    ASAAS_API_URL: str = "https://api.asaas.com/v3"       # PRODUÇÃO
+    ASAAS_API_URL: str = "https://api.asaas.com/v3"  # PRODUÇÃO
     ASAAS_WEBHOOK_TOKEN: str | None = None
-    ASAAS_WEBHOOK_URL: str | None = None                   # URL pública do /webhook
+    ASAAS_WEBHOOK_URL: str | None = None  # URL pública do /webhook
 
     # ── Pagamentos — Mercado Pago (legado) ──────────────────────────────────
     MP_ACCESS_TOKEN: str | None = None
