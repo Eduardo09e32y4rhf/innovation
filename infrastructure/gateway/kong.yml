@@ -1,0 +1,60 @@
+_format_version: "3.0"
+
+services:
+  # =============================================
+  # AUTH SERVICE → /api/auth e /api/users
+  # =============================================
+  - name: auth-service
+    url: http://auth_service:8001
+    routes:
+      - name: auth-routes
+        paths:
+          - /api/auth
+        strip_path: false
+      - name: users-routes
+        paths:
+          - /api/users
+        strip_path: false
+
+  # =============================================
+  # AI SERVICE → /api/ai
+  # =============================================
+  - name: ai-service
+    url: http://ai_service:8002
+    routes:
+      - name: ai-routes
+        paths:
+          - /api/ai
+        strip_path: false
+
+  # =============================================
+  # CORE SERVICE → /api/dashboard, /api/core, etc.
+  # =============================================
+  - name: core-service
+    url: http://core_service:8003
+    routes:
+      - name: core-routes
+        paths:
+          - /api/dashboard
+          - /api/core
+          - /api/notifications
+          - /api/missions
+          - /api/finance
+          - /api/projects
+          - /api/support
+          - /api/rh
+          - /api/ats
+          - /api/companies
+        strip_path: false
+
+  # =============================================
+  # API MONOLITH → catch-all para /api
+  # =============================================
+  - name: api-monolith
+    url: http://api_monolith:8000
+    routes:
+      - name: monolith-catch-all
+        paths:
+          - /api
+        strip_path: false
+        priority: 0
