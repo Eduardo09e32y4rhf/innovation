@@ -6,6 +6,7 @@ Melhorias:
 - Enums tipados para evitar valores inválidos na entrada
 - Field examples para geração automática da documentação OpenAPI
 """
+
 from __future__ import annotations
 
 import re
@@ -16,8 +17,8 @@ from typing import Optional
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
-
 # ── Enums ─────────────────────────────────────────────────────────────────────
+
 
 class TransactionType(str, Enum):
     income = "income"
@@ -66,6 +67,7 @@ def validate_cpf(v: str | None) -> str | None:
 
 
 # ── Schemas ───────────────────────────────────────────────────────────────────
+
 
 class TransactionCreate(BaseModel):
     description: str = Field(
@@ -125,7 +127,9 @@ class TransactionCreate(BaseModel):
 
 class TransactionUpdate(BaseModel):
     description: Optional[str] = Field(default=None, max_length=200)
-    amount: Optional[Decimal] = Field(default=None, max_digits=12, decimal_places=2, gt=0)
+    amount: Optional[Decimal] = Field(
+        default=None, max_digits=12, decimal_places=2, gt=0
+    )
     status: Optional[TransactionStatus] = None
     category: Optional[str] = Field(default=None, max_length=50)
     payment_date: Optional[date] = None

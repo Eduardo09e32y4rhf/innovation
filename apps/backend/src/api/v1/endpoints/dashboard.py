@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, contains_eager, joinedload
 from sqlalchemy import func
 from infrastructure.database.sql.dependencies import get_db
 from core.dependencies import get_current_user
@@ -256,9 +256,11 @@ async def get_kanban_board(
     }
 
     # Fetch real applications
+    # ⚡ Bolt: Use joinedload/contains_eager to eliminate N+1 problem fetching Job and Candidate inside the loop
     apps = (
         db.query(Application)
-        .join(Job)
+        .join(Application.job)
+        .options(contains_eager(Application.job), joinedload(Application.candidate))
         .filter(Job.company_id == current_user.id)
         .order_by(Application.created_at.desc())
         .limit(50)

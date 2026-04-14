@@ -166,3 +166,6 @@ export const PaymentService = { getPlans: async () => [] };
 export const ProjectService = { getProjects: async () => [] };
 export const RHService = { getStats: async () => ({}) };
 export const SupportService = { getTickets: async () => [] };
+export const ATSService = { getJobs: async () => [] };
+export const AttendanceService = { getRecords: async () => [] };
+export const DasMeiService = { getDetails: async () => ({}) };
