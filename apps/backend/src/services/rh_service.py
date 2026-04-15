@@ -25,15 +25,19 @@ logger = logging.getLogger(__name__)
 # Tenta importar Gemini SDK (já instalado no projeto)
 try:
     from google import genai
+
     _GENAI_AVAILABLE = True
 except ImportError:
     _GENAI_AVAILABLE = False
-    logger.warning("Google GenAI SDK não encontrado. OCR e biometria usarão fallback básico.")
+    logger.warning(
+        "Google GenAI SDK não encontrado. OCR e biometria usarão fallback básico."
+    )
 
 # Tenta importar boto3 para S3 (opcional)
 try:
     import boto3
     from botocore.exceptions import BotoCoreError, ClientError
+
     _S3_AVAILABLE = True
 except ImportError:
     _S3_AVAILABLE = False
@@ -51,6 +55,7 @@ def _get_gemini_client():
     # Tenta usar ai_key_manager se disponível
     try:
         from core.ai_key_manager import ai_key_manager
+
         keys = ai_key_manager.get_all_active_keys()
         api_key = keys[0] if keys else GEMINI_KEY
     except Exception:
@@ -69,6 +74,7 @@ class RHService:
     @staticmethod
     async def generate_contract_draft(db: Session, employee_id: int):
         from domain.models.user import User
+
         user = db.query(User).filter(User.id == employee_id).first()
         if not user:
             return "Usuário não encontrado"
@@ -95,24 +101,29 @@ class RHService:
 
     @staticmethod
     async def process_document_ocr(
-        db: Session, onboarding_id: int, file_bytes: bytes, mime_type: str = "image/jpeg"
+        db: Session,
+        onboarding_id: int,
+        file_bytes: bytes,
+        mime_type: str = "image/jpeg",
     ) -> dict:
         """
         Extrai dados de documentos brasileiros (RG, CNH, CPF) usando Gemini Vision.
-        
+
         Args:
             db: Sessão do banco de dados
             onboarding_id: ID do onboarding associado
             file_bytes: Bytes da imagem do documento
             mime_type: Tipo MIME da imagem (image/jpeg, image/png, etc.)
-        
+
         Returns:
             dict com: full_name, document_number, birth_date, address, document_type
         """
         client = _get_gemini_client()
 
         if not client:
-            logger.warning("Gemini não disponível para OCR. Retornando estrutura vazia.")
+            logger.warning(
+                "Gemini não disponível para OCR. Retornando estrutura vazia."
+            )
             extracted_data = {
                 "full_name": None,
                 "document_number": None,
@@ -203,10 +214,14 @@ class RHService:
         # Persiste no banco independente do resultado
         onboarding = db.query(Onboarding).filter(Onboarding.id == onboarding_id).first()
         if onboarding:
-            onboarding.document_ocr_data = json.dumps(extracted_data, ensure_ascii=False)
+            onboarding.document_ocr_data = json.dumps(
+                extracted_data, ensure_ascii=False
+            )
             # Considera verificado se confiança >= 70%
             confidence = extracted_data.get("confidence", 0)
-            onboarding.docs_verified = confidence >= 70 and not extracted_data.get("error")
+            onboarding.docs_verified = confidence >= 70 and not extracted_data.get(
+                "error"
+            )
             onboarding.status = "in_progress"
             db.commit()
             db.refresh(onboarding)
@@ -221,7 +236,7 @@ class RHService:
     async def upload_biometric_photo(photo_bytes: bytes, fingerprint: str) -> str:
         """
         Faz upload da foto biométrica para S3 ou Supabase Storage.
-        
+
         Returns:
             URL pública da foto ou URL local como fallback
         """
@@ -250,6 +265,7 @@ class RHService:
         else:
             # Fallback: salvar localmente (apenas para ambientes de desenvolvimento)
             import hashlib
+
             local_path = f"/tmp/biometrics/{fingerprint}.jpg"
             os.makedirs("/tmp/biometrics", exist_ok=True)
             with open(local_path, "wb") as f:
@@ -272,7 +288,11 @@ class RHService:
         """
         client = _get_gemini_client()
         if not client:
-            return {"valid": True, "reason": "IA não configurada, aceitando por padrão", "confidence": 50}
+            return {
+                "valid": True,
+                "reason": "IA não configurada, aceitando por padrão",
+                "confidence": 50,
+            }
 
         try:
             image_b64 = base64.b64encode(photo_bytes).decode("utf-8")
@@ -282,7 +302,12 @@ class RHService:
                     {
                         "role": "user",
                         "parts": [
-                            {"inline_data": {"mime_type": "image/jpeg", "data": image_b64}},
+                            {
+                                "inline_data": {
+                                    "mime_type": "image/jpeg",
+                                    "data": image_b64,
+                                }
+                            },
                             {
                                 "text": (
                                     "Analise esta foto enviada para registro de ponto biométrico. "
@@ -309,7 +334,11 @@ class RHService:
 
         except Exception as e:
             logger.error(f"Erro na validação biométrica: {e}")
-            return {"valid": True, "reason": f"Erro na validação IA: {e}", "confidence": 30}
+            return {
+                "valid": True,
+                "reason": f"Erro na validação IA: {e}",
+                "confidence": 30,
+            }
 
     # ──────────────────────────────────────────────────────────────────────────
     # PONTO BIOMÉTRICO
@@ -327,7 +356,7 @@ class RHService:
     ):
         """
         Registra ponto biométrico com validação real de GPS e foto.
-        
+
         Validações:
         1. GPS Anti-Mock: rejeita precisão > 100m
         2. Foto Biométrica: Gemini Vision verifica se há rosto humano real
@@ -340,7 +369,9 @@ class RHService:
         try:
             photo_bytes = base64.b64decode(photo_base64)
         except Exception:
-            photo_bytes = photo_base64.encode() if isinstance(photo_base64, str) else photo_base64
+            photo_bytes = (
+                photo_base64.encode() if isinstance(photo_base64, str) else photo_base64
+            )
 
         # 3. Validação biométrica via IA
         bio_validation = await RHService._validate_biometric_photo(photo_bytes)
