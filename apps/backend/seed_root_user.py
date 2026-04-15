@@ -9,8 +9,10 @@ import bcrypt
 email = "eduardo998468@gmail.com"
 password = "senha123"
 
+
 def get_password_hash(pwd: str) -> str:
-    return bcrypt.hashpw(pwd.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    return bcrypt.hashpw(pwd.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+
 
 def seed_root_user():
     db = SessionLocal()
@@ -24,7 +26,7 @@ def seed_root_user():
                 hashed_password=get_password_hash(password),
                 role="admin",
                 is_active=True,
-                subscription_status="active"
+                subscription_status="active",
             )
             db.add(user)
             db.commit()
@@ -38,6 +40,7 @@ def seed_root_user():
         print(f"Error: {e}")
     finally:
         db.close()
+
 
 if __name__ == "__main__":
     seed_root_user()
