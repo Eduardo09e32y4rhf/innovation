@@ -356,13 +356,16 @@ async def get_missions(
 
     # Done today
     today_start = datetime.combine(datetime.now(timezone.utc).date(), time.min)
-    done_ids = [
+
+    # ⚡ Bolt: Convert done_ids list to a set to optimize membership check O(N x M) loop to O(N + M).
+    # Why: The result set is queried inside a loop using 'in'. Checking membership in a list is O(N), but in a set it's O(1).
+    done_ids = {
         um.mission_id
         for um in db.query(UserMission)
         .filter(UserMission.user_id == current_user.id)
         .filter(UserMission.completed_at >= today_start)
         .all()
-    ]
+    }
 
     result = []
     for m in all_missions:
