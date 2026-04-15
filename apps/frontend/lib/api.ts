@@ -168,6 +168,25 @@ export const RHService = { getStats: async () => ({}) };
 export const SupportService = { getTickets: async () => [] };
 
 /**
+ * ATS — Recrutamento e Vagas
+ */
+export const ATSService = {
+    getPublicJobs: () => api.get<any[]>('/api/ats/jobs/public', { skipAuth: true }),
+    getCompanyJobs: () => api.get<any[]>('/api/ats/jobs'),
+    createJob: (payload: any) => api.post<any>('/api/ats/jobs', payload),
+    applyToJob: (jobId: number, payload: any) =>
+        api.post<any>(`/api/ats/jobs/${jobId}/apply`, payload, { skipAuth: true }),
+};
+
+/**
+ * DAS / MEI Service
+ */
+export const DasMeiService = {
+    getGuias: () => api.get<any[]>('/api/finance/das-mei'),
+    gerarGuia: (payload: any) => api.post<any>('/api/finance/das-mei/gerar', payload),
+};
+
+/**
  * Attendance / Ponto Eletrônico Service
  */
 export const AttendanceService = {
