@@ -91,8 +91,14 @@ services:
     restart: always
     ports:
       - "3000:3000"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
     environment:
-      - NEXT_PUBLIC_API_URL=/api
+      - NODE_ENV=production
+      - NEXT_TELEMETRY_DISABLED=1
+      - API_URL=http://innovation_gateway:8000
     depends_on:
       - gateway
 

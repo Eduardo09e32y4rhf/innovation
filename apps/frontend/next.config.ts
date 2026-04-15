@@ -9,12 +9,12 @@ const nextConfig: NextConfig = {
   },
   typescript: { ignoreBuildErrors: true },
   images: { unoptimized: true },
-  turbopack: {},
   async rewrites() {
+    const gatewayUrl = process.env.API_URL || "http://innovation_gateway:8000";
     return [
       {
         source: "/api/:path*",
-        destination: `${process.env.NEXT_PUBLIC_API_URL || process.env.API_URL || "http://innovation_gateway:8000"}/api/:path*`,
+        destination: `${gatewayUrl}/api/:path*`,
       },
     ];
   },
