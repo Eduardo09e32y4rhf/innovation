@@ -166,3 +166,47 @@ export const PaymentService = { getPlans: async () => [] };
 export const ProjectService = { getProjects: async () => [] };
 export const RHService = { getStats: async () => ({}) };
 export const SupportService = { getTickets: async () => [] };
+
+/**
+ * Attendance / Ponto Eletrônico Service
+ */
+export const AttendanceService = {
+    /**
+     * Busca o saldo do banco de horas do usuário autenticado.
+     */
+    getPunchBalance: () =>
+        api.get<{
+            total_credit_hours: number;
+            total_debit_hours: number;
+            balance_hours: number;
+            entries: Array<{
+                id: number;
+                type: 'credit' | 'debit';
+                hours: number;
+                reason: string;
+                created_at: string;
+                status: string;
+            }>;
+        }>('/api/attendance/balance'),
+
+    /**
+     * Registra uma batida de ponto manual (entrada ou saída).
+     */
+    registerPunch: (payload: {
+        type: 'credit' | 'debit';
+        hours: number;
+        reason: string;
+        created_at?: string;
+    }) => api.post<{ id: number; message: string }>('/api/attendance/punch', payload),
+
+    /**
+     * Registra ponto biométrico com foto, GPS e fingerprint de dispositivo.
+     */
+    registerBiometricPunch: (payload: {
+        photo_base64: string;
+        latitude: number;
+        longitude: number;
+        accuracy: number;
+        device_fingerprint: string;
+    }) => api.post<{ id: number; message: string; verified: boolean }>('/api/attendance/biometric-punch', payload),
+};
