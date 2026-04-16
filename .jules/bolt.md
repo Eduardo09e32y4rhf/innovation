@@ -13,3 +13,9 @@
 ## 2024-05-20 - [Kanban Dashboard N+1 Query Fix]
 **Learning:** Found another N+1 query problem in the `get_kanban_board` endpoint. Iterating through queried `Application` objects while calling `app.candidate` caused an additional query per row, severely impacting performance for jobs with many applicants.
 **Action:** Addressed by using `.options(contains_eager(Application.job), joinedload(Application.candidate))`. `contains_eager()` is needed when the relation is already explicitly joined (`.join(Job)`) so SQLAlchemy doesn't join it twice. `joinedload()` is used to load the relation efficiently when not used in filtering.
+## 2024-05-20 - Fix TypeScript Build Error - Missing Modules
+**Learning:** During Next.js 15+ frontend build, missing module resolution errors (e.g. ) will cause `next build` to hard fail, even with `ignoreBuildErrors: true` in `next.config.ts`, because these are Webpack/Turbopack resolver errors, not just TypeScript type errors.
+**Action:** To fix module resolution failures in CI, ensure that all imported helper files physically exist in the repository, or provide dummy implementations if the files were removed or omitted. I created the missing `utils/auth-helpers/settings.ts`, `server.ts`, `client.ts` and `utils/supabase/server.ts` files.
+## 2024-05-20 - Fix TypeScript Build Error - Missing Modules
+**Learning:** During Next.js 15+ frontend build, missing module resolution errors (e.g. `Can't resolve '@/utils/supabase/server'`) will cause `next build` to hard fail, even with `ignoreBuildErrors: true` in `next.config.ts`, because these are Webpack/Turbopack resolver errors, not just TypeScript type errors.
+**Action:** To fix module resolution failures in CI, ensure that all imported helper files physically exist in the repository, or provide dummy implementations if the files were removed or omitted. I created the missing `utils/auth-helpers/settings.ts`, `server.ts`, `client.ts` and `utils/supabase/server.ts` files.
