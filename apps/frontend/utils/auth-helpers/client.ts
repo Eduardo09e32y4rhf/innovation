@@ -23,3 +23,8 @@ export async function handleRequest(
     window.location.href = redirectUrl;
   }
 }
+
+export async function signInWithOAuth(e: React.FormEvent<HTMLFormElement>) {
+  e.preventDefault();
+  // Implementation for OAuth sign in
+}
