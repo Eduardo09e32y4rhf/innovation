@@ -1,15 +1,15 @@
 """
-core/config.py — Configurações globais da Innovation.ia
+core/config.py - Configuracoes globais da Innovation.ia
 -------------------------------------------------------
-Lê variáveis de ambiente do arquivo .env (backend/.env).
-Em produção, defina as variáveis diretamente no servidor (Railway, Render, etc.)
+Le variaveis de ambiente do arquivo .env (backend/.env).
+Em producao, defina as variaveis diretamente no servidor (Railway, Render, etc.)
 
-Variáveis obrigatórias para produção:
+Variaveis obrigatorias para producao:
   - DATABASE_URL (PostgreSQL)
   - SECRET_KEY (gerar com: python -c "import secrets; print(secrets.token_hex(32))")
   - GEMINI_API_KEY_1 (Google AI Studio)
   - ASAAS_API_KEY (painel Asaas)
-  - ASAAS_WEBHOOK_TOKEN (você escolhe o valor)
+  - ASAAS_WEBHOOK_TOKEN (voce escolhe o valor)
 """
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -19,22 +19,22 @@ BASE_DIR = Path(__file__).resolve().parents[2]  # backend/
 
 
 class Settings(BaseSettings):
-    # ── Banco de Dados ──────────────────────────────────────────────────────
+    # -- Banco de Dados ------------------------------------------------------
     # DEV: sqlite:///./innovation_rh.db
     # PROD: postgresql://user:pass@host:5432/innovation_prod
     DATABASE_URL: str = "sqlite:///./innovation_rh.db"
 
-    # ── Segurança JWT ───────────────────────────────────────────────────────
-    # Obrigatório — gerar com: python -c "import secrets; print(secrets.token_hex(32))"
+    # -- Seguranca JWT -------------------------------------------------------
+    # Obrigatorio - gerar com: python -c "import secrets; print(secrets.token_hex(32))"
     SECRET_KEY: str = "dev-secret-key-mude-em-producao"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440   # 24h
     REFRESH_TOKEN_EXPIRE_DAYS: int = 30
     TERMS_VERSION: str = "v1"
 
-    # ── Google Gemini ────────────────────────────────────────────────────────
-    # Suporta múltiplas chaves para rotação automática
-    GEMINI_API_KEYS: str | None = None         # lista separada por vírgula (legacy)
+    # -- Google Gemini --------------------------------------------------------
+    # Suporta multiplas chaves para rotacao automatica
+    GEMINI_API_KEYS: str | None = None         # lista separada por virgula (legacy)
     GEMINI_API_KEY_1: str | None = None        # preferido
     GEMINI_API_KEY_2: str | None = None
     GEMINI_API_KEY_3: str | None = None
@@ -48,9 +48,9 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: str | None = None
     NVIDIA_API_KEY: str | None = None
 
-    # ── Pagamentos — Asaas ──────────────────────────────────────────────────
+    # -- Pagamentos - Asaas --------------------------------------------------
     ASAAS_API_KEY: str | None = None
-    ASAAS_API_URL: str = "https://api.asaas.com/v3"       # PRODUÇÃO
+    ASAAS_API_URL: str = "https://api.asaas.com/v3"       # PRODUCAO
     ASAAS_WEBHOOK_TOKEN: str | None = None
     ASAAS_WEBHOOK_URL: str | None = None                   # URL pública do /webhook
 
@@ -105,7 +105,7 @@ class Settings(BaseSettings):
 
 settings = Settings()
 
-# ── Exports diretos (simplifica imports no resto do projeto) ────────────────
+# -- Exports diretos (simplifica imports no resto do projeto) ----------------
 DATABASE_URL = settings.DATABASE_URL
 
 # Fix relative SQLite path → absolute

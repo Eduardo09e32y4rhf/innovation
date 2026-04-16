@@ -19,18 +19,18 @@ if str(DATABASE_URL).startswith("sqlite"):
         connect_args=_connect_args,
     )
 else:
-    # PostgreSQL: timeouts para evitar conexões penduradas
+    # PostgreSQL: timeouts para evitar conexoes penduradas
     _connect_args = {"connect_timeout": 5}
     engine = create_engine(
         DATABASE_URL,
         echo=False,
         future=True,
         connect_args=_connect_args,
-        pool_pre_ping=True,  # Valida conexão antes de usar
-        pool_timeout=10,  # Timeout para obter conexão do pool
-        pool_recycle=300,  # Recicla conexões a cada 5 min
+        pool_pre_ping=True,  # Valida conexao antes de usar
+        pool_timeout=10,  # Timeout para obter conexao do pool
+        pool_recycle=300,  # Recicla conexoes a cada 5 min
         pool_size=5,  # Tamanho do pool
-        max_overflow=10,  # Conexões extras além do pool
+        max_overflow=10,  # Conexoes extras alem do pool
     )
 
 SessionLocal = sessionmaker(
