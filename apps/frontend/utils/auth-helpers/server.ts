@@ -21,3 +21,12 @@ export async function updatePassword(formData: FormData): Promise<string> {
         return '/signin/password_signin';
     }
 }
+
+export async function requestPasswordUpdate(formData: FormData): Promise<string> {
+    try {
+        // Implementation for requesting password update
+        return '/signin/password_signin';
+    } catch (e) {
+        return '/signin/password_signin';
+    }
+}
