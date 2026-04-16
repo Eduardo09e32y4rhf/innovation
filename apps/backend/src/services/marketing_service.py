@@ -4,11 +4,13 @@ Manager de Marketing Autônomo — Innovation.ia @Pro
 Este módulo integra o ATS de vagas ao Instagram/LinkedIn
 para gerar o "Zero-touch recruitment marketing".
 """
+
 import logging
 import requests
 import os
 from sqlalchemy.orm import Session
 from domain.models.job import Job
+
 # from app.config import settings
 
 logger = logging.getLogger(__name__)
@@ -20,12 +22,15 @@ INSTAGRAM_ACCESS_TOKEN = os.getenv("INSTAGRAM_ACCESS_TOKEN", "")
 
 BASE_URL = f"{INSTAGRAM_BASE_URL}/{INSTAGRAM_API_VERSION}"
 
+
 class MarketingAutonomo:
     @staticmethod
     def create_media(image_url: str, caption: str) -> str | None:
         """Cria mídia no Instagram API."""
         if not INSTAGRAM_ACCESS_TOKEN:
-            logger.warning("[MARKETING] Token do Instagram não configurado. Simulação ativa.")
+            logger.warning(
+                "[MARKETING] Token do Instagram não configurado. Simulação ativa."
+            )
             return "simulated_media_123"
 
         url = f"{BASE_URL}/{INSTAGRAM_BUSINESS_ACCOUNT_ID}/media"
@@ -34,7 +39,7 @@ class MarketingAutonomo:
             "caption": caption,
             "access_token": INSTAGRAM_ACCESS_TOKEN,
         }
-        
+
         try:
             r = requests.post(url, data=payload, timeout=30)
             if r.status_code != 200:
@@ -57,7 +62,7 @@ class MarketingAutonomo:
             "creation_id": creation_id,
             "access_token": INSTAGRAM_ACCESS_TOKEN,
         }
-        
+
         try:
             r = requests.post(url, data=payload, timeout=30)
             if r.status_code != 200:
@@ -71,15 +76,15 @@ class MarketingAutonomo:
     @classmethod
     def automatizar_anuncio_vaga(cls, job: Job, context: str = ""):
         """
-        Recebe uma vaga recém-criada, aciona o AI Service para gerar 
+        Recebe uma vaga recém-criada, aciona o AI Service para gerar
         uma copy estilo "Employer Branding" e faz a postagem.
         """
         # Exemplo simulado de integração
         logger.info(f"[MARKETING] ✨ Gerando arte e copy para a vaga: {job.title}")
-        
+
         # 1. Geraria a imagem (usaria DALL-E, Midjourney ou template pre-renderizado)
         simulated_image_url = "https://innovation.ia/static/hiring-template.jpg"
-        
+
         # 2. Geraria a Copy (Gemini)
         # prompt = f"Crie um post de Instagram atrativo pra vaga {job.title} pagando {job.salary} em {job.location}"
         simulated_copy = (
@@ -91,7 +96,7 @@ class MarketingAutonomo:
         )
 
         logger.info(f"[MARKETING] Copy gerada: {simulated_copy}")
-        
+
         # 3. Faz o post
         media_id = cls.create_media(simulated_image_url, simulated_copy)
         if media_id:
