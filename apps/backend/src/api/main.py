@@ -135,6 +135,7 @@ async def health():
     # ── Banco de Dados ────────────────────────────────────────────────────
     try:
         from infrastructure.database.sql.session import SessionLocal
+
         db = SessionLocal()
         db.execute(sqlalchemy.text("SELECT 1"))
         db.close()

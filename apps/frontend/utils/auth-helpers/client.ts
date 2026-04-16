@@ -1,25 +1,36 @@
-'use client';
-
+import { type Provider } from '@supabase/supabase-js';
+import { getURL } from '@/utils/helpers';
 import { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
+import { createClient } from '@/utils/supabase/client';
 
-/**
- * Handles form submission for auth actions (signUp, updatePassword, etc.)
- * Submits the form data and redirects if a router is provided.
- */
 export async function handleRequest(
   e: React.FormEvent<HTMLFormElement>,
-  authAction: (formData: FormData) => Promise<string>,
-  router: AppRouterInstance | null
-): Promise<void> {
+  requestFunc: (formData: FormData) => Promise<string>,
+  router: AppRouterInstance | null = null
+): Promise<boolean | void> {
   e.preventDefault();
-
   const formData = new FormData(e.currentTarget);
-
-  const redirectUrl: string = await authAction(formData);
+  const redirectUrl: string = await requestFunc(formData);
 
   if (router) {
     router.push(redirectUrl);
   } else {
     window.location.href = redirectUrl;
   }
+}
+
+export async function signInWithOAuth(e: React.FormEvent<HTMLFormElement>) {
+  e.preventDefault();
+  const formData = new FormData(e.currentTarget);
+  const provider = String(formData.get('provider')).trim() as Provider;
+
+  const supabase = createClient();
+  const redirectURL = getURL('/auth/callback');
+
+  await supabase.auth.signInWithOAuth({
+    provider: provider,
+    options: {
+      redirectTo: redirectURL
+    }
+  });
 }

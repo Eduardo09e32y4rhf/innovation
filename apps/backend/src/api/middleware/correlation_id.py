@@ -8,6 +8,7 @@ e encontrar exatamente o log correspondente no Backend.
 Uso: O frontend pode enviar o header X-Correlation-ID,
 ou o backend gera um novo UUID automaticamente.
 """
+
 from __future__ import annotations
 
 import uuid
