@@ -121,6 +121,7 @@ export const AuthService = {
  */
 export const DashboardService = {
     getMetrics: () => api.get<any>('/api/dashboard/metrics'),
+    getRecentActivity: () => api.get<any>('/api/dashboard/activity'),
 };
 
 /**
