@@ -5,8 +5,10 @@
  */
 
 const getBaseUrl = () => {
-    const url = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-    // Se for URL relativa (/api), remove o BASE_URL para usar o path direto e deixar o Next.js gerenciar o roteamento
+    // If we're in the browser, always use relative path so Next.js proxys it and avoids Mixed Content
+    if (typeof window !== 'undefined') return '';
+    
+    const url = process.env.NEXT_PUBLIC_API_URL || process.env.API_URL || 'http://localhost:8000';
     if (url.startsWith('/') && !url.includes('://')) return '';
     return url;
 };
