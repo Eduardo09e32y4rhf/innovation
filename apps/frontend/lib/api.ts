@@ -113,6 +113,7 @@ export const api = {
 export const AuthService = {
     me: () => api.get<any>('/api/users/me'),
     login: (credentials: any) => api.post<any>('/api/auth/login', credentials, { skipAuth: true }),
+    register: (payload: any) => api.post<any>('/api/auth/register', payload, { skipAuth: true }),
 };
 
 /**
