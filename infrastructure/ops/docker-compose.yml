@@ -83,6 +83,7 @@ services:
       - NODE_ENV=production
       - NEXT_TELEMETRY_DISABLED=1
       - API_URL=http://innovation_gateway:8000
+      - NEXT_PUBLIC_API_URL=https://vps8369.panel.icontainer.net
     depends_on:
       - gateway
 

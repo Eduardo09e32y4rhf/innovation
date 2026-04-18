@@ -13,10 +13,6 @@ export const getApiBaseUrl = (): string => {
     // Browser: prefer explicit public backend URL when configured.
     if (typeof window !== 'undefined') {
         const browserUrl = process.env.NEXT_PUBLIC_API_URL;
-        // In production, avoid using absolute HTTP URLs if the site is HTTPS
-        if (process.env.NODE_ENV === 'production' && browserUrl?.startsWith('http://')) {
-          return '';
-        }
         return browserUrl ? normalizeBaseUrl(browserUrl) : '';
     }
 
