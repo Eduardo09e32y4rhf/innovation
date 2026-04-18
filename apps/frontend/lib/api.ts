@@ -4,15 +4,29 @@
  * Handles 401 by redirecting to /login.
  */
 
-const getBaseUrl = () => {
-    // If we're in the browser, always use relative path so Next.js proxys it and avoids Mixed Content
-    if (typeof window !== 'undefined') return '';
-    
-    const url = process.env.NEXT_PUBLIC_API_URL || process.env.API_URL || 'http://localhost:8000';
+const normalizeBaseUrl = (url: string): string => {
     if (url.startsWith('/') && !url.includes('://')) return '';
-    return url;
+    return url.replace(/\/+$/, '');
 };
-const BASE_URL = getBaseUrl();
+
+export const getApiBaseUrl = (): string => {
+    // Browser: prefer explicit public backend URL when configured.
+    if (typeof window !== 'undefined') {
+        const browserUrl = process.env.NEXT_PUBLIC_API_URL || process.env.API_URL;
+        return browserUrl ? normalizeBaseUrl(browserUrl) : '';
+    }
+
+    // Server-side: use internal/runtime API URL fallback.
+    const serverUrl = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+    return normalizeBaseUrl(serverUrl);
+};
+
+/** URL absoluta para uso com fetch manual (ex.: streaming SSE). */
+export const buildApiUrl = (path: string): string => {
+    const base = getApiBaseUrl();
+    const p = path.startsWith('/') ? path : `/${path}`;
+    return `${base}${p}`;
+};
 
 function getToken(): string | null {
     if (typeof window !== 'undefined') {
@@ -50,10 +64,13 @@ export async function apiFetch<T = unknown>(
         ? { Authorization: `Bearer ${token}` }
         : {};
 
-    const response = await fetch(`${BASE_URL}${path}`, {
+    const isFormData =
+        typeof FormData !== 'undefined' && rest.body instanceof FormData;
+
+    const response = await fetch(`${getApiBaseUrl()}${path}`, {
         ...rest,
         headers: {
-            'Content-Type': 'application/json',
+            ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
             ...authHeader,
             ...(headers as Record<string, string>),
         },
@@ -94,8 +111,15 @@ export const api = {
     get: <T = unknown>(path: string, options?: FetchOptions) =>
         apiFetch<T>(path, { method: 'GET', ...options }),
 
-    post: <T = unknown>(path: string, body: unknown, options?: FetchOptions) =>
-        apiFetch<T>(path, { method: 'POST', body: JSON.stringify(body), ...options }),
+    post: <T = unknown>(path: string, body: unknown, options?: FetchOptions) => {
+        const isForm =
+            typeof FormData !== 'undefined' && body instanceof FormData;
+        return apiFetch<T>(path, {
+            method: 'POST',
+            body: isForm ? (body as BodyInit) : JSON.stringify(body),
+            ...options,
+        });
+    },
 
     patch: <T = unknown>(path: string, body?: unknown, options?: FetchOptions) =>
         apiFetch<T>(path, { method: 'PATCH', body: body ? JSON.stringify(body) : undefined, ...options }),
@@ -164,7 +188,44 @@ export function logout(): void {
     }
 }
 
-export const FinanceService = { getMetrics: async () => ({}) };
+export type FinanceSummary = {
+    balance: number;
+    total_income: number;
+    total_expenses: number;
+    pending_income: number;
+    pending_expenses: number;
+};
+
+export type FinanceTransactionPayload = {
+    description: string;
+    amount: number;
+    type: 'income' | 'expense';
+    due_date: string;
+    category?: string;
+    tax_type?: string;
+    status?: 'paid' | 'pending' | 'overdue';
+    attachment_url?: string;
+    ai_metadata?: string;
+};
+
+export const FinanceService = {
+    // Compatibilidade com telas antigas que chamam getMetrics()
+    getMetrics: () => api.get<FinanceSummary>('/api/finance/summary'),
+    getSummary: () => api.get<FinanceSummary>('/api/finance/summary'),
+    getTransactions: (params?: { skip?: number; limit?: number }) => {
+        const q = new URLSearchParams();
+        if (typeof params?.skip === 'number') q.set('skip', String(params.skip));
+        if (typeof params?.limit === 'number') q.set('limit', String(params.limit));
+        const suffix = q.toString() ? `?${q.toString()}` : '';
+        return api.get<any[]>(`/api/finance/transactions${suffix}`);
+    },
+    createTransaction: (payload: FinanceTransactionPayload) =>
+        api.post<any>('/api/finance/transactions', payload),
+    getBankHub: () => api.get<any>('/api/finance/bank-hub'),
+    getBurnRate: () => api.get<any>('/api/finance/burn-rate'),
+    getPrediction: () => api.get<any>('/api/finance/prediction'),
+    getAnomalies: () => api.get<any[]>('/api/finance/anomalies'),
+};
 export const CompanyService = { getDetails: async () => ({}) };
 export const PaymentService = { getPlans: async () => [] };
 export const ProjectService = { getProjects: async () => [] };
@@ -186,8 +247,12 @@ export const ATSService = {
  * DAS / MEI Service
  */
 export const DasMeiService = {
-    getGuias: () => api.get<any[]>('/api/finance/das-mei'),
-    gerarGuia: (payload: any) => api.post<any>('/api/finance/das-mei/gerar', payload),
+    getAtual: () => api.get<any>('/api/finance/das/competencia-atual'),
+    getGuias: () => api.get<any[]>('/api/finance/das/historico'),
+    marcarPago: (payload: { competencia: string; codigo_barras?: string }) =>
+        api.post<any>('/api/finance/das/marcar-pago', payload),
+    // Alias legado para não quebrar chamadas antigas
+    gerarGuia: (payload: any) => api.post<any>('/api/finance/das/marcar-pago', payload),
 };
 
 /**

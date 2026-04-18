@@ -27,10 +27,10 @@ export default function CSCPage() {
         setLoading(true);
         try {
             const [q, k, s, c] = await Promise.all([
-                api.get('/api/support/v2/queues').then(r => r.data).catch(() => ({})),
-                api.get('/api/support/v2/kb').then(r => r.data).catch(() => []),
-                api.get('/api/support/v2/analytics/spikes').then(r => r.data).catch(() => null),
-                api.get('/api/support/v2/csat/summary').then(r => r.data).catch(() => null),
+                api.get('/api/support/v2/queues').catch(() => ({})),
+                api.get('/api/support/v2/kb').catch(() => []),
+                api.get('/api/support/v2/analytics/spikes').catch(() => null),
+                api.get('/api/support/v2/csat/summary').catch(() => null),
             ]);
             setQueues(q);
             setKb(Array.isArray(k) ? k : []);

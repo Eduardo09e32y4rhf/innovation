@@ -20,6 +20,7 @@ from api.v1.endpoints import (
     finance_das,
 )
 import domain.models  # noqa: F401
+from core.config import settings
 from core.security.vpn_block import vpn_blocker_middleware
 from core.superintendent import superintendent
 from infrastructure.database.sql.session import engine
@@ -43,12 +44,15 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+allowed_origins = [origin.strip() for origin in settings.ALLOWED_ORIGINS.split(",") if origin.strip()]
+allow_all_origins = allowed_origins == ["*"]
+
 app.middleware("http")(vpn_blocker_middleware)
 app.add_middleware(CorrelationIdMiddleware)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=allowed_origins or ["http://localhost:3000"],
+    allow_credentials=not allow_all_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )

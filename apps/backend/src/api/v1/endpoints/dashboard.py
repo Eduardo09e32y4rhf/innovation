@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from infrastructure.database.sql.dependencies import get_db
 from core.dependencies import get_current_user
 from domain.models.user import User
@@ -37,11 +37,16 @@ async def get_dashboard_metrics(
     # Impact: Reduces O(N) database queries to O(1), significantly improving dashboard response time.
     six_months_ago = (this_month_start - timedelta(days=5 * 30)).replace(day=1)
 
+    # Receita / custo: considera lançamentos operacionais (não só "paid").
+    # Muitos registros ficam "pending"/"overdue" até conciliação; excluímos apenas cancelados.
     transactions = (
         db.query(Transaction.type, Transaction.amount, Transaction.created_at)
         .filter(
             Transaction.company_id == current_user.id,
-            Transaction.status == "paid",
+            or_(
+                Transaction.status.is_(None),
+                Transaction.status != "cancelled",
+            ),
             Transaction.created_at >= six_months_ago,
         )
         .all()
@@ -93,9 +98,13 @@ async def get_dashboard_metrics(
         )
 
     # Contagens Reais
+    # Vagas "ativas": modelo padrão usa `active`; legado/APIs podem usar `published`.
     active_jobs = (
         db.query(Job)
-        .filter(Job.company_id == current_user.id, Job.status == "published")
+        .filter(
+            Job.company_id == current_user.id,
+            Job.status.in_(("active", "published")),
+        )
         .count()
     )
     total_applications = (
@@ -105,7 +114,15 @@ async def get_dashboard_metrics(
         .count()
     )
     total_projects = (
-        db.query(Project).filter(Project.company_id == current_user.id).count()
+        db.query(Project)
+        .filter(
+            Project.company_id == current_user.id,
+            or_(
+                Project.status.is_(None),
+                ~Project.status.in_(("completed", "archived", "cancelled")),
+            ),
+        )
+        .count()
     )
 
     # Gamificação

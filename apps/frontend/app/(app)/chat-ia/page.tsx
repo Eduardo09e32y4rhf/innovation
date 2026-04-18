@@ -6,7 +6,7 @@ import {
     Send, User, Lock, Sparkles, Bot,
     Copy, Check, ChevronDown, Trash2, StopCircle, Paperclip
 } from 'lucide-react';
-import api from '@/services/api';
+import api, { buildApiUrl } from '@/services/api';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -61,8 +61,9 @@ export default function ChatIAPage() {
 
     // Load available models
     useEffect(() => {
-        api.get('/api/ai/models')
-            .then(r => setModels(r.data.models || []))
+        api
+            .get<{ models?: AIModel[] }>('/api/ai/models')
+            .then((r) => setModels(r.models || []))
             .catch(() => {
                 setModels([
                     { id: 'gemini-flash', name: 'Gemini 1.5 Flash', description: 'Rápido e eficiente para tarefas do dia a dia.', plan: 'Starter', available: true, icon: '⚡' },
@@ -113,7 +114,7 @@ export default function ChatIAPage() {
 
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/ai/chat`, {
+            const response = await fetch(buildApiUrl('/api/ai/chat'), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

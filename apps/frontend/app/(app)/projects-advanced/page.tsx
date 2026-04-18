@@ -21,9 +21,9 @@ export default function ProjectsAdvancedPage() {
 
     const loadData = async () => {
         const [wf, p, pending] = await Promise.all([
-            api.get('/api/projects/v2/workflows').then(r => r.data).catch(() => []),
-            api.get('/api/projects/v2/purchases').then(r => r.data).catch(() => []),
-            api.get('/api/projects/v2/purchases/pending').then(r => r.data).catch(() => []),
+            api.get('/api/projects/v2/workflows').catch(() => []),
+            api.get('/api/projects/v2/purchases').catch(() => []),
+            api.get('/api/projects/v2/purchases/pending').catch(() => []),
         ]);
         setWorkflows(Array.isArray(wf) ? wf : []);
         setPurchases(Array.isArray(p) ? p : []);

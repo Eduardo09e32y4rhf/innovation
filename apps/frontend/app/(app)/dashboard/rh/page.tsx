@@ -6,6 +6,7 @@ import {
     ChevronRight, HeartHandshake, CheckCircle, AlertCircle, X
 } from 'lucide-react';
 import AppLayout from '@/components/AppLayout';
+import { apiFetch } from '@/services/api';
 
 interface PDIGoal {
     id: number;
@@ -54,25 +55,6 @@ export default function RhDashboardPage() {
     // New PDI Form
     const [showPdiForm, setShowPdiForm] = useState(false);
     const [pdiForm, setPdiForm] = useState({ title: '', description: '', quarter: 'Q1-2026' });
-
-    const getToken = () => typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-
-    const apiFetch = async (path: string, options?: RequestInit) => {
-        const token = getToken();
-        if (!token) { window.location.href = '/login'; throw new Error('No token'); }
-        const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-        const res = await fetch(`${BASE}${path}`, {
-            ...options,
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`,
-                ...((options?.headers as Record<string, string>) ?? {}),
-            },
-        });
-        if (res.status === 401) { window.location.href = '/login'; throw new Error('Unauthorized'); }
-        if (!res.ok) throw new Error(`API error ${res.status}`);
-        return res.json();
-    };
 
     const showNotif = (type: 'success' | 'error', msg: string) => {
         setNotification({ type, msg });

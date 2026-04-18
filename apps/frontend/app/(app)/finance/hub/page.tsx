@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import AppLayout from '@/components/AppLayout';
-import { CreditCard, Wallet, TrendingDown, RefreshCcw, Landmark, ShieldCheck } from 'lucide-react';
+import { TrendingDown, RefreshCcw, Landmark, ShieldCheck } from 'lucide-react';
+import { FinanceService } from '@/services/api';
 
 interface BankAccount {
     bank: string;
@@ -20,20 +21,17 @@ interface HubData {
 export default function BankHubPage() {
     const [data, setData] = useState<HubData | null>(null);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
 
     const fetchHubData = async () => {
         setLoading(true);
+        setError('');
         try {
-            const token = localStorage.getItem('token');
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/finance/bank-hub`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            if (res.ok) {
-                const result = await res.json();
-                setData(result);
-            }
-        } catch (error) {
-            console.error("Failed to fetch hub data", error);
+            const result = await FinanceService.getBankHub();
+            setData(result);
+        } catch (err) {
+            console.error("Failed to fetch hub data", err);
+            setError('Não foi possível carregar o hub bancário.');
         } finally {
             setLoading(false);
         }
@@ -49,7 +47,7 @@ export default function BankHubPage() {
 
     return (
         <AppLayout title="Hub Bancário - Open Finance">
-            <div className="min-h-screen bg-gray-950 p-6">
+            <div className="min-h-screen bg-slate-50 p-6">
                 <div className="max-w-6xl mx-auto">
 
                     {/* Header */}
@@ -96,9 +94,15 @@ export default function BankHubPage() {
                         </div>
                     </div>
 
+                    {error ? (
+                        <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">
+                            {error}
+                        </div>
+                    ) : null}
+
                     {/* Bank Cards Grid */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {data?.banks.map((bank, idx) => (
+                        {(data?.banks || []).map((bank, idx) => (
                             <div key={idx} className="group bg-white/50 border border-gray-800 rounded-3xl p-8 hover:border-blue-500/50 transition-all duration-300 hover:scale-[1.02]">
                                 <div className="flex justify-between items-start mb-10">
                                     <div className="w-14 h-14 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10 group-hover:bg-blue-500/20 group-hover:border-blue-500/30 transition-all">

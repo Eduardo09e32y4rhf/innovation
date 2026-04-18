@@ -562,10 +562,10 @@ function TopBar({
         {user && (
           <div className="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-full border border-slate-200 cursor-default shadow-inner">
             <div className="w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center text-slate-900 font-black text-[9px] shadow-sm">
-              {getInitials(user.name)}
+              {getInitials((user as any).full_name || user.name)}
             </div>
             <span className="text-sm font-black tracking-wide drop-shadow-[0_1px_1px_rgba(0,0,0,0.1)] text-slate-900 hidden sm:inline">
-              {user.name.split(' ')[0]}
+              {((user as any).full_name || user.name || 'Usuário').split(' ')[0]}
             </span>
           </div>
         )}
@@ -670,10 +670,10 @@ export default function AppLayout({
           <div className="bg-slate-50 border border-slate-50 rounded-2xl p-4 flex flex-col gap-3 shadow-inner">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 bg-white rounded-xl flex items-center justify-center font-black text-indigo-600 shadow-sm shrink-0">
-                {user ? getInitials(user.name) : 'U'}
+                {user ? getInitials((user as any).full_name || user.name) : 'U'}
               </div>
               <div className="min-w-0">
-                <p className="text-sm font-black text-slate-900 truncate">{user?.name || 'Carregando...'}</p>
+                <p className="text-sm font-black text-slate-900 truncate">{(user as any).full_name || user?.name || 'Carregando...'}</p>
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest truncate">Nv. {gamification.level} • VIP</p>
               </div>
             </div>

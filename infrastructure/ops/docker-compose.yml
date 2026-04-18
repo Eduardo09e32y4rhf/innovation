@@ -6,17 +6,13 @@ services:
     container_name: innovation_auth
     command: uvicorn api.auth_main:app --host 0.0.0.0 --port 8001
     restart: always
+    env_file:
+      - ../../apps/backend/.env
     deploy:
       resources:
         limits:
           cpus: '0.50'
           memory: 512M
-    environment:
-      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:5432/${POSTGRES_DB}
-      - SECRET_KEY=${SECRET_KEY}
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - GEMINI_API_KEYS=${GEMINI_API_KEYS}
-
   ai_service:
     build:
       context: ../../apps/backend
@@ -24,15 +20,13 @@ services:
     container_name: innovation_ai_service
     command: uvicorn api.ai_main:app --host 0.0.0.0 --port 8002
     restart: always
+    env_file:
+      - ../../apps/backend/.env
     deploy:
       resources:
         limits:
           cpus: '0.50'
           memory: 512M
-    environment:
-      - GEMINI_API_KEYS=${GEMINI_API_KEYS}
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - REDIS_URL=redis://:${REDIS_PASSWORD}@${REDIS_HOST}:6379/0
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
@@ -43,17 +37,13 @@ services:
     container_name: innovation_core_service
     command: uvicorn api.core_main:app --host 0.0.0.0 --port 8003
     restart: always
+    env_file:
+      - ../../apps/backend/.env
     deploy:
       resources:
         limits:
           cpus: '0.50'
           memory: 512M
-    environment:
-      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:5432/${POSTGRES_DB}
-      - SECRET_KEY=${SECRET_KEY}
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - ASAAS_API_KEY=${ASAAS_API_KEY}
-
   whatsapp_service:
     build:
       context: ../../apps/whatsapp_service
@@ -73,16 +63,10 @@ services:
       dockerfile: Dockerfile
     container_name: innovation_api_monolith
     restart: always
+    env_file:
+      - ../../apps/backend/.env
     ports:
       - "8005:8000"
-    environment:
-      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:5432/${POSTGRES_DB}
-      - REDIS_URL=redis://:${REDIS_PASSWORD}@${REDIS_HOST}:6379/0
-      - GEMINI_API_KEYS=${GEMINI_API_KEYS}
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - SECRET_KEY=${SECRET_KEY}
-      - ASAAS_API_KEY=${ASAAS_API_KEY}
-
   frontend:
     build:
       context: ../../apps/frontend

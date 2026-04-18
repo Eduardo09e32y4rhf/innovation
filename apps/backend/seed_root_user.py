@@ -1,5 +1,3 @@
-import os
-from sqlalchemy import create_url
 from sqlalchemy.orm import Session
 from infrastructure.database.sql.session import engine, SessionLocal
 from domain.models.user import User
@@ -15,16 +13,20 @@ def get_password_hash(pwd: str) -> str:
 def seed_root_user():
     db = SessionLocal()
     try:
+        # Garante que as tabelas existem
+        from infrastructure.database.sql.base import Base
+        Base.metadata.create_all(bind=engine)
+        
         user = db.query(User).filter(User.email == email).first()
         if not user:
             print(f"Creating user {email}...")
             user = User(
                 email=email,
-                name="Eduardo Admin",
+                full_name="Eduardo Silva",
                 hashed_password=get_password_hash(password),
                 role="admin",
                 is_active=True,
-                subscription_status="active"
+                subscription_status="active",
             )
             db.add(user)
             db.commit()

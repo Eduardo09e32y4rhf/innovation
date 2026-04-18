@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { BarChart3, TrendingUp, AlertTriangle, Star, Loader2, RefreshCw, Users, Clock } from 'lucide-react';
 import AppLayout from '@/components/AppLayout';
+import { apiFetch } from '@/services/api';
 
 interface CSATSummary {
     average: number;
@@ -31,20 +32,6 @@ export default function AnalyticsPage() {
     const [timeBank, setTimeBank] = useState<TimeBankBalance | null>(null);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
-
-    const getToken = () => typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-
-    const apiFetch = async (path: string) => {
-        const token = getToken();
-        if (!token) { window.location.href = '/login'; throw new Error('No token'); }
-        const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-        const res = await fetch(`${BASE}${path}`, {
-            headers: { Authorization: `Bearer ${token}` },
-        });
-        if (res.status === 401) { window.location.href = '/login'; throw new Error('Unauthorized'); }
-        if (!res.ok) throw new Error(`API error ${res.status}`);
-        return res.json();
-    };
 
     const loadData = useCallback(async () => {
         try {

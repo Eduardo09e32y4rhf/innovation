@@ -20,8 +20,8 @@ export default function FinanceAdvancedPage() {
     const loadData = async () => {
         try {
             const [c, v] = await Promise.all([
-                api.get('/api/finance/v2/cost-centers').then(r => r.data).catch(() => null),
-                api.get('/api/finance/v2/vouchers').then(r => r.data).catch(() => []),
+                api.get('/api/finance/v2/cost-centers').catch(() => null),
+                api.get('/api/finance/v2/vouchers').catch(() => []),
             ]);
             setCostCenters(c);
             setVouchers(Array.isArray(v) ? v : []);
@@ -33,7 +33,7 @@ export default function FinanceAdvancedPage() {
     const calcPayroll = async () => {
         setLoading(true);
         try {
-            const res = await api.post('/api/finance/v2/payroll-cost', { employees }).then(r => r.data);
+            const res = await api.post('/api/finance/v2/payroll-cost', { employees });
             setPayroll(res);
         } catch (e) { }
         finally { setLoading(false); }
@@ -44,8 +44,9 @@ export default function FinanceAdvancedPage() {
         if (!file) return;
         const form = new FormData();
         form.append('file', file);
-        const res = await api.post('/api/finance/v2/import-ofx', form, { headers: { 'Content-Type': 'multipart/form-data' } })
-            .then(r => r.data).catch(err => ({ error: err.response?.data?.detail || 'Erro ao importar' }));
+        const res = await api
+            .post('/api/finance/v2/import-ofx', form)
+            .catch((err: Error) => ({ error: err.message || 'Erro ao importar' }));
         setOfxResult(res);
         if (!res.error) loadData();
     };

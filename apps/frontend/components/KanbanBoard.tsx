@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import { GripVertical, Plus, X, Loader2 } from 'lucide-react';
+import { apiFetch } from '@/services/api';
 
 export interface KanbanTicket {
     id: number;
@@ -165,28 +166,25 @@ export function KanbanBoard({ columns, onMove, loading = false }: KanbanBoardPro
 
 // ─── Standalone Kanban Page Wrapper ─────────────────────────────────────────
 export function useKanban() {
-    const getToken = () => typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-
     const fetchQueues = useCallback(async () => {
-        const token = getToken();
-        if (!token) { window.location.href = '/login'; return null; }
-        const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-        const res = await fetch(`${BASE}/api/support/v2/queues`, {
-            headers: { Authorization: `Bearer ${token}` },
-        });
-        if (res.status === 401) { window.location.href = '/login'; return null; }
-        if (!res.ok) return null;
-        return res.json() as Promise<Record<string, { count: number; sla_hours: number; tickets: KanbanTicket[] }>>;
+        try {
+            return await apiFetch<
+                Record<string, { count: number; sla_hours: number; tickets: KanbanTicket[] }>
+            >('/api/support/v2/queues');
+        } catch {
+            return null;
+        }
     }, []);
 
     const moveTicket = useCallback(async (ticketId: number, queue: string) => {
-        const token = getToken();
-        if (!token) return;
-        const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-        await fetch(`${BASE}/api/support/v2/tickets/${ticketId}/assign-queue?queue=${queue}`, {
-            method: 'PATCH',
-            headers: { Authorization: `Bearer ${token}` },
-        });
+        try {
+            await apiFetch(
+                `/api/support/v2/tickets/${ticketId}/assign-queue?queue=${encodeURIComponent(queue)}`,
+                { method: 'PATCH' }
+            );
+        } catch {
+            /* noop */
+        }
     }, []);
 
     return { fetchQueues, moveTicket };

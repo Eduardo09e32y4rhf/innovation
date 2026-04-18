@@ -11,7 +11,10 @@ const nextConfig: NextConfig = {
   images: { unoptimized: true },
   async rewrites() {
     const isDev = process.env.NODE_ENV !== "production";
-    const gatewayUrl = process.env.API_URL || (isDev ? "http://localhost:8000" : "http://innovation_gateway:8000");
+    const gatewayUrl =
+      process.env.API_URL ||
+      process.env.NEXT_PUBLIC_API_URL ||
+      (isDev ? "http://localhost:8000" : "http://localhost:8000");
     return [
       {
         source: "/api/:path*",

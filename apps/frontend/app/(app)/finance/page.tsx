@@ -51,13 +51,23 @@ const fmtBRL = (v: number) =>
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v ?? 0);
 
 const fmtDate = (d: string) =>
-    d ? new Date(d + 'T00:00:00').toLocaleDateString('pt-BR') : '—';
+    d ? new Date(d).toLocaleDateString('pt-BR') : '—';
 
 const MONTHS_PT = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun',
     'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
 const INCOME_CATS = ['Vendas', 'Serviços', 'Consultoria', 'Pix Recebido', 'Outros'];
 const EXPENSE_CATS = ['Fornecedor', 'Aluguel', 'Contador', 'Internet', 'Energia', 'Folha', 'Imposto', 'Outros'];
+
+const getStatusMeta = (status: Transaction['status']) => {
+    if (status === 'paid') {
+        return { label: 'Pago', className: 'bg-emerald-50 text-emerald-600' };
+    }
+    if (status === 'overdue') {
+        return { label: 'Vencido', className: 'bg-rose-50 text-rose-600' };
+    }
+    return { label: 'Pendente', className: 'bg-amber-50 text-amber-600' };
+};
 
 // ─── STAT CARD ───────────────────────────────────────────────────────────────
 function StatCard({
@@ -258,14 +268,30 @@ export default function FinancePage() {
         tx.description.toLowerCase().includes(searchTx.toLowerCase())
     ).slice(0, 10);
 
-    const chartData = [
-        { name: 'Jan', entradas: 4000, saidas: 2400 },
-        { name: 'Fev', entradas: 3000, saidas: 3398 },
-        { name: 'Mar', entradas: 2000, saidas: 4800 },
-        { name: 'Abr', entradas: 2780, saidas: 3908 },
-        { name: 'Mai', entradas: 1890, saidas: 4800 },
-        { name: 'Jun', entradas: 6390, saidas: 3800 },
-    ];
+    const chartData = (() => {
+        const now = new Date();
+        const buckets = Array.from({ length: 6 }).map((_, idx) => {
+            const ref = new Date(now.getFullYear(), now.getMonth() - (5 - idx), 1);
+            return {
+                key: `${ref.getFullYear()}-${ref.getMonth()}`,
+                name: MONTHS_PT[ref.getMonth()],
+                entradas: 0,
+                saidas: 0,
+            };
+        });
+
+        const indexByKey = new Map(buckets.map((b, i) => [b.key, i]));
+        for (const tx of transactions) {
+            const dt = new Date(tx.due_date);
+            if (Number.isNaN(dt.getTime())) continue;
+            const key = `${dt.getFullYear()}-${dt.getMonth()}`;
+            const idx = indexByKey.get(key);
+            if (idx === undefined) continue;
+            if (tx.type === 'income') buckets[idx].entradas += Number(tx.amount || 0);
+            else buckets[idx].saidas += Number(tx.amount || 0);
+        }
+        return buckets;
+    })();
 
     return (
         <AppLayout title="Fluxo de Caixa">
@@ -363,16 +389,34 @@ export default function FinancePage() {
                                 </span>
                             </div>
                             <h2 className="text-2xl font-black tracking-tight mb-2">Guia DAS (MEI)</h2>
-                            <p className="text-indigo-100 text-xs font-semibold uppercase tracking-widest mb-6 px-1">Comp: 03/2026</p>
+                            <p className="text-indigo-100 text-xs font-semibold uppercase tracking-widest mb-6 px-1">
+                                Comp: {dasMei?.competencia || '—'}
+                            </p>
                             <div className="flex items-baseline gap-2 mb-2">
                                 <span className="text-sm font-bold opacity-60">R$</span>
-                                <span className="text-4xl font-black tracking-tighter">{fmtBRL(75.60).replace('R$', '').trim()}</span>
+                                <span className="text-4xl font-black tracking-tighter">
+                                    {fmtBRL(dasMei?.valor_das || 0).replace('R$', '').trim()}
+                                </span>
                             </div>
-                            <p className="text-xs font-bold text-indigo-200">Vencimento: 20/03/2026</p>
+                            <p className="text-xs font-bold text-indigo-200">Vencimento: {fmtDate(dasMei?.vencimento || '')}</p>
                         </div>
                         <div className="space-y-3 mt-10">
-                            <button className="w-full bg-white text-blue-600 py-4 rounded-[1.5rem] font-black text-xs uppercase tracking-widest shadow-lg hover:scale-[1.02] transition-all">Pagar via Pix</button>
-                            <button className="w-full bg-indigo-500/50 text-slate-900 py-4 rounded-[1.5rem] font-black text-xs uppercase tracking-widest border border-white/10 hover:bg-indigo-500/70 transition-all">Download PDF</button>
+                            <a
+                                href={dasMei?.link_pgmei || '#'}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="w-full bg-white text-blue-600 py-4 rounded-[1.5rem] font-black text-xs uppercase tracking-widest shadow-lg hover:scale-[1.02] transition-all text-center block"
+                            >
+                                Abrir PGMEI
+                            </a>
+                            <a
+                                href={dasMei?.link_pgmei_pdf || '#'}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="w-full bg-indigo-500/50 text-slate-900 py-4 rounded-[1.5rem] font-black text-xs uppercase tracking-widest border border-white/10 hover:bg-indigo-500/70 transition-all text-center block"
+                            >
+                                Portal DAS
+                            </a>
 
                         </div>
                     </div>
@@ -412,9 +456,8 @@ export default function FinancePage() {
                                         <td className="py-5 px-4 whitespace-nowrap">
                                             <div className="flex flex-col gap-1">
                                                 <span className="text-xs font-bold text-slate-400 uppercase">{fmtDate(tx.due_date)}</span>
-                                                <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full inline-block w-max ${tx.status === 'paid' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'
-                                                    }`}>
-                                                    {tx.status === 'paid' ? 'Pago' : 'Pendente'}
+                                                <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full inline-block w-max ${getStatusMeta(tx.status).className}`}>
+                                                    {getStatusMeta(tx.status).label}
                                                 </span>
                                             </div>
                                         </td>
