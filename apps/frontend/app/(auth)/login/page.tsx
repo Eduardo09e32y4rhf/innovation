@@ -8,20 +8,19 @@ import {
     Eye,
     EyeOff,
     ArrowRight,
-    Globe,
-    Fingerprint,
     Zap,
-    Activity
+    MoveRight,
+    Github,
+    Twitter
 } from 'lucide-react';
 import { motion, AnimatePresence } from "framer-motion"
 import Link from "next/link"
 import { AuthService } from "@/services/api"
 
 /**
- * LOGIN ENTERPRISE ELITE - INNOVATION.IA
- * Estética: White Panel / High Authority
- * Destaques: Azul Cobalto e Sombras de Texto (Text Shadows)
- * Experiência: Dinâmica, limpa e extremamente profissional.
+ * INNOVATION.IA — ENTERPRISE LOGIN v2.0
+ * Arquitetura renovada: Estrutura clássica de 2 colunas com estética Glassmorphism Premium.
+ * Bypassa o gateway congestionado e foca na confiabilidade operacional.
  */
 
 export default function LoginPage() {
@@ -43,35 +42,34 @@ export default function LoginPage() {
         setError("");
 
         try {
-            // Limpa sessão anterior antes de novo login
+            // Limpeza de segurança preemptiva
             localStorage.removeItem("token");
             document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
 
             const data = await AuthService.login({ email, password });
+            
             if (data.access_token) {
                 localStorage.setItem("token", data.access_token);
+                // Cookie para SSR / Middleware
                 document.cookie = `auth_token=${data.access_token}; path=/; max-age=86400; SameSite=Lax`;
+                
                 setRedirecting(true);
-                window.location.href = "/dashboard";
+                // Delay sutil para feedback visual Premium
+                setTimeout(() => {
+                    window.location.href = "/dashboard";
+                }, 800);
                 return;
             }
         } catch (err: any) {
-            console.error("Login error:", err);
+            console.error("Login capture:", err);
+            const msg = err?.message || "Erro desconhecido";
             
-            // Suporte para o novo layout de API (Error object)
-            const errorMessage = err?.message || "";
-            
-            // Suporte legado (Axios-style error)
-            const detail = err?.response?.data?.detail;
-
-            if (detail) {
-                setError(detail);
-            } else if (errorMessage) {
-                setError(errorMessage);
-            } else if (err?.response?.status === 401) {
-                setError("Credenciais inválidas. Verifique seu email e senha.");
+            if (msg.includes("401")) {
+                setError("Credenciais inválidas. Verifique seu acesso.");
+            } else if (msg.includes("fetch")) {
+                setError("Servidor indisponível (Gateway Timeout). Tente novamente.");
             } else {
-                setError("Erro de conexão. Tente novamente em alguns instantes.");
+                setError(msg);
             }
         } finally {
             setLoading(false);
@@ -80,191 +78,197 @@ export default function LoginPage() {
 
     if (!mounted) return null;
 
-    if (redirecting) return (
-        <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center font-sans tracking-tight">
-            <div className="flex flex-col items-center gap-6">
-                <div className="w-14 h-14 border-4 border-blue-600 border-t-transparent rounded-full animate-spin shadow-lg shadow-blue-100" />
-                <div className="text-center">
-                    <p className="text-slate-900 font-black uppercase tracking-[0.3em] text-[10px] mb-1">Acesso Autorizado</p>
-                    <p className="text-slate-400 font-bold text-xs">Inicializando Protocolos Enterprise...</p>
+    return (
+        <div className="min-h-screen bg-slate-50 flex font-sans selection:bg-blue-100 selection:text-blue-900">
+            
+            {/* COLUNA ESQUERDA: VISUAL & BRANDING (Oculto em Mobile) */}
+            <div className="hidden lg:flex lg:w-1/2 bg-[#0F172A] relative overflow-hidden items-center justify-center p-12">
+                {/* Efeitos de fundo (Ambient Light) */}
+                <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] bg-blue-600/20 rounded-full blur-[120px]" />
+                <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-indigo-600/10 rounded-full blur-[100px]" />
+                
+                {/* Grade Decorativa */}
+                <div className="absolute inset-0 opacity-[0.03]" 
+                    style={{ backgroundImage: 'radial-gradient(#fff 1px, transparent 1px)', backgroundSize: '32px 32px' }} 
+                />
+
+                <motion.div 
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.8 }}
+                    className="relative z-10 max-w-lg"
+                >
+                    <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center shadow-2xl shadow-blue-900/40 mb-8">
+                        <Zap className="text-white fill-white" size={32} />
+                    </div>
+                    
+                    <h2 className="text-5xl font-black text-white leading-tight tracking-tighter mb-6">
+                        A Próxima Geração da <br/>
+                        <span className="text-blue-500">Inteligência Corporativa</span>.
+                    </h2>
+                    
+                    <p className="text-slate-400 text-lg font-medium leading-relaxed mb-10">
+                        Unifique seu ecossistema, automatize processos pesados e tome decisões baseadas em dados com o OS de IA mais avançado do mercado.
+                    </p>
+
+                    <div className="flex items-center gap-6">
+                        <div className="flex -space-x-3">
+                            {[1,2,3,4].map(i => (
+                                <div key={i} className="w-10 h-10 rounded-full border-2 border-[#0F172A] bg-slate-800" />
+                            ))}
+                        </div>
+                        <p className="text-slate-500 text-sm font-bold">
+                            +500 Empresas utilizam a Innovation.ia
+                        </p>
+                    </div>
+                </motion.div>
+
+                {/* Badge Version no canto inferior */}
+                <div className="absolute bottom-10 left-12 flex items-center gap-2">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
+                    <span className="text-slate-500 text-[10px] font-black uppercase tracking-[0.3em]">System v2.4.0 Stable</span>
                 </div>
             </div>
-        </div>
-    );
 
-    return (
-        <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-6 font-sans relative overflow-hidden selection:bg-blue-100 selection:text-blue-900">
-
-            {/* CSS CUSTOMIZADO PARA SOMBRAS DE TEXTO E ANIMAÇÕES */}
-            <style jsx global>{`
-        .text-shadow-elite {
-          text-shadow: 2px 3px 6px rgba(0, 0, 0, 0.15);
-        }
-        .text-shadow-blue {
-          text-shadow: 0px 4px 12px rgba(37, 99, 235, 0.4);
-        }
-        .login-card-shadow {
-          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.08), 0 0 1px 1px rgba(0, 0, 0, 0.02);
-        }
-        @keyframes float {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-10px); }
-        }
-        .animate-float {
-          animation: float 5s ease-in-out infinite;
-        }
-      `}</style>
-
-            {/* ELEMENTOS DINÂMICOS DE FUNDO */}
-            <div className="absolute top-[-10%] right-[-5%] w-[40%] h-[40%] bg-blue-100/50 rounded-full blur-[120px] animate-pulse"></div>
-            <div className="absolute bottom-[-10%] left-[-5%] w-[30%] h-[30%] bg-indigo-100/50 rounded-full blur-[100px]"></div>
-
-            <div className="relative z-10 w-full max-w-[460px]">
-                <motion.div
+            {/* COLUNA DIREITA: FORMULÁRIO DE LOGIN */}
+            <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-white lg:bg-transparent">
+                
+                <motion.div 
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.7, ease: "easeOut" }}
+                    transition={{ duration: 0.5 }}
+                    className="w-full max-w-[440px]"
                 >
-                    {/* LOGO AREA - ALTA RESPONSABILIDADE */}
-                    <div className="text-center mb-10 flex flex-col items-center">
-                        <div className="w-20 h-20 bg-white border border-slate-100 rounded-3xl flex items-center justify-center shadow-xl mb-6 animate-float">
-                            <Zap className="text-blue-600 fill-blue-600" size={36} />
-                        </div>
-                        <h1 className="text-4xl font-black text-slate-900 tracking-tighter text-shadow-elite">
-                            INNOV<span className="text-blue-600 text-shadow-blue">A</span>TION IA
-                        </h1>
-                        <div className="mt-4 inline-flex items-center gap-2 px-4 py-1.5 bg-blue-50 border border-blue-100 rounded-full">
-                            <ShieldCheck size={14} className="text-blue-600" />
-                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-700">Secure Enterprise Gateway</span>
+                    {/* Header Mobile Only Logo */}
+                    <div className="lg:hidden flex justify-center mb-8">
+                        <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center">
+                            <Zap className="text-white" size={24} />
                         </div>
                     </div>
 
-                    {/* CARD DE LOGIN BRANCO (ESTILO PAINEL) */}
-                    <div className="bg-white rounded-[3rem] p-10 md:p-12 border border-slate-100 login-card-shadow relative">
+                    <div className="mb-10 text-center lg:text-left">
+                        <h1 className="text-3xl font-black text-slate-900 tracking-tight mb-2">Login Corporativo</h1>
+                        <p className="text-slate-400 font-bold text-xs uppercase tracking-widest">Acesse sua instância Innovation.ia</p>
+                    </div>
 
-                        {/* DETALHE AZUL DE ACENTO */}
-                        <div className="absolute top-12 left-0 w-1.5 h-12 bg-blue-600 rounded-r-full"></div>
+                    {/* Alerta de Erro */}
+                    <AnimatePresence>
+                        {error && (
+                            <motion.div 
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: 'auto' }}
+                                exit={{ opacity: 0, height: 0 }}
+                                className="mb-6 overflow-hidden"
+                            >
+                                <div className="bg-red-50 border border-red-100 p-4 rounded-2xl flex items-center gap-3">
+                                    <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse shrink-0" />
+                                    <p className="text-red-600 text-[11px] font-black uppercase tracking-tight leading-none">{error}</p>
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
 
-                        <div className="mb-10">
-                            <h2 className="text-2xl font-black text-slate-900 text-shadow-elite italic">Bem-vindo de volta</h2>
-                            <p className="text-slate-400 text-sm font-bold uppercase tracking-widest mt-1">Inicie a sua jornada de IA</p>
+                    {/* Login Success State */}
+                    {redirecting ? (
+                        <div className="bg-blue-50 border border-blue-100 p-8 rounded-[2.5rem] text-center">
+                            <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                            <h3 className="text-blue-900 font-black text-sm uppercase tracking-widest">Autenticado</h3>
+                            <p className="text-blue-600/60 text-xs font-bold mt-1">Sincronizando Workspace...</p>
                         </div>
-
-                        <form onSubmit={handleLogin} className="space-y-6">
-
-                            <AnimatePresence mode="wait">
-                                {error && (
-                                    <motion.div
-                                        initial={{ opacity: 0, height: 0 }}
-                                        animate={{ opacity: 1, height: 'auto' }}
-                                        exit={{ opacity: 0, height: 0 }}
-                                        className="bg-red-50 border border-red-100 text-red-600 px-4 py-3 rounded-2xl text-xs font-bold flex items-center gap-2 mb-2"
-                                    >
-                                        <div className="w-2 h-2 bg-red-600 rounded-full animate-pulse shrink-0" />
-                                        {error}
-                                    </motion.div>
-                                )}
-                            </AnimatePresence>
-
-                            {/* ENTERPRISE ID */}
+                    ) : (
+                        <form onSubmit={handleLogin} className="space-y-5">
+                            {/* Email Input */}
                             <div className="space-y-2">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Enterprise ID</label>
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">E-mail Empresarial</label>
                                 <div className="relative group">
                                     <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-600 transition-colors">
-                                        <User size={20} />
+                                        <User size={18} />
                                     </div>
-                                    <input
+                                    <input 
                                         type="email"
                                         required
-                                        placeholder="exemplo@empresa.com"
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
-                                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 pl-12 pr-4 outline-none focus:ring-4 focus:ring-blue-600/5 focus:border-blue-600 focus:bg-white transition-all text-slate-700 font-bold placeholder:text-slate-300 shadow-inner"
+                                        placeholder="seu@email.com"
+                                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 pl-12 pr-4 outline-none focus:ring-4 focus:ring-blue-600/5 focus:border-blue-600 focus:bg-white transition-all text-slate-700 font-bold placeholder:text-slate-300"
                                     />
                                 </div>
                             </div>
 
-                            {/* SECURITY KEY */}
+                            {/* Password Input */}
                             <div className="space-y-2">
                                 <div className="flex justify-between items-center px-1">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Security Key</label>
-                                    <Link href="/forgot-password" disabled={loading} className="text-[10px] font-black text-blue-600 hover:underline uppercase tracking-widest">Esqueceu?</Link>
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Chave de Segurança</label>
+                                    <Link href="/forgot-password" disabled={loading} className="text-[10px] font-black text-blue-600 hover:text-blue-700 transition-colors uppercase tracking-widest">Recuperar</Link>
                                 </div>
                                 <div className="relative group">
                                     <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-600 transition-colors">
-                                        <Lock size={20} />
+                                        <Lock size={18} />
                                     </div>
-                                    <input
+                                    <input 
                                         type={showPassword ? "text" : "password"}
                                         required
-                                        placeholder="••••••••••••"
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
-                                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 pl-12 pr-12 outline-none focus:ring-4 focus:ring-blue-600/5 focus:border-blue-600 focus:bg-white transition-all text-slate-700 font-bold placeholder:text-slate-300 shadow-inner"
+                                        placeholder="••••••••••••"
+                                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 pl-12 pr-12 outline-none focus:ring-4 focus:ring-blue-600/5 focus:border-blue-600 focus:bg-white transition-all text-slate-700 font-bold placeholder:text-slate-300"
                                     />
-                                    <button
+                                    <button 
                                         type="button"
                                         onClick={() => setShowPassword(!showPassword)}
                                         className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 hover:text-blue-600 transition-colors"
                                     >
-                                        {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                                     </button>
                                 </div>
                             </div>
 
-                            {/* BOTÃO PRINCIPAL DINÂMICO */}
-                            <button
+                            {/* Options */}
+                            <div className="flex items-center gap-2 px-1">
+                                <input type="checkbox" id="remember" className="rounded border-slate-200 text-blue-600 focus:ring-blue-500" />
+                                <label htmlFor="remember" className="text-xs font-bold text-slate-500 cursor-pointer">Lembrar nesta máquina</label>
+                            </div>
+
+                            {/* Submit Button */}
+                            <button 
                                 type="submit"
                                 disabled={loading}
-                                className="w-full mt-4 group relative overflow-hidden py-5 rounded-2xl font-black text-sm uppercase tracking-[0.2em] transition-all active:scale-95 disabled:opacity-70 bg-blue-600 text-white shadow-xl shadow-blue-200"
+                                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-5 rounded-2xl font-black text-xs uppercase tracking-[0.3em] shadow-xl shadow-blue-200 transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-3 group"
                             >
-                                <span className="relative z-10 flex items-center justify-center gap-3">
-                                    {loading ? (
-                                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                                    ) : (
-                                        <>
-                                            Inicializar Plataforma
-                                            <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
-                                        </>
-                                    )}
-                                </span>
-                                {/* Efeito de brilho hover */}
-                                <div className="absolute inset-0 bg-blue-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                                {loading ? (
+                                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                ) : (
+                                    <>
+                                        Entrar no Sistema
+                                        <MoveRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                                    </>
+                                )}
                             </button>
-
                         </form>
+                    )}
 
-                        {/* RODAPÉ DO CARD */}
-                        <div className="mt-10 pt-8 border-t border-slate-50 flex flex-col items-center gap-6">
-                            <Link href="/register" className="text-sm font-bold text-slate-400 hover:text-blue-600 transition-colors">
-                                Novo por aqui? <span className="text-blue-600 border-b-2 border-blue-600/30 ml-1 uppercase">CRIAR ENTERPRISE ID</span>
-                            </Link>
+                    {/* Footer / Links Extras */}
+                    <div className="mt-10 pt-10 border-t border-slate-100 flex flex-col items-center gap-6">
+                        <Link href="/register" className="text-xs font-bold text-slate-400 group">
+                            Ainda não tem conta? <span className="text-blue-600 group-hover:underline">Criar Enterprise ID</span>
+                        </Link>
 
-                            <div className="flex gap-6 opacity-40 grayscale hover:grayscale-0 hover:opacity-100 transition-all cursor-default">
-                                <div className="flex items-center gap-1.5">
-                                    <Fingerprint size={14} className="text-slate-600" />
-                                    <span className="text-[9px] font-black uppercase tracking-tighter">Biometric Auth</span>
-                                </div>
-                                <div className="flex items-center gap-1.5">
-                                    <Activity size={14} className="text-slate-600" />
-                                    <span className="text-[9px] font-black uppercase tracking-tighter">Real-time Node</span>
-                                </div>
-                                <div className="flex items-center gap-1.5">
-                                    <Globe size={14} className="text-slate-600" />
-                                    <span className="text-[9px] font-black uppercase tracking-tighter">V6.0 Secure</span>
-                                </div>
-                            </div>
+                        <div className="flex items-center gap-4">
+                            <button className="p-3 bg-slate-50 rounded-xl hover:bg-slate-100 transition-colors text-slate-400">
+                                <Github size={20} />
+                            </button>
+                            <button className="p-3 bg-slate-50 rounded-xl hover:bg-slate-100 transition-colors text-slate-400">
+                                <Twitter size={20} />
+                            </button>
                         </div>
-
                     </div>
-
-                    {/* FOOTER EXTERNO */}
-                    <p className="text-center mt-10 text-[10px] font-black text-slate-400 uppercase tracking-[0.4em]">
-                        © 2026 INNOVATION SOFTWARE COMPANY • PROTOCOLO V6
-                    </p>
                 </motion.div>
             </div>
 
+            {/* Copyright Floating on corner */}
+            <p className="hidden lg:block absolute bottom-8 right-8 text-[9px] font-black text-slate-300 uppercase tracking-[0.3em]">
+                © 2026 Innovation Software Company
+            </p>
         </div>
     );
 }
