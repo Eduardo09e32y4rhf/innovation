@@ -17,6 +17,9 @@ from domain.models.user import User
 from infrastructure.database.sql.dependencies import get_db
 from sqlalchemy.orm import Session
 from services import audit_service
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/ai", tags=["ai-chat"])
 
@@ -487,8 +490,8 @@ async def landing_plan(data: LandingPlanRequest):
         answer = await _ask_gemini(user_query, [], "gemini-1.5-flash")
         return {"answer": answer}
     except Exception as e:
-        print(f"❌ Erro no simulador: {e}")
-        raise HTTPException(500, detail=str(e))
+        logger.error(f"Erro no simulador: {e}")
+        raise HTTPException(500, detail="Erro interno no simulador")
 
 
 class VeoRequest(BaseModel):
@@ -534,7 +537,8 @@ async def generate_video(
             if "429" in str(e) or "quota" in str(e).lower():
                 ai_key_manager.mark_as_exhausted(api_key)
                 continue
-            raise HTTPException(500, detail=f"Erro no Veo: {str(e)}")
+            logger.error(f"Erro no Veo: {e}")
+            raise HTTPException(500, detail="Erro interno no serviço de video")
 
     raise HTTPException(503, "Falha em todas as chaves do Gemini para o Veo.")
 

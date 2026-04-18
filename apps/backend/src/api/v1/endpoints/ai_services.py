@@ -13,6 +13,9 @@ from typing import Optional
 from infrastructure.database.sql.dependencies import get_db
 from core.dependencies import get_current_user
 from domain.models.user import User
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/ai", tags=["ai-services"])
 
@@ -125,9 +128,9 @@ Responda SOMENTE com o JSON válido, sem markdown.
             raw = re.sub(r"```json|```", "", response_text.strip()).strip()
             return json.loads(raw)
         except:
+            logger.error(f"Erro CV: {e}")
             raise HTTPException(
-                status_code=500,
-                detail=f"Erro ao processar currículo após tentativas: {e}",
+                status_code=500, detail="Erro interno ao processar currículo"
             )
 
 
@@ -222,8 +225,9 @@ Retorne um JSON com:
             raw = re.sub(r"```json|```", "", response_text.strip()).strip()
             return json.loads(raw)
         except:
+            logger.error(f"Erro DISC: {e}")
             raise HTTPException(
-                status_code=500, detail=f"Erro na análise DISC após rotação: {e}"
+                status_code=500, detail="Erro interno na análise DISC"
             )
 
 
@@ -307,8 +311,9 @@ Retorne SOMENTE um JSON válido com a seguinte estrutura:
             raw = re.sub(r"```json|```", "", response_text.strip()).strip()
             return json.loads(raw)
         except:
+            logger.error(f"Erro Teste: {e}")
             raise HTTPException(
-                status_code=500, detail=f"Erro ao gerar teste após rotação: {e}"
+                status_code=500, detail="Erro interno ao gerar teste"
             )
 
 
@@ -356,8 +361,9 @@ Responda SOMENTE com JSON válido, sem markdown.
         raw = re.sub(r"```json|```", "", response_text.strip()).strip()
         return json.loads(raw)
     except Exception as e:
+        logger.error(f"Erro Perguntas: {e}")
         raise HTTPException(
-            status_code=500, detail=f"Erro ao sugerir perguntas após rotação: {e}"
+            status_code=500, detail="Erro interno ao sugerir perguntas"
         )
 
 
@@ -417,6 +423,7 @@ Extraia os seguintes campos do recibo e retorne APENAS um JSON válido:
 
         return data
     except Exception as e:
+        logger.error(f"Erro recibo: {e}")
         raise HTTPException(
-            status_code=500, detail=f"Erro ao processar recibo: {str(e)}"
+            status_code=500, detail="Erro interno ao processar recibo"
         )
