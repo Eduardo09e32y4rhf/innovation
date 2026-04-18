@@ -26,6 +26,7 @@ BASE_DIR = Path(__file__).resolve().parent
 # Carrega .env
 try:
     from dotenv import load_dotenv
+
     load_dotenv(BASE_DIR / ".env")
 except ImportError:
     pass
@@ -42,14 +43,14 @@ if not ASAAS_WEBHOOK_URL and BASE_URL:
 
 # Todos os eventos que o sistema trata
 WEBHOOK_EVENTS = [
-    "PAYMENT_CONFIRMED",          # Pagamento confirmado → ativa plano
-    "PAYMENT_RECEIVED",           # Pagamento recebido → ativa plano
-    "PAYMENT_OVERDUE",            # Pagamento vencido → bloqueia acesso
-    "PAYMENT_DELETED",            # Cobrança deletada → cancela assinatura
-    "SUBSCRIPTION_DELETED",       # Assinatura cancelada → rebaixa para FREE
-    "PAYMENT_REFUNDED",           # Estorno → rebaixa para FREE
+    "PAYMENT_CONFIRMED",  # Pagamento confirmado → ativa plano
+    "PAYMENT_RECEIVED",  # Pagamento recebido → ativa plano
+    "PAYMENT_OVERDUE",  # Pagamento vencido → bloqueia acesso
+    "PAYMENT_DELETED",  # Cobrança deletada → cancela assinatura
+    "SUBSCRIPTION_DELETED",  # Assinatura cancelada → rebaixa para FREE
+    "PAYMENT_REFUNDED",  # Estorno → rebaixa para FREE
     "PAYMENT_CHARGEBACK_REQUESTED",  # Chargeback → bloqueia + alerta admin
-    "PAYMENT_CHARGEBACK_DISPUTE",    # Disputa de chargeback em andamento
+    "PAYMENT_CHARGEBACK_DISPUTE",  # Disputa de chargeback em andamento
 ]
 
 HEADERS = {
@@ -121,7 +122,9 @@ def list_existing_webhooks() -> list:
                 print("   Nenhum webhook registrado ainda.")
             return webhooks
         else:
-            print(f"   ⚠️  Erro ao listar webhooks: {res.status_code} — {res.text[:200]}")
+            print(
+                f"   ⚠️  Erro ao listar webhooks: {res.status_code} — {res.text[:200]}"
+            )
             return []
     except requests.RequestException as e:
         print(f"   ❌ Erro de rede: {e}")
@@ -134,7 +137,9 @@ def create_webhook(existing: list) -> bool:
     for wh in existing:
         if wh.get("url") == ASAAS_WEBHOOK_URL:
             print(f"✅ Webhook já registrado para esta URL (id: {wh.get('id')})")
-            print("   Atualizando eventos para garantir que todos estão configurados...")
+            print(
+                "   Atualizando eventos para garantir que todos estão configurados..."
+            )
             return update_webhook(wh["id"])
 
     print(f"📡 Criando novo webhook...")
@@ -150,7 +155,7 @@ def create_webhook(existing: list) -> bool:
         "interrupted": False,
         "apiVersion": 3,
         "authToken": ASAAS_WEBHOOK_TOKEN,
-        "sendType": "NON_SEQUENTIALLY",   # Envio em paralelo (mais rápido)
+        "sendType": "NON_SEQUENTIALLY",  # Envio em paralelo (mais rápido)
         "events": WEBHOOK_EVENTS,
     }
 
@@ -202,7 +207,9 @@ def update_webhook(webhook_id: str) -> bool:
             print("✅ Webhook atualizado com todos os eventos!")
             return True
         else:
-            print(f"⚠️  Não foi possível atualizar ({res.status_code}): {res.text[:300]}")
+            print(
+                f"⚠️  Não foi possível atualizar ({res.status_code}): {res.text[:300]}"
+            )
             return False
     except Exception as e:
         print(f"❌ Erro ao atualizar webhook: {e}")
@@ -225,13 +232,17 @@ def show_test_instructions():
         print("2. Crie uma cobrança de teste")
         print("3. Use o cartão de teste: 5162306219378829 CVV: 318 Validade: 05/2050")
         print("4. Confirme o pagamento")
-        print("5. Verifique os logs do backend — o evento PAYMENT_CONFIRMED deve aparecer")
+        print(
+            "5. Verifique os logs do backend — o evento PAYMENT_CONFIRMED deve aparecer"
+        )
         print()
         print("Ou force o disparo via API Asaas Sandbox:")
         print(f"  POST {ASAAS_API_URL}/payments/{{id}}/receiveInCash")
     else:
         print("Você está em PRODUÇÃO.")
-        print("Os eventos serão disparados automaticamente quando houver transações reais.")
+        print(
+            "Os eventos serão disparados automaticamente quando houver transações reais."
+        )
         print()
         print("Para verificar se o webhook está funcionando:")
         print("  → Painel Asaas → Configurações → Webhooks → Logs")
@@ -244,5 +255,7 @@ if __name__ == "__main__":
     if success:
         show_test_instructions()
     else:
-        print("\n❌ Webhook não registrado. Verifique os erros acima e tente novamente.")
+        print(
+            "\n❌ Webhook não registrado. Verifique os erros acima e tente novamente."
+        )
         sys.exit(1)
