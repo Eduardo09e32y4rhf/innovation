@@ -11,12 +11,10 @@ services:
         paths:
           - /api/auth
         strip_path: false
-        preserve_host: true
       - name: users-routes
         paths:
           - /api/users
         strip_path: false
-        preserve_host: true
 
   # =============================================
   # AI SERVICE → /api/ai
@@ -28,7 +26,6 @@ services:
         paths:
           - /api/ai
         strip_path: false
-        preserve_host: true
 
   # =============================================
   # CORE SERVICE → /api/dashboard, /api/core, etc.
@@ -49,7 +46,6 @@ services:
           - /api/ats
           - /api/companies
         strip_path: false
-        preserve_host: true
 
   # =============================================
   # API MONOLITH → catch-all para /api
@@ -61,5 +57,4 @@ services:
         paths:
           - /api
         strip_path: false
-        preserve_host: true
         priority: 0
