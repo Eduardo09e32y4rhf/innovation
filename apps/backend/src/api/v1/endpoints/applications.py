@@ -136,7 +136,6 @@ def apply_to_job(
     try:
         if getattr(current_user, "phone", None):
             import requests
-
             # Kong Gateway internamente roteia :8004
             url_whatsapp = "http://whatsapp_service:8004/api/whatsapp/send"
             msg = (
@@ -144,17 +143,10 @@ def apply_to_job(
                 f"Vi que você se inscreveu para a vaga de *{job.title}* na Innovation.ia. "
                 "Podemos fazer uma rápida entrevista por aqui? Digite 'SIM' para começar."
             )
-            requests.post(
-                url_whatsapp,
-                json={"number": current_user.phone, "message": msg},
-                timeout=2,
-            )
+            requests.post(url_whatsapp, json={"number": current_user.phone, "message": msg}, timeout=2)
     except Exception as e:
         import logging
-
-        logging.getLogger(__name__).warning(
-            f"Erro ao disparar WhatsApp de Recrutamento: {e}"
-        )
+        logging.getLogger(__name__).warning(f"Erro ao disparar WhatsApp de Recrutamento: {e}")
 
     return app
 

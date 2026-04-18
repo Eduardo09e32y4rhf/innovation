@@ -50,10 +50,7 @@ class BankHubService:
         try:
             res = requests.post(
                 f"{PLUGGY_BASE_URL}/auth",
-                json={
-                    "clientId": PLUGGY_CLIENT_ID,
-                    "clientSecret": PLUGGY_CLIENT_SECRET,
-                },
+                json={"clientId": PLUGGY_CLIENT_ID, "clientSecret": PLUGGY_CLIENT_SECRET},
                 timeout=10,
             )
             if res.status_code == 200:
@@ -87,9 +84,7 @@ class BankHubService:
         """Busca saldos reais via API Pluggy."""
         token = self._get_pluggy_token()
         if not token:
-            return {
-                "error": "Falha ao autenticar na Pluggy. Verifique PLUGGY_CLIENT_ID e PLUGGY_CLIENT_SECRET."
-            }
+            return {"error": "Falha ao autenticar na Pluggy. Verifique PLUGGY_CLIENT_ID e PLUGGY_CLIENT_SECRET."}
 
         banks = []
         total = 0.0
@@ -105,32 +100,24 @@ class BankHubService:
                     timeout=15,
                 )
                 if res.status_code != 200:
-                    logger.warning(
-                        f"Pluggy accounts erro para item {item_id}: {res.text}"
-                    )
+                    logger.warning(f"Pluggy accounts erro para item {item_id}: {res.text}")
                     continue
 
                 accounts = res.json().get("results", [])
                 for acc in accounts:
                     balance = float(acc.get("balance", 0))
                     total += balance
-                    banks.append(
-                        {
-                            "bank": acc.get("institution", {}).get("name", "Banco"),
-                            "bank_code": acc.get("institution", {}).get(
-                                "primaryColor", ""
-                            ),
-                            "account_type": acc.get(
-                                "type", ""
-                            ),  # CHECKING, SAVINGS, CREDIT
-                            "account_number": acc.get("number", "****"),
-                            "balance": balance,
-                            "currency": acc.get("currencyCode", "BRL"),
-                            "status": "active",
-                            "item_id": item_id,
-                            "account_id": acc.get("id"),
-                        }
-                    )
+                    banks.append({
+                        "bank": acc.get("institution", {}).get("name", "Banco"),
+                        "bank_code": acc.get("institution", {}).get("primaryColor", ""),
+                        "account_type": acc.get("type", ""),  # CHECKING, SAVINGS, CREDIT
+                        "account_number": acc.get("number", "****"),
+                        "balance": balance,
+                        "currency": acc.get("currencyCode", "BRL"),
+                        "status": "active",
+                        "item_id": item_id,
+                        "account_id": acc.get("id"),
+                    })
 
             except requests.RequestException as e:
                 logger.error(f"Erro ao buscar contas Pluggy para item {item_id}: {e}")
@@ -180,11 +167,7 @@ class BankHubService:
 
         token = self._get_pluggy_token()
         if not token:
-            return {
-                "status": "error",
-                "message": "Falha ao autenticar na Pluggy.",
-                "synced_count": 0,
-            }
+            return {"status": "error", "message": "Falha ao autenticar na Pluggy.", "synced_count": 0}
 
         headers = self._pluggy_headers(token)
 
@@ -206,11 +189,7 @@ class BankHubService:
             )
 
             if res.status_code != 200:
-                return {
-                    "status": "error",
-                    "message": f"Pluggy erro: {res.text}",
-                    "synced_count": 0,
-                }
+                return {"status": "error", "message": f"Pluggy erro: {res.text}", "synced_count": 0}
 
             transactions_data = res.json().get("results", [])
             synced = 0
@@ -237,18 +216,14 @@ class BankHubService:
                     type=tx_type,
                     category=category.lower(),
                     status="paid",
-                    due_date=datetime.fromisoformat(
-                        tx.get("date", datetime.utcnow().isoformat())
-                    ),
+                    due_date=datetime.fromisoformat(tx.get("date", datetime.utcnow().isoformat())),
                     external_id=external_id,
                 )
                 db.add(new_tx)
                 synced += 1
 
             db.commit()
-            logger.info(
-                f"BankHub: {synced} novas transações sincronizadas para empresa {company_id}"
-            )
+            logger.info(f"BankHub: {synced} novas transações sincronizadas para empresa {company_id}")
 
             return {
                 "status": "success",
@@ -298,19 +273,13 @@ class BankHubService:
             )
             .first()
         )
-        total_income_3m = (
-            float(income_result.total) if income_result and income_result.total else 0.0
-        )
+        total_income_3m = float(income_result.total) if income_result and income_result.total else 0.0
         monthly_revenue = total_income_3m / 3
 
         # Runway: quantos meses o caixa atual dura se só sair dinheiro
         # (simplificado: baseado em saldo atual vs burn)
         net_monthly = monthly_revenue - monthly_burn
-        trend = (
-            "increasing"
-            if net_monthly > 0
-            else "decreasing" if net_monthly < 0 else "stable"
-        )
+        trend = "increasing" if net_monthly > 0 else "decreasing" if net_monthly < 0 else "stable"
 
         return {
             "monthly_burn": round(monthly_burn, 2),

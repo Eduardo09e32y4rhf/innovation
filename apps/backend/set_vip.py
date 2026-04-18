@@ -9,16 +9,13 @@ if os.path.exists(db_path):
     cursor = conn.cursor()
     try:
         # Define status ativo e plano enterprise gratuito/dono para evitar cobranças
-        cursor.execute(
-            """
+        cursor.execute("""
             UPDATE users 
             SET subscription_status = 'active', 
                 subscription_plan = 'enterprise',
                 role = 'company'
             WHERE email = ?;
-        """,
-            (email,),
-        )
+        """, (email,))
 
         if cursor.rowcount > 0:
             conn.commit()

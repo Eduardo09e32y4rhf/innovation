@@ -10,7 +10,6 @@ Cobre os 4 pilares de produto:
   3. Financeiro (Webhook Asaas)
   4. IA (Análise de currículo)
 """
-
 import pytest
 import json
 from datetime import date, timedelta
@@ -22,10 +21,10 @@ from domain.models.user import User
 from domain.models.company import Company
 from domain.models.finance import Transaction
 
+
 # ═══════════════════════════════════════════════════════════════════════════
 # PILAR 1: Autenticação e Segurança
 # ═══════════════════════════════════════════════════════════════════════════
-
 
 class TestAuthService:
     """Testa o fluxo de autenticação completo."""
@@ -38,7 +37,7 @@ class TestAuthService:
             "role": "company",
             "name": "Eduardo Silva",
             "company_name": "Innovation Ltda",
-            "cnpj": "12345678000199",  # CNPJ sem pontuação — validator aceita
+            "cnpj": "12345678000199",       # CNPJ sem pontuação — validator aceita
             "cidade": "São Paulo",
             "uf": "SP",
         }
@@ -62,50 +61,28 @@ class TestAuthService:
     def test_login_returns_jwt(self, client: TestClient, db_session: Session):
         """Login com credenciais válidas retorna JWT."""
         # Registrar primeiro
-        client.post(
-            "/api/auth/register",
-            json={
-                "email": "login@test.com",
-                "password": "senha123",
-                "role": "company",
-            },
-        )
-        resp = client.post(
-            "/api/auth/login",
-            json={
-                "email": "login@test.com",
-                "password": "senha123",
-            },
-        )
+        client.post("/api/auth/register", json={
+            "email": "login@test.com", "password": "senha123", "role": "company",
+        })
+        resp = client.post("/api/auth/login", json={
+            "email": "login@test.com", "password": "senha123",
+        })
         assert resp.status_code == 200, resp.text
         data = resp.json()
         assert "access_token" in data
         assert data["token_type"] == "bearer"
 
-    def test_login_wrong_password_returns_401(
-        self, client: TestClient, db_session: Session
-    ):
+    def test_login_wrong_password_returns_401(self, client: TestClient, db_session: Session):
         """Senha errada deve retornar 401."""
-        client.post(
-            "/api/auth/register",
-            json={
-                "email": "block@test.com",
-                "password": "correta123",
-                "role": "company",
-            },
-        )
-        resp = client.post(
-            "/api/auth/login",
-            json={
-                "email": "block@test.com",
-                "password": "ERRADA",
-            },
-        )
+        client.post("/api/auth/register", json={
+            "email": "block@test.com", "password": "correta123", "role": "company",
+        })
+        resp = client.post("/api/auth/login", json={
+            "email": "block@test.com", "password": "ERRADA",
+        })
         assert resp.status_code == 401
 
-    def test_protected_route_without_token_returns_401(
-        self, client: TestClient, db_session: Session
-    ):
+    def test_protected_route_without_token_returns_401(self, client: TestClient, db_session: Session):
         """Rotas protegidas sem JWT devem retornar 401."""
         resp = client.get("/api/auth/me")
         assert resp.status_code == 401
@@ -115,24 +92,17 @@ class TestAuthService:
 # PILAR 2: Recrutamento ATS
 # ═══════════════════════════════════════════════════════════════════════════
 
-
 class TestATSRecruitment:
     """Testa o fluxo de publicação de vagas e candidatura."""
 
     @pytest.fixture
     def auth_headers(self, client: TestClient, db_session: Session):
         import uuid
-
         unique_email = f"empresa_ats_{uuid.uuid4().hex[:8]}@test.com"
-        client.post(
-            "/api/auth/register",
-            json={
-                "email": unique_email,
-                "password": "senha123",
-                "role": "company",
-                "name": "ATS Corp",
-            },
-        )
+        client.post("/api/auth/register", json={
+            "email": unique_email, "password": "senha123",
+            "role": "company", "name": "ATS Corp",
+        })
         # Ativar o usuário diretamente no banco para testes
         user = db_session.query(User).filter(User.email == unique_email).first()
         if user:
@@ -140,13 +110,9 @@ class TestATSRecruitment:
             user.subscription_status = "active"
             user.subscription_plan = "enterprise"
             db_session.commit()
-        resp = client.post(
-            "/api/auth/login",
-            json={
-                "email": unique_email,
-                "password": "senha123",
-            },
-        )
+        resp = client.post("/api/auth/login", json={
+            "email": unique_email, "password": "senha123",
+        })
         assert resp.status_code == 200, f"Login falhou: {resp.text}"
         token = resp.json()["access_token"]
         return {"Authorization": f"Bearer {token}"}
@@ -176,21 +142,15 @@ class TestATSRecruitment:
 # PILAR 3: Webhook Asaas (Pagamento → Ativação)
 # ═══════════════════════════════════════════════════════════════════════════
 
-
 class TestPaymentWebhook:
     """Verifica que o webhook ativa o plano automaticamente."""
 
     @pytest.fixture
     def registered_user(self, client: TestClient, db_session: Session):
-        resp = client.post(
-            "/api/auth/register",
-            json={
-                "email": "payer@test.com",
-                "password": "senha123",
-                "role": "company",
-                "name": "Empresa Pagadora",
-            },
-        )
+        resp = client.post("/api/auth/register", json={
+            "email": "payer@test.com", "password": "senha123",
+            "role": "company", "name": "Empresa Pagadora",
+        })
         return resp.json()
 
     def test_webhook_payment_confirmed_activates_plan(
@@ -198,7 +158,6 @@ class TestPaymentWebhook:
     ):
         """PAYMENT_CONFIRMED deve mudar subscription_status para 'active'."""
         import os
-
         token = os.getenv("ASAAS_WEBHOOK_TOKEN", "test_webhook_secret")
 
         # Simula o payload que o Asaas envia
@@ -235,37 +194,26 @@ class TestPaymentWebhook:
 # PILAR 4: Financeiro — Fluxo Completo
 # ═══════════════════════════════════════════════════════════════════════════
 
-
 class TestFinancialFlow:
     """Testa criação de transações e métricas do dashboard."""
 
     @pytest.fixture
     def company_client(self, client: TestClient, db_session: Session):
         import uuid
-
         unique_email = f"cfo_{uuid.uuid4().hex[:8]}@test.com"
-        client.post(
-            "/api/auth/register",
-            json={
-                "email": unique_email,
-                "password": "senha123",
-                "role": "company",
-                "name": "CFO Corp",
-            },
-        )
+        client.post("/api/auth/register", json={
+            "email": unique_email, "password": "senha123",
+            "role": "company", "name": "CFO Corp",
+        })
         user = db_session.query(User).filter(User.email == unique_email).first()
         if user:
             user.status = "active"
             user.subscription_status = "active"
             user.subscription_plan = "enterprise"
             db_session.commit()
-        resp = client.post(
-            "/api/auth/login",
-            json={
-                "email": unique_email,
-                "password": "senha123",
-            },
-        )
+        resp = client.post("/api/auth/login", json={
+            "email": unique_email, "password": "senha123",
+        })
         assert resp.status_code == 200, f"Login falhou: {resp.text}"
         token = resp.json()["access_token"]
         return client, {"Authorization": f"Bearer {token}"}
@@ -273,47 +221,35 @@ class TestFinancialFlow:
     def test_create_income_transaction(self, company_client):
         """Receita deve ser criada com status pending."""
         client, headers = company_client
-        resp = client.post(
-            "/api/finance/transactions",
-            json={
-                "description": "Recebimento do Cliente XYZ",
-                "amount": 15000.00,
-                "type": "income",
-                "due_date": str(date.today()),
-            },
-            headers=headers,
-        )
+        resp = client.post("/api/finance/transactions", json={
+            "description": "Recebimento do Cliente XYZ",
+            "amount": 15000.00,
+            "type": "income",
+            "due_date": str(date.today()),
+        }, headers=headers)
         assert resp.status_code in (200, 201), resp.text
 
     def test_create_expense_transaction(self, company_client):
         """Despesa com tipo de imposto deve ser aceita."""
         client, headers = company_client
-        resp = client.post(
-            "/api/finance/transactions",
-            json={
-                "description": "DAS Mensal",
-                "amount": 75.60,
-                "type": "expense",
-                "tax_type": "DAS",
-                "due_date": str(date.today()),
-            },
-            headers=headers,
-        )
+        resp = client.post("/api/finance/transactions", json={
+            "description": "DAS Mensal",
+            "amount": 75.60,
+            "type": "expense",
+            "tax_type": "DAS",
+            "due_date": str(date.today()),
+        }, headers=headers)
         assert resp.status_code in (200, 201), resp.text
 
     def test_invalid_amount_rejected(self, company_client):
         """Valor negativo deve ser rejeitado pelo Pydantic."""
         client, headers = company_client
-        resp = client.post(
-            "/api/finance/transactions",
-            json={
-                "description": "Valor inválido",
-                "amount": -500.00,
-                "type": "expense",
-                "due_date": str(date.today()),
-            },
-            headers=headers,
-        )
+        resp = client.post("/api/finance/transactions", json={
+            "description": "Valor inválido",
+            "amount": -500.00,
+            "type": "expense",
+            "due_date": str(date.today()),
+        }, headers=headers)
         assert resp.status_code == 422
 
     def test_dashboard_metrics_authenticated(self, company_client):
@@ -322,17 +258,12 @@ class TestFinancialFlow:
         resp = client.get("/api/dashboard/metrics", headers=headers)
         assert resp.status_code == 200
         metrics = resp.json()
-        assert (
-            "revenue" in metrics
-            or "total_revenue" in metrics
-            or isinstance(metrics, dict)
-        )
+        assert "revenue" in metrics or "total_revenue" in metrics or isinstance(metrics, dict)
 
 
 # ═══════════════════════════════════════════════════════════════════════════
 # PILAR 5: Health Check Real
 # ═══════════════════════════════════════════════════════════════════════════
-
 
 class TestHealthCheck:
     """Health check deve retornar status real dos componentes."""

@@ -5,7 +5,6 @@ Roda os módulos de negócio: Vagas, RH, Finanças, Projetos, Suporte.
 Porta interna: 8003
 Kong encaminha: /api/jobs, /api/finance, /api/rh, etc → http://core_service:8003
 """
-
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -13,27 +12,11 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from api.middleware.correlation_id import CorrelationIdMiddleware
 from api.v1.endpoints import (
-    jobs,
-    applications,
-    dashboard,
-    interviews,
-    projects,
-    rh,
-    finance,
-    support,
-    payments,
-    enterprise,
-    rh_advanced,
-    csc_advanced,
-    finance_advanced,
-    projects_advanced,
-    notifications,
-    documents,
-    webhooks,
-    analytics,
-    candidates,
-    services_documents,
-    services_full,
+    jobs, applications, dashboard, interviews,
+    projects, rh, finance, support, payments,
+    enterprise, rh_advanced, csc_advanced, finance_advanced,
+    projects_advanced, notifications, documents, webhooks,
+    analytics, candidates, services_documents, services_full,
     finance_das,
 )
 import domain.models  # noqa: F401
@@ -101,7 +84,6 @@ async def health():
     try:
         from infrastructure.database.sql.session import SessionLocal
         import sqlalchemy
-
         db = SessionLocal()
         db.execute(sqlalchemy.text("SELECT 1"))
         db.close()

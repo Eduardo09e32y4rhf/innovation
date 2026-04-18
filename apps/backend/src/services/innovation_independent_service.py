@@ -25,9 +25,7 @@ class InnovationAutonomousIA:
         self.memory = self._load_knowledge()
 
         # Conexões - Protegido contra chaves vazias para não derrubar o servidor
-        nvidia_key = (
-            os.getenv("NVIDIA_API_KEY") or os.getenv("OPENAI_API_KEY") or "dummy"
-        )
+        nvidia_key = os.getenv("NVIDIA_API_KEY") or os.getenv("OPENAI_API_KEY") or "dummy"
 
         self.nvidia_client = OpenAI(
             base_url="https://integrate.api.nvidia.com/v1",

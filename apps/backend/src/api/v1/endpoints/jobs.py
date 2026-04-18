@@ -105,7 +105,6 @@ def create_job(
 
         try:
             from services.marketing_service import MarketingAutonomo
-
             # Executa a automação de marketing de recrutamento B2B
             MarketingAutonomo.automatizar_anuncio_vaga(job)
         except Exception as e:

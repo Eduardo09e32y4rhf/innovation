@@ -18,9 +18,7 @@ os.environ.setdefault("ASAAS_WEBHOOK_TOKEN", "test_webhook_secret")
 os.environ.setdefault("MP_ACCESS_TOKEN", "TEST-dummy-mp-token")
 os.environ.setdefault("PLUGGY_CLIENT_ID", "dummy")
 os.environ.setdefault("PLUGGY_CLIENT_SECRET", "dummy")
-os.environ.setdefault(
-    "RATELIMIT_ENABLED", "False"
-)  # Para garantir no backend secundário
+os.environ.setdefault("RATELIMIT_ENABLED", "False") # Para garantir no backend secundário
 
 # IMPORTANTE: Importar o app DEPOIS de configurar as var de ambiente
 from api.main import app
@@ -62,7 +60,6 @@ def client(db_session, monkeypatch):
     TestClient fixture that overrides dependencies,
     disables rate limits, and sets necessary environment.
     """
-
     def override_get_db():
         try:
             yield db_session
@@ -71,7 +68,6 @@ def client(db_session, monkeypatch):
 
     # Forçadamente desabilita o rate limiter no nível global para evitar 429 nos testes
     from slowapi import Limiter
-
     monkeypatch.setattr(Limiter, "limit", lambda *args, **kwargs: lambda f: f)
 
     # Desabilita o limiter no app também se ele já foi inicializado

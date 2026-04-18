@@ -20,7 +20,6 @@ GEMINI_KEY = os.getenv("GEMINI_API_KEY", os.getenv("GEMINI_API_KEY_1", ""))
 
 try:
     from google import genai as google_genai
-
     _GENAI_AVAILABLE = True
 except ImportError:
     _GENAI_AVAILABLE = False
@@ -29,7 +28,6 @@ except ImportError:
 def _get_gemini_client():
     try:
         from core.ai_key_manager import ai_key_manager
-
         keys = ai_key_manager.get_all_active_keys()
         api_key = keys[0] if keys else GEMINI_KEY
     except Exception:
@@ -105,12 +103,7 @@ class FinanceService:
         for t in transactions:
             ttype = t.tax_type.upper()
             if ttype not in summary:
-                summary[ttype] = {
-                    "total": 0.0,
-                    "pending": 0.0,
-                    "paid": 0.0,
-                    "items": [],
-                }
+                summary[ttype] = {"total": 0.0, "pending": 0.0, "paid": 0.0, "items": []}
 
             val = float(t.amount)
             summary[ttype]["total"] += val
@@ -121,14 +114,12 @@ class FinanceService:
             else:
                 summary[ttype]["pending"] += val
 
-            summary[ttype]["items"].append(
-                {
-                    "description": t.description,
-                    "amount": val,
-                    "due_date": t.due_date,
-                    "status": t.status,
-                }
-            )
+            summary[ttype]["items"].append({
+                "description": t.description,
+                "amount": val,
+                "due_date": t.due_date,
+                "status": t.status,
+            })
 
         return {"total_taxes": round(total_tax, 2), "breakdown": summary}
 
@@ -204,9 +195,7 @@ class FinanceService:
                     "current_balance": summary["balance"],
                     "pending_receivable": summary["pending_income"],
                     "pending_payable": summary["pending_expenses"],
-                    "alerts": [
-                        "Ative o GEMINI_API_KEY para previsões mais precisas com IA"
-                    ],
+                    "alerts": ["Ative o GEMINI_API_KEY para previsões mais precisas com IA"],
                     "recommendations": [
                         f"Baseado nos últimos {len(history)} meses, sua receita média é R$ {avg_income:.2f}"
                     ],
@@ -219,12 +208,10 @@ class FinanceService:
             }
 
         # Monta histórico formatado para o prompt
-        history_str = "\n".join(
-            [
-                f"- {m['month']}: Receita R${m['income']:.2f}, Despesas R${m['expenses']:.2f}, Saldo R${m['net']:.2f}"
-                for m in history
-            ]
-        )
+        history_str = "\n".join([
+            f"- {m['month']}: Receita R${m['income']:.2f}, Despesas R${m['expenses']:.2f}, Saldo R${m['net']:.2f}"
+            for m in history
+        ])
 
         prompt = f"""Você é um analista financeiro especialista em PMEs brasileiras.
 
@@ -272,9 +259,7 @@ Retorne APENAS um JSON válido com esta estrutura exata:
             prediction["current_balance"] = summary["balance"]
             prediction["pending_receivable"] = summary["pending_income"]
             prediction["pending_payable"] = summary["pending_expenses"]
-            logger.info(
-                f"Previsão de caixa gerada com {prediction.get('confidence', '?')}% de confiança"
-            )
+            logger.info(f"Previsão de caixa gerada com {prediction.get('confidence', '?')}% de confiança")
             return prediction
 
         except json.JSONDecodeError as e:
@@ -345,42 +330,34 @@ Retorne APENAS um JSON válido com esta estrutura exata:
             if avg_val == 0:
                 # Categoria nova — pode ser anomalia
                 if current_val > 500:  # Threshold mínimo de R$500
-                    anomalies.append(
-                        {
-                            "category": cat or "sem categoria",
-                            "current_month": round(current_val, 2),
-                            "historical_avg": 0,
-                            "deviation_pct": 100,
-                            "description": f"Nova categoria de gasto: {cat}",
-                            "impact": "Médio",
-                            "suggestion": f"Verificar se o gasto em '{cat}' (R${current_val:.2f}) é esperado.",
-                        }
-                    )
+                    anomalies.append({
+                        "category": cat or "sem categoria",
+                        "current_month": round(current_val, 2),
+                        "historical_avg": 0,
+                        "deviation_pct": 100,
+                        "description": f"Nova categoria de gasto: {cat}",
+                        "impact": "Médio",
+                        "suggestion": f"Verificar se o gasto em '{cat}' (R${current_val:.2f}) é esperado.",
+                    })
                 continue
 
             deviation = ((current_val - avg_val) / avg_val) * 100
 
             if deviation >= 30:  # 30% acima da média = anomalia
-                impact = (
-                    "Alto"
-                    if deviation >= 100
-                    else "Médio" if deviation >= 50 else "Baixo"
-                )
-                anomalies.append(
-                    {
-                        "category": cat or "sem categoria",
-                        "current_month": round(current_val, 2),
-                        "historical_avg": round(avg_val, 2),
-                        "deviation_pct": round(deviation, 1),
-                        "description": f"Gasto em '{cat}' {deviation:.0f}% acima da média histórica",
-                        "impact": impact,
-                        "suggestion": (
-                            f"O gasto atual em '{cat}' é R${current_val:.2f}. "
-                            f"A média dos últimos 3 meses era R${avg_val:.2f}. "
-                            "Verifique se houve mudança contratual, novo fornecedor ou erro de lançamento."
-                        ),
-                    }
-                )
+                impact = "Alto" if deviation >= 100 else "Médio" if deviation >= 50 else "Baixo"
+                anomalies.append({
+                    "category": cat or "sem categoria",
+                    "current_month": round(current_val, 2),
+                    "historical_avg": round(avg_val, 2),
+                    "deviation_pct": round(deviation, 1),
+                    "description": f"Gasto em '{cat}' {deviation:.0f}% acima da média histórica",
+                    "impact": impact,
+                    "suggestion": (
+                        f"O gasto atual em '{cat}' é R${current_val:.2f}. "
+                        f"A média dos últimos 3 meses era R${avg_val:.2f}. "
+                        "Verifique se houve mudança contratual, novo fornecedor ou erro de lançamento."
+                    ),
+                })
 
         # Ordena por maior desvio
         anomalies.sort(key=lambda x: x["deviation_pct"], reverse=True)

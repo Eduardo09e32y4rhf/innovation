@@ -380,7 +380,6 @@ async def ask_ai_stream(
     user_plan = getattr(current_user, "subscription_plan", "FREE").upper()
 
     if user_plan in ["FREE", "BASIC", "STARTER"]:
-
         async def plan_limit_generator():
             yield "data: ⚠️ Seu plano atual não permite acesso livre à IA. Faça upgrade para o plano COMPLETE ou ENTERPRISE para desbloquear as funcionalidades cognitivas!\n\n"
             yield "data: [DONE]\n\n"

@@ -4,13 +4,11 @@ Manager de Marketing Autônomo — Innovation.ia @Pro
 Este módulo integra o ATS de vagas ao Instagram/LinkedIn
 para gerar o "Zero-touch recruitment marketing".
 """
-
 import logging
 import requests
 import os
 from sqlalchemy.orm import Session
 from domain.models.job import Job
-
 # from app.config import settings
 
 logger = logging.getLogger(__name__)
@@ -22,15 +20,12 @@ INSTAGRAM_ACCESS_TOKEN = os.getenv("INSTAGRAM_ACCESS_TOKEN", "")
 
 BASE_URL = f"{INSTAGRAM_BASE_URL}/{INSTAGRAM_API_VERSION}"
 
-
 class MarketingAutonomo:
     @staticmethod
     def create_media(image_url: str, caption: str) -> str | None:
         """Cria mídia no Instagram API."""
         if not INSTAGRAM_ACCESS_TOKEN:
-            logger.warning(
-                "[MARKETING] Token do Instagram não configurado. Simulação ativa."
-            )
+            logger.warning("[MARKETING] Token do Instagram não configurado. Simulação ativa.")
             return "simulated_media_123"
 
         url = f"{BASE_URL}/{INSTAGRAM_BUSINESS_ACCOUNT_ID}/media"

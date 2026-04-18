@@ -15,19 +15,15 @@ logger = logging.getLogger(__name__)
 # Tenta importar LangChain com suporte ao Gemini
 try:
     from langchain_google_genai import ChatGoogleGenerativeAI
-
     _LANGCHAIN_GEMINI = True
 except ImportError:
     _LANGCHAIN_GEMINI = False
-    logger.warning(
-        "langchain-google-genai não instalado. Execute: pip install langchain-google-genai"
-    )
+    logger.warning("langchain-google-genai não instalado. Execute: pip install langchain-google-genai")
 
 try:
     from langchain.agents import AgentExecutor, create_openai_functions_agent
     from langchain_core.prompts import ChatPromptTemplate
     from langchain.tools import Tool
-
     _LANGCHAIN_AVAILABLE = True
 except ImportError:
     _LANGCHAIN_AVAILABLE = False
@@ -67,7 +63,6 @@ class SuperintendentAI:
         if _LANGCHAIN_GEMINI:
             try:
                 from core.ai_key_manager import ai_key_manager
-
                 keys = ai_key_manager.get_all_active_keys()
                 gemini_key = keys[0] if keys else os.getenv("GEMINI_API_KEY", "")
             except Exception:
@@ -83,9 +78,7 @@ class SuperintendentAI:
                     logger.info("✅ SuperintendentAI inicializado com Gemini 1.5 Flash")
                     return llm
                 except Exception as e:
-                    logger.warning(
-                        f"Falha ao inicializar Gemini para Superintendent: {e}"
-                    )
+                    logger.warning(f"Falha ao inicializar Gemini para Superintendent: {e}")
 
         logger.warning(
             "⚠️ SuperintendentAI em modo passivo. "
