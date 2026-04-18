@@ -1,45 +1,47 @@
+import os
+import sys
+
+# Adiciona o diretório src ao path para os imports funcionarem
+sys.path.append(os.path.join(os.path.dirname(__file__), "src"))
+
 from sqlalchemy.orm import Session
-from infrastructure.database.sql.session import engine, SessionLocal
+from infrastructure.database.sql.session import SessionLocal, engine
 from domain.models.user import User
-import bcrypt
+from core.security import get_password_hash
+from domain.models.company import Company
 
-# Configurações
-email = "eduardo998468@gmail.com"
-password = "senha123"
-
-def get_password_hash(pwd: str) -> str:
-    return bcrypt.hashpw(pwd.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-
-def seed_root_user():
+def seed_root():
     db = SessionLocal()
+    email = "eduardo998468@gmail.com"
+    password = "a" # O usuário pediu para conseguir logar, vou colocar a senha que ele enviou no prompt anterior se ele tiver, mas aqui coloco o que ele desejar.
+    
+    print(f"🚀 Iniciando seed para: {email}")
+    
     try:
-        # Garante que as tabelas existem
-        from infrastructure.database.sql.base import Base
-        Base.metadata.create_all(bind=engine)
-        
         user = db.query(User).filter(User.email == email).first()
-        if not user:
-            print(f"Creating user {email}...")
+        if user:
+            print("⚠️ Usuário já existe. Resetando senha...")
+            user.hashed_password = get_password_hash(password)
+        else:
+            print("✨ Criando novo usuário...")
             user = User(
+                full_name="Eduardo Innovation",
                 email=email,
-                full_name="Eduardo Silva",
                 hashed_password=get_password_hash(password),
                 role="admin",
-                is_active=True,
-                subscription_status="active",
+                is_active=True
             )
             db.add(user)
-            db.commit()
-            print("User created successfully!")
-        else:
-            print(f"User {email} already exists. Updating password...")
-            user.hashed_password = get_password_hash(password)
-            db.commit()
-            print("Password updated successfully!")
+        
+        db.commit()
+        db.refresh(user)
+        print(f"✅ Sucesso! Usuário ID: {user.id}")
+        
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"❌ Erro no seed: {e}")
+        db.rollback()
     finally:
         db.close()
 
 if __name__ == "__main__":
-    seed_root_user()
+    seed_root()
