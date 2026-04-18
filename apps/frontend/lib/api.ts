@@ -10,10 +10,9 @@ const normalizeBaseUrl = (url: string): string => {
 };
 
 export const getApiBaseUrl = (): string => {
-    // Browser: prefer explicit public backend URL when configured.
+    // Browser: force relative paths to enable Next.js rewrites and avoid Mixed Content.
     if (typeof window !== 'undefined') {
-        const browserUrl = process.env.NEXT_PUBLIC_API_URL;
-        return browserUrl ? normalizeBaseUrl(browserUrl) : '';
+        return '';
     }
 
     // Server-side: use internal/runtime API URL fallback.

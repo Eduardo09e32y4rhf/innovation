@@ -71,12 +71,15 @@ app.middleware("http")(vpn_blocker_middleware)
 # usando a chave definida no settings.GEMINI_API_KEYS
 
 
-# Middleware CORS - Unified for dev
+# Middleware CORS - Unified for dev and production
+allowed_origins = [origin.strip() for origin in settings.ALLOWED_ORIGINS.split(",") if origin.strip()]
+allow_all_origins = allowed_origins == ["*"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
-    allow_origin_regex=r"https://.*\.vercel\.app|https://.*\.loca\.lt|https://.*\.ngrok\.io|https://.*\.ngrok-free\.app",
-    allow_credentials=True,
+    allow_origins=allowed_origins or ["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_origin_regex=r"https://.*\.panel\.icontainer\.net|https://.*\.vercel\.app|https://.*\.loca\.lt|https://.*\.ngrok\.io|https://.*\.ngrok-free\.app",
+    allow_credentials=not allow_all_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )
