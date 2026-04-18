@@ -673,7 +673,7 @@ export default function AppLayout({
                 {user ? getInitials((user as any).full_name || user.name) : 'U'}
               </div>
               <div className="min-w-0">
-                <p className="text-sm font-black text-slate-900 truncate">{(user as any).full_name || user?.name || 'Carregando...'}</p>
+                <p className="text-sm font-black text-slate-900 truncate">{(user as any)?.full_name || user?.name || 'Carregando...'}</p>
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest truncate">Nv. {gamification.level} • VIP</p>
               </div>
             </div>
