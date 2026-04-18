@@ -141,6 +141,8 @@ FRONTEND_DIR="$APP_DIR/frontend"
 cat > $FRONTEND_DIR/.env.production << ENVEOF
 NEXT_PUBLIC_API_URL=https://$DOMAIN
 NEXT_PUBLIC_GEMINI_API_KEY=AIzaSyAlaIksHsbP6kLxRC3A0xSXDfX6yJNGDlM
+NEXT_PUBLIC_SUPABASE_URL=mock_url_until_replaced
+NEXT_PUBLIC_SUPABASE_ANON_KEY=mock_key_until_replaced
 ENVEOF
 
 if [ -f "$FRONTEND_DIR/package.json" ]; then
@@ -275,6 +277,9 @@ except Exception as e:
 if [ -f "alembic.ini" ]; then
   alembic upgrade head 2>/dev/null && echo "✅ Alembic migrations aplicadas" || echo "⚠️  Erro no alembic"
 fi
+
+echo "👤 Criando usuário admin inicial..."
+python seed_root_user.py 2>/dev/null && echo "✅ Usuário admin criado" || echo "⚠️ Usuário admin possivelmente já existe ou houve erro."
 deactivate
 cd $APP_DIR
 
