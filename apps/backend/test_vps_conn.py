@@ -30,7 +30,7 @@ def test_connection():
     for k in list(os.environ.keys()):
         if k.startswith("PG"):
             del os.environ[k]
-            
+
     db_url = "postgresql://innovation_user:Innov@2026#Secure@23.106.44.75:5432/innovation_db"
     print(f"--- Testando psycopg2 hardcoded: {db_url[:40]}...")
     try:

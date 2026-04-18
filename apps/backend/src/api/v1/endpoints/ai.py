@@ -383,7 +383,7 @@ async def ask_ai_stream(
         async def plan_limit_generator():
             yield "data: ⚠️ Seu plano atual não permite acesso livre à IA. Faça upgrade para o plano COMPLETE ou ENTERPRISE para desbloquear as funcionalidades cognitivas!\n\n"
             yield "data: [DONE]\n\n"
-        
+
         return StreamingResponse(plan_limit_generator(), media_type="text/event-stream")
 
     # Log usage and award XP
@@ -401,7 +401,7 @@ async def ask_ai_stream(
         async def claude_fallback_generator():
             yield f"data: [ERROR] Streaming ainda não disponível para Claude. Use Gemini.\n\n"
             yield "data: [DONE]\n\n"
-            
+
         return StreamingResponse(
             claude_fallback_generator(),
             media_type="text/event-stream",

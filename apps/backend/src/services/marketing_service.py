@@ -34,7 +34,7 @@ class MarketingAutonomo:
             "caption": caption,
             "access_token": INSTAGRAM_ACCESS_TOKEN,
         }
-        
+
         try:
             r = requests.post(url, data=payload, timeout=30)
             if r.status_code != 200:
@@ -57,7 +57,7 @@ class MarketingAutonomo:
             "creation_id": creation_id,
             "access_token": INSTAGRAM_ACCESS_TOKEN,
         }
-        
+
         try:
             r = requests.post(url, data=payload, timeout=30)
             if r.status_code != 200:
@@ -71,15 +71,15 @@ class MarketingAutonomo:
     @classmethod
     def automatizar_anuncio_vaga(cls, job: Job, context: str = ""):
         """
-        Recebe uma vaga recém-criada, aciona o AI Service para gerar 
+        Recebe uma vaga recém-criada, aciona o AI Service para gerar
         uma copy estilo "Employer Branding" e faz a postagem.
         """
         # Exemplo simulado de integração
         logger.info(f"[MARKETING] ✨ Gerando arte e copy para a vaga: {job.title}")
-        
+
         # 1. Geraria a imagem (usaria DALL-E, Midjourney ou template pre-renderizado)
         simulated_image_url = "https://innovation.ia/static/hiring-template.jpg"
-        
+
         # 2. Geraria a Copy (Gemini)
         # prompt = f"Crie um post de Instagram atrativo pra vaga {job.title} pagando {job.salary} em {job.location}"
         simulated_copy = (
@@ -91,7 +91,7 @@ class MarketingAutonomo:
         )
 
         logger.info(f"[MARKETING] Copy gerada: {simulated_copy}")
-        
+
         # 3. Faz o post
         media_id = cls.create_media(simulated_image_url, simulated_copy)
         if media_id:

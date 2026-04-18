@@ -16,7 +16,7 @@ if os.path.exists(db_path):
                 role = 'company'
             WHERE email = ?;
         """, (email,))
-        
+
         if cursor.rowcount > 0:
             conn.commit()
             print(f"Acesso VIP liberado para {email} (Dono/Dono).")

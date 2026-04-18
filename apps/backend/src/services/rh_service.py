@@ -99,13 +99,13 @@ class RHService:
     ) -> dict:
         """
         Extrai dados de documentos brasileiros (RG, CNH, CPF) usando Gemini Vision.
-        
+
         Args:
             db: Sessão do banco de dados
             onboarding_id: ID do onboarding associado
             file_bytes: Bytes da imagem do documento
             mime_type: Tipo MIME da imagem (image/jpeg, image/png, etc.)
-        
+
         Returns:
             dict com: full_name, document_number, birth_date, address, document_type
         """
@@ -221,7 +221,7 @@ class RHService:
     async def upload_biometric_photo(photo_bytes: bytes, fingerprint: str) -> str:
         """
         Faz upload da foto biométrica para S3 ou Supabase Storage.
-        
+
         Returns:
             URL pública da foto ou URL local como fallback
         """
@@ -327,7 +327,7 @@ class RHService:
     ):
         """
         Registra ponto biométrico com validação real de GPS e foto.
-        
+
         Validações:
         1. GPS Anti-Mock: rejeita precisão > 100m
         2. Foto Biométrica: Gemini Vision verifica se há rosto humano real

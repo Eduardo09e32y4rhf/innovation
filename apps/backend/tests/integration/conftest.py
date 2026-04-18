@@ -57,7 +57,7 @@ def db_session(setup_db):
 @pytest.fixture(scope="function")
 def client(db_session, monkeypatch):
     """
-    TestClient fixture that overrides dependencies, 
+    TestClient fixture that overrides dependencies,
     disables rate limits, and sets necessary environment.
     """
     def override_get_db():
@@ -69,12 +69,12 @@ def client(db_session, monkeypatch):
     # Forçadamente desabilita o rate limiter no nível global para evitar 429 nos testes
     from slowapi import Limiter
     monkeypatch.setattr(Limiter, "limit", lambda *args, **kwargs: lambda f: f)
-    
+
     # Desabilita o limiter no app também se ele já foi inicializado
     if hasattr(app, "state") and hasattr(app.state, "limiter"):
         app.state.limiter.enabled = False
 
     app.dependency_overrides[get_db] = override_get_db
-    
+
     with TestClient(app) as c:
         yield c
