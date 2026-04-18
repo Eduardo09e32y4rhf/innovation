@@ -68,7 +68,9 @@ export default function AnnouncementBanner() {
                         </div>
                         <button
                             onClick={() => setClosed([...closed, a.id])}
-                            className="p-1 hover:bg-white/10 rounded-lg transition-colors"
+                            className="p-1 hover:bg-white/10 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                            aria-label="Dismiss announcement"
+                            title="Dismiss announcement"
                         >
                             <X className="w-4 h-4" />
                         </button>
