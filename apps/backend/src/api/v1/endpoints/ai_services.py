@@ -127,8 +127,8 @@ Responda SOMENTE com o JSON válido, sem markdown.
             )
             raw = re.sub(r"```json|```", "", response_text.strip()).strip()
             return json.loads(raw)
-        except:
-            logger.error(f"Erro CV: {e}")
+        except Exception as retry_e:
+            logger.error(f"Erro CV: {retry_e}")
             raise HTTPException(
                 status_code=500, detail="Erro interno ao processar currículo"
             )
@@ -224,11 +224,9 @@ Retorne um JSON com:
             )
             raw = re.sub(r"```json|```", "", response_text.strip()).strip()
             return json.loads(raw)
-        except:
-            logger.error(f"Erro DISC: {e}")
-            raise HTTPException(
-                status_code=500, detail="Erro interno na análise DISC"
-            )
+        except Exception as retry_e:
+            logger.error(f"Erro DISC: {retry_e}")
+            raise HTTPException(status_code=500, detail="Erro interno na análise DISC")
 
 
 # ─── TECH TEST GENERATOR ───────────────────────────────────────────────────────
@@ -310,11 +308,9 @@ Retorne SOMENTE um JSON válido com a seguinte estrutura:
             )
             raw = re.sub(r"```json|```", "", response_text.strip()).strip()
             return json.loads(raw)
-        except:
-            logger.error(f"Erro Teste: {e}")
-            raise HTTPException(
-                status_code=500, detail="Erro interno ao gerar teste"
-            )
+        except Exception as retry_e:
+            logger.error(f"Erro Teste: {retry_e}")
+            raise HTTPException(status_code=500, detail="Erro interno ao gerar teste")
 
 
 # ─── KILLER QUESTIONS SUGGESTION ──────────────────────────────────────────────
@@ -362,9 +358,7 @@ Responda SOMENTE com JSON válido, sem markdown.
         return json.loads(raw)
     except Exception as e:
         logger.error(f"Erro Perguntas: {e}")
-        raise HTTPException(
-            status_code=500, detail="Erro interno ao sugerir perguntas"
-        )
+        raise HTTPException(status_code=500, detail="Erro interno ao sugerir perguntas")
 
 
 # ─── RECEIPT OCR (ZERO PAPEL) ──────────────────────────────────────────────────
@@ -424,6 +418,4 @@ Extraia os seguintes campos do recibo e retorne APENAS um JSON válido:
         return data
     except Exception as e:
         logger.error(f"Erro recibo: {e}")
-        raise HTTPException(
-            status_code=500, detail="Erro interno ao processar recibo"
-        )
+        raise HTTPException(status_code=500, detail="Erro interno ao processar recibo")
