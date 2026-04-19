@@ -1,0 +1,26 @@
+[
+  {
+    "email": "admin@innovation.ia",
+    "passwordHash": "$2b$12$8Zf9jKqLh2m3N4p5q6r7s8t9u0v1w2x3y4z5a6b7c8d9e0f1g2h3i",
+    "name": "Admin Enterprise",
+    "role": "admin",
+    "permissions": ["*"],
+    "dashboard": "/dashboard"
+  },
+  {
+    "email": "rh@innovation.ia",
+    "passwordHash": "$2b$12$KjLh2m3N4p5q6r7s8t9u0v1w2x3y4z5a6b7c8d9e0f1g2h3i4j5kL",
+    "name": "Gerente RH",
+    "role": "rh",
+    "permissions": ["rh:*", "jobs:*"],
+    "dashboard": "/rh"
+  },
+  {
+    "email": "finance@innovation.ia",
+    "passwordHash": "$2b$12$Lh2m3N4p5q6r7s8t9u0v1w2x3y4z5a6b7c8d9e0f1g2h3i4j5kLmN",
+    "name": "Gerente Financeiro",
+    "role": "finance",
+    "permissions": ["finance:*"],
+    "dashboard": "/finance"
+  }
+]
