@@ -10,14 +10,13 @@ const normalizeBaseUrl = (url: string): string => {
 };
 
 export const getApiBaseUrl = (): string => {
-    // Browser: force relative paths to enable Next.js rewrites and avoid Mixed Content.
+    // Browser: ALWAYS use relative paths to avoid Mixed Content and use Next.js rewrites.
     if (typeof window !== 'undefined') {
-        return '';
+        return ''; 
     }
 
-    // Server-side: use internal service name (docker-compose service name)
-    const serverUrl = process.env.API_URL || 'http://api_monolith:8000';
-    return normalizeBaseUrl(serverUrl);
+    // Server-side (SSR): use internal container DNS.
+    return process.env.API_URL || 'http://api_monolith:8000';
 };
 
 /** URL absoluta para uso com fetch manual (ex.: streaming SSE). */
