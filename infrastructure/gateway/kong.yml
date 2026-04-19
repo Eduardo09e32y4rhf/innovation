@@ -57,4 +57,3 @@ services:
         paths:
           - /api
         strip_path: false
-        priority: 0
