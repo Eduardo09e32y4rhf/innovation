@@ -1,198 +1,150 @@
 "use client"
 
-import React, { useState, useEffect } from 'react';
-import {
-    ShieldCheck,
-    Lock,
-    User,
-    Eye,
-    EyeOff,
-    ArrowRight,
-    Zap,
-} from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import { ShieldCheck, Lock, User, Eye, EyeOff, ArrowRight, Zap, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from "framer-motion"
 import Link from "next/link"
-import { AuthService } from "@/services/api"
+import { apiFetch, type LoginResponse } from "@/lib/api";
 
 export default function LoginPage() {
-    const [showPassword, setShowPassword] = useState(false);
-    const [loading, setLoading] = useState(false);
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
-    const [error, setError] = useState("");
-    const [mounted, setMounted] = useState(false);
-    const [redirecting, setRedirecting] = useState(false);
+  const router = useRouter();
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [mounted, setMounted] = useState(false);
 
-    useEffect(() => {
-        setMounted(true);
-    }, []);
+  useEffect(() => {
+    setMounted(true);
+    const savedToken = localStorage.getItem('token');
+    if (savedToken) {
+      router.push('/dashboard');
+    }
+  }, [router]);
 
-    const handleLogin = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setLoading(true);
-        setError("");
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
 
-        try {
-            // Limpa dados anteriores (Supabase gerencia session)
-            localStorage.removeItem("token");
-            localStorage.removeItem("supabase_token");
+    try {
+      const response = await apiFetch<LoginResponse>('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+        skipAuth: true
+      });
 
-            const data = await AuthService.login({ email, password });
-            
-            if (data.session) {
-                // Supabase session salva automaticamente nos cookies
-                setRedirecting(true);
-                window.location.href = "/dashboard";
-                return;
-            } else {
-                setError("Resposta inválida do servidor.");
-            }
-        } catch (err: any) {
-            console.error("[LOGIN_FAIL_DETAILS]", err);
-            const msg = err?.message || "Erro desconhecido";
-            
-            if (msg.includes("Failed to fetch") || msg.includes("network")) {
-                setError("🔴 FAILED TO FETCH\n1. F12 → Network → 'token'\n2. Verifique .env.local\n3. Desative VPN/Extensões");
-            } else if (msg.includes("Invalid login credentials") || msg.includes("401")) {
-                setError("Email ou senha incorretos.");
-            } else if (msg.includes("502") || msg.includes("500")) {
-                setError("Erro servidor. Aguarde 30s.");
-            } else {
-                setError(msg);
-            }
-        } finally {
-            setLoading(false);
-        }
-    };
+      localStorage.setItem('token', response.access_token);
+      localStorage.setItem('role', response.role);
+      
+      document.cookie = `auth_token=${response.access_token}; path=/; max-age=86400; Secure; SameSite=Strict`;
+      
+      router.push('/dashboard');
+    } catch (err: any) {
+      setError(err.message || 'Erro no login');
+      console.error('[LOGIN ERROR]', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    if (!mounted) return null;
+  if (!mounted) return <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-blue-50 animate-pulse" />;
 
-    if (redirecting) return (
-        <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 text-center">
-            <div className="w-16 h-16 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mb-8 shadow-2xl" />
-            <h1 className="text-2xl font-black text-slate-900 tracking-tight">AUTENTICADO</h1>
-            <p className="text-slate-500 font-bold uppercase tracking-widest text-xs mt-2">Sincronizando ambiente corporativo...</p>
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center p-4 font-sans relative">
+      <motion.div 
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="w-full max-w-md bg-white/80 backdrop-blur-xl rounded-3xl p-8 shadow-2xl border border-white/50 relative z-10"
+      >
+        <div className="text-center mb-8">
+          <div className="w-20 h-20 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-2xl">
+            <Zap className="w-10 h-10 text-white drop-shadow-lg" />
+          </div>
+          <h1 className="text-4xl font-black bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent mb-2">
+            INNOVATION IA
+          </h1>
+          <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Enterprise Access</p>
         </div>
-    );
 
-    return (
-        <div className="min-h-screen bg-[#FDFDFF] flex items-center justify-center p-6 font-sans relative overflow-hidden">
-            {/* Ambient Background */}
-            <div className="fixed top-0 right-0 w-[50%] h-[50%] bg-indigo-100/30 rounded-full blur-[120px] pointer-events-none" />
-            <div className="fixed bottom-0 left-0 w-[40%] h-[40%] bg-blue-100/30 rounded-full blur-[100px] pointer-events-none" />
-
+        <form onSubmit={handleLogin} className="space-y-6">
+          {error && (
             <motion.div 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="relative z-10 w-full max-w-[440px]"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-red-50 border border-red-200 p-4 rounded-2xl flex items-start gap-3"
             >
-                {/* Brand Area */}
-                <div className="flex flex-col items-center mb-12">
-                    <div className="w-16 h-16 bg-indigo-600 text-white rounded-3xl flex items-center justify-center shadow-2xl shadow-indigo-200 mb-6">
-                        <Zap size={30} fill="currentColor" />
-                    </div>
-                    <h1 className="text-3xl font-black text-slate-900 tracking-tighter">
-                        INNOV<span className="text-indigo-600 text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-blue-500 text-shadow-glow">A</span>TION IA
-                    </h1>
-                    <div className="flex items-center gap-2 mt-4 px-3 py-1 bg-slate-100 border border-slate-200 rounded-full">
-                        <ShieldCheck size={12} className="text-indigo-600" />
-                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Acesso Restrito Enterprise</span>
-                    </div>
-                </div>
-
-                {/* Login Card */}
-                <div className="bg-white rounded-[2.5rem] p-10 shadow-[0_30px_60px_-12px_rgba(0,0,0,0.06),0_0_1px_rgba(0,0,0,0.05)] border border-slate-100 relative group">
-                    <div className="absolute top-0 left-12 right-12 h-1 bg-indigo-600 rounded-b-full shadow-[0_2px_10px_rgba(79,70,229,0.3)]" />
-                    
-                    <div className="mb-8">
-                        <h2 className="text-2xl font-black text-slate-900 tracking-tight">Bem-vindo</h2>
-                        <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-1">Insira suas credenciais corporativas</p>
-                    </div>
-
-                    <form onSubmit={handleLogin} className="space-y-5">
-                        <AnimatePresence>
-                            {error && (
-                                <motion.div 
-                                    initial={{ opacity: 0, scale: 0.9 }}
-                                    animate={{ opacity: 1, scale: 1 }}
-                                    className="bg-rose-50 border border-rose-100 p-4 rounded-2xl flex items-start gap-3"
-                                >
-                                    <div className="w-1.5 h-1.5 bg-rose-500 rounded-full mt-1.5 shrink-0" />
-                                    <div className="text-[11px] font-black text-rose-600 uppercase tracking-wide leading-relaxed">{error}</div>
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
-
-                        {/* ID Input */}
-                        <div className="space-y-2">
-                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Enterprise Email</label>
-                            <div className="relative">
-                                <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
-                                <input 
-                                    type="email"
-                                    required
-                                    placeholder="usuario@empresa.com"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    className="w-full bg-slate-50 border border-slate-100 py-4 pl-12 pr-4 rounded-2xl text-sm font-bold text-slate-700 placeholder:text-slate-300 focus:bg-white focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/5 transition-all outline-none"
-                                />
-                            </div>
-                        </div>
-
-                        {/* Key Input */}
-                        <div className="space-y-2">
-                            <div className="flex justify-between items-center px-1">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Security Key</label>
-                                <button type="button" className="text-[10px] font-black text-indigo-600 uppercase tracking-widest hover:underline">Esqueceu?</button>
-                            </div>
-                            <div className="relative">
-                                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
-                                <input 
-                                    type={showPassword ? "text" : "password"}
-                                    required
-                                    placeholder="••••••••••••"
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    className="w-full bg-slate-50 border border-slate-100 py-4 pl-12 pr-12 rounded-2xl text-sm font-bold text-slate-700 placeholder:text-slate-300 focus:bg-white focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/5 transition-all outline-none"
-                                />
-                                <button 
-                                    type="button"
-                                    onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 hover:text-indigo-600 transition-colors"
-                                >
-                                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* Submit */}
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            className="w-full bg-indigo-600 text-white py-5 rounded-2xl font-black text-xs uppercase tracking-[0.3em] shadow-xl shadow-indigo-100 transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50 flex items-center justify-center gap-3"
-                        >
-                            {loading ? (
-                                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                            ) : (
-                                <>
-                                    Inicializar Sistema
-                                    <ArrowRight size={16} />
-                                </>
-                            )}
-                        </button>
-                    </form>
-
-                    <div className="mt-10 pt-8 border-t border-slate-50 text-center">
-                        <Link href="/register" className="text-[11px] font-black text-slate-400 hover:text-indigo-600 uppercase tracking-widest transition-colors">
-                            Ainda não possui acesso? <span className="text-indigo-600 ml-1">Criar Conta</span>
-                        </Link>
-                    </div>
-                </div>
-
-                <p className="text-center mt-10 text-[9px] font-black text-slate-300 uppercase tracking-[0.5em]">
-                    © 2026 Innovation.ia • V6 Protocol Secure
-                </p>
+              <AlertCircle className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
+              <p className="text-sm font-medium text-red-800 leading-relaxed">{error}</p>
             </motion.div>
-        </div>
-    );
+          )}
+
+          <div>
+            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Email Corporativo</label>
+            <div className="relative">
+              <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+              <input 
+                type="email"
+                required
+                placeholder="seu@empresa.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-lg font-semibold text-slate-800 placeholder-slate-400 focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 transition-all duration-200 outline-none hover:border-slate-300"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 flex justify-between">
+              Senha Corporativa
+              <Link href="/forgot-password" className="text-indigo-600 hover:text-indigo-700 text-xs font-normal">Esqueceu?</Link>
+            </label>
+            <div className="relative">
+              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+              <input 
+                type={showPassword ? "text" : "password"}
+                required
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full pl-12 pr-12 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-lg font-semibold text-slate-800 placeholder-slate-400 focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 transition-all duration-200 outline-none hover:border-slate-300"
+              />
+              <button 
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-indigo-500 transition-colors"
+              >
+                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading || !email || !password}
+            className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-5 rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl hover:shadow-2xl hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center gap-3 border-0"
+          >
+            {loading ? (
+              <>
+                <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                Entrando...
+              </>
+            ) : (
+              <>
+                Acessar Dashboard
+                <ArrowRight className="w-5 h-5" />
+              </>
+            )}
+          </button>
+        </form>
+
+        <p className="text-center mt-8 pt-6 border-t border-slate-200 text-xs text-slate-500 font-medium">
+          © 2024 Innovation.ia • Plataforma Enterprise Segura
+        </p>
+      </motion.div>
+    </div>
+  );
 }
