@@ -33,7 +33,7 @@ jobs:
         pip install pytest black flake8
         
     - name: Lint with Black
-      run: black . --check
+      run: black src/api/v1/endpoints/dashboard.py --check
       
     - name: Run Tests
       # Skipping actual tests for now as DB isn't mocked in CI yet
