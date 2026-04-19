@@ -15,8 +15,8 @@ export const getApiBaseUrl = (): string => {
         return '';
     }
 
-    // Server-side: use internal/runtime API URL fallback.
-    const serverUrl = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+    // Server-side: use internal container URL or environment variable.
+    const serverUrl = process.env.API_URL || 'http://innovation_api_monolith:8000';
     return normalizeBaseUrl(serverUrl);
 };
 
