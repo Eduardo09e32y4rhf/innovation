@@ -51,6 +51,17 @@ export function middleware(request: NextRequest) {
         return NextResponse.redirect(loginUrl);
     }
 
+    // Check subscription status
+    if (pathname.startsWith('/dashboard') || pathname.startsWith('/finance') || pathname.startsWith('/chat-ia') || pathname.startsWith('/rh')) {
+        const subStatus = request.cookies.get('sub_status')?.value;
+        if (subStatus === 'inactive' || subStatus === 'overdue') {
+            const subUrl = new URL('/subscription', request.url);
+            subUrl.searchParams.set('from', pathname);
+            subUrl.searchParams.set('status', subStatus || 'new');
+            return NextResponse.redirect(subUrl);
+        }
+    }
+
     return NextResponse.next();
 }
 

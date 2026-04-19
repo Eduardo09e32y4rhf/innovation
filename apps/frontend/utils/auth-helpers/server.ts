@@ -1,4 +1,4 @@
-import { AuthService } from '@/services/api';
+import { AuthService, SubscriptionsService } from '@/services/api';
 import { createClientCookie } from '@/lib/supabase';
 
 export async function signUp(formData: FormData): Promise<string> {
@@ -47,11 +47,18 @@ export async function signInWithPassword(formData: FormData): Promise<string> {
     const password = formData.get('password') as string;
     try {
         await AuthService.login({ email, password });
-        return '/dashboard';
+        // Check subscription after login
+        const status = await SubscriptionsService.getStatus();
+        if (status.active && !status.overdue) {
+            return '/dashboard';
+        }
+        const redirectTo = status.overdue ? '/subscription?status=overdue' : '/subscription';
+        return redirectTo;
     } catch (e) {
         return '/signin/password_signin';
     }
 }
+
 
 export async function signInWithEmail(formData: FormData): Promise<string> {
     const email = formData.get('email') as string;

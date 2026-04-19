@@ -1,12 +1,11 @@
-import { createClient } from '@supabase/supabase-js';
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
-import { NextRequest, NextResponse } from 'next/server';
-import { Database } from './database.types'; // Optional: generate from Supabase schema
 
-// Client-side Supabase client
+
+// No database.types needed for basic auth
+
+import { createClientComponentClient } from '@supabase/ssr';
+
 export const createClientComponentClient = () => 
-  createClient(
+  createClientComponentClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );

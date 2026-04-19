@@ -11,10 +11,11 @@ import {
   Activity,
   Sparkles,
   Loader2,
-  ShieldCheck
+  ShieldCheck,
+  AlertCircle
 } from 'lucide-react';
 import AppLayout from '@/components/AppLayout';
-import { AuthService, DashboardService } from '@/services/api';
+import { AuthService, DashboardService, SubscriptionsService } from '@/services/api';
 
 const formatCurrency = (val: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
@@ -74,6 +75,13 @@ export default function DashboardPage() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      // Check subscription first
+      const subCheck = await SubscriptionsService.checkSubscription();
+      if (!subCheck) {
+        window.location.href = '/subscription?from=dashboard';
+        return;
+      }
+
       setLoading(true);
       setError(null);
       try {

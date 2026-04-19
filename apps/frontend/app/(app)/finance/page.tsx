@@ -11,6 +11,7 @@ import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
     ResponsiveContainer, Legend
 } from 'recharts';
+import { asaasService } from '@/services/asaas';
 import { FinanceService, DasMeiService } from '@/services/api';
 import { motion, AnimatePresence } from 'framer-motion';
 
