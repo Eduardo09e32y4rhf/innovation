@@ -1,32 +1,32 @@
 @import "tailwindcss";
 
 @theme {
-  --color-background: #f8fafc;
-  --color-foreground: #0f172a;
-  --color-border: #e2e8f0;
+  --color-background: #0a0a0a;
+  --color-foreground: #f8fafc;
+  --color-border: rgba(255, 255, 255, 0.1);
 
-  --card: #ffffff;
-  --card-foreground: #0f172a;
+  --card: #121212;
+  --card-foreground: #f8fafc;
 
-  --popover: #ffffff;
-  --popover-foreground: #0f172a;
+  --popover: #121212;
+  --popover-foreground: #f8fafc;
 
-  --primary: #2563eb;
+  --primary: #3b82f6;
   --primary-foreground: #ffffff;
 
-  --secondary: #f1f5f9;
-  --secondary-foreground: #0f172a;
+  --secondary: #1e293b;
+  --secondary-foreground: #f8fafc;
 
-  --muted: #f1f5f9;
-  --muted-foreground: #64748b;
+  --muted: #1e293b;
+  --muted-foreground: #94a3b8;
 
-  --accent: #eff6ff;
-  --accent-foreground: #1e40af;
+  --accent: #2563eb;
+  --accent-foreground: #ffffff;
 
   --destructive: #ef4444;
   --destructive-foreground: #ffffff;
 
-  --input: #e2e8f0;
+  --input: rgba(255, 255, 255, 0.05);
   --ring: #3b82f6;
 
   --radius: 1rem;
@@ -52,17 +52,17 @@
 }
 
 @utility glass-panel {
-  background-color: rgba(255, 255, 255, 0.7);
+  background-color: rgba(10, 10, 10, 0.6);
   backdrop-filter: blur(24px);
-  border: 1px solid rgba(226, 232, 240, 0.5);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
 }
 
 @utility glass-card {
-  background-color: rgba(255, 255, 255, 0.85);
+  background-color: rgba(20, 20, 20, 0.7);
   backdrop-filter: blur(16px);
-  border: 1px solid rgba(226, 232, 240, 0.5);
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
   transition: all 0.3s ease;
 }
 
