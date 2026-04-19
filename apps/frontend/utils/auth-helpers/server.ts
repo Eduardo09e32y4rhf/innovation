@@ -1,4 +1,6 @@
-import { AuthService, SubscriptionsService } from '@/services/api';
+'use server';
+
+import { SubscriptionsService } from '@/services/api';
 import { createClientCookie } from '@/lib/supabase-server';
 
 export async function signUp(formData: FormData): Promise<string> {
@@ -46,8 +48,11 @@ export async function signInWithPassword(formData: FormData): Promise<string> {
     const email = formData.get('email') as string;
     const password = formData.get('password') as string;
     try {
-        await AuthService.login({ email, password });
-        // Check subscription after login
+        const supabase = createClientCookie();
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        
+        // Note: Subscription check on server might need special handling for cookies/headers
         const status = await SubscriptionsService.getStatus();
         if (status.active && !status.overdue) {
             return '/dashboard';
@@ -55,6 +60,7 @@ export async function signInWithPassword(formData: FormData): Promise<string> {
         const redirectTo = status.overdue ? '/subscription?status=overdue' : '/subscription';
         return redirectTo;
     } catch (e) {
+        console.error('SignIn error:', e);
         return '/signin/password_signin';
     }
 }
@@ -75,7 +81,8 @@ export async function signInWithEmail(formData: FormData): Promise<string> {
 
 export async function SignOut(formData: FormData): Promise<string> {
     try {
-        await AuthService.logout();
+        const supabase = createClientCookie();
+        await supabase.auth.signOut();
         return '/';
     } catch (e) {
         return '/signin';

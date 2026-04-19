@@ -1,0 +1,7 @@
+@router.get("/captcha")
+def get_captcha():
+    '''Anti-robo: Calculo simples (1-10 + 1-10)'''
+    import random
+    a, b = random.randint(1,10), random.randint(1,10)
+    return {"expected": a+b, "display": f"{a}+{b}=?"}
+
