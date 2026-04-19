@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, Boolean, ForeignKey
+from sqlalchemy import Column, Integer, String, Text, DateTime, Boolean, ForeignKey, LargeBinary
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING

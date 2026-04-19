@@ -104,4 +104,75 @@ export const AuthService = {
       skipAuth: true,
     }),
 };
+/**
+ * Convenience wrappers for common methods
+ */
+export const api = {
+    get: <T = unknown>(path: string, options?: ApiFetchOptions) =>
+        apiFetch<T>(path, { method: 'GET', ...options }),
 
+    post: <T = unknown>(path: string, body: unknown, options?: ApiFetchOptions) => {
+        const isForm = typeof FormData !== 'undefined' && body instanceof FormData;
+        return apiFetch<T>(path, {
+            method: 'POST',
+            body: isForm ? (body as BodyInit) : JSON.stringify(body),
+            ...options,
+        });
+    },
+
+    patch: <T = unknown>(path: string, body?: unknown, options?: ApiFetchOptions) =>
+        apiFetch<T>(path, { method: 'PATCH', body: body ? JSON.stringify(body) : undefined, ...options }),
+
+    put: <T = unknown>(path: string, body: unknown, options?: ApiFetchOptions) =>
+        apiFetch<T>(path, { method: 'PUT', body: JSON.stringify(body), ...options }),
+
+    delete: <T = unknown>(path: string, options?: ApiFetchOptions) =>
+        apiFetch<T>(path, { method: 'DELETE', ...options }),
+};
+
+/** Utility functions for URL building and authentication checks */
+export const buildApiUrl = (path: string): string => `${getApiBaseUrl()}${path.startsWith('/') ? path : `/${path}`}`;
+export const isAuthenticated = (): boolean => typeof window !== 'undefined' && !!localStorage.getItem('token');
+export const logout = (): void => {
+    if (typeof window !== 'undefined') {
+        localStorage.removeItem('token');
+        localStorage.removeItem('role');
+        window.location.href = '/login';
+    }
+};
+
+/**
+ * Domain Services
+ */
+export const DashboardService = {
+    getMetrics: () => api.get<any>('/api/dashboard/metrics'),
+    getRecentActivity: () => api.get<any>('/api/dashboard/recent-activity'),
+};
+
+export const NotificationService = {
+    getNotifications: (unreadOnly = false) => api.get<any[]>(`/api/notifications${unreadOnly ? '?unread=true' : ''}`),
+    markAsRead: (id: number) => api.patch(`/api/notifications/${id}/read`),
+};
+
+export const FinanceService = {
+    getSummary: () => api.get<any>('/api/finance/summary'),
+    getTransactions: (params?: any) => api.get<any[]>('/api/finance/transactions'),
+    createTransaction: (payload: any) => api.post<any>('/api/finance/transactions', payload),
+    getBankHub: () => api.get<any>('/api/finance/bank-hub'),
+};
+
+export const CompanyService = { getDetails: async () => ({}) };
+export const PaymentService = { getPlans: async () => [] };
+export const ProjectService = { getProjects: async () => [] };
+export const RHService = { getStats: async () => ({}) };
+export const SupportService = { getTickets: async () => [] };
+export const ATSService = {
+    getPublicJobs: () => api.get<any[]>('/api/ats/jobs/public', { skipAuth: true }),
+    getCompanyJobs: () => api.get<any[]>('/api/ats/jobs'),
+};
+export const DasMeiService = { getAtual: () => api.get<any>('/api/finance/das/competencia-atual') };
+export const AttendanceService = {
+    getPunchBalance: () => api.get<any>('/api/attendance/balance'),
+    registerPunch: (payload: any) => api.post<any>('/api/attendance/punch', payload),
+};
+export const SystemConfigService = { getAnnouncements: async () => [{ id: 1, message: "Innovation.ia Ativo!", type: "info" }] };
