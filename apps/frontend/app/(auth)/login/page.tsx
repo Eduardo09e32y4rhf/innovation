@@ -48,15 +48,15 @@ export default function LoginPage() {
                 setError("Resposta inválida do servidor.");
             }
         } catch (err: any) {
-            console.error("Login detail:", err);
+            console.error("[LOGIN_FAIL_DETAILS]", err);
             const msg = err?.message || "Erro desconhecido";
             
             if (msg.includes("Failed to fetch") || msg.includes("network")) {
-                setError("Erro de Rede: Verifique sua conexão e configurações do Supabase.");
+                setError("🔴 FAILED TO FETCH\n1. F12 → Network → 'token'\n2. Verifique .env.local\n3. Desative VPN/Extensões");
             } else if (msg.includes("Invalid login credentials") || msg.includes("401")) {
                 setError("Email ou senha incorretos.");
             } else if (msg.includes("502") || msg.includes("500")) {
-                setError("Erro temporário. Tente novamente em alguns segundos.");
+                setError("Erro servidor. Aguarde 30s.");
             } else {
                 setError(msg);
             }

@@ -1,0 +1,115 @@
+import { createClientComponentClient } from '@/lib/supabase';
+import { createClientCookie } from '@/lib/supabase';
+
+const CNPJ_REGEX = /^\\d{2}\\.\\d{3}\\.\\d{3}\\/\\d{4}-\\d{2}$/;
+const CPF_REGEX = /^\\d{3}\\.\\d{3}\\.\\d{3}-\\d{2}$/;
+
+function validateDocument(type: 'cnpj' | 'cpf', document: string): boolean {
+  const cleanDoc = document.replace(/[^0-9]/g, '');
+  if (type === 'cnpj' && !CNPJ_REGEX.test(document)) return false;
+  if (type === 'cpf' && !CPF_REGEX.test(document)) return false;
+  return cleanDoc.length === (type === 'cnpj' ? 14 : 11);
+}
+
+export const AuthService = {
+  async login(credentials: { email: string; password: string }) {
+    const supabase = createClientComponentClient();
+    
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: credentials.email,
+      password: credentials.password,
+    });
+
+    if (error) {
+      // Detailed DEBUG logging for Failed to fetch
+      const errorDetails = {
+        timestamp: new Date().toISOString(),
+        status: error.status,
+        message: error.message,
+        code: (error as any).code,
+        url: (error as any).url || 'N/A'
+      };
+      console.error('[SUPABASE_LOGIN_ERROR]', errorDetails);
+      console.error('[RAW_ERROR]', error);
+
+      if (error.message.includes('Invalid login credentials')) {
+        throw new Error('Email ou senha incorretos.');
+      } else if (error.status === 429) {
+        throw new Error('Muitas tentativas. Tente novamente em 60 segundos.');
+      }
+      throw new Error(`Supabase Error (${error.status || 'NETWORK'}): ${error.message}`);
+    }
+
+    if (!data.session?.access_token) {
+      throw new Error('Falha na autenticação.');
+    }
+
+    localStorage.setItem('supabase_token', data.session.access_token);
+    return data;
+  },
+
+  async registerEnterprise(data: {
+    name: string;
+    email: string;
+    password: string;
+    document: string;
+    documentType: 'cnpj' | 'cpf';
+    termsAccepted: boolean;
+  }) {
+    if (!data.termsAccepted) {
+      throw new Error('Você deve aceitar os termos de uso.');
+    }
+
+    if (!validateDocument(data.documentType, data.document)) {
+      throw new Error(data.documentType === 'cnpj' 
+        ? 'CNPJ inválido. Formato: 00.000.000/0000-00' 
+        : 'CPF inválido. Formato: 000.000.000-00');
+    }
+
+    const supabase = createClientComponentClient();
+    
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email: data.email,
+      password: data.password,
+    });
+
+    if (authError || !authData.user) {
+      throw new Error(authError?.message || 'Erro ao criar usuário.');
+    }
+
+    const { error: profileError } = await supabase.from('profiles').upsert({
+      id: authData.user.id,
+      full_name: data.name,
+      document_type: data.documentType,
+      document: data.document.replace(/[^0-9]/g, ''),
+      email: data.email,
+      updated_at: new Date().toISOString(),
+    });
+
+    if (profileError) {
+      console.error('Profile update error:', profileError);
+    }
+
+    return authData;
+  },
+
+  async getSession() {
+    const supabase = createClientCookie();
+    const { data: { session } } = await supabase.auth.getSession();
+    return session;
+  },
+
+  async logout() {
+    const supabase = createClientComponentClient();
+    await supabase.auth.signOut();
+    localStorage.removeItem('supabase_token');
+  },
+
+  async isAuthenticated() {
+    const session = await this.getSession();
+    return !!session;
+  },
+};
+
+export default AuthService;
+

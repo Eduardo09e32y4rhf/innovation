@@ -66,41 +66,51 @@ export async function apiFetch<T = unknown>(
     const isFormData =
         typeof FormData !== 'undefined' && rest.body instanceof FormData;
 
-    const response = await fetch(`${getApiBaseUrl()}${path}`, {
-        ...rest,
-        headers: {
-            ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
-            ...authHeader,
-            ...(headers as Record<string, string>),
-        },
-    });
+    const url = `${getApiBaseUrl()}${path}`;
+    
+    try {
+        const response = await fetch(url, {
+            ...rest,
+            headers: {
+                ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
+                ...authHeader,
+                ...(headers as Record<string, string>),
+            },
+        });
+        
+        // Redirect to login on unauthorized
+        if (response.status === 401) {
+            if (typeof window !== 'undefined') {
+                localStorage.removeItem('token');
+                window.location.href = '/login';
+            }
+            throw new Error('Unauthorized — redirecting to login');
+        }
 
-    // Redirect to login on unauthorized
-    if (response.status === 401) {
+        if (!response.ok) {
+            let detail = `HTTP ${response.status}`;
+            try {
+                const body = await response.json();
+                detail = body.detail || body.message || detail;
+            } catch {
+                // ignore parse errors
+            }
+            throw new Error(detail);
+        }
+
+        // Handle empty responses (204 No Content)
+        if (response.status === 204) {
+            return undefined as unknown as T;
+        }
+
+        return response.json() as Promise<T>;
+
+    } catch (error: any) {
         if (typeof window !== 'undefined') {
-            localStorage.removeItem('token');
-            window.location.href = '/login';
+            console.error(`[API ERROR] Failed to fetch: ${url}`, error);
         }
-        throw new Error('Unauthorized — redirecting to login');
+        throw error;
     }
-
-    if (!response.ok) {
-        let detail = `HTTP ${response.status}`;
-        try {
-            const body = await response.json();
-            detail = body.detail || body.message || detail;
-        } catch {
-            // ignore parse errors
-        }
-        throw new Error(detail);
-    }
-
-    // Handle empty responses (204 No Content)
-    if (response.status === 204) {
-        return undefined as unknown as T;
-    }
-
-    return response.json() as Promise<T>;
 }
 
 /**

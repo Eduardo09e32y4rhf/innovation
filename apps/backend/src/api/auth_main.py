@@ -41,8 +41,8 @@ app.middleware("http")(vpn_blocker_middleware)
 app.add_middleware(CorrelationIdMiddleware)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins or ["http://localhost:3000"],
-    allow_origin_regex=r"https://.*\.loca\.lt|https://.*\.ngrok\.io|https://.*\.ngrok-free\.app",
+    allow_origins=allowed_origins or ["*"],
+    allow_origin_regex=r"https?://.*\.panel\.icontainer\.net(:[0-9]+)?|https?://.*\.vercel\.app|https?://.*\.loca\.lt|https?://.*\.ngrok\.io|https?://.*\.ngrok-free\.app",
     allow_credentials=not allow_all_origins,
     allow_methods=["*"],
     allow_headers=["*"],
