@@ -13,7 +13,8 @@ class Job(Base):
     requirements = Column(Text, nullable=True)
     salary = Column(String(100), nullable=True)
     location = Column(String(200), nullable=False)
-    type = Column(String(50), nullable=True)  # remoto, presencial, híbrido
+type = Column(String(50), nullable=True)  # remoto, presencial, híbrido
+    image_url = Column(String(500), nullable=True)
     status = Column(String(50), default="active")  # active, inactive, closed
 
     # CAMPOS ORIGINAIS E EXTENDIDOS

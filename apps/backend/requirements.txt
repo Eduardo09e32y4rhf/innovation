@@ -46,6 +46,7 @@ google-genai                       # SDK Google GenAI (Gemini 1.5, 2.0, Veo)
 langchain>=0.1.0                   # Base LangChain
 langchain-community>=0.0.10
 langchain-google-genai>=1.0.0      # LangChain + Gemini (para o Superintendent)
+replicate==0.26.0                  # Text-to-Image AI (FLUX.1 para posters
 
 # --- AI: Anthropic Claude (opcional, Enterprise) ---
 # anthropic                        # Descomentar se usar Claude direto
