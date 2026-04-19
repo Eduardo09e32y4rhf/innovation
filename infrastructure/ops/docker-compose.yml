@@ -124,6 +124,12 @@ services:
       - REDIS_URL=redis://redis:6379/0
     ports:
       - "8005:8000"
+    networks:
+      default:
+        aliases:
+          - backend
+          - monolith
+          - api
     depends_on:
       postgres:
         condition: service_healthy

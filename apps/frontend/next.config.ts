@@ -12,9 +12,7 @@ const nextConfig: NextConfig = {
   async rewrites() {
     const isDev = process.env.NODE_ENV !== "production";
     const gatewayUrl =
-      process.env.API_URL ||
-      process.env.NEXT_PUBLIC_API_URL ||
-      (isDev ? "http://localhost:8000" : "http://localhost:8000");
+      process.env.API_URL || "http://api_monolith:8000";
     return [
       {
         source: "/api/:path*",
