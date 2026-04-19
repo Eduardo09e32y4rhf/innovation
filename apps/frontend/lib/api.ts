@@ -15,8 +15,8 @@ export const getApiBaseUrl = (): string => {
         return '';
     }
 
-    // Server-side: use internal container URL or environment variable.
-    const serverUrl = process.env.API_URL || 'http://innovation_api_monolith:8000';
+    // Server-side: use internal service name (docker-compose service name)
+    const serverUrl = process.env.API_URL || 'http://api_monolith:8000';
     return normalizeBaseUrl(serverUrl);
 };
 
