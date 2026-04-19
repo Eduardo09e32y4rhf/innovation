@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { Search, MapPin, DollarSign, Briefcase, Calendar, Users, CheckCircle2, Send, Loader2 } from 'lucide-react';
+import { Search, MapPin, DollarSign, Briefcase, Calendar, Users, CheckCircle2, Send, Loader2, Plus, X } from 'lucide-react';
 import AppLayout from '@/components/AppLayout';
 import { JobsService } from '@/services/api';
 
