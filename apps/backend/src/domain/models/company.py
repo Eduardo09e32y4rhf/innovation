@@ -46,3 +46,4 @@ class Company(Base):
     )
 
     owner: Mapped["User"] = relationship("User", foreign_keys=[owner_user_id])
+    users: Mapped[list["User"]] = relationship("User", foreign_keys="User.company_id", back_populates="company")

@@ -19,7 +19,8 @@ class User(Base):
     email = Column(String(180), unique=True, index=True, nullable=False)
     hashed_password = Column(String(255), nullable=False)
     full_name = Column(String(200), nullable=False)
-    role = Column(String(50), nullable=False, default="candidate")  # candidate, company
+    role = Column(String(50), nullable=False, default="employee")  # platform_admin, company_owner, employee, support_agent
+    company_id = Column(Integer, ForeignKey("companies.id"), nullable=True)
     is_active = Column(Boolean, default=True)
     two_factor_enabled = Column(Boolean, default=False)
     phone = Column(String(30), nullable=True)  # Added back for 2FA
