@@ -1,4 +1,32 @@
+version: '3.8'
+
 services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: innovation_db
+    restart: always
+    environment:
+      POSTGRES_USER: innovation_user
+      POSTGRES_PASSWORD: innovation_pass
+      POSTGRES_DB: innovation_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U innovation_user -d innovation_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: innovation_redis
+    restart: always
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   auth_service:
     build:
       context: ../../apps/backend
@@ -8,11 +36,20 @@ services:
     restart: always
     env_file:
       - ../../apps/backend/.env
+    environment:
+      - DATABASE_URL=postgresql://innovation_user:innovation_pass@postgres:5432/innovation_db
+      - REDIS_URL=redis://redis:6379/0
     deploy:
       resources:
         limits:
           cpus: '0.50'
           memory: 512M
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
   ai_service:
     build:
       context: ../../apps/backend
@@ -22,6 +59,9 @@ services:
     restart: always
     env_file:
       - ../../apps/backend/.env
+    environment:
+      - DATABASE_URL=postgresql://innovation_user:innovation_pass@postgres:5432/innovation_db
+      - REDIS_URL=redis://redis:6379/0
     deploy:
       resources:
         limits:
@@ -29,6 +69,11 @@ services:
           memory: 512M
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
   core_service:
     build:
@@ -39,11 +84,20 @@ services:
     restart: always
     env_file:
       - ../../apps/backend/.env
+    environment:
+      - DATABASE_URL=postgresql://innovation_user:innovation_pass@postgres:5432/innovation_db
+      - REDIS_URL=redis://redis:6379/0
     deploy:
       resources:
         limits:
           cpus: '0.50'
           memory: 512M
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
   whatsapp_service:
     build:
       context: ../../apps/whatsapp_service
@@ -65,8 +119,17 @@ services:
     restart: always
     env_file:
       - ../../apps/backend/.env
+    environment:
+      - DATABASE_URL=postgresql://innovation_user:innovation_pass@postgres:5432/innovation_db
+      - REDIS_URL=redis://redis:6379/0
     ports:
       - "8005:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
   frontend:
     build:
       context: ../../apps/frontend
@@ -105,4 +168,5 @@ services:
       - core_service
       - whatsapp_service
 
-
+volumes:
+  postgres_data:
