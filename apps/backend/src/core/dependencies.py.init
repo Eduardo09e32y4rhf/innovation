@@ -1,0 +1,5 @@
+from src.security.blackbox import init_blackbox
+from core.config import settings
+
+init_blackbox(settings.BLACKBOX_MASTER_KEY)
+

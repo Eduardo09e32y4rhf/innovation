@@ -1,5 +1,5 @@
 import { AuthService, SubscriptionsService } from '@/services/api';
-import { createClientCookie } from '@/lib/supabase';
+import { createClientCookie } from '@/lib/supabase-server';
 
 export async function signUp(formData: FormData): Promise<string> {
     const email = formData.get('email') as string;

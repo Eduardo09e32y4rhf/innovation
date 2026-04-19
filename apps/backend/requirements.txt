@@ -89,6 +89,9 @@ rsa==4.9.1
 ecdsa==0.19.1
 six==1.17.0
 
+# --- BlackBox Security ---
+cryptography==43.0.1
+
 # --- Payments (legacy import — pode remover após limpar código Stripe) ---
 stripe
 

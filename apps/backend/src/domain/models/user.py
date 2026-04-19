@@ -71,6 +71,9 @@ class User(Base):
     tasks = relationship("Task", back_populates="assignee")
     time_entries = relationship("TimeEntry", back_populates="user")
 
+    # BlackBox - Dados criptografados (invisíveis se hackeado)
+    encrypted_data = Column(LargeBinary(), nullable=True)
+
     @property
     def name(self):
         return self.full_name

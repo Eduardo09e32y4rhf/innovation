@@ -32,6 +32,9 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int = 30
     TERMS_VERSION: str = "v1"
 
+    # BlackBox Master Key (32 bytes base64 - MUDE!)
+    BLACKBOX_MASTER_KEY: str = "dev-blackbox-key-mude-agora-32bytesbase64=="
+
     # -- Google Gemini --------------------------------------------------------
     # Suporta multiplas chaves para rotacao automatica
     GEMINI_API_KEYS: str | None = None         # lista separada por virgula (legacy)
