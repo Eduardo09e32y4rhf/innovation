@@ -1,5 +1,5 @@
 import { createClientComponentClient } from '@/lib/supabase';
-import api from '@/lib/api';
+import { api } from '@/lib/api';
 
 export const AuthService = {
   // Client-side login (for custom login page)
