@@ -1,6 +1,7 @@
 'use client';
 
 import { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
+import { createClientComponentClient } from '@/lib/supabase';
 
 /**
  * Handles form submission for auth actions (signUp, updatePassword, etc.)
@@ -24,7 +25,12 @@ export async function handleRequest(
   }
 }
 
-export async function signInWithOAuth(e: React.FormEvent<HTMLFormElement>) {
-  e.preventDefault();
-  // Implementation for OAuth sign in
+export async function signInWithOAuth(provider: 'google' | 'github') {
+  const supabase = createClientComponentClient();
+  await supabase.auth.signInWithOAuth({
+    provider,
+    options: {
+      redirectTo: `${window.location.origin}/auth/callback`,
+    },
+  });
 }

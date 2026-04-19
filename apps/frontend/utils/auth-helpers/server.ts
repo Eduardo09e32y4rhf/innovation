@@ -1,29 +1,44 @@
 import { AuthService } from '@/services/api';
+import { createClientCookie } from '@/lib/supabase';
 
 export async function signUp(formData: FormData): Promise<string> {
     const email = formData.get('email') as string;
     const password = formData.get('password') as string;
     try {
-        await AuthService.login({ email, password }); // Placeholder since register is not public yet
-        return '/dashboard';
-    } catch (e) {
-        return '/signin/password_signin';
+        const supabase = createClientCookie();
+        const { error } = await supabase.auth.signUp({ email, password });
+        if (error) throw error;
+        return '/onboarding'; // or email confirmation
+    } catch (e: any) {
+        console.error('SignUp error:', e);
+        return '/signin/signup';
     }
 }
 
 export async function updatePassword(formData: FormData): Promise<string> {
+    const password = formData.get('password') as string;
     try {
+        const supabase = createClientCookie();
+        const { error } = await supabase.auth.updateUser({ password });
+        if (error) throw error;
         return '/dashboard';
-    } catch (e) {
-        return '/signin/password_signin';
+    } catch (e: any) {
+        console.error('UpdatePassword error:', e);
+        return '/signin/update_password';
     }
 }
 
 export async function requestPasswordUpdate(formData: FormData): Promise<string> {
+    const email = formData.get('email') as string;
     try {
-        return '/signin/password_signin';
+        const supabase = createClientCookie();
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+            redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
+        });
+        if (error) throw error;
+        return '/signin/password_signin?message=Check your email';
     } catch (e) {
-        return '/signin/password_signin';
+        return '/signin/forgot_password';
     }
 }
 
@@ -39,15 +54,25 @@ export async function signInWithPassword(formData: FormData): Promise<string> {
 }
 
 export async function signInWithEmail(formData: FormData): Promise<string> {
+    const email = formData.get('email') as string;
     try {
-        return '/signin/email_signin';
-    } catch (e) {
+        const supabase = createClientCookie();
+        const { error } = await supabase.auth.signInWithOtp({ email });
+        if (error) throw error;
+        return '/signin/check-email?message=Check your email';
+    } catch (e: any) {
+        console.error('signInWithEmail error:', e);
         return '/signin/email_signin';
     }
 }
 
 export async function SignOut(formData: FormData): Promise<string> {
-    return '/signin';
+    try {
+        await AuthService.logout();
+        return '/';
+    } catch (e) {
+        return '/signin';
+    }
 }
 
 export async function updateName(formData: FormData): Promise<string> {
@@ -57,5 +82,3 @@ export async function updateName(formData: FormData): Promise<string> {
 export async function updateEmail(formData: FormData): Promise<string> {
     return '/account';
 }
-
-// Removed duplicate block

@@ -33,15 +33,14 @@ export default function LoginPage() {
         setError("");
 
         try {
-            // Limpa qualquer dado anterior
+            // Limpa dados anteriores (Supabase gerencia session)
             localStorage.removeItem("token");
-            document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+            localStorage.removeItem("supabase_token");
 
             const data = await AuthService.login({ email, password });
             
-            if (data.access_token) {
-                localStorage.setItem("token", data.access_token);
-                document.cookie = `auth_token=${data.access_token}; path=/; max-age=86400; SameSite=Lax`;
+            if (data.session) {
+                // Supabase session salva automaticamente nos cookies
                 setRedirecting(true);
                 window.location.href = "/dashboard";
                 return;
@@ -52,12 +51,12 @@ export default function LoginPage() {
             console.error("Login detail:", err);
             const msg = err?.message || "Erro desconhecido";
             
-            if (msg.includes("Failed to fetch")) {
-                setError("Erro de Rede: O servidor não pôde ser alcançado. Verifique se a API está online.");
-            } else if (msg.includes("401")) {
+            if (msg.includes("Failed to fetch") || msg.includes("network")) {
+                setError("Erro de Rede: Verifique sua conexão e configurações do Supabase.");
+            } else if (msg.includes("Invalid login credentials") || msg.includes("401")) {
                 setError("Email ou senha incorretos.");
-            } else if (msg.includes("502")) {
-                setError("Erro do Servidor (502): Problema de Gateway na VPS.");
+            } else if (msg.includes("502") || msg.includes("500")) {
+                setError("Erro temporário. Tente novamente em alguns segundos.");
             } else {
                 setError(msg);
             }
