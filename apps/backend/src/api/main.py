@@ -78,10 +78,10 @@ allow_all_origins = allowed_origins == ["*"]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins or ["http://localhost:3000", "http://127.0.0.1:3000"],
-    allow_origin_regex=r"https://.*\.panel\.icontainer\.net|https://.*\.vercel\.app|https://.*\.loca\.lt|https://.*\.ngrok\.io|https://.*\.ngrok-free\.app",
+    allow_origin_regex=r"https://[a-zA-Z0-9-]+\.panel\.icontainer\.net|https://innovation-[a-zA-Z0-9-]+\.vercel\.app|https://[a-zA-Z0-9-]+\.loca\.lt|https://[a-zA-Z0-9-]+\.ngrok-free\.app",
     allow_credentials=not allow_all_origins,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization", "Accept", "Origin", "X-Requested-With", "X-Correlation-ID"],
 )
 # Middleware de Correlação — rastreabilidade Frontend ↔ Backend
 app.add_middleware(CorrelationIdMiddleware)

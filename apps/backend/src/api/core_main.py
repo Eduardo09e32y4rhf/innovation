@@ -52,10 +52,10 @@ app.add_middleware(CorrelationIdMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins or ["http://localhost:3000"],
-    allow_origin_regex=r"https://.*\.loca\.lt|https://.*\.ngrok\.io|https://.*\.ngrok-free\.app",
+    allow_origin_regex=r"https://[a-zA-Z0-9-]+\.loca\.lt|https://[a-zA-Z0-9-]+\.ngrok-free\.app",
     allow_credentials=not allow_all_origins,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization", "Accept", "Origin", "X-Requested-With", "X-Correlation-ID"],
 )
 
 # ── Routers ──────────────────────────────────────────────────────────────────
