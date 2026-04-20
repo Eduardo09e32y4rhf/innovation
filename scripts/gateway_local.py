@@ -8,6 +8,7 @@ Roda na porta 8000 e roteia:
 Uso: python gateway_local.py
 """
 
+import os
 from fastapi import FastAPI, Request
 from fastapi.responses import StreamingResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -16,12 +17,16 @@ import uvicorn
 
 app = FastAPI(title="Innovation.ia — Local Gateway")
 
+allowed_origins_env = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000")
+allowed_origins = [origin.strip() for origin in allowed_origins_env.split(",") if origin.strip()]
+allow_all_origins = allowed_origins == ["*"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=allowed_origins,
+    allow_credentials=not allow_all_origins,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization", "Accept", "Origin", "X-Requested-With", "X-Correlation-ID"],
 )
 
 ROUTES = {
