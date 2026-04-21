@@ -278,10 +278,7 @@ async def get_kanban_board(
     apps = (
         db.query(Application)
         .join(Application.job)
-        .options(
-            contains_eager(Application.job),
-            joinedload(Application.candidate)
-        )
+        .options(contains_eager(Application.job), joinedload(Application.candidate))
         .filter(Job.company_id == current_user.id)
         .order_by(Application.created_at.desc())
         .limit(50)
