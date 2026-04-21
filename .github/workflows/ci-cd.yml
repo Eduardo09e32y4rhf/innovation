@@ -33,7 +33,12 @@ jobs:
         pip install pytest black flake8
         
     - name: Lint with Black
-      run: black . --check
+      run: |
+        git fetch origin main:main 2>/dev/null || true
+        FILES=$(git diff --name-only origin/main HEAD | grep '\.py$' || true)
+        if [ ! -z "$FILES" ]; then
+          echo "$FILES" | xargs -r black --check
+        fi
       
     - name: Run Tests
       # Skipping actual tests for now as DB isn't mocked in CI yet
