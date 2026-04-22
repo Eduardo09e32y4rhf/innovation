@@ -10,13 +10,14 @@ from domain.models.user import User
 from core.security import get_password_hash
 from domain.models.company import Company
 
+
 def seed_root():
     db = SessionLocal()
     email = "eduardo998468@gmail.com"
-    password = "a" # O usuário pediu para conseguir logar, vou colocar a senha que ele enviou no prompt anterior se ele tiver, mas aqui coloco o que ele desejar.
-    
+    password = "a"  # O usuário pediu para conseguir logar, vou colocar a senha que ele enviou no prompt anterior se ele tiver, mas aqui coloco o que ele desejar.
+
     print(f"🚀 Iniciando seed para: {email}")
-    
+
     try:
         user = db.query(User).filter(User.email == email).first()
         if user:
@@ -29,19 +30,20 @@ def seed_root():
                 email=email,
                 hashed_password=get_password_hash(password),
                 role="admin",
-                is_active=True
+                is_active=True,
             )
             db.add(user)
-        
+
         db.commit()
         db.refresh(user)
         print(f"✅ Sucesso! Usuário ID: {user.id}")
-        
+
     except Exception as e:
         print(f"❌ Erro no seed: {e}")
         db.rollback()
     finally:
         db.close()
+
 
 if __name__ == "__main__":
     seed_root()
