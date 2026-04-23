@@ -64,7 +64,7 @@ def login(request: Request, data: LoginRequest, db: Session = Depends(get_db)):
         result = authenticate_user(db, data.email, data.password)
     except Exception as e:
         logger.error(f"Error during authentication: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Erro interno no AuthService: {str(e)}")
+        raise HTTPException(status_code=500, detail="Erro interno na autenticação")
     if not result:
         raise HTTPException(status_code=401, detail="Credenciais inválidas")
 
