@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, or_
 from infrastructure.database.sql.dependencies import get_db
 from core.dependencies import get_current_user
@@ -273,9 +273,13 @@ async def get_kanban_board(
     }
 
     # Fetch real applications
+    # ⚡ Bolt: Eliminate N+1 query problem by eagerly loading candidate and job relationships
+    # Why: Previously executed multiple DB queries within the loop to fetch related objects
+    # Impact: Reduces O(N) database queries to O(1), improving kanban endpoint performance
     apps = (
         db.query(Application)
         .join(Job)
+        .options(joinedload(Application.candidate), joinedload(Application.job))
         .filter(Job.company_id == current_user.id)
         .order_by(Application.created_at.desc())
         .limit(50)
