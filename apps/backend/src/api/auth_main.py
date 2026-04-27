@@ -5,13 +5,22 @@ Roda APENAS os módulos de autenticação e usuários.
 Porta interna: 8001
 Kong encaminha: /api/auth, /api/users → http://auth_service:8001
 """
+
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from api.middleware.correlation_id import CorrelationIdMiddleware
-from api.v1.endpoints import auth, users, companies, subscriptions, plans, terms, audit_logs
+from api.v1.endpoints import (
+    auth,
+    users,
+    companies,
+    subscriptions,
+    plans,
+    terms,
+    audit_logs,
+)
 import domain.models  # noqa: F401 — registra todos os modelos ORM
 from core.config import settings
 from core.security.vpn_block import vpn_blocker_middleware
@@ -34,7 +43,9 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-allowed_origins = [origin.strip() for origin in settings.ALLOWED_ORIGINS.split(",") if origin.strip()]
+allowed_origins = [
+    origin.strip() for origin in settings.ALLOWED_ORIGINS.split(",") if origin.strip()
+]
 allow_all_origins = allowed_origins == ["*"]
 
 app.middleware("http")(vpn_blocker_middleware)
@@ -49,8 +60,8 @@ app.add_middleware(
 )
 
 # ── Routers ──────────────────────────────────────────────────────────────────
-app.include_router(auth.router)          # /api/auth/*
-app.include_router(users.router, prefix="/api")      # /api/users/*
+app.include_router(auth.router)  # /api/auth/*
+app.include_router(users.router, prefix="/api")  # /api/users/*
 app.include_router(companies.router, prefix="/api")  # /api/companies/*
 app.include_router(subscriptions.router, prefix="/api")
 app.include_router(plans.router, prefix="/api")
@@ -64,6 +75,7 @@ async def health():
     try:
         # Testa conexão real com o banco
         from infrastructure.database.sql.session import SessionLocal
+
         db = SessionLocal()
         db.execute(__import__("sqlalchemy").text("SELECT 1"))
         db.close()

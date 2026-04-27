@@ -72,7 +72,9 @@ app.middleware("http")(vpn_blocker_middleware)
 
 
 # Middleware CORS - Unified for dev and production
-allowed_origins = [origin.strip() for origin in settings.ALLOWED_ORIGINS.split(",") if origin.strip()]
+allowed_origins = [
+    origin.strip() for origin in settings.ALLOWED_ORIGINS.split(",") if origin.strip()
+]
 allow_all_origins = allowed_origins == ["*"]
 
 app.add_middleware(
@@ -138,6 +140,7 @@ async def health():
     # ── Banco de Dados ────────────────────────────────────────────────────
     try:
         from infrastructure.database.sql.session import SessionLocal
+
         db = SessionLocal()
         db.execute(sqlalchemy.text("SELECT 1"))
         db.close()
