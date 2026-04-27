@@ -1,0 +1,12 @@
+<<<<<<< SEARCH
+    - name: Lint with Black
+      run: black . --check
+=======
+    - name: Lint with Black
+      run: |
+        git fetch origin main
+        FILES=$(git diff --name-only origin/main HEAD | grep '\.py$' || true)
+        if [ ! -z "$FILES" ]; then
+          echo "$FILES" | xargs -r black --check
+        fi
+>>>>>>> REPLACE
