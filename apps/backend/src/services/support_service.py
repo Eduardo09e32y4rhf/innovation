@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 
 try:
     from google import genai as google_genai
+
     _GENAI_AVAILABLE = True
 except ImportError:
     _GENAI_AVAILABLE = False
@@ -25,6 +26,7 @@ except ImportError:
 def _get_gemini_client():
     try:
         from core.ai_key_manager import ai_key_manager
+
         keys = ai_key_manager.get_all_active_keys()
         api_key = keys[0] if keys else os.getenv("GEMINI_API_KEY", "")
     except Exception:
@@ -51,7 +53,12 @@ class SupportService:
             client = _get_gemini_client()
             if client:
                 try:
-                    cats_str = "\n".join([f"- {c.name} (SLA: {c.expected_sla_hours}h)" for c in categories])
+                    cats_str = "\n".join(
+                        [
+                            f"- {c.name} (SLA: {c.expected_sla_hours}h)"
+                            for c in categories
+                        ]
+                    )
                     prompt = (
                         f"Ticket de suporte:\nTítulo: {title}\nDescrição: {description}\n\n"
                         f"Categorias disponíveis:\n{cats_str}\n\n"
@@ -65,12 +72,19 @@ class SupportService:
                     classified_name = response.text.strip().strip("- ").lower()
                     # Procura a categoria mais próxima do nome retornado
                     for c in categories:
-                        if c.name.lower() in classified_name or classified_name in c.name.lower():
+                        if (
+                            c.name.lower() in classified_name
+                            or classified_name in c.name.lower()
+                        ):
                             category = c
                             break
-                    logger.info(f"Ticket '{title}' classificado como '{classified_name}'")
+                    logger.info(
+                        f"Ticket '{title}' classificado como '{classified_name}'"
+                    )
                 except Exception as e:
-                    logger.warning(f"Gemini falhou ao classificar ticket: {e}. Usando primeira categoria.")
+                    logger.warning(
+                        f"Gemini falhou ao classificar ticket: {e}. Usando primeira categoria."
+                    )
 
             if not category:
                 category = categories[0]
@@ -124,7 +138,9 @@ class SupportService:
             )
             return response.text.strip()
         except Exception as e:
-            logger.error(f"Gemini falhou ao gerar resposta para ticket {ticket_id}: {e}")
+            logger.error(
+                f"Gemini falhou ao gerar resposta para ticket {ticket_id}: {e}"
+            )
             return "Sugestão IA: Seu ticket foi recebido e nossa equipe analisará em breve. Obrigado pelo contato."
 
     @staticmethod
