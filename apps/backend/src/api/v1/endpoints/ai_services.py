@@ -127,7 +127,7 @@ Responda SOMENTE com o JSON válido, sem markdown.
         except:
             raise HTTPException(
                 status_code=500,
-                detail=f"Erro ao processar currículo após tentativas: {e}",
+                detail="Erro ao processar currículo após tentativas",
             )
 
 
@@ -223,7 +223,7 @@ Retorne um JSON com:
             return json.loads(raw)
         except:
             raise HTTPException(
-                status_code=500, detail=f"Erro na análise DISC após rotação: {e}"
+                status_code=500, detail="Erro na análise DISC após rotação"
             )
 
 
@@ -308,7 +308,7 @@ Retorne SOMENTE um JSON válido com a seguinte estrutura:
             return json.loads(raw)
         except:
             raise HTTPException(
-                status_code=500, detail=f"Erro ao gerar teste após rotação: {e}"
+                status_code=500, detail="Erro ao gerar teste após rotação"
             )
 
 
@@ -357,7 +357,7 @@ Responda SOMENTE com JSON válido, sem markdown.
         return json.loads(raw)
     except Exception as e:
         raise HTTPException(
-            status_code=500, detail=f"Erro ao sugerir perguntas após rotação: {e}"
+            status_code=500, detail="Erro ao sugerir perguntas após rotação"
         )
 
 
@@ -417,6 +417,4 @@ Extraia os seguintes campos do recibo e retorne APENAS um JSON válido:
 
         return data
     except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Erro ao processar recibo: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail="Erro ao processar recibo")
