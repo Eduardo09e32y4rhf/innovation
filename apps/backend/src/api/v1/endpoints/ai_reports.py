@@ -64,7 +64,7 @@ async def generate_management_insight(
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Erro ao processar insight: {str(e)}",
+            detail="Erro ao processar insight",
         )
 
 
