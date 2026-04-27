@@ -5,13 +5,23 @@ Roda APENAS os módulos de IA, chat e análise de currículos.
 Porta interna: 8002
 Kong encaminha: /api/ai, /api/chat, /api/ai-admin → http://ai_service:8002
 """
+
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from api.middleware.correlation_id import CorrelationIdMiddleware
-from api.v1.endpoints import ai, ai_services, ai_admin, ai_reports, matching, innovation_chat, innovation_sync, killer_questions
+from api.v1.endpoints import (
+    ai,
+    ai_services,
+    ai_admin,
+    ai_reports,
+    matching,
+    innovation_chat,
+    innovation_sync,
+    killer_questions,
+)
 import domain.models  # noqa: F401
 from core.config import settings
 from core.security.vpn_block import vpn_blocker_middleware
@@ -34,7 +44,9 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-allowed_origins = [origin.strip() for origin in settings.ALLOWED_ORIGINS.split(",") if origin.strip()]
+allowed_origins = [
+    origin.strip() for origin in settings.ALLOWED_ORIGINS.split(",") if origin.strip()
+]
 allow_all_origins = allowed_origins == ["*"]
 
 app.middleware("http")(vpn_blocker_middleware)
@@ -63,11 +75,13 @@ app.include_router(killer_questions.router)
 async def health():
     """Health check com teste real à API Gemini."""
     import os
+
     gemini_keys = os.getenv("GEMINI_API_KEYS", "")
     gemini_status = "configured" if gemini_keys else "not_configured"
 
     try:
         from infrastructure.database.sql.session import SessionLocal
+
         db = SessionLocal()
         db.execute(__import__("sqlalchemy").text("SELECT 1"))
         db.close()
