@@ -21,3 +21,8 @@
 **Vulnerability:** Several backend endpoints (`users.py`, `jobs.py`, `candidates.py`) were returning the raw output of Python exceptions (`str(e)`) directly to users via HTTP 500 response bodies.
 **Learning:** Returning `str(e)` directly in HTTP responses can leak sensitive internal details, database structure (SQLAlchemy errors), or logic to malicious actors. This violates the principle of failing securely and "Never expose raw exception strings (`str(e)`) in HTTP responses to external clients."
 **Prevention:** Catch exceptions, log `str(e)` securely on the backend using Python`s `logging` library, and return a sanitized, generic error message (e.g. "Erro interno ao processar a requisição") to the client.
+
+## 2025-03-04 - [CRITICAL] Command Injection in Audio Processing
+**Vulnerability:** The functions `processAudio` and `processAudioFile` in `apps/whatsapp_service/src/services/WbotServices/SendWhatsAppMedia.ts` and `SendWhatsAppMediaFlow.ts` use `exec` to run `ffmpeg` with user-controlled input (`audio` path). Because the input is interpolated directly into the command string, it allows an attacker to execute arbitrary shell commands if they can control the audio filename or path.
+**Learning:** Using `child_process.exec()` with unescaped, untrusted input is a classic Command Injection vector. Instead, use functions that do not spawn a shell or accept arguments as an array instead of a concatenated string, such as `child_process.execFile()`.
+**Prevention:** Always use `execFile` or `spawn` when running external commands, and pass arguments as an array to prevent shell interpretation of input data.
