@@ -49,15 +49,15 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     
+    - name: Install pnpm
+      run: npm install -g pnpm
+
     - name: Set up Node.js
       uses: actions/setup-node@v4
       with:
         node-version: ${{ env.NODE_VERSION }}
         cache: 'pnpm'
         cache-dependency-path: './apps/frontend/pnpm-lock.yaml'
-        
-    - name: Install pnpm
-      run: npm install -g pnpm@10.30.3
 
     - name: Install Dependencies
       run: pnpm install --frozen-lockfile
