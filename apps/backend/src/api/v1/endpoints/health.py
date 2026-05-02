@@ -5,6 +5,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from core.config import settings
+from core.dependencies import get_current_user
 from infrastructure.database.sql.dependencies import get_db
 from services.notification_service import NotificationPayload, send_email
 
@@ -37,7 +38,7 @@ def health_check(db: Session = Depends(get_db)):
     return checks
 
 
-@router.get("/health/deep")
+@router.get("/health/deep", dependencies=[Depends(get_current_user)])
 def deep_health_check(db: Session = Depends(get_db)):
     """
     Health check profundo que testa envio real de e-mail.
