@@ -14,3 +14,7 @@
 ## 2024-05-20 - N+1 Query in Kanban Board
 **Learning:** Found an N+1 query issue in `get_kanban_board` inside `apps/backend/src/api/v1/endpoints/dashboard.py`. The endpoint queried applications, explicitly joining `Job` for a filter, but then accessed `app.candidate` and `app.job.title` in a loop. Because these relations weren't eagerly loaded, extra queries fired for each application.
 **Action:** When a relationship is explicitly joined for filtering (like `.join(Job)`), use `contains_eager` to populate the property without generating a redundant SQL join. For un-joined relations accessed in a loop, use `joinedload`. Combining these eliminated O(N) queries, significantly accelerating the endpoint.
+
+## 2024-05-20 - PNPM Lockfile Synchronization in CI
+**Learning:** In frontend CI pipelines using modern package managers like `pnpm`, commands like `pnpm install` default to a `frozen-lockfile` behavior. If `package.json` has newly added dependencies but `pnpm-lock.yaml` wasn't updated locally before pushing, CI will fail with `ERR_PNPM_OUTDATED_LOCKFILE`.
+**Action:** Always execute a local `pnpm install` to update the lockfile and include it in your commit when modifying frontend dependencies, to ensure the CI job passes the frozen lockfile check.
