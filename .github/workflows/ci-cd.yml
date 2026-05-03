@@ -16,12 +16,10 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./apps/backend
+        working-directory: ./backend
 
     steps:
     - uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
     
     - name: Set up Python
       uses: actions/setup-python@v5
@@ -35,18 +33,7 @@ jobs:
         pip install pytest black flake8
         
     - name: Lint with Black
-      run: |
-        # Fallback to origin/main if base sha is 0000000000000000000000000000000000000000
-        BASE_REF="${{ github.event.pull_request.base.sha || github.event.before }}"
-        if [[ "$BASE_REF" == "0000000000000000000000000000000000000000" || -z "$BASE_REF" ]]; then
-          BASE_REF="origin/main"
-        fi
-
-        if git diff --relative --name-only $BASE_REF HEAD | grep -q '\.py$'; then
-          git diff --relative --name-only $BASE_REF HEAD | grep '\.py$' | xargs -r black --check
-        else
-          echo "No Python files modified in backend."
-        fi
+      run: black . --check
       
     - name: Run Tests
       # Skipping actual tests for now as DB isn't mocked in CI yet
@@ -57,26 +44,23 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./apps/frontend
+        working-directory: ./frontend
 
     steps:
     - uses: actions/checkout@v4
     
-    - name: Install pnpm
-      run: npm install -g pnpm
-
     - name: Set up Node.js
       uses: actions/setup-node@v4
       with:
         node-version: ${{ env.NODE_VERSION }}
-        cache: 'pnpm'
-        cache-dependency-path: './apps/frontend/pnpm-lock.yaml'
+        cache: 'npm'
+        cache-dependency-path: './frontend/package-lock.json'
         
     - name: Install Dependencies
-      run: pnpm install
+      run: npm ci
       
     - name: Build Next.js App
-      run: pnpm run build
+      run: npm run build
       env:
         CI: true
 
