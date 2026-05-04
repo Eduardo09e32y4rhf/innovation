@@ -4,9 +4,12 @@ from typing import Dict, Any
 from infrastructure.database.sql.dependencies import get_db
 from core.dependencies import get_current_user
 from domain.models.user import User
+import logging
 from domain.models.report import Report
 from services.nvidia_service import NvidiaService
 from pydantic import BaseModel
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/ai-reports", tags=["AI Reports"])
 nvidia_service = NvidiaService()
@@ -61,9 +64,6 @@ async def generate_management_insight(
     except HTTPException:
         raise
     except Exception as e:
-        import logging
-
-        logger = logging.getLogger(__name__)
         logger.error(f"Erro ao processar insight: {e}")
         db.rollback()
         raise HTTPException(
