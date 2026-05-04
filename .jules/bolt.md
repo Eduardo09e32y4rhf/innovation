@@ -10,3 +10,7 @@
 ## 2024-03-01 - Avoid O(N) memory allocations via `.all()` inside iterative loops
 **Learning:** Found an endpoints in `rh_advanced.py` fetching ORM records (`TimeBank`) via `.all()` inside a `for u in users` loop, accumulating values manually via `sum()`. For huge record sets, querying related records in a loop causes an O(N) memory scale-up alongside an N+1 query regression.
 **Action:** When a loop iterates over database objects to count or aggregate fields, replace the loop with a single SQLAlchemy aggregation query (`func.sum` and `group_by`). This solves the N+1 problem and keeps Python memory strictly bounded to the result size rather than materializing all records into Python objects.
+
+## 2025-02-23 - Database Aggregation over Python Loops
+**Learning:** In endpoints that return aggregate metrics like CSAT averages and distributions (`apps/backend/src/api/v1/endpoints/csc_advanced.py`), fetching all individual records via `.all()` and performing Python calculations (`sum() / len()`) creates an $O(N)$ memory and processing bottleneck that scales poorly with ticket volume.
+**Action:** When calculating statistics or distributions, always use database-level aggregations (`func.count`, `.group_by()`) to reduce memory usage and query execution time from $O(N)$ to $O(1)$.

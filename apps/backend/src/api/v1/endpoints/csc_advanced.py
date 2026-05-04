@@ -379,23 +379,46 @@ def csat_summary(
     current_user: User = Depends(get_current_user),
 ):
     from domain.models.company import Company
+    from sqlalchemy import func
 
     company = db.query(Company).filter(Company.owner_user_id == current_user.id).first()
     if not company:
         return {"average": 0, "total": 0, "distribution": {}}
 
-    ratings = (
-        db.query(TicketRating)
+    # ⚡ Bolt: Fetch aggregated distribution counts from the database instead of loading all objects
+    # Why: O(N) memory and multiple O(N) python loops replaced with O(1) database aggregation
+    # Impact: Reduces memory usage and response time for companies with many ticket ratings
+    dist_query = (
+        db.query(TicketRating.score, func.count(TicketRating.id).label("count"))
         .join(Ticket)
         .filter(Ticket.company_id == company.id)
+        .group_by(TicketRating.score)
         .all()
     )
 
-    if not ratings:
-        return {"average": 0, "total": 0, "distribution": {}}
-    avg = sum(r.score for r in ratings) / len(ratings)
-    dist = {str(i): sum(1 for r in ratings if r.score == i) for i in range(1, 6)}
-    return {"average": round(avg, 2), "total": len(ratings), "distribution": dist}
+    if not dist_query:
+        return {
+            "average": 0,
+            "total": 0,
+            "distribution": {str(i): 0 for i in range(1, 6)},
+        }
+
+    total = sum(row.count for row in dist_query)
+    if total == 0:
+        return {
+            "average": 0,
+            "total": 0,
+            "distribution": {str(i): 0 for i in range(1, 6)},
+        }
+
+    total_score = sum(row.score * row.count for row in dist_query)
+    avg = total_score / total
+
+    dist = {str(i): 0 for i in range(1, 6)}
+    for row in dist_query:
+        dist[str(row.score)] = row.count
+
+    return {"average": round(avg, 2), "total": total, "distribution": dist}
 
 
 # ─── SPIKE DETECTION ───────────────────────────────────────────────────────────
