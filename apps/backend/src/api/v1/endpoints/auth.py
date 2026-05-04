@@ -53,7 +53,7 @@ def register(data: RegisterRequest, db: Session = Depends(get_db)):
             role=data.role or "candidate",
         )
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail="Dados inválidos fornecidos")
 
 
 @router.post("/login", response_model=Token)
@@ -64,7 +64,9 @@ def login(request: Request, data: LoginRequest, db: Session = Depends(get_db)):
         result = authenticate_user(db, data.email, data.password)
     except Exception as e:
         logger.error(f"Error during authentication: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Erro interno no AuthService: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail="Erro interno durante a autenticação"
+        )
     if not result:
         raise HTTPException(status_code=401, detail="Credenciais inválidas")
 
