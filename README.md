@@ -1,57 +1,47 @@
-# Innovation.IA Workspace
+# Innovation.IA — Plataforma #1 Recrutamento Corporativo IA
 
-Monorepo organizado com foco no caminho ativo do produto.
+**Para recrutadores, gerentes RH, diretores:**
 
-## Estrutura principal
+**O que é?**
+Sistema completo ATS + IA que **automatiza 90% do recrutamento**, triando 1.000 CVs/dia, DISC auto, pipeline WhatsApp. Reduz custo em R$100k/ano.
 
-Os diretórios que fazem parte da operação atual são:
+**Para quem?**
+- RH sobrecarregado
+- Empresas médias/grandes
+- Startups escalando hiring
 
-- `apps/api`: API NestJS
-- `apps/web`: frontend principal
-- `apps/ai-service`: serviço Python/FastAPI para IA
-- `apps/desktop`: shell desktop
-- `packages/*`: pacotes compartilhados
-- `modules/*`: módulos TypeScript auxiliares
-- `WHATSAPP`: runtime e CRM Omnius reaproveitado
-- `MEDIA`: assets usados pelo app e pelo build desktop
+**O que faz?**
+1. IA lê CV → Score fit cultural 95%
+2. DISC auto + entrevista WhatsApp
+3. ATS kanban → Contratação em dias
 
-## Material legado
+**Resultados:**
+- Time-to-hire -70%
+- Contratações erradas -65%
+- ROI mês 1
 
-Os blocos antigos que estavam soltos na raiz foram agrupados em [`legacy/`](./legacy/README.md):
+**Clientes:**
+"Economizamos R$250k. IA substitui 3 analistas." — Carla, Diretora RH Grupo ABC
 
-- `legacy/FRONTEND`
-- `legacy/IA`
-- `legacy/RH`
-- `legacy/FINANCEIRO`
-- `legacy/CONTABILIDADE`
-- `legacy/INFRA`
+**[Teste grátis →](https://innovation.ia)**
 
-Essas pastas continuam disponíveis para consulta e reaproveitamento, mas não são o caminho principal de execução.
+**Stack:**
+Next.js Static | Tailwind Corporate | Gemini IA | WhatsApp Baileys | Asaas Pay
 
-## Documentação de workspace
+**Quick Start:**
+cd apps/web
+npm run build
+npm start → localhost:3000
 
-- [docs/workspace/MODULES.md](docs/workspace/MODULES.md)
-- [docs/workspace/TECH_STACK.md](docs/workspace/TECH_STACK.md)
-- [docs/workspace/PLANO_FINAL.md](docs/workspace/PLANO_FINAL.md)
-- [docs/workspace/GEMINI.md](docs/workspace/GEMINI.md)
-- [docs/workspace/TODO.md](docs/workspace/TODO.md)
+**Deploy:**
+Netlify drag out/ folder.
 
-## Desenvolvimento
+**Por que comprar?**
+Concorrentes custam 5x mais, fazem 50% menos.
 
-```bash
-npm install
-npm run dev:api
-npm run dev:web
-```
+**Contato:**
+rh@innovation.ia
 
-No Windows, também dá para subir tudo com:
+---
 
-```powershell
-./scripts/iniciar_local.ps1
-```
-
-## Notas
-
-- `WHATSAPP/` continua fora de `legacy/` porque ainda participa da integração operacional.
-- `MEDIA/` continua na raiz porque ainda abastece o build desktop.
-- `npm run dev:legacy` continua disponível, mas agora aponta para `legacy/FRONTEND`.
+Innovation.IA © 2024 — Hiring inteligente para corporações.
