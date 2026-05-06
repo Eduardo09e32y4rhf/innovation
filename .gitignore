@@ -26,6 +26,11 @@ node_modules/
 out/
 build/
 .vercel
+dist/
+*.tsbuildinfo
+*.bak
+apps/api/dist/
+apps/desktop/dist/
 
 # Databases
 *.db
