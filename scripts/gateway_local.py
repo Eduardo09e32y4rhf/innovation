@@ -1,9 +1,10 @@
 """
 gateway_local.py — Mini proxy/gateway local substituto do Kong
 Roda na porta 8000 e roteia:
-  /api/auth/*  → http://localhost:8001
-  /api/ai/*    → http://localhost:8002
-  /api/core/*  → http://localhost:8003
+  /api/auth/*     → http://localhost:8001
+  /api/ai/*       → http://localhost:8002
+  /api/core/*     → http://localhost:8003
+  /api/whatsapp/* → http://localhost:8004
 
 Uso: python gateway_local.py
 """
@@ -28,6 +29,7 @@ ROUTES = {
     "/api/auth": "http://localhost:8001",
     "/api/ai": "http://localhost:8002",
     "/api/core": "http://localhost:8003",
+    "/api/whatsapp": "http://localhost:8004",
 }
 
 
@@ -38,6 +40,10 @@ async def proxy(request: Request, target_base: str):
 
     headers = dict(request.headers)
     headers.pop("host", None)
+    # Garante que o cabeçalho de autenticação seja preservado e repassado corretamente
+    auth_header = request.headers.get("authorization")
+    if auth_header:
+        headers["authorization"] = auth_header
 
     body = await request.body()
 
@@ -49,7 +55,6 @@ async def proxy(request: Request, target_base: str):
                 headers=headers,
                 content=body,
             )
-            # Para SSE (streaming), usar StreamingResponse
             content_type = resp.headers.get("content-type", "")
             if "text/event-stream" in content_type:
                 return StreamingResponse(
@@ -99,6 +104,14 @@ async def core_proxy(request: Request, path: str):
     return await proxy(request, "http://localhost:8003")
 
 
+@app.api_route(
+    "/api/whatsapp/{path:path}",
+    methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+)
+async def whatsapp_proxy(request: Request, path: str):
+    return await proxy(request, "http://localhost:8004")
+
+
 @app.get("/")
 async def root():
     return {
@@ -107,6 +120,7 @@ async def root():
             "/api/auth/*": "http://localhost:8001",
             "/api/ai/*": "http://localhost:8002",
             "/api/core/*": "http://localhost:8003",
+            "/api/whatsapp/*": "http://localhost:8004",
         },
     }
 

@@ -1,40 +1,36 @@
-# iniciar_local.ps1 — Innovation.ia Dev Server
-# Abre janelas separadas para backend e frontend mostrando erros em tempo real
+# iniciar_local.ps1 - Innovation.ia Dev Server
+# Sobe o app novo: API NestJS + frontend Next.js
 
 $ROOT = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 
 Write-Host "====================================================" -ForegroundColor Cyan
-Write-Host "  Innovation.ia — Iniciando Servidores...           " -ForegroundColor Cyan
+Write-Host "  Innovation.ia - Iniciando Servidores...           " -ForegroundColor Cyan
 Write-Host "====================================================" -ForegroundColor Cyan
 
-# ── BACKEND ──────────────────────────────────────────────────────────────────
-Write-Host "`n[1/2] Abrindo backend..." -ForegroundColor Yellow
+Write-Host "`n[1/2] Abrindo API Nest..." -ForegroundColor Yellow
 $backendArgs = @(
     "-NoExit",
     "-Command",
-    "cd '$ROOT\apps\backend'; `$env:PYTHONPATH='src'; `$env:ALLOWED_ORIGINS='http://localhost:3000'; Write-Host '>>> BACKEND: http://localhost:8000' -ForegroundColor Green; python -m uvicorn src.api.main:app --host 0.0.0.0 --port 8000 --env-file ..\..\.env"
+    "cd '$ROOT'; Write-Host '>>> API: http://localhost:3333' -ForegroundColor Green; npm run dev:api"
 )
 Start-Process powershell -ArgumentList $backendArgs
 
 Start-Sleep -Seconds 2
 
-# ── FRONTEND ─────────────────────────────────────────────────────────────────
-Write-Host "[2/2] Abrindo frontend..." -ForegroundColor Yellow
+Write-Host "[2/2] Abrindo frontend Next..." -ForegroundColor Yellow
 $frontendArgs = @(
     "-NoExit",
     "-Command",
-    "cd '$ROOT\apps\frontend'; Write-Host '>>> FRONTEND: http://localhost:3000' -ForegroundColor Green; npm run dev"
+    "cd '$ROOT'; Write-Host '>>> FRONTEND: http://localhost:3000' -ForegroundColor Green; npm run dev:web"
 )
 Start-Process powershell -ArgumentList $frontendArgs
 
-# ── INFO ─────────────────────────────────────────────────────────────────────
 Write-Host "`n====================================================" -ForegroundColor Green
 Write-Host "  Duas janelas abertas!" -ForegroundColor Green
 Write-Host "  Aguarde ~20 segundos e acesse:" -ForegroundColor Yellow
 Write-Host ""
-Write-Host "  http://localhost:3000/login              (Login)" -ForegroundColor White
-Write-Host "  http://localhost:3000/dashboard/ponto    (Ponto Eletronico)" -ForegroundColor White
-Write-Host "  http://localhost:3000/dashboard/rh       (Painel RH)" -ForegroundColor White
-Write-Host "  http://localhost:3000/dashboard/analytics (B.I. Analytics)" -ForegroundColor White
-Write-Host "  http://localhost:8000/docs               (API Swagger)" -ForegroundColor White
+Write-Host "  http://localhost:3000             (App Web novo)" -ForegroundColor White
+Write-Host "  http://localhost:3000/dashboard   (Dashboard)" -ForegroundColor White
+Write-Host "  http://localhost:3000/jobs        (RH Publico)" -ForegroundColor White
+Write-Host "  http://localhost:3333/docs        (Swagger API)" -ForegroundColor White
 Write-Host "====================================================" -ForegroundColor Green

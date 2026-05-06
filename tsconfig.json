@@ -1,0 +1,38 @@
+{
+  "extends":  "./tsconfig.base.json",
+  "compilerOptions":  {
+                            "baseUrl":  ".",
+                            "module": "ESNext",
+                            "moduleResolution": "Bundler",
+                            "jsx": "react-jsx",
+                            "ignoreDeprecations": "5.0"
+                        },
+    "include": [
+                    "packages/**/*.ts",
+                    "packages/**/*.tsx",
+                    "modules/**/*.ts",
+                    "modules/**/*.tsx",
+                    "apps/desktop/**/*.ts",
+                    "apps/desktop/**/*.tsx",
+                    "scripts/**/*.ts",
+                    "scripts/**/*.tsx"
+                ],
+    "exclude":  [
+                    "node_modules",
+                    "dist",
+                    "build",
+                    ".next",
+                    "out",
+                    "release",
+                    "logs",
+                    "FRONTEND",
+                    "WHATSAPP",
+                    "backend",
+                    "CONTABILIDADE",
+                    "FINANCEIRO",
+                    "IA",
+                    "RH",
+                    "MEDIA",
+                    "INFRA"
+                ]
+}
