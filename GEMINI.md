@@ -5,46 +5,22 @@ Este arquivo fornece contexto profundo para o Gemini CLI entender a arquitetura,
 ## 🚀 Visão Geral
 A **Innovation.ia** é uma plataforma SaaS Next-Gen baseada em microserviços. Unifica IA, recrutamento (ATS), financeiro e analytics em um único sistema operacional corporativo.
 
-## 🏗️ Arquitetura (Microserviços)
-O sistema é composto pelos seguintes componentes principais:
+## 🏗️ Arquitetura Modular (Blocos)
+O sistema foi reorganizado em 8 blocos principais dentro de `apps/` para facilitar o desenvolvimento isolado:
 
-### 1. Gateway (Kong)
-- **Local:** `http://localhost:8000`
-- **Função:** Ponto de entrada único, autenticação centralizada e roteamento.
-
-### 2. Backend (FastAPI)
-- **Caminho:** `apps/backend`
-- **Tecnologia:** Python, FastAPI, SQLAlchemy, PostgreSQL.
-- **Módulos:**
-  - `auth`: Gestão de usuários e permissões (RBAC).
-  - `ai`: Integração avançada com Gemini Pro (análise de currículos e DISC) e modelo Veo (geração de vídeo).
-  - `core`: Lógica de negócios, missões, gamificação e gerenciamento dinâmico de chaves API de IA.
-  - `finance`: Integração com Mercado Pago e fluxo de caixa.
-
-### 3. Frontend (Next.js)
-- **Caminho:** `apps/frontend`
-- **Tecnologia:** React, Next.js 16+, Tailwind CSS, Framer Motion.
-- **Características:** Dashboard premium, glassmorphism e micro-animações.
-
-### 4. AI Engine
-- **Caminho:** `apps/ai_engine`
-- **Função:** Trabalhadores (workers) assíncronos para processamento pesado de IA.
-
-### 5. Infraestrutura
-- **Docker:** Orquestração completa via `docker-compose.yml`.
-- **Banco de Dados:** PostgreSQL centralizado.
+1. **🤖 1-ia**: Motores de IA (Gemini, NVIDIA, GPT), prompts e modelos.
+2. **💬 2-whatsapp**: Bot de atendimento, fluxos, handlers e integração API.
+3. **👥 3-rh**: Sistema ATS, testes DISC, processamento de currículos e portal RH.
+4. **💳 4-financeiro**: Checkout, Meios de Pagamento (Asaas/MP), assinaturas e faturas.
+5. **📊 5-contabilidade**: Dashboard do cliente, Notas Fiscais e Relatórios Contábeis.
+6. **🎨 6-media**: Gerador de fotos profissionais para currículos e templates.
+7. **⚙️ 7-infra**: Docker, Gateway (Kong), Migrations de DB e CI/CD.
+8. **🖥️ 8-frontend**: O App Principal (Next.js) consolidado.
 
 ## 🛠️ Padrões de Desenvolvimento
-
-### Backend (Python/FastAPI)
-- Use Pydantic para validação de dados.
-- Siga o padrão de Repositórios/Serviços para separação de preocupações.
-- As rotas de IA utilizam um sistema escalável de rotação de chaves via `AI Key Manager` para garantir alta disponibilidade dos modelos Gemini e Veo.
-
-### Frontend (Next.js/React)
-- Componentes reutilizáveis em `frontend/src/components/ui`.
-- Framer Motion para animações fluidas.
-- Consumo de API sempre via Gateway (`/api/...`).
+- **Isolamento**: Cada módulo deve ser o mais independente possível.
+- **Frontend**: Componentes de UI ficam em `8-frontend`, mas lógicas específicas de módulo podem residir em sua própria pasta `frontend` dentro do bloco.
+- **Workspace**: Sempre utilize o arquivo `innovation.ia.code-workspace` para uma visão limpa no VS Code.
 
 ## 📋 Comandos Úteis
 - `scripts/iniciar_local.ps1`: Inicia todos os containers via PowerShell.

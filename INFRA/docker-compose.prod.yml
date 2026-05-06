@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  # Gateway - Porta de entrada única
+  gateway:
+    image: kong:latest
+    ports:
+      - "80:8000"
+      - "443:8443"
+    volumes:
+      - ./INFRA/gateway/kong.yml:/usr/local/kong/declarative/kong.yml
+    environment:
+      KONG_DATABASE: "off"
+      KONG_DECLARATIVE_CONFIG: /usr/local/kong/declarative/kong.yml
+
+  # API Central de IA
+  ia-engine:
+    build: ./IA
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - NVIDIA_API_KEY=${NVIDIA_API_KEY}
+    restart: always
+
+  # Módulo RH & ATS
+  rh-service:
+    build: ./RH
+    depends_on:
+      - db
+    restart: always
+
+  # Financeiro & Pagamentos
+  financeiro-service:
+    build: ./FINANCEIRO
+    environment:
+      - ASAAS_API_KEY=${ASAAS_API_KEY}
+    restart: always
+
+  # Banco de Dados Unificado
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: innovation_db
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

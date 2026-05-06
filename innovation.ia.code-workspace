@@ -1,0 +1,48 @@
+{
+  "folders": [
+    {
+      "name": "🤖 IA",
+      "path": "IA"
+    },
+    {
+      "name": "💬 WHATSAPP",
+      "path": "WHATSAPP"
+    },
+    {
+      "name": "👥 RH",
+      "path": "RH"
+    },
+    {
+      "name": "💳 FINANCEIRO",
+      "path": "FINANCEIRO"
+    },
+    {
+      "name": "📊 CONTABILIDADE",
+      "path": "CONTABILIDADE"
+    },
+    {
+      "name": "🎨 MEDIA",
+      "path": "MEDIA"
+    },
+    {
+      "name": "⚙️ INFRA",
+      "path": "INFRA"
+    },
+    {
+      "name": "🖥️ FRONTEND",
+      "path": "FRONTEND"
+    },
+    {
+      "name": "📁 RAIZ DO PROJETO",
+      "path": "."
+    }
+  ],
+  "settings": {
+    "explorer.compactFolders": false,
+    "workbench.iconTheme": "material-icon-theme",
+    "workbench.colorCustomizations": {
+      "activityBar.background": "#0f0f1a",
+      "statusBar.background": "#7c3aed"
+    }
+  }
+}

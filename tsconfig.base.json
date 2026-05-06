@@ -1,0 +1,50 @@
+{
+    "compilerOptions":  {
+                            "target":  "ES2022",
+                            "module":  "NodeNext",
+                            "moduleResolution":  "NodeNext",
+                            "lib":  [
+                                        "ES2022",
+                                        "DOM"
+                                    ],
+                            "strict":  true,
+                            "skipLibCheck":  true,
+                            "forceConsistentCasingInFileNames":  true,
+                            "resolveJsonModule":  true,
+                            "allowJs":  true,
+                            "noEmit":  true,
+                            "baseUrl":  ".",
+                            "paths":  {
+                                             "@innovation/types":  [
+                                                                         "packages/types/src/index.ts"
+                                                                     ],
+                                             "@innovation/ui":  [
+                                                                     "packages/ui/src/index.ts"
+                                                                 ],
+                                             "@innovation/config":  [
+                                                                         "packages/config/src/index.ts"
+                                                                     ],
+                                             "@innovation/auth":  [
+                                                                       "packages/auth/src/index.ts"
+                                                                   ],
+                                             "@innovation/database":  [
+                                                                           "packages/database/src/index.ts"
+                                                                       ],
+                                             "@innovation/financeiro":  [
+                                                                            "modules/financeiro/src/index.ts"
+                                                                        ],
+                                             "@innovation/contabilidade":  [
+                                                                               "modules/contabilidade/src/index.ts"
+                                                                           ],
+                                             "@innovation/ia":  [
+                                                                   "modules/ia/src/index.ts"
+                                                               ],
+                                             "@innovation/dashboard":  [
+                                                                          "modules/dashboard/src/index.ts"
+                                                                      ],
+                                             "@innovation/whatsapp":  [
+                                                                         "modules/whatsapp/src/index.ts"
+                                                                     ]
+                                         }
+                        }
+}
