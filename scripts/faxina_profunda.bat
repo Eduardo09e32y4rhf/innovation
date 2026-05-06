@@ -13,8 +13,8 @@ del /q "%ROOT%\deploy.tar.gz" 2>nul
 del /q "%ROOT%\REORGANIZACAO_STATUS.md" 2>nul
 del /q "%ROOT%\.aider.chat.history.md" 2>nul
 del /q "%ROOT%\.aider.input.history" 2>nul
-del /q "%ROOT%\INFRA\deployment\dev.pid" 2>nul
-del /q "%ROOT%\INFRA\deployment\ops\old_docker-compose.yml" 2>nul
+del /q "%ROOT%\legacy\INFRA\deployment\dev.pid" 2>nul
+del /q "%ROOT%\legacy\INFRA\deployment\ops\old_docker-compose.yml" 2>nul
 del /q "%ROOT%\logs\*.log" 2>nul
 
 echo 📦 Organizando Scripts...

@@ -26,7 +26,7 @@ function cleanFiles(dir) {
 }
 
 const dirs = [
-    'c:\\Users\\eduar\\Desktop\\innovation.ia\\FRONTEND\\app\\dashboard',
+    'c:\\Users\\eduar\\Desktop\\innovation.ia\\legacy\\FRONTEND\\app\\dashboard',
     'c:\\Users\\eduar\\Desktop\\innovation.ia\\apps\\web\\app\\dashboard'
 ];
 

@@ -127,7 +127,7 @@ innovation.ia/
 │
 ├── docs/
 ├── scripts/
-└── TODO.md
+└── docs/workspace/TODO.md
 ```
 
 ## 📊 MAPEAMENTO: Antiga → Nova Estrutura

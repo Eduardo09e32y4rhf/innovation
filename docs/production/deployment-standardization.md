@@ -36,10 +36,10 @@ This document consolidates the safe production baseline for the current reposito
 
 ### Deploy / infra
 
-- Render baseline: `INFRA/deployment/render.yaml`
-- Kong gateway: `INFRA/deployment/gateway/kong.yml`
-- K8s manifest: `INFRA/deployment/k8s/deployment.yaml`
-- Compose variants: `INFRA/deployment/ops/docker-compose.yml`, `INFRA/deployment/infra/docker/docker-compose.*.yml`
+- Render baseline: `legacy/INFRA/deployment/render.yaml`
+- Kong gateway: `legacy/INFRA/deployment/gateway/kong.yml`
+- K8s manifest: `legacy/INFRA/deployment/k8s/deployment.yaml`
+- Compose variants: `legacy/INFRA/deployment/ops/docker-compose.yml`, `legacy/INFRA/deployment/infra/docker/docker-compose.*.yml`
 
 ## Required environment variables
 
@@ -98,6 +98,6 @@ Optional but supported:
 
 - Mixed legacy and current infra paths may still exist in docs and compose files.
 - Some manifests use hardcoded internal hostnames and sample passwords that must be replaced before production.
-- Compose files under `INFRA/deployment/infra/docker/` still contain development assumptions.
+- Compose files under `legacy/INFRA/deployment/infra/docker/` still contain development assumptions.
 - K8s and gateway manifests should be validated in a staging cluster before production rollout.
 

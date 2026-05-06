@@ -5,11 +5,11 @@ $ErrorActionPreference = "Stop"
 $PROJECT_ROOT = "c:\Users\eduar\Desktop\innovation.ia"
 
 Write-Host "🎨 Iniciando Build do Frontend Next.js..." -ForegroundColor Cyan
-Set-Location "$PROJECT_ROOT\FRONTEND"
+Set-Location "$PROJECT_ROOT\legacy\FRONTEND"
 npm run build
 
 Write-Host "📦 Preparando estrutura para Electron..." -ForegroundColor Cyan
-$OUT_DIR = "$PROJECT_ROOT\FRONTEND\out"
+$OUT_DIR = "$PROJECT_ROOT\legacy\FRONTEND\out"
 $APP_RESOURCES = "$PROJECT_ROOT\WHATSAPP\resources\app"
 
 if (-not (Test-Path $APP_RESOURCES)) { New-Item -ItemType Directory -Path $APP_RESOURCES -Force }

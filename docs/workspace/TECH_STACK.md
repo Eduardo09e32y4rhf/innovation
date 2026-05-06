@@ -546,8 +546,8 @@ railway up
 
 ## 📚 DOCUMENTAÇÃO PER MÓDULO
 
-- [📦 MODULES.md](MODULES.md) - Arquitetura modular
-- [🎯 TODO.md](TODO.md) - Roadmap completo
+- [📦 MODULES.md](./MODULES.md) - Arquitetura modular
+- [🎯 TODO.md](./TODO.md) - Roadmap completo
 - [🚀 GUIA_RAPIDO.md](GUIA_RAPIDO.md) - Como usar
 
 ---

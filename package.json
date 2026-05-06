@@ -10,7 +10,7 @@
     "dev:web": "npm --prefix apps/web run dev",
     "dev:api": "npm --prefix apps/api run dev",
     "dev:desktop": "npm --prefix apps/desktop run dev",
-    "dev:legacy": "npm --prefix FRONTEND run dev",
+    "dev:legacy": "npm --prefix legacy/FRONTEND run dev",
     "build": "npm run typecheck && npm run build:web",
     "build:api": "npm --prefix apps/api run build",
     "build:web": "npm --prefix apps/web run build",
@@ -59,7 +59,7 @@
       "packages/**/*",
       "modules/**/*",
       "WHATSAPP/**/*",
-      "IA/**/*"
+      "legacy/IA/**/*"
     ],
     "win": {
       "target": [
