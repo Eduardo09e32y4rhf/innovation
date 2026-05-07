@@ -16,12 +16,10 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./apps/ai-service
+        working-directory: ./backend
 
     steps:
     - uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
     
     - name: Set up Python
       uses: actions/setup-python@v5
@@ -35,9 +33,7 @@ jobs:
         pip install pytest black flake8
         
     - name: Lint with Black
-      run: |
-        FILES=$(git diff --name-only origin/main HEAD | grep '^apps/ai-service/.*\.py$' | sed 's|^apps/ai-service/||' || true)
-        if [ -n "$FILES" ]; then echo "$FILES" | xargs -r black --check; else echo "No python files to format in apps/ai-service"; fi
+      run: black . --check
       
     - name: Run Tests
       # Skipping actual tests for now as DB isn't mocked in CI yet
@@ -48,26 +44,23 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./apps/web
+        working-directory: ./frontend
 
     steps:
     - uses: actions/checkout@v4
-
-    - name: Install pnpm
-      run: npm install -g pnpm
     
     - name: Set up Node.js
       uses: actions/setup-node@v4
       with:
         node-version: ${{ env.NODE_VERSION }}
-        cache: 'pnpm'
-        cache-dependency-path: './apps/web/pnpm-lock.yaml'
+        cache: 'npm'
+        cache-dependency-path: './frontend/package-lock.json'
         
     - name: Install Dependencies
-      run: pnpm install --frozen-lockfile
+      run: npm ci
       
     - name: Build Next.js App
-      run: pnpm run build
+      run: npm run build
       env:
         CI: true
 
