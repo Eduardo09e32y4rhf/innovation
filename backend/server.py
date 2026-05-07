@@ -93,6 +93,9 @@ MOCK_TICKETS = [
     {"id": 3, "ticketId": "WA-003", "contactId": 3, "contactName": "Pedro Costa", "status": "closed", "queueId": 2, "userId": 2, "createdAt": "2026-01-14T09:00:00Z"},
 ]
 
+# ⚡ Bolt: O(1) dictionary for fast ticket lookups by ID
+TICKETS_MAP = {ticket["id"]: ticket for ticket in MOCK_TICKETS}
+
 # Filas mock
 MOCK_QUEUES = [
     {"id": 1, "name": "Suporte Geral", "color": "#8B5CF6"},
@@ -198,9 +201,12 @@ def get_tickets(
 def get_ticket(ticket_id: int, authorization: Optional[str] = Header(None)):
     """Pegar ticket"""
     verify_token(authorization)
-    for ticket in MOCK_TICKETS:
-        if ticket["id"] == ticket_id:
-            return ticket
+
+    # ⚡ Bolt: Use O(1) dictionary lookup instead of O(N) list iteration
+    ticket = TICKETS_MAP.get(ticket_id)
+    if ticket:
+        return ticket
+
     raise HTTPException(status_code=404, detail="Ticket não encontrado")
 
 @app.post("/api/tickets")
@@ -224,6 +230,10 @@ def create_ticket(
         "createdAt": datetime.now().isoformat()
     }
     MOCK_TICKETS.append(new_ticket)
+
+    # ⚡ Bolt: Keep TICKETS_MAP synchronized with MOCK_TICKETS
+    TICKETS_MAP[new_id] = new_ticket
+
     return new_ticket
 
 @app.put("/api/tickets/{ticket_id}")
@@ -236,15 +246,18 @@ def update_ticket(
 ):
     """Atualizar ticket"""
     verify_token(authorization)
-    for ticket in MOCK_TICKETS:
-        if ticket["id"] == ticket_id:
-            if status:
-                ticket["status"] = status
-            if userId:
-                ticket["userId"] = userId
-            if queueId:
-                ticket["queueId"] = queueId
-            return ticket
+
+    # ⚡ Bolt: Use O(1) dictionary lookup instead of O(N) list iteration
+    ticket = TICKETS_MAP.get(ticket_id)
+    if ticket:
+        if status:
+            ticket["status"] = status
+        if userId:
+            ticket["userId"] = userId
+        if queueId:
+            ticket["queueId"] = queueId
+        return ticket
+
     raise HTTPException(status_code=404, detail="Ticket não encontrado")
 
 # ============================================
