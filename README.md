@@ -1,6 +1,6 @@
 # ⚡ Innovation IA - Enterprise Platform
 
-**A next-gen SaaS ecosystem designed to automate 90% of corporate recruitment and CRM operations. Built with high-performance engineering, event-driven architecture, and state-of-the-art AI integration.**
+**A next-gen SaaS ecosystem designed to automate corporate operations. Built with high-performance engineering, event-driven architecture, and state-of-the-art UI/UX for Banking, HR, and CRM.**
 
 [![Production Ready](https://img.shields.io/badge/Status-Production_Ready-10b981?style=for-the-badge&logo=rocket)](https://github.com/Eduardo09e32y4rhf/innovation)
 [![Platform](https://img.shields.io/badge/Platform-Desktop_%7C_Web-3b82f6?style=for-the-badge&logo=windows)](https://github.com/Eduardo09e32y4rhf/innovation)
@@ -10,7 +10,7 @@
 
 ## 🏗️ System Architecture & Engineering
 
-Innovation IA is not just a dashboard; it's a decoupled microservices ecosystem designed for high availability, low latency, and massive scalability. It leverages a hybrid approach of **Next.js** for a glassmorphism-rich web experience and **Electron** for native OS-level performance.
+Innovation IA is a decoupled microservices ecosystem designed for high availability, low latency, and massive scalability. The frontend leverages a robust **Next.js 14 App Router** architecture, styled with a custom high-end banking-grade design system, providing a premium Enterprise experience.
 
 ```mermaid
 graph TD;
@@ -23,10 +23,10 @@ graph TD;
 
 ### 🧠 Technical Highlights (Engineering Excellence)
 
-- **Event-Driven Messaging:** Bi-directional real-time communication via WebSockets, ensuring sub-second latency for message delivery and status synchronization across hundreds of concurrent users.
-- **AI-Powered Pipeline:** Deep integration with **Gemini 1.5 Pro** for automated resume parsing (OCR), DISC behavioral analysis, and automated candidate interview triaging.
-- **Hybrid Persistence Layer:** Uses **Prisma ORM** for relational corporate data and **Redis** for high-frequency Kanban state management, ensuring O(1) complexity for pipeline transitions.
-- **Enterprise-Grade Security:** Strict isolation of proprietary tokens, protected environment variables, and binary hardening for the Electron executable to prevent reverse engineering.
+- **Enterprise-Grade UI/UX:** A bespoke design system built natively with CSS (`globals.css`), featuring custom components (`dash-card`, `table-premium`), strict typography tracking (Inter), and dynamic, SSR-safe `recharts` data visualizations.
+- **Event-Driven Messaging:** Bi-directional real-time communication via WebSockets, ensuring sub-second latency for message delivery across the WhatsApp CRM.
+- **AI-Powered Pipeline:** Deep integration with **Gemini 1.5 Pro** for automated resume parsing (OCR), DISC behavioral analysis, and autonomous candidate triaging.
+- **Hybrid Persistence Layer:** Uses **Prisma ORM** for relational corporate data and **Redis** for high-frequency Kanban state management.
 
 ---
 
@@ -35,18 +35,18 @@ graph TD;
 <table>
   <tr>
     <td width="50%">
-      <h3>🤖 WhatsApp CRM & Automation</h3>
-      Full-stack CRM built on Baileys. Non-blocking asynchronous routing capable of processing massive inbound traffic without locking the Node.js Event Loop.
+      <h3>💼 Financial Operations (DDA/Bank)</h3>
+      Complete banking-grade financial module. Features real-time cash flow area charts, DDA integration mockups, detailed ledger management (entradas/saídas), and an interactive commercial proposal calculator.
     </td>
     <td width="50%">
-      <h3>👔 Strategic HR (ATS)</h3>
-      Complete Applicant Tracking System. Automated candidate scoring (95% fit cultural accuracy), Kanban management, and 24/7 automated WhatsApp triaging.
+      <h3>🤖 WhatsApp CRM & Automation</h3>
+      Full-stack CRM built on Baileys. Non-blocking asynchronous routing capable of processing inbound traffic without locking the Node.js Event Loop, featuring humanized AI response delays.
     </td>
   </tr>
   <tr>
     <td width="50%">
-      <h3>💰 Finance & SaaS Engine</h3>
-      Integrated with **Asaas** and **Stripe**. Features automated subscription billing, multi-tenancy auth, and real-time revenue analytics dashboards.
+      <h3>👔 Strategic HR (ATS)</h3>
+      Applicant Tracking System with an automated Kanban pipeline. Candidate scoring (95% fit cultural accuracy), advanced analytics, and 24/7 automated WhatsApp triaging.
     </td>
     <td width="50%">
       <h3>📸 AI Media & Creative</h3>
@@ -61,7 +61,7 @@ graph TD;
 
 | Layer | Technologies |
 |-------|--------------|
-| **Frontend** | Next.js 14, TypeScript, Tailwind CSS, Framer Motion, Lucide Icons |
+| **Frontend** | Next.js 14, TypeScript, Recharts, Custom Banking CSS, Lucide Icons |
 | **Backend** | Node.js (TypeScript), FastAPI (Python), Prisma ORM |
 | **Desktop** | Electron, IPC Communication, Native Windows Integration |
 | **Database** | PostgreSQL (Relational), Redis (Cache/States) |
@@ -81,19 +81,19 @@ graph TD;
 1. Clone the repository
 2. Install dependencies: `npm run bootstrap`
 3. Set up `.env` with your API keys (Gemini, Database, etc.)
-4. Launch the ecosystem: `.\INICIAR_INNOVATION.bat`
+4. Launch the ecosystem: `.\INICIAR_INNOVATION.bat` ou utilize o novo script `.ps1` otimizado para Windows.
 
 ---
 
 ## 🎯 Impact & ROI
+- **Financial Clarity:** Zero-delay financial tracking with SSR-optimized visual reporting.
 - **Time-to-Hire:** Reduced by 70% through automated triaging.
-- **Cost-per-Hire:** Reduced by 65% by eliminating manual CV screening.
 - **Efficiency:** Capable of screening 1,000+ candidates per day with zero human intervention.
 
 ---
 
 <div align="center">
-<i>Architected for Scale. Built for Performance. Developed for the Future of Work.</i>
+<i>Architected for Scale. Built for Performance. Designed for Enterprise.</i>
 
-**Innovation IA © 2024 — Enterprise-Grade Recruitment Automation**
+**Innovation IA © 2026 — Enterprise-Grade Platform**
 </div>
