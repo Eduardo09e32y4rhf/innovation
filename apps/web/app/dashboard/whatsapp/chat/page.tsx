@@ -192,9 +192,9 @@ export default function ChatPage() {
                 </div>
               </div>
               <div className="flex items-center gap-4 text-gray-400">
-                <button className="hover:text-white transition-colors p-2 rounded-full hover:bg-white/5"><Video size={20} /></button>
-                <button className="hover:text-white transition-colors p-2 rounded-full hover:bg-white/5"><Phone size={20} /></button>
-                <button className="hover:text-white transition-colors p-2 rounded-full hover:bg-white/5"><MoreVertical size={20} /></button>
+                <button aria-label="Vídeo chamada" title="Vídeo chamada" className="hover:text-white transition-colors p-2 rounded-full hover:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-current"><Video size={20} /></button>
+                <button aria-label="Chamada de voz" title="Chamada de voz" className="hover:text-white transition-colors p-2 rounded-full hover:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-current"><Phone size={20} /></button>
+                <button aria-label="Mais opções" title="Mais opções" className="hover:text-white transition-colors p-2 rounded-full hover:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-current"><MoreVertical size={20} /></button>
               </div>
             </div>
 
@@ -226,8 +226,8 @@ export default function ChatPage() {
 
             <div className="p-4 border-t border-white/5 bg-[#0a0a0f]/80 backdrop-blur-md">
               <div className="flex items-end gap-2 bg-white/5 border border-white/10 rounded-2xl p-2 focus-within:border-purple-500/50 transition-colors">
-                <button className="p-3 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all"><Smile size={20} /></button>
-                <button className="p-3 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all"><Paperclip size={20} /></button>
+                <button aria-label="Adicionar emoji" title="Adicionar emoji" className="p-3 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-current"><Smile size={20} /></button>
+                <button aria-label="Anexar arquivo" title="Anexar arquivo" className="p-3 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-current"><Paperclip size={20} /></button>
                 <textarea
                   value={messageText}
                   onChange={(e) => setMessageText(e.target.value)}
@@ -242,8 +242,10 @@ export default function ChatPage() {
                   rows={1}
                 />
                 <button
+                  aria-label="Enviar mensagem"
+                  title="Enviar mensagem"
                   onClick={() => void handleSendMessage().catch((error) => console.error('Error sending message:', error))}
-                  className="p-3 grad-bg text-white rounded-xl shadow-lg shadow-purple-500/20 hover:scale-105 transition-transform flex items-center justify-center"
+                  className="p-3 grad-bg text-white rounded-xl shadow-lg shadow-purple-500/20 hover:scale-105 transition-transform flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-current"
                 >
                   <Send size={18} className="ml-1" />
                 </button>
