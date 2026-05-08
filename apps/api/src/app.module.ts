@@ -15,7 +15,7 @@ import { AiModule } from './modules/ai/ai.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true, load: [appConfig], validate: validateEnv }),
+    ConfigModule.forRoot({ isGlobal: true, envFilePath: ['.env', '../../.env'], load: [appConfig], validate: validateEnv }),
     DatabaseModule,
     HealthModule,
     AuthModule,

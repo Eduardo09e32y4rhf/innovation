@@ -1,456 +1,411 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
-  Bot,
-  Calendar,
-  Key,
+  AlertCircle,
+  CheckCircle2,
+  Clock3,
+  Loader2,
   MessageCircle,
-  Plus,
+  Phone,
   Power,
   QrCode,
   RefreshCw,
-  Save,
+  Send,
   Settings,
   ShieldCheck,
   Smartphone,
-  X,
+  Wifi,
+  WifiOff,
 } from 'lucide-react';
 import Link from 'next/link';
-import { useAuth } from '../../../contexts/AuthContext';
 import { getApiBaseUrl, getAuthHeaders } from '../api';
 
-function normalizeStatus(status: unknown) {
-  return String(status || 'DISCONNECTED').toUpperCase();
-}
+type WhatsappStatus = 'DISCONNECTED' | 'CONNECTING' | 'QR_CODE' | 'CONNECTED';
 
-function formatPhone(phone: string | null | undefined) {
-  if (!phone) return '';
-  const digits = String(phone).replace(/\D/g, '');
-  if (!digits) return '';
-  return `+${digits}`;
-}
-
-type AccountCard = {
-  id: string;
-  name: string;
-  number: string;
-  status: string;
+type WhatsappPayload = {
+  status?: string;
+  qrCode?: string | null;
+  phone?: string | null;
+  displayName?: string | null;
+  config?: {
+    aiEngine?: string;
+    prompt?: string;
+    temperature?: number;
+  };
 };
 
-const WhatsAppAccountsPage = () => {
-  const { user } = useAuth();
-  const [accounts, setAccounts] = useState<AccountCard[]>([
-    {
-      id: '1',
-      name: 'Seu WhatsApp',
-      number: 'Pronto para conectar pela primeira vez.',
-      status: 'DISCONNECTED',
-    },
-  ]);
-  const [qrModalOpen, setQrModalOpen] = useState(false);
-  const [configModalOpen, setConfigModalOpen] = useState(false);
+function unwrap<T>(payload: unknown): T {
+  const raw = payload as any;
+  return (raw?.data ?? raw) as T;
+}
+
+function normalizeStatus(status: unknown): WhatsappStatus {
+  const value = String(status || 'DISCONNECTED').toUpperCase();
+  if (value === 'CONNECTED' || value === 'CONNECTING' || value === 'QR_CODE') return value;
+  return 'DISCONNECTED';
+}
+
+function formatPhone(phone?: string | null) {
+  if (!phone) return 'Numero ainda nao identificado';
+  const digits = phone.replace(/\D/g, '');
+  return digits ? `+${digits}` : phone;
+}
+
+const statusCopy: Record<WhatsappStatus, { label: string; tone: string; icon: React.ElementType; description: string }> = {
+  CONNECTED: {
+    label: 'Conectado',
+    tone: 'border-emerald-200 bg-emerald-50 text-emerald-800',
+    icon: Wifi,
+    description: 'A sessao esta ativa e pronta para enviar e receber mensagens.',
+  },
+  QR_CODE: {
+    label: 'Aguardando leitura do QR',
+    tone: 'border-cyan-200 bg-cyan-50 text-cyan-800',
+    icon: QrCode,
+    description: 'Abra o WhatsApp no celular e escaneie o QR para concluir.',
+  },
+  CONNECTING: {
+    label: 'Conectando',
+    tone: 'border-amber-200 bg-amber-50 text-amber-900',
+    icon: Loader2,
+    description: 'Estamos abrindo a sessao e gerando o QR Code.',
+  },
+  DISCONNECTED: {
+    label: 'Desconectado',
+    tone: 'border-rose-200 bg-rose-50 text-rose-800',
+    icon: WifiOff,
+    description: 'Nenhum aparelho esta conectado agora.',
+  },
+};
+
+export default function WhatsAppAccountsPage() {
+  const [status, setStatus] = useState<WhatsappStatus>('DISCONNECTED');
   const [qrCode, setQrCode] = useState('');
-  const [scanning, setScanning] = useState(false);
-  const [msStatus, setMsStatus] = useState('DISCONNECTED');
-  const [geminiKey, setGeminiKey] = useState('');
-  const [openAiKey, setOpenAiKey] = useState('');
-  const [aiEngine, setAiEngine] = useState<'gemini' | 'gpt'>('gemini');
-  const [aiTemp, setAiTemp] = useState(70);
-  const [aiPrompt, setAiPrompt] = useState(
-    'Voce e a assistente virtual da Innovation. Seja cordial e foque em guiar o candidato para entrevistas.',
-  );
-  const [calendarConnected, setCalendarConnected] = useState(false);
-  const [calendarUserEmail, setCalendarUserEmail] = useState('');
+  const [phone, setPhone] = useState<string | null>(null);
+  const [displayName, setDisplayName] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [connecting, setConnecting] = useState(false);
+  const [disconnecting, setDisconnecting] = useState(false);
+  const [feedback, setFeedback] = useState('');
+  const [error, setError] = useState('');
+  const [testPhone, setTestPhone] = useState('');
+  const [testMessage, setTestMessage] = useState('Ola! Sua integracao WhatsApp da Innovation IA esta funcionando.');
+  const [sendingTest, setSendingTest] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
-  const syncAccountFromStatus = (payload: any) => {
-    const data = payload?.data ?? payload ?? {};
-    const status = normalizeStatus(data.status);
-    const nextQrCode = data.qrCode || '';
-    const config = data.config || {};
-    const calendar = data.calendar || {};
-    const displayName = data.displayName || user?.name || 'Seu WhatsApp';
-    const connectedPhone = formatPhone(data.phone);
+  const statusInfo = statusCopy[status];
+  const StatusIcon = statusInfo.icon;
 
-    setMsStatus(status);
-    setQrCode(nextQrCode);
-    setGeminiKey(config.geminiApiKey || '');
-    setOpenAiKey(config.openAiApiKey || '');
-    setAiEngine(config.aiEngine || 'gemini');
-    setAiTemp(config.temperature || 70);
-    setAiPrompt(config.prompt || '');
-    setCalendarConnected(Boolean(calendar.isConnected));
-    setCalendarUserEmail(calendar.userEmail || '');
+  const isConnected = status === 'CONNECTED';
+  const isWaitingQr = status === 'QR_CODE' || status === 'CONNECTING';
 
-    setAccounts([
-      {
-        id: '1',
-        name: displayName,
-        number:
-          status === 'CONNECTED'
-            ? connectedPhone || 'WhatsApp conectado com sucesso.'
-            : 'Pronto para conectar pela primeira vez.',
-        status,
-      },
-    ]);
-
-    if (status === 'CONNECTED') setQrModalOpen(false);
-  };
-
-  const checkStatus = async () => {
-    const res = await fetch(`${getApiBaseUrl()}/communication/whatsapp/status`, {
-      headers: getAuthHeaders(),
-    });
-    if (!res.ok) throw new Error(`Status error: ${res.status}`);
-    syncAccountFromStatus(await res.json());
-  };
-
-  const startConnection = async () => {
-    setScanning(true);
-    setQrCode('');
-    setQrModalOpen(true);
+  const loadStatus = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
-      const res = await fetch(`${getApiBaseUrl()}/communication/whatsapp/connect`, {
-        method: 'POST',
+      const response = await fetch(`${getApiBaseUrl()}/communication/whatsapp/status`, {
         headers: getAuthHeaders(),
       });
-      if (!res.ok) throw new Error(`Connect error: ${res.status}`);
-      await checkStatus();
+      if (!response.ok) throw new Error(`Status ${response.status}`);
+      const payload = unwrap<WhatsappPayload>(await response.json());
+      setStatus(normalizeStatus(payload.status));
+      setQrCode(payload.qrCode || '');
+      setPhone(payload.phone || null);
+      setDisplayName(payload.displayName || null);
+      setLastUpdated(new Date());
+      setError('');
+    } catch {
+      setStatus('DISCONNECTED');
+      setError('Nao foi possivel falar com o backend do WhatsApp. Verifique se a API esta no ar.');
     } finally {
-      setScanning(false);
+      if (!silent) setLoading(false);
     }
   };
 
-  const handleDisconnect = async () => {
-    await fetch(`${getApiBaseUrl()}/communication/whatsapp/disconnect`, {
-      method: 'POST',
-      headers: getAuthHeaders(),
-    });
-    await checkStatus();
+  const startConnection = async () => {
+    setConnecting(true);
+    setFeedback('');
+    setError('');
+    setStatus('CONNECTING');
+    setQrCode('');
+    try {
+      const response = await fetch(`${getApiBaseUrl()}/communication/whatsapp/connect`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+      });
+      if (!response.ok) throw new Error(`Connect ${response.status}`);
+      setFeedback('Sessao iniciada. Aguarde o QR aparecer e escaneie pelo WhatsApp do celular.');
+      await loadStatus(true);
+    } catch {
+      setError('Nao foi possivel iniciar a conexao WhatsApp. O motor de QR pode estar indisponivel.');
+      setStatus('DISCONNECTED');
+    } finally {
+      setConnecting(false);
+    }
   };
 
-  const handleSaveConfig = async () => {
-    const res = await fetch(`${getApiBaseUrl()}/communication/settings`, {
-      method: 'PATCH',
-      headers: getAuthHeaders(),
-      body: JSON.stringify({
-        aiEngine,
-        geminiApiKey: geminiKey,
-        openAiApiKey: openAiKey,
-        prompt: aiPrompt,
-        temperature: aiTemp,
-      }),
-    });
-    if (!res.ok) throw new Error(`Config error: ${res.status}`);
-    setConfigModalOpen(false);
-    await checkStatus();
+  const disconnect = async () => {
+    setDisconnecting(true);
+    setFeedback('');
+    setError('');
+    try {
+      const response = await fetch(`${getApiBaseUrl()}/communication/whatsapp/disconnect`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+      });
+      if (!response.ok) throw new Error(`Disconnect ${response.status}`);
+      setFeedback('WhatsApp desconectado com sucesso.');
+      await loadStatus(true);
+    } catch {
+      setError('Nao foi possivel desconectar agora.');
+    } finally {
+      setDisconnecting(false);
+    }
   };
 
-  const connectGoogleCalendar = async () => {
-    const res = await fetch(`${getApiBaseUrl()}/communication/calendar/auth-url`, {
-      headers: getAuthHeaders(),
-    });
-    if (!res.ok) throw new Error(`Calendar auth error: ${res.status}`);
-    const data = await res.json();
-    const authUrl = data.data?.authUrl ?? data.authUrl;
-    if (authUrl) window.open(authUrl, '_blank', 'noopener,noreferrer');
+  const sendTest = async () => {
+    setSendingTest(true);
+    setFeedback('');
+    setError('');
+    try {
+      const response = await fetch(`${getApiBaseUrl()}/communication/messages/send`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          phone: testPhone,
+          body: testMessage,
+          contactName: 'Teste WhatsApp',
+        }),
+      });
+      if (!response.ok) throw new Error(`Send ${response.status}`);
+      setFeedback('Mensagem de teste enviada. A conversa tambem fica registrada no backend.');
+    } catch {
+      setError('Falha ao enviar teste. Confirme que o WhatsApp esta conectado e que o numero tem DDI/DDD.');
+    } finally {
+      setSendingTest(false);
+    }
   };
 
   useEffect(() => {
-    void checkStatus().catch((error) => console.error('Erro ao buscar status', error));
+    void loadStatus();
     const interval = setInterval(() => {
-      void checkStatus().catch((error) => console.error('Erro ao atualizar status', error));
-    }, 5000);
+      void loadStatus(true);
+    }, isConnected ? 8000 : 1800);
     return () => clearInterval(interval);
-  }, [user?.name]);
+  }, [isConnected]);
 
-  useEffect(() => {
-    if (!qrModalOpen) return;
-
-    const interval = setInterval(() => {
-      void checkStatus().catch((error) => console.error('Erro ao atualizar QR', error));
-    }, 1200);
-
-    return () => clearInterval(interval);
-  }, [qrModalOpen, user?.name]);
+  const steps = useMemo(
+    () => [
+      { title: 'Abra o WhatsApp', desc: 'No celular, entre em Aparelhos conectados.' },
+      { title: 'Toque em conectar', desc: 'Use Conectar um aparelho para abrir a camera.' },
+      { title: 'Escaneie o QR', desc: 'Aponte para o QR desta tela e aguarde o status conectado.' },
+    ],
+    [],
+  );
 
   return (
-    <div className="mx-auto max-w-6xl animate-in fade-in slide-in-from-bottom-4 py-10 duration-700">
-      <header className="mb-10 flex items-center justify-between">
-        <div>
-          <h1 className="mb-2 text-3xl font-extrabold tracking-tight">Instancia Oficial do WhatsApp</h1>
-          <p className="text-gray-400">Uma unica integracao Omnius para WhatsApp, Gemini, GPT e Google Agenda.</p>
-        </div>
-        <button
-          onClick={() => void startConnection().catch((error) => console.error(error))}
-          className="grad-bg flex items-center gap-2 rounded-2xl px-6 py-3 font-bold shadow-lg shadow-purple-500/20 transition-transform hover:scale-105"
-        >
-          <Plus size={20} /> Conectar Instancia
-        </button>
-      </header>
-
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-        {accounts.map((acc) => (
-          <div
-            key={acc.id}
-            className="glass group relative rounded-[32px] border border-white/5 p-8 transition-all hover:border-purple-500/30"
-          >
-            <div className="mb-6 flex items-start justify-between">
-              <div
-                className={`flex h-14 w-14 items-center justify-center rounded-2xl ${
-                  acc.status === 'CONNECTED' ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'
-                }`}
-              >
-                <Smartphone size={28} />
-              </div>
-              <div className="flex items-center gap-2">
-                <span
-                  className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-widest ${
-                    acc.status === 'CONNECTED' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
-                  }`}
-                >
-                  {acc.status}
-                </span>
-                <button
-                  onClick={() => setConfigModalOpen(true)}
-                  className="rounded-full p-2 text-gray-500 transition-colors hover:bg-white/5 hover:text-white"
-                >
-                  <Settings size={18} />
-                </button>
-              </div>
-            </div>
-
-            <h3 className="mb-1 text-xl font-bold">{acc.name}</h3>
-            <p className="mb-1 text-sm text-gray-500">{acc.number}</p>
-            <p className="text-xs text-gray-400">
-              {acc.status === 'CONNECTED'
-                ? 'Instancia ativa e pronta para conversar.'
-                : 'Nenhum WhatsApp conectado ainda. O cliente pode parear aqui pela primeira vez.'}
+    <div className="space-y-5 pb-8">
+      <section className="overflow-hidden rounded-[24px] border border-slate-950 bg-[#07111f] p-6 text-white shadow-[0_24px_60px_rgba(2,6,23,0.24)]">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.28em] text-teal-200">WhatsApp</p>
+            <h1 className="mt-3 text-2xl font-black tracking-tight text-white">Conexao por QR Code</h1>
+            <p className="mt-2 max-w-2xl text-sm text-slate-300">
+              Pareie o aparelho pelo QR, acompanhe status em tempo real e valide envio antes de liberar automacoes.
             </p>
-
-            <div className="mt-8 flex gap-4">
-              <button
-                onClick={() => void (acc.status === 'CONNECTED' ? handleDisconnect() : startConnection())}
-                className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 py-3 text-xs font-bold transition-all hover:bg-white/10"
-              >
-                <Power size={14} /> {acc.status === 'CONNECTED' ? 'Desconectar' : 'Conectar'}
-              </button>
-              <Link
-                href="/dashboard/whatsapp/chat"
-                className="grad-bg flex flex-1 items-center justify-center gap-2 rounded-xl py-3 text-xs font-bold shadow-lg shadow-purple-500/10 transition-transform hover:scale-105"
-              >
-                <MessageCircle size={14} /> Abrir Chat
-              </Link>
+          </div>
+          <div className={`flex items-center gap-3 rounded-[18px] border px-4 py-3 ${statusInfo.tone}`}>
+            <StatusIcon size={20} className={status === 'CONNECTING' ? 'animate-spin' : ''} />
+            <div>
+              <p className="text-sm font-black">{statusInfo.label}</p>
+              <p className="text-xs font-semibold opacity-80">{statusInfo.description}</p>
             </div>
           </div>
-        ))}
-
-        <div
-          onClick={() => void startConnection().catch((error) => console.error(error))}
-          className="group flex cursor-pointer flex-col items-center justify-center rounded-[32px] border-2 border-dashed border-white/5 p-12 transition-all hover:border-purple-500/30 hover:bg-white/[0.02]"
-        >
-          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-white/5 text-gray-700 transition-all group-hover:bg-purple-500/10 group-hover:text-purple-400">
-            <QrCode size={32} />
-          </div>
-          <p className="text-xs font-bold uppercase tracking-widest text-gray-400 transition-colors group-hover:text-purple-400">
-            Conectar via QR Code
-          </p>
         </div>
-      </div>
+      </section>
 
-      {qrModalOpen && (
-        <div className="fixed inset-0 z-50 flex animate-in items-center justify-center bg-black/60 p-4 backdrop-blur-sm duration-300 fade-in">
-          <div className="glass relative flex w-full max-w-4xl overflow-hidden rounded-[40px] border border-white/10 shadow-2xl">
-            <button
-              onClick={() => setQrModalOpen(false)}
-              className="absolute right-6 top-6 z-10 text-gray-500 hover:text-white"
-            >
-              <X size={24} />
-            </button>
+      {feedback ? <Notice tone="success" text={feedback} /> : null}
+      {error ? <Notice tone="error" text={error} /> : null}
 
-            <div className="flex w-1/2 flex-col justify-center bg-[#0a0a0f] p-12">
-              <div className="grad-bg mb-6 flex h-12 w-12 items-center justify-center rounded-2xl">
-                <Smartphone size={24} className="text-white" />
-              </div>
-              <h2 className="mb-4 text-3xl font-extrabold">Conecte seu WhatsApp</h2>
-              <ul className="space-y-6 text-sm text-gray-400">
-                <li className="flex items-start gap-4">
-                  <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-purple-500/20 text-xs font-bold text-purple-400">
-                    1
-                  </span>
-                  Abra o WhatsApp no seu celular
-                </li>
-                <li className="flex items-start gap-4">
-                  <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-purple-500/20 text-xs font-bold text-purple-400">
-                    2
-                  </span>
-                  Toque em <strong className="text-white">Aparelhos conectados</strong>
-                </li>
-                <li className="flex items-start gap-4">
-                  <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-purple-500/20 text-xs font-bold text-purple-400">
-                    3
-                  </span>
-                  Escaneie o QR Code desta tela
-                </li>
-              </ul>
-            </div>
-
-            <div className="relative flex w-1/2 flex-col items-center justify-center bg-black/40 p-12">
-              <div className="relative">
-                <div className="flex min-h-[256px] min-w-[256px] items-center justify-center rounded-3xl bg-white p-4 shadow-[0_0_40px_rgba(168,85,247,0.3)]">
-                  {qrCode ? (
-                    <img src={qrCode} alt="QR Code" className="h-64 w-64 rounded-xl" />
-                  ) : (
-                    <div className="flex flex-col items-center justify-center">
-                      <RefreshCw size={32} className="mb-4 animate-spin text-purple-500" />
-                      <p className="text-sm font-bold text-gray-800">
-                        {scanning ? 'Gerando QR Code...' : 'Aguardando QR Code...'}
-                      </p>
-                      <p className="mt-2 text-xs text-gray-500">Status atual: {msStatus}</p>
-                    </div>
-                  )}
+      <div className="grid gap-5 xl:grid-cols-[1fr_420px]">
+        <main className="space-y-5">
+          <section className="rounded-[22px] border border-slate-300 bg-white p-5 shadow-[0_16px_38px_rgba(15,23,42,0.10)]">
+            <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+              <div className="flex gap-4">
+                <div className="flex h-14 w-14 items-center justify-center rounded-[18px] bg-[#07111f] text-white shadow-[0_14px_28px_rgba(2,6,23,0.22)]">
+                  <Smartphone size={24} />
+                </div>
+                <div>
+                  <p className="text-lg font-black text-slate-950">{displayName || 'Instancia WhatsApp'}</p>
+                  <p className="mt-1 text-sm font-semibold text-slate-500">{formatPhone(phone)}</p>
+                  <p className="mt-2 text-xs font-semibold text-slate-400">
+                    Atualizado {lastUpdated ? lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'agora'}
+                  </p>
                 </div>
               </div>
-              <p className="mt-8 flex items-center gap-2 font-mono text-xs text-gray-500">
-                <ShieldCheck size={14} className="text-green-400" /> Criptografia de ponta a ponta
+
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => void loadStatus()}
+                  disabled={loading}
+                  className="flex h-11 items-center gap-2 rounded-[14px] border border-slate-300 bg-white px-4 text-xs font-black text-slate-700 hover:border-slate-950 disabled:opacity-60"
+                >
+                  <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
+                  Atualizar
+                </button>
+                {isConnected ? (
+                  <button
+                    onClick={() => void disconnect()}
+                    disabled={disconnecting}
+                    className="flex h-11 items-center gap-2 rounded-[14px] border border-rose-200 bg-rose-50 px-4 text-xs font-black text-rose-800 disabled:opacity-60"
+                  >
+                    <Power size={15} />
+                    {disconnecting ? 'Desconectando...' : 'Desconectar'}
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => void startConnection()}
+                    disabled={connecting}
+                    className="flex h-11 items-center gap-2 rounded-[14px] bg-[#07111f] px-4 text-xs font-black text-white shadow-[0_12px_24px_rgba(2,6,23,0.20)] disabled:opacity-60"
+                  >
+                    {connecting ? <Loader2 size={15} className="animate-spin" /> : <QrCode size={15} />}
+                    {connecting ? 'Conectando...' : 'Conectar por QR'}
+                  </button>
+                )}
+              </div>
+            </div>
+          </section>
+
+          <section className="grid gap-5 lg:grid-cols-[360px_1fr]">
+            <div className="rounded-[22px] border border-slate-300 bg-white p-5 shadow-[0_16px_38px_rgba(15,23,42,0.10)]">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">QR Code</p>
+                  <h2 className="mt-1 text-lg font-black text-slate-950">Pareamento do aparelho</h2>
+                </div>
+                {isWaitingQr ? <Clock3 className="text-cyan-600" size={20} /> : isConnected ? <CheckCircle2 className="text-emerald-600" size={20} /> : <QrCode className="text-slate-400" size={20} />}
+              </div>
+
+              <div className="mt-5 flex min-h-[310px] items-center justify-center rounded-[22px] border border-slate-200 bg-slate-50 p-5">
+                {qrCode ? (
+                  <img src={qrCode} alt="QR Code do WhatsApp" className="h-64 w-64 rounded-[16px] bg-white p-2 shadow-[0_16px_38px_rgba(15,23,42,0.16)]" />
+                ) : (
+                  <div className="text-center">
+                    {isConnected ? <CheckCircle2 className="mx-auto text-emerald-600" size={36} /> : <QrCode className="mx-auto text-slate-400" size={36} />}
+                    <p className="mt-3 text-sm font-black text-slate-950">
+                      {isConnected ? 'Aparelho conectado' : connecting || status === 'CONNECTING' ? 'Gerando QR Code...' : 'Clique em conectar'}
+                    </p>
+                    <p className="mt-1 text-xs font-semibold text-slate-500">
+                      {isConnected ? 'Nao precisa escanear novamente.' : 'O QR aparece aqui assim que a sessao abrir.'}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <p className="mt-4 flex items-center gap-2 text-xs font-semibold text-slate-500">
+                <ShieldCheck size={14} className="text-emerald-600" />
+                Use apenas o aparelho autorizado da empresa.
               </p>
             </div>
-          </div>
-        </div>
-      )}
 
-      {configModalOpen && (
-        <div className="fixed inset-0 z-50 flex animate-in items-center justify-center bg-black/60 p-4 backdrop-blur-sm duration-300 fade-in">
-          <div className="glass flex h-[80vh] w-full max-w-3xl flex-col overflow-hidden rounded-[40px] border border-white/10 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-white/5 bg-white/[0.02] p-8">
-              <h2 className="flex items-center gap-3 text-2xl font-bold">
-                <Settings className="text-purple-400" /> Configuracoes da Instancia
-              </h2>
-              <button onClick={() => setConfigModalOpen(false)} className="text-gray-500 hover:text-white">
-                <X size={24} />
-              </button>
-            </div>
-
-            <div className="flex-1 space-y-8 overflow-y-auto p-8">
-              <section className="space-y-4">
-                <h3 className="flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-gray-400">
-                  <Key size={16} className="text-yellow-400" /> Chaves de API
-                </h3>
-                <div className="grid grid-cols-1 gap-4">
-                  <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
-                    <label className="mb-2 block text-xs text-gray-400">Gemini API Key</label>
-                    <input
-                      type="password"
-                      value={geminiKey}
-                      onChange={(e) => setGeminiKey(e.target.value)}
-                      placeholder="Insira sua chave do Google AI Studio..."
-                      className="w-full rounded-xl border border-white/10 bg-black/50 px-4 py-2.5 text-sm text-white outline-none focus:ring-1 focus:ring-purple-500"
-                    />
-                  </div>
-                  <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
-                    <label className="mb-2 block text-xs text-gray-400">OpenAI / GPT API Key</label>
-                    <input
-                      type="password"
-                      value={openAiKey}
-                      onChange={(e) => setOpenAiKey(e.target.value)}
-                      placeholder="Insira sua chave da OpenAI..."
-                      className="w-full rounded-xl border border-white/10 bg-black/50 px-4 py-2.5 text-sm text-white outline-none focus:ring-1 focus:ring-purple-500"
-                    />
-                  </div>
-                </div>
-              </section>
-
-              <section className="space-y-4">
-                <h3 className="flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-gray-400">
-                  <Bot size={16} className="text-blue-400" /> Inteligencia Artificial
-                </h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
-                    <label className="mb-2 block text-xs text-gray-400">Motor de IA Padrao</label>
-                    <select
-                      value={aiEngine}
-                      onChange={(e) => setAiEngine(e.target.value as 'gemini' | 'gpt')}
-                      className="w-full rounded-xl border border-white/10 bg-black/50 px-4 py-2.5 text-sm text-white outline-none focus:ring-1 focus:ring-purple-500"
-                    >
-                      <option value="gemini">Gemini</option>
-                      <option value="gpt">GPT</option>
-                    </select>
-                  </div>
-                  <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
-                    <label className="mb-2 block text-xs text-gray-400">Temperatura ({aiTemp})</label>
-                    <input
-                      type="range"
-                      min="0"
-                      max="100"
-                      value={aiTemp}
-                      onChange={(e) => setAiTemp(parseInt(e.target.value, 10))}
-                      className="w-full accent-purple-500"
-                    />
-                    <div className="mt-1 flex justify-between text-[10px] text-gray-500">
-                      <span>Exato</span>
-                      <span>Criativo</span>
-                    </div>
-                  </div>
-                  <div className="col-span-2 rounded-2xl border border-white/10 bg-white/5 p-5">
-                    <label className="mb-2 block text-xs text-gray-400">Prompt de Contexto Base</label>
-                    <textarea
-                      rows={4}
-                      value={aiPrompt}
-                      onChange={(e) => setAiPrompt(e.target.value)}
-                      className="w-full resize-none rounded-xl border border-white/10 bg-black/50 px-4 py-3 text-sm text-white outline-none focus:ring-1 focus:ring-purple-500"
-                    />
-                  </div>
-                </div>
-              </section>
-
-              <section className="space-y-4">
-                <h3 className="flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-gray-400">
-                  <Calendar size={16} className="text-green-400" /> Integracao Google Agenda
-                </h3>
-                <div className="flex items-center justify-between rounded-3xl border border-white/10 bg-white/5 p-6">
-                  <div className="flex items-center gap-4">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/10">
-                      <Calendar size={20} className="text-white" />
-                    </div>
+            <div className="rounded-[22px] border border-slate-300 bg-white p-5 shadow-[0_16px_38px_rgba(15,23,42,0.10)]">
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Como conectar</p>
+              <div className="mt-4 grid gap-3">
+                {steps.map((step, index) => (
+                  <div key={step.title} className="flex gap-3 rounded-[18px] border border-slate-200 bg-slate-50 p-4">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#07111f] text-xs font-black text-white">{index + 1}</span>
                     <div>
-                      <h4 className="font-bold">Google Calendar</h4>
-                      <p className="text-xs text-gray-400">
-                        {calendarConnected
-                          ? `Conectado em ${calendarUserEmail || 'uma conta autenticada'}`
-                          : 'Permite que a IA agende entrevistas automaticamente.'}
-                      </p>
+                      <p className="text-sm font-black text-slate-950">{step.title}</p>
+                      <p className="mt-1 text-xs leading-5 text-slate-600">{step.desc}</p>
                     </div>
                   </div>
-                  <button
-                    onClick={() => void connectGoogleCalendar().catch((error) => console.error(error))}
-                    className="flex items-center gap-2 rounded-xl bg-white px-5 py-2.5 text-sm font-bold text-black transition-colors hover:bg-gray-200"
-                  >
-                    <Calendar size={16} />
-                    {calendarConnected ? 'Reconectar Conta' : 'Conectar Conta'}
-                  </button>
-                </div>
-              </section>
+                ))}
+              </div>
+
+              <div className="mt-5 rounded-[18px] border border-amber-200 bg-amber-50 p-4 text-xs leading-5 text-amber-950">
+                <strong>Nota tecnica:</strong> QR Code e aparelho conectado usam o fluxo de pareamento do WhatsApp Web. A API oficial Cloud da Meta usa token e webhook, sem QR Code.
+              </div>
+            </div>
+          </section>
+        </main>
+
+        <aside className="space-y-5">
+          <section className="rounded-[22px] border border-slate-300 bg-white p-5 shadow-[0_16px_38px_rgba(15,23,42,0.10)]">
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-[16px] bg-[#07111f] text-white">
+                <Send size={18} />
+              </div>
+              <div>
+                <p className="text-sm font-black text-slate-950">Teste de envio</p>
+                <p className="text-xs font-semibold text-slate-500">Valide a sessao antes de ligar automacoes.</p>
+              </div>
             </div>
 
-            <div className="flex justify-end gap-3 border-t border-white/5 bg-white/[0.02] p-6">
+            <div className="mt-4 space-y-3">
+              <label className="block">
+                <span className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-500">Telefone</span>
+                <div className="mt-1 flex h-11 items-center gap-2 rounded-[14px] border border-slate-300 bg-white px-3 focus-within:border-slate-950">
+                  <Phone size={15} className="text-slate-400" />
+                  <input
+                    value={testPhone}
+                    onChange={(event) => setTestPhone(event.target.value)}
+                    placeholder="+55 11 99999-9999"
+                    className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-slate-900 outline-none"
+                  />
+                </div>
+              </label>
+              <label className="block">
+                <span className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-500">Mensagem</span>
+                <textarea
+                  value={testMessage}
+                  onChange={(event) => setTestMessage(event.target.value)}
+                  rows={5}
+                  className="mt-1 w-full resize-none rounded-[14px] border border-slate-300 bg-white p-3 text-sm font-semibold leading-6 text-slate-900 outline-none focus:border-slate-950"
+                />
+              </label>
               <button
-                onClick={() => setConfigModalOpen(false)}
-                className="rounded-xl bg-white/5 px-6 py-3 text-sm font-bold transition-colors hover:bg-white/10"
+                onClick={() => void sendTest()}
+                disabled={!isConnected || sendingTest || !testPhone.trim() || !testMessage.trim()}
+                className="flex h-11 w-full items-center justify-center gap-2 rounded-[14px] bg-[#07111f] px-4 text-xs font-black text-white shadow-[0_12px_24px_rgba(2,6,23,0.20)] disabled:cursor-not-allowed disabled:opacity-50"
               >
-                Cancelar
-              </button>
-              <button
-                onClick={() => void handleSaveConfig().catch((error) => console.error(error))}
-                className="grad-bg flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-bold shadow-lg shadow-purple-500/20 transition-transform hover:scale-105"
-              >
-                <Save size={16} /> Salvar Configuracoes
+                {sendingTest ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
+                {sendingTest ? 'Enviando...' : 'Enviar teste'}
               </button>
             </div>
-          </div>
-        </div>
-      )}
+          </section>
+
+          <section className="rounded-[22px] border border-slate-300 bg-white p-5 shadow-[0_16px_38px_rgba(15,23,42,0.10)]">
+            <p className="text-sm font-black text-slate-950">Proximos modulos</p>
+            <div className="mt-4 grid gap-2">
+              <PanelLink href="/dashboard/whatsapp/chat" icon={<MessageCircle size={15} />} label="Abrir conversas" />
+              <PanelLink href="/dashboard/whatsapp/contacts" icon={<Smartphone size={15} />} label="Contatos" />
+              <PanelLink href="/dashboard/whatsapp/builder" icon={<Settings size={15} />} label="IA e automacoes" />
+            </div>
+          </section>
+        </aside>
+      </div>
     </div>
   );
-};
+}
 
-export default WhatsAppAccountsPage;
+function Notice({ tone, text }: { tone: 'success' | 'error'; text: string }) {
+  return (
+    <div
+      className={`flex items-center gap-2 rounded-[18px] border px-4 py-3 text-sm font-semibold shadow-sm ${
+        tone === 'success' ? 'border-emerald-200 bg-emerald-50 text-emerald-900' : 'border-rose-200 bg-rose-50 text-rose-900'
+      }`}
+    >
+      {tone === 'success' ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
+      {text}
+    </div>
+  );
+}
+
+function PanelLink({ href, icon, label }: { href: string; icon: React.ReactNode; label: string }) {
+  return (
+    <Link href={href} className="flex h-11 items-center gap-2 rounded-[14px] border border-slate-300 px-3 text-xs font-black text-slate-700 hover:border-slate-950">
+      {icon}
+      {label}
+    </Link>
+  );
+}

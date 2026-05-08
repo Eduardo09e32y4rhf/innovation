@@ -3,6 +3,7 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CurrentCompany } from '../../common/decorators/current-company.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CreateApplicationDto, UpdateApplicationStatusDto } from './dto/application.dto';
+import { ConfirmApplicationTransitionDto, ReviewApplicationTransitionDto } from './dto/application-transition.dto';
 import { CreateCandidateDto, UpdateCandidateDto } from './dto/candidate.dto';
 import { CreateJobDto, UpdateJobDto } from './dto/job.dto';
 import { SendCandidateMessageDto } from './dto/send-candidate-message.dto';
@@ -31,8 +32,19 @@ export class RecruitmentController {
   }
 
   @Get('applications') listApplications(@CurrentCompany() companyId: string) { return this.service.listApplications(companyId); }
+  @Post('examples') createRecruitmentExamples(@CurrentCompany() companyId: string) { return this.service.createRecruitmentExamples(companyId); }
   @Post('applications') createApplication(@CurrentCompany() companyId: string, @Body() dto: CreateApplicationDto) { return this.service.createApplication(companyId, dto); }
   @Patch('applications/:id/status') updateApplicationStatus(@CurrentCompany() companyId: string, @Param('id') id: string, @Body() dto: UpdateApplicationStatusDto) {
     return this.service.updateApplicationStatus(companyId, id, dto);
+  }
+
+  @Post('applications/:id/transition/review')
+  reviewApplicationTransition(@CurrentCompany() companyId: string, @Param('id') id: string, @Body() dto: ReviewApplicationTransitionDto) {
+    return this.service.reviewApplicationTransition(companyId, id, dto);
+  }
+
+  @Post('applications/:id/transition/confirm')
+  confirmApplicationTransition(@CurrentCompany() companyId: string, @Param('id') id: string, @Body() dto: ConfirmApplicationTransitionDto) {
+    return this.service.confirmApplicationTransition(companyId, id, dto);
   }
 }

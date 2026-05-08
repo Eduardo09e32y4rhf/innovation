@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "target": "es2017",
     "lib": [
       "dom",
       "dom.iterable",
@@ -23,22 +24,7 @@
     ],
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./*"],
-      "@innovation/types": [
-        "../../packages/types/src/index.ts"
-      ],
-      "@innovation/config": [
-        "../../packages/config/src/index.ts"
-      ],
-      "@innovation/ui": [
-        "../../packages/ui/src/index.ts"
-      ],
-      "@innovation/auth": [
-        "../../packages/auth/src/index.ts"
-      ],
-      "@innovation/database": [
-        "../../packages/database/src/index.ts"
-      ]
+      "@/*": ["./*"]
     }
   },
   "include": [
@@ -49,6 +35,5 @@
   ],
   "exclude": [
     "node_modules"
-  ],
-  "extends": "../../tsconfig.base.json"
+  ]
 }

@@ -10,7 +10,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pt-BR">
-      <body className="bg-gradient-to-br from-[#05050a] via-black to-[#080812]">
+      <body className="bg-slate-50 text-slate-950">
         <Providers>{children}</Providers>
       </body>
     </html>

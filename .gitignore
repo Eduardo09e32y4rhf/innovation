@@ -14,11 +14,13 @@ dynamic_keys.json
 
 # Temporary & Logs
 *.log
+*.zip
 commit.txt
 git_history.txt
 dev.pid
 frontend.log
 backend/logs/
+horizon-synergy-temp/
 
 # Frontend (Node/Next)
 node_modules/
@@ -31,6 +33,11 @@ dist/
 *.bak
 apps/api/dist/
 apps/desktop/dist/
+WHATSAPP/WrapperApp/dist/
+WHATSAPP/WrapperApp/frontend/static/
+WHATSAPP/WrapperApp/frontend/precache-manifest*.js
+WHATSAPP/WrapperApp/frontend/service-worker.js
+WHATSAPP/auth_info_baileys/
 
 # Databases
 *.db

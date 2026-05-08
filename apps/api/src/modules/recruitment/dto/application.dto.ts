@@ -1,4 +1,5 @@
 import { IsIn, IsString } from 'class-validator';
+import { APPLICATION_STATUSES, type ApplicationStatusValue } from './application-transition.dto';
 
 export class CreateApplicationDto {
   @IsString()
@@ -9,6 +10,6 @@ export class CreateApplicationDto {
 }
 
 export class UpdateApplicationStatusDto {
-  @IsIn(['APPLIED', 'SCREENING', 'INTERVIEW', 'OFFER', 'HIRED', 'REJECTED'])
-  status!: 'APPLIED' | 'SCREENING' | 'INTERVIEW' | 'OFFER' | 'HIRED' | 'REJECTED';
+  @IsIn(APPLICATION_STATUSES)
+  status!: ApplicationStatusValue;
 }

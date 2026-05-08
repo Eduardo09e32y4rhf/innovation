@@ -5,6 +5,17 @@ import { PrismaService } from '../../database/prisma.service';
 export class RecruitmentRepository {
   constructor(private readonly prisma: PrismaService) {}
 
+  ensureCompany(companyId: string) {
+    return this.prisma.company.upsert({
+      where: { id: companyId },
+      create: {
+        id: companyId,
+        name: 'Innovation IA',
+      },
+      update: {},
+    });
+  }
+
   listJobs(companyId: string) {
     return this.prisma.job.findMany({
       where: { companyId },
@@ -124,6 +135,15 @@ export class RecruitmentRepository {
     });
   }
 
+  async getApplication(companyId: string, id: string) {
+    const application = await this.prisma.application.findFirst({
+      where: { companyId, id },
+      include: { candidate: true, job: true },
+    });
+    if (!application) throw new NotFoundException('Application not found');
+    return application;
+  }
+
   async createApplication(companyId: string, candidateId: string, jobId: string) {
     await this.getCandidate(companyId, candidateId);
     await this.getJob(companyId, jobId);
@@ -138,6 +158,12 @@ export class RecruitmentRepository {
     const result = await this.prisma.application.updateMany({ where: { companyId, id }, data: { status } as any });
     if (!result.count) throw new NotFoundException('Application not found');
     return this.prisma.application.findFirst({ where: { companyId, id }, include: { candidate: true, job: true } });
+  }
+
+  async updateCandidateStatus(companyId: string, id: string, status: string) {
+    const result = await this.prisma.candidate.updateMany({ where: { companyId, id }, data: { status } as any });
+    if (!result.count) throw new NotFoundException('Candidate not found');
+    return this.getCandidate(companyId, id);
   }
 
   upsertCandidateContact(companyId: string, phone: string | undefined, candidateName: string, email?: string) {
