@@ -177,7 +177,9 @@ def get_cost_centers(
     # ⚡ Bolt: [performance improvement] Uses database aggregation for sum and count instead of loading all objects into memory (O(1) memory instead of O(N)).
     stats = (
         db.query(
-            func.coalesce(Transaction.category, "Outros").label("category"),
+            func.coalesce(func.nullif(Transaction.category, ""), "Outros").label(
+                "category"
+            ),
             func.sum(Transaction.amount).label("total"),
             func.count(Transaction.id).label("count"),
         )
@@ -185,7 +187,7 @@ def get_cost_centers(
             Transaction.company_id == current_user.id,
             Transaction.type == "debit",
         )
-        .group_by(func.coalesce(Transaction.category, "Outros"))
+        .group_by(func.coalesce(func.nullif(Transaction.category, ""), "Outros"))
         .all()
     )
 
