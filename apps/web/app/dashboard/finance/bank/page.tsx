@@ -92,7 +92,12 @@ export default function BankPage() {
             <div className="relative z-10">
               <div className="flex items-center justify-between mb-4">
                 <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-teal-400">Saldo Consolidado</p>
-                <button onClick={() => setShowBalance(v => !v)} className="text-white/40 hover:text-white/70 transition-colors">
+                <button
+                  onClick={() => setShowBalance(v => !v)}
+                  className="text-white/40 hover:text-white/70 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400 rounded-sm p-1"
+                  aria-label={showBalance ? "Ocultar saldo consolidado" : "Mostrar saldo consolidado"}
+                  title={showBalance ? "Ocultar saldo consolidado" : "Mostrar saldo consolidado"}
+                >
                   {showBalance ? <EyeOff size={14} /> : <Eye size={14} />}
                 </button>
               </div>
