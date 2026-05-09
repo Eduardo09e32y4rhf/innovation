@@ -406,9 +406,9 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="h-[calc(100vh-142px)] min-h-[620px] overflow-hidden rounded-[22px] border border-slate-200 bg-white shadow-[0_18px_42px_rgba(15,23,42,0.10)]">
-      <div className="grid h-full min-h-0 grid-cols-[300px_1fr] xl:grid-cols-[320px_1fr_280px]">
-        <section className="flex min-h-0 min-w-0 flex-col border-r border-slate-200 bg-slate-50">
+    <div className="min-h-[calc(100vh-220px)] overflow-hidden rounded-[18px] border border-slate-200 bg-white shadow-[0_18px_42px_rgba(15,23,42,0.10)] md:h-[calc(100vh-142px)] md:min-h-[620px] md:rounded-[22px]">
+      <div className="grid h-full min-h-0 grid-cols-1 md:grid-cols-[300px_1fr] xl:grid-cols-[320px_1fr_280px]">
+        <section className="flex max-h-[42vh] min-h-0 min-w-0 flex-col border-b border-slate-200 bg-slate-50 md:max-h-none md:border-b-0 md:border-r">
           <div className="border-b border-slate-200 bg-white p-5">
             <div className="mb-4 flex items-center justify-between gap-3">
               <div>
@@ -485,7 +485,7 @@ export default function ChatPage() {
         <section className="flex min-h-0 min-w-0 flex-col bg-white">
           {activeContact ? (
             <>
-              <div className="flex h-20 items-center justify-between border-b border-slate-200 bg-white px-6">
+              <div className="flex min-h-16 items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 py-3 md:h-20 md:px-6 md:py-0">
                 <div className="flex min-w-0 items-center gap-3">
                   <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-black text-white ${isGroupContact(activeContact) ? 'bg-teal-700' : 'bg-slate-950'}`}>
                     <ChatAvatar contact={activeContact} />
@@ -497,7 +497,7 @@ export default function ChatPage() {
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-1 text-slate-500">
+                <div className="hidden items-center gap-1 text-slate-500 sm:flex">
                   <IconButton label="Video" icon={<Video size={18} />} />
                   <IconButton label="Telefone" icon={<Phone size={18} />} />
                   <IconButton label="Mais" icon={<MoreVertical size={18} />} />
@@ -514,7 +514,7 @@ export default function ChatPage() {
               <div
                 ref={messagesScrollRef}
                 onScroll={handleMessagesScroll}
-                className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-[#efeae2] p-6"
+                className="min-h-[52vh] flex-1 overflow-y-auto overscroll-contain bg-[#efeae2] p-3 sm:p-4 md:min-h-0 md:p-6"
               >
                 {loadingMessages ? (
                   <MessageState icon={<Loader2 className="h-6 w-6 animate-spin" />} text="Carregando mensagens..." />
@@ -538,7 +538,7 @@ export default function ChatPage() {
                       return (
                         <div key={msg.id} className={`flex ${outbound ? 'justify-end' : 'justify-start'}`}>
                           <div
-                            className={`max-w-[78%] rounded-[10px] px-3 py-2 shadow-sm ${
+                            className={`max-w-[92%] rounded-[10px] px-3 py-2 shadow-sm sm:max-w-[82%] lg:max-w-[78%] ${
                               outbound
                                 ? 'rounded-tr-[3px] bg-[#d9fdd3] text-slate-900'
                                 : 'rounded-tl-[3px] bg-white text-slate-900'
@@ -568,7 +568,7 @@ export default function ChatPage() {
                 )}
               </div>
 
-              <div className="shrink-0 border-t border-slate-200 bg-white p-4">
+              <div className="shrink-0 border-t border-slate-200 bg-white p-2 sm:p-4">
                 <div className="flex items-end gap-2 rounded-[16px] border border-slate-300 bg-slate-50 p-2 transition focus-within:border-slate-950">
                   <IconButton label="Emoji" icon={<Smile size={18} />} />
                   <IconButton label="Anexo" icon={<Paperclip size={18} />} />

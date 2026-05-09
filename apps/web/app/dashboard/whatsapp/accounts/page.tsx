@@ -252,7 +252,7 @@ export default function WhatsAppAccountsPage() {
       {feedback ? <Notice tone="success" text={feedback} /> : null}
       {error ? <Notice tone="error" text={error} /> : null}
 
-      <div className="grid gap-5 xl:grid-cols-[1fr_420px]">
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1fr_420px]">
         <main className="space-y-5">
           <section className="rounded-[22px] border border-slate-300 bg-white p-5 shadow-[0_16px_38px_rgba(15,23,42,0.10)]">
             <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
@@ -301,7 +301,7 @@ export default function WhatsAppAccountsPage() {
             </div>
           </section>
 
-          <section className="grid gap-5 lg:grid-cols-[360px_1fr]">
+          <section className="grid grid-cols-1 gap-5 lg:grid-cols-[360px_1fr]">
             <div className="rounded-[22px] border border-slate-300 bg-white p-5 shadow-[0_16px_38px_rgba(15,23,42,0.10)]">
               <div className="flex items-center justify-between gap-3">
                 <div>

@@ -17,7 +17,7 @@ export default function FinanceLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
 
   return (
-    <div className="max-w-[1200px] mx-auto">
+    <div className="mx-auto w-full max-w-[1200px]">
       {/* ─── Header ─────────────────────────────── */}
       <div className="mb-6">
         <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-gray-400 mb-1.5">Módulo</p>
@@ -28,7 +28,7 @@ export default function FinanceLayout({ children }: { children: ReactNode }) {
       </div>
 
       {/* ─── Tab bar ────────────────────────────── */}
-      <div className="flex items-center gap-0.5 border-b-2 border-gray-100 mb-6">
+      <div className="mb-6 flex items-center gap-0.5 overflow-x-auto border-b-2 border-gray-100">
         {tabs.map(tab => {
           const Icon = tab.icon;
           const active = pathname === tab.href
@@ -37,7 +37,7 @@ export default function FinanceLayout({ children }: { children: ReactNode }) {
             <Link
               key={tab.href}
               href={tab.href}
-              className={`flex items-center gap-2.5 px-5 py-3.5 text-[13.5px] font-semibold border-b-2 transition-all -mb-0.5 ${
+              className={`-mb-0.5 flex shrink-0 items-center gap-2.5 border-b-2 px-4 py-3.5 text-[13.5px] font-semibold transition-all sm:px-5 ${
                 active
                   ? 'border-gray-900 text-gray-900'
                   : 'border-transparent text-gray-500 hover:text-gray-800 hover:border-gray-300'

@@ -1,135 +1,165 @@
 "use client";
-import React, { useState } from 'react';
+
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { Lock, Mail, ArrowRight, ShieldCheck, AlertCircle } from 'lucide-react';
+import { AlertCircle, ArrowRight, Building2, Eye, EyeOff, Lock, Mail, ShieldCheck } from 'lucide-react';
 import { useAuth } from '@/app/contexts/AuthContext';
-import { useLanguage } from '@/app/contexts/LanguageContext';
-import { LanguageSwitcher } from '@/app/components/LanguageSwitcher';
+import { firstAccessMessage } from './professional-messages';
 
 export default function LoginPage() {
   const router = useRouter();
   const { login, loading, error, isAuthenticated } = useAuth();
-  const { t } = useLanguage();
-  
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [localError, setLocalError] = useState('');
 
-  // Redirecionar se já autenticado
-  React.useEffect(() => {
-    if (isAuthenticated) {
-      router.push('/dashboard');
-    }
+  useEffect(() => {
+    if (isAuthenticated) router.push('/dashboard');
   }, [isAuthenticated, router]);
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleLogin = async (event: React.FormEvent) => {
+    event.preventDefault();
     setLocalError('');
 
-    if (!email || !password) {
-      setLocalError('Por favor, preencha todos os campos');
+    if (!email.trim() || !password) {
+      setLocalError('Informe o e-mail e a senha.');
       return;
     }
 
     try {
-      await login(email, password);
+      await login(email.trim(), password);
       router.push('/dashboard');
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Erro ao fazer login';
-      setLocalError(errorMessage);
-      console.error('Login error:', err);
+      setLocalError(err instanceof Error ? err.message : 'Nao foi possivel entrar agora.');
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#05050a] flex items-center justify-center p-6 relative overflow-hidden">
-      {/* Background Glow */}
-      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-600/20 rounded-full blur-[120px] animate-pulse"></div>
-      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-600/10 rounded-full blur-[120px]"></div>
-
-      {/* Language Switcher */}
-      <div className="absolute top-6 right-6 z-20">
-        <LanguageSwitcher />
-      </div>
-
-      <div className="w-full max-w-md relative z-10">
-        <div className="text-center mb-10">
-          <div className="w-16 h-16 grad-bg rounded-2xl flex items-center justify-center font-bold text-3xl text-white mx-auto shadow-2xl shadow-purple-500/20 mb-6">I</div>
-          <h1 className="text-3xl font-black tracking-tight mb-2 uppercase">{t('login.title')}</h1>
-          <p className="text-gray-500 text-sm">{t('login.subtitle')}</p>
-        </div>
-
-        <div className="glass p-8 rounded-[40px] border border-white/10 shadow-2xl shadow-black/50">
-          {/* Error Messages */}
-          {(error || localError) && (
-            <div className="mb-6 p-4 bg-red-500/20 border border-red-500/50 rounded-lg flex gap-3 items-start">
-              <AlertCircle size={20} className="text-red-400 mt-0.5 flex-shrink-0" />
-              <div>
-                <p className="text-sm font-semibold text-red-200">{t('login.error')}</p>
-                <p className="text-xs text-red-300 mt-1">{error || localError}</p>
-              </div>
+    <main className="min-h-screen bg-[#f4f5f7] text-slate-950">
+      <div className="grid min-h-screen lg:grid-cols-[1fr_520px]">
+        <section className="hidden min-h-screen flex-col justify-between bg-[#0d0d0e] p-10 text-white lg:flex">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-[10px] bg-white text-slate-950">
+              <ShieldCheck size={20} strokeWidth={2.4} />
             </div>
-          )}
-
-          <form className="space-y-6" onSubmit={handleLogin}>
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">{t('login.email')}</label>
-              <div className="relative">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
-                <input 
-                  type="email" 
-                  placeholder={t('login.email_placeholder')}
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  disabled={loading}
-                  required
-                  className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-sm outline-none focus:ring-2 focus:ring-purple-500 transition-all disabled:opacity-50"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex justify-between items-center px-1">
-                <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">{t('login.password')}</label>
-                <Link href="#" className="text-[10px] text-purple-400 hover:text-white transition-colors">{t('login.forgot_password')}</Link>
-              </div>
-              <div className="relative">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
-                <input 
-                  type="password" 
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  disabled={loading}
-                  required
-                  className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-sm outline-none focus:ring-2 focus:ring-purple-500 transition-all disabled:opacity-50"
-                />
-              </div>
-            </div>
-
-            <button 
-              type="submit" 
-              disabled={loading}
-              className="w-full py-4 grad-bg rounded-2xl font-bold text-lg hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-xl shadow-purple-500/20 disabled:opacity-50"
-            >
-              {loading ? t('login.authenticating') : t('login.button')} 
-              {!loading && <ArrowRight size={20} />}
-            </button>
-          </form>
-
-          <div className="mt-8 pt-8 border-t border-white/5 text-center">
-            <p className="text-xs text-gray-500 mb-4">{t('login.security')}</p>
-            <div className="flex justify-center gap-2 text-green-500 items-center text-[10px] font-bold uppercase tracking-widest">
-              <ShieldCheck size={14} /> {t('login.encrypted')}
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.22em] text-teal-300">Innovation IA</p>
+              <p className="text-sm font-bold text-white/80">Console operacional</p>
             </div>
           </div>
-        </div>
 
-        <p className="text-center mt-8 text-sm text-gray-500">
-          {t('login.no_account')} <Link href="#" className="text-purple-400 font-bold hover:text-white transition-colors">{t('login.contact_consultant')}</Link>
-        </p>
+          <div className="max-w-xl">
+            <p className="mb-4 inline-flex rounded-full border border-teal-300/20 bg-teal-300/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-teal-100">
+              Ambiente seguro
+            </p>
+            <h1 className="text-5xl font-black leading-[1.02] tracking-tight text-white">
+              Operacao conectada ao seu WhatsApp, RH e financeiro.
+            </h1>
+            <p className="mt-5 max-w-lg text-sm font-medium leading-7 text-slate-300">
+              Acesse com credenciais reais da empresa. Nenhum modo demo e habilitado em producao.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-3 gap-3">
+            {['WhatsApp real', 'Banco ativo', 'JWT seguro'].map((item) => (
+              <div key={item} className="rounded-[14px] border border-white/10 bg-white/[0.04] p-4">
+                <p className="text-[11px] font-black uppercase tracking-[0.12em] text-white/55">{item}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="flex min-h-screen items-center justify-center px-5 py-8">
+          <div className="w-full max-w-[420px]">
+            <div className="mb-8 lg:hidden">
+              <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-[12px] bg-slate-950 text-white">
+                <ShieldCheck size={20} />
+              </div>
+              <p className="text-[10px] font-black uppercase tracking-[0.22em] text-teal-700">Innovation IA</p>
+            </div>
+
+            <div className="rounded-[22px] border border-slate-200 bg-white p-6 shadow-[0_18px_42px_rgba(15,23,42,0.10)] sm:p-8">
+              <div className="mb-7">
+                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-[14px] bg-slate-950 text-white">
+                  <Building2 size={22} />
+                </div>
+                <h2 className="text-2xl font-black tracking-tight text-slate-950">Entrar no painel</h2>
+                <p className="mt-2 text-sm font-medium leading-6 text-slate-500">
+                  Use o e-mail e a senha do administrador cadastrado no backend.
+                </p>
+              </div>
+
+              {(error || localError) ? (
+                <div className="mb-5 flex gap-3 rounded-[14px] border border-red-200 bg-red-50 p-3 text-red-800">
+                  <AlertCircle size={18} className="mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-sm font-black">Nao foi possivel entrar</p>
+                    <p className="mt-1 text-xs font-semibold">{error || localError}</p>
+                  </div>
+                </div>
+              ) : null}
+
+              <form className="space-y-4" onSubmit={handleLogin}>
+                <label className="block">
+                  <span className="mb-1.5 block text-xs font-black uppercase tracking-[0.12em] text-slate-600">E-mail</span>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(event) => setEmail(event.target.value)}
+                      disabled={loading}
+                      autoComplete="email"
+                      placeholder="admin@suaempresa.com"
+                      className="h-12 w-full rounded-[14px] border border-slate-300 bg-white pl-10 pr-3 text-sm font-semibold text-slate-950 outline-none transition focus:border-slate-950 focus:ring-4 focus:ring-slate-950/5 disabled:opacity-60"
+                    />
+                  </div>
+                </label>
+
+                <label className="block">
+                  <span className="mb-1.5 block text-xs font-black uppercase tracking-[0.12em] text-slate-600">Senha</span>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      value={password}
+                      onChange={(event) => setPassword(event.target.value)}
+                      disabled={loading}
+                      autoComplete="current-password"
+                      placeholder="Digite sua senha"
+                      className="h-12 w-full rounded-[14px] border border-slate-300 bg-white pl-10 pr-11 text-sm font-semibold text-slate-950 outline-none transition focus:border-slate-950 focus:ring-4 focus:ring-slate-950/5 disabled:opacity-60"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((current) => !current)}
+                      className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-[10px] text-slate-500 transition hover:bg-slate-100 hover:text-slate-950"
+                      aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                    >
+                      {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+                    </button>
+                  </div>
+                </label>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-[14px] bg-slate-950 text-sm font-black text-white shadow-[0_14px_28px_rgba(15,23,42,0.22)] transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {loading ? 'Autenticando...' : 'Entrar'}
+                  {!loading ? <ArrowRight size={18} /> : null}
+                </button>
+              </form>
+
+              <div className="mt-6 rounded-[16px] border border-slate-200 bg-gradient-to-b from-slate-50 to-white p-4">
+                <p className="text-xs font-black leading-5 text-slate-900">{firstAccessMessage.title}</p>
+                <p className="mt-1 text-xs font-semibold leading-5 text-slate-600">{firstAccessMessage.description}</p>
+              </div>
+            </div>
+          </div>
+        </section>
       </div>
-    </div>
+    </main>
   );
 }

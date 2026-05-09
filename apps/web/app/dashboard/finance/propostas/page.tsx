@@ -135,7 +135,7 @@ export default function PropostasPage() {
   return (
     <div className="space-y-5">
       {/* KPIs */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {[
           { label: 'Propostas Enviadas',  val: '3',           sub: 'aguardando resposta' },
           { label: 'Taxa de Conversão',   val: '33%',         sub: '1 de 3 aprovadas' },
@@ -150,7 +150,7 @@ export default function PropostasPage() {
         ))}
       </div>
 
-      <div className="grid grid-cols-[1fr_380px] gap-5">
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1fr_380px]">
         {/* Propostas list */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">

@@ -81,7 +81,7 @@ export default function BankPage() {
 
   return (
     <div className="space-y-5">
-      <div className="grid grid-cols-[1fr_340px] gap-4">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_340px]">
         <div className="dash-card p-5">
           <div className="mb-5 flex items-center justify-between">
             <div>

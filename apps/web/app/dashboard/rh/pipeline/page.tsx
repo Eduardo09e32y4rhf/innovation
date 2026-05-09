@@ -533,7 +533,7 @@ export default function PipelinePage() {
 
       <section className="rounded-[22px] border border-slate-300 bg-white p-4 shadow-[0_16px_38px_rgba(15,23,42,0.10)]">
         <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
-          <div className="relative min-w-[260px] flex-1">
+          <div className="relative min-w-0 flex-1 md:min-w-[260px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
             <input
               value={search}
@@ -598,7 +598,7 @@ export default function PipelinePage() {
           {!loading && filteredApplications.length > 0 && activeTab === 'pipeline' ? (
             <div className="flex gap-4 overflow-x-auto pb-4">
               {COLUMNS.map((column) => (
-                <section key={column.id} className={`flex min-h-[560px] min-w-[286px] flex-col rounded-[22px] border p-3 shadow-[0_14px_32px_rgba(15,23,42,0.11)] ${column.color}`}>
+                <section key={column.id} className={`flex min-h-[480px] min-w-[260px] flex-col rounded-[22px] border p-3 shadow-[0_14px_32px_rgba(15,23,42,0.11)] sm:min-w-[286px] lg:min-h-[560px] ${column.color}`}>
                   <div className="mb-3 flex items-center gap-2 px-1">
                     <span className={`h-2.5 w-2.5 rounded-full ${column.dot} shadow-[0_0_0_4px_rgba(255,255,255,0.8)]`} />
                     <h2 className="flex-1 text-xs font-black uppercase tracking-[0.16em] text-slate-700">{column.title}</h2>

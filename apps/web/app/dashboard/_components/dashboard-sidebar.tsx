@@ -52,9 +52,9 @@ export function DashboardSidebar() {
   const section = navSections.find(s => isSettings ? !!s.match : !s.match) ?? navSections[0];
 
   return (
-    <aside className="sidebar-shell w-[220px] flex flex-col">
+    <aside className="sidebar-shell flex w-full shrink-0 flex-col md:h-screen md:w-[220px]">
       {/* Brand */}
-      <div className="p-4">
+      <div className="p-3 md:p-4">
         <div className="sidebar-brand-card flex items-center gap-3 p-3">
           <div className="flex h-8 w-8 items-center justify-center rounded-[7px] bg-white shrink-0">
             <Zap size={15} strokeWidth={2.2} className="text-[#0D0D0E]" />
@@ -69,14 +69,14 @@ export function DashboardSidebar() {
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 px-3 space-y-0.5">
+      <nav className="flex gap-1 overflow-x-auto px-3 pb-3 md:block md:flex-1 md:space-y-0.5 md:overflow-visible md:pb-0">
         {section.items.map(item => (
           <NavItem key={item.href} item={item} active={isActive(pathname, item)} />
         ))}
       </nav>
 
       {/* Copilot */}
-      <div className="p-3 pt-0">
+      <div className="hidden p-3 pt-0 md:block">
         <div className="sidebar-copilot-card p-4">
           <div className="flex h-7 w-7 items-center justify-center rounded-md bg-teal-500/15 mb-3">
             <Zap size={13} strokeWidth={2} className="text-teal-400" />
@@ -100,7 +100,7 @@ function NavItem({ item, active }: { item: NavItemConfig; active: boolean }) {
   return (
     <Link
       href={item.href}
-      className={`sidebar-nav-item ${active ? 'sidebar-nav-active' : 'sidebar-nav-idle'}`}
+      className={`sidebar-nav-item shrink-0 ${active ? 'sidebar-nav-active' : 'sidebar-nav-idle'}`}
     >
       <Icon size={14} strokeWidth={active ? 2.2 : 1.8} className="shrink-0" />
       <span>{item.label}</span>

@@ -49,7 +49,7 @@ export default function FinanceOverview() {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-4 gap-5">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4 xl:gap-5">
         {kpis.map(k => (
           <div key={k.label} className="dash-card p-6">
             <p className="mb-4 text-[11px] font-semibold uppercase tracking-wider text-gray-500">{k.label}</p>
@@ -65,7 +65,7 @@ export default function FinanceOverview() {
         ))}
       </div>
 
-      <div className="grid grid-cols-[1fr_340px] gap-5">
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1fr_340px]">
         <div className="dash-card p-6">
           <div className="mb-6 flex items-start justify-between">
             <div>

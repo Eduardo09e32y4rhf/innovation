@@ -14,6 +14,8 @@ Preencha no minimo:
 - `DATABASE_URL`
 - `JWT_SECRET`
 - `JWT_REFRESH_SECRET`
+- `ADMIN_EMAIL`
+- `ADMIN_PASSWORD`
 - `NEXT_PUBLIC_API_URL`
 - `NEXT_PUBLIC_APP_URL`
 - `ALLOWED_ORIGINS`
@@ -33,11 +35,20 @@ npm ci
 npm run vps:infra
 npm --prefix apps/api run prisma:generate
 npm --prefix apps/api run prisma:deploy
+npm --prefix apps/api run seed:admin
 npm run build:api
 npm run build:web
 ```
 
 Importante: o `NEXT_PUBLIC_API_URL` precisa estar certo antes do `npm run build:web`, porque o frontend e exportado estaticamente.
+
+O primeiro acesso usa o admin criado pelo seed:
+
+```bash
+ADMIN_EMAIL=admin@seudominio.com
+ADMIN_PASSWORD=sua_senha_forte
+npm --prefix apps/api run seed:admin
+```
 
 Postgres e Redis sobem pelo [`docker-compose.vps.yml`](../../docker-compose.vps.yml):
 
