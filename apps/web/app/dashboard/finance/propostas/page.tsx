@@ -1,6 +1,6 @@
 "use client";
 import { useState } from 'react';
-import { Calculator, FileText, Percent, DollarSign, RefreshCw } from 'lucide-react';
+import { Calculator, FileText, Percent, DollarSign, RefreshCw, X } from 'lucide-react';
 
 /* ── Calculadora financeira ── */
 function Calculadora() {
@@ -99,7 +99,7 @@ function Calculadora() {
 }
 
 /* ── Propostas ── */
-const propostas = [
+const propostasBase = [
   { id: 'P001', cliente: 'Alpha Tech Ltda',   valor: 'R$ 48.000,00', tipo: 'Anual',      status: 'enviada',   data: '05/05/2026' },
   { id: 'P002', cliente: 'Beta Soluções',     valor: 'R$ 12.800,00', tipo: 'Mensal',     status: 'aprovada',  data: '02/05/2026' },
   { id: 'P003', cliente: 'Gama Indústria',    valor: 'R$ 28.500,00', tipo: 'Semestral',  status: 'negociando',data: '30/04/2026' },
@@ -108,6 +108,29 @@ const propostas = [
 
 export default function PropostasPage() {
   const [novaPropostaModal, setNovaPropostaModal] = useState(false);
+  const [selectedProposal, setSelectedProposal] = useState<(typeof propostasBase)[number] | null>(null);
+  const [propostas, setPropostas] = useState(propostasBase);
+  const [form, setForm] = useState({ cliente: '', valor: '', tipo: 'Mensal' });
+
+  const criarProposta = () => {
+    if (!form.cliente.trim() || !form.valor.trim()) return;
+    const next = {
+      id: `P${String(propostas.length + 1).padStart(3, '0')}`,
+      cliente: form.cliente,
+      valor: Number(form.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
+      tipo: form.tipo,
+      status: 'rascunho',
+      data: new Intl.DateTimeFormat('pt-BR', { timeZone: 'UTC' }).format(new Date()),
+    };
+    setPropostas((current) => [next, ...current]);
+    setForm({ cliente: '', valor: '', tipo: 'Mensal' });
+    setNovaPropostaModal(false);
+  };
+
+  const usarTemplate = (tipo: string) => {
+    setForm((current) => ({ ...current, tipo }));
+    setNovaPropostaModal(true);
+  };
 
   return (
     <div className="space-y-5">
@@ -160,7 +183,7 @@ export default function PropostasPage() {
                       }`}>{p.status}</span>
                     </td>
                     <td className="px-5">
-                      <button className="btn-outline text-[11px] px-3 py-1">Ver</button>
+                      <button onClick={() => setSelectedProposal(p)} className="btn-outline text-[11px] px-3 py-1">Ver</button>
                     </td>
                   </tr>
                 ))}
@@ -179,7 +202,7 @@ export default function PropostasPage() {
               ].map(t => {
                 const Icon = t.icon;
                 return (
-                  <button key={t.label} className="dash-card p-4 text-left hover:border-gray-900 transition-all group">
+                  <button key={t.label} onClick={() => usarTemplate(t.label)} className="dash-card p-4 text-left hover:border-gray-900 transition-all group">
                     <Icon size={18} className="text-gray-400 group-hover:text-gray-900 mb-2 transition-colors" strokeWidth={1.8} />
                     <p className="text-[12px] font-semibold text-gray-900">{t.label}</p>
                     <p className="text-[11px] text-gray-400 mt-0.5">{t.desc}</p>
@@ -193,6 +216,62 @@ export default function PropostasPage() {
         {/* Calculadora */}
         <Calculadora />
       </div>
+
+      {novaPropostaModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setNovaPropostaModal(false)}>
+          <div className="w-full max-w-lg rounded-2xl bg-white shadow-2xl" onClick={event => event.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
+              <h3 className="text-[15px] font-bold text-gray-900">Nova Proposta</h3>
+              <button onClick={() => setNovaPropostaModal(false)}><X size={18} className="text-gray-400" /></button>
+            </div>
+            <div className="space-y-4 px-6 py-5">
+              <div>
+                <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-gray-500">Cliente</label>
+                <input value={form.cliente} onChange={event => setForm((current) => ({ ...current, cliente: event.target.value }))} className="input-premium w-full px-3 py-2.5 text-[13px]" placeholder="Ex: Alpha Tech Ltda" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-gray-500">Valor</label>
+                  <input type="number" value={form.valor} onChange={event => setForm((current) => ({ ...current, valor: event.target.value }))} className="input-premium w-full px-3 py-2.5 text-[13px]" placeholder="0,00" />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-gray-500">Tipo</label>
+                  <select value={form.tipo} onChange={event => setForm((current) => ({ ...current, tipo: event.target.value }))} className="input-premium w-full px-3 py-2.5 text-[13px]">
+                    <option>Mensal</option>
+                    <option>Anual</option>
+                    <option>Semestral</option>
+                    <option>SaaS Mensal</option>
+                    <option>Projeto Unico</option>
+                    <option>Retainer</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-3 px-6 pb-5">
+              <button onClick={() => setNovaPropostaModal(false)} className="btn-outline flex-1 py-2.5">Cancelar</button>
+              <button onClick={criarProposta} className="btn-black flex-1 justify-center py-2.5">Salvar rascunho</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {selectedProposal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setSelectedProposal(null)}>
+          <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl" onClick={event => event.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
+              <h3 className="text-[15px] font-bold text-gray-900">{selectedProposal.id}</h3>
+              <button onClick={() => setSelectedProposal(null)}><X size={18} className="text-gray-400" /></button>
+            </div>
+            <div className="space-y-3 px-6 py-5 text-[13px]">
+              <div className="flex justify-between"><span className="text-gray-500">Cliente</span><strong>{selectedProposal.cliente}</strong></div>
+              <div className="flex justify-between"><span className="text-gray-500">Valor</span><strong>{selectedProposal.valor}</strong></div>
+              <div className="flex justify-between"><span className="text-gray-500">Tipo</span><strong>{selectedProposal.tipo}</strong></div>
+              <div className="flex justify-between"><span className="text-gray-500">Data</span><strong>{selectedProposal.data}</strong></div>
+              <div className="flex justify-between"><span className="text-gray-500">Status</span><span className="badge badge-blue">{selectedProposal.status}</span></div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

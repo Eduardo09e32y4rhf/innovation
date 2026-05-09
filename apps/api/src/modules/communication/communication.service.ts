@@ -12,6 +12,63 @@ const memoryWhatsapp = new Map<string, { status: string; qrCode?: string | null;
 const memoryConversations = new Map<string, any[]>();
 const memoryMessages = new Map<string, any[]>();
 
+function normalizeChatId(id: string) {
+  return String(id || '').trim();
+}
+
+function chatDigits(id: string) {
+  return normalizeChatId(id).replace(/@.*$/, '').replace(/\D/g, '');
+}
+
+function isGroupChat(id: string) {
+  return normalizeChatId(id).endsWith('@g.us');
+}
+
+function isTechnicalChat(id: string) {
+  const chatId = normalizeChatId(id);
+  return !chatId || chatId === 'status@broadcast' || chatId.endsWith('@newsletter');
+}
+
+function formatWhatsappPhone(value?: string | null) {
+  const digits = String(value || '').replace(/\D/g, '');
+  if (!digits) return '';
+  if (digits.startsWith('55') && digits.length >= 12) {
+    const ddd = digits.slice(2, 4);
+    const first = digits.length === 13 ? digits.slice(4, 9) : digits.slice(4, 8);
+    const last = digits.length === 13 ? digits.slice(9) : digits.slice(8);
+    return `+55 ${ddd} ${first}-${last}`;
+  }
+  return `+${digits}`;
+}
+
+function looksLikeRawWhatsappId(value?: string | null) {
+  const text = String(value || '').trim();
+  if (!text) return true;
+  const clean = text.replace(/@.*$/, '');
+  return /^\d{10,}$/.test(clean) || /^\+?\d[\d\s().-]+$/.test(text);
+}
+
+function chatDisplayName(name: unknown, id: string, fallbackPhone?: string | null) {
+  const label = String(name || '').trim();
+  if (label && !looksLikeRawWhatsappId(label)) return label;
+  if (isGroupChat(id)) return 'Grupo do WhatsApp';
+  return formatWhatsappPhone(fallbackPhone || chatDigits(id)) || 'Contato WhatsApp';
+}
+
+function chatTimestamp(value: unknown) {
+  if (!value) return 0;
+  if (value instanceof Date) return value.getTime();
+  const numeric = Number(value);
+  if (Number.isFinite(numeric)) return numeric < 1e12 ? numeric * 1000 : numeric;
+  const parsed = new Date(String(value)).getTime();
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function chatTime(value: unknown) {
+  const timestamp = chatTimestamp(value);
+  return timestamp ? new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+}
+
 @Injectable()
 export class CommunicationService implements OnModuleInit {
   constructor(
@@ -81,19 +138,97 @@ export class CommunicationService implements OnModuleInit {
     return this.provider.disconnect(companyId);
   }
 
-  listConversations(companyId: string) {
+  async listConversations(companyId: string) {
+    if (this.provider.isConnected(companyId)) {
+      const chats = await Promise.resolve().then(() => this.provider.getChats(companyId)).catch(() => []);
+      return (Array.isArray(chats) ? chats : []).map((chat: any) => {
+        const id = normalizeChatId(chat.id);
+        return {
+          id,
+          whatsappJid: id,
+          isGroup: isGroupChat(id),
+          status: 'OPEN',
+          lastMessage: chat.lastMessage ?? '',
+          lastMessageAt: chat.timestamp ? new Date(chatTimestamp(chat.timestamp)) : null,
+          contact: {
+            id,
+            name: chatDisplayName(chat.name, id),
+            phone: isGroupChat(id) ? id : chatDigits(id),
+          },
+        };
+      });
+    }
     return this.repository.listConversations(companyId).catch(() => memoryConversations.get(companyId) ?? []);
   }
 
   async listChats(companyId: string) {
-    const chats = await this.omnius.getChats(companyId).catch(() => memoryConversations.get(companyId) ?? []);
-    return chats.map((chat: any) => ({
-      id: chat.id,
-      name: chat.name,
+    const isConnected = this.provider.isConnected(companyId);
+    const [sessionChats, legacyChats, storedConversations] = await Promise.all([
+      Promise.resolve().then(() => this.provider.getChats(companyId)).catch(() => []),
+      isConnected ? Promise.resolve([]) : Promise.resolve().then(() => this.omnius.getChats(companyId)).catch(() => []),
+      isConnected ? Promise.resolve([]) : this.repository.listConversations(companyId).catch(() => memoryConversations.get(companyId) ?? []),
+    ]);
+
+    const safeSessionChats = Array.isArray(sessionChats) ? sessionChats : [];
+    const safeLegacyChats = Array.isArray(legacyChats) ? legacyChats : [];
+    const safeStoredConversations = Array.isArray(storedConversations) ? storedConversations : [];
+
+    const liveChats = safeSessionChats.map((chat: any) => ({
+      id: normalizeChatId(chat.id),
+      name: chatDisplayName(chat.name, chat.id),
+      isGroup: isGroupChat(chat.id),
       unreadCount: chat.unreadCount ?? 0,
-      time: chat.timestamp ? new Date(chat.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
+      timestamp: chatTimestamp(chat.timestamp),
+      time: chatTime(chat.timestamp),
       lastMessage: chat.lastMessage ?? '',
+      avatarUrl: chat.avatarUrl ?? null,
     }));
+
+    const chats = safeLegacyChats.map((chat: any) => ({
+      id: normalizeChatId(chat.id),
+      name: chatDisplayName(chat.name, chat.id),
+      isGroup: isGroupChat(chat.id),
+      unreadCount: chat.unreadCount ?? 0,
+      timestamp: chatTimestamp(chat.timestamp),
+      time: chatTime(chat.timestamp),
+      lastMessage: chat.lastMessage ?? '',
+      avatarUrl: chat.avatarUrl ?? null,
+    }));
+
+    const savedChats = safeStoredConversations.map((conversation: any) => {
+      const id = normalizeChatId(conversation.whatsappJid ?? `${conversation.contact?.phone ?? conversation.id}@s.whatsapp.net`);
+      return {
+        id,
+        name: chatDisplayName(conversation.contact?.name || conversation.name, id, conversation.contact?.phone),
+        isGroup: isGroupChat(id),
+        unreadCount: conversation.unreadCount ?? 0,
+        timestamp: chatTimestamp(conversation.lastMessageAt ?? conversation.time),
+        time: conversation.lastMessageAt ? chatTime(conversation.lastMessageAt) : conversation.time ?? '',
+        lastMessage: conversation.lastMessage ?? '',
+        avatarUrl: conversation.avatarUrl ?? conversation.contact?.avatarUrl ?? null,
+      };
+    });
+
+    const merged = new Map<string, any>();
+    [...savedChats, ...chats, ...liveChats].forEach((chat) => {
+      if (isTechnicalChat(chat.id)) return;
+      const current = merged.get(chat.id);
+      if (!current) {
+        merged.set(chat.id, chat);
+        return;
+      }
+      const newer = (chat.timestamp ?? 0) >= (current.timestamp ?? 0) ? chat : current;
+      merged.set(chat.id, {
+        ...current,
+        ...newer,
+        name: looksLikeRawWhatsappId(newer.name) ? current.name : newer.name,
+        unreadCount: Math.max(current.unreadCount ?? 0, chat.unreadCount ?? 0),
+      });
+    });
+
+    return Array.from(merged.values())
+      .sort((a, b) => (b.timestamp ?? 0) - (a.timestamp ?? 0))
+      .map(({ timestamp, ...chat }) => chat);
   }
 
   listMessages(companyId: string, conversationId: string) {
@@ -103,21 +238,77 @@ export class CommunicationService implements OnModuleInit {
   }
 
   async listChatMessages(companyId: string, chatId: string) {
-    const messages = await this.omnius.getMessages(companyId, chatId);
-    return messages.map((message: any) => ({
-      id: message.key?.id ?? `${message.timestamp ?? Date.now()}`,
-      sender: message.key?.fromMe ? 'bot' : 'user',
-      text:
-        message.message?.conversation ??
-        message.message?.extendedTextMessage?.text ??
-        message.message?.imageMessage?.caption ??
-        message.message?.videoMessage?.caption ??
-        '',
-      time: new Date((message.timestamp ?? Date.now()) * (message.timestamp < 1e12 ? 1000 : 1)).toLocaleTimeString([], {
+    const sessionMessages = await Promise.resolve().then(() => this.provider.getMessages(companyId, chatId)).catch(() => []);
+    const safeSessionMessages = Array.isArray(sessionMessages) ? sessionMessages : [];
+    if (safeSessionMessages.length) {
+      return safeSessionMessages.map((message: any) => ({
+        id: message.key?.id ?? `${message.messageTimestamp ?? Date.now()}`,
+        sender: message.key?.fromMe ? 'bot' : 'user',
+        participantId: message.key?.participant,
+        participantName: message.pushName,
+        media: message.__media ?? null,
+        text:
+          message.message?.conversation ??
+          message.message?.extendedTextMessage?.text ??
+          message.message?.imageMessage?.caption ??
+          message.message?.videoMessage?.caption ??
+          message.message?.documentMessage?.caption ??
+          '',
+        time: new Date(Number(message.messageTimestamp ?? Math.floor(Date.now() / 1000)) * 1000).toLocaleTimeString([], {
+          hour: '2-digit',
+          minute: '2-digit',
+        }),
+        read: Boolean(message.key?.fromMe),
+      }));
+    }
+
+    const legacyMessages = this.provider.isConnected(companyId)
+      ? []
+      : await Promise.resolve().then(() => this.omnius.getMessages(companyId, chatId)).catch(() => []);
+    const safeLegacyMessages = Array.isArray(legacyMessages) ? legacyMessages : [];
+    if (safeLegacyMessages.length) {
+      return safeLegacyMessages.map((message: any) => ({
+        id: message.key?.id ?? `${message.timestamp ?? Date.now()}`,
+        sender: message.key?.fromMe ? 'bot' : 'user',
+        participantId: message.key?.participant,
+        participantName: message.pushName,
+        media: message.__media ?? null,
+        text:
+          message.message?.conversation ??
+          message.message?.extendedTextMessage?.text ??
+          message.message?.imageMessage?.caption ??
+          message.message?.videoMessage?.caption ??
+          message.message?.documentMessage?.caption ??
+          '',
+        time: new Date((message.timestamp ?? Date.now()) * (message.timestamp < 1e12 ? 1000 : 1)).toLocaleTimeString([], {
+          hour: '2-digit',
+          minute: '2-digit',
+        }),
+        read: Boolean(message.key?.fromMe),
+      }));
+    }
+
+    const storedMessages = await this.repository.listMessagesByWhatsappJid(companyId, chatId).catch(() =>
+      (memoryMessages.get(companyId) ?? []).filter((message) => {
+        const conversationId = message.conversationId ?? '';
+        const normalizedChat = chatId.replace(/@.*$/, '');
+        return conversationId.includes(normalizedChat) || conversationId === chatId;
+      }),
+    );
+
+    const safeStoredMessages = Array.isArray(storedMessages) ? storedMessages : [];
+
+    return safeStoredMessages.map((message: any) => ({
+      id: message.externalId ?? message.id ?? `${message.timestamp ?? Date.now()}`,
+      sender: message.direction === 'OUTBOUND' || message.key?.fromMe ? 'bot' : 'user',
+      participantId: message.participantId ?? message.key?.participant,
+      participantName: message.participantName ?? message.pushName,
+      text: message.body ?? '',
+      time: new Date(message.sentAt ?? message.createdAt ?? Date.now()).toLocaleTimeString([], {
         hour: '2-digit',
         minute: '2-digit',
       }),
-      read: Boolean(message.key?.fromMe),
+      read: message.status === 'SENT' || Boolean(message.key?.fromMe),
     }));
   }
 
@@ -176,11 +367,15 @@ export class CommunicationService implements OnModuleInit {
 
   async handleIncomingMessage(input: IncomingWhatsappMessage) {
     const phone = input.phone.replace(/\D/g, '');
-    const jid = `${phone}@s.whatsapp.net`;
+    const chatId = normalizeChatId(input.chatId || '');
+    const jid = chatId || `${phone}@s.whatsapp.net`;
+    const contactPhone = isGroupChat(jid) ? chatDigits(jid) : phone;
     let conversation: any;
     let message: any;
     try {
-      const contact = await this.repository.upsertContact(input.companyId, phone, { name: input.name });
+      const contact = await this.repository.upsertContact(input.companyId, contactPhone, {
+        name: isGroupChat(jid) ? chatDisplayName(undefined, jid) : input.name,
+      });
       conversation = await this.repository.upsertConversation(input.companyId, contact.id, jid, input.body);
       message = await this.repository.createMessage({
         companyId: input.companyId,
@@ -192,7 +387,16 @@ export class CommunicationService implements OnModuleInit {
         sentAt: input.timestamp,
       });
     } catch {
-      const fallback = this.saveMemoryInboundMessage(input.companyId, phone, input.body, input.name, input.externalId, input.timestamp ?? new Date(), input.fromMe);
+      const fallback = this.saveMemoryInboundMessage(
+        input.companyId,
+        jid,
+        input.body,
+        input.name,
+        input.externalId,
+        input.timestamp ?? new Date(),
+        input.fromMe,
+        input.participantId,
+      );
       conversation = fallback.conversation;
       message = fallback.message;
     }
@@ -271,8 +475,9 @@ export class CommunicationService implements OnModuleInit {
     externalId: string | undefined,
     sentAt: Date,
     fromMe: boolean,
+    participantId?: string,
   ) {
-    return this.saveMemoryMessage(companyId, phone, body, contactName, externalId, sentAt, fromMe);
+    return this.saveMemoryMessage(companyId, phone, body, contactName, externalId, sentAt, fromMe, participantId);
   }
 
   private saveMemoryMessage(
@@ -283,6 +488,7 @@ export class CommunicationService implements OnModuleInit {
     externalId: string | undefined,
     sentAt: Date,
     fromMe: boolean,
+    participantId?: string,
   ) {
     const cleanPhone = phone.replace(/\D/g, '');
     const conversationId = `memory-conversation-${cleanPhone}`;
@@ -313,6 +519,8 @@ export class CommunicationService implements OnModuleInit {
       body,
       direction: fromMe ? 'OUTBOUND' : 'INBOUND',
       status: fromMe ? 'SENT' : 'RECEIVED',
+      participantId,
+      participantName: contactName,
       sentAt,
       createdAt: sentAt,
     };

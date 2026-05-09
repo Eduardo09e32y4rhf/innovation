@@ -6,7 +6,26 @@ export class FinanceRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   list(companyId: string) {
-    return this.prisma.financialTransaction.findMany({ where: { companyId }, orderBy: { createdAt: 'desc' } });
+    return this.prisma.financialTransaction.findMany({ where: { companyId }, orderBy: [{ dueDate: 'desc' }, { createdAt: 'desc' }] });
+  }
+
+  recent(companyId: string, take = 5) {
+    return this.prisma.financialTransaction.findMany({
+      where: { companyId },
+      orderBy: [{ createdAt: 'desc' }],
+      take,
+    });
+  }
+
+  listDue(companyId: string, start: Date, end: Date) {
+    return this.prisma.financialTransaction.findMany({
+      where: {
+        companyId,
+        status: { in: ['PENDING'] },
+        dueDate: { gte: start, lte: end },
+      },
+      orderBy: [{ dueDate: 'asc' }, { createdAt: 'desc' }],
+    });
   }
 
   create(companyId: string, data: any) {
@@ -36,6 +55,17 @@ export class FinanceRepository {
       by: ['type', 'status'],
       where: { companyId, createdAt: { gte: start, lt: end } },
       _sum: { amount: true },
+    });
+  }
+
+  monthlyTransactions(companyId: string, start: Date, end: Date) {
+    return this.prisma.financialTransaction.findMany({
+      where: {
+        companyId,
+        createdAt: { gte: start, lt: end },
+        status: { not: 'CANCELED' },
+      },
+      orderBy: [{ createdAt: 'asc' }],
     });
   }
 

@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "node ../../scripts/serve-static.cjs out 3000",
+    "start": "node ../../scripts/serve-static.cjs out",
     "lint": "next lint",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },

@@ -47,6 +47,9 @@ function JobDetailContent() {
     phone: '',
     linkedinUrl: '',
     coverLetter: '',
+    experience: '',
+    education: '',
+    skills: '',
   });
 
   useEffect(() => {
@@ -97,6 +100,12 @@ function JobDetailContent() {
     setSubmitting(true);
     setError(null);
     try {
+      const digitalResume = `
+Experiencia: ${formData.experience}
+Formacao: ${formData.education}
+Habilidades: ${formData.skills}
+      `.trim();
+
       const response = await fetch(
         `${apiBaseUrl}/recruitment/public/jobs/${jobId}/apply?companyId=${encodeURIComponent(publicCompanyId)}`,
         {
@@ -106,7 +115,7 @@ function JobDetailContent() {
           },
           body: JSON.stringify({
             ...formData,
-            resumeUrl: resumeFile?.name || '',
+            resumeUrl: digitalResume,
           }),
         },
       );
@@ -275,17 +284,31 @@ function JobDetailContent() {
                     className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none focus:border-cyan-400"
                   />
                 </FormField>
-                <FormField label="Curriculo (PDF)">
-                  <label className="flex cursor-pointer items-center gap-3 rounded-2xl border border-dashed border-white/15 bg-white/5 px-4 py-4 text-sm text-gray-300 transition hover:border-cyan-400/40">
-                    <Upload size={18} className="text-cyan-300" />
-                    <span>{resumeFile?.name || 'Selecione o arquivo do curriculo'}</span>
-                    <input
-                      type="file"
-                      accept=".pdf"
-                      className="hidden"
-                      onChange={(event) => setResumeFile(event.target.files?.[0] || null)}
-                    />
-                  </label>
+                <FormField label="Experiencia Profissional">
+                  <textarea
+                    rows={4}
+                    value={formData.experience || ''}
+                    onChange={(event) => setFormData((current) => ({ ...current, experience: event.target.value }))}
+                    placeholder="Descreva suas experiencias anteriores"
+                    className="w-full rounded-3xl border border-white/10 bg-white/5 px-4 py-4 text-sm outline-none focus:border-cyan-400"
+                  />
+                </FormField>
+                <FormField label="Formacao Academica">
+                  <textarea
+                    rows={3}
+                    value={formData.education || ''}
+                    onChange={(event) => setFormData((current) => ({ ...current, education: event.target.value }))}
+                    placeholder="Sua formacao escolar/academica"
+                    className="w-full rounded-3xl border border-white/10 bg-white/5 px-4 py-4 text-sm outline-none focus:border-cyan-400"
+                  />
+                </FormField>
+                <FormField label="Habilidades Principais">
+                  <input
+                    value={formData.skills || ''}
+                    onChange={(event) => setFormData((current) => ({ ...current, skills: event.target.value }))}
+                    placeholder="Ex: React, Node, Lideranca, etc."
+                    className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none focus:border-cyan-400"
+                  />
                 </FormField>
                 <FormField label="Apresentacao">
                   <textarea

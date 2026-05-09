@@ -19,6 +19,7 @@ import {
   WifiOff,
 } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { getApiBaseUrl, getAuthHeaders } from '../api';
 
 type WhatsappStatus = 'DISCONNECTED' | 'CONNECTING' | 'QR_CODE' | 'CONNECTED';
@@ -35,6 +36,12 @@ type WhatsappPayload = {
   };
 };
 
+type SendMessagePayload = {
+  externalId?: string | null;
+};
+
+const DEFAULT_PHONE_PREFIX = '+55 ';
+
 function unwrap<T>(payload: unknown): T {
   const raw = payload as any;
   return (raw?.data ?? raw) as T;
@@ -50,6 +57,10 @@ function formatPhone(phone?: string | null) {
   if (!phone) return 'Numero ainda nao identificado';
   const digits = phone.replace(/\D/g, '');
   return digits ? `+${digits}` : phone;
+}
+
+function hasSendablePhone(phoneValue: string) {
+  return phoneValue.replace(/\D/g, '').length > 2;
 }
 
 const statusCopy: Record<WhatsappStatus, { label: string; tone: string; icon: React.ElementType; description: string }> = {
@@ -80,6 +91,7 @@ const statusCopy: Record<WhatsappStatus, { label: string; tone: string; icon: Re
 };
 
 export default function WhatsAppAccountsPage() {
+  const router = useRouter();
   const [status, setStatus] = useState<WhatsappStatus>('DISCONNECTED');
   const [qrCode, setQrCode] = useState('');
   const [phone, setPhone] = useState<string | null>(null);
@@ -89,7 +101,7 @@ export default function WhatsAppAccountsPage() {
   const [disconnecting, setDisconnecting] = useState(false);
   const [feedback, setFeedback] = useState('');
   const [error, setError] = useState('');
-  const [testPhone, setTestPhone] = useState('');
+  const [testPhone, setTestPhone] = useState(DEFAULT_PHONE_PREFIX);
   const [testMessage, setTestMessage] = useState('Ola! Sua integracao WhatsApp da Innovation IA esta funcionando.');
   const [sendingTest, setSendingTest] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
@@ -99,6 +111,12 @@ export default function WhatsAppAccountsPage() {
 
   const isConnected = status === 'CONNECTED';
   const isWaitingQr = status === 'QR_CODE' || status === 'CONNECTING';
+
+  useEffect(() => {
+    if (isConnected) {
+      router.replace('/dashboard/whatsapp/chat');
+    }
+  }, [isConnected, router]);
 
   const loadStatus = async (silent = false) => {
     if (!silent) setLoading(true);
@@ -116,7 +134,7 @@ export default function WhatsAppAccountsPage() {
       setError('');
     } catch {
       setStatus('DISCONNECTED');
-      setError('Nao foi possivel falar com o backend do WhatsApp. Verifique se a API esta no ar.');
+      setError('Nao foi possivel carregar a conexao do WhatsApp agora. Tente atualizar em alguns instantes.');
     } finally {
       if (!silent) setLoading(false);
     }
@@ -137,7 +155,7 @@ export default function WhatsAppAccountsPage() {
       setFeedback('Sessao iniciada. Aguarde o QR aparecer e escaneie pelo WhatsApp do celular.');
       await loadStatus(true);
     } catch {
-      setError('Nao foi possivel iniciar a conexao WhatsApp. O motor de QR pode estar indisponivel.');
+      setError('Nao foi possivel iniciar a conexao do WhatsApp agora. Tente novamente em alguns instantes.');
       setStatus('DISCONNECTED');
     } finally {
       setConnecting(false);
@@ -164,6 +182,8 @@ export default function WhatsAppAccountsPage() {
   };
 
   const sendTest = async () => {
+    if (!hasSendablePhone(testPhone) || !testMessage.trim()) return;
+
     setSendingTest(true);
     setFeedback('');
     setError('');
@@ -178,7 +198,12 @@ export default function WhatsAppAccountsPage() {
         }),
       });
       if (!response.ok) throw new Error(`Send ${response.status}`);
-      setFeedback('Mensagem de teste enviada. A conversa tambem fica registrada no backend.');
+      const payload = unwrap<SendMessagePayload>(await response.json());
+      if (!payload.externalId) {
+        setError('O WhatsApp nao confirmou o envio. Tente novamente e confira o numero.');
+        return;
+      }
+      setFeedback(`Mensagem enviada pelo WhatsApp. ID: ${payload.externalId}`);
     } catch {
       setError('Falha ao enviar teste. Confirme que o WhatsApp esta conectado e que o numero tem DDI/DDD.');
     } finally {
@@ -323,7 +348,7 @@ export default function WhatsAppAccountsPage() {
               </div>
 
               <div className="mt-5 rounded-[18px] border border-amber-200 bg-amber-50 p-4 text-xs leading-5 text-amber-950">
-                <strong>Nota tecnica:</strong> QR Code e aparelho conectado usam o fluxo de pareamento do WhatsApp Web. A API oficial Cloud da Meta usa token e webhook, sem QR Code.
+                <strong>Atenção:</strong> mantenha apenas o aparelho autorizado conectado para garantir que as conversas sejam da conta correta.
               </div>
             </div>
           </section>
@@ -349,6 +374,9 @@ export default function WhatsAppAccountsPage() {
                   <input
                     value={testPhone}
                     onChange={(event) => setTestPhone(event.target.value)}
+                    onFocus={() => {
+                      if (!testPhone.trim()) setTestPhone(DEFAULT_PHONE_PREFIX);
+                    }}
                     placeholder="+55 11 99999-9999"
                     className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-slate-900 outline-none"
                   />
@@ -365,7 +393,7 @@ export default function WhatsAppAccountsPage() {
               </label>
               <button
                 onClick={() => void sendTest()}
-                disabled={!isConnected || sendingTest || !testPhone.trim() || !testMessage.trim()}
+                disabled={!isConnected || sendingTest || !hasSendablePhone(testPhone) || !testMessage.trim()}
                 className="flex h-11 w-full items-center justify-center gap-2 rounded-[14px] bg-[#07111f] px-4 text-xs font-black text-white shadow-[0_12px_24px_rgba(2,6,23,0.20)] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {sendingTest ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}

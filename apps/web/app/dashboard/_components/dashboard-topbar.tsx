@@ -1,10 +1,13 @@
 'use client';
 
 import { Search } from 'lucide-react';
+import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useAuth } from '@/app/contexts/AuthContext';
 
 export function DashboardTopbar() {
   const pathname = usePathname();
+  const { isAuthenticated, logout } = useAuth();
   const isSettings = pathname?.startsWith('/dashboard/settings');
 
   return (
@@ -23,9 +26,17 @@ export function DashboardTopbar() {
           <Search size={14} className="text-gray-400 shrink-0" />
           <input placeholder="Buscar módulo, pessoa ou transação" />
         </div>
-        <button className="btn-outline">
-          {isSettings ? 'Ambiente local' : 'Entrar'}
-        </button>
+        {isSettings ? (
+          <span className="btn-outline">Ambiente local</span>
+        ) : isAuthenticated ? (
+          <button type="button" onClick={logout} className="btn-outline">
+            Sair
+          </button>
+        ) : (
+          <Link href="/login" className="btn-outline">
+            Entrar
+          </Link>
+        )}
       </div>
     </header>
   );

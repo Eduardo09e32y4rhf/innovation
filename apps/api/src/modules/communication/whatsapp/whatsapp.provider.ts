@@ -1,4 +1,4 @@
-import { Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
+import { BadGatewayException, Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
 import { join } from 'path';
 import * as QRCode from 'qrcode';
 import type { IncomingWhatsappMessage, WhatsappProviderEvents } from './whatsapp.types';
@@ -10,11 +10,29 @@ type SessionSnapshot = {
   displayName: string | null;
 };
 
+type StoredChat = {
+  id: string;
+  name: string;
+  unreadCount: number;
+  timestamp: number;
+  lastMessage: string;
+  avatarUrl?: string | null;
+};
+
+type StoredMedia = {
+  type: 'image' | 'video' | 'audio' | 'document' | 'sticker';
+  mimeType?: string;
+  fileName?: string;
+  url?: string;
+};
+
 @Injectable()
 export class WhatsappProvider {
   private readonly logger = new Logger(WhatsappProvider.name);
   private readonly sessions = new Map<string, any>();
   private readonly sessionState = new Map<string, SessionSnapshot>();
+  private readonly chats = new Map<string, Map<string, StoredChat>>();
+  private readonly messages = new Map<string, Map<string, any[]>>();
   private events?: WhatsappProviderEvents;
 
   setEvents(events: WhatsappProviderEvents) {
@@ -29,7 +47,7 @@ export class WhatsappProvider {
       const { default: makeWASocket, useMultiFileAuthState, DisconnectReason } = baileys;
       const authDir = join(process.cwd(), 'storage', 'whatsapp', companyId);
       const { state, saveCreds } = await useMultiFileAuthState(authDir);
-      const socket = makeWASocket({ auth: state, printQRInTerminal: false });
+      const socket = makeWASocket({ auth: state, printQRInTerminal: false, syncFullHistory: true });
 
       this.sessions.set(companyId, socket);
       socket.ev.on('creds.update', saveCreds);
@@ -77,8 +95,38 @@ export class WhatsappProvider {
 
       socket.ev.on('messages.upsert', async (payload: any) => {
         for (const message of payload.messages ?? []) {
+          await this.storeMessage(companyId, message, { downloadMedia: true });
           const normalized = this.normalizeIncomingMessage(companyId, message);
           if (normalized) await this.events?.onMessage(normalized);
+        }
+      });
+
+      socket.ev.on('messaging-history.set', async (payload: any) => {
+        for (const chat of payload.chats ?? []) {
+          this.storeChat(companyId, chat.id, {
+            id: chat.id,
+            name: chat.name || chat.id?.split('@')[0] || 'Contato',
+            unreadCount: chat.unreadCount ?? 0,
+            timestamp: Number(chat.conversationTimestamp ?? Date.now()),
+            lastMessage: '',
+          });
+        }
+        for (const message of payload.messages ?? []) {
+          await this.storeMessage(companyId, message, { downloadMedia: false });
+          const normalized = this.normalizeIncomingMessage(companyId, message);
+          if (normalized) await this.events?.onMessage(normalized);
+        }
+      });
+
+      socket.ev.on('chats.upsert', (payload: any[]) => {
+        for (const chat of payload ?? []) {
+          this.storeChat(companyId, chat.id, {
+            id: chat.id,
+            name: chat.name || chat.id?.split('@')[0] || 'Contato',
+            unreadCount: chat.unreadCount ?? 0,
+            timestamp: Number(chat.conversationTimestamp ?? Date.now()),
+            lastMessage: '',
+          });
         }
       });
 
@@ -117,7 +165,34 @@ export class WhatsappProvider {
     if (!socket) throw new ServiceUnavailableException('WhatsApp session is not connected');
     const jid = phone.includes('@') ? phone : `${phone.replace(/\D/g, '')}@s.whatsapp.net`;
     const sent = await socket.sendMessage(jid, { text: body });
-    return { externalId: sent?.key?.id, jid };
+    const externalId = sent?.key?.id;
+    if (!externalId) {
+      throw new BadGatewayException('WhatsApp did not confirm the message send');
+    }
+    await this.storeMessage(companyId, {
+      key: { id: externalId, remoteJid: jid, fromMe: true },
+      message: { conversation: body },
+      messageTimestamp: Math.floor(Date.now() / 1000),
+    });
+    return { externalId, jid };
+  }
+
+  async getChats(companyId: string) {
+    const chats = Array.from(this.chats.get(companyId)?.values() ?? []).sort((a, b) => b.timestamp - a.timestamp);
+    return Promise.all(
+      chats.map(async (chat) => ({
+        ...chat,
+        avatarUrl: chat.avatarUrl ?? (await this.getProfilePicture(companyId, chat.id)),
+      })),
+    );
+  }
+
+  getMessages(companyId: string, chatId: string) {
+    return this.messages.get(companyId)?.get(chatId) ?? [];
+  }
+
+  isConnected(companyId: string) {
+    return Boolean(this.sessions.get(companyId)) && this.getSnapshot(companyId).status === 'CONNECTED';
   }
 
   getSnapshot(companyId: string): SessionSnapshot {
@@ -151,23 +226,126 @@ export class WhatsappProvider {
     });
   }
 
+  private storeChat(companyId: string, chatId: string, chat: StoredChat) {
+    if (!chatId || chatId === 'status@broadcast') return;
+    if (!this.chats.has(companyId)) this.chats.set(companyId, new Map());
+    const current = this.chats.get(companyId)?.get(chatId);
+    this.chats.get(companyId)?.set(chatId, {
+      id: chatId,
+      name: chat.name || current?.name || chatId.split('@')[0],
+      unreadCount: chat.unreadCount ?? current?.unreadCount ?? 0,
+      timestamp: chat.timestamp || current?.timestamp || Date.now(),
+      lastMessage: chat.lastMessage ?? current?.lastMessage ?? '',
+      avatarUrl: chat.avatarUrl ?? current?.avatarUrl ?? null,
+    });
+  }
+
+  private async storeMessage(companyId: string, message: any, options: { downloadMedia?: boolean } = {}) {
+    const jid = message.key?.remoteJid;
+    if (!jid || jid === 'status@broadcast') return;
+    const isGroup = String(jid).endsWith('@g.us');
+    const body = this.getMessageText(message);
+    const media = await this.extractMedia(companyId, message, Boolean(options.downloadMedia));
+    message.__media = media;
+    const timestamp = Number(message.messageTimestamp ?? Math.floor(Date.now() / 1000));
+    const currentChatName = this.chats.get(companyId)?.get(jid)?.name;
+    this.storeChat(companyId, jid, {
+      id: jid,
+      name: isGroup ? message.message?.conversationName || currentChatName || jid.split('@')[0] : message.pushName || jid.split('@')[0],
+      unreadCount: message.key?.fromMe ? 0 : 1,
+      timestamp,
+      lastMessage: body || this.mediaLabel(media),
+    });
+    if (!this.messages.has(companyId)) this.messages.set(companyId, new Map());
+    const current = this.messages.get(companyId)?.get(jid) ?? [];
+    const id = message.key?.id ?? `${timestamp}-${current.length}`;
+    if (current.some((item) => item.key?.id === id)) return;
+    this.messages.get(companyId)?.set(jid, [...current, { ...message, __media: media }].slice(-200));
+  }
+
   private normalizeIncomingMessage(companyId: string, message: any): IncomingWhatsappMessage | null {
     const jid = message.key?.remoteJid;
     if (!jid || jid === 'status@broadcast') return null;
-    const body =
-      message.message?.conversation ??
-      message.message?.extendedTextMessage?.text ??
-      message.message?.imageMessage?.caption ??
-      message.message?.videoMessage?.caption;
-    if (!body) return null;
+    const participant = message.key?.participant;
+    const body = this.getMessageText(message);
+    if (!body && !message.__media) return null;
     return {
       companyId,
       externalId: message.key?.id,
-      phone: String(jid).replace(/@.*$/, ''),
+      chatId: String(jid),
+      participantId: participant ? String(participant) : undefined,
+      phone: String(participant || jid).replace(/@.*$/, ''),
       name: message.pushName,
-      body,
+      body: body || this.mediaLabel(message.__media),
       fromMe: Boolean(message.key?.fromMe),
       timestamp: message.messageTimestamp ? new Date(Number(message.messageTimestamp) * 1000) : new Date(),
     };
+  }
+
+  private getMessageText(message: any) {
+    return (
+      message.message?.conversation ??
+      message.message?.extendedTextMessage?.text ??
+      message.message?.imageMessage?.caption ??
+      message.message?.videoMessage?.caption ??
+      message.message?.documentMessage?.caption ??
+      ''
+    );
+  }
+
+  private getMediaPayload(message: any): { mediaMessage: any; type: StoredMedia['type'] } | null {
+    if (message.message?.imageMessage) return { mediaMessage: message.message.imageMessage, type: 'image' };
+    if (message.message?.videoMessage) return { mediaMessage: message.message.videoMessage, type: 'video' };
+    if (message.message?.audioMessage) return { mediaMessage: message.message.audioMessage, type: 'audio' };
+    if (message.message?.documentMessage) return { mediaMessage: message.message.documentMessage, type: 'document' };
+    if (message.message?.stickerMessage) return { mediaMessage: message.message.stickerMessage, type: 'sticker' };
+    return null;
+  }
+
+  private async extractMedia(companyId: string, message: any, downloadMedia: boolean): Promise<StoredMedia | null> {
+    const payload = this.getMediaPayload(message);
+    if (!payload) return null;
+    const media: StoredMedia = {
+      type: payload.type,
+      mimeType: payload.mediaMessage?.mimetype,
+      fileName: payload.mediaMessage?.fileName,
+    };
+
+    if (!downloadMedia) return media;
+
+    try {
+      const baileys = require('@whiskeysockets/baileys');
+      const buffer = await baileys.downloadMediaMessage(
+        message,
+        'buffer',
+        {},
+        { reuploadRequest: this.sessions.get(companyId)?.updateMediaMessage },
+      );
+      const mimeType = media.mimeType || 'application/octet-stream';
+      media.url = `data:${mimeType};base64,${Buffer.from(buffer).toString('base64')}`;
+    } catch (error) {
+      this.logger.warn(`Failed to download WhatsApp media: ${(error as Error).message}`);
+    }
+
+    return media;
+  }
+
+  private mediaLabel(media?: StoredMedia | null) {
+    if (!media) return '';
+    if (media.type === 'image') return '[Foto]';
+    if (media.type === 'video') return '[Video]';
+    if (media.type === 'audio') return '[Audio]';
+    if (media.type === 'sticker') return '[Figurinha]';
+    return media.fileName ? `[Anexo] ${media.fileName}` : '[Anexo]';
+  }
+
+  private async getProfilePicture(companyId: string, jid: string) {
+    const socket = this.sessions.get(companyId);
+    if (!socket || !jid) return null;
+    try {
+      return await socket.profilePictureUrl(jid, 'image');
+    } catch {
+      return null;
+    }
   }
 }

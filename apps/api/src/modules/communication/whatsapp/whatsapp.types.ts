@@ -3,6 +3,8 @@ export type WhatsappConnectionStatus = 'DISCONNECTED' | 'CONNECTING' | 'QR_CODE'
 export interface IncomingWhatsappMessage {
   companyId: string;
   externalId?: string;
+  chatId?: string;
+  participantId?: string;
   phone: string;
   name?: string;
   body: string;

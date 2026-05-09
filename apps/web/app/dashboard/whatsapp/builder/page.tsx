@@ -27,8 +27,11 @@ type CommunicationSettings = {
 };
 
 type CalendarStatus = {
-  authenticated: boolean;
-  authUrl?: string | null;
+  isConnected?: boolean;
+  authenticated?: boolean;
+  requiresReauth?: boolean;
+  userEmail?: string | null;
+  details?: string | null;
   user?: {
     email?: string;
     name?: string;
@@ -43,7 +46,7 @@ const DEFAULT_SETTINGS: CommunicationSettings = {
   automaticSchedulingEnabled: false,
   customCalendarMessageEnabled: true,
   prompt: '',
-  temperature: 0.7,
+  temperature: 70,
 };
 
 export default function WhatsappBuilderPage() {
@@ -71,13 +74,8 @@ export default function WhatsappBuilderPage() {
         }),
       ]);
 
-      if (!settingsResponse.ok) {
-        throw new Error('Nao foi possivel carregar as configuracoes da automacao.');
-      }
-
-      if (!calendarResponse.ok) {
-        throw new Error('Nao foi possivel carregar o status do Google Agenda.');
-      }
+      if (!settingsResponse.ok) throw new Error('Nao foi possivel carregar as configuracoes da automacao.');
+      if (!calendarResponse.ok) throw new Error('Nao foi possivel carregar o status do Google Agenda.');
 
       const settingsPayload = await settingsResponse.json();
       const calendarPayload = await calendarResponse.json();
@@ -88,11 +86,7 @@ export default function WhatsappBuilderPage() {
       });
       setCalendarStatus(calendarPayload.data ?? calendarPayload);
     } catch (requestError) {
-      setError(
-        requestError instanceof Error
-          ? requestError.message
-          : 'Falha inesperada ao carregar o builder oficial.',
-      );
+      setError(requestError instanceof Error ? requestError.message : 'Falha inesperada ao carregar o builder oficial.');
     } finally {
       setLoading(false);
     }
@@ -102,10 +96,7 @@ export default function WhatsappBuilderPage() {
     void loadData();
   }, []);
 
-  const updateField = <K extends keyof CommunicationSettings>(
-    field: K,
-    value: CommunicationSettings[K],
-  ) => {
+  const updateField = <K extends keyof CommunicationSettings>(field: K, value: CommunicationSettings[K]) => {
     setSettings((current) => ({
       ...current,
       [field]: value,
@@ -124,9 +115,7 @@ export default function WhatsappBuilderPage() {
         body: JSON.stringify(settings),
       });
 
-      if (!response.ok) {
-        throw new Error('Nao foi possivel salvar a configuracao do Omnius.');
-      }
+      if (!response.ok) throw new Error('Nao foi possivel salvar a configuracao do Omnius.');
 
       const payload = await response.json();
       setSettings({
@@ -135,11 +124,7 @@ export default function WhatsappBuilderPage() {
       });
       setSuccess('Configuracoes salvas com sucesso.');
     } catch (requestError) {
-      setError(
-        requestError instanceof Error
-          ? requestError.message
-          : 'Falha inesperada ao salvar as configuracoes.',
-      );
+      setError(requestError instanceof Error ? requestError.message : 'Falha inesperada ao salvar as configuracoes.');
     } finally {
       setSaving(false);
     }
@@ -148,31 +133,23 @@ export default function WhatsappBuilderPage() {
   const connectCalendar = async () => {
     setRefreshingCalendar(true);
     setError(null);
+    setSuccess(null);
 
     try {
       const response = await fetch(`${apiBaseUrl}/communication/calendar/auth-url`, {
         headers: getAuthHeaders(),
       });
 
-      if (!response.ok) {
-        throw new Error('Nao foi possivel iniciar a autenticacao do Google Agenda.');
-      }
+      if (!response.ok) throw new Error('Nao foi possivel iniciar a autenticacao do Google Agenda.');
 
       const payload = await response.json();
       const authUrl = (payload.data ?? payload)?.authUrl as string | undefined;
-
-      if (!authUrl) {
-        throw new Error('A URL de autenticacao do Google Agenda nao foi retornada.');
-      }
+      if (!authUrl) throw new Error('A URL de autenticacao do Google Agenda nao foi retornada.');
 
       window.open(authUrl, '_blank', 'noopener,noreferrer');
       setSuccess('Janela de autorizacao aberta. Atualize o status apos concluir o login.');
     } catch (requestError) {
-      setError(
-        requestError instanceof Error
-          ? requestError.message
-          : 'Falha ao iniciar a conexao com o Google Agenda.',
-      );
+      setError(requestError instanceof Error ? requestError.message : 'Falha ao iniciar a conexao com o Google Agenda.');
     } finally {
       setRefreshingCalendar(false);
     }
@@ -181,35 +158,33 @@ export default function WhatsappBuilderPage() {
   const refreshCalendar = async () => {
     setRefreshingCalendar(true);
     setError(null);
+    setSuccess(null);
 
     try {
       const response = await fetch(`${apiBaseUrl}/communication/calendar/status`, {
         headers: getAuthHeaders(),
       });
 
-      if (!response.ok) {
-        throw new Error('Nao foi possivel atualizar o status do Google Agenda.');
-      }
+      if (!response.ok) throw new Error('Nao foi possivel atualizar o status do Google Agenda.');
 
       const payload = await response.json();
       setCalendarStatus(payload.data ?? payload);
+      setSuccess('Status da agenda atualizado.');
     } catch (requestError) {
-      setError(
-        requestError instanceof Error
-          ? requestError.message
-          : 'Falha ao atualizar o status do Google Agenda.',
-      );
+      setError(requestError instanceof Error ? requestError.message : 'Falha ao atualizar o status do Google Agenda.');
     } finally {
       setRefreshingCalendar(false);
     }
   };
 
   const activeEngineLabel = settings.aiEngine === 'gemini' ? 'Gemini' : 'GPT';
+  const calendarConnected = Boolean(calendarStatus?.isConnected || calendarStatus?.authenticated);
+  const calendarUser = calendarStatus?.userEmail ?? calendarStatus?.user?.email ?? calendarStatus?.user?.name ?? null;
 
   if (loading) {
     return (
       <div className="mx-auto flex min-h-[60vh] max-w-6xl items-center justify-center">
-        <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-5 py-4 text-sm text-gray-300">
+        <div className="flex items-center gap-3 rounded-[18px] border border-slate-200 bg-white px-5 py-4 text-sm font-bold text-slate-600 shadow-sm">
           <Loader2 className="h-4 w-4 animate-spin" />
           Carregando configuracao oficial do Omnius...
         </div>
@@ -218,126 +193,109 @@ export default function WhatsappBuilderPage() {
   }
 
   return (
-    <div className="mx-auto flex max-w-6xl flex-col gap-6">
-      <header className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-cyan-300/80">
-            Builder Oficial
-          </p>
-          <h1 className="text-3xl font-semibold text-white">Automacao Omnius 6.0</h1>
-          <p className="mt-2 max-w-3xl text-sm text-gray-400">
-            Esta pagina agora usa a mesma configuracao central do CRM WhatsApp para IA,
-            Google Agenda e roteamento da instancia oficial.
-          </p>
-        </div>
+    <div className="mx-auto max-w-6xl space-y-5">
+      <section className="overflow-hidden rounded-[22px] border border-slate-950 bg-slate-950 p-6 text-white shadow-[0_18px_42px_rgba(15,23,42,0.16)]">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.24em] text-teal-300">Automacoes WhatsApp</p>
+            <h1 className="mt-2 text-2xl font-black tracking-tight text-white">Omnius 6.0</h1>
+            <p className="mt-2 max-w-2xl text-sm text-slate-300">
+              Configure IA, chaves, agenda e comportamento da instancia oficial.
+            </p>
+          </div>
 
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => void refreshCalendar()}
-            disabled={refreshingCalendar}
-            className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-gray-200 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            <RefreshCw className={`h-4 w-4 ${refreshingCalendar ? 'animate-spin' : ''}`} />
-            Atualizar status
-          </button>
-          <button
-            onClick={() => void saveSettings()}
-            disabled={saving}
-            className="inline-flex items-center gap-2 rounded-xl bg-cyan-500 px-4 py-2 text-sm font-medium text-slate-950 transition hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            <Save className="h-4 w-4" />
-            {saving ? 'Salvando...' : 'Salvar configuracao'}
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => void refreshCalendar()}
+              disabled={refreshingCalendar}
+              className="inline-flex h-11 items-center gap-2 rounded-[14px] border border-white/15 bg-white/10 px-4 text-xs font-black text-white transition hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <RefreshCw className={`h-4 w-4 ${refreshingCalendar ? 'animate-spin' : ''}`} />
+              Atualizar status
+            </button>
+            <button
+              onClick={() => void saveSettings()}
+              disabled={saving}
+              className="inline-flex h-11 items-center gap-2 rounded-[14px] bg-teal-400 px-4 text-xs font-black text-slate-950 transition hover:bg-teal-300 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <Save className="h-4 w-4" />
+              {saving ? 'Salvando...' : 'Salvar configuracao'}
+            </button>
+          </div>
         </div>
-      </header>
+      </section>
 
-      {error ? (
-        <div className="rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
-          {error}
-        </div>
-      ) : null}
+      {error ? <Notice tone="error" text={error} /> : null}
+      {success ? <Notice tone="success" text={success} /> : null}
 
-      {success ? (
-        <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
-          {success}
-        </div>
-      ) : null}
-
-      <section className="grid gap-6 lg:grid-cols-[1.35fr_0.9fr]">
-        <div className="rounded-3xl border border-white/10 bg-[#07111f] p-6">
-          <div className="mb-6 flex items-center gap-3">
-            <div className="rounded-2xl bg-cyan-500/15 p-3 text-cyan-300">
+      <section className="grid gap-5 lg:grid-cols-[1fr_320px]">
+        <main className="rounded-[22px] border border-slate-200 bg-white p-5 shadow-[0_16px_34px_rgba(15,23,42,0.08)]">
+          <div className="mb-5 flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-[14px] bg-slate-950 text-white">
               <Settings2 className="h-5 w-5" />
             </div>
             <div>
-              <h2 className="text-lg font-medium text-white">Configuracao centralizada</h2>
-              <p className="text-sm text-gray-400">
-                Gemini, GPT e agendamento usam a mesma fonte de verdade por empresa.
-              </p>
+              <h2 className="text-lg font-black text-slate-950">Configuracao centralizada</h2>
+              <p className="text-xs font-semibold text-slate-500">Gemini, GPT e agenda usam a mesma fonte por empresa.</p>
             </div>
           </div>
 
-          <div className="grid gap-5 md:grid-cols-2">
-            <label className="flex flex-col gap-2">
-              <span className="text-sm text-gray-300">Engine principal</span>
+          <div className="grid gap-4 md:grid-cols-2">
+            <Field label="Engine principal">
               <select
                 value={settings.aiEngine}
                 onChange={(event) => updateField('aiEngine', event.target.value as 'gemini' | 'gpt')}
-                className="rounded-2xl border border-white/10 bg-slate-950 px-4 py-3 text-sm text-white outline-none transition focus:border-cyan-400"
+                className="h-11 rounded-[14px] border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-900 outline-none focus:border-slate-950"
               >
                 <option value="gemini">Gemini</option>
                 <option value="gpt">GPT</option>
               </select>
-            </label>
+            </Field>
 
-            <label className="flex flex-col gap-2">
-              <span className="text-sm text-gray-300">Temperatura</span>
+            <Field label="Temperatura">
               <input
                 type="number"
                 min="0"
-                max="2"
-                step="0.1"
+                max="100"
+                step="1"
                 value={settings.temperature}
                 onChange={(event) => updateField('temperature', Number(event.target.value))}
-                className="rounded-2xl border border-white/10 bg-slate-950 px-4 py-3 text-sm text-white outline-none transition focus:border-cyan-400"
+                className="h-11 rounded-[14px] border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-900 outline-none focus:border-slate-950"
               />
-            </label>
+            </Field>
 
-            <label className="flex flex-col gap-2 md:col-span-2">
-              <span className="text-sm text-gray-300">Chave Gemini do cliente</span>
+            <Field label="Chave Gemini do cliente" wide>
               <input
                 type="password"
                 value={settings.geminiApiKey}
                 onChange={(event) => updateField('geminiApiKey', event.target.value)}
                 placeholder="Cole a chave Gemini do cliente"
-                className="rounded-2xl border border-white/10 bg-slate-950 px-4 py-3 text-sm text-white outline-none transition focus:border-cyan-400"
+                className="h-11 rounded-[14px] border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-900 outline-none placeholder:text-slate-400 focus:border-slate-950"
               />
-            </label>
+            </Field>
 
-            <label className="flex flex-col gap-2 md:col-span-2">
-              <span className="text-sm text-gray-300">Chave OpenAI/GPT do cliente</span>
+            <Field label="Chave OpenAI/GPT do cliente" wide>
               <input
                 type="password"
                 value={settings.openAiApiKey}
                 onChange={(event) => updateField('openAiApiKey', event.target.value)}
                 placeholder="Cole a chave OpenAI do cliente"
-                className="rounded-2xl border border-white/10 bg-slate-950 px-4 py-3 text-sm text-white outline-none transition focus:border-cyan-400"
+                className="h-11 rounded-[14px] border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-900 outline-none placeholder:text-slate-400 focus:border-slate-950"
               />
-            </label>
+            </Field>
 
-            <label className="flex flex-col gap-2 md:col-span-2">
-              <span className="text-sm text-gray-300">Prompt base do atendimento</span>
+            <Field label="Prompt base do atendimento" wide>
               <textarea
                 value={settings.prompt}
                 onChange={(event) => updateField('prompt', event.target.value)}
                 rows={7}
                 placeholder="Defina aqui o comportamento da IA do WhatsApp."
-                className="rounded-3xl border border-white/10 bg-slate-950 px-4 py-4 text-sm text-white outline-none transition focus:border-cyan-400"
+                className="resize-none rounded-[16px] border border-slate-300 bg-white px-3 py-3 text-sm font-semibold leading-6 text-slate-900 outline-none placeholder:text-slate-400 focus:border-slate-950"
               />
-            </label>
+            </Field>
           </div>
 
-          <div className="mt-6 grid gap-3 sm:grid-cols-3">
+          <div className="mt-5 grid gap-3 sm:grid-cols-3">
             <ToggleCard
               icon={<Bot className="h-4 w-4" />}
               title="IA ativa"
@@ -360,65 +318,38 @@ export default function WhatsappBuilderPage() {
               onChange={(checked) => updateField('customCalendarMessageEnabled', checked)}
             />
           </div>
-        </div>
+        </main>
 
-        <div className="space-y-6">
-          <section className="rounded-3xl border border-white/10 bg-[#091423] p-6">
-            <div className="mb-5 flex items-center gap-3">
-              <div className="rounded-2xl bg-emerald-500/15 p-3 text-emerald-300">
-                <Sparkles className="h-5 w-5" />
-              </div>
-              <div>
-                <h2 className="text-lg font-medium text-white">Resumo ativo</h2>
-                <p className="text-sm text-gray-400">Estado corrente da instancia oficial.</p>
-              </div>
-            </div>
-
+        <aside className="space-y-5">
+          <section className="rounded-[22px] border border-slate-200 bg-white p-5 shadow-sm">
+            <PanelHeader icon={<Sparkles className="h-5 w-5" />} title="Resumo ativo" />
             <div className="space-y-3">
               <StatusRow label="Engine selecionada" value={activeEngineLabel} />
               <StatusRow label="Chave Gemini" value={settings.geminiApiKey ? 'Configurada' : 'Nao configurada'} />
               <StatusRow label="Chave GPT" value={settings.openAiApiKey ? 'Configurada' : 'Nao configurada'} />
               <StatusRow label="IA" value={settings.aiEnabled ? 'Ativa' : 'Desativada'} />
-              <StatusRow
-                label="Agenda automatica"
-                value={settings.automaticSchedulingEnabled ? 'Ativa' : 'Desativada'}
-              />
+              <StatusRow label="Agenda automatica" value={settings.automaticSchedulingEnabled ? 'Ativa' : 'Desativada'} />
             </div>
           </section>
 
-          <section className="rounded-3xl border border-white/10 bg-[#091423] p-6">
-            <div className="mb-5 flex items-center gap-3">
-              <div className="rounded-2xl bg-violet-500/15 p-3 text-violet-300">
-                <CalendarDays className="h-5 w-5" />
+          <section className="rounded-[22px] border border-slate-200 bg-white p-5 shadow-sm">
+            <PanelHeader icon={<CalendarDays className="h-5 w-5" />} title="Google Agenda" />
+            <div className="rounded-[16px] border border-slate-200 bg-slate-50 p-4">
+              <div className="mb-2 flex items-center gap-2 text-sm font-black text-slate-950">
+                <CheckCircle2 className={`h-4 w-4 ${calendarConnected ? 'text-emerald-600' : 'text-slate-400'}`} />
+                {calendarConnected ? 'Google Agenda conectado' : 'Google Agenda nao conectado'}
               </div>
-              <div>
-                <h2 className="text-lg font-medium text-white">Google Agenda</h2>
-                <p className="text-sm text-gray-400">Fluxo preservado do Omnius para OAuth e agenda.</p>
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-white/10 bg-slate-950/60 p-4">
-              <div className="mb-3 flex items-center gap-2 text-sm text-white">
-                <CheckCircle2
-                  className={`h-4 w-4 ${
-                    calendarStatus?.authenticated ? 'text-emerald-400' : 'text-gray-500'
-                  }`}
-                />
-                {calendarStatus?.authenticated ? 'Google Agenda conectado' : 'Google Agenda nao conectado'}
-              </div>
-
-              <p className="text-sm text-gray-400">
-                {calendarStatus?.authenticated
-                  ? `Conta ativa: ${calendarStatus.user?.email ?? calendarStatus.user?.name ?? 'usuario autenticado'}`
-                  : 'Conecte a conta do cliente para manter os fluxos de agendamento ja validados.'}
+              <p className="text-xs font-semibold leading-5 text-slate-500">
+                {calendarConnected
+                  ? `Conta ativa: ${calendarUser ?? 'usuario autenticado'}`
+                  : 'Conecte a conta do cliente para manter os fluxos de agendamento.'}
               </p>
             </div>
-
-            <div className="mt-4 flex flex-wrap gap-3">
+            <div className="mt-4 flex flex-wrap gap-2">
               <button
                 onClick={() => void connectCalendar()}
                 disabled={refreshingCalendar}
-                className="inline-flex items-center gap-2 rounded-xl bg-violet-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-violet-400 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex h-10 items-center gap-2 rounded-[13px] bg-slate-950 px-3 text-xs font-black text-white disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <CalendarDays className="h-4 w-4" />
                 Conectar Agenda
@@ -426,7 +357,7 @@ export default function WhatsappBuilderPage() {
               <button
                 onClick={() => void refreshCalendar()}
                 disabled={refreshingCalendar}
-                className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-gray-200 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex h-10 items-center gap-2 rounded-[13px] border border-slate-300 bg-white px-3 text-xs font-black text-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <RefreshCw className={`h-4 w-4 ${refreshingCalendar ? 'animate-spin' : ''}`} />
                 Revalidar
@@ -434,34 +365,38 @@ export default function WhatsappBuilderPage() {
             </div>
           </section>
 
-          <section className="rounded-3xl border border-white/10 bg-[#091423] p-6">
-            <div className="mb-4 flex items-center gap-3">
-              <div className="rounded-2xl bg-cyan-500/15 p-3 text-cyan-300">
-                <Cpu className="h-5 w-5" />
-              </div>
-              <div>
-                <h2 className="text-lg font-medium text-white">Fonte unica</h2>
-                <p className="text-sm text-gray-400">
-                  Accounts, chat e builder agora compartilham a mesma borda Nest.
-                </p>
-              </div>
-            </div>
-
-            <ul className="space-y-3 text-sm text-gray-300">
-              <li className="rounded-2xl border border-white/10 bg-slate-950/60 px-4 py-3">
-                `communication/settings` centraliza IA, chaves e toggles.
-              </li>
-              <li className="rounded-2xl border border-white/10 bg-slate-950/60 px-4 py-3">
-                `communication/calendar/*` preserva o fluxo OAuth do Omnius.
-              </li>
-              <li className="rounded-2xl border border-white/10 bg-slate-950/60 px-4 py-3">
-                O chat consome somente `communication/chats` e `communication/messages/send`.
-              </li>
+          <section className="rounded-[22px] border border-slate-200 bg-white p-5 shadow-sm">
+            <PanelHeader icon={<Cpu className="h-5 w-5" />} title="Fonte unica" />
+            <ul className="space-y-2 text-sm font-semibold text-slate-600">
+              <li className="rounded-[14px] border border-slate-200 bg-slate-50 px-4 py-3">communication/settings centraliza IA e toggles.</li>
+              <li className="rounded-[14px] border border-slate-200 bg-slate-50 px-4 py-3">communication/calendar preserva o OAuth.</li>
+              <li className="rounded-[14px] border border-slate-200 bg-slate-50 px-4 py-3">Chat usa somente a borda Nest atual.</li>
             </ul>
           </section>
-        </div>
+        </aside>
       </section>
     </div>
+  );
+}
+
+function Notice({ tone, text }: { tone: 'success' | 'error'; text: string }) {
+  return (
+    <div
+      className={`rounded-[16px] border px-4 py-3 text-sm font-bold ${
+        tone === 'success' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-rose-200 bg-rose-50 text-rose-800'
+      }`}
+    >
+      {text}
+    </div>
+  );
+}
+
+function Field({ label, wide, children }: { label: string; wide?: boolean; children: React.ReactNode }) {
+  return (
+    <label className={`flex flex-col gap-2 ${wide ? 'md:col-span-2' : ''}`}>
+      <span className="text-xs font-black uppercase tracking-[0.12em] text-slate-500">{label}</span>
+      {children}
+    </label>
   );
 }
 
@@ -482,37 +417,36 @@ function ToggleCard({
     <button
       type="button"
       onClick={() => onChange(!checked)}
-      className={`rounded-3xl border p-4 text-left transition ${
-        checked
-          ? 'border-cyan-400/50 bg-cyan-500/10'
-          : 'border-white/10 bg-slate-950/60 hover:bg-white/5'
+      className={`rounded-[18px] border p-4 text-left transition ${
+        checked ? 'border-teal-300 bg-teal-50' : 'border-slate-200 bg-slate-50 hover:border-slate-950 hover:bg-white'
       }`}
     >
       <div className="mb-3 flex items-center justify-between">
-        <div className="rounded-2xl bg-white/5 p-2 text-cyan-300">{icon}</div>
-        <div
-          className={`h-6 w-11 rounded-full p-1 transition ${
-            checked ? 'bg-cyan-400' : 'bg-white/10'
-          }`}
-        >
-          <div
-            className={`h-4 w-4 rounded-full bg-slate-950 transition ${
-              checked ? 'translate-x-5' : 'translate-x-0'
-            }`}
-          />
+        <div className={`rounded-[12px] p-2 ${checked ? 'bg-white text-teal-700' : 'bg-white text-slate-600'}`}>{icon}</div>
+        <div className={`h-6 w-11 rounded-full p-1 transition ${checked ? 'bg-teal-500' : 'bg-slate-300'}`}>
+          <div className={`h-4 w-4 rounded-full bg-white transition ${checked ? 'translate-x-5' : 'translate-x-0'}`} />
         </div>
       </div>
-      <p className="text-sm font-medium text-white">{title}</p>
-      <p className="mt-1 text-xs leading-5 text-gray-400">{description}</p>
+      <p className="text-sm font-black text-slate-950">{title}</p>
+      <p className="mt-1 text-xs font-semibold leading-5 text-slate-500">{description}</p>
     </button>
+  );
+}
+
+function PanelHeader({ icon, title }: { icon: React.ReactNode; title: string }) {
+  return (
+    <div className="mb-4 flex items-center gap-3">
+      <div className="flex h-10 w-10 items-center justify-center rounded-[13px] bg-slate-950 text-white">{icon}</div>
+      <h2 className="text-base font-black text-slate-950">{title}</h2>
+    </div>
   );
 }
 
 function StatusRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-slate-950/60 px-4 py-3">
-      <span className="text-sm text-gray-400">{label}</span>
-      <span className="text-sm font-medium text-white">{value}</span>
+    <div className="flex items-center justify-between gap-3 rounded-[14px] border border-slate-200 bg-slate-50 px-4 py-3">
+      <span className="text-xs font-semibold text-slate-500">{label}</span>
+      <span className="text-xs font-black text-slate-950">{value}</span>
     </div>
   );
 }

@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import {
   ArrowLeft, CreditCard, KeyRound, LayoutDashboard,
   Mail, Plug, ShieldCheck, Settings, Smartphone, Users,
-  Zap, type LucideIcon,
+  Zap, Search, type LucideIcon,
 } from 'lucide-react';
 
 type NavItemConfig = { label: string; href: string; icon: LucideIcon; match?: string; };
@@ -16,7 +16,8 @@ const navSections: NavSection[] = [
     label: 'Principal',
     items: [
       { icon: LayoutDashboard, label: 'Painel',       href: '/dashboard' },
-      { icon: Users,           label: 'RH',           href: '/dashboard/rh/pipeline',           match: '/dashboard/rh' },
+      { icon: Users,           label: 'RH',           href: '/dashboard/rh/pipeline',           match: '/dashboard/rh/pipeline' },
+      { icon: Search,          label: 'Talentos',     href: '/dashboard/rh/talents',            match: '/dashboard/rh/talents' },
       { icon: CreditCard,      label: 'Financeiro',   href: '/dashboard/finance/overview',      match: '/dashboard/finance' },
       { icon: Smartphone,      label: 'WhatsApp',     href: '/dashboard/whatsapp/accounts',     match: '/dashboard/whatsapp' },
       { icon: Settings,        label: 'Configurações', href: '/dashboard/settings/integrations', match: '/dashboard/settings' },

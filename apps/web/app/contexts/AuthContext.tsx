@@ -26,58 +26,86 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const BLOCKED_DEMO_TOKEN = 'demo-token-innovation-ia-2025';
+const LOCAL_SESSION_TOKEN = 'innovation-local-whatsapp-session';
+const LOCAL_COMPANY_ID = '00000000-0000-0000-0000-000000000001';
+const LOCAL_SESSION_ENABLED =
+  process.env.NODE_ENV !== 'production' && process.env.NEXT_PUBLIC_ENABLE_LOCAL_SESSION === 'true';
 
-// Usuário demo para acesso direto sem backend
-const DEMO_USER: User = {
-  id: '00000000-0000-0000-0000-000000000001',
-  name: 'Eduardo',
-  email: 'admin@innovation.ia',
+const LOCAL_USER: User = {
+  id: LOCAL_COMPANY_ID,
+  name: 'Operador local',
+  email: 'local@innovation.ia',
   profile: 'admin',
-  companyId: '00000000-0000-0000-0000-000000000001',
+  companyId: LOCAL_COMPANY_ID,
 };
 
-const DEMO_COMPANY: Company = {
-  id: '00000000-0000-0000-0000-000000000001',
-  name: 'Innovation.ia',
+const LOCAL_COMPANY: Company = {
+  id: LOCAL_COMPANY_ID,
+  name: 'Innovation IA',
 };
-
-const DEMO_TOKEN = 'demo-token-innovation-ia-2025';
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [company, setCompany] = useState<Company | null>(null);
   const [token, setToken] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Auto-login: carregar sessão salva OU entrar com demo automaticamente
+  // Carregar apenas sessao real salva. A sessao local precisa ser habilitada por env no desenvolvimento.
   useEffect(() => {
     const savedToken = localStorage.getItem('token');
     const savedUser = localStorage.getItem('user');
     const savedCompany = localStorage.getItem('company');
 
+    if (savedToken === BLOCKED_DEMO_TOKEN || (savedToken === LOCAL_SESSION_TOKEN && !LOCAL_SESSION_ENABLED)) {
+      clearStoredSession();
+      setLoading(false);
+      return;
+    }
+
+    if (!savedToken && LOCAL_SESSION_ENABLED) {
+      startLocalSession();
+      setLoading(false);
+      return;
+    }
+
     if (savedToken && savedUser && savedCompany) {
       try {
-        setToken(savedToken);
-        setUser(JSON.parse(savedUser));
-        setCompany(JSON.parse(savedCompany));
+        const parsedUser = JSON.parse(savedUser);
+        const parsedCompany = JSON.parse(savedCompany);
+        if (LOCAL_SESSION_ENABLED && savedToken === LOCAL_SESSION_TOKEN && parsedUser?.companyId !== LOCAL_COMPANY_ID) {
+          startLocalSession();
+        } else {
+          setToken(savedToken);
+          setUser(parsedUser);
+          setCompany(parsedCompany);
+        }
       } catch {
-        // Sessão corrompida: fazer auto-login demo
-        doAutoLogin();
+        clearStoredSession();
       }
-    } else {
-      // Sem sessão: auto-login demo para o app funcionar
-      doAutoLogin();
+    } else if (LOCAL_SESSION_ENABLED) {
+      startLocalSession();
     }
+    setLoading(false);
   }, []);
 
-  const doAutoLogin = () => {
-    setToken(DEMO_TOKEN);
-    setUser(DEMO_USER);
-    setCompany(DEMO_COMPANY);
-    localStorage.setItem('token', DEMO_TOKEN);
-    localStorage.setItem('user', JSON.stringify(DEMO_USER));
-    localStorage.setItem('company', JSON.stringify(DEMO_COMPANY));
+  const startLocalSession = () => {
+    setToken(LOCAL_SESSION_TOKEN);
+    setUser(LOCAL_USER);
+    setCompany(LOCAL_COMPANY);
+    localStorage.setItem('token', LOCAL_SESSION_TOKEN);
+    localStorage.setItem('user', JSON.stringify(LOCAL_USER));
+    localStorage.setItem('company', JSON.stringify(LOCAL_COMPANY));
+  };
+
+  const clearStoredSession = () => {
+    setToken(null);
+    setUser(null);
+    setCompany(null);
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    localStorage.removeItem('company');
   };
 
   const login = async (email: string, password: string) => {
@@ -120,25 +148,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           return;
         }
       } catch {
-        // Backend indisponível — usar credenciais demo
+        throw new Error('Nao foi possivel entrar agora. Verifique sua conexao e tente novamente.');
       }
 
-      // Credenciais demo aceitas sempre para funcionamento offline
-      if (email && password) {
-        const demoUser: User = {
-          ...DEMO_USER,
-          name: email.split('@')[0] || 'Usuário',
-          email,
-        };
-        setToken(DEMO_TOKEN);
-        setUser(demoUser);
-        setCompany(DEMO_COMPANY);
-        localStorage.setItem('token', DEMO_TOKEN);
-        localStorage.setItem('user', JSON.stringify(demoUser));
-        localStorage.setItem('company', JSON.stringify(DEMO_COMPANY));
-      } else {
-        throw new Error('Preencha email e senha');
-      }
+      throw new Error('Email ou senha invalidos.');
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro ao fazer login';
       setError(message);
@@ -149,13 +162,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const logout = () => {
-    setUser(null);
-    setCompany(null);
-    setToken(null);
+    clearStoredSession();
     setError(null);
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    localStorage.removeItem('company');
   };
 
   const value: AuthContextType = {

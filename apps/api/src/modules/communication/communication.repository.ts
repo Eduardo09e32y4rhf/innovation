@@ -34,7 +34,7 @@ export class CommunicationRepository {
     });
   }
 
-  createMessage(data: {
+  async createMessage(data: {
     companyId: string;
     conversationId: string;
     externalId?: string;
@@ -43,6 +43,12 @@ export class CommunicationRepository {
     status: string;
     sentAt?: Date;
   }) {
+    if (data.externalId) {
+      const existing = await this.prisma.message.findUnique({
+        where: { companyId_externalId: { companyId: data.companyId, externalId: data.externalId } },
+      });
+      if (existing) return existing;
+    }
     return this.prisma.message.create({ data: data as any });
   }
 
@@ -58,6 +64,12 @@ export class CommunicationRepository {
     const conversation = await this.prisma.conversation.findFirst({ where: { id: conversationId, companyId } });
     if (!conversation) throw new NotFoundException('Conversation not found');
     return this.prisma.message.findMany({ where: { companyId, conversationId }, orderBy: { createdAt: 'asc' } });
+  }
+
+  async listMessagesByWhatsappJid(companyId: string, whatsappJid: string) {
+    const conversation = await this.prisma.conversation.findFirst({ where: { companyId, whatsappJid } });
+    if (!conversation) throw new NotFoundException('Conversation not found');
+    return this.prisma.message.findMany({ where: { companyId, conversationId: conversation.id }, orderBy: { createdAt: 'asc' } });
   }
 
   async updateConversationStatus(companyId: string, id: string, status: string) {

@@ -1,82 +1,140 @@
 "use client";
-import { useState } from 'react';
-import { Building2, Link2, CheckCircle2, RefreshCw, Eye, EyeOff, ChevronRight, AlertCircle } from 'lucide-react';
 
-const BANKS = [
-  { id: 'itau',     name: 'Itaú Unibanco',    logo: '🏦', connected: true,  saldo: 'R$ 48.320,00', agencia: '1234', conta: '56789-0' },
-  { id: 'bradesco', name: 'Bradesco',          logo: '🏛️', connected: false, saldo: null, agencia: '', conta: '' },
-  { id: 'bb',       name: 'Banco do Brasil',   logo: '🏢', connected: false, saldo: null, agencia: '', conta: '' },
-  { id: 'sicoob',   name: 'Sicoob',            logo: '🤝', connected: false, saldo: null, agencia: '', conta: '' },
-  { id: 'nubank',   name: 'Nubank',            logo: '💜', connected: false, saldo: null, agencia: '', conta: '' },
-  { id: 'inter',    name: 'Banco Inter',       logo: '🟠', connected: false, saldo: null, agencia: '', conta: '' },
-];
+import { useEffect, useMemo, useState } from 'react';
+import { AlertCircle, CheckCircle2, Eye, EyeOff, Link2, RefreshCw, ShieldCheck } from 'lucide-react';
+import {
+  DdaBoleto,
+  DdaProvider,
+  DdaProviderId,
+  connectDdaProvider,
+  fallbackDdaBoletos,
+  fallbackDdaProviders,
+  formatCurrency,
+  formatDate,
+  getDdaBoletos,
+  getDdaProviders,
+  reconcileDdaBoleto,
+} from '../api';
 
-const DDA = [
-  { id: 'D001', credor: 'Fornecedor Tech Ltda',    valor: 'R$ 3.200,00', vencimento: '10/05/2026', status: 'pendente', debito: true  },
-  { id: 'D002', credor: 'Licença Adobe',           valor: 'R$ 890,00',  vencimento: '12/05/2026', status: 'pendente', debito: false },
-  { id: 'D003', credor: 'AWS Cloud Services',      valor: 'R$ 1.450,00', vencimento: '15/05/2026', status: 'agendado', debito: true  },
-  { id: 'D004', credor: 'Aluguel Escritório',      valor: 'R$ 4.800,00', vencimento: '05/05/2026', status: 'pago',    debito: true  },
-  { id: 'D005', credor: 'Google Workspace',        valor: 'R$ 320,00',  vencimento: '20/05/2026', status: 'pendente', debito: false },
-];
+const sourceLabels: Record<DdaBoleto['source'], string> = {
+  BOLETO: 'Boleto',
+  PIX: 'Pix',
+  CARD: 'Cartao',
+  TRANSFER: 'Transf.',
+};
 
 export default function BankPage() {
   const [showBalance, setShowBalance] = useState(true);
   const [syncing, setSyncing] = useState(false);
-  const [connecting, setConnecting] = useState<string | null>(null);
+  const [connecting, setConnecting] = useState<DdaProviderId | null>(null);
+  const [reconciling, setReconciling] = useState<string | null>(null);
+  const [providers, setProviders] = useState<DdaProvider[]>(fallbackDdaProviders);
+  const [entries, setEntries] = useState<DdaBoleto[]>(fallbackDdaBoletos);
 
-  const sync = () => { setSyncing(true); setTimeout(() => setSyncing(false), 2000); };
+  const load = async () => {
+    setSyncing(true);
+    const [nextProviders, nextEntries] = await Promise.all([
+      getDdaProviders(),
+      getDdaBoletos(),
+    ]);
+    setProviders(nextProviders);
+    setEntries(nextEntries);
+    setSyncing(false);
+  };
+
+  useEffect(() => {
+    void load();
+  }, []);
+
+  const handleConnect = async (providerId: DdaProviderId) => {
+    setConnecting(providerId);
+    try {
+      const connected = await connectDdaProvider(providerId);
+      setProviders((current) => current.map((provider) => provider.id === providerId ? connected : provider));
+      setEntries(await getDdaBoletos());
+    } finally {
+      setConnecting(null);
+    }
+  };
+
+  const handleReconcile = async (entry: DdaBoleto) => {
+    setReconciling(entry.id);
+    try {
+      const reconciled = await reconcileDdaBoleto(entry);
+      setEntries((current) => current.map((item) => item.id === entry.id ? { ...item, ...reconciled, status: 'RECONCILED' } : item));
+    } finally {
+      setReconciling(null);
+    }
+  };
+
+  const connectedCount = providers.filter(provider => provider.connected).length;
+  const importedBalance = providers.reduce((total, provider) => total + (provider.connected ? provider.balance : 0), 0);
+  const pendingEntries = entries.filter(entry => entry.status === 'PENDING');
+  const pendingTotal = pendingEntries.reduce((total, entry) => total + entry.amount, 0);
+  const reconciledTotal = entries.filter(entry => entry.status === 'RECONCILED').reduce((total, entry) => total + entry.amount, 0);
+  const monthRevenue = entries.reduce((total, entry) => total + entry.amount, 0);
+  const lastSyncLabel = useMemo(() => {
+    const dates = providers.map(provider => provider.lastSyncAt).filter(Boolean) as string[];
+    if (!dates.length) return 'Aguardando primeira sincronizacao';
+    return `Atualizado em ${formatDate(dates.sort().at(-1))}`;
+  }, [providers]);
 
   return (
     <div className="space-y-5">
-      {/* Connected bank */}
       <div className="grid grid-cols-[1fr_340px] gap-4">
         <div className="dash-card p-5">
-          <div className="flex items-center justify-between mb-5">
+          <div className="mb-5 flex items-center justify-between">
             <div>
-              <h3 className="text-[14px] font-bold text-gray-900">Contas Conectadas</h3>
-              <p className="text-[11px] text-gray-400 mt-0.5">Open Banking — atualizado há 5 min</p>
+              <h3 className="text-[14px] font-bold text-gray-900">Provedores Financeiros</h3>
+              <p className="mt-0.5 text-[11px] text-gray-400">Controle, extrato e conciliacao - sem execucao de pagamento</p>
             </div>
-            <button onClick={sync} className={`btn-outline flex items-center gap-1.5 ${syncing ? 'opacity-60' : ''}`} disabled={syncing}>
+            <button onClick={load} className={`btn-outline flex items-center gap-1.5 ${syncing ? 'opacity-60' : ''}`} disabled={syncing}>
               <RefreshCw size={12} strokeWidth={2} className={syncing ? 'animate-spin' : ''} />
               {syncing ? 'Sincronizando...' : 'Sincronizar'}
             </button>
           </div>
 
           <div className="space-y-3">
-            {BANKS.map(bank => (
-              <div key={bank.id} className={`flex items-center justify-between p-4 rounded-xl border transition-all ${
-                bank.connected
+            {providers.map(provider => (
+              <div key={provider.id} className={`flex items-center justify-between rounded-xl border p-4 transition-all ${
+                provider.connected
                   ? 'border-teal-200 bg-teal-50/60'
                   : 'border-gray-200 bg-gray-50 hover:border-gray-300'
               }`}>
                 <div className="flex items-center gap-3">
-                  <span className="text-2xl">{bank.logo}</span>
+                  <span className={`flex h-10 w-10 items-center justify-center rounded-lg text-[12px] font-black ${
+                    provider.connected ? 'bg-teal-600 text-white' : 'bg-white text-gray-500'
+                  }`}>
+                    {provider.initials}
+                  </span>
                   <div>
-                    <p className="text-[13px] font-semibold text-gray-900">{bank.name}</p>
-                    {bank.connected
-                      ? <p className="text-[11px] text-gray-400">Ag {bank.agencia} · Cc {bank.conta}</p>
-                      : <p className="text-[11px] text-gray-400">Não conectado</p>
+                    <p className="text-[13px] font-semibold text-gray-900">{provider.name}</p>
+                    {provider.connected
+                      ? <p className="text-[11px] text-gray-400">Conta conectada - {provider.scope}</p>
+                      : <p className="text-[11px] text-gray-400">{provider.scope} - nao conectado</p>
                     }
                   </div>
                 </div>
+
                 <div className="flex items-center gap-3">
-                  {bank.connected && bank.saldo && (
+                  {provider.connected && (
                     <div className="text-right">
-                      <p className="text-[11px] text-gray-400">Saldo</p>
+                      <p className="text-[11px] text-gray-400">Saldo importado</p>
                       <p className="text-[14px] font-bold text-gray-900">
-                        {showBalance ? bank.saldo : '••••••'}
+                        {showBalance ? formatCurrency(provider.balance) : '******'}
                       </p>
                     </div>
                   )}
-                  {bank.connected
+                  {provider.connected
                     ? <span className="badge badge-green"><CheckCircle2 size={9} />Ativa</span>
                     : (
                       <button
-                        onClick={() => setConnecting(bank.id)}
-                        className="btn-black text-[11px] px-3 py-1.5"
+                        onClick={() => void handleConnect(provider.id)}
+                        className="btn-black px-3 py-1.5 text-[11px]"
+                        disabled={connecting === provider.id}
                       >
                         <Link2 size={11} strokeWidth={2.2} />
-                        Conectar
+                        {connecting === provider.id ? 'Conectando...' : 'Conectar'}
                       </button>
                     )
                   }
@@ -86,84 +144,96 @@ export default function BankPage() {
           </div>
         </div>
 
-        {/* Saldo consolidado */}
         <div className="space-y-4">
           <div className="dash-hero p-6">
             <div className="relative z-10">
-              <div className="flex items-center justify-between mb-4">
-                <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-teal-400">Saldo Consolidado</p>
-                <button onClick={() => setShowBalance(v => !v)} className="text-white/40 hover:text-white/70 transition-colors">
+              <div className="mb-4 flex items-center justify-between">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-teal-400">Saldo Importado</p>
+                <button onClick={() => setShowBalance(value => !value)} className="text-white/40 transition-colors hover:text-white/70">
                   {showBalance ? <EyeOff size={14} /> : <Eye size={14} />}
                 </button>
               </div>
-              <p className="text-[36px] font-black text-white leading-none tracking-tight">
-                {showBalance ? 'R$ 48.320' : 'R$ ••••••'}
+              <p className="text-[36px] font-black leading-none tracking-tight text-white">
+                {showBalance ? formatCurrency(importedBalance) : 'R$ ******'}
               </p>
-              <p className="mt-2 text-[11px] text-white/40">1 conta conectada</p>
-              <div className="mt-4 pt-4 border-t border-white/10 grid grid-cols-2 gap-3">
+              <p className="mt-2 text-[11px] text-white/40">{connectedCount} provedor(es) conectado(s)</p>
+              <div className="mt-4 grid grid-cols-2 gap-3 border-t border-white/10 pt-4">
                 <div>
-                  <p className="text-[10px] text-white/40 uppercase tracking-wider">Entradas (mês)</p>
-                  <p className="text-[16px] font-bold text-teal-400 mt-0.5">R$ 31.200</p>
+                  <p className="text-[10px] uppercase tracking-wider text-white/40">Volume importado</p>
+                  <p className="mt-0.5 text-[16px] font-bold text-teal-400">{formatCurrency(monthRevenue)}</p>
                 </div>
                 <div>
-                  <p className="text-[10px] text-white/40 uppercase tracking-wider">Saídas (mês)</p>
-                  <p className="text-[16px] font-bold text-red-400 mt-0.5">R$ 13.800</p>
+                  <p className="text-[10px] uppercase tracking-wider text-white/40">Conciliado</p>
+                  <p className="mt-0.5 text-[16px] font-bold text-blue-300">{formatCurrency(reconciledTotal)}</p>
                 </div>
               </div>
             </div>
           </div>
 
           <div className="dash-card p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <AlertCircle size={14} className="text-amber-500" />
-              <p className="text-[13px] font-semibold text-gray-900">DDA a vencer</p>
+            <div className="mb-3 flex items-center gap-2">
+              <ShieldCheck size={14} className="text-teal-600" />
+              <p className="text-[13px] font-semibold text-gray-900">Controle operacional</p>
             </div>
-            <p className="text-[28px] font-black text-gray-900">3</p>
-            <p className="text-[11px] text-gray-400 mt-0.5">cobranças nos próximos 7 dias</p>
-            <p className="text-[14px] font-bold text-amber-600 mt-2">R$ 5.540,00</p>
+            <p className="text-[28px] font-black text-gray-900">0</p>
+            <p className="mt-0.5 text-[11px] text-gray-400">pagamentos executados pelo app</p>
+            <p className="mt-2 text-[14px] font-bold text-teal-600">Conciliacao e baixa manual</p>
+          </div>
+
+          <div className="dash-card p-4">
+            <div className="mb-3 flex items-center gap-2">
+              <AlertCircle size={14} className="text-amber-500" />
+              <p className="text-[13px] font-semibold text-gray-900">Pendencias</p>
+            </div>
+            <p className="text-[28px] font-black text-gray-900">{pendingEntries.length}</p>
+            <p className="mt-0.5 text-[11px] text-gray-400">itens aguardando conciliacao</p>
+            <p className="mt-2 text-[14px] font-bold text-amber-600">{formatCurrency(pendingTotal)}</p>
           </div>
         </div>
       </div>
 
-      {/* DDA Table */}
       <div className="dash-card overflow-hidden">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+        <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
           <div>
-            <h3 className="text-[14px] font-bold text-gray-900">DDA — Débito Direto Autorizado</h3>
-            <p className="text-[11px] text-gray-400 mt-0.5">Cobranças registradas no seu CNPJ/CPF</p>
+            <h3 className="text-[14px] font-bold text-gray-900">Conciliacao de Cobrancas</h3>
+            <p className="mt-0.5 text-[11px] text-gray-400">{lastSyncLabel}</p>
           </div>
-          <span className="badge badge-amber">3 pendentes</span>
+          <span className="badge badge-amber">{pendingEntries.length} pendentes</span>
         </div>
         <table className="table-premium w-full">
-          <thead><tr>
-            {['ID','Credor','Valor','Vencimento','Débito Auto','Status','Ação'].map(h =>
-              <th key={h} className="px-5">{h}</th>
-            )}
-          </tr></thead>
+          <thead>
+            <tr>
+              {['ID', 'Provedor', 'Descricao', 'Valor', 'Vencimento', 'Origem', 'Status', 'Acao'].map(header =>
+                <th key={header} className="px-5">{header}</th>
+              )}
+            </tr>
+          </thead>
           <tbody>
-            {DDA.map(d => (
-              <tr key={d.id} className="cursor-pointer">
-                <td className="px-5 text-[11px] text-gray-400 font-mono">{d.id}</td>
-                <td className="px-5 text-[12px] font-medium text-gray-900">{d.credor}</td>
-                <td className="px-5 text-[13px] font-bold text-gray-900">{d.valor}</td>
-                <td className="px-5 text-[12px] text-gray-600">{d.vencimento}</td>
+            {entries.map(entry => (
+              <tr key={entry.id} className="cursor-pointer">
+                <td className="px-5 font-mono text-[11px] text-gray-400">{entry.id}</td>
+                <td className="px-5 text-[12px] font-medium text-gray-900">{entry.providerName}</td>
+                <td className="px-5 text-[12px] font-medium text-gray-900">{entry.description}</td>
+                <td className="px-5 text-[13px] font-bold text-gray-900">{formatCurrency(entry.amount)}</td>
+                <td className="px-5 text-[12px] text-gray-600">{formatDate(entry.dueDate)}</td>
                 <td className="px-5">
-                  <span className={`badge ${d.debito ? 'badge-green' : 'badge-gray'}`}>
-                    {d.debito ? 'Sim' : 'Não'}
+                  <span className="badge badge-gray">{sourceLabels[entry.source]}</span>
+                </td>
+                <td className="px-5">
+                  <span className={`badge ${entry.status === 'RECONCILED' ? 'badge-green' : 'badge-amber'}`}>
+                    {entry.status === 'RECONCILED' ? 'conciliado' : 'pendente'}
                   </span>
                 </td>
                 <td className="px-5">
-                  <span className={`badge ${
-                    d.status === 'pago' ? 'badge-green' :
-                    d.status === 'agendado' ? 'badge-blue' : 'badge-amber'
-                  }`}>{d.status}</span>
-                </td>
-                <td className="px-5">
-                  {d.status === 'pendente' && (
-                    <button className="btn-black text-[11px] px-3 py-1.5">
-                      Pagar <ChevronRight size={11} />
+                  {entry.status === 'PENDING' ? (
+                    <button
+                      onClick={() => void handleReconcile(entry)}
+                      className="btn-outline px-3 py-1.5 text-[11px]"
+                      disabled={reconciling === entry.id}
+                    >
+                      {reconciling === entry.id ? 'Baixando...' : 'Baixar manualmente'}
                     </button>
-                  )}
+                  ) : <span className="text-[11px] text-gray-300">--</span>}
                 </td>
               </tr>
             ))}

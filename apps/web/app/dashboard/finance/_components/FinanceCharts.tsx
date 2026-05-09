@@ -5,6 +5,7 @@ import {
   AreaChart, Area, BarChart, Bar,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
+import type { CashFlowPoint, CategoryPoint } from '../api';
 
 const fluxo = [
   { mes: 'Jan', entrada: 18400, saida: 9200  },
@@ -45,11 +46,11 @@ function ChartTip({ active, payload, label }: any) {
   );
 }
 
-export function FluxoDeCaixaChart() {
+export function FluxoDeCaixaChart({ data = fluxo }: { data?: CashFlowPoint[] }) {
   return (
     <div style={{ width: '100%', height: 240 }}>
       <ResponsiveContainer width="100%" height="100%">
-        <AreaChart data={fluxo} margin={{ top: 8, right: 8, left: -8, bottom: 0 }}>
+        <AreaChart data={data} margin={{ top: 8, right: 8, left: -8, bottom: 0 }}>
           <defs>
             <linearGradient id="gEntrada" x1="0" y1="0" x2="0" y2="1">
               <stop offset="5%"  stopColor="#0D9488" stopOpacity={0.22} />
@@ -101,12 +102,12 @@ export function FluxoDeCaixaChart() {
   );
 }
 
-export function ReceitaCategoriaChart() {
+export function ReceitaCategoriaChart({ data = categorias }: { data?: CategoryPoint[] }) {
   return (
     <div style={{ width: '100%', height: 200 }}>
       <ResponsiveContainer width="100%" height="100%">
         <BarChart
-          data={categorias}
+          data={data}
           layout="vertical"
           margin={{ top: 0, right: 12, left: 4, bottom: 0 }}
         >

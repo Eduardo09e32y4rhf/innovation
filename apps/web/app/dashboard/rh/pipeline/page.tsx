@@ -110,149 +110,6 @@ const COLUMNS: Array<{ id: ApplicationStatus; title: string; color: string; dot:
   { id: 'REJECTED', title: 'Rejeitado', color: 'border-rose-200 bg-rose-50', dot: 'bg-rose-500' },
 ];
 
-const DEMO_APPLICATIONS: Application[] = [
-  {
-    id: 'demo-app-1',
-    status: 'SCREENING',
-    source: 'LinkedIn',
-    lastAction: 'IA recomendou entrevista tecnica',
-    isDemo: true,
-    createdAt: '2026-05-03T10:00:00.000Z',
-    job: { id: 'demo-job-1', title: 'Analista de RH Pleno' },
-    candidate: {
-      id: 'demo-candidate-1',
-      name: 'Marina Costa',
-      email: 'marina.costa@talentos.com',
-      phone: '+55 11 98888-1201',
-      aiScore: 91,
-      lastSentiment: 'POSITIVE',
-      aiSkills: ['People Analytics', 'Recrutamento', 'Onboarding'],
-      aiSummary: 'Perfil forte para operacao de RH, com experiencia em triagem, indicadores e comunicacao com liderancas.',
-      aiNotes: 'Boa comunicacao na primeira conversa.\nDisponivel para entrevista esta semana.',
-    },
-  },
-  {
-    id: 'demo-app-2',
-    status: 'APPLIED',
-    source: 'Formulario',
-    lastAction: 'Curriculo recebido',
-    isDemo: true,
-    createdAt: '2026-05-04T13:00:00.000Z',
-    job: { id: 'demo-job-2', title: 'Desenvolvedor Full Stack' },
-    candidate: {
-      id: 'demo-candidate-2',
-      name: 'Renan Alves',
-      email: 'renan.alves@talentos.com',
-      phone: '+55 21 97777-3322',
-      aiScore: 84,
-      lastSentiment: 'POSITIVE',
-      aiSkills: ['React', 'Node.js', 'PostgreSQL'],
-      aiSummary: 'Bom alinhamento tecnico com a vaga, portfolio consistente e experiencia recente em produtos SaaS.',
-      aiNotes: 'Validar disponibilidade e pretensao salarial.',
-    },
-  },
-  {
-    id: 'demo-app-3',
-    status: 'INTERVIEW',
-    source: 'Indicacao',
-    lastAction: 'Entrevista agendada',
-    isDemo: true,
-    createdAt: '2026-05-02T09:30:00.000Z',
-    job: { id: 'demo-job-3', title: 'SDR Comercial' },
-    candidate: {
-      id: 'demo-candidate-3',
-      name: 'Bianca Rocha',
-      email: 'bianca.rocha@talentos.com',
-      phone: '+55 31 96666-8765',
-      aiScore: 78,
-      lastSentiment: 'NEUTRAL',
-      aiSkills: ['CRM', 'Outbound', 'Follow-up'],
-      aiSummary: 'Perfil aderente para prospeccao, com energia comercial boa. Precisa validar maturidade em metas agressivas.',
-      aiNotes: 'Pedir exemplos de cadencia e objecoes.',
-    },
-  },
-  {
-    id: 'demo-app-4',
-    status: 'OFFER',
-    source: 'Indeed',
-    lastAction: 'Aguardando retorno da proposta',
-    isDemo: true,
-    createdAt: '2026-04-28T16:10:00.000Z',
-    job: { id: 'demo-job-4', title: 'Financeiro Junior' },
-    candidate: {
-      id: 'demo-candidate-4',
-      name: 'Caio Martins',
-      email: 'caio.martins@talentos.com',
-      phone: '+55 41 95555-4490',
-      aiScore: 88,
-      lastSentiment: 'POSITIVE',
-      aiSkills: ['Contas a pagar', 'Excel', 'ERP'],
-      aiSummary: 'Excelente fit operacional, organizado e com boa experiencia em rotina financeira.',
-      aiNotes: 'Proposta enviada com inicio sugerido para 20/05.',
-    },
-  },
-  {
-    id: 'demo-app-5',
-    status: 'SCREENING',
-    source: 'Banco de talentos',
-    lastAction: 'Precisa revisar lacunas do curriculo',
-    isDemo: true,
-    createdAt: '2026-05-01T11:20:00.000Z',
-    job: { id: 'demo-job-2', title: 'Desenvolvedor Full Stack' },
-    candidate: {
-      id: 'demo-candidate-5',
-      name: 'Leticia Nunes',
-      email: 'leticia.nunes@talentos.com',
-      phone: null,
-      aiScore: 61,
-      lastSentiment: 'ATTENTION',
-      aiSkills: ['JavaScript', 'Suporte', 'SQL'],
-      aiSummary: 'Tem base tecnica util, mas a experiencia ainda parece mais voltada a suporte do que desenvolvimento.',
-      aiNotes: 'Sem telefone. Confirmar contato por e-mail antes de avancar.',
-    },
-  },
-  {
-    id: 'demo-app-6',
-    status: 'REJECTED',
-    source: 'Formulario',
-    lastAction: 'Rejeitado por baixa aderencia',
-    isDemo: true,
-    createdAt: '2026-04-30T08:00:00.000Z',
-    job: { id: 'demo-job-3', title: 'SDR Comercial' },
-    candidate: {
-      id: 'demo-candidate-6',
-      name: 'Otavio Lima',
-      email: 'otavio.lima@talentos.com',
-      phone: '+55 85 94444-1000',
-      aiScore: 34,
-      lastSentiment: 'NEGATIVE',
-      aiSkills: ['Atendimento', 'Planilhas'],
-      aiSummary: 'Pouca aderencia ao modelo ativo de vendas e baixa evidencia de vivencia com CRM.',
-      aiNotes: 'Manter no banco para vagas de atendimento.',
-    },
-  },
-  {
-    id: 'demo-app-7',
-    status: 'HIRED',
-    source: 'Indicacao',
-    lastAction: 'Contratacao confirmada',
-    isDemo: true,
-    createdAt: '2026-04-25T15:00:00.000Z',
-    job: { id: 'demo-job-1', title: 'Analista de RH Pleno' },
-    candidate: {
-      id: 'demo-candidate-7',
-      name: 'Juliana Ferraz',
-      email: 'juliana.ferraz@talentos.com',
-      phone: '+55 11 93333-1122',
-      aiScore: 95,
-      lastSentiment: 'POSITIVE',
-      aiSkills: ['Employer Branding', 'Entrevistas', 'Gestao de vagas'],
-      aiSummary: 'Contratada com alto alinhamento cultural e tecnico para estruturar a esteira de recrutamento.',
-      aiNotes: 'Onboarding preparado.',
-    },
-  },
-];
-
 const tabs: Array<{ id: Tab; label: string; icon: React.ElementType }> = [
   { id: 'pipeline', label: 'Pipeline', icon: LayoutDashboard },
   { id: 'list', label: 'Lista', icon: Table2 },
@@ -357,22 +214,15 @@ export default function PipelinePage() {
       const data = await response.json();
       const items = normalizeApplications(data);
 
-      if (items.length > 0) {
-        setApplications(items);
-        setUsingDemo(false);
-        setApiOffline(false);
-        setSelected((current) => current ?? items[0] ?? null);
-      } else {
-        setApplications(DEMO_APPLICATIONS);
-        setUsingDemo(true);
-        setApiOffline(false);
-        setSelected((current) => current ?? DEMO_APPLICATIONS[0]);
-      }
+      setApplications(items);
+      setUsingDemo(false);
+      setApiOffline(false);
+      setSelected((current) => current ?? items[0] ?? null);
     } catch {
-      setApplications(DEMO_APPLICATIONS);
-      setUsingDemo(true);
+      setApplications([]);
+      setUsingDemo(false);
       setApiOffline(true);
-      setSelected((current) => current ?? DEMO_APPLICATIONS[0]);
+      setSelected(null);
     } finally {
       setLoading(false);
     }
@@ -506,15 +356,6 @@ export default function PipelinePage() {
     setReviewLoading(true);
     setFeedback('');
 
-    if (application.isDemo) {
-      const review = buildLocalReview(application, status);
-      setTransitionReview(review);
-      setNotifyCandidate(Boolean(review.whatsapp.enabled));
-      setMessagePreview(review.whatsapp.preview);
-      setReviewLoading(false);
-      return;
-    }
-
     try {
       const response = await fetch(`${getApiBaseUrl()}/recruitment/applications/${application.id}/transition/review`, {
         method: 'POST',
@@ -553,34 +394,6 @@ export default function PipelinePage() {
         ...current,
       ]);
     };
-
-    if (transitionReview.isDemo) {
-      setApplications((current) =>
-        current.map((item) =>
-          item.id === transitionReview.applicationId
-            ? {
-                ...item,
-                status: transitionReview.recommendedStatus,
-                lastAction: notifyCandidate && transitionReview.whatsapp.enabled ? 'WhatsApp simulado apos confirmacao' : 'Etapa alterada em modo demo',
-              }
-            : item,
-        ),
-      );
-      setSelected((current) =>
-        current?.id === transitionReview.applicationId
-          ? {
-              ...current,
-              status: transitionReview.recommendedStatus,
-              lastAction: notifyCandidate && transitionReview.whatsapp.enabled ? 'WhatsApp simulado apos confirmacao' : 'Etapa alterada em modo demo',
-            }
-          : current,
-      );
-      addMessageEvent(Boolean(notifyCandidate && transitionReview.whatsapp.enabled), true);
-      setFeedback('Modo exemplo: etapa atualizada localmente. Nenhum backend real foi chamado.');
-      setTransitionReview(null);
-      setConfirmingTransition(false);
-      return;
-    }
 
     try {
       const response = await fetch(`${getApiBaseUrl()}/recruitment/applications/${transitionReview.applicationId}/transition/confirm`, {
@@ -622,20 +435,6 @@ export default function PipelinePage() {
     setSavingNote(true);
     const currentNotes = selected.candidate.aiNotes?.trim();
     const nextNotes = [currentNotes, noteInput.trim()].filter(Boolean).join('\n');
-
-    if (selected.isDemo) {
-      setApplications((current) =>
-        current.map((item) =>
-          item.candidate.id === selected.candidate.id
-            ? { ...item, candidate: { ...item.candidate, aiNotes: nextNotes }, lastAction: 'Nota adicionada no modo demo' }
-            : item,
-        ),
-      );
-      setSelected((current) => (current ? { ...current, candidate: { ...current.candidate, aiNotes: nextNotes } } : current));
-      setNoteInput('');
-      setSavingNote(false);
-      return;
-    }
 
     try {
       const response = await fetch(`${getApiBaseUrl()}/recruitment/candidates/${selected.candidate.id}`, {
@@ -1188,7 +987,7 @@ function MessagesTab({
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-sm font-black text-slate-950">{event.candidateName}</p>
                   <span className={`rounded-full px-2 py-1 text-[10px] font-black ${event.sent ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-900'}`}>
-                    {event.demo ? 'simulado' : event.sent ? 'enviado' : 'pendente'}
+                    {event.sent ? 'enviado' : 'pendente'}
                   </span>
                 </div>
                 <p className="mt-2 text-xs leading-5 text-slate-600">{event.message}</p>

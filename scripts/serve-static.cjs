@@ -7,13 +7,19 @@ const port = Number(process.argv[3] || process.env.PORT || 3000);
 
 const MIME_TYPES = {
   '.css': 'text/css; charset=utf-8',
+  '.gif': 'image/gif',
   '.html': 'text/html; charset=utf-8',
   '.ico': 'image/x-icon',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
   '.js': 'application/javascript; charset=utf-8',
   '.json': 'application/json; charset=utf-8',
   '.png': 'image/png',
   '.svg': 'image/svg+xml',
   '.txt': 'text/plain; charset=utf-8',
+  '.webp': 'image/webp',
+  '.woff': 'font/woff',
+  '.woff2': 'font/woff2',
 };
 
 function resolveFile(rootDir, pathname) {
@@ -31,6 +37,10 @@ function resolveFile(rootDir, pathname) {
     if (fs.existsSync(candidate) && fs.statSync(candidate).isFile()) {
       return candidate;
     }
+  }
+
+  if (cleanPath.startsWith('_next/') || path.extname(cleanPath)) {
+    return null;
   }
 
   const fallbackPath = path.join(rootDir, 'index.html');
@@ -54,7 +64,11 @@ const server = http.createServer((request, response) => {
   }
 
   const mimeType = MIME_TYPES[path.extname(filePath).toLowerCase()] || 'application/octet-stream';
-  response.writeHead(200, { 'Content-Type': mimeType });
+  const isImmutableAsset = pathname.startsWith('/_next/static/');
+  response.writeHead(200, {
+    'Content-Type': mimeType,
+    ...(isImmutableAsset ? { 'Cache-Control': 'public, max-age=31536000, immutable' } : {}),
+  });
   fs.createReadStream(filePath).pipe(response);
 });
 
