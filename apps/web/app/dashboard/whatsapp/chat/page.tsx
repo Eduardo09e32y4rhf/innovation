@@ -589,8 +589,9 @@ export default function ChatPage() {
                     type="button"
                     onClick={() => void handleSendMessage()}
                     disabled={!messageText.trim() || sendingMessage || !isWhatsappConnected}
-                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-slate-950 text-white shadow-[0_10px_20px_rgba(15,23,42,0.18)] transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-45"
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-slate-950 text-white shadow-[0_10px_20px_rgba(15,23,42,0.18)] transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2"
                     title="Enviar"
+                    aria-label="Enviar"
                   >
                     {sendingMessage ? <Loader2 size={17} className="animate-spin" /> : <Send size={17} />}
                   </button>
@@ -776,7 +777,8 @@ function IconButton({ icon, label }: { icon: React.ReactNode; label: string }) {
     <button
       type="button"
       title={label}
-      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] text-slate-500 transition hover:bg-slate-100 hover:text-slate-950"
+      aria-label={label}
+      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] text-slate-500 transition hover:bg-slate-100 hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2"
     >
       {icon}
     </button>
