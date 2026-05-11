@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "description": "Innovation.ia monorepo foundation",
-  "packageManager": "npm@10.9.0",
+  "packageManager": "pnpm@9.15.4",
   "scripts": {
     "debug:cwd": "node -e \"console.log('CWD:', process.cwd())\"",
     "dev": "npm run dev:web",
@@ -14,7 +14,7 @@
     "build": "npm run typecheck && npm run build:web",
     "build:api": "npm --prefix apps/api run build",
     "build:web": "npm --prefix apps/web run build",
-    "build:desktop": "node -e \"const fs=require('fs'); if(!fs.existsSync('apps/desktop/package.json')){console.error('apps/desktop ainda não está implementado; próxima fase necessária é Fase Desktop.'); process.exit(1);} require('child_process').execSync('npm --prefix apps/desktop run build', {stdio:'inherit'});\"",
+    "build:desktop": "node -e \"const fs=require('fs'); if(!fs.existsSync('apps/desktop/package.json')){console.error('apps/desktop ainda n\u00e3o est\u00e1 implementado; pr\u00f3xima fase necess\u00e1ria \u00e9 Fase Desktop.'); process.exit(1);} require('child_process').execSync('npm --prefix apps/desktop run build', {stdio:'inherit'});\"",
     "prepare:desktop": "npm run build:web && npm run build:desktop",
     "desktop:dist": "npm run prepare:desktop && npx electron-builder --dir",
     "build:installer": "npm run prepare:desktop && npx electron-builder --win nsis portable",

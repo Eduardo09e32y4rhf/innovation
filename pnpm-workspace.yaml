@@ -1,0 +1,6 @@
+packages:
+  - 'apps/web'
+  - 'apps/desktop'
+  - 'apps/api'
+  - 'packages/*'
+  - 'modules/*'
