@@ -8,31 +8,45 @@ AI Chat Endpoint — Tiered Model Access
 import os
 import json
 import re
+import logging
 from fastapi import APIRouter, Depends, HTTPException
+
+logger = logging.getLogger(__name__)
 from pydantic import BaseModel
 from typing import Optional, List
 
 # --- Safe Redis Fallback ---
 _memory_cache = {}
 
+
 def get_redis_safe():
     try:
         import redis
-        r = redis.from_url(os.getenv("REDIS_URL", "redis://127.0.0.1:6379/0"), decode_responses=True)
+
+        r = redis.from_url(
+            os.getenv("REDIS_URL", "redis://127.0.0.1:6379/0"), decode_responses=True
+        )
         r.ping()
         return r
     except:
         return None
 
+
 def cache_set(key, value, ex=3600):
     r = get_redis_safe()
-    if r: r.set(key, value, ex=ex)
-    else: _memory_cache[key] = value
+    if r:
+        r.set(key, value, ex=ex)
+    else:
+        _memory_cache[key] = value
+
 
 def cache_get(key):
     r = get_redis_safe()
-    if r: return r.get(key)
+    if r:
+        return r.get(key)
     return _memory_cache.get(key)
+
+
 from domain.models.user import User
 from infrastructure.database.sql.dependencies import get_db
 from sqlalchemy.orm import Session
@@ -381,8 +395,9 @@ async def ask_ai(
     except HTTPException:
         raise
     except Exception as e:
+        logger.error(f"Erro ao processar (ask_ai): {e}", exc_info=True)
         return {
-            "answer": f"Erro ao processar: {str(e)}",
+            "answer": "Ocorreu um erro interno ao processar a requisição.",
             "model_used": model_choice,
             "error": True,
         }
@@ -403,10 +418,11 @@ async def ask_ai_stream(
     user_plan = getattr(current_user, "subscription_plan", "FREE").upper()
 
     if user_plan in ["FREE", "BASIC", "STARTER"]:
+
         async def plan_limit_generator():
             yield "data: ⚠️ Seu plano atual não permite acesso livre à IA. Faça upgrade para o plano COMPLETE ou ENTERPRISE para desbloquear as funcionalidades cognitivas!\n\n"
             yield "data: [DONE]\n\n"
-        
+
         return StreamingResponse(plan_limit_generator(), media_type="text/event-stream")
 
     # Log usage and award XP
@@ -424,7 +440,7 @@ async def ask_ai_stream(
         async def claude_fallback_generator():
             yield f"data: [ERROR] Streaming ainda não disponível para Claude. Use Gemini.\n\n"
             yield "data: [DONE]\n\n"
-            
+
         return StreamingResponse(
             claude_fallback_generator(),
             media_type="text/event-stream",
@@ -510,8 +526,10 @@ async def landing_plan(data: LandingPlanRequest):
         answer = await _ask_gemini(user_query, [], "gemini-1.5-flash")
         return {"answer": answer}
     except Exception as e:
-        print(f"❌ Erro no simulador: {e}")
-        raise HTTPException(500, detail=str(e))
+        logger.error(f"Erro no simulador (landing_plan): {e}", exc_info=True)
+        raise HTTPException(
+            500, detail="Ocorreu um erro interno ao processar a requisição."
+        )
 
 
 class VeoRequest(BaseModel):
@@ -557,7 +575,8 @@ async def generate_video(
             if "429" in str(e) or "quota" in str(e).lower():
                 ai_key_manager.mark_as_exhausted(api_key)
                 continue
-            raise HTTPException(500, detail=f"Erro no Veo: {str(e)}")
+            logger.error(f"Erro no Veo (generate_video): {e}", exc_info=True)
+            raise HTTPException(500, detail="Ocorreu um erro interno ao gerar o vídeo.")
 
     raise HTTPException(503, "Falha em todas as chaves do Gemini para o Veo.")
 
