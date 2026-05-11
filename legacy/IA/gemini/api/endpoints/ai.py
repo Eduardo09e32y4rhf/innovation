@@ -8,7 +8,10 @@ AI Chat Endpoint — Tiered Model Access
 import os
 import json
 import re
+import logging
 from fastapi import APIRouter, Depends, HTTPException
+
+logger = logging.getLogger(__name__)
 from pydantic import BaseModel
 from typing import Optional, List
 
@@ -381,8 +384,9 @@ async def ask_ai(
     except HTTPException:
         raise
     except Exception as e:
+        logger.error(f"Erro ao processar (ask_ai): {e}", exc_info=True)
         return {
-            "answer": f"Erro ao processar: {str(e)}",
+            "answer": "Ocorreu um erro interno ao processar a requisição.",
             "model_used": model_choice,
             "error": True,
         }
@@ -510,8 +514,8 @@ async def landing_plan(data: LandingPlanRequest):
         answer = await _ask_gemini(user_query, [], "gemini-1.5-flash")
         return {"answer": answer}
     except Exception as e:
-        print(f"❌ Erro no simulador: {e}")
-        raise HTTPException(500, detail=str(e))
+        logger.error(f"Erro no simulador (landing_plan): {e}", exc_info=True)
+        raise HTTPException(500, detail="Ocorreu um erro interno ao processar a requisição.")
 
 
 class VeoRequest(BaseModel):
@@ -557,7 +561,8 @@ async def generate_video(
             if "429" in str(e) or "quota" in str(e).lower():
                 ai_key_manager.mark_as_exhausted(api_key)
                 continue
-            raise HTTPException(500, detail=f"Erro no Veo: {str(e)}")
+            logger.error(f"Erro no Veo (generate_video): {e}", exc_info=True)
+            raise HTTPException(500, detail="Ocorreu um erro interno ao gerar o vídeo.")
 
     raise HTTPException(503, "Falha em todas as chaves do Gemini para o Veo.")
 
