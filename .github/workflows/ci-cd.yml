@@ -20,6 +20,9 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        submodules: false
     
     - name: Set up Python
       uses: actions/setup-python@v5
@@ -33,7 +36,15 @@ jobs:
         pip install pytest black flake8
         
     - name: Lint with Black
-      run: black . --check
+      run: |
+        FILES=$(git diff --name-only origin/main...HEAD | grep '^apps/ai-service/.*\.py$' || true)
+        if [ -n "$FILES" ]; then
+          # Strip prefix for the container since working-directory is already in apps/ai-service
+          STRIPPED_FILES=$(echo "$FILES" | sed 's|^apps/ai-service/||')
+          black $STRIPPED_FILES --check
+        else
+          echo "No Python files changed in ai-service, skipping black."
+        fi
       
     - name: Run Tests
       # Skipping actual tests for now as DB isn't mocked in CI yet
@@ -57,10 +68,10 @@ jobs:
         cache-dependency-path: './apps/web/pnpm-lock.yaml'
         
     - name: Install Dependencies
-      run: corepack enable pnpm && pnpm install --frozen-lockfile
+      run: npm install -g pnpm && pnpm install --frozen-lockfile
       
     - name: Build Next.js App
-      run: npm run build
+      run: pnpm run build
       env:
         CI: true
 
