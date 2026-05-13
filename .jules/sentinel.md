@@ -21,3 +21,8 @@
 **Vulnerability:** Several backend endpoints (`users.py`, `jobs.py`, `candidates.py`) were returning the raw output of Python exceptions (`str(e)`) directly to users via HTTP 500 response bodies.
 **Learning:** Returning `str(e)` directly in HTTP responses can leak sensitive internal details, database structure (SQLAlchemy errors), or logic to malicious actors. This violates the principle of failing securely and "Never expose raw exception strings (`str(e)`) in HTTP responses to external clients."
 **Prevention:** Catch exceptions, log `str(e)` securely on the backend using Python`s `logging` library, and return a sanitized, generic error message (e.g. "Erro interno ao processar a requisição") to the client.
+
+## 2024-05-18 - [HIGH] Missing Authentication on Resource-Intensive Health Check
+**Vulnerability:** The `/health/deep` endpoint, which performs resource-intensive operations like database queries and sending emails, lacked authentication, allowing for unauthenticated Denial-of-Service (DoS) attacks.
+**Learning:** Even internal or health check endpoints must be secured if they trigger heavy backend processes. Unauthenticated access to these can be easily exploited to exhaust server resources.
+**Prevention:** Resource-intensive health endpoints must be secured using authentication mechanisms, such as the `get_current_user` dependency.
