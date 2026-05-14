@@ -4,3 +4,6 @@
 ## 2025-03-05 - Missing ARIA Labels on Icon-only Custom UI Buttons
 **Learning:** Found multiple instances where critical interactive elements (like advancing a candidate in ATS Kanban, or column options) were implemented either as naked `svg` elements (`<MoreVertical>`) or `<button>` elements with just an icon (`<ChevronRight>`). While visually clear to sighted users, these lacked `aria-label` attributes and focus-visible rings, rendering them completely inaccessible to screen readers and difficult to navigate via keyboard.
 **Action:** Always wrap interactive icons in a semantic `<button>` tag, provide descriptive `aria-label` and `title` attributes, and ensure `focus-visible` styles are explicitly added using Tailwind.
+## 2025-05-18 - Accessibility for icon-only buttons
+**Learning:** Icon-only buttons used in tables lack accessible names and explicit keyboard focus visibility.
+**Action:** Always provide `aria-label` and `title` attributes along with Tailwind's `focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-current` to semantic `<button>` elements for icon-only interactions.
