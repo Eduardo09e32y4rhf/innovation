@@ -9,6 +9,9 @@ from domain.models.company import Company
 from api.v1.endpoints.auth import get_current_user
 from services.asaas_service import asaas_service
 from typing import Optional
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/payments", tags=["payments"])
 
@@ -49,7 +52,11 @@ async def checkout(
             "price": price,
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro Asaas: {e}")
+        logger.error(f"Erro Asaas: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail="Erro interno ao processar pagamento. Tente novamente mais tarde.",
+        )
 
 
 # 1. CRIA O LINK DE PAGAMENTO (legacy route)
@@ -184,7 +191,12 @@ async def asaas_webhook(request: Request, db: Session = Depends(get_db)):
                     "subscription"
                 ) or payment_data.get("id")
 
-        elif event in ["PAYMENT_OVERDUE", "SUBSCRIPTION_DELETED", "PAYMENT_REFUNDED", "PAYMENT_DELETED"]:
+        elif event in [
+            "PAYMENT_OVERDUE",
+            "SUBSCRIPTION_DELETED",
+            "PAYMENT_REFUNDED",
+            "PAYMENT_DELETED",
+        ]:
             status_map = {
                 "PAYMENT_OVERDUE": "overdue",
                 "SUBSCRIPTION_DELETED": "cancelled",
@@ -205,6 +217,7 @@ async def asaas_webhook(request: Request, db: Session = Depends(get_db)):
                 sub.status = new_status
 
             import logging
+
             logging.getLogger(__name__).warning(
                 f"⚠️ Evento Asaas '{event}' para user {user.id} (email: {user.email}) → Downgrade para FREE."
             )
@@ -223,6 +236,7 @@ async def asaas_webhook(request: Request, db: Session = Depends(get_db)):
             try:
                 from domain.models.user import User as UserModel
                 from domain.models.notification import Notification
+
                 admins = db.query(UserModel).filter(UserModel.role == "admin").all()
                 for admin in admins:
                     alert = Notification(
@@ -238,9 +252,13 @@ async def asaas_webhook(request: Request, db: Session = Depends(get_db)):
                     db.add(alert)
             except Exception as notif_err:
                 import logging
-                logging.getLogger(__name__).error(f"Falha ao criar notificação de chargeback: {notif_err}")
+
+                logging.getLogger(__name__).error(
+                    f"Falha ao criar notificação de chargeback: {notif_err}"
+                )
 
             import logging
+
             logging.getLogger(__name__).critical(
                 f"🚨 CHARGEBACK: user {user.id} ({user.email}) | Valor: R${payment_data.get('value', 0)}"
             )
@@ -249,7 +267,10 @@ async def asaas_webhook(request: Request, db: Session = Depends(get_db)):
 
     except Exception as e:
         import logging
-        logging.getLogger(__name__).error(f"Erro processando webhook Asaas event '{event}': {e}")
+
+        logging.getLogger(__name__).error(
+            f"Erro processando webhook Asaas event '{event}': {e}"
+        )
         db.rollback()
 
     return {"status": "received"}
