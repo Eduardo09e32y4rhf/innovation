@@ -72,7 +72,7 @@ export function TableActionButton({
 
 export function DownloadPdfButton({ onClick }: { onClick?: () => void }) {
   return (
-    <TableActionButton onClick={onClick} aria-label="Baixar PDF" title="Baixar PDF">
+    <TableActionButton onClick={onClick} aria-label="Download PDF" title="Download PDF">
       <Download size={14} />
     </TableActionButton>
   );
