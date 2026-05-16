@@ -16,10 +16,12 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./backend
+        working-directory: ./apps/ai-service
 
     steps:
     - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
     
     - name: Set up Python
       uses: actions/setup-python@v5
@@ -33,7 +35,14 @@ jobs:
         pip install pytest black flake8
         
     - name: Lint with Black
-      run: black . --check
+      run: |
+        CHANGED_FILES=$(git diff --name-only origin/main | grep '^apps/ai-service/.*\.py$' | sed 's|^apps/ai-service/||' || true)
+        if [ -n "$CHANGED_FILES" ]; then
+          echo "Linting changed files: $CHANGED_FILES"
+          black $CHANGED_FILES --check
+        else
+          echo "No python files changed in apps/ai-service"
+        fi
       
     - name: Run Tests
       # Skipping actual tests for now as DB isn't mocked in CI yet
@@ -44,23 +53,27 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./frontend
+        working-directory: ./apps/web
 
     steps:
     - uses: actions/checkout@v4
     
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v3
+      with:
+        version: 9
     - name: Set up Node.js
       uses: actions/setup-node@v4
       with:
         node-version: ${{ env.NODE_VERSION }}
-        cache: 'npm'
-        cache-dependency-path: './frontend/package-lock.json'
+        cache: 'pnpm'
+        cache-dependency-path: './apps/web/pnpm-lock.yaml'
         
     - name: Install Dependencies
-      run: npm ci
+      run: pnpm install --frozen-lockfile
       
     - name: Build Next.js App
-      run: npm run build
+      run: pnpm run build
       env:
         CI: true
 

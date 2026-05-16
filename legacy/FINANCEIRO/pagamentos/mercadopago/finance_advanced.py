@@ -173,32 +173,38 @@ def get_cost_centers(
     current_user: User = Depends(get_current_user),
 ):
     """Agrupa transações por categoria (centro de custo)."""
-    transactions = (
-        db.query(Transaction)
+    from sqlalchemy import func
+
+    # ⚡ Bolt Optimization: Use DB-level aggregation (func.sum, group_by)
+    # instead of fetching all records (.all()) into memory to prevent O(N) memory allocation
+    # and improve response latency for large datasets.
+    category_expr = func.coalesce(func.nullif(Transaction.category, ""), "Outros")
+    stats = (
+        db.query(
+            category_expr.label("category"),
+            func.sum(Transaction.amount).label("total"),
+            func.count(Transaction.id).label("count"),
+        )
         .filter(
             Transaction.company_id == current_user.id,
             Transaction.type == "debit",
         )
+        .group_by(category_expr)
         .all()
     )
 
-    centers: dict = {}
-    for tx in transactions:
-        cat = getattr(tx, "category", "Outros") or "Outros"
-        if cat not in centers:
-            centers[cat] = {"category": cat, "total": 0.0, "count": 0}
-        centers[cat]["total"] += tx.amount
-        centers[cat]["count"] += 1
+    centers = [
+        {"category": stat.category, "total": stat.total, "count": stat.count}
+        for stat in stats
+    ]
 
-    total_spend = sum(v["total"] for v in centers.values())
-    for v in centers.values():
-        v["percentage"] = round(v["total"] / total_spend * 100, 1) if total_spend else 0
+    total_spend = sum(c["total"] for c in centers)
+    for c in centers:
+        c["percentage"] = round(c["total"] / total_spend * 100, 1) if total_spend else 0
 
     return {
         "total_spend": round(total_spend, 2),
-        "cost_centers": sorted(
-            centers.values(), key=lambda x: x["total"], reverse=True
-        ),
+        "cost_centers": sorted(centers, key=lambda x: x["total"], reverse=True),
     }
 
 
