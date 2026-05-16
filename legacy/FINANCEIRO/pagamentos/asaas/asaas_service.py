@@ -7,9 +7,10 @@ from domain.models.user import User
 class AsaasService:
     def __init__(self):
         # Defaulting to sandbox url if not provided in environment variables
-        # 🛡️ SECURITY: ASAAS_API_KEY must be provided via environment variables.
-        # Hardcoding secrets, even for sandbox, is a critical vulnerability.
-        self.api_key = os.getenv("ASAAS_API_KEY", "")
+        self.api_key = os.getenv(
+            "ASAAS_API_KEY",
+            "$aact_hmlg_000MzkwODA2MWY2OGM3MWRlMDU2NWM3MzJlNzZmNGZhZGY6OjU0Y2ZlOGViLTZlYjgtNDRkNC1iNGU3LWQ5YzRiODY2MGJkODo6JGFhY2hfZDRmN2FlNTktNTYxNi00MmIzLWE4MDMtYjQxZjYzOWQ0ZDQx",
+        )
         # PRODUÇÃO: https://api.asaas.com/v3
         # SANDBOX (testes): https://sandbox.asaas.com/api/v3
         # Configure ASAAS_API_URL no .env para sobrescrever

@@ -21,8 +21,3 @@
 **Vulnerability:** Several backend endpoints (`users.py`, `jobs.py`, `candidates.py`) were returning the raw output of Python exceptions (`str(e)`) directly to users via HTTP 500 response bodies.
 **Learning:** Returning `str(e)` directly in HTTP responses can leak sensitive internal details, database structure (SQLAlchemy errors), or logic to malicious actors. This violates the principle of failing securely and "Never expose raw exception strings (`str(e)`) in HTTP responses to external clients."
 **Prevention:** Catch exceptions, log `str(e)` securely on the backend using Python`s `logging` library, and return a sanitized, generic error message (e.g. "Erro interno ao processar a requisição") to the client.
-
-## 2025-02-27 - Hardcoded ASAAS Sandbox API Key
-**Vulnerability:** Hardcoded API key (`$aact_hmlg_...`) for ASAAS payment service found as a fallback in `os.getenv` inside `asaas_service.py`.
-**Learning:** Hardcoding API keys, even for sandbox/homologation environments, poses a significant security risk as they can be extracted from source code and potentially misused or lead to further credential stuffing.
-**Prevention:** Always use environment variables without sensitive fallback strings in code. Fallback values for secrets should be strictly avoided in favor of proper `.env` configuration or secret management services.
