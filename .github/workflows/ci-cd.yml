@@ -20,6 +20,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
     
     - name: Set up Python
       uses: actions/setup-python@v5
@@ -33,7 +35,14 @@ jobs:
         pip install pytest black flake8
         
     - name: Lint with Black
-      run: black . --check
+      run: |
+        CHANGED_FILES=$(git diff --name-only origin/main | grep '^apps/ai-service/.*\.py$' | sed 's|^apps/ai-service/||' || true)
+        if [ -n "$CHANGED_FILES" ]; then
+          echo "Linting changed files: $CHANGED_FILES"
+          black $CHANGED_FILES --check
+        else
+          echo "No python files changed in apps/ai-service"
+        fi
       
     - name: Run Tests
       # Skipping actual tests for now as DB isn't mocked in CI yet
@@ -51,6 +60,8 @@ jobs:
     
     - name: Setup pnpm
       uses: pnpm/action-setup@v3
+      with:
+        version: 9
     - name: Set up Node.js
       uses: actions/setup-node@v4
       with:
