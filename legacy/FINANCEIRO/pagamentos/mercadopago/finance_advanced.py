@@ -7,6 +7,7 @@ import re
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from pydantic import BaseModel
 from typing import Optional, List
 
@@ -173,22 +174,28 @@ def get_cost_centers(
     current_user: User = Depends(get_current_user),
 ):
     """Agrupa transações por categoria (centro de custo)."""
-    transactions = (
-        db.query(Transaction)
+    # ⚡ Bolt: Use database-level grouping and aggregation to calculate sums
+    # Why: Previously, this loaded all debit transactions into memory via .all() and grouped them in Python, causing O(N) memory usage. Now it uses SQL GROUP BY, reducing memory usage to O(1) and shifting the calculation to the database engine.
+    # Impact: Significantly improves memory usage and speeds up response times for companies with many transactions.
+    category_expr = func.coalesce(func.nullif(Transaction.category, ''), 'Outros')
+
+    grouped_txs = (
+        db.query(
+            category_expr.label("cat"),
+            func.sum(Transaction.amount).label("total"),
+            func.count(Transaction.id).label("count"),
+        )
         .filter(
             Transaction.company_id == current_user.id,
             Transaction.type == "debit",
         )
+        .group_by(category_expr)
         .all()
     )
 
     centers: dict = {}
-    for tx in transactions:
-        cat = getattr(tx, "category", "Outros") or "Outros"
-        if cat not in centers:
-            centers[cat] = {"category": cat, "total": 0.0, "count": 0}
-        centers[cat]["total"] += tx.amount
-        centers[cat]["count"] += 1
+    for cat, total, count in grouped_txs:
+        centers[cat] = {"category": cat, "total": total, "count": count}
 
     total_spend = sum(v["total"] for v in centers.values())
     for v in centers.values():
