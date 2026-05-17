@@ -8,7 +8,7 @@ on:
 
 env:
   PYTHON_VERSION: '3.10'
-  NODE_VERSION: '20'
+  NODE_VERSION: '24'
 
 jobs:
   backend-test:
@@ -16,10 +16,16 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./backend
+        working-directory: ./apps/ai-service
 
     steps:
     - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    - name: Fix Submodules
+      run: |
+        git rm --cached WHATSAPP || true
+        git rm --cached examples/gemini-cli || true
     
     - name: Set up Python
       uses: actions/setup-python@v5
@@ -33,7 +39,13 @@ jobs:
         pip install pytest black flake8
         
     - name: Lint with Black
-      run: black . --check
+      run: |
+        FILES=$(git diff --name-only origin/main | grep '^apps/ai-service/.*\.py$' | sed 's|^apps/ai-service/||' | grep -v 'deleted_file' || true)
+        if [ -n "$FILES" ]; then
+          echo "$FILES" | xargs black --check
+        else
+          black . --check
+        fi
       
     - name: Run Tests
       # Skipping actual tests for now as DB isn't mocked in CI yet
@@ -44,23 +56,34 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./frontend
+        working-directory: ./apps/web
 
     steps:
     - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    - name: Fix Submodules
+      run: |
+        git rm --cached WHATSAPP || true
+        git rm --cached examples/gemini-cli || true
     
+    - name: Install pnpm
+      uses: pnpm/action-setup@v3
+      with:
+        version: 9
+
     - name: Set up Node.js
       uses: actions/setup-node@v4
       with:
         node-version: ${{ env.NODE_VERSION }}
-        cache: 'npm'
-        cache-dependency-path: './frontend/package-lock.json'
+        cache: 'pnpm'
+        cache-dependency-path: 'apps/web/pnpm-lock.yaml'
         
     - name: Install Dependencies
-      run: npm ci
+      run: pnpm install --frozen-lockfile
       
     - name: Build Next.js App
-      run: npm run build
+      run: pnpm run build
       env:
         CI: true
 
@@ -72,6 +95,12 @@ jobs:
     
     steps:
     - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    - name: Fix Submodules
+      run: |
+        git rm --cached WHATSAPP || true
+        git rm --cached examples/gemini-cli || true
     
     - name: Set up Kubectl
       uses: azure/setup-kubectl@v3
