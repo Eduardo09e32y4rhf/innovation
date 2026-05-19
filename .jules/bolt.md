@@ -10,3 +10,7 @@
 ## 2024-03-01 - Avoid O(N) memory allocations via `.all()` inside iterative loops
 **Learning:** Found an endpoints in `rh_advanced.py` fetching ORM records (`TimeBank`) via `.all()` inside a `for u in users` loop, accumulating values manually via `sum()`. For huge record sets, querying related records in a loop causes an O(N) memory scale-up alongside an N+1 query regression.
 **Action:** When a loop iterates over database objects to count or aggregate fields, replace the loop with a single SQLAlchemy aggregation query (`func.sum` and `group_by`). This solves the N+1 problem and keeps Python memory strictly bounded to the result size rather than materializing all records into Python objects.
+
+## 2024-05-19 - Cost Centers Memory Footprint Optimization
+**Learning:** Found an endpoint in `finance_advanced.py` fetching all debit transactions into memory (`.all()`) just to group by `category` and calculate totals and counts via a python loop. For users with large transaction histories, this leads to significant O(N) memory allocations and slow responses.
+**Action:** Replaced the in-memory processing loop with an optimized single database query using SQLAlchemy's `group_by` alongside `func.sum()` and `func.count()`. Also utilized `func.coalesce(func.nullif(Transaction.category, ''), 'Outros')` directly inside `.group_by()` to prevent grouping issues where Postgres processes raw values matching an existing table column name when aliased.
