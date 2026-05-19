@@ -56,6 +56,8 @@ jobs:
     - uses: pnpm/action-setup@v3
       with:
         version: 9
+    - name: Generate pnpm-lock.yaml to satisfy setup-node cache
+      run: pnpm install --no-frozen-lockfile --ignore-scripts
     - name: Set up Node.js
       uses: actions/setup-node@v4
       with:
