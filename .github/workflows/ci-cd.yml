@@ -56,6 +56,9 @@ jobs:
       with:
         version: 9
 
+    - name: Generate lockfile for cache
+      run: pnpm install --lockfile-only
+
     - name: Set up Node.js
       uses: actions/setup-node@v4
       with:
