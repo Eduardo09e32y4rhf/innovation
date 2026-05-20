@@ -12,26 +12,25 @@ export class DashboardRepository {
       jobsOpen,
       candidatesTotal,
       applicationsTotal,
-      revenuePaid,
-      expensesPaid,
+      financialsPaid,
     ] = await Promise.all([
       this.prisma.conversation.count({ where: { companyId, status: 'OPEN' } }),
       this.prisma.message.count({ where: { companyId } }),
       this.prisma.job.count({ where: { companyId, status: 'OPEN' } }),
       this.prisma.candidate.count({ where: { companyId } }),
       this.prisma.application.count({ where: { companyId } }),
-      this.prisma.financialTransaction.aggregate({
-        where: { companyId, type: 'REVENUE', status: 'PAID' },
-        _sum: { amount: true },
-      }),
-      this.prisma.financialTransaction.aggregate({
-        where: { companyId, type: 'EXPENSE', status: 'PAID' },
+      this.prisma.financialTransaction.groupBy({
+        by: ['type'],
+        where: { companyId, status: 'PAID', type: { in: ['REVENUE', 'EXPENSE'] } },
         _sum: { amount: true },
       }),
     ]);
 
-    const revenue = Number(revenuePaid._sum.amount ?? 0);
-    const expenses = Number(expensesPaid._sum.amount ?? 0);
+    // ⚡ Bolt: Replaced two aggregate queries with a single groupBy query for better performance.
+    const revenueData = financialsPaid.find((item) => item.type === 'REVENUE');
+    const expenseData = financialsPaid.find((item) => item.type === 'EXPENSE');
+    const revenue = Number(revenueData?._sum.amount ?? 0);
+    const expenses = Number(expenseData?._sum.amount ?? 0);
     return {
       communication: { conversationsOpen, messagesTotal },
       recruitment: { jobsOpen, candidatesTotal, applicationsTotal },
