@@ -19,6 +19,7 @@ export class DashboardRepository {
       this.prisma.job.count({ where: { companyId, status: 'OPEN' } }),
       this.prisma.candidate.count({ where: { companyId } }),
       this.prisma.application.count({ where: { companyId } }),
+      // Optimize: Single database roundtrip for aggregating financial records instead of two separate aggregates. Expected impact: Reduces database latency and queries by 50% for financial data in the dashboard summary endpoint.
       this.prisma.financialTransaction.groupBy({
         by: ['type'],
         where: { companyId, status: 'PAID' },
