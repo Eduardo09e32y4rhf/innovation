@@ -12,26 +12,23 @@ export class DashboardRepository {
       jobsOpen,
       candidatesTotal,
       applicationsTotal,
-      revenuePaid,
-      expensesPaid,
+      financials,
     ] = await Promise.all([
       this.prisma.conversation.count({ where: { companyId, status: 'OPEN' } }),
       this.prisma.message.count({ where: { companyId } }),
       this.prisma.job.count({ where: { companyId, status: 'OPEN' } }),
       this.prisma.candidate.count({ where: { companyId } }),
       this.prisma.application.count({ where: { companyId } }),
-      this.prisma.financialTransaction.aggregate({
-        where: { companyId, type: 'REVENUE', status: 'PAID' },
-        _sum: { amount: true },
-      }),
-      this.prisma.financialTransaction.aggregate({
-        where: { companyId, type: 'EXPENSE', status: 'PAID' },
+      // Optimize: Single database roundtrip for aggregating financial records instead of two separate aggregates. Expected impact: Reduces database latency and queries by 50% for financial data in the dashboard summary endpoint.
+      this.prisma.financialTransaction.groupBy({
+        by: ['type'],
+        where: { companyId, status: 'PAID' },
         _sum: { amount: true },
       }),
     ]);
 
-    const revenue = Number(revenuePaid._sum.amount ?? 0);
-    const expenses = Number(expensesPaid._sum.amount ?? 0);
+    const revenue = Number(financials.find((f: { type: string, _sum: { amount: any } }) => f.type === 'REVENUE')?._sum.amount ?? 0);
+    const expenses = Number(financials.find((f: { type: string, _sum: { amount: any } }) => f.type === 'EXPENSE')?._sum.amount ?? 0);
     return {
       communication: { conversationsOpen, messagesTotal },
       recruitment: { jobsOpen, candidatesTotal, applicationsTotal },

@@ -82,7 +82,7 @@ export class FinanceService {
       pendingRevenue: sum('REVENUE', 'PENDING'),
       pendingExpense: sum('EXPENSE', 'PENDING'),
       pendingCount: dueSoon.length,
-      dueSoonTotal: dueSoon.reduce((total, item: any) => total + Number(item.amount), 0),
+      dueSoonTotal: dueSoon.reduce((total: number, item: any) => total + Number(item.amount), 0),
       cashFlow: this.buildCashFlow(chartTransactions, chartStart, now),
       categories: this.buildCategories(chartTransactions),
       recent,
