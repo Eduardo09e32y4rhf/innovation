@@ -20,8 +20,6 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
     
     - name: Set up Python
       uses: actions/setup-python@v5
@@ -35,7 +33,7 @@ jobs:
         pip install pytest black flake8
         
     - name: Lint with Black
-      run: git diff --name-only origin/main...HEAD | (grep '^apps/ai-service/.*\.py$' || true) | sed 's|^apps/ai-service/||' | xargs -r black --check
+      run: black . --check
       
     - name: Run Tests
       # Skipping actual tests for now as DB isn't mocked in CI yet
@@ -50,26 +48,19 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
     
-    - name: Set up pnpm
-      uses: pnpm/action-setup@v3
-      with:
-        version: 9
-
     - name: Set up Node.js
       uses: actions/setup-node@v4
       with:
         node-version: ${{ env.NODE_VERSION }}
-        cache: 'pnpm'
-        cache-dependency-path: './apps/web/pnpm-lock.yaml'
+        cache: 'npm'
+        cache-dependency-path: './package-lock.json'
         
     - name: Install Dependencies
-      run: pnpm install --frozen-lockfile
+      run: npm ci
       
     - name: Build Next.js App
-      run: pnpm run build
+      run: npm run build
       env:
         CI: true
 
@@ -81,8 +72,6 @@ jobs:
     
     steps:
     - uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
     
     - name: Set up Kubectl
       uses: azure/setup-kubectl@v3

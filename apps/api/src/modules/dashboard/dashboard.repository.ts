@@ -27,7 +27,6 @@ export class DashboardRepository {
       }),
     ]);
 
-    // Optimize: Single database roundtrip for aggregating financial records instead of two separate aggregates
     const revenue = Number(financials.find((f: { type: string, _sum: { amount: any } }) => f.type === 'REVENUE')?._sum.amount ?? 0);
     const expenses = Number(financials.find((f: { type: string, _sum: { amount: any } }) => f.type === 'EXPENSE')?._sum.amount ?? 0);
     return {
