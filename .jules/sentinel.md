@@ -21,3 +21,7 @@
 **Vulnerability:** Several backend endpoints (`users.py`, `jobs.py`, `candidates.py`) were returning the raw output of Python exceptions (`str(e)`) directly to users via HTTP 500 response bodies.
 **Learning:** Returning `str(e)` directly in HTTP responses can leak sensitive internal details, database structure (SQLAlchemy errors), or logic to malicious actors. This violates the principle of failing securely and "Never expose raw exception strings (`str(e)`) in HTTP responses to external clients."
 **Prevention:** Catch exceptions, log `str(e)` securely on the backend using Python`s `logging` library, and return a sanitized, generic error message (e.g. "Erro interno ao processar a requisição") to the client.
+## 2025-05-22 - Authorization Bypass via Hardcoded Demo Token
+**Vulnerability:** A hardcoded demo token backdoor (`demo-token-innovation-ia-2025`) in `jwt-auth.guard.ts` could be enabled via `ENABLE_DEMO_TOKEN=true` without checking if the environment was production.
+**Learning:** Development flags and demo credentials must always explicitly check that `NODE_ENV !== 'production'` even if they require an explicit environment variable to be enabled. Misconfiguration of an environment variable in production could expose the entire system.
+**Prevention:** Always pair feature flags for demo, local, or testing bypasses with a strict environment check (e.g., `process.env.NODE_ENV !== 'production'`).
