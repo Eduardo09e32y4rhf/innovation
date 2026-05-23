@@ -21,3 +21,8 @@
 **Vulnerability:** Several backend endpoints (`users.py`, `jobs.py`, `candidates.py`) were returning the raw output of Python exceptions (`str(e)`) directly to users via HTTP 500 response bodies.
 **Learning:** Returning `str(e)` directly in HTTP responses can leak sensitive internal details, database structure (SQLAlchemy errors), or logic to malicious actors. This violates the principle of failing securely and "Never expose raw exception strings (`str(e)`) in HTTP responses to external clients."
 **Prevention:** Catch exceptions, log `str(e)` securely on the backend using Python`s `logging` library, and return a sanitized, generic error message (e.g. "Erro interno ao processar a requisição") to the client.
+
+## 2024-05-23 - Hardcoded JWT Secret Fallback
+**Vulnerability:** The API had a hardcoded JWT secret fallback (`'innovation-ia-local-development-secret'`) in `apps/api/src/config/app.config.ts` and `apps/api/src/config/env.validation.ts` that bypassed environment variable validation in non-production environments.
+**Learning:** Hardcoded secrets in non-production environments can leak into production or give false sense of security. They bypass proper environment validation and make local development insecure.
+**Prevention:** Always require secrets to be injected via environment variables, even in development, and let the application fail fast if they are missing.
