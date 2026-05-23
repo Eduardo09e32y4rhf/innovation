@@ -29,8 +29,8 @@ export class DashboardRepository {
       }),
     ]);
 
-    const revenue = Number(financialGroups.find((g: any) => g.type === 'REVENUE')?._sum.amount ?? 0);
-    const expenses = Number(financialGroups.find((g: any) => g.type === 'EXPENSE')?._sum.amount ?? 0);
+    const revenue = Number(financialGroups.find((g: { type: string; _sum: { amount: any } }) => g.type === 'REVENUE')?._sum.amount ?? 0);
+    const expenses = Number(financialGroups.find((g: { type: string; _sum: { amount: any } }) => g.type === 'EXPENSE')?._sum.amount ?? 0);
     return {
       communication: { conversationsOpen, messagesTotal },
       recruitment: { jobsOpen, candidatesTotal, applicationsTotal },
