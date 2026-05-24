@@ -21,14 +21,14 @@ export class DashboardRepository {
       this.prisma.application.count({ where: { companyId } }),
       this.prisma.financialTransaction.groupBy({
         by: ['type'],
-        where: { companyId, status: 'PAID' },
+        where: { companyId, status: 'PAID', type: { in: ['REVENUE', 'EXPENSE'] } },
         _sum: { amount: true },
       }),
     ]);
 
     // ⚡ Bolt: Consolidated multiple aggregate queries into a single groupBy query to reduce DB roundtrips.
-    const revenue = Number(financialTransactions.find((r: any) => r.type === 'REVENUE')?._sum.amount ?? 0);
-    const expenses = Number(financialTransactions.find((r: any) => r.type === 'EXPENSE')?._sum.amount ?? 0);
+    const revenue = Number(financialTransactions.find((r: { type: string; _sum: { amount: unknown } }) => r.type === 'REVENUE')?._sum.amount ?? 0);
+    const expenses = Number(financialTransactions.find((r: { type: string; _sum: { amount: unknown } }) => r.type === 'EXPENSE')?._sum.amount ?? 0);
     return {
       communication: { conversationsOpen, messagesTotal },
       recruitment: { jobsOpen, candidatesTotal, applicationsTotal },
