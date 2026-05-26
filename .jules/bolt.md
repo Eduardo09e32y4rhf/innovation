@@ -10,3 +10,11 @@
 ## 2024-03-01 - Avoid O(N) memory allocations via `.all()` inside iterative loops
 **Learning:** Found an endpoints in `rh_advanced.py` fetching ORM records (`TimeBank`) via `.all()` inside a `for u in users` loop, accumulating values manually via `sum()`. For huge record sets, querying related records in a loop causes an O(N) memory scale-up alongside an N+1 query regression.
 **Action:** When a loop iterates over database objects to count or aggregate fields, replace the loop with a single SQLAlchemy aggregation query (`func.sum` and `group_by`). This solves the N+1 problem and keeps Python memory strictly bounded to the result size rather than materializing all records into Python objects.
+
+## 2024-05-26 - O(N) memory allocation with arrays for simple math operations
+**Learning:** Found that endpoints calculating average scores (like 360 Reviews in HR modules) frequently fetched all related records into Python memory via `.all()` only to iterate and compute math operations (sum/average). For expanding datasets, this caused unnecessary memory inflation and processing loops.
+**Action:** Replaced native Python array iterations with direct SQLAlchemy aggregates (`func.avg()`) combined with `.group_by()` filters. This offloads calculation to the database engine and operates with O(1) memory complexity in Python space.
+
+## 2024-05-26 - O(N) memory allocation with arrays for simple math operations
+**Learning:** Found that endpoints calculating group summaries (like cost centers in financial modules) frequently fetched all related records into Python memory via `.all()` only to iterate and compute math operations (sum/count/average). For expanding datasets, this caused unnecessary memory inflation and processing loops.
+**Action:** Replaced native Python array iterations with direct SQLAlchemy aggregates (`func.sum()`, `func.count()`) combined with `.group_by()` filters. Specifically, replaced python fallback logic like `getattr(tx, "category", "Outros") or "Outros"` with `func.coalesce(func.nullif(Transaction.category, ''), 'Outros')` before grouping to ensure the DB performs the exact same aggregation safely. This offloads calculation to the database engine and operates with O(1) memory complexity in Python space without breaking existing functionality.
