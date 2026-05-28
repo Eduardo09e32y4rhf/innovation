@@ -4,3 +4,6 @@
 ## 2025-03-05 - Missing ARIA Labels on Icon-only Custom UI Buttons
 **Learning:** Found multiple instances where critical interactive elements (like advancing a candidate in ATS Kanban, or column options) were implemented either as naked `svg` elements (`<MoreVertical>`) or `<button>` elements with just an icon (`<ChevronRight>`). While visually clear to sighted users, these lacked `aria-label` attributes and focus-visible rings, rendering them completely inaccessible to screen readers and difficult to navigate via keyboard.
 **Action:** Always wrap interactive icons in a semantic `<button>` tag, provide descriptive `aria-label` and `title` attributes, and ensure `focus-visible` styles are explicitly added using Tailwind.
+## 2024-05-28 - Missing `aria-expanded` and Focus Styles on Dropdown Toggles
+**Learning:** Found a Language Switcher component where the trigger button was missing an `aria-expanded` state, making the dropdown behavior obscure for screen readers. Furthermore, focus styles were not explicitly visible enough for keyboard users.
+**Action:** Always ensure that toggle buttons controlling the visibility of other elements communicate their state using `aria-expanded`. Also, explicitly add clear `focus-visible` styles like `focus-visible:ring-2` to improve keyboard navigation accessibility.
