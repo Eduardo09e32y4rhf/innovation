@@ -10,3 +10,7 @@
 ## 2024-03-01 - Avoid O(N) memory allocations via `.all()` inside iterative loops
 **Learning:** Found an endpoints in `rh_advanced.py` fetching ORM records (`TimeBank`) via `.all()` inside a `for u in users` loop, accumulating values manually via `sum()`. For huge record sets, querying related records in a loop causes an O(N) memory scale-up alongside an N+1 query regression.
 **Action:** When a loop iterates over database objects to count or aggregate fields, replace the loop with a single SQLAlchemy aggregation query (`func.sum` and `group_by`). This solves the N+1 problem and keeps Python memory strictly bounded to the result size rather than materializing all records into Python objects.
+
+## 2024-05-28 - Consolidate Multiple Independent Prisma Aggregate Calls
+**Learning:** Found multiple independent `prisma.aggregate()` calls executing in parallel via `Promise.all` in `apps/api/src/modules/dashboard/dashboard.repository.ts`. These independent queries fetching sums for different categories (e.g. `type: 'REVENUE'` and `type: 'EXPENSE'`) increase database roundtrips and connection overhead.
+**Action:** When calculating sums or aggregates across different categories of the same model, use `prisma.groupBy()` to perform a single query that returns an array of grouped aggregates, which can then be processed in JavaScript. This consolidates the database queries and reduces connection overhead.
