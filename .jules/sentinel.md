@@ -21,3 +21,8 @@
 **Vulnerability:** Several backend endpoints (`users.py`, `jobs.py`, `candidates.py`) were returning the raw output of Python exceptions (`str(e)`) directly to users via HTTP 500 response bodies.
 **Learning:** Returning `str(e)` directly in HTTP responses can leak sensitive internal details, database structure (SQLAlchemy errors), or logic to malicious actors. This violates the principle of failing securely and "Never expose raw exception strings (`str(e)`) in HTTP responses to external clients."
 **Prevention:** Catch exceptions, log `str(e)` securely on the backend using Python`s `logging` library, and return a sanitized, generic error message (e.g. "Erro interno ao processar a requisição") to the client.
+
+## 2025-03-04 - [HIGH] Missing Authorization on Users Endpoint
+**Vulnerability:** The `UsersController` in the NestJS API was guarded only by `JwtAuthGuard` and not `RolesGuard`, allowing any authenticated user to create, modify, or delete users within their company.
+**Learning:** Endpoints handling user management or sensitive operations must explicitly be protected against privilege escalation by applying both authentication and role-based authorization guards.
+**Prevention:** Always apply `RolesGuard` alongside `JwtAuthGuard` and use `@Roles('ADMIN')` on sensitive controllers or endpoints like user management.
