@@ -21,3 +21,8 @@
 **Vulnerability:** Several backend endpoints (`users.py`, `jobs.py`, `candidates.py`) were returning the raw output of Python exceptions (`str(e)`) directly to users via HTTP 500 response bodies.
 **Learning:** Returning `str(e)` directly in HTTP responses can leak sensitive internal details, database structure (SQLAlchemy errors), or logic to malicious actors. This violates the principle of failing securely and "Never expose raw exception strings (`str(e)`) in HTTP responses to external clients."
 **Prevention:** Catch exceptions, log `str(e)` securely on the backend using Python`s `logging` library, and return a sanitized, generic error message (e.g. "Erro interno ao processar a requisição") to the client.
+
+## 2024-05-18 - [HIGH] Missing Authorization on Sensitive User Management Endpoints
+**Vulnerability:** The `UsersController` in `apps/api` handled sensitive operations (list, create, update, delete users) but only enforced `JwtAuthGuard` (authentication) without `RolesGuard` (authorization). This allowed any authenticated user, regardless of role, to potentially perform administrative actions.
+**Learning:** Endpoints that handle user management or sensitive operations must be explicitly protected against privilege escalation by applying both `JwtAuthGuard` and `RolesGuard`, along with the corresponding `@Roles(...)` decorator. Relying solely on authentication is insufficient for administrative endpoints.
+**Prevention:** Always verify that controllers handling sensitive resources enforce proper role-based access control (`RolesGuard` + `@Roles`) in addition to basic authentication.
