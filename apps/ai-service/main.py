@@ -3,7 +3,6 @@ from typing import Any
 from fastapi import FastAPI
 from pydantic import BaseModel, Field
 
-
 app = FastAPI(title="Innovation IA AI Service", version="1.0.0")
 
 
@@ -39,7 +38,11 @@ def generate_message(payload: GenerateMessageRequest) -> dict[str, Any]:
 
 @app.post("/summarize-conversation")
 def summarize_conversation(payload: SummarizeConversationRequest) -> dict[str, Any]:
-    texts = [str(message.get("body", "")) for message in payload.messages if message.get("body")]
+    texts = [
+        str(message.get("body", ""))
+        for message in payload.messages
+        if message.get("body")
+    ]
     summary = " ".join(texts[:5])[:500]
     return {
         "conversationId": payload.conversationId,
