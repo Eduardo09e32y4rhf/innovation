@@ -4,3 +4,6 @@
 ## 2025-03-05 - Missing ARIA Labels on Icon-only Custom UI Buttons
 **Learning:** Found multiple instances where critical interactive elements (like advancing a candidate in ATS Kanban, or column options) were implemented either as naked `svg` elements (`<MoreVertical>`) or `<button>` elements with just an icon (`<ChevronRight>`). While visually clear to sighted users, these lacked `aria-label` attributes and focus-visible rings, rendering them completely inaccessible to screen readers and difficult to navigate via keyboard.
 **Action:** Always wrap interactive icons in a semantic `<button>` tag, provide descriptive `aria-label` and `title` attributes, and ensure `focus-visible` styles are explicitly added using Tailwind.
+## 2024-06-05 - Propagating Accessibility Props in Generic Wrappers
+**Learning:** Generic reusable UI components (like `TableActionButton` in the enterprise design system) often swallow accessibility props like `aria-label` and `title`. This forces consumers (e.g., `DownloadPdfButton`) to render inaccessible icon-only buttons because they cannot inject localized context (like "Baixar PDF").
+**Action:** When building generic button or interactive wrappers, always explicitly expose and propagate `aria-label` and `title` props so specific consumer components can provide localized accessible names.
