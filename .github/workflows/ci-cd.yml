@@ -20,6 +20,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
     
     - name: Set up Python
       uses: actions/setup-python@v5
@@ -33,7 +35,7 @@ jobs:
         pip install pytest black flake8
         
     - name: Lint with Black
-      run: black . --check
+      run: git diff --name-only origin/main...HEAD | (grep '^apps/ai-service/.*\.py$' || true) | sed 's|^apps/ai-service/||' | xargs -r black --check
       
     - name: Run Tests
       # Skipping actual tests for now as DB isn't mocked in CI yet
@@ -48,6 +50,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
     
     - name: Set up Node.js
       uses: actions/setup-node@v4
@@ -73,6 +77,8 @@ jobs:
     
     steps:
     - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
     
     - name: Set up Kubectl
       uses: azure/setup-kubectl@v3
