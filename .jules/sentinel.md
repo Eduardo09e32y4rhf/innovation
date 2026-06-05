@@ -21,3 +21,8 @@
 **Vulnerability:** Several backend endpoints (`users.py`, `jobs.py`, `candidates.py`) were returning the raw output of Python exceptions (`str(e)`) directly to users via HTTP 500 response bodies.
 **Learning:** Returning `str(e)` directly in HTTP responses can leak sensitive internal details, database structure (SQLAlchemy errors), or logic to malicious actors. This violates the principle of failing securely and "Never expose raw exception strings (`str(e)`) in HTTP responses to external clients."
 **Prevention:** Catch exceptions, log `str(e)` securely on the backend using Python`s `logging` library, and return a sanitized, generic error message (e.g. "Erro interno ao processar a requisição") to the client.
+
+## 2024-05-30 - Prevent Timing Attacks in Token Validation
+**Vulnerability:** String comparison (`===`) for secret tokens (like `DEMO_TOKEN` and `LOCAL_SESSION_TOKEN`) was susceptible to timing attacks, allowing attackers to guess tokens character-by-character based on server response time.
+**Learning:** `crypto.timingSafeEqual` prevents this by ensuring the comparison takes a constant amount of time regardless of whether characters match. It requires exact byte length matches before calling to prevent runtime errors.
+**Prevention:** Use `Buffer.byteLength(token) === Buffer.byteLength(SECRET) && timingSafeEqual(Buffer.from(token), Buffer.from(SECRET))` for secure token verification instead of simple equality operators.

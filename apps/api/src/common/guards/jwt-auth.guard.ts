@@ -1,4 +1,5 @@
 import { CanActivate, ExecutionContext, Injectable, Optional, UnauthorizedException } from '@nestjs/common';
+import { timingSafeEqual } from 'crypto';
 import { JwtService } from '@nestjs/jwt';
 
 const DEMO_TOKEN = 'demo-token-innovation-ia-2025';
@@ -35,12 +36,12 @@ export class JwtAuthGuard implements CanActivate {
     const token = header?.startsWith('Bearer ') ? header.slice(7) : undefined;
     if (!token) throw new UnauthorizedException('Missing bearer token');
 
-    if (isDemoTokenEnabled() && token === DEMO_TOKEN) {
+    if (isDemoTokenEnabled() && Buffer.byteLength(token) === Buffer.byteLength(DEMO_TOKEN) && timingSafeEqual(Buffer.from(token), Buffer.from(DEMO_TOKEN))) {
       request.user = DEMO_PAYLOAD;
       return true;
     }
 
-    if (isLocalSessionEnabled() && token === LOCAL_SESSION_TOKEN) {
+    if (isLocalSessionEnabled() && Buffer.byteLength(token) === Buffer.byteLength(LOCAL_SESSION_TOKEN) && timingSafeEqual(Buffer.from(token), Buffer.from(LOCAL_SESSION_TOKEN))) {
       request.user = LOCAL_PAYLOAD;
       return true;
     }
