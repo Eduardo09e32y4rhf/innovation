@@ -21,3 +21,8 @@
 **Vulnerability:** Several backend endpoints (`users.py`, `jobs.py`, `candidates.py`) were returning the raw output of Python exceptions (`str(e)`) directly to users via HTTP 500 response bodies.
 **Learning:** Returning `str(e)` directly in HTTP responses can leak sensitive internal details, database structure (SQLAlchemy errors), or logic to malicious actors. This violates the principle of failing securely and "Never expose raw exception strings (`str(e)`) in HTTP responses to external clients."
 **Prevention:** Catch exceptions, log `str(e)` securely on the backend using Python`s `logging` library, and return a sanitized, generic error message (e.g. "Erro interno ao processar a requisição") to the client.
+
+## 2024-06-07 - Hardcoded Secrets in Deployment Scripts
+**Vulnerability:** The deployment script `scripts/deploy_vps_completo.sh` contained multiple hardcoded secrets, including database passwords, JWT secret keys, and various API keys (Gemini, ASAAS).
+**Learning:** Deployment scripts generating `.env` files are a common vector for secret leaks if they use static placeholder values instead of randomly generated ones or environment variables. This is a critical risk when deploying.
+**Prevention:** Always use dynamic secret generation (e.g., `openssl rand -hex 32` or `openssl rand -base64 12`) for backend secrets and utilize environment variable fallback substitutions (e.g., `${API_KEY:-""}`) for third-party API keys within deployment templates.
