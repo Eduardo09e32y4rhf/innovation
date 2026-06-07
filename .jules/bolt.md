@@ -13,3 +13,6 @@
 ## 2025-06-07 - Prisma Aggregate Optimization
 **Learning:** In the `apps/api` NestJS backend, executing multiple independent Prisma `.aggregate()` calls on the same table (e.g., `financialTransaction`) within a `Promise.all` incurs multiple database roundtrips and connection overhead.
 **Action:** Consolidate these independent `.aggregate()` queries into a single `.groupBy()` query. Use optional chaining and nullish coalescing to safely extract values from the grouped array, as `.groupBy()` omits groups with zero matching records.
+## 2025-06-07 - CI Workflow Monorepo Architecture Update
+**Learning:** Monorepo reorganizations require updating CI workflows. The `package-lock.json` might move to the root, and the backend/frontend working directories must accurately reflect the new folder names.
+**Action:** When reorganizing a monorepo, always trace and update all CI/CD `.github/workflows/` files. Ensure caching paths (`cache-dependency-path`) and `working-directory` declarations correctly map to the new repository structure (e.g. `apps/web`, `apps/ai-service`, root `package-lock.json`).
