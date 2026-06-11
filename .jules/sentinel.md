@@ -21,3 +21,8 @@
 **Vulnerability:** Several backend endpoints (`users.py`, `jobs.py`, `candidates.py`) were returning the raw output of Python exceptions (`str(e)`) directly to users via HTTP 500 response bodies.
 **Learning:** Returning `str(e)` directly in HTTP responses can leak sensitive internal details, database structure (SQLAlchemy errors), or logic to malicious actors. This violates the principle of failing securely and "Never expose raw exception strings (`str(e)`) in HTTP responses to external clients."
 **Prevention:** Catch exceptions, log `str(e)` securely on the backend using Python`s `logging` library, and return a sanitized, generic error message (e.g. "Erro interno ao processar a requisição") to the client.
+
+## 2024-05-20 - [HIGH] Missing Privilege Escalation Protection in API
+**Vulnerability:** Several endpoints in `UsersController` and `CompaniesController` perform sensitive mutations (`create`, `update`, `delete`) but lacked authorization checks (`RolesGuard`), potentially allowing a standard user to escalate privileges and perform operations on other users or company settings.
+**Learning:** Implementing `JwtAuthGuard` is not sufficient for endpoints that modify data. Explicit privilege checks (e.g., `@Roles('ADMIN')`) are required for mutation operations to protect against privilege escalation. Moreover, applying `@Roles('ADMIN')` must be done at the method level to prevent blocking standard users from basic read access (GET endpoints).
+**Prevention:** Always combine `JwtAuthGuard` with `RolesGuard` on controllers that handle sensitive data, and apply `@Roles('ADMIN')` on sensitive mutation methods (`create`, `update`, `delete`).
