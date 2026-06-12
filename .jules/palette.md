@@ -7,3 +7,6 @@
 ## 2024-03-05 - Missing ARIA attributes on Custom Dropdowns
 **Learning:** Found a custom dropdown (`LanguageSwitcher.tsx`) that lacked `aria-expanded`, `aria-haspopup`, and listbox roles. The trigger button also lacked a dynamic `aria-label` describing the current selection, and options lacked `focus-visible` styles, rendering it difficult for screen reader users and keyboard navigation.
 **Action:** When creating custom dropdowns, always include `aria-expanded={isOpen}`, `aria-haspopup="listbox"` on the trigger. Ensure the container uses `role="listbox"` and items use `role="option"`. Add `focus-visible` styles for keyboard navigation.
+## 2024-03-05 - Missing ARIA attributes on Custom Dropdowns
+**Learning:** Found a custom dropdown (`LanguageSwitcher.tsx`) that lacked `aria-expanded`, `aria-haspopup`, and listbox roles. The trigger button also lacked a dynamic `aria-label` describing the current selection, and options lacked `focus-visible` styles, rendering it difficult for screen reader users and keyboard navigation.
+**Action:** When creating custom dropdowns, always include `aria-expanded={isOpen}`, `aria-haspopup="listbox"` on the trigger. Ensure the container uses `role="listbox"` and items use `role="option"`. Add `focus-visible` styles for keyboard navigation.
