@@ -10,3 +10,7 @@
 ## 2024-03-01 - Avoid O(N) memory allocations via `.all()` inside iterative loops
 **Learning:** Found an endpoints in `rh_advanced.py` fetching ORM records (`TimeBank`) via `.all()` inside a `for u in users` loop, accumulating values manually via `sum()`. For huge record sets, querying related records in a loop causes an O(N) memory scale-up alongside an N+1 query regression.
 **Action:** When a loop iterates over database objects to count or aggregate fields, replace the loop with a single SQLAlchemy aggregation query (`func.sum` and `group_by`). This solves the N+1 problem and keeps Python memory strictly bounded to the result size rather than materializing all records into Python objects.
+
+## 2026-06-12 - Dashboard N+1 Queries Bottleneck for Financial Transactions
+**Learning:** Found a severe redundant query pattern in `apps/api/src/modules/dashboard/dashboard.repository.ts` within `summary()`. The endpoint was calling `this.prisma.financialTransaction.aggregate()` twice, once for `REVENUE` and once for `EXPENSE`, adding unnecessary database requests when fetching the dashboard summary.
+**Action:** Replaced the multiple `.aggregate()` calls with a single `this.prisma.financialTransaction.groupBy()` call grouping by `type` with a filter on `type` `in: ['REVENUE', 'EXPENSE']`. This combines the two aggregate queries into one, saving a round-trip to the database and improving page load times. Always consider combining multiple `.aggregate` calls over the same table into a single `.groupBy` call.
