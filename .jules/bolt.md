@@ -10,3 +10,8 @@
 ## 2024-03-01 - Avoid O(N) memory allocations via `.all()` inside iterative loops
 **Learning:** Found an endpoints in `rh_advanced.py` fetching ORM records (`TimeBank`) via `.all()` inside a `for u in users` loop, accumulating values manually via `sum()`. For huge record sets, querying related records in a loop causes an O(N) memory scale-up alongside an N+1 query regression.
 **Action:** When a loop iterates over database objects to count or aggregate fields, replace the loop with a single SQLAlchemy aggregation query (`func.sum` and `group_by`). This solves the N+1 problem and keeps Python memory strictly bounded to the result size rather than materializing all records into Python objects.
+
+## 2025-02-14 - Dashboard Performance
+
+**Learning:** When fetching summary data for the dashboard, making multiple sequential or parallel `.aggregate()` calls to the database (e.g., one for REVENUE and one for EXPENSES) adds unnecessary latency and database overhead. It is significantly faster to consolidate these calls into a single `.groupBy()` query, which offloads the grouping and aggregation logic entirely to the database engine and reduces the number of roundtrips.
+**Action:** Always favor a single `.groupBy()` with a `where` filter over multiple separate `.aggregate()` or `.count()` calls when querying summary data across different categories or types on the same table.
