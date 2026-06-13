@@ -21,3 +21,8 @@
 **Vulnerability:** Several backend endpoints (`users.py`, `jobs.py`, `candidates.py`) were returning the raw output of Python exceptions (`str(e)`) directly to users via HTTP 500 response bodies.
 **Learning:** Returning `str(e)` directly in HTTP responses can leak sensitive internal details, database structure (SQLAlchemy errors), or logic to malicious actors. This violates the principle of failing securely and "Never expose raw exception strings (`str(e)`) in HTTP responses to external clients."
 **Prevention:** Catch exceptions, log `str(e)` securely on the backend using Python`s `logging` library, and return a sanitized, generic error message (e.g. "Erro interno ao processar a requisição") to the client.
+
+## 2026-06-13 - Missing Authorization Checks in Controllers
+**Vulnerability:** Mutation endpoints in UsersController and CompaniesController allowed any authenticated user to create, update, or delete records, including changing user roles, leading to privilege escalation.
+**Learning:** By default, controllers protected only with `JwtAuthGuard` do not enforce role-based access control, even if a `RolesGuard` exists in the codebase.
+**Prevention:** Always apply `RolesGuard` at the controller level and explicitly decorate sensitive mutation methods with `@Roles('ADMIN')` while leaving read methods accessible to standard users.
