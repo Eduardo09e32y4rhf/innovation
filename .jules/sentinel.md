@@ -21,3 +21,7 @@
 **Vulnerability:** Several backend endpoints (`users.py`, `jobs.py`, `candidates.py`) were returning the raw output of Python exceptions (`str(e)`) directly to users via HTTP 500 response bodies.
 **Learning:** Returning `str(e)` directly in HTTP responses can leak sensitive internal details, database structure (SQLAlchemy errors), or logic to malicious actors. This violates the principle of failing securely and "Never expose raw exception strings (`str(e)`) in HTTP responses to external clients."
 **Prevention:** Catch exceptions, log `str(e)` securely on the backend using Python`s `logging` library, and return a sanitized, generic error message (e.g. "Erro interno ao processar a requisição") to the client.
+## 2025-02-24 - [Missing Authorization on Mutation Endpoints]
+**Vulnerability:** Mutation endpoints (create, update, delete) in `UsersController` and `CompaniesController` lacked role-based authorization, allowing any authenticated user to perform sensitive operations.
+**Learning:** The `@Roles('ADMIN')` decorator must be explicitly applied to sensitive operations alongside `@UseGuards(JwtAuthGuard, RolesGuard)` at the class level. Defaulting to just `JwtAuthGuard` leaves endpoints vulnerable to privilege escalation.
+**Prevention:** Always verify that mutation endpoints in NestJS controllers explicitly implement `RolesGuard` and enforce `@Roles()` constraints, rather than relying solely on class-level authentication guards.
