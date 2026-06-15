@@ -21,6 +21,7 @@ export class UsersController {
   }
 
   @Post()
+  // Security: Limit mutation to admins
   @Roles('ADMIN')
   create(@CurrentCompany() companyId: string, @Body() dto: CreateUserDto) {
     return this.service.create(companyId, dto);
@@ -32,12 +33,14 @@ export class UsersController {
   }
 
   @Patch(':id')
+  // Security: Limit mutation to admins
   @Roles('ADMIN')
   update(@CurrentCompany() companyId: string, @Param('id') id: string, @Body() dto: UpdateUserDto) {
     return this.service.update(companyId, id, dto);
   }
 
   @Delete(':id')
+  // Security: Limit mutation to admins
   @Roles('ADMIN')
   delete(@CurrentCompany() companyId: string, @Param('id') id: string) {
     return this.service.delete(companyId, id);

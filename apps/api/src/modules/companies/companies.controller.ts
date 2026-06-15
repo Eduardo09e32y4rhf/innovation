@@ -20,6 +20,7 @@ export class CompaniesController {
   }
 
   @Patch('me')
+  // Security: Limit mutation to admins
   @Roles('ADMIN')
   updateMe(@CurrentCompany() companyId: string, @Body() dto: UpdateCompanyDto) {
     return this.service.updateMe(companyId, dto);
