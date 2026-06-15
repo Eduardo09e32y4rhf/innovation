@@ -12,5 +12,5 @@
 **Action:** When a loop iterates over database objects to count or aggregate fields, replace the loop with a single SQLAlchemy aggregation query (`func.sum` and `group_by`). This solves the N+1 problem and keeps Python memory strictly bounded to the result size rather than materializing all records into Python objects.
 
 ## 2024-05-18 - Concurrent entity seeding
-**Learning:** Sequential `for...of` loops processing independent records significantly degrade database I/O performance in the NestJS backend, especially for entity seeding.
-**Action:** Replace independent sequential entity processing loops with concurrent execution via `await Promise.all(arr.map(async (item: any) => ...))` to parallelize database I/O.
+**Learning:** Sequential `for...of` loops processing independent records significantly degrade database I/O performance in the NestJS backend, especially for entity seeding. Unbounded concurrency (like raw `Promise.all` over large arrays) can exhaust the connection pool.
+**Action:** Replace independent sequential entity processing loops with concurrent execution via `await Promise.all(arr.map(async (item: any) => ...))` to parallelize database I/O, provided the array length is safely bounded (like in a seeding script).
