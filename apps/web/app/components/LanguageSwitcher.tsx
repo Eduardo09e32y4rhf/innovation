@@ -24,19 +24,27 @@ export const LanguageSwitcher: React.FC = () => {
     <div className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-all text-sm"
+        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-all text-sm focus-visible:ring-2 focus-visible:ring-purple-500"
+        aria-expanded={isOpen}
+        aria-haspopup="listbox"
+        aria-label={`Select Language, currently ${currentLanguage?.name}`}
       >
         <Globe size={16} />
         <span>{currentLanguage?.flag} {currentLanguage?.name}</span>
       </button>
 
       {isOpen && (
-        <div className="absolute top-full right-0 mt-2 bg-[#1a1a2e] border border-white/20 rounded-lg overflow-hidden z-50 shadow-xl">
+        <div
+          className="absolute top-full right-0 mt-2 bg-[#1a1a2e] border border-white/20 rounded-lg overflow-hidden z-50 shadow-xl"
+          role="listbox"
+        >
           {languages.map((lang) => (
             <button
               key={lang.code}
               onClick={() => handleLanguageChange(lang.code)}
-              className={`w-full px-4 py-3 text-left text-sm flex items-center gap-2 hover:bg-white/10 transition-all ${
+              role="option"
+              aria-selected={language === lang.code}
+              className={`w-full px-4 py-3 text-left text-sm flex items-center gap-2 hover:bg-white/10 transition-all focus-visible:bg-white/10 focus-visible:outline-none ${
                 language === lang.code ? 'bg-purple-500/20 border-l-2 border-purple-500' : ''
               }`}
             >
