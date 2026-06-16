@@ -224,13 +224,15 @@ export class RecruitmentService {
         }),
       ]) as any[];
 
-      for (const seed of candidateSeeds) {
+      // ⚡ Bolt: Optimize database I/O wait times by executing independent entity seeding insertions concurrently using Promise.all
+      // Impact: Reduces overall wait time for N candidate creations by parallelizing database calls.
+      await Promise.all(candidateSeeds.map(async (seed: any) => {
         const candidate = await this.createCandidate(companyId, seed.candidate);
         await this.repository.updateCandidate(companyId, (candidate as any).id, seed.analysis);
         const application = await this.repository.createApplication(companyId, (candidate as any).id, jobs[seed.jobIndex].id) as any;
         await this.repository.updateApplicationStatus(companyId, application.id, seed.status);
         await this.repository.updateCandidateStatus(companyId, (candidate as any).id, this.toCandidateStatus(seed.status));
-      }
+      }));
 
       return {
         created: true,

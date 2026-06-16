@@ -10,3 +10,7 @@
 ## 2024-03-01 - Avoid O(N) memory allocations via `.all()` inside iterative loops
 **Learning:** Found an endpoints in `rh_advanced.py` fetching ORM records (`TimeBank`) via `.all()` inside a `for u in users` loop, accumulating values manually via `sum()`. For huge record sets, querying related records in a loop causes an O(N) memory scale-up alongside an N+1 query regression.
 **Action:** When a loop iterates over database objects to count or aggregate fields, replace the loop with a single SQLAlchemy aggregation query (`func.sum` and `group_by`). This solves the N+1 problem and keeps Python memory strictly bounded to the result size rather than materializing all records into Python objects.
+
+## 2024-06-16 - Sequential Database Seeding Loop Bottleneck
+**Learning:** Sequential `for...of` loops used for batch entity insertions cause severe I/O wait bottlenecks and unnecessary latency since each database transaction blocks the next one, even though the records are independent.
+**Action:** When seeding independent records or performing batch mutations, always use concurrent execution via `await Promise.all(arr.map(async (item: any) => ...))` to parallelize database I/O and reduce overall execution time.
