@@ -53,6 +53,24 @@ graph TD;
       Internal tools for media generation and processing. Leveraging NVIDIA and Gemini APIs for automated content creation and optimization.
     </td>
   </tr>
+  <tr>
+    <td width="50%">
+      <h3>👥 Colaboradores Management</h3>
+      Advanced employee management module. Track collaborators, manage profiles, performance metrics, and team organization with real-time synchronization.
+    </td>
+    <td width="50%">
+      <h3>⏱️ Ponto (Time Tracking)</h3>
+      Complete time and attendance tracking system. Clock in/out management, absence tracking, overtime calculation, and compliance reporting with audit trails.
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <h3>🔐 Privacy & Compliance</h3>
+      Enterprise-grade privacy module with GDPR/LGPD compliance. Consent management, audit trails, data anonymization, and regulatory compliance tracking for all user interactions.
+    </td>
+    <td width="50%">
+    </td>
+  </tr>
 </table>
 
 ---
