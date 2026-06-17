@@ -104,7 +104,7 @@ export function PrivacyConsentGate({ children }: { children: React.ReactNode }) 
 
         <div className="mt-5 grid gap-3 text-sm text-slate-700">
           <InfoLine label="Controlador" value="Empresa cliente responsavel pelos dados dos funcionarios." />
-          <InfoLine label="Operador" value="Innovation IA, que processa os dados no SaaS conforme instrucoes da empresa cliente." />
+          <InfoLine label="Operador" value="Innovation RH Connect, que processa os dados no SaaS conforme instrucoes da empresa cliente." />
           <InfoLine label="Finalidade" value={status.purpose} />
           <InfoLine label="Versao do termo" value={status.termVersion} />
           <InfoLine label="Direitos" value="Acesso, correcao, informacao, oposicao, revogacao quando aplicavel e eliminacao apos prazos legais." />

@@ -26,8 +26,7 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-const BLOCKED_DEMO_TOKEN = 'demo-token-innovation-ia-2025';
-const LOCAL_SESSION_TOKEN = 'innovation-local-whatsapp-session';
+const LOCAL_SESSION_TOKEN = 'innovation-rh-connect-local-session';
 const LOCAL_COMPANY_ID = '00000000-0000-0000-0000-000000000001';
 const LOCAL_SESSION_ENABLED =
   process.env.NODE_ENV !== 'production' && process.env.NEXT_PUBLIC_ENABLE_LOCAL_SESSION === 'true';
@@ -35,14 +34,14 @@ const LOCAL_SESSION_ENABLED =
 const LOCAL_USER: User = {
   id: LOCAL_COMPANY_ID,
   name: 'Operador local',
-  email: 'local@innovation.ia',
+  email: 'local@innovationrhconnect.com',
   profile: 'admin',
   companyId: LOCAL_COMPANY_ID,
 };
 
 const LOCAL_COMPANY: Company = {
   id: LOCAL_COMPANY_ID,
-  name: 'Innovation IA',
+  name: 'Innovation RH Connect',
 };
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
@@ -58,7 +57,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const savedUser = localStorage.getItem('user');
     const savedCompany = localStorage.getItem('company');
 
-    if (savedToken === BLOCKED_DEMO_TOKEN || (savedToken === LOCAL_SESSION_TOKEN && !LOCAL_SESSION_ENABLED)) {
+    if (savedToken === LOCAL_SESSION_TOKEN && !LOCAL_SESSION_ENABLED) {
       clearStoredSession();
       setLoading(false);
       return;
@@ -137,7 +136,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           };
           const nextCompany = {
             id: authData.user.companyId,
-            name: 'Innovation.ia',
+            name: 'Innovation RH Connect',
           };
           setToken(nextToken);
           setUser(nextUser);

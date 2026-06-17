@@ -6,36 +6,29 @@ export class DashboardRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async summary(companyId: string) {
+    const today = new Date();
+    const startOfDay = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
+    const endOfDay = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() + 1));
     const [
-      conversationsOpen,
-      messagesTotal,
-      jobsOpen,
-      candidatesTotal,
-      applicationsTotal,
-      revenuePaid,
-      expensesPaid,
+      activeEmployees,
+      timeTracksToday,
+      pendingVacations,
+      whatsappMessages,
+      timeBalance,
     ] = await Promise.all([
-      this.prisma.conversation.count({ where: { companyId, status: 'OPEN' } }),
+      this.prisma.employee.count({ where: { companyId, status: 'ACTIVE' } }),
+      this.prisma.timeTrack.count({ where: { employee: { companyId }, date: { gte: startOfDay, lt: endOfDay } } }),
+      this.prisma.vacation.count({ where: { employee: { companyId }, status: 'PENDING' } }),
       this.prisma.message.count({ where: { companyId } }),
-      this.prisma.job.count({ where: { companyId, status: 'OPEN' } }),
-      this.prisma.candidate.count({ where: { companyId } }),
-      this.prisma.application.count({ where: { companyId } }),
-      this.prisma.financialTransaction.aggregate({
-        where: { companyId, type: 'REVENUE', status: 'PAID' },
-        _sum: { amount: true },
-      }),
-      this.prisma.financialTransaction.aggregate({
-        where: { companyId, type: 'EXPENSE', status: 'PAID' },
-        _sum: { amount: true },
-      }),
+      this.prisma.timeTrack.aggregate({ where: { employee: { companyId } }, _sum: { dailyBalance: true } }),
     ]);
 
-    const revenue = Number(revenuePaid._sum.amount ?? 0);
-    const expenses = Number(expensesPaid._sum.amount ?? 0);
     return {
-      communication: { conversationsOpen, messagesTotal },
-      recruitment: { jobsOpen, candidatesTotal, applicationsTotal },
-      finance: { revenue, expenses, balance: revenue - expenses },
+      activeEmployees,
+      timeTracksToday,
+      pendingVacations,
+      whatsappMessages,
+      totalTimeBalance: timeBalance._sum.dailyBalance ?? 0,
     };
   }
 }

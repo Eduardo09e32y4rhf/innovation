@@ -26,7 +26,7 @@ export class UsersService {
       name: dto.name,
       email: dto.email,
       passwordHash: await bcrypt.hash(dto.password, 12),
-      role: dto.role ?? 'USER',
+      role: dto.role ?? 'FUNCIONARIO',
     });
   }
 

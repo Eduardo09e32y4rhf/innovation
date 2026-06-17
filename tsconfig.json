@@ -12,8 +12,6 @@
                     "packages/**/*.tsx",
                     "modules/**/*.ts",
                     "modules/**/*.tsx",
-                    "apps/desktop/**/*.ts",
-                    "apps/desktop/**/*.tsx",
                     "scripts/**/*.ts",
                     "scripts/**/*.tsx"
                 ],

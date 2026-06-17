@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: innovation-rh-connect-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: innovation_rh_user
+      POSTGRES_PASSWORD: innovation_rh_pass
+      POSTGRES_DB: innovation_rh_connect
+    ports:
+      - "5432:5432"
+    volumes:
+      - innovation_rh_connect_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U innovation_rh_user -d innovation_rh_connect"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  innovation_rh_connect_pgdata:

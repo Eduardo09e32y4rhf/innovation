@@ -2,7 +2,7 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "outDir": "dist",
-    "rootDir": "../..",
+    "rootDir": "src",
     "module": "CommonJS",
     "moduleResolution": "Node",
     "target": "ES2021",
@@ -16,13 +16,10 @@
     "sourceMap": true
   },
   "include": [
-    "src/**/*.ts",
-    "../../modules/**/*.ts"
+    "src/**/*.ts"
   ],
   "exclude": [
     "dist",
-    "node_modules",
-    "../../modules/**/*.tsx",
-    "../../modules/financeiro/src/components/**/*"
+    "node_modules"
   ]
 }

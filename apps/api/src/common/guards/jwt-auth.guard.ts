@@ -1,18 +1,18 @@
 import { CanActivate, ExecutionContext, Injectable, Optional, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 
-const DEMO_TOKEN = 'demo-token-innovation-ia-2025';
-const LOCAL_SESSION_TOKEN = 'innovation-local-whatsapp-session';
+const DEMO_TOKEN = 'demo-token-innovation-rh-connect-2026';
+const LOCAL_SESSION_TOKEN = 'innovation-rh-connect-local-session';
 const LOCAL_COMPANY_ID = '00000000-0000-0000-0000-000000000001';
 const DEMO_PAYLOAD = {
   sub: '00000000-0000-0000-0000-000000000001',
-  email: 'admin@innovation.ia',
+  email: 'admin@innovationrhconnect.com',
   companyId: '00000000-0000-0000-0000-000000000001',
   role: 'ADMIN',
 };
 const LOCAL_PAYLOAD = {
   sub: LOCAL_COMPANY_ID,
-  email: 'local@innovation.ia',
+  email: 'local@innovationrhconnect.com',
   companyId: LOCAL_COMPANY_ID,
   role: 'ADMIN',
 };

@@ -1,0 +1,45 @@
+import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { CurrentCompany } from '../../common/decorators/current-company.decorator';
+import { Roles } from '../../common/decorators/roles.decorator';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { CreateEmployeeDto } from './dto/create-employee.dto';
+import { UpdateEmployeeDto } from './dto/update-employee.dto';
+import { EmployeesService } from './employees.service';
+
+@ApiBearerAuth()
+@ApiTags('employees')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Controller('employees')
+export class EmployeesController {
+  constructor(private readonly service: EmployeesService) {}
+
+  @Get()
+  list(@CurrentCompany() companyId: string) {
+    return this.service.list(companyId);
+  }
+
+  @Get(':id')
+  get(@CurrentCompany() companyId: string, @Param('id') id: string) {
+    return this.service.get(companyId, id);
+  }
+
+  @Roles('ADMIN', 'RH')
+  @Post()
+  create(@CurrentCompany() companyId: string, @Body() dto: CreateEmployeeDto) {
+    return this.service.create(companyId, dto);
+  }
+
+  @Roles('ADMIN', 'RH')
+  @Patch(':id')
+  update(@CurrentCompany() companyId: string, @Param('id') id: string, @Body() dto: UpdateEmployeeDto) {
+    return this.service.update(companyId, id, dto);
+  }
+
+  @Roles('ADMIN', 'RH')
+  @Delete(':id')
+  terminate(@CurrentCompany() companyId: string, @Param('id') id: string) {
+    return this.service.terminate(companyId, id);
+  }
+}

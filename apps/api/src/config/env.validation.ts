@@ -3,7 +3,7 @@ export function validateEnv(config: Record<string, unknown>) {
     config.JWT_SECRET = config.SECRET_KEY;
   }
   if (!config.JWT_SECRET && process.env.NODE_ENV !== 'production') {
-    config.JWT_SECRET = 'innovation-ia-local-development-secret';
+    config.JWT_SECRET = 'innovation-rh-connect-local-development-secret';
   }
 
   const required = ['DATABASE_URL', 'JWT_SECRET'];

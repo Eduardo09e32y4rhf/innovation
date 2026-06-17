@@ -45,7 +45,7 @@ export default function LoginPage() {
               <ShieldCheck size={20} strokeWidth={2.4} />
             </div>
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.22em] text-teal-300">Innovation IA</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.22em] text-teal-300">Innovation RH Connect</p>
               <p className="text-sm font-bold text-white/80">Console operacional</p>
             </div>
           </div>
@@ -55,7 +55,7 @@ export default function LoginPage() {
               Ambiente seguro
             </p>
             <h1 className="text-5xl font-black leading-[1.02] tracking-tight text-white">
-              Operacao conectada ao seu WhatsApp, RH e financeiro.
+              Operacao conectada para RH, ponto e WhatsApp.
             </h1>
             <p className="mt-5 max-w-lg text-sm font-medium leading-7 text-slate-300">
               Acesse com credenciais reais da empresa. Nenhum modo demo e habilitado em producao.
@@ -77,7 +77,7 @@ export default function LoginPage() {
               <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-[12px] bg-slate-950 text-white">
                 <ShieldCheck size={20} />
               </div>
-              <p className="text-[10px] font-black uppercase tracking-[0.22em] text-teal-700">Innovation IA</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.22em] text-teal-700">Innovation RH Connect</p>
             </div>
 
             <div className="rounded-[22px] border border-slate-200 bg-white p-6 shadow-[0_18px_42px_rgba(15,23,42,0.10)] sm:p-8">
