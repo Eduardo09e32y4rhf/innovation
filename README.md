@@ -1,6 +1,6 @@
 # Innovation RH Connect
 
-Sistema de RH com controle de ponto e comunicação via WhatsApp para pequenas e medias empresas.
+Sistema de RH com controle de ponto e comunicacao via WhatsApp para pequenas e medias empresas.
 
 ## Objetivo do MVP
 
