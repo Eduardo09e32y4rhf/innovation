@@ -9,8 +9,9 @@ datasource db {
 
 enum UserRole {
   ADMIN
-  MANAGER
-  USER
+  RH
+  GESTOR
+  FUNCIONARIO
 }
 
 enum WhatsappStatus {
@@ -75,6 +76,21 @@ enum FinancialTransactionStatus {
   CANCELED
 }
 
+enum EmployeeStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  TERMINATED
+}
+
+enum VacationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+  COMPLETED
+}
+
 model Company {
   id          String   @id @default(uuid()) @db.Uuid
   name        String
@@ -83,6 +99,7 @@ model Company {
   updatedAt   DateTime @updatedAt
 
   users        User[]
+  employees    Employee[]
   whatsapp     WhatsappInstance[]
   contacts     Contact[]
   conversations Conversation[]
@@ -101,16 +118,79 @@ model User {
   name         String
   email        String   @unique
   passwordHash String
-  role         UserRole @default(USER)
+  role         UserRole @default(FUNCIONARIO)
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
   company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  employee Employee?
   privacyConsents PrivacyConsent[]
   auditLogs     AuditLog[]
 
   @@index([companyId])
+}
+
+model Employee {
+  id            String         @id @default(uuid()) @db.Uuid
+  companyId     String         @db.Uuid
+  userId        String?        @unique @db.Uuid
+  name          String
+  cpf           String         @unique
+  email         String
+  phone         String?
+  position      String
+  department    String
+  admissionDate DateTime
+  status        EmployeeStatus @default(ACTIVE)
+  salary        Decimal?       @db.Decimal(12, 2)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime @updatedAt
+
+  company    Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  user       User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  timeTracks TimeTrack[]
+  vacations  Vacation[]
+
+  @@index([companyId])
+  @@index([cpf])
+}
+
+model TimeTrack {
+  id            String   @id @default(uuid()) @db.Uuid
+  employeeId    String   @db.Uuid
+  date          DateTime @db.Date
+  entry         DateTime?
+  lunchStart    DateTime?
+  lunchReturn   DateTime?
+  exit          DateTime?
+  totalWorked   Int?     // in minutes
+  dailyBalance  Int?     // in minutes
+  observation   String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@unique([employeeId, date])
+  @@index([employeeId])
+}
+
+model Vacation {
+  id               String         @id @default(uuid()) @db.Uuid
+  employeeId       String         @db.Uuid
+  acquisitionPeriod String
+  startDate        DateTime
+  endDate          DateTime
+  daysUsed         Int
+  status           VacationStatus @default(PENDING)
+  observation      String?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime @updatedAt
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([employeeId])
 }
 
 model PrivacyConsent {
@@ -160,7 +240,7 @@ model WhatsappInstance {
   qrCode    String?
   phone     String?
   createdAt DateTime       @default(now())
-  updatedAt DateTime       @updatedAt
+  updatedAt DateTime @updatedAt
 
   company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
@@ -194,7 +274,7 @@ model Conversation {
   lastMessage String?
   lastMessageAt DateTime?
   createdAt   DateTime           @default(now())
-  updatedAt   DateTime           @updatedAt
+  updatedAt   DateTime @updatedAt
 
   company  Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
   contact  Contact   @relation(fields: [contactId], references: [id], onDelete: Cascade)
@@ -215,7 +295,7 @@ model Message {
   status         MessageStatus    @default(PENDING)
   sentAt         DateTime?
   createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
+  updatedAt      DateTime @updatedAt
 
   company      Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
   conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
@@ -236,7 +316,7 @@ model Job {
   benefits    String[]  @default([])
   status      JobStatus @default(OPEN)
   createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  updatedAt   DateTime @updatedAt
 
   company      Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
   applications Application[]
@@ -261,7 +341,7 @@ model Candidate {
   lastSentiment String?
   status    CandidateStatus @default(NEW)
   createdAt DateTime        @default(now())
-  updatedAt DateTime        @updatedAt
+  updatedAt DateTime @updatedAt
 
   company      Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
   contact      Contact?      @relation(fields: [contactId], references: [id])
@@ -278,7 +358,7 @@ model Application {
   jobId       String            @db.Uuid
   status      ApplicationStatus @default(APPLIED)
   createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
+  updatedAt   DateTime @updatedAt
 
   company   Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
   candidate Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
@@ -298,7 +378,7 @@ model FinancialTransaction {
   dueDate     DateTime?
   paidAt      DateTime?
   createdAt   DateTime                   @default(now())
-  updatedAt   DateTime                   @updatedAt
+  updatedAt   DateTime @updatedAt
 
   company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 

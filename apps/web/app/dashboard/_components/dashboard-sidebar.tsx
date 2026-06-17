@@ -15,13 +15,12 @@ const navSections: NavSection[] = [
   {
     label: 'Principal',
     items: [
-      { icon: LayoutDashboard, label: 'Painel',       href: '/dashboard' },
-      { icon: Users,           label: 'RH',           href: '/dashboard/rh/pipeline',           match: '/dashboard/rh/pipeline' },
-      { icon: Users,           label: 'Colaboradores', href: '/dashboard/colaboradores',        match: '/dashboard/colaboradores' },
-      { icon: Search,          label: 'Talentos',     href: '/dashboard/rh/talents',            match: '/dashboard/rh/talents' },
-      { icon: Clock3,          label: 'Espelho de ponto', href: '/dashboard/ponto',             match: '/dashboard/ponto' },
-      { icon: Smartphone,      label: 'WhatsApp',     href: '/dashboard/whatsapp/accounts',     match: '/dashboard/whatsapp' },
-      { icon: Settings,        label: 'Configurações', href: '/dashboard/settings/integrations', match: '/dashboard/settings' },
+      { icon: LayoutDashboard, label: 'Dashboard RH',    href: '/dashboard' },
+      { icon: Users,           label: 'Funcionários',    href: '/dashboard/colaboradores',        match: '/dashboard/colaboradores' },
+      { icon: Clock3,          label: 'Controle de Ponto', href: '/dashboard/ponto',             match: '/dashboard/ponto' },
+      { icon: Users,           label: 'Férias',          href: '/dashboard/rh/talents',            match: '/dashboard/rh/talents' },
+      { icon: Smartphone,      label: 'WhatsApp',        href: '/dashboard/whatsapp/accounts',     match: '/dashboard/whatsapp' },
+      { icon: Settings,        label: 'Configurações',   href: '/dashboard/settings/integrations', match: '/dashboard/settings' },
     ],
   },
   {
@@ -61,7 +60,7 @@ export function DashboardSidebar() {
             <Zap size={15} strokeWidth={2.2} className="text-[#0D0D0E]" />
           </div>
           <div>
-            <p className="text-[9px] font-semibold tracking-[0.18em] text-white/40 uppercase leading-none">Inovação IA</p>
+            <p className="text-[9px] font-semibold tracking-[0.18em] text-white/40 uppercase leading-none">Innovation RH Connect</p>
             <p className="text-[13px] font-semibold text-white leading-tight mt-0.5">
               {isSettings ? 'Configurações' : 'Console'}
             </p>
