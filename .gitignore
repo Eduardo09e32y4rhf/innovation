@@ -49,17 +49,97 @@ WHATSAPP/auth_info_baileys/
 *.sqlite
 *.sqlite3
 
-# Environment & Secrets
+# ⚠️ ENVIRONMENT & SECRETS - NUNCA SUBIR DADOS SENSÍVEIS!
+# Todas as variáveis de ambiente
 .env
-.env*
-!.env.microservices.example
-!.env.example
-*.pem
-*.key
-*.jwt
-*.cert
+.env.local
+.env.*.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.production
 
-# IDE & OS
+# Whitelist: apenas arquivos de exemplo
+!.env.example
+!.env.microservices.example
+!.env.*.example
+
+# API Keys, Credentials & Auth
+*.key
+*.pem
+*.p8
+*.p12
+*.pfx
+*.crt
+*.cer
+*.cert
+*.jwt
+*.token
+credentials.json
+secrets.json
+*secret*
+*password*
+*credential*
+*auth.json
+*token*
+google-credentials.json
+service-account-key.json
+
+# AWS, GCP, Azure credentials
+*aws*.json
+*gcp*.json
+*azure*.json
+.aws/
+.gcp/
+.azure/
+
+# SSH Keys
+*rsa
+*dsa
+*.openssh
+id_rsa
+id_dsa
+id_ecdsa
+id_ed25519
+
+# OAuth & API Configuration
+oauth*.json
+api_keys.json
+apikeys.json
+keys.json
+
+# Database credentials
+db_credentials.json
+database.url
+DATABASE_URL
+
+# Private config files
+.npmrc.private
+.yarnrc.private
+private.config.*
+
+# ⚠️ STORAGE & SENSITIVE DATA - NUNCA SUBIR!
+# WhatsApp tokens, sessions & auth data
+apps/api/storage/whatsapp/
+apps/api/storage/*/tctoken*
+apps/api/storage/*/session*
+apps/api/storage/*/auth*
+storage/whatsapp/
+storage/*/token*
+storage/*/session*
+
+# Baileys auth & sessions
+*auth_info_baileys*
+*/baileys/*
+*/whatsapp/sessions/*
+
+# User uploaded files (pode conter PII)
+*/uploads/*
+*/uploads_temp/*
+*/user-data/*
+uploads/
+public/uploads/
+
 .vscode/
 .idea/
 .DS_Store
