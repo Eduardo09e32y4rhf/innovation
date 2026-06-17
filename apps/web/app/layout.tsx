@@ -1,17 +1,18 @@
-// Placeholder Next.js 14 app layout
-'use client'
+import type { Metadata } from 'next';
+import './globals.css';
+import { Providers } from './contexts/Providers';
 
-import './globals.css'
-import React from 'react'
-
-export const metadata = {
+export const metadata: Metadata = {
   title: 'Innovation RH Connect',
-}
+  description: 'Sistema de RH com controle de ponto e WhatsApp',
+};
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt-BR">
-      <body>{children}</body>
+      <body>
+        <Providers>{children}</Providers>
+      </body>
     </html>
-  )
+  );
 }
