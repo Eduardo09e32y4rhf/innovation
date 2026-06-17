@@ -1,40 +1,36 @@
 {
   "folders": [
     {
-      "name": "🤖 IA",
-      "path": "IA"
+      "name": "📁 RAIZ DO PROJETO",
+      "path": "."
     },
     {
-      "name": "💬 WHATSAPP",
-      "path": "WHATSAPP"
+      "name": "🚀 APLICATIVOS (Apps)",
+      "path": "apps"
     },
     {
-      "name": "👥 RH",
-      "path": "RH"
+      "name": "📦 PACOTES (Packages)",
+      "path": "packages"
     },
     {
-      "name": "💳 FINANCEIRO",
-      "path": "FINANCEIRO"
+      "name": "🧩 MÓDULOS (Modules)",
+      "path": "modules"
     },
     {
-      "name": "📊 CONTABILIDADE",
-      "path": "CONTABILIDADE"
-    },
-    {
-      "name": "🎨 MEDIA",
+      "name": "🎨 MÍDIA (Media)",
       "path": "MEDIA"
     },
     {
-      "name": "⚙️ INFRA",
-      "path": "INFRA"
+      "name": "📚 DOCUMENTAÇÃO (Docs)",
+      "path": "docs"
     },
     {
-      "name": "🖥️ FRONTEND",
-      "path": "FRONTEND"
+      "name": "💾 ARMAZENAMENTO (Storage)",
+      "path": "storage"
     },
     {
-      "name": "📁 RAIZ DO PROJETO",
-      "path": "."
+      "name": "🕰️ LEGADO (Legacy)",
+      "path": "legacy"
     }
   ],
   "settings": {

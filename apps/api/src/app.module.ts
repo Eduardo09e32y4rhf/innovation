@@ -12,6 +12,7 @@ import { RecruitmentModule } from './modules/recruitment/recruitment.module';
 import { FinanceModule } from './modules/finance/finance.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { AiModule } from './modules/ai/ai.module';
+import { PrivacyModule } from './modules/privacy/privacy.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { AiModule } from './modules/ai/ai.module';
     FinanceModule,
     DashboardModule,
     AiModule,
+    PrivacyModule,
   ],
 })
 export class AppModule {}

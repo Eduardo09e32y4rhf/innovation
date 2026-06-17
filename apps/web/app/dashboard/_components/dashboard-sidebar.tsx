@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  ArrowLeft, CreditCard, KeyRound, LayoutDashboard,
+  ArrowLeft, Clock3, CreditCard, KeyRound, LayoutDashboard,
   Mail, Plug, ShieldCheck, Settings, Smartphone, Users,
   Zap, Search, type LucideIcon,
 } from 'lucide-react';
@@ -17,8 +17,9 @@ const navSections: NavSection[] = [
     items: [
       { icon: LayoutDashboard, label: 'Painel',       href: '/dashboard' },
       { icon: Users,           label: 'RH',           href: '/dashboard/rh/pipeline',           match: '/dashboard/rh/pipeline' },
+      { icon: Users,           label: 'Colaboradores', href: '/dashboard/colaboradores',        match: '/dashboard/colaboradores' },
       { icon: Search,          label: 'Talentos',     href: '/dashboard/rh/talents',            match: '/dashboard/rh/talents' },
-      { icon: CreditCard,      label: 'Financeiro',   href: '/dashboard/finance/overview',      match: '/dashboard/finance' },
+      { icon: Clock3,          label: 'Espelho de ponto', href: '/dashboard/ponto',             match: '/dashboard/ponto' },
       { icon: Smartphone,      label: 'WhatsApp',     href: '/dashboard/whatsapp/accounts',     match: '/dashboard/whatsapp' },
       { icon: Settings,        label: 'Configurações', href: '/dashboard/settings/integrations', match: '/dashboard/settings' },
     ],
