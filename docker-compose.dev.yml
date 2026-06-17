@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: innovation-rh-connect-postgres-dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: innovation_rh_user
+      POSTGRES_PASSWORD: innovation_rh_pass
+      POSTGRES_DB: innovation_rh_connect
+    ports:
+      - "5432:5432"
+    volumes:
+      - innovation_rh_connect_pgdata_dev:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U innovation_rh_user -d innovation_rh_connect"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: innovation_api_dev
+    volumes:
+      - ./:/usr/src/app
+      - /usr/src/app/node_modules
+    ports:
+      - "3333:3333"
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://innovation_rh_user:innovation_rh_pass@postgres:5432/innovation_rh_connect
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    container_name: innovation_web_dev
+    volumes:
+      - ./:/usr/src/app
+      - /usr/src/app/node_modules
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: development
+      NEXT_PUBLIC_API_URL: http://localhost:3333
+    depends_on:
+      - api
+
+volumes:
+  innovation_rh_connect_pgdata_dev:
