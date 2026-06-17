@@ -14,6 +14,8 @@ dynamic_keys.json
 
 # Temporary & Logs
 *.log
+*.out.log
+*.err.log
 *.zip
 commit.txt
 git_history.txt
@@ -21,6 +23,9 @@ dev.pid
 frontend.log
 backend/logs/
 horizon-synergy-temp/
+logs/
+tmp/
+temp/
 
 # Frontend (Node/Next)
 node_modules/
@@ -62,3 +67,29 @@ Thumbs.db
 *.swp
 *.swo
 .aider*
+
+# Build outputs & caches
+dist/
+build/
+target/
+.turbo/
+.cache/
+
+# Testing
+coverage/
+.nyc_output/
+*.lcov
+
+# Runtime & Process
+.pm2/
+pids/
+*.pid
+
+# Dependency/package manager
+pnpm-lock.yaml
+yarn.lock
+.pnpm-store/
+
+# Local env overrides
+.env.local
+.env.*.local
