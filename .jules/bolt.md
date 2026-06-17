@@ -10,3 +10,7 @@
 ## 2024-03-01 - Avoid O(N) memory allocations via `.all()` inside iterative loops
 **Learning:** Found an endpoints in `rh_advanced.py` fetching ORM records (`TimeBank`) via `.all()` inside a `for u in users` loop, accumulating values manually via `sum()`. For huge record sets, querying related records in a loop causes an O(N) memory scale-up alongside an N+1 query regression.
 **Action:** When a loop iterates over database objects to count or aggregate fields, replace the loop with a single SQLAlchemy aggregation query (`func.sum` and `group_by`). This solves the N+1 problem and keeps Python memory strictly bounded to the result size rather than materializing all records into Python objects.
+
+## 2026-06-17 - [MVP Consolidation and Schema Standardization]
+**Learning:** Consolidating multiple Prisma schemas into a single official one in the API workspace prevents synchronization issues and simplifies the build process in a monorepo.
+**Action:** Always identify and remove redundant configuration files (like secondary Prisma schemas) when defining a project's official source of truth.
