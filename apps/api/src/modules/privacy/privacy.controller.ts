@@ -1,12 +1,9 @@
 import { Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import type { JwtUser } from '../../common/types/auth.types';
 import { PrivacyService } from './privacy.service';
 
-@ApiBearerAuth()
-@ApiTags('privacy')
 @UseGuards(JwtAuthGuard)
 @Controller('privacy')
 export class PrivacyController {

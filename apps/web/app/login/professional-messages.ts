@@ -1,6 +1,5 @@
 export const firstAccessMessage = {
-  title: 'Primeiro acesso com administrador',
+  title: 'Ambiente de apresentacao',
   description:
-    'Neste ambiente, apenas contas administrativas cadastradas via backend conseguem entrar. Se você ainda não criou o admin, siga o procedimento de seed e depois utilize as credenciais.'
+    'Use a conta disponibilizada para navegar pelo painel, conhecer os fluxos de RH e validar a experiencia antes da implantacao.',
 };
-

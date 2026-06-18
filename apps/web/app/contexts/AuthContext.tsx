@@ -44,6 +44,13 @@ const LOCAL_COMPANY: Company = {
   name: 'Innovation RH Connect',
 };
 
+const isLocalBrowser = () => {
+  if (typeof window === 'undefined') return false;
+  return ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname);
+};
+
+const canUseLocalSession = () => process.env.NODE_ENV !== 'production' && (LOCAL_SESSION_ENABLED || isLocalBrowser());
+
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [company, setCompany] = useState<Company | null>(null);
@@ -57,7 +64,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const savedUser = localStorage.getItem('user');
     const savedCompany = localStorage.getItem('company');
 
-    if (savedToken === LOCAL_SESSION_TOKEN && !LOCAL_SESSION_ENABLED) {
+    if (savedToken === LOCAL_SESSION_TOKEN && !canUseLocalSession()) {
       clearStoredSession();
       setLoading(false);
       return;
@@ -73,7 +80,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       try {
         const parsedUser = JSON.parse(savedUser);
         const parsedCompany = JSON.parse(savedCompany);
-        if (LOCAL_SESSION_ENABLED && savedToken === LOCAL_SESSION_TOKEN && parsedUser?.companyId !== LOCAL_COMPANY_ID) {
+        if (canUseLocalSession() && savedToken === LOCAL_SESSION_TOKEN && parsedUser?.companyId !== LOCAL_COMPANY_ID) {
           startLocalSession();
         } else {
           setToken(savedToken);

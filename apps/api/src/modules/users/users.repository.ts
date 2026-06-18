@@ -17,7 +17,11 @@ export class UsersRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   list(companyId: string) {
-    return this.prisma.user.findMany({ where: { companyId }, select: safeUserSelect, orderBy: { createdAt: 'desc' } });
+    return this.prisma.user.findMany({
+      where: { companyId },
+      select: safeUserSelect,
+      orderBy: { createdAt: 'desc' },
+    });
   }
 
   findById(companyId: string, id: string) {
@@ -26,6 +30,17 @@ export class UsersRepository {
 
   findByEmail(email: string) {
     return this.prisma.user.findUnique({ where: { email } });
+  }
+
+  countByCompany(companyId: string) {
+    return this.prisma.user.count({ where: { companyId } });
+  }
+
+  getCompanyLimits(companyId: string) {
+    return this.prisma.company.findUnique({
+      where: { id: companyId },
+      select: { maxUsers: true, maxEmployees: true, isActive: true },
+    });
   }
 
   create(data: any) {

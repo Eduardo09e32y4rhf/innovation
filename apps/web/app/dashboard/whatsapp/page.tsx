@@ -42,7 +42,7 @@ function ConnectionPill({ status, phone }: { status?: string; phone?: string | n
     : connecting
       ? 'bg-amber-50 text-amber-700 border-amber-200'
       : 'bg-slate-100 text-slate-600 border-slate-200';
-  const label = connected ? `Conectado${phone ? ` · ${phone}` : ''}` : connecting ? 'Conectando...' : 'Desconectado';
+  const label = connected ? `Conectado${phone ? ` - ${phone}` : ''}` : connecting ? 'Conectando...' : 'Desconectado';
   return (
     <span className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-bold ${color}`}>
       <span className={`h-2 w-2 rounded-full ${connected ? 'bg-emerald-500' : connecting ? 'bg-amber-500' : 'bg-slate-400'}`} />
@@ -108,7 +108,7 @@ function ConnectionPanel({
         <h3 className="text-sm font-black text-slate-950">Como conectar</h3>
         <ol className="mt-3 space-y-2 text-xs leading-relaxed text-slate-600">
           <li>1. Abra o WhatsApp no celular da empresa.</li>
-          <li>2. Va em Aparelhos conectados → Conectar aparelho.</li>
+          <li>2. Va em Aparelhos conectados e toque em Conectar aparelho.</li>
           <li>3. Aponte a camera para o QR Code ao lado.</li>
           <li>4. A sessao fica salva ate ser desconectada aqui.</li>
         </ol>
@@ -197,7 +197,7 @@ function ChatList({
                 <p className="truncate text-xs font-bold text-slate-900">{chat.name}</p>
                 <span className="shrink-0 text-[10px] text-slate-400">{chat.time}</span>
               </div>
-              <p className="truncate text-[11px] text-slate-500">{chat.lastMessage || '—'}</p>
+              <p className="truncate text-[11px] text-slate-500">{chat.lastMessage || '--'}</p>
             </div>
             {chat.unreadCount > 0 && (
               <span className="ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-teal-600 px-1.5 text-[10px] font-bold text-white">

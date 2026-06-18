@@ -80,7 +80,9 @@ export default function TimeTrackPage() {
 
       {open && (
         <RegisterModal
-          employees={employees.data ?? []}
+          employees={(employees.data ?? []).filter((employee) => employee.status === 'ACTIVE')}
+          employeesLoading={employees.loading}
+          employeesError={employees.error}
           onClose={() => setOpen(false)}
           onDone={() => {
             setOpen(false);
@@ -93,9 +95,11 @@ export default function TimeTrackPage() {
 }
 
 function RegisterModal({
-  employees, onClose, onDone,
+  employees, employeesLoading, employeesError, onClose, onDone,
 }: {
   employees: { id: string; name: string }[];
+  employeesLoading: boolean;
+  employeesError: string | null;
   onClose: () => void;
   onDone: () => void;
 }) {
@@ -115,8 +119,10 @@ function RegisterModal({
           <button onClick={onClose} className="text-slate-400 hover:text-slate-700"><X size={18} /></button>
         </div>
 
-        {register.error && (
-          <p className="mb-3 rounded-[8px] border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">{register.error}</p>
+        {(register.error || employeesError) && (
+          <p className="mb-3 rounded-[8px] border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700">
+            {register.error || employeesError}
+          </p>
         )}
 
         <label className="mb-3 block space-y-1 text-xs font-medium text-slate-600">
@@ -126,12 +132,18 @@ function RegisterModal({
             onChange={(e) => setEmployeeId(e.target.value)}
             className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500"
           >
-            <option value="">Selecione...</option>
+            <option value="">{employeesLoading ? 'Carregando equipe...' : 'Selecione...'}</option>
             {employees.map((emp) => (
               <option key={emp.id} value={emp.id}>{emp.name}</option>
             ))}
           </select>
         </label>
+
+        {!employeesLoading && employees.length === 0 ? (
+          <p className="mb-4 rounded-[10px] border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-900">
+            Cadastre um funcionario ativo antes de registrar o ponto.
+          </p>
+        ) : null}
 
         <label className="mb-5 block space-y-1 text-xs font-medium text-slate-600">
           <span>Tipo de marcacao</span>
@@ -150,7 +162,7 @@ function RegisterModal({
           <button onClick={onClose} className="btn-outline h-10 rounded-[8px] px-4 text-xs font-bold">Cancelar</button>
           <button
             onClick={() => employeeId && register.mutate().catch(() => {})}
-            disabled={!employeeId || register.loading}
+            disabled={!employeeId || employees.length === 0 || register.loading}
             className="crystal-button h-10 rounded-[8px] px-4 text-xs font-black text-white disabled:opacity-60"
           >
             {register.loading ? 'Registrando...' : 'Registrar'}

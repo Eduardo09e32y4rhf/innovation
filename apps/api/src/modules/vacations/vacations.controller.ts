@@ -1,5 +1,4 @@
 import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CurrentCompany } from '../../common/decorators/current-company.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -8,8 +7,6 @@ import { CreateVacationDto } from './dto/create-vacation.dto';
 import { UpdateVacationStatusDto } from './dto/update-vacation-status.dto';
 import { VacationsService } from './vacations.service';
 
-@ApiBearerAuth()
-@ApiTags('vacations')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('vacations')
 export class VacationsController {

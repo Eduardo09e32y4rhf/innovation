@@ -9,7 +9,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const status = exception instanceof HttpException ? exception.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
     const body = exception instanceof HttpException ? exception.getResponse() : 'Internal server error';
 
-    response.status(status).json({
+    response.status(status).send({
       success: false,
       statusCode: status,
       path: request.url,

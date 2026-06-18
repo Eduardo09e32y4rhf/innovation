@@ -14,19 +14,20 @@ import { PrivacyModule } from './modules/privacy/privacy.module';
 import { EmployeesModule } from './modules/employees/employees.module';
 import { TimeTrackModule } from './modules/time-track/time-track.module';
 import { VacationsModule } from './modules/vacations/vacations.module';
+import { PlatformModule } from './modules/platform/platform.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true, envFilePath: ['.env', '../../.env'], load: [appConfig], validate: validateEnv }),
-    ThrottlerModule.forRoot([
-      {
-        ttl: 60000,
-        limit: 20,
-      },
-    ]),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: ['.env', '../../.env'],
+      load: [appConfig],
+      validate: validateEnv,
+    }),
+    ThrottlerModule.forRoot([{ ttl: 60000, limit: 20 }]),
     DatabaseModule,
     HealthModule,
-    AuthModule,
+    AuthModule,   // @Global() — JwtService disponivel em todos os modulos
     UsersModule,
     CompaniesModule,
     CommunicationModule,
@@ -35,6 +36,7 @@ import { VacationsModule } from './modules/vacations/vacations.module';
     EmployeesModule,
     TimeTrackModule,
     VacationsModule,
+    PlatformModule,
   ],
 })
 export class AppModule {}
