@@ -1,5 +1,5 @@
-# Dockerfile de PRODUCAO — Frontend Next.js (static export)
-# NEXT_PUBLIC_* sao "assadas" no build — precisam entrar como ARG.
+# Dockerfile de producao - Frontend Next.js (static export)
+# NEXT_PUBLIC_* sao embutidas no build e precisam entrar como ARG.
 
 FROM node:20-alpine AS builder
 WORKDIR /app
@@ -7,13 +7,14 @@ WORKDIR /app
 ARG NEXT_PUBLIC_API_URL=http://localhost:3333
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
-COPY package.json package-lock.json* ./
-RUN npm install --frozen-lockfile 2>/dev/null || npm install
+COPY package.json package-lock.json ./
+COPY apps/api/package.json ./apps/api/package.json
+COPY apps/web/package.json ./apps/web/package.json
+RUN npm ci
 
 COPY . .
 RUN npm run build:web
 
-# Serve o output estatico
 FROM node:20-alpine AS runner
 WORKDIR /app
 RUN npm install -g serve
