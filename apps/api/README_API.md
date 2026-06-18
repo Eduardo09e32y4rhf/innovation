@@ -1,25 +1,28 @@
 # API quickstart
 
-Este diretório contém um esqueleto mínimo da API NestJS para acelerar o desenvolvimento do MVP.
+Este diretorio contem a API NestJS do MVP de RH.
 
-Comandos úteis (na raiz do monorepo):
+Comandos uteis na raiz do monorepo:
 
-- Instalar dependências:
+- Instalar dependencias:
   npm ci
 
 - Gerar client Prisma:
-  npm --prefix apps/api run prisma:generate
+  npm run db:generate
 
-- Rodar migrações (local):
-  npm --prefix apps/api run prisma:migrate
+- Rodar migracoes locais:
+  npm run db:migrate
 
 - Rodar seed:
-  ADMIN_PASSWORD=admin123 npm --prefix apps/api run seed:mvp
+  npm run db:seed
 
-- Rodar em modo desenvolvimento (docker-compose.dev.yml):
-  docker-compose -f docker-compose.dev.yml up --build
+- Subir PostgreSQL local:
+  docker compose -f infra/docker-compose.yml up -d postgres
 
-Endpoints expostos inicialmente:
+- Rodar API em desenvolvimento:
+  npm run dev:api
+
+Endpoints principais:
 - GET /api/health
 - GET /api/employees
 - POST /api/employees

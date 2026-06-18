@@ -31,12 +31,17 @@ Financeiro, IA, Recrutamento/ATS, Desktop e Contabilidade ficam fora da navegaca
 
 ```bash
 npm install
+docker compose -f infra/docker-compose.yml up -d postgres
 npm run db:generate
+npm run db:migrate
+npm run db:seed
 npm run dev:api
 npm run dev:web
 ```
 
 Por padrao, o frontend roda em `http://localhost:3000` e a API usa `API_PORT` ou `PORT`, com fallback para `3333`.
+
+O compose fica em `infra/docker-compose.yml` e e dedicado a dependencias locais, como PostgreSQL. API e Web rodam pelos scripts npm para manter o fluxo de desenvolvimento simples.
 
 ## Migrations
 

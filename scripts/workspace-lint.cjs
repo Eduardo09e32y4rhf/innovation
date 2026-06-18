@@ -6,6 +6,10 @@ const required = [
   'tsconfig.base.json',
   'tsconfig.json',
   '.npmrc',
+  'apps/api/package.json',
+  'apps/web/package.json',
+  'infra/docker-compose.yml',
+  'docs/TODO.md',
   'scripts/workspace-bootstrap.cjs'
 ];
 

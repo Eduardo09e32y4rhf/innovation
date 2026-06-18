@@ -2,15 +2,15 @@ const fs = require('fs');
 const path = require('path');
 
 const dirs = [
-  'packages',
-  'packages/apps',
-  'packages/libs',
-  'packages/shared',
   'apps',
   'apps/web',
-  'apps/desktop',
   'apps/api',
-  'tools'
+  'docs',
+  'infra',
+  'scripts',
+  'storage',
+  'storage/whatsapp',
+  'storage/whatsapp-media'
 ];
 
 for (const dir of dirs) {

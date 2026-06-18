@@ -124,7 +124,10 @@ apps/api/storage/whatsapp/
 apps/api/storage/*/tctoken*
 apps/api/storage/*/session*
 apps/api/storage/*/auth*
-storage/whatsapp/
+storage/whatsapp/*
+!storage/whatsapp/.gitkeep
+storage/whatsapp-media/*
+!storage/whatsapp-media/.gitkeep
 storage/*/token*
 storage/*/session*
 

@@ -14,7 +14,7 @@
     "start:web": "npm --prefix apps/web run start",
     "start:api": "npm --prefix apps/api run start",
     "typecheck": "npm run typecheck:root && npm run typecheck:web",
-    "typecheck:root": "tsc --noEmit -p tsconfig.json",
+    "typecheck:root": "node scripts/workspace-lint.cjs",
     "typecheck:web": "npm --prefix apps/web run typecheck",
     "db:generate": "npm --prefix apps/api run prisma:generate",
     "db:migrate": "npm --prefix apps/api run prisma:migrate",
@@ -29,9 +29,7 @@
   },
   "workspaces": [
     "apps/web",
-    "apps/api",
-    "packages/*",
-    "modules/*"
+    "apps/api"
   ],
   "include-workspace-root": true
 }
