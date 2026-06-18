@@ -1,5 +1,4 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CurrentCompany } from '../../common/decorators/current-company.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -8,8 +7,6 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UsersService } from './users.service';
 
-@ApiBearerAuth()
-@ApiTags('users')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('users')
 export class UsersController {
@@ -18,6 +15,12 @@ export class UsersController {
   @Get()
   list(@CurrentCompany() companyId: string) {
     return this.service.list(companyId);
+  }
+
+  /** Retorna { used, max } — consumido pela tela de Usuarios para mostrar o limite. */
+  @Get('usage')
+  usage(@CurrentCompany() companyId: string) {
+    return this.service.usage(companyId);
   }
 
   @Roles('ADMIN')
@@ -33,7 +36,11 @@ export class UsersController {
 
   @Roles('ADMIN')
   @Patch(':id')
-  update(@CurrentCompany() companyId: string, @Param('id') id: string, @Body() dto: UpdateUserDto) {
+  update(
+    @CurrentCompany() companyId: string,
+    @Param('id') id: string,
+    @Body() dto: UpdateUserDto,
+  ) {
     return this.service.update(companyId, id, dto);
   }
 

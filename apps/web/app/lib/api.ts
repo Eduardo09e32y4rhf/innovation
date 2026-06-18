@@ -2,20 +2,11 @@
 
 /**
  * Cliente HTTP central do Innovation RH Connect.
- *
- * - Injeta automaticamente o token JWT salvo em localStorage.
- * - Trata 401 limpando a sessao e redirecionando para /login.
- * - Expoe helpers tipados (get/post/patch/delete) e o objeto `api`
- *   com metodos por modulo, batendo 1:1 com os controllers do NestJS.
- *
- * Como o frontend e um static export (output: 'export'), nao ha
- * camada de servidor: tudo roda no browser e fala direto com a API.
+ * Injeta JWT, trata 401 automaticamente, expoe api.modulo.metodo() tipado.
  */
 
 export const API_URL =
   process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333';
-
-const TOKEN_KEY = 'token';
 
 export class ApiError extends Error {
   status: number;
@@ -30,220 +21,131 @@ export class ApiError extends Error {
 
 function getToken(): string | null {
   if (typeof window === 'undefined') return null;
-  return window.localStorage.getItem(TOKEN_KEY);
+  return window.localStorage.getItem('token');
 }
 
 function clearSession() {
   if (typeof window === 'undefined') return;
-  window.localStorage.removeItem('token');
-  window.localStorage.removeItem('user');
-  window.localStorage.removeItem('company');
+  ['token', 'user', 'company'].forEach((k) => window.localStorage.removeItem(k));
 }
 
-type RequestOptions = {
-  method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';
-  body?: unknown;
-  /** Quando true, nao redireciona em 401 (ex.: chamadas opcionais). */
-  silent?: boolean;
-  signal?: AbortSignal;
-};
+type Opts = { method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE'; body?: unknown; silent?: boolean };
 
-async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const { method = 'GET', body, silent, signal } = options;
-  const token = getToken();
-
+async function request<T>(path: string, opts: Opts = {}): Promise<T> {
+  const { method = 'GET', body, silent } = opts;
   const headers: Record<string, string> = {};
   if (body !== undefined) headers['Content-Type'] = 'application/json';
+  const token = getToken();
   if (token) headers['Authorization'] = `Bearer ${token}`;
 
-  let response: Response;
+  let res: Response;
   try {
-    response = await fetch(`${API_URL}${path}`, {
+    res = await fetch(`${API_URL}${path}`, {
       method,
       headers,
       body: body !== undefined ? JSON.stringify(body) : undefined,
-      signal,
     });
   } catch (err) {
-    throw new ApiError(0, 'Falha de conexao com a API. Verifique se o backend esta rodando.', err);
+    throw new ApiError(0, 'Sem conexao com a API. Verifique se o backend esta rodando.', err);
   }
 
-  if (response.status === 401) {
+  if (res.status === 401) {
     clearSession();
-    if (!silent && typeof window !== 'undefined') {
-      window.location.href = '/login';
-    }
+    if (!silent && typeof window !== 'undefined') window.location.href = '/login';
     throw new ApiError(401, 'Sessao expirada. Faca login novamente.');
   }
 
-  const text = await response.text();
+  const text = await res.text();
   const data = text ? safeJson(text) : null;
 
-  if (!response.ok) {
-    const message =
-      (data && typeof data === 'object' && 'message' in data
+  if (!res.ok) {
+    const msg =
+      data && typeof data === 'object' && 'message' in data
         ? Array.isArray((data as any).message)
           ? (data as any).message.join(', ')
           : String((data as any).message)
-        : null) || `Erro ${response.status} ao chamar ${path}`;
-    throw new ApiError(response.status, message, data);
+        : `Erro ${res.status}`;
+    throw new ApiError(res.status, msg, data);
   }
-
   return data as T;
 }
 
 function safeJson(text: string): unknown {
-  try {
-    return JSON.parse(text);
-  } catch {
-    return text;
-  }
+  try { return JSON.parse(text); } catch { return text; }
 }
 
-// ---- Tipos compartilhados (espelham o Prisma/DTOs do backend) ----
+// ─── Tipos ───────────────────────────────────────────────────────────────────
 
 export type EmployeeStatus = 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' | 'TERMINATED';
 export type VacationStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED' | 'COMPLETED';
-export type UserRole = 'ADMIN' | 'RH' | 'GESTOR' | 'FUNCIONARIO';
+export type UserRole = 'DEV' | 'ADMIN' | 'RH' | 'GESTOR' | 'FUNCIONARIO';
 export type PunchType = 'ENTRY' | 'LUNCH_START' | 'LUNCH_RETURN' | 'EXIT';
 
 export interface Employee {
-  id: string;
-  companyId: string;
-  name: string;
-  cpf: string;
-  email: string;
-  phone?: string | null;
-  position: string;
-  department: string;
-  admissionDate: string;
-  status: EmployeeStatus;
-  salary?: string | number | null;
-  createdAt: string;
-  updatedAt: string;
+  id: string; companyId: string; name: string; cpf: string; email: string;
+  phone?: string | null; position: string; department: string;
+  admissionDate: string; status: EmployeeStatus;
+  salary?: string | number | null; createdAt: string; updatedAt: string;
 }
-
 export interface CreateEmployeeInput {
-  name: string;
-  cpf: string;
-  email: string;
-  phone?: string;
-  position: string;
-  department: string;
-  admissionDate: string;
-  salary?: number;
-  status?: EmployeeStatus;
+  name: string; cpf: string; email: string; phone?: string; position: string;
+  department: string; admissionDate: string; salary?: number; status?: EmployeeStatus;
 }
-
 export interface TimeTrack {
-  id: string;
-  employeeId: string;
-  date: string;
-  entry?: string | null;
-  lunchStart?: string | null;
-  lunchReturn?: string | null;
-  exit?: string | null;
-  totalWorked?: number | null;
-  dailyBalance?: number | null;
-  observation?: string | null;
-  employee?: Employee;
+  id: string; employeeId: string; date: string;
+  entry?: string | null; lunchStart?: string | null;
+  lunchReturn?: string | null; exit?: string | null;
+  totalWorked?: number | null; dailyBalance?: number | null;
+  observation?: string | null; employee?: Employee;
 }
-
-export interface RegisterTimeInput {
-  employeeId: string;
-  type: PunchType;
-  timestamp?: string;
-  observation?: string;
-}
-
-export interface UpdateTimeTrackInput {
-  entry?: string;
-  lunchStart?: string;
-  lunchReturn?: string;
-  exit?: string;
-  observation?: string;
-}
-
+export interface RegisterTimeInput { employeeId: string; type: PunchType; timestamp?: string; observation?: string; }
+export interface UpdateTimeTrackInput { entry?: string; lunchStart?: string; lunchReturn?: string; exit?: string; observation?: string; }
 export interface Vacation {
-  id: string;
-  employeeId: string;
-  acquisitionPeriod: string;
-  startDate: string;
-  endDate: string;
-  daysUsed: number;
-  status: VacationStatus;
-  observation?: string | null;
-  employee?: Employee;
+  id: string; employeeId: string; acquisitionPeriod: string;
+  startDate: string; endDate: string; daysUsed: number;
+  status: VacationStatus; observation?: string | null; employee?: Employee;
 }
-
 export interface CreateVacationInput {
-  employeeId: string;
-  acquisitionPeriod: string;
-  startDate: string;
-  endDate: string;
-  daysUsed: number;
-  observation?: string;
+  employeeId: string; acquisitionPeriod: string;
+  startDate: string; endDate: string; daysUsed: number; observation?: string;
 }
-
 export interface DashboardSummary {
-  activeEmployees: number;
-  timeTracksToday: number;
-  pendingVacations: number;
-  whatsappMessages: number;
-  totalTimeBalance: number;
+  activeEmployees: number; timeTracksToday: number; pendingVacations: number;
+  whatsappMessages: number; totalTimeBalance: number;
 }
-
 export interface AppUser {
-  id: string;
-  name: string;
-  email: string;
-  role: UserRole;
-  companyId: string;
-  createdAt?: string;
+  id: string; name: string; email: string; role: UserRole;
+  companyId: string; isActive?: boolean; createdAt?: string;
 }
-
-export interface CreateUserInput {
-  name: string;
-  email: string;
-  password: string;
-  role?: UserRole;
-}
+export interface UsersUsage { used: number; max: number; }
+export interface CreateUserInput { name: string; email: string; password: string; role?: UserRole; }
 
 export interface WhatsappStatus {
-  status: 'CONNECTED' | 'CONNECTING' | 'DISCONNECTED' | string;
-  qrCode?: string | null;
-  phone?: string | null;
-  displayName?: string | null;
-  warning?: string;
+  status: 'CONNECTED' | 'CONNECTING' | 'DISCONNECTED' | 'QR_CODE' | string;
+  qrCode?: string | null; phone?: string | null; displayName?: string | null;
 }
-
 export interface Chat {
-  id: string;
-  name: string;
-  isGroup: boolean;
-  unreadCount: number;
-  time: string;
-  lastMessage: string;
-  avatarUrl?: string | null;
+  id: string; name: string; isGroup: boolean;
+  unreadCount: number; time: string; lastMessage: string; avatarUrl?: string | null;
 }
-
 export interface ChatMessage {
-  id: string;
-  sender: 'bot' | 'user' | string;
-  participantId?: string;
-  participantName?: string;
-  media?: unknown;
-  text: string;
-  time: string;
+  id: string; sender: string; participantId?: string; participantName?: string;
+  media?: unknown; text: string; time: string;
+}
+export interface SendMessageInput { phone: string; body: string; contactName?: string; }
+
+export interface Company {
+  id: string; name: string; document?: string | null;
+  maxUsers: number; maxEmployees: number; isActive: boolean; createdAt: string;
+}
+export interface PlatformCompany extends Company { usersCount: number; employeesCount: number; }
+export interface PlatformStats { companies: number; users: number; employees: number; messages: number; }
+export interface CreatePlatformCompanyInput {
+  name: string; document?: string; maxUsers?: number; maxEmployees?: number;
+  adminName: string; adminEmail: string; adminPassword: string;
 }
 
-export interface SendMessageInput {
-  phone: string;
-  body: string;
-  contactName?: string;
-}
-
-// ---- API por modulo (espelha exatamente os controllers do NestJS) ----
+// ─── API por modulo ──────────────────────────────────────────────────────────
 
 export const api = {
   request,
@@ -255,61 +157,61 @@ export const api = {
   employees: {
     list: () => request<Employee[]>('/employees'),
     get: (id: string) => request<Employee>(`/employees/${id}`),
-    create: (input: CreateEmployeeInput) =>
-      request<Employee>('/employees', { method: 'POST', body: input }),
-    update: (id: string, input: Partial<CreateEmployeeInput>) =>
-      request<Employee>(`/employees/${id}`, { method: 'PATCH', body: input }),
-    terminate: (id: string) =>
-      request<Employee>(`/employees/${id}`, { method: 'DELETE' }),
+    create: (input: CreateEmployeeInput) => request<Employee>('/employees', { method: 'POST', body: input }),
+    update: (id: string, input: Partial<CreateEmployeeInput>) => request<Employee>(`/employees/${id}`, { method: 'PATCH', body: input }),
+    terminate: (id: string) => request<Employee>(`/employees/${id}`, { method: 'DELETE' }),
   },
 
   timeTrack: {
     list: () => request<TimeTrack[]>('/time-track'),
     listEmployeeMonth: (employeeId: string, month?: string) =>
-      request<TimeTrack[]>(
-        `/time-track/${employeeId}/month${month ? `?month=${encodeURIComponent(month)}` : ''}`,
-      ),
-    register: (input: RegisterTimeInput) =>
-      request<TimeTrack>('/time-track/register', { method: 'POST', body: input }),
-    update: (id: string, input: UpdateTimeTrackInput) =>
-      request<TimeTrack>(`/time-track/${id}`, { method: 'PATCH', body: input }),
+      request<TimeTrack[]>(`/time-track/${employeeId}/month${month ? `?month=${encodeURIComponent(month)}` : ''}`),
+    register: (input: RegisterTimeInput) => request<TimeTrack>('/time-track/register', { method: 'POST', body: input }),
+    update: (id: string, input: UpdateTimeTrackInput) => request<TimeTrack>(`/time-track/${id}`, { method: 'PATCH', body: input }),
   },
 
   vacations: {
     list: () => request<Vacation[]>('/vacations'),
-    listByEmployee: (employeeId: string) =>
-      request<Vacation[]>(`/vacations/employee/${employeeId}`),
-    create: (input: CreateVacationInput) =>
-      request<Vacation>('/vacations', { method: 'POST', body: input }),
+    listByEmployee: (employeeId: string) => request<Vacation[]>(`/vacations/employee/${employeeId}`),
+    create: (input: CreateVacationInput) => request<Vacation>('/vacations', { method: 'POST', body: input }),
     updateStatus: (id: string, status: VacationStatus, observation?: string) =>
-      request<Vacation>(`/vacations/${id}/status`, {
-        method: 'PATCH',
-        body: { status, observation },
-      }),
+      request<Vacation>(`/vacations/${id}/status`, { method: 'PATCH', body: { status, observation } }),
   },
 
   users: {
     list: () => request<AppUser[]>('/users'),
+    usage: () => request<UsersUsage>('/users/usage'),
     get: (id: string) => request<AppUser>(`/users/${id}`),
-    create: (input: CreateUserInput) =>
-      request<AppUser>('/users', { method: 'POST', body: input }),
-    update: (id: string, input: Partial<CreateUserInput>) =>
-      request<AppUser>(`/users/${id}`, { method: 'PATCH', body: input }),
+    create: (input: CreateUserInput) => request<AppUser>('/users', { method: 'POST', body: input }),
+    update: (id: string, input: Partial<CreateUserInput>) => request<AppUser>(`/users/${id}`, { method: 'PATCH', body: input }),
     delete: (id: string) => request<void>(`/users/${id}`, { method: 'DELETE' }),
   },
 
+  companies: {
+    me: () => request<Company>('/companies/me'),
+    update: (data: { name?: string; document?: string }) => request<Company>('/companies/me', { method: 'PATCH', body: data }),
+  },
+
   whatsapp: {
-    connect: () =>
-      request<WhatsappStatus>('/communication/whatsapp/connect', { method: 'POST' }),
+    connect: () => request<WhatsappStatus>('/communication/whatsapp/connect', { method: 'POST' }),
     qrcode: () => request<WhatsappStatus>('/communication/whatsapp/qrcode'),
     status: () => request<WhatsappStatus>('/communication/whatsapp/status', { silent: true }),
-    disconnect: () =>
-      request<WhatsappStatus>('/communication/whatsapp/disconnect', { method: 'POST' }),
+    disconnect: () => request<WhatsappStatus>('/communication/whatsapp/disconnect', { method: 'POST' }),
     chats: () => request<Chat[]>('/communication/chats'),
-    chatMessages: (chatId: string) =>
-      request<ChatMessage[]>(`/communication/chats/${encodeURIComponent(chatId)}/messages`),
-    sendMessage: (input: SendMessageInput) =>
-      request<unknown>('/communication/messages/send', { method: 'POST', body: input }),
+    chatMessages: (chatId: string) => request<ChatMessage[]>(`/communication/chats/${encodeURIComponent(chatId)}/messages`),
+    sendMessage: (input: SendMessageInput) => request<unknown>('/communication/messages/send', { method: 'POST', body: input }),
+    settings: () => request<Record<string, unknown>>('/communication/settings'),
+    updateSettings: (data: Record<string, unknown>) => request<Record<string, unknown>>('/communication/settings', { method: 'PATCH', body: data }),
+  },
+
+  platform: {
+    stats: () => request<PlatformStats>('/platform/stats'),
+    listCompanies: () => request<PlatformCompany[]>('/platform/companies'),
+    getCompany: (id: string) => request<PlatformCompany>(`/platform/companies/${id}`),
+    createCompany: (input: CreatePlatformCompanyInput) => request<unknown>('/platform/companies', { method: 'POST', body: input }),
+    updateCompany: (id: string, input: Partial<Omit<CreatePlatformCompanyInput, 'adminName' | 'adminEmail' | 'adminPassword'>> & { isActive?: boolean }) =>
+      request<unknown>(`/platform/companies/${id}`, { method: 'PATCH', body: input }),
+    deleteCompany: (id: string) => request<void>(`/platform/companies/${id}`, { method: 'DELETE' }),
   },
 };
 

@@ -13,8 +13,13 @@ export class RolesGuard implements CanActivate {
       context.getClass(),
     ]);
     if (!roles?.length) return true;
+
     const user = context.switchToHttp().getRequest().user;
+
+    // DEV (engenharia) tem acesso irrestrito a todas as rotas de todas as empresas.
+    if (user?.role === 'DEV') return true;
+
     if (roles.includes(user?.role)) return true;
-    throw new ForbiddenException('Insufficient role');
+    throw new ForbiddenException('Permissao insuficiente');
   }
 }

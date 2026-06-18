@@ -1,0 +1,68 @@
+# docker-compose de PRODUCAO
+# Sobe: PostgreSQL + API (NestJS) + Web (Next.js estatico)
+#
+# Na VPS:
+#   cp .env.prod.example .env   # preencha com seus valores
+#   docker compose -f docker-compose.prod.yml up -d --build
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: innovation-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - innovation_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: innovation-api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3333
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: 7d
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
+      DEV_EMAIL: ${DEV_EMAIL}
+      DEV_PASSWORD: ${DEV_PASSWORD}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      PLATFORM_COMPANY_DOCUMENT: ${PLATFORM_COMPANY_DOCUMENT:-00000000000000}
+      DEMO_COMPANY_DOCUMENT: ${DEMO_COMPANY_DOCUMENT:-00000000000191}
+      WHATSAPP_SESSION_PATH: /data/whatsapp
+      WHATSAPPMEDIA_PATH: /data/whatsapp-media
+    ports:
+      - "3333:3333"
+    volumes:
+      - innovation_wa:/data   # sessao WhatsApp persiste entre restarts
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+    container_name: innovation-web
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "8080:8080"
+
+volumes:
+  innovation_pgdata:
+  innovation_wa:

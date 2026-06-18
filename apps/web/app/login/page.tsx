@@ -2,9 +2,55 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { AlertCircle, ArrowRight, Building2, Eye, EyeOff, Lock, Mail, ShieldCheck } from 'lucide-react';
+import {
+  AlertCircle,
+  ArrowRight,
+  BadgeCheck,
+  BarChart3,
+  Building2,
+  CalendarCheck,
+  CheckCircle2,
+  Clock3,
+  Eye,
+  EyeOff,
+  Lock,
+  Mail,
+  MessageSquareText,
+  ShieldCheck,
+  Sparkles,
+  Users,
+} from 'lucide-react';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { firstAccessMessage } from './professional-messages';
+
+const modules = [
+  {
+    title: 'Equipe em ordem',
+    text: 'Cadastros, cargos, status e historico organizados em uma unica visao.',
+    icon: Users,
+  },
+  {
+    title: 'Ponto mais claro',
+    text: 'Acompanhamento de entrada, saida, saldo e ajustes da jornada diaria.',
+    icon: Clock3,
+  },
+  {
+    title: 'Ferias sem planilha',
+    text: 'Solicitacoes, aprovacoes e periodos consolidados para decisao rapida.',
+    icon: CalendarCheck,
+  },
+  {
+    title: 'WhatsApp centralizado',
+    text: 'Atendimento operacional conectado ao contexto de cada colaborador.',
+    icon: MessageSquareText,
+  },
+];
+
+const outcomes = [
+  'Menos retrabalho para o RH',
+  'Mais visibilidade para gestores',
+  'Operacao pronta para crescer',
+];
 
 export default function LoginPage() {
   const router = useRouter();
@@ -14,10 +60,12 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [localError, setLocalError] = useState('');
+  const [canUseLocalAccess, setCanUseLocalAccess] = useState(false);
 
   useEffect(() => {
     if (isAuthenticated) router.push('/dashboard');
   }, [isAuthenticated, router]);
+
 
   const handleLogin = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -36,43 +84,98 @@ export default function LoginPage() {
     }
   };
 
+
   return (
-    <main className="min-h-screen bg-[#f4f5f7] text-slate-950">
-      <div className="grid min-h-screen lg:grid-cols-[1fr_520px]">
-        <section className="hidden min-h-screen flex-col justify-between bg-[#0d0d0e] p-10 text-white lg:flex">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-[10px] bg-white text-slate-950">
-              <ShieldCheck size={20} strokeWidth={2.4} />
-            </div>
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.22em] text-teal-300">Innovation RH Connect</p>
-              <p className="text-sm font-bold text-white/80">Console operacional</p>
-            </div>
-          </div>
+    <main className="min-h-screen bg-[#eef1f5] text-slate-950">
+      <div className="grid min-h-screen lg:grid-cols-[minmax(0,1fr)_430px] xl:grid-cols-[minmax(0,1fr)_500px]">
+        <section className="relative overflow-hidden bg-[#101114] px-5 py-6 text-white sm:px-8 lg:min-h-screen lg:px-10">
+          <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.045)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.045)_1px,transparent_1px)] bg-[size:52px_52px]" />
+          <div className="absolute bottom-0 left-0 h-64 w-full bg-gradient-to-t from-teal-500/14 to-transparent" />
 
-          <div className="max-w-xl">
-            <p className="mb-4 inline-flex rounded-full border border-teal-300/20 bg-teal-300/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-teal-100">
-              Ambiente seguro
-            </p>
-            <h1 className="text-5xl font-black leading-[1.02] tracking-tight text-white">
-              Operacao conectada para RH, ponto e WhatsApp.
-            </h1>
-            <p className="mt-5 max-w-lg text-sm font-medium leading-7 text-slate-300">
-              Acesse com credenciais reais da empresa. Nenhum modo demo e habilitado em producao.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-3 gap-3">
-            {['WhatsApp real', 'Banco ativo', 'JWT seguro'].map((item) => (
-              <div key={item} className="rounded-[14px] border border-white/10 bg-white/[0.04] p-4">
-                <p className="text-[11px] font-black uppercase tracking-[0.12em] text-white/55">{item}</p>
+          <div className="relative mx-auto flex min-h-[calc(100vh-48px)] max-w-6xl flex-col justify-between gap-8">
+            <header className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-[12px] bg-white text-slate-950 shadow-[0_18px_38px_rgba(45,212,191,0.20)]">
+                  <ShieldCheck size={21} strokeWidth={2.4} />
+                </div>
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.22em] text-teal-300">Innovation RH Connect</p>
+                  <p className="text-sm font-bold text-white/80">Gestao inteligente para empresas</p>
+                </div>
               </div>
-            ))}
+              <div className="hidden items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-xs font-black text-white/80 xl:flex">
+                <BadgeCheck size={15} className="text-teal-300" />
+                Apresentacao comercial
+              </div>
+            </header>
+
+            <div className="grid items-end gap-8 xl:grid-cols-[minmax(0,0.95fr)_minmax(360px,0.55fr)]">
+              <section className="max-w-3xl">
+                <p className="mb-4 inline-flex rounded-full border border-teal-300/20 bg-teal-300/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-teal-100">
+                  Plataforma para RH operacional
+                </p>
+                <h1 className="max-w-[760px] text-5xl font-black leading-[0.98] tracking-tight text-white sm:text-6xl xl:text-7xl">
+                  Venda uma rotina de RH mais simples, rapida e conectada.
+                </h1>
+                <p className="mt-5 max-w-2xl text-base font-semibold leading-8 text-slate-300">
+                  O Innovation RH Connect ajuda empresas a controlar pessoas, ponto, ferias e comunicacao em um painel
+                  unico, com informacao pronta para decisao e menos dependencia de planilhas.
+                </p>
+
+                <div className="mt-7 flex flex-wrap gap-3">
+                  {outcomes.map((item) => (
+                    <div key={item} className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-xs font-black text-white/85">
+                      <CheckCircle2 size={15} className="text-teal-300" />
+                      {item}
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              <section className="hidden rounded-[22px] border border-white/10 bg-white/[0.06] p-5 shadow-[0_24px_70px_rgba(0,0,0,0.28)] backdrop-blur xl:block">
+                <div className="mb-5 flex items-center justify-between">
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-teal-200">Impacto esperado</p>
+                    <p className="mt-1 text-sm font-bold text-white">Mais controle em menos tempo</p>
+                  </div>
+                  <div className="flex h-10 w-10 items-center justify-center rounded-[13px] bg-teal-300 text-slate-950">
+                    <BarChart3 size={20} />
+                  </div>
+                </div>
+                <div className="grid gap-3">
+                  {[
+                    ['42', 'colaboradores acompanhados'],
+                    ['38', 'registros de ponto hoje'],
+                    ['184', 'mensagens centralizadas'],
+                  ].map(([value, label]) => (
+                    <div key={label} className="rounded-[16px] border border-white/10 bg-black/20 p-4">
+                      <p className="text-3xl font-black text-white">{value}</p>
+                      <p className="mt-1 text-xs font-bold text-slate-300">{label}</p>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            </div>
+
+            <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+              {modules.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <article key={item.title} className="rounded-[18px] border border-white/10 bg-white/[0.055] p-4 shadow-[0_16px_44px_rgba(0,0,0,0.22)] backdrop-blur">
+                    <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-[13px] bg-white text-slate-950">
+                      <Icon size={19} />
+                    </div>
+                    <h2 className="text-sm font-black text-white">{item.title}</h2>
+                    <p className="mt-2 text-xs font-semibold leading-5 text-slate-300">{item.text}</p>
+                  </article>
+                );
+              })}
+            </section>
           </div>
         </section>
 
-        <section className="flex min-h-screen items-center justify-center px-5 py-8">
-          <div className="w-full max-w-[420px]">
+        <section className="flex min-h-screen items-center justify-center px-5 py-8 lg:bg-[#f7f8fb]">
+          <div className="w-full max-w-[390px]">
             <div className="mb-8 lg:hidden">
               <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-[12px] bg-slate-950 text-white">
                 <ShieldCheck size={20} />
@@ -80,14 +183,14 @@ export default function LoginPage() {
               <p className="text-[10px] font-black uppercase tracking-[0.22em] text-teal-700">Innovation RH Connect</p>
             </div>
 
-            <div className="rounded-[22px] border border-slate-200 bg-white p-6 shadow-[0_18px_42px_rgba(15,23,42,0.10)] sm:p-8">
+            <div className="rounded-[20px] border border-slate-200 bg-white p-6 shadow-[0_20px_52px_rgba(15,23,42,0.12)] sm:p-8">
               <div className="mb-7">
-                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-[14px] bg-slate-950 text-white">
+                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-[14px] bg-[#030712] text-white">
                   <Building2 size={22} />
                 </div>
-                <h2 className="text-2xl font-black tracking-tight text-slate-950">Entrar no painel</h2>
-                <p className="mt-2 text-sm font-medium leading-6 text-slate-500">
-                  Use o e-mail e a senha do administrador cadastrado no backend.
+                <h2 className="text-2xl font-black tracking-tight text-slate-950">Conheca o painel</h2>
+                <p className="mt-2 text-sm font-semibold leading-6 text-slate-500">
+                  Entre para navegar pela apresentacao e visualizar como a operacao fica na pratica.
                 </p>
               </div>
 
@@ -112,7 +215,7 @@ export default function LoginPage() {
                       onChange={(event) => setEmail(event.target.value)}
                       disabled={loading}
                       autoComplete="email"
-                      placeholder="admin@suaempresa.com"
+                      placeholder="contato@suaempresa.com"
                       className="h-12 w-full rounded-[14px] border border-slate-300 bg-white pl-10 pr-3 text-sm font-semibold text-slate-950 outline-none transition focus:border-slate-950 focus:ring-4 focus:ring-slate-950/5 disabled:opacity-60"
                     />
                   </div>
@@ -145,14 +248,15 @@ export default function LoginPage() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-[14px] bg-slate-950 text-sm font-black text-white shadow-[0_14px_28px_rgba(15,23,42,0.22)] transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-[14px] bg-[#030712] text-sm font-black text-white shadow-[0_14px_28px_rgba(15,23,42,0.22)] transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {loading ? 'Autenticando...' : 'Entrar'}
+                  {loading ? 'Entrando...' : 'Entrar no painel'}
                   {!loading ? <ArrowRight size={18} /> : null}
                 </button>
               </form>
 
-              <div className="mt-6 rounded-[16px] border border-slate-200 bg-gradient-to-b from-slate-50 to-white p-4">
+
+              <div className="mt-6 rounded-[16px] border border-slate-200 bg-slate-50 p-4">
                 <p className="text-xs font-black leading-5 text-slate-900">{firstAccessMessage.title}</p>
                 <p className="mt-1 text-xs font-semibold leading-5 text-slate-600">{firstAccessMessage.description}</p>
               </div>

@@ -34,7 +34,7 @@ try {
     Write-Host ""
 
     Write-Host "Bootstrap concluido com sucesso." -ForegroundColor Green
-    Write-Host "Login seed: eduardo998468@gmail.com / senha123" -ForegroundColor Green
+    Write-Host "Login seed criado. Use a senha configurada no .env local." -ForegroundColor Green
 }
 finally {
     Pop-Location

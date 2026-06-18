@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
+  Building2,
   CalendarDays,
   Clock3,
   LayoutDashboard,
@@ -13,10 +14,11 @@ import {
   Zap,
   type LucideIcon,
 } from 'lucide-react';
+import { useAuth } from '@/app/contexts/AuthContext';
 
 type NavItemConfig = { label: string; href: string; icon: LucideIcon; match?: string };
 
-const navItems: NavItemConfig[] = [
+const baseNavItems: NavItemConfig[] = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
   { icon: Users, label: 'Funcionarios', href: '/dashboard/employees', match: '/dashboard/employees' },
   { icon: Clock3, label: 'Ponto', href: '/dashboard/time-track', match: '/dashboard/time-track' },
@@ -26,6 +28,13 @@ const navItems: NavItemConfig[] = [
   { icon: Settings, label: 'Configuracoes', href: '/dashboard/settings', match: '/dashboard/settings' },
 ];
 
+const devNavItem: NavItemConfig = {
+  icon: Building2,
+  label: 'Plataforma',
+  href: '/dashboard/platform',
+  match: '/dashboard/platform',
+};
+
 function isActive(pathname: string | null, item: NavItemConfig) {
   const route = item.match ?? item.href;
   if (route === '/dashboard') return pathname === '/dashboard';
@@ -34,6 +43,9 @@ function isActive(pathname: string | null, item: NavItemConfig) {
 
 export function DashboardSidebar() {
   const pathname = usePathname();
+  const { user } = useAuth();
+  const isDev = user?.profile === 'dev';
+  const navItems = isDev ? [...baseNavItems, devNavItem] : baseNavItems;
 
   return (
     <aside className="sidebar-shell flex w-full shrink-0 flex-col md:h-screen md:w-[220px]">

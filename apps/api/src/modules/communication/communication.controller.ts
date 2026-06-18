@@ -1,5 +1,4 @@
 import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CurrentCompany } from '../../common/decorators/current-company.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CommunicationService } from './communication.service';
@@ -7,8 +6,6 @@ import { SendMessageDto } from './dto/send-message.dto';
 import { UpdateCommunicationSettingsDto } from './dto/update-communication-settings.dto';
 import { UpdateConversationStatusDto } from './dto/update-conversation-status.dto';
 
-@ApiBearerAuth()
-@ApiTags('communication')
 @UseGuards(JwtAuthGuard)
 @Controller('communication')
 export class CommunicationController {

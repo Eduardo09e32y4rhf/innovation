@@ -1,6 +1,6 @@
 'use client';
 
-import { Search } from 'lucide-react';
+import { LogOut, Search } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/app/contexts/AuthContext';
 
@@ -14,21 +14,22 @@ export function DashboardTopbar() {
           Innovation RH Connect
         </p>
         <h1 className="mt-0.5 text-[18px] font-bold leading-tight text-gray-900">
-          Operacao de RH, ponto e WhatsApp
+          Gestao de pessoas e jornada
         </h1>
       </div>
 
-      <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:gap-2.5">
-        <div className="search-box w-full sm:w-[250px]">
+      <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:gap-3">
+        <div className="search-box w-full sm:w-[280px]">
           <Search size={14} className="shrink-0 text-gray-400" />
-          <input placeholder="Buscar pessoa ou modulo" />
+          <input placeholder="Buscar no painel" />
         </div>
         {isAuthenticated ? (
-          <button type="button" onClick={logout} className="btn-outline">
+          <button type="button" onClick={logout} className="btn-outline h-10 min-w-[92px] px-4 text-xs">
+            <LogOut size={14} />
             Sair
           </button>
         ) : (
-          <Link href="/login" className="btn-outline">
+          <Link href="/login" className="btn-outline h-10 min-w-[92px] px-4 text-xs">
             Entrar
           </Link>
         )}
