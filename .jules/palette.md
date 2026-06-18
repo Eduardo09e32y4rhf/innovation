@@ -13,3 +13,7 @@
 ## 2024-03-05 - Missing ARIA attributes on custom dropdown components
 **Learning:** The custom `LanguageSwitcher` used an inaccessible pattern where a `<button>` triggered a conditionally rendered list, but neither element communicated its role, state, or relationship to screen readers. Focus-visible styles were also missing.
 **Action:** When building custom select/dropdown menus, always ensure the trigger button has `aria-expanded`, `aria-haspopup`, and an informative `aria-label`. The dropdown container must have `role="listbox"`, and its children must have `role="option"` with appropriate `aria-selected` states. Always include keyboard focus styles using Tailwind (`focus-visible:ring-2`).
+
+## 2024-03-05 - Missing ARIA Labels on Icon-only Table Actions
+**Learning:** Found an icon-only button `DownloadPdfButton` wrapping a reusable UI primitive `TableActionButton` which lacked `aria-label`, `title`, and keyboard focus styling (`focus-visible:ring-2`). Without these, table actions are completely inaccessible to screen readers and difficult to navigate via keyboard.
+**Action:** Always ensure reusable UI primitives expose and propagate `aria-label` and `title` props so consumers can inject localized context. Include keyboard focus styles using Tailwind (`focus-visible:ring-2 focus-visible:outline-none`).
