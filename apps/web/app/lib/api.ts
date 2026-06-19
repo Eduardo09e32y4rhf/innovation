@@ -194,7 +194,7 @@ export const api = {
 
   companies: {
     me: () => request<Company>('/companies/me'),
-    update: (data: { name?: string; document?: string; logoUrl?: string }) => request<Company>('/companies/me', { method: 'PATCH', body: data }),
+    update: (data: { name?: string; document?: string; logoUrl?: string | null }) => request<Company>('/companies/me', { method: 'PATCH', body: data }),
   },
 
   whatsapp: {

@@ -11,6 +11,9 @@ export class CompaniesService {
   }
 
   updateMe(companyId: string, dto: UpdateCompanyDto) {
-    return this.repository.updateMe(companyId, dto);
+    return this.repository.updateMe(companyId, {
+      ...dto,
+      logoUrl: dto.logoUrl === null ? null : dto.logoUrl?.trim(),
+    });
   }
 }

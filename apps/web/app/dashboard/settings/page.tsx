@@ -1,11 +1,12 @@
 'use client';
 
-import { ChangeEvent, useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Image, Save, X } from 'lucide-react';
 import { useMutation, useQuery } from '@/app/hooks/use-data';
 import { api } from '@/app/lib/api';
 
-const MAX_LOGO_SIZE = 512 * 1024;
+const SAFE_LOGO_URL = /^https:\/\/[^\s?#]+\.(png|jpe?g|webp)(\?[^\s#]*)?(#[^\s]*)?$/i;
+const MAX_LOGO_URL_LENGTH = 2048;
 
 function formatCnpj(value: string) {
   const digits = value.replace(/\D/g, '').slice(0, 14);
@@ -16,13 +17,14 @@ function formatCnpj(value: string) {
     .replace(/(\d{4})(\d)/, '$1-$2');
 }
 
-function readLogoFile(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result || ''));
-    reader.onerror = () => reject(new Error('Nao foi possivel ler a imagem.'));
-    reader.readAsDataURL(file);
-  });
+function validateLogoUrl(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+  if (trimmed.length > MAX_LOGO_URL_LENGTH) return 'A URL da logo precisa ter no maximo 2048 caracteres.';
+  if (trimmed.startsWith('data:')) return 'Nao salve base64 no banco. Use uma URL HTTPS da imagem.';
+  if (/\.svg(\?|#|$)/i.test(trimmed)) return 'SVG esta bloqueado por seguranca. Use PNG, JPG ou WebP.';
+  if (!SAFE_LOGO_URL.test(trimmed)) return 'Use uma URL HTTPS terminando em PNG, JPG, JPEG ou WebP.';
+  return '';
 }
 
 export default function SettingsPage() {
@@ -31,36 +33,28 @@ export default function SettingsPage() {
   const [name, setName] = useState('');
   const [document, setDocument] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
-  const [logoError, setLogoError] = useState('');
+  const [removeLogo, setRemoveLogo] = useState(false);
 
   useEffect(() => {
     if (company.data) {
       setName(company.data.name ?? '');
       setDocument(company.data.document ?? '');
       setLogoUrl(company.data.logoUrl ?? '');
+      setRemoveLogo(false);
     }
   }, [company.data]);
 
+  const logoError = useMemo(() => (removeLogo ? '' : validateLogoUrl(logoUrl)), [logoUrl, removeLogo]);
+  const previewLogo = !removeLogo && !logoError && logoUrl.trim() ? logoUrl.trim() : '';
+
   const save = useMutation(
-    () => api.companies.update({ name: name.trim() || undefined, document: document.trim() || undefined, logoUrl: logoUrl || undefined }),
+    () => api.companies.update({
+      name: name.trim() || undefined,
+      document: document.trim() || undefined,
+      logoUrl: removeLogo ? null : logoUrl.trim() || undefined,
+    }),
     { onSuccess: () => company.refetch() },
   );
-
-  async function handleLogoChange(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    event.target.value = '';
-    setLogoError('');
-    if (!file) return;
-    if (!file.type.startsWith('image/')) {
-      setLogoError('Envie um arquivo de imagem.');
-      return;
-    }
-    if (file.size > MAX_LOGO_SIZE) {
-      setLogoError('A logo precisa ter no maximo 512 KB.');
-      return;
-    }
-    setLogoUrl(await readLogoFile(file));
-  }
 
   return (
     <div className="mx-auto max-w-4xl space-y-5">
@@ -82,18 +76,14 @@ export default function SettingsPage() {
       <section className="ops-card grid gap-4 rounded-[8px] border border-slate-200 bg-white p-5 sm:grid-cols-[160px_1fr]">
         <div className="space-y-3">
           <div className="flex aspect-square w-full items-center justify-center overflow-hidden rounded-[8px] border border-slate-200 bg-slate-50">
-            {logoUrl ? (
-              <img src={logoUrl} alt="Logo da empresa" className="h-full w-full object-contain p-3" />
+            {previewLogo ? (
+              <img src={previewLogo} alt="Logo da empresa" className="h-full w-full object-contain p-3" />
             ) : (
               <Image size={30} className="text-slate-300" />
             )}
           </div>
-          <label className="btn-outline flex h-10 cursor-pointer items-center justify-center gap-2 rounded-[8px] px-3 text-xs font-bold">
-            <Image size={14} /> Enviar logo
-            <input type="file" accept="image/*" onChange={handleLogoChange} className="sr-only" />
-          </label>
-          {logoUrl && (
-            <button type="button" onClick={() => setLogoUrl('')} className="btn-outline flex h-9 w-full items-center justify-center gap-2 rounded-[8px] px-3 text-xs font-bold">
+          {company.data?.logoUrl && !removeLogo && (
+            <button type="button" onClick={() => setRemoveLogo(true)} className="btn-outline flex h-9 w-full items-center justify-center gap-2 rounded-[8px] px-3 text-xs font-bold">
               <X size={13} /> Remover logo
             </button>
           )}
@@ -121,11 +111,23 @@ export default function SettingsPage() {
             />
           </label>
 
+          <label className="space-y-1 text-xs font-medium text-slate-600 sm:col-span-2">
+            <span>URL HTTPS da logo</span>
+            <input
+              value={removeLogo ? '' : logoUrl}
+              onChange={(e) => { setRemoveLogo(false); setLogoUrl(e.target.value); }}
+              placeholder="https://seudominio.com/logo.png"
+              disabled={company.loading}
+              className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500 disabled:opacity-50"
+            />
+            <span className="block text-[11px] text-slate-400">PNG, JPG ou WebP. SVG e base64 ficam bloqueados.</span>
+          </label>
+
           <div className="sm:col-span-2">
             <button
               type="button"
-              onClick={() => save.mutate().catch(() => {})}
-              disabled={save.loading || company.loading}
+              onClick={() => !logoError && save.mutate().catch(() => {})}
+              disabled={Boolean(logoError) || save.loading || company.loading}
               className="crystal-button inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black text-white disabled:opacity-60"
             >
               <Save size={14} />
