@@ -4,8 +4,12 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 
-ARG NEXT_PUBLIC_API_URL=http://localhost:3333
+ARG NEXT_PUBLIC_API_URL=/api
+ARG NEXT_PUBLIC_API_BASE_URL=/api
+ARG NEXT_PUBLIC_API_BASE=/api
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL
+ENV NEXT_PUBLIC_API_BASE=$NEXT_PUBLIC_API_BASE
 
 COPY package.json package-lock.json ./
 COPY apps/api/package.json ./apps/api/package.json
@@ -20,8 +24,9 @@ RUN npm run build:web
 
 FROM node:20-alpine AS runner
 WORKDIR /app
-RUN npm install -g serve
 COPY --from=builder /app/apps/web/out ./out
+COPY scripts/serve-static.cjs ./scripts/serve-static.cjs
+ENV HOST=0.0.0.0
 ENV PORT=3000
 EXPOSE 3000
-CMD ["sh", "-c", "serve -s out -l ${PORT:-3000}"]
+CMD ["node", "scripts/serve-static.cjs", "out"]

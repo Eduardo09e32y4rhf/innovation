@@ -50,6 +50,7 @@ const isLocalBrowser = () => {
 };
 
 const canUseLocalSession = () => process.env.NODE_ENV !== 'production' && (LOCAL_SESSION_ENABLED || isLocalBrowser());
+const isStoredJsonValue = (value: string | null) => Boolean(value && value !== 'undefined' && value !== 'null');
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -76,7 +77,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       return;
     }
 
-    if (savedToken && savedUser && savedCompany) {
+    if (savedToken && isStoredJsonValue(savedUser) && isStoredJsonValue(savedCompany)) {
       try {
         const parsedUser = JSON.parse(savedUser);
         const parsedCompany = JSON.parse(savedCompany);
@@ -120,7 +121,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     try {
       // Tentar backend real primeiro
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || '/api';
 
       try {
         const response = await fetch(`${apiUrl}/auth/login`, {

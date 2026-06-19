@@ -4,26 +4,27 @@ Use este roteiro quando houver um PostgreSQL real acessivel. No Windows local de
 
 ## VPS
 
-Na VPS, depois de enviar o projeto para `/var/www/innovation.ia`:
+Na VPS, depois de enviar o projeto para `/var/www/innovation.ia`, atualize de forma incremental:
 
 ```bash
 cd /var/www/innovation.ia
-cp .env.prod.example .env
-nano .env
+git pull origin feat/integracao-frontend
 docker compose -f docker-compose.prod.yml --env-file .env up -d --build
+sudo nginx -t
+sudo systemctl reload nginx
 ```
 
-Validar API e web:
+Validar API e web pelo dominio HTTPS:
 
 ```bash
-curl http://23.106.44.75:5000/health
-curl http://23.106.44.75:3001/login
+curl -i https://vps8369.panel.icontainer.net/api/health
+curl -I https://vps8369.panel.icontainer.net/login
 ```
 
 Rodar a bateria automatizada de API:
 
 ```bash
-API_BASE_URL=http://23.106.44.75:5000 npm run test:mvp:api
+API_BASE_URL=https://vps8369.panel.icontainer.net/api npm run test:mvp:api
 ```
 
 O teste cria uma empresa unica, faz login real, cria funcionario, registra ponto, cria/aprova ferias, consulta usuarios/dashboard e valida WhatsApp status em fallback seguro.
