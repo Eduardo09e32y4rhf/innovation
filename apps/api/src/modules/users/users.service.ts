@@ -1,5 +1,6 @@
 import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
+import type { JwtUser } from '../../common/types/auth.types';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UsersRepository } from './users.repository';
@@ -18,11 +19,12 @@ export class UsersService {
     return user;
   }
 
-  async create(companyId: string, dto: CreateUserDto) {
+  async create(companyId: string, actor: JwtUser, dto: CreateUserDto) {
+    this.assertRoleChangeAllowed(actor, dto.role);
+
     const existing = await this.repository.findByEmail(dto.email);
     if (existing) throw new ConflictException('E-mail ja cadastrado');
 
-    // Verifica limite de usuarios da empresa
     const [count, limits] = await Promise.all([
       this.repository.countByCompany(companyId),
       this.repository.getCompanyLimits(companyId),
@@ -43,7 +45,9 @@ export class UsersService {
     });
   }
 
-  async update(companyId: string, id: string, dto: UpdateUserDto) {
+  async update(companyId: string, actor: JwtUser, id: string, dto: UpdateUserDto) {
+    this.assertRoleChangeAllowed(actor, dto.role);
+
     const { password, ...rest } = dto;
     const data = {
       ...rest,
@@ -60,12 +64,21 @@ export class UsersService {
     return { deleted: true };
   }
 
-  /** Retorna quantos usuarios a empresa usa vs o limite — exibido na tela de Usuarios. */
+  /** Retorna quantos usuarios a empresa usa vs o limite - exibido na tela de Usuarios. */
   async usage(companyId: string) {
     const [count, limits] = await Promise.all([
       this.repository.countByCompany(companyId),
       this.repository.getCompanyLimits(companyId),
     ]);
     return { used: count, max: limits?.maxUsers ?? 6 };
+  }
+
+  private assertRoleChangeAllowed(actor: JwtUser, nextRole?: string) {
+    if (nextRole === 'DEV') {
+      throw new ForbiddenException('Perfil DEV e exclusivo da engenharia da plataforma.');
+    }
+    if (actor.role === 'RH' && nextRole === 'ADMIN') {
+      throw new ForbiddenException('RH nao pode criar ou promover Administrador.');
+    }
   }
 }

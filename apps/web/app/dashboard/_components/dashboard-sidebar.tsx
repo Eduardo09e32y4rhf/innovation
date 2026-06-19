@@ -15,17 +15,20 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { useAuth } from '@/app/contexts/AuthContext';
+import { ROLE_LABEL } from '@/app/lib/format';
 
-type NavItemConfig = { label: string; href: string; icon: LucideIcon; match?: string };
+type NavItemConfig = { label: string; href: string; icon: LucideIcon; match?: string; roles?: string[] };
+
+const DEV_ACCESS_EMAIL = 'eduardo998468@gmail.com';
 
 const baseNavItems: NavItemConfig[] = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
   { icon: Users, label: 'Funcionarios', href: '/dashboard/employees', match: '/dashboard/employees' },
   { icon: Clock3, label: 'Ponto', href: '/dashboard/time-track', match: '/dashboard/time-track' },
   { icon: CalendarDays, label: 'Ferias', href: '/dashboard/vacations', match: '/dashboard/vacations' },
-  { icon: Smartphone, label: 'WhatsApp', href: '/dashboard/whatsapp', match: '/dashboard/whatsapp' },
-  { icon: UserCog, label: 'Usuarios', href: '/dashboard/users', match: '/dashboard/users' },
-  { icon: Settings, label: 'Configuracoes', href: '/dashboard/settings', match: '/dashboard/settings' },
+  { icon: Smartphone, label: 'WhatsApp', href: '/dashboard/whatsapp', match: '/dashboard/whatsapp', roles: ['DEV', 'ADMIN', 'RH', 'GESTOR'] },
+  { icon: UserCog, label: 'Usuarios', href: '/dashboard/users', match: '/dashboard/users', roles: ['DEV', 'ADMIN', 'RH'] },
+  { icon: Settings, label: 'Configuracoes', href: '/dashboard/settings', match: '/dashboard/settings', roles: ['DEV', 'ADMIN', 'RH'] },
 ];
 
 const devNavItem: NavItemConfig = {
@@ -41,11 +44,30 @@ function isActive(pathname: string | null, item: NavItemConfig) {
   return Boolean(pathname?.startsWith(route));
 }
 
+function canSeeItem(item: NavItemConfig, profile: string | undefined, authorizedDev: boolean) {
+  if (!item.roles?.length) return true;
+  if (profile === 'DEV') return authorizedDev && item.roles.includes('DEV');
+  return item.roles.includes(String(profile || '').toUpperCase());
+}
+
+function isAuthorizedDev(profile?: string, email?: string) {
+  return String(profile || '').toLowerCase() === 'dev' && String(email || '').toLowerCase() === DEV_ACCESS_EMAIL;
+}
+
+function getInitials(name?: string, email?: string) {
+  const source = (name?.trim() || email?.split('@')[0] || 'Usuario').trim();
+  const parts = source.split(/\s+/).filter(Boolean);
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+}
+
 export function DashboardSidebar() {
   const pathname = usePathname();
   const { user } = useAuth();
-  const isDev = user?.profile === 'dev';
-  const navItems = isDev ? [...baseNavItems, devNavItem] : baseNavItems;
+  const profile = user?.profile?.toUpperCase();
+  const authorizedDev = isAuthorizedDev(user?.profile, user?.email);
+  const navItems = baseNavItems.filter((item) => canSeeItem(item, profile, authorizedDev));
+  if (authorizedDev) navItems.push(devNavItem);
 
   return (
     <aside className="sidebar-shell flex w-full shrink-0 flex-col md:h-screen md:w-[220px]">
@@ -70,17 +92,27 @@ export function DashboardSidebar() {
       </nav>
 
       <div className="hidden p-3 pt-0 md:block">
-        <div className="sidebar-copilot-card p-4">
-          <div className="mb-3 flex h-7 w-7 items-center justify-center rounded-md bg-teal-500/15">
-            <Zap size={13} strokeWidth={2} className="text-teal-400" />
-          </div>
-          <p className="text-[12px] font-semibold leading-tight text-white">MVP vendavel</p>
-          <p className="mt-1.5 text-[11px] leading-relaxed text-white/40">
-            RH, ponto e WhatsApp para operacao diaria.
+        <UserIdentityCard name={user?.name} email={user?.email} profile={profile} />
+      </div>
+    </aside>
+  );
+}
+
+function UserIdentityCard({ name, email, profile }: { name?: string; email?: string; profile?: string }) {
+  return (
+    <div className="sidebar-copilot-card p-4">
+      <div className="flex items-center gap-3">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-teal-400/15 text-[12px] font-black text-teal-200 ring-1 ring-teal-300/20">
+          {getInitials(name, email)}
+        </div>
+        <div className="min-w-0">
+          <p className="truncate text-[13px] font-semibold leading-tight text-white">{name || email || 'Usuario'}</p>
+          <p className="mt-1 text-[10px] font-black uppercase tracking-[0.16em] text-white/40">
+            {ROLE_LABEL[profile || ''] ?? profile ?? 'Perfil'}
           </p>
         </div>
       </div>
-    </aside>
+    </div>
   );
 }
 

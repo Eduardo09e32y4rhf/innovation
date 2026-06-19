@@ -137,7 +137,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           const nextToken = authData.access_token;
           const nextUser = {
             id: authData.user.sub,
-            name: email.split('@')[0] || 'Usuário',
+            name: authData.user.name || email.split('@')[0] || 'Usuario',
             email: authData.user.email,
             profile: String(authData.user.role || 'USER').toLowerCase(),
             companyId: authData.user.companyId,
