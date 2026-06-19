@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState } from 'react';
 import { CalendarDays, Clock3, MessageSquareText, TrendingUp, Users } from 'lucide-react';
-import { ProtectedRoute } from '@/app/components/ProtectedRoute';
 import { ErrorState } from '@/app/components/data-states';
 import { useQuery } from '@/app/hooks/use-data';
 import { api } from '@/app/lib/api';
@@ -10,11 +9,7 @@ import { demoSummary, demoTimeTracks, demoVacations, isLocalPresentation } from 
 import { VACATION_STATUS_LABEL, formatMinutes, formatPeriod, formatTime } from '@/app/lib/format';
 
 export default function DashboardHome() {
-  return (
-    <ProtectedRoute>
-      <DashboardContent />
-    </ProtectedRoute>
-  );
+  return <DashboardContent />;
 }
 
 function DashboardContent() {

@@ -1,23 +1,32 @@
-# Dockerfile de PRODUCAO — Frontend Next.js (static export)
-# NEXT_PUBLIC_* sao "assadas" no build — precisam entrar como ARG.
+# Dockerfile de producao - Frontend Next.js (static export)
+# NEXT_PUBLIC_* sao embutidas no build e precisam entrar como ARG.
 
 FROM node:20-alpine AS builder
 WORKDIR /app
 
-ARG NEXT_PUBLIC_API_URL=http://localhost:3333
+ARG NEXT_PUBLIC_API_URL=/api
+ARG NEXT_PUBLIC_API_BASE_URL=/api
+ARG NEXT_PUBLIC_API_BASE=/api
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL
+ENV NEXT_PUBLIC_API_BASE=$NEXT_PUBLIC_API_BASE
 
-COPY package.json package-lock.json* ./
-RUN npm install --frozen-lockfile 2>/dev/null || npm install
+COPY package.json package-lock.json ./
+COPY apps/api/package.json ./apps/api/package.json
+COPY apps/web/package.json ./apps/web/package.json
+RUN npm config set fetch-retries 5 \
+ && npm config set fetch-retry-mintimeout 20000 \
+ && npm config set fetch-retry-maxtimeout 120000 \
+ && npm ci --no-audit --prefer-offline
 
 COPY . .
 RUN npm run build:web
 
-# Serve o output estatico
 FROM node:20-alpine AS runner
 WORKDIR /app
-RUN npm install -g serve
 COPY --from=builder /app/apps/web/out ./out
-ENV PORT=8080
-EXPOSE 8080
-CMD ["serve", "-s", "out", "-l", "8080"]
+COPY scripts/serve-static.cjs ./scripts/serve-static.cjs
+ENV HOST=0.0.0.0
+ENV PORT=3000
+EXPOSE 3000
+CMD ["node", "scripts/serve-static.cjs", "out"]

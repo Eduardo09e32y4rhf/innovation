@@ -1,0 +1,17 @@
+.git
+.github
+node_modules
+apps/*/node_modules
+apps/api/dist
+apps/web/.next
+apps/web/out
+apps/web/tsconfig.tsbuildinfo
+.env
+apps/api/.env
+storage
+apps/api/storage
+coverage
+*.log
+.DS_Store
+.vscode
+.idea

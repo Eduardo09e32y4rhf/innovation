@@ -6,7 +6,7 @@
  */
 
 export const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333';
+  process.env.NEXT_PUBLIC_API_URL || '/api';
 
 export class ApiError extends Error {
   status: number;
@@ -67,6 +67,11 @@ async function request<T>(path: string, opts: Opts = {}): Promise<T> {
         : `Erro ${res.status}`;
     throw new ApiError(res.status, msg, data);
   }
+
+  if (data && typeof data === 'object' && 'success' in data && 'data' in data) {
+    return (data as { data: T }).data;
+  }
+
   return data as T;
 }
 
@@ -74,7 +79,7 @@ function safeJson(text: string): unknown {
   try { return JSON.parse(text); } catch { return text; }
 }
 
-// ─── Tipos ───────────────────────────────────────────────────────────────────
+// Types
 
 export type EmployeeStatus = 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' | 'TERMINATED';
 export type VacationStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED' | 'COMPLETED';
@@ -135,7 +140,7 @@ export interface ChatMessage {
 export interface SendMessageInput { phone: string; body: string; contactName?: string; }
 
 export interface Company {
-  id: string; name: string; document?: string | null;
+  id: string; name: string; document?: string | null; logoUrl?: string | null;
   maxUsers: number; maxEmployees: number; isActive: boolean; createdAt: string;
 }
 export interface PlatformCompany extends Company { usersCount: number; employeesCount: number; }
@@ -145,7 +150,7 @@ export interface CreatePlatformCompanyInput {
   adminName: string; adminEmail: string; adminPassword: string;
 }
 
-// ─── API por modulo ──────────────────────────────────────────────────────────
+// Module API
 
 export const api = {
   request,
@@ -189,7 +194,7 @@ export const api = {
 
   companies: {
     me: () => request<Company>('/companies/me'),
-    update: (data: { name?: string; document?: string }) => request<Company>('/companies/me', { method: 'PATCH', body: data }),
+    update: (data: { name?: string; document?: string; logoUrl?: string | null }) => request<Company>('/companies/me', { method: 'PATCH', body: data }),
   },
 
   whatsapp: {

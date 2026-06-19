@@ -176,3 +176,6 @@ yarn.lock
 # Local env overrides
 .env.local
 .env.*.local
+
+# Local external Agent Canvas checkout; do not publish bundled repo/cache.
+agent-canvas/

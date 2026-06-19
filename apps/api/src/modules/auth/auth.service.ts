@@ -23,6 +23,7 @@ export class AuthService {
     return this.buildAuthResponse({
       sub: admin.id,
       email: admin.email,
+      name: admin.name,
       companyId: admin.companyId,
       role: admin.role,
     });
@@ -33,7 +34,7 @@ export class AuthService {
     if (!user || !user.isActive) throw new UnauthorizedException('Invalid credentials');
     const passwordOk = await bcrypt.compare(dto.password, user.passwordHash);
     if (!passwordOk) throw new UnauthorizedException('Invalid credentials');
-    return this.buildAuthResponse({ sub: user.id, email: user.email, companyId: user.companyId, role: user.role });
+    return this.buildAuthResponse({ sub: user.id, email: user.email, name: user.name, companyId: user.companyId, role: user.role });
   }
 
   me(user: JwtUser) {

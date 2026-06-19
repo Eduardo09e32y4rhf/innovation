@@ -96,6 +96,7 @@ model Company {
   id           String   @id @default(uuid()) @db.Uuid
   name         String
   document     String?  @unique
+  logoUrl      String?  @db.Text
   maxUsers     Int      @default(6)
   maxEmployees Int      @default(50)
   isActive     Boolean  @default(true)

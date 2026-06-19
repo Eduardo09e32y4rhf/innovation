@@ -118,7 +118,7 @@ export class OmniusAdapterService {
         isConnected: false,
         requiresReauth: true,
         userEmail: null,
-        details: (error as Error).message,
+        details: 'Calendar status unavailable',
       };
     }
   }

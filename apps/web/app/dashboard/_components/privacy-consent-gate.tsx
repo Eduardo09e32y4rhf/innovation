@@ -151,5 +151,5 @@ function InfoLine({ label, value }: { label: string; value: string }) {
 }
 
 function getApiBaseUrl() {
-  return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333';
+  return process.env.NEXT_PUBLIC_API_URL || '/api';
 }

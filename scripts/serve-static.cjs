@@ -4,6 +4,7 @@ const path = require('path');
 
 const targetDir = path.resolve(process.cwd(), process.argv[2] || 'out');
 const port = Number(process.argv[3] || process.env.PORT || 3000);
+const host = process.env.HOST || '127.0.0.1';
 
 const MIME_TYPES = {
   '.css': 'text/css; charset=utf-8',

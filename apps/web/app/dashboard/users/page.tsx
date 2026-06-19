@@ -3,13 +3,24 @@
 import { useState } from 'react';
 import { Trash2, UserPlus, X } from 'lucide-react';
 import { EmptyState, ErrorState, LoadingState } from '@/app/components/data-states';
+import { useAuth } from '@/app/contexts/AuthContext';
 import { useMutation, useQuery } from '@/app/hooks/use-data';
 import { api, type CreateUserInput, type UserRole } from '@/app/lib/api';
 import { ROLE_LABEL } from '@/app/lib/format';
 
 const ROLES: UserRole[] = ['ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO'];
+const DEV_ACCESS_EMAIL = 'eduardo998468@gmail.com';
+
+function isAuthorizedDev(profile?: string, email?: string) {
+  return String(profile || '').toLowerCase() === 'dev' && String(email || '').toLowerCase() === DEV_ACCESS_EMAIL;
+}
 
 export default function UsersPage() {
+  const { user: currentUser } = useAuth();
+  const currentRole = currentUser?.profile?.toUpperCase();
+  const authorizedDev = isAuthorizedDev(currentUser?.profile, currentUser?.email);
+  const canDeleteUsers = authorizedDev || currentRole === 'ADMIN';
+  const availableRoles = currentRole === 'RH' ? ROLES.filter((role) => role !== 'ADMIN') : ROLES;
   const users = useQuery(() => api.users.list(), []);
   const usage = useQuery(() => api.users.usage(), []);
   const [open, setOpen] = useState(false);
@@ -22,6 +33,7 @@ export default function UsersPage() {
   const isFull = usage.data ? usage.data.used >= usage.data.max : false;
 
   async function handleDelete(id: string, name: string) {
+    if (!canDeleteUsers) return;
     if (!window.confirm(`Remover o acesso de ${name}?`)) return;
     await remove.mutate(id).catch(() => {});
   }
@@ -35,14 +47,14 @@ export default function UsersPage() {
           {usage.data && (
             <p className="mt-1 text-xs text-slate-500">
               {usage.data.used} de {usage.data.max} usuarios
-              {isFull && <span className="ml-1 font-bold text-amber-600">· limite atingido</span>}
+              {isFull && <span className="ml-1 font-bold text-amber-600">- limite atingido</span>}
             </p>
           )}
         </div>
         <button
           onClick={() => setOpen(true)}
           disabled={isFull}
-          title={isFull ? 'Limite atingido — contate o suporte para ampliar' : undefined}
+          title={isFull ? 'Limite atingido - contate o suporte para ampliar' : undefined}
           className="crystal-button inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black text-white disabled:opacity-50"
         >
           <UserPlus size={14} /> Novo usuario
@@ -78,13 +90,17 @@ export default function UsersPage() {
                     <td className="py-3 pr-4">{user.email}</td>
                     <td className="py-3 pr-4">{ROLE_LABEL[user.role] ?? user.role}</td>
                     <td className="py-3">
-                      <button
-                        onClick={() => handleDelete(user.id, user.name)}
-                        disabled={remove.loading}
-                        className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px] disabled:opacity-50"
-                      >
-                        <Trash2 size={12} />Remover
-                      </button>
+                      {canDeleteUsers ? (
+                        <button
+                          onClick={() => handleDelete(user.id, user.name)}
+                          disabled={remove.loading}
+                          className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px] disabled:opacity-50"
+                        >
+                          <Trash2 size={12} />Remover
+                        </button>
+                      ) : (
+                        <span className="text-[11px] font-semibold text-slate-400">Sem exclusao</span>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -96,6 +112,7 @@ export default function UsersPage() {
 
       {open && (
         <NewUserModal
+          availableRoles={availableRoles}
           onClose={() => setOpen(false)}
           onDone={() => { setOpen(false); users.refetch(); usage.refetch(); }}
         />
@@ -104,8 +121,8 @@ export default function UsersPage() {
   );
 }
 
-function NewUserModal({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
-  const [form, setForm] = useState<CreateUserInput>({ name: '', email: '', password: '', role: 'RH' });
+function NewUserModal({ availableRoles, onClose, onDone }: { availableRoles: UserRole[]; onClose: () => void; onDone: () => void }) {
+  const [form, setForm] = useState<CreateUserInput>({ name: '', email: '', password: '', role: availableRoles[0] ?? 'FUNCIONARIO' });
   const create = useMutation(() => api.users.create(form), { onSuccess: onDone });
   const valid = form.name && form.email && form.password.length >= 8;
 
@@ -121,7 +138,7 @@ function NewUserModal({ onClose, onDone }: { onClose: () => void; onDone: () => 
           {[
             { label: 'Nome', key: 'name' as const, type: 'text' },
             { label: 'E-mail', key: 'email' as const, type: 'email' },
-            { label: 'Senha (min. 8)', key: 'password' as const, type: 'password' },
+            { label: 'Senha padrao (min. 8)', key: 'password' as const, type: 'password' },
           ].map(({ label, key, type }) => (
             <label key={key} className="block space-y-1 text-xs font-medium text-slate-600">
               <span>{label}</span>
@@ -140,7 +157,7 @@ function NewUserModal({ onClose, onDone }: { onClose: () => void; onDone: () => 
               onChange={(e) => setForm((f) => ({ ...f, role: e.target.value as UserRole }))}
               className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500"
             >
-              {ROLES.map((r) => <option key={r} value={r}>{ROLE_LABEL[r]}</option>)}
+              {availableRoles.map((r) => <option key={r} value={r}>{ROLE_LABEL[r]}</option>)}
             </select>
           </label>
         </div>

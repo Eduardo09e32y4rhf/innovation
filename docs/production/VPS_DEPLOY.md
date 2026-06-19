@@ -1,130 +1,64 @@
-# Deploy VPS - Innovation IA
+# VPS Deploy - Production Notes
 
-## 1. Ambiente
+Use este resumo para a VPS publicada em:
 
-Use Node.js 20+, PostgreSQL e PM2.
-
-```bash
-cp .env.vps.example .env
-nano .env
+```txt
+https://vps8369.panel.icontainer.net
 ```
 
-Preencha no minimo:
+## Regra de preservacao
 
-- `DATABASE_URL`
-- `JWT_SECRET`
-- `JWT_REFRESH_SECRET`
-- `ADMIN_EMAIL`
-- `ADMIN_PASSWORD`
-- `NEXT_PUBLIC_API_URL`
-- `NEXT_PUBLIC_APP_URL`
-- `ALLOWED_ORIGINS`
+Nao apague volumes, nao rode `docker compose down -v` e nao recrie banco sem autorizacao. A atualizacao deve ser incremental e preservar o sistema atual.
 
-Mantenha em producao:
+## Portas atuais do Innovation
 
-```bash
-ENABLE_DEMO_TOKEN=false
-ENABLE_LOCAL_SESSION=false
-NEXT_PUBLIC_ENABLE_LOCAL_SESSION=false
-```
+- Nginx publico: `80` e `443`
+- Web container: host `8080` -> container `3000`
+- API container: host `3333` -> container `3333`
+- Postgres Docker novo: host `5435` -> container `5432`, quando usado
 
-## 2. Instalar e compilar
+Porta ocupada pelo proprio Innovation antigo deve ser mantida. Porta ocupada por outro sistema deve ser investigada antes de mudar.
 
-```bash
-npm ci
-npm run vps:infra
-npm --prefix apps/api run prisma:generate
-npm --prefix apps/api run prisma:deploy
-npm --prefix apps/api run seed:admin
-npm run build:api
-npm run build:web
-```
-
-Importante: o `NEXT_PUBLIC_API_URL` precisa estar certo antes do `npm run build:web`, porque o frontend e exportado estaticamente.
-
-O primeiro acesso usa o admin criado pelo seed:
-
-```bash
-ADMIN_EMAIL=admin@seudominio.com
-ADMIN_PASSWORD=sua_senha_forte
-npm --prefix apps/api run seed:admin
-```
-
-Postgres e Redis sobem pelo [`docker-compose.vps.yml`](../../docker-compose.vps.yml):
-
-- Postgres: `127.0.0.1:5432`
-- Redis: `127.0.0.1:6379`
-- Volumes persistentes: `innovation_postgres_data` e `innovation_redis_data`
-
-Para checar saude:
-
-```bash
-docker compose --env-file .env -f docker-compose.vps.yml ps
-docker compose --env-file .env -f docker-compose.vps.yml logs -f
-```
-
-## 3. Rodar com PM2
-
-```bash
-npm i -g pm2
-pm2 start ecosystem.config.cjs
-pm2 save
-pm2 startup
-```
-
-Servicos esperados:
-
-- API: `127.0.0.1:3333`
-- Web: `127.0.0.1:3000`
-
-## 4. Nginx sugerido
+## Nginx esperado
 
 ```nginx
-server {
-  server_name seudominio.com www.seudominio.com;
-
-  location / {
-    proxy_pass http://127.0.0.1:3000;
-    proxy_set_header Host $host;
-    proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto $scheme;
-  }
+location / {
+    proxy_pass http://127.0.0.1:8080;
 }
 
-server {
-  server_name api.seudominio.com;
-
-  location / {
-    proxy_pass http://127.0.0.1:3333;
-    proxy_http_version 1.1;
-    proxy_set_header Upgrade $http_upgrade;
-    proxy_set_header Connection "upgrade";
-    proxy_set_header Host $host;
-    proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto $scheme;
-  }
+location /api/ {
+    proxy_pass http://127.0.0.1:3333/;
 }
 ```
 
-## 5. Checklist rapido
+## Variaveis publicas do frontend
 
-```bash
-curl -I https://seudominio.com
-curl -I https://seudominio.com/_next/static/css/a7264e1ba7947b33.css
-curl https://api.seudominio.com/health
-pm2 logs innovation-api
-pm2 logs innovation-web
+```env
+NEXT_PUBLIC_API_URL=/api
+NEXT_PUBLIC_API_BASE_URL=/api
+NEXT_PUBLIC_API_BASE=/api
+ALLOWED_ORIGINS=https://vps8369.panel.icontainer.net
 ```
 
-O CSS precisa responder com `Content-Type: text/css`. Se responder `text/html`, o Nginx esta servindo uma pasta errada ou fazendo fallback para `index.html` nos assets. Nesse caso, use proxy para `127.0.0.1:3000` como no exemplo acima e reinicie:
+Nao use `http://localhost:3333`, `http://127.0.0.1:3333` ou `http://23.106.44.75:3333` no build do frontend de producao.
+
+## Deploy Docker
 
 ```bash
-npm run build:web
-pm2 restart innovation-web --update-env
+cd /var/www/innovation.ia
+git pull origin feat/integracao-frontend
+docker compose -f docker-compose.prod.yml --env-file .env up -d --build
 sudo nginx -t
 sudo systemctl reload nginx
 ```
 
-Depois entre no painel, faca login real, abra WhatsApp > Conexao, leia o QR Code e valide as conversas reais.
+## Validacao
+
+```bash
+curl -i https://vps8369.panel.icontainer.net/api/health
+curl -I https://vps8369.panel.icontainer.net/login
+docker exec innovation-web sh -lc "grep -R '23.106.44.75:3333\|localhost:3333\|127.0.0.1:3333' /app/out || echo OK"
+API_BASE_URL=https://vps8369.panel.icontainer.net/api npm run test:mvp:api
+```
+
+O CSS precisa responder como asset estatico do container web. Se CSS vier como `text/html`, valide se o container web foi reconstruido com `scripts/serve-static.cjs` e se o Nginx aponta `/` para `127.0.0.1:8080`.

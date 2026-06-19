@@ -1,123 +1,78 @@
-# Deploy na VPS - Innovation RH Connect
+# Deploy - Innovation RH Connect
 
-Guia rapido para colocar o sistema no ar na VPS `23.106.44.75` com Docker.
-Ao final, Postgres, API e frontend ficam rodando, com o usuario DEV criado pelo seed.
+Regra principal: primeiro descubra quem e dono das portas. Porta ocupada pelo Innovation antigo nao e conflito externo; nesse caso suba a nova versao no mesmo lugar e mantenha Nginx/API URL.
 
-> Antes de subir: confirme que a VPS esta ativa e sem fatura vencida.
-
-## 1. Entrar na VPS
+## Diagnostico obrigatorio na VPS
 
 ```bash
-ssh root@23.106.44.75
+ss -tulpn | grep -E ':3000|:3333|:5000|:3001|:5432|:5433|:8080|:8000'
+docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Ports}}\t{{.Status}}"
+pm2 list
 ```
 
-Confirme Docker e Docker Compose:
+## Producao atual
 
-```bash
-docker --version && docker compose version
+A VPS publica o sistema por HTTPS no Nginx:
+
+```txt
+https://vps8369.panel.icontainer.net
 ```
 
-Se nao tiver Docker:
+O Nginx deve manter:
 
-```bash
-curl -fsSL https://get.docker.com | sh
+```nginx
+location / {
+    proxy_pass http://127.0.0.1:8080;
+}
+
+location /api/ {
+    proxy_pass http://127.0.0.1:3333/;
+}
 ```
 
-## 2. Clonar ou atualizar o repositorio
-
-```bash
-cd /opt
-git clone https://github.com/Eduardo09e32y4rhf/innovation.git
-cd innovation
-```
-
-Se o repo ja existir:
-
-```bash
-cd /opt/innovation
-git pull
-```
-
-## 3. Criar o .env de producao
-
-```bash
-cp .env.prod.example .env
-nano .env
-```
-
-Troque no minimo:
-
-- `POSTGRES_PASSWORD`: senha forte do banco.
-- `JWT_SECRET`: gere com `openssl rand -hex 32`.
-- `DEV_EMAIL` e `DEV_PASSWORD`: seu acesso de engenharia/plataforma.
-- `ADMIN_PASSWORD`: senha do admin demo.
-- `NEXT_PUBLIC_API_URL`: `http://23.106.44.75:3333` no primeiro deploy.
-- `ALLOWED_ORIGINS`: `http://23.106.44.75:8080` no primeiro deploy.
-
-As variaveis `PLATFORM_COMPANY_DOCUMENT` e `DEMO_COMPANY_DOCUMENT` sao usadas pelo seed para fazer upsert seguro das empresas internas/demo.
-
-## 4. Subir tudo
-
-```bash
-docker compose -f docker-compose.prod.yml up -d --build
-```
-
-A API aplica as migrations, roda o seed e sobe em producao. O primeiro build pode demorar alguns minutos por causa de dependencias nativas.
-
-Acompanhe a API:
-
-```bash
-docker compose -f docker-compose.prod.yml logs -f api
-```
-
-Quando aparecer a linha do seed com `DEV ->`, sua conta DEV esta criada.
-
-## 5. Testar
-
-- Frontend: `http://23.106.44.75:8080`
-- API health: `http://23.106.44.75:3333/health`
-
-Entre com `DEV_EMAIL` e `DEV_PASSWORD`. O usuario DEV ve o menu Plataforma para criar empresas, ajustar limites e suspender clientes.
-
-## 6. Atualizar depois de novo push
-
-```bash
-cd /opt/innovation
-git pull
-docker compose -f docker-compose.prod.yml up -d --build
-```
-
-## 7. Comandos uteis
-
-```bash
-# Status
-docker compose -f docker-compose.prod.yml ps
-
-# Logs da API
-docker compose -f docker-compose.prod.yml logs -f api
-
-# Parar tudo
-docker compose -f docker-compose.prod.yml down
-
-# Backup do banco
-docker exec innovation-postgres pg_dump -U innovation_user innovation > backup_$(date +%F).sql
-```
-
-## Dominio e HTTPS
-
-Rodar por IP funciona para validar. Para vender, use dominio com HTTPS. Depois de configurar proxy/SSL, atualize:
+No `.env` de producao, mantenha a API relativa para evitar mixed content:
 
 ```env
-NEXT_PUBLIC_API_URL=https://api.seudominio.com
-ALLOWED_ORIGINS=https://app.seudominio.com
+API_PORT=3333
+API_HOST_PORT=3333
+WEB_PORT=3000
+WEB_HOST_PORT=8080
+NEXT_PUBLIC_API_URL=/api
+NEXT_PUBLIC_API_BASE_URL=/api
+NEXT_PUBLIC_API_BASE=/api
+ALLOWED_ORIGINS=https://vps8369.panel.icontainer.net
 ```
 
-E rebuilde:
+So use portas alternativas se ficar confirmado que as portas atuais pertencem a outro sistema que nao pode ser parado.
+
+## Docker incremental
+
+Nao use `down -v` e nao remova volumes. Para atualizar:
 
 ```bash
-docker compose -f docker-compose.prod.yml up -d --build web api
+cd /var/www/innovation.ia
+git pull origin feat/integracao-frontend
+docker compose -f docker-compose.prod.yml --env-file .env up -d --build
+sudo nginx -t
+sudo systemctl reload nginx
 ```
 
-## WhatsApp
+## Smoke test MVP
 
-A sessao do WhatsApp fica no volume `innovation_wa`, entao sobrevive a restarts. Conecte uma vez pelo QR Code e a API mantem a sessao na VPS.
+```bash
+curl -i https://vps8369.panel.icontainer.net/api/health
+curl -I https://vps8369.panel.icontainer.net/login
+docker exec innovation-web sh -lc "grep -R '23.106.44.75:3333\|localhost:3333\|127.0.0.1:3333' /app/out || echo OK"
+API_BASE_URL=https://vps8369.panel.icontainer.net/api npm run test:mvp:api
+```
+
+## PM2
+
+Use PM2 apenas se a versao atual estiver rodando por PM2:
+
+```bash
+pm2 list
+pm2 restart innovation-api
+pm2 restart innovation-web
+pm2 logs --lines 100
+```

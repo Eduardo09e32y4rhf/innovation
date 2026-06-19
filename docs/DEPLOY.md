@@ -1,36 +1,78 @@
-# Deploy do MVP
+# Deploy - Innovation RH Connect
 
-Este projeto esta pronto para subir no Render usando o arquivo `render.yaml` na raiz.
+Regra principal: primeiro descubra quem e dono das portas. Porta ocupada pelo Innovation antigo nao e conflito externo; nesse caso suba a nova versao no mesmo lugar e mantenha Nginx/API URL.
 
-## Servicos criados
+## Diagnostico obrigatorio na VPS
 
-- `innovation-rh-connect-db`: PostgreSQL gerenciado.
-- `innovation-rh-connect-api`: API NestJS em Node.js.
-- `innovation-rh-connect-web`: frontend Next.js exportado como site estatico.
+```bash
+ss -tulpn | grep -E ':3000|:3333|:5000|:3001|:5432|:5433|:8080|:8000'
+docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Ports}}\t{{.Status}}"
+pm2 list
+```
 
-## Publicar
+## Producao atual
 
-1. Envie a branch `feat/integracao-frontend` para o GitHub.
-2. No Render, crie um novo Blueprint a partir do repositorio `Eduardo09e32y4rhf/innovation`.
-3. Selecione a branch `feat/integracao-frontend`.
-4. Confirme a criacao dos servicos.
+A VPS publica o sistema por HTTPS no Nginx:
 
-## URLs esperadas
+```txt
+https://vps8369.panel.icontainer.net
+```
 
-- Frontend: `https://innovation-rh-connect-web.onrender.com`
-- API: `https://innovation-rh-connect-api.onrender.com`
-- Swagger: `https://innovation-rh-connect-api.onrender.com/docs`
+O Nginx deve manter:
 
-Se o Render alterar algum nome de servico por conflito, ajuste:
+```nginx
+location / {
+    proxy_pass http://127.0.0.1:8080;
+}
 
-- `NEXT_PUBLIC_API_URL` no servico web.
-- `ALLOWED_ORIGINS` no servico api.
+location /api/ {
+    proxy_pass http://127.0.0.1:3333/;
+}
+```
 
-## Login inicial
+No `.env` de producao, mantenha a API relativa para evitar mixed content:
 
-O seed cria o usuario:
+```env
+API_PORT=3333
+API_HOST_PORT=3333
+WEB_PORT=3000
+WEB_HOST_PORT=8080
+NEXT_PUBLIC_API_URL=/api
+NEXT_PUBLIC_API_BASE_URL=/api
+NEXT_PUBLIC_API_BASE=/api
+ALLOWED_ORIGINS=https://vps8369.panel.icontainer.net
+```
 
-- Email: `admin@innovation.local`
-- Senha: definida pela variavel `ADMIN_PASSWORD` gerada no Render.
+So use portas alternativas se ficar confirmado que as portas atuais pertencem a outro sistema que nao pode ser parado.
 
-Para escolher uma senha manual, substitua `ADMIN_PASSWORD` nas variaveis do servico API e rode novamente o deploy ou o job de seed.
+## Docker incremental
+
+Nao use `down -v` e nao remova volumes. Para atualizar:
+
+```bash
+cd /var/www/innovation.ia
+git pull origin feat/integracao-frontend
+docker compose -f docker-compose.prod.yml --env-file .env up -d --build
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+## Smoke test MVP
+
+```bash
+curl -i https://vps8369.panel.icontainer.net/api/health
+curl -I https://vps8369.panel.icontainer.net/login
+docker exec innovation-web sh -lc "grep -R '23.106.44.75:3333\|localhost:3333\|127.0.0.1:3333' /app/out || echo OK"
+API_BASE_URL=https://vps8369.panel.icontainer.net/api npm run test:mvp:api
+```
+
+## PM2
+
+Use PM2 apenas se a versao atual estiver rodando por PM2:
+
+```bash
+pm2 list
+pm2 restart innovation-api
+pm2 restart innovation-web
+pm2 logs --lines 100
+```

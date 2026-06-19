@@ -1,53 +1,78 @@
-# Deploy na Locaweb
+# Deploy - Innovation RH Connect
 
-Este MVP precisa de um ambiente que rode Node.js continuamente e PostgreSQL.
-Na Locaweb, use uma VPS/Cloud Server com Docker.
+Regra principal: primeiro descubra quem e dono das portas. Porta ocupada pelo Innovation antigo nao e conflito externo; nesse caso suba a nova versao no mesmo lugar e mantenha Nginx/API URL.
 
-## Publicar para teste
-
-No servidor:
+## Diagnostico obrigatorio na VPS
 
 ```bash
-git clone https://github.com/Eduardo09e32y4rhf/innovation.git
-cd innovation
-git checkout feat/integracao-frontend
-cp infra/locaweb.env.example .env
+ss -tulpn | grep -E ':3000|:3333|:5000|:3001|:5432|:5433|:8080|:8000'
+docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Ports}}\t{{.Status}}"
+pm2 list
 ```
 
-Edite `.env` e troque:
+## Producao atual
 
-- `POSTGRES_PASSWORD`
-- `JWT_SECRET`
-- `ADMIN_PASSWORD`
-- `NEXT_PUBLIC_APP_URL`
-- `NEXT_PUBLIC_API_URL`
-- `ALLOWED_ORIGINS`
+A VPS publica o sistema por HTTPS no Nginx:
 
-Depois suba:
+```txt
+https://vps8369.panel.icontainer.net
+```
+
+O Nginx deve manter:
+
+```nginx
+location / {
+    proxy_pass http://127.0.0.1:8080;
+}
+
+location /api/ {
+    proxy_pass http://127.0.0.1:3333/;
+}
+```
+
+No `.env` de producao, mantenha a API relativa para evitar mixed content:
+
+```env
+API_PORT=3333
+API_HOST_PORT=3333
+WEB_PORT=3000
+WEB_HOST_PORT=8080
+NEXT_PUBLIC_API_URL=/api
+NEXT_PUBLIC_API_BASE_URL=/api
+NEXT_PUBLIC_API_BASE=/api
+ALLOWED_ORIGINS=https://vps8369.panel.icontainer.net
+```
+
+So use portas alternativas se ficar confirmado que as portas atuais pertencem a outro sistema que nao pode ser parado.
+
+## Docker incremental
+
+Nao use `down -v` e nao remova volumes. Para atualizar:
 
 ```bash
-docker compose --env-file .env -f infra/docker-compose.locaweb.yml up -d --build
+cd /var/www/innovation.ia
+git pull origin feat/integracao-frontend
+docker compose -f docker-compose.prod.yml --env-file .env up -d --build
+sudo nginx -t
+sudo systemctl reload nginx
 ```
 
-## Acessos
-
-- Frontend: `http://SEU_IP_OU_DOMINIO`
-- API: `http://SEU_IP_OU_DOMINIO:3333`
-- Swagger: `http://SEU_IP_OU_DOMINIO:3333/docs`
-
-Login inicial:
-
-- Email: `admin@innovation.local`
-- Senha: valor de `ADMIN_PASSWORD`
-
-## Atualizar depois
+## Smoke test MVP
 
 ```bash
-git pull
-docker compose --env-file .env -f infra/docker-compose.locaweb.yml up -d --build
+curl -i https://vps8369.panel.icontainer.net/api/health
+curl -I https://vps8369.panel.icontainer.net/login
+docker exec innovation-web sh -lc "grep -R '23.106.44.75:3333\|localhost:3333\|127.0.0.1:3333' /app/out || echo OK"
+API_BASE_URL=https://vps8369.panel.icontainer.net/api npm run test:mvp:api
 ```
 
-## Observacao
+## PM2
 
-Se usar HTTPS/domino com proxy, atualize `NEXT_PUBLIC_API_URL` e
-`ALLOWED_ORIGINS` para as URLs `https://...` e rode o build novamente.
+Use PM2 apenas se a versao atual estiver rodando por PM2:
+
+```bash
+pm2 list
+pm2 restart innovation-api
+pm2 restart innovation-web
+pm2 logs --lines 100
+```

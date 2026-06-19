@@ -16,7 +16,7 @@ export class CompaniesController {
     return this.service.me(companyId);
   }
 
-  @Roles('ADMIN')
+  @Roles('ADMIN', 'RH')
   @Patch('me')
   updateMe(@CurrentCompany() companyId: string, @Body() dto: UpdateCompanyDto) {
     return this.service.updateMe(companyId, dto);

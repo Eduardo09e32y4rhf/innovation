@@ -14,6 +14,10 @@ export function validateEnv(config: Record<string, unknown>) {
   }
 
   if (process.env.NODE_ENV === 'production') {
+    if (!config.ALLOWED_ORIGINS) {
+      throw new Error('ALLOWED_ORIGINS is required in production.');
+    }
+
     const jwtSecret = String(config.JWT_SECRET ?? '');
     if (jwtSecret.length < 32 || jwtSecret.startsWith('TROQUE_') || jwtSecret.includes('local-development')) {
       throw new Error('JWT_SECRET must be a strong production secret with at least 32 characters.');
