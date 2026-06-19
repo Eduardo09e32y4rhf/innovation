@@ -50,6 +50,7 @@ const isLocalBrowser = () => {
 };
 
 const canUseLocalSession = () => process.env.NODE_ENV !== 'production' && (LOCAL_SESSION_ENABLED || isLocalBrowser());
+const getApiUrl = () => process.env.NEXT_PUBLIC_API_URL || '/api';
 const isStoredJsonValue = (value: string | null) => Boolean(value && value !== 'undefined' && value !== 'null');
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
@@ -87,6 +88,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           setToken(savedToken);
           setUser(parsedUser);
           setCompany(parsedCompany);
+          void refreshStoredUser(savedToken, parsedCompany);
         }
       } catch {
         clearStoredSession();
@@ -96,6 +98,35 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
     setLoading(false);
   }, []);
+
+  const refreshStoredUser = async (savedToken: string, savedCompany: Company) => {
+    try {
+      const response = await fetch(`${getApiUrl()}/auth/me`, {
+        headers: { Authorization: `Bearer ${savedToken}` },
+      });
+      if (response.status === 401) {
+        clearStoredSession();
+        return;
+      }
+      if (!response.ok) return;
+      const payload = await response.json();
+      const freshUser = payload.data ?? payload;
+      const nextUser = {
+        id: freshUser.sub,
+        name: freshUser.name || freshUser.email?.split('@')[0] || 'Usuario',
+        email: freshUser.email,
+        profile: String(freshUser.role || 'USER').toLowerCase(),
+        companyId: freshUser.companyId,
+      };
+      const nextCompany = { ...savedCompany, id: freshUser.companyId || savedCompany.id };
+      setUser(nextUser);
+      setCompany(nextCompany);
+      localStorage.setItem('user', JSON.stringify(nextUser));
+      localStorage.setItem('company', JSON.stringify(nextCompany));
+    } catch {
+      // Mantem a sessao salva se a atualizacao do perfil falhar momentaneamente.
+    }
+  };
 
   const startLocalSession = () => {
     setToken(LOCAL_SESSION_TOKEN);
@@ -121,7 +152,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     try {
       // Tentar backend real primeiro
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || '/api';
+      const apiUrl = getApiUrl();
 
       try {
         const response = await fetch(`${apiUrl}/auth/login`, {

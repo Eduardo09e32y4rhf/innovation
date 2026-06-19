@@ -37,8 +37,16 @@ export class AuthService {
     return this.buildAuthResponse({ sub: user.id, email: user.email, name: user.name, companyId: user.companyId, role: user.role });
   }
 
-  me(user: JwtUser) {
-    return user;
+  async me(user: JwtUser) {
+    const freshUser = await this.repository.findUserById(user.sub);
+    if (!freshUser || !freshUser.isActive) throw new UnauthorizedException('Invalid credentials');
+    return {
+      sub: freshUser.id,
+      email: freshUser.email,
+      name: freshUser.name,
+      companyId: freshUser.companyId,
+      role: freshUser.role,
+    };
   }
 
   private async buildAuthResponse(payload: JwtUser) {

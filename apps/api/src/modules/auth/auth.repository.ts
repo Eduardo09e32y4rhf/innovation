@@ -9,6 +9,10 @@ export class AuthRepository {
     return this.prisma.user.findUnique({ where: { email } });
   }
 
+  findUserById(id: string) {
+    return this.prisma.user.findUnique({ where: { id } });
+  }
+
   createCompanyWithAdmin(data: {
     companyName: string;
     document?: string;
