@@ -8,7 +8,7 @@ services:
       POSTGRES_PASSWORD: innovation_rh_pass
       POSTGRES_DB: innovation_rh_connect
     ports:
-      - "5432:5432"
+      - "${POSTGRES_HOST_PORT:-5435}:5432"
     volumes:
       - innovation_rh_connect_pgdata:/var/lib/postgresql/data
     healthcheck:

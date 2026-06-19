@@ -1,5 +1,7 @@
 'use client';
+
 import { useAuth } from '@/app/contexts/AuthContext';
+import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import React, { ReactNode } from 'react';
 
@@ -19,12 +21,15 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
 
   if (loading || !isAuthenticated) {
     return (
-      <div className="min-h-screen bg-[#05050a] flex flex-col items-center justify-center gap-4">
-        <div className="w-16 h-16 grad-bg rounded-2xl flex items-center justify-center font-bold text-3xl text-white shadow-2xl shadow-purple-500/30 animate-pulse">
-          I
+      <div className="ops-dashboard flex min-h-screen items-center justify-center px-4">
+        <div className="ops-card flex w-full max-w-sm flex-col items-center rounded-[8px] border border-slate-200 bg-white p-8 text-center">
+          <div className="crystal-button mb-5 flex h-14 w-14 items-center justify-center rounded-[8px] text-2xl font-black text-white">
+            I
+          </div>
+          <Loader2 className="mb-4 h-7 w-7 animate-spin text-teal-600" aria-hidden="true" />
+          <p className="text-sm font-black text-slate-900">Preparando seu acesso</p>
+          <p className="mt-1 text-xs font-semibold text-slate-500">Validando sessao e permissoes.</p>
         </div>
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-purple-500"></div>
-        <p className="text-gray-500 text-sm">Preparando seu acesso...</p>
       </div>
     );
   }

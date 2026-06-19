@@ -1,36 +1,61 @@
-# Deploy do MVP
+# Deploy - Innovation RH Connect
 
-Este projeto esta pronto para subir no Render usando o arquivo `render.yaml` na raiz.
+Regra principal: primeiro descubra quem é dono das portas. Porta ocupada pelo Innovation antigo não é conflito externo; nesse caso pare/recrie e mantenha a porta.
 
-## Servicos criados
+## Diagnostico obrigatorio na VPS
 
-- `innovation-rh-connect-db`: PostgreSQL gerenciado.
-- `innovation-rh-connect-api`: API NestJS em Node.js.
-- `innovation-rh-connect-web`: frontend Next.js exportado como site estatico.
+```bash
+ss -tulpn | grep -E ':3000|:3333|:5000|:3001|:5432|:5433|:8080|:8000'
+docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Ports}}\t{{.Status}}"
+pm2 list
+```
 
-## Publicar
+## Decisao de portas
 
-1. Envie a branch `feat/integracao-frontend` para o GitHub.
-2. No Render, crie um novo Blueprint a partir do repositorio `Eduardo09e32y4rhf/innovation`.
-3. Selecione a branch `feat/integracao-frontend`.
-4. Confirme a criacao dos servicos.
+Se `3000` e `3333` forem do Innovation antigo, manter:
 
-## URLs esperadas
+```env
+API_PORT=3333
+API_HOST_PORT=3333
+WEB_PORT=3000
+WEB_HOST_PORT=3000
+NEXT_PUBLIC_API_URL=http://23.106.44.75:3333
+ALLOWED_ORIGINS=http://23.106.44.75:3000
+```
 
-- Frontend: `https://innovation-rh-connect-web.onrender.com`
-- API: `https://innovation-rh-connect-api.onrender.com`
-- Swagger: `https://innovation-rh-connect-api.onrender.com/docs`
+Se forem de outro sistema que nao pode parar, usar alternativa:
 
-Se o Render alterar algum nome de servico por conflito, ajuste:
+```env
+API_PORT=5000
+API_HOST_PORT=5000
+WEB_PORT=3001
+WEB_HOST_PORT=3001
+NEXT_PUBLIC_API_URL=http://23.106.44.75:5000
+ALLOWED_ORIGINS=http://23.106.44.75:3001
+```
 
-- `NEXT_PUBLIC_API_URL` no servico web.
-- `ALLOWED_ORIGINS` no servico api.
+## Docker
 
-## Login inicial
+```bash
+cd /var/www/innovation.ia
+docker compose -f docker-compose.prod.yml --env-file .env ps
+docker compose -f docker-compose.prod.yml --env-file .env down
+docker compose -f docker-compose.prod.yml --env-file .env up -d --build --remove-orphans
+```
 
-O seed cria o usuario:
+## PM2
 
-- Email: `admin@innovation.local`
-- Senha: definida pela variavel `ADMIN_PASSWORD` gerada no Render.
+```bash
+pm2 list
+pm2 restart innovation-api
+pm2 restart innovation-web
+pm2 logs --lines 100
+```
 
-Para escolher uma senha manual, substitua `ADMIN_PASSWORD` nas variaveis do servico API e rode novamente o deploy ou o job de seed.
+## Smoke test MVP
+
+Ajuste a porta conforme a decisao acima:
+
+```bash
+API_BASE_URL=http://23.106.44.75:3333 npm run test:mvp:api
+```

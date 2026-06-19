@@ -1,53 +1,61 @@
-# Deploy na Locaweb
+# Deploy - Innovation RH Connect
 
-Este MVP precisa de um ambiente que rode Node.js continuamente e PostgreSQL.
-Na Locaweb, use uma VPS/Cloud Server com Docker.
+Regra principal: primeiro descubra quem é dono das portas. Porta ocupada pelo Innovation antigo não é conflito externo; nesse caso pare/recrie e mantenha a porta.
 
-## Publicar para teste
-
-No servidor:
+## Diagnostico obrigatorio na VPS
 
 ```bash
-git clone https://github.com/Eduardo09e32y4rhf/innovation.git
-cd innovation
-git checkout feat/integracao-frontend
-cp infra/locaweb.env.example .env
+ss -tulpn | grep -E ':3000|:3333|:5000|:3001|:5432|:5433|:8080|:8000'
+docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Ports}}\t{{.Status}}"
+pm2 list
 ```
 
-Edite `.env` e troque:
+## Decisao de portas
 
-- `POSTGRES_PASSWORD`
-- `JWT_SECRET`
-- `ADMIN_PASSWORD`
-- `NEXT_PUBLIC_APP_URL`
-- `NEXT_PUBLIC_API_URL`
-- `ALLOWED_ORIGINS`
+Se `3000` e `3333` forem do Innovation antigo, manter:
 
-Depois suba:
+```env
+API_PORT=3333
+API_HOST_PORT=3333
+WEB_PORT=3000
+WEB_HOST_PORT=3000
+NEXT_PUBLIC_API_URL=http://23.106.44.75:3333
+ALLOWED_ORIGINS=http://23.106.44.75:3000
+```
+
+Se forem de outro sistema que nao pode parar, usar alternativa:
+
+```env
+API_PORT=5000
+API_HOST_PORT=5000
+WEB_PORT=3001
+WEB_HOST_PORT=3001
+NEXT_PUBLIC_API_URL=http://23.106.44.75:5000
+ALLOWED_ORIGINS=http://23.106.44.75:3001
+```
+
+## Docker
 
 ```bash
-docker compose --env-file .env -f infra/docker-compose.locaweb.yml up -d --build
+cd /var/www/innovation.ia
+docker compose -f docker-compose.prod.yml --env-file .env ps
+docker compose -f docker-compose.prod.yml --env-file .env down
+docker compose -f docker-compose.prod.yml --env-file .env up -d --build --remove-orphans
 ```
 
-## Acessos
-
-- Frontend: `http://SEU_IP_OU_DOMINIO`
-- API: `http://SEU_IP_OU_DOMINIO:3333`
-- Swagger: `http://SEU_IP_OU_DOMINIO:3333/docs`
-
-Login inicial:
-
-- Email: `admin@innovation.local`
-- Senha: valor de `ADMIN_PASSWORD`
-
-## Atualizar depois
+## PM2
 
 ```bash
-git pull
-docker compose --env-file .env -f infra/docker-compose.locaweb.yml up -d --build
+pm2 list
+pm2 restart innovation-api
+pm2 restart innovation-web
+pm2 logs --lines 100
 ```
 
-## Observacao
+## Smoke test MVP
 
-Se usar HTTPS/domino com proxy, atualize `NEXT_PUBLIC_API_URL` e
-`ALLOWED_ORIGINS` para as URLs `https://...` e rode o build novamente.
+Ajuste a porta conforme a decisao acima:
+
+```bash
+API_BASE_URL=http://23.106.44.75:3333 npm run test:mvp:api
+```

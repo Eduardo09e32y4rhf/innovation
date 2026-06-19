@@ -67,6 +67,11 @@ async function request<T>(path: string, opts: Opts = {}): Promise<T> {
         : `Erro ${res.status}`;
     throw new ApiError(res.status, msg, data);
   }
+
+  if (data && typeof data === 'object' && 'success' in data && 'data' in data) {
+    return (data as { data: T }).data;
+  }
+
   return data as T;
 }
 
@@ -74,7 +79,7 @@ function safeJson(text: string): unknown {
   try { return JSON.parse(text); } catch { return text; }
 }
 
-// ─── Tipos ───────────────────────────────────────────────────────────────────
+// Types
 
 export type EmployeeStatus = 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' | 'TERMINATED';
 export type VacationStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED' | 'COMPLETED';
@@ -145,7 +150,7 @@ export interface CreatePlatformCompanyInput {
   adminName: string; adminEmail: string; adminPassword: string;
 }
 
-// ─── API por modulo ──────────────────────────────────────────────────────────
+// Module API
 
 export const api = {
   request,
