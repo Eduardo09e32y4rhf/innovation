@@ -15,6 +15,8 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { useAuth } from '@/app/contexts/AuthContext';
+import { useQuery } from '@/app/hooks/use-data';
+import { api } from '@/app/lib/api';
 import { ROLE_LABEL } from '@/app/lib/format';
 
 type NavItemConfig = { label: string; href: string; icon: LucideIcon; match?: string; roles?: string[] };
@@ -64,6 +66,7 @@ function getInitials(name?: string, email?: string) {
 export function DashboardSidebar() {
   const pathname = usePathname();
   const { user } = useAuth();
+  const company = useQuery(() => api.companies.me(), []);
   const profile = user?.profile?.toUpperCase();
   const authorizedDev = isAuthorizedDev(user?.profile, user?.email);
   const navItems = baseNavItems.filter((item) => canSeeItem(item, profile, authorizedDev));
@@ -72,17 +75,7 @@ export function DashboardSidebar() {
   return (
     <aside className="sidebar-shell flex w-full shrink-0 flex-col md:h-screen md:w-[220px]">
       <div className="p-3 md:p-4">
-        <div className="sidebar-brand-card flex items-center gap-3 p-3">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[7px] bg-white">
-            <Zap size={15} strokeWidth={2.2} className="text-[#0D0D0E]" />
-          </div>
-          <div>
-            <p className="text-[9px] font-semibold uppercase leading-none tracking-[0.18em] text-white/40">
-              Innovation RH Connect
-            </p>
-            <p className="mt-0.5 text-[13px] font-semibold leading-tight text-white">Console RH</p>
-          </div>
-        </div>
+        <CompanyBrandCard name={company.data?.name} document={company.data?.document} logoUrl={company.data?.logoUrl} />
       </div>
 
       <nav className="flex gap-1 overflow-x-auto px-3 pb-3 md:block md:flex-1 md:space-y-0.5 md:overflow-visible md:pb-0">
@@ -95,6 +88,26 @@ export function DashboardSidebar() {
         <UserIdentityCard name={user?.name} email={user?.email} profile={profile} />
       </div>
     </aside>
+  );
+}
+
+function CompanyBrandCard({ name, document, logoUrl }: { name?: string | null; document?: string | null; logoUrl?: string | null }) {
+  return (
+    <div className="sidebar-brand-card flex items-center gap-3 p-3">
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-[7px] bg-white">
+        {logoUrl ? (
+          <img src={logoUrl} alt="Logo da empresa" className="h-full w-full object-contain p-1.5" />
+        ) : (
+          <Zap size={15} strokeWidth={2.2} className="text-[#0D0D0E]" />
+        )}
+      </div>
+      <div className="min-w-0">
+        <p className="truncate text-[9px] font-semibold uppercase leading-none tracking-[0.18em] text-white/40">
+          {name || 'Innovation RH Connect'}
+        </p>
+        <p className="mt-0.5 truncate text-[13px] font-semibold leading-tight text-white">{document || 'Console RH'}</p>
+      </div>
+    </div>
   );
 }
 

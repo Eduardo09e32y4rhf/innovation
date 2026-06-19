@@ -9,4 +9,8 @@ export class UpdateCompanyDto {
   @IsOptional()
   @IsString()
   document?: string;
+
+  @IsOptional()
+  @IsString()
+  logoUrl?: string;
 }

@@ -140,7 +140,7 @@ export interface ChatMessage {
 export interface SendMessageInput { phone: string; body: string; contactName?: string; }
 
 export interface Company {
-  id: string; name: string; document?: string | null;
+  id: string; name: string; document?: string | null; logoUrl?: string | null;
   maxUsers: number; maxEmployees: number; isActive: boolean; createdAt: string;
 }
 export interface PlatformCompany extends Company { usersCount: number; employeesCount: number; }
@@ -194,7 +194,7 @@ export const api = {
 
   companies: {
     me: () => request<Company>('/companies/me'),
-    update: (data: { name?: string; document?: string }) => request<Company>('/companies/me', { method: 'PATCH', body: data }),
+    update: (data: { name?: string; document?: string; logoUrl?: string }) => request<Company>('/companies/me', { method: 'PATCH', body: data }),
   },
 
   whatsapp: {
