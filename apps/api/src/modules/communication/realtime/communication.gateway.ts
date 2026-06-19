@@ -2,7 +2,18 @@ import { Logger } from '@nestjs/common';
 import { WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
 import { Server } from 'socket.io';
 
-@WebSocketGateway({ cors: { origin: true, credentials: true }, namespace: 'communication' })
+const allowedOrigins = (process.env.ALLOWED_ORIGINS ?? '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+@WebSocketGateway({
+  cors: {
+    origin: allowedOrigins.length ? allowedOrigins : process.env.NODE_ENV !== 'production',
+    credentials: true,
+  },
+  namespace: 'communication',
+})
 export class CommunicationGateway {
   private readonly logger = new Logger(CommunicationGateway.name);
 

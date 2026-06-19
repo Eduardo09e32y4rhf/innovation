@@ -19,7 +19,7 @@ async function bootstrap() {
   await app.register(fastifyHelmet);
   await app.register(fastifyCookie);
   app.enableCors({
-    origin: allowedOrigins.length ? allowedOrigins : true,
+    origin: allowedOrigins.length ? allowedOrigins : process.env.NODE_ENV !== 'production',
     credentials: true,
   });
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true, forbidNonWhitelisted: true }));
