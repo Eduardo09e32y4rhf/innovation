@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import { Clock3, Download, Edit3, FileText, Trash2, X } from 'lucide-react';
 import { EmptyState, ErrorState, LoadingState } from '@/app/components/data-states';
 import { useMutation, useQuery } from '@/app/hooks/use-data';
-import { api, type Employee, type TimeTrack, type TimeTrackAdjustmentReason } from '@/app/lib/api';
+import { api, type Company, type Employee, type TimeTrack, type TimeTrackAdjustmentReason } from '@/app/lib/api';
 import { formatDate, formatMinutes } from '@/app/lib/format';
 import { normalizeDisplayName } from '@/app/lib/text';
 
@@ -17,7 +17,7 @@ const ADJUSTMENT_REASONS: { value: TimeTrackAdjustmentReason; label: string; ful
   { value: 'ajuste_feriado', label: 'Ajuste - feriado', fullDay: true },
 ];
 
-type CompanyPrintInfo = { name: string; document: string };
+type CompanyPrintInfo = { name: string; document: string; logoUrl?: string | null };
 type MirrorRow = {
   funcionario: string;
   employee?: Employee;
@@ -70,18 +70,17 @@ function formatDocument(value?: string | null) {
   return value || '-';
 }
 
-function getCompanyInfo(): CompanyPrintInfo {
-  if (typeof window === 'undefined') return { name: 'Empresa', document: '-' };
-  try {
-    const raw = window.localStorage.getItem('company');
-    const company = raw ? JSON.parse(raw) : null;
-    return {
-      name: normalizeDisplayName(company?.name ?? 'Empresa'),
-      document: formatDocument(company?.document ?? company?.cnpj ?? company?.taxId ?? null),
-    };
-  } catch {
-    return { name: 'Empresa', document: '-' };
-  }
+function normalizeCompanyInfo(company?: Company | null): CompanyPrintInfo {
+  return {
+    name: normalizeDisplayName(company?.name ?? 'Empresa'),
+    document: formatDocument(company?.document ?? null),
+    logoUrl: company?.logoUrl ?? null,
+  };
+}
+
+function companyLogo(company: CompanyPrintInfo) {
+  if (!company.logoUrl) return '<div class="logo-placeholder">Sem logo</div>';
+  return `<img class="company-logo" src="${escapeHtml(company.logoUrl)}" alt="Logo da empresa" />`;
 }
 
 function monthLabel(month: string) {
@@ -146,8 +145,7 @@ function sumMinutes(rows: TimeTrack[], field: 'totalWorked' | 'dailyBalance') {
   return rows.reduce((total, row) => total + (row[field] ?? 0), 0);
 }
 
-function downloadExcel(filename: string, rows: TimeTrack[]) {
-  const company = getCompanyInfo();
+function downloadExcel(filename: string, rows: TimeTrack[], company: CompanyPrintInfo) {
   const mirrorRows = buildMirrorRows(rows);
   const bodyRows = mirrorRows.map((row) => `
     <tr>
@@ -198,7 +196,7 @@ function renderIndividualReport(rows: TimeTrack[], employee: Employee | undefine
       <td>${escapeHtml(row.ausente)}</td><td>${escapeHtml(row.adicionalNoturno)}</td><td>${escapeHtml(row.observacao)}</td>
     </tr>`).join('');
   return `
-    <h1>Espelho de ponto individual</h1>
+    <section class="report-brand"><div>${companyLogo(company)}</div><div><h1>Espelho de ponto individual</h1></div></section>
     <section class="meta"><span><strong>Período:</strong> ${escapeHtml(periodLabel(month))}</span><span><strong>Emissão:</strong> ${escapeHtml(new Date().toLocaleString('pt-BR'))}</span></section>
     <section class="company"><span><strong>Empresa:</strong> ${escapeHtml(company.name)}</span><span><strong>CNPJ:</strong> ${escapeHtml(company.document)}</span></section>
     ${employeeHeader(employee)}
@@ -225,15 +223,14 @@ function renderCompanyReport(rows: TimeTrack[], company: CompanyPrintInfo, month
     </section>`;
   }).join('');
   return `
-    <h1>Espelho de ponto da empresa</h1>
+    <section class="report-brand"><div>${companyLogo(company)}</div><div><h1>Espelho de ponto da empresa</h1></div></section>
     <section class="meta"><span><strong>Período:</strong> ${escapeHtml(periodLabel(month))}</span><span><strong>Emissão:</strong> ${escapeHtml(new Date().toLocaleString('pt-BR'))}</span></section>
     <section class="company"><span><strong>Empresa:</strong> ${escapeHtml(company.name)}</span><span><strong>CNPJ:</strong> ${escapeHtml(company.document)}</span></section>
     <section class="summary"><strong>Total de funcionários no relatório:</strong> ${Object.keys(grouped).length} | <strong>Registros:</strong> ${rows.length}</section>
     ${sections}`;
 }
 
-function openPrintableReport(rows: TimeTrack[], month: string, employee?: Employee) {
-  const company = getCompanyInfo();
+function openPrintableReport(rows: TimeTrack[], month: string, company: CompanyPrintInfo, employee?: Employee) {
   const title = employee ? `Espelho individual - ${normalizeDisplayName(employee.name)} - ${monthLabel(month)}` : `Espelho da empresa - ${monthLabel(month)}`;
   const content = employee ? renderIndividualReport(rows, employee, company, month) : renderCompanyReport(rows, company, month);
   const win = window.open('', '_blank');
@@ -244,7 +241,7 @@ function openPrintableReport(rows: TimeTrack[], month: string, employee?: Employ
   win.document.open();
   win.document.write(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8" /><title>${escapeHtml(title)}</title>
     <style>
-      @page{size:A4 landscape;margin:8mm}*{box-sizing:border-box}body{font-family:Arial,Helvetica,sans-serif;color:#111827;margin:0;background:#f8fafc;font-size:11px}.toolbar{position:sticky;top:0;z-index:2;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 18px;background:#0f172a;color:white}.toolbar button{border:0;border-radius:6px;background:#0f766e;color:white;padding:8px 12px;font-weight:700;cursor:pointer}.page{background:white;margin:14px auto;padding:18px;max-width:1180px;box-shadow:0 10px 30px rgba(15,23,42,.12)}h1{margin:0 0 10px;text-align:center;font-size:16px;text-transform:uppercase;letter-spacing:.04em}h2{margin:18px 0 8px;font-size:13px}.meta,.company,.employee-grid,.summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 18px;border-top:1px solid #94a3b8;padding:8px 0}.employee-grid{grid-template-columns:repeat(3,minmax(0,1fr))}table{width:100%;border-collapse:collapse;margin-top:10px;table-layout:fixed}th,td{border:1px solid #475569;padding:4px 5px;vertical-align:top;word-break:break-word}th{background:#e5e7eb;text-align:center;font-weight:700}td{text-align:center}td:last-child{text-align:left}.employee-block{break-inside:avoid;margin-top:14px}.signatures{display:grid;grid-template-columns:1fr 1fr;gap:48px;margin-top:38px}.signatures div{border-top:1px solid #111827;text-align:center;padding-top:8px}@media print{body{background:white}.toolbar{display:none}.page{margin:0;padding:0;box-shadow:none;max-width:none}.employee-block{page-break-inside:avoid}}
+      @page{size:A4 landscape;margin:8mm}*{box-sizing:border-box}body{font-family:Arial,Helvetica,sans-serif;color:#111827;margin:0;background:#f8fafc;font-size:11px}.toolbar{position:sticky;top:0;z-index:2;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 18px;background:#0f172a;color:white}.toolbar button{border:0;border-radius:6px;background:#0f766e;color:white;padding:8px 12px;font-weight:700;cursor:pointer}.page{background:white;margin:14px auto;padding:18px;max-width:1180px;box-shadow:0 10px 30px rgba(15,23,42,.12)}.report-brand{display:grid;grid-template-columns:120px 1fr;align-items:center;gap:16px;margin-bottom:10px}.company-logo{max-height:58px;max-width:110px;object-fit:contain}.logo-placeholder{display:flex;height:58px;width:110px;align-items:center;justify-content:center;border:1px solid #cbd5e1;color:#64748b;font-size:10px}h1{margin:0;text-align:center;font-size:16px;text-transform:uppercase;letter-spacing:.04em}h2{margin:18px 0 8px;font-size:13px}.meta,.company,.employee-grid,.summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 18px;border-top:1px solid #94a3b8;padding:8px 0}.employee-grid{grid-template-columns:repeat(3,minmax(0,1fr))}table{width:100%;border-collapse:collapse;margin-top:10px;table-layout:fixed}th,td{border:1px solid #475569;padding:4px 5px;vertical-align:top;word-break:break-word}th{background:#e5e7eb;text-align:center;font-weight:700}td{text-align:center}td:last-child{text-align:left}.employee-block{break-inside:avoid;margin-top:14px}.signatures{display:grid;grid-template-columns:1fr 1fr;gap:48px;margin-top:38px}.signatures div{border-top:1px solid #111827;text-align:center;padding-top:8px}@media print{body{background:white}.toolbar{display:none}.page{margin:0;padding:0;box-shadow:none;max-width:none}.employee-block{page-break-inside:avoid}}
     </style></head><body><div class="toolbar"><strong>${escapeHtml(title)}</strong><button onclick="window.print()">Imprimir ou salvar em PDF</button></div><main class="page">${content}</main></body></html>`);
   win.document.close();
 }
@@ -252,6 +249,7 @@ function openPrintableReport(rows: TimeTrack[], month: string, employee?: Employ
 export default function TimeTrackPage() {
   const tracks = useQuery(() => api.timeTrack.list(), []);
   const employees = useQuery(() => api.employees.list(), []);
+  const company = useQuery(() => api.companies.me(), []);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<TimeTrack | null>(null);
   const [employeeFilter, setEmployeeFilter] = useState('');
@@ -267,6 +265,7 @@ export default function TimeTrackPage() {
   }, [tracks.data, employeeFilter, monthFilter]);
 
   const selectedEmployee = activeEmployees.find((employee) => employee.id === employeeFilter) ?? rows[0]?.employee;
+  const reportCompany = normalizeCompanyInfo(company.data);
   const remove = useMutation((id: string) => api.timeTrack.delete(id), { onSuccess: () => tracks.refetch() });
 
   async function handleDelete(row: TimeTrack) {
@@ -283,10 +282,10 @@ export default function TimeTrackPage() {
           <h2 className="text-2xl font-black text-slate-950">Folha de ponto da empresa</h2>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <button onClick={() => downloadExcel(`folha-ponto-${selectedEmployee?.name ?? 'empresa'}-${monthFilter || 'todos'}.xls`, rows)} disabled={rows.length === 0} className="btn-outline inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black disabled:opacity-50">
+          <button onClick={() => downloadExcel(`folha-ponto-${selectedEmployee?.name ?? 'empresa'}-${monthFilter || 'todos'}.xls`, rows, reportCompany)} disabled={rows.length === 0 || company.loading} className="btn-outline inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black disabled:opacity-50">
             <Download size={14} /> Exportar Excel
           </button>
-          <button onClick={() => openPrintableReport(rows, monthFilter, employeeFilter ? selectedEmployee : undefined)} disabled={rows.length === 0} className="btn-outline inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black disabled:opacity-50">
+          <button onClick={() => openPrintableReport(rows, monthFilter, reportCompany, employeeFilter ? selectedEmployee : undefined)} disabled={rows.length === 0 || company.loading} className="btn-outline inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black disabled:opacity-50">
             <FileText size={14} /> {employeeFilter ? 'PDF individual' : 'PDF empresa'}
           </button>
           <button onClick={() => setOpen(true)} className="crystal-button inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black text-white">
