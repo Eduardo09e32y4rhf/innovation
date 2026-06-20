@@ -54,7 +54,7 @@ export default function UsersPage() {
     <div className="mx-auto max-w-5xl space-y-5">
       <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-teal-600">Usuarios</p>
+          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-teal-600">Usuários</p>
           <h2 className="text-2xl font-black text-slate-950">Permissoes de acesso</h2>
           {usage.data && (
             <p className="mt-1 text-xs text-slate-500">

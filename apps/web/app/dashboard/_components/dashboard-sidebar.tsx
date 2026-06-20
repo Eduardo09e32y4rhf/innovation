@@ -24,12 +24,12 @@ type NavItemConfig = { label: string; href: string; icon: LucideIcon; match?: st
 
 const baseNavItems: NavItemConfig[] = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard', roles: ['DEV', 'ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO'] },
-  { icon: Users, label: 'Funcionarios', href: '/dashboard/employees', match: '/dashboard/employees', roles: ['DEV', 'ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO'] },
+  { icon: Users, label: 'Funcionários', href: '/dashboard/employees', match: '/dashboard/employees', roles: ['DEV', 'ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO'] },
   { icon: Clock3, label: 'Ponto', href: '/dashboard/time-track', match: '/dashboard/time-track', roles: ['DEV', 'ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO'] },
-  { icon: CalendarDays, label: 'Ferias', href: '/dashboard/vacations', match: '/dashboard/vacations', roles: ['DEV', 'ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO'] },
+  { icon: CalendarDays, label: 'Férias', href: '/dashboard/vacations', match: '/dashboard/vacations', roles: ['DEV', 'ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO'] },
   { icon: Smartphone, label: 'WhatsApp', href: '/dashboard/whatsapp', match: '/dashboard/whatsapp', roles: ['DEV', 'ADMIN', 'RH', 'GESTOR'] },
-  { icon: UserCog, label: 'Usuarios', href: '/dashboard/users', match: '/dashboard/users', roles: ['DEV', 'ADMIN', 'RH'] },
-  { icon: Settings, label: 'Configuracoes', href: '/dashboard/settings', match: '/dashboard/settings', roles: ['DEV', 'ADMIN', 'RH'] },
+  { icon: UserCog, label: 'Usuários', href: '/dashboard/users', match: '/dashboard/users', roles: ['DEV', 'ADMIN', 'RH'] },
+  { icon: Settings, label: 'Configurações', href: '/dashboard/settings', match: '/dashboard/settings', roles: ['DEV', 'ADMIN', 'RH'] },
 ];
 
 const devNavItem: NavItemConfig = {
@@ -51,7 +51,7 @@ function canSeeItem(item: NavItemConfig, profile: string | undefined) {
 }
 
 function getInitials(name?: string, email?: string) {
-  const source = (name?.trim() || email?.split('@')[0] || 'Usuario').trim();
+  const source = (name?.trim() || email?.split('@')[0] || 'Usuário').trim();
   const parts = source.split(/\s+/).filter(Boolean);
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
   return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
@@ -112,7 +112,7 @@ function UserIdentityCard({ name, email, profile }: { name?: string; email?: str
           {getInitials(name, email)}
         </div>
         <div className="min-w-0">
-          <p className="truncate text-[13px] font-semibold leading-tight text-white">{normalizeDisplayName(name) || email || 'Usuario'}</p>
+          <p className="truncate text-[13px] font-semibold leading-tight text-white">{normalizeDisplayName(name) || email || 'Usuário'}</p>
           <p className="mt-1 text-[10px] font-black uppercase tracking-[0.16em] text-white/40">
             {ROLE_LABEL[profile || ''] ?? profile ?? 'Perfil'}
           </p>

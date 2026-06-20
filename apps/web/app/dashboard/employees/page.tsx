@@ -30,7 +30,7 @@ export default function EmployeesPage() {
     <div className="mx-auto max-w-6xl space-y-5">
       <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-teal-600">Funcionarios</p>
+          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-teal-600">Funcionários</p>
           <h2 className="text-2xl font-black text-slate-950">Cadastro da equipe</h2>
         </div>
         <Link href="/dashboard/employees/new" className="crystal-button inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black text-white">

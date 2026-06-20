@@ -38,7 +38,7 @@ function DashboardContent() {
 
   const metrics = [
     {
-      label: 'Funcionarios ativos',
+      label: 'Funcionários ativos',
       value: summaryData?.activeEmployees,
       icon: Users,
       detail: 'equipe em acompanhamento',
@@ -50,7 +50,7 @@ function DashboardContent() {
       detail: 'jornadas registradas',
     },
     {
-      label: 'Ferias pendentes',
+      label: 'Férias pendentes',
       value: summaryData?.pendingVacations,
       icon: CalendarDays,
       detail: 'aguardando decisao',
@@ -85,7 +85,7 @@ function DashboardContent() {
               </span>
             ) : null}
           </div>
-          <h2 className="mt-2 text-3xl font-black tracking-tight text-slate-950">Sua operacao de RH em tempo real</h2>
+          <h2 className="mt-2 text-3xl font-black tracking-tight text-slate-950">Sua operação de RH em tempo real</h2>
           <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-slate-500">
             Indicadores, jornada, ferias e comunicacao reunidos para uma rotina mais clara e rapida.
           </p>
@@ -117,7 +117,7 @@ function DashboardContent() {
       )}
 
       <section className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-        <DataTable title="Jornadas recentes" headers={['Funcionario', 'Data', 'Entrada', 'Saida']}>
+        <DataTable title="Jornadas recentes" headers={['Funcionário', 'Data', 'Entrada', 'Saida']}>
           {timeTracks.loading && !presentationMode && <LoadingRow span={4} />}
           {timeTracks.error && !presentationMode && <ErrorRow span={4} message={timeTracks.error} />}
           {!timeTracks.loading && !timeTracks.error && todayRows.length === 0 && (
@@ -133,7 +133,7 @@ function DashboardContent() {
           ))}
         </DataTable>
 
-        <DataTable title="Ferias e ausencias" headers={['Funcionario', 'Periodo', 'Status']}>
+        <DataTable title="Férias e ausências" headers={['Funcionário', 'Período', 'Status']}>
           {vacations.loading && !presentationMode && <LoadingRow span={3} />}
           {vacations.error && !presentationMode && <ErrorRow span={3} message={vacations.error} />}
           {!vacations.loading && !vacations.error && vacationRows.length === 0 && (

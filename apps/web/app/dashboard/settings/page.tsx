@@ -59,7 +59,7 @@ export default function SettingsPage() {
   return (
     <div className="mx-auto max-w-4xl space-y-5">
       <header>
-        <p className="text-[11px] font-black uppercase tracking-[0.2em] text-teal-600">Configuracoes</p>
+        <p className="text-[11px] font-black uppercase tracking-[0.2em] text-teal-600">Configurações</p>
         <h2 className="text-2xl font-black text-slate-950">Dados da empresa</h2>
       </header>
 

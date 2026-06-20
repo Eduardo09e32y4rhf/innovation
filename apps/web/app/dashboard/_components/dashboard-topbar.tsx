@@ -14,7 +14,7 @@ export function DashboardTopbar() {
           Innovation RH Connect
         </p>
         <h1 className="mt-0.5 text-[18px] font-bold leading-tight text-gray-900">
-          Gestao de pessoas e jornada
+          Gestão de pessoas e jornada
         </h1>
       </div>
 

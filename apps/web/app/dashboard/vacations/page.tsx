@@ -23,7 +23,7 @@ export default function VacationsPage() {
     <div className="mx-auto max-w-6xl space-y-5">
       <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-teal-600">Ferias</p>
+          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-teal-600">Férias</p>
           <h2 className="text-2xl font-black text-slate-950">Solicitacoes</h2>
         </div>
         <button
@@ -51,8 +51,8 @@ export default function VacationsPage() {
             <table className="w-full min-w-[680px] text-left">
               <thead>
                 <tr className="text-[11px] font-medium text-slate-500">
-                  <th className="pb-3 pr-4">Funcionario</th>
-                  <th className="pb-3 pr-4">Periodo</th>
+                  <th className="pb-3 pr-4">Funcionário</th>
+                  <th className="pb-3 pr-4">Período</th>
                   <th className="pb-3 pr-4">Dias</th>
                   <th className="pb-3 pr-4">Status</th>
                   <th className="pb-3">Aprovacao</th>
@@ -157,7 +157,7 @@ function NewVacationModal({
         )}
 
         <label className="mb-3 block space-y-1 text-xs font-medium text-slate-600">
-          <span>Funcionario</span>
+          <span>Funcionário</span>
           <select
             value={form.employeeId}
             onChange={(e) => setForm((f) => ({ ...f, employeeId: e.target.value }))}
@@ -171,7 +171,7 @@ function NewVacationModal({
         </label>
 
         <label className="mb-3 block space-y-1 text-xs font-medium text-slate-600">
-          <span>Periodo aquisitivo</span>
+          <span>Período aquisitivo</span>
           <input
             value={form.acquisitionPeriod}
             onChange={(e) => setForm((f) => ({ ...f, acquisitionPeriod: e.target.value }))}

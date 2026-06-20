@@ -61,7 +61,7 @@ export default function PlatformPage() {
       <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-[11px] font-black uppercase tracking-[0.2em] text-teal-600">Plataforma</p>
-          <h2 className="text-2xl font-black text-slate-950">Gestao de empresas</h2>
+          <h2 className="text-2xl font-black text-slate-950">Gestão de empresas</h2>
         </div>
         <button onClick={() => setOpen(true)} className="crystal-button inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black text-white">
           <Plus size={14} /> Nova empresa
@@ -71,8 +71,8 @@ export default function PlatformPage() {
       <section className="grid grid-cols-2 gap-4 md:grid-cols-4">
         {[
           { label: 'Empresas', value: stats.data?.companies, icon: Building2 },
-          { label: 'Usuarios', value: stats.data?.users, icon: Users },
-          { label: 'Funcionarios', value: stats.data?.employees, icon: Users },
+          { label: 'Usuários', value: stats.data?.users, icon: Users },
+          { label: 'Funcionários', value: stats.data?.employees, icon: Users },
           { label: 'Mensagens', value: stats.data?.messages, icon: Users },
         ].map(({ label, value, icon: Icon }) => (
           <div key={label} className="ops-card rounded-[8px] border border-slate-200 bg-white p-4">
@@ -105,8 +105,8 @@ export default function PlatformPage() {
                 <tr className="text-[11px] font-medium text-slate-500">
                   <th className="pb-3 pr-4">Empresa</th>
                   <th className="pb-3 pr-4">CNPJ</th>
-                  <th className="pb-3 pr-4">Usuarios</th>
-                  <th className="pb-3 pr-4">Funcionarios</th>
+                  <th className="pb-3 pr-4">Usuários</th>
+                  <th className="pb-3 pr-4">Funcionários</th>
                   <th className="pb-3 pr-4">Assinatura</th>
                   <th className="pb-3 pr-4">Status</th>
                   <th className="pb-3">Acoes</th>
@@ -134,7 +134,7 @@ export default function PlatformPage() {
                         <div className="flex flex-wrap gap-2">
                           {canManageCompanyUsers(c) && (
                             <button onClick={() => setUsersCompany(c)} className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px]">
-                              <Users size={12} />Usuarios
+                              <Users size={12} />Usuários
                             </button>
                           )}
                           {isSuperAdmin && (
@@ -185,7 +185,7 @@ function CompanyUsersModal({ company, onClose }: { company: PlatformCompany; onC
       <div className="w-full max-w-3xl rounded-[12px] border border-slate-200 bg-white p-6 shadow-xl">
         <div className="mb-4 flex items-center justify-between gap-3">
           <div>
-            <h3 className="text-base font-black text-slate-950">Usuarios de {normalizeDisplayName(company.name)}</h3>
+            <h3 className="text-base font-black text-slate-950">Usuários de {normalizeDisplayName(company.name)}</h3>
             <p className="mt-1 text-xs text-slate-500">{company.usersCount} / {company.maxUsers} usuarios</p>
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-700"><X size={18} /></button>
