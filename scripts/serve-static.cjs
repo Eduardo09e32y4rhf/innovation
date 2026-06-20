@@ -4,7 +4,7 @@ const path = require('path');
 
 const targetDir = path.resolve(process.cwd(), process.argv[2] || 'out');
 const port = Number(process.argv[3] || process.env.PORT || 3000);
-const host = process.env.HOST || '127.0.0.1';
+const host = process.env.HOST || '0.0.0.0';
 
 const MIME_TYPES = {
   '.css': 'text/css; charset=utf-8',
@@ -55,7 +55,7 @@ if (!fs.existsSync(targetDir)) {
 
 const server = http.createServer((request, response) => {
   const requestUrl = request.url || '/';
-  const pathname = new URL(requestUrl, `http://127.0.0.1:${port}`).pathname;
+  const pathname = new URL(requestUrl, `http://${host}:${port}`).pathname;
   const filePath = resolveFile(targetDir, pathname);
 
   if (!filePath) {
@@ -73,7 +73,7 @@ const server = http.createServer((request, response) => {
   fs.createReadStream(filePath).pipe(response);
 });
 
-server.listen(port, '127.0.0.1', () => {
+server.listen(port, host, () => {
   console.log(`[serve-static] ${targetDir}`);
-  console.log(`[serve-static] http://127.0.0.1:${port}`);
+  console.log(`[serve-static] http://${host}:${port}`);
 });
