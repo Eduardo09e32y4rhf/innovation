@@ -55,6 +55,18 @@ function timeInput(value?: string | null) {
   return displayTime(value) === '--:--' ? '' : displayTime(value);
 }
 
+function displayWorked(minutes?: number | null) {
+  return minutes === null || minutes === undefined ? '-' : formatMinutes(minutes);
+}
+
+function displayBalance(minutes?: number | null) {
+  return minutes === null || minutes === undefined ? '-' : formatMinutes(minutes);
+}
+
+function displayLunch(start?: string | null, end?: string | null) {
+  if (!start && !end) return '--:--';
+  return `${displayTime(start)} - ${displayTime(end)}`;
+}
 function toIso(date: string, time: string) {
   return time ? `${date}T${time}:00.000` : null;
 }
@@ -117,8 +129,8 @@ function minutesNegative(minutes?: number | null) {
 
 function buildMirrorRows(rows: TimeTrack[]): MirrorRow[] {
   return rows.map((row) => {
-    const worked = row.totalWorked ?? 0;
-    const balance = row.dailyBalance ?? 0;
+    const worked = row.totalWorked;
+    const balance = row.dailyBalance;
     const observation = row.observation || 'Ponto normal';
     const fullDayCertificate = observation.toLowerCase().includes('atestado integral') || observation.toLowerCase().includes('feriado');
     return {
@@ -131,11 +143,11 @@ function buildMirrorRows(rows: TimeTrack[]): MirrorRow[] {
       entrada2: displayTime(row.lunchReturn),
       saida2: displayTime(row.exit),
       abono: fullDayCertificate ? '08:00' : '--:--',
-      horaExtra: formatMinutes(minutesPositive(balance)),
-      ausente: formatMinutes(minutesNegative(balance)),
+      horaExtra: balance === null || balance === undefined ? '--:--' : formatMinutes(minutesPositive(balance)),
+      ausente: balance === null || balance === undefined ? '--:--' : formatMinutes(minutesNegative(balance)),
       adicionalNoturno: '--:--',
-      trabalhado: formatMinutes(worked),
-      saldo: formatMinutes(balance),
+      trabalhado: displayWorked(worked),
+      saldo: displayBalance(balance),
       observacao: observation,
     };
   });
@@ -320,10 +332,10 @@ export default function TimeTrackPage() {
                   <td className="py-3 pr-4 font-medium text-slate-950">{normalizeDisplayName(row.employee?.name ?? '-')}</td>
                   <td className="py-3 pr-4">{formatDate(row.date)}</td>
                   <td className="py-3 pr-4">{displayTime(row.entry)}</td>
-                  <td className="py-3 pr-4">{displayTime(row.lunchStart)} - {displayTime(row.lunchReturn)}</td>
+                  <td className="py-3 pr-4">{displayLunch(row.lunchStart, row.lunchReturn)}</td>
                   <td className="py-3 pr-4">{displayTime(row.exit)}</td>
-                  <td className="py-3 pr-4">{formatMinutes(row.totalWorked)}</td>
-                  <td className={`py-3 pr-4 font-medium ${(row.dailyBalance ?? 0) < 0 ? 'text-rose-600' : 'text-emerald-600'}`}>{formatMinutes(row.dailyBalance)}</td>
+                  <td className="py-3 pr-4">{displayWorked(row.totalWorked)}</td>
+                  <td className={`py-3 pr-4 font-medium ${(row.dailyBalance ?? 0) < 0 ? 'text-rose-600' : 'text-emerald-600'}`}>{displayBalance(row.dailyBalance)}</td>
                   <td className="max-w-[220px] truncate py-3 pr-4">{row.observation || '-'}</td>
                   <td className="py-3"><div className="flex gap-2"><button onClick={() => setEditing(row)} className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px]"><Edit3 size={12} />Editar</button><button onClick={() => handleDelete(row)} className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px] text-rose-600"><Trash2 size={12} />Excluir</button></div></td>
                 </tr>
