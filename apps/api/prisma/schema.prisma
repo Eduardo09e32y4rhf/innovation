@@ -16,6 +16,12 @@ enum UserRole {
   FUNCIONARIO
 }
 
+enum CompanyStatus {
+  ACTIVE
+  SUSPENDED
+  CANCELLED
+}
+
 enum WhatsappStatus {
   DISCONNECTED
   CONNECTING
@@ -98,8 +104,10 @@ model Company {
   name         String
   document     String?  @unique
   logoUrl      String?  @db.Text
+  commercialOwnerId String? @db.Uuid
   subscriptionStartedAt DateTime @default(now())
   suspensionReason String?
+  status       CompanyStatus @default(ACTIVE)
   maxUsers     Int      @default(6)
   maxEmployees Int      @default(50)
   isActive     Boolean  @default(true)
@@ -107,6 +115,7 @@ model Company {
   updatedAt    DateTime @updatedAt
 
   users         User[]
+  commercialOwner User? @relation("CommercialOwner", fields: [commercialOwnerId], references: [id], onDelete: SetNull)
   employees     Employee[]
   whatsapp      WhatsappInstance[]
   contacts      Contact[]
@@ -118,6 +127,8 @@ model Company {
   transactions  FinancialTransaction[]
   privacyConsents PrivacyConsent[]
   auditLogs     AuditLog[]
+
+  @@index([commercialOwnerId])
 }
 
 model User {
@@ -132,12 +143,14 @@ model User {
   updatedAt    DateTime @updatedAt
 
   company         Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  commercialCompanies Company[]    @relation("CommercialOwner")
   employee        Employee?
   privacyConsents PrivacyConsent[]
   auditLogs       AuditLog[]
 
   @@index([companyId])
 }
+
 
 model Employee {
   id            String         @id @default(uuid()) @db.Uuid
@@ -255,6 +268,7 @@ model WhatsappInstance {
   @@index([companyId])
 }
 
+
 model Contact {
   id        String   @id @default(uuid()) @db.Uuid
   companyId String   @db.Uuid
@@ -272,6 +286,7 @@ model Contact {
   @@unique([companyId, phone])
   @@index([companyId])
 }
+
 
 model Conversation {
   id            String             @id @default(uuid()) @db.Uuid
@@ -332,6 +347,7 @@ model Job {
   @@index([companyId])
 }
 
+
 model Candidate {
   id            String          @id @default(uuid()) @db.Uuid
   companyId     String          @db.Uuid
@@ -375,6 +391,7 @@ model Application {
   @@unique([companyId, candidateId, jobId])
   @@index([companyId])
 }
+
 
 model FinancialTransaction {
   id          String                     @id @default(uuid()) @db.Uuid

@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 /**
  * Cliente HTTP central do Innovation RH Connect.
@@ -139,9 +139,11 @@ export interface ChatMessage {
 }
 export interface SendMessageInput { phone: string; body: string; contactName?: string; }
 
+export type CompanyStatus = 'ACTIVE' | 'SUSPENDED' | 'CANCELLED';
 export interface Company {
   id: string; name: string; document?: string | null; logoUrl?: string | null;
-  maxUsers: number; maxEmployees: number; isActive: boolean; createdAt: string;
+  commercialOwnerId?: string | null; maxUsers: number; maxEmployees: number;
+  isActive: boolean; status?: CompanyStatus; createdAt: string;
   subscriptionStartedAt?: string; suspensionReason?: string | null;
 }
 export interface PlatformCompany extends Company { usersCount: number; employeesCount: number; }
@@ -150,6 +152,9 @@ export interface CreatePlatformCompanyInput {
   name: string; document?: string; maxUsers?: number; maxEmployees?: number;
   adminName: string; adminEmail: string; adminPassword: string;
 }
+export type PlatformCompanyUserRole = 'ADMIN' | 'RH' | 'GESTOR' | 'FUNCIONARIO';
+export interface CreatePlatformCompanyUserInput { name: string; email: string; password: string; role?: PlatformCompanyUserRole; }
+export interface UpdatePlatformCompanyUserInput { name?: string; email?: string; password?: string; role?: PlatformCompanyUserRole; isActive?: boolean; }
 
 // Module API
 
@@ -215,9 +220,13 @@ export const api = {
     listCompanies: () => request<PlatformCompany[]>('/platform/companies'),
     getCompany: (id: string) => request<PlatformCompany>(`/platform/companies/${id}`),
     createCompany: (input: CreatePlatformCompanyInput) => request<unknown>('/platform/companies', { method: 'POST', body: input }),
-    updateCompany: (id: string, input: Partial<Omit<CreatePlatformCompanyInput, 'adminName' | 'adminEmail' | 'adminPassword'>> & { isActive?: boolean; suspensionReason?: string | null }) =>
+    updateCompany: (id: string, input: Partial<Omit<CreatePlatformCompanyInput, 'adminName' | 'adminEmail' | 'adminPassword'>> & { isActive?: boolean; status?: CompanyStatus; suspensionReason?: string | null }) =>
       request<unknown>(`/platform/companies/${id}`, { method: 'PATCH', body: input }),
     deleteCompany: (id: string) => request<void>(`/platform/companies/${id}`, { method: 'DELETE' }),
+    listCompanyUsers: (companyId: string) => request<AppUser[]>(`/platform/company-users/${companyId}`),
+    createCompanyUser: (companyId: string, input: CreatePlatformCompanyUserInput) => request<AppUser>(`/platform/company-users/${companyId}`, { method: 'POST', body: input }),
+    updateCompanyUser: (companyId: string, userId: string, input: UpdatePlatformCompanyUserInput) => request<AppUser>(`/platform/company-users/${companyId}/${userId}`, { method: 'PATCH', body: input }),
+    deleteCompanyUser: (companyId: string, userId: string) => request<void>(`/platform/company-users/${companyId}/${userId}`, { method: 'DELETE' }),
   },
 };
 

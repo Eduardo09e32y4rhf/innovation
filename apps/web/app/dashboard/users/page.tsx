@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState } from 'react';
 import { Edit3, Trash2, UserPlus, X } from 'lucide-react';
@@ -11,11 +11,12 @@ import { ROLE_LABEL } from '@/app/lib/format';
 const ALL_ROLES: UserRole[] = ['DEV', 'COMERCIAL', 'ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO'];
 const COMPANY_ROLES: UserRole[] = ['ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO'];
 const RH_ROLES: UserRole[] = ['RH', 'GESTOR', 'FUNCIONARIO'];
+const PLATFORM_OWNER_EMAIL = 'eduardo998468@gmail.com';
 
 type UserForm = CreateUserInput & { isActive?: boolean };
 
-function getAvailableRoles(currentRole?: string): UserRole[] {
-  if (currentRole === 'DEV') return ALL_ROLES;
+function getAvailableRoles(currentRole?: string, email?: string): UserRole[] {
+  if (currentRole === 'DEV' && email?.toLowerCase() === PLATFORM_OWNER_EMAIL) return ALL_ROLES;
   if (currentRole === 'RH') return RH_ROLES;
   return COMPANY_ROLES;
 }
@@ -29,7 +30,7 @@ function canManageRow(currentRole?: string, targetRole?: UserRole) {
 export default function UsersPage() {
   const { user: currentUser } = useAuth();
   const currentRole = currentUser?.profile?.toUpperCase();
-  const availableRoles = getAvailableRoles(currentRole);
+  const availableRoles = getAvailableRoles(currentRole, currentUser?.email);
   const users = useQuery(() => api.users.list(), []);
   const usage = useQuery(() => api.users.usage(), []);
   const [open, setOpen] = useState(false);

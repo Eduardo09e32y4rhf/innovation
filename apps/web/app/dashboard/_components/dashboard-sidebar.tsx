@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -22,10 +22,10 @@ import { ROLE_LABEL } from '@/app/lib/format';
 type NavItemConfig = { label: string; href: string; icon: LucideIcon; match?: string; roles?: string[] };
 
 const baseNavItems: NavItemConfig[] = [
-  { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
-  { icon: Users, label: 'Funcionarios', href: '/dashboard/employees', match: '/dashboard/employees' },
-  { icon: Clock3, label: 'Ponto', href: '/dashboard/time-track', match: '/dashboard/time-track' },
-  { icon: CalendarDays, label: 'Ferias', href: '/dashboard/vacations', match: '/dashboard/vacations' },
+  { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard', roles: ['DEV', 'ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO'] },
+  { icon: Users, label: 'Funcionarios', href: '/dashboard/employees', match: '/dashboard/employees', roles: ['DEV', 'ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO'] },
+  { icon: Clock3, label: 'Ponto', href: '/dashboard/time-track', match: '/dashboard/time-track', roles: ['DEV', 'ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO'] },
+  { icon: CalendarDays, label: 'Ferias', href: '/dashboard/vacations', match: '/dashboard/vacations', roles: ['DEV', 'ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO'] },
   { icon: Smartphone, label: 'WhatsApp', href: '/dashboard/whatsapp', match: '/dashboard/whatsapp', roles: ['DEV', 'ADMIN', 'RH', 'GESTOR'] },
   { icon: UserCog, label: 'Usuarios', href: '/dashboard/users', match: '/dashboard/users', roles: ['DEV', 'ADMIN', 'RH'] },
   { icon: Settings, label: 'Configuracoes', href: '/dashboard/settings', match: '/dashboard/settings', roles: ['DEV', 'ADMIN', 'RH'] },

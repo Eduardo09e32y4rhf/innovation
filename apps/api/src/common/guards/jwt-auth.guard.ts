@@ -1,10 +1,12 @@
-import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
+﻿import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { PrismaService } from '../../database/prisma.service';
 
-// Tokens de desenvolvimento local (desabilitados em producao)
 const DEMO_TOKEN = 'demo-token-innovation-rh-connect-2026';
 const LOCAL_SESSION_TOKEN = 'innovation-rh-connect-local-session';
 const LOCAL_COMPANY_ID = '00000000-0000-0000-0000-000000000001';
+const PLATFORM_OWNER_EMAIL = 'eduardo998468@gmail.com';
+const SESSION_DENIED_MESSAGE = 'Nao foi possivel entrar';
 
 const DEMO_PAYLOAD = {
   sub: '00000000-0000-0000-0000-000000000001',
@@ -28,9 +30,10 @@ function isLocalEnabled() {
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
-  // O AuthModule agora e @Global(), entao JwtService e sempre injetavel.
-  // Sem @Optional: se o JwtService sumir, o erro explode na inicializacao (facil de diagnosticar).
-  constructor(private readonly jwtService: JwtService) {}
+  constructor(
+    private readonly jwtService: JwtService,
+    private readonly prisma: PrismaService,
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
@@ -39,7 +42,6 @@ export class JwtAuthGuard implements CanActivate {
 
     if (!token) throw new UnauthorizedException('Token nao informado');
 
-    // Tokens de atalho para desenvolvimento local
     if (isDemoEnabled() && token === process.env.DEMO_TOKEN) {
       request.user = DEMO_PAYLOAD;
       return true;
@@ -50,11 +52,27 @@ export class JwtAuthGuard implements CanActivate {
     }
 
     try {
-      request.user = await this.jwtService.verifyAsync(token, {
-        secret: process.env.JWT_SECRET,
+      const payload = await this.jwtService.verifyAsync(token, { secret: process.env.JWT_SECRET });
+      const freshUser = await this.prisma.user.findUnique({
+        where: { id: payload.sub },
+        include: { company: true },
       });
+      if (!freshUser || !freshUser.isActive) throw new UnauthorizedException(SESSION_DENIED_MESSAGE);
+
+      const role = freshUser.email.toLowerCase() === PLATFORM_OWNER_EMAIL ? 'DEV' : freshUser.role;
+      const companyActive = freshUser.company?.isActive && (freshUser.company.status ?? 'ACTIVE') === 'ACTIVE';
+      if (role !== 'DEV' && !companyActive) throw new UnauthorizedException(SESSION_DENIED_MESSAGE);
+
+      request.user = {
+        sub: freshUser.id,
+        email: freshUser.email,
+        name: freshUser.name,
+        companyId: freshUser.companyId,
+        role,
+      };
       return true;
-    } catch {
+    } catch (error) {
+      if (error instanceof UnauthorizedException) throw error;
       throw new UnauthorizedException('Token invalido ou expirado');
     }
   }

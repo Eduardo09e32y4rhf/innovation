@@ -5,6 +5,8 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UsersRepository } from './users.repository';
 
+const PLATFORM_OWNER_EMAIL = 'eduardo998468@gmail.com';
+
 @Injectable()
 export class UsersService {
   constructor(private readonly repository: UsersRepository) {}
@@ -64,7 +66,6 @@ export class UsersService {
     return { deleted: true };
   }
 
-  /** Retorna quantos usuarios a empresa usa vs o limite - exibido na tela de Usuarios. */
   async usage(companyId: string) {
     const [count, limits] = await Promise.all([
       this.repository.countByCompany(companyId),
@@ -78,8 +79,8 @@ export class UsersService {
     const actorRole = String(actor.role || '').toUpperCase();
     const protectedRoles = ['DEV', 'COMERCIAL'];
 
-    if (protectedRoles.includes(nextRole) && actorRole !== 'DEV') {
-      throw new ForbiddenException('Apenas Super Admin pode criar ou promover Super Admin/Comercial.');
+    if (protectedRoles.includes(nextRole) && actor.email.toLowerCase() !== PLATFORM_OWNER_EMAIL) {
+      throw new ForbiddenException('Apenas o dono da plataforma pode criar ou promover Super Admin/Comercial.');
     }
     if (actorRole === 'RH' && ['ADMIN', 'DEV', 'COMERCIAL'].includes(nextRole)) {
       throw new ForbiddenException('RH nao pode criar ou promover Administrador, Comercial ou Super Admin.');

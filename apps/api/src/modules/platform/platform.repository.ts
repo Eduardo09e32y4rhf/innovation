@@ -1,5 +1,16 @@
-﻿import { Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
+
+const safeUserSelect = {
+  id: true,
+  companyId: true,
+  name: true,
+  email: true,
+  role: true,
+  isActive: true,
+  createdAt: true,
+  updatedAt: true,
+};
 
 @Injectable()
 export class PlatformRepository {
@@ -17,9 +28,11 @@ export class PlatformRepository {
       name: c.name,
       document: c.document,
       logoUrl: c.logoUrl,
+      commercialOwnerId: c.commercialOwnerId,
       maxUsers: c.maxUsers,
       maxEmployees: c.maxEmployees,
       isActive: c.isActive,
+      status: c.status,
       suspensionReason: c.suspensionReason,
       subscriptionStartedAt: c.subscriptionStartedAt,
       createdAt: c.createdAt,
@@ -39,6 +52,30 @@ export class PlatformRepository {
     return this.prisma.user.findUnique({ where: { email } });
   }
 
+  countUsers(companyId: string) {
+    return this.prisma.user.count({ where: { companyId } });
+  }
+
+  listCompanyUsers(companyId: string) {
+    return this.prisma.user.findMany({ where: { companyId }, select: safeUserSelect, orderBy: { createdAt: 'desc' } });
+  }
+
+  findCompanyUser(companyId: string, userId: string) {
+    return this.prisma.user.findFirst({ where: { id: userId, companyId }, select: safeUserSelect });
+  }
+
+  createCompanyUser(data: any) {
+    return this.prisma.user.create({ data, select: safeUserSelect });
+  }
+
+  updateCompanyUser(companyId: string, userId: string, data: any) {
+    return this.prisma.user.updateMany({ where: { id: userId, companyId }, data });
+  }
+
+  deleteCompanyUser(companyId: string, userId: string) {
+    return this.prisma.user.deleteMany({ where: { id: userId, companyId } });
+  }
+
   createCompanyWithAdmin(params: {
     name: string;
     document?: string | null;
@@ -47,6 +84,7 @@ export class PlatformRepository {
     adminName: string;
     adminEmail: string;
     adminPasswordHash: string;
+    commercialOwnerId?: string | null;
   }) {
     return this.prisma.$transaction(async (tx: any) => {
       const company = await tx.company.create({
@@ -55,6 +93,9 @@ export class PlatformRepository {
           document: params.document ?? null,
           maxUsers: params.maxUsers,
           maxEmployees: params.maxEmployees,
+          commercialOwnerId: params.commercialOwnerId ?? null,
+          status: 'ACTIVE',
+          isActive: true,
         },
       });
       const admin = await tx.user.create({

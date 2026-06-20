@@ -186,10 +186,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           return;
         }
       } catch {
-        throw new Error('Nao foi possivel entrar agora. Verifique sua conexao e tente novamente.');
+        throw new Error('Nao foi possivel entrar.');
       }
 
-      throw new Error('Email ou senha invalidos.');
+      throw new Error('Nao foi possivel entrar.');
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro ao fazer login';
       setError(message);

@@ -1,8 +1,10 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { CalendarDays, Clock3, MessageSquareText, TrendingUp, Users } from 'lucide-react';
 import { ErrorState } from '@/app/components/data-states';
+import { useAuth } from '@/app/contexts/AuthContext';
 import { useQuery } from '@/app/hooks/use-data';
 import { api } from '@/app/lib/api';
 import { demoSummary, demoTimeTracks, demoVacations, isLocalPresentation } from '@/app/lib/demo-data';
@@ -13,15 +15,22 @@ export default function DashboardHome() {
 }
 
 function DashboardContent() {
+  const router = useRouter();
+  const { user } = useAuth();
   const [presentationMode, setPresentationMode] = useState(false);
+  const isCommercial = user?.profile?.toUpperCase() === 'COMERCIAL';
 
   useEffect(() => {
     setPresentationMode(isLocalPresentation());
   }, []);
 
-  const summary = useQuery(() => api.dashboard.summary(), [], { enabled: !presentationMode, pollMs: 60000 });
-  const timeTracks = useQuery(() => api.timeTrack.list(), [], { enabled: !presentationMode });
-  const vacations = useQuery(() => api.vacations.list(), [], { enabled: !presentationMode });
+  useEffect(() => {
+    if (isCommercial) router.replace('/dashboard/platform');
+  }, [isCommercial, router]);
+
+  const summary = useQuery(() => api.dashboard.summary(), [], { enabled: !presentationMode && !isCommercial, pollMs: 60000 });
+  const timeTracks = useQuery(() => api.timeTrack.list(), [], { enabled: !presentationMode && !isCommercial });
+  const vacations = useQuery(() => api.vacations.list(), [], { enabled: !presentationMode && !isCommercial });
 
   const summaryData = presentationMode ? demoSummary : summary.data;
   const timeTrackData = presentationMode ? demoTimeTracks : (timeTracks.data ?? []);

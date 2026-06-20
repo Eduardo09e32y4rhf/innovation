@@ -1,12 +1,15 @@
-import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+﻿import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { CurrentCompany } from '../../common/decorators/current-company.decorator';
+import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
 import { CommunicationService } from './communication.service';
 import { SendMessageDto } from './dto/send-message.dto';
 import { UpdateCommunicationSettingsDto } from './dto/update-communication-settings.dto';
 import { UpdateConversationStatusDto } from './dto/update-conversation-status.dto';
 
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('ADMIN', 'RH', 'GESTOR')
 @Controller('communication')
 export class CommunicationController {
   constructor(private readonly service: CommunicationService) {}

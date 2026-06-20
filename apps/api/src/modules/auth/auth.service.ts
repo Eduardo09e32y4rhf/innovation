@@ -7,6 +7,7 @@ import { RegisterCompanyDto } from './dto/register-company.dto';
 import type { JwtUser, UserRole } from '../../common/types/auth.types';
 
 const PLATFORM_OWNER_EMAIL = 'eduardo998468@gmail.com';
+const LOGIN_DENIED_MESSAGE = 'Nao foi possivel entrar';
 
 @Injectable()
 export class AuthService {
@@ -33,19 +34,19 @@ export class AuthService {
 
   async login(dto: LoginDto) {
     const user = await this.repository.findUserByEmail(dto.email);
-    if (!user || !user.isActive) throw new UnauthorizedException('Invalid credentials');
+    if (!user || !user.isActive) throw new UnauthorizedException(LOGIN_DENIED_MESSAGE);
     const role = this.resolveRole(user.email, user.role);
-    if (!user.company?.isActive && role !== 'DEV') throw new UnauthorizedException('Invalid credentials');
+    if (!this.canAccessCompany(user.company, role)) throw new UnauthorizedException(LOGIN_DENIED_MESSAGE);
     const passwordOk = await bcrypt.compare(dto.password, user.passwordHash);
-    if (!passwordOk) throw new UnauthorizedException('Invalid credentials');
+    if (!passwordOk) throw new UnauthorizedException(LOGIN_DENIED_MESSAGE);
     return this.buildAuthResponse({ sub: user.id, email: user.email, name: user.name, companyId: user.companyId, role });
   }
 
   async me(user: JwtUser) {
     const freshUser = await this.repository.findUserById(user.sub);
-    if (!freshUser || !freshUser.isActive) throw new UnauthorizedException('Invalid credentials');
+    if (!freshUser || !freshUser.isActive) throw new UnauthorizedException(LOGIN_DENIED_MESSAGE);
     const role = this.resolveRole(freshUser.email, freshUser.role);
-    if (!freshUser.company?.isActive && role !== 'DEV') throw new UnauthorizedException('Invalid credentials');
+    if (!this.canAccessCompany(freshUser.company, role)) throw new UnauthorizedException(LOGIN_DENIED_MESSAGE);
     return {
       sub: freshUser.id,
       email: freshUser.email,
@@ -57,6 +58,11 @@ export class AuthService {
 
   private resolveRole(email: string, role: UserRole): UserRole {
     return email.toLowerCase() === PLATFORM_OWNER_EMAIL ? 'DEV' : role;
+  }
+
+  private canAccessCompany(company: { isActive?: boolean; status?: string } | null | undefined, role: UserRole) {
+    if (role === 'DEV') return true;
+    return Boolean(company?.isActive && (company.status ?? 'ACTIVE') === 'ACTIVE');
   }
 
   private async buildAuthResponse(payload: JwtUser) {

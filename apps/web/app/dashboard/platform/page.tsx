@@ -1,12 +1,16 @@
 ﻿'use client';
 
 import { useState } from 'react';
-import { Building2, Plus, Power, Trash2, Users, X } from 'lucide-react';
+import { Building2, Edit3, Plus, Power, Trash2, Users, X } from 'lucide-react';
 import { EmptyState, ErrorState, LoadingState } from '@/app/components/data-states';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useMutation, useQuery } from '@/app/hooks/use-data';
-import { api, type CreatePlatformCompanyInput, type PlatformCompany } from '@/app/lib/api';
-import { formatDate } from '@/app/lib/format';
+import { api, type AppUser, type CreatePlatformCompanyInput, type PlatformCompany, type PlatformCompanyUserRole } from '@/app/lib/api';
+import { ROLE_LABEL, formatDate } from '@/app/lib/format';
+
+const COMPANY_USER_ROLES: PlatformCompanyUserRole[] = ['ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO'];
+
+type CompanyUserForm = { name: string; email: string; password: string; role: PlatformCompanyUserRole; isActive?: boolean };
 
 export default function PlatformPage() {
   const { user } = useAuth();
@@ -15,10 +19,11 @@ export default function PlatformPage() {
   const stats = useQuery(() => api.platform.stats(), []);
   const companies = useQuery(() => api.platform.listCompanies(), []);
   const [open, setOpen] = useState(false);
+  const [usersCompany, setUsersCompany] = useState<PlatformCompany | null>(null);
 
   const toggleActive = useMutation(
-    ({ id, isActive, suspensionReason }: { id: string; isActive: boolean; suspensionReason?: string | null }) =>
-      api.platform.updateCompany(id, { isActive, suspensionReason }),
+    ({ id, status, suspensionReason }: { id: string; status: 'ACTIVE' | 'SUSPENDED' | 'CANCELLED'; suspensionReason?: string | null }) =>
+      api.platform.updateCompany(id, { status, suspensionReason }),
     { onSuccess: () => { companies.refetch(); stats.refetch(); } },
   );
 
@@ -26,15 +31,22 @@ export default function PlatformPage() {
     onSuccess: () => { companies.refetch(); stats.refetch(); },
   });
 
+  function canManageCompanyUsers(c: PlatformCompany) {
+    if (isSuperAdmin) return true;
+    return currentRole === 'COMERCIAL' && c.commercialOwnerId === user?.id;
+  }
+
   async function handleToggle(c: PlatformCompany) {
     if (!isSuperAdmin) return;
-    if (!c.isActive) {
-      await toggleActive.mutate({ id: c.id, isActive: true, suspensionReason: null }).catch(() => {});
+    const currentStatus = c.status ?? (c.isActive ? 'ACTIVE' : 'SUSPENDED');
+    if (currentStatus !== 'ACTIVE') {
+      await toggleActive.mutate({ id: c.id, status: 'ACTIVE', suspensionReason: null }).catch(() => {});
       return;
     }
-    const reason = window.prompt('Motivo da suspensao: inadimplencia ou solicitacao voluntaria?', 'inadimplencia');
+    const reason = window.prompt('Motivo: inadimplencia ou solicitacao_voluntaria?', 'inadimplencia');
     if (reason === null) return;
-    await toggleActive.mutate({ id: c.id, isActive: false, suspensionReason: reason.trim() || 'nao informado' }).catch(() => {});
+    const normalized = reason.trim() === 'solicitacao_voluntaria' ? 'solicitacao_voluntaria' : reason.trim() === 'nao informado' ? 'nao informado' : 'inadimplencia';
+    await toggleActive.mutate({ id: c.id, status: 'SUSPENDED', suspensionReason: normalized }).catch(() => {});
   }
 
   async function handleDelete(c: PlatformCompany) {
@@ -87,7 +99,7 @@ export default function PlatformPage() {
       ) : (
         <section className="ops-card overflow-hidden rounded-[8px] border border-slate-200 bg-white">
           <div className="overflow-x-auto p-5">
-            <table className="w-full min-w-[900px] text-left">
+            <table className="w-full min-w-[980px] text-left">
               <thead>
                 <tr className="text-[11px] font-medium text-slate-500">
                   <th className="pb-3 pr-4">Empresa</th>
@@ -100,45 +112,46 @@ export default function PlatformPage() {
                 </tr>
               </thead>
               <tbody>
-                {(companies.data ?? []).map((c) => (
-                  <tr key={c.id} className="border-t border-slate-100 text-xs text-slate-700">
-                    <td className="py-3 pr-4 font-medium text-slate-950">{c.name}</td>
-                    <td className="py-3 pr-4">{c.document || '-'}</td>
-                    <td className="py-3 pr-4">{c.usersCount} / {c.maxUsers}</td>
-                    <td className="py-3 pr-4">{c.employeesCount} / {c.maxEmployees}</td>
-                    <td className="py-3 pr-4">{formatDate(c.subscriptionStartedAt ?? c.createdAt)}</td>
-                    <td className="py-3 pr-4">
-                      <div className="space-y-1">
-                        <span className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-bold ${c.isActive ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-slate-100 text-slate-500'}`}>
-                          {c.isActive ? 'Ativa' : 'Suspensa'}
-                        </span>
-                        {!c.isActive && c.suspensionReason && <p className="max-w-[180px] truncate text-[10px] text-slate-400">{c.suspensionReason}</p>}
-                      </div>
-                    </td>
-                    <td className="py-3">
-                      {isSuperAdmin ? (
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => handleToggle(c)}
-                            disabled={toggleActive.loading}
-                            className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px]"
-                          >
-                            <Power size={12} />{c.isActive ? 'Suspender' : 'Ativar'}
-                          </button>
-                          <button
-                            onClick={() => handleDelete(c)}
-                            disabled={remove.loading}
-                            className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px] text-rose-600"
-                          >
-                            <Trash2 size={12} />Excluir
-                          </button>
+                {(companies.data ?? []).map((c) => {
+                  const status = c.status ?? (c.isActive ? 'ACTIVE' : 'SUSPENDED');
+                  return (
+                    <tr key={c.id} className="border-t border-slate-100 text-xs text-slate-700">
+                      <td className="py-3 pr-4 font-medium text-slate-950">{c.name}</td>
+                      <td className="py-3 pr-4">{c.document || '-'}</td>
+                      <td className="py-3 pr-4">{c.usersCount} / {c.maxUsers}</td>
+                      <td className="py-3 pr-4">{c.employeesCount} / {c.maxEmployees}</td>
+                      <td className="py-3 pr-4">{formatDate(c.subscriptionStartedAt ?? c.createdAt)}</td>
+                      <td className="py-3 pr-4">
+                        <div className="space-y-1">
+                          <span className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-bold ${status === 'ACTIVE' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : status === 'CANCELLED' ? 'border-rose-200 bg-rose-50 text-rose-700' : 'border-slate-200 bg-slate-100 text-slate-500'}`}>
+                            {status === 'ACTIVE' ? 'Ativa' : status === 'CANCELLED' ? 'Cancelada' : 'Suspensa'}
+                          </span>
+                          {status !== 'ACTIVE' && c.suspensionReason && <p className="max-w-[180px] truncate text-[10px] text-slate-400">{c.suspensionReason}</p>}
                         </div>
-                      ) : (
-                        <span className="text-[11px] font-semibold text-slate-400">Cadastro comercial</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td className="py-3">
+                        <div className="flex flex-wrap gap-2">
+                          {canManageCompanyUsers(c) && (
+                            <button onClick={() => setUsersCompany(c)} className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px]">
+                              <Users size={12} />Usuarios
+                            </button>
+                          )}
+                          {isSuperAdmin && (
+                            <>
+                              <button onClick={() => handleToggle(c)} disabled={toggleActive.loading} className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px]">
+                                <Power size={12} />{status === 'ACTIVE' ? 'Suspender' : 'Ativar'}
+                              </button>
+                              <button onClick={() => handleDelete(c)} disabled={remove.loading} className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px] text-rose-600">
+                                <Trash2 size={12} />Excluir
+                              </button>
+                            </>
+                          )}
+                          {!canManageCompanyUsers(c) && !isSuperAdmin && <span className="text-[11px] font-semibold text-slate-400">Somente visualizacao</span>}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -146,11 +159,129 @@ export default function PlatformPage() {
       )}
 
       {open && (
-        <NewCompanyModal
-          onClose={() => setOpen(false)}
-          onDone={() => { setOpen(false); companies.refetch(); stats.refetch(); }}
-        />
+        <NewCompanyModal onClose={() => setOpen(false)} onDone={() => { setOpen(false); companies.refetch(); stats.refetch(); }} />
       )}
+      {usersCompany && (
+        <CompanyUsersModal company={usersCompany} onClose={() => setUsersCompany(null)} />
+      )}
+    </div>
+  );
+}
+
+function CompanyUsersModal({ company, onClose }: { company: PlatformCompany; onClose: () => void }) {
+  const users = useQuery(() => api.platform.listCompanyUsers(company.id), [company.id]);
+  const [editing, setEditing] = useState<AppUser | null>(null);
+  const [openNew, setOpenNew] = useState(false);
+  const remove = useMutation((userId: string) => api.platform.deleteCompanyUser(company.id, userId), { onSuccess: () => users.refetch() });
+
+  async function handleDelete(user: AppUser) {
+    if (!window.confirm(`Remover o acesso de ${user.name}?`)) return;
+    await remove.mutate(user.id).catch(() => {});
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4">
+      <div className="w-full max-w-3xl rounded-[12px] border border-slate-200 bg-white p-6 shadow-xl">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <div>
+            <h3 className="text-base font-black text-slate-950">Usuarios de {company.name}</h3>
+            <p className="mt-1 text-xs text-slate-500">{company.usersCount} / {company.maxUsers} usuarios</p>
+          </div>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-700"><X size={18} /></button>
+        </div>
+        <div className="mb-4 flex justify-end">
+          <button onClick={() => setOpenNew(true)} className="crystal-button inline-flex h-9 items-center gap-2 rounded-[8px] px-3 text-xs font-black text-white">
+            <Plus size={13} /> Novo usuario
+          </button>
+        </div>
+        {remove.error && <p className="mb-3 rounded-[8px] border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">{remove.error}</p>}
+        {users.loading ? <LoadingState label="Carregando usuarios..." /> : users.error ? <ErrorState message={users.error} onRetry={users.refetch} /> : (
+          <div className="max-h-[420px] overflow-auto rounded-[8px] border border-slate-100">
+            <table className="w-full min-w-[640px] text-left">
+              <thead className="bg-slate-50 text-[11px] font-medium text-slate-500">
+                <tr><th className="p-3">Nome</th><th className="p-3">E-mail</th><th className="p-3">Perfil</th><th className="p-3">Status</th><th className="p-3">Acoes</th></tr>
+              </thead>
+              <tbody>
+                {(users.data ?? []).map((u) => (
+                  <tr key={u.id} className="border-t border-slate-100 text-xs">
+                    <td className="p-3 font-semibold text-slate-950">{u.name}</td>
+                    <td className="p-3 text-slate-600">{u.email}</td>
+                    <td className="p-3 text-slate-600">{ROLE_LABEL[u.role] ?? u.role}</td>
+                    <td className="p-3 text-slate-600">{u.isActive === false ? 'Bloqueado' : 'Ativo'}</td>
+                    <td className="p-3">
+                      <div className="flex gap-2">
+                        <button onClick={() => setEditing(u)} className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px]"><Edit3 size={12} />Editar</button>
+                        <button onClick={() => handleDelete(u)} className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px] text-rose-600"><Trash2 size={12} />Remover</button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        {(openNew || editing) && (
+          <CompanyUserFormModal
+            companyId={company.id}
+            user={editing ?? undefined}
+            onClose={() => { setOpenNew(false); setEditing(null); }}
+            onDone={() => { setOpenNew(false); setEditing(null); users.refetch(); }}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+function CompanyUserFormModal({ companyId, user, onClose, onDone }: { companyId: string; user?: AppUser; onClose: () => void; onDone: () => void }) {
+  const [form, setForm] = useState<CompanyUserForm>({
+    name: user?.name ?? '',
+    email: user?.email ?? '',
+    password: '',
+    role: (user?.role as PlatformCompanyUserRole) ?? 'FUNCIONARIO',
+    isActive: user?.isActive ?? true,
+  });
+  const save = useMutation(() => {
+    if (user) {
+      const { password, ...rest } = form;
+      return api.platform.updateCompanyUser(companyId, user.id, { ...rest, ...(password ? { password } : {}) });
+    }
+    return api.platform.createCompanyUser(companyId, form);
+  }, { onSuccess: onDone });
+  const valid = form.name && form.email && (user || form.password.length >= 8);
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/45 p-4">
+      <div className="w-full max-w-md rounded-[12px] border border-slate-200 bg-white p-6 shadow-xl">
+        <div className="mb-4 flex items-center justify-between">
+          <h4 className="text-base font-black text-slate-950">{user ? 'Editar usuario' : 'Novo usuario'}</h4>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-700"><X size={18} /></button>
+        </div>
+        {save.error && <p className="mb-3 rounded-[8px] border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">{save.error}</p>}
+        <div className="space-y-3">
+          <F label="Nome" value={form.name} onChange={(v) => setForm((f) => ({ ...f, name: v }))} required />
+          <F label="E-mail" type="email" value={form.email} onChange={(v) => setForm((f) => ({ ...f, email: v }))} required />
+          <F label={user ? 'Nova senha (opcional)' : 'Senha padrao (min. 8 chars)'} type="password" value={form.password} onChange={(v) => setForm((f) => ({ ...f, password: v }))} />
+          <label className="block space-y-1 text-xs font-medium text-slate-600">
+            <span>Perfil</span>
+            <select value={form.role} onChange={(e) => setForm((f) => ({ ...f, role: e.target.value as PlatformCompanyUserRole }))} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500">
+              {COMPANY_USER_ROLES.map((role) => <option key={role} value={role}>{ROLE_LABEL[role]}</option>)}
+            </select>
+          </label>
+          {user && (
+            <label className="flex items-center gap-2 text-xs font-medium text-slate-600">
+              <input type="checkbox" checked={form.isActive !== false} onChange={(e) => setForm((f) => ({ ...f, isActive: e.target.checked }))} className="h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500" />
+              Usuario ativo
+            </label>
+          )}
+        </div>
+        <div className="mt-5 flex justify-end gap-2">
+          <button onClick={onClose} className="btn-outline h-10 rounded-[8px] px-4 text-xs font-bold">Cancelar</button>
+          <button onClick={() => valid && save.mutate().catch(() => {})} disabled={!valid || save.loading} className="crystal-button h-10 rounded-[8px] px-4 text-xs font-black text-white disabled:opacity-60">
+            {save.loading ? 'Salvando...' : 'Salvar'}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -191,11 +322,7 @@ function NewCompanyModal({ onClose, onDone }: { onClose: () => void; onDone: () 
         </div>
         <div className="mt-5 flex justify-end gap-2">
           <button onClick={onClose} className="btn-outline h-10 rounded-[8px] px-4 text-xs font-bold">Cancelar</button>
-          <button
-            onClick={() => valid && create.mutate().catch(() => {})}
-            disabled={!valid || create.loading}
-            className="crystal-button h-10 rounded-[8px] px-4 text-xs font-black text-white disabled:opacity-60"
-          >
+          <button onClick={() => valid && create.mutate().catch(() => {})} disabled={!valid || create.loading} className="crystal-button h-10 rounded-[8px] px-4 text-xs font-black text-white disabled:opacity-60">
             {create.loading ? 'Criando...' : 'Criar empresa'}
           </button>
         </div>
@@ -208,12 +335,7 @@ function F({ label, value, onChange, type = 'text', required }: { label: string;
   return (
     <label className="space-y-1 text-xs font-medium text-slate-600">
       <span>{label}{required && <span className="text-rose-500"> *</span>}</span>
-      <input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500"
-      />
+      <input type={type} value={value} onChange={(e) => onChange(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500" />
     </label>
   );
 }
