@@ -160,11 +160,24 @@ model Employee {
   cpf           String         @unique
   email         String
   phone         String?
+  birthDate     DateTime?
+  registration  String?
   position      String
   department    String
+  managerId     String?        @db.Uuid
   admissionDate DateTime
+  terminationDate DateTime?
   status        EmployeeStatus @default(ACTIVE)
   salary        Decimal?       @db.Decimal(12, 2)
+  contractType  String?
+  unit          String?
+  workScale     String?
+  customWorkScale String?
+  dailyWorkload String?
+  standardEntry String?
+  standardLunchStart String?
+  standardLunchReturn String?
+  standardExit  String?
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
 

@@ -91,15 +91,25 @@ export type VacationStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED' |
 export type UserRole = 'DEV' | 'COMERCIAL' | 'ADMIN' | 'RH' | 'GESTOR' | 'FUNCIONARIO';
 export type PunchType = 'ENTRY' | 'LUNCH_START' | 'LUNCH_RETURN' | 'EXIT';
 
+export type ContractType = 'CLT' | 'PJ' | 'ESTAGIO' | 'TEMPORARIO' | 'JOVEM_APRENDIZ';
+export type WorkScale = '5X2' | '6X1' | '12X36' | '4X2' | 'OUTRO';
+export type DailyWorkload = '08:00' | '07:20' | '06:00' | '12:00' | 'OUTRO';
 export interface Employee {
   id: string; companyId: string; name: string; cpf: string; email: string;
-  phone?: string | null; position: string; department: string;
-  admissionDate: string; status: EmployeeStatus;
-  salary?: string | number | null; createdAt: string; updatedAt: string;
+  phone?: string | null; birthDate?: string | null; registration?: string | null;
+  position: string; department: string; managerId?: string | null;
+  admissionDate: string; terminationDate?: string | null; status: EmployeeStatus;
+  salary?: string | number | null; contractType?: ContractType | null; unit?: string | null;
+  workScale?: WorkScale | null; customWorkScale?: string | null; dailyWorkload?: DailyWorkload | null;
+  standardEntry?: string | null; standardLunchStart?: string | null; standardLunchReturn?: string | null; standardExit?: string | null;
+  createdAt: string; updatedAt: string;
 }
 export interface CreateEmployeeInput {
-  name: string; cpf: string; email: string; phone?: string; position: string;
-  department: string; admissionDate: string; salary?: number; status?: EmployeeStatus;
+  name: string; cpf: string; email: string; phone?: string; birthDate?: string; registration?: string;
+  position: string; department: string; managerId?: string; admissionDate: string; terminationDate?: string;
+  salary?: number; status?: EmployeeStatus; contractType?: ContractType; unit?: string;
+  workScale?: WorkScale; customWorkScale?: string; dailyWorkload?: DailyWorkload;
+  standardEntry?: string; standardLunchStart?: string; standardLunchReturn?: string; standardExit?: string;
 }
 export interface TimeTrack {
   id: string; employeeId: string; date: string;

@@ -1,0 +1,15 @@
+ALTER TABLE "Employee" ADD COLUMN IF NOT EXISTS "birthDate" TIMESTAMP(3);
+ALTER TABLE "Employee" ADD COLUMN IF NOT EXISTS "registration" TEXT;
+ALTER TABLE "Employee" ADD COLUMN IF NOT EXISTS "managerId" UUID;
+ALTER TABLE "Employee" ADD COLUMN IF NOT EXISTS "terminationDate" TIMESTAMP(3);
+ALTER TABLE "Employee" ADD COLUMN IF NOT EXISTS "contractType" TEXT;
+ALTER TABLE "Employee" ADD COLUMN IF NOT EXISTS "unit" TEXT;
+ALTER TABLE "Employee" ADD COLUMN IF NOT EXISTS "workScale" TEXT;
+ALTER TABLE "Employee" ADD COLUMN IF NOT EXISTS "customWorkScale" TEXT;
+ALTER TABLE "Employee" ADD COLUMN IF NOT EXISTS "dailyWorkload" TEXT;
+ALTER TABLE "Employee" ADD COLUMN IF NOT EXISTS "standardEntry" TEXT;
+ALTER TABLE "Employee" ADD COLUMN IF NOT EXISTS "standardLunchStart" TEXT;
+ALTER TABLE "Employee" ADD COLUMN IF NOT EXISTS "standardLunchReturn" TEXT;
+ALTER TABLE "Employee" ADD COLUMN IF NOT EXISTS "standardExit" TEXT;
+
+CREATE INDEX IF NOT EXISTS "Employee_companyId_managerId_idx" ON "Employee"("companyId", "managerId");

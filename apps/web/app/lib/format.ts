@@ -1,4 +1,4 @@
-﻿export function formatDate(value?: string | null): string {
+export function formatDate(value?: string | null): string {
   if (!value) return 'â€”';
   const d = new Date(value);
   return Number.isNaN(d.getTime()) ? 'â€”' : d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
@@ -31,11 +31,11 @@ export function formatMinutes(minutes?: number | null): string {
   return `${sign}${h}h ${m}min`;
 }
 export const EMPLOYEE_STATUS_LABEL: Record<string, string> = {
-  ACTIVE: 'Ativo', INACTIVE: 'Inativo', SUSPENDED: 'Suspenso', TERMINATED: 'Desligado',
+  ACTIVE: 'Ativo', INACTIVE: 'Férias', SUSPENDED: 'Afastado', TERMINATED: 'Desligado',
 };
 export const VACATION_STATUS_LABEL: Record<string, string> = {
-  PENDING: 'Pendente', APPROVED: 'Aprovada', REJECTED: 'Rejeitada', CANCELLED: 'Cancelada', COMPLETED: 'Concluida',
+  PENDING: 'Pendente', APPROVED: 'Aprovada', REJECTED: 'Rejeitada', CANCELLED: 'Cancelada', COMPLETED: 'Concluída',
 };
 export const ROLE_LABEL: Record<string, string> = {
-  DEV: 'Super Admin', COMERCIAL: 'Comercial', ADMIN: 'Administrador', RH: 'RH', GESTOR: 'Gestor', FUNCIONARIO: 'Funcionario',
+  DEV: 'Super Admin', COMERCIAL: 'Comercial', ADMIN: 'Administrador', RH: 'RH', GESTOR: 'Gestor', FUNCIONARIO: 'Funcionário',
 };

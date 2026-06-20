@@ -42,8 +42,26 @@ export class EmployeesService {
   private toData(dto: CreateEmployeeDto | UpdateEmployeeDto) {
     return {
       ...dto,
+      phone: this.emptyToUndefined(dto.phone),
+      birthDate: dto.birthDate ? new Date(dto.birthDate) : undefined,
+      registration: this.emptyToUndefined(dto.registration),
+      managerId: this.emptyToUndefined(dto.managerId),
       admissionDate: dto.admissionDate ? new Date(dto.admissionDate) : undefined,
+      terminationDate: dto.terminationDate ? new Date(dto.terminationDate) : undefined,
       salary: dto.salary ?? undefined,
+      contractType: this.emptyToUndefined(dto.contractType),
+      unit: this.emptyToUndefined(dto.unit),
+      workScale: this.emptyToUndefined(dto.workScale),
+      customWorkScale: this.emptyToUndefined(dto.customWorkScale),
+      dailyWorkload: this.emptyToUndefined(dto.dailyWorkload),
+      standardEntry: this.emptyToUndefined(dto.standardEntry),
+      standardLunchStart: this.emptyToUndefined(dto.standardLunchStart),
+      standardLunchReturn: this.emptyToUndefined(dto.standardLunchReturn),
+      standardExit: this.emptyToUndefined(dto.standardExit),
     };
+  }
+
+  private emptyToUndefined(value?: string | null) {
+    return value?.trim() || undefined;
   }
 }
