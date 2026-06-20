@@ -1,5 +1,6 @@
 'use client';
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+
+import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 
 export interface User {
   id: string;
@@ -20,7 +21,9 @@ interface AuthContextType {
   token: string | null;
   loading: boolean;
   error: string | null;
+  passwordChangeRequired: boolean;
   login: (email: string, password: string) => Promise<void>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
 }
@@ -59,8 +62,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [passwordChangeRequired, setPasswordChangeRequired] = useState(false);
 
-  // Carregar apenas sessao real salva. A sessao local precisa ser habilitada por env no desenvolvimento.
   useEffect(() => {
     const savedToken = localStorage.getItem('token');
     const savedUser = localStorage.getItem('user');
@@ -88,6 +91,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           setToken(savedToken);
           setUser(parsedUser);
           setCompany(parsedCompany);
+          setPasswordChangeRequired(localStorage.getItem('passwordChangeRequired') === 'true');
           void refreshStoredUser(savedToken, parsedCompany);
         }
       } catch {
@@ -113,18 +117,21 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const freshUser = payload.data ?? payload;
       const nextUser = {
         id: freshUser.sub,
-        name: freshUser.name || freshUser.email?.split('@')[0] || 'Usuario',
+        name: freshUser.name || freshUser.email?.split('@')[0] || 'Usuário',
         email: freshUser.email,
         profile: String(freshUser.role || 'USER').toLowerCase(),
         companyId: freshUser.companyId,
       };
       const nextCompany = { ...savedCompany, id: freshUser.companyId || savedCompany.id };
+      const mustChangePassword = Boolean(freshUser.passwordChangeRequired);
       setUser(nextUser);
       setCompany(nextCompany);
+      setPasswordChangeRequired(mustChangePassword);
       localStorage.setItem('user', JSON.stringify(nextUser));
       localStorage.setItem('company', JSON.stringify(nextCompany));
+      localStorage.setItem('passwordChangeRequired', String(mustChangePassword));
     } catch {
-      // Mantem a sessao salva se a atualizacao do perfil falhar momentaneamente.
+      // Mantém a sessão salva se a atualização do perfil falhar momentaneamente.
     }
   };
 
@@ -132,18 +139,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setToken(LOCAL_SESSION_TOKEN);
     setUser(LOCAL_USER);
     setCompany(LOCAL_COMPANY);
+    setPasswordChangeRequired(false);
     localStorage.setItem('token', LOCAL_SESSION_TOKEN);
     localStorage.setItem('user', JSON.stringify(LOCAL_USER));
     localStorage.setItem('company', JSON.stringify(LOCAL_COMPANY));
+    localStorage.setItem('passwordChangeRequired', 'false');
   };
 
   const clearStoredSession = () => {
     setToken(null);
     setUser(null);
     setCompany(null);
+    setPasswordChangeRequired(false);
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     localStorage.removeItem('company');
+    localStorage.removeItem('passwordChangeRequired');
   };
 
   const login = async (email: string, password: string) => {
@@ -151,45 +162,38 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setError(null);
 
     try {
-      // Tentar backend real primeiro
-      const apiUrl = getApiUrl();
+      const response = await fetch(`${getApiUrl()}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+        signal: AbortSignal.timeout(3000),
+      });
 
-      try {
-        const response = await fetch(`${apiUrl}/auth/login`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password }),
-          signal: AbortSignal.timeout(3000), // timeout 3s
-        });
+      if (!response.ok) throw new Error('Não foi possível entrar.');
 
-        if (response.ok) {
-          const data = await response.json();
-          const authData = data.data ?? data;
-          const nextToken = authData.access_token;
-          const nextUser = {
-            id: authData.user.sub,
-            name: authData.user.name || email.split('@')[0] || 'Usuario',
-            email: authData.user.email,
-            profile: String(authData.user.role || 'USER').toLowerCase(),
-            companyId: authData.user.companyId,
-          };
-          const nextCompany = {
-            id: authData.user.companyId,
-            name: 'Innovation RH Connect',
-          };
-          setToken(nextToken);
-          setUser(nextUser);
-          setCompany(nextCompany);
-          localStorage.setItem('token', nextToken);
-          localStorage.setItem('user', JSON.stringify(nextUser));
-          localStorage.setItem('company', JSON.stringify(nextCompany));
-          return;
-        }
-      } catch {
-        throw new Error('Nao foi possivel entrar.');
-      }
-
-      throw new Error('Nao foi possivel entrar.');
+      const data = await response.json();
+      const authData = data.data ?? data;
+      const nextToken = authData.access_token;
+      const nextUser = {
+        id: authData.user.sub,
+        name: authData.user.name || email.split('@')[0] || 'Usuário',
+        email: authData.user.email,
+        profile: String(authData.user.role || 'USER').toLowerCase(),
+        companyId: authData.user.companyId,
+      };
+      const nextCompany = {
+        id: authData.user.companyId,
+        name: 'Innovation RH Connect',
+      };
+      const mustChangePassword = Boolean(authData.passwordChangeRequired);
+      setToken(nextToken);
+      setUser(nextUser);
+      setCompany(nextCompany);
+      setPasswordChangeRequired(mustChangePassword);
+      localStorage.setItem('token', nextToken);
+      localStorage.setItem('user', JSON.stringify(nextUser));
+      localStorage.setItem('company', JSON.stringify(nextCompany));
+      localStorage.setItem('passwordChangeRequired', String(mustChangePassword));
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro ao fazer login';
       setError(message);
@@ -197,6 +201,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     } finally {
       setLoading(false);
     }
+  };
+
+  const changePassword = async (currentPassword: string, newPassword: string) => {
+    if (!token) throw new Error('Sessão expirada. Faça login novamente.');
+    const response = await fetch(`${getApiUrl()}/auth/change-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ currentPassword, newPassword }),
+    });
+    const payload = await response.json().catch(() => null);
+    if (!response.ok) throw new Error(payload?.message || payload?.error?.message || 'Não foi possível trocar a senha.');
+    setPasswordChangeRequired(false);
+    localStorage.setItem('passwordChangeRequired', 'false');
   };
 
   const logout = () => {
@@ -210,7 +227,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     token,
     loading,
     error,
+    passwordChangeRequired,
     login,
+    changePassword,
     logout,
     isAuthenticated: !!token && !!user,
   };

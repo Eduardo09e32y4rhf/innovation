@@ -137,6 +137,8 @@ model User {
   name         String
   email        String   @unique
   passwordHash String
+  passwordChangedAt DateTime @default(now())
+  forcePasswordChange Boolean @default(false)
   role         UserRole @default(FUNCIONARIO)
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())

@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { APP_INTERCEPTOR } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { HealthModule } from './health/health.module';
@@ -15,6 +16,7 @@ import { EmployeesModule } from './modules/employees/employees.module';
 import { TimeTrackModule } from './modules/time-track/time-track.module';
 import { VacationsModule } from './modules/vacations/vacations.module';
 import { PlatformModule } from './modules/platform/platform.module';
+import { AuditInterceptor } from './common/interceptors/audit.interceptor';
 
 @Module({
   imports: [
@@ -38,5 +40,6 @@ import { PlatformModule } from './modules/platform/platform.module';
     VacationsModule,
     PlatformModule,
   ],
+  providers: [{ provide: APP_INTERCEPTOR, useClass: AuditInterceptor }],
 })
 export class AppModule {}

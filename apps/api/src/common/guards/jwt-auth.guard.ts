@@ -1,4 +1,4 @@
-﻿import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
+import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../../database/prisma.service';
 
@@ -7,6 +7,7 @@ const LOCAL_SESSION_TOKEN = 'innovation-rh-connect-local-session';
 const LOCAL_COMPANY_ID = '00000000-0000-0000-0000-000000000001';
 const PLATFORM_OWNER_EMAIL = 'eduardo998468@gmail.com';
 const SESSION_DENIED_MESSAGE = 'Nao foi possivel entrar';
+const PASSWORD_MAX_AGE_DAYS = 30;
 
 const DEMO_PAYLOAD = {
   sub: '00000000-0000-0000-0000-000000000001',
@@ -39,6 +40,9 @@ export class JwtAuthGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
     const header = request.headers.authorization as string | undefined;
     const token = header?.startsWith('Bearer ') ? header.slice(7) : undefined;
+    const path = String(request.route?.path ?? request.url ?? '');
+    const isPasswordChangeRoute = path.includes('change-password');
+    const isMeRoute = path.endsWith('/me') || path === 'me';
 
     if (!token) throw new UnauthorizedException('Token nao informado');
 
@@ -62,6 +66,11 @@ export class JwtAuthGuard implements CanActivate {
       const role = freshUser.email.toLowerCase() === PLATFORM_OWNER_EMAIL ? 'DEV' : freshUser.role;
       const companyActive = freshUser.company?.isActive && (freshUser.company.status ?? 'ACTIVE') === 'ACTIVE';
       if (role !== 'DEV' && !companyActive) throw new UnauthorizedException(SESSION_DENIED_MESSAGE);
+
+      const changedAt = freshUser.passwordChangedAt ? new Date(freshUser.passwordChangedAt).getTime() : 0;
+      const passwordExpired =
+        freshUser.forcePasswordChange || !changedAt || Date.now() - changedAt >= PASSWORD_MAX_AGE_DAYS * 24 * 60 * 60 * 1000;
+      if (passwordExpired && !isPasswordChangeRoute && !isMeRoute) throw new UnauthorizedException(SESSION_DENIED_MESSAGE);
 
       request.user = {
         sub: freshUser.id,

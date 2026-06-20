@@ -38,6 +38,17 @@ export class AuthRepository {
     });
   }
 
+
+  updatePassword(userId: string, passwordHash: string) {
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash, passwordChangedAt: new Date(), forcePasswordChange: false },
+    });
+  }
+
+  createAuditLog(data: { companyId: string; userId?: string; action: string; entity: string; entityId?: string; metadata?: any; ipAddress?: string; userAgent?: string }) {
+    return this.prisma.auditLog.create({ data });
+  }
   userSafeSelect() {
     return { id: true, companyId: true, name: true, email: true, role: true, isActive: true, createdAt: true, updatedAt: true };
   }
