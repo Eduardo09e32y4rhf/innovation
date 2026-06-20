@@ -1,4 +1,4 @@
-﻿import { Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import { emptyToNull, normalizeDisplayName } from '../../common/utils/text-normalization';
 
@@ -7,7 +7,7 @@ export class AuthRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   findUserByEmail(email: string) {
-    return this.prisma.user.findUnique({ where: { email }, include: { company: true } });
+    return this.prisma.user.findUnique({ where: { email: email.trim().toLowerCase() }, include: { company: true } });
   }
 
   findUserById(id: string) {

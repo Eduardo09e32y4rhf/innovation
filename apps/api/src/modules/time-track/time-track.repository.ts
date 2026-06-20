@@ -1,4 +1,4 @@
-﻿import { Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 
 @Injectable()
@@ -26,6 +26,10 @@ export class TimeTrackRepository {
 
   findEmployee(companyId: string, employeeId: string) {
     return this.prisma.employee.findFirst({ where: { id: employeeId, companyId } });
+  }
+
+  findEmployeeByUserId(companyId: string, userId: string) {
+    return this.prisma.employee.findFirst({ where: { userId, companyId } });
   }
 
   upsert(employeeId: string, date: Date, data: any) {

@@ -1,4 +1,5 @@
-﻿import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import type { JwtUser } from '../../common/types/auth.types';
 import { ManualTimeTrackDto } from './dto/manual-time-track.dto';
 import { RegisterTimeDto } from './dto/register-time.dto';
 import { UpdateTimeTrackDto } from './dto/update-time-track.dto';
@@ -17,12 +18,16 @@ const REASON_LABEL: Record<string, string> = {
 export class TimeTrackService {
   constructor(private readonly repository: TimeTrackRepository) {}
 
-  list(companyId: string) {
-    return this.repository.list(companyId);
+  async list(companyId: string, actor: JwtUser) {
+    if (actor.role === 'ADMIN' || actor.role === 'RH' || actor.role === 'DEV') return this.repository.list(companyId);
+    const employee = await this.repository.findEmployeeByUserId(companyId, actor.sub);
+    if (!employee) return [];
+    const { start, end } = this.resolveMonth();
+    return this.repository.listEmployeeMonth(companyId, employee.id, start, end);
   }
 
-  async listEmployeeMonth(companyId: string, employeeId: string, month?: string) {
-    await this.ensureEmployee(companyId, employeeId);
+  async listEmployeeMonth(companyId: string, actor: JwtUser, employeeId: string, month?: string) {
+    await this.ensureCanAccessEmployee(companyId, actor, employeeId);
     const { start, end } = this.resolveMonth(month);
     return this.repository.listEmployeeMonth(companyId, employeeId, start, end);
   }
@@ -42,8 +47,8 @@ export class TimeTrackService {
     return this.repository.upsert(dto.employeeId, date, { ...data, ...totals });
   }
 
-  async register(companyId: string, dto: RegisterTimeDto) {
-    await this.ensureEmployee(companyId, dto.employeeId);
+  async register(companyId: string, actor: JwtUser, dto: RegisterTimeDto) {
+    await this.ensureCanAccessEmployee(companyId, actor, dto.employeeId);
     const timestamp = dto.timestamp ? new Date(dto.timestamp) : new Date();
     if (Number.isNaN(timestamp.getTime())) throw new BadRequestException('Invalid timestamp');
     const field = this.typeToField(dto.type);
@@ -83,13 +88,15 @@ export class TimeTrackService {
     return employee;
   }
 
+  private async ensureCanAccessEmployee(companyId: string, actor: JwtUser, employeeId: string) {
+    const employee = await this.ensureEmployee(companyId, employeeId);
+    if (actor.role === 'ADMIN' || actor.role === 'RH' || actor.role === 'DEV') return employee;
+    if (employee.userId === actor.sub) return employee;
+    throw new NotFoundException('Employee not found');
+  }
+
   private typeToField(type: RegisterTimeDto['type']) {
-    const map = {
-      ENTRY: 'entry',
-      LUNCH_START: 'lunchStart',
-      LUNCH_RETURN: 'lunchReturn',
-      EXIT: 'exit',
-    } as const;
+    const map = { ENTRY: 'entry', LUNCH_START: 'lunchStart', LUNCH_RETURN: 'lunchReturn', EXIT: 'exit' } as const;
     return map[type];
   }
 

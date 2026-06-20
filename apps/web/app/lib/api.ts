@@ -59,13 +59,18 @@ async function request<T>(path: string, opts: Opts = {}): Promise<T> {
   const data = text ? safeJson(text) : null;
 
   if (!res.ok) {
-    const msg =
-      data && typeof data === 'object' && 'message' in data
-        ? Array.isArray((data as any).message)
-          ? (data as any).message.join(', ')
-          : String((data as any).message)
-        : `Erro ${res.status}`;
-    throw new ApiError(res.status, msg, data);
+    const nested = data && typeof data === 'object' && 'error' in data ? (data as any).error : data;
+    const rawMessage =
+      nested && typeof nested === 'object' && 'message' in nested
+        ? (nested as any).message
+        : data && typeof data === 'object' && 'message' in data
+          ? (data as any).message
+          : null;
+    const parsedMessage = Array.isArray(rawMessage) ? rawMessage.join(', ') : rawMessage ? String(rawMessage) : '';
+    const friendly = res.status === 403 || res.status === 409
+      ? 'Seu acesso foi alterado ou suspenso. Procure o administrador do sistema.'
+      : parsedMessage || `Erro ${res.status}`;
+    throw new ApiError(res.status, friendly, data);
   }
 
   if (data && typeof data === 'object' && 'success' in data && 'data' in data) {
