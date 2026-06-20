@@ -235,7 +235,7 @@ function openPrintableReport(rows: TimeTrack[], month: string, employee?: Employ
   const company = getCompanyInfo();
   const title = employee ? `Espelho individual - ${normalizeDisplayName(employee.name)} - ${monthLabel(month)}` : `Espelho da empresa - ${monthLabel(month)}`;
   const content = employee ? renderIndividualReport(rows, employee, company, month) : renderCompanyReport(rows, company, month);
-  const win = window.open('', '_blank', 'noopener,noreferrer');
+  const win = window.open('', '_blank');
   if (!win) {
     window.alert('Não foi possível abrir o relatório. Verifique se o navegador bloqueou pop-ups.');
     return;
