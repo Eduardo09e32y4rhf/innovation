@@ -1,20 +1,20 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+﻿import { Body, Controller, Delete, ForbiddenException, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
+import type { JwtUser } from '../../common/types/auth.types';
 import { CreatePlatformCompanyDto } from './dto/create-platform-company.dto';
 import { UpdatePlatformCompanyDto } from './dto/update-platform-company.dto';
 import { PlatformService } from './platform.service';
 
 /**
- * Camada de plataforma — exclusiva do perfil DEV (engenharia).
- * Permite gerenciar todas as empresas (clientes), criar novos clientes
- * com seu admin inicial, ajustar limites de plano e ver metricas globais.
- * O RolesGuard ja deixa DEV passar em qualquer rota, mas a anotacao
- * @Roles('DEV') documenta e bloqueia qualquer outro perfil explicitamente.
+ * Camada global da plataforma.
+ * DEV (Super Admin) ve e controla tudo; COMERCIAL ve empresas e cria clientes.
+ * Empresas comuns continuam isoladas pelo companyId nas rotas do produto.
  */
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('DEV')
+@Roles('DEV', 'COMERCIAL')
 @Controller('platform')
 export class PlatformController {
   constructor(private readonly service: PlatformService) {}
@@ -40,12 +40,20 @@ export class PlatformController {
   }
 
   @Patch('companies/:id')
-  updateCompany(@Param('id') id: string, @Body() dto: UpdatePlatformCompanyDto) {
+  updateCompany(@CurrentUser() actor: JwtUser, @Param('id') id: string, @Body() dto: UpdatePlatformCompanyDto) {
+    this.assertDev(actor);
     return this.service.updateCompany(id, dto);
   }
 
   @Delete('companies/:id')
-  deleteCompany(@Param('id') id: string) {
+  deleteCompany(@CurrentUser() actor: JwtUser, @Param('id') id: string) {
+    this.assertDev(actor);
     return this.service.deleteCompany(id);
+  }
+
+  private assertDev(actor: JwtUser) {
+    if (actor.role !== 'DEV') {
+      throw new ForbiddenException('Apenas Super Admin pode suspender, ativar ou excluir empresas.');
+    }
   }
 }

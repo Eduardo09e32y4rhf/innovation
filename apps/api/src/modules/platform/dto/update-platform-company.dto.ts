@@ -1,4 +1,4 @@
-import { IsBoolean, IsInt, IsOptional, IsString, Min } from 'class-validator';
+﻿import { IsBoolean, IsInt, IsOptional, IsString, Min } from 'class-validator';
 
 export class UpdatePlatformCompanyDto {
   @IsOptional()
@@ -22,4 +22,8 @@ export class UpdatePlatformCompanyDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  @IsOptional()
+  @IsString()
+  suspensionReason?: string | null;
 }

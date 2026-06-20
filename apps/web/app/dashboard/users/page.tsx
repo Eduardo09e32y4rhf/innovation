@@ -1,29 +1,39 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
-import { Trash2, UserPlus, X } from 'lucide-react';
+import { Edit3, Trash2, UserPlus, X } from 'lucide-react';
 import { EmptyState, ErrorState, LoadingState } from '@/app/components/data-states';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useMutation, useQuery } from '@/app/hooks/use-data';
-import { api, type CreateUserInput, type UserRole } from '@/app/lib/api';
+import { api, type AppUser, type CreateUserInput, type UserRole } from '@/app/lib/api';
 import { ROLE_LABEL } from '@/app/lib/format';
 
-const ROLES: UserRole[] = ['ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO'];
-const DEV_ACCESS_EMAIL = 'eduardo998468@gmail.com';
+const ALL_ROLES: UserRole[] = ['DEV', 'COMERCIAL', 'ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO'];
+const COMPANY_ROLES: UserRole[] = ['ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO'];
+const RH_ROLES: UserRole[] = ['RH', 'GESTOR', 'FUNCIONARIO'];
 
-function isAuthorizedDev(profile?: string, email?: string) {
-  return String(profile || '').toLowerCase() === 'dev' && String(email || '').toLowerCase() === DEV_ACCESS_EMAIL;
+type UserForm = CreateUserInput & { isActive?: boolean };
+
+function getAvailableRoles(currentRole?: string): UserRole[] {
+  if (currentRole === 'DEV') return ALL_ROLES;
+  if (currentRole === 'RH') return RH_ROLES;
+  return COMPANY_ROLES;
+}
+
+function canManageRow(currentRole?: string, targetRole?: UserRole) {
+  if (currentRole === 'DEV') return true;
+  if (targetRole === 'DEV' || targetRole === 'COMERCIAL') return false;
+  return currentRole === 'ADMIN' || currentRole === 'RH';
 }
 
 export default function UsersPage() {
   const { user: currentUser } = useAuth();
   const currentRole = currentUser?.profile?.toUpperCase();
-  const authorizedDev = isAuthorizedDev(currentUser?.profile, currentUser?.email);
-  const canDeleteUsers = authorizedDev || currentRole === 'ADMIN';
-  const availableRoles = currentRole === 'RH' ? ROLES.filter((role) => role !== 'ADMIN') : ROLES;
+  const availableRoles = getAvailableRoles(currentRole);
   const users = useQuery(() => api.users.list(), []);
   const usage = useQuery(() => api.users.usage(), []);
   const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<AppUser | null>(null);
 
   const remove = useMutation((id: string) => api.users.delete(id), {
     onSuccess: () => { users.refetch(); usage.refetch(); },
@@ -32,10 +42,10 @@ export default function UsersPage() {
   const rows = users.data ?? [];
   const isFull = usage.data ? usage.data.used >= usage.data.max : false;
 
-  async function handleDelete(id: string, name: string) {
-    if (!canDeleteUsers) return;
-    if (!window.confirm(`Remover o acesso de ${name}?`)) return;
-    await remove.mutate(id).catch(() => {});
+  async function handleDelete(user: AppUser) {
+    if (!canManageRow(currentRole, user.role)) return;
+    if (!window.confirm(`Remover o acesso de ${user.name}?`)) return;
+    await remove.mutate(user.id).catch(() => {});
   }
 
   return (
@@ -74,36 +84,53 @@ export default function UsersPage() {
       ) : (
         <section className="ops-card overflow-hidden rounded-[8px] border border-slate-200 bg-white">
           <div className="overflow-x-auto p-5">
-            <table className="w-full min-w-[560px] text-left">
+            <table className="w-full min-w-[680px] text-left">
               <thead>
                 <tr className="text-[11px] font-medium text-slate-500">
                   <th className="pb-3 pr-4">Nome</th>
                   <th className="pb-3 pr-4">E-mail</th>
                   <th className="pb-3 pr-4">Perfil</th>
+                  <th className="pb-3 pr-4">Status</th>
                   <th className="pb-3">Acoes</th>
                 </tr>
               </thead>
               <tbody>
-                {rows.map((user) => (
-                  <tr key={user.id} className="border-t border-slate-100 text-xs text-slate-700">
-                    <td className="py-3 pr-4 font-medium text-slate-950">{user.name}</td>
-                    <td className="py-3 pr-4">{user.email}</td>
-                    <td className="py-3 pr-4">{ROLE_LABEL[user.role] ?? user.role}</td>
-                    <td className="py-3">
-                      {canDeleteUsers ? (
-                        <button
-                          onClick={() => handleDelete(user.id, user.name)}
-                          disabled={remove.loading}
-                          className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px] disabled:opacity-50"
-                        >
-                          <Trash2 size={12} />Remover
-                        </button>
-                      ) : (
-                        <span className="text-[11px] font-semibold text-slate-400">Sem exclusao</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
+                {rows.map((user) => {
+                  const allowed = canManageRow(currentRole, user.role);
+                  return (
+                    <tr key={user.id} className="border-t border-slate-100 text-xs text-slate-700">
+                      <td className="py-3 pr-4 font-medium text-slate-950">{user.name}</td>
+                      <td className="py-3 pr-4">{user.email}</td>
+                      <td className="py-3 pr-4">{ROLE_LABEL[user.role] ?? user.role}</td>
+                      <td className="py-3 pr-4">
+                        <span className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-bold ${user.isActive === false ? 'border-slate-200 bg-slate-100 text-slate-500' : 'border-emerald-200 bg-emerald-50 text-emerald-700'}`}>
+                          {user.isActive === false ? 'Bloqueado' : 'Ativo'}
+                        </span>
+                      </td>
+                      <td className="py-3">
+                        {allowed ? (
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                              onClick={() => setEditing(user)}
+                              className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px]"
+                            >
+                              <Edit3 size={12} />Editar
+                            </button>
+                            <button
+                              onClick={() => handleDelete(user)}
+                              disabled={remove.loading}
+                              className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px] text-rose-600 disabled:opacity-50"
+                            >
+                              <Trash2 size={12} />Remover
+                            </button>
+                          </div>
+                        ) : (
+                          <span className="text-[11px] font-semibold text-slate-400">Restrito</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -111,40 +138,60 @@ export default function UsersPage() {
       )}
 
       {open && (
-        <NewUserModal
+        <UserModal
           availableRoles={availableRoles}
           onClose={() => setOpen(false)}
           onDone={() => { setOpen(false); users.refetch(); usage.refetch(); }}
+        />
+      )}
+      {editing && (
+        <UserModal
+          user={editing}
+          availableRoles={availableRoles}
+          onClose={() => setEditing(null)}
+          onDone={() => { setEditing(null); users.refetch(); usage.refetch(); }}
         />
       )}
     </div>
   );
 }
 
-function NewUserModal({ availableRoles, onClose, onDone }: { availableRoles: UserRole[]; onClose: () => void; onDone: () => void }) {
-  const [form, setForm] = useState<CreateUserInput>({ name: '', email: '', password: '', role: availableRoles[0] ?? 'FUNCIONARIO' });
-  const create = useMutation(() => api.users.create(form), { onSuccess: onDone });
-  const valid = form.name && form.email && form.password.length >= 8;
+function UserModal({ user, availableRoles, onClose, onDone }: { user?: AppUser; availableRoles: UserRole[]; onClose: () => void; onDone: () => void }) {
+  const [form, setForm] = useState<UserForm>({
+    name: user?.name ?? '',
+    email: user?.email ?? '',
+    password: '',
+    role: user?.role ?? availableRoles[0] ?? 'FUNCIONARIO',
+    isActive: user?.isActive ?? true,
+  });
+  const save = useMutation(() => {
+    if (user) {
+      const { password, ...rest } = form;
+      return api.users.update(user.id, { ...rest, ...(password ? { password } : {}) });
+    }
+    return api.users.create(form);
+  }, { onSuccess: onDone });
+  const valid = form.name && form.email && (user || form.password.length >= 8);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4">
       <div className="w-full max-w-md rounded-[12px] border border-slate-200 bg-white p-6 shadow-xl">
         <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-base font-black text-slate-950">Novo usuario</h3>
+          <h3 className="text-base font-black text-slate-950">{user ? 'Editar usuario' : 'Novo usuario'}</h3>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-700"><X size={18} /></button>
         </div>
-        {create.error && <p className="mb-3 rounded-[8px] border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">{create.error}</p>}
+        {save.error && <p className="mb-3 rounded-[8px] border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">{save.error}</p>}
         <div className="space-y-3">
           {[
             { label: 'Nome', key: 'name' as const, type: 'text' },
             { label: 'E-mail', key: 'email' as const, type: 'email' },
-            { label: 'Senha padrao (min. 8)', key: 'password' as const, type: 'password' },
+            { label: user ? 'Nova senha (opcional)' : 'Senha padrao (min. 8)', key: 'password' as const, type: 'password' },
           ].map(({ label, key, type }) => (
             <label key={key} className="block space-y-1 text-xs font-medium text-slate-600">
               <span>{label}</span>
               <input
                 type={type}
-                value={form[key]}
+                value={form[key] ?? ''}
                 onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
                 className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500"
               />
@@ -160,15 +207,26 @@ function NewUserModal({ availableRoles, onClose, onDone }: { availableRoles: Use
               {availableRoles.map((r) => <option key={r} value={r}>{ROLE_LABEL[r]}</option>)}
             </select>
           </label>
+          {user && (
+            <label className="flex items-center gap-2 text-xs font-medium text-slate-600">
+              <input
+                type="checkbox"
+                checked={form.isActive !== false}
+                onChange={(e) => setForm((f) => ({ ...f, isActive: e.target.checked }))}
+                className="h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
+              />
+              Usuario ativo
+            </label>
+          )}
         </div>
         <div className="mt-5 flex justify-end gap-2">
           <button onClick={onClose} className="btn-outline h-10 rounded-[8px] px-4 text-xs font-bold">Cancelar</button>
           <button
-            onClick={() => valid && create.mutate().catch(() => {})}
-            disabled={!valid || create.loading}
+            onClick={() => valid && save.mutate().catch(() => {})}
+            disabled={!valid || save.loading}
             className="crystal-button h-10 rounded-[8px] px-4 text-xs font-black text-white disabled:opacity-60"
           >
-            {create.loading ? 'Criando...' : 'Criar usuario'}
+            {save.loading ? 'Salvando...' : user ? 'Salvar usuario' : 'Criar usuario'}
           </button>
         </div>
       </div>

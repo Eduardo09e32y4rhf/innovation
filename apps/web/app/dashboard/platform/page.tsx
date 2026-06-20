@@ -1,28 +1,44 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import { Building2, Plus, Power, Trash2, Users, X } from 'lucide-react';
 import { EmptyState, ErrorState, LoadingState } from '@/app/components/data-states';
+import { useAuth } from '@/app/contexts/AuthContext';
 import { useMutation, useQuery } from '@/app/hooks/use-data';
 import { api, type CreatePlatformCompanyInput, type PlatformCompany } from '@/app/lib/api';
 import { formatDate } from '@/app/lib/format';
 
 export default function PlatformPage() {
+  const { user } = useAuth();
+  const currentRole = user?.profile?.toUpperCase();
+  const isSuperAdmin = currentRole === 'DEV';
   const stats = useQuery(() => api.platform.stats(), []);
   const companies = useQuery(() => api.platform.listCompanies(), []);
   const [open, setOpen] = useState(false);
 
   const toggleActive = useMutation(
-    ({ id, isActive }: { id: string; isActive: boolean }) =>
-      api.platform.updateCompany(id, { isActive }),
-    { onSuccess: () => companies.refetch() },
+    ({ id, isActive, suspensionReason }: { id: string; isActive: boolean; suspensionReason?: string | null }) =>
+      api.platform.updateCompany(id, { isActive, suspensionReason }),
+    { onSuccess: () => { companies.refetch(); stats.refetch(); } },
   );
 
   const remove = useMutation((id: string) => api.platform.deleteCompany(id), {
     onSuccess: () => { companies.refetch(); stats.refetch(); },
   });
 
+  async function handleToggle(c: PlatformCompany) {
+    if (!isSuperAdmin) return;
+    if (!c.isActive) {
+      await toggleActive.mutate({ id: c.id, isActive: true, suspensionReason: null }).catch(() => {});
+      return;
+    }
+    const reason = window.prompt('Motivo da suspensao: inadimplencia ou solicitacao voluntaria?', 'inadimplencia');
+    if (reason === null) return;
+    await toggleActive.mutate({ id: c.id, isActive: false, suspensionReason: reason.trim() || 'nao informado' }).catch(() => {});
+  }
+
   async function handleDelete(c: PlatformCompany) {
+    if (!isSuperAdmin) return;
     if (!window.confirm(`Excluir "${c.name}"? Remove TODOS os dados (usuarios, funcionarios, conversas). Irreversivel.`)) return;
     await remove.mutate(c.id).catch(() => {});
   }
@@ -31,7 +47,7 @@ export default function PlatformPage() {
     <div className="mx-auto max-w-6xl space-y-5">
       <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-teal-600">Plataforma · Engenharia</p>
+          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-teal-600">Plataforma</p>
           <h2 className="text-2xl font-black text-slate-950">Gestao de empresas</h2>
         </div>
         <button onClick={() => setOpen(true)} className="crystal-button inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black text-white">
@@ -51,7 +67,7 @@ export default function PlatformPage() {
               <p className="text-xs font-medium text-slate-500">{label}</p>
               <div className="icon-chip icon-chip-teal"><Icon size={15} strokeWidth={1.8} /></div>
             </div>
-            <p className="text-2xl font-black text-slate-950">{value ?? '—'}</p>
+            <p className="text-2xl font-black text-slate-950">{value ?? '-'}</p>
           </div>
         ))}
       </section>
@@ -71,13 +87,14 @@ export default function PlatformPage() {
       ) : (
         <section className="ops-card overflow-hidden rounded-[8px] border border-slate-200 bg-white">
           <div className="overflow-x-auto p-5">
-            <table className="w-full min-w-[760px] text-left">
+            <table className="w-full min-w-[900px] text-left">
               <thead>
                 <tr className="text-[11px] font-medium text-slate-500">
                   <th className="pb-3 pr-4">Empresa</th>
+                  <th className="pb-3 pr-4">CNPJ</th>
                   <th className="pb-3 pr-4">Usuarios</th>
                   <th className="pb-3 pr-4">Funcionarios</th>
-                  <th className="pb-3 pr-4">Criada em</th>
+                  <th className="pb-3 pr-4">Assinatura</th>
                   <th className="pb-3 pr-4">Status</th>
                   <th className="pb-3">Acoes</th>
                 </tr>
@@ -86,31 +103,39 @@ export default function PlatformPage() {
                 {(companies.data ?? []).map((c) => (
                   <tr key={c.id} className="border-t border-slate-100 text-xs text-slate-700">
                     <td className="py-3 pr-4 font-medium text-slate-950">{c.name}</td>
+                    <td className="py-3 pr-4">{c.document || '-'}</td>
                     <td className="py-3 pr-4">{c.usersCount} / {c.maxUsers}</td>
                     <td className="py-3 pr-4">{c.employeesCount} / {c.maxEmployees}</td>
-                    <td className="py-3 pr-4">{formatDate(c.createdAt)}</td>
+                    <td className="py-3 pr-4">{formatDate(c.subscriptionStartedAt ?? c.createdAt)}</td>
                     <td className="py-3 pr-4">
-                      <span className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-bold ${c.isActive ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-slate-100 text-slate-500'}`}>
-                        {c.isActive ? 'Ativa' : 'Suspensa'}
-                      </span>
+                      <div className="space-y-1">
+                        <span className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-bold ${c.isActive ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-slate-100 text-slate-500'}`}>
+                          {c.isActive ? 'Ativa' : 'Suspensa'}
+                        </span>
+                        {!c.isActive && c.suspensionReason && <p className="max-w-[180px] truncate text-[10px] text-slate-400">{c.suspensionReason}</p>}
+                      </div>
                     </td>
                     <td className="py-3">
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => toggleActive.mutate({ id: c.id, isActive: !c.isActive }).catch(() => {})}
-                          disabled={toggleActive.loading}
-                          className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px]"
-                        >
-                          <Power size={12} />{c.isActive ? 'Suspender' : 'Ativar'}
-                        </button>
-                        <button
-                          onClick={() => handleDelete(c)}
-                          disabled={remove.loading}
-                          className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px] text-rose-600"
-                        >
-                          <Trash2 size={12} />Excluir
-                        </button>
-                      </div>
+                      {isSuperAdmin ? (
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleToggle(c)}
+                            disabled={toggleActive.loading}
+                            className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px]"
+                          >
+                            <Power size={12} />{c.isActive ? 'Suspender' : 'Ativar'}
+                          </button>
+                          <button
+                            onClick={() => handleDelete(c)}
+                            disabled={remove.loading}
+                            className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px] text-rose-600"
+                          >
+                            <Trash2 size={12} />Excluir
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="text-[11px] font-semibold text-slate-400">Cadastro comercial</span>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -146,7 +171,7 @@ function NewCompanyModal({ onClose, onDone }: { onClose: () => void; onDone: () 
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4">
       <div className="w-full max-w-lg rounded-[12px] border border-slate-200 bg-white p-6 shadow-xl">
         <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-base font-black text-slate-950">Nova empresa (cliente)</h3>
+          <h3 className="text-base font-black text-slate-950">Nova empresa</h3>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-700"><X size={18} /></button>
         </div>
         {create.error && <p className="mb-3 rounded-[8px] border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">{create.error}</p>}

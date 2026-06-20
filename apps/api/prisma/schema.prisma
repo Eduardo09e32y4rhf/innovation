@@ -9,6 +9,7 @@ datasource db {
 
 enum UserRole {
   DEV
+  COMERCIAL
   ADMIN
   RH
   GESTOR
@@ -97,6 +98,8 @@ model Company {
   name         String
   document     String?  @unique
   logoUrl      String?  @db.Text
+  subscriptionStartedAt DateTime @default(now())
+  suspensionReason String?
   maxUsers     Int      @default(6)
   maxEmployees Int      @default(50)
   isActive     Boolean  @default(true)

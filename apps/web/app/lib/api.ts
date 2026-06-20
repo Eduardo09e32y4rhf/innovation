@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 /**
  * Cliente HTTP central do Innovation RH Connect.
@@ -83,7 +83,7 @@ function safeJson(text: string): unknown {
 
 export type EmployeeStatus = 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' | 'TERMINATED';
 export type VacationStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED' | 'COMPLETED';
-export type UserRole = 'DEV' | 'ADMIN' | 'RH' | 'GESTOR' | 'FUNCIONARIO';
+export type UserRole = 'DEV' | 'COMERCIAL' | 'ADMIN' | 'RH' | 'GESTOR' | 'FUNCIONARIO';
 export type PunchType = 'ENTRY' | 'LUNCH_START' | 'LUNCH_RETURN' | 'EXIT';
 
 export interface Employee {
@@ -142,6 +142,7 @@ export interface SendMessageInput { phone: string; body: string; contactName?: s
 export interface Company {
   id: string; name: string; document?: string | null; logoUrl?: string | null;
   maxUsers: number; maxEmployees: number; isActive: boolean; createdAt: string;
+  subscriptionStartedAt?: string; suspensionReason?: string | null;
 }
 export interface PlatformCompany extends Company { usersCount: number; employeesCount: number; }
 export interface PlatformStats { companies: number; users: number; employees: number; messages: number; }
@@ -214,7 +215,7 @@ export const api = {
     listCompanies: () => request<PlatformCompany[]>('/platform/companies'),
     getCompany: (id: string) => request<PlatformCompany>(`/platform/companies/${id}`),
     createCompany: (input: CreatePlatformCompanyInput) => request<unknown>('/platform/companies', { method: 'POST', body: input }),
-    updateCompany: (id: string, input: Partial<Omit<CreatePlatformCompanyInput, 'adminName' | 'adminEmail' | 'adminPassword'>> & { isActive?: boolean }) =>
+    updateCompany: (id: string, input: Partial<Omit<CreatePlatformCompanyInput, 'adminName' | 'adminEmail' | 'adminPassword'>> & { isActive?: boolean; suspensionReason?: string | null }) =>
       request<unknown>(`/platform/companies/${id}`, { method: 'PATCH', body: input }),
     deleteCompany: (id: string) => request<void>(`/platform/companies/${id}`, { method: 'DELETE' }),
   },

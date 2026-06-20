@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -20,8 +20,6 @@ import { api } from '@/app/lib/api';
 import { ROLE_LABEL } from '@/app/lib/format';
 
 type NavItemConfig = { label: string; href: string; icon: LucideIcon; match?: string; roles?: string[] };
-
-const DEV_ACCESS_EMAIL = 'eduardo998468@gmail.com';
 
 const baseNavItems: NavItemConfig[] = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
@@ -46,14 +44,9 @@ function isActive(pathname: string | null, item: NavItemConfig) {
   return Boolean(pathname?.startsWith(route));
 }
 
-function canSeeItem(item: NavItemConfig, profile: string | undefined, authorizedDev: boolean) {
+function canSeeItem(item: NavItemConfig, profile: string | undefined) {
   if (!item.roles?.length) return true;
-  if (profile === 'DEV') return authorizedDev && item.roles.includes('DEV');
   return item.roles.includes(String(profile || '').toUpperCase());
-}
-
-function isAuthorizedDev(profile?: string, email?: string) {
-  return String(profile || '').toLowerCase() === 'dev' && String(email || '').toLowerCase() === DEV_ACCESS_EMAIL;
 }
 
 function getInitials(name?: string, email?: string) {
@@ -68,9 +61,8 @@ export function DashboardSidebar() {
   const { user } = useAuth();
   const company = useQuery(() => api.companies.me(), []);
   const profile = user?.profile?.toUpperCase();
-  const authorizedDev = isAuthorizedDev(user?.profile, user?.email);
-  const navItems = baseNavItems.filter((item) => canSeeItem(item, profile, authorizedDev));
-  if (authorizedDev) navItems.push(devNavItem);
+  const navItems = baseNavItems.filter((item) => canSeeItem(item, profile));
+  if (profile === 'DEV' || profile === 'COMERCIAL') navItems.push(devNavItem);
 
   return (
     <aside className="sidebar-shell flex w-full shrink-0 flex-col md:h-screen md:w-[220px]">

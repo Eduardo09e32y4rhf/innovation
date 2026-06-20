@@ -1,4 +1,4 @@
-import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+﻿import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import type { JwtUser } from '../../common/types/auth.types';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -74,11 +74,18 @@ export class UsersService {
   }
 
   private assertRoleChangeAllowed(actor: JwtUser, nextRole?: string) {
-    if (nextRole === 'DEV') {
-      throw new ForbiddenException('Perfil DEV e exclusivo da engenharia da plataforma.');
+    if (!nextRole) return;
+    const actorRole = String(actor.role || '').toUpperCase();
+    const protectedRoles = ['DEV', 'COMERCIAL'];
+
+    if (protectedRoles.includes(nextRole) && actorRole !== 'DEV') {
+      throw new ForbiddenException('Apenas Super Admin pode criar ou promover Super Admin/Comercial.');
     }
-    if (actor.role === 'RH' && nextRole === 'ADMIN') {
-      throw new ForbiddenException('RH nao pode criar ou promover Administrador.');
+    if (actorRole === 'RH' && ['ADMIN', 'DEV', 'COMERCIAL'].includes(nextRole)) {
+      throw new ForbiddenException('RH nao pode criar ou promover Administrador, Comercial ou Super Admin.');
+    }
+    if (actorRole === 'GESTOR' || actorRole === 'FUNCIONARIO') {
+      throw new ForbiddenException('Perfil sem permissao para alterar usuarios.');
     }
   }
 }

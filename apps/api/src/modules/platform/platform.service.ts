@@ -1,4 +1,4 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+﻿import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import { CreatePlatformCompanyDto } from './dto/create-platform-company.dto';
 import { UpdatePlatformCompanyDto } from './dto/update-platform-company.dto';
@@ -35,7 +35,11 @@ export class PlatformService {
   }
 
   updateCompany(id: string, dto: UpdatePlatformCompanyDto) {
-    return this.repository.updateCompany(id, dto);
+    const data = {
+      ...dto,
+      ...(dto.isActive === true ? { suspensionReason: null } : {}),
+    };
+    return this.repository.updateCompany(id, data);
   }
 
   async deleteCompany(id: string) {

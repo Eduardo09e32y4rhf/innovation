@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+﻿import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 
 @Injectable()
@@ -16,9 +16,12 @@ export class PlatformRepository {
       id: c.id,
       name: c.name,
       document: c.document,
+      logoUrl: c.logoUrl,
       maxUsers: c.maxUsers,
       maxEmployees: c.maxEmployees,
       isActive: c.isActive,
+      suspensionReason: c.suspensionReason,
+      subscriptionStartedAt: c.subscriptionStartedAt,
       createdAt: c.createdAt,
       usersCount: c._count.users,
       employeesCount: c._count.employees,
