@@ -1,23 +1,23 @@
-import { IsDateString, IsOptional, IsString } from 'class-validator';
+﻿import { IsDateString, IsOptional, IsString } from 'class-validator';
 
 export class UpdateTimeTrackDto {
   @IsOptional()
   @IsDateString()
-  entry?: string;
+  entry?: string | null;
 
   @IsOptional()
   @IsDateString()
-  lunchStart?: string;
+  lunchStart?: string | null;
 
   @IsOptional()
   @IsDateString()
-  lunchReturn?: string;
+  lunchReturn?: string | null;
 
   @IsOptional()
   @IsDateString()
-  exit?: string;
+  exit?: string | null;
 
   @IsOptional()
   @IsString()
-  observation?: string;
+  observation?: string | null;
 }

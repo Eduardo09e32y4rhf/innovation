@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+﻿import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 
 @Injectable()
@@ -38,5 +38,9 @@ export class TimeTrackRepository {
 
   update(companyId: string, id: string, data: any) {
     return this.prisma.timeTrack.updateMany({ where: { id, employee: { companyId } }, data });
+  }
+
+  delete(companyId: string, id: string) {
+    return this.prisma.timeTrack.deleteMany({ where: { id, employee: { companyId } } });
   }
 }

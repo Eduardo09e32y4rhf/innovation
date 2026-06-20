@@ -103,8 +103,10 @@ export interface TimeTrack {
   totalWorked?: number | null; dailyBalance?: number | null;
   observation?: string | null; employee?: Employee;
 }
+export type TimeTrackAdjustmentReason = 'ajuste_abono_atestado_horas' | 'ajuste_atestado_integral' | 'ajuste_folga_dsr' | 'ajuste_abono_folga' | 'ajuste_erro_marcacao';
 export interface RegisterTimeInput { employeeId: string; type: PunchType; timestamp?: string; observation?: string; }
-export interface UpdateTimeTrackInput { entry?: string; lunchStart?: string; lunchReturn?: string; exit?: string; observation?: string; }
+export interface ManualTimeTrackInput { employeeId: string; date: string; entry?: string | null; lunchStart?: string | null; lunchReturn?: string | null; exit?: string | null; reason: TimeTrackAdjustmentReason; observation?: string; }
+export interface UpdateTimeTrackInput { entry?: string | null; lunchStart?: string | null; lunchReturn?: string | null; exit?: string | null; observation?: string | null; }
 export interface Vacation {
   id: string; employeeId: string; acquisitionPeriod: string;
   startDate: string; endDate: string; daysUsed: number;
@@ -178,9 +180,10 @@ export const api = {
     listEmployeeMonth: (employeeId: string, month?: string) =>
       request<TimeTrack[]>(`/time-track/${employeeId}/month${month ? `?month=${encodeURIComponent(month)}` : ''}`),
     register: (input: RegisterTimeInput) => request<TimeTrack>('/time-track/register', { method: 'POST', body: input }),
+    manual: (input: ManualTimeTrackInput) => request<TimeTrack>('/time-track/manual', { method: 'POST', body: input }),
     update: (id: string, input: UpdateTimeTrackInput) => request<TimeTrack>(`/time-track/${id}`, { method: 'PATCH', body: input }),
+    delete: (id: string) => request<void>(`/time-track/${id}`, { method: 'DELETE' }),
   },
-
   vacations: {
     list: () => request<Vacation[]>('/vacations'),
     listByEmployee: (employeeId: string) => request<Vacation[]>(`/vacations/employee/${employeeId}`),

@@ -1,9 +1,17 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+﻿import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { ManualTimeTrackDto } from './dto/manual-time-track.dto';
 import { RegisterTimeDto } from './dto/register-time.dto';
 import { UpdateTimeTrackDto } from './dto/update-time-track.dto';
 import { TimeTrackRepository } from './time-track.repository';
 
 const STANDARD_WORKDAY_MINUTES = 8 * 60;
+const REASON_LABEL: Record<string, string> = {
+  ajuste_abono_atestado_horas: 'Ajuste - abono (atestado de horas)',
+  ajuste_atestado_integral: 'Ajuste - atestado integral',
+  ajuste_folga_dsr: 'Ajuste - folga DSR',
+  ajuste_abono_folga: 'Ajuste abono - folga',
+  ajuste_erro_marcacao: 'Ajuste erro de marcacao',
+};
 
 @Injectable()
 export class TimeTrackService {
@@ -17,6 +25,21 @@ export class TimeTrackService {
     await this.ensureEmployee(companyId, employeeId);
     const { start, end } = this.resolveMonth(month);
     return this.repository.listEmployeeMonth(companyId, employeeId, start, end);
+  }
+
+  async manual(companyId: string, dto: ManualTimeTrackDto) {
+    await this.ensureEmployee(companyId, dto.employeeId);
+    const date = this.toDateOnly(this.parseDate(dto.date, 'Invalid date'));
+    const isFullCertificate = dto.reason === 'ajuste_atestado_integral';
+    const data = {
+      entry: isFullCertificate ? null : this.parseOptionalDate(dto.entry),
+      lunchStart: isFullCertificate ? null : this.parseOptionalDate(dto.lunchStart),
+      lunchReturn: isFullCertificate ? null : this.parseOptionalDate(dto.lunchReturn),
+      exit: isFullCertificate ? null : this.parseOptionalDate(dto.exit),
+      observation: this.buildObservation(dto.reason, dto.observation),
+    };
+    const totals = this.calculateTotals(data);
+    return this.repository.upsert(dto.employeeId, date, { ...data, ...totals });
   }
 
   async register(companyId: string, dto: RegisterTimeDto) {
@@ -36,16 +59,22 @@ export class TimeTrackService {
     const current = await this.repository.findById(companyId, id);
     if (!current) throw new NotFoundException('Time track not found');
     const data = {
-      entry: dto.entry ? new Date(dto.entry) : undefined,
-      lunchStart: dto.lunchStart ? new Date(dto.lunchStart) : undefined,
-      lunchReturn: dto.lunchReturn ? new Date(dto.lunchReturn) : undefined,
-      exit: dto.exit ? new Date(dto.exit) : undefined,
-      observation: dto.observation,
+      ...(dto.entry !== undefined ? { entry: this.parseOptionalDate(dto.entry) } : {}),
+      ...(dto.lunchStart !== undefined ? { lunchStart: this.parseOptionalDate(dto.lunchStart) } : {}),
+      ...(dto.lunchReturn !== undefined ? { lunchReturn: this.parseOptionalDate(dto.lunchReturn) } : {}),
+      ...(dto.exit !== undefined ? { exit: this.parseOptionalDate(dto.exit) } : {}),
+      ...(dto.observation !== undefined ? { observation: dto.observation?.trim() || null } : {}),
     };
     const next = { ...current, ...data };
     const result = await this.repository.update(companyId, id, { ...data, ...this.calculateTotals(next) });
     if (!result.count) throw new NotFoundException('Time track not found');
     return this.repository.findById(companyId, id);
+  }
+
+  async delete(companyId: string, id: string) {
+    const result = await this.repository.delete(companyId, id);
+    if (!result.count) throw new NotFoundException('Time track not found');
+    return { deleted: true };
   }
 
   private async ensureEmployee(companyId: string, employeeId: string) {
@@ -74,6 +103,23 @@ export class TimeTrackService {
 
   private diffMinutes(start: Date, end: Date) {
     return Math.round((end.getTime() - start.getTime()) / 60000);
+  }
+
+  private parseDate(value: string, message: string) {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) throw new BadRequestException(message);
+    return date;
+  }
+
+  private parseOptionalDate(value?: string | null) {
+    if (value === null || value === undefined || value === '') return null;
+    return this.parseDate(value, 'Invalid timestamp');
+  }
+
+  private buildObservation(reason: string, detail?: string) {
+    const label = REASON_LABEL[reason] ?? reason;
+    const cleanDetail = detail?.trim();
+    return cleanDetail ? `${label} - ${cleanDetail}` : label;
   }
 
   private toDateOnly(date: Date) {
