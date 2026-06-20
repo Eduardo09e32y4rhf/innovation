@@ -121,6 +121,7 @@ export interface TimeTrack {
 export type TimeTrackAdjustmentReason = 'ajuste_abono_atestado_horas' | 'ajuste_atestado_integral' | 'ajuste_folga_dsr' | 'ajuste_abono_folga' | 'ajuste_erro_marcacao' | 'ajuste_feriado';
 export interface RegisterTimeInput { employeeId: string; type: PunchType; timestamp?: string; observation?: string; }
 export interface ManualTimeTrackInput { employeeId: string; date: string; entry?: string | null; lunchStart?: string | null; lunchReturn?: string | null; exit?: string | null; reason: TimeTrackAdjustmentReason; observation?: string; }
+export interface BulkManualTimeTrackInput { employeeIds: string[]; date?: string; startDate?: string; endDate?: string; entry?: string | null; lunchStart?: string | null; lunchReturn?: string | null; exit?: string | null; reason: TimeTrackAdjustmentReason; observation?: string; }
 export interface UpdateTimeTrackInput { entry?: string | null; lunchStart?: string | null; lunchReturn?: string | null; exit?: string | null; observation?: string | null; }
 export interface Vacation {
   id: string; employeeId: string; acquisitionPeriod: string;
@@ -196,6 +197,7 @@ export const api = {
       request<TimeTrack[]>(`/time-track/${employeeId}/month${month ? `?month=${encodeURIComponent(month)}` : ''}`),
     register: (input: RegisterTimeInput) => request<TimeTrack>('/time-track/register', { method: 'POST', body: input }),
     manual: (input: ManualTimeTrackInput) => request<TimeTrack>('/time-track/manual', { method: 'POST', body: input }),
+    manualBulk: (input: BulkManualTimeTrackInput) => request<{ count: number; items: TimeTrack[] }>('/time-track/manual/bulk', { method: 'POST', body: input }),
     update: (id: string, input: UpdateTimeTrackInput) => request<TimeTrack>(`/time-track/${id}`, { method: 'PATCH', body: input }),
     delete: (id: string) => request<void>(`/time-track/${id}`, { method: 'DELETE' }),
   },

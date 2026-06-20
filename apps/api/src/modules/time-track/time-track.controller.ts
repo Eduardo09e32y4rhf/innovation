@@ -5,7 +5,7 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import type { JwtUser } from '../../common/types/auth.types';
-import { ManualTimeTrackDto } from './dto/manual-time-track.dto';
+import { BulkManualTimeTrackDto, ManualTimeTrackDto } from './dto/manual-time-track.dto';
 import { RegisterTimeDto } from './dto/register-time.dto';
 import { UpdateTimeTrackDto } from './dto/update-time-track.dto';
 import { TimeTrackService } from './time-track.service';
@@ -30,6 +30,12 @@ export class TimeTrackController {
   @Post('manual')
   manual(@CurrentCompany() companyId: string, @Body() dto: ManualTimeTrackDto) {
     return this.service.manual(companyId, dto);
+  }
+
+  @Roles('DEV', 'ADMIN', 'RH')
+  @Post('manual/bulk')
+  manualBulk(@CurrentCompany() companyId: string, @Body() dto: BulkManualTimeTrackDto) {
+    return this.service.manualBulk(companyId, dto);
   }
 
   @Roles('DEV', 'ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO')

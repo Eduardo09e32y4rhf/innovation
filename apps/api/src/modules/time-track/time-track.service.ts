@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import type { JwtUser } from '../../common/types/auth.types';
-import { ManualTimeTrackDto } from './dto/manual-time-track.dto';
+import { BulkManualTimeTrackDto, ManualTimeTrackDto } from './dto/manual-time-track.dto';
 import { RegisterTimeDto } from './dto/register-time.dto';
 import { UpdateTimeTrackDto } from './dto/update-time-track.dto';
 import { TimeTrackRepository } from './time-track.repository';
@@ -35,17 +35,19 @@ export class TimeTrackService {
 
   async manual(companyId: string, dto: ManualTimeTrackDto) {
     await this.ensureEmployee(companyId, dto.employeeId);
-    const date = this.toDateOnly(this.parseDate(dto.date, 'Invalid date'));
-    const isFullDayAdjustment = dto.reason === 'ajuste_atestado_integral' || dto.reason === 'ajuste_feriado';
-    const data = {
-      entry: isFullDayAdjustment ? null : this.parseOptionalDate(dto.entry),
-      lunchStart: isFullDayAdjustment ? null : this.parseOptionalDate(dto.lunchStart),
-      lunchReturn: isFullDayAdjustment ? null : this.parseOptionalDate(dto.lunchReturn),
-      exit: isFullDayAdjustment ? null : this.parseOptionalDate(dto.exit),
-      observation: this.buildObservation(dto.reason, dto.observation),
-    };
-    const totals = this.calculateTotals(data);
-    return this.repository.upsert(dto.employeeId, date, { ...data, ...totals });
+    return this.applyManual(dto.employeeId, dto.date, dto);
+  }
+
+  async manualBulk(companyId: string, dto: BulkManualTimeTrackDto) {
+    const dates = this.resolveBulkDates(dto);
+    const created = [];
+    for (const employeeId of dto.employeeIds) {
+      await this.ensureEmployee(companyId, employeeId);
+      for (const date of dates) {
+        created.push(await this.applyManual(employeeId, date, dto));
+      }
+    }
+    return { count: created.length, items: created };
   }
 
   async register(companyId: string, actor: JwtUser, dto: RegisterTimeDto) {
@@ -83,6 +85,35 @@ export class TimeTrackService {
     return { deleted: true };
   }
 
+  private async applyManual(employeeId: string, dateValue: string, dto: Pick<ManualTimeTrackDto, 'entry' | 'lunchStart' | 'lunchReturn' | 'exit' | 'reason' | 'observation'>) {
+    const date = this.toDateOnly(this.parseDate(dateValue, 'Invalid date'));
+    const isFullDayAdjustment = dto.reason === 'ajuste_atestado_integral' || dto.reason === 'ajuste_feriado';
+    const data = {
+      entry: isFullDayAdjustment ? null : this.parseOptionalDate(dto.entry),
+      lunchStart: isFullDayAdjustment ? null : this.parseOptionalDate(dto.lunchStart),
+      lunchReturn: isFullDayAdjustment ? null : this.parseOptionalDate(dto.lunchReturn),
+      exit: isFullDayAdjustment ? null : this.parseOptionalDate(dto.exit),
+      observation: this.buildObservation(dto.reason, dto.observation),
+    };
+    const totals = this.calculateTotals(data);
+    return this.repository.upsert(employeeId, date, { ...data, ...totals });
+  }
+
+  private resolveBulkDates(dto: BulkManualTimeTrackDto) {
+    if (dto.date) return [dto.date];
+    if (!dto.startDate || !dto.endDate) throw new BadRequestException('Invalid date range');
+    const start = this.toDateOnly(this.parseDate(dto.startDate, 'Invalid start date'));
+    const end = this.toDateOnly(this.parseDate(dto.endDate, 'Invalid end date'));
+    if (start > end) throw new BadRequestException('Invalid date range');
+    const dates: string[] = [];
+    const cursor = new Date(start);
+    while (cursor <= end) {
+      dates.push(cursor.toISOString());
+      cursor.setUTCDate(cursor.getUTCDate() + 1);
+      if (dates.length > 31) throw new BadRequestException('Bulk range cannot exceed 31 days');
+    }
+    return dates;
+  }
   private async ensureEmployee(companyId: string, employeeId: string) {
     const employee = await this.repository.findEmployee(companyId, employeeId);
     if (!employee) throw new NotFoundException('Employee not found');
