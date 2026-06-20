@@ -1,6 +1,7 @@
 ﻿import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import type { JwtUser } from '../../common/types/auth.types';
+import { emptyToNull, normalizeDisplayName } from '../../common/utils/text-normalization';
 import { CreatePlatformCompanyDto } from './dto/create-platform-company.dto';
 import { CreatePlatformCompanyUserDto } from './dto/create-platform-company-user.dto';
 import { UpdatePlatformCompanyDto } from './dto/update-platform-company.dto';
@@ -25,17 +26,18 @@ export class PlatformService {
   }
 
   async createCompany(actor: JwtUser, dto: CreatePlatformCompanyDto) {
-    const existing = await this.repository.findUserByEmail(dto.adminEmail);
+    const adminEmail = dto.adminEmail.trim().toLowerCase();
+    const existing = await this.repository.findUserByEmail(adminEmail);
     if (existing) throw new ConflictException('E-mail do admin ja esta em uso');
 
     const adminPasswordHash = await bcrypt.hash(dto.adminPassword, 12);
     return this.repository.createCompanyWithAdmin({
-      name: dto.name,
-      document: dto.document,
+      name: normalizeDisplayName(dto.name),
+      document: emptyToNull(dto.document),
       maxUsers: dto.maxUsers ?? 6,
       maxEmployees: dto.maxEmployees ?? 50,
-      adminName: dto.adminName,
-      adminEmail: dto.adminEmail,
+      adminName: normalizeDisplayName(dto.adminName),
+      adminEmail,
       adminPasswordHash,
       commercialOwnerId: actor.role === 'COMERCIAL' ? actor.sub : null,
     });
@@ -43,8 +45,11 @@ export class PlatformService {
 
   updateCompany(id: string, dto: UpdatePlatformCompanyDto) {
     const status = dto.status ?? (dto.isActive === false ? 'SUSPENDED' : dto.isActive === true ? 'ACTIVE' : undefined);
+    const { name, document, ...rest } = dto;
     const data = {
-      ...dto,
+      ...rest,
+      ...(name !== undefined ? { name: normalizeDisplayName(name) } : {}),
+      ...(document !== undefined ? { document: emptyToNull(document) } : {}),
       ...(status ? { status, isActive: status === 'ACTIVE' } : {}),
       ...(status === 'ACTIVE' ? { suspensionReason: null } : {}),
       ...(status === 'CANCELLED' && !dto.suspensionReason ? { suspensionReason: 'solicitacao_voluntaria' } : {}),
@@ -67,7 +72,8 @@ export class PlatformService {
     this.assertCompanyUserRoleAllowed(actor, dto.role);
 
     const company = await this.getCompany(companyId);
-    const existing = await this.repository.findUserByEmail(dto.email);
+    const email = dto.email.trim().toLowerCase();
+    const existing = await this.repository.findUserByEmail(email);
     if (existing) throw new ConflictException('E-mail ja cadastrado');
 
     const count = await this.repository.countUsers(companyId);
@@ -77,8 +83,8 @@ export class PlatformService {
 
     return this.repository.createCompanyUser({
       companyId,
-      name: dto.name,
-      email: dto.email,
+      name: normalizeDisplayName(dto.name),
+      email,
       passwordHash: await bcrypt.hash(dto.password, 12),
       role: dto.role ?? 'FUNCIONARIO',
     });
@@ -91,9 +97,11 @@ export class PlatformService {
     if (!current) throw new NotFoundException('Usuario nao encontrado');
     this.assertCanTouchTargetUser(actor, current.role);
 
-    const { password, ...rest } = dto;
+    const { password, name, email, ...rest } = dto;
     const result = await this.repository.updateCompanyUser(companyId, userId, {
       ...rest,
+      ...(name !== undefined ? { name: normalizeDisplayName(name) } : {}),
+      ...(email !== undefined ? { email: email.trim().toLowerCase() } : {}),
       ...(password ? { passwordHash: await bcrypt.hash(password, 12) } : {}),
     });
     if (!result.count) throw new NotFoundException('Usuario nao encontrado');

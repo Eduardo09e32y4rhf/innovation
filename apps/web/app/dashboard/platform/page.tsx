@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState } from 'react';
 import { Building2, Edit3, Plus, Power, Trash2, Users, X } from 'lucide-react';
@@ -7,6 +7,7 @@ import { useAuth } from '@/app/contexts/AuthContext';
 import { useMutation, useQuery } from '@/app/hooks/use-data';
 import { api, type AppUser, type CreatePlatformCompanyInput, type PlatformCompany, type PlatformCompanyUserRole } from '@/app/lib/api';
 import { ROLE_LABEL, formatDate } from '@/app/lib/format';
+import { normalizeDisplayName } from '@/app/lib/text';
 
 const COMPANY_USER_ROLES: PlatformCompanyUserRole[] = ['ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO'];
 
@@ -116,7 +117,7 @@ export default function PlatformPage() {
                   const status = c.status ?? (c.isActive ? 'ACTIVE' : 'SUSPENDED');
                   return (
                     <tr key={c.id} className="border-t border-slate-100 text-xs text-slate-700">
-                      <td className="py-3 pr-4 font-medium text-slate-950">{c.name}</td>
+                      <td className="py-3 pr-4 font-medium text-slate-950">{normalizeDisplayName(c.name)}</td>
                       <td className="py-3 pr-4">{c.document || '-'}</td>
                       <td className="py-3 pr-4">{c.usersCount} / {c.maxUsers}</td>
                       <td className="py-3 pr-4">{c.employeesCount} / {c.maxEmployees}</td>
@@ -184,7 +185,7 @@ function CompanyUsersModal({ company, onClose }: { company: PlatformCompany; onC
       <div className="w-full max-w-3xl rounded-[12px] border border-slate-200 bg-white p-6 shadow-xl">
         <div className="mb-4 flex items-center justify-between gap-3">
           <div>
-            <h3 className="text-base font-black text-slate-950">Usuarios de {company.name}</h3>
+            <h3 className="text-base font-black text-slate-950">Usuarios de {normalizeDisplayName(company.name)}</h3>
             <p className="mt-1 text-xs text-slate-500">{company.usersCount} / {company.maxUsers} usuarios</p>
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-700"><X size={18} /></button>
@@ -204,7 +205,7 @@ function CompanyUsersModal({ company, onClose }: { company: PlatformCompany; onC
               <tbody>
                 {(users.data ?? []).map((u) => (
                   <tr key={u.id} className="border-t border-slate-100 text-xs">
-                    <td className="p-3 font-semibold text-slate-950">{u.name}</td>
+                    <td className="p-3 font-semibold text-slate-950">{normalizeDisplayName(u.name)}</td>
                     <td className="p-3 text-slate-600">{u.email}</td>
                     <td className="p-3 text-slate-600">{ROLE_LABEL[u.role] ?? u.role}</td>
                     <td className="p-3 text-slate-600">{u.isActive === false ? 'Bloqueado' : 'Ativo'}</td>
@@ -244,9 +245,10 @@ function CompanyUserFormModal({ companyId, user, onClose, onDone }: { companyId:
   const save = useMutation(() => {
     if (user) {
       const { password, ...rest } = form;
-      return api.platform.updateCompanyUser(companyId, user.id, { ...rest, ...(password ? { password } : {}) });
+      return api.platform.updateCompanyUser(companyId, user.id, { ...rest, name: normalizeDisplayName(rest.name ?? ''), email: rest.email?.trim().toLowerCase(), ...(password ? { password } : {}) });
     }
-    return api.platform.createCompanyUser(companyId, form);
+    const { isActive, ...createInput } = form;
+    return api.platform.createCompanyUser(companyId, { ...createInput, name: normalizeDisplayName(createInput.name), email: createInput.email.trim().toLowerCase() });
   }, { onSuccess: onDone });
   const valid = form.name && form.email && (user || form.password.length >= 8);
 
@@ -291,7 +293,13 @@ function NewCompanyModal({ onClose, onDone }: { onClose: () => void; onDone: () 
     name: '', document: '', maxUsers: 6, maxEmployees: 50,
     adminName: '', adminEmail: '', adminPassword: '',
   });
-  const create = useMutation(() => api.platform.createCompany(form), { onSuccess: onDone });
+  const create = useMutation(() => api.platform.createCompany({
+    ...form,
+    name: normalizeDisplayName(form.name),
+    document: form.document?.trim(),
+    adminName: normalizeDisplayName(form.adminName),
+    adminEmail: form.adminEmail.trim().toLowerCase(),
+  }), { onSuccess: onDone });
   const valid = form.name && form.adminName && form.adminEmail && form.adminPassword.length >= 8;
 
   function set<K extends keyof CreatePlatformCompanyInput>(k: K, v: CreatePlatformCompanyInput[K]) {

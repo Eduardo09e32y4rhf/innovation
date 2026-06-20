@@ -7,6 +7,7 @@ import { useAuth } from '@/app/contexts/AuthContext';
 import { useMutation, useQuery } from '@/app/hooks/use-data';
 import { api, type AppUser, type CreateUserInput, type UserRole } from '@/app/lib/api';
 import { ROLE_LABEL } from '@/app/lib/format';
+import { normalizeDisplayName } from '@/app/lib/text';
 
 const ALL_ROLES: UserRole[] = ['DEV', 'COMERCIAL', 'ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO'];
 const COMPANY_ROLES: UserRole[] = ['ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO'];
@@ -100,7 +101,7 @@ export default function UsersPage() {
                   const allowed = canManageRow(currentRole, user.role);
                   return (
                     <tr key={user.id} className="border-t border-slate-100 text-xs text-slate-700">
-                      <td className="py-3 pr-4 font-medium text-slate-950">{user.name}</td>
+                      <td className="py-3 pr-4 font-medium text-slate-950">{normalizeDisplayName(user.name)}</td>
                       <td className="py-3 pr-4">{user.email}</td>
                       <td className="py-3 pr-4">{ROLE_LABEL[user.role] ?? user.role}</td>
                       <td className="py-3 pr-4">
@@ -162,15 +163,16 @@ function UserModal({ user, availableRoles, onClose, onDone }: { user?: AppUser; 
     name: user?.name ?? '',
     email: user?.email ?? '',
     password: '',
-    role: user?.role ?? availableRoles[0] ?? 'FUNCIONARIO',
-    isActive: user?.isActive ?? true,
+    role: user?.role ?? (availableRoles.includes('FUNCIONARIO') ? 'FUNCIONARIO' : availableRoles[0] ?? 'FUNCIONARIO'),
+    isActive: user ? user.isActive ?? true : undefined,
   });
   const save = useMutation(() => {
     if (user) {
       const { password, ...rest } = form;
-      return api.users.update(user.id, { ...rest, ...(password ? { password } : {}) });
+      return api.users.update(user.id, { ...rest, name: normalizeDisplayName(rest.name ?? ''), email: rest.email?.trim().toLowerCase(), ...(password ? { password } : {}) });
     }
-    return api.users.create(form);
+    const { isActive, ...createInput } = form;
+    return api.users.create({ ...createInput, name: normalizeDisplayName(createInput.name), email: createInput.email.trim().toLowerCase() });
   }, { onSuccess: onDone });
   const valid = form.name && form.email && (user || form.password.length >= 8);
 

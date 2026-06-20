@@ -1,6 +1,7 @@
 ﻿import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import type { JwtUser } from '../../common/types/auth.types';
+import { normalizeDisplayName } from '../../common/utils/text-normalization';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UsersRepository } from './users.repository';
@@ -24,7 +25,8 @@ export class UsersService {
   async create(companyId: string, actor: JwtUser, dto: CreateUserDto) {
     this.assertRoleChangeAllowed(actor, dto.role);
 
-    const existing = await this.repository.findByEmail(dto.email);
+    const email = dto.email.trim().toLowerCase();
+    const existing = await this.repository.findByEmail(email);
     if (existing) throw new ConflictException('E-mail ja cadastrado');
 
     const [count, limits] = await Promise.all([
@@ -40,8 +42,8 @@ export class UsersService {
 
     return this.repository.create({
       companyId,
-      name: dto.name,
-      email: dto.email,
+      name: normalizeDisplayName(dto.name),
+      email,
       passwordHash: await bcrypt.hash(dto.password, 12),
       role: dto.role ?? 'FUNCIONARIO',
     });
@@ -50,9 +52,11 @@ export class UsersService {
   async update(companyId: string, actor: JwtUser, id: string, dto: UpdateUserDto) {
     this.assertRoleChangeAllowed(actor, dto.role);
 
-    const { password, ...rest } = dto;
+    const { password, name, email, ...rest } = dto;
     const data = {
       ...rest,
+      ...(name !== undefined ? { name: normalizeDisplayName(name) } : {}),
+      ...(email !== undefined ? { email: email.trim().toLowerCase() } : {}),
       ...(password ? { passwordHash: await bcrypt.hash(password, 12) } : {}),
     };
     const result = await this.repository.update(companyId, id, data);

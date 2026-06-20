@@ -1,5 +1,6 @@
-import { Injectable } from '@nestjs/common';
+﻿import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
+import { emptyToNull, normalizeDisplayName } from '../../common/utils/text-normalization';
 
 @Injectable()
 export class AuthRepository {
@@ -22,12 +23,12 @@ export class AuthRepository {
   }) {
     return this.prisma.company.create({
       data: {
-        name: data.companyName,
-        document: data.document,
+        name: normalizeDisplayName(data.companyName),
+        document: emptyToNull(data.document),
         users: {
           create: {
-            name: data.name,
-            email: data.email,
+            name: normalizeDisplayName(data.name),
+            email: data.email.trim().toLowerCase(),
             passwordHash: data.passwordHash,
             role: 'ADMIN',
           },

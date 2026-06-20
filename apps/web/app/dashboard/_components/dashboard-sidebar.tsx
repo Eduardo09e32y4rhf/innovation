@@ -18,6 +18,7 @@ import { useAuth } from '@/app/contexts/AuthContext';
 import { useQuery } from '@/app/hooks/use-data';
 import { api } from '@/app/lib/api';
 import { ROLE_LABEL } from '@/app/lib/format';
+import { normalizeDisplayName } from '@/app/lib/text';
 
 type NavItemConfig = { label: string; href: string; icon: LucideIcon; match?: string; roles?: string[] };
 
@@ -95,7 +96,7 @@ function CompanyBrandCard({ name, document, logoUrl }: { name?: string | null; d
       </div>
       <div className="min-w-0">
         <p className="truncate text-[9px] font-semibold uppercase leading-none tracking-[0.18em] text-white/40">
-          {name || 'Innovation RH Connect'}
+          {normalizeDisplayName(name) || 'Innovation RH Connect'}
         </p>
         <p className="mt-0.5 truncate text-[13px] font-semibold leading-tight text-white">{document || 'Console RH'}</p>
       </div>
@@ -111,7 +112,7 @@ function UserIdentityCard({ name, email, profile }: { name?: string; email?: str
           {getInitials(name, email)}
         </div>
         <div className="min-w-0">
-          <p className="truncate text-[13px] font-semibold leading-tight text-white">{name || email || 'Usuario'}</p>
+          <p className="truncate text-[13px] font-semibold leading-tight text-white">{normalizeDisplayName(name) || email || 'Usuario'}</p>
           <p className="mt-1 text-[10px] font-black uppercase tracking-[0.16em] text-white/40">
             {ROLE_LABEL[profile || ''] ?? profile ?? 'Perfil'}
           </p>
