@@ -1,4 +1,4 @@
-﻿import { IsDateString, IsIn, IsOptional, IsString, IsUUID } from 'class-validator';
+import { IsDateString, IsIn, IsOptional, IsString, IsUUID } from 'class-validator';
 
 export const TIME_TRACK_ADJUSTMENT_REASONS = [
   'ajuste_abono_atestado_horas',
@@ -6,6 +6,7 @@ export const TIME_TRACK_ADJUSTMENT_REASONS = [
   'ajuste_folga_dsr',
   'ajuste_abono_folga',
   'ajuste_erro_marcacao',
+  'ajuste_feriado',
 ] as const;
 
 export class ManualTimeTrackDto {

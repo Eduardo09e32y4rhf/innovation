@@ -11,7 +11,8 @@ const REASON_LABEL: Record<string, string> = {
   ajuste_atestado_integral: 'Ajuste - atestado integral',
   ajuste_folga_dsr: 'Ajuste - folga DSR',
   ajuste_abono_folga: 'Ajuste abono - folga',
-  ajuste_erro_marcacao: 'Ajuste erro de marcacao',
+  ajuste_erro_marcacao: 'Ajuste - erro de marcação',
+  ajuste_feriado: 'Ajuste - feriado',
 };
 
 @Injectable()
@@ -35,12 +36,12 @@ export class TimeTrackService {
   async manual(companyId: string, dto: ManualTimeTrackDto) {
     await this.ensureEmployee(companyId, dto.employeeId);
     const date = this.toDateOnly(this.parseDate(dto.date, 'Invalid date'));
-    const isFullCertificate = dto.reason === 'ajuste_atestado_integral';
+    const isFullDayAdjustment = dto.reason === 'ajuste_atestado_integral' || dto.reason === 'ajuste_feriado';
     const data = {
-      entry: isFullCertificate ? null : this.parseOptionalDate(dto.entry),
-      lunchStart: isFullCertificate ? null : this.parseOptionalDate(dto.lunchStart),
-      lunchReturn: isFullCertificate ? null : this.parseOptionalDate(dto.lunchReturn),
-      exit: isFullCertificate ? null : this.parseOptionalDate(dto.exit),
+      entry: isFullDayAdjustment ? null : this.parseOptionalDate(dto.entry),
+      lunchStart: isFullDayAdjustment ? null : this.parseOptionalDate(dto.lunchStart),
+      lunchReturn: isFullDayAdjustment ? null : this.parseOptionalDate(dto.lunchReturn),
+      exit: isFullDayAdjustment ? null : this.parseOptionalDate(dto.exit),
       observation: this.buildObservation(dto.reason, dto.observation),
     };
     const totals = this.calculateTotals(data);

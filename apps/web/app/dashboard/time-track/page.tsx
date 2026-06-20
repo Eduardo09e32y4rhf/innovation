@@ -14,6 +14,7 @@ const ADJUSTMENT_REASONS: { value: TimeTrackAdjustmentReason; label: string; ful
   { value: 'ajuste_folga_dsr', label: 'Ajuste - folga DSR' },
   { value: 'ajuste_abono_folga', label: 'Ajuste abono - folga' },
   { value: 'ajuste_erro_marcacao', label: 'Ajuste - erro de marcação' },
+  { value: 'ajuste_feriado', label: 'Ajuste - feriado', fullDay: true },
 ];
 
 type CompanyPrintInfo = { name: string; document: string };
@@ -120,7 +121,7 @@ function buildMirrorRows(rows: TimeTrack[]): MirrorRow[] {
     const worked = row.totalWorked ?? 0;
     const balance = row.dailyBalance ?? 0;
     const observation = row.observation || 'Ponto normal';
-    const fullDayCertificate = observation.toLowerCase().includes('atestado integral');
+    const fullDayCertificate = observation.toLowerCase().includes('atestado integral') || observation.toLowerCase().includes('feriado');
     return {
       funcionario: normalizeDisplayName(row.employee?.name ?? ''),
       employee: row.employee,
@@ -342,10 +343,10 @@ function ManualTimeSheetModal({ employees, employeesLoading, employeesError, def
   const initialDate = track ? toDateKey(track.date) : new Date().toISOString().slice(0, 10);
   const [employeeId, setEmployeeId] = useState(track?.employeeId ?? defaultEmployeeId);
   const [date, setDate] = useState(initialDate);
-  const [entry, setEntry] = useState(timeInput(track?.entry) || '08:00');
-  const [lunchStart, setLunchStart] = useState(timeInput(track?.lunchStart) || '12:00');
-  const [lunchReturn, setLunchReturn] = useState(timeInput(track?.lunchReturn) || '13:00');
-  const [exit, setExit] = useState(timeInput(track?.exit) || '17:00');
+  const [entry, setEntry] = useState(track ? timeInput(track.entry) : '');
+  const [lunchStart, setLunchStart] = useState(track ? timeInput(track.lunchStart) : '');
+  const [lunchReturn, setLunchReturn] = useState(track ? timeInput(track.lunchReturn) : '');
+  const [exit, setExit] = useState(track ? timeInput(track.exit) : '');
   const [reason, setReason] = useState<TimeTrackAdjustmentReason>('ajuste_erro_marcacao');
   const [detail, setDetail] = useState('');
   const selectedReason = ADJUSTMENT_REASONS.find((item) => item.value === reason);

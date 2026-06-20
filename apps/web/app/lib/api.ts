@@ -108,7 +108,7 @@ export interface TimeTrack {
   totalWorked?: number | null; dailyBalance?: number | null;
   observation?: string | null; employee?: Employee;
 }
-export type TimeTrackAdjustmentReason = 'ajuste_abono_atestado_horas' | 'ajuste_atestado_integral' | 'ajuste_folga_dsr' | 'ajuste_abono_folga' | 'ajuste_erro_marcacao';
+export type TimeTrackAdjustmentReason = 'ajuste_abono_atestado_horas' | 'ajuste_atestado_integral' | 'ajuste_folga_dsr' | 'ajuste_abono_folga' | 'ajuste_erro_marcacao' | 'ajuste_feriado';
 export interface RegisterTimeInput { employeeId: string; type: PunchType; timestamp?: string; observation?: string; }
 export interface ManualTimeTrackInput { employeeId: string; date: string; entry?: string | null; lunchStart?: string | null; lunchReturn?: string | null; exit?: string | null; reason: TimeTrackAdjustmentReason; observation?: string; }
 export interface UpdateTimeTrackInput { entry?: string | null; lunchStart?: string | null; lunchReturn?: string | null; exit?: string | null; observation?: string | null; }
