@@ -18,7 +18,10 @@ function DashboardContent() {
   const router = useRouter();
   const { user } = useAuth();
   const [presentationMode, setPresentationMode] = useState(false);
-  const isCommercial = user?.profile?.toUpperCase() === 'COMERCIAL';
+  const profile = user?.profile?.toUpperCase();
+  const isCommercial = profile === 'COMERCIAL';
+  const isFuncionario = profile === 'FUNCIONARIO';
+  const isGestor = profile === 'GESTOR';
 
   useEffect(() => {
     setPresentationMode(isLocalPresentation());
@@ -30,44 +33,34 @@ function DashboardContent() {
 
   const summary = useQuery(() => api.dashboard.summary(), [], { enabled: !presentationMode && !isCommercial, pollMs: 60000 });
   const timeTracks = useQuery(() => api.timeTrack.list(), [], { enabled: !presentationMode && !isCommercial });
-  const vacations = useQuery(() => api.vacations.list(), [], { enabled: !presentationMode && !isCommercial });
+  const vacations = useQuery(() => api.vacations.list(), [], { enabled: !presentationMode && !isCommercial && !isFuncionario });
 
   const summaryData = presentationMode ? demoSummary : summary.data;
   const timeTrackData = presentationMode ? demoTimeTracks : (timeTracks.data ?? []);
   const vacationData = presentationMode ? demoVacations : (vacations.data ?? []);
 
-  const metrics = [
-    {
-      label: 'Funcionários ativos',
-      value: summaryData?.activeEmployees,
-      icon: Users,
-      detail: 'equipe em acompanhamento',
-    },
-    {
-      label: 'Pontos hoje',
-      value: summaryData?.timeTracksToday,
-      icon: Clock3,
-      detail: 'jornadas registradas',
-    },
-    {
-      label: 'Férias pendentes',
-      value: summaryData?.pendingVacations,
-      icon: CalendarDays,
-      detail: 'aguardando decisao',
-    },
-    {
-      label: 'Mensagens',
-      value: summaryData?.whatsappMessages,
-      icon: MessageSquareText,
-      detail: 'conversas centralizadas',
-    },
-    {
-      label: 'Banco de horas',
-      value: summaryData ? formatMinutes(summaryData.totalTimeBalance) : undefined,
-      icon: TrendingUp,
-      detail: 'saldo consolidado',
-    },
+  const heroTitle = isFuncionario ? 'Meu painel' : isGestor ? 'Painel da equipe' : 'Painel executivo';
+  const heroSubtitle = isFuncionario
+    ? 'Seus indicadores pessoais de jornada e ponto.'
+    : isGestor
+      ? 'Indicadores da sua equipe em tempo real.'
+      : 'Indicadores, jornada, ferias e comunicacao reunidos para uma rotina mais clara e rapida.';
+  const heroH2 = isFuncionario
+    ? 'Sua jornada em tempo real'
+    : isGestor
+      ? 'Sua equipe em tempo real'
+      : 'Sua operação de RH em tempo real';
+
+  const baseMetrics = [
+    { label: 'Funcionários ativos', value: summaryData?.activeEmployees, icon: Users, detail: isFuncionario ? 'voce' : 'equipe em acompanhamento' },
+    { label: 'Pontos hoje', value: summaryData?.timeTracksToday, icon: Clock3, detail: 'jornadas registradas' },
   ];
+  const extraMetrics = isFuncionario ? [] : [
+    { label: 'Férias pendentes', value: summaryData?.pendingVacations, icon: CalendarDays, detail: 'aguardando decisao' },
+    ...(!isGestor ? [{ label: 'Mensagens', value: summaryData?.whatsappMessages, icon: MessageSquareText, detail: 'conversas centralizadas' }] : []),
+  ];
+  const bankMetric = { label: 'Banco de horas', value: summaryData ? formatMinutes(summaryData.totalTimeBalance) : undefined, icon: TrendingUp, detail: 'saldo consolidado' };
+  const metrics = [...baseMetrics, ...extraMetrics, bankMetric];
 
   const todayRows = timeTrackData.slice(0, 6);
   const vacationRows = vacationData.slice(0, 6);
@@ -78,24 +71,22 @@ function DashboardContent() {
         <div className="absolute right-0 top-0 h-36 w-36 rounded-bl-full bg-teal-100/70" />
         <div className="relative">
           <div className="flex flex-wrap items-center gap-2">
-            <p className="text-[10px] font-black uppercase tracking-[0.24em] text-teal-700">Painel executivo</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.24em] text-teal-700">{heroTitle}</p>
             {presentationMode ? (
               <span className="rounded-full border border-teal-200 bg-teal-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-teal-800">
                 Apresentacao
               </span>
             ) : null}
           </div>
-          <h2 className="mt-2 text-3xl font-black tracking-tight text-slate-950">Sua operação de RH em tempo real</h2>
-          <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-slate-500">
-            Indicadores, jornada, ferias e comunicacao reunidos para uma rotina mais clara e rapida.
-          </p>
+          <h2 className="mt-2 text-3xl font-black tracking-tight text-slate-950">{heroH2}</h2>
+          <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-slate-500">{heroSubtitle}</p>
         </div>
       </section>
 
       {summary.error && !presentationMode ? (
         <ErrorState message={summary.error} onRetry={summary.refetch} />
       ) : (
-        <section className="grid grid-cols-1 gap-4 md:grid-cols-5">
+        <section className={`grid grid-cols-1 gap-4 ${metrics.length <= 3 ? 'md:grid-cols-3' : 'md:grid-cols-5'}`}>
           {metrics.map((metric) => {
             const Icon = metric.icon;
             return (
@@ -116,16 +107,16 @@ function DashboardContent() {
         </section>
       )}
 
-      <section className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-        <DataTable title="Jornadas recentes" headers={['Funcionário', 'Data', 'Entrada', 'Saida']}>
-          {timeTracks.loading && !presentationMode && <LoadingRow span={4} />}
-          {timeTracks.error && !presentationMode && <ErrorRow span={4} message={timeTracks.error} />}
+      <section className={`grid grid-cols-1 gap-5 ${isFuncionario ? '' : 'lg:grid-cols-2'}`}>
+        <DataTable title={isFuncionario ? 'Minhas jornadas recentes' : 'Jornadas recentes'} headers={isFuncionario ? ['Data', 'Entrada', 'Saida'] : ['Funcionário', 'Data', 'Entrada', 'Saida']}>
+          {timeTracks.loading && !presentationMode && <LoadingRow span={isFuncionario ? 3 : 4} />}
+          {timeTracks.error && !presentationMode && <ErrorRow span={isFuncionario ? 3 : 4} message={timeTracks.error} />}
           {!timeTracks.loading && !timeTracks.error && todayRows.length === 0 && (
-            <EmptyRow span={4} message="Nenhum registro encontrado para hoje." />
+            <EmptyRow span={isFuncionario ? 3 : 4} message="Nenhum registro encontrado para hoje." />
           )}
           {todayRows.map((row) => (
             <tr key={row.id} className="border-t border-slate-100">
-              <td className="py-3 pr-4 text-xs font-semibold text-slate-800">{row.employee?.name ?? '--'}</td>
+              {!isFuncionario && <td className="py-3 pr-4 text-xs font-semibold text-slate-800">{row.employee?.name ?? '--'}</td>}
               <td className="py-3 pr-4 text-xs text-slate-600">{new Date(row.date).toLocaleDateString('pt-BR')}</td>
               <td className="py-3 pr-4 text-xs font-bold text-slate-950">{formatTime(row.entry)}</td>
               <td className="py-3 text-xs text-slate-600">{formatTime(row.exit)}</td>
@@ -133,20 +124,22 @@ function DashboardContent() {
           ))}
         </DataTable>
 
-        <DataTable title="Férias e ausências" headers={['Funcionário', 'Período', 'Status']}>
-          {vacations.loading && !presentationMode && <LoadingRow span={3} />}
-          {vacations.error && !presentationMode && <ErrorRow span={3} message={vacations.error} />}
-          {!vacations.loading && !vacations.error && vacationRows.length === 0 && (
-            <EmptyRow span={3} message="Nenhuma solicitacao em aberto." />
-          )}
-          {vacationRows.map((row) => (
-            <tr key={row.id} className="border-t border-slate-100">
-              <td className="py-3 pr-4 text-xs font-semibold text-slate-800">{row.employee?.name ?? '--'}</td>
-              <td className="py-3 pr-4 text-xs text-slate-600">{formatPeriod(row.startDate, row.endDate)}</td>
-              <td className="py-3 text-xs font-bold text-slate-700">{VACATION_STATUS_LABEL[row.status] ?? row.status}</td>
-            </tr>
-          ))}
-        </DataTable>
+        {!isFuncionario && (
+          <DataTable title="Férias e ausências" headers={['Funcionário', 'Período', 'Status']}>
+            {vacations.loading && !presentationMode && <LoadingRow span={3} />}
+            {vacations.error && !presentationMode && <ErrorRow span={3} message={vacations.error} />}
+            {!vacations.loading && !vacations.error && vacationRows.length === 0 && (
+              <EmptyRow span={3} message="Nenhuma solicitacao em aberto." />
+            )}
+            {vacationRows.map((row) => (
+              <tr key={row.id} className="border-t border-slate-100">
+                <td className="py-3 pr-4 text-xs font-semibold text-slate-800">{row.employee?.name ?? '--'}</td>
+                <td className="py-3 pr-4 text-xs text-slate-600">{formatPeriod(row.startDate, row.endDate)}</td>
+                <td className="py-3 text-xs font-bold text-slate-700">{VACATION_STATUS_LABEL[row.status] ?? row.status}</td>
+              </tr>
+            ))}
+          </DataTable>
+        )}
       </section>
     </div>
   );

@@ -13,6 +13,14 @@ export class EmployeesRepository {
     return this.prisma.employee.findFirst({ where: { companyId, id } });
   }
 
+  findByUserId(companyId: string, userId: string) {
+    return this.prisma.employee.findFirst({ where: { companyId, userId } });
+  }
+
+  listByManager(companyId: string, managerId: string) {
+    return this.prisma.employee.findMany({ where: { companyId, managerId }, orderBy: { createdAt: 'desc' } });
+  }
+
   findByCpf(cpf: string) {
     return this.prisma.employee.findUnique({ where: { cpf } });
   }

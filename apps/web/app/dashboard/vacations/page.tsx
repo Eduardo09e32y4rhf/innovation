@@ -3,11 +3,17 @@
 import { useState } from 'react';
 import { Check, Plus, X } from 'lucide-react';
 import { EmptyState, ErrorState, LoadingState } from '@/app/components/data-states';
+import { useAuth } from '@/app/contexts/AuthContext';
 import { useMutation, useQuery } from '@/app/hooks/use-data';
 import { api, type CreateVacationInput, type VacationStatus } from '@/app/lib/api';
 import { VACATION_STATUS_LABEL, formatPeriod } from '@/app/lib/format';
 
 export default function VacationsPage() {
+  const { user } = useAuth();
+  const profile = user?.profile?.toUpperCase();
+  const canApprove = profile === 'DEV' || profile === 'ADMIN' || profile === 'RH' || profile === 'GESTOR';
+  const isGestor = profile === 'GESTOR';
+
   const vacations = useQuery(() => api.vacations.list(), []);
   const employees = useQuery(() => api.employees.list(), []);
   const [open, setOpen] = useState(false);
@@ -24,7 +30,7 @@ export default function VacationsPage() {
       <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-[11px] font-black uppercase tracking-[0.2em] text-teal-600">Férias</p>
-          <h2 className="text-2xl font-black text-slate-950">Solicitacoes</h2>
+          <h2 className="text-2xl font-black text-slate-950">{isGestor ? 'Ferias da equipe' : 'Solicitacoes'}</h2>
         </div>
         <button
           onClick={() => setOpen(true)}
@@ -55,7 +61,7 @@ export default function VacationsPage() {
                   <th className="pb-3 pr-4">Período</th>
                   <th className="pb-3 pr-4">Dias</th>
                   <th className="pb-3 pr-4">Status</th>
-                  <th className="pb-3">Aprovacao</th>
+                  {canApprove && <th className="pb-3">Aprovacao</th>}
                 </tr>
               </thead>
               <tbody>
@@ -65,24 +71,26 @@ export default function VacationsPage() {
                     <td className="py-3 pr-4">{formatPeriod(row.startDate, row.endDate)}</td>
                     <td className="py-3 pr-4">{row.daysUsed}</td>
                     <td className="py-3 pr-4">{VACATION_STATUS_LABEL[row.status] ?? row.status}</td>
-                    <td className="py-3">
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => updateStatus.mutate({ id: row.id, status: 'APPROVED' }).catch(() => {})}
-                          disabled={row.status !== 'PENDING' || updateStatus.loading}
-                          className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px] disabled:opacity-40"
-                        >
-                          <Check size={12} />Aprovar
-                        </button>
-                        <button
-                          onClick={() => updateStatus.mutate({ id: row.id, status: 'REJECTED' }).catch(() => {})}
-                          disabled={row.status !== 'PENDING' || updateStatus.loading}
-                          className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px] disabled:opacity-40"
-                        >
-                          <X size={12} />Rejeitar
-                        </button>
-                      </div>
-                    </td>
+                    {canApprove && (
+                      <td className="py-3">
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => updateStatus.mutate({ id: row.id, status: 'APPROVED' }).catch(() => {})}
+                            disabled={row.status !== 'PENDING' || updateStatus.loading}
+                            className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px] disabled:opacity-40"
+                          >
+                            <Check size={12} />Aprovar
+                          </button>
+                          <button
+                            onClick={() => updateStatus.mutate({ id: row.id, status: 'REJECTED' }).catch(() => {})}
+                            disabled={row.status !== 'PENDING' || updateStatus.loading}
+                            className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px] disabled:opacity-40"
+                          >
+                            <X size={12} />Rejeitar
+                          </button>
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>

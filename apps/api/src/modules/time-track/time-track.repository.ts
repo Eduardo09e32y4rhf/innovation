@@ -20,6 +20,16 @@ export class TimeTrackRepository {
     });
   }
 
+  async listForManager(companyId: string, userId: string) {
+    const manager = await this.prisma.employee.findFirst({ where: { companyId, userId } });
+    if (!manager) return [];
+    return this.prisma.timeTrack.findMany({
+      where: { employee: { companyId, managerId: manager.id } },
+      include: { employee: true },
+      orderBy: [{ employee: { name: 'asc' } }, { date: 'asc' }, { createdAt: 'asc' }],
+    });
+  }
+
   findById(companyId: string, id: string) {
     return this.prisma.timeTrack.findFirst({ where: { id, employee: { companyId } }, include: { employee: true } });
   }
