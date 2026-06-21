@@ -59,14 +59,14 @@ async function main() {
     where: { document: demoCompanyDocument },
     update: {
       name: 'Empresa Demo',
-      maxUsers: 6,
+      maxUsers: 10,
       maxEmployees: 50,
       isActive: true,
     },
     create: {
       name: 'Empresa Demo',
       document: demoCompanyDocument,
-      maxUsers: 6,
+      maxUsers: 10,
       maxEmployees: 50,
       isActive: true,
     },
@@ -85,9 +85,108 @@ async function main() {
     },
   });
 
+  // 4) RH user for the demo company.
+  const testPassword = adminPassword;
+  const rhUser = await prisma.user.upsert({
+    where: { email: 'rh@innovation.local' },
+    update: {},
+    create: {
+      companyId: demoCompany.id,
+      name: 'RH Demo',
+      email: 'rh@innovation.local',
+      passwordHash: await bcrypt.hash(testPassword, 12),
+      role: 'RH',
+    },
+  });
+
+  // 5) GESTOR user for the demo company.
+  const gestorUser = await prisma.user.upsert({
+    where: { email: 'gestor@innovation.local' },
+    update: {},
+    create: {
+      companyId: demoCompany.id,
+      name: 'Gestor Demo',
+      email: 'gestor@innovation.local',
+      passwordHash: await bcrypt.hash(testPassword, 12),
+      role: 'GESTOR',
+    },
+  });
+
+  // 6) FUNCIONARIO user for the demo company.
+  const funcUser = await prisma.user.upsert({
+    where: { email: 'funcionario@innovation.local' },
+    update: {},
+    create: {
+      companyId: demoCompany.id,
+      name: 'Funcionario Demo',
+      email: 'funcionario@innovation.local',
+      passwordHash: await bcrypt.hash(testPassword, 12),
+      role: 'FUNCIONARIO',
+    },
+  });
+
+  // 7) Create employee records linked to RH, GESTOR, and FUNCIONARIO users.
+  const gestorEmployee = await prisma.employee.upsert({
+    where: { cpf: '00000000001' },
+    update: { userId: gestorUser.id },
+    create: {
+      companyId: demoCompany.id,
+      name: 'Gestor Demo',
+      cpf: '00000000001',
+      email: 'gestor@innovation.local',
+      department: 'Gerencia',
+      position: 'Gestor',
+      admissionDate: new Date('2024-01-15'),
+      birthDate: new Date('1990-05-10'),
+      workScale: '5x2',
+      status: 'ACTIVE',
+      userId: gestorUser.id,
+    },
+  });
+
+  await prisma.employee.upsert({
+    where: { cpf: '00000000002' },
+    update: { userId: funcUser.id, managerId: gestorEmployee.id },
+    create: {
+      companyId: demoCompany.id,
+      name: 'Funcionario Demo',
+      cpf: '00000000002',
+      email: 'funcionario@innovation.local',
+      department: 'Operacoes',
+      position: 'Analista',
+      admissionDate: new Date('2024-03-01'),
+      birthDate: new Date('1995-08-20'),
+      workScale: '5x2',
+      status: 'ACTIVE',
+      userId: funcUser.id,
+      managerId: gestorEmployee.id,
+    },
+  });
+
+  await prisma.employee.upsert({
+    where: { cpf: '00000000003' },
+    update: { userId: rhUser.id },
+    create: {
+      companyId: demoCompany.id,
+      name: 'RH Demo',
+      cpf: '00000000003',
+      email: 'rh@innovation.local',
+      department: 'Recursos Humanos',
+      position: 'Analista RH',
+      admissionDate: new Date('2024-01-10'),
+      birthDate: new Date('1988-12-15'),
+      workScale: '5x2',
+      status: 'ACTIVE',
+      userId: rhUser.id,
+    },
+  });
+
   console.log('Seed finalizado.');
-  console.log('  DEV   ->', devEmail);
-  console.log('  ADMIN -> admin@innovation.local');
+  console.log('  DEV          ->', devEmail);
+  console.log('  ADMIN        -> admin@innovation.local');
+  console.log('  RH           -> rh@innovation.local');
+  console.log('  GESTOR       -> gestor@innovation.local');
+  console.log('  FUNCIONARIO  -> funcionario@innovation.local');
 }
 
 main()

@@ -1,4 +1,5 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import type { JwtUser } from '../../common/types/auth.types';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
 import { EmployeesRepository } from './employees.repository';
@@ -7,8 +8,16 @@ import { EmployeesRepository } from './employees.repository';
 export class EmployeesService {
   constructor(private readonly repository: EmployeesRepository) {}
 
-  list(companyId: string) {
-    return this.repository.list(companyId);
+  async list(companyId: string, actor: JwtUser) {
+    if (actor.role === 'ADMIN' || actor.role === 'RH' || actor.role === 'DEV') {
+      return this.repository.list(companyId);
+    }
+    if (actor.role === 'GESTOR') {
+      const managerEmployee = await this.repository.findByUserId(companyId, actor.sub);
+      if (!managerEmployee) return [];
+      return this.repository.listByManager(companyId, managerEmployee.id);
+    }
+    return [];
   }
 
   async get(companyId: string, id: string) {

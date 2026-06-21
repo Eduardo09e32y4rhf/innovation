@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import { Clock3, Download, Edit3, FileText, Trash2, X } from 'lucide-react';
 import { EmptyState, ErrorState, LoadingState } from '@/app/components/data-states';
+import { useAuth } from '@/app/contexts/AuthContext';
 import { useMutation, useQuery } from '@/app/hooks/use-data';
 import { api, type Company, type Employee, type TimeTrack, type RestDayMode, type TimeTrackAdjustmentReason } from '@/app/lib/api';
 import { formatDate, formatMinutes } from '@/app/lib/format';
@@ -294,8 +295,14 @@ function openPrintableReport(rows: TimeTrack[], month: string, company: CompanyP
 }
 
 export default function TimeTrackPage() {
+  const { user } = useAuth();
+  const profile = user?.profile?.toUpperCase();
+  const canManage = profile === 'DEV' || profile === 'ADMIN' || profile === 'RH';
+  const isFuncionario = profile === 'FUNCIONARIO';
+  const isGestor = profile === 'GESTOR';
+
   const tracks = useQuery(() => api.timeTrack.list(), []);
-  const employees = useQuery(() => api.employees.list(), []);
+  const employees = useQuery(() => api.employees.list(), [], { enabled: !isFuncionario });
   const company = useQuery(() => api.companies.me(), []);
   const [open, setOpen] = useState(false);
   const [bulkOpen, setBulkOpen] = useState(false);
@@ -318,59 +325,101 @@ export default function TimeTrackPage() {
   const reportCompany = normalizeCompanyInfo(company.data);
   const remove = useMutation((id: string) => api.timeTrack.delete(id), { onSuccess: () => tracks.refetch() });
 
+  const clockIn = useMutation(
+    (type: 'ENTRY' | 'LUNCH_START' | 'LUNCH_RETURN' | 'EXIT') => {
+      const employeeId = rows[0]?.employeeId ?? '';
+      return api.timeTrack.register({ employeeId, type });
+    },
+    { onSuccess: () => tracks.refetch() },
+  );
+
   async function handleDelete(row: TimeTrack) {
     const employeeName = normalizeDisplayName(row.employee?.name ?? 'funcionário');
     if (!window.confirm(`Excluir o ponto de ${employeeName} em ${formatDate(row.date)}?`)) return;
     await remove.mutate(row.id).catch(() => {});
   }
 
+  const pageTitle = isFuncionario ? 'Meu ponto' : isGestor ? 'Ponto da equipe' : 'Folha de ponto da empresa';
+
   return (
     <div className="mx-auto max-w-6xl space-y-5">
       <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-[11px] font-black uppercase tracking-[0.2em] text-teal-600">Controle de ponto</p>
-          <h2 className="text-2xl font-black text-slate-950">Folha de ponto da empresa</h2>
+          <h2 className="text-2xl font-black text-slate-950">{pageTitle}</h2>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <button onClick={() => downloadExcel(`folha-ponto-${selectedEmployee?.name ?? 'empresa'}-${monthFilter || 'todos'}.xls`, rows, reportCompany)} disabled={rows.length === 0 || company.loading} className="btn-outline inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black disabled:opacity-50">
-            <Download size={14} /> Exportar Excel
-          </button>
-          <button onClick={() => openPrintableReport(rows, monthFilter, reportCompany, employeeFilter ? selectedEmployee : undefined)} disabled={rows.length === 0 || company.loading} className="btn-outline inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black disabled:opacity-50">
-            <FileText size={14} /> {employeeFilter ? 'PDF individual' : 'PDF empresa'}
-          </button>
-          <button onClick={() => setBulkOpen(true)} className="btn-outline inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black">
-            <Clock3 size={14} /> Lançar em lote
-          </button>
-          <button onClick={() => setOpen(true)} className="crystal-button inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black text-white">
-            <Clock3 size={14} /> Lançar ponto
-          </button>
+          {(canManage || isFuncionario) && (
+            <>
+              {canManage && (
+                <>
+                  <button onClick={() => downloadExcel(`folha-ponto-${selectedEmployee?.name ?? 'empresa'}-${monthFilter || 'todos'}.xls`, rows, reportCompany)} disabled={rows.length === 0 || company.loading} className="btn-outline inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black disabled:opacity-50">
+                    <Download size={14} /> Exportar Excel
+                  </button>
+                  <button onClick={() => openPrintableReport(rows, monthFilter, reportCompany, employeeFilter ? selectedEmployee : undefined)} disabled={rows.length === 0 || company.loading} className="btn-outline inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black disabled:opacity-50">
+                    <FileText size={14} /> {employeeFilter ? 'PDF individual' : 'PDF empresa'}
+                  </button>
+                  <button onClick={() => setBulkOpen(true)} className="btn-outline inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black">
+                    <Clock3 size={14} /> Lançar em lote
+                  </button>
+                  <button onClick={() => setOpen(true)} className="crystal-button inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black text-white">
+                    <Clock3 size={14} /> Lançar ponto
+                  </button>
+                </>
+              )}
+            </>
+          )}
         </div>
       </header>
 
-      <section className="ops-card grid gap-3 rounded-[8px] border border-slate-200 bg-white p-4 sm:grid-cols-[1fr_180px]">
-        <label className="space-y-1 text-xs font-medium text-slate-600">
-          <span>Filtrar por funcionário</span>
-          <select value={employeeFilter} onChange={(event) => setEmployeeFilter(event.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500">
-            <option value="">Todos os funcionários</option>
-            {activeEmployees.map((employee) => <option key={employee.id} value={employee.id}>{normalizeDisplayName(employee.name)}</option>)}
-          </select>
-        </label>
-        <label className="space-y-1 text-xs font-medium text-slate-600">
-          <span>Mês da folha</span>
-          <input type="month" value={monthFilter} onChange={(event) => setMonthFilter(event.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500" />
-        </label>
-      </section>
+      {isFuncionario && rows.length > 0 && (
+        <section className="ops-card rounded-[8px] border border-slate-200 bg-white p-5">
+          <h3 className="mb-3 text-sm font-black text-slate-950">Bater ponto</h3>
+          {clockIn.error && <p className="mb-3 rounded-[8px] border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">{clockIn.error}</p>}
+          <div className="flex flex-wrap gap-2">
+            <button onClick={() => clockIn.mutate('ENTRY').catch(() => {})} disabled={clockIn.loading} className="crystal-button h-10 rounded-[8px] px-4 text-xs font-black text-white disabled:opacity-60">Entrada</button>
+            <button onClick={() => clockIn.mutate('LUNCH_START').catch(() => {})} disabled={clockIn.loading} className="btn-outline h-10 rounded-[8px] px-4 text-xs font-black disabled:opacity-60">Saida almoco</button>
+            <button onClick={() => clockIn.mutate('LUNCH_RETURN').catch(() => {})} disabled={clockIn.loading} className="btn-outline h-10 rounded-[8px] px-4 text-xs font-black disabled:opacity-60">Retorno almoco</button>
+            <button onClick={() => clockIn.mutate('EXIT').catch(() => {})} disabled={clockIn.loading} className="btn-outline h-10 rounded-[8px] px-4 text-xs font-black disabled:opacity-60">Saida</button>
+          </div>
+        </section>
+      )}
+
+      {!isFuncionario && (
+        <section className="ops-card grid gap-3 rounded-[8px] border border-slate-200 bg-white p-4 sm:grid-cols-[1fr_180px]">
+          <label className="space-y-1 text-xs font-medium text-slate-600">
+            <span>Filtrar por funcionário</span>
+            <select value={employeeFilter} onChange={(event) => setEmployeeFilter(event.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500">
+              <option value="">Todos os funcionários</option>
+              {activeEmployees.map((employee) => <option key={employee.id} value={employee.id}>{normalizeDisplayName(employee.name)}</option>)}
+            </select>
+          </label>
+          <label className="space-y-1 text-xs font-medium text-slate-600">
+            <span>Mês da folha</span>
+            <input type="month" value={monthFilter} onChange={(event) => setMonthFilter(event.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500" />
+          </label>
+        </section>
+      )}
+
+      {isFuncionario && (
+        <section className="ops-card grid gap-3 rounded-[8px] border border-slate-200 bg-white p-4">
+          <label className="space-y-1 text-xs font-medium text-slate-600">
+            <span>Mês da folha</span>
+            <input type="month" value={monthFilter} onChange={(event) => setMonthFilter(event.target.value)} className="h-10 w-full max-w-[220px] rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500" />
+          </label>
+        </section>
+      )}
 
       {remove.error && <p className="rounded-[8px] border border-rose-200 bg-rose-50 px-4 py-2 text-xs text-rose-700">{remove.error}</p>}
 
-      {tracks.loading ? <LoadingState label="Carregando folha de ponto..." /> : tracks.error ? <ErrorState message={tracks.error} onRetry={tracks.refetch} /> : rows.length === 0 ? <EmptyState message="Nenhum registro de ponto para o filtro selecionado." /> : (
+      {tracks.loading ? <LoadingState label="Carregando folha de ponto..." /> : tracks.error ? <ErrorState message={tracks.error} onRetry={tracks.refetch} /> : rows.length === 0 ? <EmptyState message={isFuncionario ? 'Nenhum registro de ponto encontrado.' : 'Nenhum registro de ponto para o filtro selecionado.'} /> : (
         <section className="ops-card overflow-hidden rounded-[8px] border border-slate-200 bg-white">
           <div className="overflow-x-auto p-5">
-            <table className="w-full min-w-[1040px] text-left">
-              <thead><tr className="text-[11px] font-medium text-slate-500"><th className="pb-3 pr-4">Funcionário</th><th className="pb-3 pr-4">Data</th><th className="pb-3 pr-4">Entrada</th><th className="pb-3 pr-4">Almoço</th><th className="pb-3 pr-4">Saída</th><th className="pb-3 pr-4">Trabalhado</th><th className="pb-3 pr-4">Saldo</th><th className="pb-3 pr-4">Motivo</th><th className="pb-3">Ações</th></tr></thead>
+            <table className={`w-full ${isFuncionario ? 'min-w-[680px]' : 'min-w-[1040px]'} text-left`}>
+              <thead><tr className="text-[11px] font-medium text-slate-500">{!isFuncionario && <th className="pb-3 pr-4">Funcionário</th>}<th className="pb-3 pr-4">Data</th><th className="pb-3 pr-4">Entrada</th><th className="pb-3 pr-4">Almoço</th><th className="pb-3 pr-4">Saída</th><th className="pb-3 pr-4">Trabalhado</th><th className="pb-3 pr-4">Saldo</th><th className="pb-3 pr-4">Motivo</th>{canManage && <th className="pb-3">Ações</th>}</tr></thead>
               <tbody>{rows.map((row) => (
                 <tr key={row.id} className="border-t border-slate-100 text-xs text-slate-700">
-                  <td className="py-3 pr-4 font-medium text-slate-950">{normalizeDisplayName(row.employee?.name ?? '-')}</td>
+                  {!isFuncionario && <td className="py-3 pr-4 font-medium text-slate-950">{normalizeDisplayName(row.employee?.name ?? '-')}</td>}
                   <td className="py-3 pr-4">{formatDate(row.date)}</td>
                   <td className="py-3 pr-4">{displayTime(row.entry)}</td>
                   <td className="py-3 pr-4">{displayLunch(row.lunchStart, row.lunchReturn)}</td>
@@ -378,7 +427,7 @@ export default function TimeTrackPage() {
                   <td className="py-3 pr-4">{displayWorked(row.totalWorked)}</td>
                   <td className={`py-3 pr-4 font-medium ${(row.dailyBalance ?? 0) < 0 ? 'text-rose-600' : 'text-emerald-600'}`}>{displayBalance(row.dailyBalance)}</td>
                   <td className="max-w-[220px] truncate py-3 pr-4">{row.observation || '-'}</td>
-                  <td className="py-3"><div className="flex gap-2"><button onClick={() => setEditing(row)} className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px]"><Edit3 size={12} />Editar</button><button onClick={() => handleDelete(row)} className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px] text-rose-600"><Trash2 size={12} />Excluir</button></div></td>
+                  {canManage && <td className="py-3"><div className="flex gap-2"><button onClick={() => setEditing(row)} className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px]"><Edit3 size={12} />Editar</button><button onClick={() => handleDelete(row)} className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px] text-rose-600"><Trash2 size={12} />Excluir</button></div></td>}
                 </tr>
               ))}</tbody>
             </table>
@@ -386,7 +435,7 @@ export default function TimeTrackPage() {
         </section>
       )}
 
-      {(open || bulkOpen || editing) && <ManualTimeSheetModal employees={activeEmployees} employeesLoading={employees.loading} employeesError={employees.error} defaultEmployeeId={employeeFilter} track={editing ?? undefined} bulk={bulkOpen} onClose={() => { setOpen(false); setBulkOpen(false); setEditing(null); }} onDone={() => { setOpen(false); setBulkOpen(false); setEditing(null); tracks.refetch(); }} />}
+      {canManage && (open || bulkOpen || editing) && <ManualTimeSheetModal employees={activeEmployees} employeesLoading={employees.loading} employeesError={employees.error} defaultEmployeeId={employeeFilter} track={editing ?? undefined} bulk={bulkOpen} onClose={() => { setOpen(false); setBulkOpen(false); setEditing(null); }} onDone={() => { setOpen(false); setBulkOpen(false); setEditing(null); tracks.refetch(); }} />}
     </div>
   );
 }

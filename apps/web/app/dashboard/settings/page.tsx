@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Image, Save, X } from 'lucide-react';
+import { Image, Key, Save, X } from 'lucide-react';
+import { useAuth } from '@/app/contexts/AuthContext';
 import { useMutation, useQuery } from '@/app/hooks/use-data';
 import { api } from '@/app/lib/api';
 
@@ -28,6 +29,84 @@ function validateLogoUrl(value: string) {
 }
 
 export default function SettingsPage() {
+  const { user, changePassword } = useAuth();
+  const profile = user?.profile?.toUpperCase();
+  const canEditCompany = profile === 'DEV' || profile === 'ADMIN' || profile === 'RH';
+
+  return (
+    <div className="mx-auto max-w-4xl space-y-5">
+      <header>
+        <p className="text-[11px] font-black uppercase tracking-[0.2em] text-teal-600">Configurações</p>
+        <h2 className="text-2xl font-black text-slate-950">{canEditCompany ? 'Dados da empresa' : 'Minha conta'}</h2>
+      </header>
+      {canEditCompany && <CompanySettings />}
+      <PasswordChangeSection changePassword={changePassword} />
+    </div>
+  );
+}
+
+function PasswordChangeSection({ changePassword }: { changePassword: (current: string, newPass: string) => Promise<void> }) {
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const valid = currentPassword.length >= 1 && newPassword.length >= 10 && newPassword === confirmPassword;
+
+  async function handleSubmit() {
+    if (!valid) return;
+    setError('');
+    setSuccess(false);
+    setLoading(true);
+    try {
+      await changePassword(currentPassword, newPassword);
+      setSuccess(true);
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao trocar a senha.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <section className="ops-card rounded-[8px] border border-slate-200 bg-white p-5">
+      <div className="mb-4 flex items-center gap-2">
+        <Key size={16} className="text-teal-600" />
+        <h3 className="text-sm font-black text-slate-950">Alterar senha</h3>
+      </div>
+      {error && <p className="mb-3 rounded-[8px] border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">{error}</p>}
+      {success && <p className="mb-3 rounded-[8px] border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">Senha alterada com sucesso!</p>}
+      <div className="grid gap-3 sm:grid-cols-3">
+        <label className="space-y-1 text-xs font-medium text-slate-600">
+          <span>Senha atual</span>
+          <input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500" />
+        </label>
+        <label className="space-y-1 text-xs font-medium text-slate-600">
+          <span>Nova senha (min. 10)</span>
+          <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500" />
+        </label>
+        <label className="space-y-1 text-xs font-medium text-slate-600">
+          <span>Confirmar nova senha</span>
+          <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500" />
+        </label>
+      </div>
+      {newPassword && confirmPassword && newPassword !== confirmPassword && (
+        <p className="mt-2 text-xs text-rose-600">As senhas nao coincidem.</p>
+      )}
+      <button type="button" onClick={handleSubmit} disabled={!valid || loading} className="crystal-button mt-4 inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black text-white disabled:opacity-60">
+        <Key size={14} />
+        {loading ? 'Salvando...' : 'Alterar senha'}
+      </button>
+    </section>
+  );
+}
+
+function CompanySettings() {
   const company = useQuery(() => api.companies.me(), []);
 
   const [name, setName] = useState('');
@@ -57,12 +136,7 @@ export default function SettingsPage() {
   );
 
   return (
-    <div className="mx-auto max-w-4xl space-y-5">
-      <header>
-        <p className="text-[11px] font-black uppercase tracking-[0.2em] text-teal-600">Configurações</p>
-        <h2 className="text-2xl font-black text-slate-950">Dados da empresa</h2>
-      </header>
-
+    <>
       {company.error && (
         <p className="rounded-[8px] border border-rose-200 bg-rose-50 px-4 py-2 text-xs text-rose-700">{company.error}</p>
       )}
@@ -136,6 +210,6 @@ export default function SettingsPage() {
           </div>
         </div>
       </section>
-    </div>
+    </>
   );
 }

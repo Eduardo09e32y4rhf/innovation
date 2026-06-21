@@ -3,11 +3,16 @@
 import Link from 'next/link';
 import { Edit3, UserMinus, UserPlus } from 'lucide-react';
 import { EmptyState, ErrorState, LoadingState } from '@/app/components/data-states';
+import { useAuth } from '@/app/contexts/AuthContext';
 import { useMutation, useQuery } from '@/app/hooks/use-data';
 import { api, type Employee } from '@/app/lib/api';
 import { EMPLOYEE_STATUS_LABEL, formatCpf } from '@/app/lib/format';
 
 export default function EmployeesPage() {
+  const { user } = useAuth();
+  const profile = user?.profile?.toUpperCase();
+  const canEdit = profile === 'DEV' || profile === 'ADMIN' || profile === 'RH';
+  const isGestor = profile === 'GESTOR';
   const { data, loading, error, refetch } = useQuery(() => api.employees.list(), []);
   const terminate = useMutation((id: string) => api.employees.terminate(id), {
     onSuccess: () => refetch(),
@@ -31,12 +36,14 @@ export default function EmployeesPage() {
       <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-[11px] font-black uppercase tracking-[0.2em] text-teal-600">Funcionários</p>
-          <h2 className="text-2xl font-black text-slate-950">Cadastro da equipe</h2>
+          <h2 className="text-2xl font-black text-slate-950">{isGestor ? 'Minha equipe' : 'Cadastro da equipe'}</h2>
         </div>
-        <Link href="/dashboard/employees/new" className="crystal-button inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black text-white">
-          <UserPlus size={14} />
-          Novo
-        </Link>
+        {canEdit && (
+          <Link href="/dashboard/employees/new" className="crystal-button inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black text-white">
+            <UserPlus size={14} />
+            Novo
+          </Link>
+        )}
       </header>
 
       {terminate.error && (
@@ -48,7 +55,7 @@ export default function EmployeesPage() {
       ) : error ? (
         <ErrorState message={error} onRetry={refetch} />
       ) : employees.length === 0 ? (
-        <EmptyState message="Nenhum funcionario cadastrado. Clique em Novo para comecar." />
+        <EmptyState message={isGestor ? 'Nenhum funcionario na sua equipe.' : 'Nenhum funcionario cadastrado. Clique em Novo para comecar.'} />
       ) : (
         <section className="ops-card overflow-hidden rounded-[8px] border border-slate-200 bg-white">
           <div className="overflow-x-auto p-5">
@@ -60,7 +67,7 @@ export default function EmployeesPage() {
                   <th className="pb-3 pr-4">Departamento</th>
                   <th className="pb-3 pr-4">Cargo</th>
                   <th className="pb-3 pr-4">Status</th>
-                  <th className="pb-3">Acoes</th>
+                  {canEdit && <th className="pb-3">Acoes</th>}
                 </tr>
               </thead>
               <tbody>
@@ -73,23 +80,25 @@ export default function EmployeesPage() {
                     <td className="py-3 pr-4">
                       <StatusBadge status={employee.status} />
                     </td>
-                    <td className="py-3">
-                      <div className="flex gap-2">
-                        <Link
-                          href={`/dashboard/employees/new?id=${employee.id}`}
-                          className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px]"
-                        >
-                          <Edit3 size={12} />Editar
-                        </Link>
-                        <button
-                          onClick={() => handleTerminate(employee)}
-                          disabled={employee.status === 'TERMINATED' || terminate.loading}
-                          className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px] disabled:opacity-50"
-                        >
-                          <UserMinus size={12} />Desligar
-                        </button>
-                      </div>
-                    </td>
+                    {canEdit && (
+                      <td className="py-3">
+                        <div className="flex gap-2">
+                          <Link
+                            href={`/dashboard/employees/new?id=${employee.id}`}
+                            className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px]"
+                          >
+                            <Edit3 size={12} />Editar
+                          </Link>
+                          <button
+                            onClick={() => handleTerminate(employee)}
+                            disabled={employee.status === 'TERMINATED' || terminate.loading}
+                            className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px] disabled:opacity-50"
+                          >
+                            <UserMinus size={12} />Desligar
+                          </button>
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>

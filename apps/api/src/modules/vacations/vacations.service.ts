@@ -1,4 +1,5 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import type { JwtUser } from '../../common/types/auth.types';
 import { CreateVacationDto } from './dto/create-vacation.dto';
 import { UpdateVacationStatusDto } from './dto/update-vacation-status.dto';
 import { VacationsRepository } from './vacations.repository';
@@ -7,8 +8,14 @@ import { VacationsRepository } from './vacations.repository';
 export class VacationsService {
   constructor(private readonly repository: VacationsRepository) {}
 
-  list(companyId: string) {
-    return this.repository.list(companyId);
+  async list(companyId: string, actor: JwtUser) {
+    if (actor.role === 'ADMIN' || actor.role === 'RH' || actor.role === 'DEV') {
+      return this.repository.list(companyId);
+    }
+    if (actor.role === 'GESTOR') {
+      return this.repository.listForManager(companyId, actor.sub);
+    }
+    return this.repository.listForEmployee(companyId, actor.sub);
   }
 
   async listByEmployee(companyId: string, employeeId: string) {
@@ -31,7 +38,15 @@ export class VacationsService {
     });
   }
 
-  async updateStatus(companyId: string, id: string, dto: UpdateVacationStatusDto) {
+  async updateStatus(companyId: string, actor: JwtUser, id: string, dto: UpdateVacationStatusDto) {
+    if (actor.role === 'GESTOR') {
+      const managerEmployee = await this.repository.findEmployeeByUserId(companyId, actor.sub);
+      if (!managerEmployee) throw new ForbiddenException('Permissao insuficiente');
+      const vacation = await this.repository.findById(companyId, id);
+      if (!vacation) throw new NotFoundException('Vacation request not found');
+      const employee = await this.repository.findEmployee(companyId, vacation.employeeId);
+      if (!employee || employee.managerId !== managerEmployee.id) throw new ForbiddenException('Permissao insuficiente');
+    }
     const result = await this.repository.updateStatus(companyId, id, {
       status: dto.status,
       observation: dto.observation,
