@@ -41,12 +41,21 @@ export class TimeTrackService {
   async manualBulk(companyId: string, dto: BulkManualTimeTrackDto) {
     const dates = this.resolveBulkDates(dto);
     const created = [];
+
+    // ⚡ Bolt: Parallelize DB inserts with chunking to minimize I/O wait times without exhausting DB pool
     for (const employeeId of dto.employeeIds) {
       await this.ensureEmployee(companyId, employeeId);
-      for (const date of dates) {
-        created.push(await this.applyManual(employeeId, date, dto));
+
+      const chunkSize = 10;
+      for (let i = 0; i < dates.length; i += chunkSize) {
+        const chunk = dates.slice(i, i + chunkSize);
+        const chunkResults = await Promise.all(
+          chunk.map((date: any) => this.applyManual(employeeId, date, dto))
+        );
+        created.push(...chunkResults);
       }
     }
+
     return { count: created.length, items: created };
   }
 
