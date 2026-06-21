@@ -117,7 +117,6 @@ export class TimeTrackService {
   }
 
   private isRestDay(employee: { workScale?: string | null }, dateValue: string, dto: BulkManualTimeTrackDto) {
-    if (dto.respectRestDays === false) return false;
     const date = this.toDateOnly(this.parseDate(dateValue, 'Invalid date'));
     const weekday = date.getUTCDay();
     const daysOff = dto.daysOff ?? this.defaultDaysOff(employee.workScale);

@@ -122,7 +122,7 @@ export type TimeTrackAdjustmentReason = 'ajuste_abono_atestado_horas' | 'ajuste_
 export interface RegisterTimeInput { employeeId: string; type: PunchType; timestamp?: string; observation?: string; }
 export interface ManualTimeTrackInput { employeeId: string; date: string; entry?: string | null; lunchStart?: string | null; lunchReturn?: string | null; exit?: string | null; reason: TimeTrackAdjustmentReason; observation?: string; }
 export type RestDayMode = 'employee_scale' | 'fixed_weekly' | 'cycle';
-export interface BulkManualTimeTrackInput { employeeIds: string[]; date?: string; startDate?: string; endDate?: string; entry?: string | null; lunchStart?: string | null; lunchReturn?: string | null; exit?: string | null; reason: TimeTrackAdjustmentReason; observation?: string; respectRestDays?: boolean; restDayMode?: RestDayMode; daysOff?: number[]; cycleStartDate?: string; cycleWorkDays?: number; cycleOffDays?: number; }
+export interface BulkManualTimeTrackInput { employeeIds: string[]; date?: string; startDate?: string; endDate?: string; entry?: string | null; lunchStart?: string | null; lunchReturn?: string | null; exit?: string | null; reason: TimeTrackAdjustmentReason; observation?: string; restDayMode?: RestDayMode; daysOff?: number[]; cycleStartDate?: string; cycleWorkDays?: number; cycleOffDays?: number; }
 export interface UpdateTimeTrackInput { entry?: string | null; lunchStart?: string | null; lunchReturn?: string | null; exit?: string | null; observation?: string | null; }
 export interface Vacation {
   id: string; employeeId: string; acquisitionPeriod: string;

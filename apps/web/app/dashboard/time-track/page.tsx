@@ -408,7 +408,6 @@ function ManualTimeSheetModal({ employees, employeesLoading, employeesError, def
   const [reason, setReason] = useState<TimeTrackAdjustmentReason>('ajuste_erro_marcacao');
   const [detail, setDetail] = useState('');
   const initialCycle = defaultCycle(initialEmployeeScale);
-  const [respectRestDays, setRespectRestDays] = useState(true);
   const [restDayMode, setRestDayMode] = useState<RestDayMode>('employee_scale');
   const [daysOff, setDaysOff] = useState<number[]>(defaultDaysOff(initialEmployeeScale));
   const [cycleStartDate, setCycleStartDate] = useState(initialDate.slice(0, 8) + '01');
@@ -439,7 +438,7 @@ function ManualTimeSheetModal({ employees, employeesLoading, employeesError, def
     }
     if (mode === 'bulk') {
       const employeeIds = bulkMode === 'period' ? [employeeId] : matchedEmployees.map((employee) => employee.id);
-      const base = { employeeIds, entry: payload.entry, lunchStart: payload.lunchStart, lunchReturn: payload.lunchReturn, exit: payload.exit, reason, observation: detail, respectRestDays, restDayMode, daysOff, cycleStartDate, cycleWorkDays, cycleOffDays };
+      const base = { employeeIds, entry: payload.entry, lunchStart: payload.lunchStart, lunchReturn: payload.lunchReturn, exit: payload.exit, reason, observation: detail, restDayMode, daysOff, cycleStartDate, cycleWorkDays, cycleOffDays };
       await api.timeTrack.manualBulk(bulkMode === 'period' ? { ...base, startDate, endDate } : { ...base, date });
       return;
     }
@@ -472,12 +471,12 @@ function ManualTimeSheetModal({ employees, employeesLoading, employeesError, def
           )}
           {mode === 'bulk' && !track && (
             <section className="sm:col-span-2 rounded-[10px] border border-slate-200 bg-slate-50 p-3">
-              <label className="flex items-center gap-2 text-xs font-bold text-slate-700"><input type="checkbox" checked={respectRestDays} onChange={(event) => setRespectRestDays(event.target.checked)} /> Respeitar folgas da escala</label>
-              {respectRestDays && <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              <p className="text-xs font-bold text-slate-700">Folgas da escala serão respeitadas automaticamente.</p>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
                 <label className="space-y-1 text-xs font-medium text-slate-600 sm:col-span-2"><span>Como calcular as folgas{selectedEmployee?.workScale ? ` (${selectedEmployee.workScale})` : ''}</span><select value={restDayMode} onChange={(event) => setRestDayMode(event.target.value as RestDayMode)} className="h-10 w-full rounded-[8px] border border-slate-200 bg-white px-3 text-sm outline-none focus:border-teal-500"><option value="employee_scale">Usar padrão da escala cadastrada</option><option value="fixed_weekly">Folga fixa na semana</option><option value="cycle">Escala alternada / ciclo</option></select></label>
                 {(restDayMode === 'fixed_weekly' || restDayMode === 'employee_scale') && <div className="space-y-2 sm:col-span-2"><p className="text-xs font-medium text-slate-600">Dias de folga</p><div className="grid grid-cols-2 gap-2 sm:grid-cols-4">{WEEKDAYS.map((day) => <label key={day.value} className="flex items-center gap-2 rounded-[8px] border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600"><input type="checkbox" checked={daysOff.includes(day.value)} onChange={() => toggleDayOff(day.value)} /> {day.label}</label>)}</div></div>}
                 {restDayMode === 'cycle' && <><label className="space-y-1 text-xs font-medium text-slate-600"><span>Início do ciclo</span><input type="date" value={cycleStartDate} onChange={(event) => setCycleStartDate(event.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 bg-white px-3 text-sm outline-none focus:border-teal-500" /></label><label className="space-y-1 text-xs font-medium text-slate-600"><span>Dias trabalhados</span><input type="number" min={1} max={31} value={cycleWorkDays} onChange={(event) => setCycleWorkDays(Number(event.target.value))} className="h-10 w-full rounded-[8px] border border-slate-200 bg-white px-3 text-sm outline-none focus:border-teal-500" /></label><label className="space-y-1 text-xs font-medium text-slate-600"><span>Dias de folga</span><input type="number" min={1} max={31} value={cycleOffDays} onChange={(event) => setCycleOffDays(Number(event.target.value))} className="h-10 w-full rounded-[8px] border border-slate-200 bg-white px-3 text-sm outline-none focus:border-teal-500" /></label></>}
-              </div>}
+              </div>
             </section>
           )}
           {!track && <label className="space-y-1 text-xs font-medium text-slate-600"><span>Motivo do ajuste</span><select value={reason} onChange={(event) => setReason(event.target.value as TimeTrackAdjustmentReason)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500">{ADJUSTMENT_REASONS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>}

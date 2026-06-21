@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { ArrayMaxSize, ArrayMinSize, IsArray, IsBoolean, IsDateString, IsIn, IsInt, IsOptional, IsString, IsUUID, Max, Min, ValidateIf } from 'class-validator';
+import { ArrayMaxSize, ArrayMinSize, IsArray, IsDateString, IsIn, IsInt, IsOptional, IsString, IsUUID, Max, Min, ValidateIf } from 'class-validator';
 
 export const REST_DAY_MODES = ['employee_scale', 'fixed_weekly', 'cycle'] as const;
 
@@ -84,9 +84,6 @@ export class BulkManualTimeTrackDto {
   @IsOptional()
   @IsString()
   observation?: string;
-  @IsOptional()
-  @IsBoolean()
-  respectRestDays?: boolean;
 
   @IsOptional()
   @IsIn(REST_DAY_MODES)
