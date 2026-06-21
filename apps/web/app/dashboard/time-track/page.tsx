@@ -8,6 +8,8 @@ import { api, type Company, type Employee, type TimeTrack, type TimeTrackAdjustm
 import { formatDate, formatMinutes } from '@/app/lib/format';
 import { normalizeDisplayName } from '@/app/lib/text';
 
+const collator = new Intl.Collator('pt-BR', { sensitivity: 'base', numeric: true });
+
 const ADJUSTMENT_REASONS: { value: TimeTrackAdjustmentReason; label: string; fullDay?: boolean }[] = [
   { value: 'ajuste_abono_atestado_horas', label: 'Ajuste - abono (atestado de horas)' },
   { value: 'ajuste_atestado_integral', label: 'Ajuste - atestado integral', fullDay: true },
@@ -130,6 +132,13 @@ function minutesNegative(minutes?: number | null) {
   return Math.abs(Math.min(minutes ?? 0, 0));
 }
 
+function compareTimeTracks(a: TimeTrack, b: TimeTrack) {
+  const nameComparison = collator.compare(normalizeDisplayName(a.employee?.name ?? ''), normalizeDisplayName(b.employee?.name ?? ''));
+  if (nameComparison !== 0) return nameComparison;
+  const dateComparison = toDateKey(a.date).localeCompare(toDateKey(b.date));
+  if (dateComparison !== 0) return dateComparison;
+  return displayTime(a.entry).localeCompare(displayTime(b.entry));
+}
 function buildMirrorRows(rows: TimeTrack[]): MirrorRow[] {
   return rows.map((row) => {
     const worked = row.totalWorked;
@@ -271,13 +280,15 @@ export default function TimeTrackPage() {
   const [employeeFilter, setEmployeeFilter] = useState('');
   const [monthFilter, setMonthFilter] = useState(currentMonth());
 
-  const activeEmployees = (employees.data ?? []).filter((employee) => employee.status === 'ACTIVE');
+  const activeEmployees = useMemo(() => (employees.data ?? []).filter((employee) => employee.status === 'ACTIVE').toSorted((a, b) => collator.compare(normalizeDisplayName(a.name), normalizeDisplayName(b.name))), [employees.data]);
   const rows = useMemo(() => {
-    return (tracks.data ?? []).filter((row) => {
-      if (employeeFilter && row.employeeId !== employeeFilter) return false;
-      if (monthFilter && !toDateKey(row.date).startsWith(monthFilter)) return false;
-      return true;
-    });
+    return (tracks.data ?? [])
+      .filter((row) => {
+        if (employeeFilter && row.employeeId !== employeeFilter) return false;
+        if (monthFilter && !toDateKey(row.date).startsWith(monthFilter)) return false;
+        return true;
+      })
+      .toSorted(compareTimeTracks);
   }, [tracks.data, employeeFilter, monthFilter]);
 
   const selectedEmployee = activeEmployees.find((employee) => employee.id === employeeFilter) ?? rows[0]?.employee;

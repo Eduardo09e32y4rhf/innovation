@@ -9,7 +9,7 @@ export class TimeTrackRepository {
     return this.prisma.timeTrack.findMany({
       where: { employee: { companyId } },
       include: { employee: true },
-      orderBy: [{ date: 'desc' }, { createdAt: 'desc' }],
+      orderBy: [{ employee: { name: 'asc' } }, { date: 'asc' }, { createdAt: 'asc' }],
     });
   }
 
