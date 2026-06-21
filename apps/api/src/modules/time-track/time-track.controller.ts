@@ -11,7 +11,7 @@ import { UpdateTimeTrackDto } from './dto/update-time-track.dto';
 import { TimeTrackService } from './time-track.service';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('DEV', 'ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO')
+@Roles('DEV', 'ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA')
 @Controller('time-track')
 export class TimeTrackController {
   constructor(private readonly service: TimeTrackService) {}

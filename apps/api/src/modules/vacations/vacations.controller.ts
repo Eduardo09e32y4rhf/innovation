@@ -10,7 +10,7 @@ import { UpdateVacationStatusDto } from './dto/update-vacation-status.dto';
 import { VacationsService } from './vacations.service';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO')
+@Roles('ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA')
 @Controller('vacations')
 export class VacationsController {
   constructor(private readonly service: VacationsService) {}

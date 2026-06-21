@@ -9,7 +9,7 @@ import { api, type AppUser, type CreatePlatformCompanyInput, type PlatformCompan
 import { ROLE_LABEL, formatDate } from '@/app/lib/format';
 import { normalizeDisplayName } from '@/app/lib/text';
 
-const COMPANY_USER_ROLES: PlatformCompanyUserRole[] = ['ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO'];
+const COMPANY_USER_ROLES: PlatformCompanyUserRole[] = ['ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'];
 
 type CompanyUserForm = { name: string; email: string; password: string; role: PlatformCompanyUserRole; isActive?: boolean };
 

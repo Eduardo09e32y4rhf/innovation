@@ -38,6 +38,7 @@ const CONTRACT_OPTIONS: { value: ContractType; label: string }[] = [
   { value: 'ESTAGIO', label: 'Estágio' },
   { value: 'TEMPORARIO', label: 'Temporário' },
   { value: 'JOVEM_APRENDIZ', label: 'Jovem Aprendiz' },
+  { value: 'TERCEIRIZADO', label: 'Terceirizado' },
 ];
 const TABS = ['Dados pessoais', 'Dados profissionais', 'Jornada', 'Contrato e acesso'] as const;
 
@@ -52,7 +53,8 @@ const EMPTY: EmployeeFormState = {
   name: '', cpf: '', email: '', phone: '', birthDate: '', registration: '',
   position: 'Assistente', department: 'Operação', managerId: '',
   admissionDate: '', terminationDate: '', status: 'ACTIVE', unit: 'Matriz',
-  salary: undefined, contractType: 'CLT', workScale: '5X2', customWorkScale: '', dailyWorkload: '08:00',
+  salary: undefined, contractType: 'CLT', cnpj: '', legalName: '', tradeName: '',
+  workScale: '5X2', customWorkScale: '', dailyWorkload: '08:00',
   standardEntry: '', standardLunchStart: '', standardLunchReturn: '', standardExit: '',
   accessEnabled: 'NO', accessProfile: 'FUNCIONARIO',
 };
@@ -98,6 +100,9 @@ function EmployeeForm() {
           salary: emp.salary ? Number(emp.salary) : undefined,
           status: emp.status,
           contractType: emp.contractType ?? 'CLT',
+          cnpj: emp.cnpj ?? '',
+          legalName: emp.legalName ?? '',
+          tradeName: emp.tradeName ?? '',
           unit: emp.unit ?? 'Matriz',
           workScale: emp.workScale ?? '5X2',
           customWorkScale: emp.customWorkScale ?? '',
@@ -147,6 +152,9 @@ function EmployeeForm() {
       salary: form.salary ? Number(form.salary) : undefined,
       status: form.status,
       contractType: form.contractType,
+      cnpj: (form.contractType === 'PJ' || form.contractType === 'TERCEIRIZADO') ? form.cnpj : undefined,
+      legalName: form.contractType === 'PJ' ? form.legalName : undefined,
+      tradeName: form.contractType === 'PJ' ? form.tradeName : undefined,
       unit: form.unit,
       workScale: form.workScale,
       customWorkScale: form.workScale === 'OUTRO' ? form.customWorkScale : undefined,
@@ -236,8 +244,17 @@ function EmployeeForm() {
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Salário (R$)" type="number" value={form.salary?.toString() ?? ''} onChange={(v) => set('salary', v ? Number(v) : undefined)} />
             <Select label="Tipo de contrato" value={form.contractType ?? 'CLT'} onChange={(v) => set('contractType', v as ContractType)} options={CONTRACT_OPTIONS} />
+            {(form.contractType === 'PJ' || form.contractType === 'TERCEIRIZADO') && (
+              <Field label={form.contractType === 'PJ' ? 'CNPJ (obrigatório)' : 'CNPJ da empresa terceira'} value={form.cnpj ?? ''} onChange={(v) => set('cnpj', v)} placeholder="00.000.000/0000-00" required={form.contractType === 'PJ'} />
+            )}
+            {form.contractType === 'PJ' && (
+              <>
+                <Field label="Razão social" value={form.legalName ?? ''} onChange={(v) => set('legalName', v)} />
+                <Field label="Nome fantasia" value={form.tradeName ?? ''} onChange={(v) => set('tradeName', v)} />
+              </>
+            )}
             <Select label="Permitir acesso ao painel" value={form.accessEnabled} onChange={(v) => set('accessEnabled', v as 'NO' | 'YES')} options={[{ value: 'NO', label: 'Não' }, { value: 'YES', label: 'Sim' }]} />
-            <Select label="Perfil de acesso" value={form.accessProfile} onChange={(v) => set('accessProfile', v as EmployeeFormState['accessProfile'])} options={[{ value: 'FUNCIONARIO', label: 'Funcionário' }, { value: 'GESTOR', label: 'Gestor' }, { value: 'RH', label: 'RH' }, { value: 'ADMIN', label: 'Administrador' }]} />
+            <Select label="Perfil de acesso" value={form.accessProfile} onChange={(v) => set('accessProfile', v as EmployeeFormState['accessProfile'])} options={[{ value: 'FUNCIONARIO', label: 'Funcionário' }, { value: 'GESTOR', label: 'Gestor' }, { value: 'RH', label: 'RH' }, { value: 'ADMIN', label: 'Administrador' }, { value: 'CONSULTA', label: 'Consulta' }]} />
             <p className="sm:col-span-2 rounded-[8px] border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-500">
               O acesso ao painel será ligado ao módulo de usuários. Este cadastro já deixa os dados do colaborador prontos para vínculo.
             </p>

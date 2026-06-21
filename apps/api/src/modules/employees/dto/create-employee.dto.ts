@@ -2,7 +2,7 @@ import { Type } from 'class-transformer';
 import { IsDateString, IsEmail, IsIn, IsNumber, IsOptional, IsString, IsUUID, Matches } from 'class-validator';
 
 const EMPLOYEE_STATUSES = ['ACTIVE', 'INACTIVE', 'SUSPENDED', 'TERMINATED'] as const;
-const CONTRACT_TYPES = ['CLT', 'PJ', 'ESTAGIO', 'TEMPORARIO', 'JOVEM_APRENDIZ'] as const;
+const CONTRACT_TYPES = ['CLT', 'PJ', 'ESTAGIO', 'TEMPORARIO', 'JOVEM_APRENDIZ', 'TERCEIRIZADO'] as const;
 const WORK_SCALES = ['5X2', '6X1', '12X36', '4X2', 'OUTRO'] as const;
 const DAILY_WORKLOADS = ['08:00', '07:20', '06:00', '12:00', 'OUTRO'] as const;
 const TIME_VALUE = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -58,6 +58,18 @@ export class CreateEmployeeDto {
   @IsOptional()
   @IsIn(CONTRACT_TYPES)
   contractType?: (typeof CONTRACT_TYPES)[number];
+
+  @IsOptional()
+  @IsString()
+  cnpj?: string;
+
+  @IsOptional()
+  @IsString()
+  legalName?: string;
+
+  @IsOptional()
+  @IsString()
+  tradeName?: string;
 
   @IsOptional()
   @IsString()

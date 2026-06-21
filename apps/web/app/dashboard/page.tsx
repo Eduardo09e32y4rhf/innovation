@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { CalendarDays, Clock3, MessageSquareText, TrendingUp, Users } from 'lucide-react';
 import { ErrorState } from '@/app/components/data-states';
@@ -22,6 +22,7 @@ function DashboardContent() {
   const isCommercial = profile === 'COMERCIAL';
   const isFuncionario = profile === 'FUNCIONARIO';
   const isGestor = profile === 'GESTOR';
+  const isConsulta = profile === 'CONSULTA';
 
   useEffect(() => {
     setPresentationMode(isLocalPresentation());
@@ -34,12 +35,17 @@ function DashboardContent() {
   const summary = useQuery(() => api.dashboard.summary(), [], { enabled: !presentationMode && !isCommercial, pollMs: 60000 });
   const timeTracks = useQuery(() => api.timeTrack.list(), [], { enabled: !presentationMode && !isCommercial });
   const vacations = useQuery(() => api.vacations.list(), [], { enabled: !presentationMode && !isCommercial && !isFuncionario });
+  const employees = useQuery(() => api.employees.list(), [], { enabled: !presentationMode && !isCommercial && !isFuncionario });
+
+  const [dashMonth, setDashMonth] = useState('');
+  const [dashDept, setDashDept] = useState('');
+  const departments = useMemo(() => [...new Set((employees.data ?? []).map((e) => e.department).filter(Boolean))].sort(), [employees.data]);
 
   const summaryData = presentationMode ? demoSummary : summary.data;
   const timeTrackData = presentationMode ? demoTimeTracks : (timeTracks.data ?? []);
   const vacationData = presentationMode ? demoVacations : (vacations.data ?? []);
 
-  const heroTitle = isFuncionario ? 'Meu painel' : isGestor ? 'Painel da equipe' : 'Painel executivo';
+  const heroTitle = isFuncionario ? 'Meu painel' : isGestor ? 'Painel da equipe' : isConsulta ? 'Painel de consulta' : 'Painel executivo';
   const heroSubtitle = isFuncionario
     ? 'Seus indicadores pessoais de jornada e ponto.'
     : isGestor
@@ -62,8 +68,22 @@ function DashboardContent() {
   const bankMetric = { label: 'Banco de horas', value: summaryData ? formatMinutes(summaryData.totalTimeBalance) : undefined, icon: TrendingUp, detail: 'saldo consolidado' };
   const metrics = [...baseMetrics, ...extraMetrics, bankMetric];
 
-  const todayRows = timeTrackData.slice(0, 6);
-  const vacationRows = vacationData.slice(0, 6);
+  const filteredTimeTracks = useMemo(() => {
+    return timeTrackData.filter((row) => {
+      if (dashMonth && !row.date.startsWith(dashMonth)) return false;
+      if (dashDept && row.employee?.department !== dashDept) return false;
+      return true;
+    });
+  }, [timeTrackData, dashMonth, dashDept]);
+  const filteredVacations = useMemo(() => {
+    return vacationData.filter((row) => {
+      if (dashDept && row.employee?.department !== dashDept) return false;
+      return true;
+    });
+  }, [vacationData, dashDept]);
+
+  const todayRows = filteredTimeTracks.slice(0, 6);
+  const vacationRows = filteredVacations.slice(0, 6);
 
   return (
     <div className="mx-auto max-w-6xl space-y-5">
@@ -82,6 +102,22 @@ function DashboardContent() {
           <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-slate-500">{heroSubtitle}</p>
         </div>
       </section>
+
+      {!isFuncionario && !isCommercial && (
+        <section className="ops-card grid gap-3 rounded-[8px] border border-slate-200 bg-white p-4 sm:grid-cols-2">
+          <label className="space-y-1 text-xs font-medium text-slate-600">
+            <span>Mes</span>
+            <input type="month" value={dashMonth} onChange={(e) => setDashMonth(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500" />
+          </label>
+          <label className="space-y-1 text-xs font-medium text-slate-600">
+            <span>Departamento</span>
+            <select value={dashDept} onChange={(e) => setDashDept(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500">
+              <option value="">Todos</option>
+              {departments.map((d) => <option key={d} value={d}>{d}</option>)}
+            </select>
+          </label>
+        </section>
+      )}
 
       {summary.error && !presentationMode ? (
         <ErrorState message={summary.error} onRetry={summary.refetch} />

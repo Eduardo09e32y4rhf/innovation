@@ -110,15 +110,27 @@ function CompanySettings() {
   const company = useQuery(() => api.companies.me(), []);
 
   const [name, setName] = useState('');
+  const [legalName, setLegalName] = useState('');
   const [document, setDocument] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
+  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
+  const [address, setAddress] = useState('');
+  const [primaryColor, setPrimaryColor] = useState('');
+  const [theme, setTheme] = useState('light');
   const [removeLogo, setRemoveLogo] = useState(false);
 
   useEffect(() => {
     if (company.data) {
       setName(company.data.name ?? '');
+      setLegalName(company.data.legalName ?? '');
       setDocument(company.data.document ?? '');
       setLogoUrl(company.data.logoUrl ?? '');
+      setPhone(company.data.phone ?? '');
+      setEmail(company.data.email ?? '');
+      setAddress(company.data.address ?? '');
+      setPrimaryColor(company.data.primaryColor ?? '');
+      setTheme(company.data.theme ?? 'light');
       setRemoveLogo(false);
     }
   }, [company.data]);
@@ -129,11 +141,19 @@ function CompanySettings() {
   const save = useMutation(
     () => api.companies.update({
       name: name.trim() || undefined,
+      legalName: legalName.trim() || undefined,
       document: document.trim() || undefined,
       logoUrl: removeLogo ? null : logoUrl.trim() || undefined,
+      phone: phone.trim() || undefined,
+      email: email.trim() || undefined,
+      address: address.trim() || undefined,
+      primaryColor: primaryColor.trim() || undefined,
+      theme: theme || undefined,
     }),
     { onSuccess: () => company.refetch() },
   );
+
+  const inputClass = 'h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500 disabled:opacity-50';
 
   return (
     <>
@@ -164,37 +184,56 @@ function CompanySettings() {
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <label className="space-y-1 text-xs font-medium text-slate-600 sm:col-span-2">
-            <span>Nome da empresa</span>
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              disabled={company.loading}
-              className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500 disabled:opacity-50"
-            />
+          <label className="space-y-1 text-xs font-medium text-slate-600">
+            <span>Nome fantasia</span>
+            <input value={name} onChange={(e) => setName(e.target.value)} disabled={company.loading} className={inputClass} />
           </label>
 
-          <label className="space-y-1 text-xs font-medium text-slate-600 sm:col-span-2">
+          <label className="space-y-1 text-xs font-medium text-slate-600">
+            <span>Razao social</span>
+            <input value={legalName} onChange={(e) => setLegalName(e.target.value)} disabled={company.loading} className={inputClass} />
+          </label>
+
+          <label className="space-y-1 text-xs font-medium text-slate-600">
             <span>CNPJ</span>
-            <input
-              value={document}
-              onChange={(e) => setDocument(formatCnpj(e.target.value))}
-              placeholder="00.000.000/0000-00"
-              disabled={company.loading}
-              className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500 disabled:opacity-50"
-            />
+            <input value={document} onChange={(e) => setDocument(formatCnpj(e.target.value))} placeholder="00.000.000/0000-00" disabled={company.loading} className={inputClass} />
+          </label>
+
+          <label className="space-y-1 text-xs font-medium text-slate-600">
+            <span>Telefone</span>
+            <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+55 11 90000-0000" disabled={company.loading} className={inputClass} />
+          </label>
+
+          <label className="space-y-1 text-xs font-medium text-slate-600">
+            <span>E-mail da empresa</span>
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="contato@empresa.com" disabled={company.loading} className={inputClass} />
+          </label>
+
+          <label className="space-y-1 text-xs font-medium text-slate-600">
+            <span>Endereco</span>
+            <input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Rua, numero, cidade - UF" disabled={company.loading} className={inputClass} />
           </label>
 
           <label className="space-y-1 text-xs font-medium text-slate-600 sm:col-span-2">
             <span>URL HTTPS da logo</span>
-            <input
-              value={removeLogo ? '' : logoUrl}
-              onChange={(e) => { setRemoveLogo(false); setLogoUrl(e.target.value); }}
-              placeholder="https://seudominio.com/logo.png"
-              disabled={company.loading}
-              className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500 disabled:opacity-50"
-            />
+            <input value={removeLogo ? '' : logoUrl} onChange={(e) => { setRemoveLogo(false); setLogoUrl(e.target.value); }} placeholder="https://seudominio.com/logo.png" disabled={company.loading} className={inputClass} />
             <span className="block text-[11px] text-slate-400">PNG, JPG ou WebP. SVG e base64 ficam bloqueados.</span>
+          </label>
+
+          <label className="space-y-1 text-xs font-medium text-slate-600">
+            <span>Cor principal</span>
+            <div className="flex gap-2">
+              <input type="color" value={primaryColor || '#0d9488'} onChange={(e) => setPrimaryColor(e.target.value)} className="h-10 w-10 cursor-pointer rounded-[8px] border border-slate-200 p-1" />
+              <input value={primaryColor} onChange={(e) => setPrimaryColor(e.target.value)} placeholder="#0d9488" disabled={company.loading} className={inputClass} />
+            </div>
+          </label>
+
+          <label className="space-y-1 text-xs font-medium text-slate-600">
+            <span>Tema</span>
+            <select value={theme} onChange={(e) => setTheme(e.target.value)} disabled={company.loading} className={inputClass}>
+              <option value="light">Claro</option>
+              <option value="dark">Escuro</option>
+            </select>
           </label>
 
           <div className="sm:col-span-2">
