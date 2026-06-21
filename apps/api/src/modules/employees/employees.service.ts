@@ -9,7 +9,7 @@ export class EmployeesService {
   constructor(private readonly repository: EmployeesRepository) {}
 
   async list(companyId: string, actor: JwtUser) {
-    if (actor.role === 'ADMIN' || actor.role === 'RH' || actor.role === 'DEV') {
+    if (actor.role === 'ADMIN' || actor.role === 'RH' || actor.role === 'DEV' || actor.role === 'CONSULTA') {
       return this.repository.list(companyId);
     }
     if (actor.role === 'GESTOR') {
@@ -59,6 +59,9 @@ export class EmployeesService {
       terminationDate: dto.terminationDate ? new Date(dto.terminationDate) : undefined,
       salary: dto.salary ?? undefined,
       contractType: this.emptyToUndefined(dto.contractType),
+      cnpj: this.emptyToUndefined(dto.cnpj),
+      legalName: this.emptyToUndefined(dto.legalName),
+      tradeName: this.emptyToUndefined(dto.tradeName),
       unit: this.emptyToUndefined(dto.unit),
       workScale: this.emptyToUndefined(dto.workScale),
       customWorkScale: this.emptyToUndefined(dto.customWorkScale),

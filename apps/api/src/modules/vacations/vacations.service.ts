@@ -9,7 +9,7 @@ export class VacationsService {
   constructor(private readonly repository: VacationsRepository) {}
 
   async list(companyId: string, actor: JwtUser) {
-    if (actor.role === 'ADMIN' || actor.role === 'RH' || actor.role === 'DEV') {
+    if (actor.role === 'ADMIN' || actor.role === 'RH' || actor.role === 'DEV' || actor.role === 'CONSULTA') {
       return this.repository.list(companyId);
     }
     if (actor.role === 'GESTOR') {

@@ -20,7 +20,7 @@ export class TimeTrackService {
   constructor(private readonly repository: TimeTrackRepository) {}
 
   async list(companyId: string, actor: JwtUser) {
-    if (actor.role === 'ADMIN' || actor.role === 'RH' || actor.role === 'DEV') return this.repository.list(companyId);
+    if (actor.role === 'ADMIN' || actor.role === 'RH' || actor.role === 'DEV' || actor.role === 'CONSULTA') return this.repository.list(companyId);
     if (actor.role === 'GESTOR') return this.repository.listForManager(companyId, actor.sub);
     const employee = await this.repository.findEmployeeByUserId(companyId, actor.sub);
     if (!employee) return [];
@@ -195,7 +195,7 @@ export class TimeTrackService {
 
   private async ensureCanAccessEmployee(companyId: string, actor: JwtUser, employeeId: string) {
     const employee = await this.ensureEmployee(companyId, employeeId);
-    if (actor.role === 'ADMIN' || actor.role === 'RH' || actor.role === 'DEV') return employee;
+    if (actor.role === 'ADMIN' || actor.role === 'RH' || actor.role === 'DEV' || actor.role === 'CONSULTA') return employee;
     if (employee.userId === actor.sub) return employee;
     throw new NotFoundException('Employee not found');
   }

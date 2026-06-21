@@ -9,9 +9,9 @@ import { api, type AppUser, type CreateUserInput, type UserRole } from '@/app/li
 import { ROLE_LABEL } from '@/app/lib/format';
 import { normalizeDisplayName } from '@/app/lib/text';
 
-const ALL_ROLES: UserRole[] = ['DEV', 'COMERCIAL', 'ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO'];
-const COMPANY_ROLES: UserRole[] = ['ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO'];
-const RH_ROLES: UserRole[] = ['RH', 'GESTOR', 'FUNCIONARIO'];
+const ALL_ROLES: UserRole[] = ['DEV', 'COMERCIAL', 'ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'];
+const COMPANY_ROLES: UserRole[] = ['ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'];
+const RH_ROLES: UserRole[] = ['RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'];
 const PLATFORM_OWNER_EMAIL = 'eduardo998468@gmail.com';
 
 type UserForm = CreateUserInput & { isActive?: boolean };

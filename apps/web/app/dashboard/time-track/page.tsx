@@ -310,23 +310,33 @@ export default function TimeTrackPage() {
   const [editing, setEditing] = useState<TimeTrack | null>(null);
   const [employeeFilter, setEmployeeFilter] = useState('');
   const [monthFilter, setMonthFilter] = useState(currentMonth());
+  const [departmentFilter, setDepartmentFilter] = useState('');
+  const [managerFilter, setManagerFilter] = useState('');
+  const [unitFilter, setUnitFilter] = useState('');
 
   const activeEmployees = useMemo(() => (employees.data ?? []).filter((employee) => employee.status === 'ACTIVE').toSorted((a, b) => collator.compare(normalizeDisplayName(a.name), normalizeDisplayName(b.name))), [employees.data]);
+  const departments = useMemo(() => [...new Set((employees.data ?? []).map((e) => e.department).filter(Boolean))].sort(), [employees.data]);
+  const managers = useMemo(() => (employees.data ?? []).filter((e) => (employees.data ?? []).some((sub) => sub.managerId === e.id)).toSorted((a, b) => collator.compare(normalizeDisplayName(a.name), normalizeDisplayName(b.name))), [employees.data]);
+  const units = useMemo(() => [...new Set((employees.data ?? []).map((e) => e.unit).filter(Boolean))].sort() as string[], [employees.data]);
+
   const rows = useMemo(() => {
     return (tracks.data ?? [])
       .filter((row) => {
         if (employeeFilter && row.employeeId !== employeeFilter) return false;
         if (monthFilter && !toDateKey(row.date).startsWith(monthFilter)) return false;
+        if (departmentFilter && row.employee?.department !== departmentFilter) return false;
+        if (managerFilter && row.employee?.managerId !== managerFilter) return false;
+        if (unitFilter && row.employee?.unit !== unitFilter) return false;
         return true;
       })
       .toSorted(compareTimeTracks);
-  }, [tracks.data, employeeFilter, monthFilter]);
+  }, [tracks.data, employeeFilter, monthFilter, departmentFilter, managerFilter, unitFilter]);
 
   const selectedEmployee = activeEmployees.find((employee) => employee.id === employeeFilter) ?? rows[0]?.employee;
   const reportCompany = normalizeCompanyInfo(company.data);
   const remove = useMutation((id: string) => api.timeTrack.delete(id), { onSuccess: () => tracks.refetch() });
 
-  const canClockIn = profile !== 'ADMIN' && profile !== 'DEV' && profile !== 'COMERCIAL';
+  const canClockIn = profile !== 'ADMIN' && profile !== 'DEV' && profile !== 'COMERCIAL' && profile !== 'CONSULTA';
   const canApprove = canManage || isGestor;
   const pendingTracks = useQuery(() => api.timeTrack.listPending(), [], { enabled: canApprove });
   const approveMutation = useMutation(
@@ -396,17 +406,38 @@ export default function TimeTrackPage() {
       )}
 
       {!isFuncionario && (
-        <section className="ops-card grid gap-3 rounded-[8px] border border-slate-200 bg-white p-4 sm:grid-cols-[1fr_180px]">
+        <section className="ops-card grid gap-3 rounded-[8px] border border-slate-200 bg-white p-4 sm:grid-cols-2 lg:grid-cols-3">
           <label className="space-y-1 text-xs font-medium text-slate-600">
-            <span>Filtrar por funcionário</span>
+            <span>Funcionario</span>
             <select value={employeeFilter} onChange={(event) => setEmployeeFilter(event.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500">
-              <option value="">Todos os funcionários</option>
+              <option value="">Todos</option>
               {activeEmployees.map((employee) => <option key={employee.id} value={employee.id}>{normalizeDisplayName(employee.name)}</option>)}
             </select>
           </label>
           <label className="space-y-1 text-xs font-medium text-slate-600">
-            <span>Mês da folha</span>
+            <span>Mes</span>
             <input type="month" value={monthFilter} onChange={(event) => setMonthFilter(event.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500" />
+          </label>
+          <label className="space-y-1 text-xs font-medium text-slate-600">
+            <span>Departamento</span>
+            <select value={departmentFilter} onChange={(event) => setDepartmentFilter(event.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500">
+              <option value="">Todos</option>
+              {departments.map((d) => <option key={d} value={d}>{d}</option>)}
+            </select>
+          </label>
+          <label className="space-y-1 text-xs font-medium text-slate-600">
+            <span>Gestor</span>
+            <select value={managerFilter} onChange={(event) => setManagerFilter(event.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500">
+              <option value="">Todos</option>
+              {managers.map((m) => <option key={m.id} value={m.id}>{normalizeDisplayName(m.name)}</option>)}
+            </select>
+          </label>
+          <label className="space-y-1 text-xs font-medium text-slate-600">
+            <span>Operacao / unidade</span>
+            <select value={unitFilter} onChange={(event) => setUnitFilter(event.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500">
+              <option value="">Todas</option>
+              {units.map((u) => <option key={u} value={u}>{u}</option>)}
+            </select>
           </label>
         </section>
       )}

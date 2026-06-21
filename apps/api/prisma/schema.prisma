@@ -14,6 +14,7 @@ enum UserRole {
   RH
   GESTOR
   FUNCIONARIO
+  CONSULTA
 }
 
 enum CompanyStatus {
@@ -102,8 +103,14 @@ enum VacationStatus {
 model Company {
   id           String   @id @default(uuid()) @db.Uuid
   name         String
+  legalName    String?
   document     String?  @unique
   logoUrl      String?  @db.Text
+  phone        String?
+  email        String?
+  address      String?
+  primaryColor String?
+  theme        String?  @default("light")
   commercialOwnerId String? @db.Uuid
   subscriptionStartedAt DateTime @default(now())
   suspensionReason String?
@@ -172,6 +179,9 @@ model Employee {
   status        EmployeeStatus @default(ACTIVE)
   salary        Decimal?       @db.Decimal(12, 2)
   contractType  String?
+  cnpj          String?
+  legalName     String?
+  tradeName     String?
   unit          String?
   workScale     String?
   customWorkScale String?

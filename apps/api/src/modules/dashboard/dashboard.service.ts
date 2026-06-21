@@ -7,7 +7,7 @@ export class DashboardService {
   constructor(private readonly repository: DashboardRepository) {}
 
   async summary(companyId: string, actor: JwtUser) {
-    if (actor.role === 'ADMIN' || actor.role === 'RH' || actor.role === 'DEV') {
+    if (actor.role === 'ADMIN' || actor.role === 'RH' || actor.role === 'DEV' || actor.role === 'CONSULTA') {
       return this.repository.summary(companyId);
     }
     if (actor.role === 'GESTOR') {

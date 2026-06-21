@@ -88,10 +88,10 @@ function safeJson(text: string): unknown {
 
 export type EmployeeStatus = 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' | 'TERMINATED';
 export type VacationStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED' | 'COMPLETED';
-export type UserRole = 'DEV' | 'COMERCIAL' | 'ADMIN' | 'RH' | 'GESTOR' | 'FUNCIONARIO';
+export type UserRole = 'DEV' | 'COMERCIAL' | 'ADMIN' | 'RH' | 'GESTOR' | 'FUNCIONARIO' | 'CONSULTA';
 export type PunchType = 'ENTRY' | 'LUNCH_START' | 'LUNCH_RETURN' | 'EXIT';
 
-export type ContractType = 'CLT' | 'PJ' | 'ESTAGIO' | 'TEMPORARIO' | 'JOVEM_APRENDIZ';
+export type ContractType = 'CLT' | 'PJ' | 'ESTAGIO' | 'TEMPORARIO' | 'JOVEM_APRENDIZ' | 'TERCEIRIZADO';
 export type WorkScale = '5X2' | '6X1' | '12X36' | '4X2' | 'OUTRO';
 export type DailyWorkload = '08:00' | '07:20' | '06:00' | '12:00' | 'OUTRO';
 export interface Employee {
@@ -99,7 +99,9 @@ export interface Employee {
   phone?: string | null; birthDate?: string | null; registration?: string | null;
   position: string; department: string; managerId?: string | null;
   admissionDate: string; terminationDate?: string | null; status: EmployeeStatus;
-  salary?: string | number | null; contractType?: ContractType | null; unit?: string | null;
+  salary?: string | number | null; contractType?: ContractType | null;
+  cnpj?: string | null; legalName?: string | null; tradeName?: string | null;
+  unit?: string | null;
   workScale?: WorkScale | null; customWorkScale?: string | null; dailyWorkload?: DailyWorkload | null;
   standardEntry?: string | null; standardLunchStart?: string | null; standardLunchReturn?: string | null; standardExit?: string | null;
   createdAt: string; updatedAt: string;
@@ -107,7 +109,8 @@ export interface Employee {
 export interface CreateEmployeeInput {
   name: string; cpf: string; email: string; phone?: string; birthDate?: string; registration?: string;
   position: string; department: string; managerId?: string; admissionDate: string; terminationDate?: string;
-  salary?: number; status?: EmployeeStatus; contractType?: ContractType; unit?: string;
+  salary?: number; status?: EmployeeStatus; contractType?: ContractType;
+  cnpj?: string; legalName?: string; tradeName?: string; unit?: string;
   workScale?: WorkScale; customWorkScale?: string; dailyWorkload?: DailyWorkload;
   standardEntry?: string; standardLunchStart?: string; standardLunchReturn?: string; standardExit?: string;
 }
@@ -162,7 +165,9 @@ export interface SendMessageInput { phone: string; body: string; contactName?: s
 
 export type CompanyStatus = 'ACTIVE' | 'SUSPENDED' | 'CANCELLED';
 export interface Company {
-  id: string; name: string; document?: string | null; logoUrl?: string | null;
+  id: string; name: string; legalName?: string | null; document?: string | null; logoUrl?: string | null;
+  phone?: string | null; email?: string | null; address?: string | null;
+  primaryColor?: string | null; theme?: string | null;
   commercialOwnerId?: string | null; maxUsers: number; maxEmployees: number;
   isActive: boolean; status?: CompanyStatus; createdAt: string;
   subscriptionStartedAt?: string; suspensionReason?: string | null;
@@ -173,7 +178,7 @@ export interface CreatePlatformCompanyInput {
   name: string; document?: string; maxUsers?: number; maxEmployees?: number;
   adminName: string; adminEmail: string; adminPassword: string;
 }
-export type PlatformCompanyUserRole = 'ADMIN' | 'RH' | 'GESTOR' | 'FUNCIONARIO';
+export type PlatformCompanyUserRole = 'ADMIN' | 'RH' | 'GESTOR' | 'FUNCIONARIO' | 'CONSULTA';
 export interface CreatePlatformCompanyUserInput { name: string; email: string; password: string; role?: PlatformCompanyUserRole; }
 export interface UpdatePlatformCompanyUserInput { name?: string; email?: string; password?: string; role?: PlatformCompanyUserRole; isActive?: boolean; }
 
@@ -225,7 +230,7 @@ export const api = {
 
   companies: {
     me: () => request<Company>('/companies/me'),
-    update: (data: { name?: string; document?: string; logoUrl?: string | null }) => request<Company>('/companies/me', { method: 'PATCH', body: data }),
+    update: (data: { name?: string; legalName?: string; document?: string; logoUrl?: string | null; phone?: string; email?: string; address?: string; primaryColor?: string; theme?: string }) => request<Company>('/companies/me', { method: 'PATCH', body: data }),
   },
 
   whatsapp: {
