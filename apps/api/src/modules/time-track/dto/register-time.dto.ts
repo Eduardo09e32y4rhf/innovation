@@ -1,4 +1,4 @@
-import { IsDateString, IsIn, IsOptional, IsString, IsUUID } from 'class-validator';
+import { IsDateString, IsIn, IsNumber, IsOptional, IsString, IsUUID } from 'class-validator';
 
 export class RegisterTimeDto {
   @IsUUID()
@@ -14,4 +14,16 @@ export class RegisterTimeDto {
   @IsOptional()
   @IsString()
   observation?: string;
+
+  @IsOptional()
+  @IsNumber()
+  latitude?: number;
+
+  @IsOptional()
+  @IsNumber()
+  longitude?: number;
+
+  @IsOptional()
+  @IsString()
+  manualReason?: string;
 }

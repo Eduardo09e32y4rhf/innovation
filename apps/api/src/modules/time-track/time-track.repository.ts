@@ -57,4 +57,27 @@ export class TimeTrackRepository {
   delete(companyId: string, id: string) {
     return this.prisma.timeTrack.deleteMany({ where: { id, employee: { companyId } } });
   }
+
+  listPending(companyId: string) {
+    return this.prisma.timeTrack.findMany({
+      where: { employee: { companyId }, manualStatus: 'pending' },
+      include: { employee: true },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async listPendingForManager(companyId: string, userId: string) {
+    const manager = await this.prisma.employee.findFirst({ where: { companyId, userId } });
+    if (!manager) return [];
+    return this.prisma.timeTrack.findMany({
+      where: { employee: { companyId, managerId: manager.id }, manualStatus: 'pending' },
+      include: { employee: true },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async updateManualStatus(companyId: string, id: string, status: string) {
+    await this.prisma.timeTrack.updateMany({ where: { id, employee: { companyId } }, data: { manualStatus: status } });
+    return this.findById(companyId, id);
+  }
 }
