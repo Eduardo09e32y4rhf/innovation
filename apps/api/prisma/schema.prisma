@@ -193,18 +193,22 @@ model Employee {
 }
 
 model TimeTrack {
-  id           String    @id @default(uuid()) @db.Uuid
-  employeeId   String    @db.Uuid
-  date         DateTime  @db.Date
-  entry        DateTime?
-  lunchStart   DateTime?
-  lunchReturn  DateTime?
-  exit         DateTime?
-  totalWorked  Int?
-  dailyBalance Int?
-  observation  String?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  id            String    @id @default(uuid()) @db.Uuid
+  employeeId    String    @db.Uuid
+  date          DateTime  @db.Date
+  entry         DateTime?
+  lunchStart    DateTime?
+  lunchReturn   DateTime?
+  exit          DateTime?
+  totalWorked   Int?
+  dailyBalance  Int?
+  observation   String?
+  latitude      Float?
+  longitude     Float?
+  manualReason  String?
+  manualStatus  String?   @default("approved")
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
 

@@ -95,7 +95,7 @@ export type ContractType = 'CLT' | 'PJ' | 'ESTAGIO' | 'TEMPORARIO' | 'JOVEM_APRE
 export type WorkScale = '5X2' | '6X1' | '12X36' | '4X2' | 'OUTRO';
 export type DailyWorkload = '08:00' | '07:20' | '06:00' | '12:00' | 'OUTRO';
 export interface Employee {
-  id: string; companyId: string; name: string; cpf: string; email: string;
+  id: string; companyId: string; userId?: string | null; name: string; cpf: string; email: string;
   phone?: string | null; birthDate?: string | null; registration?: string | null;
   position: string; department: string; managerId?: string | null;
   admissionDate: string; terminationDate?: string | null; status: EmployeeStatus;
@@ -117,9 +117,11 @@ export interface TimeTrack {
   lunchReturn?: string | null; exit?: string | null;
   totalWorked?: number | null; dailyBalance?: number | null;
   observation?: string | null; employee?: Employee;
+  latitude?: number | null; longitude?: number | null;
+  manualReason?: string | null; manualStatus?: string | null;
 }
 export type TimeTrackAdjustmentReason = 'ajuste_abono_atestado_horas' | 'ajuste_atestado_integral' | 'ajuste_folga_dsr' | 'ajuste_abono_folga' | 'ajuste_erro_marcacao' | 'ajuste_feriado';
-export interface RegisterTimeInput { employeeId: string; type: PunchType; timestamp?: string; observation?: string; }
+export interface RegisterTimeInput { employeeId: string; type: PunchType; timestamp?: string; observation?: string; latitude?: number; longitude?: number; manualReason?: string; }
 export interface ManualTimeTrackInput { employeeId: string; date: string; entry?: string | null; lunchStart?: string | null; lunchReturn?: string | null; exit?: string | null; reason: TimeTrackAdjustmentReason; observation?: string; }
 export type RestDayMode = 'employee_scale' | 'fixed_weekly' | 'cycle';
 export interface BulkManualTimeTrackInput { employeeIds: string[]; date?: string; startDate?: string; endDate?: string; entry?: string | null; lunchStart?: string | null; lunchReturn?: string | null; exit?: string | null; reason: TimeTrackAdjustmentReason; observation?: string; restDayMode?: RestDayMode; daysOff?: number[]; cycleStartDate?: string; cycleWorkDays?: number; cycleOffDays?: number; }
@@ -201,6 +203,8 @@ export const api = {
     manualBulk: (input: BulkManualTimeTrackInput) => request<{ count: number; items: TimeTrack[] }>('/time-track/manual/bulk', { method: 'POST', body: input }),
     update: (id: string, input: UpdateTimeTrackInput) => request<TimeTrack>(`/time-track/${id}`, { method: 'PATCH', body: input }),
     delete: (id: string) => request<void>(`/time-track/${id}`, { method: 'DELETE' }),
+    listPending: () => request<TimeTrack[]>('/time-track/pending'),
+    approve: (id: string, approved: boolean) => request<TimeTrack>(`/time-track/${id}/approve`, { method: 'PATCH', body: { approved } }),
   },
   vacations: {
     list: () => request<Vacation[]>('/vacations'),

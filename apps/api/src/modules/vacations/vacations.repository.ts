@@ -32,25 +32,23 @@ export class VacationsRepository {
     return this.prisma.employee.findFirst({ where: { companyId, userId } });
   }
 
-  listForManager(companyId: string, userId: string) {
-    return this.prisma.employee.findFirst({ where: { companyId, userId } }).then(async (manager) => {
-      if (!manager) return [];
-      return this.prisma.vacation.findMany({
-        where: { employee: { companyId, managerId: manager.id } },
-        include: { employee: true },
-        orderBy: { createdAt: 'desc' },
-      });
+  async listForManager(companyId: string, userId: string) {
+    const manager = await this.prisma.employee.findFirst({ where: { companyId, userId } });
+    if (!manager) return [];
+    return this.prisma.vacation.findMany({
+      where: { employee: { companyId, managerId: manager.id } },
+      include: { employee: true },
+      orderBy: { createdAt: 'desc' },
     });
   }
 
-  listForEmployee(companyId: string, userId: string) {
-    return this.prisma.employee.findFirst({ where: { companyId, userId } }).then(async (employee) => {
-      if (!employee) return [];
-      return this.prisma.vacation.findMany({
-        where: { employeeId: employee.id },
-        include: { employee: true },
-        orderBy: { createdAt: 'desc' },
-      });
+  async listForEmployee(companyId: string, userId: string) {
+    const employee = await this.prisma.employee.findFirst({ where: { companyId, userId } });
+    if (!employee) return [];
+    return this.prisma.vacation.findMany({
+      where: { employeeId: employee.id },
+      include: { employee: true },
+      orderBy: { createdAt: 'desc' },
     });
   }
 

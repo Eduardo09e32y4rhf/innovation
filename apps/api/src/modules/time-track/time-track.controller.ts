@@ -44,6 +44,18 @@ export class TimeTrackController {
     return this.service.register(companyId, actor, dto);
   }
 
+  @Roles('DEV', 'ADMIN', 'RH', 'GESTOR')
+  @Get('pending')
+  listPending(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser) {
+    return this.service.listPending(companyId, actor);
+  }
+
+  @Roles('DEV', 'ADMIN', 'RH', 'GESTOR')
+  @Patch(':id/approve')
+  approve(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string, @Body() body: { approved: boolean }) {
+    return this.service.approveManual(companyId, actor, id, body.approved);
+  }
+
   @Roles('DEV', 'ADMIN', 'RH')
   @Patch(':id')
   update(@CurrentCompany() companyId: string, @Param('id') id: string, @Body() dto: UpdateTimeTrackDto) {

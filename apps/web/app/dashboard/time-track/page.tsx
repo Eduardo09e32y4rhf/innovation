@@ -1,7 +1,8 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Clock3, Download, Edit3, FileText, Trash2, X } from 'lucide-react';
+import Link from 'next/link';
+import { Check, Clock3, Download, Edit3, FileText, Trash2, X, XCircle } from 'lucide-react';
 import { EmptyState, ErrorState, LoadingState } from '@/app/components/data-states';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useMutation, useQuery } from '@/app/hooks/use-data';
@@ -325,12 +326,12 @@ export default function TimeTrackPage() {
   const reportCompany = normalizeCompanyInfo(company.data);
   const remove = useMutation((id: string) => api.timeTrack.delete(id), { onSuccess: () => tracks.refetch() });
 
-  const clockIn = useMutation(
-    (type: 'ENTRY' | 'LUNCH_START' | 'LUNCH_RETURN' | 'EXIT') => {
-      const employeeId = rows[0]?.employeeId ?? '';
-      return api.timeTrack.register({ employeeId, type });
-    },
-    { onSuccess: () => tracks.refetch() },
+  const canClockIn = profile !== 'ADMIN' && profile !== 'DEV' && profile !== 'COMERCIAL';
+  const canApprove = canManage || isGestor;
+  const pendingTracks = useQuery(() => api.timeTrack.listPending(), [], { enabled: canApprove });
+  const approveMutation = useMutation(
+    (params: { id: string; approved: boolean }) => api.timeTrack.approve(params.id, params.approved),
+    { onSuccess: () => { pendingTracks.refetch(); tracks.refetch(); } },
   );
 
   async function handleDelete(row: TimeTrack) {
@@ -348,39 +349,48 @@ export default function TimeTrackPage() {
           <p className="text-[11px] font-black uppercase tracking-[0.2em] text-teal-600">Controle de ponto</p>
           <h2 className="text-2xl font-black text-slate-950">{pageTitle}</h2>
         </div>
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          {(canManage || isFuncionario) && (
+        <div className="flex flex-wrap gap-2 sm:flex-row sm:items-center">
+          {canClockIn && (
+            <Link href="/dashboard/time-track/clock-in" className="crystal-button inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black text-white">
+              <Clock3 size={14} /> Bater ponto
+            </Link>
+          )}
+          {canManage && (
             <>
-              {canManage && (
-                <>
-                  <button onClick={() => downloadExcel(`folha-ponto-${selectedEmployee?.name ?? 'empresa'}-${monthFilter || 'todos'}.xls`, rows, reportCompany)} disabled={rows.length === 0 || company.loading} className="btn-outline inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black disabled:opacity-50">
-                    <Download size={14} /> Exportar Excel
-                  </button>
-                  <button onClick={() => openPrintableReport(rows, monthFilter, reportCompany, employeeFilter ? selectedEmployee : undefined)} disabled={rows.length === 0 || company.loading} className="btn-outline inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black disabled:opacity-50">
-                    <FileText size={14} /> {employeeFilter ? 'PDF individual' : 'PDF empresa'}
-                  </button>
-                  <button onClick={() => setBulkOpen(true)} className="btn-outline inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black">
-                    <Clock3 size={14} /> Lançar em lote
-                  </button>
-                  <button onClick={() => setOpen(true)} className="crystal-button inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black text-white">
-                    <Clock3 size={14} /> Lançar ponto
-                  </button>
-                </>
-              )}
+              <button onClick={() => downloadExcel(`folha-ponto-${selectedEmployee?.name ?? 'empresa'}-${monthFilter || 'todos'}.xls`, rows, reportCompany)} disabled={rows.length === 0 || company.loading} className="btn-outline inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black disabled:opacity-50">
+                <Download size={14} /> Exportar Excel
+              </button>
+              <button onClick={() => openPrintableReport(rows, monthFilter, reportCompany, employeeFilter ? selectedEmployee : undefined)} disabled={rows.length === 0 || company.loading} className="btn-outline inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black disabled:opacity-50">
+                <FileText size={14} /> {employeeFilter ? 'PDF individual' : 'PDF empresa'}
+              </button>
+              <button onClick={() => setBulkOpen(true)} className="btn-outline inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black">
+                <Clock3 size={14} /> Lançar em lote
+              </button>
+              <button onClick={() => setOpen(true)} className="crystal-button inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black text-white">
+                <Clock3 size={14} /> Lançar ponto
+              </button>
             </>
           )}
         </div>
       </header>
 
-      {isFuncionario && rows.length > 0 && (
-        <section className="ops-card rounded-[8px] border border-slate-200 bg-white p-5">
-          <h3 className="mb-3 text-sm font-black text-slate-950">Bater ponto</h3>
-          {clockIn.error && <p className="mb-3 rounded-[8px] border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">{clockIn.error}</p>}
-          <div className="flex flex-wrap gap-2">
-            <button onClick={() => clockIn.mutate('ENTRY').catch(() => {})} disabled={clockIn.loading} className="crystal-button h-10 rounded-[8px] px-4 text-xs font-black text-white disabled:opacity-60">Entrada</button>
-            <button onClick={() => clockIn.mutate('LUNCH_START').catch(() => {})} disabled={clockIn.loading} className="btn-outline h-10 rounded-[8px] px-4 text-xs font-black disabled:opacity-60">Saida almoco</button>
-            <button onClick={() => clockIn.mutate('LUNCH_RETURN').catch(() => {})} disabled={clockIn.loading} className="btn-outline h-10 rounded-[8px] px-4 text-xs font-black disabled:opacity-60">Retorno almoco</button>
-            <button onClick={() => clockIn.mutate('EXIT').catch(() => {})} disabled={clockIn.loading} className="btn-outline h-10 rounded-[8px] px-4 text-xs font-black disabled:opacity-60">Saida</button>
+      {canApprove && (pendingTracks.data ?? []).length > 0 && (
+        <section className="ops-card rounded-[8px] border border-amber-200 bg-amber-50 p-5">
+          <h3 className="mb-3 text-sm font-black text-amber-900">Pontos manuais pendentes de aprovacao ({(pendingTracks.data ?? []).length})</h3>
+          {approveMutation.error && <p className="mb-3 rounded-[8px] border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">{approveMutation.error}</p>}
+          <div className="space-y-2">
+            {(pendingTracks.data ?? []).map((track) => (
+              <div key={track.id} className="flex items-center justify-between rounded-[8px] border border-amber-200 bg-white px-4 py-3">
+                <div className="text-xs">
+                  <p className="font-bold text-slate-950">{normalizeDisplayName(track.employee?.name ?? '-')}</p>
+                  <p className="text-slate-500">{formatDate(track.date)} - {track.manualReason ?? 'Lancamento manual'}</p>
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={() => approveMutation.mutate({ id: track.id, approved: true }).catch(() => {})} disabled={approveMutation.loading} className="inline-flex h-8 items-center gap-1 rounded-[6px] bg-emerald-600 px-3 text-[11px] font-bold text-white disabled:opacity-60"><Check size={12} />Aprovar</button>
+                  <button onClick={() => approveMutation.mutate({ id: track.id, approved: false }).catch(() => {})} disabled={approveMutation.loading} className="inline-flex h-8 items-center gap-1 rounded-[6px] bg-rose-600 px-3 text-[11px] font-bold text-white disabled:opacity-60"><XCircle size={12} />Recusar</button>
+                </div>
+              </div>
+            ))}
           </div>
         </section>
       )}

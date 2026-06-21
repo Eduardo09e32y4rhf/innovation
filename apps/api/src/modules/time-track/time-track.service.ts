@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import type { JwtUser } from '../../common/types/auth.types';
 import { BulkManualTimeTrackDto, ManualTimeTrackDto } from './dto/manual-time-track.dto';
 import { RegisterTimeDto } from './dto/register-time.dto';
@@ -57,9 +57,14 @@ export class TimeTrackService {
     const timestamp = dto.timestamp ? new Date(dto.timestamp) : new Date();
     if (Number.isNaN(timestamp.getTime())) throw new BadRequestException('Invalid timestamp');
     const field = this.typeToField(dto.type);
+    const isManual = Boolean(dto.manualReason);
+    const manualStatus = isManual ? 'pending' : 'approved';
     const current = await this.repository.upsert(dto.employeeId, this.toDateOnly(timestamp), {
       [field]: timestamp,
-      observation: dto.observation,
+      observation: dto.observation ?? (isManual ? `Lancamento manual - ${dto.manualReason}` : null),
+      ...(dto.latitude !== undefined ? { latitude: dto.latitude } : {}),
+      ...(dto.longitude !== undefined ? { longitude: dto.longitude } : {}),
+      ...(isManual ? { manualReason: dto.manualReason, manualStatus } : {}),
     });
     const totals = this.calculateTotals({ ...current, [field]: timestamp });
     return this.repository.upsert(dto.employeeId, this.toDateOnly(timestamp), totals);
@@ -79,6 +84,30 @@ export class TimeTrackService {
     const result = await this.repository.update(companyId, id, { ...data, ...this.calculateTotals(next) });
     if (!result.count) throw new NotFoundException('Time track not found');
     return this.repository.findById(companyId, id);
+  }
+
+  async listPending(companyId: string, actor: JwtUser) {
+    if (actor.role === 'ADMIN' || actor.role === 'RH' || actor.role === 'DEV') {
+      return this.repository.listPending(companyId);
+    }
+    if (actor.role === 'GESTOR') {
+      return this.repository.listPendingForManager(companyId, actor.sub);
+    }
+    return [];
+  }
+
+  async approveManual(companyId: string, actor: JwtUser, id: string, approved: boolean) {
+    const track = await this.repository.findById(companyId, id);
+    if (!track) throw new NotFoundException('Time track not found');
+    if (track.manualStatus !== 'pending') throw new BadRequestException('Este ponto nao esta pendente de aprovacao');
+    if (actor.role === 'GESTOR') {
+      const managerEmployee = await this.repository.findEmployeeByUserId(companyId, actor.sub);
+      if (!managerEmployee) throw new ForbiddenException('Permissao insuficiente');
+      const employee = await this.repository.findEmployee(companyId, track.employeeId);
+      if (!employee || employee.managerId !== managerEmployee.id) throw new ForbiddenException('Permissao insuficiente');
+    }
+    const status = approved ? 'approved' : 'rejected';
+    return this.repository.updateManualStatus(companyId, id, status);
   }
 
   async delete(companyId: string, id: string) {
