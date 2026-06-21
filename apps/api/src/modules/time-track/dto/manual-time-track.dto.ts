@@ -1,5 +1,7 @@
 import { Type } from 'class-transformer';
-import { ArrayMaxSize, ArrayMinSize, IsArray, IsDateString, IsIn, IsOptional, IsString, IsUUID, ValidateIf } from 'class-validator';
+import { ArrayMaxSize, ArrayMinSize, IsArray, IsBoolean, IsDateString, IsIn, IsInt, IsOptional, IsString, IsUUID, Max, Min, ValidateIf } from 'class-validator';
+
+export const REST_DAY_MODES = ['employee_scale', 'fixed_weekly', 'cycle'] as const;
 
 export const TIME_TRACK_ADJUSTMENT_REASONS = [
   'ajuste_abono_atestado_horas',
@@ -82,4 +84,35 @@ export class BulkManualTimeTrackDto {
   @IsOptional()
   @IsString()
   observation?: string;
+  @IsOptional()
+  @IsBoolean()
+  respectRestDays?: boolean;
+
+  @IsOptional()
+  @IsIn(REST_DAY_MODES)
+  restDayMode?: (typeof REST_DAY_MODES)[number];
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(7)
+  @IsInt({ each: true })
+  @Min(0, { each: true })
+  @Max(6, { each: true })
+  daysOff?: number[];
+
+  @IsOptional()
+  @IsDateString()
+  cycleStartDate?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(31)
+  cycleWorkDays?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(31)
+  cycleOffDays?: number;
 }

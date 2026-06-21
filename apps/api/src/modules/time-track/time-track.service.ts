@@ -42,8 +42,9 @@ export class TimeTrackService {
     const dates = this.resolveBulkDates(dto);
     const created = [];
     for (const employeeId of dto.employeeIds) {
-      await this.ensureEmployee(companyId, employeeId);
+      const employee = await this.ensureEmployee(companyId, employeeId);
       for (const date of dates) {
+        if (this.isRestDay(employee, date, dto)) continue;
         created.push(await this.applyManual(employeeId, date, dto));
       }
     }
@@ -114,6 +115,49 @@ export class TimeTrackService {
     }
     return dates;
   }
+
+  private isRestDay(employee: { workScale?: string | null }, dateValue: string, dto: BulkManualTimeTrackDto) {
+    if (dto.respectRestDays === false) return false;
+    const date = this.toDateOnly(this.parseDate(dateValue, 'Invalid date'));
+    const weekday = date.getUTCDay();
+    const daysOff = dto.daysOff ?? this.defaultDaysOff(employee.workScale);
+
+    if ((dto.restDayMode ?? 'employee_scale') === 'cycle') {
+      return this.isCycleRestDay(date, dto, employee.workScale);
+    }
+
+    if ((dto.restDayMode ?? 'employee_scale') === 'fixed_weekly' || daysOff.length > 0) {
+      return daysOff.includes(weekday);
+    }
+
+    return false;
+  }
+
+  private defaultDaysOff(workScale?: string | null) {
+    if (workScale === '5X2') return [0, 6];
+    if (workScale === '6X1') return [0];
+    return [];
+  }
+
+  private isCycleRestDay(date: Date, dto: BulkManualTimeTrackDto, workScale?: string | null) {
+    const cycle = this.resolveCycle(dto, workScale);
+    if (!cycle) return false;
+    const start = this.toDateOnly(this.parseDate(dto.cycleStartDate ?? '', 'Invalid cycle start date'));
+    if (date < start) return false;
+    const elapsedDays = Math.floor((date.getTime() - start.getTime()) / 86400000);
+    const position = elapsedDays % (cycle.workDays + cycle.offDays);
+    return position >= cycle.workDays;
+  }
+
+  private resolveCycle(dto: BulkManualTimeTrackDto, workScale?: string | null) {
+    if (dto.cycleWorkDays && dto.cycleOffDays) return { workDays: dto.cycleWorkDays, offDays: dto.cycleOffDays };
+    if (workScale === '6X1') return { workDays: 6, offDays: 1 };
+    if (workScale === '5X2') return { workDays: 5, offDays: 2 };
+    if (workScale === '12X36') return { workDays: 1, offDays: 1 };
+    if (workScale === '4X2') return { workDays: 4, offDays: 2 };
+    return null;
+  }
+
   private async ensureEmployee(companyId: string, employeeId: string) {
     const employee = await this.repository.findEmployee(companyId, employeeId);
     if (!employee) throw new NotFoundException('Employee not found');

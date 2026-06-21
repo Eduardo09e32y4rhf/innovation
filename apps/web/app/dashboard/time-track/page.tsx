@@ -4,12 +4,35 @@ import { useMemo, useState } from 'react';
 import { Clock3, Download, Edit3, FileText, Trash2, X } from 'lucide-react';
 import { EmptyState, ErrorState, LoadingState } from '@/app/components/data-states';
 import { useMutation, useQuery } from '@/app/hooks/use-data';
-import { api, type Company, type Employee, type TimeTrack, type TimeTrackAdjustmentReason } from '@/app/lib/api';
+import { api, type Company, type Employee, type TimeTrack, type RestDayMode, type TimeTrackAdjustmentReason } from '@/app/lib/api';
 import { formatDate, formatMinutes } from '@/app/lib/format';
 import { normalizeDisplayName } from '@/app/lib/text';
 
 const collator = new Intl.Collator('pt-BR', { sensitivity: 'base', numeric: true });
 
+const WEEKDAYS = [
+  { value: 0, label: 'Domingo' },
+  { value: 1, label: 'Segunda' },
+  { value: 2, label: 'Terça' },
+  { value: 3, label: 'Quarta' },
+  { value: 4, label: 'Quinta' },
+  { value: 5, label: 'Sexta' },
+  { value: 6, label: 'Sábado' },
+];
+
+function defaultDaysOff(workScale?: string | null) {
+  if (workScale === '5X2') return [0, 6];
+  if (workScale === '6X1') return [0];
+  return [];
+}
+
+function defaultCycle(workScale?: string | null) {
+  if (workScale === '6X1') return { workDays: 6, offDays: 1 };
+  if (workScale === '5X2') return { workDays: 5, offDays: 2 };
+  if (workScale === '12X36') return { workDays: 1, offDays: 1 };
+  if (workScale === '4X2') return { workDays: 4, offDays: 2 };
+  return { workDays: 6, offDays: 1 };
+}
 const ADJUSTMENT_REASONS: { value: TimeTrackAdjustmentReason; label: string; fullDay?: boolean }[] = [
   { value: 'ajuste_abono_atestado_horas', label: 'Ajuste - abono (atestado de horas)' },
   { value: 'ajuste_atestado_integral', label: 'Ajuste - atestado integral', fullDay: true },
@@ -373,6 +396,7 @@ function ManualTimeSheetModal({ employees, employeesLoading, employeesError, def
   const [mode, setMode] = useState<'single' | 'bulk'>(bulk ? 'bulk' : 'single');
   const [bulkMode, setBulkMode] = useState<'day' | 'period'>('day');
   const [employeeId, setEmployeeId] = useState(track?.employeeId ?? defaultEmployeeId);
+  const initialEmployeeScale = employees.find((employee) => employee.id === (track?.employeeId ?? defaultEmployeeId))?.workScale;
   const [date, setDate] = useState(initialDate);
   const [startDate, setStartDate] = useState(initialDate.slice(0, 8) + '01');
   const [endDate, setEndDate] = useState(initialDate);
@@ -383,9 +407,28 @@ function ManualTimeSheetModal({ employees, employeesLoading, employeesError, def
   const [exit, setExit] = useState(track ? timeInput(track.exit) : '');
   const [reason, setReason] = useState<TimeTrackAdjustmentReason>('ajuste_erro_marcacao');
   const [detail, setDetail] = useState('');
+  const initialCycle = defaultCycle(initialEmployeeScale);
+  const [respectRestDays, setRespectRestDays] = useState(true);
+  const [restDayMode, setRestDayMode] = useState<RestDayMode>('employee_scale');
+  const [daysOff, setDaysOff] = useState<number[]>(defaultDaysOff(initialEmployeeScale));
+  const [cycleStartDate, setCycleStartDate] = useState(initialDate.slice(0, 8) + '01');
+  const [cycleWorkDays, setCycleWorkDays] = useState(initialCycle.workDays);
+  const [cycleOffDays, setCycleOffDays] = useState(initialCycle.offDays);
   const selectedReason = ADJUSTMENT_REASONS.find((item) => item.value === reason);
+  const selectedEmployee = employees.find((employee) => employee.id === employeeId);
   const fullDay = Boolean(selectedReason?.fullDay);
 
+  function applyEmployeeScaleDefaults(nextEmployeeId: string) {
+    const employee = employees.find((item) => item.id === nextEmployeeId);
+    setDaysOff(defaultDaysOff(employee?.workScale));
+    const cycle = defaultCycle(employee?.workScale);
+    setCycleWorkDays(cycle.workDays);
+    setCycleOffDays(cycle.offDays);
+  }
+
+  function toggleDayOff(day: number) {
+    setDaysOff((current) => current.includes(day) ? current.filter((item) => item !== day) : [...current, day].sort((a, b) => a - b));
+  }
   const matchedEmployees = useMemo(() => matchEmployees(employees, bulkSearch), [employees, bulkSearch]);
 
   const save = useMutation(async () => {
@@ -396,7 +439,7 @@ function ManualTimeSheetModal({ employees, employeesLoading, employeesError, def
     }
     if (mode === 'bulk') {
       const employeeIds = bulkMode === 'period' ? [employeeId] : matchedEmployees.map((employee) => employee.id);
-      const base = { employeeIds, entry: payload.entry, lunchStart: payload.lunchStart, lunchReturn: payload.lunchReturn, exit: payload.exit, reason, observation: detail };
+      const base = { employeeIds, entry: payload.entry, lunchStart: payload.lunchStart, lunchReturn: payload.lunchReturn, exit: payload.exit, reason, observation: detail, respectRestDays, restDayMode, daysOff, cycleStartDate, cycleWorkDays, cycleOffDays };
       await api.timeTrack.manualBulk(bulkMode === 'period' ? { ...base, startDate, endDate } : { ...base, date });
       return;
     }
@@ -418,14 +461,24 @@ function ManualTimeSheetModal({ employees, employeesLoading, employeesError, def
           {mode === 'bulk' && !track ? (
             <>
               <label className="space-y-1 text-xs font-medium text-slate-600 sm:col-span-2"><span>Tipo de lote</span><select value={bulkMode} onChange={(event) => setBulkMode(event.target.value as 'day' | 'period')} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500"><option value="day">Um dia para vários colaboradores</option><option value="period">Período inteiro para um colaborador</option></select></label>
-              {bulkMode === 'day' ? <label className="space-y-1 text-xs font-medium text-slate-600 sm:col-span-2"><span>Matrícula, nome ou CPF</span><textarea value={bulkSearch} onChange={(event) => setBulkSearch(event.target.value)} placeholder="Digite um por linha ou separado por vírgula" className="min-h-24 w-full rounded-[8px] border border-slate-200 px-3 py-2 text-sm outline-none focus:border-teal-500" /><span className="block text-[11px] text-slate-400">Encontrados: {matchedEmployees.length}</span></label> : <label className="space-y-1 text-xs font-medium text-slate-600 sm:col-span-2"><span>Funcionário</span><select value={employeeId} onChange={(event) => setEmployeeId(event.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500"><option value="">Selecione...</option>{employees.map((employee) => <option key={employee.id} value={employee.id}>{normalizeDisplayName(employee.name)}</option>)}</select></label>}
+              {bulkMode === 'day' ? <label className="space-y-1 text-xs font-medium text-slate-600 sm:col-span-2"><span>Matrícula, nome ou CPF</span><textarea value={bulkSearch} onChange={(event) => setBulkSearch(event.target.value)} placeholder="Digite um por linha ou separado por vírgula" className="min-h-24 w-full rounded-[8px] border border-slate-200 px-3 py-2 text-sm outline-none focus:border-teal-500" /><span className="block text-[11px] text-slate-400">Encontrados: {matchedEmployees.length}</span></label> : <label className="space-y-1 text-xs font-medium text-slate-600 sm:col-span-2"><span>Funcionário</span><select value={employeeId} onChange={(event) => { setEmployeeId(event.target.value); applyEmployeeScaleDefaults(event.target.value); }} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500"><option value="">Selecione...</option>{employees.map((employee) => <option key={employee.id} value={employee.id}>{normalizeDisplayName(employee.name)}</option>)}</select></label>}
               {bulkMode === 'period' ? <><label className="space-y-1 text-xs font-medium text-slate-600"><span>Data inicial</span><input type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500" /></label><label className="space-y-1 text-xs font-medium text-slate-600"><span>Data final</span><input type="date" value={endDate} onChange={(event) => setEndDate(event.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500" /></label></> : <label className="space-y-1 text-xs font-medium text-slate-600"><span>Data da folha</span><input type="date" value={date} onChange={(event) => setDate(event.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500" /></label>}
             </>
           ) : (
             <>
-              <label className="space-y-1 text-xs font-medium text-slate-600 sm:col-span-2"><span>Funcionário</span><select disabled={Boolean(track)} value={employeeId} onChange={(event) => setEmployeeId(event.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500 disabled:bg-slate-50"><option value="">{employeesLoading ? 'Carregando equipe...' : 'Selecione...'}</option>{employees.map((employee) => <option key={employee.id} value={employee.id}>{normalizeDisplayName(employee.name)}</option>)}</select></label>
+              <label className="space-y-1 text-xs font-medium text-slate-600 sm:col-span-2"><span>Funcionário</span><select disabled={Boolean(track)} value={employeeId} onChange={(event) => { setEmployeeId(event.target.value); applyEmployeeScaleDefaults(event.target.value); }} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500 disabled:bg-slate-50"><option value="">{employeesLoading ? 'Carregando equipe...' : 'Selecione...'}</option>{employees.map((employee) => <option key={employee.id} value={employee.id}>{normalizeDisplayName(employee.name)}</option>)}</select></label>
               <label className="space-y-1 text-xs font-medium text-slate-600"><span>Data da folha</span><input disabled={Boolean(track)} type="date" value={date} onChange={(event) => setDate(event.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500 disabled:bg-slate-50" /></label>
             </>
+          )}
+          {mode === 'bulk' && !track && (
+            <section className="sm:col-span-2 rounded-[10px] border border-slate-200 bg-slate-50 p-3">
+              <label className="flex items-center gap-2 text-xs font-bold text-slate-700"><input type="checkbox" checked={respectRestDays} onChange={(event) => setRespectRestDays(event.target.checked)} /> Respeitar folgas da escala</label>
+              {respectRestDays && <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <label className="space-y-1 text-xs font-medium text-slate-600 sm:col-span-2"><span>Como calcular as folgas{selectedEmployee?.workScale ? ` (${selectedEmployee.workScale})` : ''}</span><select value={restDayMode} onChange={(event) => setRestDayMode(event.target.value as RestDayMode)} className="h-10 w-full rounded-[8px] border border-slate-200 bg-white px-3 text-sm outline-none focus:border-teal-500"><option value="employee_scale">Usar padrão da escala cadastrada</option><option value="fixed_weekly">Folga fixa na semana</option><option value="cycle">Escala alternada / ciclo</option></select></label>
+                {(restDayMode === 'fixed_weekly' || restDayMode === 'employee_scale') && <div className="space-y-2 sm:col-span-2"><p className="text-xs font-medium text-slate-600">Dias de folga</p><div className="grid grid-cols-2 gap-2 sm:grid-cols-4">{WEEKDAYS.map((day) => <label key={day.value} className="flex items-center gap-2 rounded-[8px] border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600"><input type="checkbox" checked={daysOff.includes(day.value)} onChange={() => toggleDayOff(day.value)} /> {day.label}</label>)}</div></div>}
+                {restDayMode === 'cycle' && <><label className="space-y-1 text-xs font-medium text-slate-600"><span>Início do ciclo</span><input type="date" value={cycleStartDate} onChange={(event) => setCycleStartDate(event.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 bg-white px-3 text-sm outline-none focus:border-teal-500" /></label><label className="space-y-1 text-xs font-medium text-slate-600"><span>Dias trabalhados</span><input type="number" min={1} max={31} value={cycleWorkDays} onChange={(event) => setCycleWorkDays(Number(event.target.value))} className="h-10 w-full rounded-[8px] border border-slate-200 bg-white px-3 text-sm outline-none focus:border-teal-500" /></label><label className="space-y-1 text-xs font-medium text-slate-600"><span>Dias de folga</span><input type="number" min={1} max={31} value={cycleOffDays} onChange={(event) => setCycleOffDays(Number(event.target.value))} className="h-10 w-full rounded-[8px] border border-slate-200 bg-white px-3 text-sm outline-none focus:border-teal-500" /></label></>}
+              </div>}
+            </section>
           )}
           {!track && <label className="space-y-1 text-xs font-medium text-slate-600"><span>Motivo do ajuste</span><select value={reason} onChange={(event) => setReason(event.target.value as TimeTrackAdjustmentReason)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500">{ADJUSTMENT_REASONS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>}
           {!fullDay && <><TimeField label="Entrada" value={entry} onChange={setEntry} /><TimeField label="Saída almoço" value={lunchStart} onChange={setLunchStart} /><TimeField label="Retorno almoço" value={lunchReturn} onChange={setLunchReturn} /><TimeField label="Saída" value={exit} onChange={setExit} /></>}
