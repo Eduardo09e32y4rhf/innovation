@@ -126,7 +126,7 @@ export interface TimeTrack {
   manualReason?: string | null; manualStatus?: string | null;
 }
 export type TimeTrackAdjustmentReason = 'ajuste_abono_atestado_horas' | 'ajuste_atestado_integral' | 'ajuste_folga_dsr' | 'ajuste_abono_folga' | 'ajuste_erro_marcacao' | 'ajuste_feriado';
-export interface RegisterTimeInput { employeeId: string; type: PunchType; timestamp?: string; observation?: string; latitude?: number; longitude?: number; manualReason?: string; }
+export interface RegisterTimeInput { employeeId?: string; type?: PunchType; timestamp?: string; observation?: string; latitude?: number; longitude?: number; manualReason?: string; }
 export interface ManualTimeTrackInput { employeeId: string; date: string; entry?: string | null; lunchStart?: string | null; lunchReturn?: string | null; exit?: string | null; reason: TimeTrackAdjustmentReason; observation?: string; }
 export type RestDayMode = 'employee_scale' | 'fixed_weekly' | 'cycle';
 export interface BulkManualTimeTrackInput { employeeIds: string[]; date?: string; startDate?: string; endDate?: string; entry?: string | null; lunchStart?: string | null; lunchReturn?: string | null; exit?: string | null; reason: TimeTrackAdjustmentReason; observation?: string; restDayMode?: RestDayMode; daysOff?: number[]; cycleStartDate?: string; cycleWorkDays?: number; cycleOffDays?: number; }

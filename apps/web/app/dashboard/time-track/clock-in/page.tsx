@@ -90,12 +90,14 @@ export default function ClockInPage() {
 
   const punch = useMutation(
     async (params: { type: PunchType; manual?: boolean }) => {
-      if (!myEmployee) throw new Error('Funcionario nao encontrado. Verifique se seu cadastro esta vinculado.');
+      if (!myEmployee) throw new Error('Seu usuario ainda nao esta vinculado a um funcionario ativo. Procure o RH.');
       const input: Parameters<typeof api.timeTrack.register>[0] = {
-        employeeId: myEmployee.id,
-        type: params.type,
         ...(geo.position ? { latitude: geo.position.lat, longitude: geo.position.lng } : {}),
       };
+      if (params.manual) {
+        input.employeeId = myEmployee.id;
+        input.type = params.type;
+      }
       if (params.manual) {
         const [h, m] = manualTime.split(':').map(Number);
         const dt = new Date(manualDate);
@@ -109,7 +111,7 @@ export default function ClockInPage() {
       onSuccess: (_data, params) => {
         const labels: Record<PunchType, string> = { ENTRY: 'Entrada', LUNCH_START: 'Saida almoco', LUNCH_RETURN: 'Retorno almoco', EXIT: 'Saida' };
         const label = labels[params.type];
-        setSuccess(params.manual ? `${label} manual registrada! Aguardando aprovacao do gestor.` : `${label} registrada com sucesso!`);
+        setSuccess(params.manual ? `${label} manual registrada! Aguardando aprovacao do gestor.` : 'Ponto registrado com sucesso!');
         if (successTimer.current) clearTimeout(successTimer.current);
         successTimer.current = setTimeout(() => router.push('/dashboard/time-track'), 2500);
       },
@@ -175,24 +177,11 @@ export default function ClockInPage() {
 
       <section className="ops-card rounded-[12px] border border-slate-200 bg-white p-5">
         <h3 className="mb-4 text-sm font-black text-slate-950">Registrar ponto</h3>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <button onClick={() => handlePunch('ENTRY')} disabled={punch.loading} className="crystal-button flex h-14 flex-col items-center justify-center gap-1 rounded-[10px] text-xs font-black text-white disabled:opacity-60">
-            <Clock3 size={18} />
-            Entrada
-          </button>
-          <button onClick={() => handlePunch('LUNCH_START')} disabled={punch.loading} className="btn-outline flex h-14 flex-col items-center justify-center gap-1 rounded-[10px] text-xs font-black disabled:opacity-60">
-            <Clock3 size={18} />
-            Saida almoco
-          </button>
-          <button onClick={() => handlePunch('LUNCH_RETURN')} disabled={punch.loading} className="btn-outline flex h-14 flex-col items-center justify-center gap-1 rounded-[10px] text-xs font-black disabled:opacity-60">
-            <Clock3 size={18} />
-            Retorno almoco
-          </button>
-          <button onClick={() => handlePunch('EXIT')} disabled={punch.loading} className="btn-outline flex h-14 flex-col items-center justify-center gap-1 rounded-[10px] text-xs font-black disabled:opacity-60">
-            <Clock3 size={18} />
-            Saida
-          </button>
-        </div>
+        <button onClick={() => handlePunch('ENTRY')} disabled={punch.loading || !myEmployee} className="crystal-button flex h-14 w-full items-center justify-center gap-2 rounded-[10px] text-sm font-black text-white disabled:opacity-60">
+          <Clock3 size={18} />
+          Bater ponto agora
+        </button>
+        <p className="mt-3 text-xs font-medium text-slate-500">A sequencia e automatica: entrada, saida para almoco, retorno do almoco e saida.</p>
       </section>
 
       <section className="ops-card rounded-[12px] border border-slate-200 bg-white p-5">

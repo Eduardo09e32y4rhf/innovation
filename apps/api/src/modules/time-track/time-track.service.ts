@@ -54,22 +54,39 @@ export class TimeTrackService {
   }
 
   async register(companyId: string, actor: JwtUser, dto: RegisterTimeDto) {
-    const employee = await this.ensureCanAccessEmployee(companyId, actor, dto.employeeId);
-    if (employee.status !== 'ACTIVE') throw new ForbiddenException('Funcionario inativo');
+    if (actor.role === 'DEV' || actor.role === 'COMERCIAL' || actor.role === 'CONSULTA') {
+      throw new ForbiddenException('Este perfil nao bate ponto');
+    }
+
+    const isManual = Boolean(dto.manualReason);
+    if (isManual && !dto.type) throw new BadRequestException('Informe qual marcacao manual sera ajustada.');
+    const employee = isManual && dto.employeeId
+      ? await this.ensureCanAccessEmployee(companyId, actor, dto.employeeId)
+      : await this.repository.findEmployeeByUserId(companyId, actor.sub, actor.email);
+
+    if (!employee) throw new ForbiddenException('Seu usuario ainda nao esta vinculado a um funcionario ativo. Procure o RH.');
+    if (employee.userId && employee.userId !== actor.sub) throw new ForbiddenException('Este funcionario ja esta vinculado a outro usuario. Procure o RH.');
+    if (!employee.userId) await this.repository.updateEmployeeUserLink(companyId, employee.id, actor.sub);
+    if (employee.status !== 'ACTIVE') throw new ForbiddenException('Funcionario desligado ou inativo nao pode bater ponto.');
+
     const timestamp = dto.timestamp ? new Date(dto.timestamp) : new Date();
     if (Number.isNaN(timestamp.getTime())) throw new BadRequestException('Invalid timestamp');
-    const field = this.typeToField(dto.type);
-    const isManual = Boolean(dto.manualReason);
+
+    const date = this.toDateOnly(timestamp);
+    const type = isManual ? dto.type : await this.resolveNextPunchType(employee.id, date);
+    if (!type) throw new BadRequestException('Todas as marcacoes de hoje ja foram registradas.');
+
+    const field = this.typeToField(type);
     const manualStatus = isManual ? 'pending' : 'approved';
-    const current = await this.repository.upsert(dto.employeeId, this.toDateOnly(timestamp), {
+    const current = await this.repository.upsert(employee.id, date, {
       [field]: timestamp,
       observation: dto.observation ?? (isManual ? `Lancamento manual - ${dto.manualReason}` : null),
       ...(dto.latitude !== undefined ? { latitude: dto.latitude } : {}),
       ...(dto.longitude !== undefined ? { longitude: dto.longitude } : {}),
-      ...(isManual ? { manualReason: dto.manualReason, manualStatus } : {}),
+      ...(isManual ? { manualReason: dto.manualReason, manualStatus } : { manualStatus }),
     });
     const totals = this.calculateTotals({ ...current, [field]: timestamp });
-    return this.repository.upsert(dto.employeeId, this.toDateOnly(timestamp), totals);
+    return this.repository.upsert(employee.id, date, totals);
   }
 
   async update(companyId: string, id: string, dto: UpdateTimeTrackDto) {
@@ -203,7 +220,16 @@ export class TimeTrackService {
     throw new NotFoundException('Employee not found');
   }
 
-  private typeToField(type: RegisterTimeDto['type']) {
+  private async resolveNextPunchType(employeeId: string, date: Date): Promise<NonNullable<RegisterTimeDto['type']> | null> {
+    const current = await this.repository.findByEmployeeDate(employeeId, date);
+    if (!current?.entry) return 'ENTRY';
+    if (!current.lunchStart) return 'LUNCH_START';
+    if (!current.lunchReturn) return 'LUNCH_RETURN';
+    if (!current.exit) return 'EXIT';
+    return null;
+  }
+
+  private typeToField(type: NonNullable<RegisterTimeDto['type']>) {
     const map = { ENTRY: 'entry', LUNCH_START: 'lunchStart', LUNCH_RETURN: 'lunchReturn', EXIT: 'exit' } as const;
     return map[type];
   }

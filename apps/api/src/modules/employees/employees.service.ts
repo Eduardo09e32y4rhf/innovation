@@ -17,9 +17,14 @@ export class EmployeesService {
       return this.repository.list(companyId);
     }
     if (actor.role === 'GESTOR') {
-      const managerEmployee = await this.repository.findByUserId(companyId, actor.sub);
+      const managerEmployee = await this.repository.findByUserId(companyId, actor.sub, actor.email);
       if (!managerEmployee) return [];
-      return this.repository.listByManager(companyId, managerEmployee.id);
+      const team = await this.repository.listByManager(companyId, managerEmployee.id);
+      return [managerEmployee, ...team.filter((employee) => employee.id !== managerEmployee.id)];
+    }
+    if (actor.role === 'FUNCIONARIO') {
+      const employee = await this.repository.findByUserId(companyId, actor.sub, actor.email);
+      return employee ? [employee] : [];
     }
     return [];
   }

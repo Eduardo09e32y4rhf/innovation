@@ -20,12 +20,26 @@ export class EmployeesRepository {
     });
   }
 
-  findByUserId(companyId: string, userId: string) {
-    return this.prisma.employee.findFirst({ where: { companyId, userId } });
+  findByUserId(companyId: string, userId: string, email?: string) {
+    const normalizedEmail = email?.trim();
+    return this.prisma.employee.findFirst({
+      where: {
+        companyId,
+        OR: [
+          { userId },
+          ...(normalizedEmail ? [{ email: { equals: normalizedEmail, mode: 'insensitive' as const } }] : []),
+        ],
+      },
+      include: { user: { select: { id: true, role: true, isActive: true, forcePasswordChange: true } } },
+    });
   }
 
   listByManager(companyId: string, managerId: string) {
-    return this.prisma.employee.findMany({ where: { companyId, managerId }, orderBy: { createdAt: 'desc' } });
+    return this.prisma.employee.findMany({
+      where: { companyId, managerId },
+      include: { user: { select: { id: true, role: true, isActive: true, forcePasswordChange: true } } },
+      orderBy: { createdAt: 'desc' },
+    });
   }
 
   findByCpf(cpf: string) {

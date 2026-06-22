@@ -60,6 +60,14 @@ export class TimeTrackRepository {
     });
   }
 
+  findByEmployeeDate(employeeId: string, date: Date) {
+    return this.prisma.timeTrack.findUnique({ where: { employeeId_date: { employeeId, date } }, include: { employee: true } });
+  }
+
+  updateEmployeeUserLink(companyId: string, employeeId: string, userId: string) {
+    return this.prisma.employee.updateMany({ where: { companyId, id: employeeId, userId: null }, data: { userId } });
+  }
+
   upsert(employeeId: string, date: Date, data: any) {
     return this.prisma.timeTrack.upsert({
       where: { employeeId_date: { employeeId, date } },
