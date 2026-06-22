@@ -169,6 +169,21 @@ model Employee {
   cpf           String         @unique
   email         String
   phone         String?
+  rg            String?
+  rgIssuer      String?
+  rgState       String?
+  cep           String?
+  street        String?
+  streetNumber  String?
+  addressComplement String?
+  neighborhood  String?
+  city          String?
+  state         String?
+  secondaryPhone String?
+  maritalStatus String?
+  nationality  String?
+  birthplace   String?
+  observations String?        @db.Text
   birthDate     DateTime?
   registration  String?
   position      String

@@ -1,12 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { Download, Edit3, Search, Trash2, UserMinus, UserPlus } from 'lucide-react';
+import { Download, Edit3, FileText, Search, Trash2, UserMinus, UserPlus } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { EmptyState, ErrorState, LoadingState } from '@/app/components/data-states';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useMutation, useQuery } from '@/app/hooks/use-data';
-import { api, type Employee, type TimeTrack } from '@/app/lib/api';
+import { api, type Company, type Employee, type TimeTrack } from '@/app/lib/api';
 import { EMPLOYEE_STATUS_LABEL, formatDate, formatMinutes, formatTime } from '@/app/lib/format';
 import { normalizeDisplayName } from '@/app/lib/text';
 
@@ -19,6 +19,7 @@ export default function EmployeesPage() {
   const canDownloadSheet = profile === 'RH';
   const isGestor = profile === 'GESTOR';
   const { data, loading, error, refetch } = useQuery(() => api.employees.list(), []);
+  const company = useQuery(() => api.companies.me(), []);
   const [search, setSearch] = useState('');
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const terminate = useMutation((id: string) => api.employees.terminate(id), { onSuccess: () => refetch() });
@@ -57,12 +58,16 @@ export default function EmployeesPage() {
   }
 
 
+  function handleDownloadFicha(employee: Employee) {
+    downloadEmployeeRecord(employee, company.data ?? null, managerById.get(employee.managerId ?? '') ?? '');
+  }
+
   async function handleDownloadSheet(employee: Employee) {
     const month = currentMonth();
     setDownloadingId(employee.id);
     try {
       const rows = await api.timeTrack.listEmployeeMonth(employee.id, month);
-      downloadEmployeeSheet(employee, rows, month);
+      downloadEmployeeSheet(employee, rows, month, company.data ?? null, managerById.get(employee.managerId ?? '') ?? '');
     } catch {
       window.alert('Não foi possível baixar a folha deste funcionário.');
     } finally {
@@ -141,9 +146,14 @@ export default function EmployeesPage() {
                               <Edit3 size={12} />Editar
                             </Link>
                             {canDownloadSheet && (
-                              <button onClick={() => handleDownloadSheet(employee)} disabled={downloadingId === employee.id} className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px] disabled:opacity-50">
-                                <Download size={12} />PDF da folha
-                              </button>
+                              <>
+                                <button onClick={() => handleDownloadFicha(employee)} disabled={company.loading} className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px] disabled:opacity-50">
+                                  <FileText size={12} />Ficha
+                                </button>
+                                <button onClick={() => handleDownloadSheet(employee)} disabled={downloadingId === employee.id || company.loading} className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px] disabled:opacity-50">
+                                  <Download size={12} />Folha
+                                </button>
+                              </>
                             )}
                             <button onClick={() => handleTerminate(employee)} disabled={employee.status === 'TERMINATED' || terminate.loading} className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px] disabled:opacity-50">
                               <UserMinus size={12} />Desligar
@@ -197,7 +207,7 @@ function displayLunch(row: TimeTrack) {
   return `${formatTime(row.lunchStart)} - ${formatTime(row.lunchReturn)}`;
 }
 
-function downloadEmployeeSheet(employee: Employee, rows: TimeTrack[], month: string) {
+function downloadEmployeeSheet(employee: Employee, rows: TimeTrack[], month: string, company: Company | null, managerName: string) {
   const title = `Folha de ponto - ${normalizeDisplayName(employee.name)} - ${month}`;
   const body = rows.length
     ? rows.map((row) => `
@@ -211,47 +221,66 @@ function downloadEmployeeSheet(employee: Employee, rows: TimeTrack[], month: str
         <td>${escapeHtml(row.observation || row.manualReason || '-')}</td>
       </tr>`).join('')
     : '<tr><td colspan="7">Nenhum ponto encontrado no mês.</td></tr>';
-  const html = `<!doctype html><html><head><meta charset="utf-8" />
-    <title>${escapeHtml(title)}</title>
-    <style>
-      @page { size: A4 landscape; margin: 12mm; }
-      * { box-sizing: border-box; }
-      body { color: #0f172a; font-family: Arial, Helvetica, sans-serif; font-size: 11px; }
-      h1 { margin: 0 0 10px; text-align: center; font-size: 18px; letter-spacing: 0.08em; text-transform: uppercase; }
-      .meta { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px 18px; border-top: 1px solid #94a3b8; border-bottom: 1px solid #94a3b8; padding: 8px 0; }
-      .section-title { margin: 14px 0 6px; font-size: 13px; font-weight: 700; }
-      table { width: 100%; border-collapse: collapse; }
-      th, td { border: 1px solid #94a3b8; padding: 5px; text-align: left; vertical-align: top; }
-      th { background: #e2e8f0; font-weight: 700; }
-      .muted { color: #64748b; }
-    </style>
-  </head><body>
-    <h1>${escapeHtml(title)}</h1>
-    <div class="meta">
-      <div><strong>Funcionário:</strong> ${escapeHtml(normalizeDisplayName(employee.name))}</div>
-      <div><strong>Matrícula:</strong> ${escapeHtml(employee.registration || '-')}</div>
-      <div><strong>CPF:</strong> ${escapeHtml(employee.cpf || '-')}</div>
-      <div><strong>E-mail:</strong> ${escapeHtml(employee.email || '-')}</div>
-      <div><strong>Telefone:</strong> ${escapeHtml(employee.phone || '-')}</div>
-      <div><strong>Status:</strong> ${escapeHtml(EMPLOYEE_STATUS_LABEL[employee.status] ?? employee.status)}</div>
-      <div><strong>Departamento:</strong> ${escapeHtml(employee.department || '-')}</div>
-      <div><strong>Cargo:</strong> ${escapeHtml(employee.position || '-')}</div>
-      <div><strong>Unidade:</strong> ${escapeHtml(employee.unit || '-')}</div>
-      <div><strong>Admissão:</strong> ${escapeHtml(formatDate(employee.admissionDate))}</div>
-      <div><strong>Desligamento:</strong> ${escapeHtml(formatDate(employee.terminationDate))}</div>
-      <div><strong>Escala:</strong> ${escapeHtml(employee.workScale || employee.customWorkScale || '-')}</div>
-      <div><strong>Jornada:</strong> ${escapeHtml(employee.dailyWorkload || '-')}</div>
-      <div><strong>Entrada padrão:</strong> ${escapeHtml(employee.standardEntry || '-')}</div>
-      <div><strong>Saída padrão:</strong> ${escapeHtml(employee.standardExit || '-')}</div>
-    </div>
+  const html = printShell('Folha de ponto individual', company, month, `
+    ${employeeSummary(employee, managerName)}
     <p class="section-title">Registros de ponto</p>
     <table>
-      <thead><tr><th>Data</th><th>Entrada</th><th>Almoço</th><th>Saída</th><th>Trabalhado</th><th>Saldo</th><th>Motivo/observação</th></tr></thead>
+      <thead><tr><th>Data</th><th>Entrada</th><th>Almoco</th><th>Saida</th><th>Trabalhado</th><th>Saldo</th><th>Motivo/observacao</th></tr></thead>
       <tbody>${body}</tbody>
     </table>
-    <p class="muted">Emitido em ${escapeHtml(new Date().toLocaleString('pt-BR'))}</p>
-  </body></html>`;
+    <div class="summary"><strong>Resumo mensal:</strong> registros ${rows.length} | trabalhado ${escapeHtml(formatMinutes(rows.reduce((t, r) => t + (r.totalWorked ?? 0), 0)))} | saldo positivo ${escapeHtml(formatMinutes(rows.reduce((t, r) => t + Math.max(r.dailyBalance ?? 0, 0), 0)))} | saldo negativo ${escapeHtml(formatMinutes(rows.reduce((t, r) => t + Math.abs(Math.min(r.dailyBalance ?? 0, 0)), 0)))}</div>
+    <div class="signatures"><div>Assinatura do colaborador</div><div>Assinatura do RH / responsavel</div><div>Data de conferencia</div></div>`);
   printPdfDocument(html, `folha-ponto-${slugify(employee.name)}-${month}`);
+}
+
+
+function downloadEmployeeRecord(employee: Employee, company: Company | null, managerName: string) {
+  const html = printShell('Ficha cadastral do colaborador', company, 'Cadastro atualizado', `
+    ${employeeSummary(employee, managerName)}
+    <section class="doc-block"><h2>Identificacao</h2><div class="grid-3">
+      ${info('Nome completo', normalizeDisplayName(employee.name))}${info('Matricula', employee.registration || '-')}${info('CPF', employee.cpf || '-')}
+      ${info('RG / CIN', employee.rg || '-')}${info('Orgao emissor', employee.rgIssuer || '-')}${info('UF do RG', employee.rgState || '-')}
+      ${info('Nascimento', formatDate(employee.birthDate))}${info('Estado civil', employee.maritalStatus || '-')}${info('Nacionalidade', employee.nationality || '-')}${info('Naturalidade', employee.birthplace || '-')}
+    </div></section>
+    <section class="doc-block"><h2>Contato e endereco</h2><div class="grid-3">
+      ${info('E-mail', employee.email || '-')}${info('Telefone', employee.phone || '-')}${info('Telefone secundario', employee.secondaryPhone || '-')}
+      ${info('CEP', employee.cep || '-')}${info('Logradouro', employee.street || '-')}${info('Numero', employee.streetNumber || '-')}
+      ${info('Complemento', employee.addressComplement || '-')}${info('Bairro', employee.neighborhood || '-')}${info('Cidade/UF', [employee.city, employee.state].filter(Boolean).join(' / ') || '-')}
+    </div></section>
+    <section class="doc-block"><h2>Contrato, acesso e observacoes</h2><div class="grid-3">
+      ${info('Salario', employee.salary ? `R$ ${Number(employee.salary).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '-')}${info('CNPJ PJ/terceiro', employee.cnpj || '-')}${info('Razao social', employee.legalName || '-')}${info('Nome fantasia', employee.tradeName || '-')}${info('Acesso ao painel', accessText(employee))}${info('Perfil de acesso', employee.user?.role || '-')}
+    </div><p class="note">${escapeHtml(employee.observations || 'Sem observacoes cadastrais.')}</p></section>
+    <div class="signatures"><div>Assinatura do colaborador</div><div>Responsavel pelo RH</div><div>Data de conferencia</div></div>`);
+  printPdfDocument(html, `ficha-${slugify(employee.name)}`);
+}
+
+function printShell(title: string, company: Company | null, period: string, content: string) {
+  const emittedAt = new Date().toLocaleString('pt-BR');
+  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8" /><title>${escapeHtml(title)}</title>
+  <style>
+    @page{size:A4 landscape;margin:10mm}*{box-sizing:border-box}body{margin:0;background:#f8fafc;color:#0f172a;font-family:Arial,Helvetica,sans-serif;font-size:11px}.page{background:white;margin:0 auto;padding:18px;max-width:1180px}.header{display:grid;grid-template-columns:96px 1fr 250px;gap:16px;align-items:center;border-bottom:3px solid #0f766e;padding-bottom:12px}.logo{height:72px;width:88px;object-fit:contain;border:1px solid #dbe3ef;border-radius:8px;padding:6px}.logo-box{display:flex;height:72px;width:88px;align-items:center;justify-content:center;border:1px solid #dbe3ef;border-radius:8px;color:#64748b}.brand h1{margin:0 0 6px;font-size:18px;text-transform:uppercase;letter-spacing:.08em}.brand p,.meta p{margin:2px 0}.meta{text-align:right}.doc-title{margin:16px 0 10px;border-radius:8px;background:#ecfeff;padding:10px 12px;font-size:14px;font-weight:800;text-transform:uppercase;color:#0f766e}.doc-block{break-inside:avoid;margin-top:12px;border:1px solid #dbe3ef;border-radius:8px;padding:12px}.doc-block h2{margin:0 0 10px;font-size:13px;text-transform:uppercase}.grid-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px 14px}.item span{display:block;color:#64748b;font-size:10px;font-weight:700;text-transform:uppercase}.item strong{display:block;margin-top:2px}.note{min-height:40px;border-radius:6px;background:#f8fafc;padding:8px}table{width:100%;border-collapse:collapse;margin-top:10px;table-layout:fixed}th,td{border:1px solid #94a3b8;padding:5px;vertical-align:top;word-break:break-word}th{background:#e2e8f0;text-align:center;font-weight:800}td{text-align:center}td:last-child{text-align:left}.section-title{margin:14px 0 6px;font-size:13px;font-weight:800}.summary{margin-top:12px;border-radius:8px;background:#f1f5f9;padding:10px}.signatures{display:grid;grid-template-columns:repeat(3,1fr);gap:40px;margin-top:34px}.signatures div{border-top:1px solid #111827;text-align:center;padding-top:8px}.footer{margin-top:18px;border-top:1px solid #cbd5e1;padding-top:8px;color:#64748b;display:flex;justify-content:space-between}@media print{body{background:white}.page{max-width:none;padding:0}.doc-block{break-inside:avoid}.footer{position:fixed;bottom:0;left:0;right:0}}
+  </style></head><body><main class="page"><header class="header"><div>${company?.logoUrl ? `<img class="logo" src="${escapeHtml(company.logoUrl)}" />` : '<div class="logo-box">Logo</div>'}</div><div class="brand"><h1>${escapeHtml(company?.name || 'Empresa')}</h1><p><strong>Razao social:</strong> ${escapeHtml(company?.legalName || company?.name || '-')}</p><p><strong>CNPJ:</strong> ${escapeHtml(company?.document || '-')}</p><p><strong>Endereco:</strong> ${escapeHtml(company?.address || '-')}</p></div><div class="meta"><p><strong>Telefone:</strong> ${escapeHtml(company?.phone || '-')}</p><p><strong>E-mail:</strong> ${escapeHtml(company?.email || '-')}</p><p><strong>Periodo:</strong> ${escapeHtml(period)}</p><p><strong>Emissao:</strong> ${escapeHtml(emittedAt)}</p></div></header><div class="doc-title">${escapeHtml(title)}</div>${content}<footer class="footer"><span>Innovation RH Connect</span><span>Documento gerado automaticamente em ${escapeHtml(emittedAt)}</span><span>Pagina 1</span></footer></main></body></html>`;
+}
+
+function employeeSummary(employee: Employee, managerName: string) {
+  return `<section class="doc-block"><h2>Dados profissionais</h2><div class="grid-3">
+    ${info('Nome', normalizeDisplayName(employee.name))}${info('Matricula', employee.registration || '-')}${info('CPF', employee.cpf || '-')}
+    ${info('Cargo', employee.position || '-')}${info('Departamento', employee.department || '-')}${info('Unidade', employee.unit || '-')}
+    ${info('Gestor', managerName || '-')}${info('Status', EMPLOYEE_STATUS_LABEL[employee.status] ?? employee.status)}${info('Contrato', employee.contractType || '-')}
+    ${info('Admissao', formatDate(employee.admissionDate))}${info('Desligamento', formatDate(employee.terminationDate))}${info('Escala', employee.workScale || employee.customWorkScale || '-')}
+    ${info('Jornada diaria', employee.dailyWorkload || '-')}${info('Entrada padrao', employee.standardEntry || '-')}${info('Saida almoco', employee.standardLunchStart || '-')}${info('Retorno almoco', employee.standardLunchReturn || '-')}${info('Saida padrao', employee.standardExit || '-')}
+  </div></section>`;
+}
+
+function info(label: string, value: unknown) {
+  return `<div class="item"><span>${escapeHtml(label)}</span><strong>${escapeHtml(String(value ?? '-'))}</strong></div>`;
+}
+
+function accessText(employee: Employee) {
+  if (!employee.userId || !employee.user) return 'Sem acesso';
+  if (!employee.user.isActive) return 'Bloqueado';
+  if (employee.user.forcePasswordChange) return 'Trocar senha';
+  return 'Acesso ativo';
 }
 
 function printPdfDocument(html: string, title: string) {
@@ -267,7 +296,7 @@ function printPdfDocument(html: string, title: string) {
   const doc = iframe.contentWindow?.document;
   if (!doc) {
     iframe.remove();
-    window.alert('Não foi possível gerar o PDF.');
+    window.alert('Nao foi possivel gerar o PDF.');
     return;
   }
   doc.open();
@@ -283,6 +312,6 @@ function slugify(value: string) {
   return normalizeDisplayName(value).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'funcionario';
 }
 
-function escapeHtml(value: string) {
-  return value.replace(/[&<>"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[char] ?? char);
+function escapeHtml(value: unknown) {
+  return String(value ?? '').replace(/[&<>"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[char] ?? char);
 }

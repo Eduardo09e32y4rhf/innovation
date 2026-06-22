@@ -40,7 +40,7 @@ const CONTRACT_OPTIONS: { value: ContractType; label: string }[] = [
   { value: 'JOVEM_APRENDIZ', label: 'Jovem Aprendiz' },
   { value: 'TERCEIRIZADO', label: 'Terceirizado' },
 ];
-const TABS = ['Dados pessoais', 'Dados profissionais', 'Jornada', 'Contrato e acesso'] as const;
+const TABS = ['Dados pessoais', 'Endereco', 'Dados profissionais', 'Jornada', 'Contrato e acesso'] as const;
 
 type TabName = (typeof TABS)[number];
 
@@ -50,7 +50,9 @@ type EmployeeFormState = CreateEmployeeInput & {
 };
 
 const EMPTY: EmployeeFormState = {
-  name: '', cpf: '', email: '', phone: '', birthDate: '', registration: '',
+  name: '', cpf: '', email: '', phone: '', secondaryPhone: '', birthDate: '', registration: '',
+  rg: '', rgIssuer: '', rgState: '', maritalStatus: '', nationality: '', birthplace: '',
+  cep: '', street: '', streetNumber: '', addressComplement: '', neighborhood: '', city: '', state: '', observations: '',
   position: 'Assistente', department: 'Operação', managerId: '',
   admissionDate: '', terminationDate: '', status: 'ACTIVE', unit: 'Matriz',
   salary: undefined, contractType: 'CLT', cnpj: '', legalName: '', tradeName: '',
@@ -90,6 +92,22 @@ function EmployeeForm() {
           cpf: emp.cpf,
           email: emp.email,
           phone: emp.phone ?? '',
+
+          rg: emp.rg ?? '',
+          rgIssuer: emp.rgIssuer ?? '',
+          rgState: emp.rgState ?? '',
+          secondaryPhone: emp.secondaryPhone ?? '',
+          maritalStatus: emp.maritalStatus ?? '',
+          nationality: emp.nationality ?? '',
+          birthplace: emp.birthplace ?? '',
+          cep: emp.cep ?? '',
+          street: emp.street ?? '',
+          streetNumber: emp.streetNumber ?? '',
+          addressComplement: emp.addressComplement ?? '',
+          neighborhood: emp.neighborhood ?? '',
+          city: emp.city ?? '',
+          state: emp.state ?? '',
+          observations: emp.observations ?? '',
           birthDate: dateInput(emp.birthDate),
           registration: emp.registration ?? '',
           position: emp.position,
@@ -142,6 +160,22 @@ function EmployeeForm() {
       cpf: form.cpf,
       email: form.email,
       phone: form.phone,
+
+      rg: form.rg,
+      rgIssuer: form.rgIssuer,
+      rgState: form.rgState,
+      secondaryPhone: form.secondaryPhone,
+      maritalStatus: form.maritalStatus,
+      nationality: form.nationality,
+      birthplace: form.birthplace,
+      cep: form.cep,
+      street: form.street,
+      streetNumber: form.streetNumber,
+      addressComplement: form.addressComplement,
+      neighborhood: form.neighborhood,
+      city: form.city,
+      state: form.state,
+      observations: form.observations,
       birthDate: isoDate(form.birthDate),
       registration: form.registration,
       position: form.position,
@@ -215,6 +249,20 @@ function EmployeeForm() {
             <Field label="E-mail" type="email" value={form.email} onChange={(v) => set('email', v)} required />
             <Field label="Telefone" value={form.phone ?? ''} onChange={(v) => set('phone', v)} placeholder="+55 11 90000-0000" />
             <Field label="Matrícula" value={form.registration ?? ''} onChange={(v) => set('registration', v)} placeholder="EMP-0001" />
+          </div>
+        )}
+
+
+        {activeTab === 'Endereco' && (
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="CEP" value={form.cep ?? ''} onChange={(v) => set('cep', v)} />
+            <Field label="Logradouro" value={form.street ?? ''} onChange={(v) => set('street', v)} />
+            <Field label="Numero" value={form.streetNumber ?? ''} onChange={(v) => set('streetNumber', v)} />
+            <Field label="Complemento" value={form.addressComplement ?? ''} onChange={(v) => set('addressComplement', v)} />
+            <Field label="Bairro" value={form.neighborhood ?? ''} onChange={(v) => set('neighborhood', v)} />
+            <Field label="Cidade" value={form.city ?? ''} onChange={(v) => set('city', v)} />
+            <Field label="Estado" value={form.state ?? ''} onChange={(v) => set('state', v)} />
+            <label className="space-y-1 text-xs font-medium text-slate-600 sm:col-span-2"><span>Observacoes cadastrais</span><textarea value={form.observations ?? ''} onChange={(e) => set('observations', e.target.value)} className="min-h-24 w-full rounded-[8px] border border-slate-200 px-3 py-2 text-sm outline-none focus:border-teal-500" /></label>
           </div>
         )}
 

@@ -24,6 +24,66 @@ export class CreateEmployeeDto {
   phone?: string;
 
   @IsOptional()
+  @IsString()
+  rg?: string;
+
+  @IsOptional()
+  @IsString()
+  rgIssuer?: string;
+
+  @IsOptional()
+  @IsString()
+  rgState?: string;
+
+  @IsOptional()
+  @IsString()
+  cep?: string;
+
+  @IsOptional()
+  @IsString()
+  street?: string;
+
+  @IsOptional()
+  @IsString()
+  streetNumber?: string;
+
+  @IsOptional()
+  @IsString()
+  addressComplement?: string;
+
+  @IsOptional()
+  @IsString()
+  neighborhood?: string;
+
+  @IsOptional()
+  @IsString()
+  city?: string;
+
+  @IsOptional()
+  @IsString()
+  state?: string;
+
+  @IsOptional()
+  @IsString()
+  secondaryPhone?: string;
+
+  @IsOptional()
+  @IsString()
+  maritalStatus?: string;
+
+  @IsOptional()
+  @IsString()
+  nationality?: string;
+
+  @IsOptional()
+  @IsString()
+  birthplace?: string;
+
+  @IsOptional()
+  @IsString()
+  observations?: string;
+
+  @IsOptional()
   @IsDateString()
   birthDate?: string;
 

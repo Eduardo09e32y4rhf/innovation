@@ -97,6 +97,10 @@ export type DailyWorkload = '08:00' | '07:20' | '06:00' | '12:00' | 'OUTRO';
 export interface Employee {
   id: string; companyId: string; userId?: string | null; name: string; cpf: string; email: string;
   phone?: string | null; birthDate?: string | null; registration?: string | null;
+  rg?: string | null; rgIssuer?: string | null; rgState?: string | null;
+  cep?: string | null; street?: string | null; streetNumber?: string | null; addressComplement?: string | null;
+  neighborhood?: string | null; city?: string | null; state?: string | null;
+  secondaryPhone?: string | null; maritalStatus?: string | null; nationality?: string | null; birthplace?: string | null; observations?: string | null;
   position: string; department: string; managerId?: string | null;
   admissionDate: string; terminationDate?: string | null; status: EmployeeStatus;
   salary?: string | number | null; contractType?: ContractType | null;
@@ -109,6 +113,10 @@ export interface Employee {
 }
 export interface CreateEmployeeInput {
   name: string; cpf: string; email: string; phone?: string; birthDate?: string; registration?: string;
+  rg?: string; rgIssuer?: string; rgState?: string;
+  cep?: string; street?: string; streetNumber?: string; addressComplement?: string;
+  neighborhood?: string; city?: string; state?: string;
+  secondaryPhone?: string; maritalStatus?: string; nationality?: string; birthplace?: string; observations?: string;
   position: string; department: string; managerId?: string; admissionDate: string; terminationDate?: string;
   salary?: number; status?: EmployeeStatus; contractType?: ContractType;
   cnpj?: string; legalName?: string; tradeName?: string; unit?: string;

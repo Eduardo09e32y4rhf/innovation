@@ -60,6 +60,7 @@ type MirrorRow = {
   adicionalNoturno: string;
   trabalhado: string;
   saldo: string;
+  statusDia: string;
   observacao: string;
 };
 
@@ -185,9 +186,22 @@ function buildMirrorRows(rows: TimeTrack[]): MirrorRow[] {
       adicionalNoturno: '--:--',
       trabalhado: displayWorked(worked),
       saldo: displayBalance(balance),
+      statusDia: dayStatus(row),
       observacao: observation,
     };
   });
+}
+
+function dayStatus(row: TimeTrack) {
+  const text = `${row.observation ?? ''} ${row.manualReason ?? ''}`.toLowerCase();
+  if (row.manualStatus === 'pending') return 'Pendente';
+  if (row.manualStatus === 'rejected') return 'Rejeitado';
+  if (text.includes('feriado')) return 'Feriado';
+  if (text.includes('atestado integral')) return 'Atestado integral';
+  if (text.includes('folga')) return 'Folga';
+  if (row.manualReason || text.includes('ajuste')) return 'Ajuste manual';
+  if (!row.entry && !row.exit) return 'Falta';
+  return 'Normal';
 }
 
 function sumMinutes(rows: TimeTrack[], field: 'totalWorked' | 'dailyBalance') {
@@ -200,7 +214,7 @@ function downloadExcel(filename: string, rows: TimeTrack[], company: CompanyPrin
     <tr>
       <td>${escapeHtml(row.funcionario)}</td><td>${escapeHtml(row.data)}</td><td>${escapeHtml(row.dia)}</td>
       <td>${escapeHtml(row.entrada1)}</td><td>${escapeHtml(row.saida1)}</td><td>${escapeHtml(row.entrada2)}</td><td>${escapeHtml(row.saida2)}</td>
-      <td>${escapeHtml(row.trabalhado)}</td><td>${escapeHtml(row.saldo)}</td><td>${escapeHtml(row.observacao)}</td>
+      <td>${escapeHtml(row.trabalhado)}</td><td>${escapeHtml(row.saldo)}</td><td>${escapeHtml(row.statusDia)}</td><td>${escapeHtml(row.observacao)}</td>
     </tr>`).join('');
   const html = `<!doctype html><html><head><meta charset="utf-8" /></head><body>
     <h2>Espelho de ponto</h2>
@@ -242,7 +256,7 @@ function renderIndividualReport(rows: TimeTrack[], employee: Employee | undefine
     <tr>
       <td>${escapeHtml(row.data)}</td><td>${escapeHtml(row.dia)}</td><td>${escapeHtml(row.entrada1)}</td><td>${escapeHtml(row.saida1)}</td>
       <td>${escapeHtml(row.entrada2)}</td><td>${escapeHtml(row.saida2)}</td><td>${escapeHtml(row.abono)}</td><td>${escapeHtml(row.horaExtra)}</td>
-      <td>${escapeHtml(row.ausente)}</td><td>${escapeHtml(row.adicionalNoturno)}</td><td>${escapeHtml(row.observacao)}</td>
+      <td>${escapeHtml(row.ausente)}</td><td>${escapeHtml(row.adicionalNoturno)}</td><td>${escapeHtml(row.statusDia)}</td><td>${escapeHtml(row.observacao)}</td>
     </tr>`).join('');
   return `
     <section class="report-brand"><div>${companyLogo(company)}</div><div><h1>Espelho de ponto individual</h1></div></section>
@@ -264,10 +278,11 @@ function renderCompanyReport(rows: TimeTrack[], company: CompanyPrintInfo, month
   const sections = Object.values(grouped).map((employeeRows) => {
     const first = employeeRows[0]?.employee;
     const bodyRows = buildMirrorRows(employeeRows).map((row) => `
-      <tr><td>${escapeHtml(row.data)}</td><td>${escapeHtml(row.dia)}</td><td>${escapeHtml(row.entrada1)}</td><td>${escapeHtml(row.saida1)}</td><td>${escapeHtml(row.entrada2)}</td><td>${escapeHtml(row.saida2)}</td><td>${escapeHtml(row.trabalhado)}</td><td>${escapeHtml(row.saldo)}</td><td>${escapeHtml(row.observacao)}</td></tr>`).join('');
+      <tr><td>${escapeHtml(row.data)}</td><td>${escapeHtml(row.dia)}</td><td>${escapeHtml(row.entrada1)}</td><td>${escapeHtml(row.saida1)}</td><td>${escapeHtml(row.entrada2)}</td><td>${escapeHtml(row.saida2)}</td><td>${escapeHtml(row.trabalhado)}</td><td>${escapeHtml(row.saldo)}</td><td>${escapeHtml(row.statusDia)}</td><td>${escapeHtml(row.observacao)}</td></tr>`).join('');
     return `<section class="employee-block">
       <h2>${escapeHtml(normalizeDisplayName(first?.name ?? 'Funcionário'))}</h2>
       ${employeeHeader(first)}
+      <section class="summary"><strong>Resumo:</strong> trabalhado ${escapeHtml(formatMinutes(sumMinutes(employeeRows, 'totalWorked')))} | saldo ${escapeHtml(formatMinutes(sumMinutes(employeeRows, 'dailyBalance')))} | feriados ${employeeRows.filter((r) => dayStatus(r) === 'Feriado').length} | atestados ${employeeRows.filter((r) => dayStatus(r) === 'Atestado integral').length} | ajustes ${employeeRows.filter((r) => dayStatus(r) === 'Ajuste manual').length}</section>
       <table><thead><tr><th>Data</th><th>Dia</th><th>1ª entrada</th><th>1ª saída</th><th>2ª entrada</th><th>2ª saída</th><th>Trabalhado</th><th>Saldo</th><th>Observação</th></tr></thead><tbody>${bodyRows}</tbody></table>
     </section>`;
   }).join('');
