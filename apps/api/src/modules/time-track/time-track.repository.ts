@@ -20,8 +20,17 @@ export class TimeTrackRepository {
     });
   }
 
-  async listForManager(companyId: string, userId: string) {
-    const manager = await this.prisma.employee.findFirst({ where: { companyId, userId } });
+  async listForManager(companyId: string, userId: string, email?: string) {
+    const normalizedEmail = email?.trim();
+    const manager = await this.prisma.employee.findFirst({
+      where: {
+        companyId,
+        OR: [
+          { userId },
+          ...(normalizedEmail ? [{ email: { equals: normalizedEmail, mode: 'insensitive' as const } }] : []),
+        ],
+      },
+    });
     if (!manager) return [];
     return this.prisma.timeTrack.findMany({
       where: { employee: { companyId, managerId: manager.id } },
@@ -38,8 +47,17 @@ export class TimeTrackRepository {
     return this.prisma.employee.findFirst({ where: { id: employeeId, companyId } });
   }
 
-  findEmployeeByUserId(companyId: string, userId: string) {
-    return this.prisma.employee.findFirst({ where: { userId, companyId } });
+  findEmployeeByUserId(companyId: string, userId: string, email?: string) {
+    const normalizedEmail = email?.trim();
+    return this.prisma.employee.findFirst({
+      where: {
+        companyId,
+        OR: [
+          { userId },
+          ...(normalizedEmail ? [{ email: { equals: normalizedEmail, mode: 'insensitive' as const } }] : []),
+        ],
+      },
+    });
   }
 
   upsert(employeeId: string, date: Date, data: any) {
@@ -66,8 +84,17 @@ export class TimeTrackRepository {
     });
   }
 
-  async listPendingForManager(companyId: string, userId: string) {
-    const manager = await this.prisma.employee.findFirst({ where: { companyId, userId } });
+  async listPendingForManager(companyId: string, userId: string, email?: string) {
+    const normalizedEmail = email?.trim();
+    const manager = await this.prisma.employee.findFirst({
+      where: {
+        companyId,
+        OR: [
+          { userId },
+          ...(normalizedEmail ? [{ email: { equals: normalizedEmail, mode: 'insensitive' as const } }] : []),
+        ],
+      },
+    });
     if (!manager) return [];
     return this.prisma.timeTrack.findMany({
       where: { employee: { companyId, managerId: manager.id }, manualStatus: 'pending' },

@@ -37,5 +37,5 @@ export const VACATION_STATUS_LABEL: Record<string, string> = {
   PENDING: 'Pendente', APPROVED: 'Aprovada', REJECTED: 'Rejeitada', CANCELLED: 'Cancelada', COMPLETED: 'Concluída',
 };
 export const ROLE_LABEL: Record<string, string> = {
-  DEV: 'Super Admin', COMERCIAL: 'Comercial', ADMIN: 'Administrador', RH: 'RH', GESTOR: 'Gestor', FUNCIONARIO: 'Funcionário', CONSULTA: 'Consulta',
+  DEV: 'Dev', COMERCIAL: 'Venda', ADMIN: 'Administrador', RH: 'RH', GESTOR: 'Gestor', FUNCIONARIO: 'Funcionário', CONSULTA: 'Consulta',
 };

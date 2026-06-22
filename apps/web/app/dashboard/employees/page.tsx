@@ -1,13 +1,13 @@
 'use client';
 
 import Link from 'next/link';
-import { Edit3, Search, Trash2, UserMinus, UserPlus } from 'lucide-react';
+import { Download, Edit3, Search, Trash2, UserMinus, UserPlus } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { EmptyState, ErrorState, LoadingState } from '@/app/components/data-states';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useMutation, useQuery } from '@/app/hooks/use-data';
-import { api, type Employee } from '@/app/lib/api';
-import { EMPLOYEE_STATUS_LABEL } from '@/app/lib/format';
+import { api, type Employee, type TimeTrack } from '@/app/lib/api';
+import { EMPLOYEE_STATUS_LABEL, formatDate, formatMinutes, formatTime } from '@/app/lib/format';
 import { normalizeDisplayName } from '@/app/lib/text';
 
 const collator = new Intl.Collator('pt-BR', { sensitivity: 'base', numeric: true });
@@ -19,6 +19,7 @@ export default function EmployeesPage() {
   const isGestor = profile === 'GESTOR';
   const { data, loading, error, refetch } = useQuery(() => api.employees.list(), []);
   const [search, setSearch] = useState('');
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const terminate = useMutation((id: string) => api.employees.terminate(id), { onSuccess: () => refetch() });
   const remove = useMutation((id: string) => api.employees.delete(id), { onSuccess: () => refetch() });
 
@@ -52,6 +53,20 @@ export default function EmployeesPage() {
     const typed = window.prompt(`Excluir definitivamente ${expected}? Digite o nome do funcionário para confirmar.`);
     if (typed !== expected) return;
     await remove.mutate(employee.id).catch(() => {});
+  }
+
+
+  async function handleDownloadSheet(employee: Employee) {
+    const month = currentMonth();
+    setDownloadingId(employee.id);
+    try {
+      const rows = await api.timeTrack.listEmployeeMonth(employee.id, month);
+      downloadEmployeeSheet(employee, rows, month);
+    } catch {
+      window.alert('Não foi possível baixar a folha deste funcionário.');
+    } finally {
+      setDownloadingId(null);
+    }
   }
 
   return (
@@ -123,6 +138,9 @@ export default function EmployeesPage() {
                             <Link href={`/dashboard/employees/new?id=${employee.id}`} className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px]">
                               <Edit3 size={12} />Editar
                             </Link>
+                            <button onClick={() => handleDownloadSheet(employee)} disabled={downloadingId === employee.id} className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px] disabled:opacity-50">
+                              <Download size={12} />Folha
+                            </button>
                             <button onClick={() => handleTerminate(employee)} disabled={employee.status === 'TERMINATED' || terminate.loading} className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px] disabled:opacity-50">
                               <UserMinus size={12} />Desligar
                             </button>
@@ -156,4 +174,55 @@ function StatusBadge({ status }: { status: string }) {
       {EMPLOYEE_STATUS_LABEL[status] ?? status}
     </span>
   );
+}
+function currentMonth() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function displayLunch(row: TimeTrack) {
+  if (!row.lunchStart && !row.lunchReturn) return '-';
+  return `${formatTime(row.lunchStart)} - ${formatTime(row.lunchReturn)}`;
+}
+
+function downloadEmployeeSheet(employee: Employee, rows: TimeTrack[], month: string) {
+  const title = `Folha de ponto - ${normalizeDisplayName(employee.name)} - ${month}`;
+  const body = rows.length
+    ? rows.map((row) => `
+      <tr>
+        <td>${escapeHtml(formatDate(row.date))}</td>
+        <td>${escapeHtml(formatTime(row.entry))}</td>
+        <td>${escapeHtml(displayLunch(row))}</td>
+        <td>${escapeHtml(formatTime(row.exit))}</td>
+        <td>${escapeHtml(formatMinutes(row.totalWorked))}</td>
+        <td>${escapeHtml(formatMinutes(row.dailyBalance))}</td>
+        <td>${escapeHtml(row.observation || row.manualReason || '-')}</td>
+      </tr>`).join('')
+    : '<tr><td colspan="7">Nenhum ponto encontrado no mês.</td></tr>';
+  const html = `<!doctype html><html><head><meta charset="utf-8" /></head><body>
+    <h1>${escapeHtml(title)}</h1>
+    <p><strong>Funcionário:</strong> ${escapeHtml(normalizeDisplayName(employee.name))}</p>
+    <p><strong>Matrícula:</strong> ${escapeHtml(employee.registration || '-')} | <strong>CPF:</strong> ${escapeHtml(employee.cpf || '-')} | <strong>Departamento:</strong> ${escapeHtml(employee.department || '-')}</p>
+    <table border="1" cellspacing="0" cellpadding="4">
+      <thead><tr><th>Data</th><th>Entrada</th><th>Almoço</th><th>Saída</th><th>Trabalhado</th><th>Saldo</th><th>Motivo/observação</th></tr></thead>
+      <tbody>${body}</tbody>
+    </table>
+  </body></html>`;
+  const blob = new Blob([html], { type: 'application/vnd.ms-excel;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `folha-ponto-${slugify(employee.name)}-${month}.xls`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function slugify(value: string) {
+  return normalizeDisplayName(value).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'funcionario';
+}
+
+function escapeHtml(value: string) {
+  return value.replace(/[&<>"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[char] ?? char);
 }

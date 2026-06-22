@@ -336,7 +336,7 @@ export default function TimeTrackPage() {
   const reportCompany = normalizeCompanyInfo(company.data);
   const remove = useMutation((id: string) => api.timeTrack.delete(id), { onSuccess: () => tracks.refetch() });
 
-  const canClockIn = profile !== 'ADMIN' && profile !== 'DEV' && profile !== 'COMERCIAL' && profile !== 'CONSULTA';
+  const canClockIn = Boolean(profile && !['DEV', 'COMERCIAL', 'CONSULTA'].includes(profile));
   const canApprove = canManage || isGestor;
   const pendingTracks = useQuery(() => api.timeTrack.listPending(), [], { enabled: canApprove });
   const approveMutation = useMutation(

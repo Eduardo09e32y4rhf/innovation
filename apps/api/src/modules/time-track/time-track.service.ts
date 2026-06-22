@@ -21,8 +21,8 @@ export class TimeTrackService {
 
   async list(companyId: string, actor: JwtUser) {
     if (actor.role === 'ADMIN' || actor.role === 'RH' || actor.role === 'DEV' || actor.role === 'CONSULTA') return this.repository.list(companyId);
-    if (actor.role === 'GESTOR') return this.repository.listForManager(companyId, actor.sub);
-    const employee = await this.repository.findEmployeeByUserId(companyId, actor.sub);
+    if (actor.role === 'GESTOR') return this.repository.listForManager(companyId, actor.sub, actor.email);
+    const employee = await this.repository.findEmployeeByUserId(companyId, actor.sub, actor.email);
     if (!employee) return [];
     const { start, end } = this.resolveMonth();
     return this.repository.listEmployeeMonth(companyId, employee.id, start, end);
@@ -53,7 +53,8 @@ export class TimeTrackService {
   }
 
   async register(companyId: string, actor: JwtUser, dto: RegisterTimeDto) {
-    await this.ensureCanAccessEmployee(companyId, actor, dto.employeeId);
+    const employee = await this.ensureCanAccessEmployee(companyId, actor, dto.employeeId);
+    if (employee.status !== 'ACTIVE') throw new ForbiddenException('Funcionario inativo');
     const timestamp = dto.timestamp ? new Date(dto.timestamp) : new Date();
     if (Number.isNaN(timestamp.getTime())) throw new BadRequestException('Invalid timestamp');
     const field = this.typeToField(dto.type);
@@ -91,7 +92,7 @@ export class TimeTrackService {
       return this.repository.listPending(companyId);
     }
     if (actor.role === 'GESTOR') {
-      return this.repository.listPendingForManager(companyId, actor.sub);
+      return this.repository.listPendingForManager(companyId, actor.sub, actor.email);
     }
     return [];
   }
@@ -101,7 +102,7 @@ export class TimeTrackService {
     if (!track) throw new NotFoundException('Time track not found');
     if (track.manualStatus !== 'pending') throw new BadRequestException('Este ponto nao esta pendente de aprovacao');
     if (actor.role === 'GESTOR') {
-      const managerEmployee = await this.repository.findEmployeeByUserId(companyId, actor.sub);
+      const managerEmployee = await this.repository.findEmployeeByUserId(companyId, actor.sub, actor.email);
       if (!managerEmployee) throw new ForbiddenException('Permissao insuficiente');
       const employee = await this.repository.findEmployee(companyId, track.employeeId);
       if (!employee || employee.managerId !== managerEmployee.id) throw new ForbiddenException('Permissao insuficiente');
@@ -196,7 +197,8 @@ export class TimeTrackService {
   private async ensureCanAccessEmployee(companyId: string, actor: JwtUser, employeeId: string) {
     const employee = await this.ensureEmployee(companyId, employeeId);
     if (actor.role === 'ADMIN' || actor.role === 'RH' || actor.role === 'DEV' || actor.role === 'CONSULTA') return employee;
-    if (employee.userId === actor.sub) return employee;
+    const sameEmail = Boolean(employee.email && actor.email && employee.email.toLowerCase() === actor.email.toLowerCase());
+    if (employee.userId === actor.sub || sameEmail) return employee;
     throw new NotFoundException('Employee not found');
   }
 

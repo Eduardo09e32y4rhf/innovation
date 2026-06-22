@@ -73,11 +73,12 @@ export default function ClockInPage() {
   const router = useRouter();
   const { user } = useAuth();
   const profile = user?.profile?.toUpperCase();
-  const isAdmin = profile === 'ADMIN';
+  const isBlockedClockProfile = profile === 'DEV' || profile === 'COMERCIAL' || profile === 'CONSULTA';
   const geo = useGeolocation();
 
   const employees = useQuery(() => api.employees.list(), []);
-  const myEmployee = (employees.data ?? []).find((e: Employee) => e.userId === user?.id);
+  const userEmail = user?.email?.trim().toLowerCase();
+  const myEmployee = (employees.data ?? []).find((e: Employee) => e.userId === user?.id || (userEmail && e.email?.trim().toLowerCase() === userEmail));
 
   const [success, setSuccess] = useState<string | null>(null);
   const [showManual, setShowManual] = useState(false);
@@ -124,12 +125,12 @@ export default function ClockInPage() {
     punch.mutate({ type: manualType, manual: true }).catch(() => {});
   }, [punch, manualType, manualTime]);
 
-  if (isAdmin) {
+  if (isBlockedClockProfile) {
     return (
       <div className="mx-auto max-w-2xl py-20 text-center">
         <AlertTriangle size={48} className="mx-auto mb-4 text-amber-500" />
-        <h2 className="text-xl font-black text-slate-950">Administradores nao batem ponto</h2>
-        <p className="mt-2 text-sm text-slate-500">O perfil ADMIN nao possui registro de ponto.</p>
+        <h2 className="text-xl font-black text-slate-950">Este perfil não bate ponto</h2>
+        <p className="mt-2 text-sm text-slate-500">Use um perfil de funcionário ativo vinculado ao cadastro para registrar ponto.</p>
       </div>
     );
   }
