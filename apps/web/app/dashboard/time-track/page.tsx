@@ -490,7 +490,13 @@ export default function TimeTrackPage() {
       )}
 
 
-      {!isFuncionario && visibleEmployees.length > 0 && (
+      {remove.error && <p className="rounded-[8px] border border-rose-200 bg-rose-50 px-4 py-2 text-xs text-rose-700">{remove.error}</p>}
+      {isRefreshingTracks && <p className="rounded-[8px] border border-teal-200 bg-teal-50 px-4 py-2 text-xs font-semibold text-teal-700">Atualizando a folha de ponto...</p>}
+      {tracks.error && tracks.data && <p className="rounded-[8px] border border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-700">Nao foi possivel atualizar agora. Os ultimos dados carregados continuam visiveis.</p>}
+
+      {isInitialTracksLoading ? <LoadingState label="Carregando folha de ponto..." /> : tracks.error && !tracks.data ? <ErrorState message={tracks.error} onRetry={tracks.refetch} /> : isFuncionario ? (
+        rows.length === 0 ? <EmptyState message="Nenhum registro de ponto encontrado." /> : <TimeRowsTable rows={rows} canManage={false} isRefreshing={isRefreshingTracks} removeLoading={remove.loading} onEdit={setEditing} onDelete={handleDelete} />
+      ) : visibleEmployees.length === 0 ? <EmptyState message="Nenhum colaborador encontrado para o filtro selecionado." /> : (
         <section className="ops-card overflow-hidden rounded-[8px] border border-slate-200 bg-white">
           <div className="border-b border-slate-100 px-5 py-4">
             <h3 className="text-sm font-black text-slate-950">Colaboradores da folha</h3>
@@ -498,18 +504,30 @@ export default function TimeTrackPage() {
           <div className="divide-y divide-slate-100">
             {visibleEmployees.map((employee) => {
               const employeeRows = rowsByEmployee[employee.id] ?? [];
+              const opened = !employeeFilter || employeeFilter === employee.id;
               return (
-                <div key={employee.id} className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <p className="text-xs font-black text-slate-950">{employee.registration || employee.id.slice(0, 8).toUpperCase()} - {normalizeDisplayName(employee.name)}</p>
-                    <p className="mt-1 text-[11px] font-medium text-slate-500">{employeeRows.length} registro(s) no filtro atual</p>
+                <div key={employee.id} className="px-5 py-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="text-xs font-black text-slate-950">{employee.registration || employee.id.slice(0, 8).toUpperCase()} - {normalizeDisplayName(employee.name)}</p>
+                      <p className="mt-1 text-[11px] font-medium text-slate-500">{employeeRows.length} registro(s) no filtro atual</p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <button onClick={() => setEmployeeFilter(opened && employeeFilter === employee.id ? '' : employee.id)} className="btn-outline inline-flex h-9 items-center gap-2 rounded-[8px] px-3 text-[11px] font-black"><Eye size={13} /> {opened ? 'Ocultar detalhes' : 'Exibir detalhes'}</button>
+                      {canDownloadOwnOrTeam && (
+                        <button onClick={() => openPrintableReport(employeeRows, monthFilter, reportCompany, employee)} disabled={employeeRows.length === 0 || company.loading || isRefreshingTracks} className="btn-outline inline-flex h-9 items-center gap-2 rounded-[8px] px-3 text-[11px] font-black disabled:opacity-50"><FileText size={13} /> Baixar folha</button>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    <button onClick={() => setEmployeeFilter(employee.id)} className="btn-outline inline-flex h-9 items-center gap-2 rounded-[8px] px-3 text-[11px] font-black"><Eye size={13} /> Exibir detalhes</button>
-                    {canDownloadOwnOrTeam && (
-                      <button onClick={() => openPrintableReport(employeeRows, monthFilter, reportCompany, employee)} disabled={employeeRows.length === 0 || company.loading || isRefreshingTracks} className="btn-outline inline-flex h-9 items-center gap-2 rounded-[8px] px-3 text-[11px] font-black disabled:opacity-50"><FileText size={13} /> Baixar folha</button>
-                    )}
-                  </div>
+                  {opened && (
+                    <div className="mt-4">
+                      {employeeRows.length === 0 ? (
+                        <div className="rounded-[8px] border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-center text-xs font-semibold text-slate-500">Nenhum registro de ponto para este colaborador no filtro atual.</div>
+                      ) : (
+                        <TimeRowsTable rows={employeeRows} canManage={canManage} isRefreshing={isRefreshingTracks} removeLoading={remove.loading} onEdit={setEditing} onDelete={handleDelete} compact />
+                      )}
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -517,34 +535,43 @@ export default function TimeTrackPage() {
         </section>
       )}
 
-      {remove.error && <p className="rounded-[8px] border border-rose-200 bg-rose-50 px-4 py-2 text-xs text-rose-700">{remove.error}</p>}
-      {isRefreshingTracks && <p className="rounded-[8px] border border-teal-200 bg-teal-50 px-4 py-2 text-xs font-semibold text-teal-700">Atualizando a folha de ponto...</p>}
-      {tracks.error && tracks.data && <p className="rounded-[8px] border border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-700">Nao foi possivel atualizar agora. Os ultimos dados carregados continuam visiveis.</p>}
-
-      {isInitialTracksLoading ? <LoadingState label="Carregando folha de ponto..." /> : tracks.error && !tracks.data ? <ErrorState message={tracks.error} onRetry={tracks.refetch} /> : rows.length === 0 ? <EmptyState message={isFuncionario ? 'Nenhum registro de ponto encontrado.' : 'Nenhum registro de ponto para o filtro selecionado.'} /> : (
-        <section className="ops-card overflow-hidden rounded-[8px] border border-slate-200 bg-white">
-          <div className="overflow-x-auto p-5">
-            <table className={`w-full ${isFuncionario ? 'min-w-[680px]' : 'min-w-[1040px]'} text-left`}>
-              <thead><tr className="text-[11px] font-medium text-slate-500">{!isFuncionario && <th className="pb-3 pr-4">Funcionário</th>}<th className="pb-3 pr-4">Data</th><th className="pb-3 pr-4">Entrada</th><th className="pb-3 pr-4">Almoço</th><th className="pb-3 pr-4">Saída</th><th className="pb-3 pr-4">Trabalhado</th><th className="pb-3 pr-4">Saldo</th><th className="pb-3 pr-4">Motivo</th>{canManage && <th className="pb-3">Ações</th>}</tr></thead>
-              <tbody>{rows.map((row) => (
-                <tr key={row.id} className="border-t border-slate-100 text-xs text-slate-700">
-                  {!isFuncionario && <td className="py-3 pr-4 font-medium text-slate-950">{normalizeDisplayName(row.employee?.name ?? '-')}</td>}
-                  <td className="py-3 pr-4">{formatDate(row.date)}</td>
-                  <td className="py-3 pr-4">{displayTime(row.entry)}</td>
-                  <td className="py-3 pr-4">{displayLunch(row.lunchStart, row.lunchReturn)}</td>
-                  <td className="py-3 pr-4">{displayTime(row.exit)}</td>
-                  <td className="py-3 pr-4">{displayWorked(row.totalWorked)}</td>
-                  <td className={`py-3 pr-4 font-medium ${(row.dailyBalance ?? 0) < 0 ? 'text-rose-600' : 'text-emerald-600'}`}>{displayBalance(row.dailyBalance)}</td>
-                  <td className="max-w-[220px] truncate py-3 pr-4">{row.observation || '-'}</td>
-                  {canManage && <td className="py-3"><div className="flex gap-2"><button onClick={() => setEditing(row)} disabled={isRefreshingTracks || remove.loading} className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px]"><Edit3 size={12} />Editar</button><button onClick={() => handleDelete(row)} disabled={isRefreshingTracks || remove.loading} className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px] text-rose-600"><Trash2 size={12} />Excluir</button></div></td>}
-                </tr>
-              ))}</tbody>
-            </table>
-          </div>
-        </section>
-      )}
-
       {canManage && (open || bulkOpen || editing) && <ManualTimeSheetModal employees={activeEmployees} employeesLoading={employees.loading} employeesError={employees.error} defaultEmployeeId={employeeFilter} track={editing ?? undefined} bulk={bulkOpen} onClose={() => { setOpen(false); setBulkOpen(false); setEditing(null); }} onDone={() => { setOpen(false); setBulkOpen(false); setEditing(null); tracks.refetch(); }} />}
+    </div>
+  );
+}
+
+
+function TimeRowsTable({ rows, canManage, isRefreshing, removeLoading, onEdit, onDelete, compact = false }: { rows: TimeTrack[]; canManage: boolean; isRefreshing: boolean; removeLoading: boolean; onEdit: (row: TimeTrack) => void; onDelete: (row: TimeTrack) => void; compact?: boolean }) {
+  return (
+    <div className="overflow-x-auto">
+      <table className={`w-full ${compact ? 'min-w-[820px]' : 'min-w-[900px]'} text-left`}>
+        <thead>
+          <tr className="text-[11px] font-medium text-slate-500">
+            <th className="pb-3 pr-4">Data</th>
+            <th className="pb-3 pr-4">Entrada</th>
+            <th className="pb-3 pr-4">Almoco</th>
+            <th className="pb-3 pr-4">Saida</th>
+            <th className="pb-3 pr-4">Trabalhado</th>
+            <th className="pb-3 pr-4">Saldo</th>
+            <th className="pb-3 pr-4">Motivo</th>
+            {canManage && <th className="pb-3">Acoes</th>}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => (
+            <tr key={row.id} className="border-t border-slate-100 text-xs text-slate-700">
+              <td className="py-3 pr-4">{formatDate(row.date)}</td>
+              <td className="py-3 pr-4">{displayTime(row.entry)}</td>
+              <td className="py-3 pr-4">{displayLunch(row.lunchStart, row.lunchReturn)}</td>
+              <td className="py-3 pr-4">{displayTime(row.exit)}</td>
+              <td className="py-3 pr-4">{displayWorked(row.totalWorked)}</td>
+              <td className={`py-3 pr-4 font-medium ${(row.dailyBalance ?? 0) < 0 ? 'text-rose-600' : 'text-emerald-600'}`}>{displayBalance(row.dailyBalance)}</td>
+              <td className="max-w-[240px] truncate py-3 pr-4">{row.observation || row.manualReason || '-'}</td>
+              {canManage && <td className="py-3"><div className="flex gap-2"><button onClick={() => onEdit(row)} disabled={isRefreshing || removeLoading} className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px]"><Edit3 size={12} />Editar</button><button onClick={() => onDelete(row)} disabled={isRefreshing || removeLoading} className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px] text-rose-600"><Trash2 size={12} />Excluir</button></div></td>}
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
