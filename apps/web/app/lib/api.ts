@@ -104,6 +104,7 @@ export interface Employee {
   unit?: string | null;
   workScale?: WorkScale | null; customWorkScale?: string | null; dailyWorkload?: DailyWorkload | null;
   standardEntry?: string | null; standardLunchStart?: string | null; standardLunchReturn?: string | null; standardExit?: string | null;
+  user?: { id: string; role: UserRole; isActive: boolean; forcePasswordChange?: boolean } | null;
   createdAt: string; updatedAt: string;
 }
 export interface CreateEmployeeInput {
@@ -113,6 +114,7 @@ export interface CreateEmployeeInput {
   cnpj?: string; legalName?: string; tradeName?: string; unit?: string;
   workScale?: WorkScale; customWorkScale?: string; dailyWorkload?: DailyWorkload;
   standardEntry?: string; standardLunchStart?: string; standardLunchReturn?: string; standardExit?: string;
+  accessEnabled?: 'NO' | 'YES'; accessProfile?: 'FUNCIONARIO' | 'GESTOR' | 'RH' | 'ADMIN' | 'CONSULTA';
 }
 export interface TimeTrack {
   id: string; employeeId: string; date: string;

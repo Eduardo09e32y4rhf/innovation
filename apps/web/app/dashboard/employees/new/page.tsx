@@ -46,7 +46,7 @@ type TabName = (typeof TABS)[number];
 
 type EmployeeFormState = CreateEmployeeInput & {
   accessEnabled: 'NO' | 'YES';
-  accessProfile: 'FUNCIONARIO' | 'GESTOR' | 'RH' | 'ADMIN';
+  accessProfile: 'FUNCIONARIO' | 'GESTOR' | 'RH' | 'ADMIN' | 'CONSULTA';
 };
 
 const EMPTY: EmployeeFormState = {
@@ -111,8 +111,8 @@ function EmployeeForm() {
           standardLunchStart: emp.standardLunchStart ?? '',
           standardLunchReturn: emp.standardLunchReturn ?? '',
           standardExit: emp.standardExit ?? '',
-          accessEnabled: 'NO',
-          accessProfile: 'FUNCIONARIO',
+          accessEnabled: emp.userId ? 'YES' : 'NO',
+          accessProfile: (emp.user?.role === 'ADMIN' || emp.user?.role === 'RH' || emp.user?.role === 'GESTOR' || emp.user?.role === 'CONSULTA' || emp.user?.role === 'FUNCIONARIO') ? emp.user.role : 'FUNCIONARIO',
         });
       })
       .catch(() => {})
@@ -163,6 +163,8 @@ function EmployeeForm() {
       standardLunchStart: form.standardLunchStart,
       standardLunchReturn: form.standardLunchReturn,
       standardExit: form.standardExit,
+      accessEnabled: form.accessEnabled,
+      accessProfile: form.accessProfile,
     });
     try {
       await save.mutate(payload);

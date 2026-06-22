@@ -6,6 +6,8 @@ const CONTRACT_TYPES = ['CLT', 'PJ', 'ESTAGIO', 'TEMPORARIO', 'JOVEM_APRENDIZ', 
 const WORK_SCALES = ['5X2', '6X1', '12X36', '4X2', 'OUTRO'] as const;
 const DAILY_WORKLOADS = ['08:00', '07:20', '06:00', '12:00', 'OUTRO'] as const;
 const TIME_VALUE = /^([01]\d|2[0-3]):[0-5]\d$/;
+const ACCESS_ENABLED = ['NO', 'YES'] as const;
+const ACCESS_PROFILES = ['FUNCIONARIO', 'GESTOR', 'RH', 'ADMIN', 'CONSULTA'] as const;
 
 export class CreateEmployeeDto {
   @IsString()
@@ -102,4 +104,12 @@ export class CreateEmployeeDto {
   @IsOptional()
   @Matches(TIME_VALUE)
   standardExit?: string;
+
+  @IsOptional()
+  @IsIn(ACCESS_ENABLED)
+  accessEnabled?: (typeof ACCESS_ENABLED)[number];
+
+  @IsOptional()
+  @IsIn(ACCESS_PROFILES)
+  accessProfile?: (typeof ACCESS_PROFILES)[number];
 }

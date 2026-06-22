@@ -133,6 +133,7 @@ export default function EmployeesPage() {
                       <td className="py-3 pr-4">{employee.department}</td>
                       <td className="py-3 pr-4">{employee.position}</td>
                       <td className="py-3 pr-4"><StatusBadge status={employee.status} /></td>
+                      <td className="py-3 pr-4"><AccessBadge employee={employee} /></td>
                       {canEdit && (
                         <td className="py-3">
                           <div className="flex flex-wrap gap-2">
@@ -163,6 +164,14 @@ export default function EmployeesPage() {
       )}
     </div>
   );
+}
+
+
+function AccessBadge({ employee }: { employee: Employee }) {
+  if (!employee.userId || !employee.user) return <span className="text-[11px] font-semibold text-slate-400">Sem acesso</span>;
+  if (!employee.user.isActive) return <span className="inline-flex rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-[10px] font-bold text-rose-700">Bloqueado</span>;
+  if (employee.user.forcePasswordChange) return <span className="inline-flex rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-700">Trocar senha</span>;
+  return <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">Ativo</span>;
 }
 
 function StatusBadge({ status }: { status: string }) {

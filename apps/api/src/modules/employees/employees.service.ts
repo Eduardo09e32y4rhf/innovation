@@ -1,8 +1,12 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import type { JwtUser } from '../../common/types/auth.types';
+import * as bcrypt from 'bcryptjs';
+import type { JwtUser, UserRole } from '../../common/types/auth.types';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
 import { EmployeesRepository } from './employees.repository';
+
+const DEFAULT_PANEL_PASSWORD = process.env.DEFAULT_EMPLOYEE_PASSWORD ?? 'Innovation@123';
+const EMPLOYEE_ACCESS_ROLES: UserRole[] = ['FUNCIONARIO', 'GESTOR', 'RH', 'ADMIN', 'CONSULTA'];
 
 @Injectable()
 export class EmployeesService {
@@ -30,7 +34,9 @@ export class EmployeesService {
     const existing = await this.repository.findByCpf(dto.cpf);
     if (existing) throw new ConflictException('CPF already registered');
     await this.ensureRegistrationAvailable(companyId, dto.registration);
-    return this.repository.create(companyId, this.toData(dto));
+    const employee = await this.repository.create(companyId, this.toData(dto));
+    await this.syncPanelAccess(companyId, employee, dto);
+    return this.get(companyId, employee.id);
   }
 
   async update(companyId: string, id: string, dto: UpdateEmployeeDto) {
@@ -41,6 +47,8 @@ export class EmployeesService {
     await this.ensureRegistrationAvailable(companyId, dto.registration, id);
     const result = await this.repository.update(companyId, id, this.toData(dto));
     if (!result.count) throw new NotFoundException('Employee not found');
+    const employee = await this.get(companyId, id);
+    await this.syncPanelAccess(companyId, employee, dto);
     return this.get(companyId, id);
   }
 
@@ -63,9 +71,54 @@ export class EmployeesService {
     if (existing && existing.id !== currentEmployeeId) throw new ConflictException('Matricula already registered');
   }
 
+  private async syncPanelAccess(companyId: string, employee: any, dto: CreateEmployeeDto | UpdateEmployeeDto) {
+    if (dto.accessEnabled === undefined) return;
+
+    if (dto.accessEnabled !== 'YES') {
+      if (employee.userId) await this.repository.updateUser(companyId, employee.userId, { isActive: false });
+      return;
+    }
+
+    const role = this.resolveAccessRole(dto.accessProfile);
+    const email = (dto.email ?? employee.email)?.trim().toLowerCase();
+    if (!email) throw new ConflictException('E-mail obrigatorio para acesso ao painel');
+
+    const existingUser = await this.repository.findUserByEmail(email);
+    if (existingUser && existingUser.companyId !== companyId) throw new ConflictException('E-mail already registered in another company');
+    if (existingUser) {
+      const linkedEmployee = await this.repository.findByUserId(companyId, existingUser.id);
+      if (linkedEmployee && linkedEmployee.id !== employee.id) throw new ConflictException('User already linked to another employee');
+      await this.repository.updateUser(companyId, existingUser.id, {
+        name: dto.name ?? employee.name,
+        email,
+        role,
+        isActive: true,
+      });
+      if (employee.userId !== existingUser.id) await this.repository.updateUserLink(companyId, employee.id, existingUser.id);
+      return;
+    }
+
+    const user = await this.repository.createUser({
+      companyId,
+      name: dto.name ?? employee.name,
+      email,
+      role,
+      passwordHash: await bcrypt.hash(DEFAULT_PANEL_PASSWORD, 12),
+      forcePasswordChange: true,
+      isActive: true,
+    });
+    await this.repository.updateUserLink(companyId, employee.id, user.id);
+  }
+
+  private resolveAccessRole(role?: string): UserRole {
+    if (role && EMPLOYEE_ACCESS_ROLES.includes(role as UserRole)) return role as UserRole;
+    return 'FUNCIONARIO';
+  }
+
   private toData(dto: CreateEmployeeDto | UpdateEmployeeDto) {
+    const { accessEnabled, accessProfile, ...employeeData } = dto;
     return {
-      ...dto,
+      ...employeeData,
       phone: this.emptyToUndefined(dto.phone),
       birthDate: dto.birthDate ? new Date(dto.birthDate) : undefined,
       registration: this.emptyToUndefined(dto.registration),
