@@ -1,0 +1,4 @@
+## 2026-06-22 - Predictable Fallback String Vulnerability
+**Vulnerability:** Replacing hardcoded authentication bypass tokens with environment variables but using predictable string fallbacks (e.g., `|| ''` or `|| 'UNSET_DEMO_TOKEN'`).
+**Learning:** If the environment variable is not populated in a production environment, the authentication guard will treat the predictable fallback string as the actual required credential, allowing anyone to bypass authentication simply by submitting that exact string.
+**Prevention:** Never use static or predictable string fallbacks for authentication tokens. Always ensure that the guard explicitly verifies the truthiness of the token (e.g., `DEMO_TOKEN && token === DEMO_TOKEN`) before performing the comparison, or use unguessable runtime values (like `crypto.randomUUID()`) if fallbacks are strictly required.
