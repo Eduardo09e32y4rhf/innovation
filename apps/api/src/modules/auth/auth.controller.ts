@@ -6,6 +6,8 @@ import { AuthService } from './auth.service';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { LoginDto } from './dto/login.dto';
 import { RegisterCompanyDto } from './dto/register-company.dto';
+import { RequestPasswordResetDto } from './dto/request-password-reset.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -17,8 +19,18 @@ export class AuthController {
   }
 
   @Post('login')
-  login(@Body() dto: LoginDto) {
-    return this.service.login(dto);
+  login(@Body() dto: LoginDto, @Req() request: any) {
+    return this.service.login(dto, getRequestMeta(request));
+  }
+
+  @Post('password-reset/request')
+  requestPasswordReset(@Body() dto: RequestPasswordResetDto, @Req() request: any) {
+    return this.service.requestPasswordReset(dto, getRequestMeta(request));
+  }
+
+  @Post('password-reset/confirm')
+  resetPassword(@Body() dto: ResetPasswordDto, @Req() request: any) {
+    return this.service.resetPassword(dto, getRequestMeta(request));
   }
 
   @UseGuards(JwtAuthGuard)

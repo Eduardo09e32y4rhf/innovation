@@ -189,6 +189,11 @@ export interface UpdatePlatformCompanyUserInput { name?: string; email?: string;
 export const api = {
   request,
 
+  auth: {
+    requestPasswordReset: (email: string) => request<{ requested: boolean; resetToken?: string }>('/auth/password-reset/request', { method: 'POST', body: { email } }),
+    resetPassword: (token: string, newPassword: string) => request<{ changed: boolean }>('/auth/password-reset/confirm', { method: 'POST', body: { token, newPassword } }),
+  },
+
   dashboard: {
     summary: () => request<DashboardSummary>('/dashboard/summary'),
   },

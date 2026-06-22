@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   AlertCircle,
@@ -240,6 +241,10 @@ export default function LoginPage() {
                     </button>
                   </div>
                 </label>
+
+                <div className="flex justify-end">
+                  <Link href="/forgot-password" className="text-xs font-black text-slate-500 hover:text-slate-950">Esqueci minha senha</Link>
+                </div>
 
                 <button
                   type="submit"

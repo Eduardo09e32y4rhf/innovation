@@ -5,11 +5,14 @@ import { AuthRepository } from './auth.repository';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { LoginDto } from './dto/login.dto';
 import { RegisterCompanyDto } from './dto/register-company.dto';
+import { RequestPasswordResetDto } from './dto/request-password-reset.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 import type { JwtUser, UserRole } from '../../common/types/auth.types';
 
 const PLATFORM_OWNER_EMAIL = 'eduardo998468@gmail.com';
 const LOGIN_DENIED_MESSAGE = 'Nao foi possivel entrar';
 const PASSWORD_MAX_AGE_DAYS = 30;
+const PASSWORD_RESET_PURPOSE = 'PASSWORD_RESET';
 
 @Injectable()
 export class AuthService {
@@ -34,14 +37,87 @@ export class AuthService {
     }, true);
   }
 
-  async login(dto: LoginDto) {
+  async login(dto: LoginDto, requestMeta?: { ipAddress?: string; userAgent?: string }) {
     const user = await this.repository.findUserByEmail(dto.email);
+    if (!user || !user.isActive) {
+      await this.auditInvalidLogin(dto.email, requestMeta);
+      throw new UnauthorizedException(LOGIN_DENIED_MESSAGE);
+    }
+    const role = this.resolveRole(user.email, user.role);
+    if (!this.canAccessCompany(user.company, role)) {
+      await this.auditInvalidLogin(dto.email, requestMeta, user.companyId, user.id);
+      throw new UnauthorizedException(LOGIN_DENIED_MESSAGE);
+    }
+    const passwordOk = await bcrypt.compare(dto.password, user.passwordHash);
+    if (!passwordOk) {
+      await this.auditInvalidLogin(dto.email, requestMeta, user.companyId, user.id);
+      throw new UnauthorizedException(LOGIN_DENIED_MESSAGE);
+    }
+    return this.buildAuthResponse({ sub: user.id, email: user.email, name: user.name, companyId: user.companyId, role }, this.passwordChangeRequired(user));
+  }
+
+
+  async requestPasswordReset(dto: RequestPasswordResetDto, requestMeta: { ipAddress?: string; userAgent?: string }) {
+    const user = await this.repository.findUserByEmail(dto.email);
+    if (!user || !user.isActive) return { requested: true };
+    const role = this.resolveRole(user.email, user.role);
+    if (!this.canAccessCompany(user.company, role)) return { requested: true };
+
+    const token = await this.jwtService.signAsync({
+      purpose: PASSWORD_RESET_PURPOSE,
+      sub: user.id,
+      email: user.email,
+      passwordChangedAt: new Date(user.passwordChangedAt).getTime(),
+    }, { expiresIn: '15m' });
+
+    await this.repository.createAuditLog({
+      companyId: user.companyId,
+      userId: user.id,
+      action: 'PASSWORD_RESET_REQUESTED',
+      entity: 'User',
+      entityId: user.id,
+      metadata: { email: user.email },
+      ipAddress: requestMeta.ipAddress,
+      userAgent: requestMeta.userAgent,
+    });
+
+    return {
+      requested: true,
+      ...(process.env.NODE_ENV !== 'production' ? { resetToken: token } : {}),
+    };
+  }
+
+  async resetPassword(dto: ResetPasswordDto, requestMeta: { ipAddress?: string; userAgent?: string }) {
+    let payload: any;
+    try {
+      payload = await this.jwtService.verifyAsync(dto.token);
+    } catch {
+      throw new UnauthorizedException('Token invalido ou expirado');
+    }
+    if (payload?.purpose !== PASSWORD_RESET_PURPOSE || !payload.sub) throw new UnauthorizedException('Token invalido ou expirado');
+
+    const user = await this.repository.findUserById(payload.sub);
     if (!user || !user.isActive) throw new UnauthorizedException(LOGIN_DENIED_MESSAGE);
     const role = this.resolveRole(user.email, user.role);
     if (!this.canAccessCompany(user.company, role)) throw new UnauthorizedException(LOGIN_DENIED_MESSAGE);
-    const passwordOk = await bcrypt.compare(dto.password, user.passwordHash);
-    if (!passwordOk) throw new UnauthorizedException(LOGIN_DENIED_MESSAGE);
-    return this.buildAuthResponse({ sub: user.id, email: user.email, name: user.name, companyId: user.companyId, role }, this.passwordChangeRequired(user));
+    if (Number(payload.passwordChangedAt) !== new Date(user.passwordChangedAt).getTime()) throw new UnauthorizedException('Token invalido ou expirado');
+
+    const reused = await bcrypt.compare(dto.newPassword, user.passwordHash);
+    if (reused) throw new ConflictException('A nova senha precisa ser diferente da senha atual');
+    this.assertStrongPassword(dto.newPassword);
+    const passwordHash = await bcrypt.hash(dto.newPassword, 12);
+    await this.repository.updatePassword(user.id, passwordHash);
+    await this.repository.createAuditLog({
+      companyId: user.companyId,
+      userId: user.id,
+      action: 'PASSWORD_RESET_COMPLETED',
+      entity: 'User',
+      entityId: user.id,
+      metadata: { reason: 'PASSWORD_RESET_TOKEN' },
+      ipAddress: requestMeta.ipAddress,
+      userAgent: requestMeta.userAgent,
+    });
+    return { changed: true };
   }
 
   async me(user: JwtUser) {
@@ -80,6 +156,21 @@ export class AuthService {
       userAgent: requestMeta.userAgent,
     });
     return { changed: true, passwordChangeRequired: false };
+  }
+
+
+  private async auditInvalidLogin(email: string, requestMeta?: { ipAddress?: string; userAgent?: string }, companyId?: string, userId?: string) {
+    if (!companyId) return;
+    await this.repository.createAuditLog({
+      companyId,
+      userId,
+      action: 'LOGIN_FAILED',
+      entity: 'Auth',
+      entityId: userId,
+      metadata: { email: email.trim().toLowerCase() },
+      ipAddress: requestMeta?.ipAddress,
+      userAgent: requestMeta?.userAgent,
+    }).catch(() => undefined);
   }
 
   private passwordChangeRequired(user: { passwordChangedAt?: Date | string | null; forcePasswordChange?: boolean }) {
