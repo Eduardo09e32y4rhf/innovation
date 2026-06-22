@@ -25,6 +25,12 @@ export class EmployeesRepository {
     return this.prisma.employee.findUnique({ where: { cpf } });
   }
 
+  findByRegistration(companyId: string, registration: string) {
+    return this.prisma.employee.findFirst({
+      where: { companyId, registration: { equals: registration, mode: 'insensitive' } },
+    });
+  }
+
   create(companyId: string, data: any) {
     return this.prisma.employee.create({ data: { ...data, companyId } });
   }

@@ -29,6 +29,7 @@ export class EmployeesService {
   async create(companyId: string, dto: CreateEmployeeDto) {
     const existing = await this.repository.findByCpf(dto.cpf);
     if (existing) throw new ConflictException('CPF already registered');
+    await this.ensureRegistrationAvailable(companyId, dto.registration);
     return this.repository.create(companyId, this.toData(dto));
   }
 
@@ -37,6 +38,7 @@ export class EmployeesService {
       const existing = await this.repository.findByCpf(dto.cpf);
       if (existing && existing.id !== id) throw new ConflictException('CPF already registered');
     }
+    await this.ensureRegistrationAvailable(companyId, dto.registration, id);
     const result = await this.repository.update(companyId, id, this.toData(dto));
     if (!result.count) throw new NotFoundException('Employee not found');
     return this.get(companyId, id);
@@ -52,6 +54,13 @@ export class EmployeesService {
     const result = await this.repository.delete(companyId, id);
     if (!result.count) throw new NotFoundException('Employee not found');
     return { deleted: true };
+  }
+
+  private async ensureRegistrationAvailable(companyId: string, registration?: string | null, currentEmployeeId?: string) {
+    const normalized = registration?.trim();
+    if (!normalized) return;
+    const existing = await this.repository.findByRegistration(companyId, normalized);
+    if (existing && existing.id !== currentEmployeeId) throw new ConflictException('Matricula already registered');
   }
 
   private toData(dto: CreateEmployeeDto | UpdateEmployeeDto) {
