@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Check, Plus, X } from 'lucide-react';
 import { EmptyState, ErrorState, LoadingState } from '@/app/components/data-states';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useMutation, useQuery } from '@/app/hooks/use-data';
-import { api, type CreateVacationInput, type VacationStatus } from '@/app/lib/api';
+import { api, type CreateVacationInput, type Employee, type VacationStatus } from '@/app/lib/api';
 import { VACATION_STATUS_LABEL, formatPeriod } from '@/app/lib/format';
+import { normalizeDisplayName } from '@/app/lib/text';
 
 export default function VacationsPage() {
   const { user } = useAuth();
@@ -24,6 +25,11 @@ export default function VacationsPage() {
   );
 
   const rows = vacations.data ?? [];
+
+  useEffect(() => {
+    const id = window.setInterval(() => vacations.refetch(), 30000);
+    return () => window.clearInterval(id);
+  }, [vacations]);
 
   return (
     <div className="mx-auto max-w-6xl space-y-5">
@@ -123,7 +129,7 @@ function diffDays(start: string, end: string): number {
 function NewVacationModal({
   employees, onClose, onDone,
 }: {
-  employees: { id: string; name: string }[];
+  employees: Employee[];
   onClose: () => void;
   onDone: () => void;
 }) {
@@ -173,7 +179,7 @@ function NewVacationModal({
           >
             <option value="">Selecione...</option>
             {employees.map((emp) => (
-              <option key={emp.id} value={emp.id}>{emp.name}</option>
+              <option key={emp.id} value={emp.id}>{employeeOptionLabel(emp)}</option>
             ))}
           </select>
         </label>
@@ -223,4 +229,17 @@ function NewVacationModal({
       </div>
     </div>
   );
+}
+
+
+function employeeOptionLabel(employee: Employee) {
+  const registration = employee.registration || employee.id.slice(0, 8).toUpperCase();
+  return `${normalizeDisplayName(employee.name)} - ${registration}`;
+}
+
+function vacationEmployeeLabel(employee: Employee | undefined, showCpf: boolean) {
+  if (!employee) return '-';
+  const registration = employee.registration || employee.id.slice(0, 8).toUpperCase();
+  const cpf = showCpf ? ` | CPF: ${employee.cpf || '-'}` : '';
+  return `${normalizeDisplayName(employee.name)} | Matricula: ${registration}${cpf}`;
 }

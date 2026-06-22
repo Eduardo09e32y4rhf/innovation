@@ -13,9 +13,9 @@ export class VacationsService {
       return this.repository.list(companyId);
     }
     if (actor.role === 'GESTOR') {
-      return this.repository.listForManager(companyId, actor.sub);
+      return this.repository.listForManager(companyId, actor.sub, actor.email);
     }
-    return this.repository.listForEmployee(companyId, actor.sub);
+    return this.repository.listForEmployee(companyId, actor.sub, actor.email);
   }
 
   async listByEmployee(companyId: string, employeeId: string) {
@@ -40,7 +40,7 @@ export class VacationsService {
 
   async updateStatus(companyId: string, actor: JwtUser, id: string, dto: UpdateVacationStatusDto) {
     if (actor.role === 'GESTOR') {
-      const managerEmployee = await this.repository.findEmployeeByUserId(companyId, actor.sub);
+      const managerEmployee = await this.repository.findEmployeeByUserId(companyId, actor.sub, actor.email);
       if (!managerEmployee) throw new ForbiddenException('Permissao insuficiente');
       const vacation = await this.repository.findById(companyId, id);
       if (!vacation) throw new NotFoundException('Vacation request not found');

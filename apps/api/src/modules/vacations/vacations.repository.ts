@@ -28,22 +28,31 @@ export class VacationsRepository {
     return this.prisma.employee.findFirst({ where: { id: employeeId, companyId } });
   }
 
-  findEmployeeByUserId(companyId: string, userId: string) {
-    return this.prisma.employee.findFirst({ where: { companyId, userId } });
+  findEmployeeByUserId(companyId: string, userId: string, email?: string) {
+    const normalizedEmail = email?.trim();
+    return this.prisma.employee.findFirst({
+      where: {
+        companyId,
+        OR: [
+          { userId },
+          ...(normalizedEmail ? [{ email: { equals: normalizedEmail, mode: 'insensitive' as const } }] : []),
+        ],
+      },
+    });
   }
 
-  async listForManager(companyId: string, userId: string) {
-    const manager = await this.prisma.employee.findFirst({ where: { companyId, userId } });
+  async listForManager(companyId: string, userId: string, email?: string) {
+    const manager = await this.findEmployeeByUserId(companyId, userId, email);
     if (!manager) return [];
     return this.prisma.vacation.findMany({
-      where: { employee: { companyId, managerId: manager.id } },
+      where: { employee: { companyId, OR: [{ id: manager.id }, { managerId: manager.id }] } },
       include: { employee: true },
       orderBy: { createdAt: 'desc' },
     });
   }
 
-  async listForEmployee(companyId: string, userId: string) {
-    const employee = await this.prisma.employee.findFirst({ where: { companyId, userId } });
+  async listForEmployee(companyId: string, userId: string, email?: string) {
+    const employee = await this.findEmployeeByUserId(companyId, userId, email);
     if (!employee) return [];
     return this.prisma.vacation.findMany({
       where: { employeeId: employee.id },

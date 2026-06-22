@@ -33,7 +33,7 @@ export class TimeTrackRepository {
     });
     if (!manager) return [];
     return this.prisma.timeTrack.findMany({
-      where: { employee: { companyId, managerId: manager.id } },
+      where: { employee: { companyId, OR: [{ id: manager.id }, { managerId: manager.id }] } },
       include: { employee: true },
       orderBy: [{ employee: { name: 'asc' } }, { date: 'asc' }, { createdAt: 'asc' }],
     });

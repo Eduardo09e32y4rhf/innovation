@@ -1,8 +1,8 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { Check, Clock3, Download, Edit3, FileText, Trash2, X, XCircle } from 'lucide-react';
+import { Check, Clock3, Download, Edit3, Eye, FileText, Trash2, X, XCircle } from 'lucide-react';
 import { EmptyState, ErrorState, LoadingState } from '@/app/components/data-states';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useMutation, useQuery } from '@/app/hooks/use-data';
@@ -333,16 +333,37 @@ export default function TimeTrackPage() {
   }, [tracks.data, employeeFilter, monthFilter, departmentFilter, managerFilter, unitFilter]);
 
   const selectedEmployee = activeEmployees.find((employee) => employee.id === employeeFilter) ?? rows[0]?.employee;
+  const rowsByEmployee = useMemo(() => rows.reduce<Record<string, TimeTrack[]>>((acc, row) => {
+    acc[row.employeeId] = acc[row.employeeId] ?? [];
+    acc[row.employeeId].push(row);
+    return acc;
+  }, {}), [rows]);
+  const visibleEmployees = useMemo(() => activeEmployees.filter((employee) => {
+    if (employeeFilter && employee.id !== employeeFilter) return false;
+    if (departmentFilter && employee.department !== departmentFilter) return false;
+    if (managerFilter && employee.managerId !== managerFilter) return false;
+    if (unitFilter && employee.unit !== unitFilter) return false;
+    return true;
+  }), [activeEmployees, employeeFilter, departmentFilter, managerFilter, unitFilter]);
   const reportCompany = normalizeCompanyInfo(company.data);
   const remove = useMutation((id: string) => api.timeTrack.delete(id), { onSuccess: () => tracks.refetch() });
 
   const canClockIn = Boolean(profile && !['DEV', 'COMERCIAL', 'CONSULTA'].includes(profile));
   const canApprove = canManage || isGestor;
+  const canDownloadOwnOrTeam = canManage || isGestor || isFuncionario;
   const pendingTracks = useQuery(() => api.timeTrack.listPending(), [], { enabled: canApprove });
   const approveMutation = useMutation(
     (params: { id: string; approved: boolean }) => api.timeTrack.approve(params.id, params.approved),
     { onSuccess: () => { pendingTracks.refetch(); tracks.refetch(); } },
   );
+
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      tracks.refetch();
+      if (canApprove) pendingTracks.refetch();
+    }, 30000);
+    return () => window.clearInterval(id);
+  }, [tracks, pendingTracks, canApprove]);
 
   async function handleDelete(row: TimeTrack) {
     const employeeName = normalizeDisplayName(row.employee?.name ?? 'funcionário');
@@ -450,6 +471,34 @@ export default function TimeTrackPage() {
             <span>Mês da folha</span>
             <input type="month" value={monthFilter} onChange={(event) => setMonthFilter(event.target.value)} className="h-10 w-full max-w-[220px] rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500" />
           </label>
+        </section>
+      )}
+
+
+      {!isFuncionario && visibleEmployees.length > 0 && (
+        <section className="ops-card overflow-hidden rounded-[8px] border border-slate-200 bg-white">
+          <div className="border-b border-slate-100 px-5 py-4">
+            <h3 className="text-sm font-black text-slate-950">Colaboradores da folha</h3>
+          </div>
+          <div className="divide-y divide-slate-100">
+            {visibleEmployees.map((employee) => {
+              const employeeRows = rowsByEmployee[employee.id] ?? [];
+              return (
+                <div key={employee.id} className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-xs font-black text-slate-950">{employee.registration || employee.id.slice(0, 8).toUpperCase()} - {normalizeDisplayName(employee.name)}</p>
+                    <p className="mt-1 text-[11px] font-medium text-slate-500">{employeeRows.length} registro(s) no filtro atual</p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <button onClick={() => setEmployeeFilter(employee.id)} className="btn-outline inline-flex h-9 items-center gap-2 rounded-[8px] px-3 text-[11px] font-black"><Eye size={13} /> Exibir detalhes</button>
+                    {canDownloadOwnOrTeam && (
+                      <button onClick={() => openPrintableReport(employeeRows, monthFilter, reportCompany, employee)} disabled={employeeRows.length === 0 || company.loading || isRefreshingTracks} className="btn-outline inline-flex h-9 items-center gap-2 rounded-[8px] px-3 text-[11px] font-black disabled:opacity-50"><FileText size={13} /> Baixar folha</button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </section>
       )}
 
