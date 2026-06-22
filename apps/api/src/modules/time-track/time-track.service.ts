@@ -42,13 +42,28 @@ export class TimeTrackService {
 
   async manualBulk(companyId: string, dto: BulkManualTimeTrackDto) {
     const dates = this.resolveBulkDates(dto);
-    const created = [];
+    const tasks: { employeeId: string; date: string }[] = [];
     for (const employeeId of dto.employeeIds) {
       const employee = await this.ensureEmployee(companyId, employeeId);
       for (const date of dates) {
         if (this.isRestDay(employee, date, dto)) continue;
-        created.push(await this.applyManual(employeeId, date, dto));
+        tasks.push({ employeeId, date });
       }
+    }
+
+    const created = [];
+    // ⚡ Bolt Performance Optimization:
+    // Process independent bulk records concurrently in batches to reduce
+    // database I/O wait times without exhausting the connection pool.
+    const chunkSize = 10;
+    for (let i = 0; i < tasks.length; i += chunkSize) {
+      const chunk = tasks.slice(i, i + chunkSize);
+      const results = await Promise.all(
+        chunk.map((task: { employeeId: string; date: string }) =>
+          this.applyManual(task.employeeId, task.date, dto)
+        )
+      );
+      created.push(...results);
     }
     return { count: created.length, items: created };
   }
