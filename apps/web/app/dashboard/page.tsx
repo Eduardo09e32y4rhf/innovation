@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { CalendarDays, Clock3, MessageSquareText, TrendingUp, Users } from 'lucide-react';
+import { AlertTriangle, Cake, CalendarDays, Clock3, MessageSquareText, TrendingUp, Users } from 'lucide-react';
 import { ErrorState } from '@/app/components/data-states';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useQuery } from '@/app/hooks/use-data';
@@ -33,6 +33,7 @@ function DashboardContent() {
   }, [isCommercial, router]);
 
   const summary = useQuery(() => api.dashboard.summary(), [], { enabled: !presentationMode && !isCommercial, pollMs: 60000 });
+  const insights = useQuery(() => api.dashboard.insights(), [], { enabled: !presentationMode && !isCommercial, pollMs: 60000 });
   const timeTracks = useQuery(() => api.timeTrack.list(), [], { enabled: !presentationMode && !isCommercial });
   const vacations = useQuery(() => api.vacations.list(), [], { enabled: !presentationMode && !isCommercial && !isFuncionario });
   const employees = useQuery(() => api.employees.list(), [], { enabled: !presentationMode && !isCommercial && !isFuncionario });
@@ -44,6 +45,8 @@ function DashboardContent() {
   const summaryData = presentationMode ? demoSummary : summary.data;
   const timeTrackData = presentationMode ? demoTimeTracks : (timeTracks.data ?? []);
   const vacationData = presentationMode ? demoVacations : (vacations.data ?? []);
+  const insightData = insights.data;
+  const alertItems = insightData ? buildAlertItems(insightData.alerts) : [];
 
   const heroTitle = isFuncionario ? 'Meu painel' : isGestor ? 'Painel da equipe' : isConsulta ? 'Painel de consulta' : 'Painel executivo';
   const heroSubtitle = isFuncionario
@@ -143,6 +146,24 @@ function DashboardContent() {
         </section>
       )}
 
+      {!presentationMode && !isCommercial && !isFuncionario && (
+        <section className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+          <InsightPanel title="Aniversarios" icon={Cake} loading={insights.loading} empty="Nenhum aniversario em destaque.">
+            {(insightData?.birthdaysToday ?? []).map((person) => <InsightLine key={person.id} label={person.name} detail="Hoje" tone="teal" />)}
+            {(insightData?.birthdaysThisMonth ?? []).filter((person) => !(insightData?.birthdaysToday ?? []).some((today) => today.id === person.id)).slice(0, 5).map((person) => <InsightLine key={person.id} label={person.name} detail="Este mes" />)}
+          </InsightPanel>
+          <InsightPanel title="Pendencias" icon={Clock3} loading={insights.loading} empty="Nenhuma pendencia critica.">
+            {insightData && insightData.pending.timeTracks > 0 && <InsightLine label={`${insightData.pending.timeTracks} ponto(s) manual(is)`} detail="Aguardando aprovacao" tone="amber" />}
+            {insightData && insightData.pending.vacations > 0 && <InsightLine label={`${insightData.pending.vacations} ferias`} detail="Aguardando decisao" tone="amber" />}
+            {insightData && <InsightLine label={`${insightData.movements.admissionsThisMonth} admissao(oes)`} detail="Neste m?s" />}
+            {insightData && <InsightLine label={`${insightData.movements.terminationsThisMonth} desligamento(s)`} detail="Neste m?s" />}
+          </InsightPanel>
+          <InsightPanel title="Alertas cadastrais" icon={AlertTriangle} loading={insights.loading} empty="Cadastros sem alerta critico.">
+            {alertItems.map((item) => <InsightLine key={item.label} label={item.label} detail={item.detail} tone="rose" />)}
+          </InsightPanel>
+        </section>
+      )}
+
       <section className={`grid grid-cols-1 gap-5 ${isFuncionario ? '' : 'lg:grid-cols-2'}`}>
         <DataTable title={isFuncionario ? 'Minhas jornadas recentes' : 'Jornadas recentes'} headers={isFuncionario ? ['Data', 'Entrada', 'Saida'] : ['Funcionário', 'Data', 'Entrada', 'Saida']}>
           {timeTracks.loading && !presentationMode && <LoadingRow span={isFuncionario ? 3 : 4} />}
@@ -226,5 +247,43 @@ function EmptyRow({ span, message }: { span: number; message: string }) {
     <tr className="border-t border-slate-100">
       <td colSpan={span} className="py-6 text-center text-xs text-slate-400">{message}</td>
     </tr>
+  );
+}
+
+
+function buildAlertItems(alerts: NonNullable<import('@/app/lib/api').DashboardInsights['alerts']>) {
+  const items: { label: string; detail: string }[] = [];
+  if (alerts.companyIncomplete) items.push({ label: 'Dados da empresa incompletos', detail: 'Revise configuracoes' });
+  if (alerts.employeesWithoutCpf > 0) items.push({ label: `${alerts.employeesWithoutCpf} sem CPF`, detail: 'Corrigir cadastro' });
+  if (alerts.employeesWithoutUser > 0) items.push({ label: `${alerts.employeesWithoutUser} sem usu?rio`, detail: 'Vincular acesso' });
+  if (alerts.employeesWithoutManager > 0) items.push({ label: `${alerts.employeesWithoutManager} sem gestor`, detail: 'Definir lideranca' });
+  if (alerts.employeesWithoutWorkScale > 0) items.push({ label: `${alerts.employeesWithoutWorkScale} sem escala`, detail: 'Definir jornada' });
+  if (alerts.employeesWithoutWorkload > 0) items.push({ label: `${alerts.employeesWithoutWorkload} sem carga hor?ria`, detail: 'Definir jornada' });
+  if (alerts.pendingTimeTracks > 0) items.push({ label: `${alerts.pendingTimeTracks} ponto(s) pendente(s)`, detail: 'Aprovar ajustes' });
+  return items;
+}
+
+function InsightPanel({ title, icon: Icon, loading, empty, children }: { title: string; icon: React.ElementType; loading: boolean; empty: string; children: React.ReactNode }) {
+  const hasChildren = React.Children.count(children) > 0;
+  return (
+    <div className="ops-card rounded-[10px] border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <h3 className="text-sm font-black text-slate-950">{title}</h3>
+        <div className="icon-chip icon-chip-teal"><Icon size={15} /></div>
+      </div>
+      <div className="space-y-2">
+        {loading ? <p className="py-4 text-center text-xs text-slate-400">Carregando...</p> : hasChildren ? children : <p className="py-4 text-center text-xs text-slate-400">{empty}</p>}
+      </div>
+    </div>
+  );
+}
+
+function InsightLine({ label, detail, tone = 'slate' }: { label: string; detail: string; tone?: 'slate' | 'teal' | 'amber' | 'rose' }) {
+  const toneClass = tone === 'teal' ? 'bg-teal-50 text-teal-700 border-teal-100' : tone === 'amber' ? 'bg-amber-50 text-amber-700 border-amber-100' : tone === 'rose' ? 'bg-rose-50 text-rose-700 border-rose-100' : 'bg-slate-50 text-slate-600 border-slate-100';
+  return (
+    <div className={`flex items-center justify-between gap-3 rounded-[8px] border px-3 py-2 ${toneClass}`}>
+      <span className="text-xs font-black">{label}</span>
+      <span className="text-[11px] font-semibold opacity-80">{detail}</span>
+    </div>
   );
 }

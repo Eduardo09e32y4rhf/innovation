@@ -6,6 +6,16 @@ import { DashboardRepository } from './dashboard.repository';
 export class DashboardService {
   constructor(private readonly repository: DashboardRepository) {}
 
+  async insights(companyId: string, actor: JwtUser) {
+    if (actor.role === 'ADMIN' || actor.role === 'RH' || actor.role === 'DEV' || actor.role === 'CONSULTA') {
+      return this.repository.insights(companyId);
+    }
+    if (actor.role === 'GESTOR') {
+      return this.repository.insightsForManager(companyId, actor.sub);
+    }
+    return this.repository.insightsForEmployee(companyId, actor.sub);
+  }
+
   async summary(companyId: string, actor: JwtUser) {
     if (actor.role === 'ADMIN' || actor.role === 'RH' || actor.role === 'DEV' || actor.role === 'CONSULTA') {
       return this.repository.summary(companyId);

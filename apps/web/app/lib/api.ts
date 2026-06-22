@@ -144,6 +144,22 @@ export interface DashboardSummary {
   activeEmployees: number; timeTracksToday: number; pendingVacations: number;
   whatsappMessages: number; totalTimeBalance: number;
 }
+export interface DashboardInsightPerson { id: string; name: string; birthDate?: string | null; }
+export interface DashboardInsights {
+  birthdaysToday: DashboardInsightPerson[];
+  birthdaysThisMonth: DashboardInsightPerson[];
+  pending: { timeTracks: number; vacations: number };
+  movements: { admissionsThisMonth: number; terminationsThisMonth: number };
+  alerts: {
+    companyIncomplete: boolean;
+    employeesWithoutCpf: number;
+    employeesWithoutUser: number;
+    employeesWithoutManager: number;
+    employeesWithoutWorkScale: number;
+    employeesWithoutWorkload: number;
+    pendingTimeTracks: number;
+  };
+}
 export interface AppUser {
   id: string; name: string; email: string; role: UserRole;
   companyId: string; isActive?: boolean; createdAt?: string;
@@ -196,6 +212,7 @@ export const api = {
 
   dashboard: {
     summary: () => request<DashboardSummary>('/dashboard/summary'),
+    insights: () => request<DashboardInsights>('/dashboard/insights'),
   },
 
   employees: {

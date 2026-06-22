@@ -12,6 +12,81 @@ export class DashboardRepository {
     return { startOfDay, endOfDay };
   }
 
+
+
+  private monthRange() {
+    const now = new Date();
+    const startOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+    const endOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
+    return { startOfMonth, endOfMonth, month: now.getUTCMonth() + 1, day: now.getUTCDate() };
+  }
+
+  private async buildInsights(employeeWhere: any, companyId: string) {
+    const { startOfMonth, endOfMonth, month, day } = this.monthRange();
+    const employees = await this.prisma.employee.findMany({
+      where: employeeWhere,
+      select: { id: true, name: true, birthDate: true, admissionDate: true, terminationDate: true, status: true, userId: true, managerId: true, cpf: true, workScale: true, dailyWorkload: true },
+      orderBy: { name: 'asc' },
+    });
+    const employeeIds = employees.map((employee) => employee.id);
+    const scopedTrackWhere = { employeeId: { in: employeeIds } };
+    const [pendingTimeTracks, pendingVacations, admissionsThisMonth, terminationsThisMonth] = employeeIds.length ? await Promise.all([
+      this.prisma.timeTrack.count({ where: { ...scopedTrackWhere, manualStatus: 'pending' } }),
+      this.prisma.vacation.count({ where: { employeeId: { in: employeeIds }, status: 'PENDING' } }),
+      this.prisma.employee.count({ where: { ...employeeWhere, admissionDate: { gte: startOfMonth, lt: endOfMonth } } }),
+      this.prisma.employee.count({ where: { ...employeeWhere, terminationDate: { gte: startOfMonth, lt: endOfMonth } } }),
+    ]) : [0, 0, 0, 0];
+    const birthdaysToday = employees.filter((employee) => employee.birthDate && employee.birthDate.getUTCMonth() + 1 === month && employee.birthDate.getUTCDate() === day).slice(0, 8);
+    const birthdaysThisMonth = employees.filter((employee) => employee.birthDate && employee.birthDate.getUTCMonth() + 1 === month).slice(0, 12);
+    const missingUser = employees.filter((employee) => employee.status === 'ACTIVE' && !employee.userId).length;
+    const missingManager = employees.filter((employee) => employee.status === 'ACTIVE' && !employee.managerId).length;
+    const missingCpf = employees.filter((employee) => !employee.cpf).length;
+    const missingWorkScale = employees.filter((employee) => employee.status === 'ACTIVE' && !employee.workScale).length;
+    const missingWorkload = employees.filter((employee) => employee.status === 'ACTIVE' && !employee.dailyWorkload).length;
+    const company = await this.prisma.company.findUnique({ where: { id: companyId }, select: { name: true, document: true, logoUrl: true } });
+    return {
+      birthdaysToday: birthdaysToday.map((employee) => ({ id: employee.id, name: employee.name, birthDate: employee.birthDate })),
+      birthdaysThisMonth: birthdaysThisMonth.map((employee) => ({ id: employee.id, name: employee.name, birthDate: employee.birthDate })),
+      pending: { timeTracks: pendingTimeTracks, vacations: pendingVacations },
+      movements: { admissionsThisMonth, terminationsThisMonth },
+      alerts: {
+        companyIncomplete: !company?.name || !company?.document,
+        employeesWithoutCpf: missingCpf,
+        employeesWithoutUser: missingUser,
+        employeesWithoutManager: missingManager,
+        employeesWithoutWorkScale: missingWorkScale,
+        employeesWithoutWorkload: missingWorkload,
+        pendingTimeTracks,
+      },
+    };
+  }
+
+  insights(companyId: string) {
+    return this.buildInsights({ companyId }, companyId);
+  }
+
+  async insightsForManager(companyId: string, userId: string) {
+    const manager = await this.prisma.employee.findFirst({ where: { companyId, userId } });
+    if (!manager) return this.emptyInsights();
+    return this.buildInsights({ companyId, managerId: manager.id }, companyId);
+  }
+
+  async insightsForEmployee(companyId: string, userId: string) {
+    const employee = await this.prisma.employee.findFirst({ where: { companyId, userId } });
+    if (!employee) return this.emptyInsights();
+    return this.buildInsights({ companyId, id: employee.id }, companyId);
+  }
+
+  private emptyInsights() {
+    return {
+      birthdaysToday: [],
+      birthdaysThisMonth: [],
+      pending: { timeTracks: 0, vacations: 0 },
+      movements: { admissionsThisMonth: 0, terminationsThisMonth: 0 },
+      alerts: { companyIncomplete: false, employeesWithoutCpf: 0, employeesWithoutUser: 0, employeesWithoutManager: 0, employeesWithoutWorkScale: 0, employeesWithoutWorkload: 0, pendingTimeTracks: 0 },
+    };
+  }
+
   async summary(companyId: string) {
     const { startOfDay, endOfDay } = this.todayRange();
     const [activeEmployees, timeTracksToday, pendingVacations, whatsappMessages, timeBalance] = await Promise.all([
