@@ -1,0 +1,3 @@
+## 2024-06-22 - Reusable UI primitives need propagated context
+**Learning:** Reusable UI primitives in the enterprise design system (e.g., `TableActionButton`) must expose and propagate `aria-label` and `title` props. If the primitive component traps these props and doesn't apply them to the underlying DOM element, consumer components cannot inject localized context for screen readers.
+**Action:** Always ensure that low-level interactive primitives spread or explicitly accept accessibility props (`aria-label`, `aria-expanded`, `title`, etc.) and apply `focus-visible:ring-2` styling for keyboard accessibility.
