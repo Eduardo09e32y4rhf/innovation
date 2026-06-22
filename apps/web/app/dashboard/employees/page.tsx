@@ -16,6 +16,7 @@ export default function EmployeesPage() {
   const { user } = useAuth();
   const profile = user?.profile?.toUpperCase();
   const canEdit = profile === 'DEV' || profile === 'ADMIN' || profile === 'RH';
+  const canDownloadSheet = profile === 'RH';
   const isGestor = profile === 'GESTOR';
   const { data, loading, error, refetch } = useQuery(() => api.employees.list(), []);
   const [search, setSearch] = useState('');
@@ -138,9 +139,11 @@ export default function EmployeesPage() {
                             <Link href={`/dashboard/employees/new?id=${employee.id}`} className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px]">
                               <Edit3 size={12} />Editar
                             </Link>
-                            <button onClick={() => handleDownloadSheet(employee)} disabled={downloadingId === employee.id} className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px] disabled:opacity-50">
-                              <Download size={12} />Folha
-                            </button>
+                            {canDownloadSheet && (
+                              <button onClick={() => handleDownloadSheet(employee)} disabled={downloadingId === employee.id} className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px] disabled:opacity-50">
+                                <Download size={12} />PDF da folha
+                              </button>
+                            )}
                             <button onClick={() => handleTerminate(employee)} disabled={employee.status === 'TERMINATED' || terminate.loading} className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px] disabled:opacity-50">
                               <UserMinus size={12} />Desligar
                             </button>
@@ -199,26 +202,74 @@ function downloadEmployeeSheet(employee: Employee, rows: TimeTrack[], month: str
         <td>${escapeHtml(row.observation || row.manualReason || '-')}</td>
       </tr>`).join('')
     : '<tr><td colspan="7">Nenhum ponto encontrado no mês.</td></tr>';
-  const html = `<!doctype html><html><head><meta charset="utf-8" /></head><body>
+  const html = `<!doctype html><html><head><meta charset="utf-8" />
+    <title>${escapeHtml(title)}</title>
+    <style>
+      @page { size: A4 landscape; margin: 12mm; }
+      * { box-sizing: border-box; }
+      body { color: #0f172a; font-family: Arial, Helvetica, sans-serif; font-size: 11px; }
+      h1 { margin: 0 0 10px; text-align: center; font-size: 18px; letter-spacing: 0.08em; text-transform: uppercase; }
+      .meta { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px 18px; border-top: 1px solid #94a3b8; border-bottom: 1px solid #94a3b8; padding: 8px 0; }
+      .section-title { margin: 14px 0 6px; font-size: 13px; font-weight: 700; }
+      table { width: 100%; border-collapse: collapse; }
+      th, td { border: 1px solid #94a3b8; padding: 5px; text-align: left; vertical-align: top; }
+      th { background: #e2e8f0; font-weight: 700; }
+      .muted { color: #64748b; }
+    </style>
+  </head><body>
     <h1>${escapeHtml(title)}</h1>
-    <p><strong>Funcionário:</strong> ${escapeHtml(normalizeDisplayName(employee.name))}</p>
-    <p><strong>Matrícula:</strong> ${escapeHtml(employee.registration || '-')} | <strong>CPF:</strong> ${escapeHtml(employee.cpf || '-')} | <strong>Departamento:</strong> ${escapeHtml(employee.department || '-')}</p>
-    <table border="1" cellspacing="0" cellpadding="4">
+    <div class="meta">
+      <div><strong>Funcionário:</strong> ${escapeHtml(normalizeDisplayName(employee.name))}</div>
+      <div><strong>Matrícula:</strong> ${escapeHtml(employee.registration || '-')}</div>
+      <div><strong>CPF:</strong> ${escapeHtml(employee.cpf || '-')}</div>
+      <div><strong>E-mail:</strong> ${escapeHtml(employee.email || '-')}</div>
+      <div><strong>Telefone:</strong> ${escapeHtml(employee.phone || '-')}</div>
+      <div><strong>Status:</strong> ${escapeHtml(EMPLOYEE_STATUS_LABEL[employee.status] ?? employee.status)}</div>
+      <div><strong>Departamento:</strong> ${escapeHtml(employee.department || '-')}</div>
+      <div><strong>Cargo:</strong> ${escapeHtml(employee.position || '-')}</div>
+      <div><strong>Unidade:</strong> ${escapeHtml(employee.unit || '-')}</div>
+      <div><strong>Admissão:</strong> ${escapeHtml(formatDate(employee.admissionDate))}</div>
+      <div><strong>Desligamento:</strong> ${escapeHtml(formatDate(employee.terminationDate))}</div>
+      <div><strong>Escala:</strong> ${escapeHtml(employee.workScale || employee.customWorkScale || '-')}</div>
+      <div><strong>Jornada:</strong> ${escapeHtml(employee.dailyWorkload || '-')}</div>
+      <div><strong>Entrada padrão:</strong> ${escapeHtml(employee.standardEntry || '-')}</div>
+      <div><strong>Saída padrão:</strong> ${escapeHtml(employee.standardExit || '-')}</div>
+    </div>
+    <p class="section-title">Registros de ponto</p>
+    <table>
       <thead><tr><th>Data</th><th>Entrada</th><th>Almoço</th><th>Saída</th><th>Trabalhado</th><th>Saldo</th><th>Motivo/observação</th></tr></thead>
       <tbody>${body}</tbody>
     </table>
+    <p class="muted">Emitido em ${escapeHtml(new Date().toLocaleString('pt-BR'))}</p>
   </body></html>`;
-  const blob = new Blob([html], { type: 'application/vnd.ms-excel;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `folha-ponto-${slugify(employee.name)}-${month}.xls`;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
+  printPdfDocument(html, `folha-ponto-${slugify(employee.name)}-${month}`);
 }
 
+function printPdfDocument(html: string, title: string) {
+  const iframe = document.createElement('iframe');
+  iframe.style.position = 'fixed';
+  iframe.style.right = '0';
+  iframe.style.bottom = '0';
+  iframe.style.width = '0';
+  iframe.style.height = '0';
+  iframe.style.border = '0';
+  iframe.title = title;
+  document.body.appendChild(iframe);
+  const doc = iframe.contentWindow?.document;
+  if (!doc) {
+    iframe.remove();
+    window.alert('Não foi possível gerar o PDF.');
+    return;
+  }
+  doc.open();
+  doc.write(html);
+  doc.close();
+  iframe.onload = () => {
+    iframe.contentWindow?.focus();
+    iframe.contentWindow?.print();
+    window.setTimeout(() => iframe.remove(), 1000);
+  };
+}
 function slugify(value: string) {
   return normalizeDisplayName(value).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'funcionario';
 }

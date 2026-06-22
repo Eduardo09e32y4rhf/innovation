@@ -29,6 +29,7 @@ export class TimeTrackService {
   }
 
   async listEmployeeMonth(companyId: string, actor: JwtUser, employeeId: string, month?: string) {
+    if (actor.role !== 'RH') throw new ForbiddenException('Permissao insuficiente');
     await this.ensureCanAccessEmployee(companyId, actor, employeeId);
     const { start, end } = this.resolveMonth(month);
     return this.repository.listEmployeeMonth(companyId, employeeId, start, end);
