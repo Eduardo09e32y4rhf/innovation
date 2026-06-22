@@ -77,13 +77,12 @@ export class TimeTrackService {
     if (!type) throw new BadRequestException('Todas as marcacoes de hoje ja foram registradas.');
 
     const field = this.typeToField(type);
-    const manualStatus = isManual ? 'pending' : 'approved';
     const current = await this.repository.upsert(employee.id, date, {
       [field]: timestamp,
       observation: dto.observation ?? (isManual ? `Lancamento manual - ${dto.manualReason}` : null),
       ...(dto.latitude !== undefined ? { latitude: dto.latitude } : {}),
       ...(dto.longitude !== undefined ? { longitude: dto.longitude } : {}),
-      ...(isManual ? { manualReason: dto.manualReason, manualStatus } : { manualStatus }),
+      ...(isManual ? { manualReason: dto.manualReason, manualStatus: 'pending' } : {}),
     });
     const totals = this.calculateTotals({ ...current, [field]: timestamp });
     return this.repository.upsert(employee.id, date, totals);
