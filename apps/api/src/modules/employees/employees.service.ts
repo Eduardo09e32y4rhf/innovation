@@ -48,6 +48,12 @@ export class EmployeesService {
     return this.get(companyId, id);
   }
 
+  async delete(companyId: string, id: string) {
+    const result = await this.repository.delete(companyId, id);
+    if (!result.count) throw new NotFoundException('Employee not found');
+    return { deleted: true };
+  }
+
   private toData(dto: CreateEmployeeDto | UpdateEmployeeDto) {
     return {
       ...dto,

@@ -38,6 +38,12 @@ export class EmployeesController {
   }
 
   @Roles('ADMIN', 'RH')
+  @Delete(':id/permanent')
+  delete(@CurrentCompany() companyId: string, @Param('id') id: string) {
+    return this.service.delete(companyId, id);
+  }
+
+  @Roles('ADMIN', 'RH')
   @Delete(':id')
   terminate(@CurrentCompany() companyId: string, @Param('id') id: string) {
     return this.service.terminate(companyId, id);

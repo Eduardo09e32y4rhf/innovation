@@ -6,7 +6,7 @@ export class EmployeesRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   list(companyId: string) {
-    return this.prisma.employee.findMany({ where: { companyId }, orderBy: { createdAt: 'desc' } });
+    return this.prisma.employee.findMany({ where: { companyId }, orderBy: [{ name: 'asc' }, { createdAt: 'desc' }] });
   }
 
   findById(companyId: string, id: string) {
@@ -31,5 +31,9 @@ export class EmployeesRepository {
 
   update(companyId: string, id: string, data: any) {
     return this.prisma.employee.updateMany({ where: { companyId, id }, data });
+  }
+
+  delete(companyId: string, id: string) {
+    return this.prisma.employee.deleteMany({ where: { companyId, id } });
   }
 }

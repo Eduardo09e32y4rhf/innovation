@@ -197,7 +197,7 @@ export const api = {
     create: (input: CreateEmployeeInput) => request<Employee>('/employees', { method: 'POST', body: input }),
     update: (id: string, input: Partial<CreateEmployeeInput>) => request<Employee>(`/employees/${id}`, { method: 'PATCH', body: input }),
     terminate: (id: string) => request<Employee>(`/employees/${id}`, { method: 'DELETE' }),
-  },
+    delete: (id: string) => request<void>(`/employees/${id}/permanent`, { method: 'DELETE' }),  },
 
   timeTrack: {
     list: () => request<TimeTrack[]>('/time-track'),
