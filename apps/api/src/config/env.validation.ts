@@ -22,6 +22,12 @@ export function validateEnv(config: Record<string, unknown>) {
     if (jwtSecret.length < 32 || jwtSecret.startsWith('TROQUE_') || jwtSecret.includes('local-development')) {
       throw new Error('JWT_SECRET must be a strong production secret with at least 32 characters.');
     }
+
+    const databaseUrl = String(config.DATABASE_URL ?? '');
+    const isLocalDatabase = /@(localhost|127\.0\.0\.1|postgres|db)(:|\/)/i.test(databaseUrl);
+    if (databaseUrl.startsWith('postgres') && !isLocalDatabase && !/sslmode=(require|verify-ca|verify-full)/i.test(databaseUrl)) {
+      throw new Error('Production DATABASE_URL for remote PostgreSQL must require SSL. Add sslmode=require or stronger.');
+    }
   }
 
   return config;

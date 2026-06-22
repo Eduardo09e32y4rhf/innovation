@@ -12,6 +12,16 @@ Este projeto aplica controles de aplicação para LGPD e segurança, mas criptog
 - Usar senhas fortes e diferentes para banco, Redis, JWT e usuários administrativos.
 - Rotacionar segredos quando houver suspeita de vazamento.
 
+## Conex?o criptografada com PostgreSQL
+
+Em produ??o, quando o PostgreSQL estiver fora do mesmo host/container, use SSL na conex?o:
+
+```env
+DATABASE_URL=postgresql://usuario:senha@host:5432/banco?sslmode=require
+```
+
+Se o banco estiver em `localhost`, `postgres` ou `db` por rede interna Docker, mantenha a porta fechada para internet e use criptografia de disco/volume e backups criptografados. O sistema valida `sslmode` para PostgreSQL remoto em `NODE_ENV=production`.
+
 ## Auditoria no sistema
 
 Toda requisição autenticada de escrita (`POST`, `PUT`, `PATCH`, `DELETE`) é registrada em `AuditLog` com:

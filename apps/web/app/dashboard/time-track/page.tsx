@@ -351,6 +351,8 @@ export default function TimeTrackPage() {
   }
 
   const pageTitle = isFuncionario ? 'Meu ponto' : isGestor ? 'Ponto da equipe' : 'Folha de ponto da empresa';
+  const isInitialTracksLoading = tracks.loading && !tracks.data;
+  const isRefreshingTracks = tracks.loading && Boolean(tracks.data);
 
   return (
     <div className="mx-auto max-w-6xl space-y-5">
@@ -367,16 +369,16 @@ export default function TimeTrackPage() {
           )}
           {canManage && (
             <>
-              <button onClick={() => downloadExcel(`folha-ponto-${selectedEmployee?.name ?? 'empresa'}-${monthFilter || 'todos'}.xls`, rows, reportCompany)} disabled={rows.length === 0 || company.loading} className="btn-outline inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black disabled:opacity-50">
+              <button onClick={() => downloadExcel(`folha-ponto-${selectedEmployee?.name ?? 'empresa'}-${monthFilter || 'todos'}.xls`, rows, reportCompany)} disabled={rows.length === 0 || company.loading || isRefreshingTracks} className="btn-outline inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black disabled:opacity-50">
                 <Download size={14} /> Exportar Excel
               </button>
-              <button onClick={() => openPrintableReport(rows, monthFilter, reportCompany, employeeFilter ? selectedEmployee : undefined)} disabled={rows.length === 0 || company.loading} className="btn-outline inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black disabled:opacity-50">
+              <button onClick={() => openPrintableReport(rows, monthFilter, reportCompany, employeeFilter ? selectedEmployee : undefined)} disabled={rows.length === 0 || company.loading || isRefreshingTracks} className="btn-outline inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black disabled:opacity-50">
                 <FileText size={14} /> {employeeFilter ? 'PDF individual' : 'PDF empresa'}
               </button>
-              <button onClick={() => setBulkOpen(true)} className="btn-outline inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black">
+              <button onClick={() => setBulkOpen(true)} disabled={isRefreshingTracks} className="btn-outline inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black">
                 <Clock3 size={14} /> Lançar em lote
               </button>
-              <button onClick={() => setOpen(true)} className="crystal-button inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black text-white">
+              <button onClick={() => setOpen(true)} disabled={isRefreshingTracks} className="crystal-button inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black text-white">
                 <Clock3 size={14} /> Lançar ponto
               </button>
             </>
@@ -452,8 +454,10 @@ export default function TimeTrackPage() {
       )}
 
       {remove.error && <p className="rounded-[8px] border border-rose-200 bg-rose-50 px-4 py-2 text-xs text-rose-700">{remove.error}</p>}
+      {isRefreshingTracks && <p className="rounded-[8px] border border-teal-200 bg-teal-50 px-4 py-2 text-xs font-semibold text-teal-700">Atualizando a folha de ponto...</p>}
+      {tracks.error && tracks.data && <p className="rounded-[8px] border border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-700">Nao foi possivel atualizar agora. Os ultimos dados carregados continuam visiveis.</p>}
 
-      {tracks.loading ? <LoadingState label="Carregando folha de ponto..." /> : tracks.error ? <ErrorState message={tracks.error} onRetry={tracks.refetch} /> : rows.length === 0 ? <EmptyState message={isFuncionario ? 'Nenhum registro de ponto encontrado.' : 'Nenhum registro de ponto para o filtro selecionado.'} /> : (
+      {isInitialTracksLoading ? <LoadingState label="Carregando folha de ponto..." /> : tracks.error && !tracks.data ? <ErrorState message={tracks.error} onRetry={tracks.refetch} /> : rows.length === 0 ? <EmptyState message={isFuncionario ? 'Nenhum registro de ponto encontrado.' : 'Nenhum registro de ponto para o filtro selecionado.'} /> : (
         <section className="ops-card overflow-hidden rounded-[8px] border border-slate-200 bg-white">
           <div className="overflow-x-auto p-5">
             <table className={`w-full ${isFuncionario ? 'min-w-[680px]' : 'min-w-[1040px]'} text-left`}>
@@ -468,7 +472,7 @@ export default function TimeTrackPage() {
                   <td className="py-3 pr-4">{displayWorked(row.totalWorked)}</td>
                   <td className={`py-3 pr-4 font-medium ${(row.dailyBalance ?? 0) < 0 ? 'text-rose-600' : 'text-emerald-600'}`}>{displayBalance(row.dailyBalance)}</td>
                   <td className="max-w-[220px] truncate py-3 pr-4">{row.observation || '-'}</td>
-                  {canManage && <td className="py-3"><div className="flex gap-2"><button onClick={() => setEditing(row)} className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px]"><Edit3 size={12} />Editar</button><button onClick={() => handleDelete(row)} className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px] text-rose-600"><Trash2 size={12} />Excluir</button></div></td>}
+                  {canManage && <td className="py-3"><div className="flex gap-2"><button onClick={() => setEditing(row)} disabled={isRefreshingTracks || remove.loading} className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px]"><Edit3 size={12} />Editar</button><button onClick={() => handleDelete(row)} disabled={isRefreshingTracks || remove.loading} className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px] text-rose-600"><Trash2 size={12} />Excluir</button></div></td>}
                 </tr>
               ))}</tbody>
             </table>
