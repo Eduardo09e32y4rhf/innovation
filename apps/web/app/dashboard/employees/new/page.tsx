@@ -212,14 +212,14 @@ function EmployeeForm() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl space-y-5">
+    <div className="mx-auto max-w-5xl space-y-4">
       <header className="flex items-center gap-3">
-        <Link href="/dashboard/employees" className="btn-outline inline-flex h-9 w-9 items-center justify-center rounded-[8px]">
-          <ArrowLeft size={16} />
+        <Link href="/dashboard/employees" className="btn-outline inline-flex h-8 w-8 items-center justify-center rounded-[6px]">
+          <ArrowLeft size={15} />
         </Link>
         <div>
-          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-teal-600">Funcionários</p>
-          <h2 className="text-2xl font-black text-slate-950">{isEdit ? 'Editar colaborador' : 'Novo colaborador'}</h2>
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-teal-600">Funcionários</p>
+          <h2 className="text-xl font-black text-slate-950">{isEdit ? 'Editar colaborador' : 'Novo colaborador'}</h2>
         </div>
       </header>
 
@@ -227,14 +227,14 @@ function EmployeeForm() {
         <p className="rounded-[8px] border border-rose-200 bg-rose-50 px-4 py-2 text-xs text-rose-700">{save.error}</p>
       )}
 
-      <section className="ops-card rounded-[8px] border border-slate-200 bg-white p-5">
-        <div className="mb-5 flex gap-2 overflow-x-auto pb-1">
+      <section className="ops-card rounded-[8px] border border-slate-200 bg-white p-4">
+        <div className="mb-4 flex gap-2 overflow-x-auto pb-1">
           {TABS.map((tab) => (
             <button
               key={tab}
               type="button"
               onClick={() => setActiveTab(tab)}
-              className={`h-9 shrink-0 rounded-[8px] px-3 text-xs font-black ${activeTab === tab ? 'bg-slate-950 text-white' : 'border border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+              className={`h-8 shrink-0 rounded-[6px] px-3 text-[11px] font-black ${activeTab === tab ? 'bg-slate-950 text-white' : 'border border-slate-200 text-slate-600 hover:bg-slate-50'}`}
             >
               {tab}
             </button>
@@ -242,7 +242,7 @@ function EmployeeForm() {
         </div>
 
         {activeTab === 'Dados pessoais' && (
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-3 sm:grid-cols-2">
             <Field label="Nome completo" value={form.name} onChange={(v) => set('name', v)} required />
             <Field label="CPF" value={form.cpf} onChange={(v) => set('cpf', v)} placeholder="000.000.000-00" required />
             <Field label="Data de nascimento" type="date" value={form.birthDate ?? ''} onChange={(v) => set('birthDate', v)} />
@@ -254,7 +254,7 @@ function EmployeeForm() {
 
 
         {activeTab === 'Endereco' && (
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-3 sm:grid-cols-2">
             <Field label="CEP" value={form.cep ?? ''} onChange={(v) => set('cep', v)} />
             <Field label="Logradouro" value={form.street ?? ''} onChange={(v) => set('street', v)} />
             <Field label="Numero" value={form.streetNumber ?? ''} onChange={(v) => set('streetNumber', v)} />
@@ -262,12 +262,15 @@ function EmployeeForm() {
             <Field label="Bairro" value={form.neighborhood ?? ''} onChange={(v) => set('neighborhood', v)} />
             <Field label="Cidade" value={form.city ?? ''} onChange={(v) => set('city', v)} />
             <Field label="Estado" value={form.state ?? ''} onChange={(v) => set('state', v)} />
-            <label className="space-y-1 text-xs font-medium text-slate-600 sm:col-span-2"><span>Observacoes cadastrais</span><textarea value={form.observations ?? ''} onChange={(e) => set('observations', e.target.value)} className="min-h-24 w-full rounded-[8px] border border-slate-200 px-3 py-2 text-sm outline-none focus:border-teal-500" /></label>
+            <label className="space-y-1 text-xs font-medium text-slate-600 sm:col-span-2">
+              <span>Observacoes cadastrais</span>
+              <textarea value={form.observations ?? ''} onChange={(e) => set('observations', e.target.value)} className="min-h-20 w-full rounded-[6px] border border-slate-200 px-3 py-1.5 text-sm outline-none focus:border-teal-500" />
+            </label>
           </div>
         )}
 
         {activeTab === 'Dados profissionais' && (
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-3 sm:grid-cols-2">
             <Field label="Data de admissão" type="date" value={form.admissionDate} onChange={(v) => set('admissionDate', v)} required />
             <Select label="Status" value={form.status ?? 'ACTIVE'} onChange={(v) => set('status', v as EmployeeStatus)} options={STATUS_OPTIONS} />
             {form.status === 'TERMINATED' && <Field label="Data de demissão" type="date" value={form.terminationDate ?? ''} onChange={(v) => set('terminationDate', v)} />}
@@ -279,7 +282,7 @@ function EmployeeForm() {
         )}
 
         {activeTab === 'Jornada' && (
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-3 sm:grid-cols-2">
             <Select label="Escala" value={form.workScale ?? '5X2'} onChange={(v) => set('workScale', v as WorkScale)} options={WORK_SCALE_OPTIONS} />
             {form.workScale === 'OUTRO' && <Field label="Descrição da escala" value={form.customWorkScale ?? ''} onChange={(v) => set('customWorkScale', v)} />}
             <Select label="Jornada diária padrão" value={form.dailyWorkload ?? '08:00'} onChange={(v) => set('dailyWorkload', v as DailyWorkload)} options={DAILY_WORKLOAD_OPTIONS} />
@@ -291,7 +294,7 @@ function EmployeeForm() {
         )}
 
         {activeTab === 'Contrato e acesso' && (
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-3 sm:grid-cols-2">
             <Field label="Salário (R$)" type="number" value={form.salary?.toString() ?? ''} onChange={(v) => set('salary', v ? Number(v) : undefined)} />
             <Select label="Tipo de contrato" value={form.contractType ?? 'CLT'} onChange={(v) => set('contractType', v as ContractType)} options={CONTRACT_OPTIONS} />
             {(form.contractType === 'PJ' || form.contractType === 'TERCEIRIZADO') && (
@@ -305,19 +308,19 @@ function EmployeeForm() {
             )}
             <Select label="Permitir acesso ao painel" value={form.accessEnabled} onChange={(v) => set('accessEnabled', v as 'NO' | 'YES')} options={[{ value: 'NO', label: 'Não' }, { value: 'YES', label: 'Sim' }]} />
             <Select label="Perfil de acesso" value={form.accessProfile} onChange={(v) => set('accessProfile', v as EmployeeFormState['accessProfile'])} options={[{ value: 'FUNCIONARIO', label: 'Funcionário' }, { value: 'GESTOR', label: 'Gestor' }, { value: 'RH', label: 'RH' }, { value: 'ADMIN', label: 'Administrador' }, { value: 'CONSULTA', label: 'Consulta' }]} />
-            <p className="sm:col-span-2 rounded-[8px] border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-500">
+            <p className="sm:col-span-2 rounded-[6px] border border-slate-200 bg-slate-50 px-3 py-1.5 text-[11px] font-semibold text-slate-500">
               O acesso ao painel será ligado ao módulo de usuários. Este cadastro já deixa os dados do colaborador prontos para vínculo.
             </p>
           </div>
         )}
 
-        <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-end">
-          <Link href="/dashboard/employees" className="btn-outline inline-flex h-10 items-center justify-center rounded-[8px] px-4 text-xs font-bold">Cancelar</Link>
+        <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-end">
+          <Link href="/dashboard/employees" className="btn-outline inline-flex h-9 items-center justify-center rounded-[6px] px-3 text-[11px] font-bold">Cancelar</Link>
           <button
             type="button"
             onClick={handleSubmit}
             disabled={save.loading}
-            className="crystal-button inline-flex h-10 items-center justify-center gap-2 rounded-[8px] px-4 text-xs font-black text-white disabled:opacity-60"
+            className="crystal-button inline-flex h-9 items-center justify-center gap-2 rounded-[6px] px-3 text-[11px] font-black text-white disabled:opacity-60"
           >
             <Save size={14} />
             {save.loading ? 'Salvando...' : 'Salvar colaborador'}

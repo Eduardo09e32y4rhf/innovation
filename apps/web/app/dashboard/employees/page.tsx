@@ -406,37 +406,37 @@ function buildPdfHtml(options: { title: string; company: Company | null; subtitl
   const emittedDate = new Date().toLocaleDateString('pt-BR');
 
   const header = `
-    <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid #0f172a;padding-bottom:14px;margin-bottom:18px;page-break-inside:avoid;">
-      <div style="display:flex;align-items:center;gap:14px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #0f172a;padding-bottom:6px;margin-bottom:10px;page-break-inside:avoid;">
+      <div style="display:flex;align-items:center;gap:10px;">
         ${company?.logoUrl
-          ? `<div style="width:52px;height:52px;display:flex;align-items:center;justify-content:center;"><img src="${escapeHtml(company.logoUrl)}" alt="Logo" style="max-width:52px;max-height:52px;object-fit:contain;" /></div>`
-          : `<div style="width:52px;height:52px;display:flex;align-items:center;justify-content:center;border:2px solid #0f766e;border-radius:10px;color:#0f766e;font-weight:900;font-size:14px;">RH</div>`
+          ? `<div style="width:36px;height:36px;display:flex;align-items:center;justify-content:center;"><img src="${escapeHtml(company.logoUrl)}" alt="Logo" style="max-width:36px;max-height:36px;object-fit:contain;" /></div>`
+          : `<div style="width:36px;height:36px;display:flex;align-items:center;justify-content:center;border:2px solid #0f766e;border-radius:6px;color:#0f766e;font-weight:900;font-size:10px;">RH</div>`
         }
         <div>
-          <div style="font-size:16px;font-weight:900;color:#0f172a;letter-spacing:-.3px;text-transform:uppercase;">${escapeHtml(company?.name || 'Empresa')}</div>
-          <div style="font-size:9px;color:#64748b;margin-top:2px;">
-            ${escapeHtml(company?.document || '-')}${company?.legalName ? ` &nbsp;|&nbsp; ${escapeHtml(company.legalName)}` : ''}
+          <div style="font-size:12px;font-weight:900;color:#0f172a;letter-spacing:-.2px;text-transform:uppercase;">${escapeHtml(company?.name || 'Empresa')}</div>
+          <div style="font-size:7px;color:#64748b;margin-top:1px;">
+            ${escapeHtml(company?.document || '-')}${company?.legalName ? ` | ${escapeHtml(company.legalName)}` : ''}
           </div>
-          <div style="font-size:9px;color:#64748b;">${[company?.phone, company?.email].filter(Boolean).map(v => escapeHtml(v as string)).join(' &nbsp;|&nbsp; ') || '&nbsp;'}</div>
+          <div style="font-size:7px;color:#64748b;">${[company?.phone, company?.email].filter(Boolean).map(v => escapeHtml(v as string)).join(' | ') || ''}</div>
         </div>
       </div>
       <div style="text-align:right;">
-        <div style="font-size:13px;font-weight:900;color:#0f172a;text-transform:uppercase;">${escapeHtml(title)}</div>
-        <div style="font-size:9px;color:#64748b;margin-top:3px;">${escapeHtml(subtitle)}</div>
-        <div style="font-size:8px;color:#94a3b8;margin-top:2px;">Emitido em ${escapeHtml(emittedDate)} às ${escapeHtml(emittedAt.split(', ')[1] || emittedAt)}</div>
+        <div style="font-size:11px;font-weight:900;color:#0f172a;text-transform:uppercase;">${escapeHtml(title)}</div>
+        <div style="font-size:7px;color:#64748b;margin-top:2px;">${escapeHtml(subtitle)}</div>
+        <div style="font-size:7px;color:#94a3b8;margin-top:1px;">Emitido em ${escapeHtml(emittedDate)} às ${escapeHtml(emittedAt.split(', ')[1] || emittedAt)}</div>
       </div>
     </div>
   `;
 
   const footer = `
-    <div style="margin-top:24px;border-top:1px solid #e2e8f0;padding-top:10px;display:flex;justify-content:space-between;color:#94a3b8;font-size:8px;font-weight:600;">
+    <div style="margin-top:12px;border-top:1px solid #e2e8f0;padding-top:6px;display:flex;justify-content:space-between;color:#94a3b8;font-size:7px;font-weight:600;">
       <span>Innovation RH Connect</span>
       <span>Documento gerado automaticamente</span>
       <span>Página 1 de 1</span>
     </div>
   `;
 
-  const pageStyle = landscape ? '@page { size: A4 landscape; margin: 8mm 10mm; }' : '@page { size: A4; margin: 10mm 12mm; }';
+  const pageStyle = landscape ? '@page { size: A4 landscape; margin: 5mm 6mm; }' : '@page { size: A4; margin: 6mm 8mm; }';
 
   return `<!doctype html>
 <html lang="pt-BR">
@@ -455,7 +455,7 @@ function buildPdfHtml(options: { title: string; company: Company | null; subtitl
       tr { page-break-inside: avoid; break-inside: avoid; }
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Segoe UI', -apple-system, Arial, sans-serif; color: #0f172a; background: #fff; font-size: 10pt; line-height: 1.5; }
+    body { font-family: 'Segoe UI', -apple-system, Arial, sans-serif; color: #0f172a; background: #fff; font-size: 9pt; line-height: 1.4; }
     .page { width: 100%; }
   </style>
 </head>
