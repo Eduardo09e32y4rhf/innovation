@@ -43,13 +43,36 @@ export class TimeTrackService {
   async manualBulk(companyId: string, dto: BulkManualTimeTrackDto) {
     const dates = this.resolveBulkDates(dto);
     const created = [];
-    for (const employeeId of dto.employeeIds) {
-      const employee = await this.ensureEmployee(companyId, employeeId);
+
+    // ⚡ Bolt: Chunking employee retrieval to prevent DB bottlenecks while still failing fast
+    const employees = [];
+    for (let i = 0; i < dto.employeeIds.length; i += 10) {
+      const batch = dto.employeeIds.slice(i, i + 10);
+      const results = await Promise.all(batch.map(id => this.ensureEmployee(companyId, id)));
+      employees.push(...results);
+    }
+
+    // ⚡ Bolt: Generating all tasks to process them concurrently in chunks
+    const tasks = [];
+    for (let i = 0; i < dto.employeeIds.length; i++) {
+      const employeeId = dto.employeeIds[i];
+      const employee = employees[i];
       for (const date of dates) {
         if (this.isRestDay(employee, date, dto)) continue;
-        created.push(await this.applyManual(employeeId, date, dto));
+        tasks.push({ employeeId, date });
       }
     }
+
+    // ⚡ Bolt: Executing tasks concurrently in batches of 20 to optimize database I/O wait times
+    const CHUNK_SIZE = 20;
+    for (let i = 0; i < tasks.length; i += CHUNK_SIZE) {
+      const batch = tasks.slice(i, i + CHUNK_SIZE);
+      const results = await Promise.all(
+        batch.map(task => this.applyManual(task.employeeId, task.date, dto))
+      );
+      created.push(...results);
+    }
+
     return { count: created.length, items: created };
   }
 
