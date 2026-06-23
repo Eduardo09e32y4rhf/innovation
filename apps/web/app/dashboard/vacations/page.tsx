@@ -5,7 +5,7 @@ import { Check, Plus, X, Calendar, Clock, AlertCircle, FileText, Download, Histo
 import { EmptyState, ErrorState, LoadingState } from '@/app/components/data-states';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useMutation, useQuery } from '@/app/hooks/use-data';
-import { api, type CreateVacationInput, type Employee, type VacationStatus } from '@/app/lib/api';
+import { api, type Company, type CreateVacationInput, type Employee, type VacationStatus } from '@/app/lib/api';
 import { VACATION_STATUS_LABEL, formatPeriod, formatDate } from '@/app/lib/format';
 import { normalizeDisplayName } from '@/app/lib/text';
 import { buildPdfShell, section, field, grid3, signatures, printPdf, type PdfCompanyInfo } from '@/app/lib/pdf-utils';
@@ -20,6 +20,7 @@ export default function VacationsPage() {
 
   const vacations = useQuery(() => api.vacations.list(), []);
   const employees = useQuery(() => api.employees.list(), []);
+  const company = useQuery(() => api.companies.me(), []);
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<'active' | 'history'>('active');
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
@@ -100,7 +101,7 @@ export default function VacationsPage() {
   }
 
   function handleDownloadReceipt(row: typeof rows[0]) {
-    downloadVacationReceipt(row);
+    downloadVacationReceipt(row, company.data ?? null);
   }
 
   const displayRows = tab === 'active' ? activeRows : historyRows;
@@ -532,13 +533,13 @@ function NewVacationModal({
 
 // ─── PDF RECEIPT ─────────────────────────────────────────────────────────────
 
-function downloadVacationReceipt(vacation: { employee?: Employee; startDate: string; endDate: string; acquisitionPeriod: string; daysUsed: number; status: VacationStatus; observation?: string }) {
+function downloadVacationReceipt(vacation: { employee?: Employee; startDate: string; endDate: string; acquisitionPeriod: string; daysUsed: number; status: VacationStatus; observation?: string }, companyData: Company | null) {
   const employee = vacation.employee;
-  const companyInfo: PdfCompanyInfo | null = employee?.company
+  const companyInfo: PdfCompanyInfo | null = companyData
     ? {
-        name: normalizeDisplayName(employee.company.name),
-        document: employee.company.document ?? null,
-        logoUrl: employee.company.logoUrl ?? null,
+        name: normalizeDisplayName(companyData.name),
+        document: companyData.document ?? null,
+        logoUrl: companyData.logoUrl ?? null,
       }
     : null;
 

@@ -98,6 +98,11 @@ export function section(title: string, content: string) {
   `;
 }
 
+export function grid2(items: string[]) {
+  const cols = items.map(item => `<div style="padding:4px;">${item}</div>`).join('');
+  return `<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:2px;">${cols}</div>`;
+}
+
 export function grid3(items: string[]) {
   const cols = items.map(item => `<div style="padding:4px;">${item}</div>`).join('');
   return `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:2px;">${cols}</div>`;
