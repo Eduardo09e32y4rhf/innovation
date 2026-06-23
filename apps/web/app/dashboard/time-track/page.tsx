@@ -573,6 +573,11 @@ export default function TimeTrackPage() {
                       {canDownloadOwnOrTeam && (
                         <button onClick={() => openPrintableReport(employeeRows, monthFilter, reportCompany, employee)} disabled={employeeRows.length === 0 || company.loading || isRefreshingTracks} className="btn-outline-premium inline-flex h-9 items-center gap-2 rounded-[8px] px-3 text-[11px] font-black disabled:opacity-50"><FileText size={13} /> Folha</button>
                       )}
+                      {(canManage || isGestor) && (
+                        <Link href={`/dashboard/time-track?employeeId=${employee.id}`} className="btn-outline inline-flex h-9 items-center gap-2 rounded-[8px] px-3 text-[11px] font-black transition-all hover:-translate-y-0.5">
+                          Ponto
+                        </Link>
+                      )}
                       <button onClick={() => { setEditing({ ...employeeRows[0], employee } as unknown as TimeTrack); setOpen(true); }} disabled={employeeRows.length === 0 || isRefreshingTracks} className="btn-outline inline-flex h-9 items-center gap-2 rounded-[8px] px-3 text-[11px] font-black"><Edit3 size={13} /> Editar</button>
                     </div>
                   </div>
