@@ -31,8 +31,6 @@ function buildBaseStyles(landscape = false) {
       thead { display: table-header-group; }
       tfoot { display: table-footer-group; }
       tr { page-break-inside: avoid; break-inside: avoid; }
-      .doc-header { position: running(header); }
-      @page { @top-center { content: element(header); } }
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Segoe UI', -apple-system, Helvetica, Arial, sans-serif; color: #0f172a; background: #fff; font-size: 10pt; line-height: 1.5; }
@@ -48,7 +46,7 @@ export function buildPdfShell(options: PdfOptions, company: PdfCompanyInfo | nul
   const styles = buildBaseStyles(options.landscape);
 
   const header = `
-    <div class="doc-header" style="display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid #0f172a;padding-bottom:14px;margin-bottom:18px;page-break-inside:avoid;">
+    <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid #0f172a;padding-bottom:14px;margin-bottom:18px;page-break-inside:avoid;">
       <div style="display:flex;align-items:center;gap:14px;">
         ${company?.logoUrl
           ? `<div style="width:52px;height:52px;display:flex;align-items:center;justify-content:center;"><img src="${escapeAttr(company.logoUrl)}" alt="Logo" style="max-width:52px;max-height:52px;object-fit:contain;" /></div>`
@@ -57,9 +55,9 @@ export function buildPdfShell(options: PdfOptions, company: PdfCompanyInfo | nul
         <div>
           <div style="font-size:16px;font-weight:900;color:#0f172a;letter-spacing:-.3px;text-transform:uppercase;">${escapeHtml(company?.name || 'Empresa')}</div>
           <div style="font-size:9px;color:#64748b;margin-top:2px;">
-            ${escapeHtml(company?.document || '-')}${company?.legalName ? ` &nbsp;|&nbsp; ${escapeHtml(company.legalName)}` : ''}
+            ${escapeHtml(company?.document || '-')}${company?.legalName ? ` | ${escapeHtml(company.legalName)}` : ''}
           </div>
-          <div style="font-size:9px;color:#64748b;">${[company?.phone, company?.email].filter(Boolean).map(v => escapeHtml(v as string)).join(' &nbsp;|&nbsp; ') || '&nbsp;'}</div>
+          <div style="font-size:9px;color:#64748b;">${[company?.phone, company?.email].filter(Boolean).map(v => escapeHtml(v as string)).join(' | ') || ''}</div>
         </div>
       </div>
       <div style="text-align:right;">

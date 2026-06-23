@@ -9,7 +9,7 @@ import { useMutation, useQuery } from '@/app/hooks/use-data';
 import { api, type Company, type Employee, type TimeTrack } from '@/app/lib/api';
 import { EMPLOYEE_STATUS_LABEL, formatDate, formatMinutes, formatTime } from '@/app/lib/format';
 import { normalizeDisplayName } from '@/app/lib/text';
-import { buildPdfShell, section, grid3, field, tableBlock, signatures, printPdf, type PdfCompanyInfo } from '@/app/lib/pdf-utils';
+import { buildPdfShell, section, grid3, field, tableBlock, signatures, printPdf, type PdfCompanyInfo } from '@/app/lib/pdf';
 
 const collator = new Intl.Collator('pt-BR', { sensitivity: 'base', numeric: true });
 
