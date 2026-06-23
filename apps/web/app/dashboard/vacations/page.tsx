@@ -8,6 +8,7 @@ import { useMutation, useQuery } from '@/app/hooks/use-data';
 import { api, type CreateVacationInput, type Employee, type VacationStatus } from '@/app/lib/api';
 import { VACATION_STATUS_LABEL, formatPeriod, formatDate } from '@/app/lib/format';
 import { normalizeDisplayName } from '@/app/lib/text';
+import { buildPdfShell, section, field, grid3, signatures, printPdf, type PdfCompanyInfo } from '@/app/lib/pdf-utils';
 
 const MAX_VACATION_DAYS = 30;
 
@@ -531,168 +532,48 @@ function NewVacationModal({
 
 // ─── PDF RECEIPT ─────────────────────────────────────────────────────────────
 
-  const html = buildPdfHtml({ title, company, subtitle: '', landscape: false }, `
-    <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid #0f172a;padding-bottom:14px;margin-bottom:18px;page-break-inside:avoid;">
-      <div style="display:flex;align-items:center;gap:14px;">
-        ${company?.logoUrl
-          ? `<div style="width:52px;height:52px;display:flex;align-items:center;justify-content:center;"><img src="${escapeHtml(company.logoUrl)}" alt="Logo" style="max-width:52px;max-height:52px;object-fit:contain;" /></div>`
-          : `<div style="width:52px;height:52px;display:flex;align-items:center;justify-content:center;border:2px solid #0f766e;border-radius:10px;color:#0f766e;font-weight:900;font-size:14px;">RH</div>`
-        }
-        <div>
-          <div style="font-size:16px;font-weight:900;color:#0f172a;letter-spacing:-.3px;text-transform:uppercase;">${escapeHtml(company?.name || 'Empresa')}</div>
-          <div style="font-size:9px;color:#64748b;margin-top:2px;">${escapeHtml(company?.document || '-')}</div>
-        </div>
-      </div>
-      <div style="text-align:right;">
-        <div style="font-size:13px;font-weight:900;color:#0f172a;text-transform:uppercase;">Recibo de Férias</div>
-        <div style="font-size:9px;color:#64748b;margin-top:3px;">${escapeHtml(VACATION_STATUS_LABEL[vacation.status] || vacation.status)}</div>
-        <div style="font-size:8px;color:#94a3b8;margin-top:2px;">Emitido em ${escapeHtml(new Date().toLocaleDateString('pt-BR'))}</div>
-      </div>
-    </div>
+function downloadVacationReceipt(vacation: { employee?: Employee; startDate: string; endDate: string; acquisitionPeriod: string; daysUsed: number; status: VacationStatus; observation?: string }) {
+  const employee = vacation.employee;
+  const companyInfo: PdfCompanyInfo | null = employee?.company
+    ? {
+        name: normalizeDisplayName(employee.company.name),
+        document: employee.company.document ?? null,
+        logoUrl: employee.company.logoUrl ?? null,
+      }
+    : null;
 
-    ${section('Dados do Colaborador', `
-      <div class="print-section" style="display:grid;grid-template-columns:repeat(3,1fr);gap:2px;">
-        ${docField('Nome', normalizeDisplayName(employee?.name || '—'))}
-        ${docField('Matrícula', employee?.registration || (employee?.id ? employee.id.slice(0, 8).toUpperCase() : '-'))}
-        ${docField('CPF', employee?.cpf || '-')}
-        ${docField('Departamento', employee?.department || '-')}
-        ${docField('Cargo', employee?.position || '-')}
-        ${docField('Admissão', formatDate(employee?.admissionDate))}
-      </div>
-    `)}
+  const title = 'Recibo de Férias';
+  const subtitle = VACATION_STATUS_LABEL[vacation.status] || vacation.status;
+
+  const body = `
+    ${section('Dados do Colaborador', grid3([
+      field('Nome', normalizeDisplayName(employee?.name || '—')),
+      field('Matrícula', employee?.registration || (employee?.id ? employee.id.slice(0, 8).toUpperCase() : '-')),
+      field('CPF', employee?.cpf || '-'),
+      field('Departamento', employee?.department || '-'),
+      field('Cargo', employee?.position || '-'),
+      field('Admissão', formatDate(employee?.admissionDate)),
+    ]))}
 
     ${section('Período de Férias', `
-      <div class="print-section" style="display:grid;grid-template-columns:repeat(3,1fr);gap:2px;margin-bottom:16px;">
-        ${docField('Início', formatDate(vacation.startDate))}
-        ${docField('Fim', formatDate(vacation.endDate))}
-        ${docField('Período Aquisitivo', vacation.acquisitionPeriod)}
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:2px;margin-bottom:16px;">
+        ${field('Início', formatDate(vacation.startDate))}
+        ${field('Fim', formatDate(vacation.endDate))}
+        ${field('Período Aquisitivo', vacation.acquisitionPeriod)}
       </div>
-      <div class="print-section" style="background:#f0fdfa;border:1px solid #ccfbf1;border-radius:8px;padding:24px;text-align:center;margin-top:12px;">
+      <div style="background:#f0fdfa;border:1px solid #ccfbf1;border-radius:8px;padding:24px;text-align:center;margin-top:12px;">
         <div style="font-size:40px;font-weight:900;color:#0f172a;">${vacation.daysUsed}</div>
         <div style="font-size:10px;font-weight:900;color:#0f766e;text-transform:uppercase;letter-spacing:0.1em;margin-top:6px;">${vacation.daysUsed === 1 ? 'Dia de Férias' : 'Dias de Férias'}</div>
       </div>
-      ${vacation.observation ? `<div class="print-section" style="background:#f8fafc;padding:12px;border-radius:8px;font-size:9px;color:#475569;margin-top:12px;"><strong>Observação:</strong> ${escapeHtml(vacation.observation)}</div>` : ''}
+      ${vacation.observation ? `<div style="background:#f8fafc;padding:12px;border-radius:8px;font-size:9px;color:#475569;margin-top:12px;"><strong>Observação:</strong> ${escapeHtml(vacation.observation)}</div>` : ''}
     `)}
+  `;
 
-    ${signatures(['Assinatura do Colaborador', 'Assinatura do RH / Responsável', 'Data de Conferência'])}
-  `);
-    .header-left { display: flex; align-items: center; gap: 16px; }
-    .header-left h1 { font-size: 18px; font-weight: 900; color: #0f172a; letter-spacing: -0.5px; text-transform: uppercase; }
-    .header-left p { font-size: 9px; color: #64748b; }
-    .header-right { text-align: right; }
-    .header-right h2 { font-size: 14px; font-weight: 900; color: #0f172a; text-transform: uppercase; }
-    .header-right p { font-size: 9px; color: #64748b; margin-top: 4px; }
-    .section { margin-bottom: 20px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; page-break-inside: avoid; }
-    .section-title { background: #0f172a; color: #fff; padding: 10px 16px; font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.05em; }
-    .section-body { padding: 16px; }
-    .field-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; }
-    .field { padding: 8px 12px; }
-    .field-label { font-size: 7px; font-weight: 900; text-transform: uppercase; color: #94a3b8; letter-spacing: 0.08em; }
-    .field-value { font-size: 10px; font-weight: 600; color: #0f172a; margin-top: 2px; }
-    .highlight-box { background: #f0fdfa; border: 1px solid #ccfbf1; border-radius: 8px; padding: 20px; text-align: center; margin: 16px 0; }
-    .highlight-box .days { font-size: 36px; font-weight: 900; color: #0f172a; }
-    .highlight-box .label { font-size: 9px; font-weight: 700; color: #0f766e; text-transform: uppercase; letter-spacing: 0.1em; margin-top: 4px; }
-    .signatures { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; margin-top: 48px; page-break-inside: avoid; }
-    .signatures div { text-align: center; }
-    .signatures div .line { border-top: 1px solid #0f172a; padding-top: 8px; margin-top: 40px; font-size: 9px; font-weight: 700; color: #0f172a; }
-    .footer { margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 12px; display: flex; justify-content: space-between; font-size: 8px; color: #94a3b8; }
-    .status-badge { display: inline-block; padding: 4px 12px; border-radius: 6px; font-size: 10px; font-weight: 900; ${vacation.status === 'APPROVED' ? 'background: #d1fae5; color: #059669; border: 1px solid #a7f3d0;' : 'background: #fef3c7; color: #d97706; border: 1px solid #fde68a;'} }
-  </style>
-</head>
-<body>
-  <main class="page">
-    <div class="header">
-      <div class="header-left">
-        <div>
-          <h1>Recibo de Férias</h1>
-          <p>Documento comprobatório de solicitação de férias</p>
-        </div>
-      </div>
-      <div class="header-right">
-        <h2>${escapeHtml(VACATION_STATUS_LABEL[vacation.status] || vacation.status)}</h2>
-        <p>Emitido em ${escapeHtml(emittedDate)}</p>
-      </div>
-    </div>
-
-    <div class="section">
-      <div class="section-title">Dados do Colaborador</div>
-      <div class="section-body">
-        <div class="field-grid">
-          <div class="field"><div class="field-label">Nome</div><div class="field-value">${escapeHtml(employee ? normalizeDisplayName(employee.name) : '—')}</div></div>
-          <div class="field"><div class="field-label">Matrícula</div><div class="field-value">${escapeHtml(employee?.registration || (employee?.id ? employee.id.slice(0, 8).toUpperCase() : '-'))}</div></div>
-          <div class="field"><div class="field-label">CPF</div><div class="field-value">${escapeHtml(employee?.cpf || '-')}</div></div>
-          <div class="field"><div class="field-label">Departamento</div><div class="field-value">${escapeHtml(employee?.department || '-')}</div></div>
-          <div class="field"><div class="field-label">Cargo</div><div class="field-value">${escapeHtml(employee?.position || '-')}</div></div>
-          <div class="field"><div class="field-label">Admissão</div><div class="field-value">${escapeHtml(formatDate(employee?.admissionDate))}</div></div>
-        </div>
-      </div>
-    </div>
-
-    <div class="section">
-      <div class="section-title">Período de Férias</div>
-      <div class="section-body">
-        <div class="field-grid">
-          <div class="field"><div class="field-label">Início</div><div class="field-value">${escapeHtml(formatDate(vacation.startDate))}</div></div>
-          <div class="field"><div class="field-label">Fim</div><div class="field-value">${escapeHtml(formatDate(vacation.endDate))}</div></div>
-          <div class="field"><div class="field-label">Período Aquisitivo</div><div class="field-value">${escapeHtml(vacation.acquisitionPeriod)}</div></div>
-          <div class="field"><div class="field-label">Status</div><div class="field-value"><span class="status-badge">${escapeHtml(VACATION_STATUS_LABEL[vacation.status] || vacation.status)}</span></div></div>
-        </div>
-        
-        <div class="highlight-box">
-          <div class="days">${vacation.daysUsed}</div>
-          <div class="label">${vacation.daysUsed === 1 ? 'Dia de Férias' : 'Dias de Férias'}</div>
-        </div>
-
-        ${vacation.observation ? `<p style="background:#f8fafc;padding:12px;border-radius:8px;font-size:9px;color:#475569;margin-top:8px;"><strong>Observação:</strong> ${escapeHtml(vacation.observation)}</p>` : ''}
-      </div>
-    </div>
-
-    <div class="signatures">
-      <div><div class="line">Assinatura do Colaborador</div></div>
-      <div><div class="line">Assinatura do RH / Responsável</div></div>
-      <div><div class="line">Data de Conferência</div></div>
-    </div>
-
-    <div class="footer">
-      <span>Innovation RH Connect — Gestão de Ponto</span>
-      <span>Recibo gerado automaticamente em ${escapeHtml(emittedAt)}</span>
-      <span>Página 1 de 1</span>
-    </div>
-  </main>
-</body>
-</html>`;
-
-  const filename = `recibo-ferias-${slugify(employee?.name || 'funcionario')}.pdf`;
-  printPdfDocument(html, filename);
+  const html = buildPdfShell({ title, subtitle, landscape: false }, companyInfo, body + signatures(['Assinatura do Colaborador', 'Assinatura do RH / Responsável', 'Data de Conferência']));
+  printPdf(html, `recibo-ferias-${slugify(employee?.name || 'funcionario')}.pdf`);
 }
 
 // ─── PDF UTILITIES ───────────────────────────────────────────────────────────
-
-function printPdfDocument(html: string, title: string) {
-  const iframe = document.createElement('iframe');
-  iframe.style.position = 'fixed';
-  iframe.style.right = '0';
-  iframe.style.bottom = '0';
-  iframe.style.width = '0';
-  iframe.style.height = '0';
-  iframe.style.border = '0';
-  iframe.title = title;
-  document.body.appendChild(iframe);
-  const doc = iframe.contentWindow?.document;
-  if (!doc) {
-    iframe.remove();
-    window.alert('Não foi possível gerar o PDF.');
-    return;
-  }
-  doc.open();
-  doc.write(html);
-  doc.close();
-  iframe.onload = () => {
-    iframe.contentWindow?.focus();
-    iframe.contentWindow?.print();
-    window.setTimeout(() => iframe.remove(), 1000);
-  };
-}
 
 function employeeOptionLabel(employee: Employee) {
   const registration = employee.registration || employee.id.slice(0, 8).toUpperCase();
@@ -704,5 +585,5 @@ function slugify(value: string) {
 }
 
 function escapeHtml(value: unknown) {
-  return String(value ?? '').replace(/[&<>"]/g, (char) => ({ '&': '&', '<': '<', '>': '>', '"': '"' })[char] ?? char);
+  return String(value ?? '').replace(/[&<>"]/g, (char) => ({ '&': '&', '<': '<', '>': '>', '"': '"' }[char] ?? char));
 }

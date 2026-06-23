@@ -9,6 +9,7 @@ import { useMutation, useQuery } from '@/app/hooks/use-data';
 import { api, type Company, type Employee, type TimeTrack, type RestDayMode, type TimeTrackAdjustmentReason } from '@/app/lib/api';
 import { formatDate, formatMinutes } from '@/app/lib/format';
 import { normalizeDisplayName } from '@/app/lib/text';
+import { buildPdfShell, section, field, grid3, signatures, printPdf, type PdfCompanyInfo } from '@/app/lib/pdf-utils';
 
 const collator = new Intl.Collator('pt-BR', { sensitivity: 'base', numeric: true });
 
@@ -44,7 +45,6 @@ const ADJUSTMENT_REASONS: { value: TimeTrackAdjustmentReason; label: string; ful
   { value: 'ajuste_feriado', label: 'Ajuste - feriado', fullDay: true },
 ];
 
-type CompanyPrintInfo = { name: string; document: string; logoUrl?: string | null };
 type MirrorRow = {
   funcionario: string;
   employee?: Employee;
@@ -103,7 +103,7 @@ function toIso(date: string, time: string) {
 }
 
 function escapeHtml(value: unknown) {
-  return String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[char] ?? char));
+  return String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&', '<': '<', '>': '>', '"': '"', "'": '&#039;' }[char] ?? char));
 }
 
 function formatDocument(value?: string | null) {
@@ -111,19 +111,6 @@ function formatDocument(value?: string | null) {
   if (digits.length === 14) return digits.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
   if (digits.length === 11) return digits.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
   return value || '-';
-}
-
-function normalizeCompanyInfo(company?: Company | null): CompanyPrintInfo {
-  return {
-    name: normalizeDisplayName(company?.name ?? 'Empresa'),
-    document: formatDocument(company?.document ?? null),
-    logoUrl: company?.logoUrl ?? null,
-  };
-}
-
-function companyLogo(company: CompanyPrintInfo) {
-  if (!company.logoUrl) return '<div class="logo-placeholder">Logo</div>';
-  return `<img class="company-logo" src="${escapeHtml(company.logoUrl)}" alt="Logo da empresa" />`;
 }
 
 function monthLabel(month: string) {
@@ -208,7 +195,7 @@ function sumMinutes(rows: TimeTrack[], field: 'totalWorked' | 'dailyBalance') {
   return rows.reduce((total, row) => total + (row[field] ?? 0), 0);
 }
 
-function downloadExcel(filename: string, rows: TimeTrack[], company: CompanyPrintInfo) {
+function downloadExcel(filename: string, rows: TimeTrack[], company: { name: string; document: string }) {
   const mirrorRows = buildMirrorRows(rows);
   const bodyRows = mirrorRows.map((row) => `
     <tr>
@@ -235,24 +222,20 @@ function downloadExcel(filename: string, rows: TimeTrack[], company: CompanyPrin
   URL.revokeObjectURL(url);
 }
 
-function employeeHeader(employee?: Employee) {
-  if (!employee) return '';
-  return `
-    <section class="employee-grid">
-      <div><strong>Matrícula:</strong> ${escapeHtml(employee.id.slice(0, 8).toUpperCase())}</div>
-      <div><strong>Nome:</strong> ${escapeHtml(normalizeDisplayName(employee.name))}</div>
-      <div><strong>CPF:</strong> ${escapeHtml(formatDocument(employee.cpf))}</div>
-      <div><strong>Função:</strong> ${escapeHtml(employee.position || '-')}</div>
-      <div><strong>Departamento:</strong> ${escapeHtml(employee.department || '-')}</div>
-      <div><strong>Admissão:</strong> ${escapeHtml(formatDate(employee.admissionDate))}</div>
-    </section>`;
+function openPrintableReport(rows: TimeTrack[], month: string, company: { name: string; document: string; logoUrl?: string | null }, employee?: Employee) {
+  const title = employee ? `Espelho individual - ${normalizeDisplayName(employee.name)} - ${monthLabel(month)}` : `Espelho da empresa - ${monthLabel(month)}`;
+  const companyInfo: PdfCompanyInfo = {
+    name: company.name,
+    document: company.document,
+    logoUrl: company.logoUrl,
+  };
+
+  const body = employee ? buildIndividualBody(rows, employee, month) : buildCompanyBody(rows, month);
+  const html = buildPdfShell({ title, landscape: true }, companyInfo, body);
+  printPdf(html, `${title.toLowerCase().replace(/\s+/g, '-')}.pdf`);
 }
 
-function reportHeader(company: CompanyPrintInfo, title: string, month: string, records: number, employees: number) {
-  return `<header class="report-header"><div class="company-side"><div>${companyLogo(company)}</div><div><h1>${escapeHtml(company.name)}</h1><p>CNPJ: ${escapeHtml(company.document)}</p></div></div><div class="report-title"><h2>${escapeHtml(title)}</h2><p>Periodo: ${escapeHtml(periodLabel(month))} | Emissao: ${escapeHtml(new Date().toLocaleString('pt-BR'))}</p></div></header><section class="meta-summary"><div class="meta-item"><span>Total de funcionarios</span><p>${employees}</p></div><div class="meta-item"><span>Total de registros</span><p>${records}</p></div><div class="meta-item"><span>Status do arquivo</span><p>Consolidado</p></div><div class="meta-item"><span>Competencia</span><p>${escapeHtml(monthLabel(month))}</p></div></section>`;
-}
-
-function renderIndividualReport(rows: TimeTrack[], employee: Employee | undefined, company: CompanyPrintInfo, month: string) {
+function buildIndividualBody(rows: TimeTrack[], employee: Employee, month: string): string {
   const mirrorRows = buildMirrorRows(rows);
   const totalWorked = formatMinutes(sumMinutes(rows, 'totalWorked'));
   const totalBalance = formatMinutes(sumMinutes(rows, 'dailyBalance'));
@@ -262,17 +245,56 @@ function renderIndividualReport(rows: TimeTrack[], employee: Employee | undefine
       <td>${escapeHtml(row.entrada2)}</td><td>${escapeHtml(row.saida2)}</td><td>${escapeHtml(row.abono)}</td><td>${escapeHtml(row.horaExtra)}</td>
       <td>${escapeHtml(row.ausente)}</td><td>${escapeHtml(row.adicionalNoturno)}</td><td>${escapeHtml(row.statusDia)}</td><td>${escapeHtml(row.observacao)}</td>
     </tr>`).join('');
+
   return `
-    <section class="report-brand"><div>${companyLogo(company)}</div><div><h1>Espelho de ponto individual</h1></div></section>
-    <section class="meta"><span><strong>Período:</strong> ${escapeHtml(periodLabel(month))}</span><span><strong>Emissão:</strong> ${escapeHtml(new Date().toLocaleString('pt-BR'))}</span></section>
-    <section class="company"><span><strong>Empresa:</strong> ${escapeHtml(company.name)}</span><span><strong>CNPJ:</strong> ${escapeHtml(company.document)}</span></section>
-    ${employeeHeader(employee)}
-    <table><thead><tr><th>Data</th><th>Dia</th><th>1ª E.</th><th>1ª S.</th><th>2ª E.</th><th>2ª S.</th><th>Abono</th><th>H.E.</th><th>Ausente</th><th>Ad. Not.</th><th>Observação</th></tr></thead><tbody>${bodyRows}</tbody></table>
-    <section class="summary"><strong>Resumo do período:</strong> Horas trabalhadas: ${escapeHtml(totalWorked)} | Saldo final: ${escapeHtml(totalBalance)}</section>
-    <section class="signatures"><div>Assinatura do colaborador</div><div>Responsável pelo RH</div></section>`;
+    ${section('Informações do Colaborador', grid3([
+      field('Matrícula', employee.id.slice(0, 8).toUpperCase()),
+      field('Nome', normalizeDisplayName(employee.name)),
+      field('CPF', formatDocument(employee.cpf)),
+      field('Função', employee.position || '-'),
+      field('Departamento', employee.department || '-'),
+      field('Admissão', formatDate(employee.admissionDate)),
+    ]))}
+    ${section(`Registros de Ponto - ${monthLabel(month)}`, `
+      <table style="width:100%;border-collapse:collapse;">
+        <thead><tr style="background:#0f172a;color:#fff;">
+          <th style="padding:8px 10px;text-align:left;font-size:8px;font-weight:900;text-transform:uppercase;">Data</th>
+          <th style="padding:8px 10px;text-align:left;font-size:8px;font-weight:900;text-transform:uppercase;">Dia</th>
+          <th style="padding:8px 10px;text-align:left;font-size:8px;font-weight:900;text-transform:uppercase;">1ª E.</th>
+          <th style="padding:8px 10px;text-align:left;font-size:8px;font-weight:900;text-transform:uppercase;">1ª S.</th>
+          <th style="padding:8px 10px;text-align:left;font-size:8px;font-weight:900;text-transform:uppercase;">2ª E.</th>
+          <th style="padding:8px 10px;text-align:left;font-size:8px;font-weight:900;text-transform:uppercase;">2ª S.</th>
+          <th style="padding:8px 10px;text-align:center;font-size:8px;font-weight:900;text-transform:uppercase;">Abono</th>
+          <th style="padding:8px 10px;text-align:center;font-size:8px;font-weight:900;text-transform:uppercase;">H.E.</th>
+          <th style="padding:8px 10px;text-align:center;font-size:8px;font-weight:900;text-transform:uppercase;">Ausente</th>
+          <th style="padding:8px 10px;text-align:center;font-size:8px;font-weight:900;text-transform:uppercase;">Ad. Not.</th>
+          <th style="padding:8px 10px;text-align:center;font-size:8px;font-weight:900;text-transform:uppercase;">Status</th>
+          <th style="padding:8px 10px;text-align:left;font-size:8px;font-weight:900;text-transform:uppercase;">Observação</th>
+        </tr></thead>
+        <tbody>${bodyRows}</tbody>
+      </table>
+    `)}
+    ${section('Resumo do Período', `
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
+        <div style="background:#f0fdfa;border:1px solid #ccfbf1;border-radius:8px;padding:14px;text-align:center;">
+          <div style="font-size:7px;font-weight:900;text-transform:uppercase;color:#0f766e;">Registros</div>
+          <div style="font-size:16px;font-weight:900;color:#0f172a;margin-top:4px;">${rows.length}</div>
+        </div>
+        <div style="background:#f0fdfa;border:1px solid #ccfbf1;border-radius:8px;padding:14px;text-align:center;">
+          <div style="font-size:7px;font-weight:900;text-transform:uppercase;color:#0f766e;">Total Trabalhado</div>
+          <div style="font-size:16px;font-weight:900;color:#0f172a;margin-top:4px;">${escapeHtml(totalWorked)}</div>
+        </div>
+        <div style="background:#f0fdfa;border:1px solid #ccfbf1;border-radius:8px;padding:14px;text-align:center;">
+          <div style="font-size:7px;font-weight:900;text-transform:uppercase;color:#0f766e;">Saldo Final</div>
+          <div style="font-size:16px;font-weight:900;color:#0f172a;margin-top:4px;">${escapeHtml(totalBalance)}</div>
+        </div>
+      </div>
+    `)}
+    ${signatures(['Assinatura do Colaborador', 'Responsável pelo RH', 'Data de Conferência'])}
+  `;
 }
 
-function renderCompanyReport(rows: TimeTrack[], company: CompanyPrintInfo, month: string) {
+function buildCompanyBody(rows: TimeTrack[], month: string): string {
   const grouped = rows.reduce<Record<string, TimeTrack[]>>((acc, row) => {
     const key = row.employeeId;
     acc[key] = acc[key] ?? [];
@@ -283,77 +305,53 @@ function renderCompanyReport(rows: TimeTrack[], company: CompanyPrintInfo, month
     const first = employeeRows[0]?.employee;
     const bodyRows = buildMirrorRows(employeeRows).map((row) => `
       <tr><td>${escapeHtml(row.data)}</td><td>${escapeHtml(row.dia)}</td><td>${escapeHtml(row.entrada1)}</td><td>${escapeHtml(row.saida1)}</td><td>${escapeHtml(row.entrada2)}</td><td>${escapeHtml(row.saida2)}</td><td>${escapeHtml(row.trabalhado)}</td><td>${escapeHtml(row.saldo)}</td><td>${escapeHtml(row.statusDia)}</td><td>${escapeHtml(row.observacao)}</td></tr>`).join('');
-    return `<section class="employee-block">
-      <h2>${escapeHtml(normalizeDisplayName(first?.name ?? 'Funcionário'))}</h2>
-      ${employeeHeader(first)}
-      <section class="summary"><strong>Resumo:</strong> trabalhado ${escapeHtml(formatMinutes(sumMinutes(employeeRows, 'totalWorked')))} | saldo ${escapeHtml(formatMinutes(sumMinutes(employeeRows, 'dailyBalance')))} | feriados ${employeeRows.filter((r) => dayStatus(r) === 'Feriado').length} | atestados ${employeeRows.filter((r) => dayStatus(r) === 'Atestado integral').length} | ajustes ${employeeRows.filter((r) => dayStatus(r) === 'Ajuste manual').length}</section>
-      <table><thead><tr><th>Data</th><th>Dia</th><th>1ª entrada</th><th>1ª saída</th><th>2ª entrada</th><th>2ª saída</th><th>Trabalhado</th><th>Saldo</th><th>Observação</th></tr></thead><tbody>${bodyRows}</tbody></table>
-    </section>`;
+    return `
+      ${first ? section(`Colaborador: ${normalizeDisplayName(first.name)}`, grid3([
+        field('Matrícula', first.id.slice(0, 8).toUpperCase()),
+        field('Nome', normalizeDisplayName(first.name)),
+        field('CPF', formatDocument(first.cpf)),
+        field('Função', first.position || '-'),
+        field('Departamento', first.department || '-'),
+        field('Admissão', formatDate(first.admissionDate)),
+      ])) : ''}
+      ${section('Registros de Ponto', `
+        <table style="width:100%;border-collapse:collapse;">
+          <thead><tr style="background:#0f172a;color:#fff;">
+            <th style="padding:8px 10px;text-align:left;font-size:8px;font-weight:900;text-transform:uppercase;">Data</th>
+            <th style="padding:8px 10px;text-align:left;font-size:8px;font-weight:900;text-transform:uppercase;">Dia</th>
+            <th style="padding:8px 10px;text-align:left;font-size:8px;font-weight:900;text-transform:uppercase;">1ª entrada</th>
+            <th style="padding:8px 10px;text-align:left;font-size:8px;font-weight:900;text-transform:uppercase;">1ª saída</th>
+            <th style="padding:8px 10px;text-align:left;font-size:8px;font-weight:900;text-transform:uppercase;">2ª entrada</th>
+            <th style="padding:8px 10px;text-align:left;font-size:8px;font-weight:900;text-transform:uppercase;">2ª saída</th>
+            <th style="padding:8px 10px;text-align:center;font-size:8px;font-weight:900;text-transform:uppercase;">Trabalhado</th>
+            <th style="padding:8px 10px;text-align:center;font-size:8px;font-weight:900;text-transform:uppercase;">Saldo</th>
+            <th style="padding:8px 10px;text-align:center;font-size:8px;font-weight:900;text-transform:uppercase;">Status</th>
+            <th style="padding:8px 10px;text-align:left;font-size:8px;font-weight:900;text-transform:uppercase;">Observação</th>
+          </tr></thead>
+          <tbody>${bodyRows}</tbody>
+        </table>
+      `)}
+    `;
   }).join('');
   return `
-    <section class="report-brand"><div>${companyLogo(company)}</div><div><h1>Espelho de ponto da empresa</h1></div></section>
-    <section class="meta"><span><strong>Período:</strong> ${escapeHtml(periodLabel(month))}</span><span><strong>Emissão:</strong> ${escapeHtml(new Date().toLocaleString('pt-BR'))}</span></section>
-    <section class="company"><span><strong>Empresa:</strong> ${escapeHtml(company.name)}</span><span><strong>CNPJ:</strong> ${escapeHtml(company.document)}</span></section>
-    <section class="summary"><strong>Total de funcionários no relatório:</strong> ${Object.keys(grouped).length} | <strong>Registros:</strong> ${rows.length}</section>
-    ${sections}`;
-}
-
-function openPrintableReport(rows: TimeTrack[], month: string, company: CompanyPrintInfo, employee?: Employee) {
-  const title = employee ? `Espelho individual - ${normalizeDisplayName(employee.name)} - ${monthLabel(month)}` : `Espelho da empresa - ${monthLabel(month)}`;
-  const content = employee ? renderIndividualReport(rows, employee, company, month) : renderCompanyReport(rows, company, month);
-  const win = window.open('', '_blank');
-  if (!win) {
-    window.alert('Não foi possível abrir o relatório. Verifique se o navegador bloqueou pop-ups.');
-    return;
-  }
-  win.document.open();
-  win.document.write(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8" /><title>${escapeHtml(title)}</title>
-    <style>
-      @page { size: A4 landscape; margin: 8mm 10mm; }
-      * { box-sizing: border-box; margin: 0; padding: 0; }
-      body { font-family: 'Segoe UI', Arial, Helvetica, sans-serif; color: #0f172a; background: #fff; font-size: 9.5pt; line-height: 1.35; }
-      .toolbar { position: sticky; top: 0; z-index: 2; display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 12px; background: #0f172a; color: white; }
-      .toolbar button { border: 0; border-radius: 5px; background: #0f766e; color: white; padding: 5px 10px; font-weight: 700; cursor: pointer; font-size: 10px; }
-      .page { background: white; padding: 0; max-width: 100%; }
-      .compact-header { display: flex; align-items: center; justify-content: space-between; border-bottom: 1.5px solid #0f172a; padding-bottom: 7px; margin-bottom: 10px; page-break-inside: avoid; }
-      .company-info { display: flex; align-items: center; gap: 10px; }
-      .company-logo { width: 34px; height: 34px; object-fit: contain; }
-      .logo-placeholder { display: flex; width: 34px; height: 34px; align-items: center; justify-content: center; border: 1px solid #e2e8f0; border-radius: 5px; color: #94a3b8; font-size: 8px; }
-      .company-info-text h1 { font-size: 14px; font-weight: 900; color: #0f172a; letter-spacing: -0.2px; text-transform: uppercase; }
-      .company-info-text p { color: #64748b; font-size: 8px; font-weight: 700; }
-      .report-info { text-align: right; }
-      .report-info h2 { font-size: 11px; font-weight: 900; color: #0f172a; text-transform: uppercase; margin-bottom: 2px; }
-      .report-info p { color: #64748b; font-size: 8px; font-weight: 700; }
-      .meta-bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 5px; padding: 6px 8px; margin-bottom: 10px; }
-      .meta-bar span { font-size: 7.5px; text-transform: uppercase; color: #94a3b8; font-weight: 800; display: block; margin-bottom: 1px; }
-      .meta-bar p { font-size: 10px; font-weight: 800; color: #334155; }
-      .employee-card { margin-bottom: 10px; border: 1px solid #e2e8f0; border-radius: 5px; overflow: hidden; break-inside: avoid; }
-      .employee-card h3 { background: #f1f5f9; padding: 5px 10px; border-bottom: 1px solid #e2e8f0; font-size: 10px; font-weight: 900; color: #0f172a; }
-      .emp-info { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; background: #f8fafc; border-bottom: 1px solid #e2e8f0; padding: 4px 0; font-size: 8px; }
-      .emp-info div { padding: 3px 10px; }
-      .emp-info strong { display: block; color: #94a3b8; font-size: 7.5px; text-transform: uppercase; font-weight: 800; margin-bottom: 1px; }
-      .emp-info span { color: #334155; font-weight: 700; }
-      .summary-line { background: #f8fafc; border-bottom: 1px solid #e2e8f0; padding: 4px 10px; font-size: 9px; font-weight: 700; color: #475569; }
-      table { width: 100%; border-collapse: collapse; text-align: center; table-layout: fixed; font-size: 9pt; }
-      th { background: #0f172a; color: #fff; font-weight: 800; font-size: 8px; text-transform: uppercase; padding: 5px 6px; border-bottom: 2px solid #0f172a; letter-spacing: 0.03em; }
-      td { padding: 4px 6px; border-bottom: 1px solid #f1f5f9; color: #334155; font-size: 9px; word-break: break-word; }
-      tr:last-child td { border-bottom: 0; }
-      .signatures { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; margin-top: 16px; }
-      .signatures div { border-top: 1px solid #cbd5e1; text-align: center; padding-top: 5px; font-size: 8.5px; font-weight: 700; color: #475569; }
-      .footer-print { margin-top: 10px; border-top: 1px solid #e2e8f0; padding-top: 5px; display: flex; justify-content: space-between; color: #94a3b8; font-size: 7.5px; font-weight: 600; }
-      @media print {
-        .no-print { display: none !important; }
-        .page { width: 100%; max-width: 100%; page-break-after: avoid; }
-        .print-section { break-inside: avoid; page-break-inside: avoid; }
-        table { width: 100%; border-collapse: collapse; page-break-inside: auto; }
-        thead { display: table-header-group; }
-        tfoot { display: table-footer-group; }
-        tr { page-break-inside: avoid; break-inside: avoid; }
-        .toolbar { display: none; }
-        .compact-header, .meta-bar, .employee-card { page-break-inside: avoid; }
-      }
-    </style></head><body><div class="toolbar"><strong>${escapeHtml(title)}</strong><button onclick="window.print()" class="no-print">Imprimir / Salvar PDF</button></div><main class="page">${content}</main><footer class="footer-print"><span>Innovation RH Connect</span><span>Documento gerado automaticamente</span></footer></body></html>`);
-  win.document.close();
+    ${section('Resumo Geral', `
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
+        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px;text-align:center;">
+          <div style="font-size:7px;font-weight:900;text-transform:uppercase;color:#64748b;">Funcionários</div>
+          <div style="font-size:16px;font-weight:900;color:#0f172a;margin-top:4px;">${Object.keys(grouped).length}</div>
+        </div>
+        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px;text-align:center;">
+          <div style="font-size:7px;font-weight:900;text-transform:uppercase;color:#64748b;">Registros</div>
+          <div style="font-size:16px;font-weight:900;color:#0f172a;margin-top:4px;">${rows.length}</div>
+        </div>
+        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px;text-align:center;">
+          <div style="font-size:7px;font-weight:900;text-transform:uppercase;color:#64748b;">Período</div>
+          <div style="font-size:12px;font-weight:900;color:#0f172a;margin-top:4px;">${monthLabel(month)}</div>
+        </div>
+      </div>
+    `)}
+    ${sections}
+  `;
 }
 
 export default function TimeTrackPage() {
@@ -406,7 +404,14 @@ export default function TimeTrackPage() {
     if (unitFilter && employee.unit !== unitFilter) return false;
     return true;
   }), [activeEmployees, employeeFilter, departmentFilter, managerFilter, unitFilter]);
-  const reportCompany = useMemo(() => normalizeCompanyInfo(isFuncionario ? null : company.data), [company.data, isFuncionario]);
+  const reportCompany = useMemo(() => {
+    const c = company.data;
+    return {
+      name: normalizeDisplayName(c?.name ?? 'Empresa'),
+      document: formatDocument(c?.document ?? null),
+      logoUrl: c?.logoUrl ?? null,
+    };
+  }, [company.data]);
   const remove = useMutation((id: string) => api.timeTrack.delete(id), { onSuccess: () => tracks.refetch() });
 
   const canClockIn = Boolean(profile && !['DEV', 'COMERCIAL', 'CONSULTA'].includes(profile));
