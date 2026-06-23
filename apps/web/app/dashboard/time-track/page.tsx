@@ -309,8 +309,8 @@ function openPrintableReport(rows: TimeTrack[], month: string, company: CompanyP
   win.document.open();
   win.document.write(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8" /><title>${escapeHtml(title)}</title>
     <style>
-      @page{size:A4 landscape;margin:10mm}*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,Helvetica,sans-serif;color:#1f2937;margin:0;background:#fff;font-size:12px;line-height:1.5}.toolbar{position:sticky;top:0;z-index:2;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 18px;background:#0f172a;color:white}.toolbar button{border:0;border-radius:6px;background:#0f766e;color:white;padding:8px 12px;font-weight:700;cursor:pointer}.page{background:white;margin:0 auto;padding:24px;max-width:1180px}.report-header{display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #0a5c4a;padding-bottom:18px;margin-bottom:22px}.company-side{display:flex;align-items:center;gap:14px}.company-logo{width:58px;height:58px;object-fit:contain}.logo-placeholder{display:flex;width:58px;height:58px;align-items:center;justify-content:center;border:1px solid #e5e7eb;border-radius:8px;color:#9ca3af}.company-side h1{font-size:22px;font-weight:800;color:#111827;letter-spacing:-.5px;text-transform:uppercase}.company-side p{color:#4b5563;font-size:11px}.report-title{text-align:right}.report-title h2{font-size:14px;font-weight:800;color:#0a5c4a;text-transform:uppercase;margin-bottom:6px}.report-title p{color:#6b7280;font-size:11px}.meta-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:15px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:15px;margin-bottom:28px}.meta-item span{display:block;font-size:10px;text-transform:uppercase;color:#9ca3af;font-weight:800;margin-bottom:2px}.meta-item p{font-size:13px;font-weight:700;color:#374151}.employee-block{margin-bottom:26px;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;break-inside:avoid}.employee-block h2{background:#f3f4f6;padding:12px 16px;border-bottom:1px solid #e5e7eb;font-size:13px;color:#111827}.employee-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:0;background:#f3f4f6;border-bottom:1px solid #e5e7eb}.employee-grid div{padding:10px 14px}.employee-grid strong{display:block;color:#6b7280;font-size:9px;text-transform:uppercase}.summary{background:#f9fafb;border-bottom:1px solid #e5e7eb;padding:10px 16px;font-weight:600;color:#374151}table{width:100%;border-collapse:collapse;text-align:left;table-layout:fixed}th{background:#fff;color:#4b5563;font-weight:800;font-size:10px;text-transform:uppercase;padding:10px 12px;border-bottom:1px solid #e5e7eb}td{padding:11px 12px;border-bottom:1px solid #f3f4f6;color:#374151;font-size:11px;text-align:center;word-break:break-word}td:last-child{text-align:left}tr:last-child td{border-bottom:0}.signatures{display:grid;grid-template-columns:1fr 1fr;gap:48px;margin-top:38px}.signatures div{border-top:1px solid #9ca3af;text-align:center;padding-top:8px}.footer{margin-top:36px;border-top:1px solid #e5e7eb;padding-top:12px;display:flex;justify-content:space-between;color:#9ca3af;font-size:10px}@media print{.toolbar{display:none}.page{padding:0;max-width:none}.employee-block{page-break-inside:avoid}}
-    </style></head><body><div class="toolbar"><strong>${escapeHtml(title)}</strong><button onclick="window.print()">Imprimir ou salvar em PDF</button></div><main class="page">${content}</main><footer class="footer"><div>Innovation RH Connect - Sistema de Gestao de Ponto</div><div>Documento gerado automaticamente</div></footer></body></html>`);
+      @page{size:A4 landscape;margin:6mm 8mm}*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Segoe UI',Arial,Helvetica,sans-serif;color:#0f172a;margin:0;background:#fff;font-size:9.5pt;line-height:1.35}.toolbar{position:sticky;top:0;z-index:2;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 12px;background:#0f172a;color:white}.toolbar button{border:0;border-radius:5px;background:#0f766e;color:white;padding:5px 10px;font-weight:700;cursor:pointer;font-size:10px}.page{background:white;padding:10px 8px;max-width:1100px}.compact-header{display:flex;align-items:center;justify-content:space-between;border-bottom:1.5px solid #0f172a;padding-bottom:7px;margin-bottom:10px;page-break-inside:avoid}.company-info{display:flex;align-items:center;gap:10px}.company-logo{width:34px;height:34px;object-fit:contain}.logo-placeholder{display:flex;width:34px;height:34px;align-items:center;justify-content:center;border:1px solid #e2e8f0;border-radius:5px;color:#94a3b8;font-size:8px}.company-info-text h1{font-size:14px;font-weight:900;color:#0f172a;letter-spacing:-.2px;text-transform:uppercase}.company-info-text p{color:#64748b;font-size:8px;font-weight:700}.report-info{text-align:right}.report-info h2{font-size:11px;font-weight:900;color:#0f172a;text-transform:uppercase;margin-bottom:2px}.report-info p{color:#64748b;font-size:8px;font-weight:700}.meta-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:5px;padding:6px 8px;margin-bottom:10px}.meta-bar span{font-size:7.5px;text-transform:uppercase;color:#94a3b8;font-weight:800;display:block;margin-bottom:1px}.meta-bar p{font-size:10px;font-weight:800;color:#334155}.employee-card{margin-bottom:10px;border:1px solid #e2e8f0;border-radius:5px;overflow:hidden;break-inside:avoid}.employee-card h3{background:#f1f5f9;padding:5px 10px;border-bottom:1px solid #e2e8f0;font-size:10px;font-weight:900;color:#0f172a}.emp-info{display:grid;grid-template-columns:repeat(4,1fr);gap:0;background:#f8fafc;border-bottom:1px solid #e2e8f0;padding:4px 0;font-size:8px}.emp-info div{padding:3px 10px}.emp-info strong{display:block;color:#94a3b8;font-size:7.5px;text-transform:uppercase;font-weight:800;margin-bottom:1px}.emp-info span{color:#334155;font-weight:700}.summary-line{background:#f8fafc;border-bottom:1px solid #e2e8f0;padding:4px 10px;font-size:9px;font-weight:700;color:#475569}table{width:100%;border-collapse:collapse;text-align:center;table-layout:fixed;font-size:9pt}th{background:#fff;color:#64748b;font-weight:800;font-size:8px;text-transform:uppercase;padding:4px 5px;border-bottom:1px solid #e2e8f0;letter-spacing:.02em}td{padding:3px 5px;border-bottom:1px solid #f1f5f9;color:#334155;font-size:9px;word-break:break-word}tr:last-child td{border-bottom:0}.signatures{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-top:16px}.signatures div{border-top:1px solid #cbd5e1;text-align:center;padding-top:5px;font-size:8.5px;font-weight:700;color:#475569}.footer-print{margin-top:10px;border-top:1px solid #e2e8f0;padding-top:5px;display:flex;justify-content:space-between;color:#94a3b8;font-size:7.5px;font-weight:600}@media print{.toolbar{display:none}.page{padding:0;max-width:100%}table{page-break-inside:auto}tr{page-break-inside:avoid}.employee-card{page-break-inside:avoid}}.compact-header,.meta-bar,.employee-card{page-break-inside:avoid}
+    </style></head><body><div class="toolbar"><strong>${escapeHtml(title)}</strong><button onclick="window.print()">Imprimir / Salvar PDF</button></div><main class="page">${content}</main><footer class="footer-print"><span>Innovation RH Connect</span><span>Documento gerado automaticamente</span></footer></body></html>`);
   win.document.close();
 }
 
@@ -323,7 +323,7 @@ export default function TimeTrackPage() {
 
   const tracks = useQuery(() => api.timeTrack.list(), []);
   const employees = useQuery(() => api.employees.list(), [], { enabled: !isFuncionario });
-  const company = useQuery(() => api.companies.me(), []);
+  const company = useQuery(() => api.companies.me(), [], { enabled: canManage || isGestor });
   const [open, setOpen] = useState(false);
   const [bulkOpen, setBulkOpen] = useState(false);
   const [editing, setEditing] = useState<TimeTrack | null>(null);
@@ -364,7 +364,7 @@ export default function TimeTrackPage() {
     if (unitFilter && employee.unit !== unitFilter) return false;
     return true;
   }), [activeEmployees, employeeFilter, departmentFilter, managerFilter, unitFilter]);
-  const reportCompany = normalizeCompanyInfo(company.data);
+  const reportCompany = useMemo(() => normalizeCompanyInfo(isFuncionario ? null : company.data), [company.data, isFuncionario]);
   const remove = useMutation((id: string) => api.timeTrack.delete(id), { onSuccess: () => tracks.refetch() });
 
   const canClockIn = Boolean(profile && !['DEV', 'COMERCIAL', 'CONSULTA'].includes(profile));
@@ -448,35 +448,35 @@ export default function TimeTrackPage() {
       )}
 
       {!isFuncionario && (
-        <section className="ops-card grid gap-3 rounded-[8px] border border-slate-200 bg-white p-4 sm:grid-cols-2 lg:grid-cols-3">
-          <label className="space-y-1 text-xs font-medium text-slate-600">
-            <span>Funcionario</span>
-            <select value={employeeFilter} onChange={(event) => setEmployeeFilter(event.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500">
+        <section className="grid gap-3 rounded-[14px] border border-slate-200/60 bg-white/80 p-4 shadow-sm backdrop-blur-sm sm:grid-cols-2 lg:grid-cols-5">
+          <label className="space-y-2 text-xs font-bold uppercase tracking-wider text-slate-600">
+            <span>Funcionário</span>
+            <select value={employeeFilter} onChange={(event) => setEmployeeFilter(event.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-900 shadow-sm outline-none transition-all focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10">
               <option value="">Todos</option>
               {activeEmployees.map((employee) => <option key={employee.id} value={employee.id}>{normalizeDisplayName(employee.name)}</option>)}
             </select>
           </label>
-          <label className="space-y-1 text-xs font-medium text-slate-600">
-            <span>Mes</span>
-            <input type="month" value={monthFilter} onChange={(event) => setMonthFilter(event.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500" />
+          <label className="space-y-2 text-xs font-bold uppercase tracking-wider text-slate-600">
+            <span>Mês</span>
+            <input type="month" value={monthFilter} onChange={(event) => setMonthFilter(event.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-900 shadow-sm outline-none transition-all focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10" />
           </label>
-          <label className="space-y-1 text-xs font-medium text-slate-600">
+          <label className="space-y-2 text-xs font-bold uppercase tracking-wider text-slate-600">
             <span>Departamento</span>
-            <select value={departmentFilter} onChange={(event) => setDepartmentFilter(event.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500">
+            <select value={departmentFilter} onChange={(event) => setDepartmentFilter(event.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-900 shadow-sm outline-none transition-all focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10">
               <option value="">Todos</option>
               {departments.map((d) => <option key={d} value={d}>{d}</option>)}
             </select>
           </label>
-          <label className="space-y-1 text-xs font-medium text-slate-600">
+          <label className="space-y-2 text-xs font-bold uppercase tracking-wider text-slate-600">
             <span>Gestor</span>
-            <select value={managerFilter} onChange={(event) => setManagerFilter(event.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500">
+            <select value={managerFilter} onChange={(event) => setManagerFilter(event.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-900 shadow-sm outline-none transition-all focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10">
               <option value="">Todos</option>
               {managers.map((m) => <option key={m.id} value={m.id}>{normalizeDisplayName(m.name)}</option>)}
             </select>
           </label>
-          <label className="space-y-1 text-xs font-medium text-slate-600">
-            <span>Operacao / unidade</span>
-            <select value={unitFilter} onChange={(event) => setUnitFilter(event.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500">
+          <label className="space-y-2 text-xs font-bold uppercase tracking-wider text-slate-600">
+            <span>Unidade</span>
+            <select value={unitFilter} onChange={(event) => setUnitFilter(event.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-900 shadow-sm outline-none transition-all focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10">
               <option value="">Todas</option>
               {units.map((u) => <option key={u} value={u}>{u}</option>)}
             </select>
@@ -485,10 +485,10 @@ export default function TimeTrackPage() {
       )}
 
       {isFuncionario && (
-        <section className="ops-card grid gap-3 rounded-[8px] border border-slate-200 bg-white p-4">
-          <label className="space-y-1 text-xs font-medium text-slate-600">
+        <section className="grid gap-3 rounded-[14px] border border-slate-200/60 bg-white/80 p-4 shadow-sm backdrop-blur-sm sm:grid-cols-2 lg:grid-cols-5">
+          <label className="space-y-2 text-xs font-bold uppercase tracking-wider text-slate-600">
             <span>Mês da folha</span>
-            <input type="month" value={monthFilter} onChange={(event) => setMonthFilter(event.target.value)} className="h-10 w-full max-w-[220px] rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500" />
+            <input type="month" value={monthFilter} onChange={(event) => setMonthFilter(event.target.value)} className="h-10 w-full max-w-[220px] rounded-[8px] border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-900 shadow-sm outline-none transition-all focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10" />
           </label>
         </section>
       )}
@@ -501,42 +501,61 @@ export default function TimeTrackPage() {
       {isInitialTracksLoading ? <LoadingState label="Carregando folha de ponto..." /> : tracks.error && !tracks.data ? <ErrorState message={tracks.error} onRetry={tracks.refetch} /> : isFuncionario ? (
         rows.length === 0 ? <EmptyState message="Nenhum registro de ponto encontrado." /> : <TimeRowsTable rows={rows} canManage={false} isRefreshing={isRefreshingTracks} removeLoading={remove.loading} onEdit={setEditing} onDelete={handleDelete} />
       ) : visibleEmployees.length === 0 ? <EmptyState message="Nenhum colaborador encontrado para o filtro selecionado." /> : (
-        <section className="overflow-hidden rounded-[12px] border border-slate-200 bg-white shadow-[0_18px_44px_rgba(15,23,42,0.07)]">
-          <div className="flex flex-col gap-1 border-b border-slate-100 bg-slate-50/80 px-6 py-5">
-            <h3 className="text-base font-black text-slate-950">Colaboradores da folha</h3>
-            <p className="text-xs font-semibold text-slate-500">Abra um colaborador para conferir registros, editar ajustes e baixar a folha individual.</p>
+        <section className="overflow-hidden rounded-[18px] border border-slate-200/60 bg-white shadow-[0_12px_40px_rgba(15,23,42,0.08)]">
+          <div className="border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white px-6 py-5">
+            <h3 className="text-sm font-black text-slate-950">Colaboradores da folha</h3>
+            <p className="mt-1 text-xs font-semibold text-slate-500">Abra um colaborador para conferir registros, editar ajustes e baixar a folha individual.</p>
           </div>
           <div className="divide-y divide-slate-100">
             {visibleEmployees.map((employee) => {
               const employeeRows = rowsByEmployee[employee.id] ?? [];
               const opened = !employeeFilter || employeeFilter === employee.id;
+              const workedTotal = sumMinutes(employeeRows, 'totalWorked');
+              const balanceTotal = sumMinutes(employeeRows, 'dailyBalance');
               return (
-                <div key={employee.id} className="bg-white px-6 py-5 transition-colors hover:bg-slate-50/40">
+                <div key={employee.id} className="bg-white px-6 py-5 transition-all duration-200 hover:bg-slate-50/40">
                   <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="inline-flex rounded-full border border-teal-200 bg-teal-50 px-2.5 py-1 text-[11px] font-black text-teal-700">{employee.registration || employee.id.slice(0, 8).toUpperCase()}</span>
-                        <p className="text-sm font-black text-slate-950">{normalizeDisplayName(employee.name)}</p>
+                    <div className="flex items-center gap-4">
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[12px] bg-gradient-to-br from-teal-500 to-cyan-600 text-sm font-black text-white shadow-lg shadow-teal-500/20">
+                        {normalizeDisplayName(employee.name).charAt(0).toUpperCase()}
                       </div>
-                      <div className="mt-2 flex flex-wrap gap-2 text-[11px] font-semibold text-slate-500">
-                        <span>{employeeRows.length} registro(s)</span>
-                        <span>/</span>
-                        <span>{employee.department || 'Sem departamento'}</span>
-                        <span>/</span>
-                        <span>{employee.position || 'Sem cargo'}</span>
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="inline-flex rounded-full border border-teal-200/60 bg-gradient-to-r from-teal-50 to-cyan-50 px-2.5 py-1 text-[11px] font-black text-teal-700">{employee.registration || employee.id.slice(0, 8).toUpperCase()}</span>
+                          <p className="text-sm font-black text-slate-950">{normalizeDisplayName(employee.name)}</p>
+                        </div>
+                        <div className="mt-2 flex flex-wrap items-center gap-3 text-[11px] font-semibold text-slate-500">
+                          <span>{employeeRows.length} registro(s)</span>
+                          <span className="text-slate-300">|</span>
+                          <span>{employee.department || 'Sem departamento'}</span>
+                          <span className="text-slate-300">|</span>
+                          <span>{employee.position || 'Sem cargo'}</span>
+                        </div>
                       </div>
                     </div>
-                    <div className="flex flex-wrap gap-2 lg:justify-end">
-                      <button onClick={() => setEmployeeFilter(opened && employeeFilter === employee.id ? '' : employee.id)} className="btn-outline inline-flex h-10 items-center gap-2 rounded-[8px] px-3.5 text-[11px] font-black"><Eye size={13} /> {opened ? 'Ocultar detalhes' : 'Exibir detalhes'}</button>
-                      {canDownloadOwnOrTeam && (
-                        <button onClick={() => openPrintableReport(employeeRows, monthFilter, reportCompany, employee)} disabled={employeeRows.length === 0 || company.loading || isRefreshingTracks} className="btn-outline inline-flex h-10 items-center gap-2 rounded-[8px] px-3.5 text-[11px] font-black disabled:opacity-50"><FileText size={13} /> Baixar folha</button>
-                      )}
+                    <div className="flex flex-wrap items-center gap-4">
+                      <div className="flex gap-3 text-[11px] font-bold">
+                        <div className="rounded-[8px] border border-slate-200 bg-slate-50 px-3 py-1.5">
+                          <span className="block text-[9px] uppercase text-slate-400">Trabalhado</span>
+                          <span className="text-slate-900">{formatMinutes(workedTotal)}</span>
+                        </div>
+                        <div className={`rounded-[8px] border px-3 py-1.5 ${balanceTotal >= 0 ? 'border-emerald-200 bg-emerald-50' : 'border-rose-200 bg-rose-50'}`}>
+                          <span className="block text-[9px] uppercase text-slate-400">Saldo</span>
+                          <span className={balanceTotal >= 0 ? 'text-emerald-700' : 'text-rose-700'}>{formatMinutes(balanceTotal)}</span>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <button onClick={() => setEmployeeFilter(opened && employeeFilter === employee.id ? '' : employee.id)} className="btn-outline-premium inline-flex h-9 items-center gap-2 rounded-[8px] px-3 text-[11px] font-black"><Eye size={13} /> {opened ? 'Ocultar' : 'Exibir'}</button>
+                        {canDownloadOwnOrTeam && (
+                          <button onClick={() => openPrintableReport(employeeRows, monthFilter, reportCompany, employee)} disabled={employeeRows.length === 0 || company.loading || isRefreshingTracks} className="btn-outline-premium inline-flex h-9 items-center gap-2 rounded-[8px] px-3 text-[11px] font-black disabled:opacity-50"><FileText size={13} /> Folha</button>
+                        )}
+                      </div>
                     </div>
                   </div>
                   {opened && (
-                    <div className="mt-5 rounded-[10px] border border-slate-200 bg-white">
+                    <div className="mt-4 overflow-hidden rounded-[10px] border border-slate-200">
                       {employeeRows.length === 0 ? (
-                        <div className="rounded-[10px] border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-xs font-semibold text-slate-500">Nenhum registro de ponto para este colaborador no filtro atual.</div>
+                        <div className="border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-xs font-semibold text-slate-500">Nenhum registro de ponto para este colaborador no filtro atual.</div>
                       ) : (
                         <TimeRowsTable rows={employeeRows} canManage={canManage} isRefreshing={isRefreshingTracks} removeLoading={remove.loading} onEdit={setEditing} onDelete={handleDelete} compact />
                       )}
@@ -558,36 +577,52 @@ export default function TimeTrackPage() {
 function TimeRowsTable({ rows, canManage, isRefreshing, removeLoading, onEdit, onDelete, compact = false }: { rows: TimeTrack[]; canManage: boolean; isRefreshing: boolean; removeLoading: boolean; onEdit: (row: TimeTrack) => void; onDelete: (row: TimeTrack) => void; compact?: boolean }) {
   return (
     <div className="overflow-x-auto">
-      <table className={`w-full ${compact ? 'min-w-[900px]' : 'min-w-[960px]'} text-left`}>
+      <table className={`w-full ${compact ? 'min-w-[860px]' : 'min-w-[960px]'} text-left`}>
         <thead>
-          <tr className="bg-slate-50 text-[10px] font-black uppercase tracking-[0.12em] text-slate-500">
+          <tr className="bg-gradient-to-r from-slate-100 to-slate-50 text-[10px] font-black uppercase tracking-[0.12em] text-slate-600">
             <th className="px-4 py-3">Data</th>
             <th className="px-4 py-3">Entrada</th>
-            <th className="px-4 py-3">Almoco</th>
-            <th className="px-4 py-3">Saida</th>
+            <th className="px-4 py-3">Almoço</th>
+            <th className="px-4 py-3">Saída</th>
             <th className="px-4 py-3">Trabalhado</th>
             <th className="px-4 py-3">Saldo</th>
-            <th className="px-4 py-3">Motivo</th>
-            {canManage && <th className="px-4 py-3">Acoes</th>}
+            <th className="px-4 py-3">Status</th>
+            {canManage && <th className="px-4 py-3 text-right">Ações</th>}
           </tr>
         </thead>
         <tbody>
-          {rows.map((row) => (
-            <tr key={row.id} className="border-t border-slate-100 text-[12px] font-semibold text-slate-700 hover:bg-slate-50/70">
-              <td className="px-4 py-4">{formatDate(row.date)}</td>
-              <td className="px-4 py-4">{displayTime(row.entry)}</td>
-              <td className="px-4 py-4">{displayLunch(row.lunchStart, row.lunchReturn)}</td>
-              <td className="px-4 py-4">{displayTime(row.exit)}</td>
-              <td className="px-4 py-4">{displayWorked(row.totalWorked)}</td>
+          {rows.map((row, idx) => (
+            <tr key={row.id} className={`border-t border-slate-100 text-[12px] font-semibold text-slate-700 transition-colors hover:bg-slate-50/70 ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/30'}`}>
+              <td className="px-4 py-3 text-slate-900">{formatDate(row.date)}</td>
+              <td className="px-4 py-4 font-black text-slate-950">{displayTime(row.entry)}</td>
+              <td className="px-4 py-4 text-slate-600">{displayLunch(row.lunchStart, row.lunchReturn)}</td>
+              <td className="px-4 py-4 font-black text-slate-950">{displayTime(row.exit)}</td>
+              <td className="px-4 py-4 text-slate-600">{displayWorked(row.totalWorked)}</td>
               <td className={`px-4 py-4 font-black ${(row.dailyBalance ?? 0) < 0 ? 'text-rose-600' : 'text-emerald-600'}`}>{displayBalance(row.dailyBalance)}</td>
-              <td className="max-w-[260px] truncate px-4 py-4 text-slate-600">{row.observation || row.manualReason || '-'}</td>
-              {canManage && <td className="px-4 py-4"><div className="flex gap-2"><button onClick={() => onEdit(row)} disabled={isRefreshing || removeLoading} className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px]"><Edit3 size={12} />Editar</button><button onClick={() => onDelete(row)} disabled={isRefreshing || removeLoading} className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px] text-rose-600"><Trash2 size={12} />Excluir</button></div></td>}
+              <td className="px-4 py-4">
+                <StatusBadge status={dayStatus(row)} />
+              </td>
+              {canManage && <td className="px-4 py-4"><div className="flex justify-end gap-2"><button onClick={() => onEdit(row)} disabled={isRefreshing || removeLoading} className="btn-outline-premium inline-flex h-8 items-center gap-2 px-3 text-[11px]"><Edit3 size={12} />Editar</button><button onClick={() => onDelete(row)} disabled={isRefreshing || removeLoading} className="inline-flex h-8 items-center gap-2 rounded-[8px] bg-gradient-to-r from-rose-500 to-pink-600 px-3 text-[11px] font-black text-white shadow-md shadow-rose-500/20 transition-all hover:-translate-y-0.5 hover:shadow-lg active:translate-y-0 disabled:opacity-40"><Trash2 size={12} />Excluir</button></div></td>}
             </tr>
           ))}
         </tbody>
       </table>
     </div>
   );
+}
+
+function StatusBadge({ status }: { status: string }) {
+  const colors: Record<string, string> = {
+    'Normal': 'bg-emerald-50 text-emerald-700 border-emerald-200/60',
+    'Pendente': 'bg-amber-50 text-amber-700 border-amber-200/60',
+    'Rejeitado': 'bg-rose-50 text-rose-700 border-rose-200/60',
+    'Feriado': 'bg-teal-50 text-teal-700 border-teal-200/60',
+    'Atestado integral': 'bg-violet-50 text-violet-700 border-violet-200/60',
+    'Folga': 'bg-sky-50 text-sky-700 border-sky-200/60',
+    'Ajuste manual': 'bg-orange-50 text-orange-700 border-orange-200/60',
+    'Falta': 'bg-rose-50 text-rose-700 border-rose-200/60',
+  };
+  return <span className={`inline-flex items-center rounded-[6px] border px-2.5 py-1 text-[10px] font-black ${colors[status] || 'bg-slate-100 text-slate-600 border-slate-200/60'}`}>{status}</span>;
 }
 
 function ManualTimeSheetModal({ employees, employeesLoading, employeesError, defaultEmployeeId, track, bulk, onClose, onDone }: { employees: Employee[]; employeesLoading: boolean; employeesError: string | null; defaultEmployeeId: string; track?: TimeTrack; bulk?: boolean; onClose: () => void; onDone: () => void }) {
