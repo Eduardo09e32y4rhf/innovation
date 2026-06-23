@@ -395,7 +395,7 @@ export default function TimeTrackPage() {
   const isRefreshingTracks = tracks.loading && Boolean(tracks.data);
 
   return (
-    <div className="mx-auto max-w-6xl space-y-5">
+    <div className="mx-auto max-w-7xl space-y-6">
       <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-[11px] font-black uppercase tracking-[0.2em] text-teal-600">Controle de ponto</p>
@@ -501,32 +501,42 @@ export default function TimeTrackPage() {
       {isInitialTracksLoading ? <LoadingState label="Carregando folha de ponto..." /> : tracks.error && !tracks.data ? <ErrorState message={tracks.error} onRetry={tracks.refetch} /> : isFuncionario ? (
         rows.length === 0 ? <EmptyState message="Nenhum registro de ponto encontrado." /> : <TimeRowsTable rows={rows} canManage={false} isRefreshing={isRefreshingTracks} removeLoading={remove.loading} onEdit={setEditing} onDelete={handleDelete} />
       ) : visibleEmployees.length === 0 ? <EmptyState message="Nenhum colaborador encontrado para o filtro selecionado." /> : (
-        <section className="ops-card overflow-hidden rounded-[8px] border border-slate-200 bg-white">
-          <div className="border-b border-slate-100 px-5 py-4">
-            <h3 className="text-sm font-black text-slate-950">Colaboradores da folha</h3>
+        <section className="overflow-hidden rounded-[12px] border border-slate-200 bg-white shadow-[0_18px_44px_rgba(15,23,42,0.07)]">
+          <div className="flex flex-col gap-1 border-b border-slate-100 bg-slate-50/80 px-6 py-5">
+            <h3 className="text-base font-black text-slate-950">Colaboradores da folha</h3>
+            <p className="text-xs font-semibold text-slate-500">Abra um colaborador para conferir registros, editar ajustes e baixar a folha individual.</p>
           </div>
           <div className="divide-y divide-slate-100">
             {visibleEmployees.map((employee) => {
               const employeeRows = rowsByEmployee[employee.id] ?? [];
               const opened = !employeeFilter || employeeFilter === employee.id;
               return (
-                <div key={employee.id} className="px-5 py-4">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <p className="text-xs font-black text-slate-950">{employee.registration || employee.id.slice(0, 8).toUpperCase()} - {normalizeDisplayName(employee.name)}</p>
-                      <p className="mt-1 text-[11px] font-medium text-slate-500">{employeeRows.length} registro(s) no filtro atual</p>
+                <div key={employee.id} className="bg-white px-6 py-5 transition-colors hover:bg-slate-50/40">
+                  <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="inline-flex rounded-full border border-teal-200 bg-teal-50 px-2.5 py-1 text-[11px] font-black text-teal-700">{employee.registration || employee.id.slice(0, 8).toUpperCase()}</span>
+                        <p className="text-sm font-black text-slate-950">{normalizeDisplayName(employee.name)}</p>
+                      </div>
+                      <div className="mt-2 flex flex-wrap gap-2 text-[11px] font-semibold text-slate-500">
+                        <span>{employeeRows.length} registro(s)</span>
+                        <span>/</span>
+                        <span>{employee.department || 'Sem departamento'}</span>
+                        <span>/</span>
+                        <span>{employee.position || 'Sem cargo'}</span>
+                      </div>
                     </div>
-                    <div className="flex flex-wrap gap-2">
-                      <button onClick={() => setEmployeeFilter(opened && employeeFilter === employee.id ? '' : employee.id)} className="btn-outline inline-flex h-9 items-center gap-2 rounded-[8px] px-3 text-[11px] font-black"><Eye size={13} /> {opened ? 'Ocultar detalhes' : 'Exibir detalhes'}</button>
+                    <div className="flex flex-wrap gap-2 lg:justify-end">
+                      <button onClick={() => setEmployeeFilter(opened && employeeFilter === employee.id ? '' : employee.id)} className="btn-outline inline-flex h-10 items-center gap-2 rounded-[8px] px-3.5 text-[11px] font-black"><Eye size={13} /> {opened ? 'Ocultar detalhes' : 'Exibir detalhes'}</button>
                       {canDownloadOwnOrTeam && (
-                        <button onClick={() => openPrintableReport(employeeRows, monthFilter, reportCompany, employee)} disabled={employeeRows.length === 0 || company.loading || isRefreshingTracks} className="btn-outline inline-flex h-9 items-center gap-2 rounded-[8px] px-3 text-[11px] font-black disabled:opacity-50"><FileText size={13} /> Baixar folha</button>
+                        <button onClick={() => openPrintableReport(employeeRows, monthFilter, reportCompany, employee)} disabled={employeeRows.length === 0 || company.loading || isRefreshingTracks} className="btn-outline inline-flex h-10 items-center gap-2 rounded-[8px] px-3.5 text-[11px] font-black disabled:opacity-50"><FileText size={13} /> Baixar folha</button>
                       )}
                     </div>
                   </div>
                   {opened && (
-                    <div className="mt-4">
+                    <div className="mt-5 rounded-[10px] border border-slate-200 bg-white">
                       {employeeRows.length === 0 ? (
-                        <div className="rounded-[8px] border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-center text-xs font-semibold text-slate-500">Nenhum registro de ponto para este colaborador no filtro atual.</div>
+                        <div className="rounded-[10px] border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-xs font-semibold text-slate-500">Nenhum registro de ponto para este colaborador no filtro atual.</div>
                       ) : (
                         <TimeRowsTable rows={employeeRows} canManage={canManage} isRefreshing={isRefreshingTracks} removeLoading={remove.loading} onEdit={setEditing} onDelete={handleDelete} compact />
                       )}
@@ -548,30 +558,30 @@ export default function TimeTrackPage() {
 function TimeRowsTable({ rows, canManage, isRefreshing, removeLoading, onEdit, onDelete, compact = false }: { rows: TimeTrack[]; canManage: boolean; isRefreshing: boolean; removeLoading: boolean; onEdit: (row: TimeTrack) => void; onDelete: (row: TimeTrack) => void; compact?: boolean }) {
   return (
     <div className="overflow-x-auto">
-      <table className={`w-full ${compact ? 'min-w-[820px]' : 'min-w-[900px]'} text-left`}>
+      <table className={`w-full ${compact ? 'min-w-[900px]' : 'min-w-[960px]'} text-left`}>
         <thead>
-          <tr className="text-[11px] font-medium text-slate-500">
-            <th className="pb-3 pr-4">Data</th>
-            <th className="pb-3 pr-4">Entrada</th>
-            <th className="pb-3 pr-4">Almoco</th>
-            <th className="pb-3 pr-4">Saida</th>
-            <th className="pb-3 pr-4">Trabalhado</th>
-            <th className="pb-3 pr-4">Saldo</th>
-            <th className="pb-3 pr-4">Motivo</th>
-            {canManage && <th className="pb-3">Acoes</th>}
+          <tr className="bg-slate-50 text-[10px] font-black uppercase tracking-[0.12em] text-slate-500">
+            <th className="px-4 py-3">Data</th>
+            <th className="px-4 py-3">Entrada</th>
+            <th className="px-4 py-3">Almoco</th>
+            <th className="px-4 py-3">Saida</th>
+            <th className="px-4 py-3">Trabalhado</th>
+            <th className="px-4 py-3">Saldo</th>
+            <th className="px-4 py-3">Motivo</th>
+            {canManage && <th className="px-4 py-3">Acoes</th>}
           </tr>
         </thead>
         <tbody>
           {rows.map((row) => (
-            <tr key={row.id} className="border-t border-slate-100 text-xs text-slate-700">
-              <td className="py-3 pr-4">{formatDate(row.date)}</td>
-              <td className="py-3 pr-4">{displayTime(row.entry)}</td>
-              <td className="py-3 pr-4">{displayLunch(row.lunchStart, row.lunchReturn)}</td>
-              <td className="py-3 pr-4">{displayTime(row.exit)}</td>
-              <td className="py-3 pr-4">{displayWorked(row.totalWorked)}</td>
-              <td className={`py-3 pr-4 font-medium ${(row.dailyBalance ?? 0) < 0 ? 'text-rose-600' : 'text-emerald-600'}`}>{displayBalance(row.dailyBalance)}</td>
-              <td className="max-w-[240px] truncate py-3 pr-4">{row.observation || row.manualReason || '-'}</td>
-              {canManage && <td className="py-3"><div className="flex gap-2"><button onClick={() => onEdit(row)} disabled={isRefreshing || removeLoading} className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px]"><Edit3 size={12} />Editar</button><button onClick={() => onDelete(row)} disabled={isRefreshing || removeLoading} className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px] text-rose-600"><Trash2 size={12} />Excluir</button></div></td>}
+            <tr key={row.id} className="border-t border-slate-100 text-[12px] font-semibold text-slate-700 hover:bg-slate-50/70">
+              <td className="px-4 py-4">{formatDate(row.date)}</td>
+              <td className="px-4 py-4">{displayTime(row.entry)}</td>
+              <td className="px-4 py-4">{displayLunch(row.lunchStart, row.lunchReturn)}</td>
+              <td className="px-4 py-4">{displayTime(row.exit)}</td>
+              <td className="px-4 py-4">{displayWorked(row.totalWorked)}</td>
+              <td className={`px-4 py-4 font-black ${(row.dailyBalance ?? 0) < 0 ? 'text-rose-600' : 'text-emerald-600'}`}>{displayBalance(row.dailyBalance)}</td>
+              <td className="max-w-[260px] truncate px-4 py-4 text-slate-600">{row.observation || row.manualReason || '-'}</td>
+              {canManage && <td className="px-4 py-4"><div className="flex gap-2"><button onClick={() => onEdit(row)} disabled={isRefreshing || removeLoading} className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px]"><Edit3 size={12} />Editar</button><button onClick={() => onDelete(row)} disabled={isRefreshing || removeLoading} className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px] text-rose-600"><Trash2 size={12} />Excluir</button></div></td>}
             </tr>
           ))}
         </tbody>

@@ -18,13 +18,13 @@ export class VacationsService {
     return this.repository.listForEmployee(companyId, actor.sub, actor.email);
   }
 
-  async listByEmployee(companyId: string, employeeId: string) {
-    await this.ensureEmployee(companyId, employeeId);
+  async listByEmployee(companyId: string, actor: JwtUser, employeeId: string) {
+    await this.ensureCanAccessEmployee(companyId, actor, employeeId);
     return this.repository.listByEmployee(companyId, employeeId);
   }
 
-  async create(companyId: string, dto: CreateVacationDto) {
-    await this.ensureEmployee(companyId, dto.employeeId);
+  async create(companyId: string, actor: JwtUser, dto: CreateVacationDto) {
+    await this.ensureCanAccessEmployee(companyId, actor, dto.employeeId);
     const startDate = new Date(dto.startDate);
     const endDate = new Date(dto.endDate);
     if (endDate < startDate) throw new BadRequestException('End date must be after start date');
@@ -59,5 +59,15 @@ export class VacationsService {
     const employee = await this.repository.findEmployee(companyId, employeeId);
     if (!employee) throw new NotFoundException('Employee not found');
     return employee;
+  }
+
+  private async ensureCanAccessEmployee(companyId: string, actor: JwtUser, employeeId: string) {
+    const employee = await this.ensureEmployee(companyId, employeeId);
+    if (actor.role === 'ADMIN' || actor.role === 'RH' || actor.role === 'DEV' || actor.role === 'CONSULTA') return employee;
+    const actorEmployee = await this.repository.findEmployeeByUserId(companyId, actor.sub, actor.email);
+    if (!actorEmployee) throw new ForbiddenException('Permissao insuficiente');
+    if (actor.role === 'GESTOR' && (employee.id === actorEmployee.id || employee.managerId === actorEmployee.id)) return employee;
+    if (actor.role === 'FUNCIONARIO' && employee.id === actorEmployee.id) return employee;
+    throw new ForbiddenException('Permissao insuficiente');
   }
 }

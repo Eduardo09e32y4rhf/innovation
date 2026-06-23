@@ -21,13 +21,13 @@ export class VacationsController {
   }
 
   @Get('employee/:employeeId')
-  listByEmployee(@CurrentCompany() companyId: string, @Param('employeeId') employeeId: string) {
-    return this.service.listByEmployee(companyId, employeeId);
+  listByEmployee(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('employeeId') employeeId: string) {
+    return this.service.listByEmployee(companyId, actor, employeeId);
   }
 
   @Post()
-  create(@CurrentCompany() companyId: string, @Body() dto: CreateVacationDto) {
-    return this.service.create(companyId, dto);
+  create(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Body() dto: CreateVacationDto) {
+    return this.service.create(companyId, actor, dto);
   }
 
   @Roles('ADMIN', 'RH', 'GESTOR')
