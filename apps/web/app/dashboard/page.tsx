@@ -92,7 +92,7 @@ function DashboardContent() {
   const vacationRows = filteredVacations.slice(0, 5);
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+    <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8 overflow-hidden">
       {/* Premium Hero Section */}
       <section className="group relative overflow-hidden rounded-[24px] border border-slate-200/60 bg-gradient-to-br from-white via-slate-50/30 to-teal-50/20 p-6 shadow-[0_20px_70px_-15px_rgba(15,23,42,0.12)] transition-all duration-500 hover:shadow-[0_25px_80px_-15px_rgba(15,23,42,0.18)] sm:p-8">
         <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-gradient-to-br from-teal-100/40 to-cyan-100/30 blur-3xl" />
@@ -124,13 +124,13 @@ function DashboardContent() {
               amber: 'from-amber-500 to-orange-600 shadow-amber-500/25 hover:shadow-amber-500/30',
             };
             return action.onClick ? (
-              <button key={action.label} onClick={action.onClick} className={`flex items-center gap-3 rounded-[14px] bg-gradient-to-r ${colorMap[action.color]} p-4 text-xs font-black text-white shadow-lg transition-all hover:-translate-y-1 hover:shadow-xl active:translate-y-0`}>
-                <Icon size={18} strokeWidth={2.5} />
+              <button key={action.label} type="button" onClick={action.onClick} className={`flex items-center gap-3 rounded-[14px] bg-gradient-to-r ${colorMap[action.color]} p-4 text-xs font-black text-white shadow-lg transition-all duration-200 hover:shadow-xl active:scale-[0.98]`}>
+                <Icon size={18} strokeWidth={2.5} className="shrink-0" />
                 <span className="leading-tight">{action.label}</span>
               </button>
             ) : (
-              <Link key={action.label} href={action.href} className={`flex items-center gap-3 rounded-[14px] bg-gradient-to-r ${colorMap[action.color]} p-4 text-xs font-black text-white shadow-lg transition-all hover:-translate-y-1 hover:shadow-xl active:translate-y-0`}>
-                <Icon size={18} strokeWidth={2.5} />
+              <Link key={action.label} href={action.href} className={`flex items-center gap-3 rounded-[14px] bg-gradient-to-r ${colorMap[action.color]} p-4 text-xs font-black text-white shadow-lg transition-all duration-200 hover:shadow-xl active:scale-[0.98]`}>
+                <Icon size={18} strokeWidth={2.5} className="shrink-0" />
                 <span className="leading-tight">{action.label}</span>
               </Link>
             );
@@ -339,7 +339,7 @@ function MetricCard({ label, value, icon: Icon, detail, trend, trendColor = 'eme
   trend?: string; trendColor?: string; alert?: boolean; loading?: boolean;
 }) {
   return (
-    <div className="group relative overflow-hidden rounded-[18px] border border-slate-200/60 bg-gradient-to-br from-white to-slate-50/30 p-5 shadow-[0_8px_30px_rgba(15,23,42,0.08)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_50px_rgba(15,23,42,0.15)]">
+        <div className="group relative overflow-hidden rounded-[18px] border border-slate-200/60 bg-gradient-to-br from-white to-slate-50/30 p-5 shadow-[0_8px_30px_rgba(15,23,42,0.08)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_50px_rgba(15,23,42,0.15)] will-change-transform">
       {alert && <div className="absolute right-3 top-3 h-2 w-2 animate-pulse rounded-full bg-amber-500" />}
       <div className="relative">
         <div className="mb-4 flex items-start justify-between gap-3">
