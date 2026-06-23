@@ -209,14 +209,10 @@ export default function EmployeesPage() {
                       <td className="px-4 py-3 text-sm font-semibold text-slate-700">{employee.position}</td>
                       <td className="px-4 py-3"><StatusBadge status={employee.status} /></td>
                       <td className="px-4 py-3"><AccessBadge employee={employee} /></td>
-                      {canEdit && (
+                      {(canEdit || isGestor) && (
                         <td className="px-4 py-3">
                           <div className="flex justify-end flex-wrap gap-1.5">
-                            <Link href={`/dashboard/employees/new?id=${employee.id}`} className="btn-outline-premium inline-flex h-8 items-center gap-1.5 rounded-[6px] px-2.5 text-[11px] font-black transition-all hover:-translate-y-0.5">
-                              <Edit3 size={12} strokeWidth={2.5} />
-                              Editar
-                            </Link>
-                            {canDownloadSheet && (
+                            {canDownloadSheet && canEdit && (
                               <>
                                 <button onClick={() => handleDownloadFicha(employee)} disabled={company.loading} className="btn-outline-premium inline-flex h-8 items-center gap-1.5 rounded-[6px] px-2.5 text-[11px] font-black disabled:opacity-50 transition-all hover:-translate-y-0.5">
                                   <FileText size={12} strokeWidth={2.5} />
@@ -233,14 +229,22 @@ export default function EmployeesPage() {
                                 Ponto
                               </Link>
                             )}
-                            <button onClick={() => handleTerminate(employee)} disabled={employee.status === 'TERMINATED' || terminate.loading} className="inline-flex h-8 items-center gap-1.5 rounded-[6px] bg-gradient-to-r from-amber-500 to-orange-600 px-2.5 text-[11px] font-black text-white shadow-md shadow-amber-500/20 transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-amber-500/30 active:translate-y-0 disabled:opacity-50">
-                              <UserMinus size={12} strokeWidth={2.5} />
-                              Desligar
-                            </button>
-                            <button onClick={() => handleDelete(employee)} disabled={remove.loading} className="inline-flex h-8 items-center gap-1.5 rounded-[6px] bg-gradient-to-r from-rose-500 to-pink-600 px-2.5 text-[11px] font-black text-white shadow-md shadow-rose-500/20 transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-rose-500/30 active:translate-y-0 disabled:opacity-50">
-                              <Trash2 size={12} strokeWidth={2.5} />
-                              Excluir
-                            </button>
+                            {canEdit && (
+                              <>
+                                <Link href={`/dashboard/employees/new?id=${employee.id}`} className="btn-outline-premium inline-flex h-8 items-center gap-1.5 rounded-[6px] px-2.5 text-[11px] font-black transition-all hover:-translate-y-0.5">
+                                  <Edit3 size={12} strokeWidth={2.5} />
+                                  Editar
+                                </Link>
+                                <button onClick={() => handleTerminate(employee)} disabled={employee.status === 'TERMINATED' || terminate.loading} className="inline-flex h-8 items-center gap-1.5 rounded-[6px] bg-gradient-to-r from-amber-500 to-orange-600 px-2.5 text-[11px] font-black text-white shadow-md shadow-amber-500/20 transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-amber-500/30 active:translate-y-0 disabled:opacity-50">
+                                  <UserMinus size={12} strokeWidth={2.5} />
+                                  Desligar
+                                </button>
+                                <button onClick={() => handleDelete(employee)} disabled={remove.loading} className="inline-flex h-8 items-center gap-1.5 rounded-[6px] bg-gradient-to-r from-rose-500 to-pink-600 px-2.5 text-[11px] font-black text-white shadow-md shadow-rose-500/20 transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-rose-500/30 active:translate-y-0 disabled:opacity-50">
+                                  <Trash2 size={12} strokeWidth={2.5} />
+                                  Excluir
+                                </button>
+                              </>
+                            )}
                           </div>
                         </td>
                       )}
