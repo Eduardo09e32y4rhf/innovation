@@ -60,6 +60,14 @@ npm run typecheck
 npm run build
 ```
 
+## Novidades recentes
+
+- Botao "Ponto" nas listagens de **Funcionarios** e **Folha de ponto da empresa**.
+- Acesso direto ao registro de ponto individual por colaborador via `/dashboard/time-track?employeeId=ID`.
+- Filtro automatico por colaborador ao acessar por esse botao.
+- Titulo dinamico da pagina: "Folha de ponto da empresa", "Ponto da equipe" (por colaborador) ou "Meu ponto" (funcionario).
+- PDFs de ponto com layout reutilizavel (Ficha, Folha Individual, Espelho Individual/Empresa, Recibo de Ferias).
+
 ## Roadmap curto
 
 - Consolidar cadastros de funcionarios com status de desligamento logico.
