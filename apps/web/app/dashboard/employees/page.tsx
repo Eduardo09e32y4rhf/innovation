@@ -309,16 +309,16 @@ function downloadEmployeeSheet(employee: Employee, rows: TimeTrack[], month: str
   }) : [];
 
   const html = buildPdfHtml({ title, company, subtitle: `${monthLabel} — ${normalizeDisplayName(employee.name)}`, landscape: false }, `
-    ${section('Dados do Colaborador', docGrid3([
-      docField('Nome', normalizeDisplayName(employee.name)),
-      docField('Matrícula', employee.registration || '-'),
-      docField('CPF', employee.cpf || '-'),
-      docField('Cargo', employee.position || '-'),
-      docField('Departamento', employee.department || '-'),
-      docField('Gestor', managerName || '-'),
-      docField('Admissão', formatDate(employee.admissionDate)),
-      docField('Período', monthLabel),
-      docField('Status', 'Ativo'),
+    ${section('Dados do Colaborador', grid3([
+      field('Nome', normalizeDisplayName(employee.name)),
+      field('Matrícula', employee.registration || '-'),
+      field('CPF', employee.cpf || '-'),
+      field('Cargo', employee.position || '-'),
+      field('Departamento', employee.department || '-'),
+      field('Gestor', managerName || '-'),
+      field('Admissão', formatDate(employee.admissionDate)),
+      field('Período', monthLabel),
+      field('Status', 'Ativo'),
     ]))}
 
     ${bodyRows.length > 0 ? section('Registros de Ponto', `
@@ -371,56 +371,56 @@ function downloadEmployeeSheet(employee: Employee, rows: TimeTrack[], month: str
 function downloadEmployeeRecord(employee: Employee, company: Company | null, managerName: string) {
   const title = `Ficha Cadastral do Colaborador`;
   const html = buildPdfHtml({ title, company, subtitle: normalizeDisplayName(employee.name), landscape: false }, `
-    ${section('Identificação', docGrid3([
-      docField('Nome completo', normalizeDisplayName(employee.name)),
-      docField('Matrícula', employee.registration || '-'),
-      docField('CPF', employee.cpf || '-'),
-      docField('RG / CIN', employee.rg || '-'),
-      docField('Órgão emissor', employee.rgIssuer || '-'),
-      docField('UF do RG', employee.rgState || '-'),
-      docField('Nascimento', formatDate(employee.birthDate)),
-      docField('Estado civil', employee.maritalStatus || '-'),
-      docField('Naturalidade', employee.birthplace || '-'),
+    ${section('Identificação', grid3([
+      field('Nome completo', normalizeDisplayName(employee.name)),
+      field('Matrícula', employee.registration || '-'),
+      field('CPF', employee.cpf || '-'),
+      field('RG / CIN', employee.rg || '-'),
+      field('Órgão emissor', employee.rgIssuer || '-'),
+      field('UF do RG', employee.rgState || '-'),
+      field('Nascimento', formatDate(employee.birthDate)),
+      field('Estado civil', employee.maritalStatus || '-'),
+      field('Naturalidade', employee.birthplace || '-'),
     ]))}
 
-    ${section('Contato e Endereço', docGrid3([
-      docField('E-mail', employee.email || '-'),
-      docField('Telefone', employee.phone || '-'),
-      docField('Telefone secundário', employee.secondaryPhone || '-'),
-      docField('CEP', employee.cep || '-'),
-      docField('Logradouro', employee.street || '-'),
-      docField('Número', employee.streetNumber || '-'),
-      docField('Complemento', employee.addressComplement || '-'),
-      docField('Bairro', employee.neighborhood || '-'),
-      docField('Cidade/UF', [employee.city, employee.state].filter(Boolean).join(' / ') || '-'),
+    ${section('Contato e Endereço', grid3([
+      field('E-mail', employee.email || '-'),
+      field('Telefone', employee.phone || '-'),
+      field('Telefone secundário', employee.secondaryPhone || '-'),
+      field('CEP', employee.cep || '-'),
+      field('Logradouro', employee.street || '-'),
+      field('Número', employee.streetNumber || '-'),
+      field('Complemento', employee.addressComplement || '-'),
+      field('Bairro', employee.neighborhood || '-'),
+      field('Cidade/UF', [employee.city, employee.state].filter(Boolean).join(' / ') || '-'),
     ]))}
 
-    ${section('Dados Profissionais', docGrid3([
-      docField('Cargo', employee.position || '-'),
-      docField('Departamento', employee.department || '-'),
-      docField('Unidade', employee.unit || '-'),
-      docField('Gestor', managerName || '-'),
-      docField('Contrato', employee.contractType || '-'),
-      docField('Admissão', formatDate(employee.admissionDate)),
-      docField('Desligamento', formatDate(employee.terminationDate)),
-      docField('Escala', employee.workScale || employee.customWorkScale || '-'),
-      docField('Jornada', employee.dailyWorkload || '-'),
+    ${section('Dados Profissionais', grid3([
+      field('Cargo', employee.position || '-'),
+      field('Departamento', employee.department || '-'),
+      field('Unidade', employee.unit || '-'),
+      field('Gestor', managerName || '-'),
+      field('Contrato', employee.contractType || '-'),
+      field('Admissão', formatDate(employee.admissionDate)),
+      field('Desligamento', formatDate(employee.terminationDate)),
+      field('Escala', employee.workScale || employee.customWorkScale || '-'),
+      field('Jornada', employee.dailyWorkload || '-'),
     ]))}
 
-    ${section('Jornada de Trabalho', docGrid2([
-      docField('Entrada padrão', employee.standardEntry || '-'),
-      docField('Saída almoço', employee.standardLunchStart || '-'),
-      docField('Retorno almoço', employee.standardLunchReturn || '-'),
-      docField('Saída padrão', employee.standardExit || '-'),
+    ${section('Jornada de Trabalho', grid2([
+      field('Entrada padrão', employee.standardEntry || '-'),
+      field('Saída almoço', employee.standardLunchStart || '-'),
+      field('Retorno almoço', employee.standardLunchReturn || '-'),
+      field('Saída padrão', employee.standardExit || '-'),
     ]))}
 
-    ${section('Contrato e Acesso', docGrid3([
-      docField('Salário', employee.salary ? `R$ ${Number(employee.salary).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '-'),
-      docField('CNPJ PJ/terceiro', employee.cnpj || '-'),
-      docField('Razão social', employee.legalName || '-'),
-      docField('Nome fantasia', employee.tradeName || '-'),
-      docField('Acesso ao painel', accessText(employee)),
-      docField('Perfil', employee.user?.role || '-'),
+    ${section('Contrato e Acesso', grid3([
+      field('Salário', employee.salary ? `R$ ${Number(employee.salary).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '-'),
+      field('CNPJ PJ/terceiro', employee.cnpj || '-'),
+      field('Razão social', employee.legalName || '-'),
+      field('Nome fantasia', employee.tradeName || '-'),
+      field('Acesso ao painel', accessText(employee)),
+      field('Perfil', employee.user?.role || '-'),
     ]))}
 
     ${employee.observations ? section('Observações', `<div class="print-section" style="background:#f8fafc;padding:12px;border-radius:8px;font-size:9px;color:#475569;line-height:1.6;">${escapeHtml(employee.observations)}</div>`) : ''}
