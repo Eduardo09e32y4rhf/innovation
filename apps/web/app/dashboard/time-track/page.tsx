@@ -406,6 +406,7 @@ export default function TimeTrackPage() {
     if (unitFilter && employee.unit !== unitFilter) return false;
     return true;
   }), [activeEmployees, employeeFilter, departmentFilter, managerFilter, unitFilter]);
+  const editingEmployeeId = editing?.employeeId ?? null;
   const reportCompany = useMemo(() => {
     const c = company.data;
     return {
@@ -586,16 +587,18 @@ export default function TimeTrackPage() {
                         <button onClick={() => { setEditing({ ...employeeRows[0], employee } as unknown as TimeTrack); setOpen(true); }} disabled={employeeRows.length === 0 || isRefreshingTracks} className="btn-outline inline-flex h-9 items-center gap-2 rounded-[8px] px-3 text-[11px] font-black"><Edit3 size={13} /> Editar</button>
                       </div>
                     </div>
-                    <div className="flex flex-wrap items-center gap-3 text-[11px] font-bold">
-                      <div className="rounded-[8px] border border-slate-200 bg-slate-50 px-3 py-1.5">
-                        <span className="block text-[9px] uppercase text-slate-400">Trabalhado</span>
-                        <span className="text-slate-900">{formatMinutes(workedTotal)}</span>
+                    {expanded && (
+                      <div className="flex flex-wrap items-center gap-3 text-[11px] font-bold">
+                        <div className="rounded-[8px] border border-slate-200 bg-slate-50 px-3 py-1.5">
+                          <span className="block text-[9px] uppercase text-slate-400">Trabalhado</span>
+                          <span className="text-slate-900">{formatMinutes(workedTotal)}</span>
+                        </div>
+                        <div className={`rounded-[8px] border px-3 py-1.5 ${balanceTotal >= 0 ? 'border-emerald-200 bg-emerald-50' : 'border-rose-200 bg-rose-50'}`}>
+                          <span className="block text-[9px] uppercase text-slate-400">Saldo</span>
+                          <span className={balanceTotal >= 0 ? 'text-emerald-700' : 'text-rose-700'}>{formatMinutes(balanceTotal)}</span>
+                        </div>
                       </div>
-                      <div className={`rounded-[8px] border px-3 py-1.5 ${balanceTotal >= 0 ? 'border-emerald-200 bg-emerald-50' : 'border-rose-200 bg-rose-50'}`}>
-                        <span className="block text-[9px] uppercase text-slate-400">Saldo</span>
-                        <span className={balanceTotal >= 0 ? 'text-emerald-700' : 'text-rose-700'}>{formatMinutes(balanceTotal)}</span>
-                      </div>
-                    </div>
+                    )}
                   </div>
                   {expanded && (
                     <div className="mt-3 flex items-center gap-3">
@@ -620,7 +623,7 @@ export default function TimeTrackPage() {
         </section>
       )}
 
-      {canManage && (open || bulkOpen || editing) && <ManualTimeSheetModal employees={activeEmployees} employeesLoading={employees.loading} employeesError={employees.error} defaultEmployeeId={employeeFilter} track={editing ?? undefined} bulk={bulkOpen} onClose={() => { setOpen(false); setBulkOpen(false); setEditing(null); }} onDone={() => { setOpen(false); setBulkOpen(false); setEditing(null); tracks.refetch(); }} />}
+      {canManage && (open || bulkOpen || Boolean(editing)) && <ManualTimeSheetModal employees={activeEmployees} employeesLoading={employees.loading} employeesError={employees.error} defaultEmployeeId={editingEmployeeId ?? employeeFilter} track={editing ?? undefined} bulk={bulkOpen} onClose={() => { setOpen(false); setBulkOpen(false); setEditing(null); }} onDone={() => { setOpen(false); setBulkOpen(false); setEditing(null); tracks.refetch(); }} />}
     </div>
   );
 }

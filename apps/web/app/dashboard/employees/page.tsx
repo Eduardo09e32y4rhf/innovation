@@ -106,53 +106,53 @@ export default function EmployeesPage() {
       </section>
 
       {/* Stats Cards */}
-      <section className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="group relative overflow-hidden rounded-[16px] border border-emerald-200/60 bg-gradient-to-br from-emerald-50 to-white p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md">
+      <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className="group relative overflow-hidden rounded-[12px] border border-emerald-200/60 bg-gradient-to-br from-emerald-50 to-white p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs font-black uppercase tracking-wider text-emerald-700">Ativos</p>
-              <p className="mt-1 text-2xl font-black text-slate-950">{activeCount}</p>
+              <p className="text-[11px] font-black uppercase tracking-wider text-emerald-700">Ativos</p>
+              <p className="mt-1 text-xl font-black text-slate-950">{activeCount}</p>
             </div>
-            <div className="flex h-12 w-12 items-center justify-center rounded-[12px] bg-gradient-to-br from-emerald-500 to-teal-600 shadow-lg shadow-emerald-500/25">
-              <Users size={20} strokeWidth={2.5} className="text-white" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-[10px] bg-gradient-to-br from-emerald-500 to-teal-600 shadow-lg shadow-emerald-500/25">
+              <Users size={18} strokeWidth={2.5} className="text-white" />
             </div>
           </div>
         </div>
-        <div className="group relative overflow-hidden rounded-[16px] border border-slate-200/60 bg-gradient-to-br from-slate-50 to-white p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md">
+        <div className="group relative overflow-hidden rounded-[12px] border border-slate-200/60 bg-gradient-to-br from-slate-50 to-white p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs font-black uppercase tracking-wider text-slate-600">Inativos</p>
-              <p className="mt-1 text-2xl font-black text-slate-950">{inactiveCount}</p>
+              <p className="text-[11px] font-black uppercase tracking-wider text-slate-600">Inativos</p>
+              <p className="mt-1 text-xl font-black text-slate-950">{inactiveCount}</p>
             </div>
-            <div className="flex h-12 w-12 items-center justify-center rounded-[12px] bg-gradient-to-br from-slate-400 to-slate-500 shadow-lg shadow-slate-500/25">
-              <Users size={20} strokeWidth={2.5} className="text-white" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-[10px] bg-gradient-to-br from-slate-400 to-slate-500 shadow-lg shadow-slate-500/25">
+              <Users size={18} strokeWidth={2.5} className="text-white" />
             </div>
           </div>
         </div>
-        <div className="group relative overflow-hidden rounded-[16px] border border-rose-200/60 bg-gradient-to-br from-rose-50 to-white p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md">
+        <div className="group relative overflow-hidden rounded-[12px] border border-rose-200/60 bg-gradient-to-br from-rose-50 to-white p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs font-black uppercase tracking-wider text-rose-700">Desligados</p>
-              <p className="mt-1 text-2xl font-black text-slate-950">{terminatedCount}</p>
+              <p className="text-[11px] font-black uppercase tracking-wider text-rose-700">Desligados</p>
+              <p className="mt-1 text-xl font-black text-slate-950">{terminatedCount}</p>
             </div>
-            <div className="flex h-12 w-12 items-center justify-center rounded-[12px] bg-gradient-to-br from-rose-500 to-pink-600 shadow-lg shadow-rose-500/25">
-              <XCircle size={20} strokeWidth={2.5} className="text-white" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-[10px] bg-gradient-to-br from-rose-500 to-pink-600 shadow-lg shadow-rose-500/25">
+              <XCircle size={18} strokeWidth={2.5} className="text-white" />
             </div>
           </div>
         </div>
       </section>
 
       {/* Search */}
-      <section className="rounded-[16px] border border-slate-200/60 bg-white/80 p-5 shadow-sm backdrop-blur-sm">
+      <section className="rounded-[12px] border border-slate-200/60 bg-white/80 p-4 shadow-sm backdrop-blur-sm">
         <label className="space-y-2 text-xs font-bold uppercase tracking-wider text-slate-600">
           <span>Pesquisar por nome, CPF, matrícula, gestor ou departamento</span>
           <div className="relative">
-            <Search className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} strokeWidth={2.5} />
+            <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} strokeWidth={2.5} />
             <input 
               value={search} 
               onChange={(event) => setSearch(event.target.value)} 
               placeholder="Digite para filtrar a equipe" 
-              className="h-12 w-full rounded-[10px] border border-slate-200 bg-white pl-11 pr-4 text-sm font-semibold text-slate-900 shadow-sm outline-none transition-all focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10" 
+              className="h-10 w-full rounded-[8px] border border-slate-200 bg-white pl-9 pr-4 text-sm font-semibold text-slate-900 shadow-sm outline-none transition-all focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10" 
             />
           </div>
         </label>
@@ -171,19 +171,19 @@ export default function EmployeesPage() {
       ) : filteredEmployees.length === 0 ? (
         <EmptyState message="Nenhum funcionário encontrado para a pesquisa." />
       ) : (
-        <section className="overflow-hidden rounded-[18px] border border-slate-200/60 bg-white shadow-[0_12px_40px_rgba(15,23,42,0.08)] transition-all duration-300 hover:shadow-[0_20px_50px_rgba(15,23,42,0.12)]">
+        <section className="overflow-hidden rounded-[14px] border border-slate-200/60 bg-white shadow-[0_12px_40px_rgba(15,23,42,0.08)] transition-all duration-300 hover:shadow-[0_20px_50px_rgba(15,23,42,0.12)]">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[800px] text-left">
               <thead>
                 <tr className="bg-gradient-to-r from-slate-100 to-slate-50 text-[10px] font-black uppercase tracking-[0.14em] text-slate-600">
-                  <th className="px-6 py-4">Funcionário</th>
-                  <th className="px-6 py-4">Matrícula</th>
-                  <th className="px-6 py-4">Gestor</th>
-                  <th className="px-6 py-4">Departamento</th>
-                  <th className="px-6 py-4">Cargo</th>
-                  <th className="px-6 py-4">Status</th>
-                  <th className="px-6 py-4">Acesso</th>
-                  {canEdit && <th className="px-6 py-4 text-right">Ações</th>}
+                  <th className="px-4 py-3">Funcionário</th>
+                  <th className="px-4 py-3">Matrícula</th>
+                  <th className="px-4 py-3">Gestor</th>
+                  <th className="px-4 py-3">Departamento</th>
+                  <th className="px-4 py-3">Cargo</th>
+                  <th className="px-4 py-3">Status</th>
+                  <th className="px-4 py-4">Acesso</th>
+                  {canEdit && <th className="px-4 py-3 text-right">Ações</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -191,48 +191,48 @@ export default function EmployeesPage() {
                   const managerName = employee.managerId ? managerById.get(employee.managerId) : '';
                   return (
                     <tr key={employee.id} className="group transition-all duration-200 hover:bg-slate-50/40">
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-[10px] bg-gradient-to-br from-teal-500 to-cyan-600 text-sm font-black text-white shadow-sm">
+                          <div className="flex h-9 w-9 items-center justify-center rounded-[8px] bg-gradient-to-br from-teal-500 to-cyan-600 text-sm font-black text-white shadow-sm">
                             {employee.name?.charAt(0).toUpperCase() || '?'}
                           </div>
                           <p className="text-sm font-black text-slate-950">{normalizeDisplayName(employee.name)}</p>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-sm font-semibold text-slate-700">{employee.registration || '-'}</td>
-                      <td className="px-6 py-4 text-sm font-semibold text-slate-700">{managerName || '-'}</td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-3 text-sm font-semibold text-slate-700">{employee.registration || '-'}</td>
+                      <td className="px-4 py-3 text-sm font-semibold text-slate-700">{managerName || '-'}</td>
+                      <td className="px-4 py-3">
                         <span className="inline-flex rounded-[6px] border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-bold text-slate-700">
                           {employee.department}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-sm font-semibold text-slate-700">{employee.position}</td>
-                      <td className="px-6 py-4"><StatusBadge status={employee.status} /></td>
-                      <td className="px-6 py-4"><AccessBadge employee={employee} /></td>
+                      <td className="px-4 py-3 text-sm font-semibold text-slate-700">{employee.position}</td>
+                      <td className="px-4 py-3"><StatusBadge status={employee.status} /></td>
+                      <td className="px-4 py-3"><AccessBadge employee={employee} /></td>
                       {canEdit && (
-                        <td className="px-6 py-4">
-                          <div className="flex justify-end flex-wrap gap-2">
-                            <Link href={`/dashboard/employees/new?id=${employee.id}`} className="btn-outline-premium inline-flex h-9 items-center gap-1.5 rounded-[8px] px-3 text-[11px] font-black transition-all hover:-translate-y-0.5">
+                        <td className="px-4 py-3">
+                          <div className="flex justify-end flex-wrap gap-1.5">
+                            <Link href={`/dashboard/employees/new?id=${employee.id}`} className="btn-outline-premium inline-flex h-8 items-center gap-1.5 rounded-[6px] px-2.5 text-[11px] font-black transition-all hover:-translate-y-0.5">
                               <Edit3 size={12} strokeWidth={2.5} />
                               Editar
                             </Link>
                             {canDownloadSheet && (
                               <>
-                                <button onClick={() => handleDownloadFicha(employee)} disabled={company.loading} className="btn-outline-premium inline-flex h-9 items-center gap-1.5 rounded-[8px] px-3 text-[11px] font-black disabled:opacity-50 transition-all hover:-translate-y-0.5">
+                                <button onClick={() => handleDownloadFicha(employee)} disabled={company.loading} className="btn-outline-premium inline-flex h-8 items-center gap-1.5 rounded-[6px] px-2.5 text-[11px] font-black disabled:opacity-50 transition-all hover:-translate-y-0.5">
                                   <FileText size={12} strokeWidth={2.5} />
                                   Ficha
                                 </button>
-                                <button onClick={() => handleDownloadSheet(employee)} disabled={downloadingId === employee.id || company.loading} className="btn-outline-premium inline-flex h-9 items-center gap-1.5 rounded-[8px] px-3 text-[11px] font-black disabled:opacity-50 transition-all hover:-translate-y-0.5">
+                                <button onClick={() => handleDownloadSheet(employee)} disabled={downloadingId === employee.id || company.loading} className="btn-outline-premium inline-flex h-8 items-center gap-1.5 rounded-[6px] px-2.5 text-[11px] font-black disabled:opacity-50 transition-all hover:-translate-y-0.5">
                                   <Download size={12} strokeWidth={2.5} />
                                   Folha
                                 </button>
                               </>
                             )}
-                            <button onClick={() => handleTerminate(employee)} disabled={employee.status === 'TERMINATED' || terminate.loading} className="inline-flex h-9 items-center gap-1.5 rounded-[8px] bg-gradient-to-r from-amber-500 to-orange-600 px-3 text-[11px] font-black text-white shadow-md shadow-amber-500/20 transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-amber-500/30 active:translate-y-0 disabled:opacity-50">
+                            <button onClick={() => handleTerminate(employee)} disabled={employee.status === 'TERMINATED' || terminate.loading} className="inline-flex h-8 items-center gap-1.5 rounded-[6px] bg-gradient-to-r from-amber-500 to-orange-600 px-2.5 text-[11px] font-black text-white shadow-md shadow-amber-500/20 transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-amber-500/30 active:translate-y-0 disabled:opacity-50">
                               <UserMinus size={12} strokeWidth={2.5} />
                               Desligar
                             </button>
-                            <button onClick={() => handleDelete(employee)} disabled={remove.loading} className="inline-flex h-9 items-center gap-1.5 rounded-[8px] bg-gradient-to-r from-rose-500 to-pink-600 px-3 text-[11px] font-black text-white shadow-md shadow-rose-500/20 transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-rose-500/30 active:translate-y-0 disabled:opacity-50">
+                            <button onClick={() => handleDelete(employee)} disabled={remove.loading} className="inline-flex h-8 items-center gap-1.5 rounded-[6px] bg-gradient-to-r from-rose-500 to-pink-600 px-2.5 text-[11px] font-black text-white shadow-md shadow-rose-500/20 transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-rose-500/30 active:translate-y-0 disabled:opacity-50">
                               <Trash2 size={12} strokeWidth={2.5} />
                               Excluir
                             </button>
