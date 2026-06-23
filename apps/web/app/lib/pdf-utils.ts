@@ -7,6 +7,7 @@ export type PdfCompanyInfo = {
   logoUrl?: string | null;
   phone?: string | null;
   email?: string | null;
+  address?: string | null;
 };
 
 export type PdfOptions = {
@@ -16,8 +17,8 @@ export type PdfOptions = {
 };
 
 const PAGE_STYLES = {
-  portrait: `@page { size: A4; margin: 6mm 8mm; }`,
-  landscape: `@page { size: A4 landscape; margin: 5mm 6mm; }`,
+  portrait: `@page { size: A4; margin: 8mm 9mm; }`,
+  landscape: `@page { size: A4 landscape; margin: 6mm 8mm; }`,
 };
 
 function buildBaseStyles(landscape = false) {
@@ -33,7 +34,7 @@ function buildBaseStyles(landscape = false) {
       tr { page-break-inside: avoid; break-inside: avoid; }
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Segoe UI', -apple-system, Helvetica, Arial, sans-serif; color: #0f172a; background: #fff; font-size: 9pt; line-height: 1.4; }
+    body { font-family: 'Segoe UI', -apple-system, Helvetica, Arial, sans-serif; color: #0f172a; background: #fff; font-size: 9pt; line-height: 1.45; }
     .page { width: 100%; }
   `;
 }
@@ -46,24 +47,24 @@ export function buildPdfShell(options: PdfOptions, company: PdfCompanyInfo | nul
   const styles = buildBaseStyles(options.landscape);
 
   const header = `
-    <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #0f172a;padding-bottom:6px;margin-bottom:10px;page-break-inside:avoid;">
-      <div style="display:flex;align-items:center;gap:10px;">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;border-bottom:1px solid #0f172a;padding-bottom:8px;margin-bottom:12px;page-break-inside:avoid;">
+      <div style="display:flex;align-items:center;gap:12px;">
         ${company?.logoUrl
-          ? `<div style="width:36px;height:36px;display:flex;align-items:center;justify-content:center;"><img src="${escapeAttr(company.logoUrl)}" alt="Logo" style="max-width:36px;max-height:36px;object-fit:contain;" /></div>`
-          : `<div style="width:36px;height:36px;display:flex;align-items:center;justify-content:center;border:2px solid #0f766e;border-radius:6px;color:#0f766e;font-weight:900;font-size:10px;">RH</div>`
+          ? `<div style="width:40px;height:40px;display:flex;align-items:center;justify-content:center;"><img src="${escapeAttr(company.logoUrl)}" alt="Logo" style="max-width:40px;max-height:40px;object-fit:contain;" /></div>`
+          : `<div style="width:40px;height:40px;display:flex;align-items:center;justify-content:center;border:2px solid #0f766e;border-radius:6px;color:#0f766e;font-weight:900;font-size:10px;">RH</div>`
         }
         <div>
-          <div style="font-size:12px;font-weight:900;color:#0f172a;letter-spacing:-.2px;text-transform:uppercase;">${escapeHtml(company?.name || 'Empresa')}</div>
-          <div style="font-size:7px;color:#64748b;margin-top:1px;">
-            ${escapeHtml(company?.document || '-')}${company?.legalName ? ` | ${escapeHtml(company.legalName)}` : ''}
+          <div style="font-size:13px;font-weight:900;color:#0f172a;letter-spacing:-.2px;text-transform:uppercase;">${escapeHtml(company?.name || 'Empresa')}</div>
+          ${company?.legalName ? `<div style="font-size:7px;color:#64748b;margin-top:2px;">${escapeHtml(company.legalName)}</div>` : ''}
+          <div style="font-size:7px;color:#64748b;margin-top:2px;">
+            ${[company?.document, company?.address, company?.phone, company?.email].filter(Boolean).map(v => escapeHtml(v as string)).join(' | ')}
           </div>
-          <div style="font-size:7px;color:#64748b;">${[company?.phone, company?.email].filter(Boolean).map(v => escapeHtml(v as string)).join(' | ') || ''}</div>
         </div>
       </div>
       <div style="text-align:right;">
         <div style="font-size:11px;font-weight:900;color:#0f172a;text-transform:uppercase;">${escapeHtml(title)}</div>
-        <div style="font-size:7px;color:#64748b;margin-top:2px;">${escapeHtml(subtitle)}</div>
-        <div style="font-size:7px;color:#94a3b8;margin-top:1px;">Emitido em ${escapeHtml(emittedDate)} às ${escapeHtml(emittedAt.split(', ')[1] || emittedAt)}</div>
+        ${subtitle ? `<div style="font-size:7px;color:#64748b;margin-top:2px;">${escapeHtml(subtitle)}</div>` : ''}
+        <div style="font-size:7px;color:#94a3b8;margin-top:2px;">Emitido em ${escapeHtml(emittedDate)}</div>
       </div>
     </div>
   `;
@@ -72,7 +73,7 @@ export function buildPdfShell(options: PdfOptions, company: PdfCompanyInfo | nul
     <div style="margin-top:12px;border-top:1px solid #e2e8f0;padding-top:6px;display:flex;justify-content:space-between;color:#94a3b8;font-size:7px;font-weight:600;">
       <span>Innovation RH Connect</span>
       <span>Documento gerado automaticamente</span>
-      <span>Página 1 de 1</span>
+      <span class="page-number">Página 1 de 1</span>
     </div>
   `;
 
@@ -81,7 +82,16 @@ export function buildPdfShell(options: PdfOptions, company: PdfCompanyInfo | nul
 <head>
   <meta charset="utf-8" />
   <title>${escapeHtml(title)}</title>
-  <style>${styles}</style>
+  <style>
+    ${styles}
+    @page {
+      @bottom-center {
+        content: counter(page) " de " counter(pages);
+        font-size: 7pt;
+        color: #94a3b8;
+      }
+    }
+  </style>
 </head>
 <body>
   <main class="page">${header}${body}${footer}</main>
@@ -98,30 +108,22 @@ export function section(title: string, content: string) {
   `;
 }
 
-export function grid2(items: string[]) {
-  const cols = items.map(item => `<div style="padding:2px 3px;">${item}</div>`).join('');
-  return `<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:1px;">${cols}</div>`;
-}
-
-export function grid3(items: string[]) {
-  const cols = items.map(item => `<div style="padding:2px 3px;">${item}</div>`).join('');
-  return `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1px;">${cols}</div>`;
-}
-
-export function field(label: string, value: string) {
-  return `
-    <div style="padding:4px 6px;border-bottom:1px solid #f1f5f9;">
-      <div style="font-size:6px;font-weight:900;text-transform:uppercase;color:#94a3b8;letter-spacing:0.08em;">${escapeHtml(label)}</div>
-      <div style="font-size:9px;font-weight:600;color:#0f172a;margin-top:1px;">${escapeHtml(value)}</div>
+export function infoGrid(items: { label: string; value: string }[], columns = 3) {
+  const cells = items.map(item => `
+    <div style="padding:5px 7px;border-bottom:1px solid #f1f5f9;">
+      <div style="font-size:6px;font-weight:900;text-transform:uppercase;color:#94a3b8;letter-spacing:0.08em;">${escapeHtml(item.label)}</div>
+      <div style="font-size:9px;font-weight:600;color:#0f172a;margin-top:1px;">${escapeHtml(item.value)}</div>
     </div>
-  `;
+  `).join('');
+  return `<div style="display:grid;grid-template-columns:repeat(${columns},1fr);gap:1px;">${cells}</div>`;
 }
 
-export function tableBlock(headers: string[], rows: string[], options?: { zebra?: boolean; headerBg?: string; headerColor?: string }) {
+export function pdfTable(headers: string[], rows: string[], options?: { zebra?: boolean; headerBg?: string; headerColor?: string; fontSize?: string }) {
   const zebra = options?.zebra ?? true;
   const headerBg = options?.headerBg ?? '#0f172a';
   const headerColor = options?.headerColor ?? '#fff';
-  const thead = headers.map(h => `<th style="padding:6px 8px;text-align:left;font-size:7px;font-weight:900;text-transform:uppercase;color:${headerColor};border-bottom:2px solid ${headerBg};letter-spacing:0.05em;">${escapeHtml(h)}</th>`).join('');
+  const fontSize = options?.fontSize ?? '7px';
+  const thead = headers.map(h => `<th style="padding:6px 8px;text-align:left;font-size:${fontSize};font-weight:900;text-transform:uppercase;color:${headerColor};border-bottom:2px solid ${headerBg};letter-spacing:0.05em;">${escapeHtml(h)}</th>`).join('');
   const tbody = rows.map((r, i) => {
     const bg = zebra ? (i % 2 === 0 ? '#f8fafc' : '#ffffff') : 'transparent';
     return `<tr style="background:${bg};">${r}</tr>`;
@@ -134,12 +136,12 @@ export function tableBlock(headers: string[], rows: string[], options?: { zebra?
   `;
 }
 
-export function signatures(lines: string[]) {
+export function signatureBlock(lines: string[]) {
   const cols = lines.map(line => `
     <div style="text-align:center;page-break-inside:avoid;">
-      <div style="border-top:1px solid #0f172a;padding-top:4px;margin-top:20px;font-size:8px;font-weight:700;color:#0f172a;">${escapeHtml(line)}</div>
+      <div style="border-top:1px solid #0f172a;padding-top:4px;margin-top:24px;font-size:8px;font-weight:700;color:#0f172a;">${escapeHtml(line)}</div>
     </div>`).join('');
-  return `<div style="display:grid;grid-template-columns:repeat(${Math.min(lines.length, 3)},1fr);gap:16px;margin-top:20px;">${cols}</div>`;
+  return `<div style="display:grid;grid-template-columns:repeat(${Math.min(lines.length, 3)},1fr);gap:16px;margin-top:24px;">${cols}</div>`;
 }
 
 export function printPdf(html: string, title: string) {

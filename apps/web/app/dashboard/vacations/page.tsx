@@ -8,7 +8,7 @@ import { useMutation, useQuery } from '@/app/hooks/use-data';
 import { api, type Company, type CreateVacationInput, type Employee, type VacationStatus } from '@/app/lib/api';
 import { VACATION_STATUS_LABEL, formatPeriod, formatDate } from '@/app/lib/format';
 import { normalizeDisplayName } from '@/app/lib/text';
-import { buildPdfShell, section, field, grid3, signatures, printPdf, type PdfCompanyInfo } from '@/app/lib/pdf-utils';
+import { buildPdfShell, section, infoGrid, signatureBlock, printPdf, type PdfCompanyInfo } from '@/app/lib/pdf-utils';
 
 const MAX_VACATION_DAYS = 30;
 
@@ -540,37 +540,44 @@ function downloadVacationReceipt(vacation: { employee?: Employee; startDate: str
         name: normalizeDisplayName(companyData.name),
         document: companyData.document ?? null,
         logoUrl: companyData.logoUrl ?? null,
+        address: (companyData as any).address ?? null,
+        phone: (companyData as any).phone ?? null,
+        email: (companyData as any).email ?? null,
       }
     : null;
 
   const title = 'Recibo de Férias';
   const subtitle = VACATION_STATUS_LABEL[vacation.status] || vacation.status;
 
+  const employeeInfo = [
+    { label: 'Nome', value: normalizeDisplayName(employee?.name || '—') },
+    { label: 'CPF', value: employee?.cpf || '-' },
+    { label: 'Cargo', value: employee?.position || '-' },
+    { label: 'Departamento', value: employee?.department || '-' },
+    { label: 'Matrícula', value: employee?.registration || (employee?.id ? employee.id.slice(0, 8).toUpperCase() : '-') },
+    { label: 'Admissão', value: formatDate(employee?.admissionDate) },
+  ];
+
   const body = `
-    ${section('Dados do Colaborador', grid3([
-      field('Nome', normalizeDisplayName(employee?.name || '—')),
-      field('Matrícula', employee?.registration || (employee?.id ? employee.id.slice(0, 8).toUpperCase() : '-')),
-      field('CPF', employee?.cpf || '-'),
-      field('Departamento', employee?.department || '-'),
-      field('Cargo', employee?.position || '-'),
-      field('Admissão', formatDate(employee?.admissionDate)),
-    ]))}
+    ${section('Dados do Colaborador', infoGrid(employeeInfo))}
 
     ${section('Período de Férias', `
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:2px;margin-bottom:16px;">
-        ${field('Início', formatDate(vacation.startDate))}
-        ${field('Fim', formatDate(vacation.endDate))}
-        ${field('Período Aquisitivo', vacation.acquisitionPeriod)}
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:2px;margin-bottom:12px;">
+        ${infoGrid([
+          { label: 'Período Aquisitivo', value: vacation.acquisitionPeriod },
+          { label: 'Início', value: formatDate(vacation.startDate) },
+          { label: 'Fim', value: formatDate(vacation.endDate) },
+        ])}
       </div>
       <div style="background:#f0fdfa;border:1px solid #ccfbf1;border-radius:8px;padding:24px;text-align:center;margin-top:12px;">
-        <div style="font-size:40px;font-weight:900;color:#0f172a;">${vacation.daysUsed}</div>
+        <div style="font-size:32px;font-weight:900;color:#0f172a;">${vacation.daysUsed}</div>
         <div style="font-size:10px;font-weight:900;color:#0f766e;text-transform:uppercase;letter-spacing:0.1em;margin-top:6px;">${vacation.daysUsed === 1 ? 'Dia de Férias' : 'Dias de Férias'}</div>
       </div>
       ${vacation.observation ? `<div style="background:#f8fafc;padding:12px;border-radius:8px;font-size:9px;color:#475569;margin-top:12px;"><strong>Observação:</strong> ${escapeHtml(vacation.observation)}</div>` : ''}
     `)}
   `;
 
-  const html = buildPdfShell({ title, subtitle, landscape: false }, companyInfo, body + signatures(['Assinatura do Colaborador', 'Assinatura do RH / Responsável', 'Data de Conferência']));
+  const html = buildPdfShell({ title, subtitle, landscape: false }, companyInfo, body);
   printPdf(html, `recibo-ferias-${slugify(employee?.name || 'funcionario')}.pdf`);
 }
 

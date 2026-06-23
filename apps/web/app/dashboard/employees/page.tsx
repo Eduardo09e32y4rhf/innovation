@@ -9,7 +9,7 @@ import { useMutation, useQuery } from '@/app/hooks/use-data';
 import { api, type Company, type Employee, type TimeTrack } from '@/app/lib/api';
 import { EMPLOYEE_STATUS_LABEL, formatDate, formatMinutes, formatTime } from '@/app/lib/format';
 import { normalizeDisplayName } from '@/app/lib/text';
-import { buildPdfShell, section, grid2, grid3, field, tableBlock, signatures, printPdf, type PdfCompanyInfo } from '@/app/lib/pdf-utils';
+import { buildPdfShell, section, infoGrid, pdfTable, signatureBlock, printPdf, type PdfCompanyInfo } from '@/app/lib/pdf-utils';
 
 const collator = new Intl.Collator('pt-BR', { sensitivity: 'base', numeric: true });
 
@@ -289,110 +289,105 @@ function displayLunch(row: TimeTrack) {
 // ─── DOWNLOAD FUNCTIONS ──────────────────────────────────────────────────────
 
 function downloadEmployeeSheet(employee: Employee, rows: TimeTrack[], month: string, company: Company | null, managerName: string) {
-  const title = `Folha de Ponto Individual`;
-  const monthLabel = monthLabelFn(month);
+  const monthLabelText = monthLabelFn(month);
   const totalWorked = rows.reduce((t, r) => t + (r.totalWorked ?? 0), 0);
   const totalBalance = rows.reduce((t, r) => t + (r.dailyBalance ?? 0), 0);
   const positiveBalance = rows.reduce((t, r) => t + Math.max(r.dailyBalance ?? 0, 0), 0);
   const negativeBalance = rows.reduce((t, r) => t + Math.abs(Math.min(r.dailyBalance ?? 0, 0)), 0);
 
-  const bodyRows = rows.length > 0 ? rows.map((row) => {
+  const employeeInfo = [
+    { label: 'Nome', value: normalizeDisplayName(employee.name) },
+    { label: 'Matrícula', value: employee.registration || '-' },
+    { label: 'CPF', value: employee.cpf || '-' },
+    { label: 'Cargo', value: employee.position || '-' },
+    { label: 'Departamento', value: employee.department || '-' },
+    { label: 'Gestor', value: managerName || '-' },
+    { label: 'Admissão', value: formatDate(employee.admissionDate) },
+    { label: 'Período', value: monthLabelText },
+  ];
+
+  const tableHeaders = ['Data', 'Entrada', 'Almoço', 'Saída', 'Trabalhado', 'Saldo', 'Observação'];
+  const tableRows = rows.length > 0 ? rows.map((row) => {
     const balance = row.dailyBalance ?? 0;
     const balanceColor = balance < 0 ? '#e11d48' : balance > 0 ? '#059669' : '#64748b';
-    return `<td style="padding:10px 14px;font-size:9px;font-weight:600;color:#0f172a;border-bottom:1px solid #f1f5f9;">${escapeHtml(formatDate(row.date))}</td>
-      <td style="padding:10px 14px;font-size:9px;color:#64748b;border-bottom:1px solid #f1f5f9;">${escapeHtml(formatTime(row.entry))}</td>
-      <td style="padding:10px 14px;font-size:9px;color:#64748b;border-bottom:1px solid #f1f5f9;">${escapeHtml(displayLunch(row))}</td>
-      <td style="padding:10px 14px;font-size:9px;font-weight:600;color:#0f172a;border-bottom:1px solid #f1f5f9;">${escapeHtml(formatTime(row.exit))}</td>
-      <td style="padding:10px 14px;font-size:9px;font-weight:700;color:#0f172a;border-bottom:1px solid #f1f5f9;text-align:center;">${escapeHtml(formatMinutes(row.totalWorked))}</td>
-      <td style="padding:10px 14px;font-size:9px;font-weight:700;color:${balanceColor};border-bottom:1px solid #f1f5f9;text-align:center;">${escapeHtml(formatMinutes(balance))}</td>
-      <td style="padding:10px 14px;font-size:8px;color:#64748b;border-bottom:1px solid #f1f5f9;">${escapeHtml(row.observation || row.manualReason || '-')}</td>`;
+    return `<tr>
+      <td style="padding:8px 10px;font-size:8px;font-weight:600;color:#0f172a;">${escapeHtml(formatDate(row.date))}</td>
+      <td style="padding:8px 10px;font-size:8px;color:#64748b;">${escapeHtml(formatTime(row.entry))}</td>
+      <td style="padding:8px 10px;font-size:8px;color:#64748b;">${escapeHtml(displayLunch(row))}</td>
+      <td style="padding:8px 10px;font-size:8px;font-weight:600;color:#0f172a;">${escapeHtml(formatTime(row.exit))}</td>
+      <td style="padding:8px 10px;font-size:8px;font-weight:700;color:#0f172a;text-align:center;">${escapeHtml(formatMinutes(row.totalWorked))}</td>
+      <td style="padding:8px 10px;font-size:8px;font-weight:700;color:${balanceColor};text-align:center;">${escapeHtml(formatMinutes(balance))}</td>
+      <td style="padding:8px 10px;font-size:8px;color:#64748b;">${escapeHtml(row.observation || row.manualReason || '-')}</td>
+    </tr>`;
   }) : [];
 
-  const html = buildPdfHtml({ title, company, subtitle: `${monthLabel} — ${normalizeDisplayName(employee.name)}`, landscape: false }, `
-    ${section('Dados do Colaborador', grid3([
-      field('Nome', normalizeDisplayName(employee.name)),
-      field('Matrícula', employee.registration || '-'),
-      field('CPF', employee.cpf || '-'),
-      field('Cargo', employee.position || '-'),
-      field('Departamento', employee.department || '-'),
-      field('Gestor', managerName || '-'),
-      field('Admissão', formatDate(employee.admissionDate)),
-      field('Período', monthLabel),
-      field('Status', 'Ativo'),
-    ]))}
+  const html = buildPdfHtml({ title: 'Folha Individual de Ponto', company, subtitle: `${monthLabelText} — ${normalizeDisplayName(employee.name)}`, landscape: false }, `
+    ${section('Dados do Colaborador', infoGrid(employeeInfo))}
 
-    ${bodyRows.length > 0 ? section('Registros de Ponto', `
-      <table style="width:100%;border-collapse:collapse;">
-        <thead><tr style="background:#0f172a;color:#fff;">
-          <th style="padding:10px 14px;text-align:left;font-size:8px;font-weight:900;text-transform:uppercase;">Data</th>
-          <th style="padding:10px 14px;text-align:left;font-size:8px;font-weight:900;text-transform:uppercase;">Entrada</th>
-          <th style="padding:10px 14px;text-align:left;font-size:8px;font-weight:900;text-transform:uppercase;">Almoço</th>
-          <th style="padding:10px 14px;text-align:left;font-size:8px;font-weight:900;text-transform:uppercase;">Saída</th>
-          <th style="padding:10px 14px;text-align:center;font-size:8px;font-weight:900;text-transform:uppercase;">Trabalhado</th>
-          <th style="padding:10px 14px;text-align:center;font-size:8px;font-weight:900;text-transform:uppercase;">Saldo</th>
-          <th style="padding:10px 14px;text-align:left;font-size:8px;font-weight:900;text-transform:uppercase;">Observação</th>
-        </tr></thead>
-        <tbody>${bodyRows.map((r, i) => `<tr style="background:${i % 2 === 0 ? '#f8fafc' : '#ffffff'};">${r}</tr>`).join('')}</tbody>
-      </table>
-    `) : '<p style="text-align:center;padding:24px;color:#94a3b8;font-size:10px;">Nenhum registro de ponto encontrado neste período.</p>'}
+    ${tableRows.length > 0 ? section('Registros de Ponto', pdfTable(tableHeaders, tableRows)) : '<p style="text-align:center;padding:24px;color:#94a3b8;font-size:10px;">Nenhum registro de ponto encontrado neste período.</p>'}
 
-    ${bodyRows.length > 0 ? section('Resumo do Período', `
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
-        <div style="background:#f0fdfa;border:1px solid #ccfbf1;border-radius:8px;padding:14px;text-align:center;">
+    ${tableRows.length > 0 ? section('Resumo do Período', `
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;">
+        <div style="background:#f0fdfa;border:1px solid #ccfbf1;border-radius:8px;padding:12px;text-align:center;">
           <div style="font-size:7px;font-weight:900;text-transform:uppercase;color:#0f766e;">Registros</div>
           <div style="font-size:16px;font-weight:900;color:#0f172a;margin-top:4px;">${rows.length}</div>
         </div>
-        <div style="background:#f0fdfa;border:1px solid #ccfbf1;border-radius:8px;padding:14px;text-align:center;">
+        <div style="background:#f0fdfa;border:1px solid #ccfbf1;border-radius:8px;padding:12px;text-align:center;">
           <div style="font-size:7px;font-weight:900;text-transform:uppercase;color:#0f766e;">Total Trabalhado</div>
           <div style="font-size:16px;font-weight:900;color:#0f172a;margin-top:4px;">${escapeHtml(formatMinutes(totalWorked))}</div>
         </div>
-        <div style="background:#f0fdfa;border:1px solid #ccfbf1;border-radius:8px;padding:14px;text-align:center;">
+        <div style="background:#f0fdfa;border:1px solid #ccfbf1;border-radius:8px;padding:12px;text-align:center;">
           <div style="font-size:7px;font-weight:900;text-transform:uppercase;color:#0f766e;">Saldo Positivo</div>
           <div style="font-size:16px;font-weight:900;color:#059669;margin-top:4px;">${escapeHtml(formatMinutes(positiveBalance))}</div>
         </div>
-        <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:14px;text-align:center;">
+        <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px;text-align:center;">
           <div style="font-size:7px;font-weight:900;text-transform:uppercase;color:#e11d48;">Saldo Negativo</div>
           <div style="font-size:16px;font-weight:900;color:#e11d48;margin-top:4px;">${escapeHtml(formatMinutes(negativeBalance))}</div>
         </div>
       </div>
-      <div style="margin-top:16px;background:#f8fafc;padding:12px;border-radius:8px;font-size:10px;color:#0f172a;font-weight:600;text-align:center;">
+      <div style="margin-top:12px;background:#f8fafc;padding:12px;border-radius:8px;font-size:10px;color:#0f172a;font-weight:600;text-align:center;">
         Saldo final do período: <span style="color:${totalBalance < 0 ? '#e11d48' : totalBalance > 0 ? '#059669' : '#64748b'};">
           ${escapeHtml(formatMinutes(totalBalance))}
         </span>
       </div>
     `) : ''}
 
-    ${signatures(['Assinatura do Colaborador', 'Assinatura do RH / Responsável', 'Data de Conferência'])}
+    ${signatureBlock(['Assinatura do Colaborador', 'Assinatura do RH / Responsável', 'Data de Conferência'])}
   `);
 
   printPdfDocument(html, `folha-ponto-${slugify(employee.name)}-${month}`);
 }
 
 function downloadEmployeeRecord(employee: Employee, company: Company | null, managerName: string) {
-  const title = `Ficha Cadastral do Colaborador`;
+  const title = 'Ficha de Funcionário';
+  const employeeInfo = [
+    { label: 'Nome', value: normalizeDisplayName(employee.name) },
+    { label: 'CPF', value: employee.cpf || '-' },
+    { label: 'RG', value: employee.rg || '-' },
+    { label: 'Data de Nascimento', value: formatDate(employee.birthDate) },
+    { label: 'Telefone', value: employee.phone || '-' },
+    { label: 'E-mail', value: employee.email || '-' },
+    { label: 'Endereço', value: [employee.street, employee.streetNumber, employee.neighborhood, employee.city, employee.state, employee.cep].filter(Boolean).map(String).join(', ') || '-' },
+  ];
+
+  const professionalInfo = [
+    { label: 'Cargo', value: employee.position || '-' },
+    { label: 'Departamento', value: employee.department || '-' },
+    { label: 'Operação', value: '-' },
+    { label: 'Unidade', value: employee.unit || '-' },
+    { label: 'Gestor', value: managerName || '-' },
+    { label: 'Admissão', value: formatDate(employee.admissionDate) },
+    { label: 'Status', value: EMPLOYEE_STATUS_LABEL[employee.status] || employee.status },
+  ];
+
   const html = buildPdfHtml({ title, company, subtitle: normalizeDisplayName(employee.name), landscape: false }, `
-    ${section('Identificação', grid3([
-      field('Nome', normalizeDisplayName(employee.name)),
-      field('Matrícula', employee.registration || '-'),
-      field('CPF', employee.cpf || '-'),
-      field('Admissão', formatDate(employee.admissionDate)),
-    ]))}
+    ${section('Dados Pessoais', infoGrid(employeeInfo))}
 
-    ${section('Profissional', grid2([
-      field('Cargo', employee.position || '-'),
-      field('Departamento', employee.department || '-'),
-      field('Gestor', managerName || '-'),
-      field('Escala', employee.workScale || employee.customWorkScale || '-'),
-    ]))}
+    ${section('Dados Profissionais', infoGrid(professionalInfo))}
 
-    ${section('Contato', grid2([
-      field('E-mail', employee.email || '-'),
-      field('Telefone', employee.phone || '-'),
-      field('CEP', employee.cep || '-'),
-      field('Cidade/UF', [employee.city, employee.state].filter(Boolean).join(' / ') || '-'),
-    ]))}
+    ${employee.observations ? section('Observações', `<p style="font-size:9px;color:#0f172a;">${escapeHtml(employee.observations)}</p>`) : ''}
 
-    ${signatures(['Assinatura do Colaborador', 'Responsável pelo RH', 'Data de Conferência'])}
+    ${signatureBlock(['Assinatura do Funcionário', 'Assinatura do RH / Empresa'])}
   `);
   printPdfDocument(html, `ficha-${slugify(employee.name)}`);
 }

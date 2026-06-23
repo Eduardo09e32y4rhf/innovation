@@ -9,7 +9,7 @@ import { useMutation, useQuery } from '@/app/hooks/use-data';
 import { api, type Company, type Employee, type TimeTrack, type RestDayMode, type TimeTrackAdjustmentReason } from '@/app/lib/api';
 import { formatDate, formatMinutes } from '@/app/lib/format';
 import { normalizeDisplayName } from '@/app/lib/text';
-import { buildPdfShell, section, field, grid3, signatures, printPdf, type PdfCompanyInfo } from '@/app/lib/pdf-utils';
+import { buildPdfShell, section, infoGrid, pdfTable, signatureBlock, printPdf, type PdfCompanyInfo } from '@/app/lib/pdf-utils';
 
 const collator = new Intl.Collator('pt-BR', { sensitivity: 'base', numeric: true });
 
@@ -222,15 +222,18 @@ function downloadExcel(filename: string, rows: TimeTrack[], company: { name: str
   URL.revokeObjectURL(url);
 }
 
-function openPrintableReport(rows: TimeTrack[], month: string, company: { name: string; document: string; logoUrl?: string | null }, employee?: Employee) {
-  const title = employee ? `Espelho individual - ${normalizeDisplayName(employee.name)} - ${monthLabel(month)}` : `Espelho da empresa - ${monthLabel(month)}`;
+function openPrintableReport(rows: TimeTrack[], month: string, company: { name: string; document: string; logoUrl?: string | null; address?: string | null; phone?: string | null; email?: string | null }, employee?: Employee) {
+  const title = employee ? `Espelho Individual - ${monthLabel(month)}` : `Espelho da Empresa - ${monthLabel(month)}`;
   const companyInfo: PdfCompanyInfo = {
     name: company.name,
     document: company.document,
     logoUrl: company.logoUrl,
+    address: company.address,
+    phone: company.phone,
+    email: company.email,
   };
 
-  const body = employee ? buildIndividualBody(rows, employee, month) : buildCompanyBody(rows, month);
+  const body = employee ? buildIndividualBody(rows, employee, month, company) : buildCompanyBody(rows, month);
   const html = buildPdfShell({ title, landscape: true }, companyInfo, body);
   printPdf(html, `${title.toLowerCase().replace(/\s+/g, '-')}.pdf`);
 }
@@ -239,58 +242,50 @@ function buildIndividualBody(rows: TimeTrack[], employee: Employee, month: strin
   const mirrorRows = buildMirrorRows(rows);
   const totalWorked = formatMinutes(sumMinutes(rows, 'totalWorked'));
   const totalBalance = formatMinutes(sumMinutes(rows, 'dailyBalance'));
-  const bodyRows = mirrorRows.map((row) => `
+
+  const employeeInfo = [
+    { label: 'Nome', value: normalizeDisplayName(employee.name) },
+    { label: 'CPF', value: formatDocument(employee.cpf) },
+    { label: 'Cargo', value: employee.position || '-' },
+    { label: 'Departamento', value: employee.department || '-' },
+    { label: 'Admissão', value: formatDate(employee.admissionDate) },
+  ];
+
+  const tableHeaders = ['Data', 'Dia', 'Entrada', 'Saída Almoço', 'Retorno Almoço', 'Saída', 'Trabalhado', 'Saldo', 'Status', 'Observação'];
+  const tableRows = mirrorRows.map((row) => `
     <tr>
-      <td>${escapeHtml(row.data)}</td><td>${escapeHtml(row.dia)}</td><td>${escapeHtml(row.entrada1)}</td><td>${escapeHtml(row.saida1)}</td>
-      <td>${escapeHtml(row.entrada2)}</td><td>${escapeHtml(row.saida2)}</td><td>${escapeHtml(row.abono)}</td><td>${escapeHtml(row.horaExtra)}</td>
-      <td>${escapeHtml(row.ausente)}</td><td>${escapeHtml(row.adicionalNoturno)}</td><td>${escapeHtml(row.statusDia)}</td><td>${escapeHtml(row.observacao)}</td>
+      <td style="padding:8px 10px;font-size:8px;font-weight:600;color:#0f172a;">${escapeHtml(row.data)}</td>
+      <td style="padding:8px 10px;font-size:8px;color:#64748b;">${escapeHtml(row.dia)}</td>
+      <td style="padding:8px 10px;font-size:8px;color:#64748b;">${escapeHtml(row.entrada1)}</td>
+      <td style="padding:8px 10px;font-size:8px;color:#64748b;">${escapeHtml(row.saida1)}</td>
+      <td style="padding:8px 10px;font-size:8px;color:#64748b;">${escapeHtml(row.entrada2)}</td>
+      <td style="padding:8px 10px;font-size:8px;color:#64748b;">${escapeHtml(row.saida2)}</td>
+      <td style="padding:8px 10px;font-size:8px;font-weight:600;color:#0f172a;text-align:center;">${escapeHtml(row.trabalhado)}</td>
+      <td style="padding:8px 10px;font-size:8px;font-weight:700;color:#0f172a;text-align:center;">${escapeHtml(row.saldo)}</td>
+      <td style="padding:8px 10px;font-size:8px;color:#64748b;">${escapeHtml(row.statusDia)}</td>
+      <td style="padding:8px 10px;font-size:8px;color:#64748b;">${escapeHtml(row.observacao)}</td>
     </tr>`).join('');
 
   return `
-    ${section('Informações do Colaborador', grid3([
-      field('Matrícula', employee.id.slice(0, 8).toUpperCase()),
-      field('Nome', normalizeDisplayName(employee.name)),
-      field('CPF', formatDocument(employee.cpf)),
-      field('Função', employee.position || '-'),
-      field('Departamento', employee.department || '-'),
-      field('Admissão', formatDate(employee.admissionDate)),
-    ]))}
-    ${section(`Registros de Ponto - ${monthLabel(month)}`, `
-      <table style="width:100%;border-collapse:collapse;">
-        <thead><tr style="background:#0f172a;color:#fff;">
-          <th style="padding:8px 10px;text-align:left;font-size:8px;font-weight:900;text-transform:uppercase;">Data</th>
-          <th style="padding:8px 10px;text-align:left;font-size:8px;font-weight:900;text-transform:uppercase;">Dia</th>
-          <th style="padding:8px 10px;text-align:left;font-size:8px;font-weight:900;text-transform:uppercase;">1ª E.</th>
-          <th style="padding:8px 10px;text-align:left;font-size:8px;font-weight:900;text-transform:uppercase;">1ª S.</th>
-          <th style="padding:8px 10px;text-align:left;font-size:8px;font-weight:900;text-transform:uppercase;">2ª E.</th>
-          <th style="padding:8px 10px;text-align:left;font-size:8px;font-weight:900;text-transform:uppercase;">2ª S.</th>
-          <th style="padding:8px 10px;text-align:center;font-size:8px;font-weight:900;text-transform:uppercase;">Abono</th>
-          <th style="padding:8px 10px;text-align:center;font-size:8px;font-weight:900;text-transform:uppercase;">H.E.</th>
-          <th style="padding:8px 10px;text-align:center;font-size:8px;font-weight:900;text-transform:uppercase;">Ausente</th>
-          <th style="padding:8px 10px;text-align:center;font-size:8px;font-weight:900;text-transform:uppercase;">Ad. Not.</th>
-          <th style="padding:8px 10px;text-align:center;font-size:8px;font-weight:900;text-transform:uppercase;">Status</th>
-          <th style="padding:8px 10px;text-align:left;font-size:8px;font-weight:900;text-transform:uppercase;">Observação</th>
-        </tr></thead>
-        <tbody>${bodyRows}</tbody>
-      </table>
-    `)}
+    ${section('Informações do Colaborador', infoGrid(employeeInfo))}
+    ${section(`Registros de Ponto - ${monthLabel(month)}`, pdfTable(tableHeaders, tableRows))}
     ${section('Resumo do Período', `
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
-        <div style="background:#f0fdfa;border:1px solid #ccfbf1;border-radius:8px;padding:14px;text-align:center;">
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
+        <div style="background:#f0fdfa;border:1px solid #ccfbf1;border-radius:8px;padding:12px;text-align:center;">
           <div style="font-size:7px;font-weight:900;text-transform:uppercase;color:#0f766e;">Registros</div>
           <div style="font-size:16px;font-weight:900;color:#0f172a;margin-top:4px;">${rows.length}</div>
         </div>
-        <div style="background:#f0fdfa;border:1px solid #ccfbf1;border-radius:8px;padding:14px;text-align:center;">
+        <div style="background:#f0fdfa;border:1px solid #ccfbf1;border-radius:8px;padding:12px;text-align:center;">
           <div style="font-size:7px;font-weight:900;text-transform:uppercase;color:#0f766e;">Total Trabalhado</div>
           <div style="font-size:16px;font-weight:900;color:#0f172a;margin-top:4px;">${escapeHtml(totalWorked)}</div>
         </div>
-        <div style="background:#f0fdfa;border:1px solid #ccfbf1;border-radius:8px;padding:14px;text-align:center;">
+        <div style="background:#f0fdfa;border:1px solid #ccfbf1;border-radius:8px;padding:12px;text-align:center;">
           <div style="font-size:7px;font-weight:900;text-transform:uppercase;color:#0f766e;">Saldo Final</div>
           <div style="font-size:16px;font-weight:900;color:#0f172a;margin-top:4px;">${escapeHtml(totalBalance)}</div>
         </div>
       </div>
     `)}
-    ${signatures(['Assinatura do Colaborador', 'Responsável pelo RH', 'Data de Conferência'])}
+    ${signatureBlock(['Assinatura do Colaborador', 'Assinatura do Gestor', 'Assinatura do RH / Responsável'])}
   `;
 }
 
@@ -411,6 +406,9 @@ export default function TimeTrackPage() {
       name: normalizeDisplayName(c?.name ?? 'Empresa'),
       document: formatDocument(c?.document ?? null),
       logoUrl: c?.logoUrl ?? null,
+      address: c?.address ?? null,
+      phone: c?.phone ?? null,
+      email: c?.email ?? null,
     };
   }, [company.data]);
   const remove = useMutation((id: string) => api.timeTrack.delete(id), { onSuccess: () => tracks.refetch() });
