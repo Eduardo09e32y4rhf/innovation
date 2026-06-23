@@ -61,7 +61,6 @@ export default function EmployeesPage() {
     await remove.mutate(employee.id).catch(() => {});
   }
 
-
   function handleDownloadFicha(employee: Employee) {
     downloadEmployeeRecord(employee, company.data ?? null, managerById.get(employee.managerId ?? '') ?? '');
   }
@@ -283,74 +282,284 @@ function displayLunch(row: TimeTrack) {
   return `${formatTime(row.lunchStart)} - ${formatTime(row.lunchReturn)}`;
 }
 
+// ─── PROFESSIONAL PDF TEMPLATE ───────────────────────────────────────────────
+
+function docLogo(company: Company | null) {
+  if (company?.logoUrl) {
+    return `<div style="width:60px;height:60px;display:flex;align-items:center;justify-content:center;">
+      <img src="${escapeHtml(company.logoUrl)}" alt="Logo" style="max-width:60px;max-height:60px;object-fit:contain;" />
+    </div>`;
+  }
+  return `<div style="width:60px;height:60px;display:flex;align-items:center;justify-content:center;border:2px solid #14b8a6;border-radius:12px;color:#14b8a6;font-weight:900;font-size:20px;">RH</div>`;
+}
+
+function docHeader(title: string, company: Company | null, subtitle: string) {
+  const emittedAt = new Date().toLocaleString('pt-BR');
+  const emittedDate = new Date().toLocaleDateString('pt-BR');
+  return `
+  <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid #0f172a;padding-bottom:20px;margin-bottom:24px;">
+    <div style="display:flex;align-items:center;gap:16px;">
+      ${docLogo(company)}
+      <div>
+        <div style="font-size:18px;font-weight:900;color:#0f172a;letter-spacing:-0.5px;text-transform:uppercase;">${escapeHtml(company?.name || 'Empresa')}</div>
+        <div style="font-size:9px;color:#64748b;margin-top:3px;">
+          CNPJ: ${escapeHtml(company?.document || '-')}
+          ${company?.legalName ? `&nbsp;|&nbsp;${escapeHtml(company.legalName)}` : ''}
+        </div>
+        <div style="font-size:9px;color:#64748b;">${company?.phone ? `${escapeHtml(company.phone)}` : ''}${company?.email ? ` &nbsp;|&nbsp; ${escapeHtml(company.email)}` : ''}</div>
+      </div>
+    </div>
+    <div style="text-align:right;">
+      <div style="font-size:14px;font-weight:900;color:#0f172a;text-transform:uppercase;">${escapeHtml(title)}</div>
+      <div style="font-size:9px;color:#64748b;margin-top:4px;">${escapeHtml(subtitle)}</div>
+      <div style="font-size:8px;color:#94a3b8;margin-top:2px;">Emitido em ${escapeHtml(emittedDate)} às ${escapeHtml(emittedAt.split(', ')[1] || emittedAt)}</div>
+    </div>
+  </div>`;
+}
+
+function docFooter() {
+  return `
+  <div style="margin-top:40px;border-top:1px solid #e2e8f0;padding-top:12px;display:flex;justify-content:space-between;font-size:8px;color:#94a3b8;">
+    <span>Innovation RH Connect — Gestão de Ponto</span>
+    <span>Documento gerado automaticamente</span>
+    <span>Página 1 de 1</span>
+  </div>`;
+}
+
+function docTable(headers: string[], rows: string[]) {
+  const thead = headers.map(h => `<th style="padding:10px 14px;text-align:left;font-size:8px;font-weight:900;text-transform:uppercase;color:#64748b;border-bottom:2px solid #0f172a;letter-spacing:0.05em;">${escapeHtml(h)}</th>`).join('');
+  const tbody = rows.map((row, i) => {
+    const bg = i % 2 === 0 ? '#f8fafc' : '#ffffff';
+    return `<tr style="background:${bg};">${row}</tr>`;
+  }).join('');
+  return `
+  <table style="width:100%;border-collapse:collapse;margin:16px 0;">
+    <thead><tr>${thead}</tr></thead>
+    <tbody>${tbody}</tbody>
+  </table>`;
+}
+
+function docSection(title: string, content: string) {
+  return `
+  <div style="margin-bottom:20px;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;page-break-inside:avoid;">
+    <div style="background:#0f172a;color:#fff;padding:10px 16px;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.05em;">${escapeHtml(title)}</div>
+    <div style="padding:16px;">${content}</div>
+  </div>`;
+}
+
+function docField(label: string, value: string) {
+  return `
+  <div style="padding:8px 12px;border-bottom:1px solid #f1f5f9;">
+    <div style="font-size:7px;font-weight:900;text-transform:uppercase;color:#94a3b8;letter-spacing:0.08em;">${escapeHtml(label)}</div>
+    <div style="font-size:10px;font-weight:600;color:#0f172a;margin-top:2px;">${escapeHtml(value)}</div>
+  </div>`;
+}
+
+function docGrid3(items: string[]) {
+  const cols = items.map(item => `<div style="padding:4px;">${item}</div>`).join('');
+  return `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:2px;">${cols}</div>`;
+}
+
+function docGrid2(items: string[]) {
+  const cols = items.map(item => `<div style="padding:4px;">${item}</div>`).join('');
+  return `<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:2px;">${cols}</div>`;
+}
+
+function docSignatures(lines: string[]) {
+  const cols = lines.map(line => `
+    <div style="text-align:center;">
+      <div style="border-top:1px solid #0f172a;padding-top:8px;margin-top:40px;font-size:9px;font-weight:700;color:#0f172a;">${escapeHtml(line)}</div>
+    </div>`).join('');
+  return `<div style="display:grid;grid-template-columns:repeat(${Math.min(lines.length, 3)},1fr);gap:32px;margin-top:48px;page-break-inside:avoid;">${cols}</div>`;
+}
+
+// ─── DOWNLOAD FUNCTIONS ──────────────────────────────────────────────────────
+
 function downloadEmployeeSheet(employee: Employee, rows: TimeTrack[], month: string, company: Company | null, managerName: string) {
-  const title = `Folha de ponto - ${normalizeDisplayName(employee.name)} - ${month}`;
-  const body = rows.length
-    ? rows.map((row) => `
-      <tr>
-        <td>${escapeHtml(formatDate(row.date))}</td>
-        <td>${escapeHtml(formatTime(row.entry))}</td>
-        <td>${escapeHtml(displayLunch(row))}</td>
-        <td>${escapeHtml(formatTime(row.exit))}</td>
-        <td>${escapeHtml(formatMinutes(row.totalWorked))}</td>
-        <td>${escapeHtml(formatMinutes(row.dailyBalance))}</td>
-        <td>${escapeHtml(row.observation || row.manualReason || '-')}</td>
-      </tr>`).join('')
-    : '<tr><td colspan="7">Nenhum ponto encontrado no mês.</td></tr>';
-  const html = printShell('Folha de ponto individual', company, month, `
-    ${employeeSummary(employee, managerName)}
-    <p class="section-title">Registros de ponto</p>
-    <table>
-      <thead><tr><th>Data</th><th>Entrada</th><th>Almoço</th><th>Saída</th><th>Trabalhado</th><th>Saldo</th><th>Motivo/observação</th></tr></thead>
-      <tbody>${body}</tbody>
-    </table>
-    <div class="summary"><strong>Resumo mensal:</strong> registros ${rows.length} | trabalhado ${escapeHtml(formatMinutes(rows.reduce((t, r) => t + (r.totalWorked ?? 0), 0)))} | saldo positivo ${escapeHtml(formatMinutes(rows.reduce((t, r) => t + Math.max(r.dailyBalance ?? 0, 0), 0)))} | saldo negativo ${escapeHtml(formatMinutes(rows.reduce((t, r) => t + Math.abs(Math.min(r.dailyBalance ?? 0, 0)), 0)))}</div>
-    <div class="signatures"><div>Assinatura do colaborador</div><div>Assinatura do RH / responsável</div><div>Data de conferência</div></div>`);
+  const title = `Folha de Ponto Individual`;
+  const monthLabel = monthLabelFn(month);
+  const totalWorked = rows.reduce((t, r) => t + (r.totalWorked ?? 0), 0);
+  const totalBalance = rows.reduce((t, r) => t + (r.dailyBalance ?? 0), 0);
+  const positiveBalance = rows.reduce((t, r) => t + Math.max(r.dailyBalance ?? 0, 0), 0);
+  const negativeBalance = rows.reduce((t, r) => t + Math.abs(Math.min(r.dailyBalance ?? 0, 0)), 0);
+
+  const bodyRows = rows.length > 0 ? rows.map((row) => {
+    const balance = row.dailyBalance ?? 0;
+    const balanceColor = balance < 0 ? '#e11d48' : balance > 0 ? '#059669' : '#64748b';
+    return `<td style="padding:10px 14px;font-size:9px;font-weight:600;color:#0f172a;border-bottom:1px solid #f1f5f9;">${escapeHtml(formatDate(row.date))}</td>
+      <td style="padding:10px 14px;font-size:9px;color:#64748b;border-bottom:1px solid #f1f5f9;">${escapeHtml(formatTime(row.entry))}</td>
+      <td style="padding:10px 14px;font-size:9px;color:#64748b;border-bottom:1px solid #f1f5f9;">${escapeHtml(displayLunch(row))}</td>
+      <td style="padding:10px 14px;font-size:9px;font-weight:600;color:#0f172a;border-bottom:1px solid #f1f5f9;">${escapeHtml(formatTime(row.exit))}</td>
+      <td style="padding:10px 14px;font-size:9px;font-weight:700;color:#0f172a;border-bottom:1px solid #f1f5f9;text-align:center;">${escapeHtml(formatMinutes(row.totalWorked))}</td>
+      <td style="padding:10px 14px;font-size:9px;font-weight:700;color:${balanceColor};border-bottom:1px solid #f1f5f9;text-align:center;">${escapeHtml(formatMinutes(balance))}</td>
+      <td style="padding:10px 14px;font-size:8px;color:#64748b;border-bottom:1px solid #f1f5f9;">${escapeHtml(row.observation || row.manualReason || '-')}</td>`;
+  }) : [];
+
+  const html = buildPdfHtml(title, company, `
+    ${docHeader(title, company, `${monthLabel} — ${normalizeDisplayName(employee.name)}`)}
+    
+    ${docSection('Dados do Colaborador', docGrid3([
+      docField('Nome', normalizeDisplayName(employee.name)),
+      docField('Matrícula', employee.registration || '-'),
+      docField('CPF', employee.cpf || '-'),
+      docField('Cargo', employee.position || '-'),
+      docField('Departamento', employee.department || '-'),
+      docField('Gestor', managerName || '-'),
+      docField('Admissão', formatDate(employee.admissionDate)),
+      docField('Período', monthLabel),
+      docField('Status', 'Ativo'),
+    ]))}
+
+    ${bodyRows.length > 0 ? docSection('Registros de Ponto', `
+      <table style="width:100%;border-collapse:collapse;">
+        <thead><tr style="background:#0f172a;color:#fff;">
+          <th style="padding:10px 14px;text-align:left;font-size:8px;font-weight:900;text-transform:uppercase;">Data</th>
+          <th style="padding:10px 14px;text-align:left;font-size:8px;font-weight:900;text-transform:uppercase;">Entrada</th>
+          <th style="padding:10px 14px;text-align:left;font-size:8px;font-weight:900;text-transform:uppercase;">Almoço</th>
+          <th style="padding:10px 14px;text-align:left;font-size:8px;font-weight:900;text-transform:uppercase;">Saída</th>
+          <th style="padding:10px 14px;text-align:center;font-size:8px;font-weight:900;text-transform:uppercase;">Trabalhado</th>
+          <th style="padding:10px 14px;text-align:center;font-size:8px;font-weight:900;text-transform:uppercase;">Saldo</th>
+          <th style="padding:10px 14px;text-align:left;font-size:8px;font-weight:900;text-transform:uppercase;">Observação</th>
+        </tr></thead>
+        <tbody>${bodyRows.map((r, i) => `<tr style="background:${i % 2 === 0 ? '#f8fafc' : '#ffffff'};">${r}</tr>`).join('')}</tbody>
+      </table>
+    `) : '<p style="text-align:center;padding:24px;color:#94a3b8;font-size:10px;">Nenhum registro de ponto encontrado neste período.</p>'}
+
+    ${bodyRows.length > 0 ? docSection('Resumo do Período', `
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
+        <div style="background:#f0fdfa;border:1px solid #ccfbf1;border-radius:8px;padding:14px;text-align:center;">
+          <div style="font-size:7px;font-weight:900;text-transform:uppercase;color:#0f766e;">Registros</div>
+          <div style="font-size:16px;font-weight:900;color:#0f172a;margin-top:4px;">${rows.length}</div>
+        </div>
+        <div style="background:#f0fdfa;border:1px solid #ccfbf1;border-radius:8px;padding:14px;text-align:center;">
+          <div style="font-size:7px;font-weight:900;text-transform:uppercase;color:#0f766e;">Total Trabalhado</div>
+          <div style="font-size:16px;font-weight:900;color:#0f172a;margin-top:4px;">${escapeHtml(formatMinutes(totalWorked))}</div>
+        </div>
+        <div style="background:#f0fdfa;border:1px solid #ccfbf1;border-radius:8px;padding:14px;text-align:center;">
+          <div style="font-size:7px;font-weight:900;text-transform:uppercase;color:#0f766e;">Saldo Positivo</div>
+          <div style="font-size:16px;font-weight:900;color:#059669;margin-top:4px;">${escapeHtml(formatMinutes(positiveBalance))}</div>
+        </div>
+        <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:14px;text-align:center;">
+          <div style="font-size:7px;font-weight:900;text-transform:uppercase;color:#e11d48;">Saldo Negativo</div>
+          <div style="font-size:16px;font-weight:900;color:#e11d48;margin-top:4px;">${escapeHtml(formatMinutes(negativeBalance))}</div>
+        </div>
+      </div>
+      <div style="margin-top:16px;background:#f8fafc;padding:12px;border-radius:8px;font-size:10px;color:#0f172a;font-weight:600;text-align:center;">
+        Saldo final do período: <span style="color:${totalBalance < 0 ? '#e11d48' : totalBalance > 0 ? '#059669' : '#64748b'};">
+          ${escapeHtml(formatMinutes(totalBalance))}
+        </span>
+      </div>
+    `) : ''}
+
+    ${docSignatures(['Assinatura do Colaborador', 'Assinatura do RH / Responsável', 'Data de Conferência'])}
+    
+    ${docFooter()}
+  `);
+
   printPdfDocument(html, `folha-ponto-${slugify(employee.name)}-${month}`);
 }
 
-
 function downloadEmployeeRecord(employee: Employee, company: Company | null, managerName: string) {
-  const html = printShell('Ficha cadastral do colaborador', company, 'Cadastro atualizado', `
-    ${employeeSummary(employee, managerName)}
-    <section class="doc-block"><h2>Identificação</h2><div class="grid-3">
-      ${info('Nome completo', normalizeDisplayName(employee.name))}${info('Matrícula', employee.registration || '-')}${info('CPF', employee.cpf || '-')}
-      ${info('RG / CIN', employee.rg || '-')}${info('Órgão emissor', employee.rgIssuer || '-')}${info('UF do RG', employee.rgState || '-')}
-      ${info('Nascimento', formatDate(employee.birthDate))}${info('Estado civil', employee.maritalStatus || '-')}${info('Nacionalidade', employee.nationality || '-')}${info('Naturalidade', employee.birthplace || '-')}
-    </div></section>
-    <section class="doc-block"><h2>Contato e endereço</h2><div class="grid-3">
-      ${info('E-mail', employee.email || '-')}${info('Telefone', employee.phone || '-')}${info('Telefone secundário', employee.secondaryPhone || '-')}
-      ${info('CEP', employee.cep || '-')}${info('Logradouro', employee.street || '-')}${info('Número', employee.streetNumber || '-')}
-      ${info('Complemento', employee.addressComplement || '-')}${info('Bairro', employee.neighborhood || '-')}${info('Cidade/UF', [employee.city, employee.state].filter(Boolean).join(' / ') || '-')}
-    </div></section>
-    <section class="doc-block"><h2>Contrato, acesso e observações</h2><div class="grid-3">
-      ${info('Salário', employee.salary ? `R$ ${Number(employee.salary).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '-')}${info('CNPJ PJ/terceiro', employee.cnpj || '-')}${info('Razão social', employee.legalName || '-')}${info('Nome fantasia', employee.tradeName || '-')}${info('Acesso ao painel', accessText(employee))}${info('Perfil de acesso', employee.user?.role || '-')}
-    </div><p class="note">${escapeHtml(employee.observations || 'Sem observações cadastrais.')}</p></section>
-    <div class="signatures"><div>Assinatura do colaborador</div><div>Responsável pelo RH</div><div>Data de conferência</div></div>`);
+  const title = `Ficha Cadastral do Colaborador`;
+  const html = buildPdfHtml(title, company, `
+    ${docHeader(title, company, normalizeDisplayName(employee.name))}
+
+    ${docSection('Identificação', docGrid3([
+      docField('Nome completo', normalizeDisplayName(employee.name)),
+      docField('Matrícula', employee.registration || '-'),
+      docField('CPF', employee.cpf || '-'),
+      docField('RG / CIN', employee.rg || '-'),
+      docField('Órgão emissor', employee.rgIssuer || '-'),
+      docField('UF do RG', employee.rgState || '-'),
+      docField('Nascimento', formatDate(employee.birthDate)),
+      docField('Estado civil', employee.maritalStatus || '-'),
+      docField('Naturalidade', employee.birthplace || '-'),
+    ]))}
+
+    ${docSection('Contato e Endereço', docGrid3([
+      docField('E-mail', employee.email || '-'),
+      docField('Telefone', employee.phone || '-'),
+      docField('Telefone secundário', employee.secondaryPhone || '-'),
+      docField('CEP', employee.cep || '-'),
+      docField('Logradouro', employee.street || '-'),
+      docField('Número', employee.streetNumber || '-'),
+      docField('Complemento', employee.addressComplement || '-'),
+      docField('Bairro', employee.neighborhood || '-'),
+      docField('Cidade/UF', [employee.city, employee.state].filter(Boolean).join(' / ') || '-'),
+    ]))}
+
+    ${docSection('Dados Profissionais', docGrid3([
+      docField('Cargo', employee.position || '-'),
+      docField('Departamento', employee.department || '-'),
+      docField('Unidade', employee.unit || '-'),
+      docField('Gestor', managerName || '-'),
+      docField('Contrato', employee.contractType || '-'),
+      docField('Admissão', formatDate(employee.admissionDate)),
+      docField('Desligamento', formatDate(employee.terminationDate)),
+      docField('Escala', employee.workScale || employee.customWorkScale || '-'),
+      docField('Jornada', employee.dailyWorkload || '-'),
+    ]))}
+
+    ${docSection('Jornada de Trabalho', docGrid2([
+      docField('Entrada padrão', employee.standardEntry || '-'),
+      docField('Saída almoço', employee.standardLunchStart || '-'),
+      docField('Retorno almoço', employee.standardLunchReturn || '-'),
+      docField('Saída padrão', employee.standardExit || '-'),
+    ]))}
+
+    ${docSection('Contrato e Acesso', docGrid3([
+      docField('Salário', employee.salary ? `R$ ${Number(employee.salary).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '-'),
+      docField('CNPJ PJ/terceiro', employee.cnpj || '-'),
+      docField('Razão social', employee.legalName || '-'),
+      docField('Nome fantasia', employee.tradeName || '-'),
+      docField('Acesso ao painel', accessText(employee)),
+      docField('Perfil', employee.user?.role || '-'),
+    ]))}
+
+    ${employee.observations ? docSection('Observações', `<div style="background:#f8fafc;padding:12px;border-radius:8px;font-size:9px;color:#475569;line-height:1.6;">${escapeHtml(employee.observations)}</div>`) : ''}
+
+    ${docSignatures(['Assinatura do Colaborador', 'Responsável pelo RH', 'Data de Conferência'])}
+    
+    ${docFooter()}
+  `);
   printPdfDocument(html, `ficha-${slugify(employee.name)}`);
 }
 
-function printShell(title: string, company: Company | null, period: string, content: string) {
-  const emittedAt = new Date().toLocaleString('pt-BR');
-  const logo = company?.logoUrl ? `<img class="logo-img" src="${escapeHtml(company.logoUrl)}" alt="Logo da empresa" />` : '<div class="logo-img logo-placeholder">Logo</div>';
-  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8" /><title>${escapeHtml(title)}</title>
+function buildPdfHtml(title: string, company: Company | null, content: string) {
+  return `<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <title>${escapeHtml(title)}</title>
   <style>
-    @page{size:A4;margin:12mm}*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,Helvetica,sans-serif;color:#1f2937;background:#fff;font-size:10pt;line-height:1.5}.page{width:100%}.tmpl-header{display:table;width:100%;border-bottom:2px solid #0a5c4a;padding-bottom:12px;margin-bottom:22px}.tmpl-header-left,.tmpl-header-right{display:table-cell;vertical-align:middle;width:50%}.tmpl-header-right{text-align:right}.logo-container{display:table}.logo-img{display:table-cell;vertical-align:middle;width:52px;height:52px;object-fit:contain}.logo-placeholder{border:1px solid #e5e7eb;border-radius:8px;text-align:center;line-height:52px;color:#9ca3af;font-size:8pt}.logo-text{display:table-cell;vertical-align:middle;padding-left:12px}.logo-text h1{font-size:16pt;font-weight:700;color:#111827;line-height:1;letter-spacing:-.5px;text-transform:uppercase}.logo-text p{font-size:8pt;color:#6b7280;margin-top:3px}.tmpl-header-right h2{font-size:12pt;font-weight:700;color:#0a5c4a;text-transform:uppercase;margin-bottom:4px}.tmpl-header-right p{color:#6b7280;font-size:8.5pt}.tmpl-section,.doc-block{margin-bottom:16px;border:1px solid #e5e7eb;border-radius:6px;overflow:hidden;page-break-inside:avoid}.tmpl-section-title,.doc-block h2{background:#f3f4f6;padding:8px 12px;font-size:9pt;font-weight:700;text-transform:uppercase;color:#4b5563;border-bottom:1px solid #e5e7eb}.grid-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}.item{padding:10px 12px;border-right:1px solid #f3f4f6;border-bottom:1px solid #f3f4f6;min-height:50px}.item:nth-child(3n){border-right:0}.item span{display:block;font-size:7.5pt;text-transform:uppercase;color:#9ca3af;font-weight:700;margin-bottom:2px}.item strong{display:block;font-size:9.5pt;font-weight:600;color:#111827}.note{margin:10px 12px 12px;padding:10px;border-radius:6px;background:#f9fafb;color:#374151}.summary{margin:12px 0;border:1px solid #e5e7eb;border-radius:6px;background:#f9fafb;padding:10px}.signatures{display:table;width:100%;margin-top:42px;page-break-inside:avoid}.signatures div{display:table-cell;width:33%;text-align:center;padding:0 24px;color:#4b5563}.signatures div:before{content:"";display:block;border-top:1px solid #9ca3af;margin-bottom:6px}.footer{margin-top:26px;border-top:1px solid #e5e7eb;padding-top:8px;display:table;width:100%;color:#9ca3af;font-size:8pt}.footer span{display:table-cell}.footer span:nth-child(2){text-align:center}.footer span:last-child{text-align:right}@media print{.tmpl-section,.doc-block{page-break-inside:avoid}}
-  </style></head><body><main class="page"><header class="tmpl-header"><div class="tmpl-header-left"><div class="logo-container">${logo}<div class="logo-text"><h1>${escapeHtml(company?.name || 'Empresa')}</h1><p>CNPJ: ${escapeHtml(company?.document || '-')}</p><p>${escapeHtml(company?.legalName || company?.name || '-')}</p></div></div></div><div class="tmpl-header-right"><h2>${escapeHtml(title)}</h2><p>Status/período: ${escapeHtml(period)}</p><p>Emissão: ${escapeHtml(emittedAt)}</p><p>${escapeHtml(company?.phone || '-')} | ${escapeHtml(company?.email || '-')}</p></div></header>${content}<footer class="footer"><span>Innovation RH Connect</span><span>Documento gerado automaticamente</span><span>${escapeHtml(emittedAt)}</span></footer></main></body></html>`;
+    @page { size: A4; margin: 14mm 16mm; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', -apple-system, Arial, sans-serif; color: #0f172a; background: #fff; font-size: 10pt; line-height: 1.5; }
+    .page { width: 100%; }
+    @media print { .page { page-break-after: avoid; } }
+  </style>
+</head>
+<body>
+  <main class="page">${content}</main>
+</body>
+</html>`;
 }
 
-function employeeSummary(employee: Employee, managerName: string) {
-  return `<section class="doc-block"><h2>Dados profissionais</h2><div class="grid-3">
-    ${info('Nome', normalizeDisplayName(employee.name))}${info('Matrícula', employee.registration || '-')}${info('CPF', employee.cpf || '-')}
-    ${info('Cargo', employee.position || '-')}${info('Departamento', employee.department || '-')}${info('Unidade', employee.unit || '-')}
-    ${info('Gestor', managerName || '-')}${info('Status', EMPLOYEE_STATUS_LABEL[employee.status] ?? employee.status)}${info('Contrato', employee.contractType || '-')}
-    ${info('Admissão', formatDate(employee.admissionDate))}${info('Desligamento', formatDate(employee.terminationDate))}${info('Escala', employee.workScale || employee.customWorkScale || '-')}
-    ${info('Jornada diária', employee.dailyWorkload || '-')}${info('Entrada padrão', employee.standardEntry || '-')}${info('Saída almoço', employee.standardLunchStart || '-')}${info('Retorno almoço', employee.standardLunchReturn || '-')}${info('Saída padrão', employee.standardExit || '-')}
-  </div></section>`;
+function monthLabelFn(month: string) {
+  if (!month) return 'Período completo';
+  const [year, monthNumber] = month.split('-').map(Number);
+  if (!year || !monthNumber) return month;
+  const date = new Date(year, monthNumber - 1, 1);
+  const label = date.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+  return label.charAt(0).toUpperCase() + label.slice(1);
 }
 
-function info(label: string, value: unknown) {
-  return `<div class="item"><span>${escapeHtml(label)}</span><strong>${escapeHtml(String(value ?? '-'))}</strong></div>`;
+function escapeHtml(value: unknown) {
+  return String(value ?? '').replace(/[&<>"]/g, (char) => ({ '&': '&', '<': '<', '>': '>', '"': '"' })[char] ?? char);
+}
+
+function slugify(value: string) {
+  return normalizeDisplayName(value).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'funcionario';
 }
 
 function accessText(employee: Employee) {
@@ -384,11 +593,4 @@ function printPdfDocument(html: string, title: string) {
     iframe.contentWindow?.print();
     window.setTimeout(() => iframe.remove(), 1000);
   };
-}
-function slugify(value: string) {
-  return normalizeDisplayName(value).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'funcionario';
-}
-
-function escapeHtml(value: unknown) {
-  return String(value ?? '').replace(/[&<>"]/g, (char) => ({ '&': '&', '<': '<', '>': '>', '"': '"' })[char] ?? char);
 }
