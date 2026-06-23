@@ -225,7 +225,7 @@ export default function VacationsPage() {
                             {row.employee?.name?.charAt(0).toUpperCase() || '?'}
                           </div>
                           <div>
-                            <p className="text-sm font-black text-slate-950">{row.employee?.name ?? '—'}</p>
+                            <p className="text-sm font-black text-slate-950">{normalizeDisplayName(row.employee?.name) ?? '—'}</p>
                             {conflict.conflict && (
                               <p className="text-[10px] font-bold text-rose-600 flex items-center gap-1 mt-1">
                                 <AlertTriangle size={10} strokeWidth={2.5} />
