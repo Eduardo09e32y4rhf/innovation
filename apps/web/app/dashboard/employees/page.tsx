@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Download, Edit3, FileText, Search, Trash2, UserMinus, UserPlus, Users, Filter, XCircle } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { EmptyState, ErrorState, LoadingState } from '@/app/components/data-states';
@@ -14,6 +15,7 @@ import { buildPdfShell, section, infoGrid, pdfTable, signatureBlock, printPdf, t
 const collator = new Intl.Collator('pt-BR', { sensitivity: 'base', numeric: true });
 
 export default function EmployeesPage() {
+  const router = useRouter();
   const { user } = useAuth();
   const profile = user?.profile?.toUpperCase();
   const canEdit = profile === 'DEV' || profile === 'ADMIN' || profile === 'RH';
@@ -225,9 +227,9 @@ export default function EmployeesPage() {
                               </>
                             )}
                             {(canEdit || isGestor) && (
-                              <Link href={`/dashboard/time-track?employeeId=${employee.id}`} className="btn-outline inline-flex h-8 items-center gap-1.5 rounded-[6px] px-2.5 text-[11px] font-black transition-all hover:-translate-y-0.5">
+                              <button onClick={() => router.push(`/dashboard/time-track?employeeId=${employee.id}`)} className="btn-outline inline-flex h-8 items-center gap-1.5 rounded-[6px] px-2.5 text-[11px] font-black transition-all hover:-translate-y-0.5">
                                 Ponto
-                              </Link>
+                              </button>
                             )}
                             {canEdit && (
                               <>

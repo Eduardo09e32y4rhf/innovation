@@ -262,7 +262,7 @@ function DashboardContent() {
 
       {/* Data Tables - Ponto e Férias lado a lado */}
       <section className={`grid grid-cols-1 gap-5 ${isFuncionario ? '' : 'lg:grid-cols-2'}`}>
-        <DataTable title={isFuncionario ? 'Minhas jornadas recentes' : 'Jornadas recentes'} headers={isFuncionario ? ['Data', 'Entrada', 'Saída'] : ['Funcionário', 'Data', 'Entrada', 'Saída']}>
+        <DataTable title={isFuncionario ? 'Minhas jornadas recentes' : 'Jornadas recentes'} headers={isFuncionario ? ['Data', 'Entrada', 'Saída'] : ['Funcionário', 'Data', 'Entrada', 'Saída', 'Ações']}>
           {timeTracks.loading && !presentationMode && <LoadingRow span={isFuncionario ? 3 : 4} />}
           {timeTracks.error && !presentationMode && <ErrorRow span={isFuncionario ? 3 : 4} message={timeTracks.error} />}
           {!timeTracks.loading && !timeTracks.error && todayRows.length === 0 && (
@@ -274,6 +274,13 @@ function DashboardContent() {
               <td className="py-3.5 pr-4 text-xs font-semibold text-slate-600">{new Date(row.date).toLocaleDateString('pt-BR')}</td>
               <td className="py-3.5 pr-4 text-xs font-black text-slate-950">{formatTime(row.entry)}</td>
               <td className="py-3.5 text-xs font-semibold text-slate-600">{formatTime(row.exit)}</td>
+              {!isFuncionario && (
+                <td className="py-3.5">
+                  <Link href={`/dashboard/time-track?employeeId=${row.employeeId}`} className="inline-flex h-7 items-center gap-1.5 rounded-[6px] bg-gradient-to-r from-teal-500 to-cyan-600 px-2.5 text-[10px] font-black text-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md">
+                    Ponto
+                  </Link>
+                </td>
+              )}
             </tr>
           ))}
           {todayRows.length > 0 && (
