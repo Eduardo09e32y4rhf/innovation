@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { Check, Clock3, Download, Edit3, Eye, FileText, Trash2, X, XCircle } from 'lucide-react';
+import { Check, Clock3, Download, Edit3, FileText, Trash2, X, XCircle } from 'lucide-react';
 import { EmptyState, ErrorState, LoadingState } from '@/app/components/data-states';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useMutation, useQuery } from '@/app/hooks/use-data';
@@ -368,8 +368,6 @@ export default function TimeTrackPage() {
   const [bulkOpen, setBulkOpen] = useState(false);
   const [editing, setEditing] = useState<TimeTrack | null>(null);
   const [employeeFilter, setEmployeeFilter] = useState('');
-  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
-  const [tableOpenId, setTableOpenId] = useState<string | null>(null);
   const [monthFilter, setMonthFilter] = useState(currentMonth());
   const [departmentFilter, setDepartmentFilter] = useState('');
   const [managerFilter, setManagerFilter] = useState('');
@@ -554,68 +552,27 @@ export default function TimeTrackPage() {
         <section className="overflow-hidden rounded-[18px] border border-slate-200/60 bg-white shadow-[0_12px_40px_rgba(15,23,42,0.08)]">
           <div className="border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white px-6 py-5">
             <h3 className="text-sm font-black text-slate-950">Colaboradores da folha</h3>
-            <p className="mt-1 text-xs font-semibold text-slate-500">Abra um colaborador para conferir registros, editar ajustes e baixar a folha individual.</p>
+            <p className="mt-1 text-xs font-semibold text-slate-500">Selecione um colaborador para editar ajustes ou baixar a folha individual.</p>
           </div>
           <div className="divide-y divide-slate-100">
             {visibleEmployees.map((employee) => {
               const employeeRows = rowsByEmployee[employee.id] ?? [];
-              const expanded = expandedIds.has(employee.id);
-              const showTable = tableOpenId === employee.id;
-              const workedTotal = sumMinutes(employeeRows, 'totalWorked');
-              const balanceTotal = sumMinutes(employeeRows, 'dailyBalance');
               return (
                 <div key={employee.id} className="bg-white px-6 py-5 transition-all duration-200 hover:bg-slate-50/40">
-                  <div className="flex flex-col gap-3">
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-gradient-to-br from-teal-500 to-cyan-600 text-sm font-black text-white">
-                          {normalizeDisplayName(employee.name).charAt(0).toUpperCase()}
-                        </div>
-                        <p className="text-sm font-black text-slate-950">{normalizeDisplayName(employee.name)}</p>
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-gradient-to-br from-teal-500 to-cyan-600 text-sm font-black text-white">
+                        {normalizeDisplayName(employee.name).charAt(0).toUpperCase()}
                       </div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <button onClick={() => {
-                          const next = new Set(expandedIds);
-                          const wasOpen = expanded;
-                          if (wasOpen) next.delete(employee.id); else next.add(employee.id);
-                          setExpandedIds(next);
-                          if (!wasOpen) setTableOpenId(null);
-                        }} className="btn-outline-premium inline-flex h-9 items-center gap-2 rounded-[8px] px-3 text-[11px] font-black"><Eye size={13} /> {expanded ? 'Ocultar' : 'Exibir'}</button>
-                        {canDownloadOwnOrTeam && (
-                          <button onClick={() => openPrintableReport(employeeRows, monthFilter, reportCompany, employee)} disabled={employeeRows.length === 0 || company.loading || isRefreshingTracks} className="btn-outline-premium inline-flex h-9 items-center gap-2 rounded-[8px] px-3 text-[11px] font-black disabled:opacity-50"><FileText size={13} /> Folha</button>
-                        )}
-                        <button onClick={() => { setEditing({ ...employeeRows[0], employee } as unknown as TimeTrack); setOpen(true); }} disabled={employeeRows.length === 0 || isRefreshingTracks} className="btn-outline inline-flex h-9 items-center gap-2 rounded-[8px] px-3 text-[11px] font-black"><Edit3 size={13} /> Editar</button>
-                      </div>
+                      <p className="text-sm font-black text-slate-950">{normalizeDisplayName(employee.name)}</p>
                     </div>
-                    {expanded && (
-                      <div className="flex flex-wrap items-center gap-3 text-[11px] font-bold">
-                        <div className="rounded-[8px] border border-slate-200 bg-slate-50 px-3 py-1.5">
-                          <span className="block text-[9px] uppercase text-slate-400">Trabalhado</span>
-                          <span className="text-slate-900">{formatMinutes(workedTotal)}</span>
-                        </div>
-                        <div className={`rounded-[8px] border px-3 py-1.5 ${balanceTotal >= 0 ? 'border-emerald-200 bg-emerald-50' : 'border-rose-200 bg-rose-50'}`}>
-                          <span className="block text-[9px] uppercase text-slate-400">Saldo</span>
-                          <span className={balanceTotal >= 0 ? 'text-emerald-700' : 'text-rose-700'}>{formatMinutes(balanceTotal)}</span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  {expanded && (
-                    <div className="mt-3 flex items-center gap-3">
-                      <button onClick={() => setTableOpenId(tableOpenId === employee.id ? null : employee.id)} className="btn-outline inline-flex h-9 items-center rounded-[8px] px-4 text-[11px] font-black">
-                        {showTable ? 'Ocultar tabela' : 'Exibir tabela'}
-                      </button>
-                    </div>
-                  )}
-                  {showTable && (
-                    <div className="mt-3 overflow-hidden rounded-[10px] border border-slate-200">
-                      {employeeRows.length === 0 ? (
-                        <div className="border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-xs font-semibold text-slate-500">Nenhum registro de ponto para este colaborador no filtro atual.</div>
-                      ) : (
-                        <TimeRowsTable rows={employeeRows} canManage={canManage} isRefreshing={isRefreshingTracks} removeLoading={remove.loading} onEdit={setEditing} onDelete={handleDelete} compact />
+                    <div className="flex flex-wrap items-center gap-2">
+                      {canDownloadOwnOrTeam && (
+                        <button onClick={() => openPrintableReport(employeeRows, monthFilter, reportCompany, employee)} disabled={employeeRows.length === 0 || company.loading || isRefreshingTracks} className="btn-outline-premium inline-flex h-9 items-center gap-2 rounded-[8px] px-3 text-[11px] font-black disabled:opacity-50"><FileText size={13} /> Folha</button>
                       )}
+                      <button onClick={() => { setEditing({ ...employeeRows[0], employee } as unknown as TimeTrack); setOpen(true); }} disabled={employeeRows.length === 0 || isRefreshingTracks} className="btn-outline inline-flex h-9 items-center gap-2 rounded-[8px] px-3 text-[11px] font-black"><Edit3 size={13} /> Editar</button>
                     </div>
-                  )}
+                  </div>
                 </div>
               );
             })}
