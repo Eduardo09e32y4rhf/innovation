@@ -234,7 +234,7 @@ function openPrintableReport(rows: TimeTrack[], month: string, company: { name: 
     email: company.email,
   };
 
-  const body = employee ? buildIndividualBody(rows, employee, month, company) : buildCompanyBody(rows, month);
+  const body = employee ? buildIndividualBody(rows, employee, month) : buildCompanyBody(rows, month);
   const html = buildPdfShell({ title, landscape: true }, companyInfo, body);
   printPdf(html, `${title.toLowerCase().replace(/\s+/g, '-')}.pdf`);
 }
@@ -265,11 +265,11 @@ function buildIndividualBody(rows: TimeTrack[], employee: Employee, month: strin
       <td style="padding:8px 10px;font-size:8px;font-weight:700;color:#0f172a;text-align:center;">${escapeHtml(row.saldo)}</td>
       <td style="padding:8px 10px;font-size:8px;color:#64748b;">${escapeHtml(row.statusDia)}</td>
       <td style="padding:8px 10px;font-size:8px;color:#64748b;">${escapeHtml(row.observacao)}</td>
-    </tr>`).join('');
+    </tr>`);
 
   return `
     ${section('Informações do Colaborador', infoGrid(employeeInfo))}
-    ${section(`Registros de Ponto - ${monthLabel(month)}`, pdfTable(tableHeaders, tableRows))}
+    ${section(`Registros de Ponto - ${monthLabel(month)}`, pdfTable(tableHeaders, tableRows as any))}
     ${section('Resumo do Período', `
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
         <div style="background:#f0fdfa;border:1px solid #ccfbf1;border-radius:8px;padding:12px;text-align:center;">
@@ -302,13 +302,13 @@ function buildCompanyBody(rows: TimeTrack[], month: string): string {
     const bodyRows = buildMirrorRows(employeeRows).map((row) => `
       <tr><td>${escapeHtml(row.data)}</td><td>${escapeHtml(row.dia)}</td><td>${escapeHtml(row.entrada1)}</td><td>${escapeHtml(row.saida1)}</td><td>${escapeHtml(row.entrada2)}</td><td>${escapeHtml(row.saida2)}</td><td>${escapeHtml(row.trabalhado)}</td><td>${escapeHtml(row.saldo)}</td><td>${escapeHtml(row.statusDia)}</td><td>${escapeHtml(row.observacao)}</td></tr>`).join('');
     return `
-      ${first ? section(`Colaborador: ${normalizeDisplayName(first.name)}`, grid3([
-        field('Matrícula', first.id.slice(0, 8).toUpperCase()),
-        field('Nome', normalizeDisplayName(first.name)),
-        field('CPF', formatDocument(first.cpf)),
-        field('Função', first.position || '-'),
-        field('Departamento', first.department || '-'),
-        field('Admissão', formatDate(first.admissionDate)),
+      ${first ? section(`Colaborador: ${normalizeDisplayName(first.name)}`, infoGrid([
+        { label: 'Matrícula', value: first.id.slice(0, 8).toUpperCase() },
+        { label: 'Nome', value: normalizeDisplayName(first.name) },
+        { label: 'CPF', value: formatDocument(first.cpf) },
+        { label: 'Função', value: first.position || '-' },
+        { label: 'Departamento', value: first.department || '-' },
+        { label: 'Admissão', value: formatDate(first.admissionDate) },
       ])) : ''}
       ${section('Registros de Ponto', `
         <table style="width:100%;border-collapse:collapse;">
