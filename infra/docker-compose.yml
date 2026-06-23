@@ -1,21 +1,254 @@
 services:
+  # ─── PostgreSQL with Automated Backup ───────────────────────────────
   postgres:
     image: postgres:16-alpine
     container_name: innovation-rh-connect-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: innovation_rh_user
-      POSTGRES_PASSWORD: innovation_rh_pass
-      POSTGRES_DB: innovation_rh_connect
+      POSTGRES_USER: ${POSTGRES_USER:-innovation_rh_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-innovation_rh_pass}
+      POSTGRES_DB: ${POSTGRES_DB:-innovation_rh_connect}
     ports:
       - "${POSTGRES_HOST_PORT:-5435}:5432"
     volumes:
       - innovation_rh_connect_pgdata:/var/lib/postgresql/data
+      - ./backup:/backup
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U innovation_rh_user -d innovation_rh_connect"]
-      interval: 5s
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-innovation_rh_user} -d ${POSTGRES_DB:-innovation_rh_connect}"]
+      interval: 10s
       timeout: 5s
-      retries: 10
+      retries: 5
+      start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - innovation_rh_network
+
+  # ─── PostgreSQL Backup Service ──────────────────────────────────────
+  pgbackup:
+    image: prodrigestivill/postgres-backup-local:16-alpine
+    container_name: innovation-rh-connect-backup
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_DB: ${POSTGRES_DB:-innovation_rh_connect}
+      POSTGRES_USER: ${POSTGRES_USER:-innovation_rh_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-innovation_rh_pass}
+      POSTGRES_EXTRA_OPTS: "-Z9 --schema=public"
+      SCHEDULE: "@daily"
+      BACKUP_DIR: /backups
+      BACKUP_KEEP_DAYS: 30
+      BACKUP_KEEP_WEEKS: 4
+      BACKUP_KEEP_MONTHS: 3
+      HEALTHCHECK_PORT: 8080
+    volumes:
+      - innovation_rh_connect_backups:/backups
+    networks:
+      - innovation_rh_network
+
+  # ─── API (NestJS) ───────────────────────────────────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: infra/Dockerfile.api
+    container_name: innovation-rh-connect-api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DATABASE_URL: postgresql://${POSTGRES_USER:-innovation_rh_user}:${POSTGRES_PASSWORD:-innovation_rh_pass}@postgres:5432/${POSTGRES_DB:-innovation_rh_connect}?schema=public
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRATION: ${JWT_EXPIRATION:-24h}
+      CORS_ORIGIN: ${APP_URL:-https://app.seudominio.com}
+      APP_URL: ${APP_URL:-https://app.seudominio.com}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      RATE_LIMIT_TTL: ${RATE_LIMIT_TTL:-60}
+      RATE_LIMIT_MAX: ${RATE_LIMIT_MAX:-30}
+      MAX_LOGIN_ATTEMPTS: ${MAX_LOGIN_ATTEMPTS:-5}
+      LOGIN_BLOCK_DURATION: ${LOGIN_BLOCK_DURATION:-15}
+    ports:
+      - "${API_HOST_PORT:-3001}:3001"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+    networks:
+      - innovation_rh_network
+
+  # ─── Web (Next.js Static via Nginx) ─────────────────────────────────
+  web:
+    build:
+      context: .
+      dockerfile: infra/Dockerfile.web
+      args:
+        NEXT_PUBLIC_API_URL: ${API_URL:-/api}
+        NEXT_PUBLIC_APP_URL: ${APP_URL:-https://app.seudominio.com}
+        NEXT_PUBLIC_ENABLE_LOCAL_SESSION: "false"
+    container_name: innovation-rh-connect-web
+    restart: unless-stopped
+    ports:
+      - "${WEB_HOST_PORT:-80}:80"
+    depends_on:
+      - api
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80"]
+      interval: 15s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - innovation_rh_network
+
+  # ─── Watchtower - Auto Container Updates ───────────────────────────
+  watchtower:
+    image: containrrr/watchtower
+    container_name: innovation-rh-connect-watchtower
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: --interval 300 --cleanup
+    environment:
+      WATCHTOWER_NOTIFICATIONS: email
+      WATCHTOWER_NOTIFICATION_EMAIL_FROM: ${ALERT_EMAIL_FROM:-}
+      WATCHTOWER_NOTIFICATION_EMAIL_TO: ${ALERT_EMAIL_TO:-}
+      WATCHTOWER_NOTIFICATION_EMAIL_SERVER: ${SMTP_HOST:-}
+      WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PORT: ${SMTP_PORT:-587}
+      WATCHTOWER_NOTIFICATION_EMAIL_SERVER_USER: ${SMTP_USER:-}
+      WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PASSWORD: ${SMTP_PASS:-}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "2"
+    networks:
+      - innovation_rh_network
+
+  # ─── cAdvisor - Container Monitoring ────────────────────────────────
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: innovation-rh-connect-cadvisor
+    restart: unless-stopped
+    ports:
+      - "${CADVISOR_PORT:-8085}:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    privileged: true
+    networks:
+      - innovation_rh_network
+
+  # ─── Prometheus - Metrics Collection ────────────────────────────────
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: innovation-rh-connect-prometheus
+    restart: unless-stopped
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - innovation_rh_connect_prometheus:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+    networks:
+      - innovation_rh_network
+
+  # ─── Loki - Log Aggregation ─────────────────────────────────────────
+  loki:
+    image: grafana/loki:latest
+    container_name: innovation-rh-connect-loki
+    restart: unless-stopped
+    ports:
+      - "${LOKI_PORT:-3100}:3100"
+    volumes:
+      - ./loki-config.yml:/etc/loki/local-config.yaml:ro
+      - innovation_rh_connect_loki:/loki
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - innovation_rh_network
+
+  # ─── Promtail - Log Collector ───────────────────────────────────────
+  promtail:
+    image: grafana/promtail:latest
+    container_name: innovation-rh-connect-promtail
+    restart: unless-stopped
+    volumes:
+      - ./promtail-config.yml:/etc/promtail/config.yml:ro
+      - /var/log:/var/log:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    command: -config.file=/etc/promtail/config.yml
+    networks:
+      - innovation_rh_network
+
+  # ─── Grafana - Dashboard & Visualization ───────────────────────────
+  grafana:
+    image: grafana/grafana:latest
+    container_name: innovation-rh-connect-grafana
+    restart: unless-stopped
+    ports:
+      - "${GRAFANA_PORT:-3005}:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+      GF_INSTALL_PLUGINS: grafana-piechart-panel
+    volumes:
+      - innovation_rh_connect_grafana:/var/lib/grafana
+      - ./grafana-dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./grafana-datasources:/etc/grafana/provisioning/datasources:ro
+    networks:
+      - innovation_rh_network
+
+  # ─── Uptime Kuma - Uptime Monitoring ───────────────────────────────
+  uptime-kuma:
+    image: louislam/uptime-kuma:latest
+    container_name: innovation-rh-connect-uptime
+    restart: unless-stopped
+    ports:
+      - "${UPTIME_KUMA_PORT:-3006}:3001"
+    volumes:
+      - innovation_rh_connect_uptime:/app/data
+    networks:
+      - innovation_rh_network
 
 volumes:
   innovation_rh_connect_pgdata:
+    driver: local
+  innovation_rh_connect_backups:
+    driver: local
+  innovation_rh_connect_prometheus:
+    driver: local
+  innovation_rh_connect_loki:
+    driver: local
+  innovation_rh_connect_grafana:
+    driver: local
+  innovation_rh_connect_uptime:
+    driver: local
+
+networks:
+  innovation_rh_network:
+    driver: bridge
