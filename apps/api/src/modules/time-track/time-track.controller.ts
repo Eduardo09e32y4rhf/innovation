@@ -4,6 +4,7 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
+import { RateLimitGuard, RateLimit } from '../../common/guards/rate-limit.guard';
 import type { JwtUser } from '../../common/types/auth.types';
 import { BulkManualTimeTrackDto, ManualTimeTrackDto } from './dto/manual-time-track.dto';
 import { RegisterTimeDto } from './dto/register-time.dto';
@@ -40,6 +41,8 @@ export class TimeTrackController {
 
   @Roles('DEV', 'ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO')
   @Post('register')
+  @UseGuards(RateLimitGuard)
+  @RateLimit({ window: 60, max: 20, prefix: 'punch' }) // 20 punches per minute per user/IP
   register(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Body() dto: RegisterTimeDto) {
     return this.service.register(companyId, actor, dto);
   }

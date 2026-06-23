@@ -5,12 +5,18 @@ import { PrismaService } from '../../database/prisma.service';
 export class EmployeesRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  list(companyId: string) {
+  list(companyId: string, skip = 0, take = 100) {
     return this.prisma.employee.findMany({
       where: { companyId },
       include: { user: { select: { id: true, role: true, isActive: true, forcePasswordChange: true } } },
       orderBy: [{ name: 'asc' }, { createdAt: 'desc' }],
+      skip,
+      take,
     });
+  }
+
+  count(companyId: string) {
+    return this.prisma.employee.count({ where: { companyId } });
   }
 
   findById(companyId: string, id: string) {
@@ -34,12 +40,18 @@ export class EmployeesRepository {
     });
   }
 
-  listByManager(companyId: string, managerId: string) {
+  listByManager(companyId: string, managerId: string, skip = 0, take = 100) {
     return this.prisma.employee.findMany({
       where: { companyId, managerId },
       include: { user: { select: { id: true, role: true, isActive: true, forcePasswordChange: true } } },
       orderBy: { createdAt: 'desc' },
+      skip,
+      take,
     });
+  }
+
+  countByManager(companyId: string, managerId: string) {
+    return this.prisma.employee.count({ where: { companyId, managerId } });
   }
 
   findByCpf(cpf: string) {
