@@ -9,6 +9,7 @@ import { useMutation, useQuery } from '@/app/hooks/use-data';
 import { api, type Company, type Employee, type TimeTrack } from '@/app/lib/api';
 import { EMPLOYEE_STATUS_LABEL, formatDate, formatMinutes, formatTime } from '@/app/lib/format';
 import { normalizeDisplayName } from '@/app/lib/text';
+import { buildPdfShell, section, grid3, field, tableBlock, signatures, printPdf, type PdfCompanyInfo } from '@/app/lib/pdf-utils';
 
 const collator = new Intl.Collator('pt-BR', { sensitivity: 'base', numeric: true });
 
@@ -284,94 +285,6 @@ function displayLunch(row: TimeTrack) {
 
 // ─── PROFESSIONAL PDF TEMPLATE ───────────────────────────────────────────────
 
-function docLogo(company: Company | null) {
-  if (company?.logoUrl) {
-    return `<div style="width:60px;height:60px;display:flex;align-items:center;justify-content:center;">
-      <img src="${escapeHtml(company.logoUrl)}" alt="Logo" style="max-width:60px;max-height:60px;object-fit:contain;" />
-    </div>`;
-  }
-  return `<div style="width:60px;height:60px;display:flex;align-items:center;justify-content:center;border:2px solid #14b8a6;border-radius:12px;color:#14b8a6;font-weight:900;font-size:20px;">RH</div>`;
-}
-
-function docHeader(title: string, company: Company | null, subtitle: string) {
-  const emittedAt = new Date().toLocaleString('pt-BR');
-  const emittedDate = new Date().toLocaleDateString('pt-BR');
-  return `
-  <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid #0f172a;padding-bottom:20px;margin-bottom:24px;">
-    <div style="display:flex;align-items:center;gap:16px;">
-      ${docLogo(company)}
-      <div>
-        <div style="font-size:18px;font-weight:900;color:#0f172a;letter-spacing:-0.5px;text-transform:uppercase;">${escapeHtml(company?.name || 'Empresa')}</div>
-        <div style="font-size:9px;color:#64748b;margin-top:3px;">
-          CNPJ: ${escapeHtml(company?.document || '-')}
-          ${company?.legalName ? `&nbsp;|&nbsp;${escapeHtml(company.legalName)}` : ''}
-        </div>
-        <div style="font-size:9px;color:#64748b;">${company?.phone ? `${escapeHtml(company.phone)}` : ''}${company?.email ? ` &nbsp;|&nbsp; ${escapeHtml(company.email)}` : ''}</div>
-      </div>
-    </div>
-    <div style="text-align:right;">
-      <div style="font-size:14px;font-weight:900;color:#0f172a;text-transform:uppercase;">${escapeHtml(title)}</div>
-      <div style="font-size:9px;color:#64748b;margin-top:4px;">${escapeHtml(subtitle)}</div>
-      <div style="font-size:8px;color:#94a3b8;margin-top:2px;">Emitido em ${escapeHtml(emittedDate)} às ${escapeHtml(emittedAt.split(', ')[1] || emittedAt)}</div>
-    </div>
-  </div>`;
-}
-
-function docFooter() {
-  return `
-  <div style="margin-top:40px;border-top:1px solid #e2e8f0;padding-top:12px;display:flex;justify-content:space-between;font-size:8px;color:#94a3b8;">
-    <span>Innovation RH Connect — Gestão de Ponto</span>
-    <span>Documento gerado automaticamente</span>
-    <span>Página 1 de 1</span>
-  </div>`;
-}
-
-function docTable(headers: string[], rows: string[]) {
-  const thead = headers.map(h => `<th style="padding:10px 14px;text-align:left;font-size:8px;font-weight:900;text-transform:uppercase;color:#64748b;border-bottom:2px solid #0f172a;letter-spacing:0.05em;">${escapeHtml(h)}</th>`).join('');
-  const tbody = rows.map((row, i) => {
-    const bg = i % 2 === 0 ? '#f8fafc' : '#ffffff';
-    return `<tr style="background:${bg};">${row}</tr>`;
-  }).join('');
-  return `
-  <table style="width:100%;border-collapse:collapse;margin:16px 0;">
-    <thead><tr>${thead}</tr></thead>
-    <tbody>${tbody}</tbody>
-  </table>`;
-}
-
-function docSection(title: string, content: string) {
-  return `
-  <div style="margin-bottom:20px;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;page-break-inside:avoid;">
-    <div style="background:#0f172a;color:#fff;padding:10px 16px;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.05em;">${escapeHtml(title)}</div>
-    <div style="padding:16px;">${content}</div>
-  </div>`;
-}
-
-function docField(label: string, value: string) {
-  return `
-  <div style="padding:8px 12px;border-bottom:1px solid #f1f5f9;">
-    <div style="font-size:7px;font-weight:900;text-transform:uppercase;color:#94a3b8;letter-spacing:0.08em;">${escapeHtml(label)}</div>
-    <div style="font-size:10px;font-weight:600;color:#0f172a;margin-top:2px;">${escapeHtml(value)}</div>
-  </div>`;
-}
-
-function docGrid3(items: string[]) {
-  const cols = items.map(item => `<div style="padding:4px;">${item}</div>`).join('');
-  return `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:2px;">${cols}</div>`;
-}
-
-function docGrid2(items: string[]) {
-  const cols = items.map(item => `<div style="padding:4px;">${item}</div>`).join('');
-  return `<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:2px;">${cols}</div>`;
-}
-
-function docSignatures(lines: string[]) {
-  const cols = lines.map(line => `
-    <div style="text-align:center;">
-      <div style="border-top:1px solid #0f172a;padding-top:8px;margin-top:40px;font-size:9px;font-weight:700;color:#0f172a;">${escapeHtml(line)}</div>
-    </div>`).join('');
-  return `<div style="display:grid;grid-template-columns:repeat(${Math.min(lines.length, 3)},1fr);gap:32px;margin-top:48px;page-break-inside:avoid;">${cols}</div>`;
-}
 
 // ─── DOWNLOAD FUNCTIONS ──────────────────────────────────────────────────────
 
@@ -395,10 +308,8 @@ function downloadEmployeeSheet(employee: Employee, rows: TimeTrack[], month: str
       <td style="padding:10px 14px;font-size:8px;color:#64748b;border-bottom:1px solid #f1f5f9;">${escapeHtml(row.observation || row.manualReason || '-')}</td>`;
   }) : [];
 
-  const html = buildPdfHtml(title, company, `
-    ${docHeader(title, company, `${monthLabel} — ${normalizeDisplayName(employee.name)}`)}
-    
-    ${docSection('Dados do Colaborador', docGrid3([
+  const html = buildPdfHtml({ title, company, subtitle: `${monthLabel} — ${normalizeDisplayName(employee.name)}`, landscape: false }, `
+    ${section('Dados do Colaborador', docGrid3([
       docField('Nome', normalizeDisplayName(employee.name)),
       docField('Matrícula', employee.registration || '-'),
       docField('CPF', employee.cpf || '-'),
@@ -410,7 +321,7 @@ function downloadEmployeeSheet(employee: Employee, rows: TimeTrack[], month: str
       docField('Status', 'Ativo'),
     ]))}
 
-    ${bodyRows.length > 0 ? docSection('Registros de Ponto', `
+    ${bodyRows.length > 0 ? section('Registros de Ponto', `
       <table style="width:100%;border-collapse:collapse;">
         <thead><tr style="background:#0f172a;color:#fff;">
           <th style="padding:10px 14px;text-align:left;font-size:8px;font-weight:900;text-transform:uppercase;">Data</th>
@@ -425,7 +336,7 @@ function downloadEmployeeSheet(employee: Employee, rows: TimeTrack[], month: str
       </table>
     `) : '<p style="text-align:center;padding:24px;color:#94a3b8;font-size:10px;">Nenhum registro de ponto encontrado neste período.</p>'}
 
-    ${bodyRows.length > 0 ? docSection('Resumo do Período', `
+    ${bodyRows.length > 0 ? section('Resumo do Período', `
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
         <div style="background:#f0fdfa;border:1px solid #ccfbf1;border-radius:8px;padding:14px;text-align:center;">
           <div style="font-size:7px;font-weight:900;text-transform:uppercase;color:#0f766e;">Registros</div>
@@ -451,9 +362,7 @@ function downloadEmployeeSheet(employee: Employee, rows: TimeTrack[], month: str
       </div>
     `) : ''}
 
-    ${docSignatures(['Assinatura do Colaborador', 'Assinatura do RH / Responsável', 'Data de Conferência'])}
-    
-    ${docFooter()}
+    ${signatures(['Assinatura do Colaborador', 'Assinatura do RH / Responsável', 'Data de Conferência'])}
   `);
 
   printPdfDocument(html, `folha-ponto-${slugify(employee.name)}-${month}`);
@@ -461,10 +370,8 @@ function downloadEmployeeSheet(employee: Employee, rows: TimeTrack[], month: str
 
 function downloadEmployeeRecord(employee: Employee, company: Company | null, managerName: string) {
   const title = `Ficha Cadastral do Colaborador`;
-  const html = buildPdfHtml(title, company, `
-    ${docHeader(title, company, normalizeDisplayName(employee.name))}
-
-    ${docSection('Identificação', docGrid3([
+  const html = buildPdfHtml({ title, company, subtitle: normalizeDisplayName(employee.name), landscape: false }, `
+    ${section('Identificação', docGrid3([
       docField('Nome completo', normalizeDisplayName(employee.name)),
       docField('Matrícula', employee.registration || '-'),
       docField('CPF', employee.cpf || '-'),
@@ -476,7 +383,7 @@ function downloadEmployeeRecord(employee: Employee, company: Company | null, man
       docField('Naturalidade', employee.birthplace || '-'),
     ]))}
 
-    ${docSection('Contato e Endereço', docGrid3([
+    ${section('Contato e Endereço', docGrid3([
       docField('E-mail', employee.email || '-'),
       docField('Telefone', employee.phone || '-'),
       docField('Telefone secundário', employee.secondaryPhone || '-'),
@@ -488,7 +395,7 @@ function downloadEmployeeRecord(employee: Employee, company: Company | null, man
       docField('Cidade/UF', [employee.city, employee.state].filter(Boolean).join(' / ') || '-'),
     ]))}
 
-    ${docSection('Dados Profissionais', docGrid3([
+    ${section('Dados Profissionais', docGrid3([
       docField('Cargo', employee.position || '-'),
       docField('Departamento', employee.department || '-'),
       docField('Unidade', employee.unit || '-'),
@@ -500,14 +407,14 @@ function downloadEmployeeRecord(employee: Employee, company: Company | null, man
       docField('Jornada', employee.dailyWorkload || '-'),
     ]))}
 
-    ${docSection('Jornada de Trabalho', docGrid2([
+    ${section('Jornada de Trabalho', docGrid2([
       docField('Entrada padrão', employee.standardEntry || '-'),
       docField('Saída almoço', employee.standardLunchStart || '-'),
       docField('Retorno almoço', employee.standardLunchReturn || '-'),
       docField('Saída padrão', employee.standardExit || '-'),
     ]))}
 
-    ${docSection('Contrato e Acesso', docGrid3([
+    ${section('Contrato e Acesso', docGrid3([
       docField('Salário', employee.salary ? `R$ ${Number(employee.salary).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '-'),
       docField('CNPJ PJ/terceiro', employee.cnpj || '-'),
       docField('Razão social', employee.legalName || '-'),
@@ -516,31 +423,77 @@ function downloadEmployeeRecord(employee: Employee, company: Company | null, man
       docField('Perfil', employee.user?.role || '-'),
     ]))}
 
-    ${employee.observations ? docSection('Observações', `<div style="background:#f8fafc;padding:12px;border-radius:8px;font-size:9px;color:#475569;line-height:1.6;">${escapeHtml(employee.observations)}</div>`) : ''}
+    ${employee.observations ? section('Observações', `<div class="print-section" style="background:#f8fafc;padding:12px;border-radius:8px;font-size:9px;color:#475569;line-height:1.6;">${escapeHtml(employee.observations)}</div>`) : ''}
 
-    ${docSignatures(['Assinatura do Colaborador', 'Responsável pelo RH', 'Data de Conferência'])}
-    
-    ${docFooter()}
+    ${signatures(['Assinatura do Colaborador', 'Responsável pelo RH', 'Data de Conferência'])}
   `);
   printPdfDocument(html, `ficha-${slugify(employee.name)}`);
 }
 
-function buildPdfHtml(title: string, company: Company | null, content: string) {
+function buildPdfHtml(options: { title: string; company: Company | null; subtitle?: string; landscape?: boolean }, content: string) {
+  const title = options.title;
+  const company = options.company;
+  const subtitle = options.subtitle ?? '';
+  const landscape = options.landscape ?? false;
+  const emittedAt = new Date().toLocaleString('pt-BR');
+  const emittedDate = new Date().toLocaleDateString('pt-BR');
+
+  const header = `
+    <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid #0f172a;padding-bottom:14px;margin-bottom:18px;page-break-inside:avoid;">
+      <div style="display:flex;align-items:center;gap:14px;">
+        ${company?.logoUrl
+          ? `<div style="width:52px;height:52px;display:flex;align-items:center;justify-content:center;"><img src="${escapeHtml(company.logoUrl)}" alt="Logo" style="max-width:52px;max-height:52px;object-fit:contain;" /></div>`
+          : `<div style="width:52px;height:52px;display:flex;align-items:center;justify-content:center;border:2px solid #0f766e;border-radius:10px;color:#0f766e;font-weight:900;font-size:14px;">RH</div>`
+        }
+        <div>
+          <div style="font-size:16px;font-weight:900;color:#0f172a;letter-spacing:-.3px;text-transform:uppercase;">${escapeHtml(company?.name || 'Empresa')}</div>
+          <div style="font-size:9px;color:#64748b;margin-top:2px;">
+            ${escapeHtml(company?.document || '-')}${company?.legalName ? ` &nbsp;|&nbsp; ${escapeHtml(company.legalName)}` : ''}
+          </div>
+          <div style="font-size:9px;color:#64748b;">${[company?.phone, company?.email].filter(Boolean).map(v => escapeHtml(v as string)).join(' &nbsp;|&nbsp; ') || '&nbsp;'}</div>
+        </div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-size:13px;font-weight:900;color:#0f172a;text-transform:uppercase;">${escapeHtml(title)}</div>
+        <div style="font-size:9px;color:#64748b;margin-top:3px;">${escapeHtml(subtitle)}</div>
+        <div style="font-size:8px;color:#94a3b8;margin-top:2px;">Emitido em ${escapeHtml(emittedDate)} às ${escapeHtml(emittedAt.split(', ')[1] || emittedAt)}</div>
+      </div>
+    </div>
+  `;
+
+  const footer = `
+    <div style="margin-top:24px;border-top:1px solid #e2e8f0;padding-top:10px;display:flex;justify-content:space-between;color:#94a3b8;font-size:8px;font-weight:600;">
+      <span>Innovation RH Connect</span>
+      <span>Documento gerado automaticamente</span>
+      <span>Página 1 de 1</span>
+    </div>
+  `;
+
+  const pageStyle = landscape ? '@page { size: A4 landscape; margin: 8mm 10mm; }' : '@page { size: A4; margin: 10mm 12mm; }';
+
   return `<!doctype html>
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8" />
   <title>${escapeHtml(title)}</title>
   <style>
-    @page { size: A4; margin: 14mm 16mm; }
+    ${pageStyle}
+    @media print {
+      .no-print { display: none !important; }
+      .page { width: 100%; max-width: 100%; page-break-after: avoid; }
+      .print-section { break-inside: avoid; page-break-inside: avoid; }
+      table { width: 100%; border-collapse: collapse; page-break-inside: auto; }
+      thead { display: table-header-group; }
+      tfoot { display: table-footer-group; }
+      tr { page-break-inside: avoid; break-inside: avoid; }
+    }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Segoe UI', -apple-system, Arial, sans-serif; color: #0f172a; background: #fff; font-size: 10pt; line-height: 1.5; }
     .page { width: 100%; }
-    @media print { .page { page-break-after: avoid; } }
   </style>
 </head>
 <body>
-  <main class="page">${content}</main>
+  <main class="page">${header}${content}${footer}</main>
 </body>
 </html>`;
 }
@@ -570,27 +523,17 @@ function accessText(employee: Employee) {
 }
 
 function printPdfDocument(html: string, title: string) {
-  const iframe = document.createElement('iframe');
-  iframe.style.position = 'fixed';
-  iframe.style.right = '0';
-  iframe.style.bottom = '0';
-  iframe.style.width = '0';
-  iframe.style.height = '0';
-  iframe.style.border = '0';
-  iframe.title = title;
-  document.body.appendChild(iframe);
-  const doc = iframe.contentWindow?.document;
-  if (!doc) {
-    iframe.remove();
-    window.alert('Não foi possível gerar o PDF.');
+  const win = window.open('', '_blank');
+  if (!win) {
+    window.alert('Não foi possível gerar o PDF. Verifique se o navegador bloqueou pop-ups.');
     return;
   }
-  doc.open();
-  doc.write(html);
-  doc.close();
-  iframe.onload = () => {
-    iframe.contentWindow?.focus();
-    iframe.contentWindow?.print();
-    window.setTimeout(() => iframe.remove(), 1000);
+  win.document.open();
+  win.document.write(html);
+  win.document.close();
+  win.onload = () => {
+    win.focus();
+    win.print();
+    window.setTimeout(() => win.close(), 1000);
   };
 }

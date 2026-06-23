@@ -531,23 +531,51 @@ function NewVacationModal({
 
 // ─── PDF RECEIPT ─────────────────────────────────────────────────────────────
 
-function downloadVacationReceipt(vacation: { id: string; employeeId: string; acquisitionPeriod: string; startDate: string; endDate: string; daysUsed: number; status: string; observation?: string | null; employee?: { id: string; name: string; cpf?: string | null; registration?: string | null; department?: string | null; position?: string | null; admissionDate?: string | null; } | null }) {
-  const title = 'Recibo de Férias';
-  const employee = vacation.employee;
-  const emittedAt = new Date().toLocaleString('pt-BR');
-  const emittedDate = new Date().toLocaleDateString('pt-BR');
+  const html = buildPdfHtml({ title, company, subtitle: '', landscape: false }, `
+    <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid #0f172a;padding-bottom:14px;margin-bottom:18px;page-break-inside:avoid;">
+      <div style="display:flex;align-items:center;gap:14px;">
+        ${company?.logoUrl
+          ? `<div style="width:52px;height:52px;display:flex;align-items:center;justify-content:center;"><img src="${escapeHtml(company.logoUrl)}" alt="Logo" style="max-width:52px;max-height:52px;object-fit:contain;" /></div>`
+          : `<div style="width:52px;height:52px;display:flex;align-items:center;justify-content:center;border:2px solid #0f766e;border-radius:10px;color:#0f766e;font-weight:900;font-size:14px;">RH</div>`
+        }
+        <div>
+          <div style="font-size:16px;font-weight:900;color:#0f172a;letter-spacing:-.3px;text-transform:uppercase;">${escapeHtml(company?.name || 'Empresa')}</div>
+          <div style="font-size:9px;color:#64748b;margin-top:2px;">${escapeHtml(company?.document || '-')}</div>
+        </div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-size:13px;font-weight:900;color:#0f172a;text-transform:uppercase;">Recibo de Férias</div>
+        <div style="font-size:9px;color:#64748b;margin-top:3px;">${escapeHtml(VACATION_STATUS_LABEL[vacation.status] || vacation.status)}</div>
+        <div style="font-size:8px;color:#94a3b8;margin-top:2px;">Emitido em ${escapeHtml(new Date().toLocaleDateString('pt-BR'))}</div>
+      </div>
+    </div>
 
-  const html = `<!doctype html>
-<html lang="pt-BR">
-<head>
-  <meta charset="utf-8" />
-  <title>${escapeHtml(title)}</title>
-  <style>
-    @page { size: A4; margin: 14mm 16mm; }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Segoe UI', -apple-system, Arial, sans-serif; color: #0f172a; background: #fff; font-size: 10pt; line-height: 1.5; }
-    .page { width: 100%; }
-    .header { display: flex; align-items: center; justify-content: space-between; border-bottom: 3px solid #0f172a; padding-bottom: 20px; margin-bottom: 24px; }
+    ${section('Dados do Colaborador', `
+      <div class="print-section" style="display:grid;grid-template-columns:repeat(3,1fr);gap:2px;">
+        ${docField('Nome', normalizeDisplayName(employee?.name || '—'))}
+        ${docField('Matrícula', employee?.registration || (employee?.id ? employee.id.slice(0, 8).toUpperCase() : '-'))}
+        ${docField('CPF', employee?.cpf || '-')}
+        ${docField('Departamento', employee?.department || '-')}
+        ${docField('Cargo', employee?.position || '-')}
+        ${docField('Admissão', formatDate(employee?.admissionDate))}
+      </div>
+    `)}
+
+    ${section('Período de Férias', `
+      <div class="print-section" style="display:grid;grid-template-columns:repeat(3,1fr);gap:2px;margin-bottom:16px;">
+        ${docField('Início', formatDate(vacation.startDate))}
+        ${docField('Fim', formatDate(vacation.endDate))}
+        ${docField('Período Aquisitivo', vacation.acquisitionPeriod)}
+      </div>
+      <div class="print-section" style="background:#f0fdfa;border:1px solid #ccfbf1;border-radius:8px;padding:24px;text-align:center;margin-top:12px;">
+        <div style="font-size:40px;font-weight:900;color:#0f172a;">${vacation.daysUsed}</div>
+        <div style="font-size:10px;font-weight:900;color:#0f766e;text-transform:uppercase;letter-spacing:0.1em;margin-top:6px;">${vacation.daysUsed === 1 ? 'Dia de Férias' : 'Dias de Férias'}</div>
+      </div>
+      ${vacation.observation ? `<div class="print-section" style="background:#f8fafc;padding:12px;border-radius:8px;font-size:9px;color:#475569;margin-top:12px;"><strong>Observação:</strong> ${escapeHtml(vacation.observation)}</div>` : ''}
+    `)}
+
+    ${signatures(['Assinatura do Colaborador', 'Assinatura do RH / Responsável', 'Data de Conferência'])}
+  `);
     .header-left { display: flex; align-items: center; gap: 16px; }
     .header-left h1 { font-size: 18px; font-weight: 900; color: #0f172a; letter-spacing: -0.5px; text-transform: uppercase; }
     .header-left p { font-size: 9px; color: #64748b; }

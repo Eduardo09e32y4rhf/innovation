@@ -309,8 +309,50 @@ function openPrintableReport(rows: TimeTrack[], month: string, company: CompanyP
   win.document.open();
   win.document.write(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8" /><title>${escapeHtml(title)}</title>
     <style>
-      @page{size:A4 landscape;margin:6mm 8mm}*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Segoe UI',Arial,Helvetica,sans-serif;color:#0f172a;margin:0;background:#fff;font-size:9.5pt;line-height:1.35}.toolbar{position:sticky;top:0;z-index:2;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 12px;background:#0f172a;color:white}.toolbar button{border:0;border-radius:5px;background:#0f766e;color:white;padding:5px 10px;font-weight:700;cursor:pointer;font-size:10px}.page{background:white;padding:10px 8px;max-width:1100px}.compact-header{display:flex;align-items:center;justify-content:space-between;border-bottom:1.5px solid #0f172a;padding-bottom:7px;margin-bottom:10px;page-break-inside:avoid}.company-info{display:flex;align-items:center;gap:10px}.company-logo{width:34px;height:34px;object-fit:contain}.logo-placeholder{display:flex;width:34px;height:34px;align-items:center;justify-content:center;border:1px solid #e2e8f0;border-radius:5px;color:#94a3b8;font-size:8px}.company-info-text h1{font-size:14px;font-weight:900;color:#0f172a;letter-spacing:-.2px;text-transform:uppercase}.company-info-text p{color:#64748b;font-size:8px;font-weight:700}.report-info{text-align:right}.report-info h2{font-size:11px;font-weight:900;color:#0f172a;text-transform:uppercase;margin-bottom:2px}.report-info p{color:#64748b;font-size:8px;font-weight:700}.meta-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:5px;padding:6px 8px;margin-bottom:10px}.meta-bar span{font-size:7.5px;text-transform:uppercase;color:#94a3b8;font-weight:800;display:block;margin-bottom:1px}.meta-bar p{font-size:10px;font-weight:800;color:#334155}.employee-card{margin-bottom:10px;border:1px solid #e2e8f0;border-radius:5px;overflow:hidden;break-inside:avoid}.employee-card h3{background:#f1f5f9;padding:5px 10px;border-bottom:1px solid #e2e8f0;font-size:10px;font-weight:900;color:#0f172a}.emp-info{display:grid;grid-template-columns:repeat(4,1fr);gap:0;background:#f8fafc;border-bottom:1px solid #e2e8f0;padding:4px 0;font-size:8px}.emp-info div{padding:3px 10px}.emp-info strong{display:block;color:#94a3b8;font-size:7.5px;text-transform:uppercase;font-weight:800;margin-bottom:1px}.emp-info span{color:#334155;font-weight:700}.summary-line{background:#f8fafc;border-bottom:1px solid #e2e8f0;padding:4px 10px;font-size:9px;font-weight:700;color:#475569}table{width:100%;border-collapse:collapse;text-align:center;table-layout:fixed;font-size:9pt}th{background:#fff;color:#64748b;font-weight:800;font-size:8px;text-transform:uppercase;padding:4px 5px;border-bottom:1px solid #e2e8f0;letter-spacing:.02em}td{padding:3px 5px;border-bottom:1px solid #f1f5f9;color:#334155;font-size:9px;word-break:break-word}tr:last-child td{border-bottom:0}.signatures{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-top:16px}.signatures div{border-top:1px solid #cbd5e1;text-align:center;padding-top:5px;font-size:8.5px;font-weight:700;color:#475569}.footer-print{margin-top:10px;border-top:1px solid #e2e8f0;padding-top:5px;display:flex;justify-content:space-between;color:#94a3b8;font-size:7.5px;font-weight:600}@media print{.toolbar{display:none}.page{padding:0;max-width:100%}table{page-break-inside:auto}tr{page-break-inside:avoid}.employee-card{page-break-inside:avoid}}.compact-header,.meta-bar,.employee-card{page-break-inside:avoid}
-    </style></head><body><div class="toolbar"><strong>${escapeHtml(title)}</strong><button onclick="window.print()">Imprimir / Salvar PDF</button></div><main class="page">${content}</main><footer class="footer-print"><span>Innovation RH Connect</span><span>Documento gerado automaticamente</span></footer></body></html>`);
+      @page { size: A4 landscape; margin: 8mm 10mm; }
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body { font-family: 'Segoe UI', Arial, Helvetica, sans-serif; color: #0f172a; background: #fff; font-size: 9.5pt; line-height: 1.35; }
+      .toolbar { position: sticky; top: 0; z-index: 2; display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 12px; background: #0f172a; color: white; }
+      .toolbar button { border: 0; border-radius: 5px; background: #0f766e; color: white; padding: 5px 10px; font-weight: 700; cursor: pointer; font-size: 10px; }
+      .page { background: white; padding: 0; max-width: 100%; }
+      .compact-header { display: flex; align-items: center; justify-content: space-between; border-bottom: 1.5px solid #0f172a; padding-bottom: 7px; margin-bottom: 10px; page-break-inside: avoid; }
+      .company-info { display: flex; align-items: center; gap: 10px; }
+      .company-logo { width: 34px; height: 34px; object-fit: contain; }
+      .logo-placeholder { display: flex; width: 34px; height: 34px; align-items: center; justify-content: center; border: 1px solid #e2e8f0; border-radius: 5px; color: #94a3b8; font-size: 8px; }
+      .company-info-text h1 { font-size: 14px; font-weight: 900; color: #0f172a; letter-spacing: -0.2px; text-transform: uppercase; }
+      .company-info-text p { color: #64748b; font-size: 8px; font-weight: 700; }
+      .report-info { text-align: right; }
+      .report-info h2 { font-size: 11px; font-weight: 900; color: #0f172a; text-transform: uppercase; margin-bottom: 2px; }
+      .report-info p { color: #64748b; font-size: 8px; font-weight: 700; }
+      .meta-bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 5px; padding: 6px 8px; margin-bottom: 10px; }
+      .meta-bar span { font-size: 7.5px; text-transform: uppercase; color: #94a3b8; font-weight: 800; display: block; margin-bottom: 1px; }
+      .meta-bar p { font-size: 10px; font-weight: 800; color: #334155; }
+      .employee-card { margin-bottom: 10px; border: 1px solid #e2e8f0; border-radius: 5px; overflow: hidden; break-inside: avoid; }
+      .employee-card h3 { background: #f1f5f9; padding: 5px 10px; border-bottom: 1px solid #e2e8f0; font-size: 10px; font-weight: 900; color: #0f172a; }
+      .emp-info { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; background: #f8fafc; border-bottom: 1px solid #e2e8f0; padding: 4px 0; font-size: 8px; }
+      .emp-info div { padding: 3px 10px; }
+      .emp-info strong { display: block; color: #94a3b8; font-size: 7.5px; text-transform: uppercase; font-weight: 800; margin-bottom: 1px; }
+      .emp-info span { color: #334155; font-weight: 700; }
+      .summary-line { background: #f8fafc; border-bottom: 1px solid #e2e8f0; padding: 4px 10px; font-size: 9px; font-weight: 700; color: #475569; }
+      table { width: 100%; border-collapse: collapse; text-align: center; table-layout: fixed; font-size: 9pt; }
+      th { background: #0f172a; color: #fff; font-weight: 800; font-size: 8px; text-transform: uppercase; padding: 5px 6px; border-bottom: 2px solid #0f172a; letter-spacing: 0.03em; }
+      td { padding: 4px 6px; border-bottom: 1px solid #f1f5f9; color: #334155; font-size: 9px; word-break: break-word; }
+      tr:last-child td { border-bottom: 0; }
+      .signatures { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; margin-top: 16px; }
+      .signatures div { border-top: 1px solid #cbd5e1; text-align: center; padding-top: 5px; font-size: 8.5px; font-weight: 700; color: #475569; }
+      .footer-print { margin-top: 10px; border-top: 1px solid #e2e8f0; padding-top: 5px; display: flex; justify-content: space-between; color: #94a3b8; font-size: 7.5px; font-weight: 600; }
+      @media print {
+        .no-print { display: none !important; }
+        .page { width: 100%; max-width: 100%; page-break-after: avoid; }
+        .print-section { break-inside: avoid; page-break-inside: avoid; }
+        table { width: 100%; border-collapse: collapse; page-break-inside: auto; }
+        thead { display: table-header-group; }
+        tfoot { display: table-footer-group; }
+        tr { page-break-inside: avoid; break-inside: avoid; }
+        .toolbar { display: none; }
+        .compact-header, .meta-bar, .employee-card { page-break-inside: avoid; }
+      }
+    </style></head><body><div class="toolbar"><strong>${escapeHtml(title)}</strong><button onclick="window.print()" class="no-print">Imprimir / Salvar PDF</button></div><main class="page">${content}</main><footer class="footer-print"><span>Innovation RH Connect</span><span>Documento gerado automaticamente</span></footer></body></html>`);
   win.document.close();
 }
 
