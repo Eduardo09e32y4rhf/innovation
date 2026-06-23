@@ -1,4 +1,4 @@
-﻿import { Body, Controller, Delete, ForbiddenException, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, ForbiddenException, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -71,8 +71,8 @@ export class PlatformController {
 
   @Patch('companies/:id')
   updateCompany(@CurrentUser() actor: JwtUser, @Param('id') id: string, @Body() dto: UpdatePlatformCompanyDto) {
-    this.assertDev(actor);
-    return this.service.updateCompany(id, dto);
+    this.assertDevOrCommercial(actor);
+    return this.service.updateCompany(actor, id, dto);
   }
 
   @Delete('companies/:id')
@@ -84,6 +84,12 @@ export class PlatformController {
   private assertDev(actor: JwtUser) {
     if (actor.role !== 'DEV') {
       throw new ForbiddenException('Apenas Super Admin pode suspender, ativar ou excluir empresas.');
+    }
+  }
+
+  private assertDevOrCommercial(actor: JwtUser) {
+    if (actor.role !== 'DEV' && actor.role !== 'COMERCIAL') {
+      throw new ForbiddenException('Apenas DEV ou COMERCIAL pode alterar dados da empresa.');
     }
   }
 }

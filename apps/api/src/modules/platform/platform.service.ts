@@ -1,4 +1,4 @@
-﻿import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import type { JwtUser } from '../../common/types/auth.types';
 import { emptyToNull, normalizeDisplayName } from '../../common/utils/text-normalization';
@@ -43,7 +43,14 @@ export class PlatformService {
     });
   }
 
-  updateCompany(id: string, dto: UpdatePlatformCompanyDto) {
+  async updateCompany(actor: JwtUser, id: string, dto: UpdatePlatformCompanyDto) {
+    if (actor.role !== 'DEV' && actor.role !== 'COMERCIAL') {
+      throw new ForbiddenException('Apenas DEV ou COMERCIAL pode alterar limites/licencas da empresa.');
+    }
+    const company = await this.getCompany(id);
+    if (actor.role === 'COMERCIAL' && company.commercialOwnerId !== actor.sub) {
+      throw new ForbiddenException('Comercial so pode alterar empresas sob sua responsabilidade.');
+    }
     const status = dto.status ?? (dto.isActive === false ? 'SUSPENDED' : dto.isActive === true ? 'ACTIVE' : undefined);
     const { name, document, ...rest } = dto;
     const data = {

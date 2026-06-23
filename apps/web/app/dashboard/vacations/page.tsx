@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Check, Plus, X, Calendar, Clock, AlertCircle, FileText, Download, History, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Check, Plus, X, Calendar, Clock, AlertCircle, FileText, Download, History, RefreshCw, AlertTriangle, Timer, ThumbsDown } from 'lucide-react';
 import { EmptyState, ErrorState, LoadingState } from '@/app/components/data-states';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useMutation, useQuery } from '@/app/hooks/use-data';
@@ -11,6 +11,51 @@ import { normalizeDisplayName } from '@/app/lib/text';
 import { buildPdfShell, section, infoGrid, signatureBlock, printPdf, type PdfCompanyInfo } from '@/app/lib/pdf-utils';
 
 const MAX_VACATION_DAYS = 30;
+
+// ─── ELIGIBILITY HELPERS ────────────────────────────────────────────────────
+
+function monthDiff(start: Date, end: Date): number {
+  return (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth()) +
+    (end.getDate() >= start.getDate() ? 0 : -1);
+}
+
+interface EligibilityInfo {
+  monthsSinceAdmission: number;
+  isEligible: boolean;
+  remainingDays: number;
+  remainingMonths: number;
+  remainingYearsText: string;
+  eligibilityDate: string;
+  admissionDateStr: string;
+}
+
+function calcEligibility(admissionDateStr: string): EligibilityInfo {
+  const now = new Date();
+  const admission = new Date(admissionDateStr);
+  const months = monthDiff(admission, now);
+  const eligibilityDate = new Date(admission);
+  eligibilityDate.setFullYear(eligibilityDate.getFullYear() + 1);
+  const remainingMs = eligibilityDate.getTime() - now.getTime();
+  const remainingDays = Math.max(0, Math.ceil(remainingMs / (1000 * 60 * 60 * 24)));
+
+  const years = Math.floor(remainingDays / 365);
+  const remainingMonths = Math.floor((remainingDays % 365) / 30);
+  const days = remainingDays - (years * 365) - (remainingMonths * 30);
+
+  let remainingYearsText = '';
+  if (years > 0) remainingYearsText += `${years} ano(s), `;
+  remainingYearsText += `${remainingMonths} mes(es) e ${days} dia(s)`;
+
+  return {
+    monthsSinceAdmission: months,
+    isEligible: months >= 12,
+    remainingDays,
+    remainingMonths,
+    remainingYearsText,
+    eligibilityDate: eligibilityDate.toISOString().slice(0, 10),
+    admissionDateStr: admission.toISOString().slice(0, 10),
+  };
+}
 
 export default function VacationsPage() {
   const { user } = useAuth();
@@ -22,7 +67,7 @@ export default function VacationsPage() {
   const employees = useQuery(() => api.employees.list(), []);
   const company = useQuery(() => api.companies.me(), []);
   const [open, setOpen] = useState(false);
-  const [tab, setTab] = useState<'active' | 'history'>('active');
+  const [tab, setTab] = useState<'active' | 'rejected' | 'history'>('active');
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
 
   const updateStatus = useMutation(
@@ -37,9 +82,10 @@ export default function VacationsPage() {
     return () => window.clearInterval(id);
   }, [vacations]);
 
-  // Separate active vs history
+  // Separate tabs: active (pending+approved), rejected, history (cancelled+completed)
   const activeRows = rows.filter(r => r.status === 'PENDING' || r.status === 'APPROVED');
-  const historyRows = rows.filter(r => r.status === 'REJECTED' || r.status === 'CANCELLED' || r.status === 'COMPLETED');
+  const rejectedRows = rows.filter(r => r.status === 'REJECTED');
+  const historyRows = rows.filter(r => r.status === 'CANCELLED' || r.status === 'COMPLETED');
 
   const pendingCount = rows.filter(row => row.status === 'PENDING').length;
   const approvedCount = rows.filter(row => row.status === 'APPROVED').length;
@@ -104,7 +150,7 @@ export default function VacationsPage() {
     downloadVacationReceipt(row, company.data ?? null);
   }
 
-  const displayRows = tab === 'active' ? activeRows : historyRows;
+  const displayRows = tab === 'active' ? activeRows : tab === 'rejected' ? rejectedRows : historyRows;
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
@@ -150,6 +196,9 @@ export default function VacationsPage() {
           <div className="flex gap-1 rounded-[10px] bg-slate-100 p-1">
             <button onClick={() => setTab('active')} className={`rounded-[8px] px-4 py-2 text-xs font-black transition-all ${tab === 'active' ? 'bg-white shadow-sm text-teal-700' : 'text-slate-500 hover:text-slate-700'}`}>
               Ativas ({activeRows.length})
+            </button>
+            <button onClick={() => setTab('rejected')} className={`rounded-[8px] px-4 py-2 text-xs font-black transition-all ${tab === 'rejected' ? 'bg-white shadow-sm text-teal-700' : 'text-slate-500 hover:text-slate-700'}`}>
+              Recusadas ({rejectedRows.length})
             </button>
             <button onClick={() => setTab('history')} className={`rounded-[8px] px-4 py-2 text-xs font-black transition-all ${tab === 'history' ? 'bg-white shadow-sm text-teal-700' : 'text-slate-500 hover:text-slate-700'}`}>
               Histórico ({historyRows.length})
@@ -391,6 +440,10 @@ function NewVacationModal({
   );
   const conflictMessage = conflict ? `Conflito: ${formatPeriod(conflict.startDate, conflict.endDate)} já registrado.` : null;
 
+  // Eligibility check: 12 months from admission
+  const selectedEmployee = employees.find(e => e.id === form.employeeId);
+  const eligibility = selectedEmployee?.admissionDate ? calcEligibility(selectedEmployee.admissionDate) : null;
+
   const create = useMutation(
     () => {
       const payload: CreateVacationInput = {
@@ -406,7 +459,7 @@ function NewVacationModal({
     { onSuccess: onDone },
   );
 
-  const valid = form.employeeId && form.startDate && form.endDate && days > 0 && !exceedsBalance && !conflictMessage;
+  const valid = form.employeeId && form.startDate && form.endDate && days > 0 && !exceedsBalance && !conflictMessage && (eligibility?.isEligible ?? true);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm">
@@ -434,6 +487,39 @@ function NewVacationModal({
               ))}
             </select>
           </label>
+
+          {form.employeeId && eligibility && !eligibility.isEligible && (
+            <div className="rounded-[10px] border border-amber-200 bg-amber-50 px-4 py-3">
+              <div className="flex items-start gap-2">
+                <Timer size={16} className="text-amber-600 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-xs font-bold text-amber-800">
+                    Não elegível para férias — Contador regressivo
+                  </p>
+                  <p className="mt-1 text-[11px] font-semibold text-amber-700">
+                    Admissão em {formatDate(eligibility.admissionDateStr)} · {eligibility.monthsSinceAdmission} meses de casa
+                  </p>
+                  <p className="mt-1 text-[11px] font-black text-amber-800">
+                    Elegível a partir de {formatDate(eligibility.eligibilityDate)} · Faltam {eligibility.remainingYearsText}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {form.employeeId && eligibility && eligibility.isEligible && (
+            <div className="rounded-[10px] border border-emerald-200 bg-emerald-50 px-4 py-3">
+              <div className="flex items-start gap-2">
+                <Check size={16} className="text-emerald-600 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-xs font-bold text-emerald-800">Elegível para férias</p>
+                  <p className="mt-1 text-[11px] font-semibold text-emerald-700">
+                    Admissão em {formatDate(eligibility.admissionDateStr)} · {eligibility.monthsSinceAdmission} meses de casa
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {form.employeeId && (
             <div className="rounded-[10px] border border-teal-200/60 bg-gradient-to-br from-teal-50 to-cyan-50 p-3">

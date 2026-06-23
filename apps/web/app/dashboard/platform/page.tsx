@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Building2, Edit3, Plus, Power, Trash2, Users, X } from 'lucide-react';
+import { Building2, Edit3, Plus, Power, Settings, Trash2, Users, X } from 'lucide-react';
 import { EmptyState, ErrorState, LoadingState } from '@/app/components/data-states';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useMutation, useQuery } from '@/app/hooks/use-data';
@@ -21,6 +21,7 @@ export default function PlatformPage() {
   const companies = useQuery(() => api.platform.listCompanies(), []);
   const [open, setOpen] = useState(false);
   const [usersCompany, setUsersCompany] = useState<PlatformCompany | null>(null);
+  const [licenseCompany, setLicenseCompany] = useState<PlatformCompany | null>(null);
 
   const toggleActive = useMutation(
     ({ id, status, suspensionReason }: { id: string; status: 'ACTIVE' | 'SUSPENDED' | 'CANCELLED'; suspensionReason?: string | null }) =>
@@ -32,7 +33,18 @@ export default function PlatformPage() {
     onSuccess: () => { companies.refetch(); stats.refetch(); },
   });
 
+  const updateLicense = useMutation(
+    ({ id, maxUsers, maxEmployees }: { id: string; maxUsers: number; maxEmployees: number }) =>
+      api.platform.updateCompany(id, { maxUsers, maxEmployees }),
+    { onSuccess: () => { companies.refetch(); stats.refetch(); setLicenseCompany(null); } },
+  );
+
   function canManageCompanyUsers(c: PlatformCompany) {
+    if (isSuperAdmin) return true;
+    return currentRole === 'COMERCIAL' && c.commercialOwnerId === user?.id;
+  }
+
+  function canManageLicenses(c: PlatformCompany) {
     if (isSuperAdmin) return true;
     return currentRole === 'COMERCIAL' && c.commercialOwnerId === user?.id;
   }
@@ -133,9 +145,16 @@ export default function PlatformPage() {
                       <td className="py-3">
                         <div className="flex flex-wrap gap-2">
                           {canManageCompanyUsers(c) && (
-                            <button onClick={() => setUsersCompany(c)} className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px]">
-                              <Users size={12} />Usuários
-                            </button>
+                            <>
+                              <button onClick={() => setUsersCompany(c)} className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px]">
+                                <Users size={12} />Usuários
+                              </button>
+                              {canManageLicenses(c) && (
+                                <button onClick={() => setLicenseCompany(c)} className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px]">
+                                  <Settings size={12} />Licenças
+                                </button>
+                              )}
+                            </>
                           )}
                           {isSuperAdmin && (
                             <>
@@ -164,6 +183,15 @@ export default function PlatformPage() {
       )}
       {usersCompany && (
         <CompanyUsersModal company={usersCompany} onClose={() => setUsersCompany(null)} />
+      )}
+      {licenseCompany && (
+        <LicenseModal
+          company={licenseCompany}
+          onClose={() => setLicenseCompany(null)}
+          onSave={(maxUsers, maxEmployees) => updateLicense.mutate({ id: licenseCompany.id, maxUsers, maxEmployees }).catch(() => {})}
+          loading={updateLicense.loading}
+          error={updateLicense.error}
+        />
       )}
     </div>
   );
@@ -345,5 +373,111 @@ function F({ label, value, onChange, type = 'text', required }: { label: string;
       <span>{label}{required && <span className="text-rose-500"> *</span>}</span>
       <input type={type} value={value} onChange={(e) => onChange(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500" />
     </label>
+  );
+}
+
+// ─── LICENSE MODAL ─────────────────────────────────────────────────────────
+
+function LicenseModal({ company, onClose, onSave, loading, error }: { company: PlatformCompany; onClose: () => void; onSave: (maxUsers: number, maxEmployees: number) => void; loading: boolean; error: string | null }) {
+  const [maxUsers, setMaxUsers] = useState(company.maxUsers);
+  const [maxEmployees, setMaxEmployees] = useState(company.maxEmployees);
+
+  const changed = maxUsers !== company.maxUsers || maxEmployees !== company.maxEmployees;
+  const valid = maxUsers >= 1 && maxUsers >= company.usersCount && maxEmployees >= 1 && maxEmployees >= company.employeesCount;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4">
+      <div className="w-full max-w-sm rounded-[12px] border border-slate-200 bg-white p-6 shadow-xl">
+        <div className="mb-4 flex items-center justify-between">
+          <div>
+            <h3 className="text-base font-black text-slate-950">Licenças de {normalizeDisplayName(company.name)}</h3>
+            <p className="mt-0.5 text-[11px] text-slate-500">Defina os limites de usuários e funcionários</p>
+          </div>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-700"><X size={18} /></button>
+        </div>
+
+        {error && <p className="mb-3 rounded-[8px] border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">{error}</p>}
+
+        <div className="space-y-4">
+          <div className="rounded-[10px] border border-slate-100 bg-slate-50 p-4 space-y-3">
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-600">Licenças de Usuários</label>
+                <span className="text-[11px] font-bold text-slate-500">{company.usersCount} em uso</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min={Math.max(1, company.usersCount)}
+                  value={maxUsers}
+                  onChange={(e) => setMaxUsers(Math.max(1, Number(e.target.value) || 1))}
+                  className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm font-semibold text-slate-900 outline-none focus:border-teal-500"
+                />
+                <span className="text-xs font-semibold text-slate-400">máx</span>
+              </div>
+              {maxUsers < company.usersCount && (
+                <p className="mt-1 text-[10px] font-semibold text-rose-600">Não pode ser menor que o número atual de usuários ({company.usersCount})</p>
+              )}
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-600">Licenças de Funcionários</label>
+                <span className="text-[11px] font-bold text-slate-500">{company.employeesCount} em uso</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min={Math.max(1, company.employeesCount)}
+                  value={maxEmployees}
+                  onChange={(e) => setMaxEmployees(Math.max(1, Number(e.target.value) || 1))}
+                  className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm font-semibold text-slate-900 outline-none focus:border-teal-500"
+                />
+                <span className="text-xs font-semibold text-slate-400">máx</span>
+              </div>
+              {maxEmployees < company.employeesCount && (
+                <p className="mt-1 text-[10px] font-semibold text-rose-600">Não pode ser menor que o número atual de funcionários ({company.employeesCount})</p>
+              )}
+            </div>
+          </div>
+
+          <div className="rounded-[10px] border border-teal-100 bg-teal-50 p-3">
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-semibold text-teal-700">Resumo</span>
+              {changed && <span className="text-[10px] font-bold text-amber-700">Alterações pendentes</span>}
+            </div>
+            <div className="mt-2 grid grid-cols-2 gap-2 text-[11px]">
+              <div>
+                <span className="text-slate-500">Usuários: </span>
+                <span className="font-black text-slate-900">{company.usersCount}</span>
+                <span className="text-slate-400"> / </span>
+                <span className={`font-black ${changed && maxUsers !== company.maxUsers ? 'text-teal-700' : 'text-slate-900'}`}>
+                  {maxUsers}{changed && maxUsers !== company.maxUsers ? ' (era ' + company.maxUsers + ')' : ''}
+                </span>
+              </div>
+              <div>
+                <span className="text-slate-500">Funcionários: </span>
+                <span className="font-black text-slate-900">{company.employeesCount}</span>
+                <span className="text-slate-400"> / </span>
+                <span className={`font-black ${changed && maxEmployees !== company.maxEmployees ? 'text-teal-700' : 'text-slate-900'}`}>
+                  {maxEmployees}{changed && maxEmployees !== company.maxEmployees ? ' (era ' + company.maxEmployees + ')' : ''}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-5 flex justify-end gap-2">
+          <button onClick={onClose} className="btn-outline h-10 rounded-[8px] px-4 text-xs font-bold">Cancelar</button>
+          <button
+            onClick={() => valid && changed && onSave(maxUsers, maxEmployees)}
+            disabled={!valid || !changed || loading}
+            className="crystal-button h-10 rounded-[8px] px-4 text-xs font-black text-white disabled:opacity-60"
+          >
+            {loading ? 'Salvando...' : 'Salvar licenças'}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }

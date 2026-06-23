@@ -68,4 +68,12 @@ export class VacationsRepository {
   updateStatus(companyId: string, id: string, data: any) {
     return this.prisma.vacation.updateMany({ where: { id, employee: { companyId } }, data });
   }
+
+  listTimeTracksInPeriod(employeeId: string, start: Date, end: Date) {
+    return this.prisma.timeTrack.findMany({
+      where: { employeeId, date: { gte: start, lt: end } },
+      select: { date: true, entry: true, manualStatus: true },
+      orderBy: { date: 'asc' },
+    });
+  }
 }
