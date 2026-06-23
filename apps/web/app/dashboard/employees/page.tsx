@@ -228,6 +228,11 @@ export default function EmployeesPage() {
                                 </button>
                               </>
                             )}
+                            {(canEdit || isGestor) && (
+                              <Link href={`/dashboard/time-track?employeeId=${employee.id}`} className="btn-outline inline-flex h-8 items-center gap-1.5 rounded-[6px] px-2.5 text-[11px] font-black transition-all hover:-translate-y-0.5">
+                                Ponto
+                              </Link>
+                            )}
                             <button onClick={() => handleTerminate(employee)} disabled={employee.status === 'TERMINATED' || terminate.loading} className="inline-flex h-8 items-center gap-1.5 rounded-[6px] bg-gradient-to-r from-amber-500 to-orange-600 px-2.5 text-[11px] font-black text-white shadow-md shadow-amber-500/20 transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-amber-500/30 active:translate-y-0 disabled:opacity-50">
                               <UserMinus size={12} strokeWidth={2.5} />
                               Desligar

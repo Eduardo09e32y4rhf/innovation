@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { Check, Clock3, Download, Edit3, FileText, Trash2, X, XCircle } from 'lucide-react';
 import { EmptyState, ErrorState, LoadingState } from '@/app/components/data-states';
 import { useAuth } from '@/app/contexts/AuthContext';
@@ -362,7 +363,9 @@ export default function TimeTrackPage() {
   const [open, setOpen] = useState(false);
   const [bulkOpen, setBulkOpen] = useState(false);
   const [editing, setEditing] = useState<TimeTrack | null>(null);
-  const [employeeFilter, setEmployeeFilter] = useState('');
+  const searchParams = useSearchParams();
+  const initialEmployeeId = searchParams.get('employeeId') || '';
+  const [employeeFilter, setEmployeeFilter] = useState(initialEmployeeId);
   const [monthFilter, setMonthFilter] = useState(currentMonth());
   const [departmentFilter, setDepartmentFilter] = useState('');
   const [managerFilter, setManagerFilter] = useState('');
@@ -546,7 +549,9 @@ export default function TimeTrackPage() {
 
       {isInitialTracksLoading ? <LoadingState label="Carregando folha de ponto..." /> : tracks.error && !tracks.data ? <ErrorState message={tracks.error} onRetry={tracks.refetch} /> : isFuncionario ? (
         rows.length === 0 ? <EmptyState message="Nenhum registro de ponto encontrado." /> : <TimeRowsTable rows={rows} canManage={false} isRefreshing={isRefreshingTracks} removeLoading={remove.loading} onEdit={setEditing} onDelete={handleDelete} />
-      ) : visibleEmployees.length === 0 ? <EmptyState message="Nenhum colaborador encontrado para o filtro selecionado." /> : (
+      ) : visibleEmployees.length === 0 ? <EmptyState message="Nenhum colaborador encontrado para o filtro selecionado." /> : employeeFilter ? (
+        <TimeRowsTable rows={rows} canManage={canManage} isRefreshing={isRefreshingTracks} removeLoading={remove.loading} onEdit={(row) => setEditing(row)} onDelete={handleDelete} compact />
+      ) : (
         <section className="overflow-hidden rounded-[18px] border border-slate-200/60 bg-white shadow-[0_12px_40px_rgba(15,23,42,0.08)]">
           <div className="border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white px-6 py-5">
             <h3 className="text-sm font-black text-slate-950">Colaboradores da folha</h3>
