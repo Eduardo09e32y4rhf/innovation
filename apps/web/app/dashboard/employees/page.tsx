@@ -372,58 +372,25 @@ function downloadEmployeeRecord(employee: Employee, company: Company | null, man
   const title = `Ficha Cadastral do Colaborador`;
   const html = buildPdfHtml({ title, company, subtitle: normalizeDisplayName(employee.name), landscape: false }, `
     ${section('Identificação', grid3([
-      field('Nome completo', normalizeDisplayName(employee.name)),
+      field('Nome', normalizeDisplayName(employee.name)),
       field('Matrícula', employee.registration || '-'),
       field('CPF', employee.cpf || '-'),
-      field('RG / CIN', employee.rg || '-'),
-      field('Órgão emissor', employee.rgIssuer || '-'),
-      field('UF do RG', employee.rgState || '-'),
-      field('Nascimento', formatDate(employee.birthDate)),
-      field('Estado civil', employee.maritalStatus || '-'),
-      field('Naturalidade', employee.birthplace || '-'),
+      field('Admissão', formatDate(employee.admissionDate)),
     ]))}
 
-    ${section('Contato e Endereço', grid3([
-      field('E-mail', employee.email || '-'),
-      field('Telefone', employee.phone || '-'),
-      field('Telefone secundário', employee.secondaryPhone || '-'),
-      field('CEP', employee.cep || '-'),
-      field('Logradouro', employee.street || '-'),
-      field('Número', employee.streetNumber || '-'),
-      field('Complemento', employee.addressComplement || '-'),
-      field('Bairro', employee.neighborhood || '-'),
-      field('Cidade/UF', [employee.city, employee.state].filter(Boolean).join(' / ') || '-'),
-    ]))}
-
-    ${section('Dados Profissionais', grid3([
+    ${section('Profissional', grid2([
       field('Cargo', employee.position || '-'),
       field('Departamento', employee.department || '-'),
-      field('Unidade', employee.unit || '-'),
       field('Gestor', managerName || '-'),
-      field('Contrato', employee.contractType || '-'),
-      field('Admissão', formatDate(employee.admissionDate)),
-      field('Desligamento', formatDate(employee.terminationDate)),
       field('Escala', employee.workScale || employee.customWorkScale || '-'),
-      field('Jornada', employee.dailyWorkload || '-'),
     ]))}
 
-    ${section('Jornada de Trabalho', grid2([
-      field('Entrada padrão', employee.standardEntry || '-'),
-      field('Saída almoço', employee.standardLunchStart || '-'),
-      field('Retorno almoço', employee.standardLunchReturn || '-'),
-      field('Saída padrão', employee.standardExit || '-'),
+    ${section('Contato', grid2([
+      field('E-mail', employee.email || '-'),
+      field('Telefone', employee.phone || '-'),
+      field('CEP', employee.cep || '-'),
+      field('Cidade/UF', [employee.city, employee.state].filter(Boolean).join(' / ') || '-'),
     ]))}
-
-    ${section('Contrato e Acesso', grid3([
-      field('Salário', employee.salary ? `R$ ${Number(employee.salary).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '-'),
-      field('CNPJ PJ/terceiro', employee.cnpj || '-'),
-      field('Razão social', employee.legalName || '-'),
-      field('Nome fantasia', employee.tradeName || '-'),
-      field('Acesso ao painel', accessText(employee)),
-      field('Perfil', employee.user?.role || '-'),
-    ]))}
-
-    ${employee.observations ? section('Observações', `<div class="print-section" style="background:#f8fafc;padding:12px;border-radius:8px;font-size:9px;color:#475569;line-height:1.6;">${escapeHtml(employee.observations)}</div>`) : ''}
 
     ${signatures(['Assinatura do Colaborador', 'Responsável pelo RH', 'Data de Conferência'])}
   `);
