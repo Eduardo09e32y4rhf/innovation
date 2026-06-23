@@ -368,6 +368,8 @@ export default function TimeTrackPage() {
   const [bulkOpen, setBulkOpen] = useState(false);
   const [editing, setEditing] = useState<TimeTrack | null>(null);
   const [employeeFilter, setEmployeeFilter] = useState('');
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const [tableOpenId, setTableOpenId] = useState<string | null>(null);
   const [monthFilter, setMonthFilter] = useState(currentMonth());
   const [departmentFilter, setDepartmentFilter] = useState('');
   const [managerFilter, setManagerFilter] = useState('');
@@ -556,51 +558,54 @@ export default function TimeTrackPage() {
           <div className="divide-y divide-slate-100">
             {visibleEmployees.map((employee) => {
               const employeeRows = rowsByEmployee[employee.id] ?? [];
-              const opened = !employeeFilter || employeeFilter === employee.id;
+              const expanded = expandedIds.has(employee.id);
+              const showTable = tableOpenId === employee.id;
               const workedTotal = sumMinutes(employeeRows, 'totalWorked');
               const balanceTotal = sumMinutes(employeeRows, 'dailyBalance');
               return (
                 <div key={employee.id} className="bg-white px-6 py-5 transition-all duration-200 hover:bg-slate-50/40">
-                  <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[12px] bg-gradient-to-br from-teal-500 to-cyan-600 text-sm font-black text-white shadow-lg shadow-teal-500/20">
-                        {normalizeDisplayName(employee.name).charAt(0).toUpperCase()}
+                  <div className="flex flex-col gap-3">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-gradient-to-br from-teal-500 to-cyan-600 text-sm font-black text-white">
+                          {normalizeDisplayName(employee.name).charAt(0).toUpperCase()}
+                        </div>
+                        <p className="text-sm font-black text-slate-950">{normalizeDisplayName(employee.name)}</p>
                       </div>
-                      <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="inline-flex rounded-full border border-teal-200/60 bg-gradient-to-r from-teal-50 to-cyan-50 px-2.5 py-1 text-[11px] font-black text-teal-700">{employee.registration || employee.id.slice(0, 8).toUpperCase()}</span>
-                          <p className="text-sm font-black text-slate-950">{normalizeDisplayName(employee.name)}</p>
-                        </div>
-                        <div className="mt-2 flex flex-wrap items-center gap-3 text-[11px] font-semibold text-slate-500">
-                          <span>{employeeRows.length} registro(s)</span>
-                          <span className="text-slate-300">|</span>
-                          <span>{employee.department || 'Sem departamento'}</span>
-                          <span className="text-slate-300">|</span>
-                          <span>{employee.position || 'Sem cargo'}</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-4">
-                      <div className="flex gap-3 text-[11px] font-bold">
-                        <div className="rounded-[8px] border border-slate-200 bg-slate-50 px-3 py-1.5">
-                          <span className="block text-[9px] uppercase text-slate-400">Trabalhado</span>
-                          <span className="text-slate-900">{formatMinutes(workedTotal)}</span>
-                        </div>
-                        <div className={`rounded-[8px] border px-3 py-1.5 ${balanceTotal >= 0 ? 'border-emerald-200 bg-emerald-50' : 'border-rose-200 bg-rose-50'}`}>
-                          <span className="block text-[9px] uppercase text-slate-400">Saldo</span>
-                          <span className={balanceTotal >= 0 ? 'text-emerald-700' : 'text-rose-700'}>{formatMinutes(balanceTotal)}</span>
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <button onClick={() => setEmployeeFilter(opened && employeeFilter === employee.id ? '' : employee.id)} className="btn-outline-premium inline-flex h-9 items-center gap-2 rounded-[8px] px-3 text-[11px] font-black"><Eye size={13} /> {opened ? 'Ocultar' : 'Exibir'}</button>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <button onClick={() => {
+                          const next = new Set(expandedIds);
+                          const wasOpen = expanded;
+                          if (wasOpen) next.delete(employee.id); else next.add(employee.id);
+                          setExpandedIds(next);
+                          if (!wasOpen) setTableOpenId(null);
+                        }} className="btn-outline-premium inline-flex h-9 items-center gap-2 rounded-[8px] px-3 text-[11px] font-black"><Eye size={13} /> {expanded ? 'Ocultar' : 'Exibir'}</button>
                         {canDownloadOwnOrTeam && (
                           <button onClick={() => openPrintableReport(employeeRows, monthFilter, reportCompany, employee)} disabled={employeeRows.length === 0 || company.loading || isRefreshingTracks} className="btn-outline-premium inline-flex h-9 items-center gap-2 rounded-[8px] px-3 text-[11px] font-black disabled:opacity-50"><FileText size={13} /> Folha</button>
                         )}
+                        <button onClick={() => { setEditing({ ...employeeRows[0], employee } as unknown as TimeTrack); setOpen(true); }} disabled={employeeRows.length === 0 || isRefreshingTracks} className="btn-outline inline-flex h-9 items-center gap-2 rounded-[8px] px-3 text-[11px] font-black"><Edit3 size={13} /> Editar</button>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-3 text-[11px] font-bold">
+                      <div className="rounded-[8px] border border-slate-200 bg-slate-50 px-3 py-1.5">
+                        <span className="block text-[9px] uppercase text-slate-400">Trabalhado</span>
+                        <span className="text-slate-900">{formatMinutes(workedTotal)}</span>
+                      </div>
+                      <div className={`rounded-[8px] border px-3 py-1.5 ${balanceTotal >= 0 ? 'border-emerald-200 bg-emerald-50' : 'border-rose-200 bg-rose-50'}`}>
+                        <span className="block text-[9px] uppercase text-slate-400">Saldo</span>
+                        <span className={balanceTotal >= 0 ? 'text-emerald-700' : 'text-rose-700'}>{formatMinutes(balanceTotal)}</span>
                       </div>
                     </div>
                   </div>
-                  {opened && (
-                    <div className="mt-4 overflow-hidden rounded-[10px] border border-slate-200">
+                  {expanded && (
+                    <div className="mt-3 flex items-center gap-3">
+                      <button onClick={() => setTableOpenId(tableOpenId === employee.id ? null : employee.id)} className="btn-outline inline-flex h-9 items-center rounded-[8px] px-4 text-[11px] font-black">
+                        {showTable ? 'Ocultar tabela' : 'Exibir tabela'}
+                      </button>
+                    </div>
+                  )}
+                  {showTable && (
+                    <div className="mt-3 overflow-hidden rounded-[10px] border border-slate-200">
                       {employeeRows.length === 0 ? (
                         <div className="border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-xs font-semibold text-slate-500">Nenhum registro de ponto para este colaborador no filtro atual.</div>
                       ) : (
