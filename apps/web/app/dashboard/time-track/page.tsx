@@ -2,15 +2,13 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
-import { Check, Clock3, Download, Edit3, FileText, Trash2, X, XCircle } from 'lucide-react';
+import { Check, Clock3, Download, Edit3, Eye, FileText, Trash2, X, XCircle } from 'lucide-react';
 import { EmptyState, ErrorState, LoadingState } from '@/app/components/data-states';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useMutation, useQuery } from '@/app/hooks/use-data';
 import { api, type Company, type Employee, type TimeTrack, type RestDayMode, type TimeTrackAdjustmentReason } from '@/app/lib/api';
 import { formatDate, formatMinutes } from '@/app/lib/format';
 import { normalizeDisplayName } from '@/app/lib/text';
-import { buildPdfShell, section, infoGrid, pdfTable, signatureBlock, printPdf, type PdfCompanyInfo } from '@/app/lib/pdf-utils';
 
 const collator = new Intl.Collator('pt-BR', { sensitivity: 'base', numeric: true });
 
@@ -46,6 +44,7 @@ const ADJUSTMENT_REASONS: { value: TimeTrackAdjustmentReason; label: string; ful
   { value: 'ajuste_feriado', label: 'Ajuste - feriado', fullDay: true },
 ];
 
+type CompanyPrintInfo = { name: string; document: string; logoUrl?: string | null };
 type MirrorRow = {
   funcionario: string;
   employee?: Employee;
@@ -104,7 +103,7 @@ function toIso(date: string, time: string) {
 }
 
 function escapeHtml(value: unknown) {
-  return String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&', '<': '<', '>': '>', '"': '"', "'": '&#039;' }[char] ?? char));
+  return String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[char] ?? char));
 }
 
 function formatDocument(value?: string | null) {
@@ -112,6 +111,19 @@ function formatDocument(value?: string | null) {
   if (digits.length === 14) return digits.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
   if (digits.length === 11) return digits.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
   return value || '-';
+}
+
+function normalizeCompanyInfo(company?: Company | null): CompanyPrintInfo {
+  return {
+    name: normalizeDisplayName(company?.name ?? 'Empresa'),
+    document: formatDocument(company?.document ?? null),
+    logoUrl: company?.logoUrl ?? null,
+  };
+}
+
+function companyLogo(company: CompanyPrintInfo) {
+  if (!company.logoUrl) return '<div class="logo-placeholder">Logo</div>';
+  return `<img class="company-logo" src="${escapeHtml(company.logoUrl)}" alt="Logo da empresa" />`;
 }
 
 function monthLabel(month: string) {
@@ -196,7 +208,7 @@ function sumMinutes(rows: TimeTrack[], field: 'totalWorked' | 'dailyBalance') {
   return rows.reduce((total, row) => total + (row[field] ?? 0), 0);
 }
 
-function downloadExcel(filename: string, rows: TimeTrack[], company: { name: string; document: string }) {
+function downloadExcel(filename: string, rows: TimeTrack[], company: CompanyPrintInfo) {
   const mirrorRows = buildMirrorRows(rows);
   const bodyRows = mirrorRows.map((row) => `
     <tr>
@@ -223,74 +235,44 @@ function downloadExcel(filename: string, rows: TimeTrack[], company: { name: str
   URL.revokeObjectURL(url);
 }
 
-function openPrintableReport(rows: TimeTrack[], month: string, company: { name: string; document: string; logoUrl?: string | null; address?: string | null; phone?: string | null; email?: string | null }, employee?: Employee) {
-  const title = employee ? `Espelho Individual - ${monthLabel(month)}` : `Espelho da Empresa - ${monthLabel(month)}`;
-  const companyInfo: PdfCompanyInfo = {
-    name: company.name,
-    document: company.document,
-    logoUrl: company.logoUrl,
-    address: company.address,
-    phone: company.phone,
-    email: company.email,
-  };
-
-  const body = employee ? buildIndividualBody(rows, employee, month) : buildCompanyBody(rows, month);
-  const html = buildPdfShell({ title, landscape: true }, companyInfo, body);
-  printPdf(html, `${title.toLowerCase().replace(/\s+/g, '-')}.pdf`);
+function employeeHeader(employee?: Employee) {
+  if (!employee) return '';
+  return `
+    <section class="employee-grid">
+      <div><strong>Matrícula:</strong> ${escapeHtml(employee.id.slice(0, 8).toUpperCase())}</div>
+      <div><strong>Nome:</strong> ${escapeHtml(normalizeDisplayName(employee.name))}</div>
+      <div><strong>CPF:</strong> ${escapeHtml(formatDocument(employee.cpf))}</div>
+      <div><strong>Função:</strong> ${escapeHtml(employee.position || '-')}</div>
+      <div><strong>Departamento:</strong> ${escapeHtml(employee.department || '-')}</div>
+      <div><strong>Admissão:</strong> ${escapeHtml(formatDate(employee.admissionDate))}</div>
+    </section>`;
 }
 
-function buildIndividualBody(rows: TimeTrack[], employee: Employee, month: string): string {
+function reportHeader(company: CompanyPrintInfo, title: string, month: string, records: number, employees: number) {
+  return `<header class="report-header"><div class="company-side"><div>${companyLogo(company)}</div><div><h1>${escapeHtml(company.name)}</h1><p>CNPJ: ${escapeHtml(company.document)}</p></div></div><div class="report-title"><h2>${escapeHtml(title)}</h2><p>Periodo: ${escapeHtml(periodLabel(month))} | Emissao: ${escapeHtml(new Date().toLocaleString('pt-BR'))}</p></div></header><section class="meta-summary"><div class="meta-item"><span>Total de funcionarios</span><p>${employees}</p></div><div class="meta-item"><span>Total de registros</span><p>${records}</p></div><div class="meta-item"><span>Status do arquivo</span><p>Consolidado</p></div><div class="meta-item"><span>Competencia</span><p>${escapeHtml(monthLabel(month))}</p></div></section>`;
+}
+
+function renderIndividualReport(rows: TimeTrack[], employee: Employee | undefined, company: CompanyPrintInfo, month: string) {
   const mirrorRows = buildMirrorRows(rows);
   const totalWorked = formatMinutes(sumMinutes(rows, 'totalWorked'));
   const totalBalance = formatMinutes(sumMinutes(rows, 'dailyBalance'));
-
-  const employeeInfo = [
-    { label: 'Nome', value: normalizeDisplayName(employee.name) },
-    { label: 'CPF', value: formatDocument(employee.cpf) },
-    { label: 'Cargo', value: employee.position || '-' },
-    { label: 'Departamento', value: employee.department || '-' },
-    { label: 'Admissão', value: formatDate(employee.admissionDate) },
-  ];
-
-  const tableHeaders = ['Data', 'Dia', 'Entrada', 'Saída Almoço', 'Retorno Almoço', 'Saída', 'Trabalhado', 'Saldo', 'Status', 'Observação'];
-  const tableRows = mirrorRows.map((row) => `
+  const bodyRows = mirrorRows.map((row) => `
     <tr>
-      <td style="padding:8px 10px;font-size:8px;font-weight:600;color:#0f172a;">${escapeHtml(row.data)}</td>
-      <td style="padding:8px 10px;font-size:8px;color:#64748b;">${escapeHtml(row.dia)}</td>
-      <td style="padding:8px 10px;font-size:8px;color:#64748b;">${escapeHtml(row.entrada1)}</td>
-      <td style="padding:8px 10px;font-size:8px;color:#64748b;">${escapeHtml(row.saida1)}</td>
-      <td style="padding:8px 10px;font-size:8px;color:#64748b;">${escapeHtml(row.entrada2)}</td>
-      <td style="padding:8px 10px;font-size:8px;color:#64748b;">${escapeHtml(row.saida2)}</td>
-      <td style="padding:8px 10px;font-size:8px;font-weight:600;color:#0f172a;text-align:center;">${escapeHtml(row.trabalhado)}</td>
-      <td style="padding:8px 10px;font-size:8px;font-weight:700;color:#0f172a;text-align:center;">${escapeHtml(row.saldo)}</td>
-      <td style="padding:8px 10px;font-size:8px;color:#64748b;">${escapeHtml(row.statusDia)}</td>
-      <td style="padding:8px 10px;font-size:8px;color:#64748b;">${escapeHtml(row.observacao)}</td>
-    </tr>`);
-
+      <td>${escapeHtml(row.data)}</td><td>${escapeHtml(row.dia)}</td><td>${escapeHtml(row.entrada1)}</td><td>${escapeHtml(row.saida1)}</td>
+      <td>${escapeHtml(row.entrada2)}</td><td>${escapeHtml(row.saida2)}</td><td>${escapeHtml(row.abono)}</td><td>${escapeHtml(row.horaExtra)}</td>
+      <td>${escapeHtml(row.ausente)}</td><td>${escapeHtml(row.adicionalNoturno)}</td><td>${escapeHtml(row.statusDia)}</td><td>${escapeHtml(row.observacao)}</td>
+    </tr>`).join('');
   return `
-    ${section('Informações do Colaborador', infoGrid(employeeInfo))}
-    ${section(`Registros de Ponto - ${monthLabel(month)}`, pdfTable(tableHeaders, tableRows as any))}
-    ${section('Resumo do Período', `
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
-        <div style="background:#f0fdfa;border:1px solid #ccfbf1;border-radius:8px;padding:12px;text-align:center;">
-          <div style="font-size:7px;font-weight:900;text-transform:uppercase;color:#0f766e;">Registros</div>
-          <div style="font-size:16px;font-weight:900;color:#0f172a;margin-top:4px;">${rows.length}</div>
-        </div>
-        <div style="background:#f0fdfa;border:1px solid #ccfbf1;border-radius:8px;padding:12px;text-align:center;">
-          <div style="font-size:7px;font-weight:900;text-transform:uppercase;color:#0f766e;">Total Trabalhado</div>
-          <div style="font-size:16px;font-weight:900;color:#0f172a;margin-top:4px;">${escapeHtml(totalWorked)}</div>
-        </div>
-        <div style="background:#f0fdfa;border:1px solid #ccfbf1;border-radius:8px;padding:12px;text-align:center;">
-          <div style="font-size:7px;font-weight:900;text-transform:uppercase;color:#0f766e;">Saldo Final</div>
-          <div style="font-size:16px;font-weight:900;color:#0f172a;margin-top:4px;">${escapeHtml(totalBalance)}</div>
-        </div>
-      </div>
-    `)}
-    ${signatureBlock(['Assinatura do Colaborador', 'Assinatura do Gestor', 'Assinatura do RH / Responsável'])}
-  `;
+    <section class="report-brand"><div>${companyLogo(company)}</div><div><h1>Espelho de ponto individual</h1></div></section>
+    <section class="meta"><span><strong>Período:</strong> ${escapeHtml(periodLabel(month))}</span><span><strong>Emissão:</strong> ${escapeHtml(new Date().toLocaleString('pt-BR'))}</span></section>
+    <section class="company"><span><strong>Empresa:</strong> ${escapeHtml(company.name)}</span><span><strong>CNPJ:</strong> ${escapeHtml(company.document)}</span></section>
+    ${employeeHeader(employee)}
+    <table><thead><tr><th>Data</th><th>Dia</th><th>1ª E.</th><th>1ª S.</th><th>2ª E.</th><th>2ª S.</th><th>Abono</th><th>H.E.</th><th>Ausente</th><th>Ad. Not.</th><th>Observação</th></tr></thead><tbody>${bodyRows}</tbody></table>
+    <section class="summary"><strong>Resumo do período:</strong> Horas trabalhadas: ${escapeHtml(totalWorked)} | Saldo final: ${escapeHtml(totalBalance)}</section>
+    <section class="signatures"><div>Assinatura do colaborador</div><div>Responsável pelo RH</div></section>`;
 }
 
-function buildCompanyBody(rows: TimeTrack[], month: string): string {
+function renderCompanyReport(rows: TimeTrack[], company: CompanyPrintInfo, month: string) {
   const grouped = rows.reduce<Record<string, TimeTrack[]>>((acc, row) => {
     const key = row.employeeId;
     acc[key] = acc[key] ?? [];
@@ -301,53 +283,35 @@ function buildCompanyBody(rows: TimeTrack[], month: string): string {
     const first = employeeRows[0]?.employee;
     const bodyRows = buildMirrorRows(employeeRows).map((row) => `
       <tr><td>${escapeHtml(row.data)}</td><td>${escapeHtml(row.dia)}</td><td>${escapeHtml(row.entrada1)}</td><td>${escapeHtml(row.saida1)}</td><td>${escapeHtml(row.entrada2)}</td><td>${escapeHtml(row.saida2)}</td><td>${escapeHtml(row.trabalhado)}</td><td>${escapeHtml(row.saldo)}</td><td>${escapeHtml(row.statusDia)}</td><td>${escapeHtml(row.observacao)}</td></tr>`).join('');
-    return `
-      ${first ? section(`Colaborador: ${normalizeDisplayName(first.name)}`, infoGrid([
-        { label: 'Matrícula', value: first.id.slice(0, 8).toUpperCase() },
-        { label: 'Nome', value: normalizeDisplayName(first.name) },
-        { label: 'CPF', value: formatDocument(first.cpf) },
-        { label: 'Função', value: first.position || '-' },
-        { label: 'Departamento', value: first.department || '-' },
-        { label: 'Admissão', value: formatDate(first.admissionDate) },
-      ])) : ''}
-      ${section('Registros de Ponto', `
-        <table style="width:100%;border-collapse:collapse;">
-          <thead><tr style="background:#0f172a;color:#fff;">
-            <th style="padding:8px 10px;text-align:left;font-size:8px;font-weight:900;text-transform:uppercase;">Data</th>
-            <th style="padding:8px 10px;text-align:left;font-size:8px;font-weight:900;text-transform:uppercase;">Dia</th>
-            <th style="padding:8px 10px;text-align:left;font-size:8px;font-weight:900;text-transform:uppercase;">1ª entrada</th>
-            <th style="padding:8px 10px;text-align:left;font-size:8px;font-weight:900;text-transform:uppercase;">1ª saída</th>
-            <th style="padding:8px 10px;text-align:left;font-size:8px;font-weight:900;text-transform:uppercase;">2ª entrada</th>
-            <th style="padding:8px 10px;text-align:left;font-size:8px;font-weight:900;text-transform:uppercase;">2ª saída</th>
-            <th style="padding:8px 10px;text-align:center;font-size:8px;font-weight:900;text-transform:uppercase;">Trabalhado</th>
-            <th style="padding:8px 10px;text-align:center;font-size:8px;font-weight:900;text-transform:uppercase;">Saldo</th>
-            <th style="padding:8px 10px;text-align:center;font-size:8px;font-weight:900;text-transform:uppercase;">Status</th>
-            <th style="padding:8px 10px;text-align:left;font-size:8px;font-weight:900;text-transform:uppercase;">Observação</th>
-          </tr></thead>
-          <tbody>${bodyRows}</tbody>
-        </table>
-      `)}
-    `;
+    return `<section class="employee-block">
+      <h2>${escapeHtml(normalizeDisplayName(first?.name ?? 'Funcionário'))}</h2>
+      ${employeeHeader(first)}
+      <section class="summary"><strong>Resumo:</strong> trabalhado ${escapeHtml(formatMinutes(sumMinutes(employeeRows, 'totalWorked')))} | saldo ${escapeHtml(formatMinutes(sumMinutes(employeeRows, 'dailyBalance')))} | feriados ${employeeRows.filter((r) => dayStatus(r) === 'Feriado').length} | atestados ${employeeRows.filter((r) => dayStatus(r) === 'Atestado integral').length} | ajustes ${employeeRows.filter((r) => dayStatus(r) === 'Ajuste manual').length}</section>
+      <table><thead><tr><th>Data</th><th>Dia</th><th>1ª entrada</th><th>1ª saída</th><th>2ª entrada</th><th>2ª saída</th><th>Trabalhado</th><th>Saldo</th><th>Observação</th></tr></thead><tbody>${bodyRows}</tbody></table>
+    </section>`;
   }).join('');
   return `
-    ${section('Resumo Geral', `
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
-        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px;text-align:center;">
-          <div style="font-size:7px;font-weight:900;text-transform:uppercase;color:#64748b;">Funcionários</div>
-          <div style="font-size:16px;font-weight:900;color:#0f172a;margin-top:4px;">${Object.keys(grouped).length}</div>
-        </div>
-        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px;text-align:center;">
-          <div style="font-size:7px;font-weight:900;text-transform:uppercase;color:#64748b;">Registros</div>
-          <div style="font-size:16px;font-weight:900;color:#0f172a;margin-top:4px;">${rows.length}</div>
-        </div>
-        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px;text-align:center;">
-          <div style="font-size:7px;font-weight:900;text-transform:uppercase;color:#64748b;">Período</div>
-          <div style="font-size:12px;font-weight:900;color:#0f172a;margin-top:4px;">${monthLabel(month)}</div>
-        </div>
-      </div>
-    `)}
-    ${sections}
-  `;
+    <section class="report-brand"><div>${companyLogo(company)}</div><div><h1>Espelho de ponto da empresa</h1></div></section>
+    <section class="meta"><span><strong>Período:</strong> ${escapeHtml(periodLabel(month))}</span><span><strong>Emissão:</strong> ${escapeHtml(new Date().toLocaleString('pt-BR'))}</span></section>
+    <section class="company"><span><strong>Empresa:</strong> ${escapeHtml(company.name)}</span><span><strong>CNPJ:</strong> ${escapeHtml(company.document)}</span></section>
+    <section class="summary"><strong>Total de funcionários no relatório:</strong> ${Object.keys(grouped).length} | <strong>Registros:</strong> ${rows.length}</section>
+    ${sections}`;
+}
+
+function openPrintableReport(rows: TimeTrack[], month: string, company: CompanyPrintInfo, employee?: Employee) {
+  const title = employee ? `Espelho individual - ${normalizeDisplayName(employee.name)} - ${monthLabel(month)}` : `Espelho da empresa - ${monthLabel(month)}`;
+  const content = employee ? renderIndividualReport(rows, employee, company, month) : renderCompanyReport(rows, company, month);
+  const win = window.open('', '_blank');
+  if (!win) {
+    window.alert('Não foi possível abrir o relatório. Verifique se o navegador bloqueou pop-ups.');
+    return;
+  }
+  win.document.open();
+  win.document.write(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8" /><title>${escapeHtml(title)}</title>
+    <style>
+      @page{size:A4 landscape;margin:6mm 8mm}*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Segoe UI',Arial,Helvetica,sans-serif;color:#0f172a;margin:0;background:#fff;font-size:9.5pt;line-height:1.35}.toolbar{position:sticky;top:0;z-index:2;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 12px;background:#0f172a;color:white}.toolbar button{border:0;border-radius:5px;background:#0f766e;color:white;padding:5px 10px;font-weight:700;cursor:pointer;font-size:10px}.page{background:white;padding:10px 8px;max-width:1100px}.compact-header{display:flex;align-items:center;justify-content:space-between;border-bottom:1.5px solid #0f172a;padding-bottom:7px;margin-bottom:10px;page-break-inside:avoid}.company-info{display:flex;align-items:center;gap:10px}.company-logo{width:34px;height:34px;object-fit:contain}.logo-placeholder{display:flex;width:34px;height:34px;align-items:center;justify-content:center;border:1px solid #e2e8f0;border-radius:5px;color:#94a3b8;font-size:8px}.company-info-text h1{font-size:14px;font-weight:900;color:#0f172a;letter-spacing:-.2px;text-transform:uppercase}.company-info-text p{color:#64748b;font-size:8px;font-weight:700}.report-info{text-align:right}.report-info h2{font-size:11px;font-weight:900;color:#0f172a;text-transform:uppercase;margin-bottom:2px}.report-info p{color:#64748b;font-size:8px;font-weight:700}.meta-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:5px;padding:6px 8px;margin-bottom:10px}.meta-bar span{font-size:7.5px;text-transform:uppercase;color:#94a3b8;font-weight:800;display:block;margin-bottom:1px}.meta-bar p{font-size:10px;font-weight:800;color:#334155}.employee-card{margin-bottom:10px;border:1px solid #e2e8f0;border-radius:5px;overflow:hidden;break-inside:avoid}.employee-card h3{background:#f1f5f9;padding:5px 10px;border-bottom:1px solid #e2e8f0;font-size:10px;font-weight:900;color:#0f172a}.emp-info{display:grid;grid-template-columns:repeat(4,1fr);gap:0;background:#f8fafc;border-bottom:1px solid #e2e8f0;padding:4px 0;font-size:8px}.emp-info div{padding:3px 10px}.emp-info strong{display:block;color:#94a3b8;font-size:7.5px;text-transform:uppercase;font-weight:800;margin-bottom:1px}.emp-info span{color:#334155;font-weight:700}.summary-line{background:#f8fafc;border-bottom:1px solid #e2e8f0;padding:4px 10px;font-size:9px;font-weight:700;color:#475569}table{width:100%;border-collapse:collapse;text-align:center;table-layout:fixed;font-size:9pt}th{background:#fff;color:#64748b;font-weight:800;font-size:8px;text-transform:uppercase;padding:4px 5px;border-bottom:1px solid #e2e8f0;letter-spacing:.02em}td{padding:3px 5px;border-bottom:1px solid #f1f5f9;color:#334155;font-size:9px;word-break:break-word}tr:last-child td{border-bottom:0}.signatures{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-top:16px}.signatures div{border-top:1px solid #cbd5e1;text-align:center;padding-top:5px;font-size:8.5px;font-weight:700;color:#475569}.footer-print{margin-top:10px;border-top:1px solid #e2e8f0;padding-top:5px;display:flex;justify-content:space-between;color:#94a3b8;font-size:7.5px;font-weight:600}@media print{.toolbar{display:none}.page{padding:0;max-width:100%}table{page-break-inside:auto}tr{page-break-inside:avoid}.employee-card{page-break-inside:avoid}}.compact-header,.meta-bar,.employee-card{page-break-inside:avoid}
+    </style></head><body><div class="toolbar"><strong>${escapeHtml(title)}</strong><button onclick="window.print()">Imprimir / Salvar PDF</button></div><main class="page">${content}</main><footer class="footer-print"><span>Innovation RH Connect</span><span>Documento gerado automaticamente</span></footer></body></html>`);
+  win.document.close();
 }
 
 export default function TimeTrackPage() {
@@ -363,12 +327,7 @@ export default function TimeTrackPage() {
   const [open, setOpen] = useState(false);
   const [bulkOpen, setBulkOpen] = useState(false);
   const [editing, setEditing] = useState<TimeTrack | null>(null);
-  const searchParams = useSearchParams();
-  const [employeeFilter, setEmployeeFilter] = useState(searchParams.get('employeeId') || '');
-  
-  useEffect(() => {
-    setEmployeeFilter(searchParams.get('employeeId') || '');
-  }, [searchParams]);
+  const [employeeFilter, setEmployeeFilter] = useState('');
   const [monthFilter, setMonthFilter] = useState(currentMonth());
   const [departmentFilter, setDepartmentFilter] = useState('');
   const [managerFilter, setManagerFilter] = useState('');
@@ -405,18 +364,7 @@ export default function TimeTrackPage() {
     if (unitFilter && employee.unit !== unitFilter) return false;
     return true;
   }), [activeEmployees, employeeFilter, departmentFilter, managerFilter, unitFilter]);
-  const editingEmployeeId = editing?.employeeId ?? null;
-  const reportCompany = useMemo(() => {
-    const c = company.data;
-    return {
-      name: normalizeDisplayName(c?.name ?? 'Empresa'),
-      document: formatDocument(c?.document ?? null),
-      logoUrl: c?.logoUrl ?? null,
-      address: c?.address ?? null,
-      phone: c?.phone ?? null,
-      email: c?.email ?? null,
-    };
-  }, [company.data]);
+  const reportCompany = useMemo(() => normalizeCompanyInfo(isFuncionario ? null : company.data), [company.data, isFuncionario]);
   const remove = useMutation((id: string) => api.timeTrack.delete(id), { onSuccess: () => tracks.refetch() });
 
   const canClockIn = Boolean(profile && !['DEV', 'COMERCIAL', 'CONSULTA'].includes(profile));
@@ -552,38 +500,67 @@ export default function TimeTrackPage() {
 
       {isInitialTracksLoading ? <LoadingState label="Carregando folha de ponto..." /> : tracks.error && !tracks.data ? <ErrorState message={tracks.error} onRetry={tracks.refetch} /> : isFuncionario ? (
         rows.length === 0 ? <EmptyState message="Nenhum registro de ponto encontrado." /> : <TimeRowsTable rows={rows} canManage={false} isRefreshing={isRefreshingTracks} removeLoading={remove.loading} onEdit={setEditing} onDelete={handleDelete} />
-      ) : visibleEmployees.length === 0 ? <EmptyState message="Nenhum colaborador encontrado para o filtro selecionado." /> : employeeFilter ? (
-        <TimeRowsTable rows={rows} canManage={canManage} isRefreshing={isRefreshingTracks} removeLoading={remove.loading} onEdit={(row) => setEditing(row)} onDelete={handleDelete} compact />
-      ) : (
+      ) : visibleEmployees.length === 0 ? <EmptyState message="Nenhum colaborador encontrado para o filtro selecionado." /> : (
         <section className="overflow-hidden rounded-[18px] border border-slate-200/60 bg-white shadow-[0_12px_40px_rgba(15,23,42,0.08)]">
           <div className="border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white px-6 py-5">
             <h3 className="text-sm font-black text-slate-950">Colaboradores da folha</h3>
-            <p className="mt-1 text-xs font-semibold text-slate-500">Selecione um colaborador para editar ajustes ou baixar a folha individual.</p>
+            <p className="mt-1 text-xs font-semibold text-slate-500">Abra um colaborador para conferir registros, editar ajustes e baixar a folha individual.</p>
           </div>
           <div className="divide-y divide-slate-100">
             {visibleEmployees.map((employee) => {
               const employeeRows = rowsByEmployee[employee.id] ?? [];
+              const opened = !employeeFilter || employeeFilter === employee.id;
+              const workedTotal = sumMinutes(employeeRows, 'totalWorked');
+              const balanceTotal = sumMinutes(employeeRows, 'dailyBalance');
               return (
                 <div key={employee.id} className="bg-white px-6 py-5 transition-all duration-200 hover:bg-slate-50/40">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-gradient-to-br from-teal-500 to-cyan-600 text-sm font-black text-white">
+                  <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[12px] bg-gradient-to-br from-teal-500 to-cyan-600 text-sm font-black text-white shadow-lg shadow-teal-500/20">
                         {normalizeDisplayName(employee.name).charAt(0).toUpperCase()}
                       </div>
-                      <p className="text-sm font-black text-slate-950">{normalizeDisplayName(employee.name)}</p>
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="inline-flex rounded-full border border-teal-200/60 bg-gradient-to-r from-teal-50 to-cyan-50 px-2.5 py-1 text-[11px] font-black text-teal-700">{employee.registration || employee.id.slice(0, 8).toUpperCase()}</span>
+                          <p className="text-sm font-black text-slate-950">{normalizeDisplayName(employee.name)}</p>
+                        </div>
+                        <div className="mt-2 flex flex-wrap items-center gap-3 text-[11px] font-semibold text-slate-500">
+                          <span>{employeeRows.length} registro(s)</span>
+                          <span className="text-slate-300">|</span>
+                          <span>{employee.department || 'Sem departamento'}</span>
+                          <span className="text-slate-300">|</span>
+                          <span>{employee.position || 'Sem cargo'}</span>
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      {canDownloadOwnOrTeam && (
-                        <button onClick={() => openPrintableReport(employeeRows, monthFilter, reportCompany, employee)} disabled={employeeRows.length === 0 || company.loading || isRefreshingTracks} className="btn-outline-premium inline-flex h-9 items-center gap-2 rounded-[8px] px-3 text-[11px] font-black disabled:opacity-50"><FileText size={13} /> Folha</button>
-                      )}
-                      {(canManage || isGestor) && (
-                        <Link href={`/dashboard/time-track?employeeId=${employee.id}`} className="btn-outline inline-flex h-9 items-center gap-2 rounded-[8px] px-3 text-[11px] font-black transition-all hover:-translate-y-0.5">
-                          Ponto
-                        </Link>
-                      )}
-                      <button onClick={() => { setEditing({ ...employeeRows[0], employee } as unknown as TimeTrack); setOpen(true); }} disabled={employeeRows.length === 0 || isRefreshingTracks} className="btn-outline inline-flex h-9 items-center gap-2 rounded-[8px] px-3 text-[11px] font-black"><Edit3 size={13} /> Editar</button>
+                    <div className="flex flex-wrap items-center gap-4">
+                      <div className="flex gap-3 text-[11px] font-bold">
+                        <div className="rounded-[8px] border border-slate-200 bg-slate-50 px-3 py-1.5">
+                          <span className="block text-[9px] uppercase text-slate-400">Trabalhado</span>
+                          <span className="text-slate-900">{formatMinutes(workedTotal)}</span>
+                        </div>
+                        <div className={`rounded-[8px] border px-3 py-1.5 ${balanceTotal >= 0 ? 'border-emerald-200 bg-emerald-50' : 'border-rose-200 bg-rose-50'}`}>
+                          <span className="block text-[9px] uppercase text-slate-400">Saldo</span>
+                          <span className={balanceTotal >= 0 ? 'text-emerald-700' : 'text-rose-700'}>{formatMinutes(balanceTotal)}</span>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <button onClick={() => setEmployeeFilter(opened && employeeFilter === employee.id ? '' : employee.id)} className="btn-outline-premium inline-flex h-9 items-center gap-2 rounded-[8px] px-3 text-[11px] font-black"><Eye size={13} /> {opened ? 'Ocultar' : 'Exibir'}</button>
+                        {canDownloadOwnOrTeam && (
+                          <button onClick={() => openPrintableReport(employeeRows, monthFilter, reportCompany, employee)} disabled={employeeRows.length === 0 || company.loading || isRefreshingTracks} className="btn-outline-premium inline-flex h-9 items-center gap-2 rounded-[8px] px-3 text-[11px] font-black disabled:opacity-50"><FileText size={13} /> Folha</button>
+                        )}
+                      </div>
                     </div>
                   </div>
+                  {opened && (
+                    <div className="mt-4 overflow-hidden rounded-[10px] border border-slate-200">
+                      {employeeRows.length === 0 ? (
+                        <div className="border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-xs font-semibold text-slate-500">Nenhum registro de ponto para este colaborador no filtro atual.</div>
+                      ) : (
+                        <TimeRowsTable rows={employeeRows} canManage={canManage} isRefreshing={isRefreshingTracks} removeLoading={remove.loading} onEdit={setEditing} onDelete={handleDelete} compact />
+                      )}
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -591,7 +568,7 @@ export default function TimeTrackPage() {
         </section>
       )}
 
-      {canManage && (open || bulkOpen || Boolean(editing)) && <ManualTimeSheetModal employees={activeEmployees} employeesLoading={employees.loading} employeesError={employees.error} defaultEmployeeId={editingEmployeeId ?? employeeFilter} track={editing ?? undefined} bulk={bulkOpen} onClose={() => { setOpen(false); setBulkOpen(false); setEditing(null); }} onDone={() => { setOpen(false); setBulkOpen(false); setEditing(null); tracks.refetch(); }} />}
+      {canManage && (open || bulkOpen || editing) && <ManualTimeSheetModal employees={activeEmployees} employeesLoading={employees.loading} employeesError={employees.error} defaultEmployeeId={employeeFilter} track={editing ?? undefined} bulk={bulkOpen} onClose={() => { setOpen(false); setBulkOpen(false); setEditing(null); }} onDone={() => { setOpen(false); setBulkOpen(false); setEditing(null); tracks.refetch(); }} />}
     </div>
   );
 }
