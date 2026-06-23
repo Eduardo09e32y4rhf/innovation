@@ -193,4 +193,29 @@ button, input, select, textarea {
     font-size: 13px;
     font-weight: 650;
   }
+
+  .btn-outline-premium {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border: 1px solid #dbe3ee;
+    border-radius: 12px;
+    background: #ffffff;
+    color: #334155;
+    font-weight: 900;
+    transition: all 160ms ease;
+  }
+
+  .btn-outline-premium:hover {
+    border-color: #14b8a6;
+    background: linear-gradient(135deg, #f0fdfa, #f8fafc);
+    color: #0f766e;
+    box-shadow: 0 4px 12px rgba(20, 184, 166, 0.12);
+    transform: translateY(-1px);
+  }
+
+  .btn-outline-premium:active {
+    transform: translateY(0);
+  }
 }
