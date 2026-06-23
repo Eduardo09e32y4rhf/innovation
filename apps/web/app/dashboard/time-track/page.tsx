@@ -364,8 +364,11 @@ export default function TimeTrackPage() {
   const [bulkOpen, setBulkOpen] = useState(false);
   const [editing, setEditing] = useState<TimeTrack | null>(null);
   const searchParams = useSearchParams();
-  const initialEmployeeId = searchParams.get('employeeId') || '';
-  const [employeeFilter, setEmployeeFilter] = useState(initialEmployeeId);
+  const [employeeFilter, setEmployeeFilter] = useState(searchParams.get('employeeId') || '');
+  
+  useEffect(() => {
+    setEmployeeFilter(searchParams.get('employeeId') || '');
+  }, [searchParams]);
   const [monthFilter, setMonthFilter] = useState(currentMonth());
   const [departmentFilter, setDepartmentFilter] = useState('');
   const [managerFilter, setManagerFilter] = useState('');
