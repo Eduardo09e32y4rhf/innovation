@@ -531,7 +531,7 @@ function NewVacationModal({
 
 // ─── PDF RECEIPT ─────────────────────────────────────────────────────────────
 
-function downloadVacationReceipt(vacation: NonNullable<ReturnType<typeof useQuery>['data']>[0]) {
+function downloadVacationReceipt(vacation: { id: string; employeeId: string; acquisitionPeriod: string; startDate: string; endDate: string; daysUsed: number; status: string; observation?: string | null; employee?: { id: string; name: string; cpf?: string | null; registration?: string | null; department?: string | null; position?: string | null; admissionDate?: string | null; } | null }) {
   const title = 'Recibo de Férias';
   const employee = vacation.employee;
   const emittedAt = new Date().toLocaleString('pt-BR');
