@@ -6,6 +6,7 @@ import { HealthModule } from './health/health.module';
 import { appConfig } from './config/app.config';
 import { validateEnv } from './config/env.validation';
 import { DatabaseModule } from './database/prisma.module';
+import { RedisModule } from './common/redis/redis.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { CompaniesModule } from './modules/companies/companies.module';
@@ -27,6 +28,7 @@ import { AuditInterceptor } from './common/interceptors/audit.interceptor';
       validate: validateEnv,
     }),
     ThrottlerModule.forRoot([{ ttl: 60000, limit: 20 }]),
+    RedisModule,
     DatabaseModule,
     HealthModule,
     AuthModule,   // @Global() — JwtService disponivel em todos os modulos

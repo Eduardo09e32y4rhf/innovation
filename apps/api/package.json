@@ -17,6 +17,7 @@
   "dependencies": {
     "@fastify/cookie": "^11.0.2",
     "@fastify/helmet": "^13.0.2",
+    "@nestjs/bull": "^11.0.4",
     "@nestjs/common": "^11.1.27",
     "@nestjs/config": "^4.0.4",
     "@nestjs/core": "^11.1.27",
@@ -28,8 +29,10 @@
     "@prisma/client": "^6.6.0",
     "@whiskeysockets/baileys": "^7.0.0-rc13",
     "bcryptjs": "^3.0.3",
+    "bullmq": "^5.79.1",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
+    "ioredis": "^5.11.1",
     "qrcode": "^1.5.4",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",

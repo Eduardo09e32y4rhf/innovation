@@ -6,5 +6,6 @@ import { TimeTrackService } from './time-track.service';
 @Module({
   controllers: [TimeTrackController],
   providers: [TimeTrackService, TimeTrackRepository],
+  exports: [TimeTrackService, TimeTrackRepository],
 })
 export class TimeTrackModule {}

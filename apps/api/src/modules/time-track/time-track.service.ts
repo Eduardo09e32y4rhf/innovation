@@ -4,6 +4,7 @@ import { BulkManualTimeTrackDto, ManualTimeTrackDto } from './dto/manual-time-tr
 import { RegisterTimeDto } from './dto/register-time.dto';
 import { UpdateTimeTrackDto } from './dto/update-time-track.dto';
 import { TimeTrackRepository } from './time-track.repository';
+import { RedisService } from '../../common/redis/redis.service';
 
 const STANDARD_WORKDAY_MINUTES = 8 * 60;
 const REASON_LABEL: Record<string, string> = {
@@ -17,7 +18,12 @@ const REASON_LABEL: Record<string, string> = {
 
 @Injectable()
 export class TimeTrackService {
-  constructor(private readonly repository: TimeTrackRepository) {}
+  constructor(
+    private readonly repository: TimeTrackRepository,
+    private readonly redis: RedisService,
+  ) {}
+
+  private readonly PUNCH_LOCK_TTL = 8; // seconds
 
   async list(companyId: string, actor: JwtUser) {
     if (actor.role === 'ADMIN' || actor.role === 'RH' || actor.role === 'DEV' || actor.role === 'CONSULTA') return this.repository.list(companyId);
@@ -73,19 +79,32 @@ export class TimeTrackService {
     if (Number.isNaN(timestamp.getTime())) throw new BadRequestException('Invalid timestamp');
 
     const date = this.toDateOnly(timestamp);
-    const type = isManual ? dto.type : await this.resolveNextPunchType(employee.id, date);
-    if (!type) throw new BadRequestException('Todas as marcacoes de hoje ja foram registradas.');
+    const dateStr = date.toISOString().slice(0, 10);
 
-    const field = this.typeToField(type);
-    const current = await this.repository.upsert(employee.id, date, {
-      [field]: timestamp,
-      observation: dto.observation ?? (isManual ? `Lancamento manual - ${dto.manualReason}` : null),
-      ...(dto.latitude !== undefined ? { latitude: dto.latitude } : {}),
-      ...(dto.longitude !== undefined ? { longitude: dto.longitude } : {}),
-      ...(isManual ? { manualReason: dto.manualReason, manualStatus: 'pending' } : {}),
-    });
-    const totals = this.calculateTotals({ ...current, [field]: timestamp });
-    return this.repository.upsert(employee.id, date, totals);
+    // Distributed lock to prevent duplicate/clashing punches
+    const lockKey = `punch-lock:${employee.id}:${dateStr}`;
+    const acquired = await this.redis.acquireLock(lockKey, this.PUNCH_LOCK_TTL);
+    if (!acquired) {
+      throw new BadRequestException('Batida de ponto ja esta sendo processada. Tente novamente em instantes.');
+    }
+
+    try {
+      const type = isManual ? dto.type : await this.resolveNextPunchType(employee.id, date);
+      if (!type) throw new BadRequestException('Todas as marcacoes de hoje ja foram registradas.');
+
+      const field = this.typeToField(type);
+      const current = await this.repository.upsert(employee.id, date, {
+        [field]: timestamp,
+        observation: dto.observation ?? (isManual ? `Lancamento manual - ${dto.manualReason}` : null),
+        ...(dto.latitude !== undefined ? { latitude: dto.latitude } : {}),
+        ...(dto.longitude !== undefined ? { longitude: dto.longitude } : {}),
+        ...(isManual ? { manualReason: dto.manualReason, manualStatus: 'pending' } : {}),
+      });
+      const totals = this.calculateTotals({ ...current, [field]: timestamp });
+      return this.repository.upsert(employee.id, date, totals);
+    } finally {
+      await this.redis.releaseLock(lockKey);
+    }
   }
 
   async update(companyId: string, id: string, dto: UpdateTimeTrackDto) {

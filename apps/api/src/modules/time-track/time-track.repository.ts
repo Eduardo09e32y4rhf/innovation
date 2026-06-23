@@ -5,22 +5,36 @@ import { PrismaService } from '../../database/prisma.service';
 export class TimeTrackRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  list(companyId: string) {
+  list(companyId: string, skip = 0, take = 200) {
     return this.prisma.timeTrack.findMany({
       where: { employee: { companyId } },
       include: { employee: true },
       orderBy: [{ employee: { name: 'asc' } }, { date: 'asc' }, { createdAt: 'asc' }],
+      skip,
+      take,
     });
   }
 
-  listEmployeeMonth(companyId: string, employeeId: string, start: Date, end: Date) {
+  count(companyId: string) {
+    return this.prisma.timeTrack.count({ where: { employee: { companyId } } });
+  }
+
+  listEmployeeMonth(companyId: string, employeeId: string, start: Date, end: Date, skip = 0, take = 62) {
     return this.prisma.timeTrack.findMany({
       where: { employeeId, employee: { companyId }, date: { gte: start, lt: end } },
       orderBy: { date: 'asc' },
+      skip,
+      take,
     });
   }
 
-  async listForManager(companyId: string, userId: string, email?: string) {
+  countEmployeeMonth(companyId: string, employeeId: string, start: Date, end: Date) {
+    return this.prisma.timeTrack.count({
+      where: { employeeId, employee: { companyId }, date: { gte: start, lt: end } },
+    });
+  }
+
+  async listForManager(companyId: string, userId: string, email?: string, skip = 0, take = 200) {
     const normalizedEmail = email?.trim();
     const manager = await this.prisma.employee.findFirst({
       where: {
@@ -36,6 +50,14 @@ export class TimeTrackRepository {
       where: { employee: { companyId, OR: [{ id: manager.id }, { managerId: manager.id }] } },
       include: { employee: true },
       orderBy: [{ employee: { name: 'asc' } }, { date: 'asc' }, { createdAt: 'asc' }],
+      skip,
+      take,
+    });
+  }
+
+  countForManager(companyId: string, userId: string, email?: string) {
+    return this.prisma.timeTrack.count({
+      where: { employee: { companyId, managerId: userId } },
     });
   }
 
