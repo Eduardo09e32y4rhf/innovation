@@ -16,6 +16,7 @@ const REASONS: { value: TimeTrackAdjustmentReason; label: string; fullDay?: bool
   { value:'ajuste_erro_marcacao', label:'AJUSTE - ERRO MARCAÇÃO', fullDay:false },
   { value:'ajuste_atestado_integral', label:'ATESTADO INTEGRAL', fullDay:true },
   { value:'ajuste_feriado', label:'FERIADO', fullDay:true },
+  { value:'ajuste_suspensao', label:'SUSPENSÃO', fullDay:true },
   { value:'ajuste_abono_atestado_horas', label:'ABONO - ATESTADO DE HORAS', fullDay:false },
   { value:'ajuste_folga_dsr', label:'FOLGA', fullDay:true },
   { value:'ajuste_abono_folga', label:'ABONO - FOLGA (BANCO)', fullDay:false },
@@ -521,8 +522,8 @@ function Modal({ employees, bulk, track, defaultEmpId, onClose, onDone }: { empl
   }, { onSuccess: onDone });
 
   const hasTime = fullDay || entry || lunchS || lunchR || exit;
-  const bulkOK = bulkMode==='period' ? Boolean(empId && startDate && endDate && hasTime) : Boolean(selected.length && date && hasTime);
-  const ok = mode==='bulk' ? bulkOK : Boolean(empId && date && hasTime);
+  const bulkOK = bulkMode==='period' ? Boolean(empId && startDate && endDate) : Boolean(selected.length && date);
+  const ok = mode==='bulk' ? bulkOK : Boolean(empId && date);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4">
