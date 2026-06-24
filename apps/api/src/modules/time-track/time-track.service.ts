@@ -410,7 +410,7 @@ export class TimeTrackService {
     return date.toISOString().slice(0, 10);
   }
 
-  private async applyManual(employee: { dailyWorkload?: string | null }, dateValue: string, dto: Pick<ManualTimeTrackDto, 'entry' | 'lunchStart' | 'lunchReturn' | 'exit' | 'reason' | 'observation'>) {
+  private async applyManual(employee: { id: string; dailyWorkload?: string | null }, dateValue: string, dto: Pick<ManualTimeTrackDto, 'entry' | 'lunchStart' | 'lunchReturn' | 'exit' | 'reason' | 'observation'>) {
     const date = this.toDateOnly(this.parseDate(dateValue, 'Invalid date'));
     const isFullDayAdjustment = dto.reason === 'ajuste_atestado_integral' || dto.reason === 'ajuste_feriado' || dto.reason === 'ajuste_suspensao';
     const isBanco = dto.reason === 'ajuste_folga_dsr' || dto.reason === 'ajuste_abono_folga';
