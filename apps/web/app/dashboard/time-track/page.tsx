@@ -85,6 +85,12 @@ function isCycle(date: Date, emp: Employee, work: number, off: number) {
   if (diff<0) return false;
   return (diff%(work+off)) >= work;
 }
+function isAntesAdmissao(key: string, emp: Employee): boolean {
+  if (!emp.admissionDate) return false;
+  const adm = emp.admissionDate.slice(0,10);
+  return key < adm;
+}
+
 function buildGrid(month: string, emp: Employee, tracks: TimeTrack[]) {
   const [y,m] = month.split('-').map(Number); if (!y||!m) return [];
   const total = daysInMonth(y,m-1);
@@ -95,7 +101,7 @@ function buildGrid(month: string, emp: Employee, tracks: TimeTrack[]) {
   for (let d=1; d<=total; d++) {
     const date = new Date(Date.UTC(y,m-1,d));
     const key = date.toISOString().slice(0,10);
-    g.push({date,key,day:d,wd:date.getUTCDay(),isRest: isRestDay(date,emp),isFuture: key>today, track: map.get(key)});
+    g.push({date,key,day:d,wd:date.getUTCDay(),isRest: isRestDay(date,emp),isFuture: key>today,antesAdmissao: isAntesAdmissao(key,emp), track: map.get(key)});
   }
   return g;
 }
@@ -373,19 +379,20 @@ function MonthGrid({ employee, tracks, month, canManage, canApprove, refreshing,
               let bg = '';
               if (day.isRest) bg = 'bg-sky-50/30';
               else if (day.isFuture) bg = 'bg-slate-50/40 opacity-70';
-              else if (!t) bg = 'bg-amber-50/20';
-              const status = day.isRest ? 'FOLGA' : t ? dayStatus(t) : day.isFuture ? '---' : 'FALTA';
-              const isAtestado = ['ATESTADO','FERIADO','SUSPENSÃO','FOLGA','FOLGA EXTRA','FOLGA BANCO','FOLGA (DSR)'].includes(status);
+              else if (!t && !day.antesAdmissao) bg = 'bg-amber-50/20';
+              else if (day.antesAdmissao) bg = 'bg-slate-100/50 opacity-50';
+              const status = day.isRest ? 'FOLGA' : day.antesAdmissao ? '---' : t ? dayStatus(t) : day.isFuture ? '---' : 'FALTA';
+              const isAtestado = ['ATESTADO','FERIADO','SUSPENSÃO','FOLGA','FOLGA EXTRA','FOLGA BANCO','FOLGA (DSR)','---'].includes(status);
 
               return (
                 <tr key={day.key} className={`h-9 border-t border-slate-100 text-[11px] font-semibold text-slate-700 hover:bg-slate-50/70 ${bg}`}>
                   <td className="px-3 text-slate-500 text-[11px] font-bold">{fmtDateFull(day.key)}</td>
-                  <td className={`px-3 font-mono text-[11px] ${isAtestado?'text-slate-300':t?.entry?'text-slate-950 font-black':'text-slate-300'}`}>{isAtestado?'---':t?.entry?fmtTime(t.entry):'--:--'}</td>
-                  <td className={`px-3 font-mono text-[11px] ${t?.lunchStart||t?.lunchReturn?'text-slate-600':'text-slate-300'}`}>{isAtestado?'---':fmtLunch(t?.lunchStart,t?.lunchReturn)}</td>
-                  <td className={`px-3 font-mono text-[11px] ${isAtestado?'text-slate-300':t?.exit?'text-slate-950 font-black':'text-slate-300'}`}>{isAtestado?'---':t?.exit?fmtTime(t.exit):'--:--'}</td>
-                  <td className="px-3 text-slate-600 text-[11px]">{t?fmtWorked(t.totalWorked):'--:--'}</td>
-                  <td className={`px-3 text-[11px] font-black ${t&&(t.dailyBalance??0)<0?'text-rose-600':t?'text-emerald-600':'text-slate-300'}`}>{t?fmtBalance(t.dailyBalance):'--:--'}</td>
-                  <td className="px-3 text-slate-400 text-[11px]">--:--</td>
+              <td className={`px-3 font-mono text-[11px] ${isAtestado?'text-slate-300':t?.entry?'text-slate-950 font-black':'text-slate-300'}`}>{isAtestado?'---':t?.entry?fmtTime(t.entry):'--:--'}</td>
+              <td className={`px-3 font-mono text-[11px] ${t?.lunchStart||t?.lunchReturn?'text-slate-600':'text-slate-300'}`}>{isAtestado?'---':t?.lunchStart?fmtLunch(t?.lunchStart,t?.lunchReturn):'--:--'}</td>
+              <td className={`px-3 font-mono text-[11px] ${isAtestado?'text-slate-300':t?.exit?'text-slate-950 font-black':'text-slate-300'}`}>{isAtestado?'---':t?.exit?fmtTime(t.exit):'--:--'}</td>
+              <td className="px-3 text-slate-600 text-[11px]">{isAtestado?'---':t?fmtWorked(t.totalWorked):'--:--'}</td>
+              <td className={`px-3 text-[11px] font-black ${isAtestado?'text-slate-300':t&&(t.dailyBalance??0)<0?'text-rose-600':t?'text-emerald-600':'text-slate-300'}`}>{isAtestado?'---':t?fmtBalance(t.dailyBalance):'--:--'}</td>
+                  <td className={`px-3 text-[11px] ${isAtestado?'text-slate-300':'text-slate-400'}`}>{isAtestado?'---':'--:--'}</td>
                   <td className="px-3 text-center"><StatusBadge status={status}/></td>
                   <td className="px-3">
                     <div className="flex justify-center gap-1 whitespace-nowrap">
