@@ -19,7 +19,7 @@ const REASONS: { value: TimeTrackAdjustmentReason; label: string; fullDay?: bool
   { value:'ajuste_suspensao', label:'SUSPENSÃO', fullDay:true },
   { value:'ajuste_abono_atestado_horas', label:'ABONO - ATESTADO DE HORAS', fullDay:false },
   { value:'ajuste_folga_dsr', label:'FOLGA', fullDay:true },
-  { value:'ajuste_abono_folga', label:'ABONO - FOLGA (BANCO)', fullDay:false },
+  { value:'ajuste_abono_folga', label:'ABONO - FOLGA (BANCO)', fullDay:true },
 ];
 
 function currentMonth() { return new Date().toISOString().slice(0,7); }
