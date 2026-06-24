@@ -54,15 +54,30 @@ export class TimeTrackService {
   async manualBulk(companyId: string, dto: BulkManualTimeTrackDto) {
     const dates = this.resolveBulkDates(dto);
     const created = [];
+
+    // ⚡ Bolt: Chunked concurrent execution to reduce DB I/O wait times
+    // Collect all independent upsert tasks first
+    const tasks: Array<() => ReturnType<typeof this.applyManual>> = [];
+
     for (const employeeId of dto.employeeIds) {
       const employee = await this.ensureEmployee(companyId, employeeId);
       for (const date of dates) {
         if (this.isRestDay(employee, date, dto)) continue;
         const parsedDate = this.toDateOnly(this.parseDate(date, 'Invalid date'));
         this.validateEmployeeDateRange(employee, parsedDate);
-        created.push(await this.applyManual(employeeId, date, dto));
+
+        tasks.push(() => this.applyManual(employeeId, date, dto));
       }
     }
+
+    // Process in chunks of 20 to avoid exhausting the database connection pool
+    const chunkSize = 20;
+    for (let i = 0; i < tasks.length; i += chunkSize) {
+      const chunk = tasks.slice(i, i + chunkSize);
+      const results = await Promise.all(chunk.map(task => task()));
+      created.push(...results);
+    }
+
     return { count: created.length, items: created };
   }
 
