@@ -17,7 +17,7 @@ ENV NEXT_PUBLIC_API_BASE=$NEXT_PUBLIC_API_BASE
 COPY package.json package-lock.json ./
 COPY apps/web/package.json ./apps/web/package.json
 
-RUN npm ci --no-audit --prefer-offline --no-optional
+RUN npm ci --no-audit --prefer-offline --no-optional --force || npm install --no-audit --force
 
 COPY . .
 
