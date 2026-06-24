@@ -211,10 +211,12 @@ model Employee {
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
 
-  company    Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  user       User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
-  timeTracks TimeTrack[]
-  vacations  Vacation[]
+  company        Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  user           User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+  timeTracks     TimeTrack[]
+  vacations      Vacation[]
+  managementEvents ManagementEvent[]
+  asoRecords     EmployeeAsoRecord[]
 
   @@index([companyId])
   @@index([cpf])
@@ -261,9 +263,6 @@ model Vacation {
   updatedAt         DateTime       @updatedAt
 
   employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-
-  managementEvents ManagementEvent[]
-  asoRecords       EmployeeAsoRecord[]
 
   @@index([employeeId])
 }
