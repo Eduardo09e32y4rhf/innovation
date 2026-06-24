@@ -10,6 +10,7 @@ export const TIME_TRACK_ADJUSTMENT_REASONS = [
   'ajuste_abono_folga',
   'ajuste_erro_marcacao',
   'ajuste_feriado',
+  'ajuste_suspensao',
 ] as const;
 
 export class ManualTimeTrackDto {

@@ -205,6 +205,7 @@ model Employee {
   standardLunchStart String?
   standardLunchReturn String?
   standardExit  String?
+  suspensionReason String?
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
 
@@ -223,7 +224,7 @@ model TimeTrack {
   date          DateTime  @db.Date
   entry         DateTime?
   lunchStart    DateTime?
-  lunchReturn   DateTime?
+  lunchReturn    DateTime?
   exit          DateTime?
   totalWorked   Int?
   dailyBalance  Int?
@@ -232,6 +233,9 @@ model TimeTrack {
   longitude     Float?
   manualReason  String?
   manualStatus  String?   @default("approved")
+  incidentType  String?
+  toleranceMinutes Int?
+  absenceMinutes Int?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -239,6 +243,7 @@ model TimeTrack {
 
   @@unique([employeeId, date])
   @@index([employeeId])
+  @@index([incidentType])
 }
 
 model Vacation {

@@ -7,6 +7,7 @@ import { TimeTrackRepository } from './time-track.repository';
 import { RedisService } from '../../common/redis/redis.service';
 
 const DEFAULT_WORKDAY_MINUTES = 8 * 60; // fallback padrão
+const TOLERANCE_MINUTES = 5; // tolerância padrão para ocorrências
 
 function parseWorkloadToMinutes(workload?: string | null): number {
   if (!workload) return DEFAULT_WORKDAY_MINUTES;
@@ -14,6 +15,14 @@ function parseWorkloadToMinutes(workload?: string | null): number {
   if (!match) return DEFAULT_WORKDAY_MINUTES;
   return parseInt(match[1], 10) * 60 + parseInt(match[2], 10);
 }
+
+function timeToMinutes(time?: string | null): number | null {
+  if (!time) return null;
+  const [hours, minutes] = time.split(':').map(Number);
+  if (Number.isNaN(hours) || Number.isNaN(minutes)) return null;
+  return hours * 60 + minutes;
+}
+
 const REASON_LABEL: Record<string, string> = {
   ajuste_abono_atestado_horas: 'Ajuste - abono (atestado de horas)',
   ajuste_atestado_integral: 'Ajuste - atestado integral',
@@ -21,6 +30,7 @@ const REASON_LABEL: Record<string, string> = {
   ajuste_abono_folga: 'Ajuste abono - folga',
   ajuste_erro_marcacao: 'Ajuste - erro de marcação',
   ajuste_feriado: 'Ajuste - feriado',
+  ajuste_suspensao: 'Ajuste - suspensão',
 };
 
 @Injectable()
@@ -49,12 +59,22 @@ export class TimeTrackService {
   }
 
   async manual(companyId: string, actor: JwtUser, dto: ManualTimeTrackDto) {
-    // Qualquer perfil pode solicitar ajuste manual, que fica pendente de aprovação
     const employee = await this.ensureEmployee(companyId, dto.employeeId);
-    // Validar admissão/demissão
     const date = this.toDateOnly(this.parseDate(dto.date, 'Invalid date'));
     this.validateEmployeeDateRange(employee, date);
-    // Validar horário futuro
+    
+    // Regra de abono inteligente: se for abono, sugerir tempo faltante
+    if (dto.reason.includes('abono')) {
+      const suggestion = this.suggestAbsenceMinutes(employee, date);
+      if (suggestion !== null && suggestion > 0) {
+        const currentEntry = dto.entry;
+        if (!currentEntry || timeToMinutes(currentEntry) === null) {
+          const suggestedEntry = this.suggestEntryTime(employee, date, suggestion);
+          Object.assign(dto, { entry: suggestedEntry });
+        }
+      }
+    }
+    
     this.validateManualTimestamp(employee, dto.entry, dto.lunchStart, dto.lunchReturn, dto.exit, date);
     return this.applyManual(dto.employeeId, dto.date, dto);
   }
@@ -68,6 +88,16 @@ export class TimeTrackService {
         if (this.isRestDay(employee, date, dto)) continue;
         const parsedDate = this.toDateOnly(this.parseDate(date, 'Invalid date'));
         this.validateEmployeeDateRange(employee, parsedDate);
+        
+        // Regra de abono inteligente para bulk
+        if (dto.reason.includes('abono')) {
+          const suggestion = this.suggestAbsenceMinutes(employee, parsedDate);
+          if (suggestion !== null && suggestion > 0 && !dto.entry) {
+            const suggestedEntry = this.suggestEntryTime(employee, parsedDate, suggestion);
+            Object.assign(dto, { entry: suggestedEntry });
+          }
+        }
+        
         created.push(await this.applyManual(employeeId, date, dto));
       }
     }
@@ -118,6 +148,18 @@ export class TimeTrackService {
           ...(dto.longitude !== undefined ? { longitude: dto.longitude } : {}),
         });
         const totals = this.calculateTotals({ ...current, [field]: now });
+        
+        // REGRA: Detectar ocorrências automaticamente (atraso/saída antecipada)
+        const incidents = this.detectIncidents(employee, today, { ...current, ...totals });
+        if (incidents) {
+          await this.repository.update(companyId, current.id, { 
+            observation: incidents.observation,
+            incidentType: incidents.type,
+            toleranceMinutes: incidents.tolerance,
+            absenceMinutes: incidents.absence,
+          });
+        }
+        
         return this.repository.upsert(employee.id, today, totals);
       } finally {
         await this.redis.releaseLock(lockKey);
@@ -157,6 +199,17 @@ export class TimeTrackService {
         manualStatus: 'pending',
       });
       const totals = this.calculateTotals({ ...current, [field]: timestamp });
+      
+      // Detectar incidentes para ajustes manuais
+      const incidents = this.detectIncidents(employee, date, { ...current, [field]: timestamp, ...totals });
+      if (incidents && dto.manualReason !== 'ajuste_suspensao') {
+        await this.repository.update(companyId, current.id, {
+          incidentType: incidents.type,
+          toleranceMinutes: incidents.tolerance,
+          absenceMinutes: incidents.absence,
+        });
+      }
+      
       return this.repository.upsert(employee.id, date, totals);
     } finally {
       await this.redis.releaseLock(lockKey);
@@ -219,6 +272,78 @@ export class TimeTrackService {
     return { deleted: true };
   }
 
+  // ─── REGRAS DE OCORRÊNCIA E ABONO ────────────────────────────────────
+
+  private suggestAbsenceMinutes(employee: { standardEntry?: string | null; standardExit?: string | null; dailyWorkload?: string | null }, date: Date): number | null {
+    const workload = parseWorkloadToMinutes(employee.dailyWorkload);
+    const entryMins = timeToMinutes(employee.standardEntry);
+    const exitMins = timeToMinutes(employee.standardExit);
+    if (entryMins === null || exitMins === null) return null;
+    const expectedExit = entryMins + workload;
+    if (expectedExit > exitMins) return null; // jornada extrapola expediente
+    const absentMinutes = exitMins - expectedExit;
+    return Math.max(absentMinutes, 0);
+  }
+
+  private suggestEntryTime(employee: { standardEntry?: string | null; dailyWorkload?: string | null }, date: Date, absenceMinutes: number): string {
+    const workload = parseWorkloadToMinutes(employee.dailyWorkload);
+    const entryMins = timeToMinutes(employee.standardEntry);
+    if (entryMins === null) return '00:00';
+    const startMins = entryMins;
+    const endMins = startMins + workload - absenceMinutes;
+    const hh = Math.floor(endMins / 60);
+    const mm = endMins % 60;
+    return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
+  }
+
+  private detectIncidents(
+    employee: { standardEntry?: string | null; standardLunchStart?: string | null; standardLunchReturn?: string | null; standardExit?: string | null },
+    date: Date,
+    track: { entry?: Date | null; lunchStart?: Date | null; lunchReturn?: Date | null; exit?: Date | null; totalWorked?: number | null }
+  ): { type: 'atraso' | 'saida_antecipada' | 'falta'; tolerance: number; absence: number; observation: string } | null {
+    const entryMins = track.entry ? timeToMinutes(track.entry.toISOString().slice(11, 16)) : null;
+    const exitMins = track.exit ? timeToMinutes(track.exit.toISOString().slice(11, 16)) : null;
+    const expectedEntry = timeToMinutes(employee.standardEntry);
+    const expectedExit = timeToMinutes(employee.standardExit);
+
+    if (entryMins === null || exitMins === null) {
+      if (!track.entry && !track.exit) {
+        return { type: 'falta', tolerance: 0, absence: 0, observation: 'FALTA' };
+      }
+      return null;
+    }
+
+    let incidentType: 'atraso' | 'saida_antecipada' | 'falta' | null = null;
+    let tolerance = 0;
+    let absence = 0;
+
+    // Atraso: entrada após tolerância
+    if (expectedEntry !== null && entryMins > expectedEntry) {
+      const diff = entryMins - expectedEntry;
+      if (diff > TOLERANCE_MINUTES) {
+        incidentType = 'atraso';
+        tolerance = diff;
+      }
+    }
+
+    // Saída antecipada: saída antes do horário - tolerância
+    if (expectedExit !== null && exitMins < expectedExit) {
+      const diff = expectedExit - exitMins;
+      if (diff > TOLERANCE_MINUTES) {
+        incidentType = 'saida_antecipada';
+        absence = diff;
+      }
+    }
+
+    if (!incidentType) return null;
+
+    const observation = incidentType === 'atraso'
+      ? `ATRASO ${tolerance}min`
+      : `SAIDA ANTECIPADA ${absence}min`;
+
+    return { type: incidentType, tolerance, absence, observation };
+  }
+
   // ─── VALIDAÇÕES TEMPORAIS ───────────────────────────────────────────────
 
   private validateEmployeeDateRange(employee: { admissionDate: Date | string; terminationDate?: Date | string | null }, requestedDate: Date) {
@@ -251,16 +376,13 @@ export class TimeTrackService {
     const now = new Date();
     const today = this.toDateOnly(now);
 
-    // Se recebeu date como parâmetro, validar contra admissão/demissão
     if (date) {
       this.validateEmployeeDateRange(employee, date);
-      // Se a data for futura, bloquear
       if (date > today) {
         throw new BadRequestException('Ajuste manual nao permite lancamento em datas futuras.');
       }
     }
 
-    // Validar cada horário passado contra o tempo atual
     const timeFields = [
       { label: 'Entrada', value: entry },
       { label: 'Saída almoço', value: lunchStart },
@@ -276,7 +398,6 @@ export class TimeTrackService {
       const fieldDate = new Date(now);
       fieldDate.setHours(hours, minutes, 0, 0);
 
-      // Se a data for hoje e o horário for futuro, bloquear
       if (date && this.toDateOnly(date).getTime() === today.getTime() && fieldDate > now) {
         throw new BadRequestException(
           `Ajuste manual nao permite lancamento de horario futuro para "${field.label}". Agora sao ${now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}.`
@@ -291,13 +412,15 @@ export class TimeTrackService {
 
   private async applyManual(employeeId: string, dateValue: string, dto: Pick<ManualTimeTrackDto, 'entry' | 'lunchStart' | 'lunchReturn' | 'exit' | 'reason' | 'observation'>) {
     const date = this.toDateOnly(this.parseDate(dateValue, 'Invalid date'));
-    const isFullDayAdjustment = dto.reason === 'ajuste_atestado_integral' || dto.reason === 'ajuste_feriado';
+    const isFullDayAdjustment = dto.reason === 'ajuste_atestado_integral' || dto.reason === 'ajuste_feriado' || dto.reason === 'ajuste_suspensao';
     const data = {
-      entry: isFullDayAdjustment ? null : this.parseOptionalDate(dto.entry),
-      lunchStart: isFullDayAdjustment ? null : this.parseOptionalDate(dto.lunchStart),
-      lunchReturn: isFullDayAdjustment ? null : this.parseOptionalDate(dto.lunchReturn),
-      exit: isFullDayAdjustment ? null : this.parseOptionalDate(dto.exit),
+      entry: isFullDayAdjustment ? null : this.parseOptionalDate((dto as any).entry),
+      lunchStart: isFullDayAdjustment ? null : this.parseOptionalDate((dto as any).lunchStart),
+      lunchReturn: isFullDayAdjustment ? null : this.parseOptionalDate((dto as any).lunchReturn),
+      exit: isFullDayAdjustment ? null : this.parseOptionalDate((dto as any).exit),
       observation: this.buildObservation(dto.reason, dto.observation),
+      manualReason: dto.reason,
+      manualStatus: 'pending',
     };
     const totals = this.calculateTotals(data);
     return this.repository.upsert(employeeId, date, { ...data, ...totals });
