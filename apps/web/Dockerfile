@@ -1,27 +1,31 @@
-# Dockerfile de producao do Web (Next.js).
-FROM node:20-bookworm-slim AS builder
+# Dockerfile de producao - Frontend Next.js (static export)
+# NEXT_PUBLIC_* sao embutidas no build e precisam entrar como ARG.
+
+FROM node:20-alpine AS builder
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    python3 make g++ openssl ca-certificates \
-  && rm -rf /var/lib/apt/lists/*
+# SWC (Next.js native compiler) needs these on Alpine
+RUN apk add --no-cache libc6-compat
+
+ARG NEXT_PUBLIC_API_URL=/api
+ARG NEXT_PUBLIC_API_BASE_URL=/api
+ARG NEXT_PUBLIC_API_BASE=/api
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL
+ENV NEXT_PUBLIC_API_BASE=$NEXT_PUBLIC_API_BASE
 
 COPY package.json package-lock.json ./
 COPY apps/web/package.json ./apps/web/package.json
 
-RUN npm config set fetch-retries 5 \
-  && npm config set fetch-retry-mintimeout 20000 \
-  && npm config set fetch-retry-maxtimeout 120000 \
-  && npm ci --no-audit --prefer-offline
+RUN npm ci --no-audit --prefer-offline --no-optional
 
 COPY . .
 
 RUN npm run build:web
 
+# ── runner ─────────────────────────────────────────────────────────────────────
 FROM node:20-alpine
-
 WORKDIR /app
-
 RUN apk add --no-cache libc6-compat
 
 COPY --from=builder /app/apps/web/out ./out

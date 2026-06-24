@@ -51,6 +51,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: ${API_PORT:-3333}
+      REDIS_URL: redis://redis:6379
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-60m}
