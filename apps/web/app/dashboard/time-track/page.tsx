@@ -84,16 +84,104 @@ function timeInput(value?: string | null) {
 }
 
 function displayWorked(minutes?: number | null) {
-  return minutes === null || minutes === undefined ? '-' : formatMinutes(minutes);
+  return minutes === null || minutes === undefined ? '--:--' : formatMinutes(minutes);
 }
 
 function displayBalance(minutes?: number | null) {
-  return minutes === null || minutes === undefined ? '-' : formatMinutes(minutes);
+  return minutes === null || minutes === undefined ? '--:--' : formatMinutes(minutes);
 }
 
 function displayLunch(start?: string | null, end?: string | null) {
   if (!start && !end) return '--:--';
   return `${displayTime(start)} - ${displayTime(end)}`;
+}
+
+// ─── MONTH GRID & REST DAYS ───────────────────────────────────────────────
+
+interface DaySlot {
+  date: Date;
+  dateKey: string;
+  dayNumber: number;
+  weekday: number; // 0=dom..6=sab
+  weekdayLabel: string;
+  isRestDay: boolean;
+  isFuture: boolean;
+  track?: TimeTrack;
+}
+
+function daysInMonth(year: number, month: number) {
+  return new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+}
+
+// Detect folgas por escala, incluindo ciclo 12X36 e 4X2
+function isEmployeeRestDay(date: Date, employee: Employee): boolean {
+  const weekday = date.getUTCDay();
+  const scale = employee.workScale;
+  const custom = employee.customWorkScale;
+
+  // Escalas fixas semanais
+  if (scale === '5X2') return weekday === 0 || weekday === 6; // sáb + dom
+  if (scale === '6X1') return weekday === 0; // dom
+  if (scale === '4X2') return isCycleRestDay(date, employee, 4, 2);
+  if (scale === '12X36') return isCycleRestDay(date, employee, 1, 1);
+  if (scale === 'OUTRO' && custom) {
+    // Parse custom: "4X2", "5X2", etc.
+    const match = custom.match(/(\d+)X(\d+)/i);
+    if (match) {
+      const w = parseInt(match[1], 10);
+      const o = parseInt(match[2], 10);
+      return isCycleRestDay(date, employee, w, o);
+    }
+    // Se não parsear como ciclo, trata como 5X2 padrão
+    return weekday === 0 || weekday === 6;
+  }
+
+  return weekday === 0; // padrão seguro: domingo
+}
+
+function isCycleRestDay(date: Date, employee: Employee, workDays: number, offDays: number): boolean {
+  const admission = employee.admissionDate ? new Date(employee.admissionDate) : new Date('2020-01-01');
+  const admissionUtc = Date.UTC(admission.getUTCFullYear(), admission.getUTCMonth(), admission.getUTCDate());
+  const dateUtc = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+  const diffDays = Math.floor((dateUtc - admissionUtc) / 86400000);
+  if (diffDays < 0) return false;
+  const position = diffDays % (workDays + offDays);
+  return position >= workDays; // dias após os workDays são folga
+}
+
+function generateMonthGrid(monthStr: string, employee: Employee, tracks: TimeTrack[]): DaySlot[] {
+  const [year, month] = monthStr.split('-').map(Number);
+  const totalDays = daysInMonth(year, month - 1);
+  const now = new Date();
+  const todayKey = now.toISOString().slice(0, 10);
+
+  // Mapa de tracks por dateKey
+  const trackMap = new Map<string, TimeTrack>();
+  for (const t of tracks) {
+    trackMap.set(toDateKey(t.date), t);
+  }
+
+  const grid: DaySlot[] = [];
+  for (let day = 1; day <= totalDays; day++) {
+    const date = new Date(Date.UTC(year, month - 1, day));
+    const dateKey = date.toISOString().slice(0, 10);
+    const weekday = date.getUTCDay();
+    grid.push({
+      date,
+      dateKey,
+      dayNumber: day,
+      weekday,
+      weekdayLabel: WEEKDAYS.find(w => w.value === weekday)?.label.slice(0, 3) ?? '',
+      isRestDay: isEmployeeRestDay(date, employee),
+      isFuture: dateKey > todayKey,
+      track: trackMap.get(dateKey),
+    });
+  }
+  return grid;
+}
+
+function restDayBadge(reason?: string) {
+  return reason || 'Folga (DSR)';
 }
 function toIso(date: string, time: string) {
   if (!date || !time) return null;
@@ -499,19 +587,56 @@ export default function TimeTrackPage() {
       {tracks.error && tracks.data && <p className="rounded-[8px] border border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-700">Nao foi possivel atualizar agora. Os ultimos dados carregados continuam visiveis.</p>}
 
       {isInitialTracksLoading ? <LoadingState label="Carregando folha de ponto..." /> : tracks.error && !tracks.data ? <ErrorState message={tracks.error} onRetry={tracks.refetch} /> : isFuncionario ? (
-        rows.length === 0 ? <EmptyState message="Nenhum registro de ponto encontrado." /> : <TimeRowsTable rows={rows} canManage={false} isRefreshing={isRefreshingTracks} removeLoading={remove.loading} onEdit={setEditing} onDelete={handleDelete} />
-      ) : visibleEmployees.length === 0 ? <EmptyState message="Nenhum colaborador encontrado para o filtro selecionado." /> : (
+        // Funcionário: folha mensal pessoal
+        selectedEmployee ? (
+          <MonthGridSection
+            employee={selectedEmployee}
+            tracks={rowsByEmployee[selectedEmployee.id] ?? []}
+            monthFilter={monthFilter}
+            canManage={false}
+            isRefreshing={isRefreshingTracks}
+            removeLoading={remove.loading}
+            onEdit={setEditing}
+            onDelete={handleDelete}
+            canDownload={canDownloadOwnOrTeam}
+            reportCompany={reportCompany}
+            companyLoading={company.loading}
+            isRefreshingTracks={isRefreshingTracks}
+          />
+        ) : (
+          <EmptyState message="Nenhum registro de ponto encontrado." />
+        )
+      ) : visibleEmployees.length === 0 ? <EmptyState message="Nenhum colaborador encontrado para o filtro selecionado." /> : employeeFilter ? (
+        // RH/Gestor: grade mensal do funcionário selecionado
+        <MonthGridSection
+          employee={visibleEmployees[0]}
+          tracks={rowsByEmployee[visibleEmployees[0].id] ?? []}
+          monthFilter={monthFilter}
+          canManage={canManage}
+          isRefreshing={isRefreshingTracks}
+          removeLoading={remove.loading}
+          onEdit={setEditing}
+          onDelete={handleDelete}
+          canDownload={canDownloadOwnOrTeam}
+          reportCompany={reportCompany}
+          companyLoading={company.loading}
+          isRefreshingTracks={isRefreshingTracks}
+        />
+      ) : (
+        // Lista de colaboradores (visão geral)
         <section className="overflow-hidden rounded-[18px] border border-slate-200/60 bg-white shadow-[0_12px_40px_rgba(15,23,42,0.08)]">
           <div className="border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white px-6 py-5">
             <h3 className="text-sm font-black text-slate-950">Colaboradores da folha</h3>
-            <p className="mt-1 text-xs font-semibold text-slate-500">Abra um colaborador para conferir registros, editar ajustes e baixar a folha individual.</p>
+            <p className="mt-1 text-xs font-semibold text-slate-500">Selecione um colaborador para ver a folha mensal completa com todos os dias e folgas.</p>
           </div>
           <div className="divide-y divide-slate-100">
             {visibleEmployees.map((employee) => {
               const employeeRows = rowsByEmployee[employee.id] ?? [];
-              const opened = !employeeFilter || employeeFilter === employee.id;
               const workedTotal = sumMinutes(employeeRows, 'totalWorked');
               const balanceTotal = sumMinutes(employeeRows, 'dailyBalance');
+              const grid = generateMonthGrid(monthFilter, employee, employeeRows);
+              const restDaysCount = grid.filter(d => d.isRestDay).length;
+              const workedDaysCount = grid.filter(d => d.track && !d.isRestDay).length;
               return (
                 <div key={employee.id} className="bg-white px-6 py-5 transition-all duration-200 hover:bg-slate-50/40">
                   <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -525,7 +650,9 @@ export default function TimeTrackPage() {
                           <p className="text-sm font-black text-slate-950">{normalizeDisplayName(employee.name)}</p>
                         </div>
                         <div className="mt-2 flex flex-wrap items-center gap-3 text-[11px] font-semibold text-slate-500">
-                          <span>{employeeRows.length} registro(s)</span>
+                          <span>{workedDaysCount} batida(s) no mês</span>
+                          <span className="text-slate-300">|</span>
+                          <span>{restDaysCount} folga(s)</span>
                           <span className="text-slate-300">|</span>
                           <span>{employee.department || 'Sem departamento'}</span>
                           <span className="text-slate-300">|</span>
@@ -544,23 +671,9 @@ export default function TimeTrackPage() {
                           <span className={balanceTotal >= 0 ? 'text-emerald-700' : 'text-rose-700'}>{formatMinutes(balanceTotal)}</span>
                         </div>
                       </div>
-                      <div className="flex gap-2">
-                        <button onClick={() => setEmployeeFilter(opened && employeeFilter === employee.id ? '' : employee.id)} className="btn-outline-premium inline-flex h-9 items-center gap-2 rounded-[8px] px-3 text-[11px] font-black"><Eye size={13} /> {opened ? 'Ocultar' : 'Exibir'}</button>
-                        {canDownloadOwnOrTeam && (
-                          <button onClick={() => openPrintableReport(employeeRows, monthFilter, reportCompany, employee)} disabled={employeeRows.length === 0 || company.loading || isRefreshingTracks} className="btn-outline-premium inline-flex h-9 items-center gap-2 rounded-[8px] px-3 text-[11px] font-black disabled:opacity-50"><FileText size={13} /> Folha</button>
-                        )}
-                      </div>
+                      <button onClick={() => setEmployeeFilter(employee.id)} className="btn-outline-premium inline-flex h-9 items-center gap-2 rounded-[8px] px-3 text-[11px] font-black"><Eye size={13} /> Abrir folha</button>
                     </div>
                   </div>
-                  {opened && (
-                    <div className="mt-4 overflow-hidden rounded-[10px] border border-slate-200">
-                      {employeeRows.length === 0 ? (
-                        <div className="border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-xs font-semibold text-slate-500">Nenhum registro de ponto para este colaborador no filtro atual.</div>
-                      ) : (
-                        <TimeRowsTable rows={employeeRows} canManage={canManage} isRefreshing={isRefreshingTracks} removeLoading={remove.loading} onEdit={setEditing} onDelete={handleDelete} compact />
-                      )}
-                    </div>
-                  )}
                 </div>
               );
             })}
@@ -737,4 +850,195 @@ function matchEmployees(employees: Employee[], query: string) {
 }
 function TimeField({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
   return <label className="space-y-1 text-xs font-medium text-slate-600"><span>{label}</span><input type="time" value={value} onChange={(event) => onChange(event.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500" /></label>;
+}
+
+// ─── MONTH GRID SECTION ───────────────────────────────────────────────────
+
+function MonthGridSection({
+  employee,
+  tracks,
+  monthFilter,
+  canManage,
+  isRefreshing,
+  removeLoading,
+  onEdit,
+  onDelete,
+  canDownload,
+  reportCompany,
+  companyLoading,
+  isRefreshingTracks,
+}: {
+  employee: Employee;
+  tracks: TimeTrack[];
+  monthFilter: string;
+  canManage: boolean;
+  isRefreshing: boolean;
+  removeLoading: boolean;
+  onEdit: (row: TimeTrack) => void;
+  onDelete: (row: TimeTrack) => void;
+  canDownload: boolean;
+  reportCompany: CompanyPrintInfo;
+  companyLoading: boolean;
+  isRefreshingTracks: boolean;
+}) {
+  const grid = useMemo(() => generateMonthGrid(monthFilter, employee, tracks), [monthFilter, employee, tracks]);
+  const workedTotal = sumMinutes(tracks, 'totalWorked');
+  const balanceTotal = sumMinutes(tracks, 'dailyBalance');
+  const restDaysCount = grid.filter(d => d.isRestDay).length;
+  const workedDaysCount = grid.filter(d => d.track && !d.isRestDay).length;
+  const missingDaysCount = grid.filter(d => !d.isRestDay && !d.isFuture && !d.track).length;
+
+  return (
+    <section className="overflow-hidden rounded-[18px] border border-slate-200/60 bg-white shadow-[0_12px_40px_rgba(15,23,42,0.08)]">
+      {/* Cabeçalho do funcionário */}
+      <div className="border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white px-6 py-5">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-center gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[12px] bg-gradient-to-br from-teal-500 to-cyan-600 text-sm font-black text-white shadow-lg shadow-teal-500/20">
+              {normalizeDisplayName(employee.name).charAt(0).toUpperCase()}
+            </div>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="inline-flex rounded-full border border-teal-200/60 bg-gradient-to-r from-teal-50 to-cyan-50 px-2.5 py-1 text-[11px] font-black text-teal-700">
+                  {employee.registration || employee.id.slice(0, 8).toUpperCase()}
+                </span>
+                <h3 className="text-sm font-black text-slate-950">{normalizeDisplayName(employee.name)}</h3>
+              </div>
+              <div className="mt-2 flex flex-wrap items-center gap-3 text-[11px] font-semibold text-slate-500">
+                <span>{employee.department || 'Sem departamento'}</span>
+                <span className="text-slate-300">|</span>
+                <span>{employee.position || 'Sem cargo'}</span>
+                <span className="text-slate-300">|</span>
+                <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px]">
+                  Escala: {employee.workScale || (employee.customWorkScale || '6X1')}
+                </span>
+              </div>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex gap-3 text-[11px] font-bold">
+              <div className="rounded-[8px] border border-slate-200 bg-slate-50 px-3 py-1.5">
+                <span className="block text-[9px] uppercase text-slate-400">Trabalhado</span>
+                <span className="text-slate-900">{formatMinutes(workedTotal)}</span>
+              </div>
+              <div className={`rounded-[8px] border px-3 py-1.5 ${balanceTotal >= 0 ? 'border-emerald-200 bg-emerald-50' : 'border-rose-200 bg-rose-50'}`}>
+                <span className="block text-[9px] uppercase text-slate-400">Saldo</span>
+                <span className={balanceTotal >= 0 ? 'text-emerald-700' : 'text-rose-700'}>{formatMinutes(balanceTotal)}</span>
+              </div>
+            </div>
+            {canDownload && (
+              <button onClick={() => openPrintableReport(tracks, monthFilter, reportCompany, employee)} disabled={tracks.length === 0 || companyLoading || isRefreshingTracks} className="btn-outline-premium inline-flex h-9 items-center gap-2 rounded-[8px] px-3 text-[11px] font-black disabled:opacity-50">
+                <FileText size={13} /> Folha
+              </button>
+            )}
+          </div>
+        </div>
+        {/* Resumo do mês */}
+        <div className="mt-4 flex flex-wrap gap-3 rounded-[10px] border border-slate-100 bg-slate-50/50 px-4 py-2.5 text-[11px] font-semibold text-slate-600">
+          <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-emerald-500" />{workedDaysCount} batida(s)</span>
+          <span className="text-slate-300">|</span>
+          <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-sky-500" />{restDaysCount} folga(s)</span>
+          {missingDaysCount > 0 && (
+            <>
+              <span className="text-slate-300">|</span>
+              <span className="flex items-center gap-1 text-amber-700"><span className="h-2 w-2 rounded-full bg-amber-500" />{missingDaysCount} pendente(s)</span>
+            </>
+          )}
+          <span className="text-slate-300">|</span>
+          <span className="text-slate-400">{monthLabel(monthFilter)}</span>
+        </div>
+      </div>
+
+      {/* Grade mensal */}
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[960px] text-left">
+          <thead>
+            <tr className="bg-gradient-to-r from-slate-100 to-slate-50 text-[10px] font-black uppercase tracking-[0.12em] text-slate-600">
+              <th className="px-3 py-3 w-14">Dia</th>
+              <th className="px-3 py-3 w-20">Data</th>
+              <th className="px-3 py-3">Entrada</th>
+              <th className="px-3 py-3">Almoço</th>
+              <th className="px-3 py-3">Saída</th>
+              <th className="px-3 py-3">Trabalhado</th>
+              <th className="px-3 py-3">Saldo</th>
+              <th className="px-3 py-3">Status</th>
+              {canManage && <th className="px-3 py-3 text-right">Ações</th>}
+            </tr>
+          </thead>
+          <tbody>
+            {grid.map((day, idx) => {
+              const t = day.track;
+              // Decide cor de fundo
+              let rowBg = '';
+              if (day.isRestDay) rowBg = 'bg-sky-50/30';
+              else if (day.isFuture) rowBg = 'bg-slate-50/40 opacity-70';
+              else if (!t) rowBg = 'bg-amber-50/20';
+
+              const dayStatusText = day.isRestDay
+                ? restDayBadge()
+                : t
+                  ? dayStatus(t)
+                  : day.isFuture
+                    ? '—'
+                    : 'Pendente';
+
+              return (
+                <tr key={day.dateKey} className={`border-t border-slate-100 text-[12px] font-semibold text-slate-700 transition-colors hover:bg-slate-50/70 ${rowBg}`}>
+                  <td className="px-3 py-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] font-black text-slate-600">{day.weekdayLabel}</span>
+                      <span className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-[12px] font-black ${day.isRestDay ? 'bg-sky-100 text-sky-700' : 'bg-slate-100 text-slate-700'}`}>
+                        {day.dayNumber}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="px-3 py-3 text-slate-500">{formatDate(day.dateKey)}</td>
+                  <td className={`px-3 py-3 font-mono font-black ${t?.entry ? 'text-slate-950' : 'text-slate-300'}`}>
+                    {t?.entry ? displayTime(t.entry) : '--:--'}
+                  </td>
+                  <td className={`px-3 py-3 font-mono ${t?.lunchStart || t?.lunchReturn ? 'text-slate-600' : 'text-slate-300'}`}>
+                    {displayLunch(t?.lunchStart, t?.lunchReturn)}
+                  </td>
+                  <td className={`px-3 py-3 font-mono font-black ${t?.exit ? 'text-slate-950' : 'text-slate-300'}`}>
+                    {t?.exit ? displayTime(t.exit) : '--:--'}
+                  </td>
+                  <td className="px-3 py-3 text-slate-600">{t ? displayWorked(t.totalWorked) : '--:--'}</td>
+                  <td className={`px-3 py-3 font-black ${t && (t.dailyBalance ?? 0) < 0 ? 'text-rose-600' : t ? 'text-emerald-600' : 'text-slate-300'}`}>
+                    {t ? displayBalance(t.dailyBalance) : '--:--'}
+                  </td>
+                  <td className="px-3 py-3">
+                    <StatusBadge status={dayStatusText} />
+                  </td>
+                  {canManage && (
+                    <td className="px-3 py-3">
+                      {t && (
+                        <div className="flex justify-end gap-2">
+                          <button onClick={() => onEdit(t)} disabled={isRefreshing || removeLoading} className="btn-outline-premium inline-flex h-7 items-center gap-1 px-2 text-[10px]">
+                            <Edit3 size={11} />Editar
+                          </button>
+                          <button onClick={() => onDelete(t)} disabled={isRefreshing || removeLoading} className="inline-flex h-7 items-center gap-1 rounded-[6px] bg-gradient-to-r from-rose-500 to-pink-600 px-2 text-[10px] font-black text-white shadow-md shadow-rose-500/20 transition-all hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-40">
+                            <Trash2 size={11} />Excluir
+                          </button>
+                        </div>
+                      )}
+                    </td>
+                  )}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Legenda */}
+      <div className="border-t border-slate-100 bg-slate-50/50 px-6 py-3">
+        <div className="flex flex-wrap gap-4 text-[10px] font-semibold text-slate-500">
+          <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded border border-sky-200 bg-sky-50" /> Folga (DSR)</span>
+          <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded border border-amber-200 bg-amber-50/40" /> Pendente</span>
+          <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded border border-slate-200 bg-slate-50/40" /> Futuro</span>
+          <span className="flex items-center gap-1 text-slate-400">--:-- Sem registro</span>
+        </div>
+      </div>
+    </section>
+  );
 }
