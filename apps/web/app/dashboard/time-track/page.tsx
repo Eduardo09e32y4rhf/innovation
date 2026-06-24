@@ -477,11 +477,18 @@ function MonthGridSection({ employee, tracks, monthFilter, canManage, isRefreshi
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[1100px] table-fixed text-left">
+        <table className="w-full min-w-[1200px] table-fixed border-separate border-spacing-0 text-left">
           <thead>
             <tr className="bg-gradient-to-r from-slate-100 to-slate-50 text-[10px] font-black uppercase tracking-[0.12em] text-slate-600">
-              <th className="px-2 py-3 w-[9%]">Dia</th><th className="px-2 py-3 w-[9%]">Data</th><th className="px-2 py-3 w-[10%]">Entrada</th><th className="px-2 py-3 w-[14%]">Almoço</th><th className="px-2 py-3 w-[10%]">Saída</th><th className="px-2 py-3 w-[10%]">Trabalhado</th><th className="px-2 py-3 w-[10%]">Saldo</th><th className="px-2 py-3 w-[12%]">Status</th>
-              {canManage && <th className="px-2 py-3 w-[16%] text-center">Ações</th>}
+              <th className="sticky top-0 z-10 px-2 py-2.5 w-[8%] border-b border-slate-200">Dia</th>
+              <th className="sticky top-0 z-10 px-2 py-2.5 w-[10%] border-b border-slate-200">Data</th>
+              <th className="sticky top-0 z-10 px-2 py-2.5 w-[10%] border-b border-slate-200">Entrada</th>
+              <th className="sticky top-0 z-10 px-2 py-2.5 w-[14%] border-b border-slate-200">Almoço</th>
+              <th className="sticky top-0 z-10 px-2 py-2.5 w-[10%] border-b border-slate-200">Saída</th>
+              <th className="sticky top-0 z-10 px-2 py-2.5 w-[10%] border-b border-slate-200">Trabalhado</th>
+              <th className="sticky top-0 z-10 px-2 py-2.5 w-[10%] border-b border-slate-200">Saldo</th>
+              <th className="sticky top-0 z-10 px-2 py-2.5 w-[12%] border-b border-slate-200">Status</th>
+              {canManage && <th className="sticky top-0 z-10 px-2 py-2.5 w-[16%] text-center border-b border-slate-200">Ações</th>}
             </tr>
           </thead>
           <tbody>
@@ -494,23 +501,28 @@ function MonthGridSection({ employee, tracks, monthFilter, canManage, isRefreshi
               const dayStatusText = day.isRestDay ? restDayBadge() : t ? dayStatus(t) : day.isFuture ? '—' : 'Pendente';
 
               return (
-                <tr key={day.dateKey} className={`border-t border-slate-100 text-[12px] font-semibold text-slate-700 transition-colors hover:bg-slate-50/70 ${rowBg}`}>
-                  <td className="px-2 py-2.5"><div className="flex items-center gap-1.5"><span className="text-[10px] font-bold text-slate-500">{day.weekdayLabel}</span><span className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-black ${day.isRestDay ? 'bg-sky-100 text-sky-700' : 'bg-slate-100 text-slate-700'}`}>{day.dayNumber}</span></div></td>
-                  <td className="px-2 py-2.5 text-slate-500 text-xs">{formatDate(day.dateKey)}</td>
-                  <td className={`px-2 py-2.5 font-mono text-xs font-black ${t?.entry ? 'text-slate-950' : 'text-slate-300'}`}>{t?.entry ? displayTime(t.entry) : '--:--'}</td>
-                  <td className={`px-2 py-2.5 font-mono text-xs ${t?.lunchStart || t?.lunchReturn ? 'text-slate-600' : 'text-slate-300'}`}>{displayLunch(t?.lunchStart, t?.lunchReturn)}</td>
-                  <td className={`px-2 py-2.5 font-mono text-xs font-black ${t?.exit ? 'text-slate-950' : 'text-slate-300'}`}>{t?.exit ? displayTime(t.exit) : '--:--'}</td>
-                  <td className="px-2 py-2.5 text-slate-600 text-xs">{t ? displayWorked(t.totalWorked) : '--:--'}</td>
-                  <td className={`px-2 py-2.5 text-xs font-black ${t && (t.dailyBalance ?? 0) < 0 ? 'text-rose-600' : t ? 'text-emerald-600' : 'text-slate-300'}`}>{t ? displayBalance(t.dailyBalance) : '--:--'}</td>
-                  <td className="px-2 py-2.5 text-center"><StatusBadge status={dayStatusText} /></td>
+                <tr key={day.dateKey} className={`h-9 border-t border-slate-100 text-[11px] font-semibold text-slate-700 transition-colors hover:bg-slate-50/70 ${rowBg}`}>
+                  <td className="px-2 overflow-hidden" title={`${day.weekdayLabel} ${day.dayNumber}`}>
+                    <div className="flex items-center gap-1.5 whitespace-nowrap">
+                      <span className="text-[10px] font-bold text-slate-500 truncate">{day.weekdayLabel}</span>
+                      <span className={`inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-black ${day.isRestDay ? 'bg-sky-100 text-sky-700' : 'bg-slate-100 text-slate-700'}`}>{day.dayNumber}</span>
+                    </div>
+                  </td>
+                  <td className="px-2 truncate text-slate-500 text-xs" title={formatDate(day.dateKey)}>{formatDate(day.dateKey)}</td>
+                  <td className={`px-2 truncate font-mono text-xs font-black ${t?.entry ? 'text-slate-950' : 'text-slate-300'}`}>{t?.entry ? displayTime(t.entry) : '--:--'}</td>
+                  <td className={`px-2 truncate font-mono text-xs ${t?.lunchStart || t?.lunchReturn ? 'text-slate-600' : 'text-slate-300'}`}>{displayLunch(t?.lunchStart, t?.lunchReturn)}</td>
+                  <td className={`px-2 truncate font-mono text-xs font-black ${t?.exit ? 'text-slate-950' : 'text-slate-300'}`}>{t?.exit ? displayTime(t.exit) : '--:--'}</td>
+                  <td className="px-2 truncate text-slate-600 text-xs">{t ? displayWorked(t.totalWorked) : '--:--'}</td>
+                  <td className={`px-2 truncate text-xs font-black ${t && (t.dailyBalance ?? 0) < 0 ? 'text-rose-600' : t ? 'text-emerald-600' : 'text-slate-300'}`}>{t ? displayBalance(t.dailyBalance) : '--:--'}</td>
+                  <td className="px-2 truncate text-center"><StatusBadge status={dayStatusText} /></td>
                   {canManage && (
-                    <td className="px-2 py-2.5 text-center">
-                      <div className="flex justify-center gap-1">
+                    <td className="px-2 text-center">
+                      <div className="flex justify-center gap-1 whitespace-nowrap">
                         {t ? (<>
-                          <button onClick={() => onEdit(t)} disabled={isRefreshing || removeLoading} className="btn-outline-premium inline-flex h-6 items-center gap-1 px-2 text-[10px]"><Edit3 size={10} />Editar</button>
-                          <button onClick={() => onDelete(t)} disabled={isRefreshing || removeLoading} className="inline-flex h-6 items-center gap-1 rounded-[6px] bg-gradient-to-r from-rose-500 to-pink-600 px-2 text-[10px] font-black text-white shadow-md shadow-rose-500/20 transition-all hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-40"><Trash2 size={10} />Excluir</button>
+                          <button onClick={() => onEdit(t)} disabled={isRefreshing || removeLoading} className="btn-outline-premium inline-flex h-6 shrink-0 items-center gap-1 px-2 text-[10px]"><Edit3 size={10} />Editar</button>
+                          <button onClick={() => onDelete(t)} disabled={isRefreshing || removeLoading} className="inline-flex h-6 shrink-0 items-center gap-1 rounded-[6px] bg-gradient-to-r from-rose-500 to-pink-600 px-2 text-[10px] font-black text-white shadow-md shadow-rose-500/20 transition-all hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-40"><Trash2 size={10} />Excluir</button>
                         </>) : !day.isRestDay && !day.isFuture ? (
-                          <button onClick={() => onEdit({ id: '', employeeId: employee.id, date: day.dateKey, entry: null, lunchStart: null, lunchReturn: null, exit: null, totalWorked: null, dailyBalance: null } as unknown as TimeTrack)} disabled={isRefreshing || removeLoading} className="crystal-button inline-flex h-6 items-center gap-1 px-2 text-[10px]"><Edit3 size={10} />Lançar</button>
+                          <button onClick={() => onEdit({ id: '', employeeId: employee.id, date: day.dateKey, entry: null, lunchStart: null, lunchReturn: null, exit: null, totalWorked: null, dailyBalance: null } as unknown as TimeTrack)} disabled={isRefreshing || removeLoading} className="crystal-button inline-flex h-6 shrink-0 items-center gap-1 px-2 text-[10px]"><Edit3 size={10} />Lançar</button>
                         ) : null}
                       </div>
                     </td>
