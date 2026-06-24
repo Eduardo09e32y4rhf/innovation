@@ -76,7 +76,7 @@ export class TimeTrackService {
     }
     
     this.validateManualTimestamp(employee, dto.entry, dto.lunchStart, dto.lunchReturn, dto.exit, date);
-    return this.applyManual(dto.employeeId, dto.date, dto);
+    return this.applyManual(employee, dto.date, dto);
   }
 
   async manualBulk(companyId: string, dto: BulkManualTimeTrackDto) {
@@ -98,7 +98,7 @@ export class TimeTrackService {
           }
         }
         
-        created.push(await this.applyManual(employeeId, date, dto));
+        created.push(await this.applyManual(employee, date, dto));
       }
     }
     return { count: created.length, items: created };
@@ -410,9 +410,10 @@ export class TimeTrackService {
     return date.toISOString().slice(0, 10);
   }
 
-  private async applyManual(employeeId: string, dateValue: string, dto: Pick<ManualTimeTrackDto, 'entry' | 'lunchStart' | 'lunchReturn' | 'exit' | 'reason' | 'observation'>) {
+  private async applyManual(employee: { dailyWorkload?: string | null }, dateValue: string, dto: Pick<ManualTimeTrackDto, 'entry' | 'lunchStart' | 'lunchReturn' | 'exit' | 'reason' | 'observation'>) {
     const date = this.toDateOnly(this.parseDate(dateValue, 'Invalid date'));
     const isFullDayAdjustment = dto.reason === 'ajuste_atestado_integral' || dto.reason === 'ajuste_feriado' || dto.reason === 'ajuste_suspensao';
+    const isBanco = dto.reason === 'ajuste_folga_dsr' || dto.reason === 'ajuste_abono_folga';
     const data = {
       entry: isFullDayAdjustment ? null : this.parseOptionalDate((dto as any).entry),
       lunchStart: isFullDayAdjustment ? null : this.parseOptionalDate((dto as any).lunchStart),
@@ -422,8 +423,12 @@ export class TimeTrackService {
       manualReason: dto.reason,
       manualStatus: 'pending',
     };
+    if (isBanco) {
+      const workload = parseWorkloadToMinutes(employee.dailyWorkload);
+      return this.repository.upsert(employee.id, date, { ...data, totalWorked: -workload, dailyBalance: -workload });
+    }
     const totals = this.calculateTotals(data);
-    return this.repository.upsert(employeeId, date, { ...data, ...totals });
+    return this.repository.upsert(employee.id, date, { ...data, ...totals });
   }
 
   private resolveBulkDates(dto: BulkManualTimeTrackDto) {
