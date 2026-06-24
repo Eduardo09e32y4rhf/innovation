@@ -19,6 +19,10 @@ echo "$LOG_PREFIX === START $(date) ==="
 echo "$LOG_PREFIX limpando locks quebrados do git..."
 rm -f .git/index.lock .git/refs/remotes/origin/main.lock .git/HEAD.lock || true
 
+echo "$LOG_PREFIX removendo containers órfãos/inconsistentes..."
+docker ps -a --filter "name=innovation-redis" -q | xargs -r docker rm -f || true
+docker ps -a --filter "name=innovation-postgres" -q | xargs -r docker rm -f || true
+
 echo "$LOG_PREFIX atualizando repositório..."
 git fetch origin --prune
 git reset --hard origin/main

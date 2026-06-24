@@ -19,6 +19,10 @@ echo "$LOG_PREFIX === START $(date) ==="
 echo "$LOG_PREFIX limpando locks quebrados do git..."
 rm -f .git/index.lock .git/refs/remotes/origin/main.lock .git/HEAD.lock || true
 
+echo "$LOG_PREFIX removendo containers órfãos/inconsistentes..."
+docker ps -a --filter "name=innovation-redis" -q | xargs -r docker rm -f || true
+docker ps -a --filter "name=innovation-postgres" -q | xargs -r docker rm -f || true
+
 echo "$LOG_PREFIX atualizando repositório..."
 git fetch origin --prune
 git reset --hard origin/main
@@ -29,27 +33,55 @@ grep -q '^REDIS_URL=' .env \
   && sed -i 's|^REDIS_URL=.*|REDIS_URL=redis://redis:6379|' .env \
   || echo 'REDIS_URL=redis://redis:6379' >> .env
 
-echo "$LOG_PREFIX rebuildando API e WEB (com cache)..."
-$COMPOSE build api web
+echo "$LOG_PREFIX detectando mudanças..."
+CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD || echo "")
 
-echo "$LOG_PREFIX subindo API..."
-$COMPOSE up -d api
+BUILD_API=false
+BUILD_WEB=false
 
-echo "$LOG_PREFIX aguardando API ficar pronta..."
-for i in {1..30}; do
-  if curl -fsS http://127.0.0.1:3333/health >/dev/null 2>&1; then
-    echo "$LOG_PREFIX API pronta."
-    break
-  fi
-  echo "$LOG_PREFIX aguardando API... tentativa $i/30"
-  sleep 5
-done
+if echo "$CHANGED_FILES" | grep -qE '^(apps/api/|prisma/|package.json|package-lock.json|apps/api/|apps/web/)'; then
+  BUILD_API=true
+fi
+if echo "$CHANGED_FILES" | grep -qE '^(apps/web/|package.json|package-lock.json)'; then
+  BUILD_WEB=true
+fi
 
-echo "$LOG_PREFIX aplicando migrations..."
-$COMPOSE exec -T api npm run prisma:deploy || true
+echo "$LOG_PREFIX arquivos alterados: $CHANGED_FILES"
+echo "$LOG_PREFIX rebuild API: $BUILD_API | WEB: $BUILD_WEB"
 
-echo "$LOG_PREFIX subindo WEB..."
-$COMPOSE up -d web
+echo "$LOG_PREFIX subindo base (redis/postgres)..."
+$COMPOSE up -d redis postgres
+
+if [ "$BUILD_API" = true ]; then
+  echo "$LOG_PREFIX rebuildando API..."
+  $COMPOSE build api
+  echo "$LOG_PREFIX subindo API..."
+  $COMPOSE up -d api
+
+  echo "$LOG_PREFIX aguardando API ficar pronta..."
+  for i in {1..30}; do
+    if curl -fsS http://127.0.0.1:3333/health >/dev/null 2>&1; then
+      echo "$LOG_PREFIX API pronta."
+      break
+    fi
+    echo "$LOG_PREFIX aguardando API... tentativa $i/30"
+    sleep 5
+  done
+
+  echo "$LOG_PREFIX aplicando migrations..."
+  $COMPOSE exec -T api npm run prisma:deploy || true
+else
+  echo "$LOG_PREFIX API sem mudanças, pulando rebuild."
+fi
+
+if [ "$BUILD_WEB" = true ]; then
+  echo "$LOG_PREFIX rebuildando WEB..."
+  $COMPOSE build web
+  echo "$LOG_PREFIX subindo WEB..."
+  $COMPOSE up -d web
+else
+  echo "$LOG_PREFIX WEB sem mudanças, pulando rebuild."
+fi
 
 echo "$LOG_PREFIX validando nginx..."
 nginx -t
