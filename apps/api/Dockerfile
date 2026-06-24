@@ -33,8 +33,8 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Instalar apenas libc6-compat para compatibilidade
-RUN apk add --no-cache libc6-compat
+# Instalar utilitarios para healthcheck
+RUN apk add --no-cache libc6-compat wget
 
 # Copiar apenas o necessario do builder
 COPY --from=builder /usr/src/app/node_modules ./node_modules
