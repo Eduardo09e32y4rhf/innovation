@@ -39,10 +39,13 @@ CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD || echo "")
 BUILD_API=false
 BUILD_WEB=false
 
-if echo "$CHANGED_FILES" | grep -qE '^(apps/api/|prisma/|package.json|package-lock.json|apps/api/|apps/web/)'; then
+# API deve rebuildar quando mudar backend
+if echo "$CHANGED_FILES" | grep -qE '^(apps/api/|prisma/|package.json|package-lock.json|apps/api/Dockerfile|docker-compose.prod.yml)'; then
   BUILD_API=true
 fi
-if echo "$CHANGED_FILES" | grep -qE '^(apps/web/|package.json|package-lock.json)'; then
+
+# WEB deve rebuildar quando mudar frontend
+if echo "$CHANGED_FILES" | grep -qE '^(apps/web/|package.json|package-lock.json|apps/web/Dockerfile|docker-compose.prod.yml)'; then
   BUILD_WEB=true
 fi
 

@@ -15,7 +15,6 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
         if (times > 5) return null;
         return Math.min(times * 200, 2000);
       },
-      lazyConnect: true,
     });
 
     this.client.on('connect', () => {
@@ -28,15 +27,18 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
 
     this.client.on('error', (err) => {
       console.error('[Redis] Connection error:', err.message);
+      this.isConnected = false;
     });
   }
 
   async onModuleInit() {
     try {
       await this.client.connect();
+      this.isConnected = true;
       console.log('[Redis] Connected successfully');
-    } catch {
-      console.warn('[Redis] Not available — running without Redis cache');
+    } catch (err) {
+      this.isConnected = false;
+      console.warn('[Redis] Not available — running without Redis cache:', err.message);
     }
   }
 
