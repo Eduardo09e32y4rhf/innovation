@@ -1,4 +1,5 @@
 import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
+import { RateLimitGuard, RateLimit } from '../../common/guards/rate-limit.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import type { JwtUser } from '../../common/types/auth.types';
@@ -19,11 +20,15 @@ export class AuthController {
   }
 
   @Post('login')
+  @UseGuards(RateLimitGuard)
+  @RateLimit({ window: 60, max: 10, prefix: 'login' })
   login(@Body() dto: LoginDto, @Req() request: any) {
     return this.service.login(dto, getRequestMeta(request));
   }
 
   @Post('password-reset/request')
+  @UseGuards(RateLimitGuard)
+  @RateLimit({ window: 60, max: 5, prefix: 'pwd-reset' })
   requestPasswordReset(@Body() dto: RequestPasswordResetDto, @Req() request: any) {
     return this.service.requestPasswordReset(dto, getRequestMeta(request));
   }
