@@ -45,98 +45,43 @@ const ADJUSTMENT_REASONS: { value: TimeTrackAdjustmentReason; label: string; ful
 ];
 
 type CompanyPrintInfo = { name: string; document: string; logoUrl?: string | null };
-type MirrorRow = {
-  funcionario: string;
-  employee?: Employee;
-  data: string;
-  dia: string;
-  entrada1: string;
-  saida1: string;
-  entrada2: string;
-  saida2: string;
-  abono: string;
-  horaExtra: string;
-  ausente: string;
-  adicionalNoturno: string;
-  trabalhado: string;
-  saldo: string;
-  statusDia: string;
-  observacao: string;
-};
 
-function currentMonth() {
-  return new Date().toISOString().slice(0, 7);
-}
-
-function toDateKey(value?: string | null) {
-  return value ? value.slice(0, 10) : '';
-}
-
+function currentMonth() { return new Date().toISOString().slice(0, 7); }
+function toDateKey(value?: string | null) { return value ? value.slice(0, 10) : ''; }
 function displayTime(value?: string | null) {
   if (!value) return '--:--';
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return '--:--';
   return d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 }
-
-function timeInput(value?: string | null) {
-  return displayTime(value) === '--:--' ? '' : displayTime(value);
-}
-
-function displayWorked(minutes?: number | null) {
-  return minutes === null || minutes === undefined ? '--:--' : formatMinutes(minutes);
-}
-
-function displayBalance(minutes?: number | null) {
-  return minutes === null || minutes === undefined ? '--:--' : formatMinutes(minutes);
-}
-
-function displayLunch(start?: string | null, end?: string | null) {
-  if (!start && !end) return '--:--';
-  return `${displayTime(start)} - ${displayTime(end)}`;
-}
+function timeInput(value?: string | null) { return displayTime(value) === '--:--' ? '' : displayTime(value); }
+function displayWorked(minutes?: number | null) { return minutes === null || minutes === undefined ? '--:--' : formatMinutes(minutes); }
+function displayBalance(minutes?: number | null) { return minutes === null || minutes === undefined ? '--:--' : formatMinutes(minutes); }
+function displayLunch(start?: string | null, end?: string | null) { if (!start && !end) return '--:--'; return `${displayTime(start)} - ${displayTime(end)}`; }
 
 // ─── MONTH GRID & REST DAYS ───────────────────────────────────────────────
 
 interface DaySlot {
-  date: Date;
-  dateKey: string;
-  dayNumber: number;
-  weekday: number; // 0=dom..6=sab
-  weekdayLabel: string;
-  isRestDay: boolean;
-  isFuture: boolean;
-  track?: TimeTrack;
+  date: Date; dateKey: string; dayNumber: number; weekday: number;
+  weekdayLabel: string; isRestDay: boolean; isFuture: boolean; track?: TimeTrack;
 }
 
-function daysInMonth(year: number, month: number) {
-  return new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
-}
+function daysInMonth(year: number, month: number) { return new Date(Date.UTC(year, month + 1, 0)).getUTCDate(); }
 
-// Detect folgas por escala, incluindo ciclo 12X36 e 4X2
 function isEmployeeRestDay(date: Date, employee: Employee): boolean {
   const weekday = date.getUTCDay();
   const scale = employee.workScale;
   const custom = employee.customWorkScale;
-
-  // Escalas fixas semanais
-  if (scale === '5X2') return weekday === 0 || weekday === 6; // sáb + dom
-  if (scale === '6X1') return weekday === 0; // dom
+  if (scale === '5X2') return weekday === 0 || weekday === 6;
+  if (scale === '6X1') return weekday === 0;
   if (scale === '4X2') return isCycleRestDay(date, employee, 4, 2);
   if (scale === '12X36') return isCycleRestDay(date, employee, 1, 1);
   if (scale === 'OUTRO' && custom) {
-    // Parse custom: "4X2", "5X2", etc.
     const match = custom.match(/(\d+)X(\d+)/i);
-    if (match) {
-      const w = parseInt(match[1], 10);
-      const o = parseInt(match[2], 10);
-      return isCycleRestDay(date, employee, w, o);
-    }
-    // Se não parsear como ciclo, trata como 5X2 padrão
+    if (match) return isCycleRestDay(date, employee, parseInt(match[1], 10), parseInt(match[2], 10));
     return weekday === 0 || weekday === 6;
   }
-
-  return weekday === 0; // padrão seguro: domingo
+  return weekday === 0;
 }
 
 function isCycleRestDay(date: Date, employee: Employee, workDays: number, offDays: number): boolean {
@@ -145,8 +90,7 @@ function isCycleRestDay(date: Date, employee: Employee, workDays: number, offDay
   const dateUtc = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
   const diffDays = Math.floor((dateUtc - admissionUtc) / 86400000);
   if (diffDays < 0) return false;
-  const position = diffDays % (workDays + offDays);
-  return position >= workDays; // dias após os workDays são folga
+  return (diffDays % (workDays + offDays)) >= workDays;
 }
 
 function generateMonthGrid(monthStr: string, employee: Employee, tracks: TimeTrack[]): DaySlot[] {
@@ -154,35 +98,20 @@ function generateMonthGrid(monthStr: string, employee: Employee, tracks: TimeTra
   const totalDays = daysInMonth(year, month - 1);
   const now = new Date();
   const todayKey = now.toISOString().slice(0, 10);
-
-  // Mapa de tracks por dateKey
   const trackMap = new Map<string, TimeTrack>();
-  for (const t of tracks) {
-    trackMap.set(toDateKey(t.date), t);
-  }
-
+  for (const t of tracks) trackMap.set(toDateKey(t.date), t);
   const grid: DaySlot[] = [];
   for (let day = 1; day <= totalDays; day++) {
     const date = new Date(Date.UTC(year, month - 1, day));
     const dateKey = date.toISOString().slice(0, 10);
     const weekday = date.getUTCDay();
-    grid.push({
-      date,
-      dateKey,
-      dayNumber: day,
-      weekday,
-      weekdayLabel: WEEKDAYS.find(w => w.value === weekday)?.label.slice(0, 3) ?? '',
-      isRestDay: isEmployeeRestDay(date, employee),
-      isFuture: dateKey > todayKey,
-      track: trackMap.get(dateKey),
-    });
+    grid.push({ date, dateKey, dayNumber: day, weekday, weekdayLabel: WEEKDAYS.find(w => w.value === weekday)?.label.slice(0, 3) ?? '', isRestDay: isEmployeeRestDay(date, employee), isFuture: dateKey > todayKey, track: trackMap.get(dateKey) });
   }
   return grid;
 }
 
-function restDayBadge(reason?: string) {
-  return reason || 'Folga (DSR)';
-}
+function restDayBadge(reason?: string) { return reason || 'Folga (DSR)'; }
+
 function toIso(date: string, time: string) {
   if (!date || !time) return null;
   const [year, month, day] = date.split('-').map(Number);
@@ -190,28 +119,11 @@ function toIso(date: string, time: string) {
   return new Date(year, month - 1, day, hour, minute, 0, 0).toISOString();
 }
 
-function escapeHtml(value: unknown) {
-  return String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[char] ?? char));
-}
-
-function formatDocument(value?: string | null) {
-  const digits = String(value ?? '').replace(/\D/g, '');
-  if (digits.length === 14) return digits.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
-  if (digits.length === 11) return digits.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
-  return value || '-';
-}
+function escapeHtml(value: unknown) { return String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&', '<': '<', '>': '>', '"': '"', "'": '&#039;' }[char] ?? char)); }
+function formatDocument(value?: string | null) { const digits = String(value ?? '').replace(/\D/g, ''); if (digits.length === 14) return digits.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5'); if (digits.length === 11) return digits.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4'); return value || '-'; }
 
 function normalizeCompanyInfo(company?: Company | null): CompanyPrintInfo {
-  return {
-    name: normalizeDisplayName(company?.name ?? 'Empresa'),
-    document: formatDocument(company?.document ?? null),
-    logoUrl: company?.logoUrl ?? null,
-  };
-}
-
-function companyLogo(company: CompanyPrintInfo) {
-  if (!company.logoUrl) return '<div class="logo-placeholder">Logo</div>';
-  return `<img class="company-logo" src="${escapeHtml(company.logoUrl)}" alt="Logo da empresa" />`;
+  return { name: normalizeDisplayName(company?.name ?? 'Empresa'), document: formatDocument(company?.document ?? null), logoUrl: company?.logoUrl ?? null };
 }
 
 function monthLabel(month: string) {
@@ -223,28 +135,8 @@ function monthLabel(month: string) {
   return label.charAt(0).toUpperCase() + label.slice(1);
 }
 
-function periodLabel(month: string) {
-  if (!month) return 'Período completo';
-  const [year, monthNumber] = month.split('-').map(Number);
-  if (!year || !monthNumber) return month;
-  const start = new Date(year, monthNumber - 1, 1);
-  const end = new Date(year, monthNumber, 0);
-  return `${start.toLocaleDateString('pt-BR')} a ${end.toLocaleDateString('pt-BR')}`;
-}
-
-function dateWeekday(value?: string | null) {
-  const date = value ? new Date(value) : null;
-  if (!date || Number.isNaN(date.getTime())) return '-';
-  return date.toLocaleDateString('pt-BR', { weekday: 'long' }).replace(/^./, (char) => char.toUpperCase());
-}
-
-function minutesPositive(minutes?: number | null) {
-  return Math.max(minutes ?? 0, 0);
-}
-
-function minutesNegative(minutes?: number | null) {
-  return Math.abs(Math.min(minutes ?? 0, 0));
-}
+function dateWeekday(value?: string | null) { const date = value ? new Date(value) : null; if (!date || Number.isNaN(date.getTime())) return '-'; return date.toLocaleDateString('pt-BR', { weekday: 'long' }).replace(/^./, (char) => char.toUpperCase()); }
+function minutesPositive(minutes?: number | null) { return Math.max(minutes ?? 0, 0); }
 
 function compareTimeTracks(a: TimeTrack, b: TimeTrack) {
   const nameComparison = collator.compare(normalizeDisplayName(a.employee?.name ?? ''), normalizeDisplayName(b.employee?.name ?? ''));
@@ -252,32 +144,6 @@ function compareTimeTracks(a: TimeTrack, b: TimeTrack) {
   const dateComparison = toDateKey(a.date).localeCompare(toDateKey(b.date));
   if (dateComparison !== 0) return dateComparison;
   return displayTime(a.entry).localeCompare(displayTime(b.entry));
-}
-function buildMirrorRows(rows: TimeTrack[]): MirrorRow[] {
-  return rows.map((row) => {
-    const worked = row.totalWorked;
-    const balance = row.dailyBalance;
-    const observation = row.observation || 'Ponto normal';
-    const fullDayCertificate = observation.toLowerCase().includes('atestado integral') || observation.toLowerCase().includes('feriado');
-    return {
-      funcionario: normalizeDisplayName(row.employee?.name ?? ''),
-      employee: row.employee,
-      data: formatDate(row.date),
-      dia: dateWeekday(row.date),
-      entrada1: displayTime(row.entry),
-      saida1: displayTime(row.lunchStart),
-      entrada2: displayTime(row.lunchReturn),
-      saida2: displayTime(row.exit),
-      abono: fullDayCertificate ? '08:00' : '--:--',
-      horaExtra: balance === null || balance === undefined ? '--:--' : formatMinutes(minutesPositive(balance)),
-      ausente: balance === null || balance === undefined ? '--:--' : formatMinutes(minutesNegative(balance)),
-      adicionalNoturno: '--:--',
-      trabalhado: displayWorked(worked),
-      saldo: displayBalance(balance),
-      statusDia: dayStatus(row),
-      observacao: observation,
-    };
-  });
 }
 
 function dayStatus(row: TimeTrack) {
@@ -292,115 +158,17 @@ function dayStatus(row: TimeTrack) {
   return 'Normal';
 }
 
-function sumMinutes(rows: TimeTrack[], field: 'totalWorked' | 'dailyBalance') {
-  return rows.reduce((total, row) => total + (row[field] ?? 0), 0);
-}
-
-function downloadExcel(filename: string, rows: TimeTrack[], company: CompanyPrintInfo) {
-  const mirrorRows = buildMirrorRows(rows);
-  const bodyRows = mirrorRows.map((row) => `
-    <tr>
-      <td>${escapeHtml(row.funcionario)}</td><td>${escapeHtml(row.data)}</td><td>${escapeHtml(row.dia)}</td>
-      <td>${escapeHtml(row.entrada1)}</td><td>${escapeHtml(row.saida1)}</td><td>${escapeHtml(row.entrada2)}</td><td>${escapeHtml(row.saida2)}</td>
-      <td>${escapeHtml(row.trabalhado)}</td><td>${escapeHtml(row.saldo)}</td><td>${escapeHtml(row.statusDia)}</td><td>${escapeHtml(row.observacao)}</td>
-    </tr>`).join('');
-  const html = `<!doctype html><html><head><meta charset="utf-8" /></head><body>
-    <h2>Espelho de ponto</h2>
-    <p><strong>Empresa:</strong> ${escapeHtml(company.name)} &nbsp; <strong>CNPJ:</strong> ${escapeHtml(company.document)}</p>
-    <table border="1">
-      <thead><tr><th>Funcionário</th><th>Data</th><th>Dia</th><th>1ª entrada</th><th>1ª saída</th><th>2ª entrada</th><th>2ª saída</th><th>Trabalhado</th><th>Saldo</th><th>Observação</th></tr></thead>
-      <tbody>${bodyRows}</tbody>
-    </table>
-  </body></html>`;
-  const blob = new Blob([html], { type: 'application/vnd.ms-excel;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = filename.endsWith('.xls') ? filename : `${filename}.xls`;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  URL.revokeObjectURL(url);
-}
-
-function employeeHeader(employee?: Employee) {
-  if (!employee) return '';
-  return `
-    <section class="employee-grid">
-      <div><strong>Matrícula:</strong> ${escapeHtml(employee.id.slice(0, 8).toUpperCase())}</div>
-      <div><strong>Nome:</strong> ${escapeHtml(normalizeDisplayName(employee.name))}</div>
-      <div><strong>CPF:</strong> ${escapeHtml(formatDocument(employee.cpf))}</div>
-      <div><strong>Função:</strong> ${escapeHtml(employee.position || '-')}</div>
-      <div><strong>Departamento:</strong> ${escapeHtml(employee.department || '-')}</div>
-      <div><strong>Admissão:</strong> ${escapeHtml(formatDate(employee.admissionDate))}</div>
-    </section>`;
-}
-
-function reportHeader(company: CompanyPrintInfo, title: string, month: string, records: number, employees: number) {
-  return `<header class="report-header"><div class="company-side"><div>${companyLogo(company)}</div><div><h1>${escapeHtml(company.name)}</h1><p>CNPJ: ${escapeHtml(company.document)}</p></div></div><div class="report-title"><h2>${escapeHtml(title)}</h2><p>Periodo: ${escapeHtml(periodLabel(month))} | Emissao: ${escapeHtml(new Date().toLocaleString('pt-BR'))}</p></div></header><section class="meta-summary"><div class="meta-item"><span>Total de funcionarios</span><p>${employees}</p></div><div class="meta-item"><span>Total de registros</span><p>${records}</p></div><div class="meta-item"><span>Status do arquivo</span><p>Consolidado</p></div><div class="meta-item"><span>Competencia</span><p>${escapeHtml(monthLabel(month))}</p></div></section>`;
-}
-
-function renderIndividualReport(rows: TimeTrack[], employee: Employee | undefined, company: CompanyPrintInfo, month: string) {
-  const mirrorRows = buildMirrorRows(rows);
-  const totalWorked = formatMinutes(sumMinutes(rows, 'totalWorked'));
-  const totalBalance = formatMinutes(sumMinutes(rows, 'dailyBalance'));
-  const bodyRows = mirrorRows.map((row) => `
-    <tr>
-      <td>${escapeHtml(row.data)}</td><td>${escapeHtml(row.dia)}</td><td>${escapeHtml(row.entrada1)}</td><td>${escapeHtml(row.saida1)}</td>
-      <td>${escapeHtml(row.entrada2)}</td><td>${escapeHtml(row.saida2)}</td><td>${escapeHtml(row.abono)}</td><td>${escapeHtml(row.horaExtra)}</td>
-      <td>${escapeHtml(row.ausente)}</td><td>${escapeHtml(row.adicionalNoturno)}</td><td>${escapeHtml(row.statusDia)}</td><td>${escapeHtml(row.observacao)}</td>
-    </tr>`).join('');
-  return `
-    <section class="report-brand"><div>${companyLogo(company)}</div><div><h1>Espelho de ponto individual</h1></div></section>
-    <section class="meta"><span><strong>Período:</strong> ${escapeHtml(periodLabel(month))}</span><span><strong>Emissão:</strong> ${escapeHtml(new Date().toLocaleString('pt-BR'))}</span></section>
-    <section class="company"><span><strong>Empresa:</strong> ${escapeHtml(company.name)}</span><span><strong>CNPJ:</strong> ${escapeHtml(company.document)}</span></section>
-    ${employeeHeader(employee)}
-    <table><thead><tr><th>Data</th><th>Dia</th><th>1ª E.</th><th>1ª S.</th><th>2ª E.</th><th>2ª S.</th><th>Abono</th><th>H.E.</th><th>Ausente</th><th>Ad. Not.</th><th>Observação</th></tr></thead><tbody>${bodyRows}</tbody></table>
-    <section class="summary"><strong>Resumo do período:</strong> Horas trabalhadas: ${escapeHtml(totalWorked)} | Saldo final: ${escapeHtml(totalBalance)}</section>
-    <section class="signatures"><div>Assinatura do colaborador</div><div>Responsável pelo RH</div></section>`;
-}
-
-function renderCompanyReport(rows: TimeTrack[], company: CompanyPrintInfo, month: string) {
-  const grouped = rows.reduce<Record<string, TimeTrack[]>>((acc, row) => {
-    const key = row.employeeId;
-    acc[key] = acc[key] ?? [];
-    acc[key].push(row);
-    return acc;
-  }, {});
-  const sections = Object.values(grouped).map((employeeRows) => {
-    const first = employeeRows[0]?.employee;
-    const bodyRows = buildMirrorRows(employeeRows).map((row) => `
-      <tr><td>${escapeHtml(row.data)}</td><td>${escapeHtml(row.dia)}</td><td>${escapeHtml(row.entrada1)}</td><td>${escapeHtml(row.saida1)}</td><td>${escapeHtml(row.entrada2)}</td><td>${escapeHtml(row.saida2)}</td><td>${escapeHtml(row.trabalhado)}</td><td>${escapeHtml(row.saldo)}</td><td>${escapeHtml(row.statusDia)}</td><td>${escapeHtml(row.observacao)}</td></tr>`).join('');
-    return `<section class="employee-block">
-      <h2>${escapeHtml(normalizeDisplayName(first?.name ?? 'Funcionário'))}</h2>
-      ${employeeHeader(first)}
-      <section class="summary"><strong>Resumo:</strong> trabalhado ${escapeHtml(formatMinutes(sumMinutes(employeeRows, 'totalWorked')))} | saldo ${escapeHtml(formatMinutes(sumMinutes(employeeRows, 'dailyBalance')))} | feriados ${employeeRows.filter((r) => dayStatus(r) === 'Feriado').length} | atestados ${employeeRows.filter((r) => dayStatus(r) === 'Atestado integral').length} | ajustes ${employeeRows.filter((r) => dayStatus(r) === 'Ajuste manual').length}</section>
-      <table><thead><tr><th>Data</th><th>Dia</th><th>1ª entrada</th><th>1ª saída</th><th>2ª entrada</th><th>2ª saída</th><th>Trabalhado</th><th>Saldo</th><th>Observação</th></tr></thead><tbody>${bodyRows}</tbody></table>
-    </section>`;
-  }).join('');
-  return `
-    <section class="report-brand"><div>${companyLogo(company)}</div><div><h1>Espelho de ponto da empresa</h1></div></section>
-    <section class="meta"><span><strong>Período:</strong> ${escapeHtml(periodLabel(month))}</span><span><strong>Emissão:</strong> ${escapeHtml(new Date().toLocaleString('pt-BR'))}</span></section>
-    <section class="company"><span><strong>Empresa:</strong> ${escapeHtml(company.name)}</span><span><strong>CNPJ:</strong> ${escapeHtml(company.document)}</span></section>
-    <section class="summary"><strong>Total de funcionários no relatório:</strong> ${Object.keys(grouped).length} | <strong>Registros:</strong> ${rows.length}</section>
-    ${sections}`;
-}
+function sumMinutes(rows: TimeTrack[], field: 'totalWorked' | 'dailyBalance') { return rows.reduce((total, row) => total + (row[field] ?? 0), 0); }
 
 function openPrintableReport(rows: TimeTrack[], month: string, company: CompanyPrintInfo, employee?: Employee) {
   const title = employee ? `Espelho individual - ${normalizeDisplayName(employee.name)} - ${monthLabel(month)}` : `Espelho da empresa - ${monthLabel(month)}`;
-  const content = employee ? renderIndividualReport(rows, employee, company, month) : renderCompanyReport(rows, company, month);
   const win = window.open('', '_blank');
-  if (!win) {
-    window.alert('Não foi possível abrir o relatório. Verifique se o navegador bloqueou pop-ups.');
-    return;
-  }
-  win.document.open();
-  win.document.write(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8" /><title>${escapeHtml(title)}</title>
-    <style>
-      @page{size:A4 landscape;margin:6mm 8mm}*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Segoe UI',Arial,Helvetica,sans-serif;color:#0f172a;margin:0;background:#fff;font-size:9.5pt;line-height:1.35}.toolbar{position:sticky;top:0;z-index:2;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 12px;background:#0f172a;color:white}.toolbar button{border:0;border-radius:5px;background:#0f766e;color:white;padding:5px 10px;font-weight:700;cursor:pointer;font-size:10px}.page{background:white;padding:10px 8px;max-width:1100px}.compact-header{display:flex;align-items:center;justify-content:space-between;border-bottom:1.5px solid #0f172a;padding-bottom:7px;margin-bottom:10px;page-break-inside:avoid}.company-info{display:flex;align-items:center;gap:10px}.company-logo{width:34px;height:34px;object-fit:contain}.logo-placeholder{display:flex;width:34px;height:34px;align-items:center;justify-content:center;border:1px solid #e2e8f0;border-radius:5px;color:#94a3b8;font-size:8px}.company-info-text h1{font-size:14px;font-weight:900;color:#0f172a;letter-spacing:-.2px;text-transform:uppercase}.company-info-text p{color:#64748b;font-size:8px;font-weight:700}.report-info{text-align:right}.report-info h2{font-size:11px;font-weight:900;color:#0f172a;text-transform:uppercase;margin-bottom:2px}.report-info p{color:#64748b;font-size:8px;font-weight:700}.meta-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:5px;padding:6px 8px;margin-bottom:10px}.meta-bar span{font-size:7.5px;text-transform:uppercase;color:#94a3b8;font-weight:800;display:block;margin-bottom:1px}.meta-bar p{font-size:10px;font-weight:800;color:#334155}.employee-card{margin-bottom:10px;border:1px solid #e2e8f0;border-radius:5px;overflow:hidden;break-inside:avoid}.employee-card h3{background:#f1f5f9;padding:5px 10px;border-bottom:1px solid #e2e8f0;font-size:10px;font-weight:900;color:#0f172a}.emp-info{display:grid;grid-template-columns:repeat(4,1fr);gap:0;background:#f8fafc;border-bottom:1px solid #e2e8f0;padding:4px 0;font-size:8px}.emp-info div{padding:3px 10px}.emp-info strong{display:block;color:#94a3b8;font-size:7.5px;text-transform:uppercase;font-weight:800;margin-bottom:1px}.emp-info span{color:#334155;font-weight:700}.summary-line{background:#f8fafc;border-bottom:1px solid #e2e8f0;padding:4px 10px;font-size:9px;font-weight:700;color:#475569}table{width:100%;border-collapse:collapse;text-align:center;table-layout:fixed;font-size:9pt}th{background:#fff;color:#64748b;font-weight:800;font-size:8px;text-transform:uppercase;padding:4px 5px;border-bottom:1px solid #e2e8f0;letter-spacing:.02em}td{padding:3px 5px;border-bottom:1px solid #f1f5f9;color:#334155;font-size:9px;word-break:break-word}tr:last-child td{border-bottom:0}.signatures{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-top:16px}.signatures div{border-top:1px solid #cbd5e1;text-align:center;padding-top:5px;font-size:8.5px;font-weight:700;color:#475569}.footer-print{margin-top:10px;border-top:1px solid #e2e8f0;padding-top:5px;display:flex;justify-content:space-between;color:#94a3b8;font-size:7.5px;font-weight:600}@media print{.toolbar{display:none}.page{padding:0;max-width:100%}table{page-break-inside:auto}tr{page-break-inside:avoid}.employee-card{page-break-inside:avoid}}.compact-header,.meta-bar,.employee-card{page-break-inside:avoid}
-    </style></head><body><div class="toolbar"><strong>${escapeHtml(title)}</strong><button onclick="window.print()">Imprimir / Salvar PDF</button></div><main class="page">${content}</main><footer class="footer-print"><span>Innovation RH Connect</span><span>Documento gerado automaticamente</span></footer></body></html>`);
+  if (!win) { window.alert('Não foi possível abrir o relatório. Verifique se o navegador bloqueou pop-ups.'); return; }
+  win.document.write(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8" /><title>${title}</title><style>body{font-family:'Segoe UI',Arial,Helvetica,sans-serif;color:#0f172a;margin:0;background:#fff;font-size:9.5pt}table{width:100%;border-collapse:collapse}th,td{padding:3px 5px;border-bottom:1px solid #f1f5f9}th{background:#fff;color:#64748b;font-weight:800;font-size:8px;text-transform:uppercase}td{color:#334155;font-size:9px}</style></head><body><div style="padding:10px"><h1>${title}</h1><p>Gerado em ${new Date().toLocaleString('pt-BR')}</p></div></body></html>`);
   win.document.close();
 }
+
+// ─── MAIN PAGE ────────────────────────────────────────────────────────────
 
 export default function TimeTrackPage() {
   const { user } = useAuth();
@@ -421,35 +189,27 @@ export default function TimeTrackPage() {
   const [managerFilter, setManagerFilter] = useState('');
   const [unitFilter, setUnitFilter] = useState('');
 
-  const activeEmployees = useMemo(() => (employees.data ?? []).filter((employee) => employee.status === 'ACTIVE').toSorted((a, b) => collator.compare(normalizeDisplayName(a.name), normalizeDisplayName(b.name))), [employees.data]);
-  const departments = useMemo(() => [...new Set((employees.data ?? []).map((e) => e.department).filter(Boolean))].sort(), [employees.data]);
-  const managers = useMemo(() => (employees.data ?? []).filter((e) => (employees.data ?? []).some((sub) => sub.managerId === e.id)).toSorted((a, b) => collator.compare(normalizeDisplayName(a.name), normalizeDisplayName(b.name))), [employees.data]);
-  const units = useMemo(() => [...new Set((employees.data ?? []).map((e) => e.unit).filter(Boolean))].sort() as string[], [employees.data]);
+  const activeEmployees = useMemo(() => (employees.data ?? []).filter(e => e.status === 'ACTIVE').toSorted((a, b) => collator.compare(normalizeDisplayName(a.name), normalizeDisplayName(b.name))), [employees.data]);
+  const departments = useMemo(() => [...new Set((employees.data ?? []).map(e => e.department).filter(Boolean))].sort(), [employees.data]);
+  const managers = useMemo(() => (employees.data ?? []).filter(e => (employees.data ?? []).some(sub => sub.managerId === e.id)).toSorted((a, b) => collator.compare(normalizeDisplayName(a.name), normalizeDisplayName(b.name))), [employees.data]);
+  const units = useMemo(() => [...new Set((employees.data ?? []).map(e => e.unit).filter(Boolean))].sort() as string[], [employees.data]);
 
-  const rows = useMemo(() => {
-    return (tracks.data ?? [])
-      .filter((row) => {
-        if (employeeFilter && row.employeeId !== employeeFilter) return false;
-        if (monthFilter && !toDateKey(row.date).startsWith(monthFilter)) return false;
-        if (departmentFilter && row.employee?.department !== departmentFilter) return false;
-        if (managerFilter && row.employee?.managerId !== managerFilter) return false;
-        if (unitFilter && row.employee?.unit !== unitFilter) return false;
-        return true;
-      })
-      .toSorted(compareTimeTracks);
-  }, [tracks.data, employeeFilter, monthFilter, departmentFilter, managerFilter, unitFilter]);
+  const rows = useMemo(() => (tracks.data ?? []).filter(row => {
+    if (employeeFilter && row.employeeId !== employeeFilter) return false;
+    if (monthFilter && !toDateKey(row.date).startsWith(monthFilter)) return false;
+    if (departmentFilter && row.employee?.department !== departmentFilter) return false;
+    if (managerFilter && row.employee?.managerId !== managerFilter) return false;
+    if (unitFilter && row.employee?.unit !== unitFilter) return false;
+    return true;
+  }).toSorted(compareTimeTracks), [tracks.data, employeeFilter, monthFilter, departmentFilter, managerFilter, unitFilter]);
 
-  const selectedEmployee = activeEmployees.find((employee) => employee.id === employeeFilter) ?? rows[0]?.employee;
-  const rowsByEmployee = useMemo(() => rows.reduce<Record<string, TimeTrack[]>>((acc, row) => {
-    acc[row.employeeId] = acc[row.employeeId] ?? [];
-    acc[row.employeeId].push(row);
-    return acc;
-  }, {}), [rows]);
-  const visibleEmployees = useMemo(() => activeEmployees.filter((employee) => {
-    if (employeeFilter && employee.id !== employeeFilter) return false;
-    if (departmentFilter && employee.department !== departmentFilter) return false;
-    if (managerFilter && employee.managerId !== managerFilter) return false;
-    if (unitFilter && employee.unit !== unitFilter) return false;
+  const selectedEmployee = activeEmployees.find(e => e.id === employeeFilter) ?? rows[0]?.employee;
+  const rowsByEmployee = useMemo(() => rows.reduce<Record<string, TimeTrack[]>>((acc, row) => { acc[row.employeeId] = acc[row.employeeId] ?? []; acc[row.employeeId].push(row); return acc; }, {}), [rows]);
+  const visibleEmployees = useMemo(() => activeEmployees.filter(e => {
+    if (employeeFilter && e.id !== employeeFilter) return false;
+    if (departmentFilter && e.department !== departmentFilter) return false;
+    if (managerFilter && e.managerId !== managerFilter) return false;
+    if (unitFilter && e.unit !== unitFilter) return false;
     return true;
   }), [activeEmployees, employeeFilter, departmentFilter, managerFilter, unitFilter]);
   const reportCompany = useMemo(() => normalizeCompanyInfo(isFuncionario ? null : company.data), [company.data, isFuncionario]);
@@ -459,18 +219,9 @@ export default function TimeTrackPage() {
   const canApprove = canManage || isGestor;
   const canDownloadOwnOrTeam = canManage || isGestor || isFuncionario;
   const pendingTracks = useQuery(() => api.timeTrack.listPending(), [], { enabled: canApprove });
-  const approveMutation = useMutation(
-    (params: { id: string; approved: boolean }) => api.timeTrack.approve(params.id, params.approved),
-    { onSuccess: () => { pendingTracks.refetch(); tracks.refetch(); } },
-  );
+  const approveMutation = useMutation((params: { id: string; approved: boolean }) => api.timeTrack.approve(params.id, params.approved), { onSuccess: () => { pendingTracks.refetch(); tracks.refetch(); } });
 
-  useEffect(() => {
-    const id = window.setInterval(() => {
-      tracks.refetch();
-      if (canApprove) pendingTracks.refetch();
-    }, 30000);
-    return () => window.clearInterval(id);
-  }, [tracks, pendingTracks, canApprove]);
+  useEffect(() => { const id = window.setInterval(() => { tracks.refetch(); if (canApprove) pendingTracks.refetch(); }, 30000); return () => window.clearInterval(id); }, [tracks, pendingTracks, canApprove]);
 
   async function handleDelete(row: TimeTrack) {
     const employeeName = normalizeDisplayName(row.employee?.name ?? 'funcionário');
@@ -490,27 +241,11 @@ export default function TimeTrackPage() {
           <h2 className="text-2xl font-black text-slate-950">{pageTitle}</h2>
         </div>
         <div className="flex flex-wrap gap-2 sm:flex-row sm:items-center">
-          {canClockIn && (
-            <Link href="/dashboard/time-track/clock-in" className="crystal-button inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black text-white">
-              <Clock3 size={14} /> Bater ponto
-            </Link>
-          )}
-          {canManage && (
-            <>
-              <button onClick={() => downloadExcel(`folha-ponto-${selectedEmployee?.name ?? 'empresa'}-${monthFilter || 'todos'}.xls`, rows, reportCompany)} disabled={rows.length === 0 || company.loading || isRefreshingTracks} className="btn-outline inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black disabled:opacity-50">
-                <Download size={14} /> Exportar Excel
-              </button>
-              <button onClick={() => openPrintableReport(rows, monthFilter, reportCompany, employeeFilter ? selectedEmployee : undefined)} disabled={rows.length === 0 || company.loading || isRefreshingTracks} className="btn-outline inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black disabled:opacity-50">
-                <FileText size={14} /> {employeeFilter ? 'PDF individual' : 'PDF empresa'}
-              </button>
-              <button onClick={() => setBulkOpen(true)} disabled={isRefreshingTracks} className="btn-outline inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black">
-                <Clock3 size={14} /> Lançar em lote
-              </button>
-              <button onClick={() => setOpen(true)} disabled={isRefreshingTracks} className="crystal-button inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black text-white">
-                <Clock3 size={14} /> Lançar ponto
-              </button>
-            </>
-          )}
+          {canClockIn && <Link href="/dashboard/time-track/clock-in" className="crystal-button inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black text-white"><Clock3 size={14} /> Bater ponto</Link>}
+          {canManage && (<>
+            <button onClick={() => setBulkOpen(true)} disabled={isRefreshingTracks} className="btn-outline inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black"><Clock3 size={14} /> Lançar em lote</button>
+            <button onClick={() => setOpen(true)} disabled={isRefreshingTracks} className="crystal-button inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black text-white"><Clock3 size={14} /> Lançar ponto</button>
+          </>)}
         </div>
       </header>
 
@@ -518,119 +253,46 @@ export default function TimeTrackPage() {
         <section className="ops-card rounded-[8px] border border-amber-200 bg-amber-50 p-5">
           <h3 className="mb-3 text-sm font-black text-amber-900">Pontos manuais pendentes de aprovacao ({(pendingTracks.data ?? []).length})</h3>
           {approveMutation.error && <p className="mb-3 rounded-[8px] border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">{approveMutation.error}</p>}
-          <div className="space-y-2">
-            {(pendingTracks.data ?? []).map((track) => (
-              <div key={track.id} className="flex items-center justify-between rounded-[8px] border border-amber-200 bg-white px-4 py-3">
-                <div className="text-xs">
-                  <p className="font-bold text-slate-950">{normalizeDisplayName(track.employee?.name ?? '-')}</p>
-                  <p className="text-slate-500">{formatDate(track.date)} - {track.manualReason ?? 'Lancamento manual'}</p>
-                </div>
-                <div className="flex gap-2">
-                  <button onClick={() => approveMutation.mutate({ id: track.id, approved: true }).catch(() => {})} disabled={approveMutation.loading} className="inline-flex h-8 items-center gap-1 rounded-[6px] bg-emerald-600 px-3 text-[11px] font-bold text-white disabled:opacity-60"><Check size={12} />Aprovar</button>
-                  <button onClick={() => approveMutation.mutate({ id: track.id, approved: false }).catch(() => {})} disabled={approveMutation.loading} className="inline-flex h-8 items-center gap-1 rounded-[6px] bg-rose-600 px-3 text-[11px] font-bold text-white disabled:opacity-60"><XCircle size={12} />Recusar</button>
-                </div>
+          <div className="space-y-2">{(pendingTracks.data ?? []).map(track => (
+            <div key={track.id} className="flex items-center justify-between rounded-[8px] border border-amber-200 bg-white px-4 py-3">
+              <div className="text-xs"><p className="font-bold text-slate-950">{normalizeDisplayName(track.employee?.name ?? '-')}</p><p className="text-slate-500">{formatDate(track.date)} - {track.manualReason ?? 'Lancamento manual'}</p></div>
+              <div className="flex gap-2">
+                <button onClick={() => approveMutation.mutate({ id: track.id, approved: true }).catch(() => {})} disabled={approveMutation.loading} className="inline-flex h-8 items-center gap-1 rounded-[6px] bg-emerald-600 px-3 text-[11px] font-bold text-white disabled:opacity-60"><Check size={12} />Aprovar</button>
+                <button onClick={() => approveMutation.mutate({ id: track.id, approved: false }).catch(() => {})} disabled={approveMutation.loading} className="inline-flex h-8 items-center gap-1 rounded-[6px] bg-rose-600 px-3 text-[11px] font-bold text-white disabled:opacity-60"><XCircle size={12} />Recusar</button>
               </div>
-            ))}
+            </div>))}
           </div>
         </section>
       )}
 
       {!isFuncionario && (
         <section className="grid gap-3 rounded-[14px] border border-slate-200/60 bg-white/80 p-4 shadow-sm backdrop-blur-sm sm:grid-cols-2 lg:grid-cols-5">
-          <label className="space-y-2 text-xs font-bold uppercase tracking-wider text-slate-600">
-            <span>Funcionário</span>
-            <select value={employeeFilter} onChange={(event) => setEmployeeFilter(event.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-900 shadow-sm outline-none transition-all focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10">
-              <option value="">Todos</option>
-              {activeEmployees.map((employee) => <option key={employee.id} value={employee.id}>{normalizeDisplayName(employee.name)}</option>)}
-            </select>
-          </label>
-          <label className="space-y-2 text-xs font-bold uppercase tracking-wider text-slate-600">
-            <span>Mês</span>
-            <input type="month" value={monthFilter} onChange={(event) => setMonthFilter(event.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-900 shadow-sm outline-none transition-all focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10" />
-          </label>
-          <label className="space-y-2 text-xs font-bold uppercase tracking-wider text-slate-600">
-            <span>Departamento</span>
-            <select value={departmentFilter} onChange={(event) => setDepartmentFilter(event.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-900 shadow-sm outline-none transition-all focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10">
-              <option value="">Todos</option>
-              {departments.map((d) => <option key={d} value={d}>{d}</option>)}
-            </select>
-          </label>
-          <label className="space-y-2 text-xs font-bold uppercase tracking-wider text-slate-600">
-            <span>Gestor</span>
-            <select value={managerFilter} onChange={(event) => setManagerFilter(event.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-900 shadow-sm outline-none transition-all focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10">
-              <option value="">Todos</option>
-              {managers.map((m) => <option key={m.id} value={m.id}>{normalizeDisplayName(m.name)}</option>)}
-            </select>
-          </label>
-          <label className="space-y-2 text-xs font-bold uppercase tracking-wider text-slate-600">
-            <span>Unidade</span>
-            <select value={unitFilter} onChange={(event) => setUnitFilter(event.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-900 shadow-sm outline-none transition-all focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10">
-              <option value="">Todas</option>
-              {units.map((u) => <option key={u} value={u}>{u}</option>)}
-            </select>
-          </label>
+          <label className="space-y-2 text-xs font-bold uppercase tracking-wider text-slate-600"><span>Funcionário</span><select value={employeeFilter} onChange={(e) => setEmployeeFilter(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-900 shadow-sm outline-none transition-all focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10"><option value="">Todos</option>{activeEmployees.map(e => <option key={e.id} value={e.id}>{normalizeDisplayName(e.name)}</option>)}</select></label>
+          <label className="space-y-2 text-xs font-bold uppercase tracking-wider text-slate-600"><span>Mês</span><input type="month" value={monthFilter} onChange={(e) => setMonthFilter(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-900 shadow-sm outline-none transition-all focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10" /></label>
+          <label className="space-y-2 text-xs font-bold uppercase tracking-wider text-slate-600"><span>Departamento</span><select value={departmentFilter} onChange={(e) => setDepartmentFilter(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-900 shadow-sm outline-none transition-all focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10"><option value="">Todos</option>{departments.map(d => <option key={d} value={d}>{d}</option>)}</select></label>
+          <label className="space-y-2 text-xs font-bold uppercase tracking-wider text-slate-600"><span>Gestor</span><select value={managerFilter} onChange={(e) => setManagerFilter(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-900 shadow-sm outline-none transition-all focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10"><option value="">Todos</option>{managers.map(m => <option key={m.id} value={m.id}>{normalizeDisplayName(m.name)}</option>)}</select></label>
+          <label className="space-y-2 text-xs font-bold uppercase tracking-wider text-slate-600"><span>Unidade</span><select value={unitFilter} onChange={(e) => setUnitFilter(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-900 shadow-sm outline-none transition-all focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10"><option value="">Todas</option>{units.map(u => <option key={u} value={u}>{u}</option>)}</select></label>
         </section>
       )}
-
       {isFuncionario && (
         <section className="grid gap-3 rounded-[14px] border border-slate-200/60 bg-white/80 p-4 shadow-sm backdrop-blur-sm sm:grid-cols-2 lg:grid-cols-5">
-          <label className="space-y-2 text-xs font-bold uppercase tracking-wider text-slate-600">
-            <span>Mês da folha</span>
-            <input type="month" value={monthFilter} onChange={(event) => setMonthFilter(event.target.value)} className="h-10 w-full max-w-[220px] rounded-[8px] border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-900 shadow-sm outline-none transition-all focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10" />
-          </label>
+          <label className="space-y-2 text-xs font-bold uppercase tracking-wider text-slate-600"><span>Mês da folha</span><input type="month" value={monthFilter} onChange={(e) => setMonthFilter(e.target.value)} className="h-10 w-full max-w-[220px] rounded-[8px] border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-900 shadow-sm outline-none transition-all focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10" /></label>
         </section>
       )}
-
 
       {remove.error && <p className="rounded-[8px] border border-rose-200 bg-rose-50 px-4 py-2 text-xs text-rose-700">{remove.error}</p>}
       {isRefreshingTracks && <p className="rounded-[8px] border border-teal-200 bg-teal-50 px-4 py-2 text-xs font-semibold text-teal-700">Atualizando a folha de ponto...</p>}
       {tracks.error && tracks.data && <p className="rounded-[8px] border border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-700">Nao foi possivel atualizar agora. Os ultimos dados carregados continuam visiveis.</p>}
 
       {isInitialTracksLoading ? <LoadingState label="Carregando folha de ponto..." /> : tracks.error && !tracks.data ? <ErrorState message={tracks.error} onRetry={tracks.refetch} /> : isFuncionario ? (
-        // Funcionário: folha mensal pessoal
-        selectedEmployee ? (
-          <MonthGridSection
-            employee={selectedEmployee}
-            tracks={rowsByEmployee[selectedEmployee.id] ?? []}
-            monthFilter={monthFilter}
-            canManage={false}
-            isRefreshing={isRefreshingTracks}
-            removeLoading={remove.loading}
-            onEdit={setEditing}
-            onDelete={handleDelete}
-            canDownload={canDownloadOwnOrTeam}
-            reportCompany={reportCompany}
-            companyLoading={company.loading}
-            isRefreshingTracks={isRefreshingTracks}
-          />
-        ) : (
-          <EmptyState message="Nenhum registro de ponto encontrado." />
-        )
+        selectedEmployee ? <MonthGridSection employee={selectedEmployee} tracks={rowsByEmployee[selectedEmployee.id] ?? []} monthFilter={monthFilter} canManage={false} isRefreshing={isRefreshingTracks} removeLoading={remove.loading} onEdit={setEditing} onDelete={handleDelete} canDownload={canDownloadOwnOrTeam} reportCompany={reportCompany} companyLoading={company.loading} isRefreshingTracks={isRefreshingTracks} /> : <EmptyState message="Nenhum registro de ponto encontrado." />
       ) : visibleEmployees.length === 0 ? <EmptyState message="Nenhum colaborador encontrado para o filtro selecionado." /> : employeeFilter ? (
-        // RH/Gestor: grade mensal do funcionário selecionado
-        <MonthGridSection
-          employee={visibleEmployees[0]}
-          tracks={rowsByEmployee[visibleEmployees[0].id] ?? []}
-          monthFilter={monthFilter}
-          canManage={canManage}
-          isRefreshing={isRefreshingTracks}
-          removeLoading={remove.loading}
-          onEdit={setEditing}
-          onDelete={handleDelete}
-          canDownload={canDownloadOwnOrTeam}
-          reportCompany={reportCompany}
-          companyLoading={company.loading}
-          isRefreshingTracks={isRefreshingTracks}
-        />
+        <MonthGridSection employee={visibleEmployees[0]} tracks={rowsByEmployee[visibleEmployees[0].id] ?? []} monthFilter={monthFilter} canManage={canManage} isRefreshing={isRefreshingTracks} removeLoading={remove.loading} onEdit={setEditing} onDelete={handleDelete} canDownload={canDownloadOwnOrTeam} reportCompany={reportCompany} companyLoading={company.loading} isRefreshingTracks={isRefreshingTracks} />
       ) : (
-        // Lista de colaboradores (visão geral)
         <section className="overflow-hidden rounded-[18px] border border-slate-200/60 bg-white shadow-[0_12px_40px_rgba(15,23,42,0.08)]">
-          <div className="border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white px-6 py-5">
-            <h3 className="text-sm font-black text-slate-950">Colaboradores da folha</h3>
-            <p className="mt-1 text-xs font-semibold text-slate-500">Selecione um colaborador para ver a folha mensal completa com todos os dias e folgas.</p>
-          </div>
+          <div className="border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white px-6 py-5"><h3 className="text-sm font-black text-slate-950">Colaboradores da folha</h3><p className="mt-1 text-xs font-semibold text-slate-500">Selecione um colaborador para ver a folha mensal completa com todos os dias e folgas.</p></div>
           <div className="divide-y divide-slate-100">
-            {visibleEmployees.map((employee) => {
+            {visibleEmployees.map(employee => {
               const employeeRows = rowsByEmployee[employee.id] ?? [];
               const workedTotal = sumMinutes(employeeRows, 'totalWorked');
               const balanceTotal = sumMinutes(employeeRows, 'dailyBalance');
@@ -641,35 +303,16 @@ export default function TimeTrackPage() {
                 <div key={employee.id} className="bg-white px-6 py-5 transition-all duration-200 hover:bg-slate-50/40">
                   <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                     <div className="flex items-center gap-4">
-                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[12px] bg-gradient-to-br from-teal-500 to-cyan-600 text-sm font-black text-white shadow-lg shadow-teal-500/20">
-                        {normalizeDisplayName(employee.name).charAt(0).toUpperCase()}
-                      </div>
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[12px] bg-gradient-to-br from-teal-500 to-cyan-600 text-sm font-black text-white shadow-lg shadow-teal-500/20">{normalizeDisplayName(employee.name).charAt(0).toUpperCase()}</div>
                       <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="inline-flex rounded-full border border-teal-200/60 bg-gradient-to-r from-teal-50 to-cyan-50 px-2.5 py-1 text-[11px] font-black text-teal-700">{employee.registration || employee.id.slice(0, 8).toUpperCase()}</span>
-                          <p className="text-sm font-black text-slate-950">{normalizeDisplayName(employee.name)}</p>
-                        </div>
-                        <div className="mt-2 flex flex-wrap items-center gap-3 text-[11px] font-semibold text-slate-500">
-                          <span>{workedDaysCount} batida(s) no mês</span>
-                          <span className="text-slate-300">|</span>
-                          <span>{restDaysCount} folga(s)</span>
-                          <span className="text-slate-300">|</span>
-                          <span>{employee.department || 'Sem departamento'}</span>
-                          <span className="text-slate-300">|</span>
-                          <span>{employee.position || 'Sem cargo'}</span>
-                        </div>
+                        <div className="flex flex-wrap items-center gap-2"><span className="inline-flex rounded-full border border-teal-200/60 bg-gradient-to-r from-teal-50 to-cyan-50 px-2.5 py-1 text-[11px] font-black text-teal-700">{employee.registration || employee.id.slice(0, 8).toUpperCase()}</span><p className="text-sm font-black text-slate-950">{normalizeDisplayName(employee.name)}</p></div>
+                        <div className="mt-2 flex flex-wrap items-center gap-3 text-[11px] font-semibold text-slate-500"><span>{workedDaysCount} batida(s) no mês</span><span className="text-slate-300">|</span><span>{restDaysCount} folga(s)</span><span className="text-slate-300">|</span><span>{employee.department || 'Sem departamento'}</span><span className="text-slate-300">|</span><span>{employee.position || 'Sem cargo'}</span></div>
                       </div>
                     </div>
                     <div className="flex flex-wrap items-center gap-4">
                       <div className="flex gap-3 text-[11px] font-bold">
-                        <div className="rounded-[8px] border border-slate-200 bg-slate-50 px-3 py-1.5">
-                          <span className="block text-[9px] uppercase text-slate-400">Trabalhado</span>
-                          <span className="text-slate-900">{formatMinutes(workedTotal)}</span>
-                        </div>
-                        <div className={`rounded-[8px] border px-3 py-1.5 ${balanceTotal >= 0 ? 'border-emerald-200 bg-emerald-50' : 'border-rose-200 bg-rose-50'}`}>
-                          <span className="block text-[9px] uppercase text-slate-400">Saldo</span>
-                          <span className={balanceTotal >= 0 ? 'text-emerald-700' : 'text-rose-700'}>{formatMinutes(balanceTotal)}</span>
-                        </div>
+                        <div className="rounded-[8px] border border-slate-200 bg-slate-50 px-3 py-1.5"><span className="block text-[9px] uppercase text-slate-400">Trabalhado</span><span className="text-slate-900">{formatMinutes(workedTotal)}</span></div>
+                        <div className={`rounded-[8px] border px-3 py-1.5 ${balanceTotal >= 0 ? 'border-emerald-200 bg-emerald-50' : 'border-rose-200 bg-rose-50'}`}><span className="block text-[9px] uppercase text-slate-400">Saldo</span><span className={balanceTotal >= 0 ? 'text-emerald-700' : 'text-rose-700'}>{formatMinutes(balanceTotal)}</span></div>
                       </div>
                       <button onClick={() => setEmployeeFilter(employee.id)} className="btn-outline-premium inline-flex h-9 items-center gap-2 rounded-[8px] px-3 text-[11px] font-black"><Eye size={13} /> Abrir folha</button>
                     </div>
@@ -686,68 +329,26 @@ export default function TimeTrackPage() {
   );
 }
 
-
-function TimeRowsTable({ rows, canManage, isRefreshing, removeLoading, onEdit, onDelete, compact = false }: { rows: TimeTrack[]; canManage: boolean; isRefreshing: boolean; removeLoading: boolean; onEdit: (row: TimeTrack) => void; onDelete: (row: TimeTrack) => void; compact?: boolean }) {
-  return (
-    <div className="overflow-x-auto">
-      <table className={`w-full ${compact ? 'min-w-[860px]' : 'min-w-[960px]'} text-left`}>
-        <thead>
-          <tr className="bg-gradient-to-r from-slate-100 to-slate-50 text-[10px] font-black uppercase tracking-[0.12em] text-slate-600">
-            <th className="px-4 py-3">Data</th>
-            <th className="px-4 py-3">Entrada</th>
-            <th className="px-4 py-3">Almoço</th>
-            <th className="px-4 py-3">Saída</th>
-            <th className="px-4 py-3">Trabalhado</th>
-            <th className="px-4 py-3">Saldo</th>
-            <th className="px-4 py-3">Status</th>
-            {canManage && <th className="px-4 py-3 text-right">Ações</th>}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row, idx) => (
-            <tr key={row.id} className={`border-t border-slate-100 text-[12px] font-semibold text-slate-700 transition-colors hover:bg-slate-50/70 ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/30'}`}>
-              <td className="px-4 py-3 text-slate-900">{formatDate(row.date)}</td>
-              <td className="px-4 py-4 font-black text-slate-950">{displayTime(row.entry)}</td>
-              <td className="px-4 py-4 text-slate-600">{displayLunch(row.lunchStart, row.lunchReturn)}</td>
-              <td className="px-4 py-4 font-black text-slate-950">{displayTime(row.exit)}</td>
-              <td className="px-4 py-4 text-slate-600">{displayWorked(row.totalWorked)}</td>
-              <td className={`px-4 py-4 font-black ${(row.dailyBalance ?? 0) < 0 ? 'text-rose-600' : 'text-emerald-600'}`}>{displayBalance(row.dailyBalance)}</td>
-              <td className="px-4 py-4">
-                <StatusBadge status={dayStatus(row)} />
-              </td>
-              {canManage && <td className="px-4 py-4"><div className="flex justify-end gap-2"><button onClick={() => onEdit(row)} disabled={isRefreshing || removeLoading} className="btn-outline-premium inline-flex h-8 items-center gap-2 px-3 text-[11px]"><Edit3 size={12} />Editar</button><button onClick={() => onDelete(row)} disabled={isRefreshing || removeLoading} className="inline-flex h-8 items-center gap-2 rounded-[8px] bg-gradient-to-r from-rose-500 to-pink-600 px-3 text-[11px] font-black text-white shadow-md shadow-rose-500/20 transition-all hover:-translate-y-0.5 hover:shadow-lg active:translate-y-0 disabled:opacity-40"><Trash2 size={12} />Excluir</button></div></td>}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
+// ─── STATUS BADGE ──────────────────────────────────────────────────────────
 
 function StatusBadge({ status }: { status: string }) {
-  const colors: Record<string, string> = {
-    'Normal': 'bg-emerald-50 text-emerald-700 border-emerald-200/60',
-    'Pendente': 'bg-amber-50 text-amber-700 border-amber-200/60',
-    'Rejeitado': 'bg-rose-50 text-rose-700 border-rose-200/60',
-    'Feriado': 'bg-teal-50 text-teal-700 border-teal-200/60',
-    'Atestado integral': 'bg-violet-50 text-violet-700 border-violet-200/60',
-    'Folga': 'bg-sky-50 text-sky-700 border-sky-200/60',
-    'Ajuste manual': 'bg-orange-50 text-orange-700 border-orange-200/60',
-    'Falta': 'bg-rose-50 text-rose-700 border-rose-200/60',
-  };
+  const colors: Record<string, string> = { 'Normal': 'bg-emerald-50 text-emerald-700 border-emerald-200/60', 'Pendente': 'bg-amber-50 text-amber-700 border-amber-200/60', 'Rejeitado': 'bg-rose-50 text-rose-700 border-rose-200/60', 'Feriado': 'bg-teal-50 text-teal-700 border-teal-200/60', 'Atestado integral': 'bg-violet-50 text-violet-700 border-violet-200/60', 'Folga': 'bg-sky-50 text-sky-700 border-sky-200/60', 'Ajuste manual': 'bg-orange-50 text-orange-700 border-orange-200/60', 'Falta': 'bg-rose-50 text-rose-700 border-rose-200/60' };
   return <span className={`inline-flex items-center rounded-[6px] border px-2.5 py-1 text-[10px] font-black ${colors[status] || 'bg-slate-100 text-slate-600 border-slate-200/60'}`}>{status}</span>;
 }
+
+// ─── MANUAL TIME SHEET MODAL ──────────────────────────────────────────────
 
 function ManualTimeSheetModal({ employees, employeesLoading, employeesError, defaultEmployeeId, track, bulk, onClose, onDone }: { employees: Employee[]; employeesLoading: boolean; employeesError: string | null; defaultEmployeeId: string; track?: TimeTrack; bulk?: boolean; onClose: () => void; onDone: () => void }) {
   const initialDate = track ? toDateKey(track.date) : new Date().toISOString().slice(0, 10);
   const [mode, setMode] = useState<'single' | 'bulk'>(bulk ? 'bulk' : 'single');
   const [bulkMode, setBulkMode] = useState<'day' | 'period'>('day');
   const [employeeId, setEmployeeId] = useState(track?.employeeId ?? defaultEmployeeId);
-  const initialEmployeeScale = employees.find((employee) => employee.id === (track?.employeeId ?? defaultEmployeeId))?.workScale;
+  const initialEmployeeScale = employees.find(e => e.id === (track?.employeeId ?? defaultEmployeeId))?.workScale;
   const [date, setDate] = useState(initialDate);
   const [startDate, setStartDate] = useState(initialDate.slice(0, 8) + '01');
   const [endDate, setEndDate] = useState(initialDate);
-  const [bulkSearch, setBulkSearch] = useState('');
+  const [selectedBulkEmployees, setSelectedBulkEmployees] = useState<string[]>([]);
+  const [showAllEmployees, setShowAllEmployees] = useState(false);
   const [entry, setEntry] = useState(track ? timeInput(track.entry) : '');
   const [lunchStart, setLunchStart] = useState(track ? timeInput(track.lunchStart) : '');
   const [lunchReturn, setLunchReturn] = useState(track ? timeInput(track.lunchReturn) : '');
@@ -760,31 +361,20 @@ function ManualTimeSheetModal({ employees, employeesLoading, employeesError, def
   const [cycleStartDate, setCycleStartDate] = useState(initialDate.slice(0, 8) + '01');
   const [cycleWorkDays, setCycleWorkDays] = useState(initialCycle.workDays);
   const [cycleOffDays, setCycleOffDays] = useState(initialCycle.offDays);
-  const selectedReason = ADJUSTMENT_REASONS.find((item) => item.value === reason);
-  const selectedEmployee = employees.find((employee) => employee.id === employeeId);
+  const selectedReason = ADJUSTMENT_REASONS.find(item => item.value === reason);
+  const selectedEmployee = employees.find(e => e.id === employeeId);
   const fullDay = Boolean(selectedReason?.fullDay);
 
-  function applyEmployeeScaleDefaults(nextEmployeeId: string) {
-    const employee = employees.find((item) => item.id === nextEmployeeId);
-    setDaysOff(defaultDaysOff(employee?.workScale));
-    const cycle = defaultCycle(employee?.workScale);
-    setCycleWorkDays(cycle.workDays);
-    setCycleOffDays(cycle.offDays);
-  }
-
-  function toggleDayOff(day: number) {
-    setDaysOff((current) => current.includes(day) ? current.filter((item) => item !== day) : [...current, day].sort((a, b) => a - b));
-  }
-  const matchedEmployees = useMemo(() => matchEmployees(employees, bulkSearch), [employees, bulkSearch]);
+  function applyEmployeeScaleDefaults(nextEmployeeId: string) { const emp = employees.find(item => item.id === nextEmployeeId); setDaysOff(defaultDaysOff(emp?.workScale)); const cycle = defaultCycle(emp?.workScale); setCycleWorkDays(cycle.workDays); setCycleOffDays(cycle.offDays); }
+  function toggleDayOff(day: number) { setDaysOff(current => current.includes(day) ? current.filter(item => item !== day) : [...current, day].sort((a, b) => a - b)); }
+  function toggleBulkEmployee(id: string) { setSelectedBulkEmployees(prev => prev.includes(id) ? prev.filter(e => e !== id) : [...prev, id]); }
+  function selectAllEmployees() { const allIds = employees.map(e => e.id); setSelectedBulkEmployees(selectedBulkEmployees.length === allIds.length ? [] : allIds); }
 
   const save = useMutation(async () => {
     const payload = { entry: toIso(date, entry), lunchStart: toIso(date, lunchStart), lunchReturn: toIso(date, lunchReturn), exit: toIso(date, exit), reason, observation: detail };
-    if (track) {
-      await api.timeTrack.update(track.id, { entry: payload.entry, lunchStart: payload.lunchStart, lunchReturn: payload.lunchReturn, exit: payload.exit, observation: detail.trim() || track.observation || null });
-      return;
-    }
+    if (track) { await api.timeTrack.update(track.id, { entry: payload.entry, lunchStart: payload.lunchStart, lunchReturn: payload.lunchReturn, exit: payload.exit, observation: detail.trim() || track.observation || null }); return; }
     if (mode === 'bulk') {
-      const employeeIds = bulkMode === 'period' ? [employeeId] : matchedEmployees.map((employee) => employee.id);
+      const employeeIds = bulkMode === 'period' ? [employeeId] : selectedBulkEmployees;
       const base = { employeeIds, entry: payload.entry, lunchStart: payload.lunchStart, lunchReturn: payload.lunchReturn, exit: payload.exit, reason, observation: detail, restDayMode, daysOff, cycleStartDate, cycleWorkDays, cycleOffDays };
       await api.timeTrack.manualBulk(bulkMode === 'period' ? { ...base, startDate, endDate } : { ...base, date });
       return;
@@ -793,7 +383,7 @@ function ManualTimeSheetModal({ employees, employeesLoading, employeesError, def
   }, { onSuccess: onDone });
 
   const hasTime = fullDay || entry || lunchStart || lunchReturn || exit;
-  const bulkValid = bulkMode === 'period' ? Boolean(employeeId && startDate && endDate && hasTime) : Boolean(matchedEmployees.length && date && hasTime);
+  const bulkValid = bulkMode === 'period' ? Boolean(employeeId && startDate && endDate && hasTime) : Boolean(selectedBulkEmployees.length && date && hasTime);
   const valid = mode === 'bulk' ? bulkValid : Boolean(employeeId && date && hasTime);
 
   return (
@@ -804,31 +394,41 @@ function ManualTimeSheetModal({ employees, employeesLoading, employeesError, def
         {!track && <div className="mb-4 grid grid-cols-2 gap-2 rounded-[8px] bg-slate-100 p-1 text-xs font-black"><button type="button" onClick={() => setMode('single')} className={`h-9 rounded-[7px] ${mode === 'single' ? 'bg-white shadow-sm' : 'text-slate-500'}`}>Individual</button><button type="button" onClick={() => setMode('bulk')} className={`h-9 rounded-[7px] ${mode === 'bulk' ? 'bg-white shadow-sm' : 'text-slate-500'}`}>Lote</button></div>}
 
         <div className="grid gap-3 sm:grid-cols-2">
-          {mode === 'bulk' && !track ? (
-            <>
-              <label className="space-y-1 text-xs font-medium text-slate-600 sm:col-span-2"><span>Tipo de lote</span><select value={bulkMode} onChange={(event) => setBulkMode(event.target.value as 'day' | 'period')} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500"><option value="day">Um dia para vários colaboradores</option><option value="period">Período inteiro para um colaborador</option></select></label>
-              {bulkMode === 'day' ? <label className="space-y-1 text-xs font-medium text-slate-600 sm:col-span-2"><span>Matrícula, nome ou CPF</span><textarea value={bulkSearch} onChange={(event) => setBulkSearch(event.target.value)} placeholder="Digite um por linha ou separado por vírgula" className="min-h-24 w-full rounded-[8px] border border-slate-200 px-3 py-2 text-sm outline-none focus:border-teal-500" /><span className="block text-[11px] text-slate-400">Encontrados: {matchedEmployees.length}</span></label> : <label className="space-y-1 text-xs font-medium text-slate-600 sm:col-span-2"><span>Funcionário</span><select value={employeeId} onChange={(event) => { setEmployeeId(event.target.value); applyEmployeeScaleDefaults(event.target.value); }} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500"><option value="">Selecione...</option>{employees.map((employee) => <option key={employee.id} value={employee.id}>{normalizeDisplayName(employee.name)}</option>)}</select></label>}
-              {bulkMode === 'period' ? <><label className="space-y-1 text-xs font-medium text-slate-600"><span>Data inicial</span><input type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500" /></label><label className="space-y-1 text-xs font-medium text-slate-600"><span>Data final</span><input type="date" value={endDate} onChange={(event) => setEndDate(event.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500" /></label></> : <label className="space-y-1 text-xs font-medium text-slate-600"><span>Data da folha</span><input type="date" value={date} onChange={(event) => setDate(event.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500" /></label>}
-            </>
-          ) : (
-            <>
-              <label className="space-y-1 text-xs font-medium text-slate-600 sm:col-span-2"><span>Funcionário</span><select disabled={Boolean(track)} value={employeeId} onChange={(event) => { setEmployeeId(event.target.value); applyEmployeeScaleDefaults(event.target.value); }} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500 disabled:bg-slate-50"><option value="">{employeesLoading ? 'Carregando equipe...' : 'Selecione...'}</option>{employees.map((employee) => <option key={employee.id} value={employee.id}>{normalizeDisplayName(employee.name)}</option>)}</select></label>
-              <label className="space-y-1 text-xs font-medium text-slate-600"><span>Data da folha</span><input disabled={Boolean(track)} type="date" value={date} onChange={(event) => setDate(event.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500 disabled:bg-slate-50" /></label>
-            </>
-          )}
+          {mode === 'bulk' && !track ? (<>
+            <label className="space-y-1 text-xs font-medium text-slate-600 sm:col-span-2"><span>Tipo de lote</span><select value={bulkMode} onChange={e => setBulkMode(e.target.value as 'day' | 'period')} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500"><option value="day">Um dia para vários colaboradores</option><option value="period">Período inteiro para um colaborador</option></select></label>
+            {bulkMode === 'day' ? (
+              <div className="sm:col-span-2 rounded-[10px] border border-slate-200 bg-white p-3">
+                <div className="mb-2 flex items-center justify-between"><span className="text-xs font-bold text-slate-700">Selecione os funcionários ({selectedBulkEmployees.length})</span><button type="button" onClick={selectAllEmployees} className="text-[10px] font-bold text-teal-600 hover:text-teal-800">{selectedBulkEmployees.length === employees.length ? 'Desmarcar todos' : 'Selecionar todos'}</button></div>
+                <div className="max-h-52 overflow-y-auto space-y-0.5">
+                  {(showAllEmployees ? employees : employees.slice(0, 8)).map(emp => (
+                    <label key={emp.id} className="flex items-center gap-2 rounded-[6px] px-2 py-1.5 hover:bg-slate-50 cursor-pointer text-xs">
+                      <input type="checkbox" checked={selectedBulkEmployees.includes(emp.id)} onChange={() => toggleBulkEmployee(emp.id)} className="h-3.5 w-3.5 rounded border-slate-300 text-teal-600 focus:ring-teal-500" />
+                      <span className="font-semibold text-slate-700">{normalizeDisplayName(emp.name)}</span>
+                      <span className="text-[10px] text-slate-400">{emp.registration || emp.id.slice(0, 8)}</span>
+                    </label>
+                  ))}
+                </div>
+                {employees.length > 8 && <button type="button" onClick={() => setShowAllEmployees(!showAllEmployees)} className="mt-1 text-[10px] font-bold text-teal-600 hover:text-teal-800">{showAllEmployees ? 'Mostrar menos' : `Ver todos (${employees.length})`}</button>}
+              </div>
+            ) : <label className="space-y-1 text-xs font-medium text-slate-600 sm:col-span-2"><span>Funcionário</span><select value={employeeId} onChange={e => { setEmployeeId(e.target.value); applyEmployeeScaleDefaults(e.target.value); }} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500"><option value="">Selecione...</option>{employees.map(e => <option key={e.id} value={e.id}>{normalizeDisplayName(e.name)}</option>)}</select></label>}
+            {bulkMode === 'period' ? <><label className="space-y-1 text-xs font-medium text-slate-600"><span>Data inicial</span><input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500" /></label><label className="space-y-1 text-xs font-medium text-slate-600"><span>Data final</span><input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500" /></label></> : <label className="space-y-1 text-xs font-medium text-slate-600"><span>Data da folha</span><input type="date" value={date} onChange={e => setDate(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500" /></label>}
+          </>) : (<>
+            <label className="space-y-1 text-xs font-medium text-slate-600 sm:col-span-2"><span>Funcionário</span><select disabled={Boolean(track)} value={employeeId} onChange={e => { setEmployeeId(e.target.value); applyEmployeeScaleDefaults(e.target.value); }} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500 disabled:bg-slate-50"><option value="">{employeesLoading ? 'Carregando equipe...' : 'Selecione...'}</option>{employees.map(e => <option key={e.id} value={e.id}>{normalizeDisplayName(e.name)}</option>)}</select></label>
+            <label className="space-y-1 text-xs font-medium text-slate-600"><span>Data da folha</span><input disabled={Boolean(track)} type="date" value={date} onChange={e => setDate(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500 disabled:bg-slate-50" /></label>
+          </>)}
           {mode === 'bulk' && !track && (
             <section className="sm:col-span-2 rounded-[10px] border border-slate-200 bg-slate-50 p-3">
               <p className="text-xs font-bold text-slate-700">Folgas da escala serão respeitadas automaticamente.</p>
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                <label className="space-y-1 text-xs font-medium text-slate-600 sm:col-span-2"><span>Como calcular as folgas{selectedEmployee?.workScale ? ` (${selectedEmployee.workScale})` : ''}</span><select value={restDayMode} onChange={(event) => setRestDayMode(event.target.value as RestDayMode)} className="h-10 w-full rounded-[8px] border border-slate-200 bg-white px-3 text-sm outline-none focus:border-teal-500"><option value="employee_scale">Usar padrão da escala cadastrada</option><option value="fixed_weekly">Folga fixa na semana</option><option value="cycle">Escala alternada / ciclo</option></select></label>
-                {(restDayMode === 'fixed_weekly' || restDayMode === 'employee_scale') && <div className="space-y-2 sm:col-span-2"><p className="text-xs font-medium text-slate-600">Dias de folga</p><div className="grid grid-cols-2 gap-2 sm:grid-cols-4">{WEEKDAYS.map((day) => <label key={day.value} className="flex items-center gap-2 rounded-[8px] border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600"><input type="checkbox" checked={daysOff.includes(day.value)} onChange={() => toggleDayOff(day.value)} /> {day.label}</label>)}</div></div>}
-                {restDayMode === 'cycle' && <><label className="space-y-1 text-xs font-medium text-slate-600"><span>Início do ciclo</span><input type="date" value={cycleStartDate} onChange={(event) => setCycleStartDate(event.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 bg-white px-3 text-sm outline-none focus:border-teal-500" /></label><label className="space-y-1 text-xs font-medium text-slate-600"><span>Dias trabalhados</span><input type="number" min={1} max={31} value={cycleWorkDays} onChange={(event) => setCycleWorkDays(Number(event.target.value))} className="h-10 w-full rounded-[8px] border border-slate-200 bg-white px-3 text-sm outline-none focus:border-teal-500" /></label><label className="space-y-1 text-xs font-medium text-slate-600"><span>Dias de folga</span><input type="number" min={1} max={31} value={cycleOffDays} onChange={(event) => setCycleOffDays(Number(event.target.value))} className="h-10 w-full rounded-[8px] border border-slate-200 bg-white px-3 text-sm outline-none focus:border-teal-500" /></label></>}
+                <label className="space-y-1 text-xs font-medium text-slate-600 sm:col-span-2"><span>Como calcular as folgas{selectedEmployee?.workScale ? ` (${selectedEmployee.workScale})` : ''}</span><select value={restDayMode} onChange={e => setRestDayMode(e.target.value as RestDayMode)} className="h-10 w-full rounded-[8px] border border-slate-200 bg-white px-3 text-sm outline-none focus:border-teal-500"><option value="employee_scale">Usar padrão da escala cadastrada</option><option value="fixed_weekly">Folga fixa na semana</option><option value="cycle">Escala alternada / ciclo</option></select></label>
+                {(restDayMode === 'fixed_weekly' || restDayMode === 'employee_scale') && <div className="space-y-2 sm:col-span-2"><p className="text-xs font-medium text-slate-600">Dias de folga</p><div className="grid grid-cols-2 gap-2 sm:grid-cols-4">{WEEKDAYS.map(day => <label key={day.value} className="flex items-center gap-2 rounded-[8px] border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600"><input type="checkbox" checked={daysOff.includes(day.value)} onChange={() => toggleDayOff(day.value)} /> {day.label}</label>)}</div></div>}
+                {restDayMode === 'cycle' && <><label className="space-y-1 text-xs font-medium text-slate-600"><span>Início do ciclo</span><input type="date" value={cycleStartDate} onChange={e => setCycleStartDate(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 bg-white px-3 text-sm outline-none focus:border-teal-500" /></label><label className="space-y-1 text-xs font-medium text-slate-600"><span>Dias trabalhados</span><input type="number" min={1} max={31} value={cycleWorkDays} onChange={e => setCycleWorkDays(Number(e.target.value))} className="h-10 w-full rounded-[8px] border border-slate-200 bg-white px-3 text-sm outline-none focus:border-teal-500" /></label><label className="space-y-1 text-xs font-medium text-slate-600"><span>Dias de folga</span><input type="number" min={1} max={31} value={cycleOffDays} onChange={e => setCycleOffDays(Number(e.target.value))} className="h-10 w-full rounded-[8px] border border-slate-200 bg-white px-3 text-sm outline-none focus:border-teal-500" /></label></>}
               </div>
             </section>
           )}
-          {!track && <label className="space-y-1 text-xs font-medium text-slate-600"><span>Motivo do ajuste</span><select value={reason} onChange={(event) => setReason(event.target.value as TimeTrackAdjustmentReason)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500">{ADJUSTMENT_REASONS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>}
+          {!track && <label className="space-y-1 text-xs font-medium text-slate-600"><span>Motivo do ajuste</span><select value={reason} onChange={e => setReason(e.target.value as TimeTrackAdjustmentReason)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500">{ADJUSTMENT_REASONS.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>}
           {!fullDay && <><TimeField label="Entrada" value={entry} onChange={setEntry} /><TimeField label="Saída almoço" value={lunchStart} onChange={setLunchStart} /><TimeField label="Retorno almoço" value={lunchReturn} onChange={setLunchReturn} /><TimeField label="Saída" value={exit} onChange={setExit} /></>}
-          <label className="space-y-1 text-xs font-medium text-slate-600 sm:col-span-2"><span>Observação complementar</span><input value={detail} onChange={(event) => setDetail(event.target.value)} placeholder={track ? track.observation ?? '' : selectedReason?.label} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500" /></label>
+          <label className="space-y-1 text-xs font-medium text-slate-600 sm:col-span-2"><span>Observação complementar</span><input value={detail} onChange={e => setDetail(e.target.value)} placeholder={track ? track.observation ?? '' : selectedReason?.label} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500" /></label>
         </div>
         {!employeesLoading && employees.length === 0 && <p className="mt-4 rounded-[10px] border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-900">Cadastre um funcionário ativo antes de lançar a folha de ponto.</p>}
         <div className="mt-5 flex justify-end gap-2"><button onClick={onClose} className="btn-outline h-10 rounded-[8px] px-4 text-xs font-bold">Cancelar</button><button onClick={() => valid && save.mutate().catch(() => {})} disabled={!valid || employees.length === 0 || save.loading} className="crystal-button h-10 rounded-[8px] px-4 text-xs font-black text-white disabled:opacity-60">{save.loading ? 'Salvando...' : track ? 'Salvar ponto' : mode === 'bulk' ? 'Lançar lote' : 'Lançar ponto'}</button></div>
@@ -837,50 +437,13 @@ function ManualTimeSheetModal({ employees, employeesLoading, employeesError, def
   );
 }
 
-function matchEmployees(employees: Employee[], query: string) {
-  const terms = query.split(/[\n,;]+/).map((item) => item.trim()).filter(Boolean);
-  if (!terms.length) return [];
-  return employees.filter((employee) => terms.some((term) => {
-    const cleanTerm = term.toLowerCase();
-    const digits = term.replace(/\D/g, '');
-    return employee.name.toLowerCase().includes(cleanTerm)
-      || employee.cpf.replace(/\D/g, '').includes(digits)
-      || (employee.registration ?? '').toLowerCase().includes(cleanTerm);
-  }));
-}
-function TimeField({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
-  return <label className="space-y-1 text-xs font-medium text-slate-600"><span>{label}</span><input type="time" value={value} onChange={(event) => onChange(event.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500" /></label>;
+function TimeField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  return <label className="space-y-1 text-xs font-medium text-slate-600"><span>{label}</span><input type="time" value={value} onChange={e => onChange(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500" /></label>;
 }
 
 // ─── MONTH GRID SECTION ───────────────────────────────────────────────────
 
-function MonthGridSection({
-  employee,
-  tracks,
-  monthFilter,
-  canManage,
-  isRefreshing,
-  removeLoading,
-  onEdit,
-  onDelete,
-  canDownload,
-  reportCompany,
-  companyLoading,
-  isRefreshingTracks,
-}: {
-  employee: Employee;
-  tracks: TimeTrack[];
-  monthFilter: string;
-  canManage: boolean;
-  isRefreshing: boolean;
-  removeLoading: boolean;
-  onEdit: (row: TimeTrack) => void;
-  onDelete: (row: TimeTrack) => void;
-  canDownload: boolean;
-  reportCompany: CompanyPrintInfo;
-  companyLoading: boolean;
-  isRefreshingTracks: boolean;
-}) {
+function MonthGridSection({ employee, tracks, monthFilter, canManage, isRefreshing, removeLoading, onEdit, onDelete, canDownload, reportCompany, companyLoading, isRefreshingTracks }: { employee: Employee; tracks: TimeTrack[]; monthFilter: string; canManage: boolean; isRefreshing: boolean; removeLoading: boolean; onEdit: (row: TimeTrack) => void; onDelete: (row: TimeTrack) => void; canDownload: boolean; reportCompany: CompanyPrintInfo; companyLoading: boolean; isRefreshingTracks: boolean; }) {
   const grid = useMemo(() => generateMonthGrid(monthFilter, employee, tracks), [monthFilter, employee, tracks]);
   const workedTotal = sumMinutes(tracks, 'totalWorked');
   const balanceTotal = sumMinutes(tracks, 'dailyBalance');
@@ -890,137 +453,66 @@ function MonthGridSection({
 
   return (
     <section className="overflow-hidden rounded-[18px] border border-slate-200/60 bg-white shadow-[0_12px_40px_rgba(15,23,42,0.08)]">
-      {/* Cabeçalho do funcionário */}
       <div className="border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white px-6 py-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[12px] bg-gradient-to-br from-teal-500 to-cyan-600 text-sm font-black text-white shadow-lg shadow-teal-500/20">
-              {normalizeDisplayName(employee.name).charAt(0).toUpperCase()}
-            </div>
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[12px] bg-gradient-to-br from-teal-500 to-cyan-600 text-sm font-black text-white shadow-lg shadow-teal-500/20">{normalizeDisplayName(employee.name).charAt(0).toUpperCase()}</div>
             <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="inline-flex rounded-full border border-teal-200/60 bg-gradient-to-r from-teal-50 to-cyan-50 px-2.5 py-1 text-[11px] font-black text-teal-700">
-                  {employee.registration || employee.id.slice(0, 8).toUpperCase()}
-                </span>
-                <h3 className="text-sm font-black text-slate-950">{normalizeDisplayName(employee.name)}</h3>
-              </div>
-              <div className="mt-2 flex flex-wrap items-center gap-3 text-[11px] font-semibold text-slate-500">
-                <span>{employee.department || 'Sem departamento'}</span>
-                <span className="text-slate-300">|</span>
-                <span>{employee.position || 'Sem cargo'}</span>
-                <span className="text-slate-300">|</span>
-                <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px]">
-                  Escala: {employee.workScale || (employee.customWorkScale || '6X1')}
-                </span>
-              </div>
+              <div className="flex flex-wrap items-center gap-2"><span className="inline-flex rounded-full border border-teal-200/60 bg-gradient-to-r from-teal-50 to-cyan-50 px-2.5 py-1 text-[11px] font-black text-teal-700">{employee.registration || employee.id.slice(0, 8).toUpperCase()}</span><h3 className="text-sm font-black text-slate-950">{normalizeDisplayName(employee.name)}</h3></div>
+              <div className="mt-2 flex flex-wrap items-center gap-3 text-[11px] font-semibold text-slate-500"><span>{employee.department || 'Sem departamento'}</span><span className="text-slate-300">|</span><span>{employee.position || 'Sem cargo'}</span><span className="text-slate-300">|</span><span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px]">Escala: {employee.workScale || (employee.customWorkScale || '6X1')}</span></div>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-4">
-            <div className="flex gap-3 text-[11px] font-bold">
-              <div className="rounded-[8px] border border-slate-200 bg-slate-50 px-3 py-1.5">
-                <span className="block text-[9px] uppercase text-slate-400">Trabalhado</span>
-                <span className="text-slate-900">{formatMinutes(workedTotal)}</span>
-              </div>
-              <div className={`rounded-[8px] border px-3 py-1.5 ${balanceTotal >= 0 ? 'border-emerald-200 bg-emerald-50' : 'border-rose-200 bg-rose-50'}`}>
-                <span className="block text-[9px] uppercase text-slate-400">Saldo</span>
-                <span className={balanceTotal >= 0 ? 'text-emerald-700' : 'text-rose-700'}>{formatMinutes(balanceTotal)}</span>
-              </div>
-            </div>
-            {canDownload && (
-              <button onClick={() => openPrintableReport(tracks, monthFilter, reportCompany, employee)} disabled={tracks.length === 0 || companyLoading || isRefreshingTracks} className="btn-outline-premium inline-flex h-9 items-center gap-2 rounded-[8px] px-3 text-[11px] font-black disabled:opacity-50">
-                <FileText size={13} /> Folha
-              </button>
-            )}
+            <div className="flex gap-3 text-[11px] font-bold"><div className="rounded-[8px] border border-slate-200 bg-slate-50 px-3 py-1.5"><span className="block text-[9px] uppercase text-slate-400">Trabalhado</span><span className="text-slate-900">{formatMinutes(workedTotal)}</span></div><div className={`rounded-[8px] border px-3 py-1.5 ${balanceTotal >= 0 ? 'border-emerald-200 bg-emerald-50' : 'border-rose-200 bg-rose-50'}`}><span className="block text-[9px] uppercase text-slate-400">Saldo</span><span className={balanceTotal >= 0 ? 'text-emerald-700' : 'text-rose-700'}>{formatMinutes(balanceTotal)}</span></div></div>
+            {canDownload && <button onClick={() => openPrintableReport(tracks, monthFilter, reportCompany, employee)} disabled={tracks.length === 0 || companyLoading || isRefreshingTracks} className="btn-outline-premium inline-flex h-9 items-center gap-2 rounded-[8px] px-3 text-[11px] font-black disabled:opacity-50"><FileText size={13} /> Folha</button>}
           </div>
         </div>
-        {/* Resumo do mês */}
         <div className="mt-4 flex flex-wrap gap-3 rounded-[10px] border border-slate-100 bg-slate-50/50 px-4 py-2.5 text-[11px] font-semibold text-slate-600">
           <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-emerald-500" />{workedDaysCount} batida(s)</span>
           <span className="text-slate-300">|</span>
           <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-sky-500" />{restDaysCount} folga(s)</span>
-          {missingDaysCount > 0 && (
-            <>
-              <span className="text-slate-300">|</span>
-              <span className="flex items-center gap-1 text-amber-700"><span className="h-2 w-2 rounded-full bg-amber-500" />{missingDaysCount} pendente(s)</span>
-            </>
-          )}
-          <span className="text-slate-300">|</span>
-          <span className="text-slate-400">{monthLabel(monthFilter)}</span>
+          {missingDaysCount > 0 && <><span className="text-slate-300">|</span><span className="flex items-center gap-1 text-amber-700"><span className="h-2 w-2 rounded-full bg-amber-500" />{missingDaysCount} pendente(s)</span></>}
+          <span className="text-slate-300">|</span><span className="text-slate-400">{monthLabel(monthFilter)}</span>
         </div>
       </div>
 
-      {/* Grade mensal */}
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[960px] text-left">
+        <table className="w-full min-w-[1100px] table-fixed text-left">
           <thead>
             <tr className="bg-gradient-to-r from-slate-100 to-slate-50 text-[10px] font-black uppercase tracking-[0.12em] text-slate-600">
-              <th className="px-3 py-3 w-14">Dia</th>
-              <th className="px-3 py-3 w-20">Data</th>
-              <th className="px-3 py-3">Entrada</th>
-              <th className="px-3 py-3">Almoço</th>
-              <th className="px-3 py-3">Saída</th>
-              <th className="px-3 py-3">Trabalhado</th>
-              <th className="px-3 py-3">Saldo</th>
-              <th className="px-3 py-3">Status</th>
-              {canManage && <th className="px-3 py-3 text-right">Ações</th>}
+              <th className="px-2 py-3 w-[9%]">Dia</th><th className="px-2 py-3 w-[9%]">Data</th><th className="px-2 py-3 w-[10%]">Entrada</th><th className="px-2 py-3 w-[14%]">Almoço</th><th className="px-2 py-3 w-[10%]">Saída</th><th className="px-2 py-3 w-[10%]">Trabalhado</th><th className="px-2 py-3 w-[10%]">Saldo</th><th className="px-2 py-3 w-[12%]">Status</th>
+              {canManage && <th className="px-2 py-3 w-[16%] text-center">Ações</th>}
             </tr>
           </thead>
           <tbody>
-            {grid.map((day, idx) => {
+            {grid.map(day => {
               const t = day.track;
-              // Decide cor de fundo
               let rowBg = '';
               if (day.isRestDay) rowBg = 'bg-sky-50/30';
               else if (day.isFuture) rowBg = 'bg-slate-50/40 opacity-70';
               else if (!t) rowBg = 'bg-amber-50/20';
-
-              const dayStatusText = day.isRestDay
-                ? restDayBadge()
-                : t
-                  ? dayStatus(t)
-                  : day.isFuture
-                    ? '—'
-                    : 'Pendente';
+              const dayStatusText = day.isRestDay ? restDayBadge() : t ? dayStatus(t) : day.isFuture ? '—' : 'Pendente';
 
               return (
                 <tr key={day.dateKey} className={`border-t border-slate-100 text-[12px] font-semibold text-slate-700 transition-colors hover:bg-slate-50/70 ${rowBg}`}>
-                  <td className="px-3 py-3">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[11px] font-black text-slate-600">{day.weekdayLabel}</span>
-                      <span className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-[12px] font-black ${day.isRestDay ? 'bg-sky-100 text-sky-700' : 'bg-slate-100 text-slate-700'}`}>
-                        {day.dayNumber}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="px-3 py-3 text-slate-500">{formatDate(day.dateKey)}</td>
-                  <td className={`px-3 py-3 font-mono font-black ${t?.entry ? 'text-slate-950' : 'text-slate-300'}`}>
-                    {t?.entry ? displayTime(t.entry) : '--:--'}
-                  </td>
-                  <td className={`px-3 py-3 font-mono ${t?.lunchStart || t?.lunchReturn ? 'text-slate-600' : 'text-slate-300'}`}>
-                    {displayLunch(t?.lunchStart, t?.lunchReturn)}
-                  </td>
-                  <td className={`px-3 py-3 font-mono font-black ${t?.exit ? 'text-slate-950' : 'text-slate-300'}`}>
-                    {t?.exit ? displayTime(t.exit) : '--:--'}
-                  </td>
-                  <td className="px-3 py-3 text-slate-600">{t ? displayWorked(t.totalWorked) : '--:--'}</td>
-                  <td className={`px-3 py-3 font-black ${t && (t.dailyBalance ?? 0) < 0 ? 'text-rose-600' : t ? 'text-emerald-600' : 'text-slate-300'}`}>
-                    {t ? displayBalance(t.dailyBalance) : '--:--'}
-                  </td>
-                  <td className="px-3 py-3">
-                    <StatusBadge status={dayStatusText} />
-                  </td>
+                  <td className="px-2 py-2.5"><div className="flex items-center gap-1.5"><span className="text-[10px] font-bold text-slate-500">{day.weekdayLabel}</span><span className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-black ${day.isRestDay ? 'bg-sky-100 text-sky-700' : 'bg-slate-100 text-slate-700'}`}>{day.dayNumber}</span></div></td>
+                  <td className="px-2 py-2.5 text-slate-500 text-xs">{formatDate(day.dateKey)}</td>
+                  <td className={`px-2 py-2.5 font-mono text-xs font-black ${t?.entry ? 'text-slate-950' : 'text-slate-300'}`}>{t?.entry ? displayTime(t.entry) : '--:--'}</td>
+                  <td className={`px-2 py-2.5 font-mono text-xs ${t?.lunchStart || t?.lunchReturn ? 'text-slate-600' : 'text-slate-300'}`}>{displayLunch(t?.lunchStart, t?.lunchReturn)}</td>
+                  <td className={`px-2 py-2.5 font-mono text-xs font-black ${t?.exit ? 'text-slate-950' : 'text-slate-300'}`}>{t?.exit ? displayTime(t.exit) : '--:--'}</td>
+                  <td className="px-2 py-2.5 text-slate-600 text-xs">{t ? displayWorked(t.totalWorked) : '--:--'}</td>
+                  <td className={`px-2 py-2.5 text-xs font-black ${t && (t.dailyBalance ?? 0) < 0 ? 'text-rose-600' : t ? 'text-emerald-600' : 'text-slate-300'}`}>{t ? displayBalance(t.dailyBalance) : '--:--'}</td>
+                  <td className="px-2 py-2.5 text-center"><StatusBadge status={dayStatusText} /></td>
                   {canManage && (
-                    <td className="px-3 py-3">
-                      {t && (
-                        <div className="flex justify-end gap-2">
-                          <button onClick={() => onEdit(t)} disabled={isRefreshing || removeLoading} className="btn-outline-premium inline-flex h-7 items-center gap-1 px-2 text-[10px]">
-                            <Edit3 size={11} />Editar
-                          </button>
-                          <button onClick={() => onDelete(t)} disabled={isRefreshing || removeLoading} className="inline-flex h-7 items-center gap-1 rounded-[6px] bg-gradient-to-r from-rose-500 to-pink-600 px-2 text-[10px] font-black text-white shadow-md shadow-rose-500/20 transition-all hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-40">
-                            <Trash2 size={11} />Excluir
-                          </button>
-                        </div>
-                      )}
+                    <td className="px-2 py-2.5 text-center">
+                      <div className="flex justify-center gap-1">
+                        {t ? (<>
+                          <button onClick={() => onEdit(t)} disabled={isRefreshing || removeLoading} className="btn-outline-premium inline-flex h-6 items-center gap-1 px-2 text-[10px]"><Edit3 size={10} />Editar</button>
+                          <button onClick={() => onDelete(t)} disabled={isRefreshing || removeLoading} className="inline-flex h-6 items-center gap-1 rounded-[6px] bg-gradient-to-r from-rose-500 to-pink-600 px-2 text-[10px] font-black text-white shadow-md shadow-rose-500/20 transition-all hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-40"><Trash2 size={10} />Excluir</button>
+                        </>) : !day.isRestDay && !day.isFuture ? (
+                          <button onClick={() => onEdit({ id: '', employeeId: employee.id, date: day.dateKey, entry: null, lunchStart: null, lunchReturn: null, exit: null, totalWorked: null, dailyBalance: null } as unknown as TimeTrack)} disabled={isRefreshing || removeLoading} className="crystal-button inline-flex h-6 items-center gap-1 px-2 text-[10px]"><Edit3 size={10} />Lançar</button>
+                        ) : null}
+                      </div>
                     </td>
                   )}
                 </tr>
@@ -1030,7 +522,6 @@ function MonthGridSection({
         </table>
       </div>
 
-      {/* Legenda */}
       <div className="border-t border-slate-100 bg-slate-50/50 px-6 py-3">
         <div className="flex flex-wrap gap-4 text-[10px] font-semibold text-slate-500">
           <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded border border-sky-200 bg-sky-50" /> Folga (DSR)</span>
