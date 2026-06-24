@@ -3,8 +3,8 @@ set -Eeuo pipefail
 
 APP_DIR="/var/www/innovation.ia"
 COMPOSE="docker compose -f docker-compose.prod.yml --env-file .env"
-LOCK_FILE="/tmp/innovation-full-prod.lock"
-LOG_PREFIX="[deploy-full]"
+LOCK_FILE="/tmp/innovation-fast-prod.lock"
+LOG_PREFIX="[deploy-fast]"
 
 cd "$APP_DIR"
 
@@ -28,9 +28,6 @@ echo "$LOG_PREFIX garantindo REDIS_URL..."
 grep -q '^REDIS_URL=' .env \
   && sed -i 's|^REDIS_URL=.*|REDIS_URL=redis://redis:6379|' .env \
   || echo 'REDIS_URL=redis://redis:6379' >> .env
-
-echo "$LOG_PREFIX subindo base primeiro (postgres/redis)..."
-$COMPOSE up -d postgres redis
 
 echo "$LOG_PREFIX rebuildando API e WEB (com cache)..."
 $COMPOSE build api web

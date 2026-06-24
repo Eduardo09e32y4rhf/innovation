@@ -48,6 +48,12 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3333/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
     environment:
       NODE_ENV: production
       PORT: ${API_PORT:-3333}
@@ -80,6 +86,12 @@ services:
     restart: unless-stopped
     depends_on:
       - api
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/login"]
+      interval: 20s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
     environment:
       PORT: ${WEB_PORT:-3000}
     ports:
