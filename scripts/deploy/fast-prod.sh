@@ -72,7 +72,7 @@ if [ "$BUILD_API" = true ]; then
   done
 
   echo "$LOG_PREFIX aplicando migrations..."
-  $COMPOSE exec -T api npm run prisma:deploy || true
+  $COMPOSE exec -T api npx prisma migrate deploy --schema prisma/schema.prisma || true
 else
   echo "$LOG_PREFIX API sem mudanças, pulando rebuild."
 fi

@@ -49,11 +49,11 @@ services:
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "node -e \"fetch('http://localhost:3333/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3333/health || exit 1"]
       interval: 15s
-      timeout: 5s
+      timeout: 10s
       retries: 10
-      start_period: 40s
+      start_period: 45s
     environment:
       NODE_ENV: production
       PORT: ${API_PORT:-3333}
@@ -87,7 +87,7 @@ services:
     depends_on:
       - api
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/login"]
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/login || exit 1"]
       interval: 20s
       timeout: 5s
       retries: 10
