@@ -24,13 +24,15 @@ function timeToMinutes(time?: string | null): number | null {
 }
 
 const REASON_LABEL: Record<string, string> = {
-  ajuste_abono_atestado_horas: 'Ajuste - abono (atestado de horas)',
-  ajuste_atestado_integral: 'Ajuste - atestado integral',
-  ajuste_folga_dsr: 'Ajuste - folga DSR',
-  ajuste_abono_folga: 'Ajuste abono - folga',
-  ajuste_erro_marcacao: 'Ajuste - erro de marcação',
-  ajuste_feriado: 'Ajuste - feriado',
-  ajuste_suspensao: 'Ajuste - suspensão',
+  ajuste_erro_marcacao: 'AJUSTE - ERRO MARCAÇÃO',
+  ajuste_atestado_integral: 'ATESTADO INTEGRAL',
+  ajuste_feriado: 'FERIADO',
+  ajuste_abono_atestado_horas: 'ABONO - ATESTADO DE HORAS',
+  ajuste_folga_dsr: 'FOLGA',
+  ajuste_abono_folga: 'ABONO - FOLGA (BANCO)',
+  ajuste_abono_banco_saida_antecipada: 'ABONO - BANCO SAÍDA ANTECIPADA',
+  ajuste_abono_atraso: 'ABONO - ATRASO',
+  ajuste_suspensao: 'SUSPENSÃO',
 };
 
 @Injectable()

@@ -4,12 +4,14 @@ import { ArrayMaxSize, ArrayMinSize, IsArray, IsDateString, IsIn, IsInt, IsOptio
 export const REST_DAY_MODES = ['employee_scale', 'fixed_weekly', 'cycle'] as const;
 
 export const TIME_TRACK_ADJUSTMENT_REASONS = [
-  'ajuste_abono_atestado_horas',
+  'ajuste_erro_marcacao',
   'ajuste_atestado_integral',
+  'ajuste_feriado',
+  'ajuste_abono_atestado_horas',
   'ajuste_folga_dsr',
   'ajuste_abono_folga',
-  'ajuste_erro_marcacao',
-  'ajuste_feriado',
+  'ajuste_abono_banco_saida_antecipada',
+  'ajuste_abono_atraso',
   'ajuste_suspensao',
 ] as const;
 
