@@ -359,7 +359,7 @@ function AsoTab({ records, employees, canManage, onOpenForm, onSave, onDelete, s
 function EventModal({ event, employees, onClose, onSave, saving }: {
   event?: ManagementEvent; employees: Employee[]; onClose: () => void; onSave: (data: any) => void; saving: boolean;
 }) {
-  const init = event ?? { title: '', eventType: 'REUNIAO', status: 'PENDENTE', priority: 'MEDIA', startDateTime: '', endDateTime: '' };
+  const init = event ?? { title: '', eventType: 'REUNIAO', status: 'PENDENTE', priority: 'MEDIA', startDateTime: '', endDateTime: '', responsibleUserId: '', employeeId: '' };
   const [title, setTitle] = useState(init.title);
   const [eventType, setEventType] = useState<EventType>(init.eventType as EventType);
   const [status, setStatus] = useState<EventStatus>(init.status as EventStatus);
