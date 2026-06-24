@@ -36,9 +36,9 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
       await this.client.connect();
       this.isConnected = true;
       console.log('[Redis] Connected successfully');
-    } catch (err) {
+    } catch (error) {
       this.isConnected = false;
-      console.warn('[Redis] Not available — running without Redis cache:', err.message);
+      console.warn('[Redis] Not available — running without Redis cache:', error instanceof Error ? error.message : String(error));
     }
   }
 
