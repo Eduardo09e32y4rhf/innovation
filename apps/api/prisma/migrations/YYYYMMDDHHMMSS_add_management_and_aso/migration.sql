@@ -31,10 +31,10 @@ CREATE INDEX "management_events_startDateTime_idx" ON "management_events"("start
 CREATE INDEX "management_events_companyId_status_idx" ON "management_events"("companyId", "status");
 
 -- AddForeignKey
-ALTER TABLE "management_events" ADD CONSTRAINT "management_events_companyId_fkey" FOREIGN KEY ("companyId") REFERENCES "companies"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "management_events" ADD CONSTRAINT "management_events_companyId_fkey" FOREIGN KEY ("companyId") REFERENCES "Company"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "management_events" ADD CONSTRAINT "management_events_employeeId_fkey" FOREIGN KEY ("employeeId") REFERENCES "employees"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "management_events" ADD CONSTRAINT "management_events_employeeId_fkey" FOREIGN KEY ("employeeId") REFERENCES "Employee"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- CreateTable
 CREATE TABLE "employee_aso_records" (
@@ -69,7 +69,7 @@ CREATE INDEX "employee_aso_records_asoType_idx" ON "employee_aso_records"("asoTy
 CREATE INDEX "employee_aso_records_expirationDate_idx" ON "employee_aso_records"("expirationDate");
 
 -- AddForeignKey
-ALTER TABLE "employee_aso_records" ADD CONSTRAINT "employee_aso_records_companyId_fkey" FOREIGN KEY ("companyId") REFERENCES "companies"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "employee_aso_records" ADD CONSTRAINT "employee_aso_records_companyId_fkey" FOREIGN KEY ("companyId") REFERENCES "Company"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "employee_aso_records" ADD CONSTRAINT "employee_aso_records_employeeId_fkey" FOREIGN KEY ("employeeId") REFERENCES "employees"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "employee_aso_records" ADD CONSTRAINT "employee_aso_records_employeeId_fkey" FOREIGN KEY ("employeeId") REFERENCES "Employee"("id") ON DELETE CASCADE ON UPDATE CASCADE;
