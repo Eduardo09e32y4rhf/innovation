@@ -1,19 +1,18 @@
 'use client';
 
-import type React from 'react';
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { CalendarDays, Check, Clock3, Edit3, FileText, Minus, Plus, Trash2, UserMinus, AlertTriangle, XCircle } from 'lucide-react';
+import { CalendarDays, Check, Clock3, Edit3, XCircle } from 'lucide-react';
 import { ErrorState, LoadingState } from '@/app/components/data-states';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useMutation, useQuery } from '@/app/hooks/use-data';
-import { api, type Company, type Employee, type TimeTrack } from '@/app/lib/api';
-import { formatDate, formatMinutes } from '@/app/lib/format';
+import { api, type Employee, type TimeTrack, type TimeTrackAdjustmentReason, type RestDayMode } from '@/app/lib/api';
+import { formatMinutes } from '@/app/lib/format';
 import { normalizeDisplayName } from '@/app/lib/text';
 
 const WEEKDAYS = ['DOM','SEG','TER','QUA','QUI','SEX','SÁB'];
 
-const REASONS = [
+const REASONS: { value: TimeTrackAdjustmentReason; label: string; fullDay?: boolean }[] = [
   { value:'ajuste_erro_marcacao', label:'AJUSTE - ERRO MARCAÇÃO', fullDay:false },
   { value:'ajuste_atestado_integral', label:'ATESTADO INTEGRAL', fullDay:true },
   { value:'ajuste_feriado', label:'FERIADO', fullDay:true },
@@ -21,8 +20,6 @@ const REASONS = [
   { value:'ajuste_folga_dsr', label:'FOLGA', fullDay:true },
   { value:'ajuste_abono_folga', label:'ABONO - FOLGA (BANCO)', fullDay:false },
 ];
-
-type CompanyPrintInfo = { name: string; document: string; logoUrl?: string | null };
 
 function currentMonth() { return new Date().toISOString().slice(0,7); }
 function toDateKey(v?: string | null) { return v ? v.slice(0,10) : ''; }
@@ -126,8 +123,6 @@ function isFalta(row: TimeTrack) {
 }
 function sumMin(rows: TimeTrack[], f: 'totalWorked'|'dailyBalance') { return rows.reduce((a,r)=>a+(r[f]??0),0); }
 
-// ─── PAGE ──────────────────────────────────────────────────────────────────
-
 export default function TimeTrackPage() {
   const { user } = useAuth();
   const profile = user?.profile?.toUpperCase();
@@ -138,7 +133,6 @@ export default function TimeTrackPage() {
 
   const tracks = useQuery(() => api.timeTrack.list(), []);
   const employees = useQuery(() => api.employees.list(), [], { enabled: !isFunc });
-  const company = useQuery(() => api.companies.me(), [], { enabled: canManage||isGestor });
   const [open, setOpen] = useState(false);
   const [bulkOpen, setBulkOpen] = useState(false);
   const [editing, setEditing] = useState<TimeTrack | null>(null);
@@ -156,7 +150,11 @@ export default function TimeTrackPage() {
     if (deptFilter && r.employee?.department!==deptFilter) return false;
     return true;
   }).toSorted((a,b)=> toDateKey(a.date).localeCompare(toDateKey(b.date))), [tracks.data, empFilter, month, deptFilter]);
-  const byEmpMap = useMemo(() => byEmp.reduce<Record<string, TimeTrack[]>>((acc,r)=>{acc[r.employeeId]??=[].push(r); return acc;},{}), [byEmp]);
+  const byEmpMap: Record<string, TimeTrack[]> = {};
+  for (const r of byEmp) {
+    if (!byEmpMap[r.employeeId]) byEmpMap[r.employeeId] = [];
+    byEmpMap[r.employeeId].push(r);
+  }
   const visible = useMemo(() => actives.filter(e => {
     if (empFilter && e.id!==empFilter) return false;
     if (deptFilter && e.department!==deptFilter) return false;
@@ -166,9 +164,6 @@ export default function TimeTrackPage() {
   const remove = useMutation((id:string)=> api.timeTrack.delete(id), { onSuccess: ()=> tracks.refetch() });
   const pending = useQuery(() => api.timeTrack.listPending(), [], { enabled: canApprove });
   const approveMut = useMutation((p:{id:string;approved:boolean})=> api.timeTrack.approve(p.id, p.approved), { onSuccess:()=>{ pending.refetch(); tracks.refetch(); }});
-
-  // refresh
-  useMemo(()=>{ const t=setInterval(()=>{ tracks.refetch(); if (canApprove) pending.refetch(); },30000); return ()=>clearInterval(t); }, [tracks, pending, canApprove]);
 
   const onDelete = async (r: TimeTrack) => {
     if (!window.confirm(`Excluir ponto de ${normalizeDisplayName(r.employee?.name ??'-')} em ${fmtDateFull(r.date)}?`)) return;
@@ -180,7 +175,6 @@ export default function TimeTrackPage() {
 
   return (
     <div className="mx-auto max-w-7xl space-y-5 px-4 py-5 sm:px-6 lg:px-8">
-      {/* Header */}
       <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-[10px] font-black uppercase tracking-[0.2em] text-teal-600">CONTROLE DE PONTO</p>
@@ -193,7 +187,6 @@ export default function TimeTrackPage() {
         </div>
       </header>
 
-      {/* Aprovações pendentes */}
       {canApprove && (pending.data ?? []).length > 0 && (
         <section className="rounded-[12px] border border-amber-200 bg-amber-50 p-4">
           <h3 className="mb-3 text-sm font-black text-amber-900">PONTOS PENDENTES DE APROVAÇÃO ({(pending.data ?? []).length})</h3>
@@ -210,7 +203,6 @@ export default function TimeTrackPage() {
         </section>
       )}
 
-      {/* Abas + Filtros */}
       {!isFunc && (
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex gap-1 rounded-[8px] bg-slate-100 p-1">
@@ -241,11 +233,13 @@ export default function TimeTrackPage() {
       {initialLoading ? <LoadingState label="Carregando folha de ponto..."/> :
        tracks.error && !tracks.data ? <ErrorState message={tracks.error} onRetry={tracks.refetch}/> :
        (empFilter || isFunc) && selected ? (
-        tab === 'ponto' ? (
-          <MonthGrid employee={selected} tracks={(byEmpMap[selected.id] ?? [])} month={month} canManage={canManage} canApprove={canApprove} refreshing={refreshing} removeLoading={remove.loading} onEdit={setEditing} onDelete={onDelete} showActions />
-        ) : (
-          <Ocorrencias employee={selected} tracks={(byEmpMap[selected.id] ?? [])} month={month} canManage={canManage} canApprove={canApprove} refreshing={refreshing} removeLoading={remove.loading} onEdit={setEditing} onDelete={onDelete} />
-        )
+        <div>
+          {tab === 'ponto' ? (
+            <MonthGrid employee={selected} tracks={(byEmpMap[selected.id] ?? [])} month={month} canManage={canManage} canApprove={canApprove} refreshing={refreshing} removeLoading={remove.loading} onEdit={setEditing} onDelete={onDelete} showActions />
+          ) : (
+            <Ocorrencias employee={selected} tracks={(byEmpMap[selected.id] ?? [])} month={month} canManage={canManage} canApprove={canApprove} refreshing={refreshing} removeLoading={remove.loading} onEdit={setEditing} onDelete={onDelete} />
+          )}
+        </div>
       ) : visible.length===0 ? <p className="text-center text-sm text-slate-400 py-8">Nenhum colaborador encontrado.</p> :
         tab === 'ponto' ? (
           <section className="overflow-hidden rounded-[14px] border border-slate-200 bg-white">
@@ -254,7 +248,8 @@ export default function TimeTrackPage() {
               {visible.map(emp=>{
                 const rows = byEmpMap[emp.id] ?? [];
                 const worked = sumMin(rows,'totalWorked');
-                const saldo = sumMin(rows,'dailyBalance');                const faltas = rows.filter(isFalta).length;
+                const saldo = sumMin(rows,'dailyBalance');
+                const faltas = rows.filter(isFalta).length;
                 return (
                   <div key={emp.id} className="flex items-center justify-between px-5 py-4 hover:bg-slate-50">
                     <div className="flex items-center gap-3">
@@ -276,15 +271,14 @@ export default function TimeTrackPage() {
               })}
             </div>
           </section>
-        ) : <OcorrenciasList employees={visible} byEmpMap={byEmpMap} month={month} onSelect={setEmpFilter} />
-      : null}
+        ) : (
+          <OcorrenciasList employees={visible} byEmpMap={byEmpMap} month={month} onSelect={setEmpFilter} />
+        )}
 
       {(open || bulkOpen || editing) && <Modal employees={actives} bulk={bulkOpen} track={editing ?? undefined} defaultEmpId={empFilter} onClose={()=>{setOpen(false);setBulkOpen(false);setEditing(null);}} onDone={()=>{setOpen(false);setBulkOpen(false);setEditing(null);tracks.refetch();}} />}
     </div>
   );
 }
-
-// ─── LISTA DE OCORRÊNCIAS (visão geral) ────────────────────────────────────
 
 function OcorrenciasList({ employees, byEmpMap, month, onSelect }: { employees: Employee[]; byEmpMap: Record<string,TimeTrack[]>; month: string; onSelect: (id:string)=>void }) {
   const withIssues = employees.filter(e => (byEmpMap[e.id] ?? []).some(isFalta));
@@ -314,8 +308,6 @@ function OcorrenciasList({ employees, byEmpMap, month, onSelect }: { employees: 
   );
 }
 
-// ─── GRADE MENSAL ──────────────────────────────────────────────────────────
-
 function MonthGrid({ employee, tracks, month, canManage, canApprove, refreshing, removeLoading, onEdit, onDelete, showActions }: { employee: Employee; tracks: TimeTrack[]; month: string; canManage: boolean; canApprove: boolean; refreshing: boolean; removeLoading: boolean; onEdit: (r:TimeTrack)=>void; onDelete: (r:TimeTrack)=>void; showActions?: boolean }) {
   const grid = useMemo(()=> buildGrid(month, employee, tracks), [month, employee, tracks]);
   const worked = sumMin(tracks,'totalWorked');
@@ -326,7 +318,6 @@ function MonthGrid({ employee, tracks, month, canManage, canApprove, refreshing,
 
   return (
     <section className="overflow-hidden rounded-[14px] border border-slate-200 bg-white">
-      {/* Header */}
       <div className="border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white px-5 py-4">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-3">
@@ -358,7 +349,6 @@ function MonthGrid({ employee, tracks, month, canManage, canApprove, refreshing,
         </div>
       </div>
 
-      {/* Tabela */}
       <div className="overflow-x-auto">
         <table className="w-full min-w-[1200px] border-separate border-spacing-0 text-left">
           <thead>
@@ -403,7 +393,7 @@ function MonthGrid({ employee, tracks, month, canManage, canApprove, refreshing,
                         <button onClick={()=>onEdit(t)} disabled={refreshing||removeLoading} className="crystal-button h-6 px-2 text-[9px] font-bold"><Check size={10}/>ACEITAR</button>
                       )}
                       {showActions && t && canManage && (
-                        <button onClick={()=>onDelete(t)} disabled={refreshing||removeLoading} className="inline-flex h-6 items-center gap-1 rounded-[5px] bg-gradient-to-r from-rose-500 to-pink-600 px-2 text-[9px] font-black text-white"><Trash2 size={10}/></button>
+                        <button onClick={()=>onDelete(t)} disabled={refreshing||removeLoading} className="inline-flex h-6 items-center gap-1 rounded-[5px] bg-gradient-to-r from-rose-500 to-pink-600 px-2 text-[9px] font-black text-white"><Edit3 size={10}/></button>
                       )}
                     </div>
                   </td>
@@ -459,7 +449,7 @@ function Ocorrencias({ employee, tracks, month, canManage, canApprove, refreshin
                       <div className="flex gap-1">
                         <button onClick={()=>onEdit(t)} disabled={refreshing||removeLoading} className="btn-outline-premium h-6 px-2 text-[10px]"><Edit3 size={10}/>SOLICITAR</button>
                         {canApprove && <button onClick={()=>onEdit(t)} disabled={refreshing||removeLoading} className="crystal-button h-6 px-2 text-[10px]"><Check size={10}/>ACEITAR</button>}
-                        {canManage && <button onClick={()=>onDelete(t)} disabled={refreshing||removeLoading} className="inline-flex h-6 items-center gap-1 rounded-[5px] bg-rose-500 px-2 text-[10px] font-black text-white"><Trash2 size={10}/></button>}
+                        {canManage && <button onClick={()=>onDelete(t)} disabled={refreshing||removeLoading} className="inline-flex h-6 items-center gap-1 rounded-[5px] bg-rose-500 px-2 text-[10px] font-black text-white"><Edit3 size={10}/></button>}
                       </div>
                     </td>
                   </tr>
@@ -494,8 +484,6 @@ function StatusBadge({ status }: { status: string }) {
   return <span className={`inline-flex items-center rounded-[5px] border px-2 py-0.5 text-[9px] font-black whitespace-nowrap ${c[u]||'bg-slate-100 text-slate-600 border-slate-200'}`}>{u}</span>;
 }
 
-// ─── MODAL ─────────────────────────────────────────────────────────────────
-
 function Modal({ employees, bulk, track, defaultEmpId, onClose, onDone }: { employees: Employee[]; bulk: boolean; track?: TimeTrack; defaultEmpId: string; onClose: ()=>void; onDone: ()=>void; }) {
   const initDate = track ? toDateKey(track.date) : new Date().toISOString().slice(0,10);
   const [mode, setMode] = useState<'single'|'bulk'>(bulk?'bulk':'single');
@@ -511,7 +499,7 @@ function Modal({ employees, bulk, track, defaultEmpId, onClose, onDone }: { empl
   const [lunchS, setLunchS] = useState(track ? fmtTime(track.lunchStart) : '');
   const [lunchR, setLunchR] = useState(track ? fmtTime(track.lunchReturn) : '');
   const [exit, setExit] = useState(track ? fmtTime(track.exit) : '');
-  const [reason, setReason] = useState<string>('ajuste_erro_marcacao');
+  const [reason, setReason] = useState<TimeTrackAdjustmentReason>('ajuste_erro_marcacao');
   const [detail, setDetail] = useState('');
   const [daysOff, setDaysOff] = useState<number[]>(defaultDaysOff(initScale));
   const [cycleWD, setCycleWD] = useState(defaultCycle(initScale).workDays);
@@ -521,11 +509,11 @@ function Modal({ employees, bulk, track, defaultEmpId, onClose, onDone }: { empl
 
   function applyDefaults(nextId: string) { const e = employees.find(x=>x.id===nextId); setDaysOff(defaultDaysOff(e?.workScale)); const cyc = defaultCycle(e?.workScale); setCycleWD(cyc.workDays); setCycleOD(cyc.offDays); }
   const save = useMutation(async () => {
-    const payload = { entry: toIso(date,entry), lunchStart: toIso(date,lunchS), lunchReturn: toIso(date,lunchR), exit: toIso(date,exit), reason, observation: detail } as any;
+    const payload = { entry: toIso(date,entry), lunchStart: toIso(date,lunchS), lunchReturn: toIso(date,lunchR), exit: toIso(date,exit), reason: reason as TimeTrackAdjustmentReason, observation: detail };
     if (track) { await api.timeTrack.update(track.id, {entry:payload.entry, lunchStart:payload.lunchStart, lunchReturn:payload.lunchReturn, exit:payload.exit, observation:detail?.trim()||track.observation||null}); return; }
     if (mode==='bulk') {
       const ids = bulkMode==='period'? [empId] : selected;
-      const base = {employeeIds:ids, entry:payload.entry, lunchStart:payload.lunchStart, lunchReturn:payload.lunchReturn, exit:payload.exit, reason, observation:detail, restDayMode:'employee_scale', daysOff, cycleStartDate:date, cycleWorkDays:cycleWD, cycleOffDays:cycleOD};
+      const base = {employeeIds:ids, entry:payload.entry, lunchStart:payload.lunchStart, lunchReturn:payload.lunchReturn, exit:payload.exit, reason, observation:detail, restDayMode:'employee_scale' as RestDayMode, daysOff, cycleStartDate:date, cycleWorkDays:cycleWD, cycleOffDays:cycleOD};
       await api.timeTrack.manualBulk(bulkMode==='period'? {...base, startDate, endDate} : {...base, date});
       return;
     }
@@ -539,7 +527,7 @@ function Modal({ employees, bulk, track, defaultEmpId, onClose, onDone }: { empl
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4">
       <div className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-[12px] border border-slate-200 bg-white p-6 shadow-xl">
-        <div className="mb-4 flex items-center justify-between"><h3 className="text-base font-black text-slate-950">{track?'EDITAR PONTO':mode==='bulk'?'LANÇAR EM LOTE':'LANÇAR PONTO MANUAL'}</h3><button onClick={onClose} className="text-slate-400 hover:text-slate-700"><Plus size={18} className="rotate-45"/></button></div>
+        <div className="mb-4 flex items-center justify-between"><h3 className="text-base font-black text-slate-950">{track?'EDITAR PONTO':mode==='bulk'?'LANÇAR EM LOTE':'LANÇAR PONTO MANUAL'}</h3><button onClick={onClose} className="text-slate-400 hover:text-slate-700"><Edit3 size={18} className="rotate-45"/></button></div>
         {save.error && <p className="mb-3 rounded-[8px] border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700">{save.error}</p>}
         {!track && <div className="mb-4 grid grid-cols-2 gap-2 rounded-[8px] bg-slate-100 p-1 text-xs font-black"><button type="button" onClick={()=>setMode('single')} className={`h-9 rounded-[7px] ${mode==='single'?'bg-white shadow-sm':'text-slate-500'}`}>INDIVIDUAL</button><button type="button" onClick={()=>setMode('bulk')} className={`h-9 rounded-[7px] ${mode==='bulk'?'bg-white shadow-sm':'text-slate-500'}`}>LOTE</button></div>}
         <div className="grid gap-3 sm:grid-cols-2">
@@ -547,7 +535,7 @@ function Modal({ employees, bulk, track, defaultEmpId, onClose, onDone }: { empl
             <label className="space-y-1 text-xs font-medium text-slate-600 sm:col-span-2"><span>TIPO</span><select value={bulkMode} onChange={e=>setBulkMode(e.target.value as any)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500"><option value="day">Um dia para vários</option><option value="period">Período para um</option></select></label>
             {bulkMode==='day' ? <div className="sm:col-span-2 rounded-[10px] border border-slate-200 bg-white p-3">
               <div className="mb-2 flex items-center justify-between"><span className="text-xs font-bold text-slate-700">FUNCIONÁRIOS ({selected.length})</span><button type="button" onClick={()=>setSelected(selected.length===employees.length?[]:employees.map(e=>e.id))} className="text-[10px] font-bold text-teal-600">{selected.length===employees.length?'DESMARCAR':'TODOS'}</button></div>
-              <div className="max-h-52 overflow-y-auto space-y-0.5">{(showAll?employees:employees.slice(0,8)).map(e=><label key={e.id} className="flex items-center gap-2 rounded-[6px] px-2 py-1.5 hover:bg-slate-50 cursor-pointer text-xs"><input type="checkbox" checked={selected.includes(e.id)} onChange={()=>setSelected(p=>p.includes(e.id)?p.filter(x=>x!==e.id):[...p,e.id])} className="h-3.5 w-3.5 rounded border-slate-300 text-teal-600"/><span className="font-semibold text-slate-700">{normalizeDisplayName(e.name)}</span></label>)}</div>
+              <div className="max-h-52 overflow-y-auto space-y-0.5">{(showAll?employees:employees.slice(0,8)).map(e=> <label key={e.id} className="flex items-center gap-2 rounded-[6px] px-2 py-1.5 hover:bg-slate-50 cursor-pointer text-xs"><input type="checkbox" checked={selected.includes(e.id)} onChange={()=>setSelected(p=>p.includes(e.id)?p.filter(x=>x!==e.id):[...p,e.id])} className="h-3.5 w-3.5 rounded border-slate-300 text-teal-600"/><span className="font-semibold text-slate-700">{normalizeDisplayName(e.name)}</span></label>)}</div>
               {employees.length>8 && <button type="button" onClick={()=>setShowAll(!showAll)} className="mt-1 text-[10px] font-bold text-teal-600">{showAll?'MENOS':`+${employees.length-8} outros`}</button>}
             </div> : <label className="space-y-1 text-xs font-medium text-slate-600 sm:col-span-2"><span>FUNCIONÁRIO</span><select value={empId} onChange={e=>{setEmpId(e.target.value);applyDefaults(e.target.value);}} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500"><option value="">Selecione...</option>{employees.map(e=><option key={e.id} value={e.id}>{normalizeDisplayName(e.name)}</option>)}</select></label>}
             {bulkMode==='period' ? <><label className="space-y-1 text-xs font-medium text-slate-600"><span>INÍCIO</span><input type="date" value={startDate} onChange={e=>setStartDate(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500"/></label><label className="space-y-1 text-xs font-medium text-slate-600"><span>FIM</span><input type="date" value={endDate} onChange={e=>setEndDate(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500"/></label></> : <label className="space-y-1 text-xs font-medium text-slate-600"><span>DATA</span><input type="date" value={date} onChange={e=>setDate(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500"/></label>}
@@ -555,8 +543,8 @@ function Modal({ employees, bulk, track, defaultEmpId, onClose, onDone }: { empl
             <label className="space-y-1 text-xs font-medium text-slate-600 sm:col-span-2"><span>FUNCIONÁRIO</span><select disabled={!!track} value={empId} onChange={e=>{setEmpId(e.target.value);applyDefaults(e.target.value);}} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500 disabled:bg-slate-50"><option value="">Selecione...</option>{employees.map(e=><option key={e.id} value={e.id}>{normalizeDisplayName(e.name)}</option>)}</select></label>
             <label className="space-y-1 text-xs font-medium text-slate-600"><span>DATA</span><input disabled={!!track} type="date" value={date} onChange={e=>setDate(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500 disabled:bg-slate-50"/></label>
           </>}
-          {!track && <label className="space-y-1 text-xs font-medium text-slate-600"><span>MOTIVO</span><select value={reason} onChange={e=>setReason(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500">{REASONS.map(r=><option key={r.value} value={r.value}>{r.label}</option>)}</select></label>}
-          {!fullDay && <><TimeF label="ENTRADA" v={entry} s={setEntry}/><TimeF label="SAÍDA ALMOÇO" v={lunchS} s={setLunchS}/><TimeF label="RETORNO ALMOÇO" v={lunchR} s={setLunchR}/><TimeF label="SAÍDA" v={exit} s={setExit}/></>}
+          {!track && <label className="space-y-1 text-xs font-medium text-slate-600"><span>MOTIVO</span><select value={reason} onChange={e=>setReason(e.target.value as TimeTrackAdjustmentReason)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500">{REASONS.map(r=><option key={r.value} value={r.value}>{r.label}</option>)}</select></label>}
+          {!fullDay && <><TimeField label="ENTRADA" value={entry} onChange={setEntry}/><TimeField label="SAÍDA ALMOÇO" value={lunchS} onChange={setLunchS}/><TimeField label="RETORNO ALMOÇO" value={lunchR} onChange={setLunchR}/><TimeField label="SAÍDA" value={exit} onChange={setExit}/></>}
           <label className="space-y-1 text-xs font-medium text-slate-600 sm:col-span-2"><span>OBSERVAÇÃO</span><input value={detail} onChange={e=>setDetail(e.target.value)} placeholder={track?track.observation ?? '' : ''} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500"/></label>
         </div>
         {employees.length===0 && <p className="mt-4 rounded-[10px] border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-900">Cadastre um funcionário ativo.</p>}
@@ -566,8 +554,8 @@ function Modal({ employees, bulk, track, defaultEmpId, onClose, onDone }: { empl
   );
 }
 
-function TimeF({ label, v, s }: { label: string; v: string; s: (v:string)=>void; }) {
-  return <label className="space-y-1 text-xs font-medium text-slate-600"><span>{label}</span><input type="time" value={v} onChange={e=>s(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500"/></label>;
+function TimeField({ label, value, onChange }: { label: string; value: string; onChange: (v:string)=>void; }) {
+  return <label className="space-y-1 text-xs font-medium text-slate-600"><span>{label}</span><input type="time" value={value} onChange={e=>onChange(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500"/></label>;
 }
 
 function toIso(date: string, time: string) {
