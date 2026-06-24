@@ -1,4 +1,4 @@
-import { Injectable, CanActivate, ExecutionContext, HttpException, HttpStatus } from '@nestjs/common';
+import { Injectable, CanActivate, ExecutionContext, HttpException, HttpStatus, SetMetadata } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { RedisService } from '../redis/redis.service';
 
@@ -16,8 +16,7 @@ export interface RateLimitOptions {
 /**
  * Decorator to set rate limit on a route or controller.
  */
-export const RateLimit = (options: RateLimitOptions) =>
-  Reflect.defineMetadata(RATE_LIMIT_KEY, options, Reflect.getOwnPropertyDescriptor?.bind(Reflect) as any);
+export const RateLimit = (options: RateLimitOptions) => SetMetadata(RATE_LIMIT_KEY, options);
 
 @Injectable()
 export class RateLimitGuard implements CanActivate {

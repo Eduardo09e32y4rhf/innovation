@@ -126,8 +126,8 @@ export class TimeTrackService {
     // Validar admissão/demissão
     this.validateEmployeeDateRange(employee, date);
 
-    // Validar horário futuro no ajuste manual
-    this.validateManualTimestamp(employee, timestamp, new Date(), date);
+    // Validar horário futuro no ajuste manual — apenas validação de data
+    this.validateManualTimestamp(employee, undefined, undefined, undefined, undefined, date);
 
     const lockKey = `punch-lock:${employee.id}:${dateStr}`;
     const acquired = await this.redis.acquireLock(lockKey, this.PUNCH_LOCK_TTL);
