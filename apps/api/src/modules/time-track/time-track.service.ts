@@ -415,7 +415,7 @@ export class TimeTrackService {
   private async applyManual(employee: { id: string; dailyWorkload?: string | null }, dateValue: string, dto: Pick<ManualTimeTrackDto, 'entry' | 'lunchStart' | 'lunchReturn' | 'exit' | 'reason' | 'observation'>) {
     const date = this.toDateOnly(this.parseDate(dateValue, 'Invalid date'));
     const isFullDayAdjustment = dto.reason === 'ajuste_atestado_integral' || dto.reason === 'ajuste_feriado' || dto.reason === 'ajuste_suspensao';
-    const isBanco = dto.reason === 'ajuste_folga_dsr' || dto.reason === 'ajuste_abono_folga';
+    const isBanco = dto.reason === 'ajuste_folga_dsr' || dto.reason === 'ajuste_abono_folga' || dto.reason === 'ajuste_abono_banco_saida_antecipada' || dto.reason === 'ajuste_abono_atraso';
     const data = {
       entry: isFullDayAdjustment ? null : this.parseOptionalDate((dto as any).entry),
       lunchStart: isFullDayAdjustment ? null : this.parseOptionalDate((dto as any).lunchStart),
