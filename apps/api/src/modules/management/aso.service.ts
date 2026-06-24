@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../../common/prisma.service';
+import { PrismaService } from '../../database/prisma.service';
 
 @Injectable()
 export class AsoService {
@@ -8,7 +8,7 @@ export class AsoService {
   async list(companyId: string) {
     return this.prisma.employeeAsoRecord.findMany({
       where: { companyId },
-      include: { employee: { select: { id: true, name: true, document: true } } },
+      include: { employee: { select: { id: true, name: true } } },
       orderBy: { expirationDate: 'asc' },
     });
   }
@@ -23,7 +23,7 @@ export class AsoService {
   async find(companyId: string, id: string) {
     const r = await this.prisma.employeeAsoRecord.findFirst({
       where: { id, companyId },
-      include: { employee: { select: { id: true, name: true, document: true } } },
+      include: { employee: { select: { id: true, name: true } } },
     });
     if (!r) throw new Error('NÃO ENCONTRADO');
     return r;

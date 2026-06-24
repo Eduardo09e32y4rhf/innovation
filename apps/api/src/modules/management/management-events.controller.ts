@@ -5,11 +5,10 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import type { JwtUser } from '../../common/types/auth.types';
-import { Role } from '../../common/guards/roles.guard';
 import { ManagementEventsService } from './management-events.service';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(Role.DEV, Role.ADMIN, Role.RH, Role.GESTOR)
+@Roles('DEV', 'ADMIN', 'RH', 'GESTOR')
 @Controller('management/events')
 export class ManagementEventsController {
   constructor(private readonly svc: ManagementEventsService) {}
@@ -26,7 +25,7 @@ export class ManagementEventsController {
 
   @Post()
   create(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Body() body: any) {
-    return this.svc.create(companyId, actor.userId, body);
+    return this.svc.create(companyId, actor.sub, body);
   }
 
   @Patch(':id')
