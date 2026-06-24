@@ -133,8 +133,14 @@ export class TimeTrackRepository {
     });
   }
 
-  async updateManualStatus(companyId: string, id: string, status: string) {
-    await this.prisma.timeTrack.updateMany({ where: { id, employee: { companyId } }, data: { manualStatus: status } });
+  async updateManualStatus(companyId: string, id: string, status: string, revokeReason?: string) {
+    const data: Record<string, string> = { manualStatus: status };
+    if (revokeReason) {
+      const track = await this.findById(companyId, id);
+      const prevObs = track?.observation ?? '';
+      data.observation = prevObs ? `${prevObs} | [Revogado: ${revokeReason}]` : `[Revogado: ${revokeReason}]`;
+    }
+    await this.prisma.timeTrack.updateMany({ where: { id, employee: { companyId } }, data });
     return this.findById(companyId, id);
   }
 }

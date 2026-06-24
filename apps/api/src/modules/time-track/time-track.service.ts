@@ -6,7 +6,14 @@ import { UpdateTimeTrackDto } from './dto/update-time-track.dto';
 import { TimeTrackRepository } from './time-track.repository';
 import { RedisService } from '../../common/redis/redis.service';
 
-const STANDARD_WORKDAY_MINUTES = 8 * 60;
+const DEFAULT_WORKDAY_MINUTES = 8 * 60; // fallback padrão
+
+function parseWorkloadToMinutes(workload?: string | null): number {
+  if (!workload) return DEFAULT_WORKDAY_MINUTES;
+  const match = workload.match(/^(\d{1,2}):(\d{2})$/);
+  if (!match) return DEFAULT_WORKDAY_MINUTES;
+  return parseInt(match[1], 10) * 60 + parseInt(match[2], 10);
+}
 const REASON_LABEL: Record<string, string> = {
   ajuste_abono_atestado_horas: 'Ajuste - abono (atestado de horas)',
   ajuste_atestado_integral: 'Ajuste - atestado integral',
@@ -41,7 +48,8 @@ export class TimeTrackService {
     return this.repository.listEmployeeMonth(companyId, employeeId, start, end);
   }
 
-  async manual(companyId: string, dto: ManualTimeTrackDto) {
+  async manual(companyId: string, actor: JwtUser, dto: ManualTimeTrackDto) {
+    // Qualquer perfil pode solicitar ajuste manual, que fica pendente de aprovação
     const employee = await this.ensureEmployee(companyId, dto.employeeId);
     // Validar admissão/demissão
     const date = this.toDateOnly(this.parseDate(dto.date, 'Invalid date'));
@@ -193,6 +201,16 @@ export class TimeTrackService {
     }
     const status = approved ? 'approved' : 'rejected';
     return this.repository.updateManualStatus(companyId, id, status);
+  }
+
+  async revokeManual(companyId: string, actor: JwtUser, id: string, reason: string) {
+    if (actor.role !== 'ADMIN' && actor.role !== 'RH' && actor.role !== 'DEV') {
+      throw new ForbiddenException('Apenas RH pode revogar um ajuste de ponto.');
+    }
+    const track = await this.repository.findById(companyId, id);
+    if (!track) throw new NotFoundException('Time track not found');
+    if (track.manualStatus !== 'approved') throw new BadRequestException('Apenas ajustes aprovados podem ser revogados.');
+    return this.repository.updateManualStatus(companyId, id, 'revoked', reason);
   }
 
   async delete(companyId: string, id: string) {
@@ -375,7 +393,7 @@ export class TimeTrackService {
     const gross = this.diffMinutes(track.entry, track.exit);
     const lunch = track.lunchStart && track.lunchReturn ? this.diffMinutes(track.lunchStart, track.lunchReturn) : 0;
     const totalWorked = Math.max(gross - lunch, 0);
-    return { totalWorked, dailyBalance: totalWorked - STANDARD_WORKDAY_MINUTES };
+    return { totalWorked, dailyBalance: totalWorked - DEFAULT_WORKDAY_MINUTES };
   }
 
   private diffMinutes(start: Date, end: Date) {

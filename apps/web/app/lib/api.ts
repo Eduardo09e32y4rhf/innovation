@@ -242,6 +242,7 @@ export const api = {
     delete: (id: string) => request<void>(`/time-track/${id}`, { method: 'DELETE' }),
     listPending: () => request<TimeTrack[]>('/time-track/pending'),
     approve: (id: string, approved: boolean) => request<TimeTrack>(`/time-track/${id}/approve`, { method: 'PATCH', body: { approved } }),
+    revoke: (id: string, reason: string) => request<TimeTrack>(`/time-track/${id}/revoke`, { method: 'PATCH', body: { reason } }),
   },
   vacations: {
     list: () => request<Vacation[]>('/vacations'),

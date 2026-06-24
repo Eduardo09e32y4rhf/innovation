@@ -147,6 +147,7 @@ function compareTimeTracks(a: TimeTrack, b: TimeTrack) {
 }
 
 function dayStatus(row: TimeTrack) {
+  if (row.manualStatus === 'revoked') return 'Revogado';
   const text = `${row.observation ?? ''} ${row.manualReason ?? ''}`.toLowerCase();
   if (row.manualStatus === 'pending') return 'Pendente';
   if (row.manualStatus === 'rejected') return 'Rejeitado';
@@ -324,7 +325,7 @@ export default function TimeTrackPage() {
         </section>
       )}
 
-      {canManage && (open || bulkOpen || editing) && <ManualTimeSheetModal employees={activeEmployees} employeesLoading={employees.loading} employeesError={employees.error} defaultEmployeeId={employeeFilter} track={editing ?? undefined} bulk={bulkOpen} onClose={() => { setOpen(false); setBulkOpen(false); setEditing(null); }} onDone={() => { setOpen(false); setBulkOpen(false); setEditing(null); tracks.refetch(); }} />}
+      {(open || bulkOpen || editing) && <ManualTimeSheetModal employees={activeEmployees} employeesLoading={employees.loading} employeesError={employees.error} defaultEmployeeId={employeeFilter} track={editing ?? undefined} bulk={bulkOpen} onClose={() => { setOpen(false); setBulkOpen(false); setEditing(null); }} onDone={() => { setOpen(false); setBulkOpen(false); setEditing(null); tracks.refetch(); }} />}
     </div>
   );
 }
@@ -332,7 +333,7 @@ export default function TimeTrackPage() {
 // ─── STATUS BADGE ──────────────────────────────────────────────────────────
 
 function StatusBadge({ status }: { status: string }) {
-  const colors: Record<string, string> = { 'Normal': 'bg-emerald-50 text-emerald-700 border-emerald-200/60', 'Pendente': 'bg-amber-50 text-amber-700 border-amber-200/60', 'Rejeitado': 'bg-rose-50 text-rose-700 border-rose-200/60', 'Feriado': 'bg-teal-50 text-teal-700 border-teal-200/60', 'Atestado integral': 'bg-violet-50 text-violet-700 border-violet-200/60', 'Folga': 'bg-sky-50 text-sky-700 border-sky-200/60', 'Ajuste manual': 'bg-orange-50 text-orange-700 border-orange-200/60', 'Falta': 'bg-rose-50 text-rose-700 border-rose-200/60' };
+  const colors: Record<string, string> = { 'Normal': 'bg-emerald-50 text-emerald-700 border-emerald-200/60', 'Pendente': 'bg-amber-50 text-amber-700 border-amber-200/60', 'Rejeitado': 'bg-rose-50 text-rose-700 border-rose-200/60', 'Revogado': 'bg-red-100 text-red-700 border-red-200/60', 'Feriado': 'bg-teal-50 text-teal-700 border-teal-200/60', 'Atestado integral': 'bg-violet-50 text-violet-700 border-violet-200/60', 'Folga': 'bg-sky-50 text-sky-700 border-sky-200/60', 'Ajuste manual': 'bg-orange-50 text-orange-700 border-orange-200/60', 'Falta': 'bg-rose-50 text-rose-700 border-rose-200/60' };
   return <span className={`inline-flex items-center rounded-[6px] border px-2.5 py-1 text-[10px] font-black ${colors[status] || 'bg-slate-100 text-slate-600 border-slate-200/60'}`}>{status}</span>;
 }
 
@@ -488,7 +489,7 @@ function MonthGridSection({ employee, tracks, monthFilter, canManage, isRefreshi
               <th className="sticky top-0 z-10 px-2 py-2.5 w-[10%] border-b border-slate-200">Trabalhado</th>
               <th className="sticky top-0 z-10 px-2 py-2.5 w-[10%] border-b border-slate-200">Saldo</th>
               <th className="sticky top-0 z-10 px-2 py-2.5 w-[12%] border-b border-slate-200">Status</th>
-              {canManage && <th className="sticky top-0 z-10 px-2 py-2.5 w-[16%] text-center border-b border-slate-200">Ações</th>}
+              <th className="sticky top-0 z-10 px-2 py-2.5 w-[16%] text-center border-b border-slate-200">Ações</th>
             </tr>
           </thead>
           <tbody>
@@ -515,18 +516,17 @@ function MonthGridSection({ employee, tracks, monthFilter, canManage, isRefreshi
                   <td className="px-2 truncate text-slate-600 text-xs">{t ? displayWorked(t.totalWorked) : '--:--'}</td>
                   <td className={`px-2 truncate text-xs font-black ${t && (t.dailyBalance ?? 0) < 0 ? 'text-rose-600' : t ? 'text-emerald-600' : 'text-slate-300'}`}>{t ? displayBalance(t.dailyBalance) : '--:--'}</td>
                   <td className="px-2 truncate text-center"><StatusBadge status={dayStatusText} /></td>
-                  {canManage && (
-                    <td className="px-2 text-center">
-                      <div className="flex justify-center gap-1 whitespace-nowrap">
-                        {t ? (<>
-                          <button onClick={() => onEdit(t)} disabled={isRefreshing || removeLoading} className="btn-outline-premium inline-flex h-6 shrink-0 items-center gap-1 px-2 text-[10px]"><Edit3 size={10} />Editar</button>
-                          <button onClick={() => onDelete(t)} disabled={isRefreshing || removeLoading} className="inline-flex h-6 shrink-0 items-center gap-1 rounded-[6px] bg-gradient-to-r from-rose-500 to-pink-600 px-2 text-[10px] font-black text-white shadow-md shadow-rose-500/20 transition-all hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-40"><Trash2 size={10} />Excluir</button>
-                        </>) : !day.isRestDay && !day.isFuture ? (
-                          <button onClick={() => onEdit({ id: '', employeeId: employee.id, date: day.dateKey, entry: null, lunchStart: null, lunchReturn: null, exit: null, totalWorked: null, dailyBalance: null } as unknown as TimeTrack)} disabled={isRefreshing || removeLoading} className="crystal-button inline-flex h-6 shrink-0 items-center gap-1 px-2 text-[10px]"><Edit3 size={10} />Lançar</button>
-                        ) : null}
-                      </div>
-                    </td>
-                  )}
+                  <td className="px-2 text-center">
+                    <div className="flex justify-center gap-1 whitespace-nowrap">
+                      {t ? (<>
+                        {canManage ? <button onClick={() => onEdit(t)} disabled={isRefreshing || removeLoading} className="btn-outline-premium inline-flex h-6 shrink-0 items-center gap-1 px-2 text-[10px]"><Edit3 size={10} />Editar</button> : null}
+                        {canManage ? <button onClick={() => onDelete(t)} disabled={isRefreshing || removeLoading} className="inline-flex h-6 shrink-0 items-center gap-1 rounded-[6px] bg-gradient-to-r from-rose-500 to-pink-600 px-2 text-[10px] font-black text-white shadow-md shadow-rose-500/20 transition-all hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-40"><Trash2 size={10} />Excluir</button> : null}
+                        {!canManage && <span className="text-[10px] text-slate-400">{t.manualStatus === 'approved' ? 'Aprovado' : t.manualStatus === 'pending' ? 'Aguardando' : t.manualStatus === 'revoked' ? 'Revogado' : ''}</span>}
+                      </>) : !day.isRestDay && !day.isFuture ? (
+                        <button onClick={() => onEdit({ id: '', employeeId: employee.id, date: day.dateKey, entry: null, lunchStart: null, lunchReturn: null, exit: null, totalWorked: null, dailyBalance: null } as unknown as TimeTrack)} disabled={isRefreshing || removeLoading} className="crystal-button inline-flex h-6 shrink-0 items-center gap-1 px-2 text-[10px]"><Edit3 size={10} />Lançar</button>
+                      ) : null}
+                    </div>
+                  </td>
                 </tr>
               );
             })}

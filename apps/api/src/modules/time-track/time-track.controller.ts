@@ -8,6 +8,7 @@ import { RateLimitGuard, RateLimit } from '../../common/guards/rate-limit.guard'
 import type { JwtUser } from '../../common/types/auth.types';
 import { BulkManualTimeTrackDto, ManualTimeTrackDto } from './dto/manual-time-track.dto';
 import { RegisterTimeDto } from './dto/register-time.dto';
+import { RevokeTimeTrackDto } from './dto/revoke-time-track.dto';
 import { UpdateTimeTrackDto } from './dto/update-time-track.dto';
 import { TimeTrackService } from './time-track.service';
 
@@ -27,13 +28,13 @@ export class TimeTrackController {
     return this.service.listEmployeeMonth(companyId, actor, employeeId, month);
   }
 
-  @Roles('DEV', 'ADMIN', 'RH')
+  @Roles('DEV', 'ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO')
   @Post('manual')
-  manual(@CurrentCompany() companyId: string, @Body() dto: ManualTimeTrackDto) {
-    return this.service.manual(companyId, dto);
+  manual(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Body() dto: ManualTimeTrackDto) {
+    return this.service.manual(companyId, actor, dto);
   }
 
-  @Roles('DEV', 'ADMIN', 'RH')
+  @Roles('DEV', 'ADMIN', 'RH', 'GESTOR')
   @Post('manual/bulk')
   manualBulk(@CurrentCompany() companyId: string, @Body() dto: BulkManualTimeTrackDto) {
     return this.service.manualBulk(companyId, dto);
@@ -63,6 +64,12 @@ export class TimeTrackController {
   @Patch(':id')
   update(@CurrentCompany() companyId: string, @Param('id') id: string, @Body() dto: UpdateTimeTrackDto) {
     return this.service.update(companyId, id, dto);
+  }
+
+  @Roles('DEV', 'ADMIN', 'RH')
+  @Patch(':id/revoke')
+  revoke(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string, @Body() dto: RevokeTimeTrackDto) {
+    return this.service.revokeManual(companyId, actor, id, dto.reason);
   }
 
   @Roles('DEV', 'ADMIN', 'RH')
