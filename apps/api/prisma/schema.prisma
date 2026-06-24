@@ -134,6 +134,8 @@ model Company {
   transactions  FinancialTransaction[]
   privacyConsents PrivacyConsent[]
   auditLogs     AuditLog[]
+  managementEvents ManagementEvent[]
+  asoRecords    EmployeeAsoRecord[]
 
   @@index([commercialOwnerId])
 }
@@ -260,9 +262,63 @@ model Vacation {
 
   employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
 
+  managementEvents ManagementEvent[]
+  asoRecords       EmployeeAsoRecord[]
+
   @@index([employeeId])
 }
 
+model ManagementEvent {
+  id                String    @id @default(uuid()) @db.Uuid
+  companyId         String    @db.Uuid
+  title             String
+  description       String?
+  eventType         String
+  startDateTime     DateTime
+  endDateTime       DateTime?
+  responsibleUserId String?   @db.Uuid
+  employeeId        String?   @db.Uuid
+  status            String    @default("PENDENTE")
+  priority          String    @default("MEDIA")
+  createdBy         String?   @db.Uuid
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  company  Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  employee Employee? @relation(fields: [employeeId], references: [id], onDelete: SetNull)
+
+  @@index([companyId])
+  @@index([employeeId])
+  @@index([startDateTime])
+  @@index([companyId, status])
+  @@map("management_events")
+}
+
+model EmployeeAsoRecord {
+  id             String    @id @default(uuid()) @db.Uuid
+  companyId      String    @db.Uuid
+  employeeId     String    @db.Uuid
+  asoType        String
+  examDate       DateTime?
+  expirationDate DateTime?
+  status         String    @default("PENDENTE")
+  clinicName     String?
+  doctorName     String?
+  documentUrl    String?
+  notes          String?
+  createdBy      String?   @db.Uuid
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  company  Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@index([employeeId])
+  @@index([asoType])
+  @@index([expirationDate])
+  @@map("employee_aso_records")
+}
 model PrivacyConsent {
   id          String    @id @default(uuid()) @db.Uuid
   companyId   String    @db.Uuid

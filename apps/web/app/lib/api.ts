@@ -208,6 +208,47 @@ export type PlatformCompanyUserRole = 'ADMIN' | 'RH' | 'GESTOR' | 'FUNCIONARIO' 
 export interface CreatePlatformCompanyUserInput { name: string; email: string; password: string; role?: PlatformCompanyUserRole; }
 export interface UpdatePlatformCompanyUserInput { name?: string; email?: string; password?: string; role?: PlatformCompanyUserRole; isActive?: boolean; }
 
+export interface ManagementEvent {
+  id: string; companyId: string; title: string; description?: string | null;
+  eventType: string; startDateTime: string; endDateTime?: string | null;
+  responsibleUserId?: string | null; employeeId?: string | null;
+  status: string; priority: string; createdBy?: string | null;
+  createdAt: string; updatedAt: string;
+  employee?: { id: string; name: string } | null;
+}
+export interface CreateManagementEventInput {
+  title: string; description?: string; eventType: string;
+  startDateTime: string; endDateTime?: string;
+  responsibleUserId?: string; employeeId?: string; priority?: string;
+}
+export interface UpdateManagementEventInput {
+  title?: string; description?: string; eventType?: string;
+  startDateTime?: string; endDateTime?: string;
+  responsibleUserId?: string; employeeId?: string;
+  status?: string; priority?: string;
+}
+
+export type AsoType = 'ADMISSIONAL' | 'DEMISSIONAL' | 'PERIODICO' | 'RETORNO_TRABALHO' | 'MUDANCA_FUNCAO' | 'OUTROS';
+export type AsoStatus = 'PENDENTE' | 'AGENDADO' | 'REALIZADO' | 'APTO' | 'INAPTO' | 'VENCIDO' | 'CANCELADO';
+export interface EmployeeAsoRecord {
+  id: string; companyId: string; employeeId: string;
+  asoType: string; examDate?: string | null; expirationDate?: string | null;
+  status: string; clinicName?: string | null; doctorName?: string | null;
+  documentUrl?: string | null; notes?: string | null;
+  createdBy?: string | null; createdAt: string; updatedAt: string;
+  employee?: { id: string; name: string } | null;
+}
+export interface CreateAsoInput {
+  employeeId: string; asoType: string;
+  examDate?: string; expirationDate?: string;
+  clinicName?: string; doctorName?: string; documentUrl?: string; notes?: string;
+}
+export interface UpdateAsoInput {
+  asoType?: string; examDate?: string; expirationDate?: string;
+  status?: string; clinicName?: string; doctorName?: string;
+  documentUrl?: string; notes?: string;
+}
+
 // Module API
 
 export const api = {
@@ -276,6 +317,24 @@ export const api = {
     sendMessage: (input: SendMessageInput) => request<unknown>('/communication/messages/send', { method: 'POST', body: input }),
     settings: () => request<Record<string, unknown>>('/communication/settings'),
     updateSettings: (data: Record<string, unknown>) => request<Record<string, unknown>>('/communication/settings', { method: 'PATCH', body: data }),
+  },
+
+  management: {
+    events: {
+      list: () => request<ManagementEvent[]>('/management/events'),
+      get: (id: string) => request<ManagementEvent>(`/management/events/${id}`),
+      create: (input: CreateManagementEventInput) => request<ManagementEvent>('/management/events', { method: 'POST', body: input }),
+      update: (id: string, input: UpdateManagementEventInput) => request<ManagementEvent>(`/management/events/${id}`, { method: 'PATCH', body: input }),
+      delete: (id: string) => request<void>(`/management/events/${id}`, { method: 'DELETE' }),
+    },
+    aso: {
+      list: () => request<EmployeeAsoRecord[]>('/management/aso'),
+      listByEmployee: (employeeId: string) => request<EmployeeAsoRecord[]>(`/management/aso/employee/${employeeId}`),
+      get: (id: string) => request<EmployeeAsoRecord>(`/management/aso/${id}`),
+      create: (input: CreateAsoInput) => request<EmployeeAsoRecord>('/management/aso', { method: 'POST', body: input }),
+      update: (id: string, input: UpdateAsoInput) => request<EmployeeAsoRecord>(`/management/aso/${id}`, { method: 'PATCH', body: input }),
+      delete: (id: string) => request<void>(`/management/aso/${id}`, { method: 'DELETE' }),
+    },
   },
 
   platform: {
