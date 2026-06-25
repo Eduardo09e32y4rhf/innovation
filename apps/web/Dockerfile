@@ -1,11 +1,8 @@
 # Dockerfile de producao - Frontend Next.js (static export)
 # NEXT_PUBLIC_* sao embutidas no build e precisam entrar como ARG.
 
-FROM node:20-alpine AS builder
+FROM node:20-bookworm-slim AS builder
 WORKDIR /app
-
-# SWC (Next.js native compiler) needs these on Alpine
-RUN apk add --no-cache libc6-compat
 
 ARG NEXT_PUBLIC_API_URL=/api
 ARG NEXT_PUBLIC_API_BASE_URL=/api
@@ -24,9 +21,8 @@ COPY . .
 RUN npm run build:web
 
 # ── runner ─────────────────────────────────────────────────────────────────────
-FROM node:20-alpine
+FROM node:20-bookworm-slim
 WORKDIR /app
-RUN apk add --no-cache libc6-compat
 
 COPY --from=builder /app/apps/web/out ./out
 COPY --from=builder /app/apps/web/package.json ./apps/web/package.json
