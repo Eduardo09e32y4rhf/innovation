@@ -100,6 +100,61 @@ enum VacationStatus {
   COMPLETED
 }
 
+enum NotificationType {
+  SYSTEM
+  ADMIN_USER
+}
+
+enum NotificationPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum NotificationStatus {
+  UNREAD
+  READ
+  ARCHIVED
+}
+
+enum TimeRuleStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum TimeClosingStatus {
+  OPEN
+  IN_ADJUSTMENT
+  PENDING_APPROVAL
+  APPROVED
+  CLOSED
+  REOPENED
+  EXPORTED
+}
+
+enum TimeOccurrenceType {
+  LATE_ARRIVAL
+  EARLY_LEAVE
+  ABSENCE
+  JUSTIFIED_ABSENCE
+  UNJUSTIFIED_ABSENCE
+  MEDICAL_CERTIFICATE
+  MANUAL_ADJUSTMENT
+  MISSING_PUNCH
+  OVERTIME
+  NEGATIVE_BALANCE
+  POSITIVE_BALANCE
+  DAY_OFF
+  DSR
+  HOLIDAY
+  VACATION
+  LEAVE
+  EXTERNAL_WORK
+  HOME_OFFICE
+  TRAINING
+}
+
 model Company {
   id           String   @id @default(uuid()) @db.Uuid
   name         String
@@ -136,6 +191,10 @@ model Company {
   auditLogs     AuditLog[]
   managementEvents ManagementEvent[]
   asoRecords    EmployeeAsoRecord[]
+  notifications Notification[]
+  workScheduleRules WorkScheduleRule[]
+  timeClosingPeriods TimeClosingPeriod[]
+  timeOccurrences TimeOccurrence[]
 
   @@index([commercialOwnerId])
 }
@@ -158,6 +217,8 @@ model User {
   employee        Employee?
   privacyConsents PrivacyConsent[]
   auditLogs       AuditLog[]
+  notificationRecipients NotificationRecipient[]
+  sentNotifications Notification[] @relation("SentNotifications")
 
   @@index([companyId])
 }
@@ -217,6 +278,8 @@ model Employee {
   vacations      Vacation[]
   managementEvents ManagementEvent[]
   asoRecords     EmployeeAsoRecord[]
+  notificationRecipients NotificationRecipient[]
+  timeOccurrences TimeOccurrence[]
 
   @@index([companyId])
   @@index([cpf])
@@ -228,7 +291,7 @@ model TimeTrack {
   date          DateTime  @db.Date
   entry         DateTime?
   lunchStart    DateTime?
-  lunchReturn    DateTime?
+  lunchReturn   DateTime?
   exit          DateTime?
   totalWorked   Int?
   dailyBalance  Int?
@@ -248,6 +311,116 @@ model TimeTrack {
   @@unique([employeeId, date])
   @@index([employeeId])
   @@index([incidentType])
+}
+
+model WorkScheduleRule {
+  id            String         @id @default(uuid()) @db.Uuid
+  companyId     String         @db.Uuid
+  name          String
+  description   String?
+  dailyMinutes  Int
+  weeklyMinutes Int
+  entryTime     String?
+  exitTime      String?
+  breakMinutes  Int            @default(60)
+  lateToleranceMinutes   Int            @default(0)
+  earlyLeaveToleranceMinutes Int      @default(0)
+  overtimeToleranceMinutes Int      @default(0)
+  overtimeEnabled Boolean   @default(true)
+  timeBankEnabled  Boolean  @default(false)
+  normalOvertimePercent  Int  @default(50)
+  holidayOvertimePercent Int  @default(100)
+  nightShiftEnabled   Boolean @default(false)
+  nightStartTime      String?
+  nightEndTime        String?
+  closingStartDay     Int
+  closingEndDay       Int
+  adjustmentDeadlineDay Int
+  managerApprovalDeadlineDay Int
+  status         TimeRuleStatus @default(ACTIVE)
+  department     String?
+  position       String?
+  workScale      String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@index([status])
+}
+
+model TimeClosingPeriod {
+  id            String         @id @default(uuid()) @db.Uuid
+  companyId     String         @db.Uuid
+  referenceMonth Int
+  referenceYear  Int
+  periodStart    DateTime      @db.Date
+  periodEnd      DateTime      @db.Date
+  status         TimeClosingStatus @default(OPEN)
+  closedByUserId String?       @db.Uuid
+  closedAt       DateTime?
+  reopenedByUserId String?     @db.Uuid
+  reopenReason   String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, referenceMonth, referenceYear])
+  @@index([companyId])
+  @@index([status])
+}
+
+model TimeOccurrence {
+  id            String    @id @default(uuid()) @db.Uuid
+  companyId     String    @db.Uuid
+  employeeId    String    @db.Uuid
+  timeTrackId   String?   @db.Uuid
+  type          TimeOccurrenceType
+  date          DateTime  @db.Date
+  minutes       Int
+  status        String    @default("PENDING")
+  reason        String?
+  observation   String?
+  createdByUserId String? @db.Uuid
+  approvedByUserId String? @db.Uuid
+  approvedAt    DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@index([employeeId])
+  @@index([date])
+  @@index([type])
+}
+
+model TimeClosingSummary {
+  id            String    @id @default(uuid()) @db.Uuid
+  companyId     String    @db.Uuid
+  employeeId    String    @db.Uuid
+  closingPeriodId String  @db.Uuid
+  expectedMinutes Int
+  workedMinutes   Int
+  overtimeMinutes Int
+  delayMinutes    Int
+  absenceDays     Int
+  justifiedAbsenceDays Int
+  timeBankPositiveMinutes Int
+  timeBankNegativeMinutes Int
+  status          TimeClosingStatus @default(OPEN)
+  exportedPdfUrl  String?
+  exportedExcelUrl String?
+  exportedAt      DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([companyId])
+  @@index([employeeId])
+  @@index([closingPeriodId])
 }
 
 model Vacation {
@@ -318,15 +491,59 @@ model EmployeeAsoRecord {
   @@index([expirationDate])
   @@map("employee_aso_records")
 }
+
+model Notification {
+  id          String            @id @default(uuid()) @db.Uuid
+  companyId   String            @db.Uuid
+  type        NotificationType
+  title       String
+  message     String            @db.Text
+  priority    NotificationPriority @default(NORMAL)
+  source      String?           @db.Varchar(50)
+  targetUrl   String?
+  createdBy   String?           @db.Uuid
+  startsAt    DateTime?
+  expiresAt   DateTime?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  company          Company                    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  createdByUser    User?                      @relation("SentNotifications", fields: [createdBy], references: [id], onDelete: SetNull)
+  recipients       NotificationRecipient[]
+
+  @@index([companyId])
+  @@index([type])
+  @@index([priority])
+  @@index([startsAt])
+  @@index([expiresAt])
+}
+
+model NotificationRecipient {
+  id             String             @id @default(uuid()) @db.Uuid
+  notificationId String             @db.Uuid
+  userId         String             @db.Uuid
+  status         NotificationStatus @default(UNREAD)
+  readAt         DateTime?
+  archivedAt     DateTime?
+  createdAt      DateTime           @default(now())
+
+  notification Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([notificationId, userId])
+  @@index([userId])
+  @@index([status])
+}
+
 model PrivacyConsent {
-  id          String    @id @default(uuid()) @db.Uuid
-  companyId   String    @db.Uuid
-  userId      String    @db.Uuid
+  id          String   @id @default(uuid()) @db.Uuid
+  companyId   String   @db.Uuid
+  userId      String   @db.Uuid
   termVersion String
   purpose     String
   ipAddress   String?
   userAgent   String?
-  acceptedAt  DateTime  @default(now())
+  acceptedAt  DateTime @default(now())
   revokedAt   DateTime?
 
   company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
@@ -340,7 +557,7 @@ model PrivacyConsent {
 model AuditLog {
   id        String   @id @default(uuid()) @db.Uuid
   companyId String   @db.Uuid
-  userId    String?  @db.Uuid
+  userId    String?
   action    String
   entity    String
   entityId  String?
@@ -374,16 +591,16 @@ model WhatsappInstance {
 
 
 model Contact {
-  id        String   @id @default(uuid()) @db.Uuid
-  companyId String   @db.Uuid
-  name      String?
-  phone     String
-  email     String?
-  tags      String[] @default([])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String             @id @default(uuid()) @db.Uuid
+  companyId     String             @db.Uuid
+  name          String?
+  phone         String
+  email         String?
+  tags          String[]           @default([])
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
 
-  company       Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  company       Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
   conversations Conversation[]
   candidates    Candidate[]
 
@@ -403,8 +620,8 @@ model Conversation {
   createdAt     DateTime           @default(now())
   updatedAt     DateTime           @updatedAt
 
-  company  Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  contact  Contact   @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  company  Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  contact  Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
   messages Message[]
 
   @@unique([companyId, whatsappJid])
@@ -461,7 +678,7 @@ model Candidate {
   phone         String?
   linkedinUrl   String?
   coverLetter   String?
-  resumeUrl     String?
+  resumeUrl      String?
   aiScore       Int?
   aiSummary     String?
   aiNotes       String?

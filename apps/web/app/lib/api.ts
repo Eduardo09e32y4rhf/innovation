@@ -262,6 +262,7 @@ export const api = {
   dashboard: {
     summary: () => request<DashboardSummary>('/dashboard/summary'),
     insights: () => request<DashboardInsights>('/dashboard/insights'),
+    rhAlerts: () => request<{ asoExpired: number; asoExpiringSoon: number; pendingAdmissionAso: number; inaptoCount: number; items: { type: string; employeeId: string; employeeName: string; message: string; target: string }[] }>('/management/aso/alerts/rh'),
   },
 
   employees: {
@@ -272,6 +273,30 @@ export const api = {
     terminate: (id: string) => request<Employee>(`/employees/${id}`, { method: 'DELETE' }),
     delete: (id: string) => request<void>(`/employees/${id}/permanent`, { method: 'DELETE' }),  },
 
+  workScheduleRules: {
+    list: () => request<any[]>('/time-rules'),
+    getActive: () => request<any>('/time-rules/active'),
+    getById: (id: string) => request<any>(`/time-rules/${id}`),
+    create: (data: any) => request<any>('/time-rules', { method: 'POST', body: data }),
+    update: (id: string, data: any) => request<any>(`/time-rules/${id}`, { method: 'PUT', body: data }),
+    archive: (id: string) => request<any>(`/time-rules/${id}/archive`, { method: 'PUT' }),
+    activate: (id: string) => request<any>(`/time-rules/${id}/activate`, { method: 'PUT' }),
+  },
+  timeClosing: {
+    list: () => request<any[]>('/time-closing'),
+    getById: (id: string) => request<any>(`/time-closing/${id}`),
+    generate: (month: number, year: number) => request<any>('/time-closing/generate', { method: 'POST', body: { referenceMonth: month, referenceYear: year } }),
+    close: (id: string) => request<any>(`/time-closing/${id}/close`, { method: 'PUT' }),
+    reopen: (id: string, reason: string) => request<any>(`/time-closing/${id}/reopen`, { method: 'PUT', body: { reason } }),
+    approve: (id: string) => request<any>(`/time-closing/${id}/approve`, { method: 'PUT' }),
+  },
+  timeOccurrences: {
+    list: () => request<any[]>('/time-occurrences'),
+    listByEmployee: (employeeId: string) => request<any[]>(`/time-occurrences/employee/${employeeId}`),
+    create: (data: any) => request<any>('/time-occurrences', { method: 'POST', body: data }),
+    approve: (id: string) => request<any>(`/time-occurrences/${id}/approve`, { method: 'PUT' }),
+    reject: (id: string) => request<any>(`/time-occurrences/${id}/reject`, { method: 'PUT' }),
+  },
   timeTrack: {
     list: () => request<TimeTrack[]>('/time-track'),
     listEmployeeMonth: (employeeId: string, month?: string) =>
@@ -319,9 +344,20 @@ export const api = {
     updateSettings: (data: Record<string, unknown>) => request<Record<string, unknown>>('/communication/settings', { method: 'PATCH', body: data }),
   },
 
+  notifications: {
+    list: () => request<any[]>('/notifications'),
+    unreadCount: () => request<{ count: number }>('/notifications/unread-count'),
+    markAsRead: (id: string) => request<any>(`/notifications/${id}/read`, { method: 'PATCH' }),
+    markAllAsRead: () => request<any>('/notifications/read-all', { method: 'PATCH' }),
+    archive: (id: string) => request<any>(`/notifications/${id}/archive`, { method: 'PATCH' }),
+    delete: (id: string) => request<void>(`/notifications/${id}`, { method: 'DELETE' }),
+    createAdminNotice: (input: any) => request<any>('/notifications/admin', { method: 'POST', body: input }),
+    dashboardWidget: () => request<{ unreadCount: number; notifications: any[] }>('/notifications/dashboard-widget'),
+  },
   management: {
     events: {
       list: () => request<ManagementEvent[]>('/management/events'),
+      kanban: () => request<{ OVERDUE: ManagementEvent[]; TODAY: ManagementEvent[]; THIS_WEEK: ManagementEvent[]; UPCOMING: ManagementEvent[]; COMPLETED: ManagementEvent[] }>('/management/events/kanban'),
       get: (id: string) => request<ManagementEvent>(`/management/events/${id}`),
       create: (input: CreateManagementEventInput) => request<ManagementEvent>('/management/events', { method: 'POST', body: input }),
       update: (id: string, input: UpdateManagementEventInput) => request<ManagementEvent>(`/management/events/${id}`, { method: 'PATCH', body: input }),

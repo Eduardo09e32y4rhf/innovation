@@ -5,6 +5,7 @@ import { RegisterTimeDto } from './dto/register-time.dto';
 import { UpdateTimeTrackDto } from './dto/update-time-track.dto';
 import { TimeTrackRepository } from './time-track.repository';
 import { RedisService } from '../../common/redis/redis.service';
+import { WorkScheduleRulesService } from './work-schedule-rules.service';
 
 const DEFAULT_WORKDAY_MINUTES = 8 * 60; // fallback padrão
 const TOLERANCE_MINUTES = 5; // tolerância padrão para ocorrências
@@ -40,9 +41,18 @@ export class TimeTrackService {
   constructor(
     private readonly repository: TimeTrackRepository,
     private readonly redis: RedisService,
+    private readonly rulesService: WorkScheduleRulesService,
   ) {}
 
   private readonly PUNCH_LOCK_TTL = 8; // seconds
+
+  private async resolveRule(companyId: string) {
+    try {
+      return await this.rulesService.findActive(companyId);
+    } catch {
+      return null;
+    }
+  }
 
   async list(companyId: string, actor: JwtUser) {
     if (actor.role === 'ADMIN' || actor.role === 'RH' || actor.role === 'DEV' || actor.role === 'CONSULTA') return this.repository.list(companyId);
@@ -518,16 +528,43 @@ export class TimeTrackService {
     return map[type];
   }
 
-  private calculateTotals(track: { entry?: Date | null; lunchStart?: Date | null; lunchReturn?: Date | null; exit?: Date | null }) {
+  private async calculateTotals(companyId: string, track: { entry?: Date | null; lunchStart?: Date | null; lunchReturn?: Date | null; exit?: Date | null }) {
     if (!track.entry || !track.exit) return { totalWorked: null, dailyBalance: null };
     const gross = this.diffMinutes(track.entry, track.exit);
     const lunch = track.lunchStart && track.lunchReturn ? this.diffMinutes(track.lunchStart, track.lunchReturn) : 0;
     const totalWorked = Math.max(gross - lunch, 0);
-    return { totalWorked, dailyBalance: totalWorked - DEFAULT_WORKDAY_MINUTES };
+    const rule = await this.resolveRule(companyId);
+    const expected = rule?.dailyMinutes ?? DEFAULT_WORKDAY_MINUTES;
+    return { totalWorked, dailyBalance: totalWorked - expected };
   }
 
   private diffMinutes(start: Date, end: Date) {
     return Math.round((end.getTime() - start.getTime()) / 60000);
+  }
+
+  private async resolveMonth(companyId: string, month?: string) {
+    const rule = await this.resolveRule(companyId);
+    const closingStart = rule?.closingStartDay ?? 1;
+    const closingEnd = rule?.closingEndDay ?? 30;
+
+    const reference = month ? new Date(`${month}-01T00:00:00.000Z`) : new Date();
+    if (Number.isNaN(reference.getTime())) throw new BadRequestException('Invalid month');
+
+    const year = reference.getUTCFullYear();
+    const monthNum = reference.getUTCMonth() + 1;
+
+    let start: Date;
+    let end: Date;
+
+    if (closingStart <= closingEnd) {
+      start = new Date(Date.UTC(year, monthNum - 1, closingStart));
+      end = new Date(Date.UTC(year, monthNum - 1, closingEnd, 23, 59, 59));
+    } else {
+      start = new Date(Date.UTC(year, monthNum - 1, closingStart));
+      end = new Date(Date.UTC(year, monthNum, closingEnd, 23, 59, 59));
+    }
+
+    return { start, end };
   }
 
   private parseDate(value: string, message: string) {

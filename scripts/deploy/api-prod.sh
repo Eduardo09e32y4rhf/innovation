@@ -13,6 +13,9 @@ git fetch origin
 git reset --hard origin/main
 git log --oneline -5
 
+echo "[api-deploy] parando API (evitar EADDRINUSE)..."
+$COMPOSE stop api || true
+
 echo "[api-deploy] rebuildando e subindo API..."
 $COMPOSE build api
 $COMPOSE up -d api

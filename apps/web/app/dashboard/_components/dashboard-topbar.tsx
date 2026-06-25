@@ -1,8 +1,9 @@
 'use client';
 
-import { LogOut, Search } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/app/contexts/AuthContext';
+import { NotificationBell } from './notification-bell';
 
 export function DashboardTopbar() {
   const { isAuthenticated, logout } = useAuth();
@@ -19,10 +20,7 @@ export function DashboardTopbar() {
       </div>
 
       <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:gap-3">
-        <div className="search-box w-full sm:w-[280px]">
-          <Search size={14} className="shrink-0 text-gray-400" />
-          <input placeholder="Buscar no painel" />
-        </div>
+        <NotificationBell />
         {isAuthenticated ? (
           <button type="button" onClick={logout} className="btn-outline h-10 min-w-[92px] px-4 text-xs">
             <LogOut size={14} />

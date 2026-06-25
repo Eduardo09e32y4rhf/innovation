@@ -18,6 +18,7 @@ import { TimeTrackModule } from './modules/time-track/time-track.module';
 import { VacationsModule } from './modules/vacations/vacations.module';
 import { PlatformModule } from './modules/platform/platform.module';
 import { ManagementModule } from './modules/management/management.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 import { AuditInterceptor } from './common/interceptors/audit.interceptor';
 
 @Module({
@@ -43,6 +44,7 @@ import { AuditInterceptor } from './common/interceptors/audit.interceptor';
     VacationsModule,
     PlatformModule,
     ManagementModule,
+    NotificationsModule,
   ],
   providers: [{ provide: APP_INTERCEPTOR, useClass: AuditInterceptor }],
 })

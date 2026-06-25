@@ -18,6 +18,11 @@ export class ManagementEventsController {
     return this.svc.list(companyId);
   }
 
+  @Get('kanban')
+  kanban(@CurrentCompany() companyId: string, @CurrentUser() _actor: JwtUser) {
+    return this.svc.kanban(companyId);
+  }
+
   @Get(':id')
   find(@CurrentCompany() companyId: string, @CurrentUser() _actor: JwtUser, @Param('id') id: string) {
     return this.svc.find(companyId, id);

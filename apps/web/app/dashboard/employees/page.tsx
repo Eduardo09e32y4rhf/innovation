@@ -173,95 +173,98 @@ export default function EmployeesPage() {
       ) : filteredEmployees.length === 0 ? (
         <EmptyState message="Nenhum funcionário encontrado para a pesquisa." />
       ) : (
-        <section className="overflow-hidden rounded-[14px] border border-slate-200/60 bg-white shadow-[0_12px_40px_rgba(15,23,42,0.08)] transition-all duration-300 hover:shadow-[0_20px_50px_rgba(15,23,42,0.12)]">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[800px] text-left">
-              <thead>
-                <tr className="bg-gradient-to-r from-slate-100 to-slate-50 text-[10px] font-black uppercase tracking-[0.14em] text-slate-600">
-                  <th className="px-4 py-3">Funcionário</th>
-                  <th className="px-4 py-3">Matrícula</th>
-                  <th className="px-4 py-3">Gestor</th>
-                  <th className="px-4 py-3">Departamento</th>
-                  <th className="px-4 py-3">Cargo</th>
-                  <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-4">Acesso</th>
-                  {canEdit && <th className="px-4 py-3 text-right">Ações</th>}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {filteredEmployees.map((employee) => {
-                  const managerName = employee.managerId ? managerById.get(employee.managerId) : '';
-                  return (
-                    <tr key={employee.id} className="group transition-all duration-200 hover:bg-slate-50/40">
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-9 w-9 items-center justify-center rounded-[8px] bg-gradient-to-br from-teal-500 to-cyan-600 text-sm font-black text-white shadow-sm">
-                            {employee.name?.charAt(0).toUpperCase() || '?'}
-                          </div>
-                          <p className="text-sm font-black text-slate-950">{normalizeDisplayName(employee.name)}</p>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-sm font-semibold text-slate-700">{employee.registration || '-'}</td>
-                      <td className="px-4 py-3 text-sm font-semibold text-slate-700">{managerName || '-'}</td>
-                      <td className="px-4 py-3">
-                        <span className="inline-flex rounded-[6px] border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-bold text-slate-700">
-                          {employee.department}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-sm font-semibold text-slate-700">{employee.position}</td>
-                      <td className="px-4 py-3"><StatusBadge status={employee.status} /></td>
-                      <td className="px-4 py-3"><AccessBadge employee={employee} /></td>
-                      {(canEdit || isGestor) && (
+        <>
+          <section className="overflow-hidden rounded-[14px] border border-slate-200/60 bg-white shadow-[0_12px_40px_rgba(15,23,42,0.08)] transition-all duration-300 hover:shadow-[0_20px_50px_rgba(15,23,42,0.12)]">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[800px] text-left">
+                <thead>
+                  <tr className="bg-gradient-to-r from-slate-100 to-slate-50 text-[10px] font-black uppercase tracking-[0.14em] text-slate-600">
+                    <th className="px-4 py-3">Funcionário</th>
+                    <th className="px-4 py-3">Matrícula</th>
+                    <th className="px-4 py-3">Gestor</th>
+                    <th className="px-4 py-3">Departamento</th>
+                    <th className="px-4 py-3">Cargo</th>
+                    <th className="px-4 py-3">Status</th>
+                    <th className="px-4 py-4">Acesso</th>
+                    {canEdit && <th className="px-4 py-3 text-right">Ações</th>}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {filteredEmployees.map((employee) => {
+                    const managerName = employee.managerId ? managerById.get(employee.managerId) : '';
+                    return (
+                      <tr key={employee.id} className="group transition-all duration-200 hover:bg-slate-50/40">
                         <td className="px-4 py-3">
-                          <div className="flex justify-end flex-wrap gap-1.5">
-                            {canDownloadSheet && canEdit && (
-                              <>
-                                <button onClick={() => handleDownloadFicha(employee)} disabled={company.loading} className="btn-outline-premium inline-flex h-8 items-center gap-1.5 rounded-[6px] px-2.5 text-[11px] font-black disabled:opacity-50 transition-all hover:-translate-y-0.5">
-                                  <FileText size={12} strokeWidth={2.5} />
-                                  Ficha
-                                </button>
-                                <button onClick={() => handleDownloadSheet(employee)} disabled={downloadingId === employee.id || company.loading} className="btn-outline-premium inline-flex h-8 items-center gap-1.5 rounded-[6px] px-2.5 text-[11px] font-black disabled:opacity-50 transition-all hover:-translate-y-0.5">
-                                  <Download size={12} strokeWidth={2.5} />
-                                  Folha
-                                </button>
-                              </>
-                            )}
-                            {(canEdit || isGestor) && (
-                              <button onClick={() => router.push(`/dashboard/time-track?employeeId=${employee.id}`)} className="btn-outline inline-flex h-8 items-center gap-1.5 rounded-[6px] px-2.5 text-[11px] font-black transition-all hover:-translate-y-0.5">
-                                Ponto
-                              </button>
-                            )}
-                            {canEdit && (
-                              <>
-                                <Link href={`/dashboard/employees/new?id=${employee.id}`} className="btn-outline-premium inline-flex h-8 items-center gap-1.5 rounded-[6px] px-2.5 text-[11px] font-black transition-all hover:-translate-y-0.5">
-                                  <Edit3 size={12} strokeWidth={2.5} />
-                                  Editar
-                                </Link>
-                                <button onClick={() => handleTerminate(employee)} disabled={employee.status === 'TERMINATED' || terminate.loading} className="inline-flex h-8 items-center gap-1.5 rounded-[6px] bg-gradient-to-r from-amber-500 to-orange-600 px-2.5 text-[11px] font-black text-white shadow-md shadow-amber-500/20 transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-amber-500/30 active:translate-y-0 disabled:opacity-50">
-                                  <UserMinus size={12} strokeWidth={2.5} />
-                                  Desligar
-                                </button>
-                                <button onClick={() => handleDelete(employee)} disabled={remove.loading} className="inline-flex h-8 items-center gap-1.5 rounded-[6px] bg-gradient-to-r from-rose-500 to-pink-600 px-2.5 text-[11px] font-black text-white shadow-md shadow-rose-500/20 transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-rose-500/30 active:translate-y-0 disabled:opacity-50">
-                                  <Trash2 size={12} strokeWidth={2.5} />
-                                  Excluir
-                                </button>
-                              </>
-                            )}
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-9 w-9 items-center justify-center rounded-[8px] bg-gradient-to-br from-teal-500 to-cyan-600 text-sm font-black text-white shadow-sm">
+                              {employee.name?.charAt(0).toUpperCase() || '?'}
+                            </div>
+                            <p className="text-sm font-black text-slate-950">{normalizeDisplayName(employee.name)}</p>
                           </div>
                         </td>
-                      )}
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </section>
+                        <td className="px-4 py-3 text-sm font-semibold text-slate-700">{employee.registration || '-'}</td>
+                        <td className="px-4 py-3 text-sm font-semibold text-slate-700">{managerName || '-'}</td>
+                        <td className="px-4 py-3">
+                          <span className="inline-flex rounded-[6px] border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-bold text-slate-700">
+                            {employee.department}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-sm font-semibold text-slate-700">{employee.position}</td>
+                        <td className="px-4 py-3"><StatusBadge status={employee.status} /></td>
+                        <td className="px-4 py-3"><AccessBadge employee={employee} /></td>
+                        {(canEdit || isGestor) && (
+                          <td className="px-4 py-3">
+                            <div className="flex justify-end flex-wrap gap-1.5">
+                              {canDownloadSheet && canEdit && (
+                                <>
+                                  <button onClick={() => handleDownloadFicha(employee)} disabled={company.loading} className="btn-outline-premium inline-flex h-8 items-center gap-1.5 rounded-[6px] px-2.5 text-[11px] font-black disabled:opacity-50 transition-all hover:-translate-y-0.5">
+                                    <FileText size={12} strokeWidth={2.5} />
+                                    Ficha
+                                  </button>
+                                  <button onClick={() => handleDownloadSheet(employee)} disabled={downloadingId === employee.id || company.loading} className="btn-outline-premium inline-flex h-8 items-center gap-1.5 rounded-[6px] px-2.5 text-[11px] font-black disabled:opacity-50 transition-all hover:-translate-y-0.5">
+                                    <Download size={12} strokeWidth={2.5} />
+                                    Folha
+                                  </button>
+                                </>
+                              )}
+                              {(canEdit || isGestor) && (
+                                <button onClick={() => router.push(`/dashboard/time-track?employeeId=${employee.id}`)} className="btn-outline inline-flex h-8 items-center gap-1.5 rounded-[6px] px-2.5 text-[11px] font-black transition-all hover:-translate-y-0.5">
+                                  Ponto
+                                </button>
+                              )}
+                              {canEdit && (
+                                <>
+                                  <Link href={`/dashboard/employees/new?id=${employee.id}`} className="btn-outline-premium inline-flex h-8 items-center gap-1.5 rounded-[6px] px-2.5 text-[11px] font-black transition-all hover:-translate-y-0.5">
+                                    <Edit3 size={12} strokeWidth={2.5} />
+                                    Editar
+                                  </Link>
+                                  <button onClick={() => handleTerminate(employee)} disabled={employee.status === 'TERMINATED' || terminate.loading} className="inline-flex h-8 items-center gap-1.5 rounded-[6px] bg-gradient-to-r from-amber-500 to-orange-600 px-2.5 text-[11px] font-black text-white shadow-md shadow-amber-500/20 transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-amber-500/30 active:translate-y-0 disabled:opacity-50">
+                                    <UserMinus size={12} strokeWidth={2.5} />
+                                    Desligar
+                                  </button>
+                                  <button onClick={() => handleDelete(employee)} disabled={remove.loading} className="inline-flex h-8 items-center gap-1.5 rounded-[6px] bg-gradient-to-r from-rose-500 to-pink-600 px-2.5 text-[11px] font-black text-white shadow-md shadow-rose-500/20 transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-rose-500/30 active:translate-y-0 disabled:opacity-50">
+                                    <Trash2 size={12} strokeWidth={2.5} />
+                                    Excluir
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          </td>
+                        )}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </section>
+          
+          <EmployeeAsoSection employees={filteredEmployees} />
+        </>
       )}
     </div>
   );
 }
-
 
 function AccessBadge({ employee }: { employee: Employee }) {
   if (!employee.userId || !employee.user) return <span className="text-[11px] font-semibold text-slate-400">Sem acesso</span>;
@@ -284,6 +287,77 @@ function StatusBadge({ status }: { status: string }) {
     </span>
   );
 }
+
+function EmployeeAsoSection({ employees }: { employees: Employee[] }) {
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState('');
+  const employeeIds = useMemo(() => employees.map(e => e.id), [employees]);
+  const enabled = !!selectedEmployeeId && employeeIds.includes(selectedEmployeeId);
+  const asoQuery = useQuery(() => api.management.aso.listByEmployee(selectedEmployeeId), [], { enabled });
+
+  const selected = employees.find(e => e.id === selectedEmployeeId);
+
+  return (
+    <div className="mt-6 space-y-3">
+      <h3 className="text-sm font-black text-slate-950">Saúde Ocupacional / ASO por funcionário</h3>
+      <div className="flex flex-wrap items-center gap-2">
+        <select
+          value={selectedEmployeeId}
+          onChange={(e) => setSelectedEmployeeId(e.target.value)}
+          className="h-9 rounded-[6px] border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 outline-none focus:border-teal-500"
+        >
+          <option value="">Selecione um funcionário...</option>
+          {employees.map(e => <option key={e.id} value={e.id}>{normalizeDisplayName(e.name)}</option>)}
+        </select>
+        {selected && (
+          <span className="text-[11px] font-bold text-slate-700">Status atual: <StatusBadge status={selected.status} /></span>
+        )}
+      </div>
+
+      {asoQuery.loading && <p className="text-xs text-slate-500">Carregando ASO...</p>}
+      {asoQuery.error && <p className="text-xs text-rose-600">{asoQuery.error}</p>}
+      {!asoQuery.loading && !asoQuery.error && selected && (
+        <div className="overflow-hidden rounded-[12px] border border-slate-200">
+          <table className="w-full text-left">
+            <thead>
+              <tr className="bg-slate-50 text-[10px] font-black uppercase tracking-[0.1em] text-slate-500">
+                <th className="px-3 py-2 border-b border-slate-200">Tipo</th>
+                <th className="px-3 py-2 border-b border-slate-200">Exame</th>
+                <th className="px-3 py-2 border-b border-slate-200">Vencimento</th>
+                <th className="px-3 py-2 border-b border-slate-200">Status</th>
+                <th className="px-3 py-2 border-b border-slate-200">Clínica</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(asoQuery.data as any[] | undefined)?.length === 0 && (
+                <tr><td colSpan={5} className="px-3 py-4 text-xs text-slate-500">Nenhum registro de ASO encontrado.</td></tr>
+              )}
+              {(asoQuery.data as any[] | undefined)?.map((r: any) => {
+                const alert = getAsoAlert(r.status, r.expirationDate);
+                return (
+                  <tr key={r.id} className="border-t border-slate-100 text-[11px] font-semibold">
+                    <td className="px-3 py-2 text-slate-700">{r.asoType}</td>
+                    <td className="px-3 py-2 text-slate-600">{fmtDate(r.examDate)}</td>
+                    <td className="px-3 py-2 text-slate-600">{fmtDate(r.expirationDate)}</td>
+                    <td className="px-3 py-2"><span className={`inline-flex rounded-[5px] border px-2 py-0.5 text-[9px] font-black ${alert.cls}`}>{alert.label}</span></td>
+                    <td className="px-3 py-2 text-slate-600">{r.clinicName ?? '---'}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function fmtDate(v?: string | null) {
+  if (!v) return '---';
+  const d = new Date(v);
+  if (Number.isNaN(d.getTime())) return '---';
+  return d.toLocaleDateString('pt-BR');
+}
+
 function currentMonth() {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -294,8 +368,15 @@ function displayLunch(row: TimeTrack) {
   return `${formatTime(row.lunchStart)} - ${formatTime(row.lunchReturn)}`;
 }
 
-// ─── PROFESSIONAL PDF TEMPLATE ───────────────────────────────────────────────
-
+function getAsoAlert(status: string, expirationDate?: string | null): { label: string; cls: string } {
+  if (!expirationDate) return { label: 'Sem data definida', cls: 'bg-slate-100 text-slate-600 border-slate-200' };
+  const today = new Date();
+  const exp = new Date(expirationDate);
+  if (exp < today) return { label: 'Vencido', cls: 'bg-red-50 text-red-700 border-red-200' };
+  const diff = (exp.getTime() - today.getTime()) / 86400000;
+  if (diff <= 30) return { label: 'Próximo do vencimento', cls: 'bg-amber-50 text-amber-700 border-amber-200' };
+  return { label: 'Válido', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' };
+}
 
 // ─── DOWNLOAD FUNCTIONS ──────────────────────────────────────────────────────
 

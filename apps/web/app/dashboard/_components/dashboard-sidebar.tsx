@@ -3,9 +3,12 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
+  Bell,
   Building2,
   CalendarDays,
   Clock3,
+  FileCheck2,
+  FileText,
   LayoutDashboard,
   Settings,
   Smartphone,
@@ -28,6 +31,9 @@ const baseNavItems: NavItemConfig[] = [
   { icon: Clock3, label: 'Ponto', href: '/dashboard/time-track', match: '/dashboard/time-track', roles: ['DEV', 'ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'] },
   { icon: CalendarDays, label: 'Férias', href: '/dashboard/vacations', match: '/dashboard/vacations', roles: ['DEV', 'ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'] },
   { icon: Users, label: 'Gestão', href: '/dashboard/management', match: '/dashboard/management', roles: ['DEV', 'ADMIN', 'RH', 'GESTOR'] },
+  { icon: Bell, label: 'Notificações', href: '/dashboard/notifications', match: '/dashboard/notifications', roles: ['DEV', 'ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'] },
+  { icon: FileText, label: 'Regras de Jornada', href: '/dashboard/time-track/rules', match: '/dashboard/time-track/rules', roles: ['DEV', 'ADMIN', 'RH', 'GESTOR'] },
+  { icon: FileCheck2, label: 'Fechamento', href: '/dashboard/time-track/closing', match: '/dashboard/time-track/closing', roles: ['DEV', 'ADMIN', 'RH', 'GESTOR'] },
   { icon: Smartphone, label: 'WhatsApp', href: '/dashboard/whatsapp', match: '/dashboard/whatsapp', roles: ['DEV'] },
   { icon: UserCog, label: 'Usuários', href: '/dashboard/users', match: '/dashboard/users', roles: ['DEV', 'ADMIN'] },
   { icon: Settings, label: 'Configurações', href: '/dashboard/settings', match: '/dashboard/settings', roles: ['DEV', 'COMERCIAL', 'ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'] },

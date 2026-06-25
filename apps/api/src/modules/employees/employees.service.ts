@@ -1,16 +1,17 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import type { JwtUser, UserRole } from '../../common/types/auth.types';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
 import { EmployeesRepository } from './employees.repository';
+import { AsoService } from '../management/aso.service';
 
 const DEFAULT_PANEL_PASSWORD = process.env.DEFAULT_EMPLOYEE_PASSWORD ?? 'Innovation@123';
 const EMPLOYEE_ACCESS_ROLES: UserRole[] = ['FUNCIONARIO', 'GESTOR', 'RH', 'ADMIN', 'CONSULTA'];
 
 @Injectable()
 export class EmployeesService {
-  constructor(private readonly repository: EmployeesRepository) {}
+  constructor(private readonly repository: EmployeesRepository, private readonly asoService: AsoService) {}
 
   async list(companyId: string, actor: JwtUser) {
     if (actor.role === 'ADMIN' || actor.role === 'RH' || actor.role === 'DEV' || actor.role === 'CONSULTA') {
@@ -39,6 +40,11 @@ export class EmployeesService {
     const existing = await this.repository.findByCpf(dto.cpf);
     if (existing) throw new ConflictException('CPF already registered');
     await this.ensureRegistrationAvailable(companyId, dto.registration);
+    
+    if (dto.status === 'ACTIVE') {
+      await this.ensureAdmissionAsoApto(companyId, dto);
+    }
+    
     const employee = await this.repository.create(companyId, this.toData(dto));
     await this.syncPanelAccess(companyId, employee, dto);
     return this.get(companyId, employee.id);
@@ -50,6 +56,11 @@ export class EmployeesService {
       if (existing && existing.id !== id) throw new ConflictException('CPF already registered');
     }
     await this.ensureRegistrationAvailable(companyId, dto.registration, id);
+    
+    if (dto.status === 'ACTIVE') {
+      await this.ensureAdmissionAsoApto(companyId, dto, id);
+    }
+    
     const result = await this.repository.update(companyId, id, this.toData(dto));
     if (!result.count) throw new NotFoundException('Employee not found');
     const employee = await this.get(companyId, id);
@@ -67,6 +78,16 @@ export class EmployeesService {
     const result = await this.repository.delete(companyId, id);
     if (!result.count) throw new NotFoundException('Employee not found');
     return { deleted: true };
+  }
+
+  private async ensureAdmissionAsoApto(companyId: string, dto: CreateEmployeeDto | UpdateEmployeeDto, currentEmployeeId?: string) {
+    const employeeId = currentEmployeeId || (dto as any).id;
+    if (!employeeId) return;
+    
+    const admissionAso = await this.asoService.getLatestByEmployee(companyId, employeeId);
+    if (!admissionAso || admissionAso.asoType !== 'ADMISSIONAL' || admissionAso.status !== 'APTO') {
+      throw new ForbiddenException('Funcionário não possui ASO admissional apto. Finalize o exame ocupacional antes de concluir a contratação.');
+    }
   }
 
   private async ensureRegistrationAvailable(companyId: string, registration?: string | null, currentEmployeeId?: string) {

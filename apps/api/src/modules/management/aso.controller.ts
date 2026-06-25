@@ -23,6 +23,11 @@ export class AsoController {
     return this.svc.listByEmployee(companyId, employeeId);
   }
 
+  @Get('alerts/rh')
+  rhAlerts(@CurrentCompany() companyId: string, @CurrentUser() _actor: JwtUser) {
+    return this.svc.getRhAlerts(companyId);
+  }
+
   @Get(':id')
   find(@CurrentCompany() companyId: string, @CurrentUser() _actor: JwtUser, @Param('id') id: string) {
     return this.svc.find(companyId, id);

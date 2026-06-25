@@ -82,6 +82,19 @@ function getAsoAlert(status: string, expirationDate?: string | null): { label: s
   return { label: 'Válido', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' };
 }
 
+function getEventAlert(status: string): string {
+  if (status === 'CONCLUIDO') return 'Concluído';
+  if (status === 'CANCELADO') return 'Cancelado';
+  if (status === 'EM_ANDAMENTO') return 'Em andamento';
+  return 'Pendente';
+}
+function getEventAlertCls(status: string): string {
+  if (status === 'CONCLUIDO') return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+  if (status === 'EM_ANDAMENTO') return 'bg-sky-50 text-sky-700 border-sky-200';
+  if (status === 'CANCELADO') return 'bg-slate-100 text-slate-600 border-slate-200';
+  return 'bg-amber-50 text-amber-700 border-amber-200';
+}
+
 export default function ManagementPage() {
   const { user } = useAuth();
   const profile = user?.profile?.toUpperCase();
@@ -92,46 +105,51 @@ export default function ManagementPage() {
   const [eventForm, setEventForm] = useState<{ open: boolean; edit?: ManagementEvent }>({ open: false });
   const [asoForm, setAsoForm] = useState<{ open: boolean; edit?: EmployeeAsoRecord }>({ open: false });
 
-  const eventsQuery = useQuery(() => api.management.events.list(), [], { enabled: canView });
+  const kanbanQuery = useQuery(() => api.management.events.kanban(), [], { enabled: canView });
   const asoQuery = useQuery(() => api.management.aso.list(), [], { enabled: canView });
   const employeesQuery = useQuery(() => api.employees.list(), [], { enabled: canView });
 
   const eventsMut = useMutation((input: { id?: string; data: any }) => {
     if (input.id) return api.management.events.update(input.id, input.data);
     return api.management.events.create(input.data);
-  }, { onSuccess: () => { eventsQuery.refetch(); } });
-  const deleteEventMut = useMutation((id: string) => api.management.events.delete(id), { onSuccess: () => eventsQuery.refetch() });
+  }, { onSuccess: () => { kanbanQuery.refetch(); } });
+  const deleteEventMut = useMutation((id: string) => api.management.events.delete(id), { onSuccess: () => kanbanQuery.refetch() });
   const asoMut = useMutation((input: { id?: string; data: any }) => {
     if (input.id) return api.management.aso.update(input.id, input.data);
     return api.management.aso.create(input.data);
   }, { onSuccess: () => asoQuery.refetch() });
   const deleteAsoMut = useMutation((id: string) => api.management.aso.delete(id), { onSuccess: () => asoQuery.refetch() });
 
-  const events = useMemo(() => (eventsQuery.data as ManagementEvent[] | undefined) ?? [], [eventsQuery.data]);
+  const columns = (kanbanQuery.data as any) ?? { OVERDUE: [], TODAY: [], THIS_WEEK: [], UPCOMING: [], COMPLETED: [] };
   const asos = useMemo(() => (asoQuery.data as EmployeeAsoRecord[] | undefined) ?? [], [asoQuery.data]);
   const employees = useMemo(() => (employeesQuery.data as Employee[] | undefined) ?? [], [employeesQuery.data]);
 
   const summaries = useMemo(() => {
     const today = new Date().toISOString().slice(0, 10);
-    const pendentes = events.filter(e => e.status === 'PENDENTE').length;
-    const hoje = events.filter(e => e.startDateTime?.startsWith(today)).length;
+    const pendentes = (columns.OVERDUE?.length ?? 0) + (columns.TODAY?.length ?? 0) + (columns.THIS_WEEK?.length ?? 0) + (columns.UPCOMING?.length ?? 0);
+    const hoje = columns.TODAY?.length ?? 0;
     const vencidos = asos.filter(a => getAsoAlert(a.status, a.expirationDate).label === 'Vencido').length;
     const proximos = asos.filter(a => {
       if (!a.expirationDate) return false;
       const diff = (new Date(a.expirationDate).getTime() - Date.now()) / 86400000;
       return diff > 0 && diff <= 30;
     }).length;
-    return { pendentes, hoje, vencidos, proximos };
-  }, [events, asos]);
+    const pendentesAdmissionais = employees.filter(e => {
+      if (e.status !== 'ACTIVE') return false;
+      return !asos.some(a => a.employeeId === e.id && a.asoType === 'ADMISSIONAL' && a.status === 'APTO');
+    }).length;
+    return { pendentes, hoje, vencidos, proximos, pendentesAdmissionais };
+  }, [columns, asos, employees]);
 
   return (
     <div className="mx-auto max-w-7xl space-y-5 px-4 py-5 sm:px-6 lg:px-8">
       <header>
         <p className="text-[10px] font-black uppercase tracking-[0.2em] text-teal-600">GESTÃO</p>
-        <h2 className="text-2xl font-black text-slate-950">Controle sua agenda administrativa, compromissos e exames ocupacionais dos colaboradores.</h2>
+        <h2 className="text-2xl font-black text-slate-950">Gestão de pessoas e jornada</h2>
+        <p className="mt-1 text-sm font-semibold text-slate-500">Controle compromissos, exames ocupacionais e pendências administrativas dos colaboradores.</p>
       </header>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <div className="rounded-[12px] border border-slate-200 bg-white p-4">
           <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">Compromissos pendentes</p>
           <p className="mt-1 text-2xl font-black text-slate-950">{summaries.pendentes}</p>
@@ -148,6 +166,10 @@ export default function ManagementPage() {
           <p className="text-[10px] font-black uppercase tracking-wider text-amber-700">ASOs próximos do vencimento</p>
           <p className="mt-1 text-2xl font-black text-amber-900">{summaries.proximos}</p>
         </div>
+        <div className="rounded-[12px] border border-amber-200 bg-amber-50/40 p-4">
+          <p className="text-[10px] font-black uppercase tracking-wider text-amber-700">Pendentes de ASO admissional</p>
+          <p className="mt-1 text-2xl font-black text-amber-900">{summaries.pendentesAdmissionais}</p>
+        </div>
       </div>
 
       <div className="flex gap-1 rounded-[8px] bg-slate-100 p-1">
@@ -155,11 +177,11 @@ export default function ManagementPage() {
         <button onClick={() => setTab('aso')} className={`rounded-[6px] px-4 py-2 text-xs font-black uppercase ${tab === 'aso' ? 'bg-white shadow-sm text-teal-700' : 'text-slate-500'}`}>ASO</button>
       </div>
 
-      {eventsQuery.loading && !eventsQuery.data ? <LoadingState label="Carregando..." /> :
-       eventsQuery.error && !eventsQuery.data ? <ErrorState message={eventsQuery.error} onRetry={eventsQuery.refetch} /> :
+      {kanbanQuery.loading && !kanbanQuery.data ? <LoadingState label="Carregando..." /> :
+       kanbanQuery.error && !kanbanQuery.data ? <ErrorState message={kanbanQuery.error} onRetry={kanbanQuery.refetch} /> :
        tab === 'agenda' ? (
-        <AgendaTab
-          events={events}
+        <AgendaKanban
+          columns={columns}
           employees={employees}
           canManage={canManage}
           onOpenForm={(edit) => setEventForm({ open: true, edit })}
@@ -197,33 +219,36 @@ export default function ManagementPage() {
   );
 }
 
-function AgendaTab({ events, employees, canManage, onOpenForm, onSave, onDelete, saving }: {
-  events: ManagementEvent[]; employees: Employee[]; canManage: boolean;
+type ColumnKey = 'OVERDUE' | 'TODAY' | 'THIS_WEEK' | 'UPCOMING' | 'COMPLETED';
+
+function AgendaKanban({ columns, employees, canManage, onOpenForm, onSave, onDelete, saving }: {
+  columns: Record<ColumnKey, ManagementEvent[]>; employees: Employee[]; canManage: boolean;
   onOpenForm: (edit?: ManagementEvent) => void; onSave: (data: any, id?: string) => void;
   onDelete: (id: string) => void; saving: boolean;
 }) {
   const [filterStatus, setFilterStatus] = useState('');
   const [filterType, setFilterType] = useState('');
   const [filterEmp, setFilterEmp] = useState('');
-  const filtered = useMemo(() => events.filter(e => {
-    if (filterStatus && e.status !== filterStatus) return false;
-    if (filterType && e.eventType !== filterType) return false;
-    if (filterEmp && e.employeeId !== filterEmp) return false;
-    return true;
-  }).toSorted((a, b) => new Date(b.startDateTime).getTime() - new Date(a.startDateTime).getTime()), [events, filterStatus, filterType, filterEmp]);
+
+  const colOrder: ColumnKey[] = ['OVERDUE', 'TODAY', 'THIS_WEEK', 'UPCOMING', 'COMPLETED'];
+  const colLabels: Record<ColumnKey, string> = {
+    OVERDUE: 'Atrasados',
+    TODAY: 'Hoje',
+    THIS_WEEK: 'Esta semana',
+    UPCOMING: 'Próximos',
+    COMPLETED: 'Concluídos',
+  };
 
   const empName = (id?: string | null) => employees.find(e => e.id === id)?.name ?? '---';
+  const responsibleName = (id?: string | null) => {
+    if (!id) return '---';
+    const u = employees.find(e => e.userId === id);
+    return u ? normalizeDisplayName(u.name) : '---';
+  };
 
   return (
-    <section className="overflow-hidden rounded-[14px] border border-slate-200 bg-white">
-      <div className="flex flex-col gap-3 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h3 className="text-sm font-black text-slate-950">AGENDA - COMPROMISSOS</h3>
-          <p className="mt-1 text-xs text-slate-500">Gerencie compromissos, reuniões e prazos administrativos.</p>
-        </div>
-        {canManage && <button onClick={() => onOpenForm(undefined)} disabled={saving} className="btn-outline inline-flex h-9 items-center gap-2 rounded-[8px] px-4 text-[11px] font-black">+ NOVO</button>}
-      </div>
-      <div className="flex flex-wrap gap-2 border-b border-slate-100 px-5 py-3">
+    <section className="space-y-3">
+      <div className="flex flex-wrap gap-2">
         <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="h-9 rounded-[6px] border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 outline-none focus:border-teal-500">
           <option value="">TODOS STATUS</option>{EVENT_STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
         </select>
@@ -234,41 +259,49 @@ function AgendaTab({ events, employees, canManage, onOpenForm, onSave, onDelete,
           <option value="">TODOS FUNCIONÁRIOS</option>{employees.map(e => <option key={e.id} value={e.id}>{normalizeDisplayName(e.name)}</option>)}
         </select>
       </div>
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[900px] border-separate border-spacing-0 text-left">
-          <thead>
-            <tr className="bg-slate-50 text-[10px] font-black uppercase tracking-[0.1em] text-slate-500">
-              <th className="px-3 py-2 border-b border-slate-200">Data/Horário</th>
-              <th className="px-3 py-2 border-b border-slate-200">Título</th>
-              <th className="px-3 py-2 border-b border-slate-200">Tipo</th>
-              <th className="px-3 py-2 border-b border-slate-200">Responsável</th>
-              <th className="px-3 py-2 border-b border-slate-200">Funcionário</th>
-              <th className="px-3 py-2 border-b border-slate-200">Prioridade</th>
-              <th className="px-3 py-2 border-b border-slate-200">Status</th>
-              <th className="px-3 py-2 border-b border-slate-200 text-center">Ações</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.length === 0 ? <tr><td colSpan={8} className="px-4 py-6 text-center text-xs text-slate-500">Nenhum compromisso encontrado.</td></tr> :
-              filtered.map(ev => (
-                <tr key={ev.id} className="border-t border-slate-100 text-[11px] font-semibold hover:bg-slate-50/70">
-                  <td className="px-3 py-2 text-[11px] font-bold text-slate-700">{fmtDateTime(ev.startDateTime)}{ev.endDateTime ? ` - ${fmtDateTime(ev.endDateTime)}` : ''}</td>
-                  <td className="px-3 py-2 text-slate-950">{ev.title}</td>
-                  <td className="px-3 py-2 text-slate-600">{ev.eventType}</td>
-                  <td className="px-3 py-2 text-slate-600">{ev.responsibleUserId ? '---' : '---'}</td>
-                  <td className="px-3 py-2 text-slate-600">{empName(ev.employeeId)}</td>
-                  <td className="px-3 py-2"><span className={`inline-flex rounded-[5px] border px-2 py-0.5 text-[9px] font-black ${ev.priority === 'URGENTE' ? 'border-red-200 bg-red-50 text-red-700' : ev.priority === 'ALTA' ? 'border-orange-200 bg-orange-50 text-orange-700' : ev.priority === 'MEDIA' ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-slate-200 bg-slate-50 text-slate-600'}`}>{ev.priority}</span></td>
-                  <td className="px-3 py-2"><span className={`inline-flex rounded-[5px] border px-2 py-0.5 text-[9px] font-black ${ev.status === 'CONCLUIDO' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : ev.status === 'EM_ANDAMENTO' ? 'border-sky-200 bg-sky-50 text-sky-700' : ev.status === 'CANCELADO' ? 'border-slate-200 bg-slate-50 text-slate-600' : 'border-amber-200 bg-amber-50 text-amber-700'}`}>{ev.status}</span></td>
-                  <td className="px-3 py-2">
-                    <div className="flex justify-center gap-1">
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
+        {colOrder.map((key) => {
+          const items = (columns[key] ?? []).filter((ev: any) => {
+            if (filterStatus && ev.status !== filterStatus) return false;
+            if (filterType && ev.eventType !== filterType) return false;
+            if (filterEmp && ev.employeeId !== filterEmp) return false;
+            return true;
+          });
+          return (
+            <div key={key} className="min-h-[180px] rounded-[12px] border border-slate-200 bg-slate-50/60 p-2">
+              <div className="mb-2 flex items-center justify-between px-1">
+                <p className="text-[11px] font-black uppercase tracking-wider text-slate-700">{colLabels[key]}</p>
+                <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-black text-slate-700">{items.length}</span>
+              </div>
+              <div className="space-y-2">
+                {items.length === 0 && <p className="px-1 py-3 text-center text-[11px] font-semibold text-slate-400">Nenhum</p>}
+                {items.map((ev: any) => (
+                  <div key={ev.id} className="rounded-[10px] border border-slate-200 bg-white p-3 shadow-sm">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-[11px] font-black text-slate-950">{ev.title}</p>
+                      <span className={`inline-flex rounded-[5px] border px-1.5 py-0.5 text-[9px] font-black ${getEventAlertCls(ev.status)}`}>{getEventAlert(ev.status)}</span>
+                    </div>
+                    <p className="mt-1 text-[11px] font-bold text-slate-700">{fmtDateTime(ev.startDateTime)}</p>
+                    <div className="mt-2 space-y-1 text-[11px] font-semibold text-slate-600">
+                      <p>Funcionário: {empName(ev.employeeId)}</p>
+                      <p>Responsável: {responsibleName(ev.responsibleUserId)}</p>
+                      <p>Tipo: {ev.eventType}</p>
+                      <p>Prioridade: {ev.priority}</p>
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-1.5">
                       <button onClick={() => onOpenForm(ev)} disabled={saving} className="btn-outline-premium h-7 px-2 text-[10px] font-bold">Editar</button>
+                      {ev.status !== 'CONCLUIDO' && canManage && (
+                        <button onClick={() => onSave({ status: 'CONCLUIDO' }, ev.id)} disabled={saving} className="inline-flex h-7 items-center gap-1 rounded-[5px] bg-gradient-to-r from-emerald-500 to-teal-600 px-2 text-[10px] font-black text-white"><Check size={12}/> Concluir</button>
+                      )}
                       {canManage && <button onClick={() => { if (window.confirm('Excluir?')) onDelete(ev.id); }} disabled={saving} className="inline-flex h-7 items-center rounded-[5px] bg-gradient-to-r from-rose-500 to-pink-600 px-2 text-[10px] font-black text-white"><XCircle size={12}/></button>}
                     </div>
-                  </td>
-                </tr>
-              ))}
-          </tbody>
-        </table>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
       </div>
     </section>
   );

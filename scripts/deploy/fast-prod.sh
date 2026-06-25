@@ -59,7 +59,11 @@ if [ "$BUILD_API" = true ]; then
   echo "$LOG_PREFIX rebuildando API..."
   $COMPOSE build api
   echo "$LOG_PREFIX subindo API..."
+  echo "$LOG_PREFIX parando API (evitar EADDRINUSE)..."
+  $COMPOSE stop api || true
+
   $COMPOSE up -d api
+
 
   echo "$LOG_PREFIX aguardando API ficar pronta..."
   for i in {1..30}; do

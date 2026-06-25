@@ -39,8 +39,12 @@ $COMPOSE up -d postgres redis
 echo "$LOG_PREFIX rebuildando API e WEB (com cache)..."
 $COMPOSE build api web
 
+echo "$LOG_PREFIX parando API (evitar EADDRINUSE)..."
+$COMPOSE stop api || true
+
 echo "$LOG_PREFIX subindo API..."
 $COMPOSE up -d api
+
 
 echo "$LOG_PREFIX aguardando API ficar pronta..."
 for i in {1..30}; do

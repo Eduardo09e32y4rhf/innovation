@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { AlertTriangle, ArrowUpRight, Cake, CalendarDays, Clock3, MessageSquareText, TrendingUp, Users, UserPlus, FileText, Download, AlertCircle, CheckCircle, XCircle, UserMinus, UserX } from 'lucide-react';
+import { AlertTriangle, ArrowUpRight, Cake, CalendarDays, Clock3, MessageSquareText, TrendingUp, Users, UserPlus, FileText, Download, AlertCircle, CheckCircle, XCircle, UserMinus, UserX, Stethoscope } from 'lucide-react';
 import { ErrorState } from '@/app/components/data-states';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useQuery } from '@/app/hooks/use-data';
@@ -36,6 +36,8 @@ function DashboardContent() {
 
   const summary = useQuery(() => api.dashboard.summary(), [], { enabled: !presentationMode && !isCommercial, pollMs: 60000 });
   const insights = useQuery(() => api.dashboard.insights(), [], { enabled: !presentationMode && !isCommercial, pollMs: 60000 });
+  const rhAlerts = useQuery(() => api.dashboard.rhAlerts(), [], { enabled: !presentationMode && !isCommercial && !isFuncionario });
+  const notificationsWidget = useQuery(() => api.notifications.dashboardWidget(), [], { enabled: !presentationMode && !isCommercial && !isFuncionario });
   const timeTracks = useQuery(() => api.timeTrack.list(), [], { enabled: !presentationMode && !isCommercial });
   const vacations = useQuery(() => api.vacations.list(), [], { enabled: !presentationMode && !isCommercial && !isFuncionario });
   const employees = useQuery(() => api.employees.list(), [], { enabled: !presentationMode && !isCommercial && !isFuncionario });
@@ -46,9 +48,11 @@ function DashboardContent() {
 
   const summaryData = presentationMode ? demoSummary : summary.data;
   const timeTrackData = presentationMode ? demoTimeTracks : (timeTracks.data ?? []);
-  const vacationData = presentationMode ? demoVacations : (vacations.data ?? []);
+  const vacationData = presentationMode ? demoVacations : (vacationData ?? []);
   const insightData = insights.data;
   const alertItems = insightData ? buildAlertItems(insightData.alerts) : [];
+  const rhAlertData = rhAlerts.data;
+  const notificationWidgetData = notificationsWidget.data;
 
   // Compute real indicators
   const pendingTimeTracks = (timeTrackData ?? []).filter(t => t.manualStatus === 'pending').length;
@@ -254,6 +258,147 @@ function DashboardContent() {
                     <span className="text-sm font-black text-rose-600">{terminationsThisMonth}</span>
                   </div>
                 </div>
+              </div>
+            </section>
+          )}
+
+          {/* Notifications Widget */}
+          {!isFuncionario && !isCommercial && notificationWidgetData && (
+            <section className="rounded-[16px] border border-slate-200/60 bg-white shadow-sm overflow-hidden">
+              <div className="border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white px-5 py-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Bell size={16} strokeWidth={2.5} className="text-teal-600" />
+                    <h3 className="text-sm font-black text-slate-950">Central de Notificações</h3>
+                  </div>
+                  {notificationWidgetData.unreadCount > 0 && (
+                    <span className="rounded-full bg-rose-500 px-2.5 py-0.5 text-[10px] font-black text-white">
+                      {notificationWidgetData.unreadCount} não lidas
+                    </span>
+                  )}
+                </div>
+                <p className="mt-1 text-xs text-slate-500">Avisos do sistema e comunicados do RH.</p>
+              </div>
+              <div className="p-4">
+                {notificationWidgetData.notifications.length === 0 ? (
+                  <p className="px-3 py-4 text-center text-xs text-slate-500">Nenhuma notificação no momento.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {notificationWidgetData.notifications.slice(0, 5).map((n: any) => {
+                      const priorityIcon = n.priority === 'URGENT' ? '🔴' : n.priority === 'HIGH' ? '🟠' : n.priority === 'NORMAL' ? '🔵' : '⚪';
+                      return (
+                        <div key={n.id} className="flex items-start justify-between rounded-[8px] border border-slate-100 bg-white px-4 py-3 text-xs transition-all hover:border-teal-200 hover:bg-teal-50/30">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <span>{priorityIcon}</span>
+                              <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">
+                                {n.type === 'SYSTEM' ? 'System' : 'Admin User'}
+                              </span>
+                            </div>
+                            <p className="mt-1 font-bold text-slate-950">{n.title}</p>
+                            <p className="mt-0.5 text-slate-600 line-clamp-1">{n.message}</p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {notificationWidgetData.notifications.length > 5 && (
+                      <Link href="/dashboard/notifications" className="block text-center text-[11px] font-black text-teal-700 hover:text-teal-800">
+                        Ver todas ({notificationWidgetData.notifications.length})
+                      </Link>
+                    )}
+                  </div>
+                )}
+              </div>
+            </section>
+          )}
+
+          {/* Time Rules Alerts */}
+          {!isFuncionario && !isCommercial && (
+            <section className="rounded-[16px] border border-slate-200/60 bg-white shadow-sm overflow-hidden">
+              <div className="border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white px-5 py-4">
+                <div className="flex items-center gap-2">
+                  <Clock3 size={16} strokeWidth={2.5} className="text-teal-600" />
+                  <h3 className="text-sm font-black text-slate-950">Alertas de Ponto e Fechamento</h3>
+                </div>
+                <p className="mt-1 text-xs text-slate-500">Pendências de ocorrências e fechamento de folha.</p>
+              </div>
+              <div className="p-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                  <div className="rounded-[12px] border border-amber-200 bg-amber-50/60 p-4">
+                    <p className="text-[11px] font-black uppercase tracking-wider text-amber-700">Ocorrências pendentes</p>
+                    <p className="mt-1 text-xl font-black text-amber-900">0</p>
+                  </div>
+                  <div className="rounded-[12px] border border-blue-200 bg-blue-50/60 p-4">
+                    <p className="text-[11px] font-black uppercase tracking-wider text-blue-700">Folhas em ajuste</p>
+                    <p className="mt-1 text-xl font-black text-blue-900">0</p>
+                  </div>
+                  <div className="rounded-[12px] border border-slate-200 bg-slate-50/60 p-4">
+                    <p className="text-[11px] font-black uppercase tracking-wider text-slate-700">Períodos abertos</p>
+                    <p className="mt-1 text-xl font-black text-slate-900">0</p>
+                  </div>
+                </div>
+                <div className="mt-4 space-y-2">
+                  <Link href="/dashboard/time-track/occurrences" className="flex items-center justify-between rounded-[8px] border border-slate-100 bg-white px-4 py-3 text-xs transition-all hover:border-teal-200 hover:bg-teal-50/30">
+                    <span className="font-bold text-slate-700">Ver todas as ocorrências</span>
+                    <span className="text-teal-700">→</span>
+                  </Link>
+                  <Link href="/dashboard/time-track/closing" className="flex items-center justify-between rounded-[8px] border border-slate-100 bg-white px-4 py-3 text-xs transition-all hover:border-teal-200 hover:bg-teal-50/30">
+                    <span className="font-bold text-slate-700">Fechamento de período</span>
+                    <span className="text-teal-700">→</span>
+                  </Link>
+                  <Link href="/dashboard/time-track/rules" className="flex items-center justify-between rounded-[8px] border border-slate-100 bg-white px-4 py-3 text-xs transition-all hover:border-teal-200 hover:bg-teal-50/30">
+                    <span className="font-bold text-slate-700">Regras de jornada</span>
+                    <span className="text-teal-700">→</span>
+                  </Link>
+                </div>
+              </div>
+            </section>
+          )}
+
+          {/* RH Alerts Section */}
+          {!isFuncionario && !isCommercial && (
+            <section className="rounded-[16px] border border-slate-200/60 bg-white shadow-sm overflow-hidden">
+              <div className="border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white px-5 py-4">
+                <div className="flex items-center gap-2">
+                  <Stethoscope size={16} strokeWidth={2.5} className="text-teal-600" />
+                  <h3 className="text-sm font-black text-slate-950">Alertas e Pendências do RH</h3>
+                </div>
+              <div className="p-4">
+                {rhAlerts.loading && <p className="px-3 py-4 text-center text-xs text-slate-500">Carregando alertas...</p>}
+                {rhAlerts.error && <p className="px-3 py-4 text-center text-xs text-rose-600">{rhAlerts.error}</p>}
+                {!rhAlerts.loading && !rhAlerts.error && (
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    <div className="rounded-[12px] border border-red-200 bg-red-50/60 p-4">
+                      <p className="text-[11px] font-black uppercase tracking-wider text-red-700">ASOs vencidos</p>
+                      <p className="mt-1 text-xl font-black text-red-900">{rhAlertData?.asoExpired ?? 0}</p>
+                    </div>
+                    <div className="rounded-[12px] border border-amber-200 bg-amber-50/60 p-4">
+                      <p className="text-[11px] font-black uppercase tracking-wider text-amber-700">ASOs próximos do vencimento</p>
+                      <p className="mt-1 text-xl font-black text-amber-900">{rhAlertData?.asoExpiringSoon ?? 0}</p>
+                    </div>
+                    <div className="rounded-[12px] border border-amber-200 bg-amber-50/60 p-4">
+                      <p className="text-[11px] font-black uppercase tracking-wider text-amber-700">Pendentes de ASO admissional</p>
+                      <p className="mt-1 text-xl font-black text-amber-900">{rhAlertData?.pendingAdmissionAso ?? 0}</p>
+                    </div>
+                    <div className="rounded-[12px] border border-red-200 bg-red-50/60 p-4">
+                      <p className="text-[11px] font-black uppercase tracking-wider text-red-700">Inaptos</p>
+                      <p className="mt-1 text-xl font-black text-red-900">{rhAlertData?.inaptoCount ?? 0}</p>
+                    </div>
+                  </div>
+                )}
+                {!rhAlerts.loading && !rhAlerts.error && rhAlertData?.items && rhAlertData.items.length > 0 && (
+                  <div className="mt-4 space-y-2">
+                    {rhAlertData.items.map((item: any) => (
+                      <Link key={item.type} href={item.target} className="flex items-center justify-between rounded-[8px] border border-slate-100 bg-white px-4 py-3 text-xs transition-all hover:border-teal-200 hover:bg-teal-50/30">
+                        <span className="font-bold text-slate-700">{item.employeeName}</span>
+                        <span className="text-slate-500">{item.message}</span>
+                      </Link>
+                    ))}
+                  </div>
+                )}
+                {!rhAlerts.loading && !rhAlerts.error && (!rhAlertData?.items || rhAlertData.items.length === 0) && (
+                  <p className="px-3 py-4 text-center text-xs text-slate-500">Nenhuma pendência de RH no momento.</p>
+                )}
               </div>
             </section>
           )}

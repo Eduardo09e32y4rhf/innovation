@@ -43,6 +43,9 @@ services:
       dockerfile: apps/api/Dockerfile
     container_name: innovation-api
     restart: unless-stopped
+    # IMPORTANTE: containers via compose não devem ser usados junto com PM2 na VPS
+    # para evitar EADDRINUSE. Se você usar PM2, remova/pare este service.
+
     depends_on:
       postgres:
         condition: service_healthy
