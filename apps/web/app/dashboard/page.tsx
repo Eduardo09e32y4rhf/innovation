@@ -48,7 +48,7 @@ function DashboardContent() {
 
   const summaryData = presentationMode ? demoSummary : summary.data;
   const timeTrackData = presentationMode ? demoTimeTracks : (timeTracks.data ?? []);
-  const vacationData = presentationMode ? demoVacations : (vacationData ?? []);
+  const vacationData = presentationMode ? demoVacations : (vacations.data ?? []);
   const insightData = insights.data;
   const alertItems = insightData ? buildAlertItems(insightData.alerts) : [];
   const rhAlertData = rhAlerts.data;
