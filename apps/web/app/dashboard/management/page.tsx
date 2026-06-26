@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useCallback } from 'react';
+import { useMemo, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { CalendarDays, Check, Clock3, XCircle, FileText, FileCheck2, Bell, AlertTriangle, Gavel, Plus, Search, RefreshCcw, Upload, Download, Eye, EyeOff, MessageSquare, Send } from 'lucide-react';
 import { LoadingState, ErrorState } from '@/app/components/data-states';
@@ -143,23 +143,6 @@ export default function ManagementPage() {
   const asos = useMemo(() => (asoQuery.data as EmployeeAsoRecord[] | undefined) ?? [], [asoQuery.data]);
   const employees = useMemo(() => (employeesQuery.data as Employee[] | undefined) ?? [], [employeesQuery.data]);
 
-  const summaries = useMemo(() => {
-    const today = new Date().toISOString().slice(0, 10);
-    const pendentes = (columns.OVERDUE?.length ?? 0) + (columns.TODAY?.length ?? 0) + (columns.THIS_WEEK?.length ?? 0) + (columns.UPCOMING?.length ?? 0);
-    const hoje = columns.TODAY?.length ?? 0;
-    const vencidos = asos.filter(a => getAsoAlert(a.status, a.dueDate).label === 'Vencido').length;
-    const proximos = asos.filter(a => {
-      if (!a.dueDate) return false;
-      const diff = (new Date(a.dueDate).getTime() - Date.now()) / 86400000;
-      return diff > 0 && diff <= 30;
-    }).length;
-    const pendentesAdmissionais = employees.filter(e => {
-      if (e.status !== 'ACTIVE') return false;
-      return !asos.some(a => a.employeeId === e.id && a.asoType === 'ADMISSIONAL' && (a.status === 'APTO' || a.status === 'REALIZADO'));
-    }).length;
-    return { pendentes, hoje, vencidos, proximos, pendentesAdmissionais };
-  }, [columns, asos, employees]);
-
   return (
     <div className="mx-auto max-w-7xl space-y-5 px-4 py-5 sm:px-6 lg:px-8">
       <header>
@@ -167,29 +150,6 @@ export default function ManagementPage() {
         <h2 className="text-2xl font-black text-slate-950">Gestão de pessoas e jornada</h2>
         <p className="mt-1 text-sm font-semibold text-slate-500">Controle compromissos, exames ocupacionais e pendências administrativas dos colaboradores.</p>
       </header>
-
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-        <div className="rounded-[12px] border border-slate-200 bg-white p-4">
-          <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">Compromissos pendentes</p>
-          <p className="mt-1 text-2xl font-black text-slate-950">{summaries.pendentes}</p>
-        </div>
-        <div className="rounded-[12px] border border-slate-200 bg-white p-4">
-          <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">Compromissos de hoje</p>
-          <p className="mt-1 text-2xl font-black text-slate-950">{summaries.hoje}</p>
-        </div>
-        <div className="rounded-[12px] border border-red-200 bg-red-50/40 p-4">
-          <p className="text-[10px] font-black uppercase tracking-wider text-red-700">ASOs vencidos</p>
-          <p className="mt-1 text-2xl font-black text-red-900">{summaries.vencidos}</p>
-        </div>
-        <div className="rounded-[12px] border border-amber-200 bg-amber-50/40 p-4">
-          <p className="text-[10px] font-black uppercase tracking-wider text-amber-700">ASOs próximos do vencimento</p>
-          <p className="mt-1 text-2xl font-black text-amber-900">{summaries.proximos}</p>
-        </div>
-        <div className="rounded-[12px] border border-amber-200 bg-amber-50/40 p-4">
-          <p className="text-[10px] font-black uppercase tracking-wider text-amber-700">Pendentes de ASO admissional</p>
-          <p className="mt-1 text-2xl font-black text-amber-900">{summaries.pendentesAdmissionais}</p>
-        </div>
-      </div>
 
       <div className="flex gap-1 rounded-[8px] bg-slate-100 p-1 flex-wrap">
         <button onClick={() => navigate('agenda')} className={`rounded-[6px] px-4 py-2 text-xs font-black uppercase ${tab === 'agenda' ? 'bg-white shadow-sm text-teal-700' : 'text-slate-500'}`}>Agenda</button>
@@ -244,6 +204,8 @@ export default function ManagementPage() {
 }
 
 type ColumnKey = 'OVERDUE' | 'TODAY' | 'THIS_WEEK' | 'UPCOMING' | 'COMPLETED';
+
+// ─── AGENDA ────────────────────────────────────────────────────────────────────
 
 function AgendaKanban({ columns, employees, canManage, onOpenForm, onSave, onDelete, saving }: {
   columns: Record<ColumnKey, ManagementEvent[]>; employees: Employee[]; canManage: boolean;
@@ -328,6 +290,8 @@ function AgendaKanban({ columns, employees, canManage, onOpenForm, onSave, onDel
   );
 }
 
+// ─── ASO ───────────────────────────────────────────────────────────────────────
+
 function AsoTab({ records, employees, canManage, onOpenForm, onSave, onDelete, saving }: {
   records: EmployeeAsoRecord[]; employees: Employee[]; canManage: boolean;
   onOpenForm: (edit?: EmployeeAsoRecord) => void; onSave: (data: any, id?: string) => void;
@@ -411,37 +375,26 @@ function AsoTab({ records, employees, canManage, onOpenForm, onSave, onDelete, s
   );
 }
 
+// ─── NOTIFICAÇÕES ─────────────────────────────────────────────────────────────
+
 function NotificationsTab({ canManage }: { canManage: boolean }) {
   const [filterStatus, setFilterStatus] = useState('');
   const [filterType, setFilterType] = useState('');
 
-  const { user } = useAuth();
-  const myUserId = user?.id;
-
   const listQuery = useQuery(() => api.notifications.list(), []);
-  const respondMut = useMutation(
-    ({ id, action, reason }: { id: string; action: 'ACKNOWLEDGE' | 'ACCEPT' | 'REFUSE'; reason?: string }) =>
-      api.notifications.respond(id, action, reason),
-    { onSuccess: () => listQuery.refetch() },
-  );
+  const respondMut = useMutation(({ id, action, reason }: { id: string; action: 'ACKNOWLEDGE' | 'ACCEPT' | 'REFUSE'; reason?: string }) =>
+    api.notifications.respond(id, action, reason), { onSuccess: () => listQuery.refetch() });
 
   const notifications = (listQuery.data as any[] | undefined) ?? [];
 
-  const filtered = useMemo(() =>
-    notifications.filter((n) => {
-      if (filterType && n.type !== filterType) return false;
-
-      if (filterStatus) {
-        const myRecipient = (n.recipients ?? []).find((r: any) =>
-          myUserId ? r.userId === myUserId : true,
-        );
-        const recipientStatus = myRecipient?.status ?? '';
-        if (recipientStatus !== filterStatus) return false;
-      }
-
-      return true;
-    }),
-  [notifications, filterStatus, filterType, myUserId]);
+  const filtered = useMemo(() => notifications.filter(n => {
+    if (filterStatus) {
+      const recipientStatus = n.recipients?.[0]?.status ?? '';
+      if (recipientStatus !== filterStatus) return false;
+    }
+    if (filterType && n.type !== filterType) return false;
+    return true;
+  }), [notifications, filterStatus, filterType]);
 
   const [showForm, setShowForm] = useState(false);
 
@@ -507,7 +460,6 @@ function NotificationsTab({ canManage }: { canManage: boolean }) {
                 </div>
               </div>
 
-              {/* Action buttons for response */}
               {needResponse && n.requiresAcceptance && (
                 <div className="mt-3 flex gap-2 border-t border-slate-100 pt-3">
                   <button
@@ -540,7 +492,6 @@ function NotificationsTab({ canManage }: { canManage: boolean }) {
                 </div>
               )}
 
-              {/* Show response info if already responded */}
               {n.recipients?.[0]?.responseJson && (
                 <div className="mt-2 rounded-[6px] bg-slate-50 p-2 text-[10px] text-slate-500">
                   <p>Resposta: {n.recipients[0].responseJson.action} {n.recipients[0].responseJson.reason ? `- ${n.recipients[0].responseJson.reason}` : ''}</p>
@@ -645,6 +596,8 @@ function CreateNotificationForm({ onCreated }: { onCreated: () => void }) {
     </div>
   );
 }
+
+// ─── REGRAS ────────────────────────────────────────────────────────────────────
 
 function RulesTab({ canManage }: { canManage: boolean }) {
   const listQuery = useQuery(() => api.workScheduleRules.list(), []);
@@ -779,6 +732,8 @@ function RuleForm({ rule, onSave, onClose, saving }: { rule: any | null; onSave:
   );
 }
 
+// ─── FECHAMENTO ────────────────────────────────────────────────────────────────
+
 function ClosingTab({ canManage }: { canManage: boolean }) {
   const [month, setMonth] = useState(new Date().getMonth() + 1);
   const [year, setYear] = useState(new Date().getFullYear());
@@ -906,6 +861,8 @@ function ClosingTab({ canManage }: { canManage: boolean }) {
     </section>
   );
 }
+
+// ─── MODAIS ────────────────────────────────────────────────────────────────────
 
 function EventModal({ event, employees, onClose, onSave, saving }: {
   event?: ManagementEvent; employees: Employee[]; onClose: () => void; onSave: (data: any) => void; saving: boolean;
