@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Plus, Pencil, Archive, RotateCcw, Trash2 } from 'lucide-react';
-import { useQuery, useMutation, useQueryClient } from '@/app/hooks/use-data';
+import { useQuery, useMutation } from '@/app/hooks/use-data';
 import { api } from '@/app/lib/api';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { EmptyState, ErrorState, LoadingState } from '@/app/components/data-states';
@@ -11,7 +11,7 @@ export default function WorkScheduleRulesPage() {
   const { user } = useAuth();
   const profile = user?.profile?.toUpperCase();
   const isRhOrAdmin = profile === 'DEV' || profile === 'ADMIN' || profile === 'RH';
-  const queryClient = useQueryClient();
+
 
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);

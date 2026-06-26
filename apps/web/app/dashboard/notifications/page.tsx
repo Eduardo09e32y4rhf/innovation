@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Bell, Plus, Archive, Trash2, Check, Filter } from 'lucide-react';
-import { useQuery, useMutation, useQueryClient } from '@/app/hooks/use-data';
+import { Bell, Plus, Archive, Trash2, Check, Filter, X } from 'lucide-react';
+import { useQuery, useMutation } from '@/app/hooks/use-data';
 import { api } from '@/app/lib/api';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { EmptyState, ErrorState, LoadingState } from '@/app/components/data-states';
@@ -11,7 +11,7 @@ type FilterType = 'all' | 'unread' | 'system' | 'admin' | 'urgent' | 'archived';
 
 export default function NotificationsPage() {
   const { user } = useAuth();
-  const queryClient = useQueryClient();
+
   const profile = user?.profile?.toUpperCase();
   const isRhOrAdmin = profile === 'DEV' || profile === 'ADMIN' || profile === 'RH';
 
@@ -71,7 +71,7 @@ export default function NotificationsPage() {
           {unreadCount > 0 && (
             <button
               type="button"
-              onClick={() => markAllReadMut.mutate(undefined as any)}
+              onClick={() => markAllReadMut.mutate()}
               disabled={markAllReadMut.loading}
               className="btn-outline inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black disabled:opacity-60"
             >
@@ -210,7 +210,7 @@ function CreateNoticeModal({ onClose, onSuccess }: { onClose: () => void; onSucc
   const [targetIds, setTargetIds] = useState('');
   const [expiresAt, setExpiresAt] = useState('');
   const [saving, setSaving] = useState(false);
-  const queryClient = useQueryClient();
+
 
   const canSubmit = title.trim() && message.trim();
 
@@ -228,7 +228,7 @@ function CreateNoticeModal({ onClose, onSuccess }: { onClose: () => void; onSucc
         targetIds: targetType === 'SPECIFIC' ? targetIds.split(',').map((s) => s.trim()).filter(Boolean) : undefined,
         expiresAt: expiresAt || undefined,
       });
-      await queryClient.invalidateQueries();
+
       onSuccess();
     } catch (err) {
       window.alert('Erro ao criar aviso.');

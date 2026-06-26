@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { AlertTriangle, ArrowUpRight, Cake, CalendarDays, Clock3, MessageSquareText, TrendingUp, Users, UserPlus, FileText, Download, AlertCircle, CheckCircle, XCircle, UserMinus, UserX, Stethoscope } from 'lucide-react';
+import { AlertTriangle, ArrowUpRight, Cake, CalendarDays, Clock3, MessageSquareText, TrendingUp, Users, UserPlus, FileText, Download, AlertCircle, CheckCircle, XCircle, UserMinus, UserX, Stethoscope, Bell } from 'lucide-react';
 import { ErrorState } from '@/app/components/data-states';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useQuery } from '@/app/hooks/use-data';
@@ -48,7 +48,7 @@ function DashboardContent() {
 
   const summaryData = presentationMode ? demoSummary : summary.data;
   const timeTrackData = presentationMode ? demoTimeTracks : (timeTracks.data ?? []);
-  const vacationData = presentationMode ? demoVacations : (vacationData ?? []);
+  const vacationData = presentationMode ? demoVacations : (vacations.data ?? []);
   const insightData = insights.data;
   const alertItems = insightData ? buildAlertItems(insightData.alerts) : [];
   const rhAlertData = rhAlerts.data;

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Calendar, CheckCircle2, RotateCcw, FileDown } from 'lucide-react';
-import { useQuery, useMutation, useQueryClient } from '@/app/hooks/use-data';
+import { useQuery, useMutation } from '@/app/hooks/use-data';
 import { api } from '@/app/lib/api';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { EmptyState, ErrorState, LoadingState } from '@/app/components/data-states';
@@ -11,7 +11,7 @@ export default function TimeClosingPage() {
   const { user } = useAuth();
   const profile = user?.profile?.toUpperCase();
   const isRhOrAdmin = profile === 'DEV' || profile === 'ADMIN' || profile === 'RH';
-  const queryClient = useQueryClient();
+
 
   const [month, setMonth] = useState(() => {
     const now = new Date();
