@@ -178,6 +178,47 @@ export class NotificationsService {
     }
   }
 
+  async respond(companyId: string, actor: JwtUser, id: string, body: { action: 'ACKNOWLEDGE' | 'ACCEPT' | 'REFUSE'; reason?: string }) {
+    try {
+      const notification = await this.prisma.notification.findFirst({
+        where: { id, companyId },
+        include: { recipients: { where: { userId: actor.sub } } },
+      });
+
+      if (!notification) throw new Error('Notificação não encontrada');
+
+      const recipient = notification.recipients[0];
+      if (!recipient) throw new Error('Usuário não é destinatário');
+
+      if (body.action === 'REFUSE' && !notification.allowsRefusal) {
+        throw new Error('Esta notificação não permite recusa');
+      }
+
+      const status =
+        body.action === 'ACKNOWLEDGE'
+          ? 'ACKNOWLEDGED'
+          : body.action === 'ACCEPT'
+            ? 'ACCEPTED'
+            : 'REFUSED_ACKNOWLEDGMENT';
+
+      return this.prisma.notificationRecipient.update({
+        where: { id: recipient.id },
+        data: {
+          status,
+          readAt: new Date(),
+          responseJson: {
+            action: body.action,
+            reason: body.reason ?? null,
+            respondedAt: new Date().toISOString(),
+          },
+        },
+      });
+    } catch (err) {
+      this.safeLog('respond error', err);
+      throw err;
+    }
+  }
+
   async dashboardWidget(companyId: string, actor: JwtUser) {
     try {
       const unreadCount = await this.unreadCount(companyId, actor);

@@ -48,6 +48,11 @@ export class NotificationsController {
     return this.svc.createAdminNotice(companyId, actor.sub, body);
   }
 
+  @Patch(':id/respond')
+  respond(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string, @Body() body: { action: 'ACKNOWLEDGE' | 'ACCEPT' | 'REFUSE'; reason?: string }) {
+    return this.svc.respond(companyId, actor, id, body);
+  }
+
   @Get('dashboard-widget')
   dashboardWidget(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser) {
     return this.svc.dashboardWidget(companyId, actor);
