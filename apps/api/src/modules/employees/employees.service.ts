@@ -41,10 +41,6 @@ export class EmployeesService {
     if (existing) throw new ConflictException('CPF already registered');
     await this.ensureRegistrationAvailable(companyId, dto.registration);
     
-    if (dto.status === 'ACTIVE') {
-      await this.ensureAdmissionAsoApto(companyId, dto);
-    }
-    
     const employee = await this.repository.create(companyId, this.toData(dto));
     await this.syncPanelAccess(companyId, employee, dto);
     return this.get(companyId, employee.id);
@@ -56,10 +52,6 @@ export class EmployeesService {
       if (existing && existing.id !== id) throw new ConflictException('CPF already registered');
     }
     await this.ensureRegistrationAvailable(companyId, dto.registration, id);
-    
-    if (dto.status === 'ACTIVE') {
-      await this.ensureAdmissionAsoApto(companyId, dto, id);
-    }
     
     const result = await this.repository.update(companyId, id, this.toData(dto));
     if (!result.count) throw new NotFoundException('Employee not found');

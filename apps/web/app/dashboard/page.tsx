@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { AlertTriangle, ArrowUpRight, Bell, Cake, CalendarDays, Clock3, MessageSquareText, TrendingUp, Users, UserPlus, FileText, Download, AlertCircle, CheckCircle, XCircle, UserMinus, UserX, Stethoscope } from 'lucide-react';
@@ -8,7 +8,6 @@ import { ErrorState } from '@/app/components/data-states';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useQuery } from '@/app/hooks/use-data';
 import { api } from '@/app/lib/api';
-import { demoSummary, demoTimeTracks, demoVacations, isLocalPresentation } from '@/app/lib/demo-data';
 import { VACATION_STATUS_LABEL, formatMinutes, formatPeriod, formatTime } from '@/app/lib/format';
 
 export default function DashboardHome() {
@@ -18,7 +17,6 @@ export default function DashboardHome() {
 function DashboardContent() {
   const router = useRouter();
   const { user } = useAuth();
-  const [presentationMode, setPresentationMode] = useState(false);
   const profile = user?.profile?.toUpperCase();
   const isCommercial = profile === 'COMERCIAL';
   const isFuncionario = profile === 'FUNCIONARIO';
@@ -26,29 +24,21 @@ function DashboardContent() {
   const isConsulta = profile === 'CONSULTA';
   const isRh = profile === 'RH' || profile === 'ADMIN' || profile === 'DEV';
 
-  useEffect(() => {
-    setPresentationMode(isLocalPresentation());
-  }, []);
-
-  useEffect(() => {
-    if (isCommercial) router.replace('/dashboard/platform');
-  }, [isCommercial, router]);
-
-  const summary = useQuery(() => api.dashboard.summary(), [], { enabled: !presentationMode && !isCommercial, pollMs: 60000 });
-  const insights = useQuery(() => api.dashboard.insights(), [], { enabled: !presentationMode && !isCommercial, pollMs: 60000 });
-  const rhAlerts = useQuery(() => api.dashboard.rhAlerts(), [], { enabled: !presentationMode && !isCommercial && !isFuncionario });
-  const notificationsWidget = useQuery(() => api.notifications.dashboardWidget(), [], { enabled: !presentationMode && !isCommercial && !isFuncionario });
-  const timeTracks = useQuery(() => api.timeTrack.list(), [], { enabled: !presentationMode && !isCommercial });
-  const vacations = useQuery(() => api.vacations.list(), [], { enabled: !presentationMode && !isCommercial && !isFuncionario });
-  const employees = useQuery(() => api.employees.list(), [], { enabled: !presentationMode && !isCommercial && !isFuncionario });
+  const summary = useQuery(() => api.dashboard.summary(), [], { enabled: !isCommercial, pollMs: 60000 });
+  const insights = useQuery(() => api.dashboard.insights(), [], { enabled: !isCommercial, pollMs: 60000 });
+  const rhAlerts = useQuery(() => api.dashboard.rhAlerts(), [], { enabled: !isCommercial && !isFuncionario });
+  const notificationsWidget = useQuery(() => api.notifications.dashboardWidget(), [], { enabled: !isCommercial && !isFuncionario });
+  const timeTracks = useQuery(() => api.timeTrack.list(), [], { enabled: !isCommercial });
+  const vacations = useQuery(() => api.vacations.list(), [], { enabled: !isCommercial && !isFuncionario });
+  const employees = useQuery(() => api.employees.list(), [], { enabled: !isCommercial && !isFuncionario });
 
   const [dashMonth, setDashMonth] = useState('');
   const [dashDept, setDashDept] = useState('');
   const departments = useMemo(() => [...new Set((employees.data ?? []).map((e) => e.department).filter(Boolean))].sort(), [employees.data]);
 
-  const summaryData = presentationMode ? demoSummary : summary.data;
-  const timeTrackData = presentationMode ? demoTimeTracks : (timeTracks.data ?? []);
-  const vacationData = presentationMode ? demoVacations : (vacations.data ?? []);
+  const summaryData = summary.data;
+  const timeTrackData = timeTracks.data ?? [];
+  const vacationData = vacations.data ?? [];
   const insightData = insights.data;
   const alertItems = insightData ? buildAlertItems(insightData.alerts) : [];
   const rhAlertData = rhAlerts.data;
@@ -107,9 +97,6 @@ function DashboardContent() {
               <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-teal-500" />
               <p className="text-[10px] font-black uppercase tracking-[0.2em] text-teal-700">{heroTitle}</p>
             </div>
-            {presentationMode && (
-              <span className="rounded-full border border-amber-200/60 bg-gradient-to-r from-amber-50 to-orange-50 px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-amber-800 shadow-sm">Apresentacao</span>
-            )}
           </div>
           <h1 className="mt-4 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 bg-clip-text text-3xl font-black tracking-tight text-transparent lg:text-4xl">{heroH2}</h1>
           <p className="mt-2 text-sm font-semibold text-slate-500">{isFuncionario ? 'Seus indicadores pessoais de jornada e ponto.' : isGestor ? 'Indicadores da sua equipe em tempo real.' : 'Visão completa da operação de RH.'}</p>
@@ -160,7 +147,7 @@ function DashboardContent() {
       )}
 
       {/* Real Indicators Grid */}
-      {summary.error && !presentationMode ? (
+      {summary.error ? (
         <ErrorState message={summary.error} onRetry={summary.refetch} />
       ) : (
         <>
@@ -409,8 +396,8 @@ function DashboardContent() {
       {/* Data Tables - Ponto e Férias lado a lado */}
       <section className={`grid grid-cols-1 gap-5 ${isFuncionario ? '' : 'lg:grid-cols-2'}`}>
         <DataTable title={isFuncionario ? 'Minhas jornadas recentes' : 'Jornadas recentes'} headers={isFuncionario ? ['Data', 'Entrada', 'Saída'] : ['Funcionário', 'Data', 'Entrada', 'Saída', 'Ações']}>
-          {timeTracks.loading && !presentationMode && <LoadingRow span={isFuncionario ? 3 : 4} />}
-          {timeTracks.error && !presentationMode && <ErrorRow span={isFuncionario ? 3 : 4} message={timeTracks.error} />}
+          {timeTracks.loading && <LoadingRow span={isFuncionario ? 3 : 4} />}
+          {timeTracks.error && <ErrorRow span={isFuncionario ? 3 : 4} message={timeTracks.error} />}
           {!timeTracks.loading && !timeTracks.error && todayRows.length === 0 && (
             <EmptyRow span={isFuncionario ? 3 : 4} message="Nenhum registro encontrado para hoje." />
           )}
@@ -440,8 +427,8 @@ function DashboardContent() {
 
         {!isFuncionario && (
           <DataTable title="Férias e ausências" headers={['Funcionário', 'Período', 'Status']}>
-            {vacations.loading && !presentationMode && <LoadingRow span={3} />}
-            {vacations.error && !presentationMode && <ErrorRow span={3} message={vacations.error} />}
+            {vacations.loading && <LoadingRow span={3} />}
+            {vacations.error && <ErrorRow span={3} message={vacations.error} />}
             {!vacations.loading && !vacations.error && vacationRows.length === 0 && (
               <EmptyRow span={3} message="Nenhuma solicitação em aberto." />
             )}
@@ -485,7 +472,7 @@ function MetricCard({ label, value, icon: Icon, detail, trend, trendColor = 'eme
   trend?: string; trendColor?: string; alert?: boolean; loading?: boolean;
 }) {
   return (
-        <div className="group relative rounded-[18px] border border-slate-200/60 bg-gradient-to-br from-white to-slate-50/30 p-5 shadow-[0_8px_30px_rgba(15,23,42,0.08)] transition-shadow duration-300 hover:shadow-[0_12px_40px_rgba(15,23,42,0.12)]">
+    <div className="group relative rounded-[18px] border border-slate-200/60 bg-gradient-to-br from-white to-slate-50/30 p-5 shadow-[0_8px_30px_rgba(15,23,42,0.08)] transition-shadow duration-300 hover:shadow-[0_12px_40px_rgba(15,23,42,0.12)]">
       {alert && <div className="absolute right-3 top-3 h-2 w-2 animate-pulse rounded-full bg-amber-500" />}
       <div className="relative">
         <div className="mb-4 flex items-start justify-between gap-3">

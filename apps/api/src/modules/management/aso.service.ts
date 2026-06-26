@@ -72,8 +72,8 @@ export class AsoService {
           dueDate: data.dueDate ? new Date(data.dueDate) : undefined,
           clinicName: data.clinicName,
           doctorName: data.doctorName,
-          documentNumber: data.documentNumber,
-          observation: data.observation,
+           documentNumber: data.documentNumber,
+           notes: data.notes,
         },
         include: { employee: { select: { id: true, name: true } } },
       });
