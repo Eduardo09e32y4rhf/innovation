@@ -59,7 +59,7 @@ export class AsoService {
     }
   }
 
-  async create(companyId: string, userId: string | undefined, data: any) {
+    async create(companyId: string, userId: string | undefined, data: any) {
     try {
       return await this.prisma.employeeAsoRecord.create({
         data: {
@@ -72,8 +72,8 @@ export class AsoService {
           dueDate: data.dueDate ? new Date(data.dueDate) : undefined,
           clinicName: data.clinicName,
           doctorName: data.doctorName,
-           documentNumber: data.documentNumber,
-           notes: data.notes,
+          documentNumber: data.documentNumber,
+          observation: data.notes ?? data.observation,
         },
         include: { employee: { select: { id: true, name: true } } },
       });

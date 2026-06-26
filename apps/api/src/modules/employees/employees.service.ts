@@ -77,7 +77,7 @@ export class EmployeesService {
     if (!employeeId) return;
     
     const admissionAso = await this.asoService.getLatestByEmployee(companyId, employeeId);
-    if (!admissionAso || admissionAso.asoType !== 'ADMISSIONAL' || admissionAso.status !== 'APTO') {
+    if (!admissionAso || admissionAso.asoType !== 'ADMISSIONAL' || (admissionAso as any).status !== 'COMPLETED') {
       throw new ForbiddenException('Funcionário não possui ASO admissional apto. Finalize o exame ocupacional antes de concluir a contratação.');
     }
   }
