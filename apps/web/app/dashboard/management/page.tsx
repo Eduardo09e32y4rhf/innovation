@@ -236,6 +236,19 @@ export default function ManagementPage() {
 
 type ColumnKey = 'OVERDUE' | 'TODAY' | 'THIS_WEEK' | 'UPCOMING' | 'COMPLETED';
 
+function PlaceholderPanel({ title, description, icon: Icon }: { title: string; description: string; icon: any }) {
+  return (
+    <section className="rounded-[12px] border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="flex items-center gap-2">
+        <Icon size={16} strokeWidth={2.5} className="text-teal-600" />
+        <h3 className="text-sm font-black text-slate-950">{title}</h3>
+      </div>
+      <p className="mt-2 text-xs font-semibold text-slate-500">{description}</p>
+      <p className="mt-1 text-xs text-slate-400">Em breve: painel em construção.</p>
+    </section>
+  );
+}
+
 function AgendaKanban({ columns, employees, canManage, onOpenForm, onSave, onDelete, saving }: {
   columns: Record<ColumnKey, ManagementEvent[]>; employees: Employee[]; canManage: boolean;
   onOpenForm: (edit?: ManagementEvent) => void; onSave: (data: any, id?: string) => void;
