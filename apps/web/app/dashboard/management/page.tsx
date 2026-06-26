@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { CalendarDays, Check, Clock3, XCircle } from 'lucide-react';
 import { LoadingState, ErrorState } from '@/app/components/data-states';
 import { useAuth } from '@/app/contexts/AuthContext';
@@ -8,7 +9,8 @@ import { useQuery, useMutation } from '@/app/hooks/use-data';
 import { api, type Employee, type ManagementEvent, type EmployeeAsoRecord } from '@/app/lib/api';
 import { normalizeDisplayName } from '@/app/lib/text';
 
-type Tab = 'agenda' | 'aso';
+type ManagementTab = 'agenda' | 'aso' | 'notifications' | 'rules' | 'closing';
+type Tab = ManagementTab;
 type EventType = 'REUNIAO' | 'CHAMADA' | 'TAREFA_INTERNA' | 'PRAZO_ADMINISTRATIVO' | 'RETORNO_COLABORADOR' | 'DOCUMENTO_PENDENTE' | 'OUTROS';
 type EventStatus = 'PENDENTE' | 'EM_ANDAMENTO' | 'CONCLUIDO' | 'CANCELADO';
 type EventPriority = 'BAIXA' | 'MEDIA' | 'ALTA' | 'URGENTE';
@@ -101,7 +103,15 @@ export default function ManagementPage() {
   const canManage = profile === 'DEV' || profile === 'ADMIN' || profile === 'RH';
   const canView = profile === 'DEV' || profile === 'ADMIN' || profile === 'RH' || profile === 'GESTOR';
 
-  const [tab, setTab] = useState<Tab>('agenda');
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const current = searchParams.get('tab') as ManagementTab | null;
+  const [tab, setTab] = useState<Tab>(current && ['agenda','aso','notifications','rules','closing'].includes(current) ? current : 'agenda');
+
+  function navigate(next: ManagementTab) {
+    router.push('/dashboard/management?tab=' + next);
+    setTab(next);
+  }
   const [eventForm, setEventForm] = useState<{ open: boolean; edit?: ManagementEvent }>({ open: false });
   const [asoForm, setAsoForm] = useState<{ open: boolean; edit?: EmployeeAsoRecord }>({ open: false });
 
