@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { CalendarDays, Check, Clock3, XCircle } from 'lucide-react';
+import { CalendarDays, Check, Clock3, XCircle, FileText, FileCheck2, Bell } from 'lucide-react';
 import { LoadingState, ErrorState } from '@/app/components/data-states';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useQuery, useMutation } from '@/app/hooks/use-data';
@@ -183,13 +183,15 @@ export default function ManagementPage() {
       </div>
 
       <div className="flex gap-1 rounded-[8px] bg-slate-100 p-1">
-        <button onClick={() => setTab('agenda')} className={`rounded-[6px] px-4 py-2 text-xs font-black uppercase ${tab === 'agenda' ? 'bg-white shadow-sm text-teal-700' : 'text-slate-500'}`}>Agenda</button>
-        <button onClick={() => setTab('aso')} className={`rounded-[6px] px-4 py-2 text-xs font-black uppercase ${tab === 'aso' ? 'bg-white shadow-sm text-teal-700' : 'text-slate-500'}`}>ASO</button>
+        <button onClick={() => navigate('agenda')} className={`rounded-[6px] px-4 py-2 text-xs font-black uppercase ${tab === 'agenda' ? 'bg-white shadow-sm text-teal-700' : 'text-slate-500'}`}>Agenda</button>
+        <button onClick={() => navigate('aso')} className={`rounded-[6px] px-4 py-2 text-xs font-black uppercase ${tab === 'aso' ? 'bg-white shadow-sm text-teal-700' : 'text-slate-500'}`}>ASO</button>
+        <button onClick={() => navigate('notifications')} className={`rounded-[6px] px-4 py-2 text-xs font-black uppercase ${tab === 'notifications' ? 'bg-white shadow-sm text-teal-700' : 'text-slate-500'}`}>Notificações</button>
+        <button onClick={() => navigate('rules')} className={`rounded-[6px] px-4 py-2 text-xs font-black uppercase ${tab === 'rules' ? 'bg-white shadow-sm text-teal-700' : 'text-slate-500'}`}>Regras</button>
+        <button onClick={() => navigate('closing')} className={`rounded-[6px] px-4 py-2 text-xs font-black uppercase ${tab === 'closing' ? 'bg-white shadow-sm text-teal-700' : 'text-slate-500'}`}>Fechamento</button>
       </div>
 
-      {kanbanQuery.loading && !kanbanQuery.data ? <LoadingState label="Carregando..." /> :
-       kanbanQuery.error && !kanbanQuery.data ? <ErrorState message={kanbanQuery.error} onRetry={kanbanQuery.refetch} /> :
-       tab === 'agenda' ? (
+      {tab === 'agenda' && (kanbanQuery.loading && !kanbanQuery.data ? <LoadingState label="Carregando..." /> :
+        kanbanQuery.error && !kanbanQuery.data ? <ErrorState message={kanbanQuery.error} onRetry={kanbanQuery.refetch} /> :
         <AgendaKanban
           columns={columns}
           employees={employees}
@@ -198,8 +200,9 @@ export default function ManagementPage() {
           onSave={(data, id) => eventsMut.mutate({ id, data }).catch(() => {})}
           onDelete={(id) => deleteEventMut.mutate(id).catch(() => {})}
           saving={eventsMut.loading}
-        />
-      ) : (
+        />)}
+      {tab === 'aso' && (asoQuery.loading && !asoQuery.data ? <LoadingState label="Carregando..." /> :
+        asoQuery.error && !asoQuery.data ? <ErrorState message={asoQuery.error} onRetry={asoQuery.refetch} /> :
         <AsoTab
           records={asos}
           employees={employees}
@@ -208,8 +211,10 @@ export default function ManagementPage() {
           onSave={(data, id) => asoMut.mutate({ id, data }).catch(() => {})}
           onDelete={(id) => deleteAsoMut.mutate(id).catch(() => {})}
           saving={asoMut.loading}
-        />
-      )}
+        />)}
+      {tab === 'notifications' && <PlaceholderPanel title="Notificações / Comunicados" description="Comunicados, alertas e advertências." icon={Bell} />}
+      {tab === 'rules' && <PlaceholderPanel title="Regras de Jornada" description="Configuração de jornadas e fechamento." icon={FileText} />}
+      {tab === 'closing' && <PlaceholderPanel title="Fechamento de Período" description="Geração e controle do fechamento mensal." icon={FileCheck2} />}
 
       {eventForm.open && <EventModal
         event={eventForm.edit}
