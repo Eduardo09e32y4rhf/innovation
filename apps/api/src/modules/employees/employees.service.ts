@@ -135,6 +135,7 @@ export class EmployeesService {
 
   private toData(dto: CreateEmployeeDto | UpdateEmployeeDto) {
     const { accessEnabled, accessProfile, ...employeeData } = dto;
+    const status = dto.status ?? 'ACTIVE';
     return {
       ...employeeData,
       phone: this.emptyToUndefined(dto.phone),
@@ -157,7 +158,7 @@ export class EmployeesService {
       registration: this.emptyToUndefined(dto.registration),
       managerId: this.emptyToUndefined(dto.managerId),
       admissionDate: dto.admissionDate ? new Date(dto.admissionDate) : undefined,
-      terminationDate: dto.terminationDate ? new Date(dto.terminationDate) : undefined,
+      terminationDate: status === 'ACTIVE' ? undefined : (dto.terminationDate ? new Date(dto.terminationDate) : undefined),
       salary: dto.salary ?? undefined,
       contractType: this.emptyToUndefined(dto.contractType),
       cnpj: this.emptyToUndefined(dto.cnpj),
@@ -171,6 +172,7 @@ export class EmployeesService {
       standardLunchStart: this.emptyToUndefined(dto.standardLunchStart),
       standardLunchReturn: this.emptyToUndefined(dto.standardLunchReturn),
       standardExit: this.emptyToUndefined(dto.standardExit),
+      status,
     };
   }
 
