@@ -115,7 +115,7 @@ export class NotificationsService {
 
   async createAdminNotice(companyId: string, createdBy: string, body: any) {
     try {
-      const { title, message, priority, targetType, targetIds, expiresAt } = body;
+      const { title, message, priority, type, targetType, targetIds, expiresAt, requiresReadConfirmation, requiresAcceptance, allowsRefusal, attachmentsJson, extraJson } = body;
 
       let targetUserIds: string[] = [];
 
@@ -144,7 +144,7 @@ export class NotificationsService {
       const notification = await this.prisma.notification.create({
         data: {
           companyId,
-          type: 'SYSTEM_NOTICE',
+          type: type || 'SIMPLE_NOTICE',
           title,
           message,
           priority: priority || 'NORMAL',
@@ -152,10 +152,17 @@ export class NotificationsService {
           createdBy,
           targetUrl: body.targetUrl,
           expiresAt: expiresAt ? new Date(expiresAt) : undefined,
+          requiresReadConfirmation: Boolean(requiresReadConfirmation),
+          requiresAcceptance: Boolean(requiresAcceptance),
+          allowsRefusal: Boolean(allowsRefusal),
+          attachmentsJson: attachmentsJson ?? undefined,
+          extraJson: extraJson ?? undefined,
+          status: 'SENT',
+          sentAt: new Date(),
           recipients: {
             create: targetUserIds.map(userId => ({
               userId,
-              status: 'UNREAD',
+              status: (requiresAcceptance || requiresReadConfirmation) ? 'PENDING_RESPONSE' : 'UNREAD',
             })),
           },
         },
