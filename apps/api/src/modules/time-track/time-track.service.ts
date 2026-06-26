@@ -7,8 +7,8 @@ import { TimeTrackRepository } from './time-track.repository';
 import { RedisService } from '../../common/redis/redis.service';
 import { WorkScheduleRulesService } from './work-schedule-rules.service';
 
-const DEFAULT_WORKDAY_MINUTES = 8 * 60; // fallback padrão
-const TOLERANCE_MINUTES = 5; // tolerância padrão para ocorrências
+const DEFAULT_WORKDAY_MINUTES = 8 * 60;
+const TOLERANCE_MINUTES = 5;
 
 function parseWorkloadToMinutes(workload?: string | null): number {
   if (!workload) return DEFAULT_WORKDAY_MINUTES;
@@ -44,7 +44,7 @@ export class TimeTrackService {
     private readonly rulesService: WorkScheduleRulesService,
   ) {}
 
-  private readonly PUNCH_LOCK_TTL = 8; // seconds
+  private readonly PUNCH_LOCK_TTL = 8;
 
   private async resolveRule(companyId: string) {
     try {
@@ -74,8 +74,6 @@ export class TimeTrackService {
     const employee = await this.ensureEmployee(companyId, dto.employeeId);
     const date = this.toDateOnly(this.parseDate(dto.date, 'Invalid date'));
     this.validateEmployeeDateRange(employee, date);
-    
-    // Regra de abono inteligente: se for abono, sugerir tempo faltante
     if (dto.reason.includes('abono')) {
       const suggestion = this.suggestAbsenceMinutes(employee, date);
       if (suggestion !== null && suggestion > 0) {
@@ -86,7 +84,6 @@ export class TimeTrackService {
         }
       }
     }
-    
     this.validateManualTimestamp(employee, dto.entry, dto.lunchStart, dto.lunchReturn, dto.exit, date);
     return this.applyManual(employee, dto.date, dto);
   }
@@ -100,8 +97,6 @@ export class TimeTrackService {
         if (this.isRestDay(employee, date, dto)) continue;
         const parsedDate = this.toDateOnly(this.parseDate(date, 'Invalid date'));
         this.validateEmployeeDateRange(employee, parsedDate);
-        
-        // Regra de abono inteligente para bulk
         if (dto.reason.includes('abono')) {
           const suggestion = this.suggestAbsenceMinutes(employee, parsedDate);
           if (suggestion !== null && suggestion > 0 && !dto.entry) {
@@ -109,7 +104,6 @@ export class TimeTrackService {
             Object.assign(dto, { entry: suggestedEntry });
           }
         }
-        
         created.push(await this.applyManual(employee, date, dto));
       }
     }
@@ -120,38 +114,28 @@ export class TimeTrackService {
     if (actor.role === 'DEV' || actor.role === 'COMERCIAL' || actor.role === 'CONSULTA') {
       throw new ForbiddenException('Este perfil nao bate ponto');
     }
-
     const isManual = Boolean(dto.manualReason);
     if (isManual && !dto.type) throw new BadRequestException('Informe qual marcacao manual sera ajustada.');
     const employee = isManual && dto.employeeId
       ? await this.ensureCanAccessEmployee(companyId, actor, dto.employeeId)
       : await this.repository.findEmployeeByUserId(companyId, actor.sub, actor.email);
-
     if (!employee) throw new ForbiddenException('Seu usuario ainda nao esta vinculado a um funcionario ativo. Procure o RH.');
     if (employee.userId && employee.userId !== actor.sub) throw new ForbiddenException('Este funcionario ja esta vinculado a outro usuario. Procure o RH.');
     if (!employee.userId) await this.repository.updateEmployeeUserLink(companyId, employee.id, actor.sub);
     if (employee.status !== 'ACTIVE') throw new ForbiddenException('Funcionario desligado ou inativo nao pode bater ponto.');
 
-    // REGRA: Ponto regular obrigatoriamente usa data/hora atual do servidor
     if (!isManual) {
-      if (dto.timestamp) {
-        throw new ForbiddenException('Ponto regular nao permite alterar data/hora. Use ajuste manual para correcoes.');
-      }
+      if (dto.timestamp) throw new ForbiddenException('Ponto regular nao permite alterar data/hora. Use ajuste manual para correcoes.');
       const now = new Date();
       const today = this.toDateOnly(now);
       this.validateEmployeeDateRange(employee, today);
-
       const dateStr = today.toISOString().slice(0, 10);
       const lockKey = `punch-lock:${employee.id}:${dateStr}`;
       const acquired = await this.redis.acquireLock(lockKey, this.PUNCH_LOCK_TTL);
-      if (!acquired) {
-        throw new BadRequestException('Batida de ponto ja esta sendo processada. Tente novamente em instantes.');
-      }
-
+      if (!acquired) throw new BadRequestException('Batida de ponto ja esta sendo processada. Tente novamente em instantes.');
       try {
         const type = await this.resolveNextPunchType(employee.id, today);
         if (!type) throw new BadRequestException('Todas as marcacoes de hoje ja foram registradas.');
-
         const field = this.typeToField(type);
         const current = await this.repository.upsert(employee.id, today, {
           [field]: now,
@@ -160,47 +144,33 @@ export class TimeTrackService {
           ...(dto.longitude !== undefined ? { longitude: dto.longitude } : {}),
         });
         const totals = this.calculateTotals({ ...current, [field]: now });
-        
-        // REGRA: Detectar ocorrências automaticamente (atraso/saída antecipada)
         const incidents = this.detectIncidents(employee, today, { ...current, ...totals });
         if (incidents) {
-          await this.repository.update(companyId, current.id, { 
+          await this.repository.update(companyId, current.id, {
             observation: incidents.observation,
             incidentType: incidents.type,
             toleranceMinutes: incidents.tolerance,
             absenceMinutes: incidents.absence,
           });
         }
-        
         return this.repository.upsert(employee.id, today, totals);
       } finally {
         await this.redis.releaseLock(lockKey);
       }
     }
 
-    // FLUXO: Ajuste Manual
     const timestamp = new Date(dto.timestamp!);
     if (Number.isNaN(timestamp.getTime())) throw new BadRequestException('Invalid timestamp');
-
     const date = this.toDateOnly(timestamp);
     const dateStr = date.toISOString().slice(0, 10);
-
-    // Validar admissão/demissão
     this.validateEmployeeDateRange(employee, date);
-
-    // Validar horário futuro no ajuste manual — apenas validação de data
     this.validateManualTimestamp(employee, undefined, undefined, undefined, undefined, date);
-
     const lockKey = `punch-lock:${employee.id}:${dateStr}`;
     const acquired = await this.redis.acquireLock(lockKey, this.PUNCH_LOCK_TTL);
-    if (!acquired) {
-      throw new BadRequestException('Batida de ponto ja esta sendo processada. Tente novamente em instantes.');
-    }
-
+    if (!acquired) throw new BadRequestException('Batida de ponto ja esta sendo processada. Tente novamente em instantes.');
     try {
       const type = dto.type;
       if (!type) throw new BadRequestException('Informe qual marcacao sera ajustada.');
-
       const field = this.typeToField(type);
       const current = await this.repository.upsert(employee.id, date, {
         [field]: timestamp,
@@ -211,8 +181,6 @@ export class TimeTrackService {
         manualStatus: 'pending',
       });
       const totals = this.calculateTotals({ ...current, [field]: timestamp });
-      
-      // Detectar incidentes para ajustes manuais
       const incidents = this.detectIncidents(employee, date, { ...current, [field]: timestamp, ...totals });
       if (incidents && dto.manualReason !== 'ajuste_suspensao') {
         await this.repository.update(companyId, current.id, {
@@ -221,7 +189,6 @@ export class TimeTrackService {
           absenceMinutes: incidents.absence,
         });
       }
-      
       return this.repository.upsert(employee.id, date, totals);
     } finally {
       await this.redis.releaseLock(lockKey);
@@ -245,12 +212,8 @@ export class TimeTrackService {
   }
 
   async listPending(companyId: string, actor: JwtUser) {
-    if (actor.role === 'ADMIN' || actor.role === 'RH' || actor.role === 'DEV') {
-      return this.repository.listPending(companyId);
-    }
-    if (actor.role === 'GESTOR') {
-      return this.repository.listPendingForManager(companyId, actor.sub, actor.email);
-    }
+    if (actor.role === 'ADMIN' || actor.role === 'RH' || actor.role === 'DEV') return this.repository.listPending(companyId);
+    if (actor.role === 'GESTOR') return this.repository.listPendingForManager(companyId, actor.sub, actor.email);
     return [];
   }
 
@@ -292,7 +255,7 @@ export class TimeTrackService {
     const exitMins = timeToMinutes(employee.standardExit);
     if (entryMins === null || exitMins === null) return null;
     const expectedExit = entryMins + workload;
-    if (expectedExit > exitMins) return null; // jornada extrapola expediente
+    if (expectedExit > exitMins) return null;
     const absentMinutes = exitMins - expectedExit;
     return Math.max(absentMinutes, 0);
   }
@@ -317,42 +280,23 @@ export class TimeTrackService {
     const exitMins = track.exit ? timeToMinutes(track.exit.toISOString().slice(11, 16)) : null;
     const expectedEntry = timeToMinutes(employee.standardEntry);
     const expectedExit = timeToMinutes(employee.standardExit);
-
     if (entryMins === null || exitMins === null) {
-      if (!track.entry && !track.exit) {
-        return { type: 'falta', tolerance: 0, absence: 0, observation: 'FALTA' };
-      }
+      if (!track.entry && !track.exit) return { type: 'falta', tolerance: 0, absence: 0, observation: 'FALTA' };
       return null;
     }
-
     let incidentType: 'atraso' | 'saida_antecipada' | 'falta' | null = null;
     let tolerance = 0;
     let absence = 0;
-
-    // Atraso: entrada após tolerância
     if (expectedEntry !== null && entryMins > expectedEntry) {
       const diff = entryMins - expectedEntry;
-      if (diff > TOLERANCE_MINUTES) {
-        incidentType = 'atraso';
-        tolerance = diff;
-      }
+      if (diff > TOLERANCE_MINUTES) { incidentType = 'atraso'; tolerance = diff; }
     }
-
-    // Saída antecipada: saída antes do horário - tolerância
     if (expectedExit !== null && exitMins < expectedExit) {
       const diff = expectedExit - exitMins;
-      if (diff > TOLERANCE_MINUTES) {
-        incidentType = 'saida_antecipada';
-        absence = diff;
-      }
+      if (diff > TOLERANCE_MINUTES) { incidentType = 'saida_antecipada'; absence = diff; }
     }
-
     if (!incidentType) return null;
-
-    const observation = incidentType === 'atraso'
-      ? `ATRASO ${tolerance}min`
-      : `SAIDA ANTECIPADA ${absence}min`;
-
+    const observation = incidentType === 'atraso' ? `ATRASO ${tolerance}min` : `SAIDA ANTECIPADA ${absence}min`;
     return { type: incidentType, tolerance, absence, observation };
   }
 
@@ -361,19 +305,11 @@ export class TimeTrackService {
   private validateEmployeeDateRange(employee: { admissionDate: Date | string; terminationDate?: Date | string | null }, requestedDate: Date) {
     const admission = new Date(employee.admissionDate);
     const admissionDate = this.toDateOnly(admission);
-    if (requestedDate < admissionDate) {
-      throw new BadRequestException(
-        `Nao e permitido lancar ponto anterior a data de admissao (${this.formatDateOnly(admissionDate)}).`
-      );
-    }
+    if (requestedDate < admissionDate) throw new BadRequestException(`Nao e permitido lancar ponto anterior a data de admissao (${this.formatDateOnly(admissionDate)}).`);
     if (employee.terminationDate) {
       const termination = new Date(employee.terminationDate);
       const terminationDate = this.toDateOnly(termination);
-      if (requestedDate > terminationDate) {
-        throw new BadRequestException(
-          `Nao e permitido lancar ponto posterior a data de demissao (${this.formatDateOnly(terminationDate)}).`
-        );
-      }
+      if (requestedDate > terminationDate) throw new BadRequestException(`Nao e permitido lancar ponto posterior a data de demissao (${this.formatDateOnly(terminationDate)}).`);
     }
   }
 
@@ -387,33 +323,24 @@ export class TimeTrackService {
   ) {
     const now = new Date();
     const today = this.toDateOnly(now);
-
     if (date) {
       this.validateEmployeeDateRange(employee, date);
-      if (date > today) {
-        throw new BadRequestException('Ajuste manual nao permite lancamento em datas futuras.');
-      }
+      if (date > today) throw new BadRequestException('Ajuste manual nao permite lancamento em datas futuras.');
     }
-
     const timeFields = [
       { label: 'Entrada', value: entry },
       { label: 'Saída almoço', value: lunchStart },
       { label: 'Retorno almoço', value: lunchReturn },
       { label: 'Saída', value: exit },
     ];
-
     for (const field of timeFields) {
       if (!field.value) continue;
       const [hours, minutes] = field.value.split(':').map(Number);
       if (isNaN(hours) || isNaN(minutes)) continue;
-
       const fieldDate = new Date(now);
       fieldDate.setHours(hours, minutes, 0, 0);
-
       if (date && this.toDateOnly(date).getTime() === today.getTime() && fieldDate > now) {
-        throw new BadRequestException(
-          `Ajuste manual nao permite lancamento de horario futuro para "${field.label}". Agora sao ${now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}.`
-        );
+        throw new BadRequestException(`Ajuste manual nao permite lancamento de horario futuro para "${field.label}". Agora sao ${now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}.`);
       }
     }
   }
@@ -463,15 +390,8 @@ export class TimeTrackService {
     const date = this.toDateOnly(this.parseDate(dateValue, 'Invalid date'));
     const weekday = date.getUTCDay();
     const daysOff = dto.daysOff ?? this.defaultDaysOff(employee.workScale);
-
-    if ((dto.restDayMode ?? 'employee_scale') === 'cycle') {
-      return this.isCycleRestDay(date, dto, employee.workScale);
-    }
-
-    if ((dto.restDayMode ?? 'employee_scale') === 'fixed_weekly' || daysOff.length > 0) {
-      return daysOff.includes(weekday);
-    }
-
+    if ((dto.restDayMode ?? 'employee_scale') === 'cycle') return this.isCycleRestDay(date, dto, employee.workScale);
+    if ((dto.restDayMode ?? 'employee_scale') === 'fixed_weekly' || daysOff.length > 0) return daysOff.includes(weekday);
     return false;
   }
 
@@ -528,42 +448,23 @@ export class TimeTrackService {
     return map[type];
   }
 
-  private async calculateTotals(companyId: string, track: { entry?: Date | null; lunchStart?: Date | null; lunchReturn?: Date | null; exit?: Date | null }) {
+  private calculateTotals(track: { entry?: Date | null; lunchStart?: Date | null; lunchReturn?: Date | null; exit?: Date | null }) {
     if (!track.entry || !track.exit) return { totalWorked: null, dailyBalance: null };
     const gross = this.diffMinutes(track.entry, track.exit);
     const lunch = track.lunchStart && track.lunchReturn ? this.diffMinutes(track.lunchStart, track.lunchReturn) : 0;
     const totalWorked = Math.max(gross - lunch, 0);
-    const rule = await this.resolveRule(companyId);
-    const expected = rule?.dailyMinutes ?? DEFAULT_WORKDAY_MINUTES;
-    return { totalWorked, dailyBalance: totalWorked - expected };
+    return { totalWorked, dailyBalance: totalWorked - DEFAULT_WORKDAY_MINUTES };
   }
 
   private diffMinutes(start: Date, end: Date) {
     return Math.round((end.getTime() - start.getTime()) / 60000);
   }
 
-  private async resolveMonth(companyId: string, month?: string) {
-    const rule = await this.resolveRule(companyId);
-    const closingStart = rule?.closingStartDay ?? 1;
-    const closingEnd = rule?.closingEndDay ?? 30;
-
+  private resolveMonth(month?: string) {
     const reference = month ? new Date(`${month}-01T00:00:00.000Z`) : new Date();
     if (Number.isNaN(reference.getTime())) throw new BadRequestException('Invalid month');
-
-    const year = reference.getUTCFullYear();
-    const monthNum = reference.getUTCMonth() + 1;
-
-    let start: Date;
-    let end: Date;
-
-    if (closingStart <= closingEnd) {
-      start = new Date(Date.UTC(year, monthNum - 1, closingStart));
-      end = new Date(Date.UTC(year, monthNum - 1, closingEnd, 23, 59, 59));
-    } else {
-      start = new Date(Date.UTC(year, monthNum - 1, closingStart));
-      end = new Date(Date.UTC(year, monthNum, closingEnd, 23, 59, 59));
-    }
-
+    const start = new Date(Date.UTC(reference.getUTCFullYear(), reference.getUTCMonth(), 1));
+    const end = new Date(Date.UTC(reference.getUTCFullYear(), reference.getUTCMonth() + 1, 1));
     return { start, end };
   }
 
@@ -587,13 +488,5 @@ export class TimeTrackService {
   private toDateOnly(date: Date) {
     const [day] = date.toISOString().split('T');
     return new Date(`${day}T00:00:00.000Z`);
-  }
-
-  private resolveMonth(month?: string) {
-    const reference = month ? new Date(`${month}-01T00:00:00.000Z`) : new Date();
-    if (Number.isNaN(reference.getTime())) throw new BadRequestException('Invalid month');
-    const start = new Date(Date.UTC(reference.getUTCFullYear(), reference.getUTCMonth(), 1));
-    const end = new Date(Date.UTC(reference.getUTCFullYear(), reference.getUTCMonth() + 1, 1));
-    return { start, end };
   }
 }

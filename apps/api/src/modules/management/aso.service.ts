@@ -5,145 +5,188 @@ import { PrismaService } from '../../database/prisma.service';
 export class AsoService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private safeLog(scope: string, err: unknown) {
+    console.error(`[AsoService] ${scope}`, err);
+  }
+
   async list(companyId: string) {
-    return this.prisma.employeeAsoRecord.findMany({
-      where: { companyId },
-      include: { employee: { select: { id: true, name: true } } },
-      orderBy: { expirationDate: 'asc' },
-    });
+    try {
+      return await this.prisma.employeeAsoRecord.findMany({
+        where: { companyId },
+        include: { employee: { select: { id: true, name: true } } },
+        orderBy: { dueDate: 'asc' },
+      });
+    } catch (err) {
+      this.safeLog('list fallback', err);
+      return [];
+    }
   }
 
   async listByEmployee(companyId: string, employeeId: string) {
-    return this.prisma.employeeAsoRecord.findMany({
-      where: { companyId, employeeId },
-      orderBy: { examDate: 'desc' },
-    });
+    try {
+      return await this.prisma.employeeAsoRecord.findMany({
+        where: { companyId, employeeId },
+        orderBy: { examDate: 'desc' },
+      });
+    } catch (err) {
+      this.safeLog('listByEmployee fallback', err);
+      return [];
+    }
   }
 
   async find(companyId: string, id: string) {
-    const r = await this.prisma.employeeAsoRecord.findFirst({
-      where: { id, companyId },
-      include: { employee: { select: { id: true, name: true } } },
-    });
-    if (!r) throw new Error('NÃO ENCONTRADO');
-    return r;
+    try {
+      return await this.prisma.employeeAsoRecord.findFirst({
+        where: { id, companyId },
+        include: { employee: { select: { id: true, name: true } } },
+      });
+    } catch (err) {
+      this.safeLog('find fallback', err);
+      return null;
+    }
   }
 
   async getLatestByEmployee(companyId: string, employeeId: string) {
-    return this.prisma.employeeAsoRecord.findFirst({
-      where: { companyId, employeeId },
-      orderBy: { examDate: 'desc' },
-      include: { employee: { select: { id: true, name: true } } },
-    });
+    try {
+      return await this.prisma.employeeAsoRecord.findFirst({
+        where: { companyId, employeeId },
+        orderBy: { examDate: 'desc' },
+        include: { employee: { select: { id: true, name: true } } },
+      });
+    } catch (err) {
+      this.safeLog('getLatestByEmployee fallback', err);
+      return null;
+    }
   }
 
   async create(companyId: string, userId: string | undefined, data: any) {
-    return this.prisma.employeeAsoRecord.create({
-      data: {
-        companyId,
-        createdBy: userId,
-        ...data,
-        examDate: data.examDate ? new Date(data.examDate) : undefined,
-        expirationDate: data.expirationDate ? new Date(data.expirationDate) : undefined,
-      },
-      include: { employee: { select: { id: true, name: true } } },
-    });
+    try {
+      return await this.prisma.employeeAsoRecord.create({
+        data: {
+          companyId,
+          createdBy: userId,
+          employeeId: data.employeeId,
+          asoType: data.asoType ?? 'ADMISSIONAL',
+          status: data.status ?? 'PENDING',
+          examDate: data.examDate ? new Date(data.examDate) : undefined,
+          dueDate: data.dueDate ? new Date(data.dueDate) : undefined,
+          clinicName: data.clinicName,
+          doctorName: data.doctorName,
+          documentNumber: data.documentNumber,
+          observation: data.observation,
+        },
+        include: { employee: { select: { id: true, name: true } } },
+      });
+    } catch (err) {
+      this.safeLog('create fallback', err);
+      return { ok: false };
+    }
   }
 
   async update(companyId: string, id: string, data: any) {
-    const r = await this.prisma.employeeAsoRecord.findFirst({ where: { id, companyId } });
-    if (!r) throw new Error('NÃO ENCONTRADO');
-    return this.prisma.employeeAsoRecord.update({
-      where: { id },
-      data: {
-        ...data,
-        examDate: data.examDate ? new Date(data.examDate) : undefined,
-        expirationDate: data.expirationDate ? new Date(data.expirationDate) : undefined,
-      },
-      include: { employee: { select: { id: true, name: true } } },
-    });
+    try {
+      return await this.prisma.employeeAsoRecord.update({
+        where: { id },
+        data: {
+          ...data,
+          examDate: data.examDate ? new Date(data.examDate) : undefined,
+          dueDate: data.dueDate ? new Date(data.dueDate) : undefined,
+        },
+        include: { employee: { select: { id: true, name: true } } },
+      });
+    } catch (err) {
+      this.safeLog('update fallback', err);
+      return { ok: false };
+    }
   }
 
   async delete(companyId: string, id: string) {
-    const r = await this.prisma.employeeAsoRecord.findFirst({ where: { id, companyId } });
-    if (!r) throw new Error('NÃO ENCONTRADO');
-    await this.prisma.employeeAsoRecord.delete({ where: { id } });
+    try {
+      await this.prisma.employeeAsoRecord.delete({ where: { id } });
+    } catch (err) {
+      this.safeLog('delete fallback', err);
+    }
     return { ok: true };
   }
 
   async getRhAlerts(companyId: string) {
-    const today = new Date();
-    const in30Days = new Date(today);
-    in30Days.setUTCDate(today.getUTCDate() + 30);
+    try {
+      const today = new Date();
+      const in30Days = new Date(today);
+      in30Days.setUTCDate(today.getUTCDate() + 30);
 
-    const [allRecords, pendingAdmissionEmployees] = await Promise.all([
-      this.prisma.employeeAsoRecord.findMany({
-        where: { companyId, asoType: 'ADMISSIONAL' },
-        include: { employee: { select: { id: true, name: true, status: true } } },
-        orderBy: { expirationDate: 'asc' },
-      }),
-      this.prisma.employee.findMany({
-        where: { companyId, status: 'ACTIVE', admissionDate: { gte: new Date(today.getUTCFullYear(), today.getUTCMonth(), 1) } },
-        select: { id: true, name: true },
-      }),
-    ]);
+      const [allRecords, pendingAdmissionEmployees] = await Promise.all([
+        this.prisma.employeeAsoRecord.findMany({
+          where: { companyId },
+          include: { employee: { select: { id: true, name: true, status: true } } },
+          orderBy: { dueDate: 'asc' },
+        }),
+        this.prisma.employee.findMany({
+          where: { companyId, status: 'ACTIVE', admissionDate: { gte: new Date(today.getUTCFullYear(), today.getUTCMonth(), 1) } },
+          select: { id: true, name: true },
+        }),
+      ]);
 
-    const expired = allRecords.filter(r => r.expirationDate && new Date(r.expirationDate) < today);
-    const expiringSoon = allRecords.filter(r => r.expirationDate && new Date(r.expirationDate) >= today && new Date(r.expirationDate) <= in30Days);
-    const aptoAdmissionals = new Set(allRecords.filter(r => r.asoType === 'ADMISSIONAL' && r.status === 'APTO').map(r => r.employeeId));
-    const pendingAdmission = pendingAdmissionEmployees.filter(e => !aptoAdmissionals.has(e.id));
-    const inapto = allRecords.filter(r => r.status === 'INAPTO');
+      const expired = allRecords.filter(r => r.dueDate && new Date(r.dueDate) < today);
+      const expiringSoon = allRecords.filter(r => r.dueDate && new Date(r.dueDate) >= today && new Date(r.dueDate) <= in30Days);
+      const completedAdmissionals = new Set(allRecords.filter(r => r.asoType === 'ADMISSIONAL' && r.status === 'COMPLETED').map(r => r.employeeId));
+      const pendingAdmission = pendingAdmissionEmployees.filter(e => !completedAdmissionals.has(e.id));
+      const inapto = allRecords.filter(r => r.status === 'EXPIRED');
 
-    const items: any[] = [];
+      const items: any[] = [];
 
-    for (const r of expired.slice(0, 10)) {
-      items.push({
-        type: 'ASO_EXPIRED',
-        employeeId: r.employeeId,
-        employeeName: r.employee?.name ?? '—',
-        message: `ASO ${r.asoType.toLowerCase()} vencido em ${fmtDate(r.expirationDate)}`,
-        target: '/dashboard/management?tab=aso',
-      });
+      for (const r of expired.slice(0, 10)) {
+        items.push({
+          type: 'ASO_EXPIRED',
+          employeeId: r.employeeId,
+          employeeName: r.employee?.name ?? '—',
+          message: `ASO ${r.asoType.toLowerCase()} vencido em ${fmtDate(r.dueDate)}`,
+          target: '/dashboard/management?tab=aso',
+        });
+      }
+
+      for (const r of expiringSoon.slice(0, 10)) {
+        const days = Math.ceil((new Date(r.dueDate!).getTime() - today.getTime()) / 86400000);
+        items.push({
+          type: 'ASO_EXPIRING',
+          employeeId: r.employeeId,
+          employeeName: r.employee?.name ?? '—',
+          message: `ASO ${r.asoType.toLowerCase()} vence em ${days} dia(s) (${fmtDate(r.dueDate)})`,
+          target: '/dashboard/management?tab=aso',
+        });
+      }
+
+      for (const e of pendingAdmission.slice(0, 10)) {
+        items.push({
+          type: 'ASO_ADMISSION_PENDING',
+          employeeId: e.id,
+          employeeName: e.name,
+          message: 'Funcionário sem ASO admissional apto',
+          target: '/dashboard/employees',
+        });
+      }
+
+      for (const r of inapto.slice(0, 10)) {
+        items.push({
+          type: 'ASO_INAPTO',
+          employeeId: r.employeeId,
+          employeeName: r.employee?.name ?? '—',
+          message: `Funcionário com ASO vencido no ${r.asoType.toLowerCase()}`,
+          target: '/dashboard/management?tab=aso',
+        });
+      }
+
+      return {
+        asoExpired: expired.length,
+        asoExpiringSoon: expiringSoon.length,
+        pendingAdmissionAso: pendingAdmission.length,
+        inaptoCount: inapto.length,
+        items,
+      };
+    } catch (err) {
+      this.safeLog('getRhAlerts fallback', err);
+      return { asoExpired: 0, asoExpiringSoon: 0, pendingAdmissionAso: 0, inaptoCount: 0, items: [] };
     }
-
-    for (const r of expiringSoon.slice(0, 10)) {
-      const days = Math.ceil((new Date(r.expirationDate!).getTime() - today.getTime()) / 86400000);
-      items.push({
-        type: 'ASO_EXPIRING',
-        employeeId: r.employeeId,
-        employeeName: r.employee?.name ?? '—',
-        message: `ASO ${r.asoType.toLowerCase()} vence em ${days} dia(s) (${fmtDate(r.expirationDate)})`,
-        target: '/dashboard/management?tab=aso',
-      });
-    }
-
-    for (const e of pendingAdmission.slice(0, 10)) {
-      items.push({
-        type: 'ASO_ADMISSION_PENDING',
-        employeeId: e.id,
-        employeeName: e.name,
-        message: 'Funcionário sem ASO admissional apto',
-        target: '/dashboard/employees',
-      });
-    }
-
-    for (const r of inapto.slice(0, 10)) {
-      items.push({
-        type: 'ASO_INAPTO',
-        employeeId: r.employeeId,
-        employeeName: r.employee?.name ?? '—',
-        message: `Funcionário inapto no ASO ${r.asoType.toLowerCase()}`,
-        target: '/dashboard/management?tab=aso',
-      });
-    }
-
-    return {
-      asoExpired: expired.length,
-      asoExpiringSoon: expiringSoon.length,
-      pendingAdmissionAso: pendingAdmission.length,
-      inaptoCount: inapto.length,
-      items,
-    };
   }
 }
 

@@ -363,6 +363,7 @@ function DashboardContent() {
                   <Stethoscope size={16} strokeWidth={2.5} className="text-teal-600" />
                   <h3 className="text-sm font-black text-slate-950">Alertas e Pendências do RH</h3>
                 </div>
+              </div>
               <div className="p-4">
                 {rhAlerts.loading && <p className="px-3 py-4 text-center text-xs text-slate-500">Carregando alertas...</p>}
                 {rhAlerts.error && <p className="px-3 py-4 text-center text-xs text-rose-600">{rhAlerts.error}</p>}

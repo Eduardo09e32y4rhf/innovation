@@ -60,7 +60,7 @@ export function NotificationBell() {
               {unreadCount > 0 && (
                 <button
                   type="button"
-                  onClick={() => markAllReadMut.mutate(undefined as any)}
+                  onClick={() => markAllReadMut.mutate()}
                   className="text-[10px] font-black text-teal-700 hover:text-teal-800"
                 >
                   Marcar todas

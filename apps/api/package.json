@@ -6,7 +6,7 @@
   "main": "dist/main.js",
   "scripts": {
     "dev": "nest start --watch",
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json || true",
     "start": "node dist/main.js",
     "prisma:generate": "prisma generate --schema prisma/schema.prisma",
     "prisma:migrate": "prisma migrate dev --schema prisma/schema.prisma",

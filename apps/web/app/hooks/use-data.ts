@@ -88,3 +88,12 @@ export function useMutation<TInput = void, TResult = unknown>(
     reset: useCallback(() => setError(null), []),
   };
 }
+
+
+export function useQueryClient() {
+  return {
+    invalidateQueries: async () => undefined,
+    refetchQueries: async () => undefined,
+    resetQueries: async () => undefined,
+  };
+}

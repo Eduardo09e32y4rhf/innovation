@@ -393,6 +393,7 @@ model Employee {
   managementEvents ManagementEvent[]
   asoRecords    EmployeeAsoRecord[]
   timeOccurrences TimeOccurrence[]
+  notificationRecipients NotificationRecipient[]
 
   commitments    Commitment[]
 

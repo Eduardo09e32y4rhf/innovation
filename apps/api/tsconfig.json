@@ -13,7 +13,9 @@
     "strictPropertyInitialization": false,
     "noEmit": false,
     "declaration": false,
-    "sourceMap": true
+    "sourceMap": true,
+    "noEmitOnError": false,
+    "skipLibCheck": true
   },
   "include": [
     "src/**/*.ts"

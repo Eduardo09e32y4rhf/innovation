@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Bell, Plus, Archive, Trash2, Check, Filter } from 'lucide-react';
+import { Bell, Plus, Archive, Trash2, Check, Filter, X } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@/app/hooks/use-data';
 import { api } from '@/app/lib/api';
 import { useAuth } from '@/app/contexts/AuthContext';
@@ -45,8 +45,8 @@ export default function NotificationsPage() {
 
   const filtered = notifications.filter((n) => {
     if (filter === 'unread') return n.recipients?.[0]?.status === 'UNREAD';
-    if (filter === 'system') return n.type === 'SYSTEM';
-    if (filter === 'admin') return n.type === 'ADMIN_USER';
+    if (filter === 'system') return n.type === 'SYSTEM_NOTICE';
+    if (filter === 'admin') return n.type === 'RH_NOTICE' || n.type === 'SYSTEM_NOTICE';
     if (filter === 'urgent') return n.priority === 'URGENT';
     if (filter === 'archived') return n.recipients?.[0]?.status === 'ARCHIVED';
     return true;
@@ -71,7 +71,7 @@ export default function NotificationsPage() {
           {unreadCount > 0 && (
             <button
               type="button"
-              onClick={() => markAllReadMut.mutate(undefined as any)}
+              onClick={() => markAllReadMut.mutate()}
               disabled={markAllReadMut.loading}
               className="btn-outline inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black disabled:opacity-60"
             >
@@ -122,7 +122,7 @@ export default function NotificationsPage() {
                 <div className="flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">
-                      {n.type === 'SYSTEM' ? 'System' : 'Admin User'}
+                      {n.type === 'SYSTEM_NOTICE' ? 'System' : 'Admin User'}
                     </span>
                     {n.createdByUser && (
                       <span className="text-[10px] font-semibold text-slate-400">
