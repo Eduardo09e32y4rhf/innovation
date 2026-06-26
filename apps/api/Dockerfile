@@ -21,6 +21,4 @@ WORKDIR /usr/src/app/apps/api
 RUN npx prisma generate --schema prisma/schema.prisma && npm run build
 
 EXPOSE 3333
-CMD npx prisma migrate deploy --schema prisma/schema.prisma \
- && node prisma/seed-admin.cjs \
- && node dist/main.js
+CMD node dist/main.js

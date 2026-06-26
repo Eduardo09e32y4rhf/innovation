@@ -30,10 +30,16 @@ for i in {1..30}; do
   sleep 5
 done
 
-echo "[api-deploy] aplicando migrations..."
-$COMPOSE exec -T api npx prisma migrate deploy --schema prisma/schema.prisma || true
+echo "[api-deploy] aplicando migrations (hard)..."
+# Migrations no Dockerfile evitam estado parcial; aqui é a única fonte.
+$COMPOSE exec -T api npx prisma migrate deploy --schema prisma/schema.prisma
 
-echo "[api-deploy] health externo:"
+
+echo "[api-deploy] rodando seed-admin..."
+$COMPOSE exec -T api node prisma/seed-admin.cjs
+
+echo "[api-deploy] health externo:" 
+
 curl -i https://vps8369.panel.icontainer.net/api/health || true
 
 echo "[api-deploy] === END $(date) ==="

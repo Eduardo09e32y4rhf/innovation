@@ -1,17 +1,24 @@
-# TODO - Inovação RH
+# TODO — Stabilization & Real Deploy (no demo)
 
-## Escala e Regras de Negócio
+## Completed
+- [x] Identified deploy fragility: migrations/seed em duplicidade (Dockerfile + scripts).
+- [x] Baseline deployment strategy: migrations/seed moving to deploy script (approved A).
 
-- [x] Preparar sistema para escala (Redis, locks, paginação, healthcheck, docker)
-- [ ] Admissão/Demissão: bloquear ponto retroativo e posterior
-- [ ] Ponto regular: usar hora servidor, bloquear ajuste de data/hora
-- [ ] Ajuste manual: bloquear horário futuro e data futura
-- [ ] Férias: elegibilidade 12 meses + contador regressivo
-- [ ] Férias: mostrar faltas injustificadas no momento da solicitação
-- [ ] Férias: aba "Férias Recusadas" separada
-- [ ] Admin: controle de licenças/usuários na plataforma
+## Next steps
+## Styling/UX (mobile)
+- [ ] Ajustar layout que esteja bom no PC e também responsivo no celular (tamanho de fonte, espaçamento e tabelas/sections)
 
-## Bugs e Ajustes
+## Deploy (stability)
+- [ ] Fix line endings CRLF/LF noise (opcional): manter scripts executáveis e diff limpo
+- [ ] Atualizar `scripts/deploy/full-prod.sh` para usar o mesmo fluxo de migrations/seed de `api-prod.sh`
 
-- [x] Padronizar tamanho de fonte na listagem de férias
-- [x] Fix dashboard buttons breaking on scroll
+## Validações locais
+- [ ] `npx prisma validate --schema apps/api/prisma/schema.prisma`
+- [ ] Build API (ex.: `cd apps/api && npm run build:api`)
+- [ ] Build Web (ex.: `cd apps/web && npm run build:web`)
+
+## Smoke test na VPS (real)
+- [ ] `curl -i https://vps8369.panel.icontainer.net/api/health`
+- [ ] Login endpoint `/api/auth/login`
+
+

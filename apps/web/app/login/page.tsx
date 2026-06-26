@@ -40,8 +40,8 @@ const modules = [
     icon: CalendarCheck,
   },
   {
-    title: 'WhatsApp centralizado',
-    text: 'Atendimento operacional conectado ao contexto de cada colaborador.',
+    title: 'Comunicação integrada',
+    text: 'Avisos e central de comunicação conectados ao contexto de cada operação.',
     icon: MessageSquareText,
   },
 ];

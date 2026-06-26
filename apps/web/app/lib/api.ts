@@ -232,21 +232,23 @@ export type AsoType = 'ADMISSIONAL' | 'DEMISSIONAL' | 'PERIODICO' | 'RETORNO_TRA
 export type AsoStatus = 'PENDENTE' | 'AGENDADO' | 'REALIZADO' | 'APTO' | 'INAPTO' | 'VENCIDO' | 'CANCELADO';
 export interface EmployeeAsoRecord {
   id: string; companyId: string; employeeId: string;
-  asoType: string; examDate?: string | null; expirationDate?: string | null;
+  asoType: string; examDate?: string | null; dueDate?: string | null;
   status: string; clinicName?: string | null; doctorName?: string | null;
-  documentUrl?: string | null; notes?: string | null;
+  documentUrl?: string | null; documentNumber?: string | null;
+  observation?: string | null;
   createdBy?: string | null; createdAt: string; updatedAt: string;
   employee?: { id: string; name: string } | null;
 }
 export interface CreateAsoInput {
   employeeId: string; asoType: string;
-  examDate?: string; expirationDate?: string;
-  clinicName?: string; doctorName?: string; documentUrl?: string; notes?: string;
+  examDate?: string; dueDate?: string;
+  clinicName?: string; doctorName?: string; documentUrl?: string;
+  observation?: string;
 }
 export interface UpdateAsoInput {
-  asoType?: string; examDate?: string; expirationDate?: string;
+  asoType?: string; examDate?: string; dueDate?: string;
   status?: string; clinicName?: string; doctorName?: string;
-  documentUrl?: string; notes?: string;
+  documentUrl?: string; observation?: string;
 }
 
 // Module API
@@ -352,6 +354,8 @@ export const api = {
     archive: (id: string) => request<any>(`/notifications/${id}/archive`, { method: 'PATCH' }),
     delete: (id: string) => request<void>(`/notifications/${id}`, { method: 'DELETE' }),
     createAdminNotice: (input: any) => request<any>('/notifications/admin', { method: 'POST', body: input }),
+    respond: (id: string, action: 'ACKNOWLEDGE' | 'ACCEPT' | 'REFUSE', reason?: string) =>
+      request<any>(`/notifications/${id}/respond`, { method: 'PATCH', body: { action, reason } }),
     dashboardWidget: () => request<{ unreadCount: number; notifications: any[] }>('/notifications/dashboard-widget'),
   },
   management: {
