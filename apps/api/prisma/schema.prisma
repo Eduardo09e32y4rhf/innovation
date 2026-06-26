@@ -284,6 +284,7 @@ model Company {
   managementEvents ManagementEvent[]
   asoRecords    EmployeeAsoRecord[]
   notifications Notification[]
+
   workScheduleRules WorkScheduleRule[]
   timeClosingPeriods TimeClosingPeriod[]
   timeClosingHistories TimeClosingHistory[]
@@ -339,6 +340,7 @@ model Employee {
   userId        String?        @unique @db.Uuid
 
   name          String
+
   cpf           String         @unique
   email         String
   phone        String?
@@ -390,8 +392,8 @@ model Employee {
   vacations      Vacation[]
   managementEvents ManagementEvent[]
   asoRecords    EmployeeAsoRecord[]
-  notificationRecipients NotificationRecipient[]
   timeOccurrences TimeOccurrence[]
+
   commitments    Commitment[]
 
   @@index([companyId])
