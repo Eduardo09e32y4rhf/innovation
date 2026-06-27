@@ -90,40 +90,40 @@ export function buildPdfShell(options: PdfOptions, company: PdfCompanyInfo | nul
     </div>
   `;
 
-  return \`<!doctype html>
+  return `<!doctype html>
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8" />
-  <title>\${escapeHtml(title)}</title>
+  <title>${escapeHtml(title)}</title>
   <style>
-    \${styles}
+    ${styles}
   </style>
 </head>
 <body>
-  <main class="page">\${header}\${body}\${footer}</main>
+  <main class="page">${header}${body}${footer}</main>
 </body>
-</html>\`;
+</html>`;
 }
 
 export function section(title: string, content: string) {
-  return \`
+  return `
     <div class="print-section" style="margin-bottom:20px;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;page-break-inside:avoid;">
       <div style="background:#f8fafc;border-bottom:1px solid #e2e8f0;color:#334155;padding:8px 16px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;">
-        \${escapeHtml(title)}
+        ${escapeHtml(title)}
       </div>
-      <div style="padding:16px;">\${content}</div>
+      <div style="padding:16px;">${content}</div>
     </div>
-  \`;
+  `;
 }
 
 export function infoGrid(items: { label: string; value: string | null | undefined }[], columns = 3) {
-  const cells = items.map(item => \`
+  const cells = items.map(item => `
     <div style="padding:4px 8px;">
-      <div style="font-size:8px;font-weight:700;text-transform:uppercase;color:#64748b;letter-spacing:0.05em;">\${escapeHtml(item.label)}</div>
-      <div style="font-size:11px;font-weight:600;color:#0f172a;margin-top:2px;">\${escapeHtml(item.value || '---')}</div>
+      <div style="font-size:8px;font-weight:700;text-transform:uppercase;color:#64748b;letter-spacing:0.05em;">${escapeHtml(item.label)}</div>
+      <div style="font-size:11px;font-weight:600;color:#0f172a;margin-top:2px;">${escapeHtml(item.value || '---')}</div>
     </div>
-  \`).join('');
-  return \`<div style="display:grid;grid-template-columns:repeat(\${columns},1fr);gap:12px 4px;">\${cells}</div>\`;
+  `).join('');
+  return `<div style="display:grid;grid-template-columns:repeat(${columns},1fr);gap:12px 4px;">${cells}</div>`;
 }
 
 export function pdfTable(headers: string[], rows: string[], options?: { zebra?: boolean; headerBg?: string; headerColor?: string; fontSize?: string; compact?: boolean }) {
@@ -133,25 +133,25 @@ export function pdfTable(headers: string[], rows: string[], options?: { zebra?: 
   const fontSize = options?.fontSize ?? '9px';
   const paddingY = options?.compact ? '4px' : '8px';
   
-  const thead = headers.map(h => \`<th style="padding:\${paddingY} 12px;text-align:left;font-size:8px;font-weight:700;text-transform:uppercase;color:\${headerColor};border-bottom:2px solid #cbd5e1;letter-spacing:0.05em;">\${escapeHtml(h)}</th>\`).join('');
+  const thead = headers.map(h => `<th style="padding:${paddingY} 12px;text-align:left;font-size:8px;font-weight:700;text-transform:uppercase;color:${headerColor};border-bottom:2px solid #cbd5e1;letter-spacing:0.05em;">${escapeHtml(h)}</th>`).join('');
   const tbody = rows.map((r, i) => {
     const bg = zebra ? (i % 2 === 0 ? '#ffffff' : '#f8fafc') : 'transparent';
-    return \`<tr style="background:\${bg};border-bottom:1px solid #f1f5f9;">\${r}</tr>\`;
+    return `<tr style="background:${bg};border-bottom:1px solid #f1f5f9;">${r}</tr>`;
   }).join('');
-  return \`
-    <table style="width:100%;border-collapse:collapse;margin:4px 0;font-size:\${fontSize};">
-      <thead><tr style="background:\${headerBg};">\${thead}</tr></thead>
-      <tbody>\${tbody}</tbody>
+  return `
+    <table style="width:100%;border-collapse:collapse;margin:4px 0;font-size:${fontSize};">
+      <thead><tr style="background:${headerBg};">${thead}</tr></thead>
+      <tbody>${tbody}</tbody>
     </table>
-  \`;
+  `;
 }
 
 export function signatureBlock(lines: string[]) {
-  const cols = lines.map(line => \`
+  const cols = lines.map(line => `
     <div style="text-align:center;page-break-inside:avoid;width:100%;">
-      <div style="border-top:1px solid #cbd5e1;padding-top:8px;margin-top:40px;font-size:10px;font-weight:600;color:#334155;">\${escapeHtml(line)}</div>
-    </div>\`).join('');
-  return \`<div style="display:flex;justify-content:space-between;gap:40px;margin-top:32px;padding:0 20px;">\${cols}</div>\`;
+      <div style="border-top:1px solid #cbd5e1;padding-top:8px;margin-top:40px;font-size:10px;font-weight:600;color:#334155;">${escapeHtml(line)}</div>
+    </div>`).join('');
+  return `<div style="display:flex;justify-content:space-between;gap:40px;margin-top:32px;padding:0 20px;">${cols}</div>`;
 }
 
 export function printPdf(html: string, title: string) {
