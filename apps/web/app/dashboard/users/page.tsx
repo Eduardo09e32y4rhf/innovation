@@ -55,10 +55,10 @@ export default function UsersPage() {
       <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-[11px] font-black uppercase tracking-[0.2em] text-teal-600">Usuários</p>
-          <h2 className="text-2xl font-black text-slate-950">Permissoes de acesso</h2>
+          <h2 className="text-2xl font-black text-slate-950">Permissões de acesso</h2>
           {usage.data && (
             <p className="mt-1 text-xs text-slate-500">
-              {usage.data.used} de {usage.data.max} usuarios
+              {usage.data.used} de {usage.data.max} usuários
               {isFull && <span className="ml-1 font-bold text-amber-600">- limite atingido</span>}
             </p>
           )}
@@ -69,7 +69,7 @@ export default function UsersPage() {
           title={isFull ? 'Limite atingido - contate o suporte para ampliar' : undefined}
           className="crystal-button inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black text-white disabled:opacity-50"
         >
-          <UserPlus size={14} /> Novo usuario
+          <UserPlus size={14} /> Novo usuário
         </button>
       </header>
 
@@ -78,11 +78,11 @@ export default function UsersPage() {
       )}
 
       {users.loading ? (
-        <LoadingState label="Carregando usuarios..." />
+        <LoadingState label="Carregando usuários..." />
       ) : users.error ? (
         <ErrorState message={users.error} onRetry={users.refetch} />
       ) : rows.length === 0 ? (
-        <EmptyState message="Nenhum usuario cadastrado." />
+        <EmptyState message="Nenhum usuário cadastrado." />
       ) : (
         <section className="ops-card overflow-hidden rounded-[8px] border border-slate-200 bg-white">
           <div className="overflow-x-auto p-5">
@@ -93,7 +93,7 @@ export default function UsersPage() {
                   <th className="pb-3 pr-4">E-mail</th>
                   <th className="pb-3 pr-4">Perfil</th>
                   <th className="pb-3 pr-4">Status</th>
-                  <th className="pb-3">Acoes</th>
+                  <th className="pb-3">Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -180,7 +180,7 @@ function UserModal({ user, availableRoles, onClose, onDone }: { user?: AppUser; 
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4">
       <div className="w-full max-w-md rounded-[12px] border border-slate-200 bg-white p-6 shadow-xl">
         <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-base font-black text-slate-950">{user ? 'Editar usuario' : 'Novo usuario'}</h3>
+          <h3 className="text-base font-black text-slate-950">{user ? 'Editar usuário' : 'Novo usuário'}</h3>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-700"><X size={18} /></button>
         </div>
         {save.error && <p className="mb-3 rounded-[8px] border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">{save.error}</p>}
@@ -188,7 +188,7 @@ function UserModal({ user, availableRoles, onClose, onDone }: { user?: AppUser; 
           {[
             { label: 'Nome', key: 'name' as const, type: 'text' },
             { label: 'E-mail', key: 'email' as const, type: 'email' },
-            { label: user ? 'Nova senha (opcional)' : 'Senha padrao (min. 8)', key: 'password' as const, type: 'password' },
+            { label: user ? 'Nova senha (opcional)' : 'Senha padrão (min. 8)', key: 'password' as const, type: 'password' },
           ].map(({ label, key, type }) => (
             <label key={key} className="block space-y-1 text-xs font-medium text-slate-600">
               <span>{label}</span>
@@ -218,7 +218,7 @@ function UserModal({ user, availableRoles, onClose, onDone }: { user?: AppUser; 
                 onChange={(e) => setForm((f) => ({ ...f, isActive: e.target.checked }))}
                 className="h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
               />
-              Usuario ativo
+              Usuário ativo
             </label>
           )}
         </div>
@@ -229,7 +229,7 @@ function UserModal({ user, availableRoles, onClose, onDone }: { user?: AppUser; 
             disabled={!valid || save.loading}
             className="crystal-button h-10 rounded-[8px] px-4 text-xs font-black text-white disabled:opacity-60"
           >
-            {save.loading ? 'Salvando...' : user ? 'Salvar usuario' : 'Criar usuario'}
+            {save.loading ? 'Salvando...' : user ? 'Salvar usuário' : 'Criar usuário'}
           </button>
         </div>
       </div>
