@@ -154,7 +154,7 @@ export default function TimeTrackPage() {
 
   const actives = useMemo(() => (employees.data ?? []).filter(e=>e.status==='ACTIVE').toSorted((a,b)=>normalizeDisplayName(a.name).localeCompare(normalizeDisplayName(b.name),'pt-BR')), [employees.data]);
   const depts = useMemo(() => [...new Set((employees.data ?? []).map(e=>e.department).filter(Boolean))].sort(), [employees.data]);
-  const selected = actives.find(e=>e.id===empFilter);
+  const selected = isFunc ? actives[0] : actives.find(e=>e.id===empFilter);
   const byEmp = useMemo(() => (tracks.data ?? []).filter(r => {
     if (empFilter && r.employeeId!==empFilter) return false;
     if (month && !toDateKey(r.date).startsWith(month)) return false;
@@ -214,29 +214,25 @@ export default function TimeTrackPage() {
         </section>
       )}
 
-      {!isFunc && (
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex gap-1 rounded-[8px] bg-slate-100 p-1">
-            <button onClick={()=>setTab('ponto')} className={`rounded-[6px] px-4 py-2 text-xs font-black uppercase ${tab==='ponto'?'bg-white shadow-sm text-teal-700':'text-slate-500'}`}>Ponto</button>
-            <button onClick={()=>setTab('ocorrencias')} className={`rounded-[6px] px-4 py-2 text-xs font-black uppercase ${tab==='ocorrencias'?'bg-white shadow-sm text-teal-700':'text-slate-500'}`}>Ocorrências</button>
-          </div>
-          <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex gap-1 rounded-[8px] bg-slate-100 p-1">
+          <button onClick={()=>setTab('ponto')} className={`rounded-[6px] px-4 py-2 text-xs font-black uppercase ${tab==='ponto'?'bg-white shadow-sm text-teal-700':'text-slate-500'}`}>Ponto</button>
+          <button onClick={()=>setTab('ocorrencias')} className={`rounded-[6px] px-4 py-2 text-xs font-black uppercase ${tab==='ocorrencias'?'bg-white shadow-sm text-teal-700':'text-slate-500'}`}>Ocorrências</button>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {!isFunc && (
             <select value={empFilter} onChange={e=>setEmpFilter(e.target.value)} className="h-9 rounded-[6px] border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 outline-none focus:border-teal-500">
               <option value="">TODOS</option>{actives.map(e=><option key={e.id} value={e.id}>{normalizeDisplayName(e.name)}</option>)}
             </select>
-            <input type="month" value={month} onChange={e=>setMonth(e.target.value)} className="h-9 w-36 rounded-[6px] border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 outline-none focus:border-teal-500" />
+          )}
+          <input type="month" value={month} onChange={e=>setMonth(e.target.value)} className="h-9 w-36 rounded-[6px] border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 outline-none focus:border-teal-500" />
+          {!isFunc && (
             <select value={deptFilter} onChange={e=>setDeptFilter(e.target.value)} className="h-9 rounded-[6px] border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 outline-none focus:border-teal-500">
               <option value="">DEPTO</option>{depts.map(d=><option key={d} value={d}>{d}</option>)}
             </select>
-          </div>
+          )}
         </div>
-      )}
-
-      {isFunc && (
-        <div className="flex flex-wrap items-center gap-3">
-          <input type="month" value={month} onChange={e=>setMonth(e.target.value)} className="h-9 w-36 rounded-[6px] border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 outline-none focus:border-teal-500" />
-        </div>
-      )}
+      </div>
 
       {remove.error && <p className="rounded-[8px] border border-rose-200 bg-rose-50 px-4 py-2 text-xs text-rose-700">{remove.error}</p>}
       {refreshing && <p className="rounded-[8px] border border-teal-200 bg-teal-50 px-4 py-2 text-xs font-semibold text-teal-700">Atualizando...</p>}
