@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { CalendarDays, Check, Clock3, XCircle, FileText, FileCheck2, Bell, AlertTriangle, Gavel, Plus, Search, RefreshCcw, Upload, Download, Eye, EyeOff, MessageSquare, Send } from 'lucide-react';
+import { CalendarDays, Check, Clock3, XCircle, FileText, FileCheck2, Bell, AlertTriangle, Gavel, Plus, Search, RefreshCcw, Upload, Download, Eye, EyeOff, MessageSquare, Send, Settings, Zap } from 'lucide-react';
 import { LoadingState, ErrorState } from '@/app/components/data-states';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useQuery, useMutation } from '@/app/hooks/use-data';
@@ -347,7 +347,20 @@ function AsoTab({ records, employees, canManage, onOpenForm, onSave, onDelete, s
             </tr>
           </thead>
           <tbody>
-            {filtered.length === 0 ? <tr><td colSpan={7} className="px-4 py-6 text-center text-xs text-slate-500">Nenhum registro encontrado.</td></tr> :
+            {filtered.length === 0 ? <tr><td colSpan={7} className="p-8">
+              <div className="flex flex-col items-center justify-center rounded-[16px] border border-dashed border-slate-300 bg-slate-50/50 p-8 text-center">
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-teal-100 mb-4">
+                  <FileCheck2 size={28} className="text-teal-600" />
+                </div>
+                <h4 className="text-sm font-black text-slate-900">Nenhum ASO registrado</h4>
+                <p className="mt-1 text-xs text-slate-500 max-w-sm">Mantenha a saúde ocupacional da sua equipe em dia registrando exames admissionais, demissionais e periódicos.</p>
+                {canManage && (
+                  <button onClick={() => onOpenForm(undefined)} disabled={saving} className="mt-5 crystal-button h-10 px-6 rounded-[8px] text-[11px] font-black text-white shadow-md shadow-teal-500/20 transition-all hover:-translate-y-0.5">
+                    REGISTRAR PRIMEIRO ASO
+                  </button>
+                )}
+              </div>
+            </td></tr> :
               filtered.map(r => {
                 const alert = getAsoAlert(r.status, r.dueDate);
                 return (
@@ -633,9 +646,33 @@ function RulesTab({ canManage }: { canManage: boolean }) {
       }} onClose={closeForm} saving={createMut.loading || updateMut.loading} />}
 
       {rules.length === 0 ? (
-        <div className="rounded-[12px] border border-slate-200 bg-white p-8 text-center">
-          <FileText size={32} className="mx-auto text-slate-300" />
-          <p className="mt-2 text-xs font-semibold text-slate-500">Nenhuma regra cadastrada. Clique em "+ Nova Regra" para criar.</p>
+        <div className="flex flex-col items-center justify-center rounded-[16px] border border-dashed border-slate-300 bg-slate-50/50 p-10 text-center">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-teal-100 mb-4">
+            <Settings size={28} className="text-teal-600" />
+          </div>
+          <h4 className="text-sm font-black text-slate-900">Nenhuma regra de jornada</h4>
+          <p className="mt-1 text-xs text-slate-500 max-w-sm">Você ainda não configurou as regras de ponto. Podemos gerar uma regra CLT padrão automaticamente para você.</p>
+          <div className="mt-6 flex flex-wrap gap-3 justify-center">
+            <button onClick={() => {
+              createMut.mutate({
+                name: 'Padrão CLT 44h',
+                description: 'Regra padrão de segunda a sexta, 8h às 18h com 1h12min de almoço',
+                standardEntry: '08:00',
+                standardExit: '18:00',
+                toleranceMinutes: 10,
+                lunchBreakMinutes: 72,
+                weeklyWorkload: 44,
+                overtimeRule: '50%',
+                nightShiftExtra: 20
+              });
+            }} disabled={createMut.loading} className="crystal-button h-10 px-6 rounded-[8px] text-[11px] font-black text-white shadow-md shadow-teal-500/20 transition-all hover:-translate-y-0.5">
+              <Zap size={14} className="inline mr-2" />
+              GERAR PADRÃO CLT
+            </button>
+            <button onClick={openNew} className="btn-outline-premium h-10 px-6 rounded-[8px] text-[11px] font-black transition-all hover:-translate-y-0.5">
+              CRIAR MANUALMENTE
+            </button>
+          </div>
         </div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -807,9 +844,12 @@ function ClosingTab({ canManage }: { canManage: boolean }) {
       </div>
 
       {closings.length === 0 ? (
-        <div className="rounded-[12px] border border-slate-200 bg-white p-8 text-center">
-          <FileCheck2 size={32} className="mx-auto text-slate-300" />
-          <p className="mt-2 text-xs font-semibold text-slate-500">Nenhum fechamento gerado. Selecione mês/ano e clique em "Gerar Fechamento".</p>
+        <div className="flex flex-col items-center justify-center rounded-[16px] border border-dashed border-slate-300 bg-slate-50/50 p-10 text-center">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-teal-100 mb-4">
+            <FileCheck2 size={28} className="text-teal-600" />
+          </div>
+          <h4 className="text-sm font-black text-slate-900">Nenhum fechamento gerado</h4>
+          <p className="mt-1 text-xs text-slate-500 max-w-sm">Selecione o mês/ano e clique em "Gerar Fechamento" para consolidar as horas, faltas e extras da equipe.</p>
         </div>
       ) : (
         <div className="overflow-x-auto rounded-[12px] border border-slate-200 bg-white shadow-sm">
