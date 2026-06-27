@@ -10,7 +10,7 @@ import { PrivacyConsentGate } from './_components/privacy-consent-gate';
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (
     <ProtectedRoute>
-      <div className="ops-dashboard flex min-h-screen w-full max-w-full flex-col overflow-x-hidden md:h-screen md:flex-row md:overflow-hidden">
+      <div className="ops-dashboard flex min-h-[100dvh] w-full max-w-full flex-col overflow-x-hidden md:h-[100dvh] md:flex-row md:overflow-hidden">
         <DashboardSidebar />
         <main className="flex min-w-0 flex-1 flex-col overflow-x-hidden md:overflow-y-auto">
           <DashboardTopbar />

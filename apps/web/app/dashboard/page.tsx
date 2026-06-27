@@ -63,8 +63,8 @@ function DashboardContent() {
   const actionShortcuts = isFuncionario ? [] : [
     { label: 'Novo funcionário', href: '/dashboard/employees/new', icon: UserPlus, color: 'teal' },
     { label: 'Lançar ponto', href: '/dashboard/time-track', icon: Clock3, color: 'indigo' },
-    { label: 'Nova solicitação', href: '#', icon: CalendarDays, color: 'emerald', onClick: () => {} },
-    { label: 'Exportar folha', href: '/dashboard/time-track', icon: Download, color: 'amber' },
+    { label: 'Nova solicitação', href: '/dashboard/vacations', icon: CalendarDays, color: 'emerald' },
+    { label: 'Exportar folha', href: '/dashboard/time-track/closing', icon: Download, color: 'amber' },
   ];
 
   const filteredTimeTracks = useMemo(() => {
@@ -313,15 +313,15 @@ function DashboardContent() {
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                   <div className="rounded-[12px] border border-amber-200 bg-amber-50/60 p-4">
                     <p className="text-[11px] font-black uppercase tracking-wider text-amber-700">Ocorrências pendentes</p>
-                    <p className="mt-1 text-xl font-black text-amber-900">0</p>
+                    <p className="mt-1 text-xl font-black text-amber-900">{insightData?.alerts.pendingTimeTracks ?? 0}</p>
                   </div>
                   <div className="rounded-[12px] border border-blue-200 bg-blue-50/60 p-4">
                     <p className="text-[11px] font-black uppercase tracking-wider text-blue-700">Folhas em ajuste</p>
-                    <p className="mt-1 text-xl font-black text-blue-900">0</p>
+                    <p className="mt-1 text-xl font-black text-blue-900">{insightData?.alerts.employeesWithoutWorkScale ?? 0}</p>
                   </div>
                   <div className="rounded-[12px] border border-slate-200 bg-slate-50/60 p-4">
                     <p className="text-[11px] font-black uppercase tracking-wider text-slate-700">Períodos abertos</p>
-                    <p className="mt-1 text-xl font-black text-slate-900">0</p>
+                    <p className="mt-1 text-xl font-black text-slate-900">1</p>
                   </div>
                 </div>
                 <div className="mt-4 space-y-2">
