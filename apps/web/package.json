@@ -20,6 +20,10 @@
     "tailwind-merge": "^2.2.1",
     "zod": "^4.4.3"
   },
+  "optionalDependencies": {
+    "@next/swc-linux-x64-gnu": "14.2.33",
+    "@next/swc-linux-x64-musl": "14.2.33"
+  },
   "devDependencies": {
     "@types/node": "^20",
     "@types/react": "^18.3.31",
