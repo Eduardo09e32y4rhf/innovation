@@ -777,6 +777,7 @@ model Notification {
   @@index([priority])
   @@index([startsAt])
   @@index([expiresAt])
+  @@map("notifications")
 }
 
 model NotificationRecipient {
@@ -797,6 +798,7 @@ model NotificationRecipient {
   @@unique([notificationId, userId])
   @@index([userId])
   @@index([status])
+  @@map("notification_recipients")
 }
 
 model PrivacyConsent {
