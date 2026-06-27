@@ -119,6 +119,9 @@ function dayStatus(row: TimeTrack) {
   if (r.includes('atestado integral')) return 'ATESTADO';
   if (r.includes('feriado')) return 'FERIADO';
   if (r.includes('folga dsr')) return 'FOLGA';
+  if (row.incidentType === 'clt_warning') return 'ALERTA CLT';
+  if (row.incidentType === 'atraso') return 'ATRASO';
+  if (row.incidentType === 'saida_antecipada') return 'SAÍDA ANTECIPADA';
   if (row.manualStatus==='pending') return 'PENDENTE';
   if (row.manualStatus==='rejected') return 'REJEITADO';
   if (row.manualReason || o.includes('ajuste')) return 'AJUSTE MANUAL';
@@ -290,16 +293,18 @@ export default function TimeTrackPage() {
 }
 
 function OcorrenciasList({ employees, byEmpMap, month, onSelect }: { employees: Employee[]; byEmpMap: Record<string,TimeTrack[]>; month: string; onSelect: (id:string)=>void }) {
-  const withIssues = employees.filter(e => (byEmpMap[e.id] ?? []).some(isFalta));
+  const withIssues = employees.map(e => {
+    const grid = buildGrid(month, e, byEmpMap[e.id] ?? []);
+    const faltas = grid.filter(d => !d.isRest && !d.isFuture && (!d.track || isFalta(d.track))).length;
+    return { e, faltas };
+  }).filter(item => item.faltas > 0);
+
   if (withIssues.length===0) return <p className="text-center text-sm font-semibold text-slate-400 py-8">Nenhuma ocorrência no mês.</p>;
   return (
     <section className="overflow-hidden rounded-[14px] border border-slate-200 bg-white">
       <div className="border-b border-slate-100 bg-amber-50/50 px-5 py-4"><h3 className="text-sm font-black text-amber-900">OCORRÊNCIAS DO MÊS</h3><p className="mt-1 text-xs text-amber-700">Atrasos, faltas e saídas antecipadas.</p></div>
       <div className="divide-y divide-slate-100">
-        {withIssues.map(e=> {
-          const rows = byEmpMap[e.id] ?? [];
-          const faltas = rows.filter(isFalta).length;
-          return (
+        {withIssues.map(({ e, faltas }) => {
             <div key={e.id} className="flex items-center justify-between px-5 py-4 hover:bg-slate-50">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-gradient-to-br from-rose-500 to-pink-600 text-sm font-black text-white">{normalizeDisplayName(e.name).charAt(0).toUpperCase()}</div>
@@ -393,7 +398,10 @@ function MonthGrid({ employee, tracks, month, canManage, canApprove, refreshing,
               <td className="px-3 text-slate-600 text-[11px]">{isAtestado?'---':t?fmtWorked(t.totalWorked):'--:--'}</td>
               <td className={`px-3 text-[11px] font-black ${isAtestado?'text-slate-300':t&&(t.dailyBalance??0)<0?'text-rose-600':t?'text-emerald-600':'text-slate-300'}`}>{isAtestado?'---':t?fmtBalance(t.dailyBalance):'--:--'}</td>
                   <td className={`px-3 text-[11px] ${isAtestado?'text-slate-300':'text-slate-400'}`}>{isAtestado?'---':'--:--'}</td>
-                  <td className="px-3 text-center"><StatusBadge status={status}/></td>
+                  <td className="px-3 text-center">
+                    <StatusBadge status={status}/>
+                    {t?.observation && <div className="mt-0.5 text-[9px] font-medium text-amber-700 max-w-[120px] truncate mx-auto" title={t.observation}>{t.observation}</div>}
+                  </td>
                   <td className="px-3">
                     <div className="flex justify-center gap-1 whitespace-nowrap">
                       {showActions && !day.isRestDay && !day.isFuture && (
@@ -428,7 +436,7 @@ function MonthGrid({ employee, tracks, month, canManage, canApprove, refreshing,
 
 function Ocorrencias({ employee, tracks, month, canManage, canApprove, refreshing, removeLoading, onEdit, onDelete }: { employee: Employee; tracks: TimeTrack[]; month: string; canManage: boolean; canApprove: boolean; refreshing: boolean; removeLoading: boolean; onEdit: (r:TimeTrack)=>void; onDelete: (r:TimeTrack)=>void; }) {
   const grid = useMemo(()=>buildGrid(month, employee, tracks), [month, employee, tracks]);
-  const ocorrencias = grid.filter(d=>!d.isRest && !d.isFuture && d.track && isFalta(d.track));
+  const ocorrencias = grid.filter(d=>!d.isRest && !d.isFuture && (!d.track || isFalta(d.track)));
   return (
     <section className="overflow-hidden rounded-[14px] border border-slate-200 bg-white">
       <div className="border-b border-slate-100 bg-amber-50/50 px-5 py-4">
@@ -448,7 +456,8 @@ function Ocorrencias({ employee, tracks, month, canManage, canApprove, refreshin
             </thead>
             <tbody>
               {ocorrencias.map(day=>{
-                const t = day.track!;
+                const t = day.track;
+                const fallbackT = t || {id:'',employeeId:employee.id,date:day.key,entry:null,lunchStart:null,lunchReturn:null,exit:null,totalWorked:null,dailyBalance:null} as unknown as TimeTrack;
                 return (
                   <tr key={day.key} className="border-t border-slate-100 text-[11px] font-semibold hover:bg-slate-50">
                     <td className="px-3 py-2 text-slate-500">{fmtDateFull(day.key)}</td>
@@ -457,9 +466,9 @@ function Ocorrencias({ employee, tracks, month, canManage, canApprove, refreshin
                     <td className="px-3 py-2 text-slate-300">--:--</td>
                     <td className="px-3 py-2">
                       <div className="flex gap-1">
-                        <button onClick={()=>onEdit(t)} disabled={refreshing||removeLoading} className="btn-outline-premium h-6 px-2 text-[10px]"><Edit3 size={10}/>SOLICITAR</button>
-                        {canApprove && <button onClick={()=>onEdit(t)} disabled={refreshing||removeLoading} className="crystal-button h-6 px-2 text-[10px]"><Check size={10}/>ACEITAR</button>}
-                        {canManage && <button onClick={()=>onDelete(t)} disabled={refreshing||removeLoading} className="inline-flex h-6 items-center gap-1 rounded-[5px] bg-rose-500 px-2 text-[10px] font-black text-white"><Edit3 size={10}/></button>}
+                        <button onClick={()=>onEdit(fallbackT)} disabled={refreshing||removeLoading} className="btn-outline-premium h-6 px-2 text-[10px]"><Edit3 size={10}/>{t?'EDITAR':'SOLICITAR'}</button>
+                        {canApprove && t && <button onClick={()=>onEdit(t)} disabled={refreshing||removeLoading} className="crystal-button h-6 px-2 text-[10px]"><Check size={10}/>ACEITAR</button>}
+                        {canManage && t && <button onClick={()=>onDelete(t)} disabled={refreshing||removeLoading} className="inline-flex h-6 items-center gap-1 rounded-[5px] bg-rose-500 px-2 text-[10px] font-black text-white"><Edit3 size={10}/></button>}
                       </div>
                     </td>
                   </tr>
@@ -490,6 +499,9 @@ function StatusBadge({ status }: { status: string }) {
     'FOLGA BANCO':'bg-cyan-50 text-cyan-700 border-cyan-200',
     'AJUSTE MANUAL':'bg-orange-50 text-orange-700 border-orange-200',
     'FALTA':'bg-rose-50 text-rose-700 border-rose-200',
+    'ALERTA CLT':'bg-amber-50 text-amber-800 border-amber-300 shadow-sm',
+    'ATRASO':'bg-rose-50 text-rose-800 border-rose-300 shadow-sm',
+    'SAÍDA ANTECIPADA':'bg-rose-50 text-rose-800 border-rose-300 shadow-sm',
   };
   return <span className={`inline-flex items-center rounded-[5px] border px-2 py-0.5 text-[9px] font-black whitespace-nowrap ${c[u]||'bg-slate-100 text-slate-600 border-slate-200'}`}>{u}</span>;
 }
