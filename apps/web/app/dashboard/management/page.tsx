@@ -390,19 +390,19 @@ function AsoTab({ records, employees, canManage, onOpenForm, onSave, onDelete, s
         { label: 'Cargo', value: emp.position },
         { label: 'Setor/Depto', value: emp.department },
       ], 3))}
-      ${section('Dados do Encaminhamento', \`
+      ${section('Dados do Encaminhamento', `
         ${infoGrid([
           { label: 'Tipo de Exame', value: subtitle },
           { label: 'Clínica Agendada', value: r.clinicName || 'À definir' },
           { label: 'Endereço da Clínica', value: r.observation || 'Não informado' },
           { label: 'Data Prevista', value: r.examDate ? new Date(r.examDate).toLocaleDateString('pt-BR') : 'Não agendado' },
         ], 2)}
-      \`)}
+      `)}
       ${section('Mensagem', text)}
       ${signatureBlock(['Autorização RH / Empregador', 'Recebimento pela Clínica', 'Assinatura do Funcionário'])}
     `);
     
-    printPdf(html, \`encaminhamento-aso-${emp.id}.pdf\`);
+    printPdf(html, `encaminhamento-aso-${emp.id}.pdf`);
   };
 
   return (
@@ -671,18 +671,18 @@ function CreateNotificationForm({ onCreated, employees }: { onCreated: () => voi
     if (!emp) return;
     
     const docTitle = type === 'WARNING' ? 'Aviso de Advertência Escrita' : 'Aviso de Suspensão Disciplinar';
-    let text = \`<p style="font-size:11px;color:#334155;text-align:justify;line-height:1.6;">Pelo presente documento, aplicamos-lhe a pena de <strong>${docTitle.toUpperCase()}</strong>, em virtude da seguinte ocorrência disciplinar verificada no dia <strong>${occurrenceDate ? new Date(occurrenceDate).toLocaleDateString('pt-BR') : '____/____/______'}</strong>:</p>
+    let text = `<p style="font-size:11px;color:#334155;text-align:justify;line-height:1.6;">Pelo presente documento, aplicamos-lhe a pena de <strong>${docTitle.toUpperCase()}</strong>, em virtude da seguinte ocorrência disciplinar verificada no dia <strong>${occurrenceDate ? new Date(occurrenceDate).toLocaleDateString('pt-BR') : '____/____/______'}</strong>:</p>
     <p style="font-size:11px;color:#0f172a;text-align:justify;line-height:1.6;font-weight:700;margin:16px 0;">Motivo / Embargo Legal: ${legalReason}</p>
-    <p style="font-size:11px;color:#334155;text-align:justify;line-height:1.6;">Detalhes da Infração:<br/>${message.replace(/\\n/g, '<br/>')}</p>\`;
+    <p style="font-size:11px;color:#334155;text-align:justify;line-height:1.6;">Detalhes da Infração:<br/>${message.replace(/\\n/g, '<br/>')}</p>`;
     
     if (type === 'SUSPENSION') {
-      text += \`<p style="font-size:11px;color:#e11d48;text-align:justify;line-height:1.6;font-weight:700;margin:16px 0;">Por consequência, o(a) Sr(a). fica suspenso(a) de suas atividades por ${suspensionDays} dia(s), com desconto em folha de pagamento.</p>\`;
+      text += `<p style="font-size:11px;color:#e11d48;text-align:justify;line-height:1.6;font-weight:700;margin:16px 0;">Por consequência, o(a) Sr(a). fica suspenso(a) de suas atividades por ${suspensionDays} dia(s), com desconto em folha de pagamento.</p>`;
     }
     
-    text += \`<p style="font-size:11px;color:#334155;text-align:justify;line-height:1.6;margin-top:24px;">Esclarecemos que a reincidência em condutas semelhantes poderá resultar em rescisão do contrato de trabalho por justa causa, nos termos do art. 482 da CLT. Solicitamos sua assinatura confirmando o recebimento.</p>\`;
+    text += `<p style="font-size:11px;color:#334155;text-align:justify;line-height:1.6;margin-top:24px;">Esclarecemos que a reincidência em condutas semelhantes poderá resultar em rescisão do contrato de trabalho por justa causa, nos termos do art. 482 da CLT. Solicitamos sua assinatura confirmando o recebimento.</p>`;
     
     const { buildPdfShell, infoGrid, section, signatureBlock, printPdf } = require('@/app/lib/pdf-utils');
-    const html = buildPdfShell({ title: docTitle, subtitle: emp.name }, null, \`
+    const html = buildPdfShell({ title: docTitle, subtitle: emp.name }, null, `
       ${section('Qualificação do Colaborador', infoGrid([
         { label: 'Nome', value: emp.name },
         { label: 'CPF', value: emp.cpf },
@@ -690,8 +690,8 @@ function CreateNotificationForm({ onCreated, employees }: { onCreated: () => voi
       ], 3))}
       ${section('Teor da Sanção Disciplinar', text)}
       ${signatureBlock(['Assinatura do Empregado', 'Empregador / RH', 'Testemunha 1 (Opcional)', 'Testemunha 2 (Opcional)'])}
-    \`);
-    printPdf(html, \`${type === 'WARNING' ? 'advertencia' : 'suspensao'}-${emp.id}.pdf\`);
+    `);
+    printPdf(html, `${type === 'WARNING' ? 'advertencia' : 'suspensao'}-${emp.id}.pdf`);
   };
 
   return (
