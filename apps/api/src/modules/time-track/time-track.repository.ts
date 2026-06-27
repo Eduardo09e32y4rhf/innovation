@@ -19,6 +19,16 @@ export class TimeTrackRepository {
     return this.prisma.timeTrack.count({ where: { employee: { companyId } } });
   }
 
+  listForEmployee(companyId: string, employeeId: string, skip = 0, take = 400) {
+    return this.prisma.timeTrack.findMany({
+      where: { employeeId, employee: { companyId } },
+      include: { employee: true },
+      orderBy: { date: 'desc' },
+      skip,
+      take,
+    });
+  }
+
   listEmployeeMonth(companyId: string, employeeId: string, start: Date, end: Date, skip = 0, take = 62) {
     return this.prisma.timeTrack.findMany({
       where: { employeeId, employee: { companyId }, date: { gte: start, lt: end } },

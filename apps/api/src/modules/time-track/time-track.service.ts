@@ -59,8 +59,7 @@ export class TimeTrackService {
     if (actor.role === 'GESTOR') return this.repository.listForManager(companyId, actor.sub, actor.email);
     const employee = await this.repository.findEmployeeByUserId(companyId, actor.sub, actor.email);
     if (!employee) return [];
-    const { start, end } = this.resolveMonth();
-    return this.repository.listEmployeeMonth(companyId, employee.id, start, end);
+    return this.repository.listForEmployee(companyId, employee.id);
   }
 
   async listEmployeeMonth(companyId: string, actor: JwtUser, employeeId: string, month?: string) {
