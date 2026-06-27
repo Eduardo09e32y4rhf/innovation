@@ -245,8 +245,8 @@ function AgendaKanban({ columns, employees, canManage, onOpenForm, onSave, onDel
       <div className="flex flex-wrap items-center justify-between gap-2">
         <button onClick={() => onOpenForm(undefined)} disabled={saving} className="btn-outline inline-flex h-9 items-center gap-2 rounded-[8px] px-4 text-[11px] font-black">+ NOVO COMPROMISSO</button>
         <div className="flex items-center gap-1 rounded-[8px] bg-slate-100 p-1">
-          <button onClick={() => setViewMode('calendar')} className={\`rounded-[6px] px-4 py-1.5 text-[10px] font-black uppercase \${viewMode === 'calendar' ? 'bg-white shadow-sm text-teal-700' : 'text-slate-500'}\`}>CALENDÁRIO</button>
-          <button onClick={() => setViewMode('kanban')} className={\`rounded-[6px] px-4 py-1.5 text-[10px] font-black uppercase \${viewMode === 'kanban' ? 'bg-white shadow-sm text-teal-700' : 'text-slate-500'}\`}>KANBAN</button>
+          <button onClick={() => setViewMode('calendar')} className={`rounded-[6px] px-4 py-1.5 text-[10px] font-black uppercase ${viewMode === 'calendar' ? 'bg-white shadow-sm text-teal-700' : 'text-slate-500'}`}>CALENDÁRIO</button>
+          <button onClick={() => setViewMode('kanban')} className={`rounded-[6px] px-4 py-1.5 text-[10px] font-black uppercase ${viewMode === 'kanban' ? 'bg-white shadow-sm text-teal-700' : 'text-slate-500'}`}>KANBAN</button>
         </div>
       </div>
       <div className="flex flex-wrap gap-2">
@@ -275,18 +275,18 @@ function AgendaKanban({ columns, employees, canManage, onOpenForm, onSave, onDel
           </div>
           <div className="grid grid-cols-7 auto-rows-fr">
             {Array.from({ length: firstDayOfMonth }).map((_, i) => (
-              <div key={\`empty-\${i}\`} className="min-h-[100px] border-b border-r border-slate-100 bg-slate-50/30 p-2" />
+              <div key={`empty-${i}`} className="min-h-[100px] border-b border-r border-slate-100 bg-slate-50/30 p-2" />
             ))}
             {Array.from({ length: daysInMonth }).map((_, i) => {
               const day = i + 1;
               const dateStr = new Date(currentDate.getFullYear(), currentDate.getMonth(), day).toISOString().slice(0, 10);
               const dayEvents = allEvents.filter(e => e.startDateTime && e.startDateTime.startsWith(dateStr));
               return (
-                <div key={day} onClick={() => onOpenForm({ startDateTime: \`\${dateStr}T09:00:00Z\` } as any)} className="group relative min-h-[100px] border-b border-r border-slate-100 p-2 hover:bg-slate-50 cursor-pointer">
-                  <span className={\`text-[11px] font-black \${day === new Date().getDate() && currentDate.getMonth() === new Date().getMonth() ? 'flex h-5 w-5 items-center justify-center rounded-full bg-teal-500 text-white' : 'text-slate-600'}\`}>{day}</span>
+                <div key={day} onClick={() => onOpenForm({ startDateTime: `${dateStr}T09:00:00Z` } as any)} className="group relative min-h-[100px] border-b border-r border-slate-100 p-2 hover:bg-slate-50 cursor-pointer">
+                  <span className={`text-[11px] font-black ${day === new Date().getDate() && currentDate.getMonth() === new Date().getMonth() ? 'flex h-5 w-5 items-center justify-center rounded-full bg-teal-500 text-white' : 'text-slate-600'}`}>{day}</span>
                   <div className="mt-1 flex flex-col gap-1">
                     {dayEvents.map(e => (
-                      <div key={e.id} onClick={(ev) => { ev.stopPropagation(); onOpenForm(e); }} className={\`truncate rounded px-1.5 py-0.5 text-[9px] font-bold text-white shadow-sm \${e.status === 'CONCLUIDO' ? 'bg-emerald-500' : 'bg-teal-500'}\`}>
+                      <div key={e.id} onClick={(ev) => { ev.stopPropagation(); onOpenForm(e); }} className={`truncate rounded px-1.5 py-0.5 text-[9px] font-bold text-white shadow-sm ${e.status === 'CONCLUIDO' ? 'bg-emerald-500' : 'bg-teal-500'}`}>
                         {e.title}
                       </div>
                     ))}
@@ -376,33 +376,33 @@ function AsoTab({ records, employees, canManage, onOpenForm, onSave, onDelete, s
     const docTitle = 'Encaminhamento para Exame Médico (ASO)';
     const subtitle = r.asoType.replace(/_/g, ' ');
     
-    const text = `<p style="font-size:11px;color:#334155;text-align:justify;line-height:1.6;">Encaminhamos o(a) colaborador(a) abaixo qualificado(a) para a realização de <strong>Exame Médico Ocupacional (\${subtitle})</strong>, conforme previsto na NR-7.</p>
+    const text = `<p style="font-size:11px;color:#334155;text-align:justify;line-height:1.6;">Encaminhamos o(a) colaborador(a) abaixo qualificado(a) para a realização de <strong>Exame Médico Ocupacional (${subtitle})</strong>, conforme previsto na NR-7.</p>
     <p style="font-size:11px;color:#334155;text-align:justify;line-height:1.6;">Por favor, realizem a avaliação clínica e os exames complementares (se aplicáveis) e emitam o respectivo Atestado de Saúde Ocupacional (ASO).</p>`;
 
     const html = buildPdfShell({ title: docTitle, subtitle: emp.name }, null, `
-      \${section('Dados do Empregador (Empresa)', infoGrid([
+      ${section('Dados do Empregador (Empresa)', infoGrid([
         { label: 'Razão Social', value: emp.companyId ? 'Razão Social Padrão' : '---' },
       ], 1))}
-      \${section('Qualificação do Colaborador', infoGrid([
+      ${section('Qualificação do Colaborador', infoGrid([
         { label: 'Nome Completo', value: emp.name },
         { label: 'CPF', value: emp.cpf },
         { label: 'Data Nasc.', value: emp.birthDate ? new Date(emp.birthDate).toLocaleDateString('pt-BR') : '---' },
         { label: 'Cargo', value: emp.position },
         { label: 'Setor/Depto', value: emp.department },
       ], 3))}
-      \${section('Dados do Encaminhamento', \`
-        \${infoGrid([
+      ${section('Dados do Encaminhamento', \`
+        ${infoGrid([
           { label: 'Tipo de Exame', value: subtitle },
           { label: 'Clínica Agendada', value: r.clinicName || 'À definir' },
           { label: 'Endereço da Clínica', value: r.observation || 'Não informado' },
           { label: 'Data Prevista', value: r.examDate ? new Date(r.examDate).toLocaleDateString('pt-BR') : 'Não agendado' },
         ], 2)}
       \`)}
-      \${section('Mensagem', text)}
-      \${signatureBlock(['Autorização RH / Empregador', 'Recebimento pela Clínica', 'Assinatura do Funcionário'])}
+      ${section('Mensagem', text)}
+      ${signatureBlock(['Autorização RH / Empregador', 'Recebimento pela Clínica', 'Assinatura do Funcionário'])}
     `);
     
-    printPdf(html, \`encaminhamento-aso-\${emp.id}.pdf\`);
+    printPdf(html, \`encaminhamento-aso-${emp.id}.pdf\`);
   };
 
   return (
@@ -671,27 +671,27 @@ function CreateNotificationForm({ onCreated, employees }: { onCreated: () => voi
     if (!emp) return;
     
     const docTitle = type === 'WARNING' ? 'Aviso de Advertência Escrita' : 'Aviso de Suspensão Disciplinar';
-    let text = \`<p style="font-size:11px;color:#334155;text-align:justify;line-height:1.6;">Pelo presente documento, aplicamos-lhe a pena de <strong>\${docTitle.toUpperCase()}</strong>, em virtude da seguinte ocorrência disciplinar verificada no dia <strong>\${occurrenceDate ? new Date(occurrenceDate).toLocaleDateString('pt-BR') : '____/____/______'}</strong>:</p>
-    <p style="font-size:11px;color:#0f172a;text-align:justify;line-height:1.6;font-weight:700;margin:16px 0;">Motivo / Embargo Legal: \${legalReason}</p>
-    <p style="font-size:11px;color:#334155;text-align:justify;line-height:1.6;">Detalhes da Infração:<br/>\${message.replace(/\\n/g, '<br/>')}</p>\`;
+    let text = \`<p style="font-size:11px;color:#334155;text-align:justify;line-height:1.6;">Pelo presente documento, aplicamos-lhe a pena de <strong>${docTitle.toUpperCase()}</strong>, em virtude da seguinte ocorrência disciplinar verificada no dia <strong>${occurrenceDate ? new Date(occurrenceDate).toLocaleDateString('pt-BR') : '____/____/______'}</strong>:</p>
+    <p style="font-size:11px;color:#0f172a;text-align:justify;line-height:1.6;font-weight:700;margin:16px 0;">Motivo / Embargo Legal: ${legalReason}</p>
+    <p style="font-size:11px;color:#334155;text-align:justify;line-height:1.6;">Detalhes da Infração:<br/>${message.replace(/\\n/g, '<br/>')}</p>\`;
     
     if (type === 'SUSPENSION') {
-      text += \`<p style="font-size:11px;color:#e11d48;text-align:justify;line-height:1.6;font-weight:700;margin:16px 0;">Por consequência, o(a) Sr(a). fica suspenso(a) de suas atividades por \${suspensionDays} dia(s), com desconto em folha de pagamento.</p>\`;
+      text += \`<p style="font-size:11px;color:#e11d48;text-align:justify;line-height:1.6;font-weight:700;margin:16px 0;">Por consequência, o(a) Sr(a). fica suspenso(a) de suas atividades por ${suspensionDays} dia(s), com desconto em folha de pagamento.</p>\`;
     }
     
     text += \`<p style="font-size:11px;color:#334155;text-align:justify;line-height:1.6;margin-top:24px;">Esclarecemos que a reincidência em condutas semelhantes poderá resultar em rescisão do contrato de trabalho por justa causa, nos termos do art. 482 da CLT. Solicitamos sua assinatura confirmando o recebimento.</p>\`;
     
     const { buildPdfShell, infoGrid, section, signatureBlock, printPdf } = require('@/app/lib/pdf-utils');
     const html = buildPdfShell({ title: docTitle, subtitle: emp.name }, null, \`
-      \${section('Qualificação do Colaborador', infoGrid([
+      ${section('Qualificação do Colaborador', infoGrid([
         { label: 'Nome', value: emp.name },
         { label: 'CPF', value: emp.cpf },
         { label: 'Cargo', value: emp.position },
       ], 3))}
-      \${section('Teor da Sanção Disciplinar', text)}
-      \${signatureBlock(['Assinatura do Empregado', 'Empregador / RH', 'Testemunha 1 (Opcional)', 'Testemunha 2 (Opcional)'])}
+      ${section('Teor da Sanção Disciplinar', text)}
+      ${signatureBlock(['Assinatura do Empregado', 'Empregador / RH', 'Testemunha 1 (Opcional)', 'Testemunha 2 (Opcional)'])}
     \`);
-    printPdf(html, \`\${type === 'WARNING' ? 'advertencia' : 'suspensao'}-\${emp.id}.pdf\`);
+    printPdf(html, \`${type === 'WARNING' ? 'advertencia' : 'suspensao'}-${emp.id}.pdf\`);
   };
 
   return (
