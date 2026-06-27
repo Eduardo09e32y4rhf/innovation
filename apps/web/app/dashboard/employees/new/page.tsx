@@ -15,8 +15,8 @@ const STATUS_OPTIONS: { value: EmployeeStatus; label: string }[] = [
   { value: 'TERMINATED', label: 'Desligado' },
 ];
 
-const DEPARTMENT_OPTIONS = ['RH', 'Financeiro', 'Operação', 'Comercial', 'TI', 'Administrativo', 'Jurídico', 'Logística', 'Produção'];
-const POSITION_OPTIONS = ['Auxiliar', 'Assistente', 'Analista', 'Operador', 'Supervisor', 'Coordenador', 'Gerente', 'Diretor'];
+const DEPARTMENT_OPTIONS = ['Diretoria', 'RH', 'Financeiro', 'Operação', 'Comercial', 'TI', 'Administrativo', 'Jurídico', 'Logística', 'Produção', 'Marketing', 'Engenharia', 'Vendas', 'Atendimento', 'Manutenção', 'Qualidade', 'Compras'];
+const POSITION_OPTIONS = ['Estagiário', 'Jovem Aprendiz', 'Auxiliar', 'Assistente', 'Trainee', 'Analista', 'Consultor', 'Especialista', 'Operador', 'Técnico', 'Vendedor', 'Secretária', 'Recepcionista', 'Motorista', 'Líder', 'Supervisor', 'Coordenador', 'Gerente', 'Head', 'Diretor', 'Sócio', 'CEO'];
 const UNIT_OPTIONS = ['Matriz', 'Filial', 'Operação externa', 'Remoto', 'Híbrido'];
 const WORK_SCALE_OPTIONS: { value: WorkScale; label: string }[] = [
   { value: '5X2', label: '5x2' },
@@ -141,7 +141,13 @@ function EmployeeForm() {
   }, [editId]);
 
   const managerOptions = useMemo(() => {
-    return (employeesQuery.data ?? []).filter((employee) => employee.id !== editId && employee.status !== 'TERMINATED');
+    return (employeesQuery.data ?? []).filter((employee) => {
+      if (employee.id === editId || employee.status === 'TERMINATED') return false;
+      const p = (employee.position || '').toLowerCase();
+      const isManagerPosition = p.includes('gerente') || p.includes('diretor') || p.includes('supervisor') || p.includes('coordenador') || p.includes('líder') || p.includes('lider') || p.includes('head') || p.includes('ceo') || p.includes('superintendente') || p.includes('sócio') || p.includes('socio');
+      const isManagerRole = employee.user?.role === 'GESTOR' || employee.user?.role === 'ADMIN' || employee.user?.role === 'RH';
+      return isManagerPosition || isManagerRole;
+    });
   }, [employeesQuery.data, editId]);
 
   const save = useMutation(
