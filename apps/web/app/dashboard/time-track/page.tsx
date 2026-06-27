@@ -263,7 +263,7 @@ export default function TimeTrackPage() {
           {tab === 'ponto' ? (
             <MonthGrid employee={selected} tracks={(byEmpMap[selected.id] ?? [])} month={month} canManage={canManage} canApprove={canApprove} refreshing={refreshing} removeLoading={remove.loading} onEdit={setEditing} onDelete={onDelete} showActions />
           ) : (
-            <Ocorrencias employee={selected} tracks={(byEmpMap[selected.id] ?? [])} month={month} canManage={canManage} canApprove={canApprove} refreshing={refreshing} removeLoading={remove.loading} onEdit={setEditing} onDelete={onDelete} />
+            <Ocorrencias employee={selected} tracks={(byEmpMap[selected.id] ?? [])} month={month} canManage={canManage} canApprove={canApprove} refreshing={refreshing} removeLoading={remove.loading} onEdit={setEditing} onDelete={onDelete} company={company.data} holidays={holidays.data as any[]} />
           )}
         </div>
       ) : visible.length===0 ? <p className="text-center text-sm text-slate-400 py-8">Nenhum colaborador encontrado.</p> :
@@ -507,8 +507,8 @@ function MonthGrid({ employee, tracks, month, canManage, canApprove, refreshing,
   );
 }
 
-function Ocorrencias({ employee, tracks, month, canManage, canApprove, refreshing, removeLoading, onEdit, onDelete }: { employee: Employee; tracks: TimeTrack[]; month: string; canManage: boolean; canApprove: boolean; refreshing: boolean; removeLoading: boolean; onEdit: (r:TimeTrack)=>void; onDelete: (r:TimeTrack)=>void; }) {
-  const grid = useMemo(()=> buildGrid(month, employee, tracks, (company.data as any)?.payrollStartDay, holidays.data as any[]), [month, employee, tracks, company.data, holidays.data]);
+function Ocorrencias({ employee, tracks, month, canManage, canApprove, refreshing, removeLoading, onEdit, onDelete, company, holidays }: { employee: Employee; tracks: TimeTrack[]; month: string; canManage: boolean; canApprove: boolean; refreshing: boolean; removeLoading: boolean; onEdit: (r:TimeTrack)=>void; onDelete: (r:TimeTrack)=>void; company: any; holidays: any[]; }) {
+  const grid = useMemo(()=> buildGrid(month, employee, tracks, company?.payrollStartDay, holidays), [month, employee, tracks, company, holidays]);
   const ocorrencias = useMemo(()=>grid.filter(g=>g.track&&isFalta(g.track)), [grid]);
   return (
     <section className="overflow-hidden rounded-[14px] border border-slate-200 bg-white">

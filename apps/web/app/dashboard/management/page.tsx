@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { CalendarDays, Check, Clock3, XCircle, FileText, FileCheck2, Bell, AlertTriangle, Gavel, Plus, Search, RefreshCcw, Upload, Download, Eye, EyeOff, MessageSquare, Send, Settings, Zap } from 'lucide-react';
 import { LoadingState, ErrorState } from '@/app/components/data-states';
@@ -106,6 +106,14 @@ function getStatusBadge(status: string): { label: string; cls: string } {
 }
 
 export default function ManagementPage() {
+  return (
+    <Suspense fallback={<LoadingState label="Carregando..." />}>
+      <ManagementContent />
+    </Suspense>
+  );
+}
+
+function ManagementContent() {
   const { user } = useAuth();
   const profile = user?.profile?.toUpperCase();
   const canManage = profile === 'DEV' || profile === 'ADMIN' || profile === 'RH';
