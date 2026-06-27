@@ -29,32 +29,38 @@ interface EligibilityInfo {
   admissionDateStr: string;
 }
 
-function calcEligibility(admissionDateStr: string): EligibilityInfo {
-  const now = new Date();
-  const admission = new Date(admissionDateStr);
-  const months = monthDiff(admission, now);
-  const eligibilityDate = new Date(admission);
-  eligibilityDate.setFullYear(eligibilityDate.getFullYear() + 1);
-  const remainingMs = eligibilityDate.getTime() - now.getTime();
-  const remainingDays = Math.max(0, Math.ceil(remainingMs / (1000 * 60 * 60 * 24)));
+function calcEligibility(admissionDateStr: string): EligibilityInfo | null {
+  try {
+    const now = new Date();
+    const admission = new Date(admissionDateStr);
+    if (Number.isNaN(admission.getTime())) return null;
+    const months = monthDiff(admission, now);
+    const eligibilityDate = new Date(admission);
+    eligibilityDate.setFullYear(eligibilityDate.getFullYear() + 1);
+    if (Number.isNaN(eligibilityDate.getTime())) return null;
+    const remainingMs = eligibilityDate.getTime() - now.getTime();
+    const remainingDays = Math.max(0, Math.ceil(remainingMs / (1000 * 60 * 60 * 24)));
 
-  const years = Math.floor(remainingDays / 365);
-  const remainingMonths = Math.floor((remainingDays % 365) / 30);
-  const days = remainingDays - (years * 365) - (remainingMonths * 30);
+    const years = Math.floor(remainingDays / 365);
+    const remainingMonths = Math.floor((remainingDays % 365) / 30);
+    const days = remainingDays - (years * 365) - (remainingMonths * 30);
 
-  let remainingYearsText = '';
-  if (years > 0) remainingYearsText += `${years} ano(s), `;
-  remainingYearsText += `${remainingMonths} mes(es) e ${days} dia(s)`;
+    let remainingYearsText = '';
+    if (years > 0) remainingYearsText += `${years} ano(s), `;
+    remainingYearsText += `${remainingMonths} mes(es) e ${days} dia(s)`;
 
-  return {
-    monthsSinceAdmission: months,
-    isEligible: months >= 12,
-    remainingDays,
-    remainingMonths,
-    remainingYearsText,
-    eligibilityDate: eligibilityDate.toISOString().slice(0, 10),
-    admissionDateStr: admission.toISOString().slice(0, 10),
-  };
+    return {
+      monthsSinceAdmission: months,
+      isEligible: months >= 12,
+      remainingDays,
+      remainingMonths,
+      remainingYearsText,
+      eligibilityDate: eligibilityDate.toISOString().slice(0, 10),
+      admissionDateStr: admission.toISOString().slice(0, 10),
+    };
+  } catch {
+    return null;
+  }
 }
 
 export default function VacationsPage() {
