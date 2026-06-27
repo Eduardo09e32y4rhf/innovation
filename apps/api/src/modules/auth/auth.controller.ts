@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RateLimitGuard, RateLimit } from '../../common/guards/rate-limit.guard';
 import type { JwtUser } from '../../common/types/auth.types';
 import { AuthService } from './auth.service';
 import { ChangePasswordDto } from './dto/change-password.dto';
@@ -13,21 +14,29 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
 export class AuthController {
   constructor(private readonly service: AuthService) {}
 
+  @UseGuards(RateLimitGuard)
+  @RateLimit({ window: 3600, max: 10, prefix: 'register' })
   @Post('register-company')
   registerCompany(@Body() dto: RegisterCompanyDto) {
     return this.service.registerCompany(dto);
   }
 
+  @UseGuards(RateLimitGuard)
+  @RateLimit({ window: 60, max: 10, prefix: 'login' })
   @Post('login')
   login(@Body() dto: LoginDto, @Req() request: any) {
     return this.service.login(dto, getRequestMeta(request));
   }
 
+  @UseGuards(RateLimitGuard)
+  @RateLimit({ window: 60, max: 5, prefix: 'pw_reset_req' })
   @Post('password-reset/request')
   requestPasswordReset(@Body() dto: RequestPasswordResetDto, @Req() request: any) {
     return this.service.requestPasswordReset(dto, getRequestMeta(request));
   }
 
+  @UseGuards(RateLimitGuard)
+  @RateLimit({ window: 60, max: 5, prefix: 'pw_reset_conf' })
   @Post('password-reset/confirm')
   resetPassword(@Body() dto: ResetPasswordDto, @Req() request: any) {
     return this.service.resetPassword(dto, getRequestMeta(request));
