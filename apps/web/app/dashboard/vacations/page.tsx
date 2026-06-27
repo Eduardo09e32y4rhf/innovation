@@ -458,17 +458,9 @@ function NewVacationModal({
     },
     { onSuccess: onDone },
   );
-  const cltBlockMessage = React.useMemo(() => {
-    if (!form.startDate) return null;
-    const date = new Date(form.startDate + 'T12:00:00');
-    const day = date.getDay();
-    // 0: Domingo, 4: Quinta, 5: Sexta, 6: Sábado
-    if (day === 4 || day === 5) return 'CLT Art. 134: Vedado o início das férias nos dois dias que antecedem o DSR (fim de semana) ou feriado.';
-    if (day === 0 || day === 6) return 'CLT: Férias não podem iniciar no final de semana (DSR).';
-    return null;
-  }, [form.startDate]);
 
-  const valid = form.employeeId && form.startDate && form.endDate && days > 0 && !exceedsBalance && !conflictMessage && !cltBlockMessage && (eligibility?.isEligible ?? true);
+
+  const valid = form.employeeId && form.startDate && form.endDate && days > 0 && !exceedsBalance && !conflictMessage && (eligibility?.isEligible ?? true);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm">
@@ -586,14 +578,7 @@ function NewVacationModal({
             </div>
           )}
 
-          {cltBlockMessage && (
-            <div className="rounded-[10px] border border-amber-200 bg-amber-50 px-4 py-3">
-              <div className="flex items-center gap-2">
-                <AlertTriangle size={14} className="text-amber-600 shrink-0" />
-                <p className="text-xs font-semibold text-amber-800">{cltBlockMessage}</p>
-              </div>
-            </div>
-          )}
+
 
           {exceedsBalance && (
             <div className="rounded-[10px] border border-rose-200 bg-rose-50 px-4 py-3">
