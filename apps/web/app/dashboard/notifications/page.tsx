@@ -1,7 +1,2 @@
-'use client';
-
 import { redirect } from 'next/navigation';
-
-export default function NotificationsPage() {
-  redirect('/dashboard/management?tab=notifications');
-}
+export default function NotificationsPage() { redirect('/dashboard/management?tab=notifications'); }
