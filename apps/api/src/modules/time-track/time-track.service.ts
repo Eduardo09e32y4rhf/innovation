@@ -91,22 +91,44 @@ export class TimeTrackService {
   async manualBulk(companyId: string, dto: BulkManualTimeTrackDto) {
     const dates = this.resolveBulkDates(dto);
     const created = [];
-    for (const employeeId of dto.employeeIds) {
-      const employee = await this.ensureEmployee(companyId, employeeId);
-      for (const date of dates) {
-        if (this.isRestDay(employee, date, dto)) continue;
-        const parsedDate = this.toDateOnly(this.parseDate(date, 'Invalid date'));
-        this.validateEmployeeDateRange(employee, parsedDate);
-        if (dto.reason.includes('abono')) {
-          const suggestion = this.suggestAbsenceMinutes(employee, parsedDate);
-          if (suggestion !== null && suggestion > 0 && !dto.entry) {
-            const suggestedEntry = this.suggestEntryTime(employee, parsedDate, suggestion);
-            Object.assign(dto, { entry: suggestedEntry });
+    const operations: (() => Promise<any>)[] = [];
+
+    // ⚡ Bolt: Chunked concurrency for database operations to prevent I/O wait times
+    // Fetch employees in chunks instead of strictly sequentially
+    const employeeChunkSize = 10;
+    for (let i = 0; i < dto.employeeIds.length; i += employeeChunkSize) {
+      const chunkIds = dto.employeeIds.slice(i, i + employeeChunkSize);
+      const employees = await Promise.all(
+        chunkIds.map((id) => this.ensureEmployee(companyId, id))
+      );
+
+      for (const employee of employees) {
+        for (const date of dates) {
+          if (this.isRestDay(employee, date, dto)) continue;
+          const parsedDate = this.toDateOnly(this.parseDate(date, 'Invalid date'));
+          this.validateEmployeeDateRange(employee, parsedDate);
+          if (dto.reason.includes('abono')) {
+            const suggestion = this.suggestAbsenceMinutes(employee, parsedDate);
+            if (suggestion !== null && suggestion > 0 && !dto.entry) {
+              const suggestedEntry = this.suggestEntryTime(employee, parsedDate, suggestion);
+              Object.assign(dto, { entry: suggestedEntry });
+            }
           }
+          // Clone dto for this operation since the reference might be mutated by subsequent loops
+          const currentDto = { ...dto };
+          operations.push(() => this.applyManual(employee, date, currentDto));
         }
-        created.push(await this.applyManual(employee, date, dto));
       }
     }
+
+    // ⚡ Bolt: Execute time-track upserts in batches to avoid connection pool exhaustion
+    const operationChunkSize = 20;
+    for (let i = 0; i < operations.length; i += operationChunkSize) {
+      const chunk = operations.slice(i, i + operationChunkSize);
+      const results = await Promise.all(chunk.map((op) => op()));
+      created.push(...results);
+    }
+
     return { count: created.length, items: created };
   }
 
