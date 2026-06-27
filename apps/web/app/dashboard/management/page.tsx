@@ -298,51 +298,52 @@ function AgendaKanban({ columns, employees, canManage, onOpenForm, onSave, onDel
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
-        {colOrder.map((key) => {
-          const items = (columns[key] ?? []).filter((ev: any) => {
-            if (filterStatus && ev.status !== filterStatus) return false;
-            if (filterType && ev.eventType !== filterType) return false;
-            if (filterEmp && ev.employeeId !== filterEmp) return false;
-            return true;
-          });
-          return (
-            <div key={key} className="min-h-[180px] rounded-[12px] border border-slate-200 bg-slate-50/60 p-2">
-              <div className="mb-2 flex items-center justify-between px-1">
-                <p className="text-[11px] font-black uppercase tracking-wider text-slate-700">{colLabels[key]}</p>
-                <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-black text-slate-700">{items.length}</span>
+          {colOrder.map((key) => {
+            const items = (columns[key] ?? []).filter((ev: any) => {
+              if (filterStatus && ev.status !== filterStatus) return false;
+              if (filterType && ev.eventType !== filterType) return false;
+              if (filterEmp && ev.employeeId !== filterEmp) return false;
+              return true;
+            });
+            return (
+              <div key={key} className="min-h-[180px] rounded-[12px] border border-slate-200 bg-slate-50/60 p-2">
+                <div className="mb-2 flex items-center justify-between px-1">
+                  <p className="text-[11px] font-black uppercase tracking-wider text-slate-700">{colLabels[key]}</p>
+                  <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-black text-slate-700">{items.length}</span>
+                </div>
+                <div className="space-y-2">
+                  {items.length === 0 && <p className="px-1 py-3 text-center text-[11px] font-semibold text-slate-400">Nenhum</p>}
+                  {items.map((ev: any) => (
+                    <div key={ev.id} className="rounded-[10px] border border-slate-200 bg-white p-3 shadow-sm">
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="text-[11px] font-black text-slate-950">{ev.title}</p>
+                        <span className={`inline-flex rounded-[5px] border px-1.5 py-0.5 text-[9px] font-black ${getStatusBadge(ev.status).cls}`}>{getStatusBadge(ev.status).label}</span>
+                      </div>
+                      <p className="mt-1 text-[11px] font-bold text-slate-700">{fmtDateTime(ev.startDateTime)}</p>
+                      <div className="mt-2 space-y-1 text-[11px] font-semibold text-slate-600">
+                        <p>Funcionário: {empName(ev.employeeId)}</p>
+                        <p>Tipo: {ev.eventType}</p>
+                        <p>Prioridade: {ev.priority}</p>
+                      </div>
+                      <div className="mt-3 flex flex-wrap gap-1.5">
+                        <button onClick={() => onOpenForm(ev)} disabled={saving} className="btn-outline-premium h-7 px-2 text-[10px] font-bold">Editar</button>
+                        {ev.status !== 'CONCLUIDO' && canManage && (
+                          <button onClick={() => onSave({ status: 'CONCLUIDO' }, ev.id)} disabled={saving} className="inline-flex h-7 items-center gap-1 rounded-[5px] bg-gradient-to-r from-emerald-500 to-teal-600 px-2 text-[10px] font-black text-white"><Check size={12}/> Concluir</button>
+                        )}
+                        {canManage && <button onClick={() => { if (window.confirm('Excluir?')) onDelete(ev.id); }} disabled={saving} className="inline-flex h-7 items-center rounded-[5px] bg-gradient-to-r from-rose-500 to-pink-600 px-2 text-[10px] font-black text-white"><XCircle size={12}/></button>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <div className="space-y-2">
-                {items.length === 0 && <p className="px-1 py-3 text-center text-[11px] font-semibold text-slate-400">Nenhum</p>}
-                {items.map((ev: any) => (
-                  <div key={ev.id} className="rounded-[10px] border border-slate-200 bg-white p-3 shadow-sm">
-                    <div className="flex items-start justify-between gap-2">
-                      <p className="text-[11px] font-black text-slate-950">{ev.title}</p>
-                      <span className={`inline-flex rounded-[5px] border px-1.5 py-0.5 text-[9px] font-black ${getStatusBadge(ev.status).cls}`}>{getStatusBadge(ev.status).label}</span>
-                    </div>
-                    <p className="mt-1 text-[11px] font-bold text-slate-700">{fmtDateTime(ev.startDateTime)}</p>
-                    <div className="mt-2 space-y-1 text-[11px] font-semibold text-slate-600">
-                      <p>Funcionário: {empName(ev.employeeId)}</p>
-                      <p>Tipo: {ev.eventType}</p>
-                      <p>Prioridade: {ev.priority}</p>
-                    </div>
-                    <div className="mt-3 flex flex-wrap gap-1.5">
-                      <button onClick={() => onOpenForm(ev)} disabled={saving} className="btn-outline-premium h-7 px-2 text-[10px] font-bold">Editar</button>
-                      {ev.status !== 'CONCLUIDO' && canManage && (
-                        <button onClick={() => onSave({ status: 'CONCLUIDO' }, ev.id)} disabled={saving} className="inline-flex h-7 items-center gap-1 rounded-[5px] bg-gradient-to-r from-emerald-500 to-teal-600 px-2 text-[10px] font-black text-white"><Check size={12}/> Concluir</button>
-                      )}
-                      {canManage && <button onClick={() => { if (window.confirm('Excluir?')) onDelete(ev.id); }} disabled={saving} className="inline-flex h-7 items-center rounded-[5px] bg-gradient-to-r from-rose-500 to-pink-600 px-2 text-[10px] font-black text-white"><XCircle size={12}/></button>}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
       )}
     </section>
   );
 }
+
 
 // ─── ASO ───────────────────────────────────────────────────────────────────────
 
