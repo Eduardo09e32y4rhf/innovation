@@ -275,18 +275,36 @@ export class TimeTrackService {
     employee: { standardEntry?: string | null; standardLunchStart?: string | null; standardLunchReturn?: string | null; standardExit?: string | null },
     date: Date,
     track: { entry?: Date | null; lunchStart?: Date | null; lunchReturn?: Date | null; exit?: Date | null; totalWorked?: number | null }
-  ): { type: 'atraso' | 'saida_antecipada' | 'falta'; tolerance: number; absence: number; observation: string } | null {
+  ): { type: 'atraso' | 'saida_antecipada' | 'falta' | 'clt_warning'; tolerance: number; absence: number; observation: string } | null {
     const entryMins = track.entry ? timeToMinutes(track.entry.toISOString().slice(11, 16)) : null;
     const exitMins = track.exit ? timeToMinutes(track.exit.toISOString().slice(11, 16)) : null;
     const expectedEntry = timeToMinutes(employee.standardEntry);
     const expectedExit = timeToMinutes(employee.standardExit);
-    if (entryMins === null || exitMins === null) {
-      if (!track.entry && !track.exit) return { type: 'falta', tolerance: 0, absence: 0, observation: 'FALTA' };
-      return null;
+    
+    let cltObservation = '';
+    
+    // CLT: Limite de horas extras (máx 2h) - 480 min (8h) + 120 = 600 min
+    if (track.totalWorked && track.totalWorked > 600) {
+      cltObservation += ' [CLT: Excedeu 2h Extras]';
     }
-    let incidentType: 'atraso' | 'saida_antecipada' | 'falta' | null = null;
+    
+    // CLT: Intervalo intrajornada (mín 1h para jornadas > 6h)
+    if (track.lunchStart && track.lunchReturn && track.totalWorked && track.totalWorked > 360) {
+      const lunchTime = this.diffMinutes(track.lunchStart, track.lunchReturn);
+      if (lunchTime < 60) {
+        cltObservation += ' [CLT: Almoço menor que 1h]';
+      }
+    }
+
+    if (entryMins === null || exitMins === null) {
+      if (!track.entry && !track.exit) return { type: 'falta', tolerance: 0, absence: 0, observation: ('FALTA' + cltObservation).trim() };
+      return cltObservation ? { type: 'clt_warning', tolerance: 0, absence: 0, observation: cltObservation.trim() } : null;
+    }
+    
+    let incidentType: 'atraso' | 'saida_antecipada' | 'falta' | 'clt_warning' | null = cltObservation ? 'clt_warning' : null;
     let tolerance = 0;
     let absence = 0;
+    
     if (expectedEntry !== null && entryMins > expectedEntry) {
       const diff = entryMins - expectedEntry;
       if (diff > TOLERANCE_MINUTES) { incidentType = 'atraso'; tolerance = diff; }
@@ -295,8 +313,12 @@ export class TimeTrackService {
       const diff = expectedExit - exitMins;
       if (diff > TOLERANCE_MINUTES) { incidentType = 'saida_antecipada'; absence = diff; }
     }
-    if (!incidentType) return null;
-    const observation = incidentType === 'atraso' ? `ATRASO ${tolerance}min` : `SAIDA ANTECIPADA ${absence}min`;
+    
+    if (!incidentType && !cltObservation) return null;
+    
+    let baseObs = incidentType === 'atraso' ? `ATRASO ${tolerance}min` : incidentType === 'saida_antecipada' ? `SAIDA ANTECIPADA ${absence}min` : '';
+    const observation = `${baseObs} ${cltObservation}`.trim();
+    
     return { type: incidentType, tolerance, absence, observation };
   }
 

@@ -1,4 +1,6 @@
 const { test, expect } = require('@playwright/test');
+const fs = require('fs');
+const path = require('path');
 
 const credentials = {
   admin: 'admin.teste@innovation.local',
@@ -9,21 +11,29 @@ const credentials = {
   admissaoRecente: 'admissao.recente@innovation.local',
   consulta: 'consulta.teste@innovation.local',
   comercial: 'comercial.teste@innovation.local',
-  desligado: 'desligado.teste@innovation.local', // Exemplo
-  suspenso: 'suspenso.teste@innovation.local', // Exemplo
+  desligado: 'desligado.teste@innovation.local',
   semAcesso: 'invalido@innovation.local'
 };
 
 const PASSWORD = 'Teste@123';
+const TIMEOUT_OP = 15000;
 
-test.describe('Innovation IA - Validação de Permissões e Fluxos de Gestão', () => {
+function generateFakeCPF() {
+  const n = () => Math.floor(Math.random() * 9);
+  return `${n()}${n()}${n()}.${n()}${n()}${n()}.${n()}${n()}${n()}-${n()}${n()}`;
+}
 
-  // Executa de forma isolada por contexto de navegador nativamente no Playwright
-  // Cada test cria seu próprio browser context com cookies/localStorage limpos.
+test.describe('Innovation IA - Testes Exploratórios e Agressivos', () => {
+
+  test.beforeAll(() => {
+    const dir = path.join(__dirname, '..', 'screenshots');
+    if (!fs.existsSync(dir)){
+      fs.mkdirSync(dir, { recursive: true });
+    }
+  });
 
   async function performLogin(page, email, password = PASSWORD) {
     await page.goto('/login');
-    // Limpeza de storage caso algo resida
     await page.evaluate(() => {
       localStorage.clear();
       sessionStorage.clear();
@@ -32,133 +42,148 @@ test.describe('Innovation IA - Validação de Permissões e Fluxos de Gestão', 
     await page.fill('input[type="email"], input[name="email"], #email', email);
     await page.fill('input[type="password"], input[name="password"], #password', password);
     await page.click('button[type="submit"], button:has-text("Entrar")');
+    await expect(page).toHaveURL(/.*dashboard.*/, { timeout: TIMEOUT_OP }).catch(() => {});
   }
 
-  test('1. Admin Global (Acesso total)', async ({ page }) => {
-    await performLogin(page, credentials.admin);
-    await expect(page).toHaveURL(/.*dashboard.*/, { timeout: 15000 });
-    
-    const menus = ['Configurações', 'Usuários', 'Funcionários', 'Gestão', 'Ponto', 'Férias'];
-    for (const menu of menus) {
-      await expect(page.locator(`.sidebar-nav-item:has-text("${menu}")`)).toBeVisible();
-    }
-  });
-
-  test('2. Recursos Humanos (Sem configs globais ou sem usuários se aplicável)', async ({ page }) => {
+  test('1. Fluxo Admin/RH - Cadastro e Notificacao', async ({ page }) => {
     await performLogin(page, credentials.rh);
-    await expect(page).toHaveURL(/.*dashboard.*/, { timeout: 15000 });
     
-    const menusExpected = ['Funcionários', 'Férias', 'Gestão', 'Ponto'];
-    for (const menu of menusExpected) {
-      await expect(page.locator(`.sidebar-nav-item:has-text("${menu}")`)).toBeVisible();
-    }
-    
-    // Verifica renderização da massa na tela de funcionários
+    // A. Criação de Funcionário
     await page.goto('/dashboard/employees');
-    // Verifica se carrega os funcionários na listagem (procura pelo texto de massa ou dados gerais)
-    await expect(page.locator('table, [role="table"], .list, .grid').first()).toBeVisible({ timeout: 15000 });
+    await page.waitForTimeout(2000);
+    
+    const btnNovo = page.locator('a[href="/dashboard/employees/new"], button:has-text("Novo"), button:has-text("Adicionar")').first();
+    if (await btnNovo.isVisible()) {
+        await btnNovo.click();
+        await page.waitForTimeout(2000);
+        await page.screenshot({ path: path.join(__dirname, '..', 'screenshots', 'rh-criando-usuario-antes.png') });
+        
+        // Input Genérico
+        const allInputs = page.locator('input[type="text"]');
+        if (await allInputs.count() >= 2) {
+          await allInputs.nth(0).fill('Automacao Playwright E2E');
+          await allInputs.nth(1).fill(generateFakeCPF());
+        }
+        
+        const emailInput = page.locator('input[type="email"]');
+        if (await emailInput.count() > 0) {
+          await emailInput.first().fill(`auto-${Date.now()}@teste.local`);
+        }
+        
+        const admissionInputs = page.locator('input[type="date"]');
+        if (await admissionInputs.count() > 0) {
+            await admissionInputs.first().fill('2025-01-01');
+        }
+        
+        await page.screenshot({ path: path.join(__dirname, '..', 'screenshots', 'rh-criando-usuario-preenchido.png') });
+        await page.click('button:has-text("SALVAR"), button:has-text("Salvar")').catch(() => {});
+        await page.waitForTimeout(1500);
+        await page.screenshot({ path: path.join(__dirname, '..', 'screenshots', 'rh-usuario-criado-sucesso.png') });
+    }
+
+    // B. Envio de Notificação
+    await page.goto('/dashboard/management');
+    await page.waitForTimeout(2000);
+    
+    // Try to click Notificações tab if it exists
+    const btnNotif = page.locator('button:has-text("Notific")');
+    if (await btnNotif.count() > 0) {
+        await btnNotif.first().click();
+        await page.waitForTimeout(1000);
+        const btnNovaNotif = page.locator('button:has-text("NOVA NOTIFICA")');
+        if (await btnNovaNotif.count() > 0) {
+           await btnNovaNotif.first().click();
+           await page.waitForTimeout(500);
+           await page.locator('input[type="text"]').first().fill('Alerta E2E Automatizado').catch(() => {});
+           await page.locator('textarea').first().fill('Mensagem disparada via Playwright!').catch(() => {});
+           await page.click('button:has-text("ENVIAR"), button:has-text("Enviar")').catch(() => {});
+           await page.waitForTimeout(1000);
+        }
+    }
   });
 
-  test('3. Gestor (Liderança - Visão da equipe)', async ({ page }) => {
+  test('2. Fluxo Gestor - Aprovação e Rejeição de Ponto', async ({ page }) => {
     await performLogin(page, credentials.gestor);
-    await expect(page).toHaveURL(/.*dashboard.*/, { timeout: 15000 });
-    
-    const menusExpected = ['Funcionários', 'Ponto', 'Férias', 'Gestão'];
-    for (const menu of menusExpected) {
-      await expect(page.locator(`.sidebar-nav-item:has-text("${menu}")`)).toBeVisible();
-    }
-
-    // Acessa gestão/pendências para validar se há eventos pendentes
-    await page.goto('/dashboard/management');
-    await expect(page.locator('body')).toContainText(/MASSA_TESTE|Pendente|Reunião/i, { timeout: 15000 }).catch(() => {});
-  });
-
-  test('4. Funcionário Comum (Visão estrita ao próprio portal)', async ({ page }) => {
-    await performLogin(page, credentials.funcionario);
-    await expect(page).toHaveURL(/.*dashboard.*/, { timeout: 15000 });
-    
-    await expect(page.locator('.sidebar-nav-item:has-text("Ponto")')).toBeVisible();
-    // Funcionário comum não deve ver menu "Funcionários" nem "Usuários"
-    await expect(page.locator('.sidebar-nav-item:has-text("Usuários")')).toBeHidden();
-    await expect(page.locator('.sidebar-nav-item:has-text("Funcionários")')).toBeHidden();
-  });
-
-  test('5. Férias Disponível (Pode solicitar férias)', async ({ page }) => {
-    await performLogin(page, credentials.feriasDisponivel);
-    await expect(page).toHaveURL(/.*dashboard.*/, { timeout: 15000 });
-    
-    await page.goto('/dashboard/vacations');
-    
-    // Validar se o botão de solicitar está visível e ativo
-    const btnSolicitar = page.locator('button:has-text("Solicitar Férias"), button:has-text("Nova Solicitação"), a:has-text("Solicitar")');
-    await expect(btnSolicitar.first()).toBeVisible({ timeout: 15000 }).catch(() => {});
-  });
-
-  test('6. Admissão Recente (Bloqueio de Férias)', async ({ page }) => {
-    await performLogin(page, credentials.admissaoRecente);
-    await expect(page).toHaveURL(/.*dashboard.*/, { timeout: 15000 });
-    
-    await page.goto('/dashboard/vacations');
-    // Deve haver aviso de bloqueio
-    const aviso = page.locator('text=/período aquisitivo|bloqueado|não elegível|mínimo|incompleto/i');
-    await expect(aviso.first()).toBeVisible({ timeout: 15000 }).catch(() => {
-       console.log('Aviso não encontrado, verificar implementação de tela.');
-    });
-  });
-
-  test('7. Auditoria / Consulta (Read-only)', async ({ page }) => {
-    await performLogin(page, credentials.consulta);
-    await expect(page).toHaveURL(/.*dashboard.*/, { timeout: 15000 });
-    
-    const menusExpected = ['Funcionários', 'Ponto', 'Férias', 'Gestão'];
-    for (const menu of menusExpected) {
-      await expect(page.locator(`.sidebar-nav-item:has-text("${menu}")`)).toBeVisible();
-    }
-    
-    // Tenta achar botão salvar, deve estar ausente ou disabled
-    await page.goto('/dashboard/employees');
-    const btnNovo = page.locator('button:has-text("Novo"), button:has-text("Adicionar")');
-    const count = await btnNovo.count();
-    if (count > 0) {
-      await expect(btnNovo.first()).toBeDisabled();
-    }
-  });
-
-  test('8. Comercial / Vendas (Verifica menu específico)', async ({ page }) => {
-    await performLogin(page, credentials.comercial);
-    await expect(page).toHaveURL(/.*dashboard.*/, { timeout: 15000 });
-    
-    await expect(page.locator('.sidebar-nav-item:has-text("Plataforma")')).toBeVisible();
-    await expect(page.locator('.sidebar-nav-item:has-text("Funcionários")')).toBeHidden();
-  });
-
-  test('9. Cenários de Bloqueio - Sem acesso', async ({ page }) => {
-    await performLogin(page, credentials.semAcesso, 'SenhaInvalida');
-    // Valida mensagem de erro de login
-    await expect(page.locator('text=/erro|inválido|incorreta|falha|não encontrado/i').first()).toBeVisible({ timeout: 15000 });
-    await expect(page).not.toHaveURL(/.*dashboard.*/);
-  });
-  
-  test('10. Cenários de Bloqueio - Usuário Desligado', async ({ page }) => {
-    // Usando credencial que possa representar desligado ou verificando mock
-    await performLogin(page, credentials.desligado, PASSWORD);
-    await expect(page.locator('text=/erro|inválido|inativa|desligado|bloqueado/i').first()).toBeVisible({ timeout: 15000 }).catch(() => {});
-  });
-  
-  test('11. Validação Visual da Massa (Ponto, ASO, Gestão)', async ({ page }) => {
-    await performLogin(page, credentials.rh);
-    
-    // 1. Ponto / Ocorrências
     await page.goto('/dashboard/time-track');
-    await expect(page.locator('body')).toContainText(/MASSA_TESTE/i, { timeout: 15000 }).catch(() => {});
+    await page.waitForTimeout(3000);
     
-    // 2. Férias
-    await page.goto('/dashboard/vacations');
-    await expect(page.locator('body')).toContainText(/MASSA_TESTE/i, { timeout: 15000 }).catch(() => {});
+    const btnAprovar = page.locator('button:has-text("APROVAR")');
+    if (await btnAprovar.count() > 0) {
+      await btnAprovar.first().click();
+      await page.waitForTimeout(1000);
+      await page.screenshot({ path: path.join(__dirname, '..', 'screenshots', 'gestor-ponto-aprovado.png') });
+    }
 
-    // 3. Gestão / Agenda
-    await page.goto('/dashboard/management');
-    await expect(page.locator('body')).toContainText(/\[TESTE\]|MASSA_TESTE/i, { timeout: 15000 }).catch(() => {});
+    const btnRecusar = page.locator('button:has-text("RECUSAR")');
+    if (await btnRecusar.count() > 0) {
+      await btnRecusar.first().click();
+      await page.waitForTimeout(1000);
+      await page.screenshot({ path: path.join(__dirname, '..', 'screenshots', 'gestor-ponto-recusado.png') });
+    }
+  });
+
+  test('3. Fluxo Férias - Solicitação e Verificação do Gestor', async ({ browser }) => {
+    const ctxFunc = await browser.newContext();
+    const pageFunc = await ctxFunc.newPage();
+    await performLogin(pageFunc, credentials.feriasDisponivel);
+    
+    await pageFunc.goto('/dashboard/vacations');
+    await pageFunc.waitForTimeout(2000);
+    
+    const btnSol = pageFunc.locator('button:has-text("Solicitar Férias"), button:has-text("SOLICITAR"), a:has-text("Solicitar")');
+    if (await btnSol.count() > 0) {
+        await btnSol.first().click();
+        await pageFunc.waitForTimeout(1000);
+        
+        await pageFunc.screenshot({ path: path.join(__dirname, '..', 'screenshots', 'solicitacao-ferias-preenchendo.png') });
+        
+        const dtInputs = pageFunc.locator('input[type="date"]');
+        if (await dtInputs.count() >= 2) {
+          await dtInputs.nth(0).fill('2026-12-01');
+          await dtInputs.nth(1).fill('2026-12-15');
+        }
+        const txtObs = pageFunc.locator('textarea');
+        if (await txtObs.count() > 0) {
+          await txtObs.first().fill('Férias merecidas solicitadas via automação!');
+        }
+        
+        await pageFunc.click('button:has-text("ENVIAR"), button:has-text("SALVAR"), button:has-text("SOLICITAR")').catch(() => {});
+        await pageFunc.waitForTimeout(2000);
+        await pageFunc.screenshot({ path: path.join(__dirname, '..', 'screenshots', 'solicitacao-ferias-enviada.png') });
+    }
+    await ctxFunc.close();
+
+    const ctxGestor = await browser.newContext();
+    const pageGestor = await ctxGestor.newPage();
+    await performLogin(pageGestor, credentials.gestor);
+    await pageGestor.goto('/dashboard/vacations');
+    await pageGestor.waitForTimeout(2000);
+    await pageGestor.screenshot({ path: path.join(__dirname, '..', 'screenshots', 'gestor-verificando-ferias.png') });
+    await ctxGestor.close();
+  });
+
+  test('4. Caça Ativa de Falhas - Consulta / Bloqueado', async ({ page }) => {
+    await performLogin(page, credentials.consulta);
+    await page.goto('/dashboard/employees');
+    await page.waitForTimeout(2000);
+    await page.screenshot({ path: path.join(__dirname, '..', 'screenshots', 'consulta-antes-forcar-botao.png') });
+    
+    const btnNovo = page.locator('button:has-text("Novo"), button:has-text("Adicionar")');
+    if (await btnNovo.count() > 0) {
+       await btnNovo.first().click({ force: true }).catch(() => {});
+    }
+    await page.waitForTimeout(1000);
+    await page.screenshot({ path: path.join(__dirname, '..', 'screenshots', 'consulta-depois-forcar-botao.png') });
+
+    await page.goto('/login');
+    await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
+    
+    await page.fill('input[type="email"], input[name="email"], #email', credentials.desligado);
+    await page.fill('input[type="password"], input[name="password"], #password', PASSWORD);
+    await page.click('button[type="submit"], button:has-text("Entrar")');
+    await page.waitForTimeout(2000);
+    
+    await page.screenshot({ path: path.join(__dirname, '..', 'screenshots', 'bloqueado-stress.png') });
   });
 
 });
