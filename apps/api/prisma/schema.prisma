@@ -821,7 +821,7 @@ model PrivacyConsent {
 model AuditLog {
   id        String   @id @default(uuid()) @db.Uuid
   companyId String   @db.Uuid
-  userId    String?
+  userId    String?  @db.Uuid
   action    String
   entity    String
   entityId  String?
