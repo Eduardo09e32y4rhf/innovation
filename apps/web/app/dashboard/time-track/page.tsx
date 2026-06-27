@@ -2,13 +2,14 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { CalendarDays, Check, Clock3, Edit3, XCircle } from 'lucide-react';
+import { CalendarDays, Check, Clock3, Edit3, XCircle, FileText } from 'lucide-react';
 import { ErrorState, LoadingState } from '@/app/components/data-states';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useMutation, useQuery } from '@/app/hooks/use-data';
 import { api, type Employee, type TimeTrack, type TimeTrackAdjustmentReason, type RestDayMode } from '@/app/lib/api';
 import { formatMinutes } from '@/app/lib/format';
 import { normalizeDisplayName } from '@/app/lib/text';
+import { buildPdfShell, section, pdfTable, signatureBlock, printPdf, type PdfCompanyInfo } from '@/app/lib/pdf-utils';
 
 const WEEKDAYS = ['DOM','SEG','TER','QUA','QUI','SEX','SÁB'];
 
@@ -144,6 +145,7 @@ export default function TimeTrackPage() {
 
   const tracks = useQuery(() => api.timeTrack.list(), []);
   const employees = useQuery(() => api.employees.list(), [], { enabled: !isFunc });
+  const company = useQuery(() => api.companies.me(), []);
   const [open, setOpen] = useState(false);
   const [bulkOpen, setBulkOpen] = useState(false);
   const [editing, setEditing] = useState<TimeTrack | null>(null);
@@ -194,6 +196,7 @@ export default function TimeTrackPage() {
         <div className="flex flex-wrap gap-2">
           <Link href="/dashboard/time-track/clock-in" className="crystal-button inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black text-white"><Clock3 size={14}/> BATER PONTO</Link>
           {(canManage||isGestor) && <button onClick={()=>setBulkOpen(true)} disabled={refreshing} className="btn-outline inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black"><Clock3 size={14}/> LANÇAR EM LOTE</button>}
+          {(canManage||isGestor) && <button onClick={() => downloadCollectiveSheet(month, visible, byEmpMap, employees.data || [], company.data || null)} disabled={refreshing || visible.length === 0} className="btn-outline-premium inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black"><FileText size={14}/> FOLHA COLETIVA</button>}
           {canManage && <button onClick={()=>setOpen(true)} disabled={refreshing} className="crystal-button inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black text-white"><Edit3 size={14}/> LANÇAR PONTO</button>}
         </div>
       </header>
@@ -283,8 +286,69 @@ export default function TimeTrackPage() {
         )}
 
       {(open || bulkOpen || editing) && <Modal employees={actives} bulk={bulkOpen} track={editing ?? undefined} defaultEmpId={empFilter} onClose={()=>{setOpen(false);setBulkOpen(false);setEditing(null);}} onDone={()=>{setOpen(false);setBulkOpen(false);setEditing(null);tracks.refetch();}} />}
+      <BulkAdjustmentModal open={bulkOpen} onClose={()=>setBulkOpen(false)} onSuccess={()=>{setBulkOpen(false);tracks.refetch();pending.refetch();}} employees={actives} />
     </div>
   );
+}
+
+// --- Folha Coletiva de Ponto ---
+
+function monthLabelFn(month: string) {
+  if (!month) return 'Período completo';
+  const [year, monthNumber] = month.split('-').map(Number);
+  if (!year || !monthNumber) return month;
+  const date = new Date(year, monthNumber - 1, 1);
+  const label = date.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
+function escapeHtml(value: unknown) {
+  return String(value ?? '').replace(/[&<>"]/g, (char) => ({ '&': '&', '<': '<', '>': '>', '"': '"' })[char] ?? char);
+}
+
+function downloadCollectiveSheet(month: string, visibleEmployees: Employee[], byEmpMap: Record<string, TimeTrack[]>, allEmployees: Employee[], companyData: any) {
+  const title = 'Folha Coletiva de Ponto';
+  const subtitle = monthLabelFn(month);
+  
+  const headers = ['Matrícula', 'Funcionário', 'Dep.', 'Registros', 'Faltas', 'Trabalhado', 'Saldo Geral'];
+  
+  const rows = visibleEmployees.map(emp => {
+    const tracks = byEmpMap[emp.id] || [];
+    const grid = buildGrid(month, emp, tracks);
+    
+    const validTracks = grid.map(g => g.track).filter(Boolean) as TimeTrack[];
+    const faltasCount = grid.filter(g => g.track && isFalta(g.track)).length;
+    const totalWorked = sumMin(validTracks, 'totalWorked');
+    const totalBalance = sumMin(validTracks, 'dailyBalance');
+    
+    const balanceColor = totalBalance < 0 ? '#e11d48' : totalBalance > 0 ? '#059669' : '#64748b';
+    const dept = emp.department || '-';
+    const reg = emp.registration || emp.id.slice(0,6).toUpperCase();
+    
+    return `
+      <td style="padding:4px 12px;font-size:9px;color:#64748b;font-weight:600;">${escapeHtml(reg)}</td>
+      <td style="padding:4px 12px;font-size:9px;color:#0f172a;font-weight:800;">${escapeHtml(normalizeDisplayName(emp.name))}</td>
+      <td style="padding:4px 12px;font-size:9px;color:#64748b;">${escapeHtml(dept)}</td>
+      <td style="padding:4px 12px;font-size:9px;color:#0f172a;font-weight:700;text-align:center;">${validTracks.length}</td>
+      <td style="padding:4px 12px;font-size:9px;color:#e11d48;font-weight:700;text-align:center;">${faltasCount}</td>
+      <td style="padding:4px 12px;font-size:9px;color:#0f172a;font-weight:700;text-align:center;">${escapeHtml(formatMinutes(totalWorked))}</td>
+      <td style="padding:4px 12px;font-size:9px;color:${balanceColor};font-weight:900;text-align:center;">${escapeHtml(formatMinutes(totalBalance))}</td>
+    `;
+  });
+
+  const summaryData = [
+    { label: 'Total de Colaboradores', value: String(visibleEmployees.length) },
+    { label: 'Total de Registros', value: String(visibleEmployees.reduce((acc, emp) => acc + (byEmpMap[emp.id] || []).length, 0)) },
+    { label: 'Total Faltas no Período', value: String(visibleEmployees.reduce((acc, emp) => acc + buildGrid(month, emp, byEmpMap[emp.id] || []).filter(g => g.track && isFalta(g.track)).length, 0)) },
+  ];
+
+  const html = buildPdfShell({ title, subtitle, landscape: true }, companyData || null, `
+    ${section('Resumo da Equipe', infoGrid(summaryData, 3))}
+    ${section('Consolidado de Horas', pdfTable(headers, rows, { compact: true }))}
+    ${signatureBlock(['Assinatura do Gestor', 'Recursos Humanos', 'Data de Emissão'])}
+  `);
+
+  printPdf(html, `folha-coletiva-${month}.pdf`);
 }
 
 function OcorrenciasList({ employees, byEmpMap, month, onSelect }: { employees: Employee[]; byEmpMap: Record<string,TimeTrack[]>; month: string; onSelect: (id:string)=>void }) {

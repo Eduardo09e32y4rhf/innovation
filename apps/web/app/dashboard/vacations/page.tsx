@@ -648,22 +648,24 @@ function downloadVacationReceipt(vacation: { employee?: Employee; startDate: str
   ];
 
   const body = `
-    ${section('Dados do Colaborador', infoGrid(employeeInfo))}
+    ${section('Dados do Colaborador', infoGrid(employeeInfo, 3))}
 
-    ${section('Período de Férias', `
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:2px;margin-bottom:12px;">
+    ${section('Período de Férias e Gozo', `
+      <div style="margin-bottom:16px;">
         ${infoGrid([
           { label: 'Período Aquisitivo', value: vacation.acquisitionPeriod },
-          { label: 'Início', value: formatDate(vacation.startDate) },
-          { label: 'Fim', value: formatDate(vacation.endDate) },
-        ])}
+          { label: 'Início do Gozo', value: formatDate(vacation.startDate) },
+          { label: 'Término do Gozo', value: formatDate(vacation.endDate) },
+        ], 3)}
       </div>
-      <div style="background:#f0fdfa;border:1px solid #ccfbf1;border-radius:8px;padding:24px;text-align:center;margin-top:12px;">
-        <div style="font-size:32px;font-weight:900;color:#0f172a;">${vacation.daysUsed}</div>
-        <div style="font-size:10px;font-weight:900;color:#0f766e;text-transform:uppercase;letter-spacing:0.1em;margin-top:6px;">${vacation.daysUsed === 1 ? 'Dia de Férias' : 'Dias de Férias'}</div>
+      <div style="background:#f0fdfa;border:1px solid #ccfbf1;border-radius:8px;padding:24px;text-align:center;margin-top:16px;">
+        <div style="font-size:36px;font-weight:900;color:#0f172a;letter-spacing:-0.02em;">${vacation.daysUsed}</div>
+        <div style="font-size:11px;font-weight:800;color:#0f766e;text-transform:uppercase;letter-spacing:0.1em;margin-top:8px;">${vacation.daysUsed === 1 ? 'DIA DE FÉRIAS' : 'DIAS DE FÉRIAS'}</div>
       </div>
-      ${vacation.observation ? `<div style="background:#f8fafc;padding:12px;border-radius:8px;font-size:9px;color:#475569;margin-top:12px;"><strong>Observação:</strong> ${escapeHtml(vacation.observation)}</div>` : ''}
+      ${vacation.observation ? `<div style="background:#f8fafc;padding:16px;border-radius:8px;font-size:10px;color:#475569;margin-top:16px;border:1px solid #e2e8f0;"><strong>OBSERVAÇÃO DA SOLICITAÇÃO:</strong><br/>${escapeHtml(vacation.observation)}</div>` : ''}
     `)}
+
+    ${signatureBlock(['Assinatura do Colaborador', 'Assinatura da Chefia Imediata', 'Recursos Humanos'])}
   `;
 
   const html = buildPdfShell({ title, subtitle, landscape: false }, companyInfo, body);

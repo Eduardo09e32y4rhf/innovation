@@ -45,8 +45,25 @@ test.describe('Prova Real: Funcionario validando aba Ponto', () => {
     await page.goto('/dashboard/time-track');
     await page.waitForTimeout(3000); // Dar tempo para a tabela montar
 
+    // Bater o Ponto para garantir que há marcação no dia de hoje
+    const btnBaterPonto = page.locator('a:has-text("BATER PONTO")');
+    if (await btnBaterPonto.isVisible()) {
+      await btnBaterPonto.click();
+      await page.waitForTimeout(2000);
+      
+      const btnConfirmar = page.locator('button:has-text("REGISTRAR PONTO")');
+      if (await btnConfirmar.isVisible()) {
+        await btnConfirmar.click();
+        await page.waitForTimeout(3000);
+      }
+      
+      // Voltar para a aba de Ponto
+      await page.goto('/dashboard/time-track');
+      await page.waitForTimeout(3000);
+    }
+
     // Tirar print da tabela de Ponto
-    await page.screenshot({ path: path.join(screenshotDir, '01-func-ponto-grid.png'), fullPage: true });
+    await page.screenshot({ path: path.join(screenshotDir, '01-func-ponto-grid-com-marcacao.png'), fullPage: true });
 
     // Tentar clicar na aba "Ocorrências" (agora deve estar visível!)
     const abaOcorrencias = page.locator('button:has-text("Ocorrências")').first();

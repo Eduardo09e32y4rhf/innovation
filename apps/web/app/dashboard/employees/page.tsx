@@ -413,32 +413,32 @@ function downloadEmployeeSheet(employee: Employee, rows: TimeTrack[], month: str
     </tr>`;
   }) : [];
 
-  const html = buildPdfHtml({ title: 'Folha Individual de Ponto', company, subtitle: `${monthLabelText} — ${normalizeDisplayName(employee.name)}`, landscape: false }, `
+  const html = buildPdfShell({ title: 'Folha Individual de Ponto', subtitle: `${monthLabelText} — ${normalizeDisplayName(employee.name)}`, landscape: false }, companyData, `
     ${section('Dados do Colaborador', infoGrid(employeeInfo))}
 
-    ${tableRows.length > 0 ? section('Registros de Ponto', pdfTable(tableHeaders, tableRows)) : '<p style="text-align:center;padding:24px;color:#94a3b8;font-size:10px;">Nenhum registro de ponto encontrado neste período.</p>'}
+    ${tableRows.length > 0 ? section('Registros de Ponto', pdfTable(tableHeaders, tableRows, { compact: true })) : '<p style="text-align:center;padding:24px;color:#94a3b8;font-size:10px;">Nenhum registro de ponto encontrado neste período.</p>'}
 
     ${tableRows.length > 0 ? section('Resumo do Período', `
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;">
-        <div style="background:#f0fdfa;border:1px solid #ccfbf1;border-radius:8px;padding:12px;text-align:center;">
-          <div style="font-size:7px;font-weight:900;text-transform:uppercase;color:#0f766e;">Registros</div>
-          <div style="font-size:16px;font-weight:900;color:#0f172a;margin-top:4px;">${rows.length}</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;">
+        <div style="background:#f0fdfa;border:1px solid #ccfbf1;border-radius:8px;padding:16px;text-align:center;">
+          <div style="font-size:9px;font-weight:800;text-transform:uppercase;color:#0f766e;letter-spacing:0.05em;">Registros</div>
+          <div style="font-size:20px;font-weight:900;color:#0f172a;margin-top:8px;">${rows.length}</div>
         </div>
-        <div style="background:#f0fdfa;border:1px solid #ccfbf1;border-radius:8px;padding:12px;text-align:center;">
-          <div style="font-size:7px;font-weight:900;text-transform:uppercase;color:#0f766e;">Total Trabalhado</div>
-          <div style="font-size:16px;font-weight:900;color:#0f172a;margin-top:4px;">${escapeHtml(formatMinutes(totalWorked))}</div>
+        <div style="background:#f0fdfa;border:1px solid #ccfbf1;border-radius:8px;padding:16px;text-align:center;">
+          <div style="font-size:9px;font-weight:800;text-transform:uppercase;color:#0f766e;letter-spacing:0.05em;">Trabalhado</div>
+          <div style="font-size:20px;font-weight:900;color:#0f172a;margin-top:8px;">${escapeHtml(formatMinutes(totalWorked))}</div>
         </div>
-        <div style="background:#f0fdfa;border:1px solid #ccfbf1;border-radius:8px;padding:12px;text-align:center;">
-          <div style="font-size:7px;font-weight:900;text-transform:uppercase;color:#0f766e;">Saldo Positivo</div>
-          <div style="font-size:16px;font-weight:900;color:#059669;margin-top:4px;">${escapeHtml(formatMinutes(positiveBalance))}</div>
+        <div style="background:#f0fdfa;border:1px solid #ccfbf1;border-radius:8px;padding:16px;text-align:center;">
+          <div style="font-size:9px;font-weight:800;text-transform:uppercase;color:#0f766e;letter-spacing:0.05em;">Saldo Positivo</div>
+          <div style="font-size:20px;font-weight:900;color:#059669;margin-top:8px;">${escapeHtml(formatMinutes(positiveBalance))}</div>
         </div>
-        <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px;text-align:center;">
-          <div style="font-size:7px;font-weight:900;text-transform:uppercase;color:#e11d48;">Saldo Negativo</div>
-          <div style="font-size:16px;font-weight:900;color:#e11d48;margin-top:4px;">${escapeHtml(formatMinutes(negativeBalance))}</div>
+        <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:16px;text-align:center;">
+          <div style="font-size:9px;font-weight:800;text-transform:uppercase;color:#e11d48;letter-spacing:0.05em;">Saldo Negativo</div>
+          <div style="font-size:20px;font-weight:900;color:#e11d48;margin-top:8px;">${escapeHtml(formatMinutes(negativeBalance))}</div>
         </div>
       </div>
-      <div style="margin-top:12px;background:#f8fafc;padding:12px;border-radius:8px;font-size:10px;color:#0f172a;font-weight:600;text-align:center;">
-        Saldo final do período: <span style="color:${totalBalance < 0 ? '#e11d48' : totalBalance > 0 ? '#059669' : '#64748b'};">
+      <div style="margin-top:16px;background:#f8fafc;padding:16px;border-radius:8px;font-size:12px;color:#334155;font-weight:700;text-align:center;">
+        SALDO FINAL DO PERÍODO: <span style="font-weight:900;color:${totalBalance < 0 ? '#e11d48' : totalBalance > 0 ? '#059669' : '#64748b'};">
           ${escapeHtml(formatMinutes(totalBalance))}
         </span>
       </div>
@@ -447,7 +447,7 @@ function downloadEmployeeSheet(employee: Employee, rows: TimeTrack[], month: str
     ${signatureBlock(['Assinatura do Colaborador', 'Assinatura do RH / Responsável', 'Data de Conferência'])}
   `);
 
-  printPdfDocument(html, `folha-ponto-${slugify(employee.name)}-${month}`);
+  printPdf(html, `folha-ponto-${slugify(employee.name)}-${month}.pdf`);
 }
 
 function downloadEmployeeRecord(employee: Employee, company: Company | null, managerName: string) {
@@ -472,84 +472,26 @@ function downloadEmployeeRecord(employee: Employee, company: Company | null, man
     { label: 'Status', value: EMPLOYEE_STATUS_LABEL[employee.status] || employee.status },
   ];
 
-  const html = buildPdfHtml({ title, company, subtitle: normalizeDisplayName(employee.name), landscape: false }, `
-    ${section('Dados Pessoais', infoGrid(employeeInfo))}
+  const companyData: PdfCompanyInfo | null = company ? {
+    name: company.name,
+    legalName: company.legalName,
+    document: company.document,
+    logoUrl: company.logoUrl,
+    phone: company.phone,
+    email: company.email,
+    address: [company.street, company.streetNumber, company.neighborhood, company.city, company.state, company.cep].filter(Boolean).map(String).join(', ') || undefined
+  } : null;
 
-    ${section('Dados Profissionais', infoGrid(professionalInfo))}
+  const html = buildPdfShell({ title, subtitle: normalizeDisplayName(employee.name), landscape: false }, companyData, `
+    ${section('Dados Pessoais', infoGrid(employeeInfo, 4))}
 
-    ${employee.observations ? section('Observações', `<p style="font-size:9px;color:#0f172a;">${escapeHtml(employee.observations)}</p>`) : ''}
+    ${section('Dados Profissionais', infoGrid(professionalInfo, 4))}
+
+    ${employee.observations ? section('Observações', `<p style="font-size:10px;color:#475569;">${escapeHtml(employee.observations)}</p>`) : ''}
 
     ${signatureBlock(['Assinatura do Funcionário', 'Assinatura do RH / Empresa'])}
   `);
-  printPdfDocument(html, `ficha-${slugify(employee.name)}`);
-}
-
-function buildPdfHtml(options: { title: string; company: Company | null; subtitle?: string; landscape?: boolean }, content: string) {
-  const title = options.title;
-  const company = options.company;
-  const subtitle = options.subtitle ?? '';
-  const landscape = options.landscape ?? false;
-  const emittedAt = new Date().toLocaleString('pt-BR');
-  const emittedDate = new Date().toLocaleDateString('pt-BR');
-
-  const header = `
-    <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #0f172a;padding-bottom:6px;margin-bottom:10px;page-break-inside:avoid;">
-      <div style="display:flex;align-items:center;gap:10px;">
-        ${company?.logoUrl
-          ? `<div style="width:36px;height:36px;display:flex;align-items:center;justify-content:center;"><img src="${escapeHtml(company.logoUrl)}" alt="Logo" style="max-width:36px;max-height:36px;object-fit:contain;" /></div>`
-          : `<div style="width:36px;height:36px;display:flex;align-items:center;justify-content:center;border:2px solid #0f766e;border-radius:6px;color:#0f766e;font-weight:900;font-size:10px;">RH</div>`
-        }
-        <div>
-          <div style="font-size:12px;font-weight:900;color:#0f172a;letter-spacing:-.2px;text-transform:uppercase;">${escapeHtml(company?.name || 'Empresa')}</div>
-          <div style="font-size:7px;color:#64748b;margin-top:1px;">
-            ${escapeHtml(company?.document || '-')}${company?.legalName ? ` | ${escapeHtml(company.legalName)}` : ''}
-          </div>
-          <div style="font-size:7px;color:#64748b;">${[company?.phone, company?.email].filter(Boolean).map(v => escapeHtml(v as string)).join(' | ') || ''}</div>
-        </div>
-      </div>
-      <div style="text-align:right;">
-        <div style="font-size:11px;font-weight:900;color:#0f172a;text-transform:uppercase;">${escapeHtml(title)}</div>
-        <div style="font-size:7px;color:#64748b;margin-top:2px;">${escapeHtml(subtitle)}</div>
-        <div style="font-size:7px;color:#94a3b8;margin-top:1px;">Emitido em ${escapeHtml(emittedDate)} às ${escapeHtml(emittedAt.split(', ')[1] || emittedAt)}</div>
-      </div>
-    </div>
-  `;
-
-  const footer = `
-    <div style="margin-top:12px;border-top:1px solid #e2e8f0;padding-top:6px;display:flex;justify-content:space-between;color:#94a3b8;font-size:7px;font-weight:600;">
-      <span>Innovation RH Connect</span>
-      <span>Documento gerado automaticamente</span>
-      <span>Página 1 de 1</span>
-    </div>
-  `;
-
-  const pageStyle = landscape ? '@page { size: A4 landscape; margin: 5mm 6mm; }' : '@page { size: A4; margin: 6mm 8mm; }';
-
-  return `<!doctype html>
-<html lang="pt-BR">
-<head>
-  <meta charset="utf-8" />
-  <title>${escapeHtml(title)}</title>
-  <style>
-    ${pageStyle}
-    @media print {
-      .no-print { display: none !important; }
-      .page { width: 100%; max-width: 100%; page-break-after: avoid; }
-      .print-section { break-inside: avoid; page-break-inside: avoid; }
-      table { width: 100%; border-collapse: collapse; page-break-inside: auto; }
-      thead { display: table-header-group; }
-      tfoot { display: table-footer-group; }
-      tr { page-break-inside: avoid; break-inside: avoid; }
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Segoe UI', -apple-system, Arial, sans-serif; color: #0f172a; background: #fff; font-size: 9pt; line-height: 1.4; }
-    .page { width: 100%; }
-  </style>
-</head>
-<body>
-  <main class="page">${header}${content}${footer}</main>
-</body>
-</html>`;
+  printPdf(html, `ficha-${slugify(employee.name)}.pdf`);
 }
 
 function monthLabelFn(month: string) {
@@ -574,20 +516,4 @@ function accessText(employee: Employee) {
   if (!employee.user.isActive) return 'Bloqueado';
   if (employee.user.forcePasswordChange) return 'Trocar senha';
   return 'Acesso ativo';
-}
-
-function printPdfDocument(html: string, title: string) {
-  const win = window.open('', '_blank');
-  if (!win) {
-    window.alert('Não foi possível gerar o PDF. Verifique se o navegador bloqueou pop-ups.');
-    return;
-  }
-  win.document.open();
-  win.document.write(html);
-  win.document.close();
-  win.onload = () => {
-    win.focus();
-    win.print();
-    window.setTimeout(() => win.close(), 1000);
-  };
 }
