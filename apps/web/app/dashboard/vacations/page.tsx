@@ -69,6 +69,10 @@ export default function VacationsPage() {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<'active' | 'rejected' | 'history'>('active');
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
+  
+  // Receipt Sub-Modal State
+  const [receiptModalRow, setReceiptModalRow] = useState<typeof rows[0] | null>(null);
+  const [receiptData, setReceiptData] = useState({ remuneracao: '', abono: '', descontos: '', adicionais: '' });
 
   const updateStatus = useMutation(
     ({ id, status }: { id: string; status: VacationStatus }) => api.vacations.updateStatus(id, status),
@@ -147,7 +151,14 @@ export default function VacationsPage() {
   }
 
   function handleDownloadReceipt(row: typeof rows[0]) {
-    downloadVacationReceipt(row, company.data ?? null);
+    setReceiptModalRow(row);
+    setReceiptData({ remuneracao: '', abono: '', descontos: '', adicionais: '' });
+  }
+
+  function handleConfirmDownloadReceipt() {
+    if (!receiptModalRow) return;
+    downloadVacationReceipt(receiptModalRow, company.data ?? null, receiptData);
+    setReceiptModalRow(null);
   }
 
   const displayRows = tab === 'active' ? activeRows : tab === 'rejected' ? rejectedRows : historyRows;
@@ -371,6 +382,51 @@ export default function VacationsPage() {
             vacations.refetch();
           }}
         />
+      )}
+
+      {/* Financial Data Receipt Sub-Modal */}
+      {receiptModalRow && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-[20px] bg-white p-6 shadow-2xl">
+            <div className="mb-6 flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-black text-slate-900">Gerar Recibo Oficial</h3>
+                <p className="text-xs text-slate-500">Insira os valores para impressão do recibo legal</p>
+              </div>
+              <button onClick={() => setReceiptModalRow(null)} className="rounded-full p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600">
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="mb-1 block text-[11px] font-bold text-slate-700">Remuneração Base (R$)</label>
+                <input type="number" step="0.01" value={receiptData.remuneracao} onChange={e => setReceiptData({...receiptData, remuneracao: e.target.value})} className="w-full rounded-[10px] border border-slate-200 bg-slate-50 p-2.5 text-sm font-medium outline-none transition-all focus:border-teal-500 focus:bg-white focus:ring-4 focus:ring-teal-500/10" placeholder="0.00" />
+              </div>
+              <div>
+                <label className="mb-1 block text-[11px] font-bold text-slate-700">Abono Pecuniário (R$)</label>
+                <input type="number" step="0.01" value={receiptData.abono} onChange={e => setReceiptData({...receiptData, abono: e.target.value})} className="w-full rounded-[10px] border border-slate-200 bg-slate-50 p-2.5 text-sm font-medium outline-none transition-all focus:border-teal-500 focus:bg-white focus:ring-4 focus:ring-teal-500/10" placeholder="0.00" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="mb-1 block text-[11px] font-bold text-slate-700">Outros Proventos (R$)</label>
+                  <input type="number" step="0.01" value={receiptData.adicionais} onChange={e => setReceiptData({...receiptData, adicionais: e.target.value})} className="w-full rounded-[10px] border border-slate-200 bg-slate-50 p-2.5 text-sm font-medium outline-none transition-all focus:border-teal-500 focus:bg-white focus:ring-4 focus:ring-teal-500/10" placeholder="0.00" />
+                </div>
+                <div>
+                  <label className="mb-1 block text-[11px] font-bold text-slate-700">Total Descontos (R$)</label>
+                  <input type="number" step="0.01" value={receiptData.descontos} onChange={e => setReceiptData({...receiptData, descontos: e.target.value})} className="w-full rounded-[10px] border border-slate-200 bg-slate-50 p-2.5 text-sm font-medium outline-none transition-all focus:border-teal-500 focus:bg-white focus:ring-4 focus:ring-teal-500/10" placeholder="0.00" />
+                </div>
+              </div>
+            </div>
+            
+            <div className="mt-6 flex justify-end gap-3">
+              <button onClick={() => setReceiptModalRow(null)} className="btn-outline-premium h-10 px-4 text-xs font-black">Cancelar</button>
+              <button onClick={handleConfirmDownloadReceipt} className="btn-premium h-10 px-4 text-xs font-black">
+                Gerar Recibo Oficial PDF
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
@@ -622,7 +678,7 @@ function NewVacationModal({
 
 // ─── PDF RECEIPT ─────────────────────────────────────────────────────────────
 
-function downloadVacationReceipt(vacation: { employee?: Employee; startDate: string; endDate: string; acquisitionPeriod: string; daysUsed: number; status: VacationStatus; observation?: string }, companyData: Company | null) {
+function downloadVacationReceipt(vacation: { employee?: Employee; startDate: string; endDate: string; acquisitionPeriod: string; daysUsed: number; status: VacationStatus; observation?: string }, companyData: Company | null, financial: { remuneracao: string, abono: string, descontos: string, adicionais: string }) {
   const employee = vacation.employee;
   const companyInfo: PdfCompanyInfo | null = companyData
     ? {
@@ -635,37 +691,116 @@ function downloadVacationReceipt(vacation: { employee?: Employee; startDate: str
       }
     : null;
 
-  const title = 'Recibo de Férias';
-  const subtitle = VACATION_STATUS_LABEL[vacation.status] || vacation.status;
+  const title = 'Aviso e Recibo de Férias';
+  const subtitle = 'Documento Oficial';
 
   const employeeInfo = [
-    { label: 'Nome', value: normalizeDisplayName(employee?.name || '—') },
-    { label: 'CPF', value: employee?.cpf || '-' },
-    { label: 'Cargo', value: employee?.position || '-' },
-    { label: 'Departamento', value: employee?.department || '-' },
+    { label: 'Nome Completo', value: normalizeDisplayName(employee?.name || '—') },
     { label: 'Matrícula', value: employee?.registration || (employee?.id ? employee.id.slice(0, 8).toUpperCase() : '-') },
+    { label: 'Cargo', value: employee?.position || '-' },
+    { label: 'CPF', value: employee?.cpf || '-' },
+    { label: 'CTPS', value: '-' }, // Field not in schema yet
     { label: 'Admissão', value: formatDate(employee?.admissionDate) },
   ];
 
+  // Cálculos Básicos
+  const remuneracao = parseFloat(financial.remuneracao) || 0;
+  const abono = parseFloat(financial.abono) || 0;
+  const adicionais = parseFloat(financial.adicionais) || 0;
+  const descontos = parseFloat(financial.descontos) || 0;
+  
+  const tercoFérias = remuneracao / 3;
+  const tercoAbono = abono > 0 ? abono / 3 : 0;
+  
+  const totalProventos = remuneracao + tercoFérias + abono + tercoAbono + adicionais;
+  const liquido = totalProventos - descontos;
+
+  const BRL = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+  const financialTable = `
+    <table style="width:100%;border-collapse:collapse;margin-top:8px;font-family:Inter,sans-serif;">
+      <thead>
+        <tr>
+          <th style="padding:10px;text-align:left;font-size:10px;font-weight:800;color:#475569;border-bottom:2px solid #cbd5e1;">Descrição / Rubrica</th>
+          <th style="padding:10px;text-align:right;font-size:10px;font-weight:800;color:#059669;border-bottom:2px solid #cbd5e1;">Vencimentos (R$)</th>
+          <th style="padding:10px;text-align:right;font-size:10px;font-weight:800;color:#e11d48;border-bottom:2px solid #cbd5e1;">Descontos (R$)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td style="padding:10px;font-size:10px;color:#0f172a;border-bottom:1px solid #f1f5f9;">Remuneração de Férias (${vacation.daysUsed} dias)</td>
+          <td style="padding:10px;text-align:right;font-size:10px;font-weight:600;color:#0f172a;border-bottom:1px solid #f1f5f9;">${BRL(remuneracao)}</td>
+          <td style="padding:10px;text-align:right;font-size:10px;color:#94a3b8;border-bottom:1px solid #f1f5f9;">-</td>
+        </tr>
+        <tr>
+          <td style="padding:10px;font-size:10px;color:#0f172a;border-bottom:1px solid #f1f5f9;">1/3 Constitucional s/ Férias</td>
+          <td style="padding:10px;text-align:right;font-size:10px;font-weight:600;color:#0f172a;border-bottom:1px solid #f1f5f9;">${BRL(tercoFérias)}</td>
+          <td style="padding:10px;text-align:right;font-size:10px;color:#94a3b8;border-bottom:1px solid #f1f5f9;">-</td>
+        </tr>
+        ${abono > 0 ? `
+        <tr>
+          <td style="padding:10px;font-size:10px;color:#0f172a;border-bottom:1px solid #f1f5f9;">Abono Pecuniário</td>
+          <td style="padding:10px;text-align:right;font-size:10px;font-weight:600;color:#0f172a;border-bottom:1px solid #f1f5f9;">${BRL(abono)}</td>
+          <td style="padding:10px;text-align:right;font-size:10px;color:#94a3b8;border-bottom:1px solid #f1f5f9;">-</td>
+        </tr>
+        <tr>
+          <td style="padding:10px;font-size:10px;color:#0f172a;border-bottom:1px solid #f1f5f9;">1/3 Constitucional s/ Abono</td>
+          <td style="padding:10px;text-align:right;font-size:10px;font-weight:600;color:#0f172a;border-bottom:1px solid #f1f5f9;">${BRL(tercoAbono)}</td>
+          <td style="padding:10px;text-align:right;font-size:10px;color:#94a3b8;border-bottom:1px solid #f1f5f9;">-</td>
+        </tr>
+        ` : ''}
+        ${adicionais > 0 ? `
+        <tr>
+          <td style="padding:10px;font-size:10px;color:#0f172a;border-bottom:1px solid #f1f5f9;">Outros Proventos/Adicionais</td>
+          <td style="padding:10px;text-align:right;font-size:10px;font-weight:600;color:#0f172a;border-bottom:1px solid #f1f5f9;">${BRL(adicionais)}</td>
+          <td style="padding:10px;text-align:right;font-size:10px;color:#94a3b8;border-bottom:1px solid #f1f5f9;">-</td>
+        </tr>
+        ` : ''}
+        ${descontos > 0 ? `
+        <tr>
+          <td style="padding:10px;font-size:10px;color:#0f172a;border-bottom:1px solid #f1f5f9;">INSS / IRRF / Outros Descontos</td>
+          <td style="padding:10px;text-align:right;font-size:10px;color:#94a3b8;border-bottom:1px solid #f1f5f9;">-</td>
+          <td style="padding:10px;text-align:right;font-size:10px;font-weight:600;color:#e11d48;border-bottom:1px solid #f1f5f9;">${BRL(descontos)}</td>
+        </tr>
+        ` : ''}
+      </tbody>
+      <tfoot>
+        <tr>
+          <td style="padding:12px 10px;font-size:10px;font-weight:800;color:#0f172a;text-align:right;">TOTAIS:</td>
+          <td style="padding:12px 10px;text-align:right;font-size:12px;font-weight:900;color:#059669;background:#f0fdfa;">${BRL(totalProventos)}</td>
+          <td style="padding:12px 10px;text-align:right;font-size:12px;font-weight:900;color:#e11d48;background:#fef2f2;">${BRL(descontos)}</td>
+        </tr>
+      </tfoot>
+    </table>
+    <div style="background:#f8fafc;border:1px solid #cbd5e1;border-radius:8px;padding:16px;text-align:center;margin-top:16px;">
+      <div style="font-size:10px;font-weight:800;text-transform:uppercase;color:#475569;letter-spacing:0.05em;">Líquido a Receber</div>
+      <div style="font-size:24px;font-weight:900;color:#0f172a;margin-top:4px;">${BRL(liquido)}</div>
+    </div>
+  `;
+
   const body = `
+    <p style="font-size:10px;color:#475569;text-align:justify;margin-bottom:20px;line-height:1.6;">Nos termos das disposições legais vigentes, comunicamos que lhe serão concedidas férias relativas ao período aquisitivo especificado abaixo. Solicitamos apor sua assinatura neste aviso e recibo.</p>
+    
     ${section('Dados do Colaborador', infoGrid(employeeInfo, 3))}
 
-    ${section('Período de Férias e Gozo', `
+    ${section('Período de Férias', `
       <div style="margin-bottom:16px;">
         ${infoGrid([
           { label: 'Período Aquisitivo', value: vacation.acquisitionPeriod },
           { label: 'Início do Gozo', value: formatDate(vacation.startDate) },
           { label: 'Término do Gozo', value: formatDate(vacation.endDate) },
-        ], 3)}
+          { label: 'Dias Gozados', value: String(vacation.daysUsed) },
+        ], 4)}
       </div>
-      <div style="background:#f0fdfa;border:1px solid #ccfbf1;border-radius:8px;padding:24px;text-align:center;margin-top:16px;">
-        <div style="font-size:36px;font-weight:900;color:#0f172a;letter-spacing:-0.02em;">${vacation.daysUsed}</div>
-        <div style="font-size:11px;font-weight:800;color:#0f766e;text-transform:uppercase;letter-spacing:0.1em;margin-top:8px;">${vacation.daysUsed === 1 ? 'DIA DE FÉRIAS' : 'DIAS DE FÉRIAS'}</div>
-      </div>
-      ${vacation.observation ? `<div style="background:#f8fafc;padding:16px;border-radius:8px;font-size:10px;color:#475569;margin-top:16px;border:1px solid #e2e8f0;"><strong>OBSERVAÇÃO DA SOLICITAÇÃO:</strong><br/>${escapeHtml(vacation.observation)}</div>` : ''}
     `)}
 
-    ${signatureBlock(['Assinatura do Colaborador', 'Assinatura da Chefia Imediata', 'Recursos Humanos'])}
+    ${section('Demonstrativo de Valores', financialTable)}
+    
+    <div style="font-size:10px;color:#475569;text-align:center;margin:32px 0;">
+      Recebi da empresa a importância líquida de <strong>${BRL(liquido)}</strong> constante neste recibo, da qual dou plena e geral quitação.
+    </div>
+
+    ${signatureBlock(['Assinatura do Empregado', 'Local e Data', 'Empregador / RH'])}
   `;
 
   const html = buildPdfShell({ title, subtitle, landscape: false }, companyInfo, body);

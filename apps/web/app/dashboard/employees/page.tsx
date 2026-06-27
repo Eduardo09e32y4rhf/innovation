@@ -380,12 +380,86 @@ function getAsoAlert(status: string, expirationDate?: string | null): { label: s
 
 // ─── DOWNLOAD FUNCTIONS ──────────────────────────────────────────────────────
 
+function daysInMonth(y: number, m: number) { return new Date(Date.UTC(y,m+1,0)).getUTCDate(); }
+function isCycle(date: Date, emp: Employee, work: number, off: number) {
+  const adm = emp.admissionDate ? new Date(emp.admissionDate) : new Date('2020-01-01');
+  const a = Date.UTC(adm.getUTCFullYear(), adm.getUTCMonth(), adm.getUTCDate());
+  const b = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+  const diff = Math.floor((b-a)/864e5);
+  if (diff<0) return false;
+  return (diff%(work+off)) >= work;
+}
+function isRestDay(date: Date, emp: Employee): boolean {
+  const wd = date.getUTCDay();
+  const s = emp.workScale; const c = emp.customWorkScale;
+  if (s==='5X2') return wd===0||wd===6;
+  if (s==='6X1') return wd===0;
+  if (s==='4X2') return isCycle(date,emp,4,2);
+  if (s==='12X36') return isCycle(date,emp,1,1);
+  if (s==='OUTRO' && c) {
+    const m = c.match(/(\d+)X(\d+)/i);
+    if (m) return isCycle(date,emp,parseInt(m[1],10),parseInt(m[2],10));
+  }
+  return wd===0;
+}
+function isAntesAdmissao(key: string, emp: Employee): boolean {
+  if (!emp.admissionDate) return false;
+  return key < emp.admissionDate.slice(0,10);
+}
+function toDateKey(v?: string | null) { return v ? v.slice(0,10) : ''; }
+
+function buildGrid(month: string, emp: Employee, tracks: TimeTrack[]) {
+  const [y,m] = month.split('-').map(Number); if (!y||!m) return [];
+  const total = daysInMonth(y,m-1);
+  const today = new Date().toISOString().slice(0,10);
+  const map = new Map<string, TimeTrack>();
+  for (const t of tracks) map.set(toDateKey(t.date), t);
+  const g: any[] = [];
+  for (let d=1; d<=total; d++) {
+    const date = new Date(Date.UTC(y,m-1,d));
+    const key = date.toISOString().slice(0,10);
+    g.push({date,key,day:d,wd:date.getUTCDay(),isRest: isRestDay(date,emp),isFuture: key>today,antesAdmissao: isAntesAdmissao(key,emp), track: map.get(key)});
+  }
+  return g;
+}
+
+function isFalta(row: TimeTrack) {
+  if (row.entry || row.exit) return false;
+  const o = (row.observation ?? '').toLowerCase();
+  return !o.includes('atestado') && !o.includes('feriado') && !o.includes('folga') && !o.includes('suspensao') && !o.includes('suspensão');
+}
+
+function dayStatus(row: TimeTrack) {
+  if (row.manualStatus==='revoked') return 'REVOGADO';
+  const o = (row.observation ?? '').toLowerCase();
+  if (o.includes('atestado integral')) return 'ATESTADO';
+  if (o.includes('atestado') && o.includes('horas')) return 'ATESTADO (HORAS)';
+  if (o.includes('suspensao') || o.includes('suspensão')) return 'SUSPENSÃO';
+  if (o.includes('feriado')) return 'FERIADO';
+  if (o.includes('folga extra')) return 'FOLGA EXTRA';
+  if (o.includes('folga banco')) return 'FOLGA BANCO';
+  if (o.includes('folga')) return 'FOLGA';
+  const r = (row.manualReason ?? '').toLowerCase();
+  if (r.includes('atestado integral')) return 'ATESTADO';
+  if (r.includes('feriado')) return 'FERIADO';
+  if (r.includes('folga dsr')) return 'FOLGA';
+  if (row.manualStatus==='pending') return 'PENDENTE';
+  if (row.manualStatus==='rejected') return 'REJEITADO';
+  if (row.manualReason || o.includes('ajuste')) return 'AJUSTE MANUAL';
+  if (!row.entry && !row.exit) return 'FALTA';
+  return 'NORMAL';
+}
+
 function downloadEmployeeSheet(employee: Employee, rows: TimeTrack[], month: string, company: Company | null, managerName: string) {
   const monthLabelText = monthLabelFn(month);
-  const totalWorked = rows.reduce((t, r) => t + (r.totalWorked ?? 0), 0);
-  const totalBalance = rows.reduce((t, r) => t + (r.dailyBalance ?? 0), 0);
-  const positiveBalance = rows.reduce((t, r) => t + Math.max(r.dailyBalance ?? 0, 0), 0);
-  const negativeBalance = rows.reduce((t, r) => t + Math.abs(Math.min(r.dailyBalance ?? 0, 0)), 0);
+  const grid = buildGrid(month, employee, rows);
+  
+  const validTracks = grid.map(g => g.track).filter(Boolean) as TimeTrack[];
+  const totalWorked = validTracks.reduce((t, r) => t + (r.totalWorked ?? 0), 0);
+  const totalBalance = validTracks.reduce((t, r) => t + (r.dailyBalance ?? 0), 0);
+  const positiveBalance = validTracks.reduce((t, r) => t + Math.max(r.dailyBalance ?? 0, 0), 0);
+  const negativeBalance = validTracks.reduce((t, r) => t + Math.abs(Math.min(r.dailyBalance ?? 0, 0)), 0);
+  const faltasCount = grid.filter(g => g.track && isFalta(g.track)).length;
 
   const employeeInfo = [
     { label: 'Nome', value: normalizeDisplayName(employee.name) },
@@ -398,51 +472,91 @@ function downloadEmployeeSheet(employee: Employee, rows: TimeTrack[], month: str
     { label: 'Período', value: monthLabelText },
   ];
 
-  const tableHeaders = ['Data', 'Entrada', 'Almoço', 'Saída', 'Trabalhado', 'Saldo', 'Observação'];
-  const tableRows = rows.length > 0 ? rows.map((row) => {
-    const balance = row.dailyBalance ?? 0;
+  const tableHeaders = ['Data', 'Entrada', 'Saída Almoço', 'Retorno Almoço', 'Saída', 'Trabalhado', 'Saldo', 'Ocorrência', 'Assinatura Diária'];
+  const tableRows = grid.map((g) => {
+    const WEEKDAYS = ['DOM','SEG','TER','QUA','QUI','SEX','SÁB'];
+    const wd = WEEKDAYS[g.wd];
+    const dateStr = `${String(g.day).padStart(2,'0')} - ${wd}`;
+
+    if (g.isFuture) {
+      return `<tr><td style="padding:4px 8px;font-size:8px;color:#cbd5e1;">${dateStr}</td><td colspan="8" style="padding:4px 8px;font-size:8px;color:#cbd5e1;text-align:center;">—</td></tr>`;
+    }
+    if (g.antesAdmissao) {
+      return `<tr><td style="padding:4px 8px;font-size:8px;color:#94a3b8;">${dateStr}</td><td colspan="8" style="padding:4px 8px;font-size:8px;color:#94a3b8;text-align:center;">ANTES DA ADMISSÃO</td></tr>`;
+    }
+
+    const t = g.track;
+    if (!t) {
+      if (g.isRest) return `<tr><td style="padding:4px 8px;font-size:8px;color:#64748b;">${dateStr}</td><td colspan="8" style="padding:4px 8px;font-size:8px;color:#64748b;text-align:center;font-weight:700;">DSR / FOLGA</td></tr>`;
+      return `<tr><td style="padding:4px 8px;font-size:8px;color:#e11d48;font-weight:600;">${dateStr}</td><td colspan="8" style="padding:4px 8px;font-size:8px;color:#e11d48;text-align:center;font-weight:700;">FALTA NÃO JUSTIFICADA</td></tr>`;
+    }
+
+    const balance = t.dailyBalance ?? 0;
     const balanceColor = balance < 0 ? '#e11d48' : balance > 0 ? '#059669' : '#64748b';
+    const hasMissing = !t.entry || !t.exit;
+    let ocorrencia = dayStatus(t);
+    if (ocorrencia === 'NORMAL' && hasMissing) ocorrencia = 'FALTA DE MARCAÇÃO';
+    
+    // Almoço dummy split (if there is an observation with lunch time, we can parse it, else just leave empty or show the format)
+    // The current TimeTrack model only has entry and exit. It doesn't have 4 punches yet. We leave lunch blank or '--:--'.
+    
     return `<tr>
-      <td style="padding:8px 10px;font-size:8px;font-weight:600;color:#0f172a;">${escapeHtml(formatDate(row.date))}</td>
-      <td style="padding:8px 10px;font-size:8px;color:#64748b;">${escapeHtml(formatTime(row.entry))}</td>
-      <td style="padding:8px 10px;font-size:8px;color:#64748b;">${escapeHtml(displayLunch(row))}</td>
-      <td style="padding:8px 10px;font-size:8px;font-weight:600;color:#0f172a;">${escapeHtml(formatTime(row.exit))}</td>
-      <td style="padding:8px 10px;font-size:8px;font-weight:700;color:#0f172a;text-align:center;">${escapeHtml(formatMinutes(row.totalWorked))}</td>
-      <td style="padding:8px 10px;font-size:8px;font-weight:700;color:${balanceColor};text-align:center;">${escapeHtml(formatMinutes(balance))}</td>
-      <td style="padding:8px 10px;font-size:8px;color:#64748b;">${escapeHtml(row.observation || row.manualReason || '-')}</td>
+      <td style="padding:4px 8px;font-size:8px;font-weight:600;color:#0f172a;">${dateStr}</td>
+      <td style="padding:4px 8px;font-size:8px;color:#334155;text-align:center;">${escapeHtml(formatTime(t.entry))}</td>
+      <td style="padding:4px 8px;font-size:8px;color:#94a3b8;text-align:center;">--:--</td>
+      <td style="padding:4px 8px;font-size:8px;color:#94a3b8;text-align:center;">--:--</td>
+      <td style="padding:4px 8px;font-size:8px;color:#334155;text-align:center;">${escapeHtml(formatTime(t.exit))}</td>
+      <td style="padding:4px 8px;font-size:8px;font-weight:700;color:#0f172a;text-align:center;">${escapeHtml(formatMinutes(t.totalWorked))}</td>
+      <td style="padding:4px 8px;font-size:8px;font-weight:700;color:${balanceColor};text-align:center;">${escapeHtml(formatMinutes(balance))}</td>
+      <td style="padding:4px 8px;font-size:7px;color:#64748b;">${escapeHtml(ocorrencia !== 'NORMAL' ? ocorrencia : '')}</td>
+      <td style="padding:4px 8px;font-size:8px;color:#cbd5e1;border-bottom:1px dashed #e2e8f0;"></td>
     </tr>`;
-  }) : [];
+  });
 
-  const html = buildPdfShell({ title: 'Folha Individual de Ponto', subtitle: `${monthLabelText} — ${normalizeDisplayName(employee.name)}`, landscape: false }, companyData, `
-    ${section('Dados do Colaborador', infoGrid(employeeInfo))}
+  const companyData: PdfCompanyInfo | null = company ? {
+    name: company.name,
+    legalName: company.legalName,
+    document: company.document,
+    logoUrl: company.logoUrl,
+    phone: company.phone,
+    email: company.email,
+    address: [(company as any).street, (company as any).streetNumber, (company as any).neighborhood, (company as any).city, (company as any).state, (company as any).cep].filter(Boolean).map(String).join(', ') || undefined
+  } : null;
 
-    ${tableRows.length > 0 ? section('Registros de Ponto', pdfTable(tableHeaders, tableRows, { compact: true })) : '<p style="text-align:center;padding:24px;color:#94a3b8;font-size:10px;">Nenhum registro de ponto encontrado neste período.</p>'}
+  const html = buildPdfShell({ title: 'Espelho de Ponto Oficial', subtitle: `${monthLabelText} — ${normalizeDisplayName(employee.name)}`, landscape: false }, companyData, `
+    ${section('Dados do Colaborador', infoGrid(employeeInfo, 4))}
 
-    ${tableRows.length > 0 ? section('Resumo do Período', `
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;">
-        <div style="background:#f0fdfa;border:1px solid #ccfbf1;border-radius:8px;padding:16px;text-align:center;">
-          <div style="font-size:9px;font-weight:800;text-transform:uppercase;color:#0f766e;letter-spacing:0.05em;">Registros</div>
-          <div style="font-size:20px;font-weight:900;color:#0f172a;margin-top:8px;">${rows.length}</div>
+    ${section('Registros de Ponto Diário', pdfTable(tableHeaders, tableRows, { compact: true }))}
+
+    ${section('Resumo do Período', `
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;">
+        <div style="background:#f0fdfa;border:1px solid #ccfbf1;border-radius:8px;padding:12px;text-align:center;">
+          <div style="font-size:8px;font-weight:800;text-transform:uppercase;color:#0f766e;letter-spacing:0.05em;">Dias Trabalhados</div>
+          <div style="font-size:16px;font-weight:900;color:#0f172a;margin-top:4px;">${validTracks.length}</div>
         </div>
-        <div style="background:#f0fdfa;border:1px solid #ccfbf1;border-radius:8px;padding:16px;text-align:center;">
-          <div style="font-size:9px;font-weight:800;text-transform:uppercase;color:#0f766e;letter-spacing:0.05em;">Trabalhado</div>
-          <div style="font-size:20px;font-weight:900;color:#0f172a;margin-top:8px;">${escapeHtml(formatMinutes(totalWorked))}</div>
+        <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px;text-align:center;">
+          <div style="font-size:8px;font-weight:800;text-transform:uppercase;color:#e11d48;letter-spacing:0.05em;">Faltas Integrais</div>
+          <div style="font-size:16px;font-weight:900;color:#e11d48;margin-top:4px;">${faltasCount}</div>
         </div>
-        <div style="background:#f0fdfa;border:1px solid #ccfbf1;border-radius:8px;padding:16px;text-align:center;">
-          <div style="font-size:9px;font-weight:800;text-transform:uppercase;color:#0f766e;letter-spacing:0.05em;">Saldo Positivo</div>
-          <div style="font-size:20px;font-weight:900;color:#059669;margin-top:8px;">${escapeHtml(formatMinutes(positiveBalance))}</div>
+        <div style="background:#f0fdfa;border:1px solid #ccfbf1;border-radius:8px;padding:12px;text-align:center;">
+          <div style="font-size:8px;font-weight:800;text-transform:uppercase;color:#0f766e;letter-spacing:0.05em;">Total Horas</div>
+          <div style="font-size:16px;font-weight:900;color:#0f172a;margin-top:4px;">${escapeHtml(formatMinutes(totalWorked))}</div>
         </div>
-        <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:16px;text-align:center;">
-          <div style="font-size:9px;font-weight:800;text-transform:uppercase;color:#e11d48;letter-spacing:0.05em;">Saldo Negativo</div>
-          <div style="font-size:20px;font-weight:900;color:#e11d48;margin-top:8px;">${escapeHtml(formatMinutes(negativeBalance))}</div>
+        <div style="background:#f0fdfa;border:1px solid #ccfbf1;border-radius:8px;padding:12px;text-align:center;">
+          <div style="font-size:8px;font-weight:800;text-transform:uppercase;color:#0f766e;letter-spacing:0.05em;">Horas Extras</div>
+          <div style="font-size:16px;font-weight:900;color:#059669;margin-top:4px;">${escapeHtml(formatMinutes(positiveBalance))}</div>
+        </div>
+        <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px;text-align:center;">
+          <div style="font-size:8px;font-weight:800;text-transform:uppercase;color:#e11d48;letter-spacing:0.05em;">Horas Atraso</div>
+          <div style="font-size:16px;font-weight:900;color:#e11d48;margin-top:4px;">${escapeHtml(formatMinutes(negativeBalance))}</div>
         </div>
       </div>
-      <div style="margin-top:16px;background:#f8fafc;padding:16px;border-radius:8px;font-size:12px;color:#334155;font-weight:700;text-align:center;">
-        SALDO FINAL DO PERÍODO: <span style="font-weight:900;color:${totalBalance < 0 ? '#e11d48' : totalBalance > 0 ? '#059669' : '#64748b'};">
+      <div style="margin-top:16px;background:#f8fafc;padding:16px;border-radius:8px;font-size:12px;color:#334155;font-weight:700;text-align:center;border:1px solid #e2e8f0;">
+        SALDO DO BANCO DE HORAS NESTE MÊS: <span style="font-weight:900;color:${totalBalance < 0 ? '#e11d48' : totalBalance > 0 ? '#059669' : '#64748b'};">
           ${escapeHtml(formatMinutes(totalBalance))}
         </span>
       </div>
-    `) : ''}
+    `)}
 
     ${signatureBlock(['Assinatura do Colaborador', 'Assinatura do RH / Responsável', 'Data de Conferência'])}
   `);
@@ -451,25 +565,51 @@ function downloadEmployeeSheet(employee: Employee, rows: TimeTrack[], month: str
 }
 
 function downloadEmployeeRecord(employee: Employee, company: Company | null, managerName: string) {
-  const title = 'Ficha de Funcionário';
-  const employeeInfo = [
-    { label: 'Nome', value: normalizeDisplayName(employee.name) },
-    { label: 'CPF', value: employee.cpf || '-' },
-    { label: 'RG', value: employee.rg || '-' },
+  const title = 'Ficha de Registro de Empregado';
+  const personalInfo = [
+    { label: 'Nome Completo', value: normalizeDisplayName(employee.name) },
     { label: 'Data de Nascimento', value: formatDate(employee.birthDate) },
-    { label: 'Telefone', value: employee.phone || '-' },
+    { label: 'Estado Civil', value: employee.maritalStatus || '-' },
+    { label: 'Nacionalidade', value: employee.nationality || '-' },
+    { label: 'Naturalidade', value: employee.birthplace || '-' },
+    { label: 'Telefone Principal', value: employee.phone || '-' },
+    { label: 'Telefone Secundário', value: employee.secondaryPhone || '-' },
     { label: 'E-mail', value: employee.email || '-' },
-    { label: 'Endereço', value: [employee.street, employee.streetNumber, employee.neighborhood, employee.city, employee.state, employee.cep].filter(Boolean).map(String).join(', ') || '-' },
   ];
 
-  const professionalInfo = [
+  const docsInfo = [
+    { label: 'CPF', value: employee.cpf || '-' },
+    { label: 'RG', value: employee.rg || '-' },
+    { label: 'Órgão Emissor/UF', value: employee.rgIssuer ? `${employee.rgIssuer}/${employee.rgState || '-'}` : '-' },
+  ];
+
+  const addressInfo = [
+    { label: 'CEP', value: employee.cep || '-' },
+    { label: 'Logradouro', value: employee.street || '-' },
+    { label: 'Número', value: employee.streetNumber || '-' },
+    { label: 'Complemento', value: employee.addressComplement || '-' },
+    { label: 'Bairro', value: employee.neighborhood || '-' },
+    { label: 'Cidade/UF', value: employee.city ? `${employee.city}/${employee.state || '-'}` : '-' },
+  ];
+
+  const contractInfo = [
+    { label: 'Matrícula', value: employee.registration || '-' },
     { label: 'Cargo', value: employee.position || '-' },
     { label: 'Departamento', value: employee.department || '-' },
-    { label: 'Operação', value: '-' },
-    { label: 'Unidade', value: employee.unit || '-' },
+    { label: 'Unidade/Filial', value: employee.unit || '-' },
     { label: 'Gestor', value: managerName || '-' },
     { label: 'Admissão', value: formatDate(employee.admissionDate) },
+    { label: 'Demissão', value: formatDate(employee.terminationDate) || '-' },
     { label: 'Status', value: EMPLOYEE_STATUS_LABEL[employee.status] || employee.status },
+    { label: 'Tipo de Contrato', value: employee.contractType || '-' },
+    { label: 'Salário Base (R$)', value: employee.salary ? Number(employee.salary).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : '-' },
+  ];
+
+  const timeInfo = [
+    { label: 'Escala Oficial', value: employee.customWorkScale || employee.workScale || '-' },
+    { label: 'Carga Horária Diária', value: employee.dailyWorkload || '-' },
+    { label: 'Horário Padrão', value: (employee.standardEntry && employee.standardExit) ? `${employee.standardEntry} às ${employee.standardExit}` : '-' },
+    { label: 'Horário de Almoço', value: (employee.standardLunchStart && employee.standardLunchReturn) ? `${employee.standardLunchStart} às ${employee.standardLunchReturn}` : '-' },
   ];
 
   const companyData: PdfCompanyInfo | null = company ? {
@@ -479,19 +619,20 @@ function downloadEmployeeRecord(employee: Employee, company: Company | null, man
     logoUrl: company.logoUrl,
     phone: company.phone,
     email: company.email,
-    address: [company.street, company.streetNumber, company.neighborhood, company.city, company.state, company.cep].filter(Boolean).map(String).join(', ') || undefined
+    address: [(company as any).street, (company as any).streetNumber, (company as any).neighborhood, (company as any).city, (company as any).state, (company as any).cep].filter(Boolean).map(String).join(', ') || undefined
   } : null;
 
   const html = buildPdfShell({ title, subtitle: normalizeDisplayName(employee.name), landscape: false }, companyData, `
-    ${section('Dados Pessoais', infoGrid(employeeInfo, 4))}
+    ${section('Dados Pessoais', infoGrid(personalInfo, 4))}
+    ${section('Documentação', infoGrid(docsInfo, 3))}
+    ${section('Endereço', infoGrid(addressInfo, 3))}
+    ${section('Dados do Contrato / Vínculo', infoGrid(contractInfo, 4))}
+    ${section('Jornada e Escala de Trabalho', infoGrid(timeInfo, 4))}
+    ${employee.observations ? section('Observações e Anotações', `<p style="font-size:10px;color:#475569;">${escapeHtml(employee.observations)}</p>`) : ''}
 
-    ${section('Dados Profissionais', infoGrid(professionalInfo, 4))}
-
-    ${employee.observations ? section('Observações', `<p style="font-size:10px;color:#475569;">${escapeHtml(employee.observations)}</p>`) : ''}
-
-    ${signatureBlock(['Assinatura do Funcionário', 'Assinatura do RH / Empresa'])}
+    ${signatureBlock(['Assinatura do Funcionário', 'Assinatura do RH / Empregador'])}
   `);
-  printPdf(html, `ficha-${slugify(employee.name)}.pdf`);
+  printPdf(html, `ficha-registro-${slugify(employee.name)}.pdf`);
 }
 
 function monthLabelFn(month: string) {

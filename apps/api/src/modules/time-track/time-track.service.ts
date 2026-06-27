@@ -24,6 +24,17 @@ function timeToMinutes(time?: string | null): number | null {
   return hours * 60 + minutes;
 }
 
+function getDistanceInMeters(lat1: number, lon1: number, lat2: number, lon2: number) {
+  const R = 6371e3;
+  const p1 = lat1 * Math.PI / 180;
+  const p2 = lat2 * Math.PI / 180;
+  const dp = (lat2 - lat1) * Math.PI / 180;
+  const dl = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dp / 2) * Math.sin(dp / 2) + Math.cos(p1) * Math.cos(p2) * Math.sin(dl / 2) * Math.sin(dl / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
 const REASON_LABEL: Record<string, string> = {
   ajuste_erro_marcacao: 'AJUSTE - ERRO MARCAÇÃO',
   ajuste_atestado_integral: 'ATESTADO INTEGRAL',
@@ -151,6 +162,18 @@ export class TimeTrackService {
             absenceMinutes: incidents.absence,
           });
         }
+        
+        // GEOFENCING LOGIC
+        if (!employee.allowExternalWork && dto.latitude && dto.longitude) {
+          const company = await this.repository.getCompanyData(companyId);
+          if (company?.latitude && company?.longitude) {
+            const distance = getDistanceInMeters(dto.latitude, dto.longitude, company.latitude, company.longitude);
+            if (distance > 300) { // 300 meters tolerance
+              await this.repository.createGeofenceNotification(companyId, employee, dateStr, now.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'}), distance);
+            }
+          }
+        }
+        
         return this.repository.upsert(employee.id, today, totals);
       } finally {
         await this.redis.releaseLock(lockKey);

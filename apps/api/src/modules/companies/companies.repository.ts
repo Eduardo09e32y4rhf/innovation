@@ -15,4 +15,26 @@ export class CompaniesRepository {
   updateMe(companyId: string, dto: UpdateCompanyDto) {
     return this.prisma.company.update({ where: { id: companyId }, data: dto });
   }
+
+  getHolidays(companyId: string) {
+    return this.prisma.holiday.findMany({
+      where: { companyId },
+      orderBy: { date: 'asc' },
+    });
+  }
+
+  async updateHolidays(companyId: string, holidays: any[]) {
+    await this.prisma.holiday.deleteMany({ where: { companyId } });
+    if (holidays.length > 0) {
+      await this.prisma.holiday.createMany({
+        data: holidays.map((h: any) => ({
+          companyId,
+          name: h.name,
+          date: new Date(h.date),
+          type: h.type || 'NACIONAL',
+        })),
+      });
+    }
+    return this.getHolidays(companyId);
+  }
 }

@@ -92,27 +92,42 @@ function isAntesAdmissao(key: string, emp: Employee): boolean {
   return key < adm;
 }
 
-function buildGrid(month: string, emp: Employee, tracks: TimeTrack[]) {
+function buildGrid(month: string, emp: Employee, tracks: TimeTrack[], startDay: number = 1, holidays: any[] = []) {
   const [y,m] = month.split('-').map(Number); if (!y||!m) return [];
-  const total = daysInMonth(y,m-1);
   const today = new Date().toISOString().slice(0,10);
   const map = new Map<string, TimeTrack>();
   for (const t of tracks) map.set(toDateKey(t.date), t);
   const g: any[] = [];
-  for (let d=1; d<=total; d++) {
-    const date = new Date(Date.UTC(y,m-1,d));
+  
+  let startDate = new Date(Date.UTC(y, m - 1, 1));
+  let endDate = new Date(Date.UTC(y, m, 0)); // last day of month
+
+  if (startDay > 1) {
+    startDate = new Date(Date.UTC(y, m - 2, startDay)); // Previous month, startDay
+    const nextMonth = new Date(Date.UTC(y, m - 1, startDay));
+    endDate = new Date(nextMonth.getTime() - 24 * 60 * 60 * 1000); // One day before next month startDay
+  }
+
+  for (let d = new Date(startDate); d <= endDate; d.setUTCDate(d.getUTCDate() + 1)) {
+    const date = new Date(d);
     const key = date.toISOString().slice(0,10);
-    g.push({date,key,day:d,wd:date.getUTCDay(),isRest: isRestDay(date,emp),isFuture: key>today,antesAdmissao: isAntesAdmissao(key,emp), track: map.get(key)});
+    const holiday = holidays.find(h => h.date && h.date.startsWith(key));
+    const isHoliday = !!holiday;
+    g.push({
+      date, key, day: date.getUTCDate(), wd: date.getUTCDay(),
+      isRest: isRestDay(date,emp), isFuture: key>today, antesAdmissao: isAntesAdmissao(key,emp),
+      track: map.get(key), holidayName: holiday?.name
+    });
   }
   return g;
 }
-function dayStatus(row: TimeTrack) {
+function dayStatus(row: TimeTrack, holidayName?: string) {
   if (row.manualStatus==='revoked') return 'REVOGADO';
   const o = (row.observation ?? '').toLowerCase();
   if (o.includes('atestado integral')) return 'ATESTADO';
   if (o.includes('atestado') && o.includes('horas')) return 'ATESTADO (HORAS)';
   if (o.includes('suspensao') || o.includes('suspensão')) return 'SUSPENSÃO';
-  if (o.includes('feriado')) return 'FERIADO';
+  if (o.includes('feriado') || holidayName) return 'FERIADO';
   if (o.includes('folga extra')) return 'FOLGA EXTRA';
   if (o.includes('folga banco')) return 'FOLGA BANCO';
   if (o.includes('folga')) return 'FOLGA';
@@ -146,6 +161,7 @@ export default function TimeTrackPage() {
   const tracks = useQuery(() => api.timeTrack.list(), []);
   const employees = useQuery(() => api.employees.list(), [], { enabled: !isFunc });
   const company = useQuery(() => api.companies.me(), []);
+  const holidays = useQuery(() => api.companies.getHolidays(), []);
   const [open, setOpen] = useState(false);
   const [bulkOpen, setBulkOpen] = useState(false);
   const [editing, setEditing] = useState<TimeTrack | null>(null);
@@ -339,7 +355,7 @@ function downloadCollectiveSheet(month: string, visibleEmployees: Employee[], by
   const summaryData = [
     { label: 'Total de Colaboradores', value: String(visibleEmployees.length) },
     { label: 'Total de Registros', value: String(visibleEmployees.reduce((acc, emp) => acc + (byEmpMap[emp.id] || []).length, 0)) },
-    { label: 'Total Faltas no Período', value: String(visibleEmployees.reduce((acc, emp) => acc + buildGrid(month, emp, byEmpMap[emp.id] || []).filter(g => g.track && isFalta(g.track)).length, 0)) },
+    { label: 'Total Faltas no Período', value: String(visibleEmployees.reduce((acc, emp) => acc + buildGrid(month, emp, byEmpMap[emp.id] || [], (company.data as any)?.payrollStartDay, holidays.data as any[]).filter(g => g.track && isFalta(g.track)).length, 0)) },
   ];
 
   const html = buildPdfShell({ title, subtitle, landscape: true }, companyData || null, `
@@ -492,8 +508,8 @@ function MonthGrid({ employee, tracks, month, canManage, canApprove, refreshing,
 }
 
 function Ocorrencias({ employee, tracks, month, canManage, canApprove, refreshing, removeLoading, onEdit, onDelete }: { employee: Employee; tracks: TimeTrack[]; month: string; canManage: boolean; canApprove: boolean; refreshing: boolean; removeLoading: boolean; onEdit: (r:TimeTrack)=>void; onDelete: (r:TimeTrack)=>void; }) {
-  const grid = useMemo(()=>buildGrid(month, employee, tracks), [month, employee, tracks]);
-  const ocorrencias = grid.filter(d=>!d.isRest && !d.isFuture && d.track && isFalta(d.track));
+  const grid = useMemo(()=> buildGrid(month, employee, tracks, (company.data as any)?.payrollStartDay, holidays.data as any[]), [month, employee, tracks, company.data, holidays.data]);
+  const ocorrencias = useMemo(()=>grid.filter(g=>g.track&&isFalta(g.track)), [grid]);
   return (
     <section className="overflow-hidden rounded-[14px] border border-slate-200 bg-white">
       <div className="border-b border-slate-100 bg-amber-50/50 px-5 py-4">

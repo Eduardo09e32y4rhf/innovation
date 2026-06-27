@@ -331,7 +331,9 @@ export const api = {
 
   companies: {
     me: () => request<Company>('/companies/me'),
-    update: (data: { name?: string; legalName?: string; document?: string; logoUrl?: string | null; phone?: string; email?: string; address?: string; primaryColor?: string; theme?: string }) => request<Company>('/companies/me', { method: 'PATCH', body: data }),
+    update: (data: Partial<Company>) => request<Company>('/companies/me', { method: 'PATCH', body: data }),
+    getHolidays: () => request<any[]>('/companies/holidays'),
+    updateHolidays: (holidays: any[]) => request<any[]>('/companies/holidays', { method: 'PATCH', body: { holidays } }),
   },
 
   whatsapp: {

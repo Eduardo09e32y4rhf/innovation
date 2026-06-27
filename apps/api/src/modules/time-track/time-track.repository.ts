@@ -153,4 +153,34 @@ export class TimeTrackRepository {
     await this.prisma.timeTrack.updateMany({ where: { id, employee: { companyId } }, data });
     return this.findById(companyId, id);
   }
+
+  getCompanyData(companyId: string) {
+    return this.prisma.company.findUnique({ where: { id: companyId }, select: { latitude: true, longitude: true } });
+  }
+
+  async createGeofenceNotification(companyId: string, employee: any, dateStr: string, time: string, distanceMeters: number) {
+    const distKm = (distanceMeters / 1000).toFixed(2);
+    const message = `O funcionário ${employee.name} bateu ponto em ${dateStr} às ${time} a ${distKm}km da localização da empresa.`;
+    const adminUserIds = await this.prisma.user.findMany({
+      where: { companyId, role: { in: ['ADMIN', 'RH', 'DEV'] }, isActive: true },
+      select: { id: true },
+    });
+    if (adminUserIds.length === 0) return;
+    await this.prisma.notification.create({
+      data: {
+        companyId,
+        type: 'URGENT_NOTICE',
+        title: `⚠️ Ponto fora da empresa - ${employee.name}`,
+        message,
+        priority: 'HIGH',
+        source: 'SYSTEM',
+        status: 'SENT',
+        sentAt: new Date(),
+        recipients: {
+          create: adminUserIds.map(u => ({ userId: u.id, status: 'UNREAD' })),
+        },
+      },
+    });
+  }
 }
+

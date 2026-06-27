@@ -21,4 +21,16 @@ export class CompaniesController {
   updateMe(@CurrentCompany() companyId: string, @Body() dto: UpdateCompanyDto) {
     return this.service.updateMe(companyId, dto);
   }
+
+  @Roles('ADMIN', 'RH', 'GESTOR')
+  @Get('holidays')
+  getHolidays(@CurrentCompany() companyId: string) {
+    return this.service.getHolidays(companyId);
+  }
+
+  @Roles('ADMIN', 'RH')
+  @Patch('holidays')
+  updateHolidays(@CurrentCompany() companyId: string, @Body() body: { holidays: any[] }) {
+    return this.service.updateHolidays(companyId, body.holidays);
+  }
 }

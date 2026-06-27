@@ -212,6 +212,8 @@ function AgendaKanban({ columns, employees, canManage, onOpenForm, onSave, onDel
   onOpenForm: (edit?: ManagementEvent) => void; onSave: (data: any, id?: string) => void;
   onDelete: (id: string) => void; saving: boolean;
 }) {
+  const [viewMode, setViewMode] = useState<'kanban'|'calendar'>('calendar');
+  const [currentDate, setCurrentDate] = useState(new Date());
   const [filterStatus, setFilterStatus] = useState('');
   const [filterType, setFilterType] = useState('');
   const [filterEmp, setFilterEmp] = useState('');
@@ -227,10 +229,25 @@ function AgendaKanban({ columns, employees, canManage, onOpenForm, onSave, onDel
 
   const empName = (id?: string | null) => employees.find(e => e.id === id)?.name ?? '---';
 
+  // Calendar logic
+  const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
+  const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).getDay();
+  const monthName = currentDate.toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
+  const allEvents = Object.values(columns).flat().filter((ev: any) => {
+    if (filterStatus && ev.status !== filterStatus) return false;
+    if (filterType && ev.eventType !== filterType) return false;
+    if (filterEmp && ev.employeeId !== filterEmp) return false;
+    return true;
+  });
+
   return (
     <section className="space-y-3">
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <button onClick={() => onOpenForm(undefined)} disabled={saving} className="btn-outline inline-flex h-9 items-center gap-2 rounded-[8px] px-4 text-[11px] font-black">+ NOVO COMPROMISSO</button>
+        <div className="flex items-center gap-1 rounded-[8px] bg-slate-100 p-1">
+          <button onClick={() => setViewMode('calendar')} className={\`rounded-[6px] px-4 py-1.5 text-[10px] font-black uppercase \${viewMode === 'calendar' ? 'bg-white shadow-sm text-teal-700' : 'text-slate-500'}\`}>CALENDÁRIO</button>
+          <button onClick={() => setViewMode('kanban')} className={\`rounded-[6px] px-4 py-1.5 text-[10px] font-black uppercase \${viewMode === 'kanban' ? 'bg-white shadow-sm text-teal-700' : 'text-slate-500'}\`}>KANBAN</button>
+        </div>
       </div>
       <div className="flex flex-wrap gap-2">
         <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="h-9 rounded-[6px] border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 outline-none focus:border-teal-500">
@@ -244,7 +261,43 @@ function AgendaKanban({ columns, employees, canManage, onOpenForm, onSave, onDel
         </select>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
+      {viewMode === 'calendar' ? (
+        <div className="rounded-[12px] border border-slate-200 bg-white shadow-sm">
+          <div className="flex items-center justify-between border-b border-slate-100 p-4">
+            <h4 className="text-sm font-black text-slate-900 capitalize">{monthName}</h4>
+            <div className="flex gap-2">
+              <button onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))} className="rounded-full bg-slate-100 p-2 text-slate-600 hover:bg-slate-200"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M15 18l-6-6 6-6"/></svg></button>
+              <button onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))} className="rounded-full bg-slate-100 p-2 text-slate-600 hover:bg-slate-200"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M9 18l6-6-6-6"/></svg></button>
+            </div>
+          </div>
+          <div className="grid grid-cols-7 border-b border-slate-100 bg-slate-50/50">
+            {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(d => <div key={d} className="px-2 py-3 text-center text-[10px] font-black uppercase text-slate-500">{d}</div>)}
+          </div>
+          <div className="grid grid-cols-7 auto-rows-fr">
+            {Array.from({ length: firstDayOfMonth }).map((_, i) => (
+              <div key={\`empty-\${i}\`} className="min-h-[100px] border-b border-r border-slate-100 bg-slate-50/30 p-2" />
+            ))}
+            {Array.from({ length: daysInMonth }).map((_, i) => {
+              const day = i + 1;
+              const dateStr = new Date(currentDate.getFullYear(), currentDate.getMonth(), day).toISOString().slice(0, 10);
+              const dayEvents = allEvents.filter(e => e.startDateTime && e.startDateTime.startsWith(dateStr));
+              return (
+                <div key={day} onClick={() => onOpenForm({ startDateTime: \`\${dateStr}T09:00:00Z\` } as any)} className="group relative min-h-[100px] border-b border-r border-slate-100 p-2 hover:bg-slate-50 cursor-pointer">
+                  <span className={\`text-[11px] font-black \${day === new Date().getDate() && currentDate.getMonth() === new Date().getMonth() ? 'flex h-5 w-5 items-center justify-center rounded-full bg-teal-500 text-white' : 'text-slate-600'}\`}>{day}</span>
+                  <div className="mt-1 flex flex-col gap-1">
+                    {dayEvents.map(e => (
+                      <div key={e.id} onClick={(ev) => { ev.stopPropagation(); onOpenForm(e); }} className={\`truncate rounded px-1.5 py-0.5 text-[9px] font-bold text-white shadow-sm \${e.status === 'CONCLUIDO' ? 'bg-emerald-500' : 'bg-teal-500'}\`}>
+                        {e.title}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
         {colOrder.map((key) => {
           const items = (columns[key] ?? []).filter((ev: any) => {
             if (filterStatus && ev.status !== filterStatus) return false;
@@ -286,6 +339,7 @@ function AgendaKanban({ columns, employees, canManage, onOpenForm, onSave, onDel
           );
         })}
       </div>
+      )}
     </section>
   );
 }
@@ -312,6 +366,43 @@ function AsoTab({ records, employees, canManage, onOpenForm, onSave, onDelete, s
   }), [records, filterType, filterStatus, filterEmp]);
 
   const empName = (id: string) => employees.find(e => e.id === id)?.name ?? '---';
+
+  const handleGenerateAsoPdf = (r: EmployeeAsoRecord) => {
+    const emp = employees.find(e => e.id === r.employeeId);
+    if (!emp) return;
+    
+    const { buildPdfShell, infoGrid, section, signatureBlock, printPdf } = require('@/app/lib/pdf-utils');
+    const docTitle = 'Encaminhamento para Exame Médico (ASO)';
+    const subtitle = r.asoType.replace(/_/g, ' ');
+    
+    const text = `<p style="font-size:11px;color:#334155;text-align:justify;line-height:1.6;">Encaminhamos o(a) colaborador(a) abaixo qualificado(a) para a realização de <strong>Exame Médico Ocupacional (\${subtitle})</strong>, conforme previsto na NR-7.</p>
+    <p style="font-size:11px;color:#334155;text-align:justify;line-height:1.6;">Por favor, realizem a avaliação clínica e os exames complementares (se aplicáveis) e emitam o respectivo Atestado de Saúde Ocupacional (ASO).</p>`;
+
+    const html = buildPdfShell({ title: docTitle, subtitle: emp.name }, null, `
+      \${section('Dados do Empregador (Empresa)', infoGrid([
+        { label: 'Razão Social', value: emp.companyId ? 'Razão Social Padrão' : '---' },
+      ], 1))}
+      \${section('Qualificação do Colaborador', infoGrid([
+        { label: 'Nome Completo', value: emp.name },
+        { label: 'CPF', value: emp.cpf },
+        { label: 'Data Nasc.', value: emp.birthDate ? new Date(emp.birthDate).toLocaleDateString('pt-BR') : '---' },
+        { label: 'Cargo', value: emp.position },
+        { label: 'Setor/Depto', value: emp.department },
+      ], 3))}
+      \${section('Dados do Encaminhamento', \`
+        \${infoGrid([
+          { label: 'Tipo de Exame', value: subtitle },
+          { label: 'Clínica Agendada', value: r.clinicName || 'À definir' },
+          { label: 'Endereço da Clínica', value: r.observation || 'Não informado' },
+          { label: 'Data Prevista', value: r.examDate ? new Date(r.examDate).toLocaleDateString('pt-BR') : 'Não agendado' },
+        ], 2)}
+      \`)}
+      \${section('Mensagem', text)}
+      \${signatureBlock(['Autorização RH / Empregador', 'Recebimento pela Clínica', 'Assinatura do Funcionário'])}
+    `);
+    
+    printPdf(html, \`encaminhamento-aso-\${emp.id}.pdf\`);
+  };
 
   return (
     <section className="overflow-hidden rounded-[14px] border border-slate-200 bg-white">
@@ -373,6 +464,7 @@ function AsoTab({ records, employees, canManage, onOpenForm, onSave, onDelete, s
                     <td className="px-3 py-2 text-slate-600">{r.clinicName ?? '---'}</td>
                     <td className="px-3 py-2">
                       <div className="flex justify-center gap-1">
+                        <button onClick={() => handleGenerateAsoPdf(r)} className="btn-outline-premium h-7 px-2 text-[10px] font-bold">Imprimir PDF</button>
                         <button onClick={() => onOpenForm(r)} disabled={saving} className="btn-outline-premium h-7 px-2 text-[10px] font-bold">Editar</button>
                         {canManage && <button onClick={() => onSave({ status: 'CANCELADO' }, r.id)} disabled={saving} className="inline-flex h-7 items-center rounded-[5px] bg-gradient-to-r from-amber-500 to-orange-600 px-2 text-[10px] font-black text-white"><XCircle size={12}/></button>}
                         {canManage && <button onClick={() => { if (window.confirm('Excluir?')) onDelete(r.id); }} disabled={saving} className="inline-flex h-7 items-center rounded-[5px] bg-gradient-to-r from-rose-500 to-pink-600 px-2 text-[10px] font-black text-white">X</button>}
@@ -395,10 +487,12 @@ function NotificationsTab({ canManage }: { canManage: boolean }) {
   const [filterType, setFilterType] = useState('');
 
   const listQuery = useQuery(() => api.notifications.list(), []);
+  const empQuery = useQuery(() => api.employees.list(), []);
   const respondMut = useMutation(({ id, action, reason }: { id: string; action: 'ACKNOWLEDGE' | 'ACCEPT' | 'REFUSE'; reason?: string }) =>
     api.notifications.respond(id, action, reason), { onSuccess: () => listQuery.refetch() });
 
   const notifications = (listQuery.data as any[] | undefined) ?? [];
+  const employees = (empQuery.data as Employee[] | undefined) ?? [];
 
   const filtered = useMemo(() => notifications.filter(n => {
     if (filterStatus) {
@@ -426,7 +520,7 @@ function NotificationsTab({ canManage }: { canManage: boolean }) {
         {canNotify && <button onClick={() => setShowForm(!showForm)} className="btn-outline inline-flex h-9 items-center gap-2 rounded-[8px] px-4 text-[11px] font-black">{showForm ? 'FECHAR' : '+ NOVA NOTIFICAÇÃO'}</button>}
       </div>
 
-      {showForm && <CreateNotificationForm onCreated={() => { listQuery.refetch(); setShowForm(false); }} />}
+      {showForm && <CreateNotificationForm employees={employees} onCreated={() => { listQuery.refetch(); setShowForm(false); }} />}
 
       <div className="flex flex-wrap gap-2">
         <select value={filterType} onChange={e => setFilterType(e.target.value)} className="h-9 rounded-[6px] border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 outline-none focus:border-teal-500">
@@ -519,12 +613,20 @@ function NotificationsTab({ canManage }: { canManage: boolean }) {
   );
 }
 
-function CreateNotificationForm({ onCreated }: { onCreated: () => void }) {
+function CreateNotificationForm({ onCreated, employees }: { onCreated: () => void, employees: Employee[] }) {
   const [title, setTitle] = useState('');
   const [message, setMessage] = useState('');
   const [type, setType] = useState('SIMPLE_NOTICE');
   const [priority, setPriority] = useState('NORMAL');
   const [targetType, setTargetType] = useState('ALL');
+  const [targetRole, setTargetRole] = useState('FUNCIONARIO');
+  const [targetEmployeeId, setTargetEmployeeId] = useState('');
+  
+  // Warning/Suspension specifics
+  const [legalReason, setLegalReason] = useState('');
+  const [occurrenceDate, setOccurrenceDate] = useState('');
+  const [suspensionDays, setSuspensionDays] = useState(1);
+  
   const [requiresReadConfirmation, setRequiresReadConfirmation] = useState(false);
   const [requiresAcceptance, setRequiresAcceptance] = useState(false);
   const [allowsRefusal, setAllowsRefusal] = useState(false);
@@ -535,16 +637,60 @@ function CreateNotificationForm({ onCreated }: { onCreated: () => void }) {
 
   const handleSubmit = () => {
     if (!title.trim() || !message.trim()) return;
+    
+    let targetIds: string[] | undefined;
+    if (targetType === 'SPECIFIC' && targetEmployeeId) {
+      const emp = employees.find(e => e.id === targetEmployeeId);
+      if (emp?.userId) targetIds = [emp.userId];
+      else return alert('O funcionário selecionado não possui um usuário logável vinculado.');
+    }
+    
+    const extraJson = (type === 'WARNING' || type === 'SUSPENSION') ? {
+      legalReason, occurrenceDate, suspensionDays
+    } : undefined;
+
     createMut.mutate({
       title: title.trim(),
       message: message.trim(),
       type,
       priority,
       targetType,
+      targetRole: targetType === 'ROLE' ? targetRole : undefined,
+      targetIds,
+      extraJson,
       requiresReadConfirmation: type === 'SIMPLE_NOTICE' ? requiresReadConfirmation : true,
       requiresAcceptance: type === 'SUSPENSION' || type === 'WARNING' ? true : requiresAcceptance,
       allowsRefusal: type === 'SIMPLE_NOTICE' ? allowsRefusal : false,
     }).catch(() => {});
+  };
+  
+  const handlePrintLegalNotice = () => {
+    if (targetType !== 'SPECIFIC' || !targetEmployeeId) return alert('Selecione um funcionário específico para gerar o documento.');
+    const emp = employees.find(e => e.id === targetEmployeeId);
+    if (!emp) return;
+    
+    const docTitle = type === 'WARNING' ? 'Aviso de Advertência Escrita' : 'Aviso de Suspensão Disciplinar';
+    let text = \`<p style="font-size:11px;color:#334155;text-align:justify;line-height:1.6;">Pelo presente documento, aplicamos-lhe a pena de <strong>\${docTitle.toUpperCase()}</strong>, em virtude da seguinte ocorrência disciplinar verificada no dia <strong>\${occurrenceDate ? new Date(occurrenceDate).toLocaleDateString('pt-BR') : '____/____/______'}</strong>:</p>
+    <p style="font-size:11px;color:#0f172a;text-align:justify;line-height:1.6;font-weight:700;margin:16px 0;">Motivo / Embargo Legal: \${legalReason}</p>
+    <p style="font-size:11px;color:#334155;text-align:justify;line-height:1.6;">Detalhes da Infração:<br/>\${message.replace(/\\n/g, '<br/>')}</p>\`;
+    
+    if (type === 'SUSPENSION') {
+      text += \`<p style="font-size:11px;color:#e11d48;text-align:justify;line-height:1.6;font-weight:700;margin:16px 0;">Por consequência, o(a) Sr(a). fica suspenso(a) de suas atividades por \${suspensionDays} dia(s), com desconto em folha de pagamento.</p>\`;
+    }
+    
+    text += \`<p style="font-size:11px;color:#334155;text-align:justify;line-height:1.6;margin-top:24px;">Esclarecemos que a reincidência em condutas semelhantes poderá resultar em rescisão do contrato de trabalho por justa causa, nos termos do art. 482 da CLT. Solicitamos sua assinatura confirmando o recebimento.</p>\`;
+    
+    const { buildPdfShell, infoGrid, section, signatureBlock, printPdf } = require('@/app/lib/pdf-utils');
+    const html = buildPdfShell({ title: docTitle, subtitle: emp.name }, null, \`
+      \${section('Qualificação do Colaborador', infoGrid([
+        { label: 'Nome', value: emp.name },
+        { label: 'CPF', value: emp.cpf },
+        { label: 'Cargo', value: emp.position },
+      ], 3))}
+      \${section('Teor da Sanção Disciplinar', text)}
+      \${signatureBlock(['Assinatura do Empregado', 'Empregador / RH', 'Testemunha 1 (Opcional)', 'Testemunha 2 (Opcional)'])}
+    \`);
+    printPdf(html, \`\${type === 'WARNING' ? 'advertencia' : 'suspensao'}-\${emp.id}.pdf\`);
   };
 
   return (
@@ -574,14 +720,74 @@ function CreateNotificationForm({ onCreated }: { onCreated: () => void }) {
         </label>
         <label className="space-y-1 text-xs font-medium text-slate-600">
           <span>PÚBLICO ALVO</span>
-          <select value={targetType} onChange={e => setTargetType(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500">
-            <option value="ALL">Todos</option>
-            <option value="EMPLOYEES">Funcionários</option>
+          <select value={targetType} onChange={e => { setTargetType(e.target.value); if(e.target.value==='SPECIFIC' && employees[0]) setTargetEmployeeId(employees[0].id); }} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500">
+            <option value="ALL">Todos os Usuários</option>
+            <option value="EMPLOYEES">Todos os Funcionários</option>
+            <option value="ROLE">Por Cargo (Perfil)</option>
+            <option value="SPECIFIC">Funcionário Específico</option>
           </select>
         </label>
+        
+        {targetType === 'ROLE' && (
+          <label className="space-y-1 text-xs font-medium text-slate-600">
+            <span>PERFIL DE ACESSO</span>
+            <select value={targetRole} onChange={e => setTargetRole(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500">
+              <option value="FUNCIONARIO">Funcionário Base</option>
+              <option value="GESTOR">Gestor de Equipe</option>
+              <option value="RH">Recursos Humanos</option>
+              <option value="ADMIN">Administrador</option>
+            </select>
+          </label>
+        )}
+        
+        {targetType === 'SPECIFIC' && (
+          <label className="space-y-1 text-xs font-medium text-slate-600">
+            <span>SELECIONAR FUNCIONÁRIO</span>
+            <select value={targetEmployeeId} onChange={e => setTargetEmployeeId(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500">
+              <option value="">Selecione...</option>
+              {employees.map(e => <option key={e.id} value={e.id}>{e.name} (CPF: {e.cpf})</option>)}
+            </select>
+          </label>
+        )}
+
+        {(type === 'WARNING' || type === 'SUSPENSION') && (
+          <div className="sm:col-span-2 grid gap-3 sm:grid-cols-2 rounded-[8px] border border-red-100 bg-red-50/50 p-4">
+            <label className="space-y-1 text-xs font-medium text-slate-600">
+              <span>MOTIVO LEGAL (CLT ART. 482)</span>
+              <select value={legalReason} onChange={e => setLegalReason(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-red-500">
+                <option value="">Selecione a tipificação legal...</option>
+                <option value="Art. 482, Alínea E (Desídia no desempenho das funções)">Desídia no desempenho (Atrasos, Faltas Injustificadas)</option>
+                <option value="Art. 482, Alínea H (Ato de Insubordinação ou Indisciplina)">Ato de Insubordinação / Indisciplina</option>
+                <option value="Art. 482, Alínea B (Incontinência de conduta ou mau procedimento)">Mau Procedimento / Quebra de Regras</option>
+                <option value="Art. 482, Alínea A (Ato de Improbidade)">Ato de Improbidade</option>
+                <option value="Art. 482, Alínea K (Ato lesivo da honra ou da boa fama)">Ato lesivo à honra contra colegas/superiores</option>
+                <option value="Uso indevido de equipamentos da empresa">Uso indevido de EPIs / Equipamentos</option>
+                <option value="Não cumprimento de metas contratuais / Níveis de serviço">Baixo desempenho reiterado</option>
+                <option value="Outros">Outros motivos justificáveis</option>
+              </select>
+            </label>
+            <label className="space-y-1 text-xs font-medium text-slate-600">
+              <span>DATA DA OCORRÊNCIA</span>
+              <input type="date" value={occurrenceDate} onChange={e => setOccurrenceDate(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-red-500" />
+            </label>
+            {type === 'SUSPENSION' && (
+              <label className="space-y-1 text-xs font-medium text-slate-600">
+                <span>DIAS DE SUSPENSÃO</span>
+                <input type="number" min={1} max={30} value={suspensionDays} onChange={e => setSuspensionDays(parseInt(e.target.value)||1)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-red-500" />
+              </label>
+            )}
+            <div className="sm:col-span-2 mt-2">
+              <button type="button" onClick={handlePrintLegalNotice} className="btn-outline-premium h-9 px-4 text-xs font-black inline-flex gap-2 items-center">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+                GERAR PDF DA PENALIDADE (IMPRESSÃO)
+              </button>
+            </div>
+          </div>
+        )}
+
         <label className="sm:col-span-2 space-y-1 text-xs font-medium text-slate-600">
-          <span>MENSAGEM</span>
-          <textarea value={message} onChange={e => setMessage(e.target.value)} rows={4} className="w-full rounded-[8px] border border-slate-200 px-3 py-2 text-sm outline-none focus:border-teal-500" placeholder="Conteúdo da notificação..." />
+          <span>{type === 'WARNING' || type === 'SUSPENSION' ? 'DESCREVA OS DETALHES DA INFRAÇÃO (APARECERÁ NO PDF E NO APP)' : 'MENSAGEM'}</span>
+          <textarea value={message} onChange={e => setMessage(e.target.value)} rows={4} className="w-full rounded-[8px] border border-slate-200 px-3 py-2 text-sm outline-none focus:border-teal-500" placeholder="Conteúdo..." />
         </label>
         {(type === 'SIMPLE_NOTICE') && (
           <div className="sm:col-span-2 flex flex-wrap gap-4">
@@ -614,12 +820,19 @@ function CreateNotificationForm({ onCreated }: { onCreated: () => void }) {
 
 function RulesTab({ canManage }: { canManage: boolean }) {
   const listQuery = useQuery(() => api.workScheduleRules.list(), []);
+  const companyQuery = useQuery(() => api.companies.me(), []);
+  const holidaysQuery = useQuery(() => api.companies.getHolidays(), []);
+  
   const createMut = useMutation((data: any) => api.workScheduleRules.create(data), { onSuccess: () => listQuery.refetch() });
   const updateMut = useMutation(({ id, data }: { id: string; data: any }) => api.workScheduleRules.update(id, data), { onSuccess: () => listQuery.refetch() });
   const archiveMut = useMutation((id: string) => api.workScheduleRules.archive(id), { onSuccess: () => listQuery.refetch() });
   const activateMut = useMutation((id: string) => api.workScheduleRules.activate(id), { onSuccess: () => listQuery.refetch() });
+  const updateCompanyMut = useMutation((data: any) => api.companies.update(data), { onSuccess: () => companyQuery.refetch() });
+  const updateHolidaysMut = useMutation((holidays: any[]) => api.companies.updateHolidays(holidays), { onSuccess: () => holidaysQuery.refetch() });
 
   const rules = (listQuery.data as any[] | undefined) ?? [];
+  const company = companyQuery.data;
+  const holidays = (holidaysQuery.data as any[] | undefined) ?? [];
   const [showForm, setShowForm] = useState(false);
   const [editRule, setEditRule] = useState<any | null>(null);
 
@@ -631,17 +844,18 @@ function RulesTab({ canManage }: { canManage: boolean }) {
   if (listQuery.error && !listQuery.data) return <ErrorState message={listQuery.error} onRetry={listQuery.refetch} />;
 
   return (
-    <section className="space-y-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h3 className="text-sm font-black text-slate-950">REGRAS DE JORNADA</h3>
-          <p className="mt-1 text-xs text-slate-500">Configure jornadas, tolerâncias, intervalos e parâmetros de fechamento.</p>
+    <div className="space-y-6">
+      <section className="space-y-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h3 className="text-sm font-black text-slate-950">REGRAS DE JORNADA</h3>
+            <p className="mt-1 text-xs text-slate-500">Configure jornadas, tolerâncias, intervalos e parâmetros de fechamento.</p>
+          </div>
+          {canManage && <button onClick={openNew} className="btn-outline inline-flex h-9 items-center gap-2 rounded-[8px] px-4 text-[11px] font-black">+ NOVA REGRA</button>}
         </div>
-        {canManage && <button onClick={openNew} className="btn-outline inline-flex h-9 items-center gap-2 rounded-[8px] px-4 text-[11px] font-black">+ NOVA REGRA</button>}
-      </div>
 
-      {showForm && <RuleForm rule={editRule} onSave={(data, id) => {
-        if (id) return updateMut.mutate({ id, data });
+        {showForm && <RuleForm rule={editRule} onSave={(data, id) => {
+          if (id) return updateMut.mutate({ id, data });
         return createMut.mutate(data);
       }} onClose={closeForm} saving={createMut.loading || updateMut.loading} />}
 
@@ -706,7 +920,63 @@ function RulesTab({ canManage }: { canManage: boolean }) {
           ))}
         </div>
       )}
-    </section>
+      </section>
+
+      <section className="space-y-4 pt-6 border-t border-slate-100">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h3 className="text-sm font-black text-slate-950">CONFIGURAÇÕES GERAIS E FERIADOS</h3>
+            <p className="mt-1 text-xs text-slate-500">Defina o dia inicial do ciclo da folha e gerencie os feriados locais/nacionais.</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="rounded-[14px] border border-slate-200 bg-white p-5 shadow-sm">
+            <h4 className="text-[11px] font-black text-slate-900 uppercase">Ciclo de Fechamento</h4>
+            <p className="text-[10px] text-slate-500 mb-4">Qual dia do mês inicia a contagem da folha de ponto?</p>
+            <div className="flex items-center gap-3">
+              <input type="number" min="1" max="31" defaultValue={(company as any)?.payrollStartDay || 1} onBlur={(e) => {
+                if (!canManage) return;
+                updateCompanyMut.mutate({ payrollStartDay: parseInt(e.target.value) || 1 });
+              }} disabled={!canManage || updateCompanyMut.loading} className="input h-9 w-24 text-center font-bold" />
+              <span className="text-xs text-slate-600 font-semibold">Ex: "1" (mês cheio) ou "15" (do dia 15 ao dia 14)</span>
+            </div>
+            {updateCompanyMut.loading && <p className="text-[10px] text-teal-600 mt-2 font-bold animate-pulse">Salvando...</p>}
+          </div>
+          <div className="rounded-[14px] border border-slate-200 bg-white p-5 shadow-sm flex flex-col">
+            <div className="flex justify-between items-center mb-4">
+              <h4 className="text-[11px] font-black text-slate-900 uppercase">Feriados Personalizados</h4>
+              <span className="text-[10px] font-bold text-teal-600">{holidays.length} cadastrados</span>
+            </div>
+            <div className="flex-1 overflow-y-auto max-h-40 space-y-2 mb-4">
+              {holidays.length === 0 ? <p className="text-[10px] text-slate-400 italic text-center py-4">Nenhum feriado cadastrado.</p> : holidays.map((h, i) => (
+                <div key={i} className="flex justify-between items-center bg-slate-50 p-2 rounded border border-slate-100">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-black text-slate-700 w-20">{new Date(h.date).toLocaleDateString('pt-BR')}</span>
+                    <span className="text-[10px] font-bold text-slate-900 truncate max-w-[120px]">{h.name}</span>
+                  </div>
+                  {canManage && <button onClick={() => updateHolidaysMut.mutate(holidays.filter((_, idx) => idx !== i))} className="text-[10px] text-rose-500 font-bold hover:underline">Remover</button>}
+                </div>
+              ))}
+            </div>
+            {canManage && (
+              <form onSubmit={(e) => {
+                e.preventDefault();
+                const fd = new FormData(e.currentTarget);
+                const date = fd.get('date') as string;
+                const name = fd.get('name') as string;
+                if (!date || !name) return;
+                updateHolidaysMut.mutate([...holidays, { date, name, type: 'NACIONAL' }]);
+                e.currentTarget.reset();
+              }} className="flex gap-2 mt-auto">
+                <input type="date" name="date" required className="input h-8 text-[10px] flex-1" />
+                <input type="text" name="name" placeholder="Nome do Feriado" required className="input h-8 text-[10px] flex-1" />
+                <button type="submit" disabled={updateHolidaysMut.loading} className="crystal-button h-8 px-3 rounded-[6px] text-[10px] font-bold text-white">+</button>
+              </form>
+            )}
+          </div>
+        </div>
+      </section>
+    </div>
   );
 }
 

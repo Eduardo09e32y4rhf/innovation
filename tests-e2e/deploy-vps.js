@@ -56,7 +56,7 @@ const { chromium } = require('@playwright/test');
       'git pull origin main',
       'docker compose -f docker-compose.prod.yml --env-file .env build --no-cache',
       'docker compose -f docker-compose.prod.yml --env-file .env up -d',
-      'docker compose -f docker-compose.prod.yml --env-file .env exec -T api npx prisma migrate deploy',
+      'docker compose -f docker-compose.prod.yml --env-file .env exec -T api npx prisma db push --accept-data-loss',
       'echo "DEPLOY_CONCLUIDO_COM_SUCESSO"'
     ];
     

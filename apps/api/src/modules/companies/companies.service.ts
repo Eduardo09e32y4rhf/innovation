@@ -20,4 +20,12 @@ export class CompaniesService {
     };
     return this.repository.updateMe(companyId, data as any);
   }
+
+  getHolidays(companyId: string) {
+    return this.repository.getHolidays(companyId);
+  }
+
+  updateHolidays(companyId: string, holidays: any[]) {
+    return this.repository.updateHolidays(companyId, holidays);
+  }
 }
