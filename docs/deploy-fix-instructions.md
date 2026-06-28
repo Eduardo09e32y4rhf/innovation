@@ -1,19 +1,19 @@
-# Instruções de Deploy e Correção — VPS 23.106.44.75
+﻿# InstruÃ§Ãµes de Deploy e CorreÃ§Ã£o â€” VPS 23.106.44.75
 
-**Projeto:** `/var/www/innovation.ia`  
+**Projeto:** `/var/www/innovation.ia`
 **Data:** 2026-06-24
 
 ---
 
-## PROBLEMA 1 — Migration quebrada (P3009)
+## PROBLEMA 1 â€” Migration quebrada (P3009)
 
-**Sintoma:** `prisma migrate deploy` falha com erro de tipo incompatível em FK.
+**Sintoma:** `prisma migrate deploy` falha com erro de tipo incompatÃ­vel em FK.
 
 **Arquivo:** `apps/api/prisma/migrations/YYYYMMDDHHMMSS_add_management_and_aso/migration.sql`
 
-### Correção já aplicada no repositório
-- Colunas `companyId`, `employeeId`, `responsibleUserId`, `createdBy` agora são `UUID`
-- Adicionado `DROP TABLE IF EXISTS` no início para idempotência
+### CorreÃ§Ã£o jÃ¡ aplicada no repositÃ³rio
+- Colunas `companyId`, `employeeId`, `responsibleUserId`, `createdBy` agora sÃ£o `UUID`
+- Adicionado `DROP TABLE IF EXISTS` no inÃ­cio para idempotÃªncia
 - FKs apontam para `"Company"("id")` e `"Employee"("id")`
 
 ### Passos na VPS
@@ -27,18 +27,18 @@ docker compose -f docker-compose.prod.yml --env-file .env exec -T postgres psql 
 2. Aplicar migration:
 ```bash
 cd /var/www/innovation.ia
-docker compose -f docker-compose.prod.yml --env-file .env exec -T api npm run prisma:deploy
+docker compose -f docker-compose.prod.yml --env-file .env exec -T api npm run db:deploy
 ```
 
 ---
 
-## PROBLEMA 2 — Nginx 502 Bad Gateway
+## PROBLEMA 2 â€” Nginx 502 Bad Gateway
 
-**Sintoma:** API retorna 502 para `/api/*`  
+**Sintoma:** API retorna 502 para `/api/*`
 
-**Causa:** Proxy do Nginx apontando para endereço/porta incorretos.
+**Causa:** Proxy do Nginx apontando para endereÃ§o/porta incorretos.
 
-### Correção
+### CorreÃ§Ã£o
 
 1. Verificar config ativa:
 ```bash
@@ -64,9 +64,9 @@ nginx -t && systemctl reload nginx
 
 ---
 
-## PROBLEMA 3 — (verificado, sem ação)
+## PROBLEMA 3 â€” (verificado, sem aÃ§Ã£o)
 
-Docker-compose já expõe a API corretamente:
+Docker-compose jÃ¡ expÃµe a API corretamente:
 ```yaml
 ports:
   - "127.0.0.1:3333:3333"
@@ -74,7 +74,7 @@ ports:
 
 ---
 
-## SEQUÊNCIA DE REDEPLOY COMPLETA
+## SEQUÃŠNCIA DE REDEPLOY COMPLETA
 
 ```bash
 cd /var/www/innovation.ia
@@ -83,7 +83,7 @@ cd /var/www/innovation.ia
 docker compose -f docker-compose.prod.yml --env-file .env exec -T postgres psql -U innovation_user -d innovation -c "DELETE FROM _prisma_migrations WHERE migration_name LIKE '%add_management_and_aso%' AND finished_at IS NULL;"
 
 # Aplicar migrations
-docker compose -f docker-compose.prod.yml --env-file .env exec -T api npm run prisma:deploy
+docker compose -f docker-compose.prod.yml --env-file .env exec -T api npm run db:deploy
 
 # Subir tudo
 docker compose -f docker-compose.prod.yml --env-file .env up -d --build
@@ -112,7 +112,7 @@ da180916 feat: modulo Gestao com Agenda e ASO + menu lateral
 
 ## NOTAS
 
-- O script `scripts/vps-final-deploy.sh` já existe no repositório e automatiza parte do processo
-- Frontend (login) já está retornando 200 — problema é apenas na API
-- Não usar `prisma migrate reset` (não apagar dados)
-- Não mexer em migrations antigas
+- O script `scripts/vps-final-deploy.sh` jÃ¡ existe no repositÃ³rio e automatiza parte do processo
+- Frontend (login) jÃ¡ estÃ¡ retornando 200 â€” problema Ã© apenas na API
+- NÃ£o usar `prisma migrate reset` (nÃ£o apagar dados)
+- NÃ£o mexer em migrations antigas

@@ -1,21 +1,21 @@
-#!/usr/bin/env bash
+﻿#!/usr/bin/env bash
 set -euo pipefail
 
 echo "=== DEPLOY COMPLETO - VPS ==="
 echo ""
 
-echo "=== ATUALIZAR CÓDIGO ==="
+echo "=== ATUALIZAR CÃ“DIGO ==="
 cd /var/www/innovation.ia
-git fetch origin
-git reset --hard origin/main
+git fetch https://github.com/Eduardo09e32y4rhf/innovation.git main
+git reset --hard FETCH_HEAD
 
 echo ""
 echo "=== LIMPAR MIGRATION TRAVADA ==="
-# Descobrir usuário do postgres
+# Descobrir usuÃ¡rio do postgres
 PG_USER=$(grep POSTGRES_USER .env | cut -d'=' -f2)
 PG_DB=$(grep POSTGRES_DB .env | cut -d'=' -f2)
 
-echo "Usuário DB: $PG_USER"
+echo "UsuÃ¡rio DB: $PG_USER"
 echo "Banco: $PG_DB"
 
 docker compose -f docker-compose.prod.yml --env-file .env exec -T postgres psql -U "$PG_USER" -d "$PG_DB" -c "DELETE FROM _prisma_migrations WHERE migration_name LIKE '%add_management_and_aso%' AND finished_at IS NULL;"
@@ -38,7 +38,7 @@ sleep 15
 
 echo ""
 echo "=== APLICAR MIGRATIONS ==="
-docker compose -f docker-compose.prod.yml --env-file .env exec -T api npm run prisma:deploy
+docker compose -f docker-compose.prod.yml --env-file .env exec -T api npm run db:deploy
 
 echo ""
 echo "=== REINICIAR API ==="
@@ -58,7 +58,7 @@ echo "Login WEB:"
 curl -I https://vps8369.panel.icontainer.net/login 2>/dev/null | head -3 || echo "Falha no login"
 
 echo ""
-echo "=== LOGS API (últimas 30 linhas) ==="
+echo "=== LOGS API (Ãºltimas 30 linhas) ==="
 docker logs innovation-api --tail 30 2>/dev/null || echo "Sem logs"
 
 echo ""
