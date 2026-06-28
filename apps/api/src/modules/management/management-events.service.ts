@@ -64,8 +64,17 @@ export class ManagementEventsService {
   }
 
   async kanban(companyId: string) {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
     const events = await this.prisma.managementEvent.findMany({
-      where: { companyId },
+      where: { 
+        companyId,
+        OR: [
+          { status: { in: ['PENDENTE', 'EM_ANDAMENTO'] } },
+          { startDateTime: { gte: thirtyDaysAgo } }
+        ]
+      },
       orderBy: { startDateTime: 'asc' },
       include: { employee: { select: { id: true, name: true } } },
     });

@@ -27,13 +27,26 @@ export function useQuery<T>(
   const ref = useRef(fetcher);
   ref.current = fetcher;
 
-  const run = useCallback(async () => {
+  const run = useCallback(async (isRetry = false) => {
     if (!enabled) return;
-    setLoading(true);
-    setError(null);
-    try { setData(await ref.current()); }
-    catch (err) { setError(msgFrom(err)); }
-    finally { setLoading(false); }
+    if (!isRetry) setLoading(true);
+    if (!isRetry) setError(null);
+    try { 
+      setData(await ref.current()); 
+      if (isRetry) setError(null); // Clear error if retry succeeds
+    }
+    catch (err) { 
+      if (!isRetry) {
+        // Silently retry once after 1.5s
+        setTimeout(() => run(true), 1500);
+      } else {
+        setError(msgFrom(err)); 
+      }
+    }
+    finally { 
+      if (isRetry || !error) setLoading(false); 
+      // If it's first fail, we stay loading until retry finishes
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, ...deps]);
 
