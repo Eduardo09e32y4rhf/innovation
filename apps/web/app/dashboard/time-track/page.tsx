@@ -135,8 +135,7 @@ function dayStatus(row: TimeTrack, holidayName?: string) {
   if (r.includes('atestado integral')) return 'ATESTADO';
   if (r.includes('feriado')) return 'FERIADO';
   if (r.includes('folga dsr')) return 'FOLGA';
-  if (row.incidentType === 'atraso') return 'ATRASO';
-  if (row.incidentType === 'saida_antecipada') return 'SAÍDA ANTECIPADA';
+
   if (row.manualStatus==='pending') return 'PENDENTE';
   if (row.manualStatus==='rejected') return 'REJEITADO';
   if (row.manualReason || o.includes('ajuste')) return 'AJUSTE MANUAL';
@@ -302,8 +301,7 @@ export default function TimeTrackPage() {
         )}
 
       {(open || bulkOpen || editing) && <Modal employees={actives} bulk={bulkOpen} track={editing ?? undefined} defaultEmpId={empFilter} onClose={()=>{setOpen(false);setBulkOpen(false);setEditing(null);}} onDone={()=>{setOpen(false);setBulkOpen(false);setEditing(null);tracks.refetch();}} />}
-      <BulkAdjustmentModal open={bulkOpen} onClose={()=>setBulkOpen(false)} onSuccess={()=>{setBulkOpen(false);tracks.refetch();pending.refetch();}} employees={actives} />
-    </div>
+          </div>
   );
 }
 
@@ -355,11 +353,11 @@ function downloadCollectiveSheet(month: string, visibleEmployees: Employee[], by
   const summaryData = [
     { label: 'Total de Colaboradores', value: String(visibleEmployees.length) },
     { label: 'Total de Registros', value: String(visibleEmployees.reduce((acc, emp) => acc + (byEmpMap[emp.id] || []).length, 0)) },
-    { label: 'Total Faltas no Período', value: String(visibleEmployees.reduce((acc, emp) => acc + buildGrid(month, emp, byEmpMap[emp.id] || [], (company.data as any)?.payrollStartDay, holidays.data as any[]).filter(g => g.track && isFalta(g.track)).length, 0)) },
+    { label: 'Total Faltas no Período', value: String(visibleEmployees.reduce((acc, emp) => acc + buildGrid(month, emp, byEmpMap[emp.id] || [], 1, []).filter(g => g.track && isFalta(g.track)).length, 0)) },
   ];
 
   const html = buildPdfShell({ title, subtitle, landscape: true }, companyData || null, `
-    ${section('Resumo da Equipe', infoGrid(summaryData, 3))}
+    ${section('Resumo da Equipe', '')}
     ${section('Consolidado de Horas', pdfTable(headers, rows, { compact: true }))}
     ${signatureBlock(['Assinatura do Gestor', 'Recursos Humanos', 'Data de Emissão'])}
   `);
