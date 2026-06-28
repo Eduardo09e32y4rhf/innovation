@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env bash
+#!/usr/bin/env bash
 set -euo pipefail
 
 cd /var/www/innovation.ia
@@ -22,20 +22,31 @@ echo "=== ATUALIZAR CÓDIGO VIA HTTPS ==="
 git fetch "$REPO_URL" main
 git reset --hard FETCH_HEAD
 
+echo "=== SUBIR BASE ==="
+docker compose -f docker-compose.prod.yml --env-file .env up -d postgres redis
+
+echo "=== AGUARDAR BASE ==="
+sleep 8
+
 echo "=== LIMPAR MIGRATION TRAVADA ==="
 docker compose -f docker-compose.prod.yml --env-file .env exec -T postgres psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "DELETE FROM _prisma_migrations WHERE migration_name = 'YYYYMMDDHHMMSS_add_management_and_aso' AND finished_at IS NULL;"
+
+echo "=== BUILD API E WEB ==="
+docker compose -f docker-compose.prod.yml --env-file .env build api web
+
+echo "=== SUBIR API E WEB ==="
+docker compose -f docker-compose.prod.yml --env-file .env up -d api web
 
 echo "=== APLICAR MIGRATIONS ==="
 docker compose -f docker-compose.prod.yml --env-file .env exec -T api npm run db:deploy
 
 echo "=== REINICIAR API ==="
-docker compose -f docker-compose.prod.yml --env-file .env up -d api
+docker compose -f docker-compose.prod.yml --env-file .env restart api
 
 echo "=== AGUARDAR 10s ==="
 sleep 10
 
 echo "=== VALIDAR ==="
 curl -i https://vps8369.panel.icontainer.net/api/health
-echo ""
-echo "=== LOGIN ==="
+printf '\n=== LOGIN ===\n'
 curl -I https://vps8369.panel.icontainer.net/login

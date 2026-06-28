@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env bash
+#!/usr/bin/env bash
 set -euo pipefail
 
 echo "=== DEPLOY COMPLETO - VPS ==="
@@ -24,6 +24,14 @@ git fetch https://github.com/Eduardo09e32y4rhf/innovation.git main
 git reset --hard FETCH_HEAD
 
 echo ""
+echo "=== SUBIR BASE ==="
+docker compose -f docker-compose.prod.yml --env-file .env up -d postgres redis
+
+echo ""
+echo "=== AGUARDAR BASE ==="
+sleep 8
+
+echo ""
 echo "=== LIMPAR MIGRATION TRAVADA ==="
 PG_USER=$POSTGRES_USER
 PG_DB=$POSTGRES_DB
@@ -34,12 +42,8 @@ echo "Banco: $PG_DB"
 docker compose -f docker-compose.prod.yml --env-file .env exec -T postgres psql -U "$PG_USER" -d "$PG_DB" -c "DELETE FROM _prisma_migrations WHERE migration_name LIKE '%add_management_and_aso%' AND finished_at IS NULL;"
 
 echo ""
-echo "=== BUILD API ==="
-docker compose -f docker-compose.prod.yml --env-file .env build api
-
-echo ""
-echo "=== BUILD WEB ==="
-docker compose -f docker-compose.prod.yml --env-file .env build web
+echo "=== BUILD API E WEB ==="
+docker compose -f docker-compose.prod.yml --env-file .env build api web
 
 echo ""
 echo "=== SUBIR CONTAINERS ==="
