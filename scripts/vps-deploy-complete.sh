@@ -4,18 +4,31 @@ set -euo pipefail
 echo "=== DEPLOY COMPLETO - VPS ==="
 echo ""
 
-echo "=== ATUALIZAR CÃ“DIGO ==="
+echo "=== ATUALIZAR CÓDIGO ==="
 cd /var/www/innovation.ia
+
+if [ ! -f .env ]; then
+  echo "Erro: .env nao encontrado em /var/www/innovation.ia"
+  exit 1
+fi
+set -a
+. ./.env
+set +a
+
+if [ -z "${POSTGRES_USER:-}" ] || [ -z "${POSTGRES_DB:-}" ]; then
+  echo "Erro: POSTGRES_USER/POSTGRES_DB nao carregados do .env"
+  exit 1
+fi
+
 git fetch https://github.com/Eduardo09e32y4rhf/innovation.git main
 git reset --hard FETCH_HEAD
 
 echo ""
 echo "=== LIMPAR MIGRATION TRAVADA ==="
-# Descobrir usuÃ¡rio do postgres
-PG_USER=$(grep POSTGRES_USER .env | cut -d'=' -f2)
-PG_DB=$(grep POSTGRES_DB .env | cut -d'=' -f2)
+PG_USER=$POSTGRES_USER
+PG_DB=$POSTGRES_DB
 
-echo "UsuÃ¡rio DB: $PG_USER"
+echo "Usuário DB: $PG_USER"
 echo "Banco: $PG_DB"
 
 docker compose -f docker-compose.prod.yml --env-file .env exec -T postgres psql -U "$PG_USER" -d "$PG_DB" -c "DELETE FROM _prisma_migrations WHERE migration_name LIKE '%add_management_and_aso%' AND finished_at IS NULL;"
@@ -58,7 +71,7 @@ echo "Login WEB:"
 curl -I https://vps8369.panel.icontainer.net/login 2>/dev/null | head -3 || echo "Falha no login"
 
 echo ""
-echo "=== LOGS API (Ãºltimas 30 linhas) ==="
+echo "=== LOGS API (últimas 30 linhas) ==="
 docker logs innovation-api --tail 30 2>/dev/null || echo "Sem logs"
 
 echo ""

@@ -3,6 +3,19 @@ set -euo pipefail
 
 cd /var/www/innovation.ia
 
+if [ ! -f .env ]; then
+  echo "Erro: .env nao encontrado em /var/www/innovation.ia"
+  exit 1
+fi
+set -a
+. ./.env
+set +a
+
+if [ -z "${POSTGRES_USER:-}" ] || [ -z "${POSTGRES_DB:-}" ]; then
+  echo "Erro: POSTGRES_USER/POSTGRES_DB nao carregados do .env"
+  exit 1
+fi
+
 REPO_URL="https://github.com/Eduardo09e32y4rhf/innovation.git"
 
 echo "=== ATUALIZAR CÓDIGO VIA HTTPS ==="
