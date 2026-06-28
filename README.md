@@ -1,77 +1,92 @@
-# Innovation RH Connect
+# 🚀 Innovation RH Connect
 
-Sistema de RH com controle de ponto e comunicacao via WhatsApp para pequenas e medias empresas.
+Sistema corporativo completo e profissional para Gestão de RH, controle de ponto eletrônico digital e comunicação integrada via WhatsApp. Projetado para otimizar a operação de departamento pessoal de pequenas e médias empresas com uma interface moderna, rápida e de alta performance.
 
-## Objetivo do MVP
+---
 
-Entregar um MVP vendavel para equipes de RH acompanharem funcionarios, ponto, ferias e comunicacao operacional por WhatsApp em uma unica plataforma.
+## 📸 Capturas de Tela (Demonstração)
 
-## Stack oficial
+Conheça as principais interfaces do sistema em produção:
 
-- Frontend: Next.js 14, React, TailwindCSS, Lucide, Recharts e Framer Motion.
-- Backend: NestJS, Prisma, PostgreSQL, JWT, Helmet, Throttler e cookie-parser.
-- Banco de dados: PostgreSQL com schema Prisma oficial em `apps/api/prisma/schema.prisma`.
-- Comunicacao: modulo WhatsApp integrado ao backend.
+### 📊 1. Painel Executivo (Dashboard)
+Acompanhamento em tempo real de indicadores gerais, pendências de ponto, férias solicitadas, banco de horas e movimentações mensais (admissões e desligamentos) de forma consolidada.
+![Painel Executivo](screenshots/01_dashboard.png)
 
-## Modulos visiveis
+### 👥 2. Gestão de Funcionários
+Cadastro completo e listagem de colaboradores com status lógico (Ativos, Inativos, Desligados), filtro por departamento ou matrícula e geração automática de Ficha de Registro em PDF.
+![Gestão de Funcionários](screenshots/02_employees.png)
 
-- Dashboard RH
-- Funcionarios
-- Controle de Ponto
-- Ferias
-- WhatsApp
-- Configuracoes
-- Usuarios
+### 📅 3. Controle de Férias
+Solicitações de férias individuais ou coletivas, acompanhamento do período concessivo e cálculo automático de elegibilidade de dias com base nas faltas injustificadas.
+![Controle de Férias](screenshots/03_vacations.png)
 
-## Modulos ocultos no MVP
+### ⏱️ 4. Folha de Ponto Eletrônica
+Espelho de ponto mensal com marcação de entrada, almoço e saída, cálculo de horas trabalhadas e saldo diário, lançamentos manuais com abono e exportação de folhas individuais e coletivas.
+![Folha de Ponto](screenshots/04_time-track.png)
 
-Financeiro, IA, Recrutamento/ATS, Desktop e Contabilidade ficam fora da navegacao e do escopo de entrega inicial.
+### 🩺 5. Saúde Ocupacional & ASO
+Gestão de Exames Médicos Ocupacionais (ASO) por funcionário com controle de vencimento, fechamento de períodos de folha e regras de controle interno parametrizáveis.
+![Saúde Ocupacional](screenshots/05_management.png)
 
-## Como rodar localmente
+---
+
+## 🛠️ Stack Tecnológica
+
+### Frontend
+- **Framework:** Next.js 14 (App Router)
+- **Biblioteca Visual:** React, TailwindCSS, Framer Motion
+- **Gráficos & Ícones:** Recharts, Lucide Icons
+
+### Backend
+- **Framework:** NestJS (Node.js)
+- **Banco de Dados & ORM:** PostgreSQL & Prisma ORM
+- **Cache & Filas:** Redis
+- **Segurança:** JWT, Helmet, Throttler, Cookie Parser
+
+---
+
+## 🚀 Como Rodar Localmente
+
+1. **Instale as dependências:**
+   ```bash
+   npm install
+   ```
+
+2. **Inicie o banco de dados local via Docker:**
+   ```bash
+   docker compose -f infra/docker-compose.yml up -d postgres
+   ```
+
+3. **Gere o Prisma Client e execute as Migrações:**
+   ```bash
+   npm run db:generate
+   npm run db:migrate
+   npm run db:seed
+   ```
+
+4. **Inicie os servidores de desenvolvimento:**
+   - **Backend API:** `npm run dev:api` (porta `3333` padrão)
+   - **Frontend Web:** `npm run dev:web` (porta `3000` padrão)
+
+---
+
+## 🗄️ Comandos de Migrações (Prisma)
+
+Sempre que alterar o schema localizado em `apps/api/prisma/schema.prisma`:
 
 ```bash
-npm install
-docker compose -f infra/docker-compose.yml up -d postgres
-npm run db:generate
-npm run db:migrate
-npm run db:seed
-npm run dev:api
-npm run dev:web
+npm run db:migrate   # Cria e executa uma nova migration
+npm run db:deploy    # Executa migrations pendentes em producao
+npm run db:studio    # Abre o gerenciador visual do banco
 ```
 
-Por padrao, o frontend roda em `http://localhost:3000` e a API usa `API_PORT` ou `PORT`, com fallback para `3333`.
+---
 
-O compose fica em `infra/docker-compose.yml` e e dedicado a dependencias locais, como PostgreSQL. API e Web rodam pelos scripts npm para manter o fluxo de desenvolvimento simples.
+## 📦 Build de Produção
 
-## Migrations
-
-```bash
-npm run db:migrate
-npm run db:deploy
-npm run db:studio
-```
-
-Todos os comandos Prisma apontam para `apps/api/prisma/schema.prisma`.
-
-## Build
+Para testar o build do projeto unificado:
 
 ```bash
 npm run typecheck
 npm run build
 ```
-
-## Novidades recentes
-
-- Botao "Ponto" nas listagens de **Funcionarios** e **Folha de ponto da empresa**.
-- Acesso direto ao registro de ponto individual por colaborador via `/dashboard/time-track?employeeId=ID`.
-- Filtro automatico por colaborador ao acessar por esse botao.
-- Titulo dinamico da pagina: "Folha de ponto da empresa", "Ponto da equipe" (por colaborador) ou "Meu ponto" (funcionario).
-- PDFs de ponto com layout reutilizavel (Ficha, Folha Individual, Espelho Individual/Empresa, Recibo de Ferias).
-
-## Roadmap curto
-
-- Consolidar cadastros de funcionarios com status de desligamento logico.
-- Fechar fluxo mensal de ponto com correcao por RH/Admin.
-- Completar solicitacao e aprovacao de ferias.
-- Evoluir painel WhatsApp com QR Code, conversas e mensagens.
-- Preparar a primeira implantacao comercial do MVP.
