@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Download, Edit3, FileText, Search, Trash2, UserMinus, UserPlus, Users, Filter, XCircle } from 'lucide-react';
+import { Download, Edit3, FileText, Search, Trash2, UserMinus, UserPlus, Users, Filter, XCircle, AlertTriangle } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { EmptyState, ErrorState, LoadingState } from '@/app/components/data-states';
 import { useAuth } from '@/app/contexts/AuthContext';
@@ -76,6 +76,19 @@ export default function EmployeesPage() {
       downloadEmployeeSheet(employee, rows, month, company.data ?? null, managerById.get(employee.managerId ?? '') ?? '');
     } catch {
       window.alert('Não foi possível baixar a folha deste funcionário.');
+    } finally {
+      setDownloadingId(null);
+    }
+  }
+
+  async function handleDownloadOcorrencias(employee: Employee) {
+    const month = currentMonth();
+    setDownloadingId(employee.id);
+    try {
+      const rows = await api.timeTrack.listEmployeeMonth(employee.id, month);
+      downloadEmployeeOcorrenciasSheet(employee, rows, month, company.data ?? null, managerById.get(employee.managerId ?? '') ?? '');
+    } catch {
+      window.alert('Não foi possível baixar a ficha de ocorrências deste funcionário.');
     } finally {
       setDownloadingId(null);
     }
@@ -224,6 +237,10 @@ export default function EmployeesPage() {
                                   <button onClick={() => handleDownloadSheet(employee)} disabled={downloadingId === employee.id || company.loading} className="btn-outline-premium inline-flex h-8 items-center gap-1.5 rounded-[6px] px-2.5 text-[11px] font-black disabled:opacity-50 transition-all hover:-translate-y-0.5">
                                     <Download size={12} strokeWidth={2.5} />
                                     Folha
+                                  </button>
+                                  <button onClick={() => handleDownloadOcorrencias(employee)} disabled={downloadingId === employee.id || company.loading} className="btn-outline-premium inline-flex h-8 items-center gap-1.5 rounded-[6px] px-2.5 text-[11px] font-black disabled:opacity-50 transition-all hover:-translate-y-0.5">
+                                    <AlertTriangle size={12} strokeWidth={2.5} />
+                                    Ocorrências
                                   </button>
                                 </>
                               )}
@@ -558,10 +575,132 @@ function downloadEmployeeSheet(employee: Employee, rows: TimeTrack[], month: str
       </div>
     `)}
 
-    ${signatureBlock(['Assinatura do Colaborador', 'Assinatura do RH / Responsável', 'Data de Conferência'])}
+    ${signatureBlock(['Assinatura do Colaborador', 'Assinatura do RH / Responsável'])}
   `);
 
   printPdf(html, `folha-ponto-${slugify(employee.name)}-${month}.pdf`);
+}
+
+function downloadEmployeeOcorrenciasSheet(employee: Employee, rows: TimeTrack[], month: string, company: Company | null, managerName: string) {
+  const monthLabelText = monthLabelFn(month);
+  const grid = buildGrid(month, employee, rows);
+  
+  const occurrenceGrid = grid.filter(g => {
+    if (g.isFuture || g.antesAdmissao) return false;
+    if (!g.track) {
+      return !g.isRest; // Falta Não Justificada is an occurrence
+    }
+    const t = g.track;
+    const hasMissing = !t.entry || !t.exit;
+    const status = dayStatus(t);
+    const balance = t.dailyBalance ?? 0;
+    return status !== 'NORMAL' || hasMissing || balance !== 0;
+  });
+  
+  const fullMonthGrid = grid;
+  const fullValidTracks = fullMonthGrid.map(g => g.track).filter(Boolean) as TimeTrack[];
+  const totalWorked = fullValidTracks.reduce((t, r) => t + (r.totalWorked ?? 0), 0);
+  const totalBalance = fullValidTracks.reduce((t, r) => t + (r.dailyBalance ?? 0), 0);
+  const positiveBalance = fullValidTracks.reduce((t, r) => t + Math.max(r.dailyBalance ?? 0, 0), 0);
+  const negativeBalance = fullValidTracks.reduce((t, r) => t + Math.abs(Math.min(r.dailyBalance ?? 0, 0)), 0);
+  const faltasCount = fullMonthGrid.filter(g => g.track && isFalta(g.track)).length;
+  
+  const employeeInfo = [
+    { label: 'Nome', value: normalizeDisplayName(employee.name) },
+    { label: 'Matrícula', value: employee.registration || '-' },
+    { label: 'CPF', value: employee.cpf || '-' },
+    { label: 'Cargo', value: employee.position || '-' },
+    { label: 'Departamento', value: employee.department || '-' },
+    { label: 'Gestor', value: managerName || '-' },
+    { label: 'Admissão', value: formatDate(employee.admissionDate) },
+    { label: 'Período', value: monthLabelText },
+  ];
+
+  const tableHeaders = ['Data', 'Entrada', 'Saída Almoço', 'Retorno Almoço', 'Saída', 'Trabalhado', 'Saldo', 'Ocorrência', 'Assinatura Diária'];
+  
+  let tableRows: string[];
+  if (occurrenceGrid.length === 0) {
+    tableRows = [`<tr><td colspan="9" style="padding:12px;text-align:center;font-size:9px;color:#64748b;font-weight:600;">Nenhuma ocorrência registrada neste período.</td></tr>`];
+  } else {
+    tableRows = occurrenceGrid.map((g) => {
+      const WEEKDAYS = ['DOM','SEG','TER','QUA','QUI','SEX','SÁB'];
+      const wd = WEEKDAYS[g.wd];
+      const dateStr = `${String(g.day).padStart(2,'0')} - ${wd}`;
+
+      const t = g.track;
+      if (!t) {
+        return `<tr><td style="padding:4px 8px;font-size:8px;color:#e11d48;font-weight:600;">${dateStr}</td><td colspan="8" style="padding:4px 8px;font-size:8px;color:#e11d48;text-align:center;font-weight:700;">FALTA NÃO JUSTIFICADA</td></tr>`;
+      }
+
+      const balance = t.dailyBalance ?? 0;
+      const balanceColor = balance < 0 ? '#e11d48' : balance > 0 ? '#059669' : '#64748b';
+      const hasMissing = !t.entry || !t.exit;
+      let ocorrencia = dayStatus(t);
+      if (ocorrencia === 'NORMAL' && hasMissing) ocorrencia = 'FALTA DE MARCAÇÃO';
+      
+      return `<tr>
+        <td style="padding:4px 8px;font-size:8px;font-weight:600;color:#0f172a;">${dateStr}</td>
+        <td style="padding:4px 8px;font-size:8px;color:#334155;text-align:center;">${escapeHtml(formatTime(t.entry))}</td>
+        <td style="padding:4px 8px;font-size:8px;color:#94a3b8;text-align:center;">--:--</td>
+        <td style="padding:4px 8px;font-size:8px;color:#94a3b8;text-align:center;">--:--</td>
+        <td style="padding:4px 8px;font-size:8px;color:#334155;text-align:center;">${escapeHtml(formatTime(t.exit))}</td>
+        <td style="padding:4px 8px;font-size:8px;font-weight:700;color:#0f172a;text-align:center;">${escapeHtml(formatMinutes(t.totalWorked))}</td>
+        <td style="padding:4px 8px;font-size:8px;font-weight:700;color:${balanceColor};text-align:center;">${escapeHtml(formatMinutes(balance))}</td>
+        <td style="padding:4px 8px;font-size:7px;color:#64748b;">${escapeHtml(ocorrencia !== 'NORMAL' ? ocorrencia : '')}</td>
+        <td style="padding:4px 8px;font-size:8px;color:#cbd5e1;border-bottom:1px dashed #e2e8f0;"></td>
+      </tr>`;
+    });
+  }
+
+  const companyData: PdfCompanyInfo | null = company ? {
+    name: company.name,
+    legalName: company.legalName,
+    document: company.document,
+    logoUrl: company.logoUrl,
+    phone: company.phone,
+    email: company.email,
+    address: [(company as any).street, (company as any).streetNumber, (company as any).neighborhood, (company as any).city, (company as any).state, (company as any).cep].filter(Boolean).map(String).join(', ') || undefined
+  } : null;
+
+  const html = buildPdfShell({ title: 'Ficha de Ocorrências de Ponto', subtitle: `${monthLabelText} — ${normalizeDisplayName(employee.name)}`, landscape: false }, companyData, `
+    ${section('Dados do Colaborador', infoGrid(employeeInfo, 4))}
+
+    ${section('Divergências e Ocorrências no Período', pdfTable(tableHeaders, tableRows, { compact: true }))}
+
+    ${section('Resumo do Período', `
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;">
+        <div style="background:#f0fdfa;border:1px solid #ccfbf1;border-radius:8px;padding:12px;text-align:center;">
+          <div style="font-size:8px;font-weight:800;text-transform:uppercase;color:#0f766e;letter-spacing:0.05em;">Dias Trabalhados</div>
+          <div style="font-size:16px;font-weight:900;color:#0f172a;margin-top:4px;">${fullValidTracks.length}</div>
+        </div>
+        <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px;text-align:center;">
+          <div style="font-size:8px;font-weight:800;text-transform:uppercase;color:#e11d48;letter-spacing:0.05em;">Faltas Integrais</div>
+          <div style="font-size:16px;font-weight:900;color:#e11d48;margin-top:4px;">${faltasCount}</div>
+        </div>
+        <div style="background:#f0fdfa;border:1px solid #ccfbf1;border-radius:8px;padding:12px;text-align:center;">
+          <div style="font-size:8px;font-weight:800;text-transform:uppercase;color:#0f766e;letter-spacing:0.05em;">Total Horas</div>
+          <div style="font-size:16px;font-weight:900;color:#0f172a;margin-top:4px;">${escapeHtml(formatMinutes(totalWorked))}</div>
+        </div>
+        <div style="background:#f0fdfa;border:1px solid #ccfbf1;border-radius:8px;padding:12px;text-align:center;">
+          <div style="font-size:8px;font-weight:800;text-transform:uppercase;color:#0f766e;letter-spacing:0.05em;">Horas Extras</div>
+          <div style="font-size:16px;font-weight:900;color:#059669;margin-top:4px;">${escapeHtml(formatMinutes(positiveBalance))}</div>
+        </div>
+        <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px;text-align:center;">
+          <div style="font-size:8px;font-weight:800;text-transform:uppercase;color:#e11d48;letter-spacing:0.05em;">Horas Atraso</div>
+          <div style="font-size:16px;font-weight:900;color:#e11d48;margin-top:4px;">${escapeHtml(formatMinutes(negativeBalance))}</div>
+        </div>
+      </div>
+      <div style="margin-top:16px;background:#f8fafc;padding:16px;border-radius:8px;font-size:12px;color:#334155;font-weight:700;text-align:center;border:1px solid #e2e8f0;">
+        SALDO DO BANCO DE HORAS NESTE MÊS: <span style="font-weight:900;color:${totalBalance < 0 ? '#e11d48' : totalBalance > 0 ? '#059669' : '#64748b'};">
+          ${escapeHtml(formatMinutes(totalBalance))}
+        </span>
+      </div>
+    `)}
+
+    ${signatureBlock(['Assinatura do Colaborador', 'Assinatura do RH / Responsável'])}
+  `);
+
+  printPdf(html, `ficha-ocorrencias-${slugify(employee.name)}-${month}.pdf`);
 }
 
 function downloadEmployeeRecord(employee: Employee, company: Company | null, managerName: string) {

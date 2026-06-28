@@ -806,7 +806,7 @@ function downloadVacationReceipt(vacation: { employee?: Employee; startDate: str
       Recebi da empresa a importância líquida de <strong>${BRL(liquido)}</strong> constante neste recibo, da qual dou plena e geral quitação.
     </div>
 
-    ${signatureBlock(['Assinatura do Empregado', 'Local e Data', 'Empregador / RH'])}
+    ${signatureBlock(['Assinatura do Empregado', 'Empregador / RH'])}
   `;
 
   const html = buildPdfShell({ title, subtitle, landscape: false }, companyInfo, body);
