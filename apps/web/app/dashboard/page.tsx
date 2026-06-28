@@ -60,7 +60,7 @@ function DashboardContent() {
       : 'Sua operação de RH em tempo real';
 
   // Action shortcuts
-  const actionShortcuts = isFuncionario ? [] : [
+  const actionShortcuts: { label: string; href: string; icon: any; color: string; onClick?: () => void }[] = isFuncionario ? [] : [
     { label: 'Novo funcionário', href: '/dashboard/employees/new', icon: UserPlus, color: 'teal' },
     { label: 'Lançar ponto', href: '/dashboard/time-track', icon: Clock3, color: 'indigo' },
     { label: 'Nova solicitação', href: '/dashboard/vacations', icon: CalendarDays, color: 'emerald' },

@@ -9,7 +9,7 @@ import { useMutation, useQuery } from '@/app/hooks/use-data';
 import { api, type Employee, type TimeTrack, type TimeTrackAdjustmentReason, type RestDayMode } from '@/app/lib/api';
 import { formatMinutes } from '@/app/lib/format';
 import { normalizeDisplayName } from '@/app/lib/text';
-import { buildPdfShell, section, pdfTable, signatureBlock, printPdf, type PdfCompanyInfo } from '@/app/lib/pdf-utils';
+import { buildPdfShell, section, pdfTable, signatureBlock, printPdf, infoGrid, type PdfCompanyInfo } from '@/app/lib/pdf-utils';
 
 const WEEKDAYS = ['DOM','SEG','TER','QUA','QUI','SEX','SÁB'];
 
@@ -135,8 +135,8 @@ function dayStatus(row: TimeTrack, holidayName?: string) {
   if (r.includes('atestado integral')) return 'ATESTADO';
   if (r.includes('feriado')) return 'FERIADO';
   if (r.includes('folga dsr')) return 'FOLGA';
-  if (row.incidentType === 'atraso') return 'ATRASO';
-  if (row.incidentType === 'saida_antecipada') return 'SAÍDA ANTECIPADA';
+  if ((row as any).incidentType === 'atraso') return 'ATRASO';
+  if ((row as any).incidentType === 'saida_antecipada') return 'SAÍDA ANTECIPADA';
   if (row.manualStatus==='pending') return 'PENDENTE';
   if (row.manualStatus==='rejected') return 'REJEITADO';
   if (row.manualReason || o.includes('ajuste')) return 'AJUSTE MANUAL';
@@ -212,7 +212,7 @@ export default function TimeTrackPage() {
         <div className="flex flex-wrap gap-2">
           <Link href="/dashboard/time-track/clock-in" className="crystal-button inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black text-white"><Clock3 size={14}/> BATER PONTO</Link>
           {(canManage||isGestor) && <button onClick={()=>setBulkOpen(true)} disabled={refreshing} className="btn-outline inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black"><Clock3 size={14}/> LANÇAR EM LOTE</button>}
-          {(canManage||isGestor) && <button onClick={() => downloadCollectiveSheet(month, visible, byEmpMap, employees.data || [], company.data || null)} disabled={refreshing || visible.length === 0} className="btn-outline-premium inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black"><FileText size={14}/> FOLHA COLETIVA</button>}
+          {(canManage||isGestor) && <button onClick={() => downloadCollectiveSheet(month, visible, byEmpMap, employees.data || [], company.data || null, holidays.data as any[] || [])} disabled={refreshing || visible.length === 0} className="btn-outline-premium inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black"><FileText size={14}/> FOLHA COLETIVA</button>}
           {canManage && <button onClick={()=>setOpen(true)} disabled={refreshing} className="crystal-button inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black text-white"><Edit3 size={14}/> LANÇAR PONTO</button>}
         </div>
       </header>
@@ -302,7 +302,6 @@ export default function TimeTrackPage() {
         )}
 
       {(open || bulkOpen || editing) && <Modal employees={actives} bulk={bulkOpen} track={editing ?? undefined} defaultEmpId={empFilter} onClose={()=>{setOpen(false);setBulkOpen(false);setEditing(null);}} onDone={()=>{setOpen(false);setBulkOpen(false);setEditing(null);tracks.refetch();}} />}
-      <BulkAdjustmentModal open={bulkOpen} onClose={()=>setBulkOpen(false)} onSuccess={()=>{setBulkOpen(false);tracks.refetch();pending.refetch();}} employees={actives} />
     </div>
   );
 }
@@ -322,7 +321,7 @@ function escapeHtml(value: unknown) {
   return String(value ?? '').replace(/[&<>"]/g, (char) => ({ '&': '&', '<': '<', '>': '>', '"': '"' })[char] ?? char);
 }
 
-function downloadCollectiveSheet(month: string, visibleEmployees: Employee[], byEmpMap: Record<string, TimeTrack[]>, allEmployees: Employee[], companyData: any) {
+function downloadCollectiveSheet(month: string, visibleEmployees: Employee[], byEmpMap: Record<string, TimeTrack[]>, allEmployees: Employee[], companyData: any, holidays: any[]) {
   const title = 'Folha Coletiva de Ponto';
   const subtitle = monthLabelFn(month);
   
@@ -355,7 +354,7 @@ function downloadCollectiveSheet(month: string, visibleEmployees: Employee[], by
   const summaryData = [
     { label: 'Total de Colaboradores', value: String(visibleEmployees.length) },
     { label: 'Total de Registros', value: String(visibleEmployees.reduce((acc, emp) => acc + (byEmpMap[emp.id] || []).length, 0)) },
-    { label: 'Total Faltas no Período', value: String(visibleEmployees.reduce((acc, emp) => acc + buildGrid(month, emp, byEmpMap[emp.id] || [], (company.data as any)?.payrollStartDay, holidays.data as any[]).filter(g => g.track && isFalta(g.track)).length, 0)) },
+    { label: 'Total Faltas no Período', value: String(visibleEmployees.reduce((acc, emp) => acc + buildGrid(month, emp, byEmpMap[emp.id] || [], (companyData as any)?.payrollStartDay, holidays).filter(g => g.track && isFalta(g.track)).length, 0)) },
   ];
 
   const html = buildPdfShell({ title, subtitle, landscape: true }, companyData || null, `
