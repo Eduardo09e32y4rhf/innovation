@@ -10,6 +10,10 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  webpack: (config) => {
+    config.optimization.minimize = false;
+    return config;
+  },
 };
 
 module.exports = nextConfig;

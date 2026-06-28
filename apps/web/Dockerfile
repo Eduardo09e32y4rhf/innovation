@@ -16,6 +16,8 @@ RUN npm ci --no-audit --prefer-offline --force
 
 COPY . .
 
+RUN echo "export async function patchIncorrectLockfile() { return; }" > node_modules/next/dist/lib/patch-incorrect-lockfile.js || true
+
 RUN npm run build:web
 
 FROM node:20-bookworm-slim AS runner
