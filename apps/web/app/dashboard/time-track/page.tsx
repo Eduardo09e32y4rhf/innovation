@@ -159,7 +159,7 @@ export default function TimeTrackPage() {
   const isGestor = profile==='GESTOR';
 
   const tracks = useQuery(() => api.timeTrack.list(), []);
-  const employees = useQuery(() => api.employees.list(), [], { enabled: !isFunc });
+  const employees = useQuery(() => api.employees.list(), []);
   const company = useQuery(() => api.companies.me(), []);
   const holidays = useQuery(() => api.companies.getHolidays(), []);
   const [open, setOpen] = useState(false);
@@ -170,7 +170,7 @@ export default function TimeTrackPage() {
   const [deptFilter, setDeptFilter] = useState('');
   const [tab, setTab] = useState<'ponto'|'ocorrencias'>('ponto');
 
-  const actives = useMemo(() => (employees.data ?? []).filter(e=>e.status==='ACTIVE').toSorted((a,b)=>normalizeDisplayName(a.name).localeCompare(normalizeDisplayName(b.name),'pt-BR')), [employees.data]);
+  const actives = useMemo(() => (employees.data ?? []).filter(e=>e.status==='ACTIVE').slice().sort((a,b)=>normalizeDisplayName(a.name).localeCompare(normalizeDisplayName(b.name),'pt-BR')), [employees.data]);
   const depts = useMemo(() => [...new Set((employees.data ?? []).map(e=>e.department).filter(Boolean))].sort(), [employees.data]);
   const selected = isFunc ? actives[0] : actives.find(e=>e.id===empFilter);
   const byEmp = useMemo(() => (tracks.data ?? []).filter(r => {
@@ -178,7 +178,7 @@ export default function TimeTrackPage() {
     if (month && !toDateKey(r.date).startsWith(month)) return false;
     if (deptFilter && r.employee?.department!==deptFilter) return false;
     return true;
-  }).toSorted((a,b)=> toDateKey(a.date).localeCompare(toDateKey(b.date))), [tracks.data, empFilter, month, deptFilter]);
+  }).slice().sort((a,b)=> toDateKey(a.date).localeCompare(toDateKey(b.date))), [tracks.data, empFilter, month, deptFilter]);
   const byEmpMap: Record<string, TimeTrack[]> = {};
   for (const r of byEmp) {
     if (!byEmpMap[r.employeeId]) byEmpMap[r.employeeId] = [];

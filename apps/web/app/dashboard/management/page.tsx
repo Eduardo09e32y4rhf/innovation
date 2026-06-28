@@ -368,7 +368,7 @@ function AsoTab({ records, employees, canManage, onOpenForm, onSave, onDelete, s
     if (filterStatus && r.status !== filterStatus) return false;
     if (filterEmp && r.employeeId !== filterEmp) return false;
     return true;
-  }).toSorted((a, b) => {
+  }).slice().sort((a, b) => {
     const da = a.dueDate ? new Date(a.dueDate).getTime() : 0;
     const db = b.dueDate ? new Date(b.dueDate).getTime() : 0;
     return da - db;
@@ -1143,7 +1143,7 @@ function ClosingTab({ canManage }: { canManage: boolean }) {
               </tr>
             </thead>
             <tbody>
-              {closings.toSorted((a: any, b: any) => {
+              {closings.slice().sort((a: any, b: any) => {
                 if (a.referenceYear !== b.referenceYear) return (b.referenceYear ?? 0) - (a.referenceYear ?? 0);
                 return (b.referenceMonth ?? 0) - (a.referenceMonth ?? 0);
               }).map((c: any) => {

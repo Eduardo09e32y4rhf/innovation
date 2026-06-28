@@ -43,7 +43,7 @@ export default function EmployeesPage() {
           || managerName.toLowerCase().includes(term)
           || employee.cpf.replace(/\D/g, '').includes(digits);
       })
-      .toSorted((a, b) => collator.compare(normalizeDisplayName(a.name), normalizeDisplayName(b.name)));
+      .slice().sort((a, b) => collator.compare(normalizeDisplayName(a.name), normalizeDisplayName(b.name)));
   }, [employees, managerById, search]);
 
   const activeCount = employees.filter(e => e.status === 'ACTIVE').length;
