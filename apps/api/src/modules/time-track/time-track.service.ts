@@ -99,22 +99,38 @@ export class TimeTrackService {
 
   async manualBulk(companyId: string, dto: BulkManualTimeTrackDto) {
     const dates = this.resolveBulkDates(dto);
-    const created = [];
-    for (const employeeId of dto.employeeIds) {
-      const employee = await this.ensureEmployee(companyId, employeeId);
-      for (const date of dates) {
-        if (this.isRestDay(employee, date, dto)) continue;
-        const parsedDate = this.toDateOnly(this.parseDate(date, 'Invalid date'));
-        this.validateEmployeeDateRange(employee, parsedDate);
-        if (dto.reason.includes('abono')) {
-          const suggestion = this.suggestAbsenceMinutes(employee, parsedDate);
-          if (suggestion !== null && suggestion > 0 && !dto.entry) {
-            const suggestedEntry = this.suggestEntryTime(employee, parsedDate, suggestion);
-            Object.assign(dto, { entry: suggestedEntry });
+    const created: any[] = [];
+
+    // ⚡ Bolt: Use chunked concurrency to process employees in parallel, optimizing DB wait times.
+    // DTO is cloned per iteration to prevent unintended data cascades across parallel executions.
+    // Array results are flattened to preserve order and avoid race conditions.
+    const CHUNK_SIZE = 5;
+    for (let i = 0; i < dto.employeeIds.length; i += CHUNK_SIZE) {
+      const chunk = dto.employeeIds.slice(i, i + CHUNK_SIZE);
+      const chunkResults = await Promise.all(
+        chunk.map(async (employeeId) => {
+          const employeeRecords = [];
+          const employee = await this.ensureEmployee(companyId, employeeId);
+          for (const date of dates) {
+            if (this.isRestDay(employee, date, dto)) continue;
+            const parsedDate = this.toDateOnly(this.parseDate(date, 'Invalid date'));
+            this.validateEmployeeDateRange(employee, parsedDate);
+
+            const localDto = { ...dto };
+            if (localDto.reason.includes('abono')) {
+              const suggestion = this.suggestAbsenceMinutes(employee, parsedDate);
+              if (suggestion !== null && suggestion > 0 && !localDto.entry) {
+                const suggestedEntry = this.suggestEntryTime(employee, parsedDate, suggestion);
+                Object.assign(localDto, { entry: suggestedEntry });
+              }
+            }
+            const record = await this.applyManual(employee, date, localDto);
+            employeeRecords.push(record);
           }
-        }
-        created.push(await this.applyManual(employee, date, dto));
-      }
+          return employeeRecords;
+        })
+      );
+      created.push(...chunkResults.flat());
     }
     return { count: created.length, items: created };
   }
