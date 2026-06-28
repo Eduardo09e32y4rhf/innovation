@@ -730,9 +730,9 @@ function CreateNotificationForm({ onCreated, employees }: { onCreated: () => voi
         <label className="space-y-1 text-xs font-medium text-slate-600">
           <span>PÚBLICO ALVO</span>
           <select value={targetType} onChange={e => { setTargetType(e.target.value); if(e.target.value==='SPECIFIC' && employees[0]) setTargetEmployeeId(employees[0].id); }} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500">
-            <option value="ALL">Todos os Usuários</option>
             <option value="EMPLOYEES">Todos os Funcionários</option>
-            <option value="ROLE">Por Cargo (Perfil)</option>
+            <option value="ALL">Todos da empresa (Inclui Gestores/RH)</option>
+            <option value="ROLE">Por Função (Cargo)</option>
             <option value="SPECIFIC">Funcionário Específico</option>
           </select>
         </label>

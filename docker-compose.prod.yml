@@ -25,6 +25,23 @@ services:
       timeout: 5s
       retries: 10
 
+  pgbouncer:
+    image: edoburu/pgbouncer:latest
+    restart: unless-stopped
+    environment:
+      DB_USER: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_HOST: postgres
+      DB_NAME: ${POSTGRES_DB}
+      POOL_MODE: transaction
+      MAX_CLIENT_CONN: 1000
+      DEFAULT_POOL_SIZE: 20
+    ports:
+      - "127.0.0.1:6432:6432"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   redis:
     image: redis:7-alpine
     container_name: innovation-redis
@@ -41,21 +58,22 @@ services:
     build:
       context: .
       dockerfile: apps/api/Dockerfile
-    container_name: innovation-api
     restart: unless-stopped
-    # IMPORTANTE: containers via compose não devem ser usados junto com PM2 na VPS
-    # para evitar EADDRINUSE. Se você usar PM2, remova/pare este service.
-
+    deploy:
+      replicas: 3
+      update_config:
+        parallelism: 1
+        delay: 10s
     depends_on:
-      postgres:
-        condition: service_healthy
+      pgbouncer:
+        condition: service_started
       redis:
         condition: service_healthy
     environment:
       NODE_ENV: production
       PORT: ${API_PORT:-3333}
       REDIS_URL: redis://redis:6379
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@pgbouncer:6432/${POSTGRES_DB}?pgbouncer=true
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-60m}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}

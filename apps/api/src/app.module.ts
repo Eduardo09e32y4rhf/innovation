@@ -20,6 +20,7 @@ import { PlatformModule } from './modules/platform/platform.module';
 import { ManagementModule } from './modules/management/management.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { AuditInterceptor } from './common/interceptors/audit.interceptor';
+import { CryptoModule } from './common/crypto/crypto.module';
 
 @Module({
   imports: [
@@ -45,6 +46,7 @@ import { AuditInterceptor } from './common/interceptors/audit.interceptor';
     PlatformModule,
     ManagementModule,
     NotificationsModule,
+    CryptoModule,
   ],
   providers: [{ provide: APP_INTERCEPTOR, useClass: AuditInterceptor }],
 })

@@ -152,7 +152,7 @@ export class TimeTrackService {
           ...(dto.latitude !== undefined ? { latitude: dto.latitude } : {}),
           ...(dto.longitude !== undefined ? { longitude: dto.longitude } : {}),
         });
-        const totals = this.calculateTotals({ ...current, [field]: now });
+        const totals = this.calculateTotals({ ...current, [field]: now }, employee, today);
         const incidents = this.detectIncidents(employee, today, { ...current, ...totals });
         if (incidents) {
           await this.repository.update(companyId, current.id, {
@@ -201,7 +201,7 @@ export class TimeTrackService {
         manualReason: dto.manualReason,
         manualStatus: 'pending',
       });
-      const totals = this.calculateTotals({ ...current, [field]: timestamp });
+      const totals = this.calculateTotals({ ...current, [field]: timestamp }, employee, date);
       const incidents = this.detectIncidents(employee, date, { ...current, [field]: timestamp, ...totals });
       if (incidents && dto.manualReason !== 'ajuste_suspensao') {
         await this.repository.update(companyId, current.id, {
@@ -227,7 +227,8 @@ export class TimeTrackService {
       ...(dto.observation !== undefined ? { observation: dto.observation?.trim() || null } : {}),
     };
     const next = { ...current, ...data };
-    const result = await this.repository.update(companyId, id, { ...data, ...this.calculateTotals(next) });
+    const employee = await this.repository.findEmployee(companyId, current.employeeId);
+    const result = await this.repository.update(companyId, id, { ...data, ...this.calculateTotals(next, employee ?? undefined, next.date) });
     if (!result.count) throw new NotFoundException('Time track not found');
     return this.repository.findById(companyId, id);
   }
@@ -388,7 +389,7 @@ export class TimeTrackService {
       const workload = parseWorkloadToMinutes(employee.dailyWorkload);
       return this.repository.upsert(employee.id, date, { ...data, totalWorked: -workload, dailyBalance: -workload });
     }
-    const totals = this.calculateTotals(data);
+    const totals = this.calculateTotals(data, employee, date);
     return this.repository.upsert(employee.id, date, { ...data, ...totals });
   }
 
@@ -470,12 +471,50 @@ export class TimeTrackService {
     return map[type];
   }
 
-  private calculateTotals(track: { entry?: Date | null; lunchStart?: Date | null; lunchReturn?: Date | null; exit?: Date | null }) {
-    if (!track.entry || !track.exit) return { totalWorked: null, dailyBalance: null };
+  private calculateTotals(
+    track: { entry?: Date | null; lunchStart?: Date | null; lunchReturn?: Date | null; exit?: Date | null },
+    employee?: { workScale?: string | null; dailyWorkload?: string | null },
+    date?: Date
+  ) {
+    if (!track.entry || !track.exit) return { totalWorked: null, dailyBalance: null, overtime50Minutes: null, overtime100Minutes: null, nightShiftMinutes: null };
     const gross = this.diffMinutes(track.entry, track.exit);
     const lunch = track.lunchStart && track.lunchReturn ? this.diffMinutes(track.lunchStart, track.lunchReturn) : 0;
     const totalWorked = Math.max(gross - lunch, 0);
-    return { totalWorked, dailyBalance: totalWorked - DEFAULT_WORKDAY_MINUTES };
+    const workload = parseWorkloadToMinutes(employee?.dailyWorkload);
+    const dailyBalance = totalWorked - workload;
+
+    let overtime50Minutes = 0;
+    let overtime100Minutes = 0;
+    let nightShiftMinutes = 0;
+
+    if (dailyBalance > 0) {
+      const isRest = date ? this.isRestDay(employee || {}, date.toISOString(), {} as any) : false;
+      if (isRest) {
+        overtime100Minutes = dailyBalance;
+      } else {
+        overtime50Minutes = dailyBalance;
+      }
+    }
+
+    const getMin = (d: Date) => d.getHours() * 60 + d.getMinutes();
+    const s = getMin(track.entry);
+    const e = getMin(track.exit) + (track.entry.getDate() !== track.exit.getDate() ? 24 * 60 : 0);
+    
+    const nightStart = 22 * 60; // 1320
+    const nightEnd = 24 * 60 + 5 * 60; // 1740
+
+    if (e > nightStart) {
+      const overlapStart = Math.max(s, nightStart);
+      const overlapEnd = Math.min(e, nightEnd);
+      if (overlapEnd > overlapStart) nightShiftMinutes += (overlapEnd - overlapStart);
+    }
+    if (s < 5 * 60) {
+      const overlapStart = s;
+      const overlapEnd = Math.min(e, 5 * 60);
+      if (overlapEnd > overlapStart) nightShiftMinutes += (overlapEnd - overlapStart);
+    }
+
+    return { totalWorked, dailyBalance, overtime50Minutes, overtime100Minutes, nightShiftMinutes };
   }
 
   private diffMinutes(start: Date, end: Date) {

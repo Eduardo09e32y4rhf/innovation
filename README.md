@@ -6,7 +6,7 @@ Sistema corporativo completo e profissional para Gestão de RH, controle de pont
 
 ## 📸 Capturas de Tela (Demonstração)
 
-Conheça as principais interfaces do sistema em produção:
+Conheça as principais interfaces do sistema (dados confidenciais foram ocultados com tarjas para preservar a privacidade):
 
 ### 📊 1. Painel Executivo (Dashboard)
 Acompanhamento em tempo real de indicadores gerais, pendências de ponto, férias solicitadas, banco de horas e movimentações mensais (admissões e desligamentos) de forma consolidada.
@@ -21,7 +21,7 @@ Solicitações de férias individuais ou coletivas, acompanhamento do período c
 ![Controle de Férias](screenshots/03_vacations.png)
 
 ### ⏱️ 4. Folha de Ponto Eletrônica
-Espelho de ponto mensal com marcação de entrada, almoço e saída, cálculo de horas trabalhadas e saldo diário, lançamentos manuais com abono e exportação de folhas individuais e coletivas.
+Espelho de ponto mensal com marcação de entrada, almoço e saída. Cálculo de horas trabalhadas, horas extras (50% e 100%), adicional noturno e saldo diário com visualização limpa de atestados, suspensões e faltas.
 ![Folha de Ponto](screenshots/04_time-track.png)
 
 ### 🩺 5. Saúde Ocupacional & ASO

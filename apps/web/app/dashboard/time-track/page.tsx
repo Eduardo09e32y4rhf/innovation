@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
@@ -12,18 +12,18 @@ import { normalizeDisplayName } from '@/app/lib/text';
 import { BulkAdjustmentModal } from './bulk-adjustment-modal';
 import { buildPdfShell, section, infoGrid, pdfTable, signatureBlock, printPdf, type PdfCompanyInfo } from '@/app/lib/pdf-utils';
 
-const WEEKDAYS = ['DOM','SEG','TER','QUA','QUI','SEX','SÃB'];
+const WEEKDAYS = ['DOM','SEG','TER','QUA','QUI','SEX','SÁB'];
 
 const REASONS: { value: TimeTrackAdjustmentReason; label: string; fullDay?: boolean }[] = [
-  { value:'ajuste_erro_marcacao', label:'AJUSTE - ERRO MARCAÃ‡ÃƒO', fullDay:false },
+  { value:'ajuste_erro_marcacao', label:'AJUSTE - ERRO MARCAÇÃO', fullDay:false },
   { value:'ajuste_atestado_integral', label:'ATESTADO INTEGRAL', fullDay:true },
   { value:'ajuste_feriado', label:'FERIADO', fullDay:true },
   { value:'ajuste_abono_atestado_horas', label:'ABONO - ATESTADO DE HORAS', fullDay:false },
   { value:'ajuste_folga_dsr', label:'FOLGA', fullDay:true },
   { value:'ajuste_abono_folga', label:'ABONO - FOLGA (BANCO)', fullDay:true },
-  { value:'ajuste_abono_banco_saida_antecipada', label:'ABONO - BANCO SAÃDA ANTECIPADA', fullDay:true },
+  { value:'ajuste_abono_banco_saida_antecipada', label:'ABONO - BANCO saída ANTECIPADA', fullDay:true },
   { value:'ajuste_abono_atraso', label:'ABONO - ATRASO', fullDay:true },
-  { value:'ajuste_suspensao', label:'SUSPENSÃƒO', fullDay:true },
+  { value:'ajuste_suspensao', label:'SUSPENSÃO', fullDay:true },
 ];
 
 function currentMonth() { return new Date().toISOString().slice(0,7); }
@@ -92,6 +92,11 @@ function isAntesAdmissao(key: string, emp: Employee): boolean {
   const adm = emp.admissionDate.slice(0,10);
   return key < adm;
 }
+function isDepoisDemissao(key: string, emp: Employee): boolean {
+  if (!emp.terminationDate) return false;
+  const dem = emp.terminationDate.slice(0,10);
+  return key > dem;
+}
 
 function buildGrid(month: string, emp: Employee, tracks: TimeTrack[], startDay: number = 1, holidays: any[] = []) {
   const [y,m] = month.split('-').map(Number); if (!y||!m) return [];
@@ -116,7 +121,7 @@ function buildGrid(month: string, emp: Employee, tracks: TimeTrack[], startDay: 
     const isHoliday = !!holiday;
     g.push({
       date, key, day: date.getUTCDate(), wd: date.getUTCDay(),
-      isRest: isRestDay(date,emp), isFuture: key>today, antesAdmissao: isAntesAdmissao(key,emp),
+      isRest: isRestDay(date,emp), isFuture: key>today, antesAdmissao: isAntesAdmissao(key,emp), depoisDemissao: isDepoisDemissao(key,emp),
       track: map.get(key), holidayName: holiday?.name
     });
   }
@@ -127,7 +132,7 @@ function dayStatus(row: TimeTrack, holidayName?: string) {
   const o = (row.observation ?? '').toLowerCase();
   if (o.includes('atestado integral')) return 'ATESTADO';
   if (o.includes('atestado') && o.includes('horas')) return 'ATESTADO (HORAS)';
-  if (o.includes('suspensao') || o.includes('suspensÃ£o')) return 'SUSPENSÃƒO';
+  if (o.includes('suspensao') || o.includes('suspensão')) return 'SUSPENSÃO';
   if (o.includes('feriado') || holidayName) return 'FERIADO';
   if (o.includes('folga extra')) return 'FOLGA EXTRA';
   if (o.includes('folga banco')) return 'FOLGA BANCO';
@@ -137,7 +142,7 @@ function dayStatus(row: TimeTrack, holidayName?: string) {
   if (r.includes('feriado')) return 'FERIADO';
   if (r.includes('folga dsr')) return 'FOLGA';
   if (row.incidentType === 'atraso') return 'ATRASO';
-  if (row.incidentType === 'saida_antecipada') return 'SAÃDA ANTECIPADA';
+  if (row.incidentType === 'saida_antecipada') return 'saída ANTECIPADA';
   if (row.manualStatus==='pending') return 'PENDENTE';
   if (row.manualStatus==='rejected') return 'REJEITADO';
   if (row.manualReason || o.includes('ajuste')) return 'AJUSTE MANUAL';
@@ -147,7 +152,7 @@ function dayStatus(row: TimeTrack, holidayName?: string) {
 function isFalta(row: TimeTrack) {
   if (row.entry || row.exit) return false;
   const o = (row.observation ?? '').toLowerCase();
-  return !o.includes('atestado') && !o.includes('feriado') && !o.includes('folga') && !o.includes('suspensao') && !o.includes('suspensÃ£o');
+  return !o.includes('atestado') && !o.includes('feriado') && !o.includes('folga') && !o.includes('suspensao') && !o.includes('suspensão');
 }
 function sumMin(rows: TimeTrack[], f: 'totalWorked'|'dailyBalance') { return rows.reduce((a,r)=>a+(r[f]??0),0); }
 
@@ -185,11 +190,21 @@ export default function TimeTrackPage() {
     if (!byEmpMap[r.employeeId]) byEmpMap[r.employeeId] = [];
     byEmpMap[r.employeeId].push(r);
   }
-  const visible = useMemo(() => actives.filter(e => {
+  const visible = useMemo(() => (employees.data ?? []).filter(e => {
     if (empFilter && e.id!==empFilter) return false;
     if (deptFilter && e.department!==deptFilter) return false;
+    
+    if (month) {
+      const [y,m] = month.split('-').map(Number);
+      const startOfMonth = `${y}-${String(m).padStart(2,'0')}-01`;
+      const endOfMonth = new Date(y, m, 0).toISOString().slice(0,10);
+      if (e.admissionDate && e.admissionDate.slice(0,10) > endOfMonth) return false;
+      if (e.terminationDate && e.terminationDate.slice(0,10) < startOfMonth) return false;
+    } else if (e.status !== 'ACTIVE') {
+      return false;
+    }
     return true;
-  }), [actives, empFilter, deptFilter]);
+  }).sort((a,b)=>normalizeDisplayName(a.name).localeCompare(normalizeDisplayName(b.name),'pt-BR')), [employees.data, empFilter, deptFilter, month]);
 
   const remove = useMutation((id:string)=> api.timeTrack.delete(id), { onSuccess: ()=> tracks.refetch() });
   const pending = useQuery(() => api.timeTrack.listPending(), [], { enabled: canApprove });
@@ -212,19 +227,19 @@ export default function TimeTrackPage() {
         </div>
         <div className="flex flex-wrap gap-2">
           <Link href="/dashboard/time-track/clock-in" className="crystal-button inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black text-white"><Clock3 size={14}/> BATER PONTO</Link>
-          {(canManage||isGestor) && <button onClick={()=>setBulkOpen(true)} disabled={refreshing} className="btn-outline inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black"><Clock3 size={14}/> LANÃ‡AR EM LOTE</button>}
+          {(canManage||isGestor) && <button onClick={()=>setBulkOpen(true)} disabled={refreshing} className="btn-outline inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black"><Clock3 size={14}/> LANÇAR EM LOTE</button>}
           {(canManage||isGestor) && <button onClick={() => downloadCollectiveSheet(month, visible, byEmpMap, company.data || null, holidays.data || [])} disabled={refreshing || visible.length === 0} className="btn-outline-premium inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black"><FileText size={14}/> FOLHA COLETIVA</button>}
-          {canManage && <button onClick={()=>setOpen(true)} disabled={refreshing} className="crystal-button inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black text-white"><Edit3 size={14}/> LANÃ‡AR PONTO</button>}
+          {canManage && <button onClick={()=>setOpen(true)} disabled={refreshing} className="crystal-button inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black text-white"><Edit3 size={14}/> LANÇAR PONTO</button>}
         </div>
       </header>
 
       {canApprove && (pending.data ?? []).length > 0 && (
         <section className="rounded-[12px] border border-amber-200 bg-amber-50 p-4">
-          <h3 className="mb-3 text-sm font-black text-amber-900">PONTOS PENDENTES DE APROVAÃ‡ÃƒO ({(pending.data ?? []).length})</h3>
+          <h3 className="mb-3 text-sm font-black text-amber-900">PONTOS PENDENTES DE APROVAÇÃO ({(pending.data ?? []).length})</h3>
           {approveMut.error && <p className="mb-3 rounded-[8px] border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">{approveMut.error}</p>}
           <div className="space-y-2">{(pending.data ?? []).map(t=> (
             <div key={t.id} className="flex items-center justify-between rounded-[8px] border border-amber-200 bg-white px-4 py-3">
-              <div className="text-xs"><p className="font-bold text-slate-950">{normalizeDisplayName(t.employee?.name ??'-')}</p><p className="text-slate-500">{fmtDateFull(t.date)} - {t.manualReason ?? 'LanÃ§amento manual'}</p></div>
+              <div className="text-xs"><p className="font-bold text-slate-950">{normalizeDisplayName(t.employee?.name ??'-')}</p><p className="text-slate-500">{fmtDateFull(t.date)} - {t.manualReason ?? 'Lançamento manual'}</p></div>
               <div className="flex gap-2">
                 <button onClick={()=>approveMut.mutate({id:t.id,approved:true}).catch(()=>{})} disabled={approveMut.loading} className="inline-flex h-8 items-center gap-1 rounded-[6px] bg-emerald-600 px-3 text-[11px] font-bold text-white disabled:opacity-60"><Check size={12}/>APROVAR</button>
                 <button onClick={()=>approveMut.mutate({id:t.id,approved:false}).catch(()=>{})} disabled={approveMut.loading} className="inline-flex h-8 items-center gap-1 rounded-[6px] bg-rose-600 px-3 text-[11px] font-bold text-white disabled:opacity-60"><XCircle size={12}/>RECUSAR</button>
@@ -237,7 +252,7 @@ export default function TimeTrackPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex gap-1 rounded-[8px] bg-slate-100 p-1">
           <button onClick={()=>setTab('ponto')} className={`rounded-[6px] px-4 py-2 text-xs font-black uppercase ${tab==='ponto'?'bg-white shadow-sm text-teal-700':'text-slate-500'}`}>Ponto</button>
-          <button onClick={()=>setTab('ocorrencias')} className={`rounded-[6px] px-4 py-2 text-xs font-black uppercase ${tab==='ocorrencias'?'bg-white shadow-sm text-teal-700':'text-slate-500'}`}>OcorrÃªncias</button>
+          <button onClick={()=>setTab('ocorrencias')} className={`rounded-[6px] px-4 py-2 text-xs font-black uppercase ${tab==='ocorrencias'?'bg-white shadow-sm text-teal-700':'text-slate-500'}`}>Ocorrências</button>
         </div>
         <div className="flex flex-wrap gap-2">
           {!isFunc && (
@@ -302,7 +317,7 @@ export default function TimeTrackPage() {
           <OcorrenciasList employees={visible} byEmpMap={byEmpMap} month={month} onSelect={setEmpFilter} />
         )}
 
-      {(open || bulkOpen || editing) && <Modal employees={actives} bulk={bulkOpen} track={editing ?? undefined} defaultEmpId={empFilter} onClose={()=>{setOpen(false);setBulkOpen(false);setEditing(null);}} onDone={()=>{setOpen(false);setBulkOpen(false);setEditing(null);tracks.refetch();}} />}
+      {(open || editing) && <Modal employees={actives} bulk={false} track={editing ?? undefined} defaultEmpId={empFilter} onClose={()=>{setOpen(false);setEditing(null);}} onDone={()=>{setOpen(false);setEditing(null);tracks.refetch();}} />}
       <BulkAdjustmentModal open={bulkOpen} onClose={()=>setBulkOpen(false)} onSuccess={()=>{setBulkOpen(false);tracks.refetch();pending.refetch();}} employees={actives} />
     </div>
   );
@@ -311,7 +326,7 @@ export default function TimeTrackPage() {
 // --- Folha Coletiva de Ponto ---
 
 function monthLabelFn(month: string) {
-  if (!month) return 'PerÃ­odo completo';
+  if (!month) return 'Período completo';
   const [year, monthNumber] = month.split('-').map(Number);
   if (!year || !monthNumber) return month;
   const date = new Date(year, monthNumber - 1, 1);
@@ -327,7 +342,7 @@ function downloadCollectiveSheet(month: string, visibleEmployees: Employee[], by
   const title = 'Folha Coletiva de Ponto';
   const subtitle = monthLabelFn(month);
   
-  const headers = ['MatrÃ­cula', 'FuncionÃ¡rio', 'Dep.', 'Registros', 'Faltas', 'Trabalhado', 'Saldo Geral'];
+  const headers = ['Matrícula', 'Funcionário', 'Dep.', 'Registros', 'Faltas', 'Trabalhado', 'Saldo Geral'];
   
   const rows = visibleEmployees.map(emp => {
     const tracks = byEmpMap[emp.id] || [];
@@ -356,7 +371,7 @@ function downloadCollectiveSheet(month: string, visibleEmployees: Employee[], by
   const summaryData = [
     { label: 'Total de Colaboradores', value: String(visibleEmployees.length) },
     { label: 'Total de Registros', value: String(visibleEmployees.reduce((acc, emp) => acc + (byEmpMap[emp.id] || []).length, 0)) },
-    { label: 'Total Faltas no PerÃ­odo', value: String(visibleEmployees.reduce((acc, emp) => acc + buildGrid(month, emp, byEmpMap[emp.id] || [], companyData?.payrollStartDay, holidaysData).filter(g => g.track && isFalta(g.track)).length, 0)) },
+    { label: 'Total Faltas no Período', value: String(visibleEmployees.reduce((acc, emp) => acc + buildGrid(month, emp, byEmpMap[emp.id] || [], companyData?.payrollStartDay, holidaysData).filter(g => g.track && isFalta(g.track)).length, 0)) },
   ];
 
   const html = buildPdfShell({ title, subtitle, landscape: true }, companyData || null, `
@@ -369,22 +384,22 @@ function downloadCollectiveSheet(month: string, visibleEmployees: Employee[], by
 }
 
 function OcorrenciasList({ employees, byEmpMap, month, onSelect }: { employees: Employee[]; byEmpMap: Record<string,TimeTrack[]>; month: string; onSelect: (id:string)=>void }) {
-  const withIssues = employees.filter(e => (byEmpMap[e.id] ?? []).some(isFalta));
-  if (withIssues.length===0) return <p className="text-center text-sm font-semibold text-slate-400 py-8">Nenhuma ocorrÃªncia no mÃªs.</p>;
+  const withIssues = employees.filter(e => (byEmpMap[e.id] ?? []).some(t => isFalta(t) || t.incidentType === 'atraso' || t.incidentType === 'saida_antecipada' || (t.dailyBalance != null && t.dailyBalance < 0)));
+  if (withIssues.length===0) return <p className="text-center text-sm font-semibold text-slate-400 py-8">Nenhuma ocorrência no mês.</p>;
   return (
     <section className="overflow-hidden rounded-[14px] border border-slate-200 bg-white">
-      <div className="border-b border-slate-100 bg-amber-50/50 px-5 py-4"><h3 className="text-sm font-black text-amber-900">OCORRÃŠNCIAS DO MÃŠS</h3><p className="mt-1 text-xs text-amber-700">Atrasos, faltas e saÃ­das antecipadas.</p></div>
+      <div className="border-b border-slate-100 bg-amber-50/50 px-5 py-4"><h3 className="text-sm font-black text-amber-900">OCORRÊNCIAS DO MÊS</h3><p className="mt-1 text-xs text-amber-700">Atrasos, faltas e saídas antecipadas.</p></div>
       <div className="divide-y divide-slate-100">
         {withIssues.map(e=> {
           const rows = byEmpMap[e.id] ?? [];
-          const faltas = rows.filter(isFalta).length;
+          const ocorrenciasCount = rows.filter(t => isFalta(t) || t.incidentType === 'atraso' || t.incidentType === 'saida_antecipada' || (t.dailyBalance != null && t.dailyBalance < 0)).length;
           return (
             <div key={e.id} className="flex items-center justify-between px-5 py-4 hover:bg-slate-50">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-gradient-to-br from-rose-500 to-pink-600 text-sm font-black text-white">{normalizeDisplayName(e.name).charAt(0).toUpperCase()}</div>
                 <div>
                   <p className="text-sm font-black text-slate-950">{normalizeDisplayName(e.name)}</p>
-                  <p className="text-[10px] font-semibold text-rose-600">{faltas} FALTA(S) â€¢ {e.department || '-'}</p>
+                  <p className="text-[10px] font-semibold text-rose-600">{ocorrenciasCount} OCORRÊNCIA(S) • {e.department || '-'}</p>
                 </div>
               </div>
               <button onClick={()=>onSelect(e.id)} className="btn-outline inline-flex h-8 items-center gap-1.5 rounded-[6px] px-3 text-[10px] font-black"><CalendarDays size={12}/> VER</button>
@@ -443,13 +458,13 @@ function MonthGrid({ employee, tracks, month, canManage, canApprove, refreshing,
             <tr className="bg-slate-50 text-[9px] font-black uppercase tracking-[0.1em] text-slate-500">
               <th className="px-3 py-2 w-[16%] border-b border-slate-200">DATA</th>
               <th className="px-3 py-2 w-[9%] border-b border-slate-200">ENTRADA</th>
-              <th className="px-3 py-2 w-[11%] border-b border-slate-200">ALMOÃ‡O</th>
-              <th className="px-3 py-2 w-[9%] border-b border-slate-200">SAÃDA</th>
+              <th className="px-3 py-2 w-[11%] border-b border-slate-200">ALMOÇO</th>
+              <th className="px-3 py-2 w-[9%] border-b border-slate-200">saída</th>
               <th className="px-3 py-2 w-[9%] border-b border-slate-200">TRAB</th>
               <th className="px-3 py-2 w-[9%] border-b border-slate-200">SALDO</th>
               <th className="px-3 py-2 w-[8%] border-b border-slate-200">ABONO</th>
               <th className="px-3 py-2 w-[10%] border-b border-slate-200">STATUS</th>
-              <th className="px-3 py-2 w-[19%] border-b border-slate-200 text-center">AÃ‡Ã•ES</th>
+              <th className="px-3 py-2 w-[19%] border-b border-slate-200 text-center">AÇÕES</th>
             </tr>
           </thead>
           <tbody>
@@ -458,10 +473,10 @@ function MonthGrid({ employee, tracks, month, canManage, canApprove, refreshing,
               let bg = '';
               if (day.isRest) bg = 'bg-sky-50/30';
               else if (day.isFuture) bg = 'bg-slate-50/40 opacity-70';
-              else if (!t && !day.antesAdmissao) bg = 'bg-amber-50/20';
-              else if (day.antesAdmissao) bg = 'bg-slate-100/50 opacity-50';
-              const status = day.isRest ? 'FOLGA' : day.antesAdmissao ? '---' : t ? dayStatus(t) : day.isFuture ? '---' : 'FALTA';
-              const isAtestado = ['ATESTADO','FERIADO','SUSPENSÃƒO','FOLGA','FOLGA EXTRA','FOLGA BANCO','FOLGA (DSR)','---'].includes(status);
+              else if (!t && !day.antesAdmissao && !day.depoisDemissao) bg = 'bg-amber-50/20';
+              else if (day.antesAdmissao || day.depoisDemissao) bg = 'bg-slate-100/50 opacity-50';
+              const status = day.isRest ? 'FOLGA' : (day.antesAdmissao || day.depoisDemissao) ? '---' : t ? dayStatus(t) : day.isFuture ? '---' : 'FALTA';
+              const isAtestado = ['ATESTADO','FERIADO','SUSPENSÃO','FOLGA','FOLGA EXTRA','FOLGA BANCO','FOLGA (DSR)','---'].includes(status);
 
               return (
                 <tr key={day.key} className={`h-9 border-t border-slate-100 text-[11px] font-semibold text-slate-700 hover:bg-slate-50/70 ${bg}`}>
@@ -510,7 +525,10 @@ function MonthGrid({ employee, tracks, month, canManage, canApprove, refreshing,
 
 function Ocorrencias({ employee, tracks, month, canManage, canApprove, refreshing, removeLoading, onEdit, onDelete, company, holidays }: { employee: Employee; tracks: TimeTrack[]; month: string; canManage: boolean; canApprove: boolean; refreshing: boolean; removeLoading: boolean; onEdit: (r:TimeTrack)=>void; onDelete: (r:TimeTrack)=>void; company: any; holidays: any[]; }) {
   const grid = useMemo(()=> buildGrid(month, employee, tracks, company?.payrollStartDay, holidays), [month, employee, tracks, company, holidays]);
-  const ocorrencias = useMemo(()=>grid.filter(g=>g.track&&isFalta(g.track)), [grid]);
+  const ocorrencias = useMemo(()=>grid.filter(g=>{
+    if (!g.track) return false;
+    return isFalta(g.track) || g.track.incidentType === 'atraso' || g.track.incidentType === 'saida_antecipada' || (g.track.dailyBalance != null && g.track.dailyBalance < 0);
+  }), [grid]);
   return (
     <section className="overflow-hidden rounded-[14px] border border-slate-200 bg-white">
       <div className="border-b border-slate-100 bg-amber-50/50 px-5 py-4">
@@ -518,14 +536,14 @@ function Ocorrencias({ employee, tracks, month, canManage, canApprove, refreshin
           <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-black text-amber-800">{employee.registration || employee.id.slice(0,8)}</span>
           <h3 className="text-sm font-black text-amber-900">{normalizeDisplayName(employee.name)}</h3>
         </div>
-        <p className="mt-2 text-xs text-amber-700">{ocorrencias.length} ocorrÃªncia(s) em {new Date(month+'-01').toLocaleDateString('pt-BR',{month:'long',year:'numeric'})}</p>
+        <p className="mt-2 text-xs text-amber-700">{ocorrencias.length} ocorrência(s) em {new Date(month+'-01').toLocaleDateString('pt-BR',{month:'long',year:'numeric'})}</p>
       </div>
-      {ocorrencias.length===0 ? <div className="px-5 py-8 text-center text-sm font-semibold text-slate-400">Nenhuma ocorrÃªncia no mÃªs.</div> : (
+      {ocorrencias.length===0 ? <div className="px-5 py-8 text-center text-sm font-semibold text-slate-400">Nenhuma ocorrência no mês.</div> : (
         <div className="overflow-x-auto">
           <table className="w-full min-w-[800px] border-separate border-spacing-0 text-left">
             <thead>
               <tr className="bg-slate-50 text-[10px] font-black uppercase text-slate-500">
-                <th className="px-3 py-2 w-[20%]">DATA</th><th className="px-3 py-2 w-[15%]">STATUS</th><th className="px-3 py-2 w-[15%]">ENTRADA</th><th className="px-3 py-2 w-[15%]">SAÃDA</th><th className="px-3 py-2 w-[35%]">AÃ‡Ã•ES</th>
+                <th className="px-3 py-2 w-[20%]">DATA</th><th className="px-3 py-2 w-[15%]">STATUS</th><th className="px-3 py-2 w-[15%]">ENTRADA</th><th className="px-3 py-2 w-[15%]">saída</th><th className="px-3 py-2 w-[35%]">AÇÕES</th>
               </tr>
             </thead>
             <tbody>
@@ -565,7 +583,7 @@ function StatusBadge({ status }: { status: string }) {
     'FERIADO':'bg-teal-50 text-teal-700 border-teal-200',
     'ATESTADO':'bg-violet-50 text-violet-700 border-violet-200',
     'ATESTADO (HORAS)':'bg-violet-50 text-violet-700 border-violet-200',
-    'SUSPENSÃƒO':'bg-orange-50 text-orange-700 border-orange-200',
+    'SUSPENSÃO':'bg-orange-50 text-orange-700 border-orange-200',
     'FOLGA':'bg-sky-50 text-sky-700 border-sky-200',
     'FOLGA (DSR)':'bg-sky-50 text-sky-700 border-sky-200',
     'FOLGA EXTRA':'bg-indigo-50 text-indigo-700 border-indigo-200',
@@ -573,7 +591,7 @@ function StatusBadge({ status }: { status: string }) {
     'AJUSTE MANUAL':'bg-orange-50 text-orange-700 border-orange-200',
     'FALTA':'bg-rose-50 text-rose-700 border-rose-200',
     'ATRASO':'bg-rose-50 text-rose-800 border-rose-300 shadow-sm',
-    'SAÃDA ANTECIPADA':'bg-rose-50 text-rose-800 border-rose-300 shadow-sm',
+    'saída ANTECIPADA':'bg-rose-50 text-rose-800 border-rose-300 shadow-sm',
   };
   return <span className={`inline-flex items-center rounded-[5px] border px-2 py-0.5 text-[9px] font-black whitespace-nowrap ${c[u]||'bg-slate-100 text-slate-600 border-slate-200'}`}>{u}</span>;
 }
@@ -621,28 +639,28 @@ function Modal({ employees, bulk, track, defaultEmpId, onClose, onDone }: { empl
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4">
       <div className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-[12px] border border-slate-200 bg-white p-6 shadow-xl">
-        <div className="mb-4 flex items-center justify-between"><h3 className="text-base font-black text-slate-950">{track?'EDITAR PONTO':mode==='bulk'?'LANÃ‡AR EM LOTE':'LANÃ‡AR PONTO MANUAL'}</h3><button onClick={onClose} className="text-slate-400 hover:text-slate-700"><Edit3 size={18} className="rotate-45"/></button></div>
+        <div className="mb-4 flex items-center justify-between"><h3 className="text-base font-black text-slate-950">{track?'EDITAR PONTO':mode==='bulk'?'LANÇAR EM LOTE':'LANÇAR PONTO MANUAL'}</h3><button onClick={onClose} className="text-slate-400 hover:text-slate-700"><Edit3 size={18} className="rotate-45"/></button></div>
         {save.error && <p className="mb-3 rounded-[8px] border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700">{save.error}</p>}
         {!track && <div className="mb-4 grid grid-cols-2 gap-2 rounded-[8px] bg-slate-100 p-1 text-xs font-black"><button type="button" onClick={()=>setMode('single')} className={`h-9 rounded-[7px] ${mode==='single'?'bg-white shadow-sm':'text-slate-500'}`}>INDIVIDUAL</button><button type="button" onClick={()=>setMode('bulk')} className={`h-9 rounded-[7px] ${mode==='bulk'?'bg-white shadow-sm':'text-slate-500'}`}>LOTE</button></div>}
         <div className="grid gap-3 sm:grid-cols-2">
           {mode==='bulk' && !track ? <>
-            <label className="space-y-1 text-xs font-medium text-slate-600 sm:col-span-2"><span>TIPO</span><select value={bulkMode} onChange={e=>setBulkMode(e.target.value as any)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500"><option value="day">Um dia para vÃ¡rios</option><option value="period">PerÃ­odo para um</option></select></label>
+            <label className="space-y-1 text-xs font-medium text-slate-600 sm:col-span-2"><span>TIPO</span><select value={bulkMode} onChange={e=>setBulkMode(e.target.value as any)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500"><option value="day">Um dia para vários</option><option value="period">Período para um</option></select></label>
             {bulkMode==='day' ? <div className="sm:col-span-2 rounded-[10px] border border-slate-200 bg-white p-3">
-              <div className="mb-2 flex items-center justify-between"><span className="text-xs font-bold text-slate-700">FUNCIONÃRIOS ({selected.length})</span><button type="button" onClick={()=>setSelected(selected.length===employees.length?[]:employees.map(e=>e.id))} className="text-[10px] font-bold text-teal-600">{selected.length===employees.length?'DESMARCAR':'TODOS'}</button></div>
+              <div className="mb-2 flex items-center justify-between"><span className="text-xs font-bold text-slate-700">FUNCIONÁRIOS ({selected.length})</span><button type="button" onClick={()=>setSelected(selected.length===employees.length?[]:employees.map(e=>e.id))} className="text-[10px] font-bold text-teal-600">{selected.length===employees.length?'DESMARCAR':'TODOS'}</button></div>
               <div className="max-h-52 overflow-y-auto space-y-0.5">{(showAll?employees:employees.slice(0,8)).map(e=> <label key={e.id} className="flex items-center gap-2 rounded-[6px] px-2 py-1.5 hover:bg-slate-50 cursor-pointer text-xs"><input type="checkbox" checked={selected.includes(e.id)} onChange={()=>setSelected(p=>p.includes(e.id)?p.filter(x=>x!==e.id):[...p,e.id])} className="h-3.5 w-3.5 rounded border-slate-300 text-teal-600"/><span className="font-semibold text-slate-700">{normalizeDisplayName(e.name)}</span></label>)}</div>
               {employees.length>8 && <button type="button" onClick={()=>setShowAll(!showAll)} className="mt-1 text-[10px] font-bold text-teal-600">{showAll?'MENOS':`+${employees.length-8} outros`}</button>}
-            </div> : <label className="space-y-1 text-xs font-medium text-slate-600 sm:col-span-2"><span>FUNCIONÃRIO</span><select value={empId} onChange={e=>{setEmpId(e.target.value);applyDefaults(e.target.value);}} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500"><option value="">Selecione...</option>{employees.map(e=><option key={e.id} value={e.id}>{normalizeDisplayName(e.name)}</option>)}</select></label>}
-            {bulkMode==='period' ? <><label className="space-y-1 text-xs font-medium text-slate-600"><span>INÃCIO</span><input type="date" value={startDate} onChange={e=>setStartDate(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500"/></label><label className="space-y-1 text-xs font-medium text-slate-600"><span>FIM</span><input type="date" value={endDate} onChange={e=>setEndDate(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500"/></label></> : <label className="space-y-1 text-xs font-medium text-slate-600"><span>DATA</span><input type="date" value={date} onChange={e=>setDate(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500"/></label>}
+            </div> : <label className="space-y-1 text-xs font-medium text-slate-600 sm:col-span-2"><span>FUNCIONÁRIO</span><select value={empId} onChange={e=>{setEmpId(e.target.value);applyDefaults(e.target.value);}} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500"><option value="">Selecione...</option>{employees.map(e=><option key={e.id} value={e.id}>{normalizeDisplayName(e.name)}</option>)}</select></label>}
+            {bulkMode==='period' ? <><label className="space-y-1 text-xs font-medium text-slate-600"><span>INÍCIO</span><input type="date" value={startDate} onChange={e=>setStartDate(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500"/></label><label className="space-y-1 text-xs font-medium text-slate-600"><span>FIM</span><input type="date" value={endDate} onChange={e=>setEndDate(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500"/></label></> : <label className="space-y-1 text-xs font-medium text-slate-600"><span>DATA</span><input type="date" value={date} onChange={e=>setDate(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500"/></label>}
           </> : <>
-            <label className="space-y-1 text-xs font-medium text-slate-600 sm:col-span-2"><span>FUNCIONÃRIO</span><select disabled={!!track} value={empId} onChange={e=>{setEmpId(e.target.value);applyDefaults(e.target.value);}} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500 disabled:bg-slate-50"><option value="">Selecione...</option>{employees.map(e=><option key={e.id} value={e.id}>{normalizeDisplayName(e.name)}</option>)}</select></label>
+            <label className="space-y-1 text-xs font-medium text-slate-600 sm:col-span-2"><span>FUNCIONÁRIO</span><select disabled={!!track} value={empId} onChange={e=>{setEmpId(e.target.value);applyDefaults(e.target.value);}} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500 disabled:bg-slate-50"><option value="">Selecione...</option>{employees.map(e=><option key={e.id} value={e.id}>{normalizeDisplayName(e.name)}</option>)}</select></label>
             <label className="space-y-1 text-xs font-medium text-slate-600"><span>DATA</span><input disabled={!!track} type="date" value={date} onChange={e=>setDate(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500 disabled:bg-slate-50"/></label>
           </>}
           {!track && <label className="space-y-1 text-xs font-medium text-slate-600"><span>MOTIVO</span><select value={reason} onChange={e=>setReason(e.target.value as TimeTrackAdjustmentReason)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500">{REASONS.map(r=><option key={r.value} value={r.value}>{r.label}</option>)}</select></label>}
-          {!fullDay && <><TimeField label="ENTRADA" value={entry} onChange={setEntry}/><TimeField label="SAÃDA ALMOÃ‡O" value={lunchS} onChange={setLunchS}/><TimeField label="RETORNO ALMOÃ‡O" value={lunchR} onChange={setLunchR}/><TimeField label="SAÃDA" value={exit} onChange={setExit}/></>}
-          <label className="space-y-1 text-xs font-medium text-slate-600 sm:col-span-2"><span>OBSERVAÃ‡ÃƒO</span><input value={detail} onChange={e=>setDetail(e.target.value)} placeholder={track?track.observation ?? '' : ''} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500"/></label>
+          {!fullDay && <><TimeField label="ENTRADA" value={entry} onChange={setEntry}/><TimeField label="saída ALMOÇO" value={lunchS} onChange={setLunchS}/><TimeField label="RETORNO ALMOÇO" value={lunchR} onChange={setLunchR}/><TimeField label="saída" value={exit} onChange={setExit}/></>}
+          <label className="space-y-1 text-xs font-medium text-slate-600 sm:col-span-2"><span>OBSERVAÇÃO</span><input value={detail} onChange={e=>setDetail(e.target.value)} placeholder={track?track.observation ?? '' : ''} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500"/></label>
         </div>
-        {employees.length===0 && <p className="mt-4 rounded-[10px] border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-900">Cadastre um funcionÃ¡rio ativo.</p>}
-        <div className="mt-5 flex justify-end gap-2"><button onClick={onClose} className="btn-outline h-10 rounded-[8px] px-4 text-xs font-bold">CANCELAR</button><button onClick={()=>ok&&save.mutate().catch(()=>{})} disabled={!ok||employees.length===0||save.loading} className="crystal-button h-10 rounded-[8px] px-4 text-xs font-black text-white disabled:opacity-60">{save.loading?'SALVANDO...':track?'SALVAR':mode==='bulk'?'LANÃ‡AR LOTE':'LANÃ‡AR'}</button></div>
+        {employees.length===0 && <p className="mt-4 rounded-[10px] border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-900">Cadastre um funcionário ativo.</p>}
+        <div className="mt-5 flex justify-end gap-2"><button onClick={onClose} className="btn-outline h-10 rounded-[8px] px-4 text-xs font-bold">CANCELAR</button><button onClick={()=>ok&&save.mutate().catch(()=>{})} disabled={!ok||employees.length===0||save.loading} className="crystal-button h-10 rounded-[8px] px-4 text-xs font-black text-white disabled:opacity-60">{save.loading?'SALVANDO...':track?'SALVAR':mode==='bulk'?'LANÇAR LOTE':'LANÇAR'}</button></div>
       </div>
     </div>
   );

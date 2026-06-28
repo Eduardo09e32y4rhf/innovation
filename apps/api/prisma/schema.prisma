@@ -416,6 +416,9 @@ model TimeTrack {
   exit          DateTime?
   totalWorked   Int?
   dailyBalance  Int?
+  overtime50Minutes Int?
+  overtime100Minutes Int?
+  nightShiftMinutes Int?
   observation   String?
   latitude      Float?
   longitude     Float?

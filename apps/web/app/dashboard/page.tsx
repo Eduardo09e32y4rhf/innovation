@@ -58,13 +58,13 @@ function DashboardContent() {
     ? 'Sua jornada em tempo real'
     : isGestor
       ? 'Sua equipe em tempo real'
-      : 'Sua operaÃ§Ã£o de RH em tempo real';
+      : 'Sua operação de RH em tempo real';
 
   // Action shortcuts
   const actionShortcuts: { label: string; href: string; icon: LucideIcon; color: string; onClick?: () => void }[] = isFuncionario ? [] : [
-    { label: 'Novo funcionÃ¡rio', href: '/dashboard/employees/new', icon: UserPlus, color: 'teal' },
-    { label: 'LanÃ§ar ponto', href: '/dashboard/time-track', icon: Clock3, color: 'indigo' },
-    { label: 'Nova solicitaÃ§Ã£o', href: '/dashboard/vacations', icon: CalendarDays, color: 'emerald' },
+    { label: 'Novo funcionário', href: '/dashboard/employees/new', icon: UserPlus, color: 'teal' },
+    { label: 'Lançar ponto', href: '/dashboard/time-track', icon: Clock3, color: 'indigo' },
+    { label: 'Nova solicitação', href: '/dashboard/vacations', icon: CalendarDays, color: 'emerald' },
     { label: 'Exportar folha', href: '/dashboard/time-track/closing', icon: Download, color: 'amber' },
   ];
 
@@ -100,7 +100,7 @@ function DashboardContent() {
             </div>
           </div>
           <h1 className="mt-4 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 bg-clip-text text-3xl font-black tracking-tight text-transparent lg:text-4xl">{heroH2}</h1>
-          <p className="mt-2 text-sm font-semibold text-slate-500">{isFuncionario ? 'Seus indicadores pessoais de jornada e ponto.' : isGestor ? 'Indicadores da sua equipe em tempo real.' : 'VisÃ£o completa da operaÃ§Ã£o de RH.'}</p>
+          <p className="mt-2 text-sm font-semibold text-slate-500">{isFuncionario ? 'Seus indicadores pessoais de jornada e ponto.' : isGestor ? 'Indicadores da sua equipe em tempo real.' : 'Visão completa da operação de RH.'}</p>
         </div>
       </section>
 
@@ -134,7 +134,7 @@ function DashboardContent() {
       {!isFuncionario && !isCommercial && (
         <section className="grid gap-4 rounded-[16px] border border-slate-200/60 bg-white/80 p-5 shadow-sm backdrop-blur-sm sm:grid-cols-2">
           <label className="space-y-2 text-xs font-bold uppercase tracking-wider text-slate-600">
-            <span>MÃªs</span>
+            <span>Mês</span>
             <input type="month" value={dashMonth} onChange={(e) => setDashMonth(e.target.value)} className="h-11 w-full rounded-[10px] border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-900 shadow-sm outline-none transition-all focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10" />
           </label>
           <label className="space-y-2 text-xs font-bold uppercase tracking-wider text-slate-600">
@@ -155,11 +155,11 @@ function DashboardContent() {
           {/* Main KPI Cards */}
           <section className={`grid grid-cols-1 gap-4 sm:grid-cols-2 ${isFuncionario ? '' : 'lg:grid-cols-4'}`}>
             <MetricCard 
-              label="FuncionÃ¡rios ativos" 
+              label="Funcionários ativos" 
               value={summaryData?.activeEmployees} 
               icon={Users} 
               detail="equipe em acompanhamento"
-              trend={admissionsThisMonth > 0 ? `+${admissionsThisMonth} admissÃµes` : undefined}
+              trend={admissionsThisMonth > 0 ? `+${admissionsThisMonth} admissões` : undefined}
               trendColor="emerald"
               loading={summary.loading}
             />
@@ -173,10 +173,10 @@ function DashboardContent() {
             {!isFuncionario && (
               <>
                 <MetricCard 
-                  label="FÃ©rias pendentes" 
+                  label="Férias pendentes" 
                   value={pendingVacations} 
                   icon={CalendarDays} 
-                  detail="aguardando decisÃ£o"
+                  detail="aguardando decisão"
                   alert={pendingVacations > 0}
                   loading={summary.loading}
                 />
@@ -194,15 +194,15 @@ function DashboardContent() {
           {/* Alert & Action Cards */}
           {!isFuncionario && (
             <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {/* PendÃªncias */}
+              {/* Pendências */}
               <div className="rounded-[16px] border border-amber-200/60 bg-gradient-to-br from-amber-50 to-white p-5 shadow-sm">
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-xs font-black uppercase tracking-wider text-amber-800">PendÃªncias</h3>
+                  <h3 className="text-xs font-black uppercase tracking-wider text-amber-800">Pendências</h3>
                   <AlertCircle size={18} strokeWidth={2.5} className="text-amber-500" />
                 </div>
                 <div className="space-y-2.5">
                   <PendencyItem label="Pontos manuais" count={pendingTimeTracks} href="/dashboard/time-track" />
-                  <PendencyItem label="FÃ©rias" count={pendingVacations} href="/dashboard/vacations" />
+                  <PendencyItem label="Férias" count={pendingVacations} href="/dashboard/vacations" />
                 </div>
               </div>
 
@@ -224,17 +224,17 @@ function DashboardContent() {
                 </div>
               </div>
 
-              {/* MovimentaÃ§Ãµes */}
+              {/* Movimentações */}
               <div className="rounded-[16px] border border-teal-200/60 bg-gradient-to-br from-teal-50 to-white p-5 shadow-sm">
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-xs font-black uppercase tracking-wider text-teal-800">MovimentaÃ§Ãµes do mÃªs</h3>
+                  <h3 className="text-xs font-black uppercase tracking-wider text-teal-800">Movimentações do mês</h3>
                   <UserPlus size={18} strokeWidth={2.5} className="text-teal-500" />
                 </div>
                 <div className="space-y-2.5">
                   <div className="flex items-center justify-between rounded-[8px] bg-teal-50/50 px-3 py-2.5">
                     <div className="flex items-center gap-2">
                       <div className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-500"><ArrowUpRight size={14} className="text-white" /></div>
-                      <span className="text-xs font-bold text-slate-700">AdmissÃµes</span>
+                      <span className="text-xs font-bold text-slate-700">Admissões</span>
                     </div>
                     <span className="text-sm font-black text-emerald-600">{admissionsThisMonth}</span>
                   </div>
@@ -257,11 +257,11 @@ function DashboardContent() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Bell size={16} strokeWidth={2.5} className="text-teal-600" />
-                    <h3 className="text-sm font-black text-slate-950">Central de NotificaÃ§Ãµes</h3>
+                    <h3 className="text-sm font-black text-slate-950">Central de Notificações</h3>
                   </div>
                   {notificationWidgetData.unreadCount > 0 && (
                     <span className="rounded-full bg-rose-500 px-2.5 py-0.5 text-[10px] font-black text-white">
-                      {notificationWidgetData.unreadCount} nÃ£o lidas
+                      {notificationWidgetData.unreadCount} não lidas
                     </span>
                   )}
                 </div>
@@ -269,7 +269,7 @@ function DashboardContent() {
               </div>
               <div className="p-4">
                 {notificationWidgetData.notifications.length === 0 ? (
-                  <p className="px-3 py-4 text-center text-xs text-slate-500">Nenhuma notificaÃ§Ã£o no momento.</p>
+                  <p className="px-3 py-4 text-center text-xs text-slate-500">Nenhuma notificação no momento.</p>
                 ) : (
                   <div className="space-y-2">
                     {notificationWidgetData.notifications.slice(0, 5).map((n: any) => {
@@ -308,12 +308,12 @@ function DashboardContent() {
                   <Clock3 size={16} strokeWidth={2.5} className="text-teal-600" />
                   <h3 className="text-sm font-black text-slate-950">Alertas de Ponto e Fechamento</h3>
                 </div>
-                <p className="mt-1 text-xs text-slate-500">PendÃªncias de ocorrÃªncias e fechamento de folha.</p>
+                <p className="mt-1 text-xs text-slate-500">Pendências de ocorrências e fechamento de folha.</p>
               </div>
               <div className="p-4">
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                   <div className="rounded-[12px] border border-amber-200 bg-amber-50/60 p-4">
-                    <p className="text-[11px] font-black uppercase tracking-wider text-amber-700">OcorrÃªncias pendentes</p>
+                    <p className="text-[11px] font-black uppercase tracking-wider text-amber-700">Ocorrências pendentes</p>
                     <p className="mt-1 text-xl font-black text-amber-900">{insightData?.alerts.pendingTimeTracks ?? 0}</p>
                   </div>
                   <div className="rounded-[12px] border border-blue-200 bg-blue-50/60 p-4">
@@ -321,17 +321,17 @@ function DashboardContent() {
                     <p className="mt-1 text-xl font-black text-blue-900">{insightData?.alerts.employeesWithoutWorkScale ?? 0}</p>
                   </div>
                   <div className="rounded-[12px] border border-slate-200 bg-slate-50/60 p-4">
-                    <p className="text-[11px] font-black uppercase tracking-wider text-slate-700">PerÃ­odos abertos</p>
+                    <p className="text-[11px] font-black uppercase tracking-wider text-slate-700">Períodos abertos</p>
                     <p className="mt-1 text-xl font-black text-slate-900">1</p>
                   </div>
                 </div>
                 <div className="mt-4 space-y-2">
                   <Link href="/dashboard/time-track/occurrences" className="flex items-center justify-between rounded-[8px] border border-slate-100 bg-white px-4 py-3 text-xs transition-all hover:border-teal-200 hover:bg-teal-50/30">
-                    <span className="font-bold text-slate-700">Ver todas as ocorrÃªncias</span>
+                    <span className="font-bold text-slate-700">Ver todas as ocorrências</span>
                     <span className="text-teal-700">â†’</span>
                   </Link>
                   <Link href="/dashboard/time-track/closing" className="flex items-center justify-between rounded-[8px] border border-slate-100 bg-white px-4 py-3 text-xs transition-all hover:border-teal-200 hover:bg-teal-50/30">
-                    <span className="font-bold text-slate-700">Fechamento de perÃ­odo</span>
+                    <span className="font-bold text-slate-700">Fechamento de período</span>
                     <span className="text-teal-700">â†’</span>
                   </Link>
                   <Link href="/dashboard/time-track/rules" className="flex items-center justify-between rounded-[8px] border border-slate-100 bg-white px-4 py-3 text-xs transition-all hover:border-teal-200 hover:bg-teal-50/30">
@@ -349,7 +349,7 @@ function DashboardContent() {
               <div className="border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white px-5 py-4">
                 <div className="flex items-center gap-2">
                   <Stethoscope size={16} strokeWidth={2.5} className="text-teal-600" />
-                  <h3 className="text-sm font-black text-slate-950">Alertas e PendÃªncias do RH</h3>
+                  <h3 className="text-sm font-black text-slate-950">Alertas e Pendências do RH</h3>
                 </div>
               </div>
               <div className="p-4">
@@ -362,7 +362,7 @@ function DashboardContent() {
                       <p className="mt-1 text-xl font-black text-red-900">{rhAlertData?.asoExpired ?? 0}</p>
                     </div>
                     <div className="rounded-[12px] border border-amber-200 bg-amber-50/60 p-4">
-                      <p className="text-[11px] font-black uppercase tracking-wider text-amber-700">ASOs prÃ³ximos do vencimento</p>
+                      <p className="text-[11px] font-black uppercase tracking-wider text-amber-700">ASOs próximos do vencimento</p>
                       <p className="mt-1 text-xl font-black text-amber-900">{rhAlertData?.asoExpiringSoon ?? 0}</p>
                     </div>
                     <div className="rounded-[12px] border border-amber-200 bg-amber-50/60 p-4">
@@ -386,7 +386,7 @@ function DashboardContent() {
                   </div>
                 )}
                 {!rhAlerts.loading && !rhAlerts.error && (!rhAlertData?.items || rhAlertData.items.length === 0) && (
-                  <p className="px-3 py-4 text-center text-xs text-slate-500">Nenhuma pendÃªncia de RH no momento.</p>
+                  <p className="px-3 py-4 text-center text-xs text-slate-500">Nenhuma pendência de RH no momento.</p>
                 )}
               </div>
             </section>
@@ -394,9 +394,9 @@ function DashboardContent() {
         </>
       )}
 
-      {/* Data Tables - Ponto e FÃ©rias lado a lado */}
+      {/* Data Tables - Ponto e Férias lado a lado */}
       <section className={`grid grid-cols-1 gap-5 ${isFuncionario ? '' : 'lg:grid-cols-2'}`}>
-        <DataTable title={isFuncionario ? 'Minhas jornadas recentes' : 'Jornadas recentes'} headers={isFuncionario ? ['Data', 'Entrada', 'SaÃ­da'] : ['FuncionÃ¡rio', 'Data', 'Entrada', 'SaÃ­da', 'AÃ§Ãµes']}>
+        <DataTable title={isFuncionario ? 'Minhas jornadas recentes' : 'Jornadas recentes'} headers={isFuncionario ? ['Data', 'Entrada', 'Saída'] : ['Funcionário', 'Data', 'Entrada', 'Saída', 'Ações']}>
           {timeTracks.loading && <LoadingRow span={isFuncionario ? 3 : 4} />}
           {timeTracks.error && <ErrorRow span={isFuncionario ? 3 : 4} message={timeTracks.error} />}
           {!timeTracks.loading && !timeTracks.error && todayRows.length === 0 && (
@@ -427,11 +427,11 @@ function DashboardContent() {
         </DataTable>
 
         {!isFuncionario && (
-          <DataTable title="FÃ©rias e ausÃªncias" headers={['FuncionÃ¡rio', 'PerÃ­odo', 'Status']}>
+          <DataTable title="Férias e ausências" headers={['Funcionário', 'Período', 'Status']}>
             {vacations.loading && <LoadingRow span={3} />}
             {vacations.error && <ErrorRow span={3} message={vacations.error} />}
             {!vacations.loading && !vacations.error && vacationRows.length === 0 && (
-              <EmptyRow span={3} message="Nenhuma solicitaÃ§Ã£o em aberto." />
+              <EmptyRow span={3} message="Nenhuma solicitação em aberto." />
             )}
             {vacationRows.map((row) => (
               <tr key={row.id} className="border-t border-slate-100 transition-colors hover:bg-slate-50/50">
@@ -455,7 +455,7 @@ function DashboardContent() {
             {vacationRows.length > 0 && (
               <tr className="border-t border-slate-100">
                 <td colSpan={3} className="py-3 text-center">
-                  <Link href="/dashboard/vacations" className="text-xs font-black text-teal-600 hover:text-teal-700 transition-colors">Ver todas as solicitaÃ§Ãµes â†’</Link>
+                  <Link href="/dashboard/vacations" className="text-xs font-black text-teal-600 hover:text-teal-700 transition-colors">Ver todas as solicitações â†’</Link>
                 </td>
               </tr>
             )}
@@ -563,12 +563,12 @@ function EmptyRow({ span, message }: { span: number; message: string }) {
 
 function buildAlertItems(alerts: NonNullable<import('@/app/lib/api').DashboardInsights['alerts']>) {
   const items: { label: string; detail: string }[] = [];
-  if (alerts.companyIncomplete) items.push({ label: 'Dados da empresa incompletos', detail: 'Revise configuraÃ§Ãµes' });
+  if (alerts.companyIncomplete) items.push({ label: 'Dados da empresa incompletos', detail: 'Revise configurações' });
   if (alerts.employeesWithoutCpf > 0) items.push({ label: `${alerts.employeesWithoutCpf} sem CPF`, detail: 'Corrigir cadastro' });
-  if (alerts.employeesWithoutUser > 0) items.push({ label: `${alerts.employeesWithoutUser} sem usuÃ¡rio`, detail: 'Vincular acesso' });
-  if (alerts.employeesWithoutManager > 0) items.push({ label: `${alerts.employeesWithoutManager} sem gestor`, detail: 'Definir lideranÃ§a' });
+  if (alerts.employeesWithoutUser > 0) items.push({ label: `${alerts.employeesWithoutUser} sem usuário`, detail: 'Vincular acesso' });
+  if (alerts.employeesWithoutManager > 0) items.push({ label: `${alerts.employeesWithoutManager} sem gestor`, detail: 'Definir liderança' });
   if (alerts.employeesWithoutWorkScale > 0) items.push({ label: `${alerts.employeesWithoutWorkScale} sem escala`, detail: 'Definir jornada' });
-  if (alerts.employeesWithoutWorkload > 0) items.push({ label: `${alerts.employeesWithoutWorkload} sem carga horÃ¡ria`, detail: 'Definir jornada' });
+  if (alerts.employeesWithoutWorkload > 0) items.push({ label: `${alerts.employeesWithoutWorkload} sem carga horária`, detail: 'Definir jornada' });
   if (alerts.pendingTimeTracks > 0) items.push({ label: `${alerts.pendingTimeTracks} ponto(s) pendente(s)`, detail: 'Aprovar ajustes' });
   return items;
 }

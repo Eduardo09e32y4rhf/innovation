@@ -7,6 +7,7 @@ import fastifyHelmet from '@fastify/helmet';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
+import { RedisIoAdapter } from './common/adapters/redis-io.adapter';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
@@ -62,6 +63,10 @@ async function bootstrap() {
   );
 
   app.enableShutdownHooks();
+
+  const redisIoAdapter = new RedisIoAdapter(app);
+  await redisIoAdapter.connectToRedis();
+  app.useWebSocketAdapter(redisIoAdapter);
 
   const port = Number(process.env.PORT ?? 3333);
   const host = process.env.HOST ?? '0.0.0.0';

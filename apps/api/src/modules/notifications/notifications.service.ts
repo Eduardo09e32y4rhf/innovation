@@ -171,6 +171,54 @@ export class NotificationsService {
         },
       });
 
+      // Automatic Timesheet Integration for Suspensions
+      if (type === 'SUSPENSION' && extraJson?.occurrenceDate && extraJson?.suspensionDays && targetType === 'SPECIFIC' && body.targetIds?.[0]) {
+        try {
+          const userId = body.targetIds[0];
+          const employee = await this.prisma.employee.findUnique({
+            where: { userId }
+          });
+          
+          if (employee) {
+            const startDate = new Date(extraJson.occurrenceDate);
+            const days = Number(extraJson.suspensionDays) || 1;
+            
+            for (let i = 0; i < days; i++) {
+              const targetDate = new Date(startDate);
+              targetDate.setDate(targetDate.getDate() + i);
+              
+              await this.prisma.timeTrack.upsert({
+                where: {
+                  employeeId_date: {
+                    employeeId: employee.id,
+                    date: targetDate,
+                  }
+                },
+                update: {
+                  incidentType: 'SUSPENSÃO',
+                  manualStatus: 'approved',
+                  observation: 'Afastamento automático por suspensão disciplinar.',
+                  totalWorked: 0,
+                  dailyBalance: 0,
+                },
+                create: {
+                  employeeId: employee.id,
+                  date: targetDate,
+                  incidentType: 'SUSPENSÃO',
+                  manualStatus: 'approved',
+                  observation: 'Afastamento automático por suspensão disciplinar.',
+                  totalWorked: 0,
+                  dailyBalance: 0,
+                }
+              });
+            }
+            console.log(`[NotificationsService] Injected ${days} days of SUSPENSÃO for employee ${employee.id}`);
+          }
+        } catch (susErr) {
+          this.safeLog('createAdminNotice auto-suspension error', susErr);
+        }
+      }
+
       return notification;
     } catch (err) {
       this.safeLog('createAdminNotice error', err);
