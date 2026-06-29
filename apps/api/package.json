@@ -15,7 +15,8 @@
     "db:seed": "npm run seed:mvp",
     "db:migrate-vps": "node prisma/migrate-vps-db.js",
     "seed:admin": "node prisma/seed-admin.cjs",
-    "seed:mvp": "node prisma/seed-admin.cjs"
+    "seed:mvp": "node prisma/seed-admin.cjs",
+    "seed:realistic-demo": "npx tsx prisma/seed-realistic-demo.ts"
   },
   "dependencies": {
     "@fastify/cookie": "^11.0.2",
