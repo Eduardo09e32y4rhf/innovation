@@ -306,7 +306,8 @@ export const api = {
     reject: (id: string) => request<any>(`/time-occurrences/${id}/reject`, { method: 'PUT' }),
   },
   timeTrack: {
-    list: () => request<TimeTrack[]>('/time-track'),
+    list: (month?: string) =>
+      request<TimeTrack[]>(`/time-track${month ? `?month=${encodeURIComponent(month)}` : ''}`),
     listEmployeeMonth: (employeeId: string, month?: string) =>
       request<TimeTrack[]>(`/time-track/${employeeId}/month${month ? `?month=${encodeURIComponent(month)}` : ''}`),
     register: (input: RegisterTimeInput) => request<TimeTrack>('/time-track/register', { method: 'POST', body: input }),

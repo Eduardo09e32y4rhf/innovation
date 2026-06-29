@@ -5,13 +5,14 @@ import { PrismaService } from '../../database/prisma.service';
 export class TimeTrackRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  list(companyId: string, skip = 0, take = 200) {
+  list(companyId: string, start?: Date, end?: Date) {
     return this.prisma.timeTrack.findMany({
-      where: { employee: { companyId } },
+      where: {
+        employee: { companyId },
+        ...(start && end ? { date: { gte: start, lt: end } } : {}),
+      },
       include: { employee: true },
-      orderBy: [{ employee: { name: 'asc' } }, { date: 'asc' }, { createdAt: 'asc' }],
-      skip,
-      take,
+      orderBy: [{ employee: { name: 'asc' } }, { date: 'asc' }],
     });
   }
 
@@ -19,13 +20,15 @@ export class TimeTrackRepository {
     return this.prisma.timeTrack.count({ where: { employee: { companyId } } });
   }
 
-  listForEmployee(companyId: string, employeeId: string, skip = 0, take = 400) {
+  listForEmployee(companyId: string, employeeId: string, start?: Date, end?: Date) {
     return this.prisma.timeTrack.findMany({
-      where: { employeeId, employee: { companyId } },
+      where: {
+        employeeId,
+        employee: { companyId },
+        ...(start && end ? { date: { gte: start, lt: end } } : {}),
+      },
       include: { employee: true },
-      orderBy: { date: 'desc' },
-      skip,
-      take,
+      orderBy: { date: 'asc' },
     });
   }
 
@@ -44,7 +47,7 @@ export class TimeTrackRepository {
     });
   }
 
-  async listForManager(companyId: string, userId: string, email?: string, skip = 0, take = 200) {
+  async listForManager(companyId: string, userId: string, email?: string, start?: Date, end?: Date) {
     const normalizedEmail = email?.trim();
     const manager = await this.prisma.employee.findFirst({
       where: {
@@ -54,14 +57,16 @@ export class TimeTrackRepository {
           ...(normalizedEmail ? [{ email: { equals: normalizedEmail, mode: 'insensitive' as const } }] : []),
         ],
       },
+      select: { id: true },
     });
     if (!manager) return [];
     return this.prisma.timeTrack.findMany({
-      where: { employee: { companyId, OR: [{ id: manager.id }, { managerId: manager.id }] } },
+      where: {
+        employee: { companyId, OR: [{ id: manager.id }, { managerId: manager.id }] },
+        ...(start && end ? { date: { gte: start, lt: end } } : {}),
+      },
       include: { employee: true },
-      orderBy: [{ employee: { name: 'asc' } }, { date: 'asc' }, { createdAt: 'asc' }],
-      skip,
-      take,
+      orderBy: [{ employee: { name: 'asc' } }, { date: 'asc' }],
     });
   }
 

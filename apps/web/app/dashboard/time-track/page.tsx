@@ -164,7 +164,7 @@ export default function TimeTrackPage() {
   const isFunc = profile==='FUNCIONARIO';
   const isGestor = profile==='GESTOR';
 
-  const tracks = useQuery(() => api.timeTrack.list(), []);
+  const tracks = useQuery(() => api.timeTrack.list(month), [month]);
   const employees = useQuery(() => api.employees.list(), []);
   const company = useQuery(() => api.companies.me(), []);
   const holidays = useQuery(() => api.companies.getHolidays(), []);

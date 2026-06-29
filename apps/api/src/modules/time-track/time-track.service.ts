@@ -65,12 +65,17 @@ export class TimeTrackService {
     }
   }
 
-  async list(companyId: string, actor: JwtUser) {
-    if (actor.role === 'ADMIN' || actor.role === 'RH' || actor.role === 'DEV' || actor.role === 'CONSULTA') return this.repository.list(companyId);
-    if (actor.role === 'GESTOR') return this.repository.listForManager(companyId, actor.sub, actor.email);
+  async list(companyId: string, actor: JwtUser, month?: string) {
+    const { start, end } = this.resolveMonth(month);
+    if (actor.role === 'ADMIN' || actor.role === 'RH' || actor.role === 'DEV' || actor.role === 'CONSULTA') {
+      return this.repository.list(companyId, start, end);
+    }
+    if (actor.role === 'GESTOR') {
+      return this.repository.listForManager(companyId, actor.sub, actor.email, start, end);
+    }
     const employee = await this.repository.findEmployeeByUserId(companyId, actor.sub, actor.email);
     if (!employee) return [];
-    return this.repository.listForEmployee(companyId, employee.id);
+    return this.repository.listForEmployee(companyId, employee.id, start, end);
   }
 
   async listEmployeeMonth(companyId: string, actor: JwtUser, employeeId: string, month?: string) {

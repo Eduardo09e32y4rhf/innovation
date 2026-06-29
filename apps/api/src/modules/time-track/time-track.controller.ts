@@ -19,8 +19,8 @@ export class TimeTrackController {
   constructor(private readonly service: TimeTrackService) {}
 
   @Get()
-  list(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser) {
-    return this.service.list(companyId, actor);
+  list(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Query('month') month?: string) {
+    return this.service.list(companyId, actor, month);
   }
 
   @Get(':employeeId/month')
