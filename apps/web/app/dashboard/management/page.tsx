@@ -572,7 +572,23 @@ function NotificationsTab({ canManage }: { canManage: boolean }) {
                   </div>
                   <p className="mt-1 text-sm font-black text-slate-950">{n.title}</p>
                   <p className="mt-0.5 text-xs text-slate-600 whitespace-pre-wrap">{n.message}</p>
-                  {n.createdByUser && <p className="mt-1 text-[10px] text-slate-400">Por: {n.createdByUser.name}</p>}
+                  
+                  {n.extraJson?.resetCode && (
+                    <div className="mt-3 flex items-center justify-between rounded-[8px] border border-teal-100 bg-teal-50/50 p-3 shadow-sm">
+                      <div className="flex items-center gap-3">
+                        <span className="text-[11px] font-bold text-teal-700">CÓDIGO DE RECUPERAÇÃO:</span>
+                        <code className="rounded-[4px] bg-white px-2 py-1 text-sm font-black tracking-[0.2em] text-slate-900 shadow-sm border border-slate-200">{n.extraJson.resetCode}</code>
+                      </div>
+                      <button 
+                        onClick={() => { navigator.clipboard.writeText(n.extraJson.resetCode); alert('Código copiado!'); }} 
+                        className="inline-flex h-7 items-center rounded-[6px] bg-white border border-slate-200 px-3 text-[10px] font-black uppercase text-teal-600 shadow-sm transition-all hover:bg-teal-50"
+                      >
+                        Copiar
+                      </button>
+                    </div>
+                  )}
+
+                  {n.createdByUser && <p className="mt-2 text-[10px] text-slate-400">Por: {n.createdByUser.name}</p>}
                 </div>
               </div>
 

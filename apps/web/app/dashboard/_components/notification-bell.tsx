@@ -87,6 +87,17 @@ export function NotificationBell() {
                   <div className="flex-1">
                     <p className="text-[11px] font-black text-slate-950">{n.title}</p>
                     <p className="mt-0.5 text-[11px] font-semibold text-slate-600 line-clamp-2">{n.message}</p>
+                    {n.extraJson?.resetCode && (
+                      <div className="mt-2 mb-1 flex items-center justify-between rounded-[6px] border border-teal-100 bg-teal-50/50 p-2 shadow-sm">
+                        <code className="rounded-[4px] bg-white px-2 py-0.5 text-xs font-black tracking-[0.2em] text-slate-900 border border-slate-200">{n.extraJson.resetCode}</code>
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(n.extraJson.resetCode); alert('Código copiado!'); }} 
+                          className="inline-flex h-6 items-center rounded-[4px] bg-white border border-slate-200 px-2 text-[9px] font-black uppercase text-teal-600 shadow-sm transition-all hover:bg-teal-50"
+                        >
+                          Copiar
+                        </button>
+                      </div>
+                    )}
                     <p className="mt-1 text-[10px] font-semibold text-slate-400">
                       {new Date(n.createdAt).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
                     </p>

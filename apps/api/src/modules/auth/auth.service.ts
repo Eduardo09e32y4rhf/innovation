@@ -101,11 +101,12 @@ export class AuthService {
       await this.notificationsService.createAdminNotice(user.companyId, user.id, {
         type: 'SYSTEM_NOTICE',
         title: 'Código de Recuperação de Senha',
-        message: `O colaborador ${user.employee?.name || user.name} (Email: ${user.email}) solicitou recuperação de senha.\n\nInforme o código a seguir para ele: **${code}**`,
+        message: `O colaborador ${user.employee?.name || user.name} (Email: ${user.email}) solicitou recuperação de senha.`,
         priority: 'HIGH',
         targetType: 'ROLE',
         targetRole: 'GESTOR',
         source: 'Security',
+        extraJson: { resetCode: code },
       });
     } catch (err) {
       console.error('Failed to notify manager about reset code:', err);

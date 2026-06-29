@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import Link from 'next/link';
 import { ArrowLeft, Mail, ShieldCheck } from 'lucide-react';
@@ -19,7 +19,7 @@ export default function ForgotPasswordPage() {
     try {
       const result = await api.auth.requestPasswordReset(email.trim());
       setMessage('Se o e-mail estiver cadastrado e ativo, enviaremos as instru??es de redefini??o.');
-      if (result.resetToken) setResetToken(result.resetToken);
+      if (result.demoCode) setResetToken(result.demoCode);
     } catch {
       setMessage('Se o e-mail estiver cadastrado e ativo, enviaremos as instru??es de redefini??o.');
     } finally {
@@ -52,3 +52,4 @@ export default function ForgotPasswordPage() {
     </main>
   );
 }
+
