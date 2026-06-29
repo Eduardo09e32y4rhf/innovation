@@ -107,16 +107,14 @@ async function main() {
     update: {
       name: 'Innovation RH',
       legalName: 'Innovation Gestão e Tecnologia LTDA',
-      city: 'São Paulo',
-      state: 'SP',
+      address: 'São Paulo/SP',
       primaryColor: '#0F766E',
     },
     create: {
       name: 'Innovation RH',
       legalName: 'Innovation Gestão e Tecnologia LTDA',
       document: '12345678000199',
-      city: 'São Paulo',
-      state: 'SP',
+      address: 'São Paulo/SP',
       primaryColor: '#0F766E',
       theme: 'light',
       maxUsers: 100,
