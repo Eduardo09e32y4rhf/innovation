@@ -24,7 +24,7 @@ export function validateEnv(config: Record<string, unknown>) {
     }
 
     const databaseUrl = String(config.DATABASE_URL ?? '');
-    const isLocalDatabase = /@(localhost|127\.0\.0\.1|postgres|db)(:|\/)/i.test(databaseUrl);
+    const isLocalDatabase = /@(localhost|127\.0\.0\.1|postgres|db|pgbouncer|innovation-postgres)(:|\/)/i.test(databaseUrl);
     if (databaseUrl.startsWith('postgres') && !isLocalDatabase && !/sslmode=(require|verify-ca|verify-full)/i.test(databaseUrl)) {
       throw new Error('Production DATABASE_URL for remote PostgreSQL must require SSL. Add sslmode=require or stronger.');
     }
