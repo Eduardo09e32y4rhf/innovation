@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 /**
  * Cliente HTTP central do Innovation RH Connect.
@@ -258,7 +258,8 @@ export const api = {
   request,
 
   auth: {
-    requestPasswordReset: (email: string) => request<{ requested: boolean; resetToken?: string }>('/auth/password-reset/request', { method: 'POST', body: { email } }),
+    requestPasswordReset: (email: string) => request<{ requested: boolean; demoCode?: string }>('/auth/password-reset/request', { method: 'POST', body: { email } }),
+    validateResetCode: (email: string, code: string, cpfStart: string, registration: string) => request<{ valid: boolean; resetToken: string }>('/auth/password-reset/validate-code', { method: 'POST', body: { email, code, cpfStart, registration } }),
     resetPassword: (token: string, newPassword: string) => request<{ changed: boolean }>('/auth/password-reset/confirm', { method: 'POST', body: { token, newPassword } }),
   },
 

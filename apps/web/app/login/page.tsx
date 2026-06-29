@@ -44,11 +44,10 @@ export default function LoginPage() {
       }
       try {
         const res = await api.auth.requestPasswordReset(email.trim());
-        if (res.resetToken) {
-          setForgotSuccess(`Para testar, clique aqui: `);
-          setResetToken(res.resetToken);
+        if (res.demoCode) {
+          setForgotSuccess(`Para testar (DEV), o código é: ${res.demoCode}`);
         } else {
-          setForgotSuccess('Token de recuperação enviado para o seu e-mail!');
+          setForgotSuccess('Solicitação enviada! Peça o código de liberação ao seu Gestor/RH.');
         }
       } catch (err) {
         setLocalError(err instanceof Error ? err.message : 'Não foi possível solicitar a recuperação.');
@@ -124,11 +123,13 @@ export default function LoginPage() {
                   <CheckCircle2 size={18} className="text-emerald-400 shrink-0" />
                   <p className="text-sm font-medium text-emerald-200">{forgotSuccess}</p>
                 </div>
-                {resetToken && forgotSuccess.includes('clique aqui') && (
-                  <a href={`/reset-password?token=${resetToken}`} className="mt-1 block rounded-lg bg-emerald-500/20 px-3 py-2 text-center text-xs font-bold text-emerald-300 hover:bg-emerald-500/30">
-                    Ir para tela de Nova Senha
-                  </a>
-                )}
+                <button
+                  type="button"
+                  onClick={() => router.push(`/reset-password?email=${encodeURIComponent(email)}`)}
+                  className="mt-1 block rounded-lg bg-emerald-500/20 px-3 py-2 text-center text-xs font-bold text-emerald-300 hover:bg-emerald-500/30"
+                >
+                  Já tenho o código
+                </button>
               </div>
             )}
 

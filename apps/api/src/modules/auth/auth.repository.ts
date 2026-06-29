@@ -60,6 +60,33 @@ export class AuthRepository {
     });
   }
 
+  setResetCode(userId: string, code: string, expires: Date) {
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { resetPasswordCode: code, resetPasswordExpires: expires },
+    });
+  }
+
+  clearResetCode(userId: string) {
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { resetPasswordCode: null, resetPasswordExpires: null },
+    });
+  }
+
+  findByResetCode(code: string) {
+    return this.prisma.user.findFirst({
+      where: { resetPasswordCode: code, resetPasswordExpires: { gt: new Date() } },
+    });
+  }
+
+  findUserWithEmployeeByEmail(email: string) {
+    return this.prisma.user.findUnique({
+      where: { email: email.trim().toLowerCase() },
+      include: { employee: true, company: true },
+    });
+  }
+
   createAuditLog(data: { companyId: string; userId?: string; action: string; entity: string; entityId?: string; metadata?: any; ipAddress?: string; userAgent?: string }) {
     return this.prisma.auditLog.create({ data });
   }

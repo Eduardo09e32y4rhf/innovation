@@ -28,6 +28,11 @@ export class AuthController {
     return this.service.requestPasswordReset(dto, getRequestMeta(request));
   }
 
+  @Post('password-reset/validate-code')
+  validateResetCode(@Body() dto: { email: string; code: string; cpfStart: string; registration: string }) {
+    return this.service.validateResetCode(dto);
+  }
+
   @Post('password-reset/confirm')
   resetPassword(@Body() dto: ResetPasswordDto, @Req() request: any) {
     return this.service.resetPassword(dto, getRequestMeta(request));

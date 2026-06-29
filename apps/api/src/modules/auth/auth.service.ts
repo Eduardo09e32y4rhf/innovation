@@ -9,6 +9,8 @@ import { RequestPasswordResetDto } from './dto/request-password-reset.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import type { JwtUser, UserRole } from '../../common/types/auth.types';
 
+import { NotificationsService } from '../notifications/notifications.service';
+
 const PLATFORM_OWNER_EMAIL = 'eduardo998468@gmail.com';
 const LOGIN_DENIED_MESSAGE = 'Nao foi possivel entrar';
 const PASSWORD_MAX_AGE_DAYS = 30;
@@ -19,6 +21,7 @@ export class AuthService {
   constructor(
     private readonly repository: AuthRepository,
     private readonly jwtService: JwtService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async registerCompany(dto: RegisterCompanyDto) {
@@ -73,17 +76,15 @@ export class AuthService {
 
 
   async requestPasswordReset(dto: RequestPasswordResetDto, requestMeta: { ipAddress?: string; userAgent?: string }) {
-    const user = await this.repository.findUserByEmail(dto.email);
+    const user = await this.repository.findUserWithEmployeeByEmail(dto.email);
     if (!user || !user.isActive) return { requested: true };
     const role = this.resolveRole(user.email, user.role);
     if (!this.canAccessCompany(user.company, role)) return { requested: true };
 
-    const token = await this.jwtService.signAsync({
-      purpose: PASSWORD_RESET_PURPOSE,
-      sub: user.id,
-      email: user.email,
-      passwordChangedAt: new Date(user.passwordChangedAt).getTime(),
-    }, { expiresIn: '15m' });
+    const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const expires = new Date(Date.now() + 2 * 60 * 60 * 1000); // 2 hours
+
+    await this.repository.setResetCode(user.id, code, expires);
 
     await this.repository.createAuditLog({
       companyId: user.companyId,
@@ -96,17 +97,64 @@ export class AuthService {
       userAgent: requestMeta.userAgent,
     });
 
-    const hasSmtp = Boolean(process.env.SMTP_HOST);
-
-    if (hasSmtp) {
-      // Aqui iria o envio real com nodemailer
-      console.log(`Email enviado para ${user.email} com o token: ${token}`);
+    try {
+      await this.notificationsService.createAdminNotice(user.companyId, user.id, {
+        type: 'SYSTEM_NOTICE',
+        title: 'Código de Recuperação de Senha',
+        message: `O colaborador ${user.employee?.name || user.name} (Email: ${user.email}) solicitou recuperação de senha.\n\nInforme o código a seguir para ele: **${code}**`,
+        priority: 'HIGH',
+        targetType: 'ROLE',
+        targetRole: 'GESTOR',
+        source: 'Security',
+      });
+    } catch (err) {
+      console.error('Failed to notify manager about reset code:', err);
     }
 
     return {
       requested: true,
-      ...((process.env.NODE_ENV !== 'production' || !hasSmtp) ? { resetToken: token } : {}),
+      // Temporarily log to console in non-production just in case a developer tests it
+      ...(process.env.NODE_ENV !== 'production' ? { demoCode: code } : {}),
     };
+  }
+
+  async validateResetCode(dto: { email: string; code: string; cpfStart: string; registration: string }) {
+    const user = await this.repository.findUserWithEmployeeByEmail(dto.email);
+    if (!user || !user.isActive) throw new UnauthorizedException('Dados de validação incorretos');
+    
+    if (!user.resetPasswordCode || user.resetPasswordCode !== dto.code.trim().toUpperCase()) {
+      throw new UnauthorizedException('Código inválido ou expirado');
+    }
+    if (user.resetPasswordExpires && new Date() > user.resetPasswordExpires) {
+      throw new UnauthorizedException('Código expirado');
+    }
+
+    const employee = user.employee;
+    if (!employee) {
+      throw new UnauthorizedException('Usuário não possui cadastro de colaborador. Contate o suporte.');
+    }
+    
+    const rawCpf = employee.cpf.replace(/\D/g, '');
+    if (!rawCpf.startsWith(dto.cpfStart.trim())) {
+      throw new UnauthorizedException('Dados de validação incorretos');
+    }
+
+    const empReg = (employee.registration || '').trim().toLowerCase();
+    const providedReg = dto.registration.trim().toLowerCase();
+    if (empReg !== providedReg) {
+      throw new UnauthorizedException('Dados de validação incorretos');
+    }
+
+    const token = await this.jwtService.signAsync({
+      purpose: PASSWORD_RESET_PURPOSE,
+      sub: user.id,
+      email: user.email,
+      passwordChangedAt: new Date(user.passwordChangedAt).getTime(),
+    }, { expiresIn: '15m' });
+    
+    await this.repository.clearResetCode(user.id);
+    
+    return { valid: true, resetToken: token };
   }
 
   async resetPassword(dto: ResetPasswordDto, requestMeta: { ipAddress?: string; userAgent?: string }) {
