@@ -43,16 +43,31 @@ export class AuthService {
       await this.auditInvalidLogin(dto.email, requestMeta);
       throw new UnauthorizedException(LOGIN_DENIED_MESSAGE);
     }
+
+    if (user.failedLoginAttempts >= 3) {
+      throw new UnauthorizedException('Conta bloqueada por excesso de tentativas. Redefina sua senha.');
+    }
+
     const role = this.resolveRole(user.email, user.role);
     if (!this.canAccessCompany(user.company, role)) {
       await this.auditInvalidLogin(dto.email, requestMeta, user.companyId, user.id);
       throw new UnauthorizedException(LOGIN_DENIED_MESSAGE);
     }
+
     const passwordOk = await bcrypt.compare(dto.password, user.passwordHash);
     if (!passwordOk) {
+      await this.repository.incrementFailedLogins(user.id);
       await this.auditInvalidLogin(dto.email, requestMeta, user.companyId, user.id);
+      if (user.failedLoginAttempts + 1 >= 3) {
+         throw new UnauthorizedException('Conta bloqueada por excesso de tentativas. Redefina sua senha.');
+      }
       throw new UnauthorizedException(LOGIN_DENIED_MESSAGE);
     }
+
+    if (user.failedLoginAttempts > 0) {
+      await this.repository.resetFailedLogins(user.id);
+    }
+
     return this.buildAuthResponse({ sub: user.id, email: user.email, name: user.name, companyId: user.companyId, role }, this.passwordChangeRequired(user));
   }
 
@@ -111,9 +126,19 @@ export class AuthService {
 
     const reused = await bcrypt.compare(dto.newPassword, user.passwordHash);
     if (reused) throw new ConflictException('A nova senha precisa ser diferente da senha atual');
+    
+    // Check previous passwords
+    for (const oldHash of user.previousPasswords) {
+      const matched = await bcrypt.compare(dto.newPassword, oldHash);
+      if (matched) throw new ConflictException('Você não pode reutilizar senhas antigas');
+    }
+
     this.assertStrongPassword(dto.newPassword);
     const passwordHash = await bcrypt.hash(dto.newPassword, 12);
-    await this.repository.updatePassword(user.id, passwordHash);
+    
+    const nextPrevious = [user.passwordHash, ...user.previousPasswords].slice(0, 10);
+    await this.repository.updatePassword(user.id, passwordHash, nextPrevious);
+    
     await this.repository.createAuditLog({
       companyId: user.companyId,
       userId: user.id,
@@ -147,11 +172,22 @@ export class AuthService {
     if (!freshUser || !freshUser.isActive) throw new UnauthorizedException(LOGIN_DENIED_MESSAGE);
     const currentOk = await bcrypt.compare(dto.currentPassword, freshUser.passwordHash);
     if (!currentOk) throw new UnauthorizedException('Senha atual invalida');
+    
     const reused = await bcrypt.compare(dto.newPassword, freshUser.passwordHash);
     if (reused) throw new ConflictException('A nova senha precisa ser diferente da senha atual');
+    
+    // Check previous passwords
+    for (const oldHash of freshUser.previousPasswords) {
+      const matched = await bcrypt.compare(dto.newPassword, oldHash);
+      if (matched) throw new ConflictException('Você não pode reutilizar senhas antigas');
+    }
+
     this.assertStrongPassword(dto.newPassword);
     const passwordHash = await bcrypt.hash(dto.newPassword, 12);
-    await this.repository.updatePassword(freshUser.id, passwordHash);
+    
+    const nextPrevious = [freshUser.passwordHash, ...freshUser.previousPasswords].slice(0, 10);
+    await this.repository.updatePassword(freshUser.id, passwordHash, nextPrevious);
+    
     await this.repository.createAuditLog({
       companyId: freshUser.companyId,
       userId: freshUser.id,
@@ -164,7 +200,6 @@ export class AuthService {
     });
     return { changed: true, passwordChangeRequired: false };
   }
-
 
   private async auditInvalidLogin(email: string, requestMeta?: { ipAddress?: string; userAgent?: string }, companyId?: string, userId?: string) {
     if (!companyId) return;
@@ -190,8 +225,8 @@ export class AuthService {
   }
 
   private assertStrongPassword(password: string) {
-    if (password.length < 6) {
-      throw new ConflictException('A senha precisa ter no minimo 6 caracteres');
+    if (password.length < 10 || !/[a-z]/.test(password) || !/[A-Z]/.test(password) || !/\d/.test(password) || !/[^A-Za-z0-9]/.test(password)) {
+      throw new ConflictException('A senha precisa ter no minimo 10 caracteres, letra maiuscula, minuscula, numero e simbolo');
     }
   }
   private resolveRole(email: string, role: UserRole): UserRole {

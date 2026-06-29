@@ -39,10 +39,24 @@ export class AuthRepository {
   }
 
 
-  updatePassword(userId: string, passwordHash: string) {
+  updatePassword(userId: string, passwordHash: string, previousPasswords: string[] = []) {
     return this.prisma.user.update({
       where: { id: userId },
-      data: { passwordHash, passwordChangedAt: new Date(), forcePasswordChange: false },
+      data: { passwordHash, previousPasswords, passwordChangedAt: new Date(), forcePasswordChange: false },
+    });
+  }
+
+  incrementFailedLogins(userId: string) {
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { failedLoginAttempts: { increment: 1 } },
+    });
+  }
+
+  resetFailedLogins(userId: string) {
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { failedLoginAttempts: 0 },
     });
   }
 

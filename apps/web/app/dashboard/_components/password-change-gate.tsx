@@ -14,7 +14,7 @@ export function PasswordChangeGate({ children }: { children: React.ReactNode }) 
 
   if (!passwordChangeRequired) return <>{children}</>;
 
-  const valid = newPassword.length >= 6 && newPassword === confirmPassword;
+  const valid = newPassword.length >= 10 && newPassword === confirmPassword && /[a-z]/.test(newPassword) && /[A-Z]/.test(newPassword) && /\d/.test(newPassword) && /[^A-Za-z0-9]/.test(newPassword);
 
   async function submit() {
     if (!valid || saving) return;
@@ -45,7 +45,7 @@ export function PasswordChangeGate({ children }: { children: React.ReactNode }) 
           <PasswordField label="Senha atual" value={currentPassword} onChange={setCurrentPassword} />
           <PasswordField label="Nova senha" value={newPassword} onChange={setNewPassword} />
           <PasswordField label="Confirmar nova senha" value={confirmPassword} onChange={setConfirmPassword} />
-          <p className="text-xs font-semibold text-slate-500">Mínimo 6 caracteres.</p>
+          <p className="text-xs font-semibold text-slate-500">Mínimo 10 caracteres, com maiúscula, minúscula, número e símbolo.</p>
         </div>
         <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:justify-end">
           <button onClick={logout} className="btn-outline h-10 rounded-[8px] px-4 text-xs font-bold">Sair</button>

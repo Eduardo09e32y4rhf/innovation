@@ -310,6 +310,8 @@ model User {
   forcePasswordChange Boolean @default(false)
   role         UserRole @default(FUNCIONARIO)
   isActive     Boolean  @default(true)
+  failedLoginAttempts Int @default(0)
+  previousPasswords String[] @default([])
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
