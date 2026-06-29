@@ -1,7 +1,21 @@
+/**
+ * auth-session.ts
+ *
+ * Camada única de persistência de sessão de autenticação.
+ *
+ * Regras de ouro:
+ *  - Sessão ativa SEMPRE em sessionStorage (isolada por aba).
+ *  - localStorage é ZONA PROIBIDA para auth — startLocalStorageGuard() elimina
+ *    qualquer chave de auth que apareça lá, inclusive escritas de outras abas.
+ *  - Serialização de User/Company acontece AQUI, nunca no chamador.
+ */
+
+import type { User, Company } from '@/app/contexts/AuthContext';
+
 export interface StoredAuthSession {
   token: string | null;
-  user: string | null;
-  company: string | null;
+  user: string | null;       // JSON serializado internamente
+  company: string | null;    // JSON serializado internamente
   passwordChangeRequired: string | null;
 }
 
@@ -12,19 +26,37 @@ export interface AuthScopeSnapshot {
   role: string | null;
 }
 
-const STORAGE_KEYS = {
+// ─── Chaves de armazenamento ──────────────────────────────────────────────────
+
+const SESSION_KEYS = {
   token: 'auth.token',
   user: 'auth.user',
   company: 'auth.company',
   passwordChangeRequired: 'auth.passwordChangeRequired',
 } as const;
 
-const LEGACY_KEYS = {
-  token: 'token',
-  user: 'user',
-  company: 'company',
-  passwordChangeRequired: 'passwordChangeRequired',
-} as const;
+/**
+ * Todas as chaves que já foram ou poderiam ser usadas para auth em localStorage.
+ * O guard remove qualquer uma delas que apareça lá.
+ */
+const PROHIBITED_LOCALSTORAGE_KEYS: readonly string[] = [
+  'token',
+  'user',
+  'company',
+  'passwordChangeRequired',
+  'auth.token',
+  'auth.user',
+  'auth.company',
+  'auth.passwordChangeRequired',
+  'accessToken',
+  'refreshToken',
+  'role',
+  'companyId',
+  'tenant',
+  'selectedCompany',
+];
+
+// ─── Auth Scope (store externo para useSyncExternalStore) ─────────────────────
 
 let authScopeSnapshot: AuthScopeSnapshot = {
   token: null,
@@ -35,87 +67,168 @@ let authScopeSnapshot: AuthScopeSnapshot = {
 
 const listeners = new Set<() => void>();
 
-function hasStorageValue(value: string | null) {
-  return Boolean(value && value !== 'undefined' && value !== 'null');
+export function setAuthScopeSnapshot(next: AuthScopeSnapshot): void {
+  authScopeSnapshot = next;
+  listeners.forEach((l) => l());
 }
 
-function readFromStorage(storage: Storage, keys: Record<keyof StoredAuthSession, string>): StoredAuthSession {
-  return {
-    token: storage.getItem(keys.token),
-    user: storage.getItem(keys.user),
-    company: storage.getItem(keys.company),
-    passwordChangeRequired: storage.getItem(keys.passwordChangeRequired),
-  };
+export function getAuthScopeSnapshot(): AuthScopeSnapshot {
+  return authScopeSnapshot;
 }
 
-function writeToStorage(storage: Storage, keys: Record<keyof StoredAuthSession, string>, session: StoredAuthSession) {
-  const entries = Object.entries(session) as Array<[keyof StoredAuthSession, string | null]>;
-  entries.forEach(([field, value]) => {
-    const key = keys[field];
+export function subscribeAuthScope(listener: () => void): () => void {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
+// ─── Helpers internos ─────────────────────────────────────────────────────────
+
+function hasValue(v: string | null): boolean {
+  return Boolean(v && v !== 'undefined' && v !== 'null');
+}
+
+function safeParse<T>(v: string | null): T | null {
+  if (!hasValue(v)) return null;
+  try { return JSON.parse(v!) as T; } catch { return null; }
+}
+
+function _writeToSessionStorage(session: StoredAuthSession): void {
+  const ss = window.sessionStorage;
+  const entries: Array<[string, string | null]> = [
+    [SESSION_KEYS.token, session.token],
+    [SESSION_KEYS.user, session.user],
+    [SESSION_KEYS.company, session.company],
+    [SESSION_KEYS.passwordChangeRequired, session.passwordChangeRequired],
+  ];
+  entries.forEach(([key, value]) => {
     if (value === null || value === undefined) {
-      storage.removeItem(key);
+      ss.removeItem(key);
     } else {
-      storage.setItem(key, value);
+      ss.setItem(key, value);
     }
   });
 }
 
-function clearStorage(storage: Storage, keys: Record<keyof StoredAuthSession, string>) {
-  Object.values(keys).forEach((key) => storage.removeItem(key));
+function _purgeLocalStorage(): void {
+  const ls = window.localStorage;
+  PROHIBITED_LOCALSTORAGE_KEYS.forEach((k) => ls.removeItem(k));
 }
 
-function getStorageKeys() {
-  return {
-    session: STORAGE_KEYS,
-    legacy: LEGACY_KEYS,
-  };
-}
+// ─── API pública ──────────────────────────────────────────────────────────────
 
+/**
+ * Lê a sessão do sessionStorage (isolada por aba).
+ * Se não existir, migra silenciosamente do localStorage legado e o limpa.
+ */
 export function readAuthSession(): StoredAuthSession {
   if (typeof window === 'undefined') {
     return { token: null, user: null, company: null, passwordChangeRequired: null };
   }
 
-  const { session, legacy } = getStorageKeys();
-  const current = readFromStorage(window.sessionStorage, session);
-  if (hasStorageValue(current.token) || hasStorageValue(current.user) || hasStorageValue(current.company)) {
+  const ss = window.sessionStorage;
+  const current: StoredAuthSession = {
+    token: ss.getItem(SESSION_KEYS.token),
+    user: ss.getItem(SESSION_KEYS.user),
+    company: ss.getItem(SESSION_KEYS.company),
+    passwordChangeRequired: ss.getItem(SESSION_KEYS.passwordChangeRequired),
+  };
+
+  if (hasValue(current.token) || hasValue(current.user)) {
     return current;
   }
 
-  const legacySession = readFromStorage(window.localStorage, legacy);
-  if (hasStorageValue(legacySession.token) || hasStorageValue(legacySession.user) || hasStorageValue(legacySession.company)) {
-    writeToStorage(window.sessionStorage, session, legacySession);
-    clearStorage(window.localStorage, legacy);
-    return legacySession;
+  // Migração: chaves legadas do localStorage → sessionStorage
+  const ls = window.localStorage;
+  const legacyToken = ls.getItem('token') ?? ls.getItem('auth.token');
+  const legacyUser = ls.getItem('user') ?? ls.getItem('auth.user');
+  const legacyCompany = ls.getItem('company') ?? ls.getItem('auth.company');
+  const legacyPcr = ls.getItem('passwordChangeRequired') ?? ls.getItem('auth.passwordChangeRequired');
+
+  if (hasValue(legacyToken) || hasValue(legacyUser)) {
+    const migrated: StoredAuthSession = {
+      token: legacyToken,
+      user: legacyUser,
+      company: legacyCompany,
+      passwordChangeRequired: legacyPcr,
+    };
+    _writeToSessionStorage(migrated);
+    _purgeLocalStorage();
+    return migrated;
   }
 
   return current;
 }
 
-export function persistAuthSession(session: StoredAuthSession) {
+/**
+ * Lê a sessão já deserializada — sem necessidade de safeParse no chamador.
+ */
+export function readParsedAuthSession(): {
+  token: string | null;
+  user: User | null;
+  company: Company | null;
+  passwordChangeRequired: boolean;
+} {
+  const raw = readAuthSession();
+  return {
+    token: raw.token,
+    user: safeParse<User>(raw.user),
+    company: safeParse<Company>(raw.company),
+    passwordChangeRequired: raw.passwordChangeRequired === 'true',
+  };
+}
+
+/**
+ * Persiste a sessão no sessionStorage com objetos brutos.
+ * A serialização JSON acontece aqui — nunca no chamador.
+ * Garante que o localStorage esteja limpo após cada escrita.
+ */
+export function persistAuthSession(
+  token: string,
+  user: User,
+  company: Company,
+  passwordChangeRequired: boolean,
+): void {
   if (typeof window === 'undefined') return;
-  const { session: sessionKeys, legacy } = getStorageKeys();
-  writeToStorage(window.sessionStorage, sessionKeys, session);
-  clearStorage(window.localStorage, legacy);
+  _writeToSessionStorage({
+    token,
+    user: JSON.stringify(user),
+    company: JSON.stringify(company),
+    passwordChangeRequired: String(passwordChangeRequired),
+  });
+  _purgeLocalStorage();
 }
 
-export function clearAuthSession() {
+/** Remove todos os dados de sessão do sessionStorage e do localStorage. */
+export function clearAuthSession(): void {
   if (typeof window === 'undefined') return;
-  const { session, legacy } = getStorageKeys();
-  clearStorage(window.sessionStorage, session);
-  clearStorage(window.localStorage, legacy);
+  const ss = window.sessionStorage;
+  Object.values(SESSION_KEYS).forEach((k) => ss.removeItem(k));
+  _purgeLocalStorage();
 }
 
-export function setAuthScopeSnapshot(next: AuthScopeSnapshot) {
-  authScopeSnapshot = next;
-  listeners.forEach((listener) => listener());
-}
+/**
+ * Ativa o guard de localStorage por aba — chamar UMA VEZ no AuthProvider.
+ *
+ * O evento `storage` é disparado pelo browser quando OUTRA aba escreve no
+ * localStorage. Este listener elimina imediatamente qualquer chave de auth
+ * proibida, tornando o localStorage uma zona inerte para sessão de usuário.
+ *
+ * Retorna uma função de cleanup para usar em useEffect.
+ */
+export function startLocalStorageGuard(): () => void {
+  if (typeof window === 'undefined') return () => undefined;
 
-export function getAuthScopeSnapshot() {
-  return authScopeSnapshot;
-}
+  // Limpeza imediata ao montar (resíduos de sessões anteriores)
+  _purgeLocalStorage();
 
-export function subscribeAuthScope(listener: () => void) {
-  listeners.add(listener);
-  return () => listeners.delete(listener);
+  const handler = (event: StorageEvent) => {
+    if (event.storageArea !== window.localStorage) return;
+    if (!event.key) return;
+    if (PROHIBITED_LOCALSTORAGE_KEYS.includes(event.key)) {
+      window.localStorage.removeItem(event.key);
+    }
+  };
+
+  window.addEventListener('storage', handler);
+  return () => window.removeEventListener('storage', handler);
 }

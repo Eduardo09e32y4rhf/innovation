@@ -1,12 +1,13 @@
-﻿'use client';
+'use client';
 
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { resetAllQueryStates } from '@/app/hooks/use-data';
 import {
   clearAuthSession,
   persistAuthSession,
-  readAuthSession,
+  readParsedAuthSession,
   setAuthScopeSnapshot,
+  startLocalStorageGuard,
 } from '@/app/lib/auth-session';
 
 export interface User {
@@ -62,33 +63,17 @@ const isLocalBrowser = () => {
 const canUseLocalSession = () => process.env.NODE_ENV !== 'production' && (LOCAL_SESSION_ENABLED || isLocalBrowser());
 const getApiUrl = () => process.env.NEXT_PUBLIC_API_URL || '/api';
 
-function safeParse<T>(value: string | null): T | null {
-  if (!value || value === 'undefined' || value === 'null') return null;
-  try {
-    return JSON.parse(value) as T;
-  } catch {
-    return null;
-  }
-}
-
-function toStoredSession(token: string | null, user: User | null, company: Company | null, passwordChangeRequired: boolean) {
-  return {
-    token,
-    user: user ? JSON.stringify(user) : null,
-    company: company ? JSON.stringify(company) : null,
-    passwordChangeRequired: String(passwordChangeRequired),
-  };
-}
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const initialSession = readAuthSession();
-  const [user, setUser] = useState<User | null>(() => safeParse<User>(initialSession.user));
-  const [company, setCompany] = useState<Company | null>(() => safeParse<Company>(initialSession.company));
+  // readParsedAuthSession lê do sessionStorage (isolado por aba) e já deserializa
+  const initialSession = readParsedAuthSession();
+  const [user, setUser] = useState<User | null>(initialSession.user);
+  const [company, setCompany] = useState<Company | null>(initialSession.company);
   const [token, setToken] = useState<string | null>(initialSession.token);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [passwordChangeRequired, setPasswordChangeRequired] = useState(
-    initialSession.passwordChangeRequired === 'true',
+    initialSession.passwordChangeRequired,
   );
 
   useEffect(() => {
@@ -100,7 +85,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     });
 
     if (token && user && company) {
-      persistAuthSession(toStoredSession(token, user, company, passwordChangeRequired));
+      // persistAuthSession recebe objetos brutos — serialização acontece dentro do módulo
+      persistAuthSession(token, user, company, passwordChangeRequired);
       return;
     }
 
@@ -108,6 +94,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, [token, user, company, passwordChangeRequired]);
 
   useEffect(() => {
+    // Ativa o guard: localStorage vira zona proibida para auth nesta aba
+    const cleanupGuard = startLocalStorageGuard();
     let active = true;
 
     const bootstrap = async () => {
@@ -140,6 +128,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     return () => {
       active = false;
+      cleanupGuard();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

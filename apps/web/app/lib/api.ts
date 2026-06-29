@@ -1,6 +1,7 @@
-﻿'use client';
+'use client';
 
 import { clearAuthSession, readAuthSession } from './auth-session';
+import { resetAllQueryStates } from '@/app/hooks/use-data';
 
 /**
  * Cliente HTTP central do Innovation RH Connect.
@@ -28,6 +29,8 @@ function getToken(): string | null {
 
 function clearSession() {
   clearAuthSession();
+  // Zera cache em memória imediatamente — evita flash de dados do usuário anterior
+  resetAllQueryStates();
 }
 
 type Opts = { method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE'; body?: unknown; silent?: boolean };
