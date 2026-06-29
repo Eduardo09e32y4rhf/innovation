@@ -220,7 +220,7 @@ export class AuthService {
     const freshUser = await this.repository.findUserById(user.sub);
     if (!freshUser || !freshUser.isActive) throw new UnauthorizedException(LOGIN_DENIED_MESSAGE);
     const currentOk = await bcrypt.compare(dto.currentPassword, freshUser.passwordHash);
-    if (!currentOk) throw new UnauthorizedException('Senha atual invalida');
+    if (!currentOk) throw new ConflictException('Senha atual invalida');
     
     const reused = await bcrypt.compare(dto.newPassword, freshUser.passwordHash);
     if (reused) throw new ConflictException('A nova senha precisa ser diferente da senha atual');
