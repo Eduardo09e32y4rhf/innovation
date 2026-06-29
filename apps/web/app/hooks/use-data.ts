@@ -1,5 +1,6 @@
-'use client';
-import { useCallback, useEffect, useRef, useState } from 'react';
+﻿'use client';
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { subscribeAuthScope, getAuthScopeSnapshot } from '@/app/lib/auth-session';
 import { ApiError } from '@/app/lib/api';
 
 function msgFrom(err: unknown): string {
@@ -15,6 +16,28 @@ export interface QueryState<T> {
   refetch: () => void;
 }
 
+type QueryController = {
+  reset: () => void;
+  refetch: () => void;
+};
+
+const queryControllers = new Set<QueryController>();
+
+function registerQueryController(controller: QueryController) {
+  queryControllers.add(controller);
+  return () => {
+    queryControllers.delete(controller);
+  };
+}
+
+export function resetAllQueryStates() {
+  queryControllers.forEach((controller) => controller.reset());
+}
+
+export function refetchAllQueryStates() {
+  queryControllers.forEach((controller) => controller.refetch());
+}
+
 export function useQuery<T>(
   fetcher: () => Promise<T>,
   deps: ReadonlyArray<unknown> = [],
@@ -26,29 +49,54 @@ export function useQuery<T>(
   const [error, setError] = useState<string | null>(null);
   const ref = useRef(fetcher);
   ref.current = fetcher;
+  const authScope = useSyncExternalStore(subscribeAuthScope, getAuthScopeSnapshot, getAuthScopeSnapshot);
+  const authScopeKey = `${authScope.userId ?? 'anon'}|${authScope.companyId ?? 'none'}|${authScope.role ?? 'none'}|${authScope.token ? 'auth' : 'guest'}`;
 
   const run = useCallback(async (isRetry = false) => {
     if (!enabled) return;
     if (!isRetry) setLoading(true);
     if (!isRetry) setError(null);
-    try { 
-      setData(await ref.current()); 
-      if (isRetry) setError(null); // Clear error if retry succeeds
+    try {
+      setData(await ref.current());
+      if (isRetry) setError(null);
     }
-    catch (err) { 
+    catch (err) {
       if (!isRetry) {
-        // Silently retry once after 1.5s
         setTimeout(() => run(true), 1500);
       } else {
-        setError(msgFrom(err)); 
+        setError(msgFrom(err));
       }
     }
-    finally { 
-      if (isRetry || !error) setLoading(false); 
-      // If it's first fail, we stay loading until retry finishes
+    finally {
+      if (isRetry || !error) setLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enabled, ...deps]);
+  }, [enabled, authScopeKey, ...deps]);
+
+  const reset = useCallback(() => {
+    setData(undefined);
+    setError(null);
+    setLoading(enabled);
+  }, [enabled, authScopeKey]);
+
+  const controllerRef = useRef<QueryController>({ reset: () => undefined, refetch: () => undefined });
+  controllerRef.current = {
+    reset,
+    refetch: () => {
+      void run();
+    },
+  };
+
+  useEffect(() => registerQueryController({
+    reset: () => controllerRef.current.reset(),
+    refetch: () => controllerRef.current.refetch(),
+  }), []);
+
+  useEffect(() => {
+    setData(undefined);
+    setError(null);
+    setLoading(enabled);
+  }, [authScopeKey, enabled, ...deps]);
 
   useEffect(() => { run(); }, [run]);
   useEffect(() => {
@@ -57,7 +105,14 @@ export function useQuery<T>(
     return () => clearInterval(id);
   }, [pollMs, enabled, run]);
 
-  return { data, loading, error, refetch: run };
+  return {
+    data,
+    loading,
+    error,
+    refetch: () => {
+      void run();
+    },
+  };
 }
 
 export interface MutationState<TInput, TResult> {
@@ -102,11 +157,16 @@ export function useMutation<TInput = void, TResult = unknown>(
   };
 }
 
-
 export function useQueryClient() {
   return {
-    invalidateQueries: async () => undefined,
-    refetchQueries: async () => undefined,
-    resetQueries: async () => undefined,
+    invalidateQueries: async () => {
+      refetchAllQueryStates();
+    },
+    refetchQueries: async () => {
+      refetchAllQueryStates();
+    },
+    resetQueries: async () => {
+      resetAllQueryStates();
+    },
   };
 }

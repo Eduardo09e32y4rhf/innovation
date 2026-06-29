@@ -1,6 +1,13 @@
-'use client';
+﻿'use client';
 
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { resetAllQueryStates } from '@/app/hooks/use-data';
+import {
+  clearAuthSession,
+  persistAuthSession,
+  readAuthSession,
+  setAuthScopeSnapshot,
+} from '@/app/lib/auth-session';
 
 export interface User {
   id: string;
@@ -54,53 +61,87 @@ const isLocalBrowser = () => {
 
 const canUseLocalSession = () => process.env.NODE_ENV !== 'production' && (LOCAL_SESSION_ENABLED || isLocalBrowser());
 const getApiUrl = () => process.env.NEXT_PUBLIC_API_URL || '/api';
-const isStoredJsonValue = (value: string | null) => Boolean(value && value !== 'undefined' && value !== 'null');
+
+function safeParse<T>(value: string | null): T | null {
+  if (!value || value === 'undefined' || value === 'null') return null;
+  try {
+    return JSON.parse(value) as T;
+  } catch {
+    return null;
+  }
+}
+
+function toStoredSession(token: string | null, user: User | null, company: Company | null, passwordChangeRequired: boolean) {
+  return {
+    token,
+    user: user ? JSON.stringify(user) : null,
+    company: company ? JSON.stringify(company) : null,
+    passwordChangeRequired: String(passwordChangeRequired),
+  };
+}
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [company, setCompany] = useState<Company | null>(null);
-  const [token, setToken] = useState<string | null>(null);
+  const initialSession = readAuthSession();
+  const [user, setUser] = useState<User | null>(() => safeParse<User>(initialSession.user));
+  const [company, setCompany] = useState<Company | null>(() => safeParse<Company>(initialSession.company));
+  const [token, setToken] = useState<string | null>(initialSession.token);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [passwordChangeRequired, setPasswordChangeRequired] = useState(false);
+  const [passwordChangeRequired, setPasswordChangeRequired] = useState(
+    initialSession.passwordChangeRequired === 'true',
+  );
 
   useEffect(() => {
-    const savedToken = localStorage.getItem('token');
-    const savedUser = localStorage.getItem('user');
-    const savedCompany = localStorage.getItem('company');
+    setAuthScopeSnapshot({
+      token,
+      userId: user?.id ?? null,
+      companyId: company?.id ?? null,
+      role: user?.profile?.toUpperCase() ?? null,
+    });
 
-    if (savedToken === LOCAL_SESSION_TOKEN && !canUseLocalSession()) {
-      clearStoredSession();
-      setLoading(false);
+    if (token && user && company) {
+      persistAuthSession(toStoredSession(token, user, company, passwordChangeRequired));
       return;
     }
 
-    if (!savedToken && LOCAL_SESSION_ENABLED) {
-      startLocalSession();
-      setLoading(false);
-      return;
-    }
+    clearAuthSession();
+  }, [token, user, company, passwordChangeRequired]);
 
-    if (savedToken && isStoredJsonValue(savedUser) && isStoredJsonValue(savedCompany)) {
-      try {
-        const parsedUser = JSON.parse(savedUser);
-        const parsedCompany = JSON.parse(savedCompany);
-        if (canUseLocalSession() && savedToken === LOCAL_SESSION_TOKEN && parsedUser?.companyId !== LOCAL_COMPANY_ID) {
+  useEffect(() => {
+    let active = true;
+
+    const bootstrap = async () => {
+      if (!token) {
+        if (LOCAL_SESSION_ENABLED) {
           startLocalSession();
-        } else {
-          setToken(savedToken);
-          setUser(parsedUser);
-          setCompany(parsedCompany);
-          setPasswordChangeRequired(localStorage.getItem('passwordChangeRequired') === 'true');
-          void refreshStoredUser(savedToken, parsedCompany);
         }
-      } catch {
-        clearStoredSession();
+        if (active) setLoading(false);
+        return;
       }
-    } else if (LOCAL_SESSION_ENABLED) {
-      startLocalSession();
-    }
-    setLoading(false);
+
+      if (token === LOCAL_SESSION_TOKEN) {
+        if (!canUseLocalSession()) {
+          clearStoredSession();
+        }
+        if (active) setLoading(false);
+        return;
+      }
+
+      if (!user || !company) {
+        if (active) setLoading(false);
+        return;
+      }
+
+      await refreshStoredUser(token, company);
+      if (active) setLoading(false);
+    };
+
+    void bootstrap();
+
+    return () => {
+      active = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const refreshStoredUser = async (savedToken: string, savedCompany: Company) => {
@@ -115,7 +156,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (!response.ok) return;
       const payload = await response.json();
       const freshUser = payload.data ?? payload;
-      const nextUser = {
+      const nextUser: User = {
         id: freshUser.sub,
         name: freshUser.name || freshUser.email?.split('@')[0] || 'Usuário',
         email: freshUser.email,
@@ -127,9 +168,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setUser(nextUser);
       setCompany(nextCompany);
       setPasswordChangeRequired(mustChangePassword);
-      localStorage.setItem('user', JSON.stringify(nextUser));
-      localStorage.setItem('company', JSON.stringify(nextCompany));
-      localStorage.setItem('passwordChangeRequired', String(mustChangePassword));
     } catch {
       // Mantém a sessão salva se a atualização do perfil falhar momentaneamente.
     }
@@ -140,10 +178,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setUser(LOCAL_USER);
     setCompany(LOCAL_COMPANY);
     setPasswordChangeRequired(false);
-    localStorage.setItem('token', LOCAL_SESSION_TOKEN);
-    localStorage.setItem('user', JSON.stringify(LOCAL_USER));
-    localStorage.setItem('company', JSON.stringify(LOCAL_COMPANY));
-    localStorage.setItem('passwordChangeRequired', 'false');
+    resetAllQueryStates();
   };
 
   const clearStoredSession = () => {
@@ -151,10 +186,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setUser(null);
     setCompany(null);
     setPasswordChangeRequired(false);
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    localStorage.removeItem('company');
-    localStorage.removeItem('passwordChangeRequired');
+    clearAuthSession();
+    resetAllQueryStates();
   };
 
   const login = async (email: string, password: string) => {
@@ -177,14 +210,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const data = await response.json();
       const authData = data.data ?? data;
       const nextToken = authData.access_token;
-      const nextUser = {
+      const nextUser: User = {
         id: authData.user.sub,
         name: authData.user.name || email.split('@')[0] || 'Usuário',
         email: authData.user.email,
         profile: String(authData.user.role || 'USER').toLowerCase(),
         companyId: authData.user.companyId,
       };
-      const nextCompany = {
+      const nextCompany: Company = {
         id: authData.user.companyId,
         name: 'Innovation RH Connect',
       };
@@ -193,10 +226,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setUser(nextUser);
       setCompany(nextCompany);
       setPasswordChangeRequired(mustChangePassword);
-      localStorage.setItem('token', nextToken);
-      localStorage.setItem('user', JSON.stringify(nextUser));
-      localStorage.setItem('company', JSON.stringify(nextCompany));
-      localStorage.setItem('passwordChangeRequired', String(mustChangePassword));
+      resetAllQueryStates();
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro ao fazer login';
       setError(message);
@@ -216,7 +246,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const payload = await response.json().catch(() => null);
     if (!response.ok) throw new Error(payload?.message || payload?.error?.message || 'Não foi possível trocar a senha.');
     setPasswordChangeRequired(false);
-    localStorage.setItem('passwordChangeRequired', 'false');
   };
 
   const logout = () => {
@@ -247,3 +276,4 @@ export const useAuth = () => {
   }
   return context;
 };
+

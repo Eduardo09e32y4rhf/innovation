@@ -1,4 +1,6 @@
-'use client';
+﻿'use client';
+
+import { clearAuthSession, readAuthSession } from './auth-session';
 
 /**
  * Cliente HTTP central do Innovation RH Connect.
@@ -21,12 +23,11 @@ export class ApiError extends Error {
 
 function getToken(): string | null {
   if (typeof window === 'undefined') return null;
-  return window.localStorage.getItem('token');
+  return readAuthSession().token;
 }
 
 function clearSession() {
-  if (typeof window === 'undefined') return;
-  ['token', 'user', 'company'].forEach((k) => window.localStorage.removeItem(k));
+  clearAuthSession();
 }
 
 type Opts = { method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE'; body?: unknown; silent?: boolean };
@@ -397,4 +398,5 @@ export const api = {
 };
 
 export default api;
+
 
