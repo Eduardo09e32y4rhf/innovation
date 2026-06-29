@@ -1,0 +1,3 @@
+## 2023-10-27 - Enterprise Component Accessibility Props
+**Learning:** Reusable UI primitives in the enterprise design system (e.g., TableActionButton) lack standard HTML accessibility props (`aria-label`, `title`). Because they are used as wrappers for icon-only components (like `DownloadPdfButton`), screen readers receive no context.
+**Action:** When auditing enterprise design system components, always explicitly expose and propagate native accessibility props to allow consumer components to inject localized context, and ensure focus indicators (e.g. `focus-visible:ring-2`) are present for keyboard users.
