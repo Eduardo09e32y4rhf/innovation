@@ -41,7 +41,7 @@ export default function EmployeesPage() {
           || String(employee.registration ?? '').toLowerCase().includes(term)
           || String(employee.department ?? '').toLowerCase().includes(term)
           || managerName.toLowerCase().includes(term)
-          || employee.cpf.replace(/\D/g, '').includes(digits);
+          || (employee.cpf || '').replace(/\D/g, '').includes(digits);
       })
       .slice().sort((a, b) => collator.compare(normalizeDisplayName(a.name), normalizeDisplayName(b.name)));
   }, [employees, managerById, search]);
