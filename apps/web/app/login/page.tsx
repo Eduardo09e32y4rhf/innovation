@@ -13,6 +13,7 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { useAuth } from '@/app/contexts/AuthContext';
+import { api } from '@/app/lib/api';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -24,6 +25,7 @@ export default function LoginPage() {
   const [localError, setLocalError] = useState('');
   const [forgotPassword, setForgotPassword] = useState(false);
   const [forgotSuccess, setForgotSuccess] = useState('');
+  const [resetToken, setResetToken] = useState('');
 
   useEffect(() => {
     if (isAuthenticated) router.push('/dashboard');
@@ -33,13 +35,24 @@ export default function LoginPage() {
     event.preventDefault();
     setLocalError('');
     setForgotSuccess('');
+    setResetToken('');
 
     if (forgotPassword) {
       if (!email.trim()) {
         setLocalError('Informe o e-mail para recuperar a senha.');
         return;
       }
-      setForgotSuccess('Token de recuperação enviado para o seu e-mail!');
+      try {
+        const res = await api.auth.requestPasswordReset(email.trim());
+        if (res.resetToken) {
+          setForgotSuccess(`Para testar, clique aqui: `);
+          setResetToken(res.resetToken);
+        } else {
+          setForgotSuccess('Token de recuperação enviado para o seu e-mail!');
+        }
+      } catch (err) {
+        setLocalError(err instanceof Error ? err.message : 'Não foi possível solicitar a recuperação.');
+      }
       return;
     }
 
@@ -106,9 +119,16 @@ export default function LoginPage() {
             )}
             
             {forgotSuccess && (
-              <div className="flex items-center gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 animate-in fade-in slide-in-from-top-2">
-                <CheckCircle2 size={18} className="text-emerald-400 shrink-0" />
-                <p className="text-sm font-medium text-emerald-200">{forgotSuccess}</p>
+              <div className="flex flex-col gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 animate-in fade-in slide-in-from-top-2">
+                <div className="flex items-center gap-3">
+                  <CheckCircle2 size={18} className="text-emerald-400 shrink-0" />
+                  <p className="text-sm font-medium text-emerald-200">{forgotSuccess}</p>
+                </div>
+                {resetToken && forgotSuccess.includes('clique aqui') && (
+                  <a href={`/reset-password?token=${resetToken}`} className="mt-1 block rounded-lg bg-emerald-500/20 px-3 py-2 text-center text-xs font-bold text-emerald-300 hover:bg-emerald-500/30">
+                    Ir para tela de Nova Senha
+                  </a>
+                )}
               </div>
             )}
 

@@ -42,7 +42,7 @@ function ResetPasswordForm() {
         <Link href="/login" className="mb-6 inline-flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-slate-950"><ArrowLeft size={14} /> Voltar ao login</Link>
         <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-[14px] bg-slate-950 text-white"><ShieldCheck size={22} /></div>
         <h1 className="text-2xl font-black text-slate-950">Criar nova senha</h1>
-        <p className="mt-2 text-sm font-semibold leading-6 text-slate-500">Use uma senha forte com letra mai?scula, min?scula, n?mero e s?mbolo.</p>
+        <p className="mt-2 text-sm font-semibold leading-6 text-slate-500">Use uma senha com no mínimo 6 caracteres.</p>
         <form onSubmit={submit} className="mt-6 space-y-4">
           {[['Nova senha', password, setPassword], ['Confirmar senha', confirm, setConfirm]].map(([label, value, setter]) => (
             <label key={String(label)} className="block">
