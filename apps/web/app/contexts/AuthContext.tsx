@@ -169,7 +169,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         signal: AbortSignal.timeout(3000),
       });
 
-      if (!response.ok) throw new Error('Não foi possível entrar.');
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null);
+        throw new Error(payload?.message || payload?.error?.message || 'Não foi possível entrar.');
+      }
 
       const data = await response.json();
       const authData = data.data ?? data;
