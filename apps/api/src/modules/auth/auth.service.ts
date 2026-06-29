@@ -98,18 +98,25 @@ export class AuthService {
     });
 
     try {
-      await this.notificationsService.createAdminNotice(user.companyId, user.id, {
-        type: 'SYSTEM_NOTICE',
-        title: 'Código de Recuperação de Senha',
-        message: `O colaborador ${user.employee?.name || user.name} (Email: ${user.email}) solicitou recuperação de senha.`,
-        priority: 'HIGH',
-        targetType: 'ROLE',
-        targetRole: 'GESTOR',
-        source: 'Security',
-        extraJson: { resetCode: code },
-      });
+      // Notifica todos os perfis privilegiados da empresa que podem liberar o código:
+      // GESTOR (direto do colaborador), RH e ADMIN (responsáveis pela empresa)
+      const rolesParaNotificar = ['GESTOR', 'RH', 'ADMIN'] as const;
+      await Promise.allSettled(
+        rolesParaNotificar.map((role) =>
+          this.notificationsService.createAdminNotice(user.companyId, user.id, {
+            type: 'SYSTEM_NOTICE',
+            title: 'Código de Recuperação de Senha',
+            message: `O colaborador ${user.employee?.name || user.name} (Email: ${user.email}) solicitou recuperação de senha. Informe o código apenas ao colaborador presencialmente.`,
+            priority: 'HIGH',
+            targetType: 'ROLE',
+            targetRole: role,
+            source: 'Security',
+            extraJson: { resetCode: code },
+          }),
+        ),
+      );
     } catch (err) {
-      console.error('Failed to notify manager about reset code:', err);
+      console.error('Failed to notify privileged roles about reset code:', err);
     }
 
     return {

@@ -1,6 +1,13 @@
 import { Injectable } from '@nestjs/common';
+import { UserRole } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 import type { JwtUser } from '../../common/types/auth.types';
+
+/**
+ * Perfis que podem receber notificações do sistema e de segurança.
+ * FUNCIONARIO e CONSULTA nunca recebem — evita vazamento de dados internos.
+ */
+const NOTIFICATION_PRIVILEGED_ROLES: UserRole[] = ['DEV', 'ADMIN', 'RH', 'GESTOR'];
 
 @Injectable()
 export class NotificationsService {
@@ -12,13 +19,12 @@ export class NotificationsService {
 
   async list(companyId: string, actor: JwtUser) {
     try {
-      const where: any = { companyId };
-      if (actor.role === 'FUNCIONARIO') {
-        where.recipients = { some: { userId: actor.sub } };
-      }
-
+      // Todos os perfis filtram por destinatário — ninguém vê notificação que não é sua.
       return await this.prisma.notification.findMany({
-        where,
+        where: {
+          companyId,
+          recipients: { some: { userId: actor.sub } },
+        },
         include: {
           createdByUser: { select: { id: true, name: true } },
           recipients: { where: { userId: actor.sub } },
@@ -120,23 +126,30 @@ export class NotificationsService {
       let targetUserIds: string[] = [];
 
       if (targetType === 'ALL') {
+        // 'ALL' entrega apenas para perfis privilegiados — nunca para FUNCIONARIO ou CONSULTA
         const users = await this.prisma.user.findMany({
-          where: { companyId },
+          where: { companyId, role: { in: NOTIFICATION_PRIVILEGED_ROLES } },
           select: { id: true },
         });
         targetUserIds = users.map(u => u.id);
       } else if (targetType === 'EMPLOYEES') {
+        // 'EMPLOYEES' entrega apenas para funcionários com perfil privilegiado
         const employees = await this.prisma.employee.findMany({
-          where: { companyId, status: 'ACTIVE' },
+          where: { companyId, status: 'ACTIVE', user: { role: { in: NOTIFICATION_PRIVILEGED_ROLES } } },
           select: { userId: true },
         });
         targetUserIds = employees.map(e => e.userId).filter(Boolean) as string[];
       } else if (targetType === 'ROLE') {
-        const users = await this.prisma.user.findMany({
-          where: { companyId, role: body.targetRole },
-          select: { id: true },
-        });
-        targetUserIds = users.map(u => u.id);
+        const requestedRole = body.targetRole as string;
+        // Garante que o role alvo é um perfil privilegiado — nunca entrega para FUNCIONARIO/CONSULTA
+        const safeRole = NOTIFICATION_PRIVILEGED_ROLES.find(r => r === requestedRole) ?? null;
+        if (safeRole) {
+          const users = await this.prisma.user.findMany({
+            where: { companyId, role: safeRole },
+            select: { id: true },
+          });
+          targetUserIds = users.map(u => u.id);
+        }
       } else if (targetType === 'SPECIFIC' && targetIds) {
         targetUserIds = targetIds;
       }
@@ -270,6 +283,7 @@ export class NotificationsService {
   async dashboardWidget(companyId: string, actor: JwtUser) {
     try {
       const unreadCount = await this.unreadCount(companyId, actor);
+      // Apenas notificações endereçadas ao usuário atual
       const notifications = await this.prisma.notification.findMany({
         where: {
           companyId,
