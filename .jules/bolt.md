@@ -1,0 +1,4 @@
+## 2024-12-07 - Optimize sequential DB operations in bulk time-track
+
+**Learning:** Unbounded sequential operations, especially `for...of` loops performing iterative DB queries and updates (like `this.ensureEmployee` and `this.applyManual` over an array of `employeeIds` and `dates` in `apps/api`), severely block the event loop and lead to high I/O wait times. A subtle bug existed where mutating a shared DTO in sequential loops (via `Object.assign`) cascaded mutations across iterations, causing cross-employee state leakage.
+**Action:** When replacing sequential iterative mutations with chunked concurrency (`Promise.all` over slices), ensure deep or shallow clones are created for shared DTOs/objects within the loop to prevent race conditions and cross-iteration side effects. Additionally, map chunk results correctly to preserve deterministic ordering required by the client.

@@ -100,20 +100,41 @@ export class TimeTrackService {
   async manualBulk(companyId: string, dto: BulkManualTimeTrackDto) {
     const dates = this.resolveBulkDates(dto);
     const created = [];
-    for (const employeeId of dto.employeeIds) {
-      const employee = await this.ensureEmployee(companyId, employeeId);
-      for (const date of dates) {
-        if (this.isRestDay(employee, date, dto)) continue;
-        const parsedDate = this.toDateOnly(this.parseDate(date, 'Invalid date'));
-        this.validateEmployeeDateRange(employee, parsedDate);
-        if (dto.reason.includes('abono')) {
-          const suggestion = this.suggestAbsenceMinutes(employee, parsedDate);
-          if (suggestion !== null && suggestion > 0 && !dto.entry) {
-            const suggestedEntry = this.suggestEntryTime(employee, parsedDate, suggestion);
-            Object.assign(dto, { entry: suggestedEntry });
+
+    // ⚡ Bolt: Chunked concurrent execution to reduce database I/O wait times
+    // We process employees in chunks of 5 to avoid connection pool exhaustion
+    const chunkSize = 5;
+    for (let i = 0; i < dto.employeeIds.length; i += chunkSize) {
+      const chunk = dto.employeeIds.slice(i, i + chunkSize);
+
+      const chunkResults = await Promise.all(
+        chunk.map(async (employeeId) => {
+          const employee = await this.ensureEmployee(companyId, employeeId);
+          const employeeResults = [];
+
+          for (const date of dates) {
+            if (this.isRestDay(employee, date, dto)) continue;
+            const parsedDate = this.toDateOnly(this.parseDate(date, 'Invalid date'));
+            this.validateEmployeeDateRange(employee, parsedDate);
+
+            // ⚡ Bolt: Clone shared dto to prevent race conditions and unintended data cascades
+            const currentDto = { ...dto };
+            if (currentDto.reason.includes('abono')) {
+              const suggestion = this.suggestAbsenceMinutes(employee, parsedDate);
+              if (suggestion !== null && suggestion > 0 && !currentDto.entry) {
+                const suggestedEntry = this.suggestEntryTime(employee, parsedDate, suggestion);
+                currentDto.entry = suggestedEntry;
+              }
+            }
+            employeeResults.push(await this.applyManual(employee, date, currentDto));
           }
-        }
-        created.push(await this.applyManual(employee, date, dto));
+          return employeeResults;
+        })
+      );
+
+      // ⚡ Bolt: Maintain deterministic array ordering for the client response
+      for (const results of chunkResults) {
+        created.push(...results);
       }
     }
     return { count: created.length, items: created };
