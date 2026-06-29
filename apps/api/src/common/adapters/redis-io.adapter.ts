@@ -8,18 +8,27 @@ export class RedisIoAdapter extends IoAdapter {
 
   async connectToRedis(): Promise<void> {
     try {
-      const pubClient = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
+      const pubClient = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', { family: 4 });
       const subClient = pubClient.duplicate();
 
-      await new Promise((resolve, reject) => {
-        pubClient.on('ready', resolve);
-        pubClient.on('error', reject);
-      });
-      
-      await new Promise((resolve, reject) => {
-        subClient.on('ready', resolve);
-        subClient.on('error', reject);
-      });
+      const connectWithTimeout = (client: Redis) => {
+        return new Promise((resolve, reject) => {
+          const timeout = setTimeout(() => {
+            reject(new Error('Redis connection timeout'));
+          }, 5000);
+          client.on('ready', () => {
+            clearTimeout(timeout);
+            resolve(true);
+          });
+          client.on('error', (err) => {
+            clearTimeout(timeout);
+            reject(err);
+          });
+        });
+      };
+
+      await connectWithTimeout(pubClient);
+      await connectWithTimeout(subClient);
 
       this.adapterConstructor = createAdapter(pubClient, subClient);
       console.log('[RedisIoAdapter] Successfully connected to Redis for WebSockets');
