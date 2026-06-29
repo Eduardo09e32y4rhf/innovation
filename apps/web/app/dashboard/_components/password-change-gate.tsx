@@ -30,8 +30,8 @@ export function PasswordChangeGate({ children }: { children: React.ReactNode }) 
   }
 
   return (
-    <div className="fixed inset-0 z-[130] flex items-center justify-center bg-slate-950/85 px-4 py-6 backdrop-blur-sm">
-      <section className="w-full max-w-lg rounded-[18px] border border-slate-200 bg-white p-5 shadow-2xl sm:p-6">
+    <div className="flex min-h-[100dvh] w-full items-center justify-center bg-slate-100 px-4 py-6">
+      <section className="w-full max-w-lg rounded-[18px] border border-slate-200 bg-white p-5 shadow-xl sm:p-6">
         <div className="flex items-start gap-3">
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[12px] bg-slate-950 text-white"><ShieldCheck size={21} /></div>
           <div>
