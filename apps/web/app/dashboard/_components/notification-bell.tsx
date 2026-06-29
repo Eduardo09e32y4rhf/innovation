@@ -10,12 +10,36 @@ export function NotificationBell() {
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const widget = useQuery(() => api.notifications.dashboardWidget(), [], { pollMs: 60000 });
+  const widget = useQuery(() => api.notifications.dashboardWidget(), [], { pollMs: 15000 });
   const markReadMut = useMutation((id: string) => api.notifications.markAsRead(id), { onSuccess: () => widget.refetch() });
   const markAllReadMut = useMutation(() => api.notifications.markAllAsRead(), { onSuccess: () => widget.refetch() });
 
   const unreadCount = widget.data?.unreadCount ?? 0;
   const notifications = widget.data?.notifications ?? [];
+  const prevCountRef = useRef(0);
+
+  useEffect(() => {
+    // Request permission if not granted
+    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission().catch(() => {});
+    }
+  }, []);
+
+  useEffect(() => {
+    // Check if we have new unread messages
+    if (unreadCount > prevCountRef.current && prevCountRef.current !== 0) {
+      if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+        const latest = notifications[0];
+        if (latest) {
+          new Notification(latest.title || 'Nova notificação', {
+            body: latest.message || 'Você tem uma nova notificação.',
+            icon: '/favicon.ico'
+          });
+        }
+      }
+    }
+    prevCountRef.current = unreadCount;
+  }, [unreadCount, notifications]);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -50,7 +74,7 @@ export function NotificationBell() {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-[110%] z-50 w-[360px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-[12px] border border-slate-200 bg-white shadow-[0_20px_50px_rgba(15,23,42,0.18)]">
+        <div className="absolute right-0 top-[110%] z-[99999] w-[360px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-[12px] border border-slate-200 bg-white shadow-[0_20px_50px_rgba(15,23,42,0.18)]">
           <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
             <div>
               <h3 className="text-xs font-black text-slate-950">Notificações</h3>

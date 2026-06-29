@@ -592,6 +592,23 @@ function NotificationsTab({ canManage }: { canManage: boolean }) {
                 </div>
               </div>
 
+              {n.recipients?.length > 1 && n.createdByUser && n.createdByUser.id !== n.recipients[0]?.userId && (
+                <div className="mt-3 border-t border-slate-100 pt-3">
+                  <p className="text-[10px] font-black text-slate-500 mb-2">STATUS DOS DESTINATÁRIOS ({n.recipients.length})</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-32 overflow-y-auto pr-2">
+                    {n.recipients.map((r: any) => {
+                      const rBadge = getStatusBadge(r.status);
+                      return (
+                        <div key={r.id} className="flex items-center justify-between rounded bg-slate-50 px-2 py-1.5">
+                          <span className="text-[10px] font-bold text-slate-700 truncate mr-2" title={r.user?.name}>{r.user?.name ?? 'Usuário'}</span>
+                          <span className={`shrink-0 inline-flex rounded-[4px] border px-1 py-0.5 text-[8px] font-black ${rBadge.cls}`}>{rBadge.label}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               {needResponse && n.requiresAcceptance && (
                 <div className="mt-3 flex gap-2 border-t border-slate-100 pt-3">
                   <button
@@ -1202,7 +1219,17 @@ function ClosingTab({ canManage }: { canManage: boolean }) {
 function EventModal({ event, employees, onClose, onSave, saving }: {
   event?: ManagementEvent; employees: Employee[]; onClose: () => void; onSave: (data: any) => void; saving: boolean;
 }) {
-  const init = event ?? { title: '', eventType: 'REUNIAO', status: 'PENDENTE', priority: 'MEDIA', startDateTime: '', endDateTime: '', responsibleUserId: '', employeeId: '', description: '' };
+  const init = {
+    title: event?.title ?? '',
+    eventType: event?.eventType ?? 'REUNIAO',
+    status: event?.status ?? 'PENDENTE',
+    priority: event?.priority ?? 'MEDIA',
+    startDateTime: event?.startDateTime ?? '',
+    endDateTime: event?.endDateTime ?? '',
+    responsibleUserId: event?.responsibleUserId ?? '',
+    employeeId: event?.employeeId ?? '',
+    description: event?.description ?? '',
+  };
   const [title, setTitle] = useState(init.title);
   const [eventType, setEventType] = useState<EventType>(init.eventType as EventType);
   const [status, setStatus] = useState<EventStatus>(init.status as EventStatus);

@@ -19,18 +19,32 @@ export class NotificationsService {
 
   async list(companyId: string, actor: JwtUser) {
     try {
-      // Todos os perfis filtram por destinatário — ninguém vê notificação que não é sua.
-      return await this.prisma.notification.findMany({
+      const notifications = await this.prisma.notification.findMany({
         where: {
           companyId,
-          recipients: { some: { userId: actor.sub } },
+          OR: [
+            { recipients: { some: { userId: actor.sub } } },
+            { createdBy: actor.sub }
+          ]
         },
         include: {
           createdByUser: { select: { id: true, name: true } },
-          recipients: { where: { userId: actor.sub } },
+          recipients: {
+            include: { user: { select: { name: true } } }
+          },
         },
         orderBy: { createdAt: 'desc' },
         take: 50,
+      });
+
+      return notifications.map(n => {
+        // Remetentes ou administradores veem todos os destinatários
+        if (n.createdBy === actor.sub || actor.role === 'DEV' || actor.role === 'ADMIN') return n;
+        // Destinatários comuns veem apenas a si mesmos (privacidade)
+        return {
+          ...n,
+          recipients: n.recipients.filter(r => r.userId === actor.sub)
+        };
       });
     } catch (err) {
       this.safeLog('list fallback', err);
