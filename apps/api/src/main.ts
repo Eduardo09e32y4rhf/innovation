@@ -6,7 +6,6 @@ import fastifyCookie from '@fastify/cookie';
 import fastifyHelmet from '@fastify/helmet';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
-import { TimeoutInterceptor } from './common/interceptors/timeout.interceptor';
 import { NoCacheInterceptor } from './common/interceptors/no-cache.interceptor';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { RedisIoAdapter } from './common/adapters/redis-io.adapter';
@@ -60,7 +59,6 @@ async function bootstrap() {
   );
   app.useGlobalFilters(new HttpExceptionFilter());
   app.useGlobalInterceptors(
-    new TimeoutInterceptor(),
     new NoCacheInterceptor(),
     new ClassSerializerInterceptor(reflector),
     new ResponseInterceptor(),
