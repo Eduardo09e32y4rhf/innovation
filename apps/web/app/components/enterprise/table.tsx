@@ -48,25 +48,39 @@ export function DataTable<T extends { id?: string | number }>({
 
 export function TableActionButton({
   onClick,
-  children
+  children,
+  'aria-label': ariaLabel,
+  title
 }: {
   onClick?: () => void;
   children: React.ReactNode;
+  'aria-label'?: string;
+  title?: string;
 }) {
   return (
     <button
       onClick={onClick}
-      className="p-2 bg-white/5 rounded-lg hover:text-purple-400 transition-colors"
+      className="p-2 bg-white/5 rounded-lg hover:text-purple-400 transition-colors focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:outline-none"
       type="button"
+      aria-label={ariaLabel}
+      title={title}
     >
       {children}
     </button>
   );
 }
 
-export function DownloadPdfButton({ onClick }: { onClick?: () => void }) {
+export function DownloadPdfButton({
+  onClick,
+  'aria-label': ariaLabel = "Download PDF",
+  title = "Download PDF"
+}: {
+  onClick?: () => void;
+  'aria-label'?: string;
+  title?: string;
+}) {
   return (
-    <TableActionButton onClick={onClick}>
+    <TableActionButton onClick={onClick} aria-label={ariaLabel} title={title}>
       <Download size={14} />
     </TableActionButton>
   );

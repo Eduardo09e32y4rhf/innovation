@@ -1,0 +1,3 @@
+## 2024-07-02 - Reusable UI Primitives Require Propagated Accessibility Props
+**Learning:** Icon-only utility buttons in the enterprise design system (like `TableActionButton`) were completely inaccessible to screen readers because they didn't accept or pass down `aria-label` or `title` props, causing downstream components like `DownloadPdfButton` to be unreadable. They also lacked visual focus states for keyboard users.
+**Action:** Always ensure foundational UI primitives expose and propagate `aria-label` and `title` props so consumer components can inject localized, contextual labels. Additionally, apply `focus-visible:ring-2` to all interactive primitives to guarantee keyboard accessibility by default.
