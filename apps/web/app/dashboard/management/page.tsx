@@ -1004,6 +1004,7 @@ function RulesTab({ canManage }: { canManage: boolean }) {
               <form onSubmit={(e) => {
                 e.preventDefault();
                 const fd = new FormData(e.currentTarget);
+
                 const date = fd.get('date') as string;
                 const name = fd.get('name') as string;
                 if (!date || !name) return;

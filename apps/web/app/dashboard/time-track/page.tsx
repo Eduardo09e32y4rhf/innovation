@@ -99,6 +99,7 @@ function isDepoisDemissao(key: string, emp: Employee): boolean {
 }
 
 function buildGrid(month: string, emp: Employee, tracks: TimeTrack[], startDay: number = 1, holidays: any[] = []) {
+  const safeHolidays = holidays || [];
   const [y,m] = month.split('-').map(Number); if (!y||!m) return [];
   const today = new Date().toISOString().slice(0,10);
   const map = new Map<string, TimeTrack>();
@@ -117,7 +118,7 @@ function buildGrid(month: string, emp: Employee, tracks: TimeTrack[], startDay: 
   for (let d = new Date(startDate); d <= endDate; d.setUTCDate(d.getUTCDate() + 1)) {
     const date = new Date(d);
     const key = date.toISOString().slice(0,10);
-    const holiday = holidays.find(h => h.date && h.date.startsWith(key));
+    const holiday = safeHolidays.find(h => h.date && h.date.startsWith(key));
     const isHoliday = !!holiday;
     g.push({
       date, key, day: date.getUTCDate(), wd: date.getUTCDay(),
@@ -164,6 +165,7 @@ export default function TimeTrackPage() {
   const isFunc = profile==='FUNCIONARIO';
   const isGestor = profile==='GESTOR';
 
+  const [month, setMonth] = useState(currentMonth());
   const tracks = useQuery(() => api.timeTrack.list(month), [month]);
   const employees = useQuery(() => api.employees.list(), []);
   const company = useQuery(() => api.companies.me(), []);
@@ -172,7 +174,6 @@ export default function TimeTrackPage() {
   const [bulkOpen, setBulkOpen] = useState(false);
   const [editing, setEditing] = useState<TimeTrack | null>(null);
   const [empFilter, setEmpFilter] = useState('');
-  const [month, setMonth] = useState(currentMonth());
   const [deptFilter, setDeptFilter] = useState('');
   const [tab, setTab] = useState<'ponto'|'ocorrencias'>('ponto');
 
@@ -371,7 +372,7 @@ function downloadCollectiveSheet(month: string, visibleEmployees: Employee[], by
   const summaryData = [
     { label: 'Total de Colaboradores', value: String(visibleEmployees.length) },
     { label: 'Total de Registros', value: String(visibleEmployees.reduce((acc, emp) => acc + (byEmpMap[emp.id] || []).length, 0)) },
-    { label: 'Total Faltas no Período', value: String(visibleEmployees.reduce((acc, emp) => acc + buildGrid(month, emp, byEmpMap[emp.id] || [], companyData?.payrollStartDay, holidaysData).filter(g => g.track && isFalta(g.track)).length, 0)) },
+    { label: 'Total Faltas no Período', value: String(visibleEmployees.reduce((acc, emp) => acc + buildGrid(month, emp, byEmpMap[emp.id] || [], companyData?.payrollStartDay, holidaysData).filter(g => g.track && isFalta(g.track!)).length, 0)) },
   ];
 
   const html = buildPdfShell({ title, subtitle, landscape: true }, companyData || null, `
