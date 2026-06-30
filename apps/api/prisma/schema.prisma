@@ -438,6 +438,8 @@ model TimeTrack {
 
   @@unique([employeeId, date])
   @@index([employeeId])
+  @@index([date])
+  @@index([manualStatus, createdAt])
   @@index([incidentType])
 }
 
@@ -1005,4 +1007,3 @@ model FinancialTransaction {
   @@index([companyId, type])
   @@index([companyId, status])
 }
-

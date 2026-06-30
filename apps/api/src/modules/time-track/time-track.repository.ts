@@ -1,49 +1,176 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 
+type EmployeeSummary = {
+  id: string;
+  name: string;
+  department: string | null;
+  status: string;
+};
+
+type TrackWithEmployee = {
+  id: string;
+  employeeId: string;
+  date: Date;
+  type: string | null;
+  entry: Date | null;
+  lunchOut: Date | null;
+  lunchStart: Date | null;
+  lunchReturn: Date | null;
+  exit: Date | null;
+  justification: string | null;
+  totalWorked: number | null;
+  dailyBalance: number | null;
+  overtime50Minutes: number | null;
+  overtime100Minutes: number | null;
+  nightShiftMinutes: number | null;
+  observation: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  manualReason: string | null;
+  manualStatus: string | null;
+  revokeReason: string | null;
+  incidentType: string | null;
+  toleranceMinutes: number | null;
+  absenceMinutes: number | null;
+  createdAt: Date;
+  updatedAt: Date;
+  employee?: EmployeeSummary | null;
+};
+
 @Injectable()
 export class TimeTrackRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  list(companyId: string, start?: Date, end?: Date) {
-    return this.prisma.timeTrack.findMany({
-      where: {
-        employee: { companyId },
-        ...(start && end ? { date: { gte: start, lt: end } } : {}),
-      },
-      include: { employee: true },
-      orderBy: [{ employee: { name: 'asc' } }, { date: 'asc' }],
+  private readonly employeeSelect = {
+    id: true,
+    name: true,
+    department: true,
+    status: true,
+  } as const;
+
+  private readonly trackSelect = {
+    id: true,
+    employeeId: true,
+    date: true,
+    type: true,
+    entry: true,
+    lunchOut: true,
+    lunchStart: true,
+    lunchReturn: true,
+    exit: true,
+    justification: true,
+    totalWorked: true,
+    dailyBalance: true,
+    overtime50Minutes: true,
+    overtime100Minutes: true,
+    nightShiftMinutes: true,
+    observation: true,
+    latitude: true,
+    longitude: true,
+    manualReason: true,
+    manualStatus: true,
+    revokeReason: true,
+    incidentType: true,
+    toleranceMinutes: true,
+    absenceMinutes: true,
+    createdAt: true,
+    updatedAt: true,
+  } as const;
+
+  private async findEmployeeSummary(companyId: string, employeeId: string) {
+    return this.prisma.employee.findFirst({
+      where: { id: employeeId, companyId },
+      select: this.employeeSelect,
     });
+  }
+
+  private async loadEmployees(companyId: string, employeeIds?: string[]) {
+    const employees = await this.prisma.employee.findMany({
+      where: {
+        companyId,
+        ...(employeeIds?.length ? { id: { in: employeeIds } } : {}),
+      },
+      select: this.employeeSelect,
+      orderBy: { name: 'asc' },
+    });
+    return new Map<string, EmployeeSummary>(employees.map((employee) => [employee.id, employee]));
+  }
+
+  private async loadTracks(
+    companyId: string,
+    employeeIds?: string[],
+    start?: Date,
+    end?: Date,
+    extraWhere: Record<string, unknown> = {},
+  ) {
+    const employeeMap = await this.loadEmployees(companyId, employeeIds);
+    const ids = employeeIds?.length ? employeeIds : [...employeeMap.keys()];
+    if (ids.length === 0) return [];
+
+    const tracks = await this.prisma.timeTrack.findMany({
+      where: {
+        employeeId: { in: ids },
+        ...(start && end ? { date: { gte: start, lt: end } } : {}),
+        ...extraWhere,
+      },
+      select: this.trackSelect,
+      orderBy: { date: 'asc' },
+    });
+
+    return tracks
+      .map((track) => ({
+        ...track,
+        employee: employeeMap.get(track.employeeId) ?? null,
+      }))
+      .sort((a: TrackWithEmployee, b: TrackWithEmployee) => {
+        const nameA = a.employee?.name ?? '';
+        const nameB = b.employee?.name ?? '';
+        return nameA.localeCompare(nameB, 'pt-BR') || a.date.getTime() - b.date.getTime();
+      });
+  }
+
+  list(companyId: string, start?: Date, end?: Date) {
+    return this.loadTracks(companyId, undefined, start, end);
   }
 
   count(companyId: string) {
     return this.prisma.timeTrack.count({ where: { employee: { companyId } } });
   }
 
-  listForEmployee(companyId: string, employeeId: string, start?: Date, end?: Date) {
-    return this.prisma.timeTrack.findMany({
+  async listForEmployee(companyId: string, employeeId: string, start?: Date, end?: Date) {
+    const employee = await this.findEmployeeSummary(companyId, employeeId);
+    if (!employee) return [];
+    const tracks = await this.prisma.timeTrack.findMany({
       where: {
         employeeId,
-        employee: { companyId },
         ...(start && end ? { date: { gte: start, lt: end } } : {}),
       },
-      include: { employee: true },
+      select: this.trackSelect,
       orderBy: { date: 'asc' },
     });
+    return tracks.map((track) => ({ ...track, employee }));
   }
 
   listEmployeeMonth(companyId: string, employeeId: string, start: Date, end: Date, skip = 0, take = 62) {
-    return this.prisma.timeTrack.findMany({
-      where: { employeeId, employee: { companyId }, date: { gte: start, lt: end } },
-      orderBy: { date: 'asc' },
-      skip,
-      take,
+    return this.findEmployeeSummary(companyId, employeeId).then((employee) => {
+      if (!employee) return [];
+      return this.prisma.timeTrack.findMany({
+        where: { employeeId, date: { gte: start, lt: end } },
+        orderBy: { date: 'asc' },
+        skip,
+        take,
+        select: this.trackSelect,
+      });
     });
   }
 
   countEmployeeMonth(companyId: string, employeeId: string, start: Date, end: Date) {
-    return this.prisma.timeTrack.count({
-      where: { employeeId, employee: { companyId }, date: { gte: start, lt: end } },
+    return this.findEmployeeSummary(companyId, employeeId).then((employee) => {
+      if (!employee) return 0;
+      return this.prisma.timeTrack.count({
+        where: { employeeId, date: { gte: start, lt: end } },
+      });
     });
   }
 
@@ -60,14 +187,35 @@ export class TimeTrackRepository {
       select: { id: true },
     });
     if (!manager) return [];
-    return this.prisma.timeTrack.findMany({
+
+    const employees = await this.prisma.employee.findMany({
+      where: { companyId, OR: [{ id: manager.id }, { managerId: manager.id }] },
+      select: this.employeeSelect,
+      orderBy: { name: 'asc' },
+    });
+    const employeeIds = employees.map((employee) => employee.id);
+    if (employeeIds.length === 0) return [];
+
+    const employeeMap = new Map<string, EmployeeSummary>(employees.map((employee) => [employee.id, employee]));
+    const tracks = await this.prisma.timeTrack.findMany({
       where: {
-        employee: { companyId, OR: [{ id: manager.id }, { managerId: manager.id }] },
+        employeeId: { in: employeeIds },
         ...(start && end ? { date: { gte: start, lt: end } } : {}),
       },
-      include: { employee: true },
-      orderBy: [{ employee: { name: 'asc' } }, { date: 'asc' }],
+      select: this.trackSelect,
+      orderBy: { date: 'asc' },
     });
+
+    return tracks
+      .map((track) => ({
+        ...track,
+        employee: employeeMap.get(track.employeeId) ?? null,
+      }))
+      .sort((a: TrackWithEmployee, b: TrackWithEmployee) => {
+        const nameA = a.employee?.name ?? '';
+        const nameB = b.employee?.name ?? '';
+        return nameA.localeCompare(nameB, 'pt-BR') || a.date.getTime() - b.date.getTime();
+      });
   }
 
   countForManager(companyId: string, userId: string, email?: string) {
@@ -77,7 +225,13 @@ export class TimeTrackRepository {
   }
 
   findById(companyId: string, id: string) {
-    return this.prisma.timeTrack.findFirst({ where: { id, employee: { companyId } }, include: { employee: true } });
+    return this.prisma.timeTrack.findFirst({
+      where: { id, employee: { companyId } },
+      select: {
+        ...this.trackSelect,
+        employee: { select: this.employeeSelect },
+      },
+    });
   }
 
   findEmployee(companyId: string, employeeId: string) {
@@ -98,7 +252,10 @@ export class TimeTrackRepository {
   }
 
   findByEmployeeDate(employeeId: string, date: Date) {
-    return this.prisma.timeTrack.findUnique({ where: { employeeId_date: { employeeId, date } }, include: { employee: true } });
+    return this.prisma.timeTrack.findUnique({
+      where: { employeeId_date: { employeeId, date } },
+      select: this.trackSelect,
+    });
   }
 
   updateEmployeeUserLink(companyId: string, employeeId: string, userId: string) {
@@ -121,12 +278,19 @@ export class TimeTrackRepository {
     return this.prisma.timeTrack.deleteMany({ where: { id, employee: { companyId } } });
   }
 
-  listPending(companyId: string) {
-    return this.prisma.timeTrack.findMany({
-      where: { employee: { companyId }, manualStatus: 'pending' },
-      include: { employee: true },
+  async listPending(companyId: string) {
+    const employees = await this.loadEmployees(companyId);
+    const employeeIds = [...employees.keys()];
+    if (employeeIds.length === 0) return [];
+    const tracks = await this.prisma.timeTrack.findMany({
+      where: { employeeId: { in: employeeIds }, manualStatus: 'pending' },
+      select: this.trackSelect,
       orderBy: { createdAt: 'desc' },
     });
+    return tracks.map((track) => ({
+      ...track,
+      employee: employees.get(track.employeeId) ?? null,
+    }));
   }
 
   async listPendingForManager(companyId: string, userId: string, email?: string) {
@@ -141,11 +305,26 @@ export class TimeTrackRepository {
       },
     });
     if (!manager) return [];
-    return this.prisma.timeTrack.findMany({
-      where: { employee: { companyId, managerId: manager.id }, manualStatus: 'pending' },
-      include: { employee: true },
+
+    const employees = await this.prisma.employee.findMany({
+      where: { companyId, OR: [{ id: manager.id }, { managerId: manager.id }] },
+      select: this.employeeSelect,
+      orderBy: { name: 'asc' },
+    });
+    const employeeIds = employees.map((employee) => employee.id);
+    if (employeeIds.length === 0) return [];
+
+    const employeeMap = new Map<string, EmployeeSummary>(employees.map((employee) => [employee.id, employee]));
+    const tracks = await this.prisma.timeTrack.findMany({
+      where: { employeeId: { in: employeeIds }, manualStatus: 'pending' },
+      select: this.trackSelect,
       orderBy: { createdAt: 'desc' },
     });
+
+    return tracks.map((track) => ({
+      ...track,
+      employee: employeeMap.get(track.employeeId) ?? null,
+    }));
   }
 
   async updateManualStatus(companyId: string, id: string, status: string, revokeReason?: string) {
@@ -165,7 +344,7 @@ export class TimeTrackRepository {
 
   async createGeofenceNotification(companyId: string, employee: any, dateStr: string, time: string, distanceMeters: number) {
     const distKm = (distanceMeters / 1000).toFixed(2);
-    const message = `O funcionário ${employee.name} bateu ponto em ${dateStr} às ${time} a ${distKm}km da localização da empresa.`;
+    const message = `O funcionario ${employee.name} bateu ponto em ${dateStr} as ${time} a ${distKm}km da localizacao da empresa.`;
     const adminUserIds = await this.prisma.user.findMany({
       where: { companyId, role: { in: ['ADMIN', 'RH', 'DEV'] }, isActive: true },
       select: { id: true },
@@ -175,17 +354,20 @@ export class TimeTrackRepository {
       data: {
         companyId,
         type: 'URGENT_NOTICE',
-        title: `⚠️ Ponto fora da empresa - ${employee.name}`,
+        title: `Aviso de ponto fora da empresa - ${employee.name}`,
         message,
         priority: 'HIGH',
         source: 'SYSTEM',
         status: 'SENT',
         sentAt: new Date(),
         recipients: {
-          create: adminUserIds.map(u => ({ userId: u.id, status: 'UNREAD' })),
+          create: adminUserIds.map((u) => ({ userId: u.id, status: 'UNREAD' })),
         },
       },
     });
   }
 }
+
+
+
 

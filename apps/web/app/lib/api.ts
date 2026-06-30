@@ -29,18 +29,21 @@ function getToken(): string | null {
 
 function clearSession() {
   clearAuthSession();
-  // Zera cache em memória imediatamente — evita flash de dados do usuário anterior
+  // Zera cache em memÃ³ria imediatamente â€” evita flash de dados do usuÃ¡rio anterior
   resetAllQueryStates();
 }
 
-type Opts = { method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE'; body?: unknown; silent?: boolean };
+type Opts = { method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE'; body?: unknown; silent?: boolean; timeoutMs?: number };
 
 async function request<T>(path: string, opts: Opts = {}): Promise<T> {
-  const { method = 'GET', body, silent } = opts;
+  const { method = 'GET', body, silent, timeoutMs } = opts;
   const headers: Record<string, string> = {};
   if (body !== undefined) headers['Content-Type'] = 'application/json';
   const token = getToken();
   if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const controller = timeoutMs ? new AbortController() : null;
+  const timeoutHandle = timeoutMs ? setTimeout(() => controller?.abort(), timeoutMs) : null;
 
   let res: Response;
   try {
@@ -48,9 +51,15 @@ async function request<T>(path: string, opts: Opts = {}): Promise<T> {
       method,
       headers,
       body: body !== undefined ? JSON.stringify(body) : undefined,
+      signal: controller?.signal,
     });
   } catch (err) {
+    if (controller?.signal.aborted) {
+      throw new ApiError(0, `A API demorou mais que ${Math.round((timeoutMs ?? 0) / 1000)}s para responder. Tente novamente.`, err);
+    }
     throw new ApiError(0, 'Sem conexao com a API. Verifique se o backend esta rodando.', err);
+  } finally {
+    if (timeoutHandle) clearTimeout(timeoutHandle);
   }
 
   if (res.status === 401) {
@@ -307,15 +316,15 @@ export const api = {
   },
   timeTrack: {
     list: (month?: string) =>
-      request<TimeTrack[]>(`/time-track${month ? `?month=${encodeURIComponent(month)}` : ''}`),
+      request<TimeTrack[]>(`/time-track${month ? `?month=${encodeURIComponent(month)}` : ''}`, { timeoutMs: 12000 }),
     listEmployeeMonth: (employeeId: string, month?: string) =>
-      request<TimeTrack[]>(`/time-track/${employeeId}/month${month ? `?month=${encodeURIComponent(month)}` : ''}`),
+      request<TimeTrack[]>(`/time-track/${employeeId}/month${month ? `?month=${encodeURIComponent(month)}` : ''}`, { timeoutMs: 12000 }),
     register: (input: RegisterTimeInput) => request<TimeTrack>('/time-track/register', { method: 'POST', body: input }),
     manual: (input: ManualTimeTrackInput) => request<TimeTrack>('/time-track/manual', { method: 'POST', body: input }),
     manualBulk: (input: BulkManualTimeTrackInput) => request<{ count: number; items: TimeTrack[] }>('/time-track/manual/bulk', { method: 'POST', body: input }),
     update: (id: string, input: UpdateTimeTrackInput) => request<TimeTrack>(`/time-track/${id}`, { method: 'PATCH', body: input }),
     delete: (id: string) => request<void>(`/time-track/${id}`, { method: 'DELETE' }),
-    listPending: () => request<TimeTrack[]>('/time-track/pending'),
+    listPending: () => request<TimeTrack[]>('/time-track/pending', { timeoutMs: 12000 }),
     approve: (id: string, approved: boolean) => request<TimeTrack>(`/time-track/${id}/approve`, { method: 'PATCH', body: { approved } }),
     revoke: (id: string, reason: string) => request<TimeTrack>(`/time-track/${id}/revoke`, { method: 'PATCH', body: { reason } }),
   },
@@ -402,5 +411,10 @@ export const api = {
 };
 
 export default api;
+
+
+
+
+
 
 
