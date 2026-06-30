@@ -1,0 +1,3 @@
+## 2026-06-30 - Chunked Database Concurrency
+**Learning:** Sequential `.push(await process(employee))` loops across hundreds of employees exhaust the execution time, but unbounded `Promise.all` causes connection pool exhaustion and database blockages. Furthermore, directly replacing the loop with `Promise.all` exposed a race condition because the iteration repeatedly mutated the same `dto` reference (`Object.assign(dto, ...)`).
+**Action:** When replacing sequential iteration with parallel execution in NestJS, always use native JS chunking (e.g., batches of 5-10) to limit DB connection pressure, and explicitly clone shared loop references (`const currentDto = { ...dto }`) inside the map to prevent unintended mutation cascading.

@@ -105,21 +105,32 @@ export class TimeTrackService {
   async manualBulk(companyId: string, dto: BulkManualTimeTrackDto) {
     const dates = this.resolveBulkDates(dto);
     const created = [];
-    for (const employeeId of dto.employeeIds) {
-      const employee = await this.ensureEmployee(companyId, employeeId);
-      for (const date of dates) {
-        if (this.isRestDay(employee, date, dto)) continue;
-        const parsedDate = this.toDateOnly(this.parseDate(date, 'Invalid date'));
-        this.validateEmployeeDateRange(employee, parsedDate);
-        if (dto.reason.includes('abono')) {
-          const suggestion = this.suggestAbsenceMinutes(employee, parsedDate);
-          if (suggestion !== null && suggestion > 0 && !dto.entry) {
-            const suggestedEntry = this.suggestEntryTime(employee, parsedDate, suggestion);
-            Object.assign(dto, { entry: suggestedEntry });
+    // Chunk size for concurrent database execution to prevent connection pool exhaustion
+    const CHUNK_SIZE = 5;
+    for (let i = 0; i < dto.employeeIds.length; i += CHUNK_SIZE) {
+      const chunk = dto.employeeIds.slice(i, i + CHUNK_SIZE);
+      const chunkResults = await Promise.all(
+        chunk.map(async (employeeId) => {
+          const employee = await this.ensureEmployee(companyId, employeeId);
+          const employeeCreated = [];
+          for (const date of dates) {
+            const currentDto = { ...dto }; // Clone DTO to prevent race conditions & unintentional cascading mutation
+            if (this.isRestDay(employee, date, currentDto)) continue;
+            const parsedDate = this.toDateOnly(this.parseDate(date, 'Invalid date'));
+            this.validateEmployeeDateRange(employee, parsedDate);
+            if (currentDto.reason.includes('abono')) {
+              const suggestion = this.suggestAbsenceMinutes(employee, parsedDate);
+              if (suggestion !== null && suggestion > 0 && !currentDto.entry) {
+                const suggestedEntry = this.suggestEntryTime(employee, parsedDate, suggestion);
+                currentDto.entry = suggestedEntry;
+              }
+            }
+            employeeCreated.push(await this.applyManual(employee, date, currentDto));
           }
-        }
-        created.push(await this.applyManual(employee, date, dto));
-      }
+          return employeeCreated;
+        })
+      );
+      created.push(...chunkResults.flat());
     }
     return { count: created.length, items: created };
   }
