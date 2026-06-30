@@ -45,7 +45,7 @@ Gestão de Exames Médicos Ocupacionais (ASO) por funcionário com controle de v
 
 ---
 
-## 🚀 Como Rodar Localmente
+## 🚀 Como Rodar Localmente (Desenvolvimento)
 
 1. **Instale as dependências:**
    ```bash
@@ -54,7 +54,7 @@ Gestão de Exames Médicos Ocupacionais (ASO) por funcionário com controle de v
 
 2. **Inicie o banco de dados local via Docker:**
    ```bash
-   docker compose -f infra/docker-compose.yml up -d postgres
+   docker compose -f docker-compose.yml up -d postgres
    ```
 
 3. **Gere o Prisma Client e execute as Migrações:**
@@ -70,11 +70,29 @@ Gestão de Exames Médicos Ocupacionais (ASO) por funcionário com controle de v
 
 ---
 
+## 🚢 Deploy de Produção (VPS)
+
+Para rodar o ambiente de produção completo utilizando Docker Compose:
+
+1. **Copie o arquivo de variáveis de ambiente de produção:**
+   ```bash
+   cp .env.prod.example .env
+   ```
+2. **Preencha os valores do `.env` adequadamente (Senhas, Secrets, etc).**
+
+3. **Inicie os containers de Produção:**
+   ```bash
+   docker compose -f docker-compose.prod.yml up -d --build
+   ```
+
+---
+
 ## 🗄️ Comandos de Migrações (Prisma)
 
 Sempre que alterar o schema localizado em `apps/api/prisma/schema.prisma`:
 
 ```bash
+npm run db:generate  # Gera os tipos locais do client
 npm run db:migrate   # Cria e executa uma nova migration
 npm run db:deploy    # Executa migrations pendentes em producao
 npm run db:studio    # Abre o gerenciador visual do banco
@@ -82,11 +100,7 @@ npm run db:studio    # Abre o gerenciador visual do banco
 
 ---
 
-## 📦 Build de Produção
+## 📜 Licença e Propriedade
 
-Para testar o build do projeto unificado:
-
-```bash
-npm run typecheck
-npm run build
-```
+Este software é **PROPRIETÁRIO**.  
+O uso, cópia, modificação ou distribuição comercial não autorizada é estritamente proibida. Para mais detalhes, consulte o arquivo [LICENSE](LICENSE) na raiz do projeto.
