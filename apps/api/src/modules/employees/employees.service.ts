@@ -173,6 +173,28 @@ export class EmployeesService {
       standardLunchReturn: this.emptyToUndefined(dto.standardLunchReturn),
       standardExit: this.emptyToUndefined(dto.standardExit),
       status,
+      // eSocial fields
+      pis: this.emptyToUndefined(dto.pis),
+      pisFirstJob: dto.pisFirstJob,
+      gender: this.emptyToUndefined(dto.gender),
+      education: this.emptyToUndefined(dto.education),
+      motherName: this.emptyToUndefined(dto.motherName),
+      fatherName: this.emptyToUndefined(dto.fatherName),
+      voterTitle: this.emptyToUndefined(dto.voterTitle),
+      voterZone: this.emptyToUndefined(dto.voterZone),
+      voterSection: this.emptyToUndefined(dto.voterSection),
+      voterState: this.emptyToUndefined(dto.voterState),
+      rgDate: this.emptyToUndefined(dto.rgDate),
+      reservist: this.emptyToUndefined(dto.reservist),
+      cnh: this.emptyToUndefined(dto.cnh),
+      cnhCategory: this.emptyToUndefined(dto.cnhCategory),
+      cnhExpiry: this.emptyToUndefined(dto.cnhExpiry),
+      bankCode: this.emptyToUndefined(dto.bankCode),
+      bankName: this.emptyToUndefined(dto.bankName),
+      bankAgency: this.emptyToUndefined(dto.bankAgency),
+      bankAccount: this.emptyToUndefined(dto.bankAccount),
+      bankAccountType: this.emptyToUndefined(dto.bankAccountType),
+      dependents: dto.dependents ?? undefined,
     };
   }
 

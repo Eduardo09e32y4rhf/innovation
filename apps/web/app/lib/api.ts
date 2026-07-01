@@ -29,7 +29,7 @@ function getToken(): string | null {
 
 function clearSession() {
   clearAuthSession();
-  // Zera cache em memÃ³ria imediatamente â€” evita flash de dados do usuÃ¡rio anterior
+  // Zera cache em memória imediatamente — evita flash de dados do usuário anterior
   resetAllQueryStates();
 }
 
@@ -107,13 +107,30 @@ export type PunchType = 'ENTRY' | 'LUNCH_START' | 'LUNCH_RETURN' | 'EXIT';
 export type ContractType = 'CLT' | 'PJ' | 'ESTAGIO' | 'TEMPORARIO' | 'JOVEM_APRENDIZ' | 'TERCEIRIZADO';
 export type WorkScale = '5X2' | '6X1' | '12X36' | '4X2' | 'OUTRO';
 export type DailyWorkload = '08:00' | '07:20' | '06:00' | '12:00' | 'OUTRO';
+
 export interface Employee {
   id: string; companyId: string; userId?: string | null; name: string; cpf: string; email: string;
   phone?: string | null; birthDate?: string | null; registration?: string | null;
-  rg?: string | null; rgIssuer?: string | null; rgState?: string | null;
+  rg?: string | null; rgIssuer?: string | null; rgState?: string | null; rgIssueDate?: string | null;
   cep?: string | null; street?: string | null; streetNumber?: string | null; addressComplement?: string | null;
   neighborhood?: string | null; city?: string | null; state?: string | null;
   secondaryPhone?: string | null; maritalStatus?: string | null; nationality?: string | null; birthplace?: string | null; observations?: string | null;
+  gender?: string | null;
+  education?: string | null;
+  motherName?: string | null;
+  fatherName?: string | null;
+  pis?: string | null;
+  firstJob?: boolean | null;
+  voterTitle?: string | null;
+  voterZone?: string | null;
+  voterSection?: string | null;
+  voterState?: string | null;
+  reservista?: string | null;
+  bankName?: string | null;
+  bankAgency?: string | null;
+  bankAccount?: string | null;
+  bankAccountType?: string | null;
+  dependents?: string | null;
   position: string; department: string; managerId?: string | null;
   admissionDate: string; terminationDate?: string | null; status: EmployeeStatus;
   salary?: string | number | null; contractType?: ContractType | null;
@@ -124,12 +141,29 @@ export interface Employee {
   user?: { id: string; role: UserRole; isActive: boolean; forcePasswordChange?: boolean } | null;
   createdAt: string; updatedAt: string;
 }
+
 export interface CreateEmployeeInput {
   name: string; cpf: string; email: string; phone?: string; birthDate?: string; registration?: string;
-  rg?: string; rgIssuer?: string; rgState?: string;
+  rg?: string; rgIssuer?: string; rgState?: string; rgIssueDate?: string;
   cep?: string; street?: string; streetNumber?: string; addressComplement?: string;
   neighborhood?: string; city?: string; state?: string;
   secondaryPhone?: string; maritalStatus?: string; nationality?: string; birthplace?: string; observations?: string;
+  gender?: string;
+  education?: string;
+  motherName?: string;
+  fatherName?: string;
+  pis?: string;
+  firstJob?: boolean;
+  voterTitle?: string;
+  voterZone?: string;
+  voterSection?: string;
+  voterState?: string;
+  reservista?: string;
+  bankName?: string;
+  bankAgency?: string;
+  bankAccount?: string;
+  bankAccountType?: string;
+  dependents?: string;
   position: string; department: string; managerId?: string; admissionDate: string; terminationDate?: string;
   salary?: number; status?: EmployeeStatus; contractType?: ContractType;
   cnpj?: string; legalName?: string; tradeName?: string; unit?: string;
@@ -137,6 +171,7 @@ export interface CreateEmployeeInput {
   standardEntry?: string; standardLunchStart?: string; standardLunchReturn?: string; standardExit?: string;
   accessEnabled?: 'NO' | 'YES'; accessProfile?: 'FUNCIONARIO' | 'GESTOR' | 'RH' | 'ADMIN' | 'CONSULTA';
 }
+
 export interface TimeTrack {
   id: string; employeeId: string; date: string;
   entry?: string | null; lunchStart?: string | null;
@@ -288,7 +323,8 @@ export const api = {
     create: (input: CreateEmployeeInput) => request<Employee>('/employees', { method: 'POST', body: input }),
     update: (id: string, input: Partial<CreateEmployeeInput>) => request<Employee>(`/employees/${id}`, { method: 'PATCH', body: input }),
     terminate: (id: string) => request<Employee>(`/employees/${id}`, { method: 'DELETE' }),
-    delete: (id: string) => request<void>(`/employees/${id}/permanent`, { method: 'DELETE' }),  },
+    delete: (id: string) => request<void>(`/employees/${id}/permanent`, { method: 'DELETE' }),
+  },
 
   workScheduleRules: {
     list: () => request<any[]>('/time-rules'),
@@ -411,10 +447,3 @@ export const api = {
 };
 
 export default api;
-
-
-
-
-
-
-

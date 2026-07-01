@@ -398,55 +398,7 @@ export class TimeTrackService {
     return this.repository.upsert(employee.id, date, { ...data, ...totals });
   }
 
-  private resolveBulkDates(dto: BulkManualTimeTrackDto) {
-    if (dto.date) return [dto.date];
-    if (!dto.startDate || !dto.endDate) throw new BadRequestException('Invalid date range');
-    const start = this.toDateOnly(this.parseDate(dto.startDate, 'Invalid start date'));
-    const end = this.toDateOnly(this.parseDate(dto.endDate, 'Invalid end date'));
-    if (start > end) throw new BadRequestException('Invalid date range');
-    const dates: string[] = [];
-    const cursor = new Date(start);
-    while (cursor <= end) {
-      dates.push(cursor.toISOString());
-      cursor.setUTCDate(cursor.getUTCDate() + 1);
-      if (dates.length > 31) throw new BadRequestException('Bulk range cannot exceed 31 days');
-    }
-    return dates;
-  }
 
-  private isRestDay(employee: { workScale?: string | null }, dateValue: string, dto: BulkManualTimeTrackDto) {
-    const date = this.toDateOnly(this.parseDate(dateValue, 'Invalid date'));
-    const weekday = date.getUTCDay();
-    const daysOff = dto.daysOff ?? this.defaultDaysOff(employee.workScale);
-    if ((dto.restDayMode ?? 'employee_scale') === 'cycle') return this.isCycleRestDay(date, dto, employee.workScale);
-    if ((dto.restDayMode ?? 'employee_scale') === 'fixed_weekly' || daysOff.length > 0) return daysOff.includes(weekday);
-    return false;
-  }
-
-  private defaultDaysOff(workScale?: string | null) {
-    if (workScale === '5X2') return [0, 6];
-    if (workScale === '6X1') return [0];
-    return [];
-  }
-
-  private isCycleRestDay(date: Date, dto: BulkManualTimeTrackDto, workScale?: string | null) {
-    const cycle = this.resolveCycle(dto, workScale);
-    if (!cycle) return false;
-    const start = this.toDateOnly(this.parseDate(dto.cycleStartDate ?? '', 'Invalid cycle start date'));
-    if (date < start) return false;
-    const elapsedDays = Math.floor((date.getTime() - start.getTime()) / 86400000);
-    const position = elapsedDays % (cycle.workDays + cycle.offDays);
-    return position >= cycle.workDays;
-  }
-
-  private resolveCycle(dto: BulkManualTimeTrackDto, workScale?: string | null) {
-    if (dto.cycleWorkDays && dto.cycleOffDays) return { workDays: dto.cycleWorkDays, offDays: dto.cycleOffDays };
-    if (workScale === '6X1') return { workDays: 6, offDays: 1 };
-    if (workScale === '5X2') return { workDays: 5, offDays: 2 };
-    if (workScale === '12X36') return { workDays: 1, offDays: 1 };
-    if (workScale === '4X2') return { workDays: 4, offDays: 2 };
-    return null;
-  }
 
   private async ensureEmployee(companyId: string, employeeId: string) {
     const employee = await this.repository.findEmployee(companyId, employeeId);
@@ -477,27 +429,53 @@ export class TimeTrackService {
   }
 
   private calculateTotals(
-    track: { entry?: Date | null; lunchStart?: Date | null; lunchReturn?: Date | null; exit?: Date | null },
-    employee?: { workScale?: string | null; dailyWorkload?: string | null },
+    track: { entry?: Date | null; lunchStart?: Date | null; lunchReturn?: Date | null; exit?: Date | null; manualReason?: string | null; observation?: string | null },
+    employee?: { workScale?: string | null; dailyWorkload?: string | null; standardEntry?: string | null; standardExit?: string | null },
     date?: Date
   ) {
-    if (!track.entry || !track.exit) return { totalWorked: null, dailyBalance: null, overtime50Minutes: null, overtime100Minutes: null, nightShiftMinutes: null };
+    if (!track.entry || !track.exit) return { totalWorked: null, dailyBalance: null, overtime50Minutes: null, overtime100Minutes: null, nightShiftMinutes: null, incidentType: null };
     const gross = this.diffMinutes(track.entry, track.exit);
     const lunch = track.lunchStart && track.lunchReturn ? this.diffMinutes(track.lunchStart, track.lunchReturn) : 0;
     const totalWorked = Math.max(gross - lunch, 0);
-    const workload = parseWorkloadToMinutes(employee?.dailyWorkload);
+    
+    let isRest = false;
+    if (date) {
+      const wd = date.getUTCDay();
+      const s = employee?.workScale;
+      if (s === '5X2' && (wd === 0 || wd === 6)) isRest = true;
+      if (s === '6X1' && wd === 0) isRest = true;
+    }
+    const o = (track.observation ?? '').toLowerCase();
+    const r = (track.manualReason ?? '').toLowerCase();
+    if (o.includes('folga') || o.includes('feriado') || r.includes('folga') || r.includes('feriado')) {
+      isRest = true;
+    }
+
+    const workload = isRest ? 0 : parseWorkloadToMinutes(employee?.dailyWorkload);
     const dailyBalance = totalWorked - workload;
 
     let overtime50Minutes = 0;
     let overtime100Minutes = 0;
     let nightShiftMinutes = 0;
+    let incidentType: string | null = null;
 
     if (dailyBalance > 0) {
-      const isRest = date ? this.isRestDay(employee || {}, date.toISOString(), {} as any) : false;
       if (isRest) {
         overtime100Minutes = dailyBalance;
       } else {
         overtime50Minutes = dailyBalance;
+      }
+    } else if (dailyBalance < 0 && !isRest) {
+      const getMin = (d: Date) => d.getHours() * 60 + d.getMinutes();
+      const actualEntry = getMin(track.entry);
+      const actualExit = getMin(track.exit);
+      const stdEntry = timeToMinutes(employee?.standardEntry);
+      const stdExit = timeToMinutes(employee?.standardExit);
+      
+      if (stdEntry !== null && actualEntry > stdEntry + TOLERANCE_MINUTES) {
+        incidentType = 'atraso';
+      } else if (stdExit !== null && actualExit < stdExit - TOLERANCE_MINUTES) {
+        incidentType = 'saida_antecipada';
       }
     }
 
@@ -519,7 +497,7 @@ export class TimeTrackService {
       if (overlapEnd > overlapStart) nightShiftMinutes += (overlapEnd - overlapStart);
     }
 
-    return { totalWorked, dailyBalance, overtime50Minutes, overtime100Minutes, nightShiftMinutes };
+    return { totalWorked, dailyBalance, overtime50Minutes, overtime100Minutes, nightShiftMinutes, incidentType };
   }
 
   private diffMinutes(start: Date, end: Date) {

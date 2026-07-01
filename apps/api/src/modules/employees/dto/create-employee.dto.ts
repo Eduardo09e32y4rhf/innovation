@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsDateString, IsEmail, IsIn, IsNumber, IsOptional, IsString, IsUUID, Matches } from 'class-validator';
+import { IsArray, IsBoolean, IsDateString, IsEmail, IsIn, IsNumber, IsOptional, IsString, IsUUID, Matches } from 'class-validator';
 
 const EMPLOYEE_STATUSES = ['ACTIVE', 'INACTIVE', 'SUSPENDED', 'TERMINATED'] as const;
 const CONTRACT_TYPES = ['CLT', 'PJ', 'ESTAGIO', 'TEMPORARIO', 'JOVEM_APRENDIZ', 'TERCEIRIZADO'] as const;
@@ -172,4 +172,89 @@ export class CreateEmployeeDto {
   @IsOptional()
   @IsIn(ACCESS_PROFILES)
   accessProfile?: (typeof ACCESS_PROFILES)[number];
+
+  // eSocial fields
+  @IsOptional()
+  @IsString()
+  pis?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  pisFirstJob?: boolean;
+
+  @IsOptional()
+  @IsString()
+  gender?: string;
+
+  @IsOptional()
+  @IsString()
+  education?: string;
+
+  @IsOptional()
+  @IsString()
+  motherName?: string;
+
+  @IsOptional()
+  @IsString()
+  fatherName?: string;
+
+  @IsOptional()
+  @IsString()
+  voterTitle?: string;
+
+  @IsOptional()
+  @IsString()
+  voterZone?: string;
+
+  @IsOptional()
+  @IsString()
+  voterSection?: string;
+
+  @IsOptional()
+  @IsString()
+  voterState?: string;
+
+  @IsOptional()
+  @IsString()
+  rgDate?: string;
+
+  @IsOptional()
+  @IsString()
+  reservist?: string;
+
+  @IsOptional()
+  @IsString()
+  cnh?: string;
+
+  @IsOptional()
+  @IsString()
+  cnhCategory?: string;
+
+  @IsOptional()
+  @IsString()
+  cnhExpiry?: string;
+
+  @IsOptional()
+  @IsString()
+  bankCode?: string;
+
+  @IsOptional()
+  @IsString()
+  bankName?: string;
+
+  @IsOptional()
+  @IsString()
+  bankAgency?: string;
+
+  @IsOptional()
+  @IsString()
+  bankAccount?: string;
+
+  @IsOptional()
+  @IsString()
+  bankAccountType?: string;
+
+  @IsOptional()
+  @IsArray()
+  dependents?: any[];
 }

@@ -705,21 +705,33 @@ function downloadEmployeeOcorrenciasSheet(employee: Employee, rows: TimeTrack[],
 
 function downloadEmployeeRecord(employee: Employee, company: Company | null, managerName: string) {
   const title = 'Ficha de Registro de Empregado';
+
   const personalInfo = [
     { label: 'Nome Completo', value: normalizeDisplayName(employee.name) },
     { label: 'Data de Nascimento', value: formatDate(employee.birthDate) },
+    { label: 'CPF', value: employee.cpf || '-' },
+    { label: 'Gênero', value: employee.gender || '-' },
     { label: 'Estado Civil', value: employee.maritalStatus || '-' },
-    { label: 'Nacionalidade', value: employee.nationality || '-' },
-    { label: 'Naturalidade', value: employee.birthplace || '-' },
-    { label: 'Telefone Principal', value: employee.phone || '-' },
-    { label: 'Telefone Secundário', value: employee.secondaryPhone || '-' },
     { label: 'E-mail', value: employee.email || '-' },
+    { label: 'Telefone', value: employee.phone || '-' },
+    { label: 'Telefone 2', value: employee.secondaryPhone || '-' },
+    { label: 'Naturalidade', value: employee.birthplace || '-' },
+    { label: 'Nacionalidade', value: employee.nationality || '-' },
+    { label: 'Escolaridade', value: employee.education || '-' },
+    { label: 'Nome da Mãe', value: employee.motherName || '-' },
+    { label: 'Nome do Pai', value: employee.fatherName || '-' },
+    { label: 'RG', value: employee.rg || '-' },
+    { label: 'RG Emissor/UF', value: employee.rgIssuer ? `${employee.rgIssuer}/${employee.rgState || '-'}` : '-' },
+    { label: 'Data Emissão RG', value: formatDate(employee.rgIssueDate) || '-' },
   ];
 
   const docsInfo = [
-    { label: 'CPF', value: employee.cpf || '-' },
-    { label: 'RG', value: employee.rg || '-' },
-    { label: 'Órgão Emissor/UF', value: employee.rgIssuer ? `${employee.rgIssuer}/${employee.rgState || '-'}` : '-' },
+    { label: 'PIS / PASEP / NIT', value: employee.pis || '-' },
+    { label: 'Tít. Eleitor Nº', value: employee.voterTitle || '-' },
+    { label: 'Zona', value: employee.voterZone || '-' },
+    { label: 'Seção', value: employee.voterSection || '-' },
+    { label: 'UF Eleitor', value: employee.voterState || '-' },
+    { label: 'Reservista', value: employee.reservista || '-' },
   ];
 
   const addressInfo = [
@@ -728,28 +740,59 @@ function downloadEmployeeRecord(employee: Employee, company: Company | null, man
     { label: 'Número', value: employee.streetNumber || '-' },
     { label: 'Complemento', value: employee.addressComplement || '-' },
     { label: 'Bairro', value: employee.neighborhood || '-' },
-    { label: 'Cidade/UF', value: employee.city ? `${employee.city}/${employee.state || '-'}` : '-' },
+    { label: 'Cidade', value: employee.city || '-' },
+    { label: 'Estado', value: employee.state || '-' },
   ];
 
   const contractInfo = [
     { label: 'Matrícula', value: employee.registration || '-' },
     { label: 'Cargo', value: employee.position || '-' },
     { label: 'Departamento', value: employee.department || '-' },
-    { label: 'Unidade/Filial', value: employee.unit || '-' },
+    { label: 'Unidade', value: employee.unit || '-' },
     { label: 'Gestor', value: managerName || '-' },
     { label: 'Admissão', value: formatDate(employee.admissionDate) },
-    { label: 'Demissão', value: formatDate(employee.terminationDate) || '-' },
+    { label: 'Tipo Contrato', value: employee.contractType || '-' },
+    { label: 'Salário (R$)', value: employee.salary ? Number(employee.salary).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : '-' },
     { label: 'Status', value: EMPLOYEE_STATUS_LABEL[employee.status] || employee.status },
-    { label: 'Tipo de Contrato', value: employee.contractType || '-' },
-    { label: 'Salário Base (R$)', value: employee.salary ? Number(employee.salary).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : '-' },
+    { label: 'Demissão', value: formatDate(employee.terminationDate) || '-' },
   ];
 
   const timeInfo = [
-    { label: 'Escala Oficial', value: employee.customWorkScale || employee.workScale || '-' },
-    { label: 'Carga Horária Diária', value: employee.dailyWorkload || '-' },
-    { label: 'Horário Padrão', value: (employee.standardEntry && employee.standardExit) ? `${employee.standardEntry} às ${employee.standardExit}` : '-' },
-    { label: 'Horário de Almoço', value: (employee.standardLunchStart && employee.standardLunchReturn) ? `${employee.standardLunchStart} às ${employee.standardLunchReturn}` : '-' },
+    { label: 'Escala', value: employee.customWorkScale || employee.workScale || '-' },
+    { label: 'Jornada Diária', value: employee.dailyWorkload || '-' },
+    { label: 'Entrada', value: employee.standardEntry || '-' },
+    { label: 'Saída Almoço', value: employee.standardLunchStart || '-' },
+    { label: 'Retorno Almoço', value: employee.standardLunchReturn || '-' },
+    { label: 'Saída', value: employee.standardExit || '-' },
   ];
+
+  const bankInfo = [
+    { label: 'Banco', value: employee.bankName || '-' },
+    { label: 'Agência', value: employee.bankAgency || '-' },
+    { label: 'Conta', value: employee.bankAccount || '-' },
+    { label: 'Tipo de Conta', value: employee.bankAccountType || '-' },
+  ];
+
+  let dependentsSection = '';
+  if (employee.dependents) {
+    try {
+      const deps: Array<{ nome: string; cpf: string; dataNascimento: string; parentesco: string }> = JSON.parse(employee.dependents);
+      if (Array.isArray(deps) && deps.length > 0) {
+        const depRows = deps.map((d) => `
+          <tr>
+            <td style="padding:4px 8px;font-size:9px;color:#0f172a;">${escapeHtml(d.nome || '-')}</td>
+            <td style="padding:4px 8px;font-size:9px;color:#334155;">${escapeHtml(d.cpf || '-')}</td>
+            <td style="padding:4px 8px;font-size:9px;color:#334155;">${escapeHtml(d.dataNascimento ? new Date(d.dataNascimento).toLocaleDateString('pt-BR') : '-')}</td>
+            <td style="padding:4px 8px;font-size:9px;color:#334155;">${escapeHtml(d.parentesco || '-')}</td>
+          </tr>`);
+        dependentsSection = section('Dependentes', pdfTable(
+          ['Nome', 'CPF', 'Nascimento', 'Parentesco'],
+          depRows,
+          { compact: true }
+        ));
+      }
+    } catch { /* ignore */ }
+  }
 
   const companyData: PdfCompanyInfo | null = company ? {
     name: company.name,
@@ -762,13 +805,14 @@ function downloadEmployeeRecord(employee: Employee, company: Company | null, man
   } : null;
 
   const html = buildPdfShell({ title, subtitle: normalizeDisplayName(employee.name), landscape: false }, companyData, `
-    ${section('Dados Pessoais', infoGrid(personalInfo, 4))}
-    ${section('Documentação', infoGrid(docsInfo, 3))}
-    ${section('Endereço', infoGrid(addressInfo, 3))}
-    ${section('Dados do Contrato / Vínculo', infoGrid(contractInfo, 4))}
-    ${section('Jornada e Escala de Trabalho', infoGrid(timeInfo, 4))}
-    ${employee.observations ? section('Observações e Anotações', `<p style="font-size:10px;color:#475569;">${escapeHtml(employee.observations)}</p>`) : ''}
-
+    ${section('Dados Pessoais', infoGrid(personalInfo, 5))}
+    ${section('Documentação', infoGrid(docsInfo, 5))}
+    ${section('Endereço', infoGrid(addressInfo, 5))}
+    ${section('Dados Profissionais', infoGrid(contractInfo, 5))}
+    ${section('Jornada e Escala de Trabalho', infoGrid(timeInfo, 5))}
+    ${section('Dados Bancários', infoGrid(bankInfo, 5))}
+    ${dependentsSection}
+    ${employee.observations ? section('Observações', `<p style="font-size:9px;color:#475569;">${escapeHtml(employee.observations)}</p>`) : ''}
     ${signatureBlock(['Assinatura do Funcionário', 'Assinatura do RH / Empregador'])}
   `);
   printPdf(html, `ficha-registro-${slugify(employee.name)}.pdf`);
