@@ -1,6 +1,6 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import type { JwtUser } from '../../common/types/auth.types';
-import { BulkManualTimeTrackDto, ManualTimeTrackDto } from './dto/manual-time-track.dto';
+import { ManualTimeTrackDto } from './dto/manual-time-track.dto';
 import { RegisterTimeDto } from './dto/register-time.dto';
 import { UpdateTimeTrackDto } from './dto/update-time-track.dto';
 import { TimeTrackRepository } from './time-track.repository';
@@ -102,27 +102,7 @@ export class TimeTrackService {
     return this.applyManual(employee, dto.date, dto);
   }
 
-  async manualBulk(companyId: string, dto: BulkManualTimeTrackDto) {
-    const dates = this.resolveBulkDates(dto);
-    const created = [];
-    for (const employeeId of dto.employeeIds) {
-      const employee = await this.ensureEmployee(companyId, employeeId);
-      for (const date of dates) {
-        if (this.isRestDay(employee, date, dto)) continue;
-        const parsedDate = this.toDateOnly(this.parseDate(date, 'Invalid date'));
-        this.validateEmployeeDateRange(employee, parsedDate);
-        if (dto.reason.includes('abono')) {
-          const suggestion = this.suggestAbsenceMinutes(employee, parsedDate);
-          if (suggestion !== null && suggestion > 0 && !dto.entry) {
-            const suggestedEntry = this.suggestEntryTime(employee, parsedDate, suggestion);
-            Object.assign(dto, { entry: suggestedEntry });
-          }
-        }
-        created.push(await this.applyManual(employee, date, dto));
-      }
-    }
-    return { count: created.length, items: created };
-  }
+
 
   async register(companyId: string, actor: JwtUser, dto: RegisterTimeDto) {
     if (actor.role === 'DEV' || actor.role === 'COMERCIAL' || actor.role === 'CONSULTA') {

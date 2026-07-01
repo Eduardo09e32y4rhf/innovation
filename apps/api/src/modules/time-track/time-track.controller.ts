@@ -6,7 +6,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { RateLimitGuard, RateLimit } from '../../common/guards/rate-limit.guard';
 import type { JwtUser } from '../../common/types/auth.types';
-import { BulkManualTimeTrackDto, ManualTimeTrackDto } from './dto/manual-time-track.dto';
+import { ManualTimeTrackDto } from './dto/manual-time-track.dto';
 import { RegisterTimeDto } from './dto/register-time.dto';
 import { RevokeTimeTrackDto } from './dto/revoke-time-track.dto';
 import { UpdateTimeTrackDto } from './dto/update-time-track.dto';
@@ -34,11 +34,7 @@ export class TimeTrackController {
     return this.service.manual(companyId, actor, dto);
   }
 
-  @Roles('DEV', 'ADMIN', 'RH', 'GESTOR')
-  @Post('manual/bulk')
-  manualBulk(@CurrentCompany() companyId: string, @Body() dto: BulkManualTimeTrackDto) {
-    return this.service.manualBulk(companyId, dto);
-  }
+
 
   @Roles('DEV', 'ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO')
   @Post('register')
