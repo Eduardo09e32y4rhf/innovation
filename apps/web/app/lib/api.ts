@@ -65,7 +65,7 @@ async function request<T>(path: string, opts: Opts = {}): Promise<T> {
   if (res.status === 401) {
     clearSession();
     if (!silent && typeof window !== 'undefined') window.location.href = '/login';
-    throw new ApiError(401, 'Sessao expirada. Faca login novamente.');
+    throw new ApiError(401, 'Sessaída. Faca login novamente.');
   }
 
   const text = await res.text();
@@ -76,7 +76,7 @@ async function request<T>(path: string, opts: Opts = {}): Promise<T> {
     const rawMessage =
       nested && typeof nested === 'object' && 'message' in nested
         ? (nested as any).message
-        : data && typeof data === 'object' && 'message' in data
+        : data && typeof data === 'object' && 'messaídata
           ? (data as any).message
           : null;
     const parsedMessage = Array.isArray(rawMessage) ? rawMessage.join(', ') : rawMessage ? String(rawMessage) : '';
@@ -101,7 +101,7 @@ function safeJson(text: string): unknown {
 
 export type EmployeeStatus = 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' | 'TERMINATED';
 export type VacationStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED' | 'COMPLETED';
-export type UserRole = 'DEV' | 'COMERCIAL' | 'ADMIN' | 'RH' | 'GESTOR' | 'FUNCIONARIO' | 'CONSULTA';
+export type UserRole = 'DEV' | 'COMERCIAL' | 'ADMIN' | 'RH' | 'GESTOR' | 'FUNCIONÁRIO' | 'CONSULTA';
 export type PunchType = 'ENTRY' | 'LUNCH_START' | 'LUNCH_RETURN' | 'EXIT';
 
 export type ContractType = 'CLT' | 'PJ' | 'ESTAGIO' | 'TEMPORARIO' | 'JOVEM_APRENDIZ' | 'TERCEIRIZADO';
@@ -169,7 +169,7 @@ export interface CreateEmployeeInput {
   cnpj?: string; legalName?: string; tradeName?: string; unit?: string;
   workScale?: WorkScale; customWorkScale?: string; dailyWorkload?: DailyWorkload;
   standardEntry?: string; standardLunchStart?: string; standardLunchReturn?: string; standardExit?: string;
-  accessEnabled?: 'NO' | 'YES'; accessProfile?: 'FUNCIONARIO' | 'GESTOR' | 'RH' | 'ADMIN' | 'CONSULTA';
+  accessEnabled?: 'NO' | 'YES'; accessProfile?: 'FUNCIONÁRIO' | 'GESTOR' | 'RH' | 'ADMIN' | 'CONSULTA';
 }
 
 export interface TimeTrack {
@@ -182,7 +182,7 @@ export interface TimeTrack {
   manualReason?: string | null; manualStatus?: string | null;
   incidentType?: string | null;
 }
-export type TimeTrackAdjustmentReason = 'ajuste_erro_marcacao' | 'ajuste_atestado_integral' | 'ajuste_feriado' | 'ajuste_abono_atestado_horas' | 'ajuste_folga_dsr' | 'ajuste_abono_folga' | 'ajuste_abono_banco_saida_antecipada' | 'ajuste_abono_atraso' | 'ajuste_suspensao';
+export type TimeTrackAdjustmentReason = 'ajuste_erro_marcacao' | 'ajuste_atestado_integral' | 'ajuste_feriado' | 'ajuste_abono_atestado_horas' | 'ajuste_folga_dsr' | 'ajuste_abono_folga' | 'ajuste_abono_banco_saída' | 'ajuste_abono_atraso' | 'ajuste_suspensao';
 export interface RegisterTimeInput { employeeId?: string; type?: PunchType; timestamp?: string; observation?: string; latitude?: number; longitude?: number; manualReason?: string; }
 export interface ManualTimeTrackInput { employeeId: string; date: string; entry?: string | null; lunchStart?: string | null; lunchReturn?: string | null; exit?: string | null; reason: TimeTrackAdjustmentReason; observation?: string; }
 export interface UpdateTimeTrackInput { entry?: string | null; lunchStart?: string | null; lunchReturn?: string | null; exit?: string | null; observation?: string | null; }
@@ -251,7 +251,7 @@ export interface CreatePlatformCompanyInput {
   name: string; document?: string; maxUsers?: number; maxEmployees?: number;
   adminName: string; adminEmail: string; adminPassword: string;
 }
-export type PlatformCompanyUserRole = 'ADMIN' | 'RH' | 'GESTOR' | 'FUNCIONARIO' | 'CONSULTA';
+export type PlatformCompanyUserRole = 'ADMIN' | 'RH' | 'GESTOR' | 'FUNCIONÁRIO' | 'CONSULTA';
 export interface CreatePlatformCompanyUserInput { name: string; email: string; password: string; role?: PlatformCompanyUserRole; }
 export interface UpdatePlatformCompanyUserInput { name?: string; email?: string; password?: string; role?: PlatformCompanyUserRole; isActive?: boolean; }
 

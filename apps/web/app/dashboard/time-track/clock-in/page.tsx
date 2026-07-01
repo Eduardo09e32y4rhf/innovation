@@ -181,18 +181,18 @@ export default function ClockInPage() {
           <Clock3 size={18} />
           Bater ponto agora
         </button>
-        <p className="mt-3 text-xs font-medium text-slate-500">A sequencia e automatica: entrada, saida para almoco, retorno do almoco e saida.</p>
+        <p className="mt-3 text-xs font-medium text-slate-500">A sequencia e automatica: entrada, saída.</p>
       </section>
 
       <section className="ops-card rounded-[12px] border border-slate-200 bg-white p-5">
         <button onClick={() => setShowManual(!showManual)} className="flex w-full items-center gap-2 text-sm font-black text-slate-700">
           <FileEdit size={16} className="text-teal-600" />
-          Lancamento manual
+          Lançamento manual
           <span className="ml-auto text-xs text-slate-400">{showManual ? 'Fechar' : 'Abrir'}</span>
         </button>
         {showManual && (
           <div className="mt-4 space-y-3">
-            <p className="rounded-[8px] bg-amber-50 px-3 py-2 text-xs text-amber-700">Lancamentos manuais precisam de aprovacao do seu gestor.</p>
+            <p className="rounded-[8px] bg-amber-50 px-3 py-2 text-xs text-amber-700">Lançamentos manuais precisam de aprovacao do seu gestor.</p>
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="space-y-1 text-xs font-medium text-slate-600">
                 <span>Tipo de registro</span>

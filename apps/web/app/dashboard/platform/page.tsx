@@ -9,7 +9,7 @@ import { api, type AppUser, type CreatePlatformCompanyInput, type PlatformCompan
 import { ROLE_LABEL, formatDate } from '@/app/lib/format';
 import { normalizeDisplayName } from '@/app/lib/text';
 
-const COMPANY_USER_ROLES: PlatformCompanyUserRole[] = ['ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'];
+const COMPANY_USER_ROLES: PlatformCompanyUserRole[] = ['ADMIN', 'RH', 'GESTOR', 'FUNCIONÁRIO', 'CONSULTA'];
 
 type CompanyUserForm = { name: string; email: string; password: string; role: PlatformCompanyUserRole; isActive?: boolean };
 
@@ -82,10 +82,10 @@ export default function PlatformPage() {
 
       <section className="grid grid-cols-2 gap-4 md:grid-cols-4">
         {[
-          { label: 'Empresas', value: stats.data?.companies, icon: Building2 },
+          { label: 'Empresaídata?.companies, icon: Building2 },
           { label: 'Usuários', value: stats.data?.users, icon: Users },
           { label: 'Funcionários', value: stats.data?.employees, icon: Users },
-          { label: 'Mensagens', value: stats.data?.messages, icon: Users },
+          { label: 'Mensaídata?.messages, icon: Users },
         ].map(({ label, value, icon: Icon }) => (
           <div key={label} className="ops-card rounded-[8px] border border-slate-200 bg-white p-4">
             <div className="mb-3 flex items-center justify-between">
@@ -108,7 +108,7 @@ export default function PlatformPage() {
       ) : companies.error ? (
         <ErrorState message={companies.error} onRetry={companies.refetch} />
       ) : (companies.data ?? []).length === 0 ? (
-        <EmptyState message="Nenhuma empresa cadastrada. Clique em Nova empresa." />
+        <EmptyState messaída. Clique em Nova empresa." />
       ) : (
         <section className="ops-card overflow-hidden rounded-[8px] border border-slate-200 bg-white">
           <div className="overflow-x-auto p-5">
@@ -267,7 +267,7 @@ function CompanyUserFormModal({ companyId, user, onClose, onDone }: { companyId:
     name: user?.name ?? '',
     email: user?.email ?? '',
     password: '',
-    role: (user?.role as PlatformCompanyUserRole) ?? 'FUNCIONARIO',
+    role: (user?.role as PlatformCompanyUserRole) ?? 'FUNCIONÁRIO',
     isActive: user?.isActive ?? true,
   });
   const save = useMutation(() => {

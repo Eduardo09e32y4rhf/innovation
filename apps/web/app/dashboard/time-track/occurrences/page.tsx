@@ -83,13 +83,13 @@ export default function TimeOccurrencesPage() {
         <FilterButton active={filter === 'all'} onClick={() => setFilter('all')}>Todas</FilterButton>
         <FilterButton active={filter === 'pending'} onClick={() => setFilter('pending')}>Pendentes</FilterButton>
         <FilterButton active={filter === 'approved'} onClick={() => setFilter('approved')}>Aprovadas</FilterButton>
-        <FilterButton active={filter === 'rejected'} onClick={() => setFilter('rejected')}>Recusadas</FilterButton>
+        <FilterButton active={filter === 'rejected'} onClick={() => setFilter('rejected')}>Recusaídas</FilterButton>
       </div>
 
       {listQuery.loading && <LoadingState label="Carregando ocorrências..." />}
       {listQuery.error && <ErrorState message={listQuery.error} onRetry={listQuery.refetch} />}
       {!listQuery.loading && !listQuery.error && filtered.length === 0 && (
-        <EmptyState message="Nenhuma ocorrência encontrada." />
+        <EmptyState messaída." />
       )}
 
       <div className="space-y-3">

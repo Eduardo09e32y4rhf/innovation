@@ -20,7 +20,7 @@ function DashboardContent() {
   const { user } = useAuth();
   const profile = user?.profile?.toUpperCase();
   const isCommercial = profile === 'COMERCIAL';
-  const isFuncionario = profile === 'FUNCIONARIO';
+  const isFuncionario = profile === 'FUNCIONÁRIO';
   const isGestor = profile === 'GESTOR';
   const isConsulta = profile === 'CONSULTA';
   const isRh = profile === 'RH' || profile === 'ADMIN' || profile === 'DEV';
@@ -184,7 +184,7 @@ function DashboardContent() {
                   label="Banco de horas" 
                   value={summaryData ? formatMinutes(summaryData.totalTimeBalance) : undefined} 
                   icon={TrendingUp} 
-                  detail="saldo consolidado"
+                  detail="saídado"
                   loading={summary.loading}
                 />
               </>
@@ -273,7 +273,7 @@ function DashboardContent() {
                 ) : (
                   <div className="space-y-2">
                     {notificationWidgetData.notifications.slice(0, 5).map((n: any) => {
-                      const priorityIcon = n.priority === 'URGENT' ? 'ðŸ”´' : n.priority === 'HIGH' ? 'ðŸŸ ' : n.priority === 'NORMAL' ? 'ðŸ”µ' : 'âšª';
+                      const priorityIcon = n.priority === 'URGENT' ? '🔴' : n.priority === 'HIGH' ? 'ðŸŸ ' : n.priority === 'NORMAL' ? '🔵' : '⚪';
                       return (
                         <div key={n.id} className="flex items-start justify-between rounded-[8px] border border-slate-100 bg-white px-4 py-3 text-xs transition-all hover:border-teal-200 hover:bg-teal-50/30">
                           <div className="flex-1">
@@ -328,15 +328,15 @@ function DashboardContent() {
                 <div className="mt-4 space-y-2">
                   <Link href="/dashboard/time-track/occurrences" className="flex items-center justify-between rounded-[8px] border border-slate-100 bg-white px-4 py-3 text-xs transition-all hover:border-teal-200 hover:bg-teal-50/30">
                     <span className="font-bold text-slate-700">Ver todas as ocorrências</span>
-                    <span className="text-teal-700">â†’</span>
+                    <span className="text-teal-700">→</span>
                   </Link>
                   <Link href="/dashboard/time-track/closing" className="flex items-center justify-between rounded-[8px] border border-slate-100 bg-white px-4 py-3 text-xs transition-all hover:border-teal-200 hover:bg-teal-50/30">
                     <span className="font-bold text-slate-700">Fechamento de período</span>
-                    <span className="text-teal-700">â†’</span>
+                    <span className="text-teal-700">→</span>
                   </Link>
                   <Link href="/dashboard/time-track/rules" className="flex items-center justify-between rounded-[8px] border border-slate-100 bg-white px-4 py-3 text-xs transition-all hover:border-teal-200 hover:bg-teal-50/30">
                     <span className="font-bold text-slate-700">Regras de jornada</span>
-                    <span className="text-teal-700">â†’</span>
+                    <span className="text-teal-700">→</span>
                   </Link>
                 </div>
               </div>
@@ -420,7 +420,7 @@ function DashboardContent() {
           {todayRows.length > 0 && (
             <tr className="border-t border-slate-100">
               <td colSpan={isFuncionario ? 3 : 4} className="py-3 text-center">
-                <Link href="/dashboard/time-track" className="text-xs font-black text-teal-600 hover:text-teal-700 transition-colors">Ver todos os registros â†’</Link>
+                <Link href="/dashboard/time-track" className="text-xs font-black text-teal-600 hover:text-teal-700 transition-colors">Ver todos os registros →</Link>
               </td>
             </tr>
           )}
@@ -455,7 +455,7 @@ function DashboardContent() {
             {vacationRows.length > 0 && (
               <tr className="border-t border-slate-100">
                 <td colSpan={3} className="py-3 text-center">
-                  <Link href="/dashboard/vacations" className="text-xs font-black text-teal-600 hover:text-teal-700 transition-colors">Ver todas as solicitações â†’</Link>
+                  <Link href="/dashboard/vacations" className="text-xs font-black text-teal-600 hover:text-teal-700 transition-colors">Ver todas as solicitações →</Link>
                 </td>
               </tr>
             )}

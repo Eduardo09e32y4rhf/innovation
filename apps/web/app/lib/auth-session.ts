@@ -36,7 +36,7 @@ const SESSION_KEYS = {
 } as const;
 
 /**
- * Todas as chaves que já foram ou poderiam ser usadas para auth em localStorage.
+ * Todas as chaves que já foram ou poderiam ser usaídas para auth em localStorage.
  * O guard remove qualquer uma delas que apareça lá.
  */
 const PROHIBITED_LOCALSTORAGE_KEYS: readonly string[] = [
