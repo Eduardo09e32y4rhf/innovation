@@ -6,7 +6,7 @@ import { CalendarDays, Check, Clock3, Edit3, XCircle, FileText } from 'lucide-re
 import { ErrorState, LoadingState } from '@/app/components/data-states';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useMutation, useQuery } from '@/app/hooks/use-data';
-import { api, type Employee, type TimeTrack, type TimeTrackAdjustmentReason, type RestDayMode } from '@/app/lib/api';
+import { api, type Employee, type TimeTrack, type TimeTrackAdjustmentReason } from '@/app/lib/api';
 import { formatMinutes } from '@/app/lib/format';
 import { normalizeDisplayName } from '@/app/lib/text';
 import { buildPdfShell, section, infoGrid, pdfTable, signatureBlock, printPdf, type PdfCompanyInfo } from '@/app/lib/pdf-utils';
@@ -315,7 +315,7 @@ export default function TimeTrackPage() {
           <OcorrenciasList employees={visible} byEmpMap={byEmpMap} month={month} onSelect={setEmpFilter} />
         )}
 
-      {(open || editing) && <Modal employees={actives} bulk={false} track={editing ?? undefined} defaultEmpId={empFilter} onClose={()=>{setOpen(false);setEditing(null);}} onDone={()=>{setOpen(false);setEditing(null);tracks.refetch();}} />}
+      {(open || editing) && <Modal employees={actives} track={editing ?? undefined} defaultEmpId={empFilter} onClose={()=>{setOpen(false);setEditing(null);}} onDone={()=>{setOpen(false);setEditing(null);tracks.refetch();}} />}
     </div>
   );
 }
@@ -651,71 +651,59 @@ function StatusBadge({ status }: { status: string }) {
   return <span className={`inline-flex items-center rounded-[5px] border px-2 py-0.5 text-[9px] font-black whitespace-nowrap ${c[u]||'bg-slate-100 text-slate-600 border-slate-200'}`}>{u}</span>;
 }
 
-function Modal({ employees, bulk, track, defaultEmpId, onClose, onDone }: { employees: Employee[]; bulk: boolean; track?: TimeTrack; defaultEmpId: string; onClose: ()=>void; onDone: ()=>void; }) {
+function Modal({ employees, track, defaultEmpId, onClose, onDone }: { employees: Employee[]; track?: TimeTrack; defaultEmpId: string; onClose: ()=>void; onDone: ()=>void; }) {
   const initDate = track ? toDateKey(track.date) : new Date().toISOString().slice(0,10);
-  const [mode, setMode] = useState<'single'|'bulk'>(bulk?'bulk':'single');
-  const [bulkMode, setBulkMode] = useState<'day'|'period'>('day');
   const [empId, setEmpId] = useState(track?.employeeId ?? defaultEmpId);
-  const initScale = employees.find(e=>e.id===(track?.employeeId??defaultEmpId))?.workScale;
   const [date, setDate] = useState(initDate);
-  const [startDate, setStartDate] = useState(initDate.slice(0,8)+'01');
-  const [endDate, setEndDate] = useState(initDate);
-  const [selected, setSelected] = useState<string[]>([]);
-  const [showAll, setShowAll] = useState(false);
   const [entry, setEntry] = useState(track ? fmtTime(track.entry) : '');
   const [lunchS, setLunchS] = useState(track ? fmtTime(track.lunchStart) : '');
   const [lunchR, setLunchR] = useState(track ? fmtTime(track.lunchReturn) : '');
   const [exit, setExit] = useState(track ? fmtTime(track.exit) : '');
   const [reason, setReason] = useState<TimeTrackAdjustmentReason>('ajuste_erro_marcacao');
-  const [detail, setDetail] = useState('');
-  const [daysOff, setDaysOff] = useState<number[]>(defaultDaysOff(initScale));
-  const [cycleWD, setCycleWD] = useState(defaultCycle(initScale).workDays);
-  const [cycleOD, setCycleOD] = useState(defaultCycle(initScale).offDays);
-  const selReason = REASONS.find(r=>r.value===reason);
+  const [detail, setDetail] = useState(track?.observation ?? '');
+  const selReason = REASONS.find((r) => r.value === reason);
   const fullDay = Boolean(selReason?.fullDay);
 
-  function applyDefaults(nextId: string) { const e = employees.find(x=>x.id===nextId); setDaysOff(defaultDaysOff(e?.workScale)); const cyc = defaultCycle(e?.workScale); setCycleWD(cyc.workDays); setCycleOD(cyc.offDays); }
   const save = useMutation(async () => {
-    const payload = { entry: toIso(date,entry), lunchStart: toIso(date,lunchS), lunchReturn: toIso(date,lunchR), exit: toIso(date,exit), reason: reason as TimeTrackAdjustmentReason, observation: detail };
-    if (track) { await api.timeTrack.update(track.id, {entry:payload.entry, lunchStart:payload.lunchStart, lunchReturn:payload.lunchReturn, exit:payload.exit, observation:detail?.trim()||track.observation||null}); return; }
-    if (mode==='bulk') {
-      const ids = bulkMode==='period'? [empId] : selected;
-      const base = {employeeIds:ids, entry:payload.entry, lunchStart:payload.lunchStart, lunchReturn:payload.lunchReturn, exit:payload.exit, reason, observation:detail, restDayMode:'employee_scale' as RestDayMode, daysOff, cycleStartDate:date, cycleWorkDays:cycleWD, cycleOffDays:cycleOD};
-      await api.timeTrack.manualBulk(bulkMode==='period'? {...base, startDate, endDate} : {...base, date});
+    const payload = {
+      entry: toIso(date, entry),
+      lunchStart: toIso(date, lunchS),
+      lunchReturn: toIso(date, lunchR),
+      exit: toIso(date, exit),
+      reason: reason as TimeTrackAdjustmentReason,
+      observation: detail,
+    };
+
+    if (track) {
+      await api.timeTrack.update(track.id, {
+        entry: payload.entry,
+        lunchStart: payload.lunchStart,
+        lunchReturn: payload.lunchReturn,
+        exit: payload.exit,
+        observation: detail?.trim() || track.observation || null,
+      });
       return;
     }
-    await api.timeTrack.manual({employeeId:empId, date, ...payload});
+
+    await api.timeTrack.manual({ employeeId: empId, date, ...payload });
   }, { onSuccess: onDone });
 
-  const hasTime = fullDay || entry || lunchS || lunchR || exit;
-  const bulkOK = bulkMode==='period' ? Boolean(empId && startDate && endDate) : Boolean(selected.length && date);
-  const ok = mode==='bulk' ? bulkOK : Boolean(empId && date);
+  const ok = Boolean(empId && date && (fullDay || entry || lunchS || lunchR || exit));
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4">
       <div className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-[12px] border border-slate-200 bg-white p-6 shadow-xl">
-        <div className="mb-4 flex items-center justify-between"><h3 className="text-base font-black text-slate-950">{track?'EDITAR PONTO':mode==='bulk'?'LANÇAR EM LOTE':'LANÇAR PONTO MANUAL'}</h3><button onClick={onClose} className="text-slate-400 hover:text-slate-700"><Edit3 size={18} className="rotate-45"/></button></div>
+        <div className="mb-4 flex items-center justify-between"><h3 className="text-base font-black text-slate-950">{track ? 'EDITAR PONTO' : 'LAN�AR PONTO MANUAL'}</h3><button onClick={onClose} className="text-slate-400 hover:text-slate-700"><Edit3 size={18} className="rotate-45"/></button></div>
         {save.error && <p className="mb-3 rounded-[8px] border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700">{save.error}</p>}
-        {!track && <div className="mb-4 grid grid-cols-2 gap-2 rounded-[8px] bg-slate-100 p-1 text-xs font-black"><button type="button" onClick={()=>setMode('single')} className={`h-9 rounded-[7px] ${mode==='single'?'bg-white shadow-sm':'text-slate-500'}`}>INDIVIDUAL</button><button type="button" onClick={()=>setMode('bulk')} className={`h-9 rounded-[7px] ${mode==='bulk'?'bg-white shadow-sm':'text-slate-500'}`}>LOTE</button></div>}
         <div className="grid gap-3 sm:grid-cols-2">
-          {mode==='bulk' && !track ? <>
-            <label className="space-y-1 text-xs font-medium text-slate-600 sm:col-span-2"><span>TIPO</span><select value={bulkMode} onChange={e=>setBulkMode(e.target.value as any)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500"><option value="day">Um dia para vários</option><option value="period">Período para um</option></select></label>
-            {bulkMode==='day' ? <div className="sm:col-span-2 rounded-[10px] border border-slate-200 bg-white p-3">
-              <div className="mb-2 flex items-center justify-between"><span className="text-xs font-bold text-slate-700">FUNCIONÁRIOS ({selected.length})</span><button type="button" onClick={()=>setSelected(selected.length===employees.length?[]:employees.map(e=>e.id))} className="text-[10px] font-bold text-teal-600">{selected.length===employees.length?'DESMARCAR':'TODOS'}</button></div>
-              <div className="max-h-52 overflow-y-auto space-y-0.5">{(showAll?employees:employees.slice(0,8)).map(e=> <label key={e.id} className="flex items-center gap-2 rounded-[6px] px-2 py-1.5 hover:bg-slate-50 cursor-pointer text-xs"><input type="checkbox" checked={selected.includes(e.id)} onChange={()=>setSelected(p=>p.includes(e.id)?p.filter(x=>x!==e.id):[...p,e.id])} className="h-3.5 w-3.5 rounded border-slate-300 text-teal-600"/><span className="font-semibold text-slate-700">{normalizeDisplayName(e.name)}</span></label>)}</div>
-              {employees.length>8 && <button type="button" onClick={()=>setShowAll(!showAll)} className="mt-1 text-[10px] font-bold text-teal-600">{showAll?'MENOS':`+${employees.length-8} outros`}</button>}
-            </div> : <label className="space-y-1 text-xs font-medium text-slate-600 sm:col-span-2"><span>FUNCIONÁRIO</span><select value={empId} onChange={e=>{setEmpId(e.target.value);applyDefaults(e.target.value);}} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500"><option value="">Selecione...</option>{employees.map(e=><option key={e.id} value={e.id}>{normalizeDisplayName(e.name)}</option>)}</select></label>}
-            {bulkMode==='period' ? <><label className="space-y-1 text-xs font-medium text-slate-600"><span>INÍCIO</span><input type="date" value={startDate} onChange={e=>setStartDate(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500"/></label><label className="space-y-1 text-xs font-medium text-slate-600"><span>FIM</span><input type="date" value={endDate} onChange={e=>setEndDate(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500"/></label></> : <label className="space-y-1 text-xs font-medium text-slate-600"><span>DATA</span><input type="date" value={date} onChange={e=>setDate(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500"/></label>}
-          </> : <>
-            <label className="space-y-1 text-xs font-medium text-slate-600 sm:col-span-2"><span>FUNCIONÁRIO</span><select disabled={!!track} value={empId} onChange={e=>{setEmpId(e.target.value);applyDefaults(e.target.value);}} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500 disabled:bg-slate-50"><option value="">Selecione...</option>{employees.map(e=><option key={e.id} value={e.id}>{normalizeDisplayName(e.name)}</option>)}</select></label>
-            <label className="space-y-1 text-xs font-medium text-slate-600"><span>DATA</span><input disabled={!!track} type="date" value={date} onChange={e=>setDate(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500 disabled:bg-slate-50"/></label>
-          </>}
+          <label className="space-y-1 text-xs font-medium text-slate-600 sm:col-span-2"><span>FUNCION�RIO</span><select disabled={!!track} value={empId} onChange={e=>setEmpId(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500 disabled:bg-slate-50"><option value="">Selecione...</option>{employees.map(e=><option key={e.id} value={e.id}>{normalizeDisplayName(e.name)}</option>)}</select></label>
+          <label className="space-y-1 text-xs font-medium text-slate-600"><span>DATA</span><input disabled={!!track} type="date" value={date} onChange={e=>setDate(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500 disabled:bg-slate-50"/></label>
           {!track && <label className="space-y-1 text-xs font-medium text-slate-600"><span>MOTIVO</span><select value={reason} onChange={e=>setReason(e.target.value as TimeTrackAdjustmentReason)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500">{REASONS.map(r=><option key={r.value} value={r.value}>{r.label}</option>)}</select></label>}
-          {!fullDay && <><TimeField label="ENTRADA" value={entry} onChange={setEntry}/><TimeField label="saída ALMOÇO" value={lunchS} onChange={setLunchS}/><TimeField label="RETORNO ALMOÇO" value={lunchR} onChange={setLunchR}/><TimeField label="saída" value={exit} onChange={setExit}/></>}
-          <label className="space-y-1 text-xs font-medium text-slate-600 sm:col-span-2"><span>OBSERVAÇÃO</span><input value={detail} onChange={e=>setDetail(e.target.value)} placeholder={track?track.observation ?? '' : ''} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500"/></label>
+          {!fullDay && <><TimeField label="ENTRADA" value={entry} onChange={setEntry}/><TimeField label="sa�da ALMO�O" value={lunchS} onChange={setLunchS}/><TimeField label="RETORNO ALMO�O" value={lunchR} onChange={setLunchR}/><TimeField label="sa�da" value={exit} onChange={setExit}/></>}
+          <label className="space-y-1 text-xs font-medium text-slate-600 sm:col-span-2"><span>OBSERVA��O</span><input value={detail} onChange={e=>setDetail(e.target.value)} placeholder={track ? track.observation ?? '' : ''} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500"/></label>
         </div>
-        {employees.length===0 && <p className="mt-4 rounded-[10px] border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-900">Cadastre um funcionário ativo.</p>}
-        <div className="mt-5 flex justify-end gap-2"><button onClick={onClose} className="btn-outline h-10 rounded-[8px] px-4 text-xs font-bold">CANCELAR</button><button onClick={()=>ok&&save.mutate().catch(()=>{})} disabled={!ok||employees.length===0||save.loading} className="crystal-button h-10 rounded-[8px] px-4 text-xs font-black text-white disabled:opacity-60">{save.loading?'SALVANDO...':track?'SALVAR':mode==='bulk'?'LANÇAR LOTE':'LANÇAR'}</button></div>
+        {employees.length===0 && <p className="mt-4 rounded-[10px] border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-900">Cadastre um funcion�rio ativo.</p>}
+        <div className="mt-5 flex justify-end gap-2"><button onClick={onClose} className="btn-outline h-10 rounded-[8px] px-4 text-xs font-bold">CANCELAR</button><button onClick={()=>ok&&save.mutate().catch(()=>{})} disabled={!ok||employees.length===0||save.loading} className="crystal-button h-10 rounded-[8px] px-4 text-xs font-black text-white disabled:opacity-60">{save.loading ? 'SALVANDO...' : track ? 'SALVAR' : 'LAN�AR'}</button></div>
       </div>
     </div>
   );
