@@ -11,18 +11,18 @@ import { formatMinutes } from '@/app/lib/format';
 import { normalizeDisplayName } from '@/app/lib/text';
 import { buildPdfShell, section, infoGrid, pdfTable, signatureBlock, printPdf, type PdfCompanyInfo } from '@/app/lib/pdf-utils';
 
-const WEEKDAYS = ['DOM','SEG','TER','QUA','QUI','SEX','SÃB'];
+const WEEKDAYS = ['DOM','SEG','TER','QUA','QUI','SEX','SÁB'];
 
 const REASONS: { value: TimeTrackAdjustmentReason; label: string; fullDay?: boolean }[] = [
-  { value:'ajuste_erro_marcacao', label:'AJUSTE - ERRO MARCAÃÃO', fullDay:false },
+  { value:'ajuste_erro_marcacao', label:'AJUSTE - ERRO MARCAÇÃO', fullDay:false },
   { value:'ajuste_atestado_integral', label:'ATESTADO INTEGRAL', fullDay:true },
   { value:'ajuste_feriado', label:'FERIADO', fullDay:true },
   { value:'ajuste_abono_atestado_horas', label:'ABONO - ATESTADO DE HORAS', fullDay:false },
   { value:'ajuste_folga_dsr', label:'FOLGA', fullDay:true },
   { value:'ajuste_abono_folga', label:'ABONO - FOLGA (BANCO)', fullDay:true },
-  { value:'ajuste_abono_banco_saida_antecipada', label:'ABONO - BANCO saÃ­da ANTECIPADA', fullDay:true },
+  { value:'ajuste_abono_banco_saida_antecipada', label:'ABONO - BANCO SAÍDA ANTECIPADA', fullDay:true },
   { value:'ajuste_abono_atraso', label:'ABONO - ATRASO', fullDay:true },
-  { value:'ajuste_suspensao', label:'SUSPENSÃO', fullDay:true },
+  { value:'ajuste_suspensao', label:'SUSPENSÃO', fullDay:true },
 ];
 
 function currentMonth() { return new Date().toISOString().slice(0,7); }
