@@ -11,18 +11,18 @@ import { formatMinutes } from '@/app/lib/format';
 import { normalizeDisplayName } from '@/app/lib/text';
 import { buildPdfShell, section, infoGrid, pdfTable, signatureBlock, printPdf, type PdfCompanyInfo } from '@/app/lib/pdf-utils';
 
-const WEEKDAYS = ['DOM','SEG','TER','QUA','QUI','SEX','SÁB'];
+const WEEKDAYS = ['DOM','SEG','TER','QUA','QUI','SEX','SÃB'];
 
 const REASONS: { value: TimeTrackAdjustmentReason; label: string; fullDay?: boolean }[] = [
-  { value:'ajuste_erro_marcacao', label:'AJUSTE - ERRO MARCAÇÃO', fullDay:false },
+  { value:'ajuste_erro_marcacao', label:'AJUSTE - ERRO MARCAÃÃO', fullDay:false },
   { value:'ajuste_atestado_integral', label:'ATESTADO INTEGRAL', fullDay:true },
   { value:'ajuste_feriado', label:'FERIADO', fullDay:true },
   { value:'ajuste_abono_atestado_horas', label:'ABONO - ATESTADO DE HORAS', fullDay:false },
   { value:'ajuste_folga_dsr', label:'FOLGA', fullDay:true },
   { value:'ajuste_abono_folga', label:'ABONO - FOLGA (BANCO)', fullDay:true },
-  { value:'ajuste_abono_banco_saida_antecipada', label:'ABONO - BANCO saída ANTECIPADA', fullDay:true },
+  { value:'ajuste_abono_banco_saida_antecipada', label:'ABONO - BANCO saÃ­da ANTECIPADA', fullDay:true },
   { value:'ajuste_abono_atraso', label:'ABONO - ATRASO', fullDay:true },
-  { value:'ajuste_suspensao', label:'SUSPENSÃO', fullDay:true },
+  { value:'ajuste_suspensao', label:'SUSPENSÃO', fullDay:true },
 ];
 
 function currentMonth() { return new Date().toISOString().slice(0,7); }
@@ -132,7 +132,7 @@ function dayStatus(row: TimeTrack, holidayName?: string) {
   const o = (row.observation ?? '').toLowerCase();
   if (o.includes('atestado integral')) return 'ATESTADO';
   if (o.includes('atestado') && o.includes('horas')) return 'ATESTADO (HORAS)';
-  if (o.includes('suspensao') || o.includes('suspensão')) return 'SUSPENSÃO';
+  if (o.includes('suspensao') || o.includes('suspensÃ£o')) return 'SUSPENSÃO';
   if (o.includes('feriado') || holidayName) return 'FERIADO';
   if (o.includes('folga extra')) return 'FOLGA EXTRA';
   if (o.includes('folga banco')) return 'FOLGA BANCO';
@@ -142,7 +142,7 @@ function dayStatus(row: TimeTrack, holidayName?: string) {
   if (r.includes('feriado')) return 'FERIADO';
   if (r.includes('folga dsr')) return 'FOLGA';
   if (row.incidentType === 'atraso') return 'ATRASO';
-  if (row.incidentType === 'saida_antecipada') return 'saída ANTECIPADA';
+  if (row.incidentType === 'saida_antecipada') return 'saÃ­da ANTECIPADA';
   if (row.manualStatus==='pending') return 'PENDENTE';
   if (row.manualStatus==='rejected') return 'REJEITADO';
   if (row.manualReason || o.includes('ajuste')) return 'AJUSTE MANUAL';
@@ -152,7 +152,7 @@ function dayStatus(row: TimeTrack, holidayName?: string) {
 function isFalta(row: TimeTrack) {
   if (row.entry || row.exit) return false;
   const o = (row.observation ?? '').toLowerCase();
-  return !o.includes('atestado') && !o.includes('feriado') && !o.includes('folga') && !o.includes('suspensao') && !o.includes('suspensão');
+  return !o.includes('atestado') && !o.includes('feriado') && !o.includes('folga') && !o.includes('suspensao') && !o.includes('suspensÃ£o');
 }
 function sumMin(rows: TimeTrack[], f: 'totalWorked'|'dailyBalance') { return rows.reduce((a,r)=>a+(r[f]??0),0); }
 
@@ -233,11 +233,11 @@ export default function TimeTrackPage() {
 
       {canApprove && (pending.data ?? []).length > 0 && (
         <section className="rounded-[12px] border border-amber-200 bg-amber-50 p-4">
-          <h3 className="mb-3 text-sm font-black text-amber-900">PONTOS PENDENTES DE APROVAÇÃO ({(pending.data ?? []).length})</h3>
+          <h3 className="mb-3 text-sm font-black text-amber-900">PONTOS PENDENTES DE APROVAÃÃO ({(pending.data ?? []).length})</h3>
           {approveMut.error && <p className="mb-3 rounded-[8px] border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">{approveMut.error}</p>}
           <div className="space-y-2">{(pending.data ?? []).map(t=> (
             <div key={t.id} className="flex items-center justify-between rounded-[8px] border border-amber-200 bg-white px-4 py-3">
-              <div className="text-xs"><p className="font-bold text-slate-950">{normalizeDisplayName(t.employee?.name ??'-')}</p><p className="text-slate-500">{fmtDateFull(t.date)} - {t.manualReason ?? 'Lançamento manual'}</p></div>
+              <div className="text-xs"><p className="font-bold text-slate-950">{normalizeDisplayName(t.employee?.name ??'-')}</p><p className="text-slate-500">{fmtDateFull(t.date)} - {t.manualReason ?? 'LanÃ§amento manual'}</p></div>
               <div className="flex gap-2">
                 <button onClick={()=>approveMut.mutate({id:t.id,approved:true}).catch(()=>{})} disabled={approveMut.loading} className="inline-flex h-8 items-center gap-1 rounded-[6px] bg-emerald-600 px-3 text-[11px] font-bold text-white disabled:opacity-60"><Check size={12}/>APROVAR</button>
                 <button onClick={()=>approveMut.mutate({id:t.id,approved:false}).catch(()=>{})} disabled={approveMut.loading} className="inline-flex h-8 items-center gap-1 rounded-[6px] bg-rose-600 px-3 text-[11px] font-bold text-white disabled:opacity-60"><XCircle size={12}/>RECUSAR</button>
@@ -250,7 +250,7 @@ export default function TimeTrackPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex gap-1 rounded-[8px] bg-slate-100 p-1">
           <button onClick={()=>setTab('ponto')} className={`rounded-[6px] px-4 py-2 text-xs font-black uppercase ${tab==='ponto'?'bg-white shadow-sm text-teal-700':'text-slate-500'}`}>Ponto</button>
-          <button onClick={()=>setTab('ocorrencias')} className={`rounded-[6px] px-4 py-2 text-xs font-black uppercase ${tab==='ocorrencias'?'bg-white shadow-sm text-teal-700':'text-slate-500'}`}>Ocorrências</button>
+          <button onClick={()=>setTab('ocorrencias')} className={`rounded-[6px] px-4 py-2 text-xs font-black uppercase ${tab==='ocorrencias'?'bg-white shadow-sm text-teal-700':'text-slate-500'}`}>OcorrÃªncias</button>
         </div>
         <div className="flex flex-wrap gap-2">
           {!isFunc && (
@@ -323,7 +323,7 @@ export default function TimeTrackPage() {
 // --- Folha Coletiva de Ponto ---
 
 function monthLabelFn(month: string) {
-  if (!month) return 'Período completo';
+  if (!month) return 'PerÃ­odo completo';
   const [year, monthNumber] = month.split('-').map(Number);
   if (!year || !monthNumber) return month;
   const date = new Date(year, monthNumber - 1, 1);
@@ -351,37 +351,37 @@ function downloadCollectiveSheet(month: string, visibleEmployees: Employee[], by
 
     const employeeInfo = [
       { label: 'Nome', value: normalizeDisplayName(employee.name) },
-      { label: 'Matrícula', value: employee.registration || '-' },
+      { label: 'MatrÃ­cula', value: employee.registration || '-' },
       { label: 'CPF', value: employee.cpf || '-' },
       { label: 'Cargo', value: employee.position || '-' },
       { label: 'Departamento', value: employee.department || '-' },
-      { label: 'Admissão', value: employee.admissionDate ? new Date(employee.admissionDate).toLocaleDateString('pt-BR') : '-' },
-      { label: 'Período', value: subtitle },
+      { label: 'AdmissÃ£o', value: employee.admissionDate ? new Date(employee.admissionDate).toLocaleDateString('pt-BR') : '-' },
+      { label: 'PerÃ­odo', value: subtitle },
     ];
 
-    const tableHeaders = ['Data', 'Entrada', 'Saída Almoço', 'Retorno Almoço', 'Saída', 'Trabalhado', 'Saldo', 'Ocorrência', 'Assinatura Diária'];
+    const tableHeaders = ['Data', 'Entrada', 'SaÃ­da AlmoÃ§o', 'Retorno AlmoÃ§o', 'SaÃ­da', 'Trabalhado', 'Saldo', 'OcorrÃªncia', 'Assinatura DiÃ¡ria'];
     const tableRows = grid.map((g) => {
       const wd = WEEKDAYS[g.wd];
       const dateStr = `${String(g.day).padStart(2,'0')} - ${wd}`;
 
       if (g.isFuture) {
-        return `<tr><td style="padding:4px 8px;font-size:8px;color:#cbd5e1;">${dateStr}</td><td colspan="8" style="padding:4px 8px;font-size:8px;color:#cbd5e1;text-align:center;">—</td></tr>`;
+        return `<tr><td style="padding:4px 8px;font-size:8px;color:#cbd5e1;">${dateStr}</td><td colspan="8" style="padding:4px 8px;font-size:8px;color:#cbd5e1;text-align:center;">â</td></tr>`;
       }
       if (g.antesAdmissao || g.depoisDemissao) {
-        return `<tr><td style="padding:4px 8px;font-size:8px;color:#94a3b8;">${dateStr}</td><td colspan="8" style="padding:4px 8px;font-size:8px;color:#94a3b8;text-align:center;">${g.antesAdmissao ? 'ANTES DA ADMISSÃO' : 'APÓS DEMISSÃO'}</td></tr>`;
+        return `<tr><td style="padding:4px 8px;font-size:8px;color:#94a3b8;">${dateStr}</td><td colspan="8" style="padding:4px 8px;font-size:8px;color:#94a3b8;text-align:center;">${g.antesAdmissao ? 'ANTES DA ADMISSÃO' : 'APÃS DEMISSÃO'}</td></tr>`;
       }
 
       const t = g.track;
       if (!t) {
         if (g.isRest) return `<tr><td style="padding:4px 8px;font-size:8px;color:#64748b;">${dateStr}</td><td colspan="8" style="padding:4px 8px;font-size:8px;color:#64748b;text-align:center;font-weight:700;">DSR / FOLGA</td></tr>`;
-        return `<tr><td style="padding:4px 8px;font-size:8px;color:#e11d48;font-weight:600;">${dateStr}</td><td colspan="8" style="padding:4px 8px;font-size:8px;color:#e11d48;text-align:center;font-weight:700;">FALTA NÃO JUSTIFICADA</td></tr>`;
+        return `<tr><td style="padding:4px 8px;font-size:8px;color:#e11d48;font-weight:600;">${dateStr}</td><td colspan="8" style="padding:4px 8px;font-size:8px;color:#e11d48;text-align:center;font-weight:700;">FALTA NÃO JUSTIFICADA</td></tr>`;
       }
 
       const balance = t.dailyBalance ?? 0;
       const balanceColor = balance < 0 ? '#e11d48' : balance > 0 ? '#059669' : '#64748b';
       const hasMissing = !t.entry || !t.exit;
       let ocorrencia = dayStatus(t, g.holidayName);
-      if (ocorrencia === 'NORMAL' && hasMissing) ocorrencia = 'FALTA DE MARCAÇÃO';
+      if (ocorrencia === 'NORMAL' && hasMissing) ocorrencia = 'FALTA DE MARCAÃÃO';
       
       return `<tr>
         <td style="padding:4px 8px;font-size:8px;font-weight:600;color:#0f172a;">${dateStr}</td>
@@ -398,8 +398,8 @@ function downloadCollectiveSheet(month: string, visibleEmployees: Employee[], by
 
     const empHtml = `
       ${section('Dados do Colaborador', infoGrid(employeeInfo, 4))}
-      ${section('Registros de Ponto Diário', pdfTable(tableHeaders, tableRows, { compact: true }))}
-      ${section('Resumo do Período', `
+      ${section('Registros de Ponto DiÃ¡rio', pdfTable(tableHeaders, tableRows, { compact: true }))}
+      ${section('Resumo do PerÃ­odo', `
         <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;">
           <div style="background:#f0fdfa;border:1px solid #ccfbf1;border-radius:8px;padding:12px;text-align:center;">
             <div style="font-size:8px;font-weight:800;text-transform:uppercase;color:#0f766e;letter-spacing:0.05em;">Dias Trabalhados</div>
@@ -423,12 +423,12 @@ function downloadCollectiveSheet(month: string, visibleEmployees: Employee[], by
           </div>
         </div>
         <div style="margin-top:16px;background:#f8fafc;padding:16px;border-radius:8px;font-size:12px;color:#334155;font-weight:700;text-align:center;border:1px solid #e2e8f0;">
-          SALDO DO BANCO DE HORAS NESTE MÊS: <span style="font-weight:900;color:${totalBalance < 0 ? '#e11d48' : totalBalance > 0 ? '#059669' : '#64748b'};">
+          SALDO DO BANCO DE HORAS NESTE MÃS: <span style="font-weight:900;color:${totalBalance < 0 ? '#e11d48' : totalBalance > 0 ? '#059669' : '#64748b'};">
             ${escapeHtml(formatMinutes(totalBalance))}
           </span>
         </div>
       `)}
-      ${signatureBlock(['Assinatura do Colaborador', 'Assinatura do RH / Responsável'])}
+      ${signatureBlock(['Assinatura do Colaborador', 'Assinatura do RH / ResponsÃ¡vel'])}
     `;
 
     return empHtml + (index < visibleEmployees.length - 1 ? '<div style="page-break-after: always;"></div>' : '');
@@ -440,10 +440,10 @@ function downloadCollectiveSheet(month: string, visibleEmployees: Employee[], by
 
 function OcorrenciasList({ employees, byEmpMap, month, onSelect }: { employees: Employee[]; byEmpMap: Record<string,TimeTrack[]>; month: string; onSelect: (id:string)=>void }) {
   const withIssues = employees.filter(e => (byEmpMap[e.id] ?? []).some(t => isFalta(t) || t.incidentType === 'atraso' || t.incidentType === 'saida_antecipada' || (t.dailyBalance != null && t.dailyBalance < 0)));
-  if (withIssues.length===0) return <p className="text-center text-sm font-semibold text-slate-400 py-8">Nenhuma ocorrência no mês.</p>;
+  if (withIssues.length===0) return <p className="text-center text-sm font-semibold text-slate-400 py-8">Nenhuma ocorrÃªncia no mÃªs.</p>;
   return (
     <section className="overflow-hidden rounded-[14px] border border-slate-200 bg-white">
-      <div className="border-b border-slate-100 bg-amber-50/50 px-5 py-4"><h3 className="text-sm font-black text-amber-900">OCORRÊNCIAS DO MÊS</h3><p className="mt-1 text-xs text-amber-700">Atrasos, faltas e saídas antecipadas.</p></div>
+      <div className="border-b border-slate-100 bg-amber-50/50 px-5 py-4"><h3 className="text-sm font-black text-amber-900">OCORRÊNCIAS DO MÃS</h3><p className="mt-1 text-xs text-amber-700">Atrasos, faltas e saÃ­das antecipadas.</p></div>
       <div className="divide-y divide-slate-100">
         {withIssues.map(e=> {
           const rows = byEmpMap[e.id] ?? [];
@@ -454,7 +454,7 @@ function OcorrenciasList({ employees, byEmpMap, month, onSelect }: { employees: 
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-gradient-to-br from-rose-500 to-pink-600 text-sm font-black text-white">{normalizeDisplayName(e.name).charAt(0).toUpperCase()}</div>
                 <div>
                   <p className="text-sm font-black text-slate-950">{normalizeDisplayName(e.name)}</p>
-                  <p className="text-[10px] font-semibold text-rose-600">{ocorrenciasCount} OCORRÊNCIA(S) • {e.department || '-'}</p>
+                  <p className="text-[10px] font-semibold text-rose-600">{ocorrenciasCount} OCORRÃNCIA(S) â¢ {e.department || '-'}</p>
                 </div>
               </div>
               <button onClick={()=>onSelect(e.id)} className="btn-outline inline-flex h-8 items-center gap-1.5 rounded-[6px] px-3 text-[10px] font-black"><CalendarDays size={12}/> VER</button>
@@ -513,13 +513,13 @@ function MonthGrid({ employee, tracks, month, canManage, canApprove, refreshing,
             <tr className="bg-slate-50 text-[9px] font-black uppercase tracking-[0.1em] text-slate-500">
               <th className="px-3 py-2 w-[16%] border-b border-slate-200">DATA</th>
               <th className="px-3 py-2 w-[9%] border-b border-slate-200">ENTRADA</th>
-              <th className="px-3 py-2 w-[11%] border-b border-slate-200">ALMOÇO</th>
-              <th className="px-3 py-2 w-[9%] border-b border-slate-200">saída</th>
+              <th className="px-3 py-2 w-[11%] border-b border-slate-200">ALMOÃO</th>
+              <th className="px-3 py-2 w-[9%] border-b border-slate-200">saÃ­da</th>
               <th className="px-3 py-2 w-[9%] border-b border-slate-200">TRAB</th>
               <th className="px-3 py-2 w-[9%] border-b border-slate-200">SALDO</th>
               <th className="px-3 py-2 w-[8%] border-b border-slate-200">ABONO</th>
               <th className="px-3 py-2 w-[10%] border-b border-slate-200">STATUS</th>
-              <th className="px-3 py-2 w-[19%] border-b border-slate-200 text-center">AÇÕES</th>
+              <th className="px-3 py-2 w-[19%] border-b border-slate-200 text-center">AÃÃES</th>
             </tr>
           </thead>
           <tbody>
@@ -531,7 +531,7 @@ function MonthGrid({ employee, tracks, month, canManage, canApprove, refreshing,
               else if (!t && !day.antesAdmissao && !day.depoisDemissao) bg = 'bg-amber-50/20';
               else if (day.antesAdmissao || day.depoisDemissao) bg = 'bg-slate-100/50 opacity-50';
               const status = day.isRest ? 'FOLGA' : (day.antesAdmissao || day.depoisDemissao) ? '---' : t ? dayStatus(t) : day.isFuture ? '---' : 'FALTA';
-              const isAtestado = ['ATESTADO','FERIADO','SUSPENSÃO','FOLGA','FOLGA EXTRA','FOLGA BANCO','FOLGA (DSR)','---'].includes(status);
+              const isAtestado = ['ATESTADO','FERIADO','SUSPENSÃO','FOLGA','FOLGA EXTRA','FOLGA BANCO','FOLGA (DSR)','---'].includes(status);
 
               return (
                 <tr key={day.key} className={`h-9 border-t border-slate-100 text-[11px] font-semibold text-slate-700 hover:bg-slate-50/70 ${bg}`}>
@@ -591,14 +591,14 @@ function Ocorrencias({ employee, tracks, month, canManage, canApprove, refreshin
           <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-black text-amber-800">{employee.registration || employee.id.slice(0,8)}</span>
           <h3 className="text-sm font-black text-amber-900">{normalizeDisplayName(employee.name)}</h3>
         </div>
-        <p className="mt-2 text-xs text-amber-700">{ocorrencias.length} ocorrência(s) em {new Date(month+'-01').toLocaleDateString('pt-BR',{month:'long',year:'numeric'})}</p>
+        <p className="mt-2 text-xs text-amber-700">{ocorrencias.length} ocorrÃªncia(s) em {new Date(month+'-01').toLocaleDateString('pt-BR',{month:'long',year:'numeric'})}</p>
       </div>
-      {ocorrencias.length===0 ? <div className="px-5 py-8 text-center text-sm font-semibold text-slate-400">Nenhuma ocorrência no mês.</div> : (
+      {ocorrencias.length===0 ? <div className="px-5 py-8 text-center text-sm font-semibold text-slate-400">Nenhuma ocorrÃªncia no mÃªs.</div> : (
         <div className="overflow-x-auto">
           <table className="w-full min-w-[800px] border-separate border-spacing-0 text-left">
             <thead>
               <tr className="bg-slate-50 text-[10px] font-black uppercase text-slate-500">
-                <th className="px-3 py-2 w-[20%]">DATA</th><th className="px-3 py-2 w-[15%]">STATUS</th><th className="px-3 py-2 w-[15%]">ENTRADA</th><th className="px-3 py-2 w-[15%]">saída</th><th className="px-3 py-2 w-[35%]">AÇÕES</th>
+                <th className="px-3 py-2 w-[20%]">DATA</th><th className="px-3 py-2 w-[15%]">STATUS</th><th className="px-3 py-2 w-[15%]">ENTRADA</th><th className="px-3 py-2 w-[15%]">saÃ­da</th><th className="px-3 py-2 w-[35%]">AÃÃES</th>
               </tr>
             </thead>
             <tbody>
@@ -638,7 +638,7 @@ function StatusBadge({ status }: { status: string }) {
     'FERIADO':'bg-teal-50 text-teal-700 border-teal-200',
     'ATESTADO':'bg-violet-50 text-violet-700 border-violet-200',
     'ATESTADO (HORAS)':'bg-violet-50 text-violet-700 border-violet-200',
-    'SUSPENSÃO':'bg-orange-50 text-orange-700 border-orange-200',
+    'SUSPENSÃO':'bg-orange-50 text-orange-700 border-orange-200',
     'FOLGA':'bg-sky-50 text-sky-700 border-sky-200',
     'FOLGA (DSR)':'bg-sky-50 text-sky-700 border-sky-200',
     'FOLGA EXTRA':'bg-indigo-50 text-indigo-700 border-indigo-200',
@@ -646,7 +646,7 @@ function StatusBadge({ status }: { status: string }) {
     'AJUSTE MANUAL':'bg-orange-50 text-orange-700 border-orange-200',
     'FALTA':'bg-rose-50 text-rose-700 border-rose-200',
     'ATRASO':'bg-rose-50 text-rose-800 border-rose-300 shadow-sm',
-    'saída ANTECIPADA':'bg-rose-50 text-rose-800 border-rose-300 shadow-sm',
+    'saÃ­da ANTECIPADA':'bg-rose-50 text-rose-800 border-rose-300 shadow-sm',
   };
   return <span className={`inline-flex items-center rounded-[5px] border px-2 py-0.5 text-[9px] font-black whitespace-nowrap ${c[u]||'bg-slate-100 text-slate-600 border-slate-200'}`}>{u}</span>;
 }
@@ -693,17 +693,17 @@ function Modal({ employees, track, defaultEmpId, onClose, onDone }: { employees:
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4">
       <div className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-[12px] border border-slate-200 bg-white p-6 shadow-xl">
-        <div className="mb-4 flex items-center justify-between"><h3 className="text-base font-black text-slate-950">{track ? 'EDITAR PONTO' : 'LAN�AR PONTO MANUAL'}</h3><button onClick={onClose} className="text-slate-400 hover:text-slate-700"><Edit3 size={18} className="rotate-45"/></button></div>
+        <div className="mb-4 flex items-center justify-between"><h3 className="text-base font-black text-slate-950">{track ? 'EDITAR PONTO' : 'LANÇAR PONTO MANUAL'}</h3><button onClick={onClose} className="text-slate-400 hover:text-slate-700"><Edit3 size={18} className="rotate-45"/></button></div>
         {save.error && <p className="mb-3 rounded-[8px] border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700">{save.error}</p>}
         <div className="grid gap-3 sm:grid-cols-2">
-          <label className="space-y-1 text-xs font-medium text-slate-600 sm:col-span-2"><span>FUNCION�RIO</span><select disabled={!!track} value={empId} onChange={e=>setEmpId(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500 disabled:bg-slate-50"><option value="">Selecione...</option>{employees.map(e=><option key={e.id} value={e.id}>{normalizeDisplayName(e.name)}</option>)}</select></label>
+          <label className="space-y-1 text-xs font-medium text-slate-600 sm:col-span-2"><span>FUNCIONÁRIO</span><select disabled={!!track} value={empId} onChange={e=>setEmpId(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500 disabled:bg-slate-50"><option value="">Selecione...</option>{employees.map(e=><option key={e.id} value={e.id}>{normalizeDisplayName(e.name)}</option>)}</select></label>
           <label className="space-y-1 text-xs font-medium text-slate-600"><span>DATA</span><input disabled={!!track} type="date" value={date} onChange={e=>setDate(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500 disabled:bg-slate-50"/></label>
           {!track && <label className="space-y-1 text-xs font-medium text-slate-600"><span>MOTIVO</span><select value={reason} onChange={e=>setReason(e.target.value as TimeTrackAdjustmentReason)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500">{REASONS.map(r=><option key={r.value} value={r.value}>{r.label}</option>)}</select></label>}
-          {!fullDay && <><TimeField label="ENTRADA" value={entry} onChange={setEntry}/><TimeField label="sa�da ALMO�O" value={lunchS} onChange={setLunchS}/><TimeField label="RETORNO ALMO�O" value={lunchR} onChange={setLunchR}/><TimeField label="sa�da" value={exit} onChange={setExit}/></>}
-          <label className="space-y-1 text-xs font-medium text-slate-600 sm:col-span-2"><span>OBSERVA��O</span><input value={detail} onChange={e=>setDetail(e.target.value)} placeholder={track ? track.observation ?? '' : ''} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500"/></label>
+          {!fullDay && <><TimeField label="ENTRADA" value={entry} onChange={setEntry}/><TimeField label="saída ALMOÇO" value={lunchS} onChange={setLunchS}/><TimeField label="RETORNO ALMOÇO" value={lunchR} onChange={setLunchR}/><TimeField label="saída" value={exit} onChange={setExit}/></>}
+          <label className="space-y-1 text-xs font-medium text-slate-600 sm:col-span-2"><span>OBSERVAÇÃO</span><input value={detail} onChange={e=>setDetail(e.target.value)} placeholder={track ? track.observation ?? '' : ''} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500"/></label>
         </div>
-        {employees.length===0 && <p className="mt-4 rounded-[10px] border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-900">Cadastre um funcion�rio ativo.</p>}
-        <div className="mt-5 flex justify-end gap-2"><button onClick={onClose} className="btn-outline h-10 rounded-[8px] px-4 text-xs font-bold">CANCELAR</button><button onClick={()=>ok&&save.mutate().catch(()=>{})} disabled={!ok||employees.length===0||save.loading} className="crystal-button h-10 rounded-[8px] px-4 text-xs font-black text-white disabled:opacity-60">{save.loading ? 'SALVANDO...' : track ? 'SALVAR' : 'LAN�AR'}</button></div>
+        {employees.length===0 && <p className="mt-4 rounded-[10px] border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-900">Cadastre um funcionário ativo.</p>}
+        <div className="mt-5 flex justify-end gap-2"><button onClick={onClose} className="btn-outline h-10 rounded-[8px] px-4 text-xs font-bold">CANCELAR</button><button onClick={()=>ok&&save.mutate().catch(()=>{})} disabled={!ok||employees.length===0||save.loading} className="crystal-button h-10 rounded-[8px] px-4 text-xs font-black text-white disabled:opacity-60">{save.loading ? 'SALVANDO...' : track ? 'SALVAR' : 'LANÇAR'}</button></div>
       </div>
     </div>
   );
