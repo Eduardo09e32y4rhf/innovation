@@ -12,12 +12,10 @@ type TrackWithEmployee = {
   id: string;
   employeeId: string;
   date: Date;
-  type: string | null;
   entry: Date | null;
   lunchStart: Date | null;
   lunchReturn: Date | null;
   exit: Date | null;
-  justification: string | null;
   totalWorked: number | null;
   dailyBalance: number | null;
   overtime50Minutes: number | null;
@@ -28,7 +26,6 @@ type TrackWithEmployee = {
   longitude: number | null;
   manualReason: string | null;
   manualStatus: string | null;
-  revokeReason: string | null;
   incidentType: string | null;
   toleranceMinutes: number | null;
   absenceMinutes: number | null;
@@ -52,12 +49,10 @@ export class TimeTrackRepository {
     id: true,
     employeeId: true,
     date: true,
-    type: true,
     entry: true,
     lunchStart: true,
     lunchReturn: true,
     exit: true,
-    justification: true,
     totalWorked: true,
     dailyBalance: true,
     overtime50Minutes: true,
@@ -68,7 +63,6 @@ export class TimeTrackRepository {
     longitude: true,
     manualReason: true,
     manualStatus: true,
-    revokeReason: true,
     incidentType: true,
     toleranceMinutes: true,
     absenceMinutes: true,
