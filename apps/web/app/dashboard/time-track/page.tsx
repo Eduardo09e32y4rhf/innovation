@@ -548,7 +548,7 @@ function MonthGrid({ employee, tracks, month, canManage, canApprove, refreshing,
                   </td>
                   <td className="px-3">
                     <div className="flex justify-center gap-1 whitespace-nowrap">
-                      {showActions && !day.isRestDay && !day.isFuture && (
+                      {showActions && !day.isRest && !day.isFuture && (
                         <button onClick={()=>onEdit(t||{id:'',employeeId:employee.id,date:day.key,entry:null,lunchStart:null,lunchReturn:null,exit:null,totalWorked:null,dailyBalance:null} as unknown as TimeTrack)} disabled={refreshing||removeLoading} className="btn-outline-premium h-6 px-2 text-[9px] font-bold"><Edit3 size={10}/>{t?'EDITAR':'SOLICITAR'}</button>
                       )}
                       {showActions && t && canApprove && t.manualStatus==='pending' && (

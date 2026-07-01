@@ -14,7 +14,6 @@ type TrackWithEmployee = {
   date: Date;
   type: string | null;
   entry: Date | null;
-  lunchOut: Date | null;
   lunchStart: Date | null;
   lunchReturn: Date | null;
   exit: Date | null;
@@ -55,7 +54,6 @@ export class TimeTrackRepository {
     date: true,
     type: true,
     entry: true,
-    lunchOut: true,
     lunchStart: true,
     lunchReturn: true,
     exit: true,
@@ -367,7 +365,4 @@ export class TimeTrackRepository {
     });
   }
 }
-
-
-
 
