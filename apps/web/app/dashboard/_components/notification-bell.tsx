@@ -105,7 +105,7 @@ export function NotificationBell() {
             {notifications.map((n: any) => (
               <div
                 key={n.id}
-                className={`flex flex-col gap-1 border-b border-slate-100 px-4 py-3 transition-all hover:bg-slate-50/70 ${n.recipients?.[0]?.status === 'UNREAD' ? 'bg-blue-50/30' : ''}`}
+                className={`flex flex-col gap-1 border-b border-slate-100 px-4 py-3 transition-all hover:bg-slate-50/70 ${(n.recipients?.[0]?.status === 'UNREAD' || n.recipients?.[0]?.status === 'PENDING_RESPONSE') ? 'bg-blue-50/30' : ''}`}
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1">
@@ -131,7 +131,7 @@ export function NotificationBell() {
                   </span>
                 </div>
                 <div className="flex justify-end gap-1.5">
-                  {n.recipients?.[0]?.status === 'UNREAD' && (
+                  {(n.recipients?.[0]?.status === 'UNREAD' || n.recipients?.[0]?.status === 'PENDING_RESPONSE') && (
                     <button
                       type="button"
                       onClick={() => markReadMut.mutate(n.id)}

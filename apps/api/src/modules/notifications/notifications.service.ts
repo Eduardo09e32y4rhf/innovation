@@ -57,7 +57,7 @@ export class NotificationsService {
       const count = await this.prisma.notification.count({
         where: {
           companyId,
-          recipients: { some: { userId: actor.sub, status: 'UNREAD' } },
+          recipients: { some: { userId: actor.sub, status: { in: ['UNREAD', 'PENDING_RESPONSE'] } } },
         },
       });
       return { count };
@@ -89,7 +89,7 @@ export class NotificationsService {
   async markAllAsRead(companyId: string, userId: string) {
     try {
       await this.prisma.notificationRecipient.updateMany({
-        where: { userId, notification: { companyId }, status: 'UNREAD' },
+        where: { userId, notification: { companyId }, status: { in: ['UNREAD', 'PENDING_RESPONSE'] } },
         data: { status: 'READ', readAt: new Date() },
       });
     } catch (err) {
@@ -301,7 +301,7 @@ export class NotificationsService {
       const notifications = await this.prisma.notification.findMany({
         where: {
           companyId,
-          recipients: { some: { userId: actor.sub, status: 'UNREAD' } },
+          recipients: { some: { userId: actor.sub, status: { in: ['UNREAD', 'PENDING_RESPONSE'] } } },
           OR: [{ expiresAt: null }, { expiresAt: { gte: new Date() } }],
         },
         include: {

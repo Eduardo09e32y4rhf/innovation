@@ -189,6 +189,10 @@ export class UpdateEmployeeDto {
   pisFirstJob?: boolean;
 
   @IsOptional()
+  @IsBoolean()
+  firstJob?: boolean;
+
+  @IsOptional()
   @IsString()
   gender?: string;
 

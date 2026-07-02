@@ -184,7 +184,7 @@ export class EmployeesService {
       status,
       // eSocial fields
       pis: this.emptyToUndefined(dto.pis),
-      pisFirstJob: dto.pisFirstJob,
+      pisFirstJob: dto.firstJob ?? dto.pisFirstJob,
       gender: this.emptyToUndefined(dto.gender),
       education: this.emptyToUndefined(dto.education),
       motherName: this.emptyToUndefined(dto.motherName),

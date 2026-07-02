@@ -420,7 +420,7 @@ function DashboardContent() {
           {todayRows.length > 0 && (
             <tr className="border-t border-slate-100">
               <td colSpan={isFuncionario ? 3 : 4} className="py-3 text-center">
-                <Link href="/dashboard/time-track" className="text-xs font-black text-teal-600 hover:text-teal-700 transition-colors">Ver todos os registros â†’</Link>
+                <Link href="/dashboard/time-track" className="text-xs font-black text-teal-600 hover:text-teal-700 transition-colors">Ver todos os registros &rarr;</Link>
               </td>
             </tr>
           )}
