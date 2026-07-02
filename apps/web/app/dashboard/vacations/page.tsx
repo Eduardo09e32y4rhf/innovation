@@ -215,7 +215,7 @@ export default function VacationsPage() {
               Ativas ({activeRows.length})
             </button>
             <button onClick={() => setTab('rejected')} className={`rounded-[8px] px-4 py-2 text-xs font-black transition-all ${tab === 'rejected' ? 'bg-white shadow-sm text-teal-700' : 'text-slate-500 hover:text-slate-700'}`}>
-              Recusaídas ({rejectedRows.length})
+              Recusadas ({rejectedRows.length})
             </button>
             <button onClick={() => setTab('history')} className={`rounded-[8px] px-4 py-2 text-xs font-black transition-all ${tab === 'history' ? 'bg-white shadow-sm text-teal-700' : 'text-slate-500 hover:text-slate-700'}`}>
               Histórico ({historyRows.length})
@@ -238,7 +238,7 @@ export default function VacationsPage() {
       ) : vacations.error ? (
         <ErrorState message={vacations.error} onRetry={vacations.refetch} />
       ) : rows.length === 0 ? (
-        <EmptyState messaída." />
+        <EmptyState message="Nenhuma solicitação de férias registrada." />
       ) : (
         <section className="overflow-hidden rounded-[18px] border border-slate-200/60 bg-white shadow-[0_12px_40px_rgba(15,23,42,0.08)] transition-all duration-300 hover:shadow-[0_20px_50px_rgba(15,23,42,0.12)]">
           <div className="overflow-x-auto">
@@ -341,7 +341,7 @@ export default function VacationsPage() {
                           <div className="flex justify-end gap-2">
                             <button
                               onClick={() => updateStatus.mutate({ id: row.id, status: 'APPROVED' }).catch(() => {})}
-                              disaídateStatus.loading}
+                              disabled={row.status !== 'PENDING' || updateStatus.loading}
                               className="inline-flex h-9 items-center gap-1.5 rounded-[8px] bg-gradient-to-r from-emerald-500 to-teal-600 px-4 text-[11px] font-black text-white shadow-md shadow-emerald-500/20 transition-all hover:-translate-y-0.5 hover:shadow-lg active:translate-y-0 disabled:opacity-40 disabled:hover:translate-y-0 disabled:hover:shadow-md"
                             >
                               <Check size={13} strokeWidth={2.5} />
@@ -349,7 +349,7 @@ export default function VacationsPage() {
                             </button>
                             <button
                               onClick={() => updateStatus.mutate({ id: row.id, status: 'REJECTED' }).catch(() => {})}
-                              disaídateStatus.loading}
+                              disabled={row.status !== 'PENDING' || updateStatus.loading}
                               className="inline-flex h-9 items-center gap-1.5 rounded-[8px] bg-gradient-to-r from-rose-500 to-pink-600 px-4 text-[11px] font-black text-white shadow-md shadow-rose-500/20 transition-all hover:-translate-y-0.5 hover:shadow-lg active:translate-y-0 disabled:opacity-40 disabled:hover:translate-y-0 disabled:hover:shadow-md"
                             >
                               <X size={13} strokeWidth={2.5} />
@@ -803,7 +803,7 @@ function downloadVacationReceipt(vacation: { employee?: Employee; startDate: str
     ${section('Demonstrativo de Valores', financialTable)}
     
     <div style="font-size:10px;color:#475569;text-align:center;margin:32px 0;">
-      Recebi da empresaída qual dou plena e geral quitação.
+      Recebi da empresa a importância líquida de <strong>${BRL(liquido)}</strong> constante neste recibo, da qual dou plena e geral quitação.
     </div>
 
     ${signatureBlock(['Assinatura do Empregado', 'Empregador / RH'])}

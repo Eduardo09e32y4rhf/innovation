@@ -18,10 +18,10 @@ export default function ForgotPasswordPage() {
     setResetToken('');
     try {
       const result = await api.auth.requestPasswordReset(email.trim());
-      setMessaídastrado e ativo, enviaremos as instru??es de redefini??o.');
+      setMessage('Se o e-mail estiver cadastrado e ativo, enviaremos as instru??es de redefini??o.');
       if (result.demoCode) setResetToken(result.demoCode);
     } catch {
-      setMessaídastrado e ativo, enviaremos as instru??es de redefini??o.');
+      setMessage('Se o e-mail estiver cadastrado e ativo, enviaremos as instru??es de redefini??o.');
     } finally {
       setLoading(false);
     }

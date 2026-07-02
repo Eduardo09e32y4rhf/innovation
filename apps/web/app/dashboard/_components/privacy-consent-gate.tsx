@@ -19,7 +19,7 @@ type ConsentStatus = {
 const TERM_SECTIONS = [
   {
     title: '1. Finalidade do sistema e Segurança',
-    text: 'O Innovation RH Connect é utilizado para apoiar rotinas de RH, controle de ponto, férias, jornada e cadastro de colaboradores da empresaídados dos colaboradores contra acessos indevidos e vazamentos.',
+    text: 'O Innovation RH Connect é utilizado para apoiar rotinas de RH, controle de ponto, férias, jornada e cadastro de colaboradores da empresa cliente. O sistema adota padrões rigorosos de segurança e criptografia de ponta a ponta para garantir a proteção avançada dos dados dos colaboradores contra acessos indevidos e vazamentos.',
   },
   {
     title: '2. Ferramentas de IA da Prosolution',
@@ -27,19 +27,19 @@ const TERM_SECTIONS = [
   },
   {
     title: '3. Papéis na LGPD',
-    text: 'A empresaída Controladora.',
+    text: 'A empresa cliente atua como Controladora dos dados pessoais de seus colaboradores e dita as regras e finalidades do tratamento. O Innovation RH Connect atua apenas como Operador, processando dados exclusivamente conforme instruções contratuais da Controladora.',
   },
   {
     title: '4. Dados tratados e Dados Sensíveis',
-    text: 'Tratamos dados como nome, CPF, e-mail, ponto, férias, histórico funcional e documentos admissionais. Quando houver tratamento de dados sensíveis (saídas extras de controle de acesso.',
+    text: 'Tratamos dados como nome, CPF, e-mail, ponto, férias, histórico funcional e documentos admissionais. Quando houver tratamento de dados sensíveis (saúde/ASO, biometria), o uso respeita a finalidade estrita de cumprimento de obrigação legal ou trabalhista, com camadas extras de controle de acesso.',
   },
   {
     title: '5. Bases legais e Prazos de Retenção',
     text: 'O tratamento baseia-se prioritariamente em "Cumprimento de obrigação legal ou regulatória" e "Execução de contrato". A retenção segue os prazos exigidos pela legislação trabalhista, previdenciária e fiscal. Após o término legal, os dados são anonimizados ou devidamente eliminados.',
   },
   {
-    title: '6. Responsaídades do usuário do Painel',
-    text: 'Você, enquanto usuário autenticado (Gestor/RH/Admin), deve acessaída sua empresa.',
+    title: '6. Responsabilidades do usuário do Painel',
+    text: 'Você, enquanto usuário autenticado (Gestor/RH/Admin), deve acessar exclusivamente os dados inerentes à sua função, manter o sigilo absoluto das informações da tela, não compartilhar suas senhas e aderir estritamente às políticas internas da sua empresa.',
   },
   {
     title: '7. Direitos dos titulares dos dados',
@@ -138,7 +138,7 @@ export function PrivacyConsentGate({ children }: { children: React.ReactNode }) 
               <p className="text-[11px] font-black uppercase tracking-[0.2em] text-teal-700">Segurança de Dados e LGPD</p>
               <h2 className="mt-1 text-2xl font-black leading-tight text-slate-900">Termos de Uso e Política de Privacidade</h2>
               <p className="mt-2 text-sm leading-6 text-slate-600">
-                Para liberar o acesso ao painel de gestão, você precisaída plataforma.
+                Para liberar o acesso ao painel de gestão, você precisa revisar e confirmar que compreendeu as diretrizes de tratamento de dados e o uso de inteligência artificial da plataforma.
               </p>
             </div>
           </div>
@@ -146,7 +146,7 @@ export function PrivacyConsentGate({ children }: { children: React.ReactNode }) 
 
         <div className="min-h-0 flex-1 overflow-y-auto p-5 sm:p-7">
           <div className="grid gap-3 text-sm text-slate-700 md:grid-cols-2">
-            <InfoLine label="Controladora" value="A empresaídados de seus colaboradores." />
+            <InfoLine label="Controladora" value="A empresa cliente detém o controle dos dados de seus colaboradores." />
             <InfoLine label="Operadora e IA" value="Innovation RH Connect operado sob tecnologia da Prosolution." />
             <InfoLine label="Finalidade Base" value={status.purpose || FALLBACK_PURPOSE} />
             <InfoLine label="Versão Contratual" value={status.termVersion || TERMS_VERSION} />
@@ -177,7 +177,7 @@ export function PrivacyConsentGate({ children }: { children: React.ReactNode }) 
               checked={checked} 
               onChange={(event) => setChecked(event.target.checked)} 
             />
-            <span>Declaro que li, compreendi e aceito integralmente os Termos de Uso e a Política de Privacidade (incluindo cláusulas LGPD e Prosolution IA), assumindo a responsaídade civil e profissional pelo uso adequado desta plataforma.</span>
+            <span>Declaro que li, compreendi e aceito integralmente os Termos de Uso e a Política de Privacidade (incluindo cláusulas LGPD e Prosolution IA), assumindo a responsabilidade civil e profissional pelo uso adequado desta plataforma.</span>
           </label>
 
           <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -187,7 +187,7 @@ export function PrivacyConsentGate({ children }: { children: React.ReactNode }) 
               disabled={!checked || saving}
               className="flex h-12 items-center gap-2 rounded-[14px] bg-slate-900 px-6 text-sm font-black text-white shadow-[0_12px_24px_rgba(15,23,42,0.15)] transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {saídando Aceite...' : 'Aceitar e Continuar'}
+              {saving ? 'Validando Aceite...' : 'Aceitar e Continuar'}
               {!saving && <ArrowRight size={18} />}
             </button>
           </div>

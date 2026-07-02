@@ -612,7 +612,7 @@ function validateLogoUrl(value: string) {
   const trimmed = value.trim();
   if (!trimmed) return '';
   if (trimmed.length > MAX_LOGO_URL_LENGTH) return 'A URL da logo precisa ter no máximo 2048 caracteres.';
-  if (trimmed.startsWith('data:')) return 'Não saída imagem.';
+  if (trimmed.startsWith('data:')) return 'Não salve base64 no banco. Use uma URL HTTPS da imagem.';
   if (/\.svg(\?|#|$)/i.test(trimmed)) return 'SVG está bloqueado por segurança. Use PNG, JPG ou WebP.';
   if (!SAFE_LOGO_URL.test(trimmed)) return 'Use uma URL HTTPS terminando em PNG, JPG, JPEG ou WebP.';
   return '';

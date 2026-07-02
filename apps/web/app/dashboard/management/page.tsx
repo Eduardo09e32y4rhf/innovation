@@ -99,7 +99,7 @@ function getStatusBadge(status: string): { label: string; cls: string } {
     PENDING_RESPONSE: { label: 'Pendente resposta', cls: 'bg-amber-50 text-amber-700 border-amber-200' },
     ACKNOWLEDGED: { label: 'Ciente', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
     ACCEPTED: { label: 'Aceita', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
-    REFUSED_ACKNOWLEDGMENT: { label: 'Recusaída', cls: 'bg-red-50 text-red-700 border-red-200' },
+    REFUSED_ACKNOWLEDGMENT: { label: 'Recusada', cls: 'bg-red-50 text-red-700 border-red-200' },
     DRAFT: { label: 'Rascunho', cls: 'bg-slate-100 text-slate-600 border-slate-200' },
   };
   return map[status] ?? { label: status, cls: 'bg-slate-100 text-slate-600 border-slate-200' };
@@ -453,7 +453,7 @@ function AsoTab({ records, employees, canManage, onOpenForm, onSave, onDelete, s
                   <FileCheck2 size={28} className="text-teal-600" />
                 </div>
                 <h4 className="text-sm font-black text-slate-900">Nenhum ASO registrado</h4>
-                <p className="mt-1 text-xs text-slate-500 max-w-sm">Mantenha a saída sua equipe em dia registrando exames admissionais, demissionais e periódicos.</p>
+                <p className="mt-1 text-xs text-slate-500 max-w-sm">Mantenha a saúde ocupacional da sua equipe em dia registrando exames admissionais, demissionais e periódicos.</p>
                 {canManage && (
                   <button onClick={() => onOpenForm(undefined)} disabled={saving} className="mt-5 crystal-button h-10 px-6 rounded-[8px] text-[11px] font-black text-white shadow-md shadow-teal-500/20 transition-all hover:-translate-y-0.5">
                     REGISTRAR PRIMEIRO ASO
@@ -546,7 +546,7 @@ function NotificationsTab({ canManage }: { canManage: boolean }) {
           <option value="PENDING_RESPONSE">Pendente resposta</option>
           <option value="ACKNOWLEDGED">Ciente</option>
           <option value="ACCEPTED">Aceita</option>
-          <option value="REFUSED_ACKNOWLEDGMENT">Recusaída</option>
+          <option value="REFUSED_ACKNOWLEDGMENT">Recusada</option>
         </select>
       </div>
 
@@ -661,7 +661,7 @@ function CreateNotificationForm({ onCreated, employees }: { onCreated: () => voi
   const [type, setType] = useState('SIMPLE_NOTICE');
   const [priority, setPriority] = useState('NORMAL');
   const [targetType, setTargetType] = useState('ALL');
-  const [targetRole, setTargetRole] = useState('FUNCIONÁRIO');
+  const [targetRole, setTargetRole] = useState('FUNCIONARIO');
   const [targetEmployeeId, setTargetEmployeeId] = useState('');
   
   // Warning/Suspension specifics
@@ -720,7 +720,7 @@ function CreateNotificationForm({ onCreated, employees }: { onCreated: () => voi
       text += `<p style="font-size:11px;color:#e11d48;text-align:justify;line-height:1.6;font-weight:700;margin:16px 0;">Por consequência, o(a) Sr(a). fica suspenso(a) de suas atividades por ${suspensionDays} dia(s), com desconto em folha de pagamento.</p>`;
     }
     
-    text += `<p style="font-size:11px;color:#334155;text-align:justify;line-height:1.6;margin-top:24px;">Esclarecemos que a reincidência em condutas semelhantes poderá resultar em rescisão do contrato de trabalho por justa causaída CLT. Solicitamos sua assinatura confirmando o recebimento.</p>`;
+    text += `<p style="font-size:11px;color:#334155;text-align:justify;line-height:1.6;margin-top:24px;">Esclarecemos que a reincidência em condutas semelhantes poderá resultar em rescisão do contrato de trabalho por justa causa, nos termos do art. 482 da CLT. Solicitamos sua assinatura confirmando o recebimento.</p>`;
     
     const { buildPdfShell, infoGrid, section, signatureBlock, printPdf } = require('@/app/lib/pdf-utils');
     const html = buildPdfShell({ title: docTitle, subtitle: emp.name }, null, `
@@ -774,7 +774,7 @@ function CreateNotificationForm({ onCreated, employees }: { onCreated: () => voi
           <label className="space-y-1 text-xs font-medium text-slate-600">
             <span>PERFIL DE ACESSO</span>
             <select value={targetRole} onChange={e => setTargetRole(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500">
-              <option value="FUNCIONÁRIO">Funcionário Base</option>
+              <option value="FUNCIONARIO">Funcionário Base</option>
               <option value="GESTOR">Gestor de Equipe</option>
               <option value="RH">Recursos Humanos</option>
               <option value="ADMIN">Administrador</option>
@@ -899,7 +899,7 @@ function RulesTab({ canManage }: { canManage: boolean }) {
         {showForm && <RuleForm rule={editRule} onSave={(data, id) => {
           if (id) return updateMut.mutate({ id, data });
         return createMut.mutate(data);
-      }} onClose={closeForm} saídateMut.loading} />}
+      }} onClose={closeForm} saving={createMut.loading || updateMut.loading} />}
 
       {rules.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-[16px] border border-dashed border-slate-300 bg-slate-50/50 p-10 text-center">
@@ -979,7 +979,7 @@ function RulesTab({ canManage }: { canManage: boolean }) {
               <input type="number" min="1" max="31" defaultValue={(company as any)?.payrollStartDay || 1} onBlur={(e) => {
                 if (!canManage) return;
                 updateCompanyMut.mutate({ payrollStartDay: parseInt(e.target.value) || 1 });
-              }} disaídateCompanyMut.loading} className="input h-9 w-24 text-center font-bold" />
+              }} disabled={!canManage || updateCompanyMut.loading} className="input h-9 w-24 text-center font-bold" />
               <span className="text-xs text-slate-600 font-semibold">Ex: "1" (mês cheio) ou "15" (do dia 15 ao dia 14)</span>
             </div>
             {updateCompanyMut.loading && <p className="text-[10px] text-teal-600 mt-2 font-bold animate-pulse">Salvando...</p>}
@@ -1013,7 +1013,7 @@ function RulesTab({ canManage }: { canManage: boolean }) {
               }} className="flex gap-2 mt-auto">
                 <input type="date" name="date" required className="input h-8 text-[10px] flex-1" />
                 <input type="text" name="name" placeholder="Nome do Feriado" required className="input h-8 text-[10px] flex-1" />
-                <button type="submit" disaídaysMut.loading} className="crystal-button h-8 px-3 rounded-[6px] text-[10px] font-bold text-white">+</button>
+                <button type="submit" disabled={updateHolidaysMut.loading} className="crystal-button h-8 px-3 rounded-[6px] text-[10px] font-bold text-white">+</button>
               </form>
             )}
           </div>
@@ -1023,7 +1023,7 @@ function RulesTab({ canManage }: { canManage: boolean }) {
   );
 }
 
-function RuleForm({ rule, onSave, onClose, saídata: any, id?: string) => Promise<any>; onClose: () => void; saving: boolean }) {
+function RuleForm({ rule, onSave, onClose, saving }: { rule: any | null; onSave: (data: any, id?: string) => Promise<any>; onClose: () => void; saving: boolean }) {
   const [name, setName] = useState(rule?.name ?? '');
   const [description, setDescription] = useState(rule?.description ?? '');
   const [standardEntry, setStandardEntry] = useState(rule?.standardEntry ?? '08:00');
@@ -1327,7 +1327,7 @@ function AsoModal({ record, employees, onClose, onSave, saving }: {
           <label className="space-y-1 text-xs font-medium text-slate-600"><span>DATA VENCIMENTO</span><input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500"/></label>
           <label className="space-y-1 text-xs font-medium text-slate-600"><span>CLÍNICA</span><input value={clinic} onChange={e => setClinic(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500"/></label>
           <label className="space-y-1 text-xs font-medium text-slate-600"><span>MÉDICO</span><input value={doctor} onChange={e => setDoctor(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500"/></label>
-          <label className="sm:col-span-2 space-y-1 text-xs font-medium text-slate-600"><span>OBSERVAÇÃObservation(e.target.value)} rows={2} className="w-full rounded-[8px] border border-slate-200 px-3 py-2 text-sm outline-none focus:border-teal-500"/></label>
+          <label className="sm:col-span-2 space-y-1 text-xs font-medium text-slate-600"><span>OBSERVAÇÕES</span><textarea value={observation} onChange={e => setObservation(e.target.value)} rows={2} className="w-full rounded-[8px] border border-slate-200 px-3 py-2 text-sm outline-none focus:border-teal-500"/></label>
         </div>
         <div className="mt-5 flex justify-end gap-2">
           <button onClick={onClose} className="btn-outline h-10 rounded-[8px] px-4 text-xs font-bold">CANCELAR</button>

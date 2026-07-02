@@ -164,7 +164,7 @@ interface Dependent {
 
 type EmployeeFormState = CreateEmployeeInput & {
   accessEnabled: 'NO' | 'YES';
-  accessProfile: 'FUNCIONÁRIO' | 'GESTOR' | 'RH' | 'ADMIN' | 'CONSULTA';
+  accessProfile: 'FUNCIONARIO' | 'GESTOR' | 'RH' | 'ADMIN' | 'CONSULTA';
 };
 
 const EMPTY: EmployeeFormState = {
@@ -183,7 +183,7 @@ const EMPTY: EmployeeFormState = {
   standardEntry: '', standardLunchStart: '', standardLunchReturn: '', standardExit: '',
   bankName: '', bankAgency: '', bankAccount: '', bankAccountType: '',
   dependents: '',
-  accessEnabled: 'NO', accessProfile: 'FUNCIONÁRIO',
+  accessEnabled: 'NO', accessProfile: 'FUNCIONARIO',
 };
 
 export default function NewEmployeePage() {
@@ -272,7 +272,7 @@ function EmployeeForm() {
           bankAccountType: emp.bankAccountType ?? '',
           dependents: emp.dependents ?? '',
           accessEnabled: emp.userId ? 'YES' : 'NO',
-          accessProfile: (emp.user?.role === 'ADMIN' || emp.user?.role === 'RH' || emp.user?.role === 'GESTOR' || emp.user?.role === 'CONSULTA' || emp.user?.role === 'FUNCIONÁRIO',
+          accessProfile: (emp.user?.role === 'ADMIN' || emp.user?.role === 'RH' || emp.user?.role === 'GESTOR' || emp.user?.role === 'CONSULTA' || emp.user?.role === 'FUNCIONARIO') ? emp.user.role : 'FUNCIONARIO',
         });
         if (emp.dependents) {
           try {
@@ -585,7 +585,7 @@ function EmployeeForm() {
               </>
             )}
             <Select label="Permitir acesso ao painel" value={form.accessEnabled} onChange={(v) => set('accessEnabled', v as 'NO' | 'YES')} options={[{ value: 'NO', label: 'Não' }, { value: 'YES', label: 'Sim' }]} />
-            <Select label="Perfil de acesso" value={form.accessProfile} onChange={(v) => set('accessProfile', v as EmployeeFormState['accessProfile'])} options={[{ value: 'FUNCIONÁRIO', label: 'Funcionário' }, { value: 'GESTOR', label: 'Gestor' }, { value: 'RH', label: 'RH' }, { value: 'ADMIN', label: 'Administrador' }, { value: 'CONSULTA', label: 'Consulta' }]} />
+            <Select label="Perfil de acesso" value={form.accessProfile} onChange={(v) => set('accessProfile', v as EmployeeFormState['accessProfile'])} options={[{ value: 'FUNCIONARIO', label: 'Funcionário' }, { value: 'GESTOR', label: 'Gestor' }, { value: 'RH', label: 'RH' }, { value: 'ADMIN', label: 'Administrador' }, { value: 'CONSULTA', label: 'Consulta' }]} />
             <p className="sm:col-span-2 rounded-[6px] border border-slate-200 bg-slate-50 px-3 py-1.5 text-[11px] font-semibold text-slate-500">
               O acesso ao painel será ligado ao módulo de usuários. Este cadastro já deixa os dados do colaborador prontos para vínculo.
             </p>

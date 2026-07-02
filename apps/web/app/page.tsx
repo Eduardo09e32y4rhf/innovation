@@ -210,7 +210,7 @@ export default function Home() {
 
                 <div className="mt-6 space-y-3">
                   <MiniRow title="Fechamento do período" detail="Fluxo pronto para revisão e exportação." />
-                  <MiniRow title="Ocorrências priorizadas por criticidade." />
+                  <MiniRow title="Ocorrências do ponto" detail="Pendências priorizadas por criticidade." />
                   <MiniRow title="Notificações da equipe" detail="Central organizada para comunicação interna." />
                 </div>
               </div>
@@ -294,7 +294,7 @@ export default function Home() {
                     </span>
                   </div>
                   <p className="mt-3 text-sm font-medium leading-7 text-slate-300">
-                    Estrutura pensaída para comunicar valor com mais sofisticação e menos esforço.
+                    Estrutura pensada para comunicar valor com mais sofisticação e menos esforço.
                   </p>
                 </article>
               ))}
@@ -310,7 +310,7 @@ export default function Home() {
                   Próximo passo
                 </p>
                 <h2 className="mt-4 text-3xl font-black tracking-tight text-white sm:text-4xl">
-                  A landing que representa a marca precisaídade.
+                  A landing que representa a marca precisa abrir com autoridade.
                 </h2>
                 <p className="mt-4 max-w-2xl text-sm font-medium leading-7 text-slate-300">
                   Esta versão já entrega isso: visual premium, mensagem clara, foco em RH e CTA

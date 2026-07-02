@@ -110,7 +110,7 @@ function ConnectionPanel({
           <li>1. Abra o WhatsApp no celular da empresa.</li>
           <li>2. Va em Aparelhos conectados e toque em Conectar aparelho.</li>
           <li>3. Aponte a camera para o QR Code ao lado.</li>
-          <li>4. A sessaída aqui.</li>
+          <li>4. A sessao fica salva ate ser desconectada aqui.</li>
         </ol>
       </div>
 
@@ -179,7 +179,7 @@ function ChatList({
         )}
         {error && <p className="px-4 py-6 text-center text-xs text-rose-600">{error}</p>}
         {!loading && !error && chats.length === 0 && (
-          <p className="px-4 py-6 text-center text-xs text-slate-400">Nenhuma conversaída.</p>
+          <p className="px-4 py-6 text-center text-xs text-slate-400">Nenhuma conversa ainda.</p>
         )}
         {chats.map((chat) => (
           <button
@@ -235,7 +235,7 @@ function ChatThread({ chat }: { chat: Chat | null }) {
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messaídata]);
+  }, [messages.data]);
 
   if (!chat) {
     return (
@@ -264,11 +264,11 @@ function ChatThread({ chat }: { chat: Chat | null }) {
       </div>
 
       <div className="min-h-0 flex-1 space-y-2 overflow-y-auto bg-slate-50/60 px-4 py-4">
-        {messaídata ?? []).length === 0 && (
+        {messages.loading && (messages.data ?? []).length === 0 && (
           <p className="py-6 text-center text-xs text-slate-400">Carregando mensagens...</p>
         )}
         {messages.error && <p className="py-6 text-center text-xs text-rose-600">{messages.error}</p>}
-        {(messaídata ?? []).map((msg) => {
+        {(messages.data ?? []).map((msg) => {
           const fromMe = msg.sender === 'bot';
           return (
             <div key={msg.id} className={`flex ${fromMe ? 'justify-end' : 'justify-start'}`}>

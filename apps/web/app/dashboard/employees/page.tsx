@@ -81,12 +81,12 @@ export default function EmployeesPage() {
     }
   }
 
-  async function handleDownloadOcorrências(employee: Employee) {
+  async function handleDownloadOcorrencias(employee: Employee) {
     const month = currentMonth();
     setDownloadingId(employee.id);
     try {
       const rows = await api.timeTrack.listEmployeeMonth(employee.id, month);
-      downloadEmployeeOcorrênciasSheet(employee, rows, month, company.data ?? null, managerById.get(employee.managerId ?? '') ?? '');
+      downloadEmployeeOcorrenciasSheet(employee, rows, month, company.data ?? null, managerById.get(employee.managerId ?? '') ?? '');
     } catch {
       window.alert('Não foi possível baixar a ficha de ocorrências deste funcionário.');
     } finally {
@@ -182,7 +182,7 @@ export default function EmployeesPage() {
       ) : error ? (
         <ErrorState message={error} onRetry={refetch} />
       ) : employees.length === 0 ? (
-        <EmptyState messaídastrado. Clique em Novo para começar.'} />
+        <EmptyState message={isGestor ? 'Nenhum funcionário na sua equipe.' : 'Nenhum funcionário cadastrado. Clique em Novo para começar.'} />
       ) : filteredEmployees.length === 0 ? (
         <EmptyState message="Nenhum funcionário encontrado para a pesquisa." />
       ) : (
@@ -238,7 +238,7 @@ export default function EmployeesPage() {
                                     <Download size={12} strokeWidth={2.5} />
                                     Folha
                                   </button>
-                                  <button onClick={() => handleDownloadOcorrências(employee)} disabled={downloadingId === employee.id || company.loading} className="btn-outline-premium inline-flex h-8 items-center gap-1.5 rounded-[6px] px-2.5 text-[11px] font-black disabled:opacity-50 transition-all hover:-translate-y-0.5">
+                                  <button onClick={() => handleDownloadOcorrencias(employee)} disabled={downloadingId === employee.id || company.loading} className="btn-outline-premium inline-flex h-8 items-center gap-1.5 rounded-[6px] px-2.5 text-[11px] font-black disabled:opacity-50 transition-all hover:-translate-y-0.5">
                                     <AlertTriangle size={12} strokeWidth={2.5} />
                                     Ocorrências
                                   </button>
@@ -581,7 +581,7 @@ function downloadEmployeeSheet(employee: Employee, rows: TimeTrack[], month: str
   printPdf(html, `folha-ponto-${slugify(employee.name)}-${month}.pdf`);
 }
 
-function downloadEmployeeOcorrênciasSheet(employee: Employee, rows: TimeTrack[], month: string, company: Company | null, managerName: string) {
+function downloadEmployeeOcorrenciasSheet(employee: Employee, rows: TimeTrack[], month: string, company: Company | null, managerName: string) {
   const monthLabelText = monthLabelFn(month);
   const grid = buildGrid(month, employee, rows);
   

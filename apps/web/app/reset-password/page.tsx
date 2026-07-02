@@ -56,10 +56,10 @@ function ResetPasswordForm() {
       if (res.valid && res.resetToken) {
         setResetToken(res.resetToken);
         setError('');
-        setMessaídados com sucesso! Agora, crie sua nova senha.');
+        setMessage('Dados validados com sucesso! Agora, crie sua nova senha.');
       }
     } catch (err) {
-      setError(err instanceof Error ? err.messaídados.');
+      setError(err instanceof Error ? err.message : 'Não foi possível validar os dados.');
     } finally {
       setLoading(false);
     }
@@ -76,7 +76,7 @@ function ResetPasswordForm() {
     setLoading(true);
     try {
       await api.auth.resetPassword(resetToken, password);
-      setMessaída com sucesso. Redirecionando para o login...');
+      setMessage('Senha redefinida com sucesso. Redirecionando para o login...');
       setTimeout(() => {
         router.push('/login');
       }, 3000);

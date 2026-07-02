@@ -9,9 +9,9 @@ import { api, type AppUser, type CreateUserInput, type UserRole } from '@/app/li
 import { ROLE_LABEL } from '@/app/lib/format';
 import { normalizeDisplayName } from '@/app/lib/text';
 
-const ALL_ROLES: UserRole[] = ['DEV', 'COMERCIAL', 'ADMIN', 'RH', 'GESTOR', 'FUNCIONÁRIO', 'CONSULTA'];
-const COMPANY_ROLES: UserRole[] = ['ADMIN', 'RH', 'GESTOR', 'FUNCIONÁRIO', 'CONSULTA'];
-const RH_ROLES: UserRole[] = ['RH', 'GESTOR', 'FUNCIONÁRIO', 'CONSULTA'];
+const ALL_ROLES: UserRole[] = ['DEV', 'COMERCIAL', 'ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'];
+const COMPANY_ROLES: UserRole[] = ['ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'];
+const RH_ROLES: UserRole[] = ['RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'];
 const PLATFORM_OWNER_EMAIL = 'eduardo998468@gmail.com';
 
 type UserForm = CreateUserInput & { isActive?: boolean };
@@ -42,7 +42,7 @@ export default function UsersPage() {
   });
 
   const rows = users.data ?? [];
-  const isFull = usaídata.max : false;
+  const isFull = usage.data ? usage.data.used >= usage.data.max : false;
 
   async function handleDelete(user: AppUser) {
     if (!canManageRow(currentRole, user.role)) return;
@@ -56,9 +56,9 @@ export default function UsersPage() {
         <div>
           <p className="text-[11px] font-black uppercase tracking-[0.2em] text-teal-600">Usuários</p>
           <h2 className="text-2xl font-black text-slate-950">Permissões de acesso</h2>
-          {usaídata && (
+          {usage.data && (
             <p className="mt-1 text-xs text-slate-500">
-              {usaídata.max} usuários
+              {usage.data.used} de {usage.data.max} usuários
               {isFull && <span className="ml-1 font-bold text-amber-600">- limite atingido</span>}
             </p>
           )}
@@ -82,7 +82,7 @@ export default function UsersPage() {
       ) : users.error ? (
         <ErrorState message={users.error} onRetry={users.refetch} />
       ) : rows.length === 0 ? (
-        <EmptyState messaídastrado." />
+        <EmptyState message="Nenhum usuário cadastrado." />
       ) : (
         <section className="ops-card overflow-hidden rounded-[8px] border border-slate-200 bg-white">
           <div className="overflow-x-auto p-5">
@@ -163,7 +163,7 @@ function UserModal({ user, availableRoles, onClose, onDone }: { user?: AppUser; 
     name: user?.name ?? '',
     email: user?.email ?? '',
     password: '',
-    role: user?.role ?? (availableRoles.includes('FUNCIONÁRIO'),
+    role: user?.role ?? (availableRoles.includes('FUNCIONARIO') ? 'FUNCIONARIO' : availableRoles[0] ?? 'FUNCIONARIO'),
     isActive: user ? user.isActive ?? true : undefined,
   });
   const save = useMutation(() => {
