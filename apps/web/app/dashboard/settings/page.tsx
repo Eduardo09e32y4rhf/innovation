@@ -368,24 +368,33 @@ function ImportExportSection() {
       }
 
       // Import employees one by one
+      // OPTIMIZATION: Chunked concurrent requests instead of sequential loop
+      // IMPACT: Reduces import time by processing multiple rows in parallel (batches of 10)
       let imported = 0;
       let errors = 0;
-      for (const row of result.rows) {
-        try {
-          await api.employees.create({
-            name: row['Nome'] || row['name'] || '',
-            cpf: row['CPF'] || row['cpf'] || '',
-            email: row['Email'] || row['email'] || '',
-            position: row['Cargo'] || row['position'] || '',
-            department: row['Departamento'] || row['department'] || '',
-            admissionDate: row['Admissão'] || row['admissionDate'] || new Date().toISOString(),
-            registration: row['Matrícula'] || row['registration'] || undefined,
-            phone: row['Telefone'] || row['phone'] || undefined,
-          });
-          imported++;
-        } catch {
-          errors++;
-        }
+
+      const CHUNK_SIZE = 10;
+      for (let i = 0; i < result.rows.length; i += CHUNK_SIZE) {
+        const chunk = result.rows.slice(i, i + CHUNK_SIZE);
+        await Promise.all(
+          chunk.map(async (row) => {
+            try {
+              await api.employees.create({
+                name: row['Nome'] || row['name'] || '',
+                cpf: row['CPF'] || row['cpf'] || '',
+                email: row['Email'] || row['email'] || '',
+                position: row['Cargo'] || row['position'] || '',
+                department: row['Departamento'] || row['department'] || '',
+                admissionDate: row['Admissão'] || row['admissionDate'] || new Date().toISOString(),
+                registration: row['Matrícula'] || row['registration'] || undefined,
+                phone: row['Telefone'] || row['phone'] || undefined,
+              });
+              imported++;
+            } catch {
+              errors++;
+            }
+          })
+        );
       }
 
       employees.refetch();
