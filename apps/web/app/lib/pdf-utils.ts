@@ -18,7 +18,7 @@ export type PdfOptions = {
 
 function buildBaseStyles(landscape = false) {
   const pageSize = landscape ? 'A4 landscape' : 'A4';
-  const margin = landscape ? '8mm 10mm' : '10mm 10mm';
+  const margin = landscape ? '5mm 10mm' : '5mm 10mm';
 
   return `
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
@@ -45,8 +45,8 @@ function buildBaseStyles(landscape = false) {
       font-family: 'Inter', -apple-system, sans-serif; 
       color: #1e293b; /* slate-800 */
       background: #fff; 
-      font-size: 8.5pt; 
-      line-height: 1.4; 
+      font-size: 8pt; 
+      line-height: 1.25; 
     }
     
     .page { width: 100%; }
@@ -60,7 +60,7 @@ export function buildPdfShell(options: PdfOptions, company: PdfCompanyInfo | nul
   const styles = buildBaseStyles(options.landscape);
 
   const header = `
-    <div style="display:flex;align-items:flex-start;justify-content:space-between;border-bottom:2px solid #e2e8f0;padding-bottom:10px;margin-bottom:16px;page-break-inside:avoid;">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;border-bottom:2px solid #e2e8f0;padding-bottom:6px;margin-bottom:8px;page-break-inside:avoid;">
       <div style="display:flex;align-items:center;gap:12px;">
         ${company?.logoUrl
           ? `<div style="width:40px;height:40px;display:flex;align-items:center;justify-content:center;"><img src="${escapeAttr(company.logoUrl)}" alt="Logo" style="max-width:40px;max-height:40px;object-fit:contain;" /></div>`
@@ -83,7 +83,7 @@ export function buildPdfShell(options: PdfOptions, company: PdfCompanyInfo | nul
   `;
 
   const footer = `
-    <div style="margin-top:20px;border-top:1px solid #e2e8f0;padding-top:8px;display:flex;justify-content:space-between;color:#94a3b8;font-size:7.5px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">
+    <div style="margin-top:10px;border-top:1px solid #e2e8f0;padding-top:8px;display:flex;justify-content:space-between;color:#94a3b8;font-size:7.5px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">
       <span>INNOVATION RH CONNECT</span>
       <span>DOCUMENTO COM VALIDADE LEGAL - GERADO ELETRONICAMENTE</span>
       <span class="page-number"></span>
@@ -107,11 +107,11 @@ export function buildPdfShell(options: PdfOptions, company: PdfCompanyInfo | nul
 
 export function section(title: string, content: string) {
   return `
-    <div class="print-section" style="margin-bottom:12px;border:1px solid #e2e8f0;border-radius:6px;overflow:hidden;page-break-inside:avoid;">
-      <div style="background:#f8fafc;border-bottom:1px solid #e2e8f0;color:#334155;padding:6px 12px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;">
+    <div class="print-section" style="margin-bottom:6px;border:1px solid #e2e8f0;border-radius:6px;overflow:hidden;page-break-inside:avoid;">
+      <div style="background:#f8fafc;border-bottom:1px solid #e2e8f0;color:#334155;padding:4px 8px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;">
         ${escapeHtml(title)}
       </div>
-      <div style="padding:10px 12px;">${content}</div>
+      <div style="padding:6px 8px;">${content}</div>
     </div>
   `;
 }
@@ -131,7 +131,7 @@ export function pdfTable(headers: string[], rows: string[], options?: { zebra?: 
   const headerBg = options?.headerBg ?? '#f1f5f9';
   const headerColor = options?.headerColor ?? '#475569';
   const fontSize = options?.fontSize ?? '8px';
-  const paddingY = options?.compact ? '3px' : '6px';
+  const paddingY = options?.compact ? '1.5px' : '4px';
   
   const thead = headers.map(h => `<th style="padding:${paddingY} 8px;text-align:left;font-size:7.5px;font-weight:700;text-transform:uppercase;color:${headerColor};border-bottom:2px solid #cbd5e1;letter-spacing:0.05em;">${escapeHtml(h)}</th>`).join('');
   const tbody = rows.map((r, i) => {
@@ -149,9 +149,9 @@ export function pdfTable(headers: string[], rows: string[], options?: { zebra?: 
 export function signatureBlock(lines: string[]) {
   const cols = lines.map(line => `
     <div style="text-align:center;page-break-inside:avoid;width:100%;">
-      <div style="border-top:1px solid #cbd5e1;padding-top:6px;margin-top:28px;font-size:9px;font-weight:600;color:#334155;">${escapeHtml(line)}</div>
+      <div style="border-top:1px solid #cbd5e1;padding-top:6px;margin-top:16px;font-size:9px;font-weight:600;color:#334155;">${escapeHtml(line)}</div>
     </div>`).join('');
-  return `<div style="display:flex;justify-content:space-between;gap:32px;margin-top:20px;padding:0 12px;">${cols}</div>`;
+  return `<div style="display:flex;justify-content:space-between;gap:32px;margin-top:10px;padding:0 12px;">${cols}</div>`;
 }
 
 export function printPdf(html: string, title: string) {

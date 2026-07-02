@@ -227,18 +227,24 @@ export default function TimeTrackPage() {
         </div>
         <div className="flex flex-wrap gap-2">
           <Link href="/dashboard/time-track/clock-in" className="crystal-button inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black text-white"><Clock3 size={14}/> BATER PONTO</Link>
-          {(canManage||isGestor) && <button onClick={() => downloadCollectiveSheet(month, visible, byEmpMap, company.data || null, holidays.data || [])} disabled={refreshing || visible.length === 0} className="btn-outline-premium inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black"><FileText size={14}/> FOLHA COLETIVA</button>}
+          {(canManage||isGestor) && <button onClick={() => downloadCollectiveSheet(month, visible, byEmpMap, company.data || null, holidays.data || [])} disabled={refreshing || visible.length === 0} className="btn-outline-premium inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black"><FileText size={14}/> FOLHAS DE PONTO</button>}
           {canManage && <button onClick={()=>setOpen(true)} disabled={refreshing} className="crystal-button inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black text-white"><Edit3 size={14}/> LANÇAR PONTO</button>}
         </div>
       </header>
 
       {canApprove && (pending.data ?? []).length > 0 && (
         <section className="rounded-[12px] border border-amber-200 bg-amber-50 p-4">
-          <h3 className="mb-3 text-sm font-black text-amber-900">PONTOS PENDENTES DE APROVAÃÃO ({(pending.data ?? []).length})</h3>
+          <h3 className="mb-3 text-sm font-black text-amber-900">PONTOS PENDENTES DE APROVAÇÃO ({(pending.data ?? []).length})</h3>
           {approveMut.error && <p className="mb-3 rounded-[8px] border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">{approveMut.error}</p>}
           <div className="space-y-2">{(pending.data ?? []).map(t=> (
             <div key={t.id} className="flex items-center justify-between rounded-[8px] border border-amber-200 bg-white px-4 py-3">
-              <div className="text-xs"><p className="font-bold text-slate-950">{normalizeDisplayName(t.employee?.name ??'-')}</p><p className="text-slate-500">{fmtDateFull(t.date)} - {t.manualReason ?? 'Lançamento manual'}</p></div>
+              <div className="text-xs">
+                  <p className="font-black text-slate-950">{normalizeDisplayName(t.employee?.name ??'-')}</p>
+                  <p className="text-slate-500 mt-0.5 flex items-center gap-2">
+                    <span className="font-semibold">{fmtDateFull(t.date)}</span>
+                    <span className="inline-flex items-center rounded-sm bg-slate-100 border border-slate-200 px-1.5 py-0.5 text-[9px] font-black text-slate-600">{REASONS.find(r => r.value === t.manualReason)?.label || t.manualReason || 'AJUSTE MANUAL'}</span>
+                  </p>
+                </div>
               <div className="flex gap-2">
                 <button onClick={()=>approveMut.mutate({id:t.id,approved:true}).catch(()=>{})} disabled={approveMut.loading} className="inline-flex h-8 items-center gap-1 rounded-[6px] bg-emerald-600 px-3 text-[11px] font-bold text-white disabled:opacity-60"><Check size={12}/>APROVAR</button>
                 <button onClick={()=>approveMut.mutate({id:t.id,approved:false}).catch(()=>{})} disabled={approveMut.loading} className="inline-flex h-8 items-center gap-1 rounded-[6px] bg-rose-600 px-3 text-[11px] font-bold text-white disabled:opacity-60"><XCircle size={12}/>RECUSAR</button>
@@ -321,7 +327,7 @@ export default function TimeTrackPage() {
   );
 }
 
-// --- Folha Coletiva de Ponto ---
+// --- FOLHA DE PONTO ---
 
 function monthLabelFn(month: string) {
   if (!month) return 'Período completo';
@@ -366,7 +372,7 @@ function downloadCollectiveSheet(month: string, visibleEmployees: Employee[], by
       const dateStr = `${String(g.day).padStart(2,'0')} - ${wd}`;
 
       if (g.isFuture) {
-        return `<tr><td style="padding:4px 8px;font-size:8px;color:#cbd5e1;">${dateStr}</td><td colspan="8" style="padding:4px 8px;font-size:8px;color:#cbd5e1;text-align:center;">â</td></tr>`;
+        return `<tr><td style="padding:4px 8px;font-size:8px;color:#cbd5e1;">${dateStr}</td><td colspan="8" style="padding:4px 8px;font-size:8px;color:#cbd5e1;text-align:center;">-</td></tr>`;
       }
       if (g.antesAdmissao || g.depoisDemissao) {
         return `<tr><td style="padding:4px 8px;font-size:8px;color:#94a3b8;">${dateStr}</td><td colspan="8" style="padding:4px 8px;font-size:8px;color:#94a3b8;text-align:center;">${g.antesAdmissao ? 'ANTES DA ADMISSÃO' : 'APÃS DEMISSÃO'}</td></tr>`;
@@ -435,7 +441,7 @@ function downloadCollectiveSheet(month: string, visibleEmployees: Employee[], by
     return empHtml + (index < visibleEmployees.length - 1 ? '<div style="page-break-after: always;"></div>' : '');
   }).join('');
 
-  const html = buildPdfShell({ title: 'Folha Coletiva de Ponto', subtitle, landscape: false }, companyData || null, blocks);
+  const html = buildPdfShell({ title: 'FOLHA DE PONTO', subtitle, landscape: false }, companyData || null, blocks);
   printPdf(html, `folha-coletiva-${month}.pdf`);
 }
 
@@ -455,7 +461,7 @@ function OcorrenciasList({ employees, byEmpMap, month, onSelect }: { employees: 
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-gradient-to-br from-rose-500 to-pink-600 text-sm font-black text-white">{normalizeDisplayName(e.name).charAt(0).toUpperCase()}</div>
                 <div>
                   <p className="text-sm font-black text-slate-950">{normalizeDisplayName(e.name)}</p>
-                  <p className="text-[10px] font-semibold text-rose-600">{ocorrenciasCount} OCORRÃNCIA(S) â¢ {e.department || '-'}</p>
+                  <p className="text-[10px] font-semibold text-rose-600">{ocorrenciasCount} OCORRÃNCIA(S) -¢ {e.department || '-'}</p>
                 </div>
               </div>
               <button onClick={()=>onSelect(e.id)} className="btn-outline inline-flex h-8 items-center gap-1.5 rounded-[6px] px-3 text-[10px] font-black"><CalendarDays size={12}/> VER</button>
