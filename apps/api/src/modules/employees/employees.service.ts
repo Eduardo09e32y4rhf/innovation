@@ -15,24 +15,24 @@ export class EmployeesService {
 
   async list(companyId: string, actor: JwtUser) {
     if (actor.role === 'ADMIN' || actor.role === 'RH' || actor.role === 'DEV' || actor.role === 'CONSULTA') {
-      return this.repository.list(companyId);
+      return (await this.repository.list(companyId)).filter((employee) => this.canAccessEmployee(actor, employee));
     }
     if (actor.role === 'GESTOR') {
       const managerEmployee = await this.repository.findByUserId(companyId, actor.sub, actor.email);
-      if (!managerEmployee) return [];
+      if (!managerEmployee || !this.canAccessEmployee(actor, managerEmployee)) return [];
       const team = await this.repository.listByManager(companyId, managerEmployee.id);
-      return [managerEmployee, ...team.filter((employee) => employee.id !== managerEmployee.id)];
+      return [managerEmployee, ...team.filter((employee) => employee.id !== managerEmployee.id && this.canAccessEmployee(actor, employee))];
     }
     if (actor.role === 'FUNCIONARIO') {
       const employee = await this.repository.findByUserId(companyId, actor.sub, actor.email);
-      return employee ? [employee] : [];
+      return employee && this.canAccessEmployee(actor, employee) ? [employee] : [];
     }
     return [];
   }
 
-  async get(companyId: string, id: string) {
+  async get(companyId: string, actor: JwtUser, id: string) {
     const employee = await this.repository.findById(companyId, id);
-    if (!employee) throw new NotFoundException('Employee not found');
+    if (!this.canAccessEmployee(actor, employee)) throw new NotFoundException('Employee not found');
     return employee;
   }
 
@@ -46,7 +46,8 @@ export class EmployeesService {
     return this.get(companyId, employee.id);
   }
 
-  async update(companyId: string, id: string, dto: UpdateEmployeeDto) {
+  async update(companyId: string, actor: JwtUser, id: string, dto: UpdateEmployeeDto) {
+    await this.get(companyId, actor, id);
     if (dto.cpf) {
       const existing = await this.repository.findByCpf(dto.cpf);
       if (existing && existing.id !== id) throw new ConflictException('CPF already registered');
@@ -55,18 +56,20 @@ export class EmployeesService {
     
     const result = await this.repository.update(companyId, id, this.toData(dto));
     if (!result.count) throw new NotFoundException('Employee not found');
-    const employee = await this.get(companyId, id);
+    const employee = await this.get(companyId, actor, id);
     await this.syncPanelAccess(companyId, employee, dto);
-    return this.get(companyId, id);
+    return this.get(companyId, actor, id);
   }
 
-  async terminate(companyId: string, id: string) {
+  async terminate(companyId: string, actor: JwtUser, id: string) {
+    await this.get(companyId, actor, id);
     const result = await this.repository.update(companyId, id, { status: 'TERMINATED' });
     if (!result.count) throw new NotFoundException('Employee not found');
-    return this.get(companyId, id);
+    return this.get(companyId, actor, id);
   }
 
-  async delete(companyId: string, id: string) {
+  async delete(companyId: string, actor: JwtUser, id: string) {
+    await this.get(companyId, actor, id);
     const result = await this.repository.delete(companyId, id);
     if (!result.count) throw new NotFoundException('Employee not found');
     return { deleted: true };
@@ -128,6 +131,12 @@ export class EmployeesService {
     await this.repository.updateUserLink(companyId, employee.id, user.id);
   }
 
+
+  private canAccessEmployee(actor: JwtUser, employee?: { user?: { role?: string } | null } | null) {
+    if (!employee) return false;
+    if (actor.role === 'DEV') return true;
+    return String(employee.user?.role || '').toUpperCase() !== 'DEV';
+  }
   private resolveAccessRole(role?: string): UserRole {
     if (role && EMPLOYEE_ACCESS_ROLES.includes(role as UserRole)) return role as UserRole;
     return 'FUNCIONARIO';

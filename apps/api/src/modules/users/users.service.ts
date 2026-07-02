@@ -1,4 +1,4 @@
-﻿import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import type { JwtUser } from '../../common/types/auth.types';
 import { normalizeDisplayName } from '../../common/utils/text-normalization';
@@ -12,13 +12,14 @@ const PLATFORM_OWNER_EMAIL = 'eduardo998468@gmail.com';
 export class UsersService {
   constructor(private readonly repository: UsersRepository) {}
 
-  list(companyId: string) {
-    return this.repository.list(companyId);
+  async list(companyId: string, actor: JwtUser) {
+    const users = await this.repository.list(companyId);
+    return this.filterRestrictedUsers(users, actor);
   }
 
-  async get(companyId: string, id: string) {
+  async get(companyId: string, actor: JwtUser, id: string) {
     const user = await this.repository.findById(companyId, id);
-    if (!user) throw new NotFoundException('Usuario nao encontrado');
+    if (!this.canAccessUser(actor, user)) throw new NotFoundException('Usuario nao encontrado');
     return user;
   }
 
@@ -51,6 +52,7 @@ export class UsersService {
 
   async update(companyId: string, actor: JwtUser, id: string, dto: UpdateUserDto) {
     this.assertRoleChangeAllowed(actor, dto.role);
+    await this.get(companyId, actor, id);
 
     const { password, name, email, ...rest } = dto;
     const data = {
@@ -61,10 +63,11 @@ export class UsersService {
     };
     const result = await this.repository.update(companyId, id, data);
     if (!result.count) throw new NotFoundException('Usuario nao encontrado');
-    return this.get(companyId, id);
+    return this.get(companyId, actor, id);
   }
 
-  async delete(companyId: string, id: string) {
+  async delete(companyId: string, actor: JwtUser, id: string) {
+    await this.get(companyId, actor, id);
     const result = await this.repository.delete(companyId, id);
     if (!result.count) throw new NotFoundException('Usuario nao encontrado');
     return { deleted: true };
@@ -93,4 +96,15 @@ export class UsersService {
       throw new ForbiddenException('Perfil sem permissao para alterar usuarios.');
     }
   }
-}
+
+  private canAccessUser(actor: JwtUser, user?: { role?: string } | null) {
+    if (!user) return false;
+    if (actor.role === 'DEV') return true;
+    return String(user.role || '').toUpperCase() !== 'DEV';
+  }
+
+  private filterRestrictedUsers(users: Array<{ role?: string }>, actor: JwtUser) {
+    if (actor.role === 'DEV') return users;
+    return users.filter((user) => String(user.role || '').toUpperCase() !== 'DEV');
+  }}
+

@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import type { UserRole } from '../../common/types/auth.types';
 import { PrismaService } from '../../database/prisma.service';
 
 type EmployeeSummary = {
@@ -6,6 +7,7 @@ type EmployeeSummary = {
   name: string;
   department: string | null;
   status: string;
+  user?: { role: UserRole } | null;
 };
 
 type TrackWithEmployee = {
@@ -43,6 +45,7 @@ export class TimeTrackRepository {
     name: true,
     department: true,
     status: true,
+    user: { select: { role: true } },
   } as const;
 
   private readonly trackSelect = {
@@ -227,7 +230,10 @@ export class TimeTrackRepository {
   }
 
   findEmployee(companyId: string, employeeId: string) {
-    return this.prisma.employee.findFirst({ where: { id: employeeId, companyId } });
+    return this.prisma.employee.findFirst({
+      where: { id: employeeId, companyId },
+      include: { user: { select: { role: true } } },
+    });
   }
 
   findEmployeeByUserId(companyId: string, userId: string, email?: string) {
@@ -240,6 +246,7 @@ export class TimeTrackRepository {
           ...(normalizedEmail ? [{ email: { equals: normalizedEmail, mode: 'insensitive' as const } }] : []),
         ],
       },
+      include: { user: { select: { role: true } } },
     });
   }
 
@@ -359,4 +366,6 @@ export class TimeTrackRepository {
     });
   }
 }
+
+
 

@@ -21,8 +21,8 @@ export class EmployeesController {
   }
 
   @Get(':id')
-  get(@CurrentCompany() companyId: string, @Param('id') id: string) {
-    return this.service.get(companyId, id);
+  get(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string) {
+    return this.service.get(companyId, actor, id);
   }
 
   @Roles('ADMIN', 'RH')
@@ -33,19 +33,20 @@ export class EmployeesController {
 
   @Roles('ADMIN', 'RH')
   @Patch(':id')
-  update(@CurrentCompany() companyId: string, @Param('id') id: string, @Body() dto: UpdateEmployeeDto) {
-    return this.service.update(companyId, id, dto);
+  update(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string, @Body() dto: UpdateEmployeeDto) {
+    return this.service.update(companyId, actor, id, dto);
   }
 
   @Roles('ADMIN', 'RH')
   @Delete(':id/permanent')
-  delete(@CurrentCompany() companyId: string, @Param('id') id: string) {
-    return this.service.delete(companyId, id);
+  delete(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string) {
+    return this.service.delete(companyId, actor, id);
   }
 
   @Roles('ADMIN', 'RH')
   @Delete(':id')
-  terminate(@CurrentCompany() companyId: string, @Param('id') id: string) {
-    return this.service.terminate(companyId, id);
+  terminate(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string) {
+    return this.service.terminate(companyId, actor, id);
   }
 }
+
