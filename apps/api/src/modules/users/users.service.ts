@@ -83,10 +83,10 @@ export class UsersService {
 
   private assertRoleChangeAllowed(actor: JwtUser, nextRole?: string) {
     if (!nextRole) return;
-    const actorRole = String(actor.role || '').toUpperCase();
+    const actorRole = String(actor?.role || '').toUpperCase();
     const protectedRoles = ['DEV', 'COMERCIAL'];
 
-    if (protectedRoles.includes(nextRole) && actor.email.toLowerCase() !== PLATFORM_OWNER_EMAIL) {
+    if (protectedRoles.includes(nextRole) && actor?.email.toLowerCase() !== PLATFORM_OWNER_EMAIL) {
       throw new ForbiddenException('Apenas o dono da plataforma pode criar ou promover Super Admin/Comercial.');
     }
     if (actorRole === 'RH' && ['ADMIN', 'DEV', 'COMERCIAL'].includes(nextRole)) {
@@ -99,12 +99,12 @@ export class UsersService {
 
   private canAccessUser(actor: JwtUser, user?: { role?: string } | null) {
     if (!user) return false;
-    if (actor.role === 'DEV') return true;
+    if (actor?.role === 'DEV') return true;
     return String(user.role || '').toUpperCase() !== 'DEV';
   }
 
   private filterRestrictedUsers(users: Array<{ role?: string }>, actor: JwtUser) {
-    if (actor.role === 'DEV') return users;
+    if (actor?.role === 'DEV') return users;
     return users.filter((user) => String(user.role || '').toUpperCase() !== 'DEV');
   }
 }
