@@ -2,6 +2,7 @@ import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import type { JwtUser } from '../../common/types/auth.types';
+import { RateLimit, RateLimitGuard } from '../../common/guards/rate-limit.guard';
 import { AuthService } from './auth.service';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { LoginDto } from './dto/login.dto';
@@ -18,6 +19,8 @@ export class AuthController {
     return this.service.registerCompany(dto);
   }
 
+  @UseGuards(RateLimitGuard)
+  @RateLimit({ window: 60, max: 5, prefix: 'login' })
   @Post('login')
   login(@Body() dto: LoginDto, @Req() request: any) {
     return this.service.login(dto, getRequestMeta(request));
