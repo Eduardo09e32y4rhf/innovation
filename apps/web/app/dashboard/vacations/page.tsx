@@ -237,6 +237,12 @@ export default function VacationsPage() {
             <button onClick={() => setTab('history')} className={`rounded-[8px] px-4 py-2 text-xs font-black transition-all ${tab === 'history' ? 'bg-white shadow-sm text-teal-700' : 'text-slate-500 hover:text-slate-700'}`}>
               Histórico ({historyRows.length})
             </button>
+            {canApprove && (
+              <button onClick={() => setTab('alerts')} className={`rounded-[8px] px-4 py-2 text-xs font-black transition-all flex items-center gap-1.5 ${tab === 'alerts' ? 'bg-white shadow-sm text-amber-600' : 'text-amber-600/70 hover:text-amber-600'}`}>
+                <AlertTriangle size={13} strokeWidth={3} />
+                Avisos ({alertEmployees.length})
+              </button>
+            )}
           </div>
           {/* Bulk actions */}
           {canApprove && tab === 'active' && selectedRows.length > 0 && (
