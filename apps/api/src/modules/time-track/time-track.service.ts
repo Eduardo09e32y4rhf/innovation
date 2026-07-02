@@ -68,13 +68,15 @@ export class TimeTrackService {
   async list(companyId: string, actor: JwtUser, month?: string) {
     const { start, end } = this.resolveMonth(month);
     if (actor.role === 'ADMIN' || actor.role === 'RH' || actor.role === 'DEV' || actor.role === 'CONSULTA') {
-      return this.repository.list(companyId, start, end);
+      const tracks = await this.repository.list(companyId, start, end);
+      return this.filterRestrictedTracks(tracks, actor);
     }
     if (actor.role === 'GESTOR') {
-      return this.repository.listForManager(companyId, actor.sub, actor.email, start, end);
+      const tracks = await this.repository.listForManager(companyId, actor.sub, actor.email, start, end);
+      return this.filterRestrictedTracks(tracks, actor);
     }
     const employee = await this.repository.findEmployeeByUserId(companyId, actor.sub, actor.email);
-    if (!employee) return [];
+    if (!employee || !this.canAccessEmployee(actor, employee)) return [];
     return this.repository.listForEmployee(companyId, employee.id, start, end);
   }
 
@@ -85,7 +87,7 @@ export class TimeTrackService {
   }
 
   async manual(companyId: string, actor: JwtUser, dto: ManualTimeTrackDto) {
-    const employee = await this.ensureEmployee(companyId, dto.employeeId);
+    const employee = await this.ensureCanAccessEmployee(companyId, actor, dto.employeeId);
     const date = this.toDateOnly(this.parseDate(dto.date, 'Invalid date'));
     this.validateEmployeeDateRange(employee, date);
     if (dto.reason.includes('abono')) {
@@ -219,8 +221,14 @@ export class TimeTrackService {
   }
 
   async listPending(companyId: string, actor: JwtUser) {
-    if (actor.role === 'ADMIN' || actor.role === 'RH' || actor.role === 'DEV') return this.repository.listPending(companyId);
-    if (actor.role === 'GESTOR') return this.repository.listPendingForManager(companyId, actor.sub, actor.email);
+    if (actor.role === 'ADMIN' || actor.role === 'RH' || actor.role === 'DEV') {
+      const tracks = await this.repository.listPending(companyId);
+      return this.filterRestrictedTracks(tracks, actor);
+    }
+    if (actor.role === 'GESTOR') {
+      const tracks = await this.repository.listPendingForManager(companyId, actor.sub, actor.email);
+      return this.filterRestrictedTracks(tracks, actor);
+    }
     return [];
   }
 
@@ -388,6 +396,7 @@ export class TimeTrackService {
 
   private async ensureCanAccessEmployee(companyId: string, actor: JwtUser, employeeId: string) {
     const employee = await this.ensureEmployee(companyId, employeeId);
+    if (!this.canAccessEmployee(actor, employee)) throw new NotFoundException('Employee not found');
     if (actor.role === 'ADMIN' || actor.role === 'RH' || actor.role === 'DEV' || actor.role === 'CONSULTA') return employee;
     const sameEmail = Boolean(employee.email && actor.email && employee.email.toLowerCase() === actor.email.toLowerCase());
     if (employee.userId === actor.sub || sameEmail) return employee;
@@ -480,6 +489,17 @@ export class TimeTrackService {
     return { totalWorked, dailyBalance, overtime50Minutes, overtime100Minutes, nightShiftMinutes, incidentType };
   }
 
+
+  private canAccessEmployee(actor: JwtUser, employee?: { user?: { role?: string } | null } | null) {
+    if (!employee) return false;
+    if (actor.role === 'DEV') return true;
+    return String(employee.user?.role || '').toUpperCase() !== 'DEV';
+  }
+
+  private filterRestrictedTracks<T extends { employee?: { user?: { role?: string } | null } | null }>(tracks: T[], actor: JwtUser) {
+    if (actor.role === 'DEV') return tracks;
+    return tracks.filter((track) => this.canAccessEmployee(actor, track.employee));
+  }
   private diffMinutes(start: Date, end: Date) {
     return Math.round((end.getTime() - start.getTime()) / 60000);
   }

@@ -17,7 +17,7 @@ const REASONS: { value: TimeTrackAdjustmentReason; label: string; fullDay?: bool
   { value:'ajuste_erro_marcacao', label:'AJUSTE - ERRO MARCAÇÃO', fullDay:false },
   { value:'ajuste_atestado_integral', label:'ATESTADO INTEGRAL', fullDay:true },
   { value:'ajuste_feriado', label:'FERIADO', fullDay:true },
-  { value:'ajuste_abono_atestado_horas', label:'ABONO - ATESTADO DE HORAS', fullDay:false },
+  { value:'ajuste_abono_atestado_horas', label:'ABONO - ATESTADO DE HORAS', fullDay:true },
   { value:'ajuste_folga_dsr', label:'FOLGA', fullDay:true },
   { value:'ajuste_abono_folga', label:'ABONO - FOLGA (BANCO)', fullDay:true },
   { value:'ajuste_abono_banco_saida_antecipada', label:'ABONO - BANCO SAÍDA ANTECIPADA', fullDay:true },
@@ -132,7 +132,7 @@ function dayStatus(row: TimeTrack, holidayName?: string) {
   const o = (row.observation ?? '').toLowerCase();
   if (o.includes('atestado integral')) return 'ATESTADO';
   if (o.includes('atestado') && o.includes('horas')) return 'ATESTADO (HORAS)';
-  if (o.includes('suspensao') || o.includes('suspensÃ£o')) return 'SUSPENSÃO';
+  if (o.includes('suspensao') || o.includes('suspensão')) return 'SUSPENSÃO';
   if (o.includes('feriado') || holidayName) return 'FERIADO';
   if (o.includes('folga extra')) return 'FOLGA EXTRA';
   if (o.includes('folga banco')) return 'FOLGA BANCO';
@@ -142,7 +142,7 @@ function dayStatus(row: TimeTrack, holidayName?: string) {
   if (r.includes('feriado')) return 'FERIADO';
   if (r.includes('folga dsr')) return 'FOLGA';
   if (row.incidentType === 'atraso') return 'ATRASO';
-  if (row.incidentType === 'saida_antecipada') return 'saÃ­da ANTECIPADA';
+  if (row.incidentType === 'saida_antecipada') return 'saída ANTECIPADA';
   if (row.manualStatus==='pending') return 'PENDENTE';
   if (row.manualStatus==='rejected') return 'REJEITADO';
   if (row.manualReason || o.includes('ajuste')) return 'AJUSTE MANUAL';
@@ -152,7 +152,7 @@ function dayStatus(row: TimeTrack, holidayName?: string) {
 function isFalta(row: TimeTrack) {
   if (row.entry || row.exit) return false;
   const o = (row.observation ?? '').toLowerCase();
-  return !o.includes('atestado') && !o.includes('feriado') && !o.includes('folga') && !o.includes('suspensao') && !o.includes('suspensÃ£o');
+  return !o.includes('atestado') && !o.includes('feriado') && !o.includes('folga') && !o.includes('suspensao') && !o.includes('suspensão');
 }
 function sumMin(rows: TimeTrack[], f: 'totalWorked'|'dailyBalance') { return rows.reduce((a,r)=>a+(r[f]??0),0); }
 
@@ -175,7 +175,7 @@ export default function TimeTrackPage() {
   const [deptFilter, setDeptFilter] = useState('');
   const [tab, setTab] = useState<'ponto'|'ocorrencias'>('ponto');
 
-  const actives = useMemo(() => (employees.data ?? []).filter(e=>e.status==='ACTIVE').slice().sort((a,b)=>normalizeDisplayName(a.name).localeCompare(normalizeDisplayName(b.name),'pt-BR')), [employees.data]);
+  const actives = useMemo(() => (employees.data ?? []).filter(e=>e.status==='ACTIVE' && (profile === 'DEV' || e.user?.role !== 'DEV')).slice().sort((a,b)=>normalizeDisplayName(a.name).localeCompare(normalizeDisplayName(b.name),'pt-BR')), [employees.data, profile]);
   const depts = useMemo(() => [...new Set((employees.data ?? []).map(e=>e.department).filter(Boolean))].sort(), [employees.data]);
   const selected = isFunc ? actives[0] : actives.find(e=>e.id===empFilter);
   const byEmp = useMemo(() => (tracks.data ?? []).filter(r => {
@@ -190,6 +190,7 @@ export default function TimeTrackPage() {
     byEmpMap[r.employeeId].push(r);
   }
   const visible = useMemo(() => (employees.data ?? []).filter(e => {
+    if (profile !== 'DEV' && e.user?.role === 'DEV') return false;
     if (empFilter && e.id!==empFilter) return false;
     if (deptFilter && e.department!==deptFilter) return false;
     
@@ -237,7 +238,7 @@ export default function TimeTrackPage() {
           {approveMut.error && <p className="mb-3 rounded-[8px] border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">{approveMut.error}</p>}
           <div className="space-y-2">{(pending.data ?? []).map(t=> (
             <div key={t.id} className="flex items-center justify-between rounded-[8px] border border-amber-200 bg-white px-4 py-3">
-              <div className="text-xs"><p className="font-bold text-slate-950">{normalizeDisplayName(t.employee?.name ??'-')}</p><p className="text-slate-500">{fmtDateFull(t.date)} - {t.manualReason ?? 'LanÃ§amento manual'}</p></div>
+              <div className="text-xs"><p className="font-bold text-slate-950">{normalizeDisplayName(t.employee?.name ??'-')}</p><p className="text-slate-500">{fmtDateFull(t.date)} - {t.manualReason ?? 'Lançamento manual'}</p></div>
               <div className="flex gap-2">
                 <button onClick={()=>approveMut.mutate({id:t.id,approved:true}).catch(()=>{})} disabled={approveMut.loading} className="inline-flex h-8 items-center gap-1 rounded-[6px] bg-emerald-600 px-3 text-[11px] font-bold text-white disabled:opacity-60"><Check size={12}/>APROVAR</button>
                 <button onClick={()=>approveMut.mutate({id:t.id,approved:false}).catch(()=>{})} disabled={approveMut.loading} className="inline-flex h-8 items-center gap-1 rounded-[6px] bg-rose-600 px-3 text-[11px] font-bold text-white disabled:opacity-60"><XCircle size={12}/>RECUSAR</button>
@@ -250,7 +251,7 @@ export default function TimeTrackPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex gap-1 rounded-[8px] bg-slate-100 p-1">
           <button onClick={()=>setTab('ponto')} className={`rounded-[6px] px-4 py-2 text-xs font-black uppercase ${tab==='ponto'?'bg-white shadow-sm text-teal-700':'text-slate-500'}`}>Ponto</button>
-          <button onClick={()=>setTab('ocorrencias')} className={`rounded-[6px] px-4 py-2 text-xs font-black uppercase ${tab==='ocorrencias'?'bg-white shadow-sm text-teal-700':'text-slate-500'}`}>OcorrÃªncias</button>
+          <button onClick={()=>setTab('ocorrencias')} className={`rounded-[6px] px-4 py-2 text-xs font-black uppercase ${tab==='ocorrencias'?'bg-white shadow-sm text-teal-700':'text-slate-500'}`}>Ocorrências</button>
         </div>
         <div className="flex flex-wrap gap-2">
           {!isFunc && (
@@ -323,7 +324,7 @@ export default function TimeTrackPage() {
 // --- Folha Coletiva de Ponto ---
 
 function monthLabelFn(month: string) {
-  if (!month) return 'PerÃ­odo completo';
+  if (!month) return 'Período completo';
   const [year, monthNumber] = month.split('-').map(Number);
   if (!year || !monthNumber) return month;
   const date = new Date(year, monthNumber - 1, 1);
@@ -351,15 +352,15 @@ function downloadCollectiveSheet(month: string, visibleEmployees: Employee[], by
 
     const employeeInfo = [
       { label: 'Nome', value: normalizeDisplayName(employee.name) },
-      { label: 'MatrÃ­cula', value: employee.registration || '-' },
+      { label: 'Matrícula', value: employee.registration || '-' },
       { label: 'CPF', value: employee.cpf || '-' },
       { label: 'Cargo', value: employee.position || '-' },
       { label: 'Departamento', value: employee.department || '-' },
-      { label: 'AdmissÃ£o', value: employee.admissionDate ? new Date(employee.admissionDate).toLocaleDateString('pt-BR') : '-' },
-      { label: 'PerÃ­odo', value: subtitle },
+      { label: 'Admissão', value: employee.admissionDate ? new Date(employee.admissionDate).toLocaleDateString('pt-BR') : '-' },
+      { label: 'Período', value: subtitle },
     ];
 
-    const tableHeaders = ['Data', 'Entrada', 'SaÃ­da AlmoÃ§o', 'Retorno AlmoÃ§o', 'SaÃ­da', 'Trabalhado', 'Saldo', 'OcorrÃªncia', 'Assinatura DiÃ¡ria'];
+    const tableHeaders = ['Data', 'Entrada', 'Saída Almoço', 'Retorno Almoço', 'Saída', 'Trabalhado', 'Saldo', 'Ocorrência', 'Assinatura Diária'];
     const tableRows = grid.map((g) => {
       const wd = WEEKDAYS[g.wd];
       const dateStr = `${String(g.day).padStart(2,'0')} - ${wd}`;
@@ -399,7 +400,7 @@ function downloadCollectiveSheet(month: string, visibleEmployees: Employee[], by
     const empHtml = `
       ${section('Dados do Colaborador', infoGrid(employeeInfo, 4))}
       ${section('Registros de Ponto DiÃ¡rio', pdfTable(tableHeaders, tableRows, { compact: true }))}
-      ${section('Resumo do PerÃ­odo', `
+      ${section('Resumo do Período', `
         <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;">
           <div style="background:#f0fdfa;border:1px solid #ccfbf1;border-radius:8px;padding:12px;text-align:center;">
             <div style="font-size:8px;font-weight:800;text-transform:uppercase;color:#0f766e;letter-spacing:0.05em;">Dias Trabalhados</div>
@@ -428,7 +429,7 @@ function downloadCollectiveSheet(month: string, visibleEmployees: Employee[], by
           </span>
         </div>
       `)}
-      ${signatureBlock(['Assinatura do Colaborador', 'Assinatura do RH / ResponsÃ¡vel'])}
+      ${signatureBlock(['Assinatura do Colaborador', 'Assinatura do RH / Responsável'])}
     `;
 
     return empHtml + (index < visibleEmployees.length - 1 ? '<div style="page-break-after: always;"></div>' : '');
@@ -440,10 +441,10 @@ function downloadCollectiveSheet(month: string, visibleEmployees: Employee[], by
 
 function OcorrenciasList({ employees, byEmpMap, month, onSelect }: { employees: Employee[]; byEmpMap: Record<string,TimeTrack[]>; month: string; onSelect: (id:string)=>void }) {
   const withIssues = employees.filter(e => (byEmpMap[e.id] ?? []).some(t => isFalta(t) || t.incidentType === 'atraso' || t.incidentType === 'saida_antecipada' || (t.dailyBalance != null && t.dailyBalance < 0)));
-  if (withIssues.length===0) return <p className="text-center text-sm font-semibold text-slate-400 py-8">Nenhuma ocorrÃªncia no mÃªs.</p>;
+  if (withIssues.length===0) return <p className="text-center text-sm font-semibold text-slate-400 py-8">Nenhuma ocorrência no mês.</p>;
   return (
     <section className="overflow-hidden rounded-[14px] border border-slate-200 bg-white">
-      <div className="border-b border-slate-100 bg-amber-50/50 px-5 py-4"><h3 className="text-sm font-black text-amber-900">OCORRÊNCIAS DO MÃS</h3><p className="mt-1 text-xs text-amber-700">Atrasos, faltas e saÃ­das antecipadas.</p></div>
+      <div className="border-b border-slate-100 bg-amber-50/50 px-5 py-4"><h3 className="text-sm font-black text-amber-900">OCORRÊNCIAS DO MÃS</h3><p className="mt-1 text-xs text-amber-700">Atrasos, faltas e saídas antecipadas.</p></div>
       <div className="divide-y divide-slate-100">
         {withIssues.map(e=> {
           const rows = byEmpMap[e.id] ?? [];
@@ -514,7 +515,7 @@ function MonthGrid({ employee, tracks, month, canManage, canApprove, refreshing,
               <th className="px-3 py-2 w-[16%] border-b border-slate-200">DATA</th>
               <th className="px-3 py-2 w-[9%] border-b border-slate-200">ENTRADA</th>
               <th className="px-3 py-2 w-[11%] border-b border-slate-200">ALMOÃO</th>
-              <th className="px-3 py-2 w-[9%] border-b border-slate-200">saÃ­da</th>
+              <th className="px-3 py-2 w-[9%] border-b border-slate-200">saída</th>
               <th className="px-3 py-2 w-[9%] border-b border-slate-200">TRAB</th>
               <th className="px-3 py-2 w-[9%] border-b border-slate-200">SALDO</th>
               <th className="px-3 py-2 w-[8%] border-b border-slate-200">ABONO</th>
@@ -591,14 +592,14 @@ function Ocorrencias({ employee, tracks, month, canManage, canApprove, refreshin
           <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-black text-amber-800">{employee.registration || employee.id.slice(0,8)}</span>
           <h3 className="text-sm font-black text-amber-900">{normalizeDisplayName(employee.name)}</h3>
         </div>
-        <p className="mt-2 text-xs text-amber-700">{ocorrencias.length} ocorrÃªncia(s) em {new Date(month+'-01').toLocaleDateString('pt-BR',{month:'long',year:'numeric'})}</p>
+        <p className="mt-2 text-xs text-amber-700">{ocorrencias.length} ocorrência(s) em {new Date(month+'-01').toLocaleDateString('pt-BR',{month:'long',year:'numeric'})}</p>
       </div>
-      {ocorrencias.length===0 ? <div className="px-5 py-8 text-center text-sm font-semibold text-slate-400">Nenhuma ocorrÃªncia no mÃªs.</div> : (
+      {ocorrencias.length===0 ? <div className="px-5 py-8 text-center text-sm font-semibold text-slate-400">Nenhuma ocorrência no mês.</div> : (
         <div className="overflow-x-auto">
           <table className="w-full min-w-[800px] border-separate border-spacing-0 text-left">
             <thead>
               <tr className="bg-slate-50 text-[10px] font-black uppercase text-slate-500">
-                <th className="px-3 py-2 w-[20%]">DATA</th><th className="px-3 py-2 w-[15%]">STATUS</th><th className="px-3 py-2 w-[15%]">ENTRADA</th><th className="px-3 py-2 w-[15%]">saÃ­da</th><th className="px-3 py-2 w-[35%]">AÃÃES</th>
+                <th className="px-3 py-2 w-[20%]">DATA</th><th className="px-3 py-2 w-[15%]">STATUS</th><th className="px-3 py-2 w-[15%]">ENTRADA</th><th className="px-3 py-2 w-[15%]">saída</th><th className="px-3 py-2 w-[35%]">AÃÃES</th>
               </tr>
             </thead>
             <tbody>
@@ -646,21 +647,23 @@ function StatusBadge({ status }: { status: string }) {
     'AJUSTE MANUAL':'bg-orange-50 text-orange-700 border-orange-200',
     'FALTA':'bg-rose-50 text-rose-700 border-rose-200',
     'ATRASO':'bg-rose-50 text-rose-800 border-rose-300 shadow-sm',
-    'saÃ­da ANTECIPADA':'bg-rose-50 text-rose-800 border-rose-300 shadow-sm',
+    'saída ANTECIPADA':'bg-rose-50 text-rose-800 border-rose-300 shadow-sm',
   };
   return <span className={`inline-flex items-center rounded-[5px] border px-2 py-0.5 text-[9px] font-black whitespace-nowrap ${c[u]||'bg-slate-100 text-slate-600 border-slate-200'}`}>{u}</span>;
 }
 
 function Modal({ employees, track, defaultEmpId, onClose, onDone }: { employees: Employee[]; track?: TimeTrack; defaultEmpId: string; onClose: ()=>void; onDone: ()=>void; }) {
   const initDate = track ? toDateKey(track.date) : new Date().toISOString().slice(0,10);
-  const [empId, setEmpId] = useState(track?.employeeId ?? defaultEmpId);
   const [date, setDate] = useState(initDate);
-  const [entry, setEntry] = useState(track ? fmtTime(track.entry) : '');
-  const [lunchS, setLunchS] = useState(track ? fmtTime(track.lunchStart) : '');
-  const [lunchR, setLunchR] = useState(track ? fmtTime(track.lunchReturn) : '');
-  const [exit, setExit] = useState(track ? fmtTime(track.exit) : '');
+  const [endDate, setEndDate] = useState('');
+  const [empId, setEmpId] = useState(track ? track.employeeId : defaultEmpId || '');
   const [reason, setReason] = useState<TimeTrackAdjustmentReason>('ajuste_erro_marcacao');
+  const [entry, setEntry] = useState(track?.entry ? fmtTime(track.entry) : '');
+  const [lunchS, setLunchS] = useState(track?.lunchStart ? fmtTime(track.lunchStart) : '');
+  const [lunchR, setLunchR] = useState(track?.lunchReturn ? fmtTime(track.lunchReturn) : '');
+  const [exit, setExit] = useState(track?.exit ? fmtTime(track.exit) : '');
   const [detail, setDetail] = useState(track?.observation ?? '');
+  
   const selReason = REASONS.find((r) => r.value === reason);
   const fullDay = Boolean(selReason?.fullDay);
 
@@ -685,7 +688,37 @@ function Modal({ employees, track, defaultEmpId, onClose, onDone }: { employees:
       return;
     }
 
-    await api.timeTrack.manual({ employeeId: empId, date, ...payload });
+    const targets = empId === 'ALL' ? employees.map((e: any) => e.id) : [empId];
+    
+    let currentDate = date;
+    let lastDate = endDate || date;
+    if (lastDate < currentDate) lastDate = currentDate;
+
+    const startD = new Date(currentDate + 'T00:00:00');
+    const endD = new Date(lastDate + 'T00:00:00');
+    
+    const datesToInsert: string[] = [];
+    for (let d = new Date(startD); d <= endD; d.setDate(d.getDate() + 1)) {
+      datesToInsert.push(d.toISOString().slice(0,10));
+    }
+
+    const promises = [];
+    for (const d of datesToInsert) {
+      const dayPayload = {
+        entry: toIso(d, entry),
+        lunchStart: toIso(d, lunchS),
+        lunchReturn: toIso(d, lunchR),
+        exit: toIso(d, exit),
+        reason: reason as TimeTrackAdjustmentReason,
+        observation: detail,
+      };
+      for (const tId of targets) {
+        if (!tId) continue;
+        promises.push(api.timeTrack.manual({ employeeId: tId, date: d, ...dayPayload }));
+      }
+    }
+    
+    await Promise.all(promises);
   }, { onSuccess: onDone });
 
   const ok = Boolean(empId && date && (fullDay || entry || lunchS || lunchR || exit));
@@ -696,13 +729,24 @@ function Modal({ employees, track, defaultEmpId, onClose, onDone }: { employees:
         <div className="mb-4 flex items-center justify-between"><h3 className="text-base font-black text-slate-950">{track ? 'EDITAR PONTO' : 'LANÇAR PONTO MANUAL'}</h3><button onClick={onClose} className="text-slate-400 hover:text-slate-700"><Edit3 size={18} className="rotate-45"/></button></div>
         {save.error && <p className="mb-3 rounded-[8px] border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700">{save.error}</p>}
         <div className="grid gap-3 sm:grid-cols-2">
-          <label className="space-y-1 text-xs font-medium text-slate-600 sm:col-span-2"><span>FUNCIONÁRIO</span><select disabled={!!track} value={empId} onChange={e=>setEmpId(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500 disabled:bg-slate-50"><option value="">Selecione...</option>{employees.map(e=><option key={e.id} value={e.id}>{normalizeDisplayName(e.name)}</option>)}</select></label>
-          <label className="space-y-1 text-xs font-medium text-slate-600"><span>DATA</span><input disabled={!!track} type="date" value={date} onChange={e=>setDate(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500 disabled:bg-slate-50"/></label>
+          <label className="space-y-1 text-xs font-medium text-slate-600 sm:col-span-2"><span>FUNCIONÁRIO</span>
+            <select disabled={!!track} value={empId} onChange={e=>setEmpId(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500 disabled:bg-slate-50">
+              <option value="">Selecione...</option>
+              {!track && <option value="ALL">TODOS OS FUNCIONÁRIOS ATIVOS</option>}
+              {employees.map(e=><option key={e.id} value={e.id}>{normalizeDisplayName(e.name)}</option>)}
+            </select>
+          </label>
+          <div className="flex gap-2">
+            <label className="space-y-1 text-xs font-medium text-slate-600 flex-1"><span>{track || endDate ? 'DATA' : 'DATA INICIAL'}</span><input disabled={!!track} type="date" value={date} onChange={e=>setDate(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500 disabled:bg-slate-50"/></label>
+            {!track && <label className="space-y-1 text-xs font-medium text-slate-600 flex-1"><span>DATA FINAL (OPCIONAL)</span><input type="date" value={endDate} onChange={e=>setEndDate(e.target.value)} min={date} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500 disabled:bg-slate-50"/></label>}
+          </div>
           {!track && <label className="space-y-1 text-xs font-medium text-slate-600"><span>MOTIVO</span><select value={reason} onChange={e=>setReason(e.target.value as TimeTrackAdjustmentReason)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500">{REASONS.map(r=><option key={r.value} value={r.value}>{r.label}</option>)}</select></label>}
-          {!fullDay && <><TimeField label="ENTRADA" value={entry} onChange={setEntry}/><TimeField label="saída ALMOÇO" value={lunchS} onChange={setLunchS}/><TimeField label="RETORNO ALMOÇO" value={lunchR} onChange={setLunchR}/><TimeField label="saída" value={exit} onChange={setExit}/></>}
+          {!fullDay && <><TimeField label="ENTRADA" value={entry} onChange={setEntry}/><TimeField label="SAÍDA ALMOÇO" value={lunchS} onChange={setLunchS}/><TimeField label="RETORNO ALMOÇO" value={lunchR} onChange={setLunchR}/><TimeField label="SAÍDA" value={exit} onChange={setExit}/></>}
           <label className="space-y-1 text-xs font-medium text-slate-600 sm:col-span-2"><span>OBSERVAÇÃO</span><input value={detail} onChange={e=>setDetail(e.target.value)} placeholder={track ? track.observation ?? '' : ''} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500"/></label>
         </div>
         {employees.length===0 && <p className="mt-4 rounded-[10px] border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-900">Cadastre um funcionário ativo.</p>}
+        {empId === 'ALL' && <p className="mt-4 rounded-[10px] border border-sky-200 bg-sky-50 px-3 py-2 text-xs font-semibold text-sky-800">Você está prestes a lançar ponto para <b>TODOS ({employees.length})</b> funcionários ativos.</p>}
+        {endDate && endDate > date && <p className="mt-4 rounded-[10px] border border-sky-200 bg-sky-50 px-3 py-2 text-xs font-semibold text-sky-800">Você está prestes a lançar ponto para o período de <b>{date.split('-')[2]}/{date.split('-')[1]}/{date.split('-')[0]}</b> até <b>{endDate.split('-')[2]}/{endDate.split('-')[1]}/{endDate.split('-')[0]}</b>.</p>}
         <div className="mt-5 flex justify-end gap-2"><button onClick={onClose} className="btn-outline h-10 rounded-[8px] px-4 text-xs font-bold">CANCELAR</button><button onClick={()=>ok&&save.mutate().catch(()=>{})} disabled={!ok||employees.length===0||save.loading} className="crystal-button h-10 rounded-[8px] px-4 text-xs font-black text-white disabled:opacity-60">{save.loading ? 'SALVANDO...' : track ? 'SALVAR' : 'LANÇAR'}</button></div>
       </div>
     </div>

@@ -16,8 +16,8 @@ export class UsersController {
 
   @Roles('ADMIN', 'RH')
   @Get()
-  list(@CurrentCompany() companyId: string) {
-    return this.service.list(companyId);
+  list(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser) {
+    return this.service.list(companyId, actor);
   }
 
   /** Retorna { used, max } - consumido pela tela de Usuarios para mostrar o limite. */
@@ -35,8 +35,8 @@ export class UsersController {
 
   @Roles('ADMIN', 'RH')
   @Get(':id')
-  get(@CurrentCompany() companyId: string, @Param('id') id: string) {
-    return this.service.get(companyId, id);
+  get(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string) {
+    return this.service.get(companyId, actor, id);
   }
 
   @Roles('ADMIN', 'RH')
@@ -52,8 +52,7 @@ export class UsersController {
 
   @Roles('ADMIN', 'RH')
   @Delete(':id')
-  delete(@CurrentCompany() companyId: string, @Param('id') id: string) {
-    return this.service.delete(companyId, id);
+  delete(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string) {
+    return this.service.delete(companyId, actor, id);
   }
 }
-

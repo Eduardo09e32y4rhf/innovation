@@ -106,5 +106,7 @@ export class UsersService {
   private filterRestrictedUsers(users: Array<{ role?: string }>, actor: JwtUser) {
     if (actor.role === 'DEV') return users;
     return users.filter((user) => String(user.role || '').toUpperCase() !== 'DEV');
-  }}
+  }
+}
+
 

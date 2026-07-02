@@ -43,7 +43,7 @@ export class EmployeesService {
     
     const employee = await this.repository.create(companyId, this.toData(dto));
     await this.syncPanelAccess(companyId, employee, dto);
-    return this.get(companyId, employee.id);
+    return this.repository.findById(companyId, employee.id);
   }
 
   async update(companyId: string, actor: JwtUser, id: string, dto: UpdateEmployeeDto) {
@@ -211,3 +211,4 @@ export class EmployeesService {
     return value?.trim() || undefined;
   }
 }
+
