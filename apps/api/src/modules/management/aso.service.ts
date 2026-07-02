@@ -95,7 +95,7 @@ export class AsoService {
         include: { employee: { select: { id: true, name: true } } },
       });
     } catch (err) {
-      this.saídate fallback', err);
+      this.safeLog('update fallback', err);
       return { ok: false };
     }
   }
@@ -151,7 +151,7 @@ export class AsoService {
           type: 'ASO_EXPIRING',
           employeeId: r.employeeId,
           employeeName: r.employee?.name ?? '—',
-          messaídays} dia(s) (${fmtDate(r.dueDate)})`,
+          message: `ASO ${r.asoType.toLowerCase()} vence em ${days} dia(s) (${fmtDate(r.dueDate)})`,
           target: '/dashboard/management?tab=aso',
         });
       }

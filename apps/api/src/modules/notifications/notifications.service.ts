@@ -5,7 +5,7 @@ import type { JwtUser } from '../../common/types/auth.types';
 
 /**
  * Perfis que podem receber notificações do sistema e de segurança.
- * FUNCIONÁRIO e CONSULTA nunca recebem — evita vazamento de dados internos.
+ * FUNCIONARIO e CONSULTA nunca recebem — evita vazamento de dados internos.
  */
 const NOTIFICATION_PRIVILEGED_ROLES: UserRole[] = ['DEV', 'ADMIN', 'RH', 'GESTOR'];
 
@@ -140,7 +140,7 @@ export class NotificationsService {
       let targetUserIds: string[] = [];
 
       if (targetType === 'ALL') {
-        // 'ALL' entrega apenas para perfis privilegiados — nunca para FUNCIONÁRIO ou CONSULTA
+        // 'ALL' entrega apenas para perfis privilegiados — nunca para FUNCIONARIO ou CONSULTA
         const users = await this.prisma.user.findMany({
           where: { companyId, role: { in: NOTIFICATION_PRIVILEGED_ROLES } },
           select: { id: true },
@@ -155,7 +155,7 @@ export class NotificationsService {
         targetUserIds = employees.map(e => e.userId).filter(Boolean) as string[];
       } else if (targetType === 'ROLE') {
         const requestedRole = body.targetRole as string;
-        // Garante que o role alvo é um perfil privilegiado — nunca entrega para FUNCIONÁRIO/CONSULTA
+        // Garante que o role alvo é um perfil privilegiado — nunca entrega para FUNCIONARIO/CONSULTA
         const safeRole = NOTIFICATION_PRIVILEGED_ROLES.find(r => r === requestedRole) ?? null;
         if (safeRole) {
           const users = await this.prisma.user.findMany({
@@ -313,7 +313,7 @@ export class NotificationsService {
       });
       return { unreadCount: unreadCount.count, notifications };
     } catch (err) {
-      this.saídashboardWidget fallback', err);
+      this.safeLog('dashboardWidget fallback', err);
       return { unreadCount: 0, notifications: [] };
     }
   }

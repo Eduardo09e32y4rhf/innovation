@@ -15,8 +15,8 @@ export class UpdatePlatformCompanyUserDto {
   password?: string;
 
   @IsOptional()
-  @IsIn(['ADMIN', 'RH', 'GESTOR', 'FUNCIONÁRIO'])
-  role?: 'ADMIN' | 'RH' | 'GESTOR' | 'FUNCIONÁRIO';
+  @IsIn(['ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO'])
+  role?: 'ADMIN' | 'RH' | 'GESTOR' | 'FUNCIONARIO';
 
   @IsOptional()
   @IsBoolean()

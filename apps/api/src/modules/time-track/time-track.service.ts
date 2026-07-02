@@ -42,7 +42,7 @@ const REASON_LABEL: Record<string, string> = {
   ajuste_abono_atestado_horas: 'ABONO - ATESTADO DE HORAS',
   ajuste_folga_dsr: 'FOLGA',
   ajuste_abono_folga: 'ABONO - FOLGA (BANCO)',
-  ajuste_abono_banco_saída: 'ABONO - BANCO SAÍDA ANTECIPADA',
+  ajuste_abono_banco_saida_antecipada: 'ABONO - BANCO SAÍDA ANTECIPADA',
   ajuste_abono_atraso: 'ABONO - ATRASO',
   ajuste_suspensao: 'SUSPENSÃO',
 };
@@ -126,7 +126,7 @@ export class TimeTrackService {
       const dateStr = today.toISOString().slice(0, 10);
       const lockKey = `punch-lock:${employee.id}:${dateStr}`;
       const acquired = await this.redis.acquireLock(lockKey, this.PUNCH_LOCK_TTL);
-      if (!acquired) throw new BadRequestException('Batida de ponto ja esta sendo processaída. Tente novamente em instantes.');
+      if (!acquired) throw new BadRequestException('Batida de ponto ja esta sendo processada. Tente novamente em instantes.');
       try {
         const type = await this.resolveNextPunchType(employee.id, today);
         if (!type) throw new BadRequestException('Todas as marcacoes de hoje ja foram registradas.');
@@ -173,14 +173,14 @@ export class TimeTrackService {
     this.validateManualTimestamp(employee, undefined, undefined, undefined, undefined, date);
     const lockKey = `punch-lock:${employee.id}:${dateStr}`;
     const acquired = await this.redis.acquireLock(lockKey, this.PUNCH_LOCK_TTL);
-    if (!acquired) throw new BadRequestException('Batida de ponto ja esta sendo processaída. Tente novamente em instantes.');
+    if (!acquired) throw new BadRequestException('Batida de ponto ja esta sendo processada. Tente novamente em instantes.');
     try {
       const type = dto.type;
       if (!type) throw new BadRequestException('Informe qual marcacao sera ajustada.');
       const field = this.typeToField(type);
       const current = await this.repository.upsert(employee.id, date, {
         [field]: timestamp,
-        observation: dto.observation ?? `Lançamento manual - ${dto.manualReason}`,
+        observation: dto.observation ?? `Lancamento manual - ${dto.manualReason}`,
         ...(dto.latitude !== undefined ? { latitude: dto.latitude } : {}),
         ...(dto.longitude !== undefined ? { longitude: dto.longitude } : {}),
         manualReason: dto.manualReason,
@@ -282,7 +282,7 @@ export class TimeTrackService {
     employee: { standardEntry?: string | null; standardLunchStart?: string | null; standardLunchReturn?: string | null; standardExit?: string | null },
     date: Date,
     track: { entry?: Date | null; lunchStart?: Date | null; lunchReturn?: Date | null; exit?: Date | null; totalWorked?: number | null }
-  ): { type: 'atraso' | 'saída' | 'falta'; tolerance: number; absence: number; observation: string } | null {
+  ): { type: 'atraso' | 'saida_antecipada' | 'falta'; tolerance: number; absence: number; observation: string } | null {
     const entryMins = track.entry ? timeToMinutes(track.entry.toISOString().slice(11, 16)) : null;
     const exitMins = track.exit ? timeToMinutes(track.exit.toISOString().slice(11, 16)) : null;
     const expectedEntry = timeToMinutes(employee.standardEntry);
@@ -292,7 +292,7 @@ export class TimeTrackService {
       if (!track.entry && !track.exit) return { type: 'falta', tolerance: 0, absence: 0, observation: 'FALTA' };
       return null;
     }
-    let incidentType: 'atraso' | 'saída' | 'falta' | null = null;
+    let incidentType: 'atraso' | 'saida_antecipada' | 'falta' | null = null;
     let tolerance = 0;
     let absence = 0;
     if (expectedEntry !== null && entryMins > expectedEntry) {
@@ -301,7 +301,7 @@ export class TimeTrackService {
     }
     if (expectedExit !== null && exitMins < expectedExit) {
       const diff = expectedExit - exitMins;
-      if (diff > TOLERANCE_MINUTES) { incidentType = 'saída'; absence = diff; }
+      if (diff > TOLERANCE_MINUTES) { incidentType = 'saida_antecipada'; absence = diff; }
     }
     if (!incidentType) return null;
     const observation = incidentType === 'atraso' ? `ATRASO ${tolerance}min` : `SAIDA ANTECIPADA ${absence}min`;
@@ -360,7 +360,7 @@ export class TimeTrackService {
   private async applyManual(employee: { id: string; dailyWorkload?: string | null }, dateValue: string, dto: Pick<ManualTimeTrackDto, 'entry' | 'lunchStart' | 'lunchReturn' | 'exit' | 'reason' | 'observation'>) {
     const date = this.toDateOnly(this.parseDate(dateValue, 'Invalid date'));
     const isFullDayAdjustment = dto.reason === 'ajuste_atestado_integral' || dto.reason === 'ajuste_feriado' || dto.reason === 'ajuste_suspensao';
-    const isBanco = dto.reason === 'ajuste_folga_dsr' || dto.reason === 'ajuste_abono_folga' || dto.reason === 'ajuste_abono_banco_saída' || dto.reason === 'ajuste_abono_atraso';
+    const isBanco = dto.reason === 'ajuste_folga_dsr' || dto.reason === 'ajuste_abono_folga' || dto.reason === 'ajuste_abono_banco_saida_antecipada' || dto.reason === 'ajuste_abono_atraso';
     const data = {
       entry: isFullDayAdjustment ? null : this.parseOptionalDate((dto as any).entry),
       lunchStart: isFullDayAdjustment ? null : this.parseOptionalDate((dto as any).lunchStart),
@@ -455,7 +455,7 @@ export class TimeTrackService {
       if (stdEntry !== null && actualEntry > stdEntry + TOLERANCE_MINUTES) {
         incidentType = 'atraso';
       } else if (stdExit !== null && actualExit < stdExit - TOLERANCE_MINUTES) {
-        incidentType = 'saída';
+        incidentType = 'saida_antecipada';
       }
     }
 

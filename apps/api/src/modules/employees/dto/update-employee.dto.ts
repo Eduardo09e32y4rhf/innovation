@@ -7,7 +7,7 @@ const WORK_SCALES = ['5X2', '6X1', '12X36', '4X2', 'OUTRO'] as const;
 const DAILY_WORKLOADS = ['08:00', '07:20', '06:00', '12:00', 'OUTRO'] as const;
 const TIME_VALUE = /^([01]\d|2[0-3]):[0-5]\d$/;
 const ACCESS_ENABLED = ['NO', 'YES'] as const;
-const ACCESS_PROFILES = ['FUNCIONÁRIO', 'GESTOR', 'RH', 'ADMIN', 'CONSULTA'] as const;
+const ACCESS_PROFILES = ['FUNCIONARIO', 'GESTOR', 'RH', 'ADMIN', 'CONSULTA'] as const;
 
 export class UpdateEmployeeDto {
   @IsOptional()

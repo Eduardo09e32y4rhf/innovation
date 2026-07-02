@@ -45,7 +45,7 @@ export class UsersService {
       name: normalizeDisplayName(dto.name),
       email,
       passwordHash: await bcrypt.hash(dto.password, 12),
-      role: dto.role ?? 'FUNCIONÁRIO',
+      role: dto.role ?? 'FUNCIONARIO',
     });
   }
 
@@ -89,7 +89,7 @@ export class UsersService {
     if (actorRole === 'RH' && ['ADMIN', 'DEV', 'COMERCIAL'].includes(nextRole)) {
       throw new ForbiddenException('RH nao pode criar ou promover Administrador, Comercial ou Super Admin.');
     }
-    if (actorRole === 'GESTOR' || actorRole === 'FUNCIONÁRIO' || actorRole === 'CONSULTA') {
+    if (actorRole === 'GESTOR' || actorRole === 'FUNCIONARIO' || actorRole === 'CONSULTA') {
       throw new ForbiddenException('Perfil sem permissao para alterar usuarios.');
     }
   }

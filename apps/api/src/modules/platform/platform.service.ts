@@ -21,7 +21,7 @@ export class PlatformService {
 
   async getCompany(id: string) {
     const company = await this.repository.getCompany(id);
-    if (!company) throw new NotFoundException('Empresaída');
+    if (!company) throw new NotFoundException('Empresa nao encontrada');
     return company;
   }
 
@@ -49,7 +49,7 @@ export class PlatformService {
     }
     const company = await this.getCompany(id);
     if (actor.role === 'COMERCIAL' && company.commercialOwnerId !== actor.sub) {
-      throw new ForbiddenException('Comercial so pode alterar empresaídade.');
+      throw new ForbiddenException('Comercial so pode alterar empresas sob sua responsabilidade.');
     }
     const status = dto.status ?? (dto.isActive === false ? 'SUSPENDED' : dto.isActive === true ? 'ACTIVE' : undefined);
     const { name, document, ...rest } = dto;
@@ -93,7 +93,7 @@ export class PlatformService {
       name: normalizeDisplayName(dto.name),
       email,
       passwordHash: await bcrypt.hash(dto.password, 12),
-      role: dto.role ?? 'FUNCIONÁRIO',
+      role: dto.role ?? 'FUNCIONARIO',
     });
   }
 
@@ -134,7 +134,7 @@ export class PlatformService {
     if (actor.role !== 'COMERCIAL') throw new ForbiddenException('Perfil sem permissao para gerir usuarios de empresas.');
     const company = await this.getCompany(companyId);
     if (company.commercialOwnerId !== actor.sub) {
-      throw new ForbiddenException('Comercial so pode gerir empresaídade.');
+      throw new ForbiddenException('Comercial so pode gerir empresas sob sua responsabilidade.');
     }
   }
 

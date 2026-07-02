@@ -8,7 +8,7 @@ import type { JwtUser } from '../../common/types/auth.types';
 import { DashboardService } from './dashboard.service';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('DEV', 'ADMIN', 'RH', 'GESTOR', 'FUNCIONÁRIO', 'CONSULTA')
+@Roles('DEV', 'ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA')
 @Controller('dashboard')
 export class DashboardController {
   constructor(private readonly service: DashboardService) {}

@@ -7,7 +7,7 @@ import { EmployeesRepository } from './employees.repository';
 import { AsoService } from '../management/aso.service';
 
 const DEFAULT_PANEL_PASSWORD = process.env.DEFAULT_EMPLOYEE_PASSWORD ?? 'Innovation@123';
-const EMPLOYEE_ACCESS_ROLES: UserRole[] = ['FUNCIONÁRIO', 'GESTOR', 'RH', 'ADMIN', 'CONSULTA'];
+const EMPLOYEE_ACCESS_ROLES: UserRole[] = ['FUNCIONARIO', 'GESTOR', 'RH', 'ADMIN', 'CONSULTA'];
 
 @Injectable()
 export class EmployeesService {
@@ -23,7 +23,7 @@ export class EmployeesService {
       const team = await this.repository.listByManager(companyId, managerEmployee.id);
       return [managerEmployee, ...team.filter((employee) => employee.id !== managerEmployee.id)];
     }
-    if (actor.role === 'FUNCIONÁRIO') {
+    if (actor.role === 'FUNCIONARIO') {
       const employee = await this.repository.findByUserId(companyId, actor.sub, actor.email);
       return employee ? [employee] : [];
     }
@@ -130,7 +130,7 @@ export class EmployeesService {
 
   private resolveAccessRole(role?: string): UserRole {
     if (role && EMPLOYEE_ACCESS_ROLES.includes(role as UserRole)) return role as UserRole;
-    return 'FUNCIONÁRIO';
+    return 'FUNCIONARIO';
   }
 
   private toData(dto: CreateEmployeeDto | UpdateEmployeeDto) {

@@ -3,7 +3,7 @@ import { CommunicationController } from './communication.controller';
 import { CommunicationRepository } from './communication.repository';
 import { CommunicationService } from './communication.service';
 import { CommunicationGateway } from './realtime/communication.gateway';
-import { OmniusAdapterService } from './whatsaídapter.service';
+import { OmniusAdapterService } from './whatsapp/omnius-adapter.service';
 import { WhatsappProvider } from './whatsapp/whatsapp.provider';
 import { WhatsappSessionService } from './whatsapp/whatsapp-session.service';
 
