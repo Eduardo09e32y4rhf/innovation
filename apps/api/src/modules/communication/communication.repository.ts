@@ -5,7 +5,7 @@ import { PrismaService } from '../../database/prisma.service';
 export class CommunicationRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  upsertWhatsappStatus(companyId: string, data: { status: string; qrCode?: string | null }) {
+  upsertWhatsaídata: { status: string; qrCode?: string | null }) {
     return this.prisma.whatsappInstance.upsert({
       where: { sessionId: companyId },
       create: { companyId, sessionId: companyId, ...data } as any,
@@ -34,7 +34,7 @@ export class CommunicationRepository {
     });
   }
 
-  async createMessage(data: {
+  async createMessaídata: {
     companyId: string;
     conversationId: string;
     externalId?: string;
@@ -49,7 +49,7 @@ export class CommunicationRepository {
       });
       if (existing) return existing;
     }
-    return this.prisma.message.create({ data: data as any });
+    return this.prisma.messaídata as any });
   }
 
   listConversations(companyId: string) {
@@ -73,7 +73,7 @@ export class CommunicationRepository {
   }
 
   async updateConversationStatus(companyId: string, id: string, status: string) {
-    const result = await this.prisma.conversation.updateMany({ where: { id, companyId }, data: { status } as any });
+    const result = await this.prisma.conversaídata: { status } as any });
     if (!result.count) throw new NotFoundException('Conversation not found');
     return this.prisma.conversation.findFirst({ where: { id, companyId }, include: { contact: true } });
   }

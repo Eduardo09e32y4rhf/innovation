@@ -10,7 +10,7 @@ import { UpdateEmployeeDto } from './dto/update-employee.dto';
 import { EmployeesService } from './employees.service';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA')
+@Roles('ADMIN', 'RH', 'GESTOR', 'FUNCIONÁRIO', 'CONSULTA')
 @Controller('employees')
 export class EmployeesController {
   constructor(private readonly service: EmployeesService) {}

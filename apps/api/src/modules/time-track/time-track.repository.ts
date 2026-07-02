@@ -336,7 +336,7 @@ export class TimeTrackRepository {
 
   async createGeofenceNotification(companyId: string, employee: any, dateStr: string, time: string, distanceMeters: number) {
     const distKm = (distanceMeters / 1000).toFixed(2);
-    const message = `O funcionario ${employee.name} bateu ponto em ${dateStr} as ${time} a ${distKm}km da localizacao da empresa.`;
+    const messaída empresa.`;
     const adminUserIds = await this.prisma.user.findMany({
       where: { companyId, role: { in: ['ADMIN', 'RH', 'DEV'] }, isActive: true },
       select: { id: true },

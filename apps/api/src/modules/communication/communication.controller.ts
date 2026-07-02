@@ -6,7 +6,7 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import { CommunicationService } from './communication.service';
 import { SendMessageDto } from './dto/send-message.dto';
 import { UpdateCommunicationSettingsDto } from './dto/update-communication-settings.dto';
-import { UpdateConversationStatusDto } from './dto/update-conversation-status.dto';
+import { UpdateConversaídate-conversation-status.dto';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('ADMIN', 'RH', 'GESTOR')

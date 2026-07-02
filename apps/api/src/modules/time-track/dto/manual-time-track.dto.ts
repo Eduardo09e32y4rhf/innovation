@@ -10,7 +10,7 @@ export const TIME_TRACK_ADJUSTMENT_REASONS = [
   'ajuste_abono_atestado_horas',
   'ajuste_folga_dsr',
   'ajuste_abono_folga',
-  'ajuste_abono_banco_saida_antecipada',
+  'ajuste_abono_banco_saída',
   'ajuste_abono_atraso',
   'ajuste_suspensao',
 ] as const;

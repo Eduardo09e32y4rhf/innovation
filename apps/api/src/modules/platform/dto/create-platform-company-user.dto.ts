@@ -13,6 +13,6 @@ export class CreatePlatformCompanyUserDto {
   password!: string;
 
   @IsOptional()
-  @IsIn(['ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO'])
-  role?: 'ADMIN' | 'RH' | 'GESTOR' | 'FUNCIONARIO';
+  @IsIn(['ADMIN', 'RH', 'GESTOR', 'FUNCIONÁRIO'])
+  role?: 'ADMIN' | 'RH' | 'GESTOR' | 'FUNCIONÁRIO';
 }

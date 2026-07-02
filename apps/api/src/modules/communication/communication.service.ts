@@ -3,9 +3,9 @@ import { CommunicationGateway } from './realtime/communication.gateway';
 import { CommunicationRepository } from './communication.repository';
 import { SendMessageDto } from './dto/send-message.dto';
 import { UpdateCommunicationSettingsDto } from './dto/update-communication-settings.dto';
-import { UpdateConversationStatusDto } from './dto/update-conversation-status.dto';
+import { UpdateConversaídate-conversation-status.dto';
 import { WhatsappProvider } from './whatsapp/whatsapp.provider';
-import { OmniusAdapterService } from './whatsapp/omnius-adapter.service';
+import { OmniusAdapterService } from './whatsaídapter.service';
 import type { IncomingWhatsappMessage, WhatsappConnectionStatus } from './whatsapp/whatsapp.types';
 
 const memoryWhatsapp = new Map<string, { status: string; qrCode?: string | null; phone?: string | null; displayName?: string | null }>();
@@ -112,7 +112,7 @@ export class CommunicationService implements OnModuleInit {
       const snapshot = this.provider.getSnapshot(companyId);
       const instance = await this.getStoredWhatsapp(companyId);
       const settings = this.safeSettings(companyId);
-      const calendar = await this.safeCalendarStatus(companyId);
+      const calendar = await this.saídarStatus(companyId);
       return {
         status: snapshot.status ?? instance?.status ?? 'DISCONNECTED',
         qrCode: snapshot.qrCode ?? instance?.qrCode ?? null,
@@ -128,7 +128,7 @@ export class CommunicationService implements OnModuleInit {
         phone: null,
         displayName: null,
         config: this.safeSettings(companyId),
-        calendar: await this.safeCalendarStatus(companyId),
+        calendar: await this.saídarStatus(companyId),
         warning: 'WhatsApp status returned in degraded mode',
       };
     }
@@ -312,9 +312,9 @@ export class CommunicationService implements OnModuleInit {
     }));
   }
 
-  async updateConversationStatus(companyId: string, id: string, dto: UpdateConversationStatusDto) {
-    const conversation = await this.repository.updateConversationStatus(companyId, id, dto.status);
-    this.gateway.emitToCompany(companyId, 'communication.conversation.updated', conversation);
+  async updateConversaídateConversationStatusDto) {
+    const conversaídateConversationStatus(companyId, id, dto.status);
+    this.gateway.emitToCompany(companyId, 'communication.conversaídated', conversation);
     return conversation;
   }
 
@@ -341,7 +341,7 @@ export class CommunicationService implements OnModuleInit {
       message = fallback.message;
     }
     this.gateway.emitToCompany(companyId, 'communication.message.created', message);
-    this.gateway.emitToCompany(companyId, 'communication.conversation.updated', conversation);
+    this.gateway.emitToCompany(companyId, 'communication.conversaídated', conversation);
     return message;
   }
 
@@ -401,7 +401,7 @@ export class CommunicationService implements OnModuleInit {
       message = fallback.message;
     }
     this.gateway.emitToCompany(input.companyId, 'communication.message.created', message);
-    this.gateway.emitToCompany(input.companyId, 'communication.conversation.updated', conversation);
+    this.gateway.emitToCompany(input.companyId, 'communication.conversaídated', conversation);
     return message;
   }
 
@@ -450,7 +450,7 @@ export class CommunicationService implements OnModuleInit {
     }
   }
 
-  private async safeCalendarStatus(companyId: string) {
+  private async saídarStatus(companyId: string) {
     try {
       return await this.omnius.getCalendarStatus(companyId);
     } catch {

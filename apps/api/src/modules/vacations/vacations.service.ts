@@ -183,7 +183,7 @@ export class VacationsService {
     const actorEmployee = await this.repository.findEmployeeByUserId(companyId, actor.sub, actor.email);
     if (!actorEmployee) throw new ForbiddenException('Permissao insuficiente');
     if (actor.role === 'GESTOR' && (employee.id === actorEmployee.id || employee.managerId === actorEmployee.id)) return employee;
-    if (actor.role === 'FUNCIONARIO' && employee.id === actorEmployee.id) return employee;
+    if (actor.role === 'FUNCIONÁRIO' && employee.id === actorEmployee.id) return employee;
     throw new ForbiddenException('Permissao insuficiente');
   }
 }

@@ -13,6 +13,6 @@ export class CreateUserDto {
   password!: string;
 
   @IsOptional()
-  @IsIn(['DEV', 'COMERCIAL', 'ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'])
-  role?: 'DEV' | 'COMERCIAL' | 'ADMIN' | 'RH' | 'GESTOR' | 'FUNCIONARIO' | 'CONSULTA';
+  @IsIn(['DEV', 'COMERCIAL', 'ADMIN', 'RH', 'GESTOR', 'FUNCIONÁRIO', 'CONSULTA'])
+  role?: 'DEV' | 'COMERCIAL' | 'ADMIN' | 'RH' | 'GESTOR' | 'FUNCIONÁRIO' | 'CONSULTA';
 }

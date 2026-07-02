@@ -12,7 +12,7 @@ export class TimeOccurrencesController {
 
   @Get()
   list(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser) {
-    if (actor.role === 'FUNCIONARIO') {
+    if (actor.role === 'FUNCIONÁRIO') {
       return this.svc.list(companyId, undefined);
     }
     return this.svc.list(companyId);

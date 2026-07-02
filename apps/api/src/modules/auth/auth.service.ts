@@ -181,7 +181,7 @@ export class AuthService {
     if (Number(payload.passwordChangedAt) !== new Date(user.passwordChangedAt).getTime()) throw new UnauthorizedException('Token invalido ou expirado');
 
     const reused = await bcrypt.compare(dto.newPassword, user.passwordHash);
-    if (reused) throw new ConflictException('A nova senha precisa ser diferente da senha atual');
+    if (reused) throw new ConflictException('A nova senha precisaída senha atual');
     
     // Check previous passwords
     for (const oldHash of user.previousPasswords) {
@@ -230,7 +230,7 @@ export class AuthService {
     if (!currentOk) throw new ConflictException('Senha atual invalida');
     
     const reused = await bcrypt.compare(dto.newPassword, freshUser.passwordHash);
-    if (reused) throw new ConflictException('A nova senha precisa ser diferente da senha atual');
+    if (reused) throw new ConflictException('A nova senha precisaída senha atual');
     
     // Check previous passwords
     for (const oldHash of freshUser.previousPasswords) {

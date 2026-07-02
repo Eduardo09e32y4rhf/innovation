@@ -13,7 +13,7 @@ import { UpdateTimeTrackDto } from './dto/update-time-track.dto';
 import { TimeTrackService } from './time-track.service';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('DEV', 'ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA')
+@Roles('DEV', 'ADMIN', 'RH', 'GESTOR', 'FUNCIONÁRIO', 'CONSULTA')
 @Controller('time-track')
 export class TimeTrackController {
   constructor(private readonly service: TimeTrackService) {}
@@ -28,7 +28,7 @@ export class TimeTrackController {
     return this.service.listEmployeeMonth(companyId, actor, employeeId, month);
   }
 
-  @Roles('DEV', 'ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO')
+  @Roles('DEV', 'ADMIN', 'RH', 'GESTOR', 'FUNCIONÁRIO')
   @Post('manual')
   manual(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Body() dto: ManualTimeTrackDto) {
     return this.service.manual(companyId, actor, dto);
@@ -36,7 +36,7 @@ export class TimeTrackController {
 
 
 
-  @Roles('DEV', 'ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO')
+  @Roles('DEV', 'ADMIN', 'RH', 'GESTOR', 'FUNCIONÁRIO')
   @Post('register')
   @UseGuards(RateLimitGuard)
   @RateLimit({ window: 60, max: 20, prefix: 'punch' }) // 20 punches per minute per user/IP

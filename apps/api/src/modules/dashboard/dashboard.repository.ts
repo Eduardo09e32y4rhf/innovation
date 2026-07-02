@@ -96,7 +96,7 @@ export class DashboardRepository {
       this.prisma.message.count({ where: { companyId } }),
       this.prisma.timeTrack.aggregate({ where: { employee: { companyId } }, _sum: { dailyBalance: true } }),
     ]);
-    return { activeEmployees, timeTracksToday, pendingVacations, whatsappMessages, totalTimeBalance: timeBalance._sum.dailyBalance ?? 0 };
+    return { activeEmployees, timeTracksToday, pendingVacations, whatsaídailyBalance ?? 0 };
   }
 
   async summaryForManager(companyId: string, userId: string) {
@@ -110,7 +110,7 @@ export class DashboardRepository {
       this.prisma.vacation.count({ where: { employee: teamFilter, status: 'PENDING' } }),
       this.prisma.timeTrack.aggregate({ where: { employee: teamFilter }, _sum: { dailyBalance: true } }),
     ]);
-    return { activeEmployees, timeTracksToday, pendingVacations, whatsappMessages: 0, totalTimeBalance: timeBalance._sum.dailyBalance ?? 0 };
+    return { activeEmployees, timeTracksToday, pendingVacations, whatsaídailyBalance ?? 0 };
   }
 
   async summaryForEmployee(companyId: string, userId: string) {
@@ -122,6 +122,6 @@ export class DashboardRepository {
       this.prisma.vacation.count({ where: { employeeId: employee.id, status: 'PENDING' } }),
       this.prisma.timeTrack.aggregate({ where: { employeeId: employee.id }, _sum: { dailyBalance: true } }),
     ]);
-    return { activeEmployees: 1, timeTracksToday, pendingVacations, whatsappMessages: 0, totalTimeBalance: timeBalance._sum.dailyBalance ?? 0 };
+    return { activeEmployees: 1, timeTracksToday, pendingVacations, whatsaídailyBalance ?? 0 };
   }
 }
