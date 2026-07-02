@@ -535,8 +535,8 @@ function NotificationsTab({ canManage }: { canManage: boolean }) {
         <select value={filterType} onChange={e => setFilterType(e.target.value)} className="h-9 rounded-[6px] border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 outline-none focus:border-teal-500">
           <option value="">TODOS TIPOS</option>
           <option value="SIMPLE_NOTICE">Comunicado</option>
-          <option value="WARNING">Advertência</option>
-          <option value="SUSPENSION">Suspensão</option>
+          <option value="WARNING_NOTICE">Advertência</option>
+          <option value="SUSPENSION_NOTICE">Suspensão</option>
           <option value="SYSTEM">Sistema</option>
         </select>
         <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="h-9 rounded-[6px] border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 outline-none focus:border-teal-500">
@@ -678,7 +678,7 @@ function CreateNotificationForm({ onCreated, employees }: { onCreated: () => voi
   });
 
   const handleSubmit = () => {
-    if (!title.trim() || !message.trim()) return;
+    if (!title.trim()) return;
     
     let targetIds: string[] | undefined;
     if (targetType === 'SPECIFIC' && targetEmployeeId) {
@@ -687,7 +687,7 @@ function CreateNotificationForm({ onCreated, employees }: { onCreated: () => voi
       else return alert('O funcionário selecionado não possui um usuário logável vinculado.');
     }
     
-    const extraJson = (type === 'WARNING' || type === 'SUSPENSION') ? {
+    const extraJson = (type === 'WARNING_NOTICE' || type === 'SUSPENSION_NOTICE') ? {
       legalReason, occurrenceDate, suspensionDays
     } : undefined;
 
@@ -747,8 +747,8 @@ function CreateNotificationForm({ onCreated, employees }: { onCreated: () => voi
           <span>TIPO</span>
           <select value={type} onChange={e => setType(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500">
             <option value="SIMPLE_NOTICE">Comunicado</option>
-            <option value="WARNING">Advertência</option>
-            <option value="SUSPENSION">Suspensão</option>
+            <option value="WARNING_NOTICE">Advertência</option>
+            <option value="SUSPENSION_NOTICE">Suspensão</option>
           </select>
         </label>
         <label className="space-y-1 text-xs font-medium text-slate-600">
@@ -828,7 +828,7 @@ function CreateNotificationForm({ onCreated, employees }: { onCreated: () => voi
         )}
 
         <label className="sm:col-span-2 space-y-1 text-xs font-medium text-slate-600">
-          <span>{type === 'WARNING' || type === 'SUSPENSION' ? 'DESCREVA OS DETALHES DA INFRAÇÃO (APARECERÁ NO PDF E NO APP)' : 'MENSAGEM'}</span>
+          <span>{type === 'WARNING_NOTICE' || type === 'SUSPENSION_NOTICE' ? 'DESCREVA OS DETALHES DA INFRAÇÃO (APARECERÁ NO PDF E NO APP)' : 'MENSAGEM'}</span>
           <textarea value={message} onChange={e => setMessage(e.target.value)} rows={4} className="w-full rounded-[8px] border border-slate-200 px-3 py-2 text-sm outline-none focus:border-teal-500" placeholder="Conteúdo..." />
         </label>
         {(type === 'SIMPLE_NOTICE') && (
@@ -849,8 +849,8 @@ function CreateNotificationForm({ onCreated, employees }: { onCreated: () => voi
         )}
       </div>
       <div className="mt-5 flex justify-end gap-2">
-        <button onClick={handleSubmit} disabled={!title.trim() || !message.trim() || createMut.loading} className="crystal-button h-10 rounded-[8px] px-4 text-xs font-black text-white disabled:opacity-60">
-          {createMut.loading ? 'ENVIANDO...' : (type === 'WARNING' ? 'GERAR ADVERTÊNCIA' : type === 'SUSPENSION' ? 'GERAR SUSPENSÃO' : 'ENVIAR COMUNICADO')}
+        <button onClick={handleSubmit} disabled={!title.trim() || createMut.loading} className="crystal-button h-10 rounded-[8px] px-4 text-xs font-black text-white disabled:opacity-60">
+          {createMut.loading ? 'ENVIANDO...' : (type === 'WARNING_NOTICE' ? 'GERAR ADVERTÊNCIA' : type === 'SUSPENSION_NOTICE' ? 'GERAR SUSPENSÃO' : 'ENVIAR COMUNICADO')}
         </button>
       </div>
       {createMut.error && <p className="mt-2 text-xs text-red-600">{createMut.error}</p>}

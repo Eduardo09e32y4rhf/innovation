@@ -199,7 +199,7 @@ export class NotificationsService {
       });
 
       // Automatic Timesheet Integration for Suspensions
-      if (type === 'SUSPENSION' && extraJson?.occurrenceDate && extraJson?.suspensionDays && targetType === 'SPECIFIC' && body.targetIds?.[0]) {
+      if (type === 'SUSPENSION_NOTICE' && extraJson?.occurrenceDate && extraJson?.suspensionDays && targetType === 'SPECIFIC' && body.targetIds?.[0]) {
         try {
           const userId = body.targetIds[0];
           const employee = await this.prisma.employee.findUnique({
