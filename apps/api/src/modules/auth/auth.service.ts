@@ -1,6 +1,7 @@
 import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
+import * as crypto from 'crypto';
 import { AuthRepository } from './auth.repository';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { LoginDto } from './dto/login.dto';
@@ -81,7 +82,7 @@ export class AuthService {
     const role = this.resolveRole(user.email, user.role);
     if (!this.canAccessCompany(user.company, role)) return { requested: true };
 
-    const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const code = crypto.randomInt(0, Math.pow(36, 6)).toString(36).padStart(6, '0').toUpperCase();
     const expires = new Date(Date.now() + 2 * 60 * 60 * 1000); // 2 hours
 
     await this.repository.setResetCode(user.id, code, expires);
