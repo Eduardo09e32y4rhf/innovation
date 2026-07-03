@@ -701,7 +701,7 @@ function CreateNotificationForm({ onCreated, employees }: { onCreated: () => voi
       targetIds,
       extraJson,
       requiresReadConfirmation: type === 'SIMPLE_NOTICE' ? requiresReadConfirmation : true,
-      requiresAcceptance: type === 'SUSPENSION' || type === 'WARNING' ? true : requiresAcceptance,
+      requiresAcceptance: type === 'SUSPENSION_NOTICE' || type === 'WARNING_NOTICE' ? true : requiresAcceptance,
       allowsRefusal: type === 'SIMPLE_NOTICE' ? allowsRefusal : false,
     }).catch(() => {});
   };
@@ -711,12 +711,12 @@ function CreateNotificationForm({ onCreated, employees }: { onCreated: () => voi
     const emp = employees.find(e => e.id === targetEmployeeId);
     if (!emp) return;
     
-    const docTitle = type === 'WARNING' ? 'Aviso de Advertência Escrita' : 'Aviso de Suspensão Disciplinar';
+    const docTitle = type === 'WARNING_NOTICE' ? 'Aviso de Advertência Escrita' : 'Aviso de Suspensão Disciplinar';
     let text = `<p style="font-size:11px;color:#334155;text-align:justify;line-height:1.6;">Pelo presente documento, aplicamos-lhe a pena de <strong>${docTitle.toUpperCase()}</strong>, em virtude da seguinte ocorrência disciplinar verificada no dia <strong>${occurrenceDate ? new Date(occurrenceDate).toLocaleDateString('pt-BR') : '____/____/______'}</strong>:</p>
     <p style="font-size:11px;color:#0f172a;text-align:justify;line-height:1.6;font-weight:700;margin:16px 0;">Motivo / Embargo Legal: ${legalReason}</p>
     <p style="font-size:11px;color:#334155;text-align:justify;line-height:1.6;">Detalhes da Infração:<br/>${message.replace(/\\n/g, '<br/>')}</p>`;
     
-    if (type === 'SUSPENSION') {
+    if (type === 'SUSPENSION_NOTICE') {
       text += `<p style="font-size:11px;color:#e11d48;text-align:justify;line-height:1.6;font-weight:700;margin:16px 0;">Por consequência, o(a) Sr(a). fica suspenso(a) de suas atividades por ${suspensionDays} dia(s), com desconto em folha de pagamento.</p>`;
     }
     
@@ -732,7 +732,7 @@ function CreateNotificationForm({ onCreated, employees }: { onCreated: () => voi
       ${section('Teor da Sanção Disciplinar', text)}
       ${signatureBlock(['Assinatura do Empregado', 'Empregador / RH', 'Testemunha 1 (Opcional)', 'Testemunha 2 (Opcional)'])}
     `);
-    printPdf(html, `${type === 'WARNING' ? 'advertencia' : 'suspensao'}-${emp.id}.pdf`);
+    printPdf(html, `${type === 'WARNING_NOTICE' ? 'advertencia' : 'suspensao'}-${emp.id}.pdf`);
   };
 
   return (
@@ -792,7 +792,7 @@ function CreateNotificationForm({ onCreated, employees }: { onCreated: () => voi
           </label>
         )}
 
-        {(type === 'WARNING' || type === 'SUSPENSION') && (
+        {(type === 'WARNING_NOTICE' || type === 'SUSPENSION_NOTICE') && (
           <div className="sm:col-span-2 grid gap-3 sm:grid-cols-2 rounded-[8px] border border-red-100 bg-red-50/50 p-4">
             <label className="space-y-1 text-xs font-medium text-slate-600">
               <span>MOTIVO LEGAL (CLT ART. 482)</span>
@@ -812,7 +812,7 @@ function CreateNotificationForm({ onCreated, employees }: { onCreated: () => voi
               <span>DATA DA OCORRÊNCIA</span>
               <input type="date" value={occurrenceDate} onChange={e => setOccurrenceDate(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-red-500" />
             </label>
-            {type === 'SUSPENSION' && (
+            {type === 'SUSPENSION_NOTICE' && (
               <label className="space-y-1 text-xs font-medium text-slate-600">
                 <span>DIAS DE SUSPENSÃO</span>
                 <input type="number" min={1} max={30} value={suspensionDays} onChange={e => setSuspensionDays(parseInt(e.target.value)||1)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-red-500" />
