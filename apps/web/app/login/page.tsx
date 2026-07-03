@@ -139,6 +139,7 @@ export default function LoginPage() {
                 <Mail size={18} />
               </div>
               <input
+                aria-label="Email"
                 type="email"
                 required
                 value={email}
@@ -155,6 +156,7 @@ export default function LoginPage() {
                   <Lock size={18} />
                 </div>
                 <input
+                  aria-label="Senha"
                   type={showPassword ? 'text' : 'password'}
                   required
                   value={password}
@@ -163,6 +165,8 @@ export default function LoginPage() {
                   className="h-12 w-full rounded-xl border border-white/10 bg-black/20 pl-11 pr-11 text-sm font-medium text-white placeholder-slate-600 outline-none transition-all focus:border-teal-500 focus:bg-black/40 focus:ring-1 focus:ring-teal-500"
                 />
                 <button
+                  aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                  aria-pressed={showPassword}
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute inset-y-0 right-0 flex items-center pr-4 text-slate-500 hover:text-white transition-colors focus:outline-none"
