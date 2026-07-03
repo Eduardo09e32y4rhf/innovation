@@ -1,0 +1,3 @@
+## 2024-07-03 - Chunked Concurrency for Frontend Bulk Operations
+**Learning:** For frontend operations that involve bulk processing (e.g., CSV imports of employees), using a sequential loop with `await` can be very slow, especially over a network. However, using unbounded `Promise.all()` over the entire batch can overwhelm both the browser's connection limits and the backend's rate limits/database pool.
+**Action:** Replace sequential loops with chunked concurrency (e.g., slicing into chunks of 10 and mapping with `Promise.all()` per chunk) to drastically reduce import times while preserving stability and preventing connection exhaustion.

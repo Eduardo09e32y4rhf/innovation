@@ -367,24 +367,37 @@ function ImportExportSection() {
         return;
       }
 
-      // Import employees one by one
+      // ⚡ Bolt: Chunked concurrency for CSV imports
+      // 💡 What: Replaced sequential loop with Promise.all() chunking (size 10)
+      // 🎯 Why: Drastically reduces large CSV import times without overwhelming the backend
       let imported = 0;
       let errors = 0;
-      for (const row of result.rows) {
-        try {
-          await api.employees.create({
-            name: row['Nome'] || row['name'] || '',
-            cpf: row['CPF'] || row['cpf'] || '',
-            email: row['Email'] || row['email'] || '',
-            position: row['Cargo'] || row['position'] || '',
-            department: row['Departamento'] || row['department'] || '',
-            admissionDate: row['Admissão'] || row['admissionDate'] || new Date().toISOString(),
-            registration: row['Matrícula'] || row['registration'] || undefined,
-            phone: row['Telefone'] || row['phone'] || undefined,
-          });
-          imported++;
-        } catch {
-          errors++;
+      const CHUNK_SIZE = 10;
+
+      for (let i = 0; i < result.rows.length; i += CHUNK_SIZE) {
+        const chunk = result.rows.slice(i, i + CHUNK_SIZE);
+        const chunkPromises = chunk.map(async (row) => {
+          try {
+            await api.employees.create({
+              name: row['Nome'] || row['name'] || '',
+              cpf: row['CPF'] || row['cpf'] || '',
+              email: row['Email'] || row['email'] || '',
+              position: row['Cargo'] || row['position'] || '',
+              department: row['Departamento'] || row['department'] || '',
+              admissionDate: row['Admissão'] || row['admissionDate'] || new Date().toISOString(),
+              registration: row['Matrícula'] || row['registration'] || undefined,
+              phone: row['Telefone'] || row['phone'] || undefined,
+            });
+            return { success: true };
+          } catch {
+            return { success: false };
+          }
+        });
+
+        const chunkResults = await Promise.all(chunkPromises);
+        for (const res of chunkResults) {
+          if (res.success) imported++;
+          else errors++;
         }
       }
 
