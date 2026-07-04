@@ -100,7 +100,19 @@ export function buildPdfShell(options: PdfOptions, company: PdfCompanyInfo | nul
   </style>
 </head>
 <body>
-  <main class="page">${header}${body}${footer}</main>
+  <table style="width:100%; border:none; border-collapse:collapse;">
+    <thead style="display:table-header-group;">
+      <tr><td style="padding:0;">${header}</td></tr>
+    </thead>
+    <tbody>
+      <tr><td style="padding:0;">
+        <main class="page">${body}</main>
+      </td></tr>
+    </tbody>
+    <tfoot style="display:table-footer-group;">
+      <tr><td style="padding:0;">${footer}</td></tr>
+    </tfoot>
+  </table>
 </body>
 </html>`;
 }

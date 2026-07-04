@@ -9,15 +9,7 @@ export class UpdatePlatformCompanyDto {
   @IsString()
   document?: string;
 
-  @IsOptional()
-  @IsInt()
-  @Min(1)
-  plan?: any;
 
-  @IsOptional()
-  @IsInt()
-  @Min(1)
-  billingStatus?: any;
 
   @IsOptional()
   @IsBoolean()

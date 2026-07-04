@@ -70,7 +70,8 @@ export class TimeTrackService {
     const employee = await this.ensureCanAccessEmployee(companyId, actor, dto.employeeId);
     const date = this.toDateOnly(this.parseDate(dto.date, 'Invalid date'));
     this.validateEmployeeDateRange(employee, date);
-    this.validateManualTimestamp(employee, dto.entry, dto.lunchStart, dto.lunchReturn, dto.exit, date);
+    const isFutureAllowed = dto.reason === 'ajuste_atestado_integral' || dto.reason === 'ajuste_feriado' || dto.reason === 'ajuste_suspensao' || dto.reason === 'ajuste_folga_dsr' || dto.reason === 'ajuste_abono_folga' || dto.reason === 'ajuste_abono_banco_saida_antecipada' || dto.reason === 'ajuste_abono_atraso' || dto.reason === 'ajuste_abono_atestado_horas';
+    this.validateManualTimestamp(employee, dto.entry, dto.lunchStart, dto.lunchReturn, dto.exit, date, isFutureAllowed);
     return this.applyManual(companyId, employee, dto.date, dto);
   }
 
@@ -104,7 +105,9 @@ export class TimeTrackService {
       if (Number.isNaN(timestampToRecord.getTime())) throw new BadRequestException('Invalid timestamp');
       targetDate = this.toDateOnly(timestampToRecord);
       this.validateEmployeeDateRange(employee, targetDate);
-      this.validateManualTimestamp(employee, undefined, undefined, undefined, undefined, targetDate);
+      const targetDateStr = targetDate.toISOString().slice(0, 10);
+      const isFutureAllowed = dto.manualReason === 'ajuste_atestado_integral' || dto.manualReason === 'ajuste_feriado' || dto.manualReason === 'ajuste_suspensao' || dto.manualReason === 'ajuste_folga_dsr' || dto.manualReason === 'ajuste_abono_folga' || dto.manualReason === 'ajuste_abono_banco_saida_antecipada' || dto.manualReason === 'ajuste_abono_atraso' || dto.manualReason === 'ajuste_abono_atestado_horas';
+      this.validateManualTimestamp(employee, undefined, undefined, undefined, undefined, targetDate, isFutureAllowed);
     }
 
     const dateStr = targetDate.toISOString().slice(0, 10);
@@ -153,6 +156,7 @@ export class TimeTrackService {
       const overtimeHandling = 'PAYMENT';
 
       const updateData: any = {
+        companyId,
         [field]: timestampToRecord,
         totalWorked: calculation.totalWorkedMinutes,
         dailyBalance: calculation.dailyBalanceMinutes,
@@ -394,12 +398,13 @@ export class TimeTrackService {
     lunchReturn?: string | null,
     exit?: string | null,
     date?: Date,
+    isFutureAllowed: boolean = false,
   ) {
     const now = new Date();
     const today = this.toDateOnly(now);
     if (date) {
       this.validateEmployeeDateRange(employee, date);
-      if (date > today) throw new BadRequestException('Ajuste manual nao permite lancamento em datas futuras.');
+      if (date > today && !isFutureAllowed) throw new BadRequestException('Ajuste manual nao permite lancamento em datas futuras.');
     }
     const timeFields = [
       { label: 'Entrada', value: entry },
@@ -470,6 +475,7 @@ export class TimeTrackService {
     }
 
     const data = {
+      companyId,
       entry,
       lunchStart,
       lunchReturn,

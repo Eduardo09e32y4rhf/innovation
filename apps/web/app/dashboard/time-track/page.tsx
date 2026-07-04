@@ -150,11 +150,35 @@ function dayStatus(row: TimeTrack, holidayName?: string) {
   return 'NORMAL';
 }
 function isFalta(row: TimeTrack) {
-  if (row.entry || row.exit) return false;
+  if (!row.entry && !row.exit) return true;
   const o = (row.observation ?? '').toLowerCase();
   return !o.includes('atestado') && !o.includes('feriado') && !o.includes('folga') && !o.includes('suspensao') && !o.includes('suspensão');
 }
-function sumMin(rows: TimeTrack[], f: 'totalWorked'|'dailyBalance') { return rows.reduce((a,r)=>a+(r[f]??0),0); }
+
+function getEffectiveStats(rows: TimeTrack[]) {
+  let worked = 0;
+  let saldo = 0;
+  let extra = 0;
+  let missing = 0;
+  for (const r of rows) {
+    let dailyTotal = r.totalWorked ?? 0;
+    let dailyBal = r.dailyBalance ?? 0;
+    let ext = Math.max(dailyBal, 0);
+    let mis = Math.abs(Math.min(dailyBal, 0));
+    if (r.overtimeApprovalStatus === 'PENDING' || r.overtimeApprovalStatus === 'REJECTED') {
+      if (ext > 0) {
+        dailyTotal -= ext;
+        dailyBal -= ext;
+        ext = 0;
+      }
+    }
+    worked += dailyTotal;
+    saldo += dailyBal;
+    extra += ext;
+    missing += mis;
+  }
+  return { worked, saldo, extra, missing };
+}
 
 export default function TimeTrackPage() {
   const { user } = useAuth();
@@ -294,8 +318,7 @@ export default function TimeTrackPage() {
             <div className="divide-y divide-slate-100">
               {visible.map(emp=>{
                 const rows = byEmpMap[emp.id] ?? [];
-                const worked = sumMin(rows,'totalWorked');
-                const saldo = sumMin(rows,'dailyBalance');
+                const { worked, saldo } = getEffectiveStats(rows);
                 const faltas = rows.filter(isFalta).length;
                 return (
                   <div key={emp.id} className="flex items-center justify-between px-5 py-4 hover:bg-slate-50">
@@ -350,11 +373,26 @@ function downloadCollectiveSheet(month: string, visibleEmployees: Employee[], by
     const grid = buildGrid(month, employee, rows, companyData?.payrollStartDay || 1, holidaysData);
 
     const validTracks = grid.map(g => g.track).filter(Boolean) as TimeTrack[];
-    const totalWorked = validTracks.reduce((t, r) => t + (r.totalWorked ?? 0), 0);
-    const totalBalance = validTracks.reduce((t, r) => t + (r.dailyBalance ?? 0), 0);
-    const positiveBalance = validTracks.reduce((t, r) => t + Math.max(r.dailyBalance ?? 0, 0), 0);
-    const negativeBalance = validTracks.reduce((t, r) => t + Math.abs(Math.min(r.dailyBalance ?? 0, 0)), 0);
-    const faltasCount = grid.filter(g => g.track && isFalta(g.track)).length;
+    
+    const { worked: totalWorked, saldo: totalBalance, extra: positiveBalance, missing: negativeBalance } = getEffectiveStats(validTracks);
+    
+    let faltasCount = 0;
+    let dsrLost = 0;
+    let currentWeekFaltas = 0;
+    grid.forEach(g => {
+      if (g.wd === 1) currentWeekFaltas = 0; // Reset on Monday
+      const t = g.track;
+      const isFaltaDay = t ? isFalta(t) : (!g.isRest && !g.isFuture && !g.antesAdmissao && !g.depoisDemissao);
+      if (isFaltaDay) {
+        faltasCount++;
+        if (g.wd !== 0) currentWeekFaltas++;
+      }
+      if (g.wd === 0 && currentWeekFaltas > 0) {
+        dsrLost++; // Lost Sunday DSR
+      }
+    });
+
+    const totalFaltas = faltasCount + dsrLost;
 
     const employeeInfo = [
       { label: 'Nome', value: normalizeDisplayName(employee.name) },
@@ -362,33 +400,33 @@ function downloadCollectiveSheet(month: string, visibleEmployees: Employee[], by
       { label: 'CPF', value: employee.cpf || '-' },
       { label: 'Cargo', value: employee.position || '-' },
       { label: 'Departamento', value: employee.department || '-' },
-      { label: 'Admissão', value: employee.admissionDate ? new Date(employee.admissionDate).toLocaleDateString('pt-BR') : '-' },
-      { label: 'Período', value: subtitle },
+      { label: 'Admissao', value: employee.admissionDate ? new Date(employee.admissionDate).toLocaleDateString('pt-BR') : '-' },
+      { label: 'Periodo', value: subtitle },
     ];
 
-    const tableHeaders = ['Data', 'Entrada', 'Saída Almoço', 'Retorno Almoço', 'Saída', 'Trabalhado', 'Saldo', 'Ocorrência', 'Assinatura Diária'];
+    const tableHeaders = ['Data', 'Entrada', 'Saida Almoco', 'Retorno Almoco', 'Saida', 'Trabalhado', 'Saldo', 'Ocorrencia', 'Assinatura Diaria'];
     const tableRows = grid.map((g) => {
       const wd = WEEKDAYS[g.wd];
       const dateStr = `${String(g.day).padStart(2,'0')} - ${wd}`;
 
       if (g.isFuture) {
-        return `<tr><td style="padding:4px 8px;font-size:8px;color:#cbd5e1;">${dateStr}</td><td colspan="8" style="padding:4px 8px;font-size:8px;color:#cbd5e1;text-align:center;">-</td></tr>`;
+        return `<tr><td style="padding:4px 8px;font-size:8px;color:#cbd5e1;">${dateStr}</td><td colspan="8" style="padding:4px 8px;font-size:8px;color:#cbd5e1;text-align:center;">-</td></tr>`;
       }
       if (g.antesAdmissao || g.depoisDemissao) {
-        return `<tr><td style="padding:4px 8px;font-size:8px;color:#94a3b8;">${dateStr}</td><td colspan="8" style="padding:4px 8px;font-size:8px;color:#94a3b8;text-align:center;">${g.antesAdmissao ? 'ANTES DA ADMISSÃO' : 'APÃS DEMISSÃO'}</td></tr>`;
+        return `<tr><td style="padding:4px 8px;font-size:8px;color:#94a3b8;">${dateStr}</td><td colspan="8" style="padding:4px 8px;font-size:8px;color:#94a3b8;text-align:center;">${g.antesAdmissao ? 'ANTES DA ADMISSAO' : 'APOS DEMISSAO'}</td></tr>`;
       }
 
       const t = g.track;
       if (!t) {
         if (g.isRest) return `<tr><td style="padding:4px 8px;font-size:8px;color:#64748b;">${dateStr}</td><td colspan="8" style="padding:4px 8px;font-size:8px;color:#64748b;text-align:center;font-weight:700;">DSR / FOLGA</td></tr>`;
-        return `<tr><td style="padding:4px 8px;font-size:8px;color:#e11d48;font-weight:600;">${dateStr}</td><td colspan="8" style="padding:4px 8px;font-size:8px;color:#e11d48;text-align:center;font-weight:700;">FALTA NÃO JUSTIFICADA</td></tr>`;
+        return `<tr><td style="padding:4px 8px;font-size:8px;color:#e11d48;font-weight:600;">${dateStr}</td><td colspan="8" style="padding:4px 8px;font-size:8px;color:#e11d48;text-align:center;font-weight:700;">FALTA NAO JUSTIFICADA</td></tr>`;
       }
 
       const balance = t.dailyBalance ?? 0;
       const balanceColor = balance < 0 ? '#e11d48' : balance > 0 ? '#059669' : '#64748b';
       const hasMissing = !t.entry || !t.exit;
       let ocorrencia = dayStatus(t, g.holidayName);
-      if (ocorrencia === 'NORMAL' && hasMissing) ocorrencia = 'FALTA DE MARCAÃÃO';
+      if (ocorrencia === 'NORMAL' && hasMissing) ocorrencia = 'FALTA DE MARCACAO';
       
       return `<tr>
         <td style="padding:4px 8px;font-size:8px;font-weight:600;color:#0f172a;">${dateStr}</td>
@@ -405,8 +443,8 @@ function downloadCollectiveSheet(month: string, visibleEmployees: Employee[], by
 
     const empHtml = `
       ${section('Dados do Colaborador', infoGrid(employeeInfo, 4))}
-      ${section('Registros de Ponto DiÃ¡rio', pdfTable(tableHeaders, tableRows, { compact: true }))}
-      ${section('Resumo do Período', `
+      ${section('Registros de Ponto Diario', pdfTable(tableHeaders, tableRows, { compact: true }))}
+      ${section('Resumo do Periodo', `
         <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;">
           <div style="background:#f0fdfa;border:1px solid #ccfbf1;border-radius:8px;padding:12px;text-align:center;">
             <div style="font-size:8px;font-weight:800;text-transform:uppercase;color:#0f766e;letter-spacing:0.05em;">Dias Trabalhados</div>
@@ -414,7 +452,7 @@ function downloadCollectiveSheet(month: string, visibleEmployees: Employee[], by
           </div>
           <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px;text-align:center;">
             <div style="font-size:8px;font-weight:800;text-transform:uppercase;color:#e11d48;letter-spacing:0.05em;">Faltas Integrais</div>
-            <div style="font-size:16px;font-weight:900;color:#e11d48;margin-top:4px;">${faltasCount}</div>
+            <div style="font-size:16px;font-weight:900;color:#e11d48;margin-top:4px;">${totalFaltas}</div>
           </div>
           <div style="background:#f0fdfa;border:1px solid #ccfbf1;border-radius:8px;padding:12px;text-align:center;">
             <div style="font-size:8px;font-weight:800;text-transform:uppercase;color:#0f766e;letter-spacing:0.05em;">Total Horas</div>
@@ -430,12 +468,12 @@ function downloadCollectiveSheet(month: string, visibleEmployees: Employee[], by
           </div>
         </div>
         <div style="margin-top:16px;background:#f8fafc;padding:16px;border-radius:8px;font-size:12px;color:#334155;font-weight:700;text-align:center;border:1px solid #e2e8f0;">
-          SALDO DO BANCO DE HORAS NESTE MÃS: <span style="font-weight:900;color:${totalBalance < 0 ? '#e11d48' : totalBalance > 0 ? '#059669' : '#64748b'};">
+          SALDO DO BANCO DE HORAS NESTE MES: <span style="font-weight:900;color:${totalBalance < 0 ? '#e11d48' : totalBalance > 0 ? '#059669' : '#64748b'};">
             ${escapeHtml(formatMinutes(totalBalance))}
           </span>
         </div>
       `)}
-      ${signatureBlock(['Assinatura do Colaborador', 'Assinatura do RH / Responsável'])}
+      ${signatureBlock(['Assinatura do Colaborador', 'Assinatura do RH / Responsavel'])}
     `;
 
     return empHtml + (index < visibleEmployees.length - 1 ? '<div style="page-break-after: always;"></div>' : '');
@@ -447,10 +485,10 @@ function downloadCollectiveSheet(month: string, visibleEmployees: Employee[], by
 
 function OcorrenciasList({ employees, byEmpMap, month, onSelect }: { employees: Employee[]; byEmpMap: Record<string,TimeTrack[]>; month: string; onSelect: (id:string)=>void }) {
   const withIssues = employees.filter(e => (byEmpMap[e.id] ?? []).some(t => isFalta(t) || t.incidentType === 'atraso' || t.incidentType === 'saida_antecipada' || (t.dailyBalance != null && t.dailyBalance < 0)));
-  if (withIssues.length===0) return <p className="text-center text-sm font-semibold text-slate-400 py-8">Nenhuma ocorrência no mês.</p>;
+  if (withIssues.length===0) return <p className="text-center text-sm font-semibold text-slate-400 py-8">Nenhuma ocorrencia no mes.</p>;
   return (
     <section className="overflow-hidden rounded-[14px] border border-slate-200 bg-white">
-      <div className="border-b border-slate-100 bg-amber-50/50 px-5 py-4"><h3 className="text-sm font-black text-amber-900">OCORRÊNCIAS DO MÃS</h3><p className="mt-1 text-xs text-amber-700">Atrasos, faltas e saídas antecipadas.</p></div>
+      <div className="border-b border-slate-100 bg-amber-50/50 px-5 py-4"><h3 className="text-sm font-black text-amber-900">OCORRENCIAS DO MES</h3><p className="mt-1 text-xs text-amber-700">Atrasos, faltas e saídas antecipadas.</p></div>
       <div className="divide-y divide-slate-100">
         {withIssues.map(e=> {
           const rows = byEmpMap[e.id] ?? [];
