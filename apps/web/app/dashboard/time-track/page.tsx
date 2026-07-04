@@ -26,7 +26,11 @@ const REASONS: { value: TimeTrackAdjustmentReason; label: string; fullDay?: bool
 ];
 
 function getLocalToday() {
-  return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
+  const d = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }
 function currentMonth() { return getLocalToday().slice(0,7); }
 function toDateKey(v?: string | null) { return v ? v.slice(0,10) : ''; }
@@ -640,7 +644,7 @@ function Ocorrencias({ employee, tracks, month, canManage, canApprove, refreshin
           <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-black text-amber-800">{employee.registration || employee.id.slice(0,8)}</span>
           <h3 className="text-sm font-black text-amber-900">{normalizeDisplayName(employee.name)}</h3>
         </div>
-        <p className="mt-2 text-xs text-amber-700">{ocorrencias.length} ocorrência(s) em {new Date(month+'-01').toLocaleDateString('pt-BR',{month:'long',year:'numeric'})}</p>
+        <p className="mt-2 text-xs text-amber-700">{ocorrencias.length} ocorrência(s) em {monthLabelFn(month)}</p>
       </div>
       {ocorrencias.length===0 ? <div className="px-5 py-8 text-center text-sm font-semibold text-slate-400">Nenhuma ocorrência no mês.</div> : (
         <div className="overflow-x-auto">
