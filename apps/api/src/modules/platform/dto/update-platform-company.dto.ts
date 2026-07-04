@@ -12,16 +12,16 @@ export class UpdatePlatformCompanyDto {
   @IsOptional()
   @IsInt()
   @Min(1)
-  maxUsers?: number;
+  plan?: any;
 
   @IsOptional()
   @IsInt()
   @Min(1)
-  maxEmployees?: number;
+  billingStatus?: any;
 
   @IsOptional()
   @IsBoolean()
-  isActive?: boolean;
+  
 
   @IsOptional()
   @IsIn(['ACTIVE', 'SUSPENDED', 'CANCELLED'])

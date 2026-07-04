@@ -39,7 +39,7 @@ export class UsersRepository {
   getCompanyLimits(companyId: string) {
     return this.prisma.company.findUnique({
       where: { id: companyId },
-      select: { maxUsers: true, maxEmployees: true, isActive: true },
+      select: { plan: true, status: true, billingStatus: true },
     });
   }
 

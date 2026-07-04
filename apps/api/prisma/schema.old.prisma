@@ -1,0 +1,1039 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  DEV
+  COMERCIAL
+  ADMIN
+  RH
+  GESTOR
+  FUNCIONARIO
+  CONSULTA
+}
+
+enum CompanyStatus {
+  ACTIVE
+  SUSPENDED
+  CANCELLED
+}
+
+enum WhatsappStatus {
+  DISCONNECTED
+  CONNECTING
+  QR_CODE
+  CONNECTED
+}
+
+enum ConversationStatus {
+  OPEN
+  PENDING
+  CLOSED
+}
+
+enum MessageDirection {
+  INBOUND
+  OUTBOUND
+}
+
+enum MessageStatus {
+  PENDING
+  SENT
+  DELIVERED
+  READ
+  FAILED
+  RECEIVED
+}
+
+enum JobStatus {
+  OPEN
+  CLOSED
+  DRAFT
+}
+
+enum CandidateStatus {
+  NEW
+  SCREENING
+  INTERVIEW
+  OFFER
+  HIRED
+  REJECTED
+}
+
+enum ApplicationStatus {
+  APPLIED
+  SCREENING
+  INTERVIEW
+  OFFER
+  HIRED
+  REJECTED
+}
+
+enum FinancialTransactionType {
+  REVENUE
+  EXPENSE
+}
+
+enum FinancialTransactionStatus {
+  PENDING
+  PAID
+  CANCELED
+}
+
+enum EmployeeStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  TERMINATED
+}
+
+enum VacationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+  COMPLETED
+}
+
+enum NotificationType {
+  SIMPLE_NOTICE
+  RH_NOTICE
+  VACATION_NOTICE
+  WARNING_NOTICE
+  SUSPENSION_NOTICE
+  DOCUMENT_NOTICE
+  SYSTEM_NOTICE
+  PLATFORM_NOTICE
+  URGENT_NOTICE
+}
+
+enum NotificationPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum NotificationStatus {
+  UNREAD
+  READ
+  ARCHIVED
+  PENDING_RESPONSE
+  ACCEPTED
+  REFUSED
+  ACKNOWLEDGED
+  REFUSED_ACKNOWLEDGMENT
+  DRAFT
+  SENT
+  CANCELLED
+  EXPIRED
+}
+
+enum NotificationTargetType {
+  USER
+  EMPLOYEE
+  DEPARTMENT
+  ROLE
+  ALL
+}
+
+enum TimeRuleStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum TimeClosingStatus {
+  OPEN
+  IN_ADJUSTMENT
+  PENDING_APPROVAL
+  APPROVED
+  CLOSED
+  REOPENED
+  EXPORTED
+  CANCELLED
+}
+
+enum TimeOccurrenceType {
+  LATE_ARRIVAL
+  EARLY_LEAVE
+  ABSENCE
+  JUSTIFIED_ABSENCE
+  UNJUSTIFIED_ABSENCE
+  MEDICAL_CERTIFICATE
+  MANUAL_ADJUSTMENT
+  MISSING_PUNCH
+  OVERTIME
+  NEGATIVE_BALANCE
+  POSITIVE_BALANCE
+  DAY_OFF
+  DSR
+  HOLIDAY
+  VACATION
+  LEAVE
+  EXTERNAL_WORK
+  HOME_OFFICE
+  TRAINING
+}
+
+enum CommitmentType {
+  DOCUMENT_DELIVERY
+  DOCUMENT_SIGNATURE
+  MEDICAL_EXAM
+  RETURN_FROM_LEAVE
+  MEETING_RH
+  RENEWAL
+  ADMIN_PENDING
+  VACATION
+  WARNING
+  SUSPENSION
+  TRAINING
+  ONBOARDING
+  OTHER
+}
+
+enum CommitmentStatus {
+  PENDING
+  TODAY
+  OVERDUE
+  UPCOMING
+  COMPLETED
+  CANCELLED
+  RESCHEDULED
+}
+
+enum CommitmentPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum AsoType {
+  ADMISSIONAL
+  PERIODICO
+  RETORNO_AO_TRABALHO
+  MUDANCA_DE_FUNCAO
+  DEMISSIONAL
+  COMPLEMENTAR
+}
+
+enum AsoStatus {
+  PENDING
+  SCHEDULED
+  COMPLETED
+  NEAR_EXPIRATION
+  EXPIRED
+  CANCELLED
+  WAITING_DOCUMENT
+  WAITING_ADDITIONAL_EXAM
+}
+
+enum AttachmentOwnerType {
+  COMMITMENT
+  ASO
+  EMPLOYEE
+  NOTIFICATION
+}
+
+enum ActivityEntityType {
+  COMMITMENT
+  ASO
+  EMPLOYEE
+  NOTIFICATION
+}
+
+model Company {
+  id           String   @id @default(uuid()) @db.Uuid
+  name         String
+  legalName    String?
+  document     String?  @unique
+  logoUrl      String?  @db.Text
+  phone        String?
+  email        String?
+  address      String?
+  primaryColor String?
+  theme        String?  @default("light")
+  commercialOwnerId String? @db.Uuid
+  subscriptionStartedAt DateTime @default(now())
+  suspensionReason String?
+  status       CompanyStatus @default(ACTIVE)
+  maxUsers     Int      @default(6)
+  maxEmployees Int      @default(50)
+  isActive     Boolean  @default(true)
+  latitude     Float?
+  longitude    Float?
+  payrollStartDay Int   @default(1)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  users         User[]
+  commercialOwner User? @relation("CommercialOwner", fields: [commercialOwnerId], references: [id], onDelete: SetNull)
+  employees     Employee[]
+  whatsapp      WhatsappInstance[]
+  contacts      Contact[]
+  conversations Conversation[]
+  messages      Message[]
+  jobs          Job[]
+  candidates    Candidate[]
+  applications  Application[]
+  holidays      Holiday[]
+  transactions  FinancialTransaction[]
+  privacyConsents PrivacyConsent[]
+  auditLogs     AuditLog[]
+  managementEvents ManagementEvent[]
+  asoRecords    EmployeeAsoRecord[]
+  notifications Notification[]
+
+  workScheduleRules WorkScheduleRule[]
+  timeClosingPeriods TimeClosingPeriod[]
+  timeClosingHistories TimeClosingHistory[]
+  timeOccurrences TimeOccurrence[]
+  commitments   Commitment[]
+  attachments   Attachment[]
+  activityHistories ActivityHistory[]
+
+  @@index([commercialOwnerId])
+}
+
+model User {
+  id           String   @id @default(uuid()) @db.Uuid
+  companyId    String   @db.Uuid
+  name         String
+  email        String  @unique
+  passwordHash String
+  passwordChangedAt DateTime @default(now())
+  forcePasswordChange Boolean @default(false)
+  role         UserRole @default(FUNCIONARIO)
+  isActive     Boolean  @default(true)
+  failedLoginAttempts Int @default(0)
+  previousPasswords String[] @default([])
+  resetPasswordCode String?
+  resetPasswordExpires DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  company         Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  commercialCompanies Company[]    @relation("CommercialOwner")
+  employee        Employee?
+  privacyConsents PrivacyConsent[]
+  auditLogs       AuditLog[]
+  notificationRecipients NotificationRecipient[]
+  sentNotifications Notification[] @relation("SentNotifications")
+  generatedClosings TimeClosingPeriod[] @relation("ClosingGeneratedBy")
+  closedClosings TimeClosingPeriod[] @relation("ClosingClosedBy")
+  approvedClosings TimeClosingPeriod[] @relation("ClosingApprovedBy")
+  reopenedClosings TimeClosingPeriod[] @relation("ClosingReopenedBy")
+  timeClosingHistories TimeClosingHistory[]
+  responsibleCommitments Commitment[] @relation("ResponsibleCommitment")
+  createdCommitments Commitment[] @relation("CommitmentCreatedBy")
+  completedCommitments Commitment[] @relation("CommitmentCompletedBy")
+  createdAsos EmployeeAsoRecord[] @relation("AsoCreatedBy")
+  updatedAsos EmployeeAsoRecord[] @relation("AsoUpdatedBy")
+  completedAsos EmployeeAsoRecord[] @relation("AsoCompletedBy")
+  uploadedAttachments Attachment[]
+  activityHistories ActivityHistory[]
+
+  @@index([companyId])
+}
+
+
+model Employee {
+  id            String         @id @default(uuid()) @db.Uuid
+  companyId     String         @db.Uuid
+  userId        String?        @unique @db.Uuid
+
+  name          String
+
+  cpf           String         @unique
+  email         String
+  phone         String?
+  secondaryPhone String?
+  rg            String?
+  rgIssuer      String?
+  rgState       String?
+  rgDate        String?
+
+  pis           String?
+  pisFirstJob   Boolean?       @default(false)
+
+  gender        String?
+  maritalStatus String?
+  nationality   String?
+  birthplace    String?
+  education     String?
+  motherName    String?
+  fatherName    String?
+
+  voterTitle    String?
+  voterZone     String?
+  voterSection  String?
+  voterState    String?
+
+  reservist     String?
+
+  cnh           String?
+  cnhCategory   String?
+  cnhExpiry     String?
+
+  cep           String?
+  street        String?
+  streetNumber  String?
+  addressComplement String?
+  neighborhood  String?
+  city          String?
+  state         String?
+  observations  String?        @db.Text
+  birthDate     DateTime?
+  registration  String?
+  position      String
+  department    String
+  managerId     String?        @db.Uuid
+  admissionDate DateTime
+  terminationDate DateTime?
+  status        EmployeeStatus @default(ACTIVE)
+  salary        Decimal?       @db.Decimal(12, 2)
+  contractType  String?
+  cnpj          String?
+  legalName     String?
+  tradeName     String?
+  unit          String?
+  workScale     String?
+  workScheduleRuleId String? @db.Uuid
+  customWorkScale String?
+  dailyWorkload String?
+  standardEntry String?
+  standardLunchStart String?
+  standardLunchReturn String?
+  standardExit  String?
+  suspensionReason String?
+  allowExternalWork Boolean @default(false)
+
+  bankCode      String?
+  bankName      String?
+  bankAgency    String?
+  bankAccount   String?
+  bankAccountType String?
+
+  dependents    Json?
+
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  company        Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  user           User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+  timeTracks     TimeTrack[]
+  workScheduleRule WorkScheduleRule? @relation(fields: [workScheduleRuleId], references: [id], onDelete: SetNull)
+  vacations      Vacation[]
+  managementEvents ManagementEvent[]
+  asoRecords    EmployeeAsoRecord[]
+  timeOccurrences TimeOccurrence[]
+  notificationRecipients NotificationRecipient[]
+
+  commitments    Commitment[]
+
+  @@index([companyId])
+  @@index([cpf])
+}
+
+model TimeTrack {
+  id            String    @id @default(uuid()) @db.Uuid
+  employeeId    String    @db.Uuid
+  date          DateTime  @db.Date
+  entry         DateTime?
+  lunchStart    DateTime?
+  lunchReturn   DateTime?
+  exit          DateTime?
+  totalWorked   Int?
+  dailyBalance  Int?
+  overtime50Minutes Int?
+  overtime100Minutes Int?
+  nightShiftMinutes Int?
+  observation   String?
+  latitude      Float?
+  longitude     Float?
+  manualReason  String?
+  manualStatus   String?   @default("approved")
+  incidentType  String?
+  toleranceMinutes Int?
+  absenceMinutes Int?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@unique([employeeId, date])
+  @@index([employeeId])
+  @@index([date])
+  @@index([manualStatus, createdAt])
+  @@index([incidentType])
+}
+
+model Holiday {
+  id        String   @id @default(uuid()) @db.Uuid
+  companyId String   @db.Uuid
+  date      DateTime @db.Date
+  name      String
+  type      String   @default("NACIONAL") // NACIONAL, ESTADUAL, MUNICIPAL, FACULTATIVO
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, date])
+  @@index([companyId])
+}
+
+model WorkScheduleRule {
+  id            String         @id @default(uuid()) @db.Uuid
+  companyId     String         @db.Uuid
+  name          String
+  description   String?
+  dailyMinutes  Int
+  weeklyMinutes Int
+  entryTime     String?
+  exitTime      String?
+  breakMinutes  Int            @default(60)
+  lateToleranceMinutes   Int            @default(0)
+  earlyLeaveToleranceMinutes Int      @default(0)
+  overtimeToleranceMinutes Int      @default(0)
+  overtimeEnabled Boolean   @default(true)
+  timeBankEnabled  Boolean  @default(false)
+  normalOvertimePercent  Int  @default(50)
+  holidayOvertimePercent Int  @default(100)
+  nightShiftEnabled   Boolean @default(false)
+  nightStartTime      String?
+  nightEndTime        String?
+  closingStartDay     Int
+  closingEndDay       Int
+  adjustmentDeadlineDay Int
+  managerApprovalDeadlineDay Int
+  status         TimeRuleStatus @default(ACTIVE)
+  department     String?
+  position       String?
+  workScale      String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  employees Employee[]
+
+  @@index([companyId])
+  @@index([status])
+}
+
+model TimeClosingPeriod {
+  id            String         @id @default(uuid()) @db.Uuid
+  companyId     String         @db.Uuid
+  referenceMonth Int
+  referenceYear  Int
+  periodStart    DateTime      @db.Date
+  periodEnd      DateTime      @db.Date
+  status         TimeClosingStatus @default(OPEN)
+  closedByUserId String?       @db.Uuid
+  closedAt       DateTime?
+  reopenedByUserId String?     @db.Uuid
+  reopenReason   String?
+  approvedByUserId String?     @db.Uuid
+  approvedAt     DateTime?
+  generatedByUserId String?    @db.Uuid
+  generatedAt    DateTime?
+  totalsJson     Json?
+  inconsistenciesJson Json?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime @updatedAt
+
+  company        Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  generatedBy    User?         @relation("ClosingGeneratedBy", fields: [generatedByUserId], references: [id], onDelete: SetNull)
+  closedBy       User?         @relation("ClosingClosedBy", fields: [closedByUserId], references: [id], onDelete: SetNull)
+  approvedBy     User?         @relation("ClosingApprovedBy", fields: [approvedByUserId], references: [id], onDelete: SetNull)
+  reopenedBy     User?         @relation("ClosingReopenedBy", fields: [reopenedByUserId], references: [id], onDelete: SetNull)
+  histories      TimeClosingHistory[]
+
+  @@unique([companyId, referenceMonth, referenceYear])
+  @@index([companyId])
+  @@index([status])
+}
+
+model TimeClosingHistory {
+  id                String    @id @default(uuid()) @db.Uuid
+  companyId         String    @db.Uuid
+  closingId         String    @db.Uuid
+  action            String
+  previousStatus    String?
+  newStatus         String
+  reason            String?
+  userId            String?   @db.Uuid
+  createdAt         DateTime  @default(now())
+
+  company  Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  closing  TimeClosingPeriod @relation(fields: [closingId], references: [id], onDelete: Cascade)
+  user     User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([companyId])
+  @@index([closingId])
+  @@index([userId])
+}
+
+model TimeOccurrence {
+  id            String    @id @default(uuid()) @db.Uuid
+  companyId     String    @db.Uuid
+  employeeId    String    @db.Uuid
+  timeTrackId   String?   @db.Uuid
+  type          TimeOccurrenceType
+  date          DateTime  @db.Date
+  minutes       Int
+  status        String    @default("PENDING")
+  reason        String?
+  observation   String?
+  createdByUserId String? @db.Uuid
+  approvedByUserId String? @db.Uuid
+  approvedAt    DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@index([employeeId])
+  @@index([date])
+  @@index([type])
+}
+
+model TimeClosingSummary {
+  id            String    @id @default(uuid()) @db.Uuid
+  companyId     String    @db.Uuid
+  employeeId    String    @db.Uuid
+  closingPeriodId String  @db.Uuid
+  expectedMinutes Int
+  workedMinutes   Int
+  overtimeMinutes Int
+  delayMinutes    Int
+  absenceDays     Int
+  justifiedAbsenceDays Int
+  timeBankPositiveMinutes Int
+  timeBankNegativeMinutes Int
+  status          TimeClosingStatus @default(OPEN)
+  exportedPdfUrl  String?
+  exportedExcelUrl String?
+  exportedAt      DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([companyId])
+  @@index([employeeId])
+  @@index([closingPeriodId])
+}
+
+model Vacation {
+  id                String         @id @default(uuid()) @db.Uuid
+  employeeId        String         @db.Uuid
+  acquisitionPeriod String
+  startDate         DateTime
+  endDate           DateTime
+  daysUsed          Int
+  status            VacationStatus @default(PENDING)
+  observation       String?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime @updatedAt
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([employeeId])
+}
+
+model ManagementEvent {
+  id                String    @id @default(uuid()) @db.Uuid
+  companyId         String    @db.Uuid
+  title             String
+  description       String?
+  eventType         String
+  startDateTime     DateTime
+  endDateTime       DateTime?
+  responsibleUserId String?   @db.Uuid
+  employeeId        String?   @db.Uuid
+  status            String    @default("PENDENTE")
+  priority          String    @default("MEDIA")
+  createdBy         String?   @db.Uuid
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime @updatedAt
+
+  company  Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  employee Employee? @relation(fields: [employeeId], references: [id], onDelete: SetNull)
+
+  @@index([companyId])
+  @@index([employeeId])
+  @@index([startDateTime])
+  @@index([companyId, status])
+  @@map("management_events")
+}
+
+model EmployeeAsoRecord {
+  id             String    @id @default(uuid()) @db.Uuid
+  companyId      String    @db.Uuid
+  employeeId     String    @db.Uuid
+  asoType        AsoType
+  examDate       DateTime?
+  dueDate        DateTime?
+  status         AsoStatus @default(PENDING)
+  clinicName     String?
+  doctorName     String?
+  documentNumber String?
+  observation    String?
+  attachmentId   String?
+  createdBy      String?   @db.Uuid
+  updatedBy      String?   @db.Uuid
+  completedBy    String?   @db.Uuid
+  completedAt    DateTime?
+  cancelledAt    DateTime?
+  cancellationReason String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime @updatedAt
+
+  company   Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  employee  Employee   @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  createdByUser User?   @relation("AsoCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
+  updatedByUser User?   @relation("AsoUpdatedBy", fields: [updatedBy], references: [id], onDelete: SetNull)
+  completedByUser User? @relation("AsoCompletedBy", fields: [completedBy], references: [id], onDelete: SetNull)
+
+  @@index([companyId])
+  @@index([employeeId])
+  @@index([asoType])
+  @@index([dueDate])
+  @@map("employee_aso_records")
+}
+
+model Commitment {
+  id               String            @id @default(uuid()) @db.Uuid
+  companyId        String            @db.Uuid
+  employeeId       String?           @db.Uuid
+  title            String
+  description      String?
+  type             CommitmentType
+  status           CommitmentStatus @default(PENDING)
+  priority         CommitmentPriority @default(NORMAL)
+  dueDate          DateTime
+  dueTime          String?
+  responsibleUserId String?          @db.Uuid
+  createdByUserId  String?           @db.Uuid
+  completedByUserId String?          @db.Uuid
+  completedAt      DateTime?
+  cancelledAt      DateTime?
+  cancellationReason String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  company          Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  employee         Employee?          @relation(fields: [employeeId], references: [id], onDelete: SetNull)
+  responsibleUser  User?              @relation("ResponsibleCommitment", fields: [responsibleUserId], references: [id], onDelete: SetNull)
+  createdByUser    User?              @relation("CommitmentCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  completedByUser  User?              @relation("CommitmentCompletedBy", fields: [completedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([companyId])
+  @@index([employeeId])
+  @@index([dueDate])
+  @@index([status])
+  @@map("commitments")
+}
+
+model Attachment {
+  id               String            @id @default(uuid()) @db.Uuid
+  companyId        String            @db.Uuid
+  ownerType        AttachmentOwnerType
+  ownerId          String
+  fileName         String
+  fileType         String
+  fileSize         Int
+  fileUrl          String
+  storageKey       String?
+  uploadedByUserId String?           @db.Uuid
+  createdAt        DateTime          @default(now())
+
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  uploadedBy User?   @relation(fields: [uploadedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([companyId])
+  @@index([ownerType, ownerId])
+}
+
+model ActivityHistory {
+  id             String            @id @default(uuid()) @db.Uuid
+  companyId      String            @db.Uuid
+  entityType     ActivityEntityType
+  entityId       String
+  action         String
+  previousStatus String?
+  newStatus      String?
+  reason         String?
+  metadata       Json?
+  userId         String?           @db.Uuid
+  createdAt      DateTime          @default(now())
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  user    User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([companyId])
+  @@index([entityType, entityId])
+  @@index([userId])
+}
+
+model Notification {
+  id               String            @id @default(uuid()) @db.Uuid
+  companyId        String            @db.Uuid
+  type             NotificationType
+  title            String
+  message          String            @db.Text
+  priority         NotificationPriority @default(NORMAL)
+  source           String?           @db.VarChar(50)
+  targetUrl        String?
+  createdBy        String?           @db.Uuid
+  startsAt         DateTime?
+  expiresAt        DateTime?
+  requiresReadConfirmation Boolean @default(false)
+  requiresAcceptance Boolean @default(false)
+  allowsRefusal    Boolean @default(false)
+  pinned           Boolean @default(false)
+  targetType       NotificationTargetType @default(ALL)
+  targetId         String?
+  status           NotificationStatus @default(DRAFT)
+  sentAt           DateTime?
+  attachmentsJson  Json?
+  extraJson         Json?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  company        Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  createdByUser  User?           @relation("SentNotifications", fields: [createdBy], references: [id], onDelete: SetNull)
+  recipients     NotificationRecipient[]
+
+  @@index([companyId])
+  @@index([type])
+  @@index([priority])
+  @@index([startsAt])
+  @@index([expiresAt])
+  @@map("notifications")
+}
+
+model NotificationRecipient {
+  id             String             @id @default(uuid()) @db.Uuid
+  notificationId String             @db.Uuid
+  userId         String             @db.Uuid
+  employeeId     String?            @db.Uuid
+  status         NotificationStatus
+  readAt         DateTime?
+  archivedAt     DateTime?
+  responseJson   Json?
+  createdAt      DateTime           @default(now())
+
+  notification   Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  employee       Employee?    @relation(fields: [employeeId], references: [id], onDelete: SetNull)
+
+  @@unique([notificationId, userId])
+  @@index([userId])
+  @@index([status])
+  @@map("notification_recipients")
+}
+
+model PrivacyConsent {
+  id          String   @id @default(uuid()) @db.Uuid
+  companyId   String   @db.Uuid
+  userId      String   @db.Uuid
+  termVersion String
+  purpose     String
+  ipAddress   String?
+  userAgent   String?
+  acceptedAt  DateTime @default(now())
+  revokedAt   DateTime?
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, termVersion])
+  @@index([companyId])
+  @@index([userId])
+}
+
+model AuditLog {
+  id        String   @id @default(uuid()) @db.Uuid
+  companyId String   @db.Uuid
+  userId    String?  @db.Uuid
+  action    String
+  entity    String
+  entityId  String?
+  metadata  Json?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  user    User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([companyId])
+  @@index([companyId, entity])
+  @@index([userId])
+}
+
+model WhatsappInstance {
+  id        String         @id @default(uuid()) @db.Uuid
+  companyId String         @db.Uuid
+  sessionId String @unique
+  status    WhatsappStatus @default(DISCONNECTED)
+  qrCode    String?
+  phone     String?
+  createdAt DateTime       @default(now())
+  updatedAt DateTime @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+}
+
+
+model Contact {
+  id            String             @id @default(uuid()) @db.Uuid
+  companyId     String             @db.Uuid
+  name          String?
+  phone         String
+  email         String?
+  tags          String[]           @default([])
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime @updatedAt
+
+  company       Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  conversations Conversation[]
+  candidates    Candidate[]
+
+  @@unique([companyId, phone])
+  @@index([companyId])
+}
+
+
+model Conversation {
+  id            String             @id @default(uuid()) @db.Uuid
+  companyId     String             @db.Uuid
+  contactId     String             @db.Uuid
+  whatsappJid   String
+  status        ConversationStatus @default(OPEN)
+  lastMessage   String?
+  lastMessageAt DateTime?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime @updatedAt
+
+  company  Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  contact  Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  messages Message[]
+
+  @@unique([companyId, whatsappJid])
+  @@index([companyId])
+  @@index([companyId, status])
+}
+
+model Message {
+  id             String           @id @default(uuid()) @db.Uuid
+  companyId      String           @db.Uuid
+  conversationId String           @db.Uuid
+  externalId     String?
+  body           String
+  direction      MessageDirection
+  status         MessageStatus    @default(PENDING)
+  sentAt         DateTime?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime @updatedAt
+
+  company      Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, externalId])
+  @@index([companyId])
+  @@index([companyId, conversationId])
+}
+
+model Job {
+  id             String    @id @default(uuid()) @db.Uuid
+  companyId      String    @db.Uuid
+  title          String
+  description    String
+  location       String?
+  employmentType String?
+  salaryRange    String?
+  benefits       String[]  @default([])
+  status         JobStatus @default(OPEN)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  company      Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  applications Application[]
+
+  @@index([companyId])
+}
+
+
+model Candidate {
+  id            String          @id @default(uuid()) @db.Uuid
+  companyId     String          @db.Uuid
+  contactId     String?          @db.Uuid
+  name          String
+  email         String?
+  phone         String?
+  linkedinUrl   String?
+  coverLetter   String?
+  resumeUrl      String?
+  aiScore       Int?
+  aiSummary     String?
+  aiNotes       String?
+  aiSkills      String[]        @default([])
+  lastSentiment String?
+  status        CandidateStatus @default(NEW)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime @updatedAt
+
+  company      Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  contact      Contact?     @relation(fields: [contactId], references: [id])
+  applications Application[]
+
+  @@index([companyId])
+  @@index([companyId, email])
+}
+
+model Application {
+  id          String            @id @default(uuid()) @db.Uuid
+  companyId   String            @db.Uuid
+  candidateId String            @db.Uuid
+  jobId       String            @db.Uuid
+  status      ApplicationStatus @default(APPLIED)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime @updatedAt
+
+  company   Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  candidate Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  job       Job         @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, candidateId, jobId])
+  @@index([companyId])
+}
+
+
+model FinancialTransaction {
+  id          String                     @id @default(uuid()) @db.Uuid
+  companyId   String                     @db.Uuid
+  description String
+  amount      Decimal                    @db.Decimal(12, 2)
+  type        FinancialTransactionType
+  status      FinancialTransactionStatus @default(PENDING)
+  dueDate     DateTime?
+  paidAt      DateTime?
+  createdAt    DateTime                   @default(now())
+  updatedAt    DateTime @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@index([companyId, type])
+  @@index([companyId, status])
+}

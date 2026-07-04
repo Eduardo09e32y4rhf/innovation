@@ -64,7 +64,7 @@ export class JwtAuthGuard implements CanActivate {
       if (!freshUser || !freshUser.isActive) throw new UnauthorizedException(SESSION_DENIED_MESSAGE);
 
       const role = freshUser.email.toLowerCase() === PLATFORM_OWNER_EMAIL ? 'DEV' : freshUser.role;
-      const companyActive = freshUser.company?.isActive && (freshUser.company.status ?? 'ACTIVE') === 'ACTIVE';
+      const companyActive = freshUser.company && (freshUser.company.status ?? 'ACTIVE') === 'ACTIVE' && freshUser.company.billingStatus !== 'CANCELED';
       if (role !== 'DEV' && !companyActive) throw new UnauthorizedException(SESSION_DENIED_MESSAGE);
 
       const changedAt = freshUser.passwordChangedAt ? new Date(freshUser.passwordChangedAt).getTime() : 0;

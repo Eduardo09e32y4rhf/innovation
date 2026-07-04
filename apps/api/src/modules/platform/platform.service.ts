@@ -58,13 +58,13 @@ export class PlatformService {
     if (actor.role === 'COMERCIAL' && company.commercialOwnerId !== actor.sub) {
       throw new ForbiddenException('Comercial so pode alterar empresas sob sua responsabilidade.');
     }
-    const status = dto.status ?? (dto.isActive === false ? 'SUSPENDED' : dto.isActive === true ? 'ACTIVE' : undefined);
+    const status = dto.status;
     const { name, document, plan, billingStatus, trialEndsAt, ...rest } = dto;
     const data = {
       ...rest,
       ...(name !== undefined ? { name: normalizeDisplayName(name) } : {}),
       ...(document !== undefined ? { document: emptyToNull(document) } : {}),
-      ...(status ? { status, isActive: status === 'ACTIVE' } : {}),
+      ...(status ? { status } : {}),
       ...(status === 'ACTIVE' ? { suspensionReason: null } : {}),
       ...(plan ? { plan } : {}),
       ...(billingStatus ? { billingStatus } : {}),
@@ -94,8 +94,8 @@ export class PlatformService {
     if (existing) throw new ConflictException('E-mail ja cadastrado');
 
     const count = await this.repository.countUsers(companyId);
-    if (count >= company.maxUsers) {
-      throw new ForbiddenException(`Limite de ${company.maxUsers} usuarios atingido para esta empresa.`);
+    if (count >= (company.plan === 'PRO' ? 9999 : company.plan === 'STARTER' ? 20 : 6)) {
+      throw new ForbiddenException(`Limite de usuarios atingido para esta empresa.`);
     }
 
     return this.repository.createCompanyUser({

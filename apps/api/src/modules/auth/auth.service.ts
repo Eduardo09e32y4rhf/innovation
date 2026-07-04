@@ -289,9 +289,9 @@ export class AuthService {
     return email.toLowerCase() === PLATFORM_OWNER_EMAIL ? 'DEV' : role;
   }
 
-  private canAccessCompany(company: { isActive?: boolean; status?: string } | null | undefined, role: UserRole) {
+  private canAccessCompany(company: { status?: string; billingStatus?: string } | null | undefined, role: UserRole) {
     if (role === 'DEV') return true;
-    return Boolean(company?.isActive && (company.status ?? 'ACTIVE') === 'ACTIVE');
+    return Boolean(company && (company.status ?? 'ACTIVE') === 'ACTIVE' && company.billingStatus !== 'CANCELED');
   }
 
   private async buildAuthResponse(payload: JwtUser, passwordChangeRequired = false) {
