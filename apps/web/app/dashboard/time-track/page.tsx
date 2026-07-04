@@ -363,7 +363,7 @@ export default function TimeTrackPage() {
           <OcorrenciasList employees={visible} byEmpMap={byEmpMap} month={month} onSelect={setEmpFilter} />
         )}
 
-      {(open || editing) && <Modal employees={actives} track={editing ?? undefined} defaultEmpId={empFilter} onClose={()=>{setOpen(false);setEditing(null);}} onDone={()=>{setOpen(false);setEditing(null);tracks.refetch();}} />}
+      {(open || editing) && <Modal employees={visible} track={editing ?? undefined} defaultEmpId={empFilter} onClose={()=>{setOpen(false);setEditing(null);}} onDone={()=>{setOpen(false);setEditing(null);tracks.refetch();}} />}
     </div>
   );
 }
@@ -795,7 +795,7 @@ function Modal({ employees, track, defaultEmpId, onClose, onDone }: { employees:
           <label className="space-y-1 text-xs font-medium text-slate-600 sm:col-span-2"><span>FUNCIONÁRIO</span>
             <select disabled={!!track} value={empId} onChange={e=>setEmpId(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500 disabled:bg-slate-50">
               <option value="">Selecione...</option>
-              {!track && <option value="ALL">TODOS OS FUNCIONÁRIOS ATIVOS</option>}
+              {!track && <option value="ALL">TODOS DA LISTA ATUAL</option>}
               {employees.map(e=><option key={e.id} value={e.id}>{normalizeDisplayName(e.name)}</option>)}
             </select>
           </label>
