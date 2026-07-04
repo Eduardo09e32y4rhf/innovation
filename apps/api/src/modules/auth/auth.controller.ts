@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RateLimit, RateLimitGuard } from '../../common/guards/rate-limit.guard';
 import type { JwtUser } from '../../common/types/auth.types';
 import { AuthService } from './auth.service';
 import { ChangePasswordDto } from './dto/change-password.dto';
@@ -19,21 +20,29 @@ export class AuthController {
   }
 
   @Post('login')
+  @UseGuards(RateLimitGuard)
+  @RateLimit({ window: 60, max: 5, prefix: 'login' })
   login(@Body() dto: LoginDto, @Req() request: any) {
     return this.service.login(dto, getRequestMeta(request));
   }
 
   @Post('password-reset/request')
+  @UseGuards(RateLimitGuard)
+  @RateLimit({ window: 300, max: 3, prefix: 'pwd-reset-req' })
   requestPasswordReset(@Body() dto: RequestPasswordResetDto, @Req() request: any) {
     return this.service.requestPasswordReset(dto, getRequestMeta(request));
   }
 
   @Post('password-reset/validate-code')
+  @UseGuards(RateLimitGuard)
+  @RateLimit({ window: 300, max: 5, prefix: 'pwd-reset-val' })
   validateResetCode(@Body() dto: { email: string; code: string; cpfStart: string; registration: string }) {
     return this.service.validateResetCode(dto);
   }
 
   @Post('password-reset/confirm')
+  @UseGuards(RateLimitGuard)
+  @RateLimit({ window: 300, max: 3, prefix: 'pwd-reset-conf' })
   resetPassword(@Body() dto: ResetPasswordDto, @Req() request: any) {
     return this.service.resetPassword(dto, getRequestMeta(request));
   }
