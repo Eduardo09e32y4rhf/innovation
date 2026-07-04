@@ -177,7 +177,7 @@ export default function TimeTrackPage() {
 
   const actives = useMemo(() => (employees.data ?? []).filter(e=>e.status==='ACTIVE' && (profile === 'DEV' || e.user?.role !== 'DEV')).slice().sort((a,b)=>normalizeDisplayName(a.name).localeCompare(normalizeDisplayName(b.name),'pt-BR')), [employees.data, profile]);
   const depts = useMemo(() => [...new Set((employees.data ?? []).map(e=>e.department).filter(Boolean))].sort(), [employees.data]);
-  const selected = isFunc ? actives[0] : actives.find(e=>e.id===empFilter);
+  const selected = isFunc ? actives[0] : (employees.data ?? []).find(e=>e.id===empFilter);
   const byEmp = useMemo(() => (tracks.data ?? []).filter(r => {
     if (empFilter && r.employeeId!==empFilter) return false;
     if (month && !toDateKey(r.date).startsWith(month)) return false;
