@@ -708,7 +708,7 @@ function Modal({ employees, track, defaultEmpId, onClose, onDone }: { employees:
       datesToInsert.push(d.toISOString().slice(0,10));
     }
 
-    const promises = [];
+    const tasks = [];
     for (const d of datesToInsert) {
       const dayPayload = {
         entry: toIso(d, entry),
@@ -720,11 +720,17 @@ function Modal({ employees, track, defaultEmpId, onClose, onDone }: { employees:
       };
       for (const tId of targets) {
         if (!tId) continue;
-        promises.push(api.timeTrack.manual({ employeeId: tId, date: d, ...dayPayload }));
+        // Delay execution by wrapping in a function to avoid unbounded parallel requests
+        tasks.push(() => api.timeTrack.manual({ employeeId: tId, date: d, ...dayPayload }));
       }
     }
     
-    await Promise.all(promises);
+    // Process in chunks to prevent overwhelming browser connection limits and the backend API
+    const chunkSize = 20;
+    for (let i = 0; i < tasks.length; i += chunkSize) {
+      const chunk = tasks.slice(i, i + chunkSize);
+      await Promise.all(chunk.map(fn => fn()));
+    }
   }, { onSuccess: onDone });
 
   const ok = Boolean(empId && date && (fullDay || entry || lunchS || lunchR || exit));
