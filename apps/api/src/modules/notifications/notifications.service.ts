@@ -229,6 +229,7 @@ export class NotificationsService {
                   dailyBalance: 0,
                 },
                 create: {
+                  companyId: employee.companyId,
                   employeeId: employee.id,
                   date: targetDate,
                   incidentType: 'SUSPENSÃO',

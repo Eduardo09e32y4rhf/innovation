@@ -1,4 +1,4 @@
-﻿import { IsBoolean, IsIn, IsInt, IsOptional, IsString, Min } from 'class-validator';
+import { IsBoolean, IsIn, IsInt, IsOptional, IsString, Min } from 'class-validator';
 
 export class UpdatePlatformCompanyDto {
   @IsOptional()
@@ -30,4 +30,16 @@ export class UpdatePlatformCompanyDto {
   @IsOptional()
   @IsIn(['inadimplencia', 'solicitacao_voluntaria', 'nao informado'])
   suspensionReason?: string | null;
+
+  @IsOptional()
+  @IsIn(['FREE', 'STARTER', 'PRO'])
+  plan?: 'FREE' | 'STARTER' | 'PRO';
+
+  @IsOptional()
+  @IsIn(['TRIAL', 'ACTIVE', 'PAST_DUE', 'CANCELED'])
+  billingStatus?: 'TRIAL' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED';
+
+  @IsOptional()
+  @IsString()
+  trialEndsAt?: string;
 }

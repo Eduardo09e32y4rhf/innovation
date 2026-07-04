@@ -28,6 +28,8 @@ type TrackWithEmployee = {
   longitude: number | null;
   manualReason: string | null;
   manualStatus: string | null;
+  overtimeApprovalStatus: string | null;
+  overtimeExceedsLimit: boolean;
   incidentType: string | null;
   toleranceMinutes: number | null;
   absenceMinutes: number | null;
@@ -66,6 +68,13 @@ export class TimeTrackRepository {
     longitude: true,
     manualReason: true,
     manualStatus: true,
+    overtimeApprovalStatus: true,
+overtimeExceedsLimit: true,
+overtimeApprovedAt: true,
+overtimeApprovedByUserId: true,
+overtimeHandling: true,
+overtimeBankMinutes: true,
+overtimePaymentMinutes: true,
     incidentType: true,
     toleranceMinutes: true,
     absenceMinutes: true,
@@ -365,7 +374,23 @@ export class TimeTrackRepository {
       },
     });
   }
+
+  async findHoliday(companyId: string, date: Date) {
+    const [day] = date.toISOString().split('T');
+    const start = new Date(`${day}T00:00:00.000Z`);
+    const end = new Date(`${day}T23:59:59.999Z`);
+    return this.prisma.holiday.findFirst({
+      where: { companyId, date: { gte: start, lte: end } },
+    });
+  }
+
+
+  async updateOvertimeApprovalStatus(companyId: string, id: string, status: string) {
+    await this.prisma.timeTrack.updateMany({ where: { id, employee: { companyId } }, data: { overtimeApprovalStatus: status } });
+    return this.findById(companyId, id);
+  }
+
+  async findWorkScheduleRule(id: string) {
+    return this.prisma.workScheduleRule.findUnique({ where: { id } });
+  }
 }
-
-
-

@@ -31,7 +31,8 @@ export class CompaniesRepository {
           companyId,
           name: h.name,
           date: new Date(h.date),
-          type: h.type || 'NACIONAL',
+          scope: h.scope || 'NATIONAL',
+            handling: h.handling || 'PAID_100',
         })),
       });
     }

@@ -85,6 +85,9 @@ export class PlatformRepository {
     adminEmail: string;
     adminPasswordHash: string;
     commercialOwnerId?: string | null;
+    plan?: 'FREE' | 'STARTER' | 'PRO';
+    billingStatus?: 'TRIAL' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED';
+    trialEndsAt?: Date;
   }) {
     return this.prisma.$transaction(async (tx: any) => {
       const company = await tx.company.create({
@@ -96,6 +99,9 @@ export class PlatformRepository {
           commercialOwnerId: params.commercialOwnerId ?? null,
           status: 'ACTIVE',
           isActive: true,
+          plan: params.plan ?? 'FREE',
+          billingStatus: params.billingStatus ?? 'TRIAL',
+          trialEndsAt: params.trialEndsAt,
         },
       });
       const admin = await tx.user.create({

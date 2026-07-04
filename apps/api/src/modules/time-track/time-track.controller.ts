@@ -51,6 +51,12 @@ export class TimeTrackController {
   }
 
   @Roles('DEV', 'ADMIN', 'RH', 'GESTOR')
+
+  @Patch(':id/overtime-approval')
+  approveOvertime(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string, @Body() body: { approved: boolean }) {
+    return this.service.approveOvertime(companyId, actor, id, body.approved);
+  }
+
   @Patch(':id/approve')
   approve(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string, @Body() body: { approved: boolean }) {
     return this.service.approveManual(companyId, actor, id, body.approved);

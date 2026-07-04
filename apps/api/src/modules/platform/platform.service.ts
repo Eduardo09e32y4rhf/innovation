@@ -30,6 +30,10 @@ export class PlatformService {
     const existing = await this.repository.findUserByEmail(adminEmail);
     if (existing) throw new ConflictException('E-mail do admin ja esta em uso');
 
+    
+      const trialEndsAt = new Date();
+      trialEndsAt.setDate(trialEndsAt.getDate() + 14);
+
     const adminPasswordHash = await bcrypt.hash(dto.adminPassword, 12);
     return this.repository.createCompanyWithAdmin({
       name: normalizeDisplayName(dto.name),
@@ -40,6 +44,9 @@ export class PlatformService {
       adminEmail,
       adminPasswordHash,
       commercialOwnerId: actor.role === 'COMERCIAL' ? actor.sub : null,
+        plan: 'FREE',
+        billingStatus: 'TRIAL',
+        trialEndsAt,
     });
   }
 
@@ -52,13 +59,16 @@ export class PlatformService {
       throw new ForbiddenException('Comercial so pode alterar empresas sob sua responsabilidade.');
     }
     const status = dto.status ?? (dto.isActive === false ? 'SUSPENDED' : dto.isActive === true ? 'ACTIVE' : undefined);
-    const { name, document, ...rest } = dto;
+    const { name, document, plan, billingStatus, trialEndsAt, ...rest } = dto;
     const data = {
       ...rest,
       ...(name !== undefined ? { name: normalizeDisplayName(name) } : {}),
       ...(document !== undefined ? { document: emptyToNull(document) } : {}),
       ...(status ? { status, isActive: status === 'ACTIVE' } : {}),
       ...(status === 'ACTIVE' ? { suspensionReason: null } : {}),
+      ...(plan ? { plan } : {}),
+      ...(billingStatus ? { billingStatus } : {}),
+      ...(trialEndsAt !== undefined ? { trialEndsAt: trialEndsAt ? new Date(trialEndsAt) : null } : {}),
       ...(status === 'CANCELLED' && !dto.suspensionReason ? { suspensionReason: 'solicitacao_voluntaria' } : {}),
     };
     return this.repository.updateCompany(id, data);

@@ -34,8 +34,8 @@ export default function PlatformPage() {
   });
 
   const updateLicense = useMutation(
-    ({ id, maxUsers, maxEmployees }: { id: string; maxUsers: number; maxEmployees: number }) =>
-      api.platform.updateCompany(id, { maxUsers, maxEmployees }),
+    ({ id, maxUsers, maxEmployees, plan, billingStatus, trialEndsAt }: { id: string; maxUsers: number; maxEmployees: number; plan?: 'FREE' | 'STARTER' | 'PRO'; billingStatus?: 'TRIAL' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED'; trialEndsAt?: string }) =>
+      api.platform.updateCompany(id, { maxUsers, maxEmployees, plan, billingStatus, trialEndsAt }),
     { onSuccess: () => { companies.refetch(); stats.refetch(); setLicenseCompany(null); } },
   );
 
@@ -119,7 +119,7 @@ export default function PlatformPage() {
                   <th className="pb-3 pr-4">CNPJ</th>
                   <th className="pb-3 pr-4">Usuários</th>
                   <th className="pb-3 pr-4">Funcionários</th>
-                  <th className="pb-3 pr-4">Assinatura</th>
+                  <th className="pb-3 pr-4">Plano</th><th className="pb-3 pr-4">Financeiro</th><th className="pb-3 pr-4">Criada em</th>
                   <th className="pb-3 pr-4">Status</th>
                   <th className="pb-3">Acoes</th>
                 </tr>
@@ -133,7 +133,15 @@ export default function PlatformPage() {
                       <td className="py-3 pr-4">{c.document || '-'}</td>
                       <td className="py-3 pr-4">{c.usersCount} / {c.maxUsers}</td>
                       <td className="py-3 pr-4">{c.employeesCount} / {c.maxEmployees}</td>
-                      <td className="py-3 pr-4">{formatDate(c.subscriptionStartedAt ?? c.createdAt)}</td>
+                      <td className="py-3 pr-4">
+    <span className="inline-flex rounded border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-bold text-slate-700">{c.plan ?? 'FREE'}</span>
+  </td>
+  <td className="py-3 pr-4">
+    <span className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-bold ${c.billingStatus === 'ACTIVE' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : c.billingStatus === 'TRIAL' ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-rose-200 bg-rose-50 text-rose-700'}`}>
+      {c.billingStatus ?? 'TRIAL'}
+    </span>
+  </td>
+  <td className="py-3 pr-4">{formatDate(c.createdAt)}</td>
                       <td className="py-3 pr-4">
                         <div className="space-y-1">
                           <span className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-bold ${status === 'ACTIVE' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : status === 'CANCELLED' ? 'border-rose-200 bg-rose-50 text-rose-700' : 'border-slate-200 bg-slate-100 text-slate-500'}`}>
@@ -188,7 +196,7 @@ export default function PlatformPage() {
         <LicenseModal
           company={licenseCompany}
           onClose={() => setLicenseCompany(null)}
-          onSave={(maxUsers, maxEmployees) => updateLicense.mutate({ id: licenseCompany.id, maxUsers, maxEmployees }).catch(() => {})}
+          onSave={(maxUsers, maxEmployees, plan, billingStatus, trialEndsAt) => updateLicense.mutate({ id: licenseCompany.id, maxUsers, maxEmployees, plan, billingStatus, trialEndsAt }).catch(() => {})}
           loading={updateLicense.loading}
           error={updateLicense.error}
         />
@@ -378,11 +386,14 @@ function F({ label, value, onChange, type = 'text', required }: { label: string;
 
 // ─── LICENSE MODAL ─────────────────────────────────────────────────────────
 
-function LicenseModal({ company, onClose, onSave, loading, error }: { company: PlatformCompany; onClose: () => void; onSave: (maxUsers: number, maxEmployees: number) => void; loading: boolean; error: string | null }) {
-  const [maxUsers, setMaxUsers] = useState(company.maxUsers);
+function LicenseModal({ company, onClose, onSave, loading, error }: { company: PlatformCompany; onClose: () => void; onSave: (maxUsers: number, maxEmployees: number, plan: any, billingStatus: any, trialEndsAt: string) => void; loading: boolean; error: string | null }) {
+    const [maxUsers, setMaxUsers] = useState(company.maxUsers);
   const [maxEmployees, setMaxEmployees] = useState(company.maxEmployees);
+  const [plan, setPlan] = useState<any>(company.plan ?? 'FREE');
+  const [billingStatus, setBillingStatus] = useState<any>(company.billingStatus ?? 'TRIAL');
+  const [trialEndsAt, setTrialEndsAt] = useState(company.trialEndsAt ? new Date(company.trialEndsAt).toISOString().split('T')[0] : '');
 
-  const changed = maxUsers !== company.maxUsers || maxEmployees !== company.maxEmployees;
+  const changed = maxUsers !== company.maxUsers || maxEmployees !== company.maxEmployees || plan !== (company.plan ?? 'FREE') || billingStatus !== (company.billingStatus ?? 'TRIAL') || trialEndsAt !== (company.trialEndsAt ? new Date(company.trialEndsAt).toISOString().split('T')[0] : '');
   const valid = maxUsers >= 1 && maxUsers >= company.usersCount && maxEmployees >= 1 && maxEmployees >= company.employeesCount;
 
   return (
@@ -470,7 +481,7 @@ function LicenseModal({ company, onClose, onSave, loading, error }: { company: P
         <div className="mt-5 flex justify-end gap-2">
           <button onClick={onClose} className="btn-outline h-10 rounded-[8px] px-4 text-xs font-bold">Cancelar</button>
           <button
-            onClick={() => valid && changed && onSave(maxUsers, maxEmployees)}
+            onClick={() => valid && changed && onSave(maxUsers, maxEmployees, plan, billingStatus, trialEndsAt ? new Date(trialEndsAt).toISOString() : '')}
             disabled={!valid || !changed || loading}
             className="crystal-button h-10 rounded-[8px] px-4 text-xs font-black text-white disabled:opacity-60"
           >
