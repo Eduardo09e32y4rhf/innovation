@@ -261,6 +261,6 @@ export class CreateEmployeeDto {
   bankAccountType?: string;
 
   @IsOptional()
-  @IsArray()
-  dependents?: any[];
+  @IsString()
+  dependents?: string;
 }

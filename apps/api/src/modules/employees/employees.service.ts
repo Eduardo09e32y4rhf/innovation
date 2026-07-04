@@ -170,7 +170,7 @@ export class EmployeesService {
       managerId: this.emptyToUndefined(dto.managerId),
       admissionDate: dto.admissionDate ? new Date(dto.admissionDate) : undefined,
       terminationDate: status === 'ACTIVE' ? undefined : (dto.terminationDate ? new Date(dto.terminationDate) : undefined),
-      salary: dto.salary ?? undefined,
+      salary: dto.salary !== undefined ? String(dto.salary) : undefined,
       contractType: this.emptyToUndefined(dto.contractType),
       cnpj: this.emptyToUndefined(dto.cnpj),
       legalName: this.emptyToUndefined(dto.legalName),

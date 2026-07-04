@@ -206,6 +206,24 @@ function EmployeeForm() {
   const [loadingEmployee, setLoadingEmployee] = useState(isEdit);
   const [dependentsList, setDependentsList] = useState<Dependent[]>([]);
 
+  async function fetchCnpj(cnpj: string) {
+    const cleanCnpj = cnpj.replace(/\D/g, '');
+    if (cleanCnpj.length !== 14) return;
+    try {
+      const res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cleanCnpj}`);
+      if (res.ok) {
+        const data = await res.json();
+        setForm((prev) => ({
+          ...prev,
+          legalName: data.razao_social || prev.legalName,
+          tradeName: data.nome_fantasia || prev.tradeName,
+        }));
+      }
+    } catch {
+      // Ignore API errors
+    }
+  }
+
   useEffect(() => {
     if (!editId) return;
     let active = true;
@@ -595,7 +613,16 @@ function EmployeeForm() {
             <Field label="Salário (R$)" type="number" value={form.salary?.toString() ?? ''} onChange={(v) => set('salary', v ? Number(v) : undefined)} />
             <Select label="Tipo de contrato" value={form.contractType ?? 'CLT'} onChange={(v) => set('contractType', v as ContractType)} options={CONTRACT_OPTIONS} />
             {(form.contractType === 'PJ' || form.contractType === 'TERCEIRIZADO') && (
-              <Field label={form.contractType === 'PJ' ? 'CNPJ' : 'CNPJ da empresa terceira'} value={form.cnpj ?? ''} onChange={(v) => set('cnpj', maskCNPJ(v))} placeholder="00.000.000/0000-00" />
+              <Field
+                label={form.contractType === 'PJ' ? 'CNPJ' : 'CNPJ da empresa terceira'}
+                value={form.cnpj ?? ''}
+                onChange={(v) => {
+                  const masked = maskCNPJ(v);
+                  set('cnpj', masked);
+                  if (masked.replace(/\D/g, '').length === 14) fetchCnpj(masked);
+                }}
+                placeholder="00.000.000/0000-00"
+              />
             )}
             {form.contractType === 'PJ' && (
               <>
