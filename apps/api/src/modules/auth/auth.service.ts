@@ -142,7 +142,7 @@ export class AuthService {
       throw new UnauthorizedException('Usuário não possui cadastro de colaborador. Contate o suporte.');
     }
     
-    const rawCpf = employee.cpf.replace(/\D/g, '');
+    const rawCpf = employee.cpf ? employee.cpf.replace(/\D/g, '') : '';
     if (!rawCpf.startsWith(dto.cpfStart.trim())) {
       throw new UnauthorizedException('Dados de validação incorretos');
     }
