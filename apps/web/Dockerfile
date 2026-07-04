@@ -17,6 +17,7 @@ RUN npm ci --no-audit --prefer-offline --force
 COPY . .
 
 RUN echo "module.exports.patchIncorrectLockfile = async function() { return; }" > node_modules/next/dist/lib/patch-incorrect-lockfile.js || true
+RUN echo "module.exports.patchIncorrectLockfile = async function() { return; }" > apps/web/node_modules/next/dist/lib/patch-incorrect-lockfile.js || true
 
 RUN npm run build:web
 
