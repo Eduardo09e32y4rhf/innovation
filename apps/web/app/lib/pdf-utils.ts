@@ -60,24 +60,24 @@ export function buildPdfShell(options: PdfOptions, company: PdfCompanyInfo | nul
   const styles = buildBaseStyles(options.landscape);
 
   const header = `
-    <div style="display:flex;align-items:flex-start;justify-content:space-between;border-bottom:2px solid #e2e8f0;padding-bottom:6px;margin-bottom:8px;page-break-inside:avoid;">
-      <div style="display:flex;align-items:center;gap:12px;">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;border-bottom:1px solid #e2e8f0;padding-bottom:16px;margin-bottom:16px;page-break-inside:avoid;">
+      <div style="display:flex;align-items:center;gap:16px;">
         ${company?.logoUrl
-          ? `<div style="width:40px;height:40px;display:flex;align-items:center;justify-content:center;"><img src="${escapeAttr(company.logoUrl)}" alt="Logo" style="max-width:40px;max-height:40px;object-fit:contain;" /></div>`
-          : `<div style="width:36px;height:36px;display:flex;align-items:center;justify-content:center;border:2px solid #0d9488;border-radius:6px;color:#0d9488;font-weight:800;font-size:12px;background:#f0fdfa;">RH</div>`
+          ? `<div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;background:#f8fafc;border-radius:6px;padding:4px;"><img src="${escapeAttr(company.logoUrl)}" alt="Logo" style="max-width:100%;max-height:100%;object-fit:contain;" /></div>`
+          : `<div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;border:2px solid #0d9488;border-radius:6px;color:#0d9488;font-weight:900;font-size:14px;background:#f0fdfa;">RH</div>`
         }
         <div>
-          <div style="font-size:13px;font-weight:800;color:#0f172a;letter-spacing:-0.02em;text-transform:uppercase;">${escapeHtml(company?.name || 'INNOVATION RH')}</div>
-          <div style="font-size:8px;font-weight:500;color:#64748b;margin-top:1px;">${escapeHtml(company?.legalName || 'Innovation Gestão e Tecnologia LTDA')}</div>
-          <div style="font-size:8px;color:#64748b;margin-top:2px;font-weight:500;">
-            ${[company?.document || '12345678000199', company?.address || 'São Paulo/SP', company?.phone || '11999999', company?.email || 'admin@innovationrh.com'].filter(Boolean).map(v => escapeHtml(v as string)).join(' &bull; ')}
+          <div style="font-size:16px;font-weight:900;color:#0f172a;letter-spacing:-0.02em;text-transform:uppercase;">${escapeHtml(company?.name || 'Empresa')}</div>
+          ${company?.legalName ? `<div style="font-size:10px;font-weight:600;color:#475569;margin-top:2px;">${escapeHtml(company.legalName)}</div>` : ''}
+          <div style="font-size:9px;color:#64748b;margin-top:4px;font-weight:500;">
+            ${[company?.document, company?.address, company?.phone, company?.email].filter(Boolean).map(v => escapeHtml(v as string)).join(' &bull; ')}
           </div>
         </div>
       </div>
       <div style="text-align:right;">
-        <div style="font-size:13px;font-weight:800;color:#0f172a;text-transform:uppercase;letter-spacing:-0.02em;">${escapeHtml(title)}</div>
-        ${subtitle ? `<div style="font-size:9px;font-weight:600;color:#475569;margin-top:1px;">${escapeHtml(subtitle)}</div>` : ''}
-        <div style="font-size:8px;color:#94a3b8;margin-top:4px;font-weight:500;">EMITIDO EM ${escapeHtml(emittedDate)}</div>
+        <div style="font-size:14px;font-weight:900;color:#0f172a;text-transform:uppercase;letter-spacing:-0.02em;">${escapeHtml(title)}</div>
+        ${subtitle ? `<div style="font-size:10px;font-weight:600;color:#475569;margin-top:2px;">${escapeHtml(subtitle)}</div>` : ''}
+        <div style="font-size:8px;color:#94a3b8;margin-top:6px;font-weight:500;">EMITIDO EM ${escapeHtml(emittedDate)}</div>
       </div>
     </div>
   `;

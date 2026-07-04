@@ -1,4 +1,4 @@
-﻿import { ConflictException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import type { JwtUser, UserRole } from '../../common/types/auth.types';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
@@ -11,8 +11,6 @@ const EMPLOYEE_ACCESS_ROLES: UserRole[] = ['FUNCIONARIO', 'GESTOR', 'RH', 'ADMIN
 
 @Injectable()
 export class EmployeesService {
-  private readonly logger = new Logger(EmployeesService.name);
-
   constructor(private readonly repository: EmployeesRepository, private readonly asoService: AsoService) {}
 
   async list(companyId: string, actor: JwtUser) {
@@ -44,13 +42,9 @@ export class EmployeesService {
       if (existing) throw new ConflictException('CPF already registered');
     }
     await this.ensureRegistrationAvailable(companyId, dto.registration);
-
+    
     const employee = await this.repository.create(companyId, this.toData(dto));
-    try {
-      await this.syncPanelAccess(companyId, employee, dto);
-    } catch (error) {
-      this.logger.warn(`Falha ao sincronizar acesso do colaborador ${employee.id}: ${error instanceof Error ? error.message : String(error)}`);
-    }
+    await this.syncPanelAccess(companyId, employee, dto);
     return this.repository.findById(companyId, employee.id);
   }
 
@@ -61,15 +55,11 @@ export class EmployeesService {
       if (existing && existing.id !== id) throw new ConflictException('CPF already registered');
     }
     await this.ensureRegistrationAvailable(companyId, dto.registration, id);
-
+    
     const result = await this.repository.update(companyId, id, this.toData(dto));
     if (!result.count) throw new NotFoundException('Employee not found');
     const employee = await this.get(companyId, actor, id);
-    try {
-      await this.syncPanelAccess(companyId, employee, dto);
-    } catch (error) {
-      this.logger.warn(`Falha ao sincronizar acesso do colaborador ${id}: ${error instanceof Error ? error.message : String(error)}`);
-    }
+    await this.syncPanelAccess(companyId, employee, dto);
     return this.get(companyId, actor, id);
   }
 
@@ -90,7 +80,7 @@ export class EmployeesService {
   private async ensureAdmissionAsoApto(companyId: string, dto: CreateEmployeeDto | UpdateEmployeeDto, currentEmployeeId?: string) {
     const employeeId = currentEmployeeId || (dto as any).id;
     if (!employeeId) return;
-
+    
     const admissionAso = await this.asoService.getLatestByEmployee(companyId, employeeId);
     if (!admissionAso || admissionAso.asoType !== 'ADMISSIONAL' || (admissionAso as any).status !== 'COMPLETED') {
       throw new ForbiddenException('Funcionário não possui ASO admissional apto. Finalize o exame ocupacional antes de concluir a contratação.');
@@ -143,12 +133,12 @@ export class EmployeesService {
     await this.repository.updateUserLink(companyId, employee.id, user.id);
   }
 
+
   private canAccessEmployee(actor: JwtUser, employee?: { user?: { role?: string } | null } | null) {
     if (!employee) return false;
     if (actor.role === 'DEV') return true;
     return String(employee.user?.role || '').toUpperCase() !== 'DEV';
   }
-
   private resolveAccessRole(role?: string): UserRole {
     if (role && EMPLOYEE_ACCESS_ROLES.includes(role as UserRole)) return role as UserRole;
     return 'FUNCIONARIO';
@@ -194,6 +184,7 @@ export class EmployeesService {
       standardLunchReturn: this.emptyToUndefined(dto.standardLunchReturn),
       standardExit: this.emptyToUndefined(dto.standardExit),
       status,
+      // eSocial fields
       pis: this.emptyToUndefined(dto.pis),
       pisFirstJob: dto.firstJob ?? dto.pisFirstJob,
       gender: this.emptyToUndefined(dto.gender),
@@ -222,3 +213,4 @@ export class EmployeesService {
     return value?.trim() || undefined;
   }
 }
+

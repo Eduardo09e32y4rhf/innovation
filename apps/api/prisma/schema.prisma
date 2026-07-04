@@ -371,7 +371,7 @@ model Employee {
 
   name String
 
-  cpf            String?  @unique
+  cpf            String? @unique
   email          String?
   phone          String?
   secondaryPhone String?
@@ -412,10 +412,10 @@ model Employee {
   observations        String?        @db.Text
   birthDate           DateTime?
   registration        String?
-  position            String?
-  department          String?
+  position            String
+  department          String
   managerId           String?        @db.Uuid
-  admissionDate       DateTime?
+  admissionDate       DateTime
   terminationDate     DateTime?
   status              EmployeeStatus @default(ACTIVE)
   salary              Decimal?       @db.Decimal(12, 2)

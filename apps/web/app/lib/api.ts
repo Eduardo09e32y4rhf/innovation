@@ -343,6 +343,7 @@ export const api = {
     close: (id: string) => request<any>(`/time-closing/${id}/close`, { method: 'PUT' }),
     reopen: (id: string, reason: string) => request<any>(`/time-closing/${id}/reopen`, { method: 'PUT', body: { reason } }),
     approve: (id: string) => request<any>(`/time-closing/${id}/approve`, { method: 'PUT' }),
+    delete: (id: string) => request<any>(`/time-closing/${id}`, { method: 'DELETE' }),
   },
   timeOccurrences: {
     list: () => request<any[]>('/time-occurrences'),

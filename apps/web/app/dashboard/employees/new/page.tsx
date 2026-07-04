@@ -6,7 +6,7 @@ import { ArrowLeft, Plus, Save, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useMutation, useQuery } from '@/app/hooks/use-data';
 import { api, type ContractType, type CreateEmployeeInput, type DailyWorkload, type Employee, type EmployeeStatus, type WorkScale } from '@/app/lib/api';
-import { normalizeDisplayName } from '@/app/lib/text';
+import { normalizeDisplayName, maskCPF, maskCNPJ, maskCEP } from '@/app/lib/text';
 
 const STATUS_OPTIONS: { value: EmployeeStatus; label: string }[] = [
   { value: 'ACTIVE', label: 'Ativo' },
@@ -298,6 +298,24 @@ function EmployeeForm() {
     });
   }, [employeesQuery.data, editId]);
 
+  const handleCepChange = async (val: string) => {
+    const masked = maskCEP(val);
+    set('cep', masked);
+    const raw = masked.replace(/\D/g, '');
+    if (raw.length === 8) {
+      try {
+        const res = await fetch(`https://viacep.com.br/ws/${raw}/json/`);
+        const data = await res.json();
+        if (!data.erro) {
+          set('street', data.logradouro || '');
+          set('neighborhood', data.bairro || '');
+          set('city', data.localidade || '');
+          set('state', data.uf || '');
+        }
+      } catch (e) {}
+    }
+  };
+
   const save = useMutation(
     (payload: CreateEmployeeInput) =>
       isEdit && editId ? api.employees.update(editId, payload) : api.employees.create(payload),
@@ -318,68 +336,6 @@ function EmployeeForm() {
 
   function updateDependent(index: number, field: keyof Dependent, value: string) {
     setDependentsList((prev) => prev.map((d, i) => i === index ? { ...d, [field]: value } : d));
-  }
-
-  async function handleCepBlur() {
-    const c = form.cep?.replace(/\D/g, '');
-    if (c && c.length === 8) {
-      try {
-        const res = await fetch(`https://viacep.com.br/ws/${c}/json/`);
-        const data = await res.json();
-        if (!data.erro) {
-          setForm(prev => ({
-            ...prev,
-            street: data.logradouro || prev.street,
-            neighborhood: data.bairro || prev.neighborhood,
-            city: data.localidade || prev.city,
-            state: data.uf || prev.state,
-            addressComplement: data.complemento || prev.addressComplement,
-          }));
-        }
-      } catch {}
-    }
-  }
-
-  async function handleCpfBlur() {
-    const c = form.cpf?.replace(/\D/g, '');
-    if (c && c.length === 11) {
-      try {
-        const res = await fetch(`https://brasilapi.com.br/api/cpf/v1/${c}`);
-        if (!res.ok) return;
-        const data = await res.json();
-        const normalizedBirthDate = data.dataNascimento ? new Date(data.dataNascimento).toISOString().slice(0, 10) : undefined;
-        setForm(prev => ({
-          ...prev,
-          name: prev.name || data.nome || prev.name,
-          birthDate: prev.birthDate || normalizedBirthDate || prev.birthDate,
-          motherName: prev.motherName || data.nomeDaMae || prev.motherName,
-        }));
-      } catch {}
-    }
-  }
-
-  async function handleCnpjBlur() {
-    const c = form.cnpj?.replace(/\D/g, '');
-    if (c && c.length === 14) {
-      try {
-        const res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${c}`);
-        const data = await res.json();
-        if (data.razao_social) {
-          setForm(prev => ({
-            ...prev,
-            legalName: data.razao_social,
-            tradeName: data.nome_fantasia || prev.tradeName,
-            cep: data.cep?.replace(/\D/g, '') || prev.cep,
-            street: data.logradouro || prev.street,
-            streetNumber: data.numero || prev.streetNumber,
-            addressComplement: data.complemento || prev.addressComplement,
-            neighborhood: data.bairro || prev.neighborhood,
-            city: data.municipio || prev.city,
-            state: data.uf || prev.state,
-          }));
-        }
-      } catch {}
-    }
   }
 
   async function handleSubmit() {
@@ -489,9 +445,10 @@ function EmployeeForm() {
         {activeTab === 'Dados pessoais' && (
           <div className="grid gap-3 sm:grid-cols-2">
             <Field label="Nome completo" value={form.name} onChange={(v) => set('name', v)} required />
-            <Field label="CPF" value={form.cpf} onChange={(v) => set('cpf', v)} onBlur={handleCpfBlur} placeholder="000.000.000-00" />
+            <Field label="CPF" value={form.cpf ?? ''} onChange={(v) => set('cpf', maskCPF(v))} placeholder="000.000.000-00" />
             <Field label="Data de nascimento" type="date" value={form.birthDate ?? ''} onChange={(v) => set('birthDate', v)} />
-            <Field label="E-mail" type="email" value={form.email} onChange={(v) => set('email', v)} />
+            <Field label="E-mail" type="email" value={form.email ?? ''} onChange={(v) => set('email', v)} />
+            <Field label="Data de admissão" type="date" value={form.admissionDate ?? ''} onChange={(v) => set('admissionDate', v)} />
             <Field label="Telefone" value={form.phone ?? ''} onChange={(v) => set('phone', v)} placeholder="+55 11 90000-0000" />
             <Field label="Telefone Secundário" value={form.secondaryPhone ?? ''} onChange={(v) => set('secondaryPhone', v)} placeholder="+55 11 90000-0000" />
             <Field label="Matrícula" value={form.registration ?? ''} onChange={(v) => set('registration', v)} placeholder="EMP-0001" />
@@ -545,7 +502,7 @@ function EmployeeForm() {
         {/* ── ENDEREÇO ── */}
         {activeTab === 'Endereco' && (
           <div className="grid gap-3 sm:grid-cols-2">
-            <Field label="CEP" value={form.cep ?? ''} onChange={(v) => set('cep', v)} onBlur={handleCepBlur} />
+            <Field label="CEP" value={form.cep ?? ''} onChange={handleCepChange} placeholder="00000-000" />
             <Field label="Logradouro" value={form.street ?? ''} onChange={(v) => set('street', v)} />
             <Field label="Numero" value={form.streetNumber ?? ''} onChange={(v) => set('streetNumber', v)} />
             <Field label="Complemento" value={form.addressComplement ?? ''} onChange={(v) => set('addressComplement', v)} />
@@ -638,7 +595,7 @@ function EmployeeForm() {
             <Field label="Salário (R$)" type="number" value={form.salary?.toString() ?? ''} onChange={(v) => set('salary', v ? Number(v) : undefined)} />
             <Select label="Tipo de contrato" value={form.contractType ?? 'CLT'} onChange={(v) => set('contractType', v as ContractType)} options={CONTRACT_OPTIONS} />
             {(form.contractType === 'PJ' || form.contractType === 'TERCEIRIZADO') && (
-              <Field label={form.contractType === 'PJ' ? 'CNPJ (obrigatório)' : 'CNPJ da empresa terceira'} value={form.cnpj ?? ''} onChange={(v) => set('cnpj', v)} onBlur={handleCnpjBlur} placeholder="00.000.000/0000-00" required={form.contractType === 'PJ'} />
+              <Field label={form.contractType === 'PJ' ? 'CNPJ' : 'CNPJ da empresa terceira'} value={form.cnpj ?? ''} onChange={(v) => set('cnpj', maskCNPJ(v))} placeholder="00.000.000/0000-00" />
             )}
             {form.contractType === 'PJ' && (
               <>
@@ -671,11 +628,11 @@ function EmployeeForm() {
   );
 }
 
-function Field({ label, value, onChange, onBlur, type = 'text', placeholder, required }: { label: string; value: string; onChange: (value: string) => void; onBlur?: () => void; type?: string; placeholder?: string; required?: boolean }) {
+function Field({ label, value, onChange, type = 'text', placeholder, required }: { label: string; value: string; onChange: (value: string) => void; type?: string; placeholder?: string; required?: boolean }) {
   return (
     <label className="space-y-1 text-xs font-medium text-slate-600">
       <span>{label}{required && <span className="text-rose-500"> *</span>}</span>
-      <input type={type} value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} onBlur={onBlur} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500" />
+      <input type={type} value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500" />
     </label>
   );
 }

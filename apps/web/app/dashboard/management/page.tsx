@@ -1191,7 +1191,7 @@ function ClosingTab({ canManage }: { canManage: boolean }) {
 
   const handleGenerateClosingPdf = async (c: any) => {
     const { buildPdfShell, infoGrid, section, signatureBlock, printPdf } = require('@/app/lib/pdf-utils');
-    const fullClosing = c?.summaries?.length ? c : await api.timeClosing.getById(c.id).catch(() => c);
+    const fullClosing = await api.timeClosing.getById(c.id).catch(() => c);
     const summaries = Array.isArray(fullClosing.summaries) ? fullClosing.summaries : [];
     const docTitle = `Folha de Pagamento - Competência ${fullClosing.referenceMonth}/${fullClosing.referenceYear}`;
 

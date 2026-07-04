@@ -418,7 +418,7 @@ function downloadCollectiveSheet(month: string, visibleEmployees: Employee[], by
       { label: 'CPF', value: employee.cpf || '-' },
       { label: 'Cargo', value: employee.position || '-' },
       { label: 'Departamento', value: employee.department || '-' },
-      { label: 'Admissao', value: employee.admissionDate ? new Date(employee.admissionDate).toLocaleDateString('pt-BR') : '-' },
+      { label: 'Admissao', value: employee.admissionDate ? employee.admissionDate.slice(0,10).split('-').reverse().join('/') : '-' },
       { label: 'Periodo', value: subtitle },
     ];
 
