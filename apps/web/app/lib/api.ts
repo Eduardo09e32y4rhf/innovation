@@ -131,7 +131,7 @@ export interface Employee {
   bankAccount?: string | null;
   bankAccountType?: string | null;
   dependents?: string | null;
-  position: string; department: string; managerId?: string | null;
+  position?: string; department?: string; managerId?: string | null;
   admissionDate: string; terminationDate?: string | null; status: EmployeeStatus;
   salary?: string | number | null; contractType?: ContractType | null;
   cnpj?: string | null; legalName?: string | null; tradeName?: string | null;
@@ -164,7 +164,7 @@ export interface CreateEmployeeInput {
   bankAccount?: string;
   bankAccountType?: string;
   dependents?: string;
-  position: string; department: string; managerId?: string; admissionDate?: string; terminationDate?: string;
+  position?: string; department?: string; managerId?: string; admissionDate?: string; terminationDate?: string;
   salary?: number; status?: EmployeeStatus; contractType?: ContractType;
   cnpj?: string; legalName?: string; tradeName?: string; unit?: string;
   workScale?: WorkScale; customWorkScale?: string; dailyWorkload?: DailyWorkload;
