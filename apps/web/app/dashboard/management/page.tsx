@@ -1189,48 +1189,66 @@ function ClosingTab({ canManage }: { canManage: boolean }) {
   const closings = (listQuery.data as any[] | undefined) ?? [];
   const [error, setError] = useState<string | null>(null);
 
-  const handleGenerateClosingPdf = (c: any) => {
+  const handleGenerateClosingPdf = async (c: any) => {
     const { buildPdfShell, infoGrid, section, signatureBlock, printPdf } = require('@/app/lib/pdf-utils');
-    const docTitle = `Folha de Pagamento - Competência ${c.referenceMonth}/${c.referenceYear}`;
-    
-    let summariesHtml = '';
-    const summaries = c.summaries || [];
-    summaries.forEach((s: any) => {
-      summariesHtml += `
-        <div style="border:1px solid #e2e8f0;border-radius:8px;padding:15px;margin-bottom:15px;page-break-inside:avoid;">
-          <div style="font-size:12px;font-weight:bold;color:#0f172a;margin-bottom:10px;border-bottom:1px solid #f1f5f9;padding-bottom:5px;">
-            Funcionário: ${s.employee?.name || '---'} (CPF: ${s.employee?.cpf || '---'})
-            <span style="float:right;color:#64748b;font-weight:normal;">Salário Base: R$ ${s.employee?.salary?.toFixed(2) || '0.00'}</span>
+    const fullClosing = c?.summaries?.length ? c : await api.timeClosing.getById(c.id).catch(() => c);
+    const summaries = Array.isArray(fullClosing.summaries) ? fullClosing.summaries : [];
+    const docTitle = `Folha de Pagamento - Competência ${fullClosing.referenceMonth}/${fullClosing.referenceYear}`;
+
+    const totals = summaries.reduce((acc: any, s: any) => ({
+      worked: acc.worked + (Number(s.normalMinutes) || 0),
+      extra50: acc.extra50 + (Number(s.overtime50Minutes) || 0),
+      extra100: acc.extra100 + (Number(s.overtime100Minutes) || 0),
+      absences: acc.absences + (Number(s.absenceDays) || 0),
+      late: acc.late + (Number(s.lateMinutes) || 0),
+    }), { worked: 0, extra50: 0, extra100: 0, absences: 0, late: 0 });
+
+    const summariesHtml = summaries.map((s: any) => {
+      const employee = s.employee ?? {};
+      return `
+        <div style="border:1px solid #e2e8f0;border-radius:8px;padding:14px;margin-bottom:12px;page-break-inside:avoid;">
+          <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;border-bottom:1px solid #f1f5f9;padding-bottom:8px;margin-bottom:10px;">
+            <div>
+              <div style="font-size:12px;font-weight:800;color:#0f172a;">${employee.name || '---'}</div>
+              <div style="font-size:9px;color:#64748b;margin-top:2px;">CPF: ${employee.cpf || '---'} | Matrícula: ${employee.registration || '---'} | ${employee.department || '---'} / ${employee.position || '---'}</div>
+            </div>
+            <div style="text-align:right;font-size:9px;color:#64748b;">
+              <div style="font-weight:700;color:#0f172a;">Salário Base</div>
+              <div>R$ ${(Number(employee.salary) || 0).toFixed(2)}</div>
+            </div>
           </div>
           <table style="width:100%;font-size:10px;border-collapse:collapse;">
             <thead>
               <tr style="background:#f8fafc;color:#64748b;text-align:left;">
-                <th style="padding:6px;border:1px solid #e2e8f0;">Horas Trabalhadas</th>
-                <th style="padding:6px;border:1px solid #e2e8f0;">Faltas (Dias)</th>
-                <th style="padding:6px;border:1px solid #e2e8f0;">Horas Extras (50%)</th>
-                <th style="padding:6px;border:1px solid #e2e8f0;">Horas Extras (100%)</th>
-                <th style="padding:6px;border:1px solid #e2e8f0;">Atrasos/Saídas (Horas)</th>
+                <th style="padding:6px;border:1px solid #e2e8f0;">Horas trabalhadas</th>
+                <th style="padding:6px;border:1px solid #e2e8f0;">Faltas</th>
+                <th style="padding:6px;border:1px solid #e2e8f0;">Extras 50%</th>
+                <th style="padding:6px;border:1px solid #e2e8f0;">Extras 100%</th>
+                <th style="padding:6px;border:1px solid #e2e8f0;">Atrasos</th>
               </tr>
             </thead>
             <tbody>
               <tr>
-                <td style="padding:6px;border:1px solid #e2e8f0;">${s.totalWorkedHours.toFixed(2)}h</td>
-                <td style="padding:6px;border:1px solid #e2e8f0;color:#e11d48;font-weight:bold;">${s.totalMissingDays}</td>
-                <td style="padding:6px;border:1px solid #e2e8f0;color:#059669;">${s.totalExtraHours50.toFixed(2)}h</td>
-                <td style="padding:6px;border:1px solid #e2e8f0;color:#059669;">${s.totalExtraHours100.toFixed(2)}h</td>
-                <td style="padding:6px;border:1px solid #e2e8f0;color:#e11d48;">${s.totalMissingHours.toFixed(2)}h</td>
+                <td style="padding:6px;border:1px solid #e2e8f0;">${Number(s.normalMinutes || 0).toFixed(0)} min</td>
+                <td style="padding:6px;border:1px solid #e2e8f0;color:#e11d48;font-weight:700;">${Number(s.absenceDays || 0).toFixed(0)}</td>
+                <td style="padding:6px;border:1px solid #e2e8f0;color:#059669;">${Number(s.overtime50Minutes || 0).toFixed(0)} min</td>
+                <td style="padding:6px;border:1px solid #e2e8f0;color:#059669;">${Number(s.overtime100Minutes || 0).toFixed(0)} min</td>
+                <td style="padding:6px;border:1px solid #e2e8f0;color:#e11d48;">${Number(s.lateMinutes || 0).toFixed(0)} min</td>
               </tr>
             </tbody>
           </table>
         </div>
       `;
-    });
+    }).join('');
 
     const html = buildPdfShell({ title: docTitle, subtitle: 'Relatório Oficial de Fechamento' }, null, `
       ${section('Resumo do Fechamento', infoGrid([
         { label: 'Total de Funcionários', value: summaries.length.toString() },
-        { label: 'Status', value: getStatusLabel(c.status).label },
-        { label: 'Gerado em', value: new Date(c.createdAt).toLocaleDateString('pt-BR') },
+        { label: 'Horas normais', value: `${totals.worked} min` },
+        { label: 'Horas extras 50%', value: `${totals.extra50} min` },
+        { label: 'Horas extras 100%', value: `${totals.extra100} min` },
+        { label: 'Faltas', value: `${totals.absences}` },
+        { label: 'Status', value: getStatusLabel(fullClosing.status).label },
       ], 3))}
       
       <div style="margin-top:20px;">
@@ -1240,8 +1258,8 @@ function ClosingTab({ canManage }: { canManage: boolean }) {
 
       ${signatureBlock(['Responsável pelo RH / Empregador', 'Contabilidade'])}
     `);
-    
-    printPdf(html, `fechamento-${c.referenceMonth}-${c.referenceYear}.pdf`);
+
+    printPdf(html, `fechamento-${fullClosing.referenceMonth}-${fullClosing.referenceYear}.pdf`);
   };
 
   const handleGenerate = async () => {

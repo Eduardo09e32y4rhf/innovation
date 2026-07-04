@@ -1,6 +1,7 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { CalendarDays, Check, Clock3, Edit3, XCircle, FileText } from 'lucide-react';
 import { ErrorState, LoadingState } from '@/app/components/data-states';
@@ -46,6 +47,9 @@ function fmtLunch(s?: string|null, e?: string|null) {
 }
 function fmtWorked(m?: number|null) { return m == null ? '--:--' : formatMinutes(m); }
 function fmtBalance(m?: number|null) { return m == null ? '--:--' : formatMinutes(m); }
+function sumMin(rows: Array<Pick<TimeTrack, 'totalWorked' | 'dailyBalance'>>, key: 'totalWorked' | 'dailyBalance') {
+  return rows.reduce((total, row) => total + (Number(row[key]) || 0), 0);
+}
 
 function fmtDateFull(v?: string | null): string {
   if (!v) return '---';
@@ -195,6 +199,8 @@ export default function TimeTrackPage() {
   const isFunc = profile==='FUNCIONARIO';
   const isGestor = profile==='GESTOR';
 
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const [month, setMonth] = useState(currentMonth());
   const tracks = useQuery(() => api.timeTrack.list(month), [month]);
   const employees = useQuery(() => api.employees.list(), []);
@@ -202,9 +208,14 @@ export default function TimeTrackPage() {
   const holidays = useQuery(() => api.companies.getHolidays(), []);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<TimeTrack | null>(null);
-  const [empFilter, setEmpFilter] = useState('');
+  const [empFilter, setEmpFilter] = useState(searchParams.get('employeeId') ?? '');
   const [deptFilter, setDeptFilter] = useState('');
   const [tab, setTab] = useState<'ponto'|'ocorrencias'>('ponto');
+
+  useEffect(() => {
+    const q = searchParams.get('employeeId');
+    if (q) setEmpFilter(q);
+  }, [searchParams]);
 
   const actives = useMemo(() => (employees.data ?? []).filter(e=>e.status==='ACTIVE' && (profile === 'DEV' || e.user?.role !== 'DEV')).slice().sort((a,b)=>normalizeDisplayName(a.name).localeCompare(normalizeDisplayName(b.name),'pt-BR')), [employees.data, profile]);
   const depts = useMemo(() => [...new Set((employees.data ?? []).map(e=>e.department).filter(Boolean))].sort(), [employees.data]);
@@ -341,7 +352,7 @@ export default function TimeTrackPage() {
                         <div className="rounded-[6px] border border-slate-200 px-2 py-1"><span className="block text-[8px] uppercase text-slate-400">TRAB</span><span>{fmtWorked(worked)}</span></div>
                         <div className={`rounded-[6px] border px-2 py-1 ${saldo>=0?'border-emerald-200 bg-emerald-50 text-emerald-700':'border-rose-200 bg-rose-50 text-rose-700'}`}><span className="block text-[8px] uppercase text-slate-400">SALDO</span><span className="font-black">{fmtBalance(saldo)}</span></div>
                       </div>
-                      <button onClick={()=>setEmpFilter(emp.id)} className="btn-outline-premium inline-flex h-8 items-center gap-1.5 rounded-[6px] px-3 text-[10px] font-black"><CalendarDays size={12}/> ABRIR</button>
+                      <button onClick={()=>router.push(`/dashboard/time-track?employeeId=${emp.id}`)} className="btn-outline-premium inline-flex h-8 items-center gap-1.5 rounded-[6px] px-3 text-[10px] font-black"><CalendarDays size={12}/> ABRIR</button>
                     </div>
                   </div>
                 );

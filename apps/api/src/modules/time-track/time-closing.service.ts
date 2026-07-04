@@ -13,6 +13,22 @@ export class TimeClosingService {
       return await this.prisma.timeClosingPeriod.findMany({
         where: { companyId },
         orderBy: { createdAt: 'desc' },
+        include: {
+          summaries: {
+            include: {
+              employee: {
+                select: {
+                  id: true,
+                  name: true,
+                  cpf: true,
+                  position: true,
+                  department: true,
+                  salary: true,
+                },
+              },
+            },
+          },
+        },
       });
     } catch (err) {
       this.logger.error('[TimeClosingService] list fallback', err);
@@ -21,7 +37,24 @@ export class TimeClosingService {
   }
 
   async getById(companyId: string, id: string) {
-    const period = await this.prisma.timeClosingPeriod.findFirst({ where: { id, companyId } });
+    const period = await this.prisma.timeClosingPeriod.findFirst({
+      where: { id, companyId },
+      include: {
+        generatedBy: { select: { id: true, name: true, email: true } },
+        closedBy: { select: { id: true, name: true, email: true } },
+        approvedBy: { select: { id: true, name: true, email: true } },
+        reopenedBy: { select: { id: true, name: true, email: true } },
+        summaries: {
+          include: {
+            employee: {
+              include: {
+                user: { select: { id: true, name: true, email: true, role: true, isActive: true } },
+              },
+            },
+          },
+        },
+      },
+    });
     if (!period) throw new NotFoundException('Period not found');
     return period;
   }

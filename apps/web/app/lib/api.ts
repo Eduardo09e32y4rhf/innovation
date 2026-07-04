@@ -143,7 +143,7 @@ export interface Employee {
 }
 
 export interface CreateEmployeeInput {
-  name: string; cpf: string; email: string; phone?: string; birthDate?: string; registration?: string;
+  name: string; cpf?: string; email?: string; phone?: string; birthDate?: string; registration?: string;
   rg?: string; rgIssuer?: string; rgState?: string; rgIssueDate?: string;
   cep?: string; street?: string; streetNumber?: string; addressComplement?: string;
   neighborhood?: string; city?: string; state?: string;
@@ -164,7 +164,7 @@ export interface CreateEmployeeInput {
   bankAccount?: string;
   bankAccountType?: string;
   dependents?: string;
-  position: string; department: string; managerId?: string; admissionDate: string; terminationDate?: string;
+  position: string; department: string; managerId?: string; admissionDate?: string; terminationDate?: string;
   salary?: number; status?: EmployeeStatus; contractType?: ContractType;
   cnpj?: string; legalName?: string; tradeName?: string; unit?: string;
   workScale?: WorkScale; customWorkScale?: string; dailyWorkload?: DailyWorkload;
