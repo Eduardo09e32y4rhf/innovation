@@ -25,7 +25,10 @@ const REASONS: { value: TimeTrackAdjustmentReason; label: string; fullDay?: bool
   { value:'ajuste_suspensao', label:'SUSPENSÃO', fullDay:true },
 ];
 
-function currentMonth() { return new Date().toISOString().slice(0,7); }
+function getLocalToday() {
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
+}
+function currentMonth() { return getLocalToday().slice(0,7); }
 function toDateKey(v?: string | null) { return v ? v.slice(0,10) : ''; }
 function fmtTime(v?: string | null) {
   if (!v) return '--:--';
@@ -100,7 +103,7 @@ function isDepoisDemissao(key: string, emp: Employee): boolean {
 function buildGrid(month: string, emp: Employee, tracks: TimeTrack[], startDay: number = 1, holidays: any[] = []) {
   const safeHolidays = holidays || [];
   const [y,m] = month.split('-').map(Number); if (!y||!m) return [];
-  const today = new Date().toISOString().slice(0,10);
+  const today = getLocalToday();
   const map = new Map<string, TimeTrack>();
   for (const t of tracks) map.set(toDateKey(t.date), t);
   const g: any[] = [];
@@ -452,7 +455,8 @@ function downloadCollectiveSheet(month: string, visibleEmployees: Employee[], by
           </div>
           <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px;text-align:center;">
             <div style="font-size:8px;font-weight:800;text-transform:uppercase;color:#e11d48;letter-spacing:0.05em;">Faltas Integrais</div>
-            <div style="font-size:16px;font-weight:900;color:#e11d48;margin-top:4px;">${totalFaltas}</div>
+            <div style="font-size:16px;font-weight:900;color:#e11d48;margin-top:4px;">${faltasCount}</div>
+            ${dsrLost > 0 ? `<div style="font-size:8px;font-weight:700;color:#9f1239;margin-top:2px;">(+${dsrLost} DSR)</div>` : ''}
           </div>
           <div style="background:#f0fdfa;border:1px solid #ccfbf1;border-radius:8px;padding:12px;text-align:center;">
             <div style="font-size:8px;font-weight:800;text-transform:uppercase;color:#0f766e;letter-spacing:0.05em;">Total Horas</div>
@@ -697,7 +701,7 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 function Modal({ employees, track, defaultEmpId, onClose, onDone }: { employees: Employee[]; track?: TimeTrack; defaultEmpId: string; onClose: ()=>void; onDone: ()=>void; }) {
-  const initDate = track ? toDateKey(track.date) : new Date().toISOString().slice(0,10);
+  const initDate = track ? toDateKey(track.date) : getLocalToday();
   const [date, setDate] = useState(initDate);
   const [endDate, setEndDate] = useState('');
   const [empId, setEmpId] = useState(track ? track.employeeId : defaultEmpId || '');

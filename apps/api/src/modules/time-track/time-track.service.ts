@@ -555,8 +555,8 @@ export class TimeTrackService {
   }
 
   private toDateOnly(date: Date) {
-    const [day] = date.toISOString().split('T');
-    return new Date(`${day}T00:00:00.000Z`);
+    const tzDateStr = date.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
+    return new Date(`${tzDateStr}T00:00:00.000Z`);
   }
 
   private parseWorkloadToMinutes(workload?: string | null): number | null {

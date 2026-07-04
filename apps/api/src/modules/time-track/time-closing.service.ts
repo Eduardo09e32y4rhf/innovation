@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException, ConflictException, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, ConflictException, Logger, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import type { JwtUser } from '../../common/types/auth.types';
 
@@ -66,15 +66,27 @@ export class TimeClosingService {
       throw new BadRequestException('No active employees found');
     }
 
-    const periodStart = new Date(Date.UTC(referenceYear, referenceMonth - 1, 1));
-    const periodEnd = new Date(Date.UTC(referenceYear, referenceMonth, 0, 23, 59, 59, 999));
+    const company = await this.prisma.company.findUnique({
+      where: { id: companyId },
+      select: { payrollStartDay: true },
+    });
+    const startDay = company?.payrollStartDay || 1;
+
+    let periodStart = new Date(Date.UTC(referenceYear, referenceMonth - 1, 1));
+    let periodEnd = new Date(Date.UTC(referenceYear, referenceMonth, 0, 23, 59, 59, 999));
+
+    if (startDay > 1) {
+      periodStart = new Date(Date.UTC(referenceYear, referenceMonth - 2, startDay));
+      const nextMonth = new Date(Date.UTC(referenceYear, referenceMonth - 1, startDay));
+      periodEnd = new Date(nextMonth.getTime() - 1); // 1 millisecond before nextMonth
+    }
 
     const holidays = await this.prisma.holiday.findMany({
       where: {
         companyId,
         date: {
           gte: periodStart,
-          lt: new Date(Date.UTC(referenceYear, referenceMonth, 1)),
+          lte: periodEnd,
         },
         deletedAt: null,
       },
@@ -275,5 +287,30 @@ export class TimeClosingService {
     });
 
     return updated;
+  }
+
+  async delete(companyId: string, actor: JwtUser, id: string) {
+    if (actor.role !== 'ADMIN' && actor.role !== 'RH') {
+      throw new ForbiddenException('Apenas RH e ADMIN podem excluir fechamentos.');
+    }
+    const period = await this.prisma.timeClosingPeriod.findFirst({
+      where: { id, companyId },
+    });
+    if (!period) throw new NotFoundException('Period not found');
+    if (period.status === 'APPROVED') {
+      throw new BadRequestException('Não é possível excluir um período aprovado. Reabra primeiro.');
+    }
+    
+    await this.prisma.timeClosingAuditLog.deleteMany({
+      where: { timeClosingPeriodId: id },
+    });
+    await this.prisma.timeClosingSummary.deleteMany({
+      where: { timeClosingPeriodId: id },
+    });
+    await this.prisma.timeClosingPeriod.delete({
+      where: { id },
+    });
+    
+    return { deleted: true };
   }
 }

@@ -139,12 +139,12 @@ function ManagementContent() {
   const eventsMut = useMutation((input: { id?: string; data: any }) => {
     if (input.id) return api.management.events.update(input.id, input.data);
     return api.management.events.create(input.data);
-  }, { onSuccess: () => { kanbanQuery.refetch(); } });
+  }, { onSuccess: () => { setEventForm({ open: false }); kanbanQuery.refetch(); } });
   const deleteEventMut = useMutation((id: string) => api.management.events.delete(id), { onSuccess: () => kanbanQuery.refetch() });
   const asoMut = useMutation((input: { id?: string; data: any }) => {
     if (input.id) return api.management.aso.update(input.id, input.data);
     return api.management.aso.create(input.data);
-  }, { onSuccess: () => asoQuery.refetch() });
+  }, { onSuccess: () => { setAsoForm({ open: false }); asoQuery.refetch(); } });
   const deleteAsoMut = useMutation((id: string) => api.management.aso.delete(id), { onSuccess: () => asoQuery.refetch() });
 
   const columns = (kanbanQuery.data as any) ?? { OVERDUE: [], TODAY: [], THIS_WEEK: [], UPCOMING: [], COMPLETED: [] };
@@ -376,6 +376,10 @@ function AsoTab({ records, employees, canManage, onOpenForm, onSave, onDelete, s
 
   const empName = (id: string) => employees.find(e => e.id === id)?.name ?? '---';
 
+  const vencidosCount = records.filter(r => r.status === 'VENCIDO' || (r.dueDate && new Date(r.dueDate) < new Date() && r.status !== 'REALIZADO' && r.status !== 'APTO' && r.status !== 'INAPTO')).length;
+  const agendadosCount = records.filter(r => r.status === 'AGENDADO').length;
+  const pendentesCount = records.filter(r => r.status === 'PENDENTE').length;
+
   const handleGenerateAsoPdf = (r: EmployeeAsoRecord) => {
     const emp = employees.find(e => e.id === r.employeeId);
     if (!emp) return;
@@ -422,6 +426,28 @@ function AsoTab({ records, employees, canManage, onOpenForm, onSave, onDelete, s
         </div>
         {canManage && <button onClick={() => onOpenForm(undefined)} disabled={saving} className="btn-outline inline-flex h-9 items-center gap-2 rounded-[8px] px-4 text-[11px] font-black">+ NOVO ASO</button>}
       </div>
+
+      <div className="grid grid-cols-3 gap-3 p-5 bg-slate-50 border-b border-slate-100">
+        <div className="rounded-xl border border-red-200 bg-white p-4 shadow-sm flex items-center justify-between">
+          <div>
+            <p className="text-[10px] font-black uppercase text-red-500 tracking-wider">Vencidos / Atrasados</p>
+            <p className="text-2xl font-black text-red-700 mt-1">{vencidosCount}</p>
+          </div>
+        </div>
+        <div className="rounded-xl border border-indigo-200 bg-white p-4 shadow-sm flex items-center justify-between">
+          <div>
+            <p className="text-[10px] font-black uppercase text-indigo-500 tracking-wider">Agendados</p>
+            <p className="text-2xl font-black text-indigo-700 mt-1">{agendadosCount}</p>
+          </div>
+        </div>
+        <div className="rounded-xl border border-amber-200 bg-white p-4 shadow-sm flex items-center justify-between">
+          <div>
+            <p className="text-[10px] font-black uppercase text-amber-500 tracking-wider">Pendentes</p>
+            <p className="text-2xl font-black text-amber-700 mt-1">{pendentesCount}</p>
+          </div>
+        </div>
+      </div>
+
       <div className="flex flex-wrap gap-2 border-b border-slate-100 px-5 py-3">
         <select value={filterType} onChange={e => setFilterType(e.target.value)} className="h-9 rounded-[6px] border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 outline-none focus:border-teal-500">
           <option value="">TODOS TIPOS</option>{ASO_TYPES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
@@ -453,10 +479,26 @@ function AsoTab({ records, employees, canManage, onOpenForm, onSave, onDelete, s
                   <FileCheck2 size={28} className="text-teal-600" />
                 </div>
                 <h4 className="text-sm font-black text-slate-900">Nenhum ASO registrado</h4>
-                <p className="mt-1 text-xs text-slate-500 max-w-sm">Mantenha a saúde ocupacional da sua equipe em dia registrando exames admissionais, demissionais e periódicos.</p>
+                <p className="mt-1 text-xs text-slate-500 max-w-sm">A saúde ocupacional é obrigatória por lei (NR-7) e protege tanto a empresa quanto o funcionário.</p>
+                
+                <div className="mt-6 flex flex-wrap justify-center gap-4 text-left max-w-2xl">
+                  <div className="bg-white p-3 rounded-lg border border-slate-200 shadow-sm flex-1 min-w-[200px]">
+                    <h5 className="text-[11px] font-black text-slate-800">🏥 Admissional</h5>
+                    <p className="text-[10px] text-slate-500 mt-1">Realizado ANTES do funcionário iniciar suas atividades.</p>
+                  </div>
+                  <div className="bg-white p-3 rounded-lg border border-slate-200 shadow-sm flex-1 min-w-[200px]">
+                    <h5 className="text-[11px] font-black text-slate-800">📅 Periódico</h5>
+                    <p className="text-[10px] text-slate-500 mt-1">Realizado anualmente ou a cada 2 anos, dependendo do cargo.</p>
+                  </div>
+                  <div className="bg-white p-3 rounded-lg border border-slate-200 shadow-sm flex-1 min-w-[200px]">
+                    <h5 className="text-[11px] font-black text-slate-800">👋 Demissional</h5>
+                    <p className="text-[10px] text-slate-500 mt-1">Realizado em até 10 dias após o desligamento do funcionário.</p>
+                  </div>
+                </div>
+
                 {canManage && (
-                  <button onClick={() => onOpenForm(undefined)} disabled={saving} className="mt-5 crystal-button h-10 px-6 rounded-[8px] text-[11px] font-black text-white shadow-md shadow-teal-500/20 transition-all hover:-translate-y-0.5">
-                    REGISTRAR PRIMEIRO ASO
+                  <button onClick={() => onOpenForm(undefined)} disabled={saving} className="mt-8 crystal-button h-10 px-6 rounded-[8px] text-[11px] font-black text-white shadow-md shadow-teal-500/20 transition-all hover:-translate-y-0.5">
+                    + REGISTRAR PRIMEIRO ASO
                   </button>
                 )}
               </div>
@@ -513,8 +555,52 @@ function NotificationsTab({ canManage }: { canManage: boolean }) {
   }), [notifications, filterStatus, filterType]);
 
   const [showForm, setShowForm] = useState(false);
-
   const canNotify = canManage;
+
+  const handleGenerateTermoPdf = (n: any) => {
+    const { buildPdfShell, infoGrid, section, signatureBlock, printPdf } = require('@/app/lib/pdf-utils');
+    const emp = employees.find(e => e.id === n.recipients?.[0]?.employeeId);
+    if (!emp) return alert('Funcionário não encontrado');
+    
+    const isSuspension = n.type === 'SUSPENSION_NOTICE';
+    const docTitle = isSuspension ? 'TERMO DE SUSPENSÃO DISCIPLINAR' : 'TERMO DE ADVERTÊNCIA DISCIPLINAR';
+    
+    const text = `<p style="font-size:11px;color:#334155;text-align:justify;line-height:1.6;">
+      Pelo presente termo, comunicamos ao funcionário <strong>${emp.name}</strong>, que está sendo aplicada a penalidade de 
+      <strong>${isSuspension ? 'SUSPENSÃO' : 'ADVERTÊNCIA'} DISCIPLINAR</strong>, 
+      com fulcro no Artigo 482 da CLT (Consolidação das Leis do Trabalho), 
+      devido ao fato descrito a seguir:
+    </p>
+    <div style="background:#f8fafc;border:1px solid #e2e8f0;padding:12px;margin:10px 0;font-size:11px;color:#1e293b;">
+      <strong>Motivo / Fato ocorrido:</strong><br/>
+      ${n.message}
+    </div>
+    <p style="font-size:11px;color:#334155;text-align:justify;line-height:1.6;">
+      Ressaltamos que a reiteração desta ou de outras faltas graves poderá acarretar 
+      consequências mais severas, incluindo a rescisão do contrato de trabalho por justa causa, 
+      nos termos da legislação vigente.
+    </p>
+    <p style="font-size:11px;color:#334155;text-align:justify;line-height:1.6;">
+      Solicitamos que observe as normas e regulamentos internos da empresa para que não 
+      ocorra reincidência.
+    </p>`;
+
+    const html = buildPdfShell({ title: docTitle, subtitle: emp.name }, null, `
+      ${section('Qualificação do Colaborador', infoGrid([
+        { label: 'Nome', value: emp.name },
+        { label: 'CPF', value: emp.cpf },
+        { label: 'Cargo', value: emp.position },
+        { label: 'Setor', value: emp.department },
+      ], 2))}
+      ${section('Fundamentação e Fato', text)}
+      <div style="margin-top:30px;font-size:10px;color:#64748b;text-align:center;">
+        Ciente em: _____/_____/_________
+      </div>
+      ${signatureBlock(['Assinatura do Empregador / RH', 'Assinatura do Empregado'])}
+    `);
+    
+    printPdf(html, `termo-${emp.id}.pdf`);
+  };
 
   if (listQuery.loading && !listQuery.data) return <LoadingState label="Carregando notificações..." />;
   if (listQuery.error && !listQuery.data) return <ErrorState message={listQuery.error} onRetry={listQuery.refetch} />;
@@ -565,12 +651,17 @@ function NotificationsTab({ canManage }: { canManage: boolean }) {
             <div key={n.id} className="rounded-[12px] border border-slate-200 bg-white p-4 shadow-sm">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className={`inline-flex rounded-[5px] border px-1.5 py-0.5 text-[9px] font-black ${badge.cls}`}>{badge.label}</span>
-                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">{n.type?.replace(/_/g, ' ') ?? 'COMUNICADO'}</span>
-                    <span className="text-[10px] text-slate-400">{fmtDateTime(n.createdAt)}</span>
+                  <div className="flex items-center gap-2 flex-wrap justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className={`inline-flex rounded-[5px] border px-1.5 py-0.5 text-[9px] font-black ${badge.cls}`}>{badge.label}</span>
+                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">{n.type?.replace(/_/g, ' ') ?? 'COMUNICADO'}</span>
+                      <span className="text-[10px] text-slate-400">{fmtDateTime(n.createdAt)}</span>
+                    </div>
+                    {canManage && (n.type === 'WARNING_NOTICE' || n.type === 'SUSPENSION_NOTICE') && (
+                      <button onClick={() => handleGenerateTermoPdf(n)} className="btn-outline-premium h-7 px-3 text-[9px] font-black uppercase">Gerar PDF Legal</button>
+                    )}
                   </div>
-                  <p className="mt-1 text-sm font-black text-slate-950">{n.title}</p>
+                  <p className="mt-2 text-sm font-black text-slate-950">{n.title}</p>
                   <p className="mt-0.5 text-xs text-slate-600 whitespace-pre-wrap">{n.message}</p>
                   
                   {n.extraJson?.resetCode && (
@@ -1093,9 +1184,65 @@ function ClosingTab({ canManage }: { canManage: boolean }) {
   const closeMut = useMutation((id: string) => api.timeClosing.close(id), { onSuccess: () => listQuery.refetch() });
   const approveMut = useMutation((id: string) => api.timeClosing.approve(id), { onSuccess: () => listQuery.refetch() });
   const reopenMut = useMutation(({ id, reason }: { id: string; reason: string }) => api.timeClosing.reopen(id, reason), { onSuccess: () => listQuery.refetch() });
+  const deleteMut = useMutation((id: string) => api.timeClosing.delete(id), { onSuccess: () => listQuery.refetch() });
 
   const closings = (listQuery.data as any[] | undefined) ?? [];
   const [error, setError] = useState<string | null>(null);
+
+  const handleGenerateClosingPdf = (c: any) => {
+    const { buildPdfShell, infoGrid, section, signatureBlock, printPdf } = require('@/app/lib/pdf-utils');
+    const docTitle = `Folha de Pagamento - Competência ${c.referenceMonth}/${c.referenceYear}`;
+    
+    let summariesHtml = '';
+    const summaries = c.summaries || [];
+    summaries.forEach((s: any) => {
+      summariesHtml += `
+        <div style="border:1px solid #e2e8f0;border-radius:8px;padding:15px;margin-bottom:15px;page-break-inside:avoid;">
+          <div style="font-size:12px;font-weight:bold;color:#0f172a;margin-bottom:10px;border-bottom:1px solid #f1f5f9;padding-bottom:5px;">
+            Funcionário: ${s.employee?.name || '---'} (CPF: ${s.employee?.cpf || '---'})
+            <span style="float:right;color:#64748b;font-weight:normal;">Salário Base: R$ ${s.employee?.salary?.toFixed(2) || '0.00'}</span>
+          </div>
+          <table style="width:100%;font-size:10px;border-collapse:collapse;">
+            <thead>
+              <tr style="background:#f8fafc;color:#64748b;text-align:left;">
+                <th style="padding:6px;border:1px solid #e2e8f0;">Horas Trabalhadas</th>
+                <th style="padding:6px;border:1px solid #e2e8f0;">Faltas (Dias)</th>
+                <th style="padding:6px;border:1px solid #e2e8f0;">Horas Extras (50%)</th>
+                <th style="padding:6px;border:1px solid #e2e8f0;">Horas Extras (100%)</th>
+                <th style="padding:6px;border:1px solid #e2e8f0;">Atrasos/Saídas (Horas)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="padding:6px;border:1px solid #e2e8f0;">${s.totalWorkedHours.toFixed(2)}h</td>
+                <td style="padding:6px;border:1px solid #e2e8f0;color:#e11d48;font-weight:bold;">${s.totalMissingDays}</td>
+                <td style="padding:6px;border:1px solid #e2e8f0;color:#059669;">${s.totalExtraHours50.toFixed(2)}h</td>
+                <td style="padding:6px;border:1px solid #e2e8f0;color:#059669;">${s.totalExtraHours100.toFixed(2)}h</td>
+                <td style="padding:6px;border:1px solid #e2e8f0;color:#e11d48;">${s.totalMissingHours.toFixed(2)}h</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      `;
+    });
+
+    const html = buildPdfShell({ title: docTitle, subtitle: 'Relatório Oficial de Fechamento' }, null, `
+      ${section('Resumo do Fechamento', infoGrid([
+        { label: 'Total de Funcionários', value: summaries.length.toString() },
+        { label: 'Status', value: getStatusLabel(c.status).label },
+        { label: 'Gerado em', value: new Date(c.createdAt).toLocaleDateString('pt-BR') },
+      ], 3))}
+      
+      <div style="margin-top:20px;">
+        <h4 style="font-size:12px;font-weight:bold;color:#334155;margin-bottom:15px;text-transform:uppercase;letter-spacing:0.05em;border-bottom:2px solid #e2e8f0;padding-bottom:5px;">Detalhamento por Colaborador</h4>
+        ${summaries.length > 0 ? summariesHtml : '<p style="font-size:11px;color:#64748b;">Nenhum dado encontrado para este período.</p>'}
+      </div>
+
+      ${signatureBlock(['Responsável pelo RH / Empregador', 'Contabilidade'])}
+    `);
+    
+    printPdf(html, `fechamento-${c.referenceMonth}-${c.referenceYear}.pdf`);
+  };
 
   const handleGenerate = async () => {
     setError(null);
@@ -1189,18 +1336,19 @@ function ClosingTab({ canManage }: { canManage: boolean }) {
                     <td className="px-3 py-2 text-slate-600">{fmtDateTime(c.createdAt)}</td>
                     <td className="px-3 py-2 text-slate-600">{fmtDateTime(c.closedAt)}</td>
                     <td className="px-3 py-2">
-                      <div className="flex gap-1 flex-wrap">
+                      <div className="flex justify-center gap-1">
+                        <button onClick={() => handleGenerateClosingPdf(c)} className="btn-outline-premium h-7 px-2 text-[10px] font-bold">Imprimir PDF Oficial</button>
                         {c.status === 'OPEN' && canManage && (
-                          <>
-                            <button onClick={() => closeMut.mutate(c.id).catch(() => {})} className="btn-outline-premium h-7 px-2 text-[10px] font-bold">Fechar</button>
-                            <button onClick={() => approveMut.mutate(c.id).catch(() => {})} className="btn-outline-premium h-7 px-2 text-[10px] font-bold">Aprovar</button>
-                          </>
+                          <button onClick={() => closeMut.mutate(c.id)} disabled={closeMut.loading} className="inline-flex h-7 items-center rounded-[5px] bg-slate-800 px-2 text-[10px] font-black text-white">Fechar</button>
                         )}
-                        {(c.status === 'CLOSED' || c.status === 'APPROVED') && canManage && (
-                          <button onClick={() => { const r = prompt('Motivo da reabertura:'); if (r) reopenMut.mutate({ id: c.id, reason: r }).catch(() => {}); }} className="btn-outline-premium h-7 px-2 text-[10px] font-bold">Reabrir</button>
+                        {c.status === 'CLOSED' && canManage && (
+                          <button onClick={() => approveMut.mutate(c.id)} disabled={approveMut.loading} className="inline-flex h-7 items-center rounded-[5px] bg-teal-600 px-2 text-[10px] font-black text-white">Aprovar</button>
                         )}
-                        {c.id && (
-                          <button onClick={() => window.open(`/api/time-closing/${c.id}/export`, '_blank')} className="btn-outline-premium h-7 px-2 text-[10px] font-bold">Exportar</button>
+                        {c.status === 'APPROVED' && canManage && (
+                          <button onClick={() => { const r = prompt('Motivo reabertura:'); if(r) reopenMut.mutate({ id: c.id, reason: r }); }} disabled={reopenMut.loading} className="inline-flex h-7 items-center rounded-[5px] bg-amber-500 px-2 text-[10px] font-black text-white">Reabrir</button>
+                        )}
+                        {c.status !== 'APPROVED' && canManage && (
+                          <button onClick={() => { if(window.confirm('Excluir este período? Esta ação não pode ser desfeita.')) deleteMut.mutate(c.id); }} disabled={deleteMut.loading} className="inline-flex h-7 items-center rounded-[5px] bg-gradient-to-r from-rose-500 to-pink-600 px-2 text-[10px] font-black text-white">X</button>
                         )}
                       </div>
                     </td>
