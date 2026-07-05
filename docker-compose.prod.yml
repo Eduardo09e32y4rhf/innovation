@@ -113,3 +113,4 @@ volumes:
   innovation_pgdata:
   innovation_wa:
   innovation_redisdata:
+  compreface_db_data:

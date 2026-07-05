@@ -15,6 +15,8 @@ import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { PrivacyModule } from './modules/privacy/privacy.module';
 import { EmployeesModule } from './modules/employees/employees.module';
 import { TimeTrackModule } from './modules/time-track/time-track.module';
+import { HolidaysModule } from './modules/holidays/holidays.module';
+import { FacialRecognitionModule } from './modules/facial-recognition/facial-recognition.module';
 import { VacationsModule } from './modules/vacations/vacations.module';
 import { PlatformModule } from './modules/platform/platform.module';
 import { ManagementModule } from './modules/management/management.module';
@@ -24,6 +26,8 @@ import { CryptoModule } from './common/crypto/crypto.module';
 
 @Module({
   imports: [
+    HolidaysModule,
+    FacialRecognitionModule,
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: ['.env', '../../.env'],

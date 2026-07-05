@@ -33,6 +33,7 @@ type TrackWithEmployee = {
   incidentType: string | null;
   toleranceMinutes: number | null;
   absenceMinutes: number | null;
+  clockedInWithoutFacial: boolean;
   createdAt: Date;
   updatedAt: Date;
   employee?: EmployeeSummary | null;
@@ -78,6 +79,7 @@ overtimePaymentMinutes: true,
     incidentType: true,
     toleranceMinutes: true,
     absenceMinutes: true,
+    clockedInWithoutFacial: true,
     createdAt: true,
     updatedAt: true,
   } as const;

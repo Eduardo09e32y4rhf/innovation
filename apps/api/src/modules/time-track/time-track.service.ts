@@ -75,6 +75,19 @@ export class TimeTrackService {
     return this.applyManual(companyId, employee, dto.date, dto);
   }
 
+  
+  async logFacialAttempt(data: { companyId: string, employeeId: string, matched: boolean, similarity?: number, livenessOk?: boolean }) {
+    return this.prisma.faceClockAttempt.create({
+      data: {
+        companyId: data.companyId,
+        employeeId: data.employeeId,
+        matched: data.matched,
+        similarity: data.similarity,
+        livenessOk: data.livenessOk,
+      }
+    });
+  }
+
   async register(companyId: string, actor: JwtUser, dto: RegisterTimeDto) {
     if (actor.role === 'DEV' || actor.role === 'COMERCIAL' || actor.role === 'CONSULTA') {
       throw new ForbiddenException('Este perfil nao bate ponto');
@@ -135,7 +148,6 @@ export class TimeTrackService {
         where: {
           companyId,
           date: targetDate,
-          deletedAt: null,
         },
       });
 
@@ -165,6 +177,7 @@ export class TimeTrackService {
         nightShiftMinutes: calculation.nightShiftMinutes,
         incidentType: calculation.incidentType,
         lateMinutes: calculation.lateMinutes,
+          clockedInWithoutFacial: (dto as any).clockedInWithoutFacial || false,
         absenceMinutes: calculation.absenceMinutes,
         overtimeExceedsLimit: calculation.overtimeExceedsLimit,
         overtimeApprovalStatus: calculation.overtimeApprovalNeeded ? 'PENDING' : 'APPROVED',
@@ -217,7 +230,6 @@ export class TimeTrackService {
       where: {
         companyId,
         date: current.date,
-        deletedAt: null,
       },
     });
 
@@ -443,7 +455,7 @@ export class TimeTrackService {
     }) : null;
 
     const holiday = await this.prisma.holiday.findFirst({
-      where: { companyId, date, deletedAt: null },
+      where: { companyId, date },
     });
 
     let totalsData: any = {};

@@ -63,7 +63,7 @@ export class PlatformService {
     const data = {
       ...rest,
       ...(name !== undefined ? { name: normalizeDisplayName(name) } : {}),
-      ...(document !== undefined ? { document: emptyToNull(document) } : {}),
+      ...(document !== undefined ? { cnpj: emptyToNull(document) } : {}),
       ...(status ? { status } : {}),
       ...(status === 'ACTIVE' ? { suspensionReason: null } : {}),
       ...(plan ? { plan } : {}),

@@ -10,7 +10,10 @@ import { TimeOccurrencesController } from './time-occurrences.controller';
 import { TimeOccurrencesService } from './time-occurrences.service';
 import { TimeCalculationRulesService } from './time-calculation-rules';
 
+import { FacialRecognitionModule } from '../facial-recognition/facial-recognition.module';
+
 @Module({
+  imports: [FacialRecognitionModule],
   controllers: [TimeTrackController, WorkScheduleRulesController, TimeClosingController, TimeOccurrencesController],
   providers: [TimeTrackService, TimeTrackRepository, WorkScheduleRulesService, TimeClosingService, TimeOccurrencesService, TimeCalculationRulesService],
   exports: [TimeTrackService, TimeTrackRepository, WorkScheduleRulesService, TimeClosingService, TimeOccurrencesService, TimeCalculationRulesService],

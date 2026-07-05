@@ -161,14 +161,10 @@ enum TimeRuleStatus {
 }
 
 enum TimeClosingStatus {
-  OPEN
-  IN_ADJUSTMENT
-  PENDING_APPROVAL
-  APPROVED
+  DRAFT
+  IN_REVIEW
   CLOSED
-  REOPENED
   EXPORTED
-  CANCELLED
 }
 
 enum TimeOccurrenceType {
@@ -275,20 +271,20 @@ model Company {
   subscriptionStartedAt DateTime      @default(now())
   suspensionReason      String?
   status                CompanyStatus @default(ACTIVE)
-  
-  // Camada Comercial (Tier 2)
-  plan                  PlanType      @default(FREE)
-  billingStatus         BillingStatus @default(TRIAL)
-  trialEndsAt           DateTime?
 
-  maxUsers              Int           @default(6)
-  maxEmployees          Int           @default(50)
-  isActive              Boolean       @default(true)
-  latitude              Float?
-  longitude             Float?
-  payrollStartDay       Int           @default(1)
-  createdAt             DateTime      @default(now())
-  updatedAt             DateTime      @updatedAt
+  // Camada Comercial (Tier 2)
+  plan          PlanType      @default(FREE)
+  billingStatus BillingStatus @default(TRIAL)
+  trialEndsAt   DateTime?
+
+  maxUsers        Int      @default(6)
+  maxEmployees    Int      @default(50)
+  isActive        Boolean  @default(true)
+  latitude        Float?
+  longitude       Float?
+  payrollStartDay Int      @default(1)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   users            User[]
   commercialOwner  User?                  @relation("CommercialOwner", fields: [commercialOwnerId], references: [id], onDelete: SetNull)
@@ -300,7 +296,6 @@ model Company {
   jobs             Job[]
   candidates       Candidate[]
   applications     Application[]
-  holidays         Holiday[]
   transactions     FinancialTransaction[]
   privacyConsents  PrivacyConsent[]
   auditLogs        AuditLog[]
@@ -308,15 +303,17 @@ model Company {
   asoRecords       EmployeeAsoRecord[]
   notifications    Notification[]
 
-  workScheduleRules    WorkScheduleRule[]
-  timeClosingPeriods   TimeClosingPeriod[]
-  timeClosingHistories TimeClosingHistory[]
-  timeOccurrences      TimeOccurrence[]
-  commitments          Commitment[]
-  attachments          Attachment[]
-  activityHistories    ActivityHistory[]
-  overtimeBanks        OvertimeBank[]
-  timeTracks           TimeTrack[]
+  workScheduleRules WorkScheduleRule[]
+  faceEnrollments   FaceEnrollment[]
+  timeOccurrences   TimeOccurrence[]
+  commitments       Commitment[]
+  attachments       Attachment[]
+  activityHistories ActivityHistory[]
+  overtimeBanks     OvertimeBank[]
+  timeTracks        TimeTrack[]
+  overtimeRule      OvertimeRule?
+  holidays          Holiday[]
+  timeClosings      TimeClosing[]
 
   @@index([commercialOwnerId])
 }
@@ -345,11 +342,6 @@ model User {
   auditLogs              AuditLog[]
   notificationRecipients NotificationRecipient[]
   sentNotifications      Notification[]          @relation("SentNotifications")
-  generatedClosings      TimeClosingPeriod[]     @relation("ClosingGeneratedBy")
-  closedClosings         TimeClosingPeriod[]     @relation("ClosingClosedBy")
-  approvedClosings       TimeClosingPeriod[]     @relation("ClosingApprovedBy")
-  reopenedClosings       TimeClosingPeriod[]     @relation("ClosingReopenedBy")
-  timeClosingHistories   TimeClosingHistory[]
   responsibleCommitments Commitment[]            @relation("ResponsibleCommitment")
   createdCommitments     Commitment[]            @relation("CommitmentCreatedBy")
   completedCommitments   Commitment[]            @relation("CommitmentCompletedBy")
@@ -359,7 +351,6 @@ model User {
   uploadedAttachments    Attachment[]
   activityHistories      ActivityHistory[]
   overtimeApprovals      TimeTrack[]             @relation("OvertimeApprovals")
-  closingAuditLogs       TimeClosingAuditLog[]
 
   @@index([companyId])
 }
@@ -456,9 +447,10 @@ model Employee {
   timeOccurrences        TimeOccurrence[]
   notificationRecipients NotificationRecipient[]
 
-  commitments      Commitment[]
-  closingSummaries TimeClosingSummary[] @relation("ClosingSummaries")
-  overtimeBank     OvertimeBank?
+  commitments    Commitment[]
+  overtimeBank   OvertimeBank?
+  timeClosings   TimeClosing[]
+  faceEnrollment FaceEnrollment?
 
   @@index([companyId])
   @@index([cpf])
@@ -477,15 +469,16 @@ model TimeTrack {
   exit        DateTime?
 
   // Cálculos
-  totalWorked        Int? // minutos
-  dailyBalance       Int? // minutos (pode ser negativo)
-  overtime50Minutes  Int     @default(0)
-  overtime100Minutes Int     @default(0)
-  nightShiftMinutes  Int     @default(0)
-  incidentType       String? // "atraso", "saida_antecipada"
-  lateMinutes        Int     @default(0)
-  toleranceMinutes   Int?
-  absenceMinutes     Int?
+  totalWorked            Int? // minutos
+  dailyBalance           Int? // minutos (pode ser negativo)
+  overtime50Minutes      Int     @default(0)
+  overtime100Minutes     Int     @default(0)
+  nightShiftMinutes      Int     @default(0)
+  incidentType           String? // "atraso", "saida_antecipada"
+  lateMinutes            Int     @default(0)
+  toleranceMinutes       Int?
+  absenceMinutes         Int?
+  clockedInWithoutFacial Boolean @default(false)
 
   // Aprovação (NOVO)
   overtimeApprovalStatus   String    @default("PENDING") // PENDING, APPROVED, REJECTED
@@ -516,29 +509,6 @@ model TimeTrack {
   @@index([employeeId])
   @@index([companyId])
   @@index([overtimeApprovalStatus])
-  @@index([date])
-}
-
-model Holiday {
-  id        String @id @default(uuid()) @db.Uuid
-  companyId String @db.Uuid
-
-  date DateTime @db.Date
-  name String // "Natal", "Independência", etc
-
-  // NOVO: Empresa decide como tratar
-  handling       String  @default("PAID_100") // FOLGA ou PAID_100
-  affectsWeekend Boolean @default(false)
-  scope          String  @default("NATIONAL") // NATIONAL, STATE, MUNICIPAL, CUSTOM
-
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
-
-  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
-
-  @@unique([companyId, date]) // Uma empresa, uma data, um feriado
-  @@index([companyId])
   @@index([date])
 }
 
@@ -598,61 +568,6 @@ model WorkScheduleRule {
   @@index([status])
 }
 
-model TimeClosingPeriod {
-  id                  String            @id @default(uuid()) @db.Uuid
-  companyId           String            @db.Uuid
-  referenceMonth      Int
-  referenceYear       Int
-  periodStart         DateTime          @db.Date
-  periodEnd           DateTime          @db.Date
-  status              TimeClosingStatus @default(OPEN)
-  closedByUserId      String?           @db.Uuid
-  closedAt            DateTime?
-  reopenedByUserId    String?           @db.Uuid
-  reopenReason        String?
-  approvedByUserId    String?           @db.Uuid
-  approvedAt          DateTime?
-  generatedByUserId   String?           @db.Uuid
-  generatedAt         DateTime?
-  totalsJson          Json?
-  inconsistenciesJson Json?
-  createdAt           DateTime          @default(now())
-  updatedAt           DateTime          @updatedAt
-
-  company     Company               @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  generatedBy User?                 @relation("ClosingGeneratedBy", fields: [generatedByUserId], references: [id], onDelete: SetNull)
-  closedBy    User?                 @relation("ClosingClosedBy", fields: [closedByUserId], references: [id], onDelete: SetNull)
-  approvedBy  User?                 @relation("ClosingApprovedBy", fields: [approvedByUserId], references: [id], onDelete: SetNull)
-  reopenedBy  User?                 @relation("ClosingReopenedBy", fields: [reopenedByUserId], references: [id], onDelete: SetNull)
-  histories   TimeClosingHistory[]
-  summaries   TimeClosingSummary[]
-  auditLogs   TimeClosingAuditLog[]
-
-  @@unique([companyId, referenceMonth, referenceYear])
-  @@index([companyId])
-  @@index([status])
-}
-
-model TimeClosingHistory {
-  id             String   @id @default(uuid()) @db.Uuid
-  companyId      String   @db.Uuid
-  closingId      String   @db.Uuid
-  action         String
-  previousStatus String?
-  newStatus      String
-  reason         String?
-  userId         String?  @db.Uuid
-  createdAt      DateTime @default(now())
-
-  company Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  closing TimeClosingPeriod @relation(fields: [closingId], references: [id], onDelete: Cascade)
-  user    User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
-
-  @@index([companyId])
-  @@index([closingId])
-  @@index([userId])
-}
-
 model TimeOccurrence {
   id               String             @id @default(uuid()) @db.Uuid
   companyId        String             @db.Uuid
@@ -677,40 +592,6 @@ model TimeOccurrence {
   @@index([employeeId])
   @@index([date])
   @@index([type])
-}
-
-model TimeClosingSummary {
-  id                  String @id @default(uuid()) @db.Uuid
-  timeClosingPeriodId String @db.Uuid
-  employeeId          String @db.Uuid
-
-  // Horas
-  normalMinutes      Int @default(0)
-  overtime50Minutes  Int @default(0)
-  overtime100Minutes Int @default(0)
-
-  // Handling: como foi distribuído (NOVO)
-  overtimeBankMinutes    Int @default(0)
-  overtimePaymentMinutes Int @default(0)
-
-  // Ocorrências
-  lateMinutes       Int     @default(0)
-  absenceDays       Decimal @default(0) @db.Decimal(5, 2)
-  holidayDays       Int     @default(0) // Feriados FOLGA
-  paidHolidayDays   Int     @default(0) // Feriados PAID_100
-  vacationDays      Int     @default(0)
-  daysWorked        Int     @default(0)
-  attendancePercent Decimal @default(100) @db.Decimal(5, 2)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  period   TimeClosingPeriod @relation(fields: [timeClosingPeriodId], references: [id], onDelete: Cascade)
-  employee Employee          @relation("ClosingSummaries", fields: [employeeId], references: [id], onDelete: Cascade)
-
-  @@unique([timeClosingPeriodId, employeeId])
-  @@index([employeeId])
-  @@index([timeClosingPeriodId])
 }
 
 model Vacation {
@@ -1134,20 +1015,113 @@ model OvertimeBank {
   @@index([employeeId])
 }
 
-model TimeClosingAuditLog {
-  id                  String @id @default(uuid()) @db.Uuid
-  timeClosingPeriodId String @db.Uuid
-  userId              String @db.Uuid
+model OvertimeRule {
+  id                String   @id @default(uuid()) @db.Uuid
+  companyId         String   @db.Uuid
+  company           Company  @relation(fields: [companyId], references: [id])
+  weekdayRate       Decimal  @default(1.50)
+  sundayHolidayRate Decimal  @default(2.00)
+  nightShiftRate    Decimal  @default(1.20)
+  nightShiftStart   String   @default("22:00")
+  nightShiftEnd     String   @default("05:00")
+  dsrEnabled        Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
-  action      String // GENERATED, CLOSED, REOPENED, APPROVED, MODIFIED
-  reason      String?
-  changedData Json?
+  @@unique([companyId])
+  @@index([companyId])
+}
 
-  createdAt DateTime @default(now())
+enum HolidayScope {
+  NATIONAL
+  STATE
+  MUNICIPAL
+}
 
-  period TimeClosingPeriod @relation(fields: [timeClosingPeriodId], references: [id], onDelete: Cascade)
-  user   User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+model Holiday {
+  id        String       @id @default(uuid()) @db.Uuid
+  companyId String?      @db.Uuid
+  company   Company?     @relation(fields: [companyId], references: [id])
+  date      DateTime     @db.Date
+  name      String
+  scope     HolidayScope
+  uf        String?
+  cityCode  String?
+  source    String       @default("manual")
+  createdAt DateTime     @default(now())
 
-  @@index([timeClosingPeriodId])
-  @@index([userId])
+  @@index([companyId, date])
+  @@index([date])
+}
+
+model TimeClosing {
+  id              String                  @id @default(uuid()) @db.Uuid
+  companyId       String                  @db.Uuid
+  company         Company                 @relation(fields: [companyId], references: [id])
+  employeeId      String                  @db.Uuid
+  employee        Employee                @relation(fields: [employeeId], references: [id])
+  periodStart     DateTime                @db.Date
+  periodEnd       DateTime                @db.Date
+  status          TimeClosingStatus       @default(DRAFT)
+  normalHours     Decimal                 @default(0)
+  overtime50      Decimal                 @default(0)
+  overtime100     Decimal                 @default(0)
+  nightShift      Decimal                 @default(0)
+  dsrValue        Decimal                 @default(0)
+  absences        Int                     @default(0)
+  lateArrivals    Int                     @default(0)
+  fallbackPunches Int                     @default(0)
+  totalPayable    Decimal                 @default(0)
+  reportPdfUrl    String?
+  closedAt        DateTime?
+  closedBy        String?                 @db.Uuid
+  reopenedAt      DateTime?
+  reopenedBy      String?                 @db.Uuid
+  reopenReason    String?
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+  adjustments     TimeClosingAdjustment[]
+
+  @@unique([companyId, employeeId, periodStart, periodEnd])
+  @@index([companyId, employeeId, periodStart])
+}
+
+model TimeClosingAdjustment {
+  id            String      @id @default(uuid()) @db.Uuid
+  timeClosingId String      @db.Uuid
+  timeClosing   TimeClosing @relation(fields: [timeClosingId], references: [id])
+  field         String
+  oldValue      String
+  newValue      String
+  reason        String
+  changedBy     String      @db.Uuid
+  changedAt     DateTime    @default(now())
+}
+
+model FaceEnrollment {
+  id                  String    @id @default(uuid()) @db.Uuid
+  companyId           String    @db.Uuid
+  company             Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  employeeId          String    @unique @db.Uuid
+  employee            Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  comprefaceSubjectId String
+  enrolledAt          DateTime  @default(now())
+  consentGiven        Boolean   @default(false)
+  consentAt           DateTime?
+  active              Boolean   @default(true)
+
+  @@index([companyId, employeeId])
+}
+
+model FaceClockAttempt {
+  id             String   @id @default(uuid()) @db.Uuid
+  companyId      String   @db.Uuid
+  employeeId     String?  @db.Uuid
+  matched        Boolean
+  similarity     Decimal?
+  livenessOk     Boolean?
+  imageDiscarded Boolean  @default(true)
+  createdAt      DateTime @default(now())
+
+  @@index([companyId, employeeId, createdAt])
 }

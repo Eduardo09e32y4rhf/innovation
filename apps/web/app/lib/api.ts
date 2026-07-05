@@ -358,6 +358,7 @@ export const api = {
     listEmployeeMonth: (employeeId: string, month?: string) =>
       request<TimeTrack[]>(`/time-track/${employeeId}/month${month ? `?month=${encodeURIComponent(month)}` : ''}`, { timeoutMs: 12000 }),
     register: (input: RegisterTimeInput) => request<TimeTrack>('/time-track/register', { method: 'POST', body: input }),
+      clockInFacial: (input: RegisterTimeInput & { imageBase64: string, fallback?: boolean }) => request<TimeTrack>('/time-track/clock-in-facial', { method: 'POST', body: input }),
     manual: (input: ManualTimeTrackInput) => request<TimeTrack>('/time-track/manual', { method: 'POST', body: input }),
 
     update: (id: string, input: UpdateTimeTrackInput) => request<TimeTrack>(`/time-track/${id}`, { method: 'PATCH', body: input }),

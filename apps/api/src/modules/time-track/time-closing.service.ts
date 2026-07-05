@@ -1,349 +1,235 @@
-import { BadRequestException, Injectable, NotFoundException, ConflictException, Logger, ForbiddenException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
+import { HolidaysService } from '../holidays/holidays.service';
 import type { JwtUser } from '../../common/types/auth.types';
+import { TimeClosingStatus } from '@prisma/client';
 
 @Injectable()
 export class TimeClosingService {
   private readonly logger = new Logger(TimeClosingService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly holidaysService: HolidaysService,
+  ) {}
 
-  async list(companyId: string) {
-    try {
-      return await this.prisma.timeClosingPeriod.findMany({
-        where: { companyId },
-        orderBy: { createdAt: 'desc' },
-        include: {
-          summaries: {
-            include: {
-              employee: {
-                select: {
-                  id: true,
-                  name: true,
-                  cpf: true,
-                  position: true,
-                  department: true,
-                  salary: true,
-                },
-              },
-            },
-          },
-        },
+  private parseTime(timeStr: string): { hours: number, minutes: number } {
+    const [h, m] = timeStr.split(':').map(Number);
+    return { hours: h, minutes: m };
+  }
+
+  async generate(companyId: string, actor: JwtUser, dto: { employeeIds: string[], periodStart: string, periodEnd: string }) {
+    const periodStart = new Date(dto.periodStart);
+    const periodEnd = new Date(dto.periodEnd);
+    
+    // Buscar Regra de Hora Extra (se não existir, criar uma default)
+    let overtimeRule = await this.prisma.overtimeRule.findUnique({ where: { companyId } });
+    if (!overtimeRule) {
+      overtimeRule = await this.prisma.overtimeRule.create({
+        data: { companyId }
       });
-    } catch (err) {
-      this.logger.error('[TimeClosingService] list fallback', err);
-      return [];
-    }
-  }
-
-  async getById(companyId: string, id: string) {
-    const period = await this.prisma.timeClosingPeriod.findFirst({
-      where: { id, companyId },
-      include: {
-        generatedBy: { select: { id: true, name: true, email: true } },
-        closedBy: { select: { id: true, name: true, email: true } },
-        approvedBy: { select: { id: true, name: true, email: true } },
-        reopenedBy: { select: { id: true, name: true, email: true } },
-        summaries: {
-          include: {
-            employee: {
-              include: {
-                user: { select: { id: true, name: true, email: true, role: true, isActive: true } },
-              },
-            },
-          },
-        },
-      },
-    });
-    if (!period) throw new NotFoundException('Period not found');
-    return period;
-  }
-
-  async getByReference(companyId: string, referenceMonth: number, referenceYear: number) {
-    try {
-      return await this.prisma.timeClosingPeriod.findFirst({ where: { companyId, referenceMonth, referenceYear } });
-    } catch {
-      return null;
-    }
-  }
-
-  private daysInMonth(month: number, year: number) {
-    return new Date(year, month, 0).getDate();
-  }
-
-  private parseWorkloadMinutes(workload?: string | null): number {
-    if (!workload) return 480;
-    const parts = workload.split(':');
-    if (parts.length === 2) {
-      return parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
-    }
-    return 480;
-  }
-
-  async generate(companyId: string, actor: JwtUser, referenceMonth: number, referenceYear: number) {
-    this.logger.log(`[TimeClosing] Generating for ${referenceMonth}/${referenceYear}`);
-
-    const existing = await this.prisma.timeClosingPeriod.findFirst({
-      where: { companyId, referenceMonth, referenceYear },
-    });
-    if (existing) {
-      throw new ConflictException(`Period ${referenceMonth}/${referenceYear} already exists`);
     }
 
-    const employees = await this.prisma.employee.findMany({
-      where: { companyId, status: 'ACTIVE' },
-      include: { workScheduleRule: true },
-    });
+    const results = [];
 
-    if (employees.length === 0) {
-      throw new BadRequestException('No active employees found');
-    }
+    for (const employeeId of dto.employeeIds) {
+      // Deleta draft anterior se houver (para evitar duplicação no mesmo período)
+      await this.prisma.timeClosing.deleteMany({
+        where: { companyId, employeeId, periodStart, periodEnd, status: TimeClosingStatus.DRAFT }
+      });
 
-    const company = await this.prisma.company.findUnique({
-      where: { id: companyId },
-      select: { payrollStartDay: true },
-    });
-    const startDay = company?.payrollStartDay || 1;
+      const employee = await this.prisma.employee.findUnique({
+        where: { id: employeeId },
+        include: { workScheduleRule: true }
+      });
 
-    let periodStart = new Date(Date.UTC(referenceYear, referenceMonth - 1, 1));
-    let periodEnd = new Date(Date.UTC(referenceYear, referenceMonth, 0, 23, 59, 59, 999));
+      if (!employee) continue;
 
-    if (startDay > 1) {
-      periodStart = new Date(Date.UTC(referenceYear, referenceMonth - 2, startDay));
-      const nextMonth = new Date(Date.UTC(referenceYear, referenceMonth - 1, startDay));
-      periodEnd = new Date(nextMonth.getTime() - 1); // 1 millisecond before nextMonth
-    }
-
-    const holidays = await this.prisma.holiday.findMany({
-      where: {
-        companyId,
-        date: {
-          gte: periodStart,
-          lte: periodEnd,
-        },
-        deletedAt: null,
-      },
-    });
-    const holidayMap = new Map(holidays.map((h: any) => [h.date.toISOString().split('T')[0], h]));
-
-    const summaries: any[] = [];
-    for (const emp of employees) {
       const tracks = await this.prisma.timeTrack.findMany({
         where: {
           companyId,
-          employeeId: emp.id,
-          date: {
-            gte: periodStart,
-            lte: periodEnd,
-          },
-        },
+          employeeId,
+          date: { gte: periodStart, lte: periodEnd }
+        }
       });
 
-      const consolidation = {
-        normalMinutes: 0,
-        overtime50Minutes: 0,
-        overtime100Minutes: 0,
-        overtimeBankMinutes: 0,
-        overtimePaymentMinutes: 0,
-        lateMinutes: 0,
-        absenceDays: 0,
-        holidayDays: 0,
-        paidHolidayDays: 0,
-        vacationDays: 0,
-        daysWorked: 0,
-      };
+      let normalMinutes = 0;
+      let overtime50Mins = 0;
+      let overtime100Mins = 0;
+      let nightShiftMins = 0;
+      let absences = 0;
+      let lateArrivals = 0;
+      let fallbackPunches = tracks.filter(t => (t as any).clockedInWithoutFacial).length;
 
-      for (const track of tracks) {
-        const dateStr = track.date.toISOString().split('T')[0];
-        const holiday = holidayMap.get(dateStr);
+      // Iterar por cada dia do período
+      let currentDate = new Date(periodStart);
+      while (currentDate <= periodEnd) {
+        const dateStr = currentDate.toISOString().split('T')[0];
+        const track = tracks.find(t => t.date.toISOString().split('T')[0] === dateStr);
+        
+        const isWorkday = await this.holidaysService.isWorkday(currentDate, companyId, employee.workScheduleRuleId!);
 
-        const workload = this.parseWorkloadMinutes(emp.dailyWorkload);
-        consolidation.normalMinutes += Math.min(track.totalWorked ?? 0, workload);
+        if (track) {
+          // Em um dia real, compararíamos as batidas
+          // Aqui usamos os totais já calculados pelo ponto (track)
+          normalMinutes += Math.min(track.totalWorked ?? 0, 480); // max 8h
+          
+          const extra = Math.max(0, (track.totalWorked ?? 0) - 480);
+          if (extra > 0) {
+            if (isWorkday) {
+              overtime50Mins += extra;
+            } else {
+              overtime100Mins += extra; // Domingo ou feriado
+            }
+          }
 
-        consolidation.overtime50Minutes += track.overtime50Minutes ?? 0;
-        consolidation.overtime100Minutes += track.overtime100Minutes ?? 0;
+          if ((track.lateMinutes ?? 0) > 0) {
+            lateArrivals++;
+          }
 
-        consolidation.overtimeBankMinutes += track.overtimeBankMinutes ?? 0;
-        consolidation.overtimePaymentMinutes += track.overtimePaymentMinutes ?? 0;
-
-        consolidation.lateMinutes += track.lateMinutes ?? 0;
-        if (track.incidentType === 'falta') consolidation.absenceDays += 1;
-
-        if (holiday) {
-          if (holiday.handling === 'FOLGA') {
-            consolidation.holidayDays += 1;
-          } else if (holiday.handling === 'PAID_100') {
-            consolidation.paidHolidayDays += 1;
+          // Lógica de adicional noturno (simplificada pelo total do track ou calculada baseada na janela)
+          // Se o track tiver horas após as 22h...
+        } else {
+          // Sem batida
+          if (isWorkday) {
+            // Checar se não tem atestado/ocorrência abonada
+            const occurrence = await this.prisma.timeOccurrence.findFirst({
+              where: { employeeId, date: currentDate, status: 'APPROVED' }
+            });
+            if (!occurrence) {
+              absences++;
+            }
           }
         }
-
-        if (track.totalWorked && track.totalWorked > 0) consolidation.daysWorked += 1;
+        currentDate.setDate(currentDate.getDate() + 1);
       }
 
-      const totalDays = this.daysInMonth(referenceMonth, referenceYear);
-      const attendancePercent = (consolidation.daysWorked / totalDays) * 100;
+      const normalHours = normalMinutes / 60;
+      const overtime50 = overtime50Mins / 60;
+      const overtime100 = overtime100Mins / 60;
+      const nightShift = nightShiftMins / 60;
 
-      summaries.push({
-        employeeId: emp.id,
-        ...consolidation,
-        attendancePercent: Math.round(attendancePercent * 100) / 100,
-      });
-    }
+      // DSR: se dsrEnabled, DSR = (Total Horas Extras / Dias Úteis) * Domingos e Feriados
+      let dsrValue = 0;
+      if (overtimeRule.dsrEnabled && (overtime50 > 0 || overtime100 > 0)) {
+        // Cálculo simplificado de DSR
+        dsrValue = (overtime50 + overtime100) * 0.2; // roughly 1/5
+      }
 
-    const period = await this.prisma.$transaction(async (tx: any) => {
-      const p = await tx.timeClosingPeriod.create({
+      // Cálculo financeiro
+      const hourlyRate = Number(employee.salary || 0) / 220; // Base 220h mensais
+      const totalPayable = 
+        (normalHours * hourlyRate) + 
+        (overtime50 * hourlyRate * Number(overtimeRule.weekdayRate)) + 
+        (overtime100 * hourlyRate * Number(overtimeRule.sundayHolidayRate)) + 
+        (nightShift * hourlyRate * Number(overtimeRule.nightShiftRate)) + 
+        (dsrValue * hourlyRate);
+
+      const closing = await this.prisma.timeClosing.create({
         data: {
           companyId,
-          referenceMonth,
-          referenceYear,
+          employeeId,
           periodStart,
           periodEnd,
-          status: 'OPEN',
-          generatedByUserId: actor.sub,
-          generatedAt: new Date(),
-          inconsistenciesJson: [],
-          totalsJson: [],
-        },
+          status: TimeClosingStatus.DRAFT,
+          normalHours,
+          overtime50,
+          overtime100,
+          nightShift,
+          dsrValue,
+          absences,
+          lateArrivals,
+          fallbackPunches,
+          totalPayable
+        }
       });
+      results.push(closing);
+    }
 
-      await Promise.all(
-        summaries.map(s =>
-          tx.timeClosingSummary.create({
-            data: { timeClosingPeriodId: p.id, ...s },
-          }),
-        ),
-      );
+    return results;
+  }
 
-      await tx.timeClosingAuditLog.create({
-        data: {
-          timeClosingPeriodId: p.id,
-          userId: actor.sub,
-          action: 'GENERATED',
-          reason: `Generated by ${actor.email}`,
-        },
-      });
-
-      return p;
+  async list(companyId: string, status?: TimeClosingStatus) {
+    return this.prisma.timeClosing.findMany({
+      where: { 
+        companyId,
+        ...(status && { status })
+      },
+      include: { employee: true },
+      orderBy: { createdAt: 'desc' }
     });
+  }
 
-    this.logger.log(`[TimeClosing] Period ${period.id} generated with ${summaries.length} summaries`);
-    return period;
+  async adjust(companyId: string, actor: JwtUser, id: string, dto: { field: string, newValue: string, reason: string }) {
+    const closing = await this.prisma.timeClosing.findFirst({ where: { id, companyId } });
+    if (!closing) throw new NotFoundException('Closing not found');
+    if (closing.status !== TimeClosingStatus.DRAFT && closing.status !== TimeClosingStatus.IN_REVIEW) {
+      throw new BadRequestException('Can only adjust Draft or In Review closings');
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      await tx.timeClosingAdjustment.create({
+        data: {
+          timeClosingId: id,
+          field: dto.field,
+          oldValue: String((closing as any)[dto.field]),
+          newValue: dto.newValue,
+          reason: dto.reason,
+          changedBy: actor.sub
+        }
+      });
+
+      return tx.timeClosing.update({
+        where: { id },
+        data: {
+          [dto.field]: !isNaN(Number(dto.newValue)) ? Number(dto.newValue) : dto.newValue
+        }
+      });
+    });
+  }
+
+  async submitReview(companyId: string, actor: JwtUser, id: string) {
+    const closing = await this.prisma.timeClosing.findFirst({ where: { id, companyId } });
+    if (!closing || closing.status !== TimeClosingStatus.DRAFT) throw new BadRequestException('Invalid status');
+    
+    return this.prisma.timeClosing.update({
+      where: { id },
+      data: { status: TimeClosingStatus.IN_REVIEW }
+    });
   }
 
   async close(companyId: string, actor: JwtUser, id: string) {
-    const period = await this.prisma.timeClosingPeriod.findUnique({
+    const closing = await this.prisma.timeClosing.findFirst({ where: { id, companyId } });
+    if (!closing || closing.status !== TimeClosingStatus.IN_REVIEW) throw new BadRequestException('Must be IN_REVIEW to close');
+    
+    return this.prisma.timeClosing.update({
       where: { id },
-      include: {
-        summaries: {
-          include: {
-            employee: {
-              include: {
-                timeTracks: { where: { manualStatus: 'pending' } },
-              },
-            },
-          },
-        },
-      },
-    });
-
-    if (!period) throw new NotFoundException('Period not found');
-
-    const pendingCount = period.summaries.reduce(
-      (sum: number, s: any) => sum + (s.employee?.timeTracks?.length ?? 0),
-      0,
-    );
-
-    if (pendingCount > 0) {
-      throw new BadRequestException(
-        `Cannot close: ${pendingCount} pending manual adjustments`,
-      );
-    }
-
-    const updated = await this.prisma.timeClosingPeriod.update({
-      where: { id },
-      data: {
-        status: 'CLOSED',
+      data: { 
+        status: TimeClosingStatus.CLOSED,
         closedAt: new Date(),
-        closedByUserId: actor.sub,
-      },
+        closedBy: actor.sub
+      }
     });
-
-    await this.prisma.timeClosingAuditLog.create({
-      data: {
-        timeClosingPeriodId: id,
-        userId: actor.sub,
-        action: 'CLOSED',
-      },
-    });
-
-    return updated;
   }
 
   async reopen(companyId: string, actor: JwtUser, id: string, reason: string) {
-    const updated = await this.prisma.timeClosingPeriod.update({ 
-      where: { id }, 
-      data: { 
-        status: 'REOPENED', 
-        reopenedByUserId: actor.sub, 
-        reopenReason: reason 
-      } 
-    });
-
-    await this.prisma.timeClosingAuditLog.create({
-      data: {
-        timeClosingPeriodId: id,
-        userId: actor.sub,
-        action: 'REOPENED',
-        reason,
-      },
-    });
-
-    return updated;
-  }
-
-  async approve(companyId: string, actor: JwtUser, id: string) {
-    const updated = await this.prisma.timeClosingPeriod.update({ 
-      where: { id }, 
-      data: { 
-        status: 'APPROVED', 
-        approvedByUserId: actor.sub, 
-        approvedAt: new Date() 
-      } 
-    });
-
-    await this.prisma.timeClosingAuditLog.create({
-      data: {
-        timeClosingPeriodId: id,
-        userId: actor.sub,
-        action: 'APPROVED',
-      },
-    });
-
-    return updated;
-  }
-
-  async delete(companyId: string, actor: JwtUser, id: string) {
-    if (actor.role !== 'ADMIN' && actor.role !== 'RH') {
-      throw new ForbiddenException('Apenas RH e ADMIN podem excluir fechamentos.');
-    }
-    const period = await this.prisma.timeClosingPeriod.findFirst({
-      where: { id, companyId },
-    });
-    if (!period) throw new NotFoundException('Period not found');
-    if (period.status === 'APPROVED') {
-      throw new BadRequestException('Não é possível excluir um período aprovado. Reabra primeiro.');
-    }
+    const closing = await this.prisma.timeClosing.findFirst({ where: { id, companyId } });
+    if (!closing || closing.status !== TimeClosingStatus.CLOSED) throw new BadRequestException('Must be CLOSED to reopen');
     
-    await this.prisma.timeClosingAuditLog.deleteMany({
-      where: { timeClosingPeriodId: id },
-    });
-    await this.prisma.timeClosingSummary.deleteMany({
-      where: { timeClosingPeriodId: id },
-    });
-    await this.prisma.timeClosingPeriod.delete({
+    return this.prisma.timeClosing.update({
       where: { id },
+      data: { 
+        status: TimeClosingStatus.DRAFT,
+        reopenedAt: new Date(),
+        reopenedBy: actor.sub,
+        reopenReason: reason
+      }
     });
-    
-    return { deleted: true };
+  }
+
+  async getPdf(companyId: string, id: string) {
+    // Generate PDF (Stub to be integrated with Puppeteer / React-PDF logic in frontend)
+    // Here we would typically return a stream or a URL.
+    return { url: `/time-closing/${id}/pdf-stream` };
   }
 }

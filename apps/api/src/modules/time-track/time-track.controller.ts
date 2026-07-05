@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { CurrentCompany } from '../../common/decorators/current-company.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -11,12 +11,17 @@ import { RegisterTimeDto } from './dto/register-time.dto';
 import { RevokeTimeTrackDto } from './dto/revoke-time-track.dto';
 import { UpdateTimeTrackDto } from './dto/update-time-track.dto';
 import { TimeTrackService } from './time-track.service';
+import { FacialRecognitionService } from '../facial-recognition/facial-recognition.service';
+
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('DEV', 'ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA')
 @Controller('time-track')
 export class TimeTrackController {
-  constructor(private readonly service: TimeTrackService) {}
+  constructor(
+    private readonly service: TimeTrackService,
+    private readonly facialRecognitionService: FacialRecognitionService
+  ) {}
 
   @Get()
   list(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Query('month') month?: string) {
@@ -37,6 +42,47 @@ export class TimeTrackController {
 
 
   @Roles('DEV', 'ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO')
+
+  @Post('clock-in-facial')
+  @UseGuards(RateLimitGuard)
+  @RateLimit({ window: 60, max: 10, prefix: 'punch-facial' })
+  @Roles('ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO')
+  async clockInFacial(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Body() dto: { imageBase64: string, fallback?: boolean } & any) {
+    if (!dto.imageBase64 && !dto.fallback) {
+      throw new BadRequestException('Imagem facial é obrigatória para o registro.');
+    }
+
+    let facialSuccess = false;
+    let matchResult = null;
+
+    if (dto.imageBase64) {
+      matchResult = await this.facialRecognitionService.recognize(dto.imageBase64);
+      if (matchResult && matchResult.subject === actor.sub) {
+        // Here we can check liveness if provided
+        if (matchResult.liveness !== false) {
+          facialSuccess = true;
+        }
+      }
+    }
+
+    // Log attempt
+    await this.service.logFacialAttempt({
+      companyId,
+      employeeId: actor.sub,
+      matched: facialSuccess,
+      similarity: matchResult ? matchResult.similarity : undefined,
+      livenessOk: matchResult ? matchResult.liveness : undefined
+    });
+
+    if (!facialSuccess && !dto.fallback) {
+      throw new ForbiddenException('Reconhecimento facial falhou. Use o mecanismo de fallback com senha se permitido.');
+    }
+
+    // Call register
+    // We add clockedInWithoutFacial = !facialSuccess to the DTO handled by the service
+    return this.service.register(companyId, actor, { ...dto, clockedInWithoutFacial: !facialSuccess });
+  }
+
   @Post('register')
   @UseGuards(RateLimitGuard)
   @RateLimit({ window: 60, max: 20, prefix: 'punch' }) // 20 punches per minute per user/IP
