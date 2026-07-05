@@ -44,6 +44,14 @@ export class EmployeesService {
     await this.ensureRegistrationAvailable(companyId, dto.registration);
     
     const employee = await this.repository.create(companyId, this.toData(dto));
+    
+    // Automação: Gera ASO Admissional pendente
+    await this.asoService.create(companyId, undefined, {
+      employeeId: employee.id,
+      asoType: 'ADMISSIONAL',
+      status: 'PENDENTE'
+    });
+
     await this.syncPanelAccess(companyId, employee, dto);
     return this.repository.findById(companyId, employee.id);
   }
@@ -59,6 +67,19 @@ export class EmployeesService {
     const result = await this.repository.update(companyId, id, this.toData(dto));
     if (!result.count) throw new NotFoundException('Employee not found');
     const employee = await this.get(companyId, actor, id);
+    
+    // Se o status mudou para INATIVO/TERMINATED
+    if (dto.status === 'TERMINATED' && employee.status === 'TERMINATED') {
+      const latestAso = await this.asoService.getLatestByEmployee(companyId, id);
+      if (!latestAso || latestAso.asoType !== 'DEMISSIONAL') {
+        await this.asoService.create(companyId, actor.sub, {
+          employeeId: id,
+          asoType: 'DEMISSIONAL',
+          status: 'PENDENTE'
+        });
+      }
+    }
+
     await this.syncPanelAccess(companyId, employee, dto);
     return this.get(companyId, actor, id);
   }
@@ -67,6 +88,14 @@ export class EmployeesService {
     await this.get(companyId, actor, id);
     const result = await this.repository.update(companyId, id, { status: 'TERMINATED' });
     if (!result.count) throw new NotFoundException('Employee not found');
+    
+    // Automação: Gera ASO Demissional pendente
+    await this.asoService.create(companyId, actor.sub, {
+      employeeId: id,
+      asoType: 'DEMISSIONAL',
+      status: 'PENDENTE'
+    });
+
     return this.get(companyId, actor, id);
   }
 

@@ -9,8 +9,48 @@ export class AsoService {
     console.error(`[AsoService] ${scope}`, err);
   }
 
+  private async triggerPeriodicAso(companyId: string) {
+    try {
+      const today = new Date();
+      const expired = await this.prisma.employeeAsoRecord.findMany({
+        where: { companyId, status: { in: ['APTO', 'REALIZADO', 'CONCLUIDO'] }, dueDate: { lte: today } },
+        include: { employee: true }
+      });
+      for (const record of expired) {
+        // check if a periodic already exists after this
+        const existing = await this.prisma.employeeAsoRecord.findFirst({
+          where: { companyId, employeeId: record.employeeId, asoType: 'PERIODICO', createdAt: { gt: record.createdAt } }
+        });
+        if (!existing) {
+          await this.prisma.employeeAsoRecord.create({
+            data: {
+              companyId,
+              employeeId: record.employeeId,
+              asoType: 'PERIODICO',
+              status: 'PENDENTE',
+            }
+          });
+          
+          await this.prisma.notification.create({
+             data: {
+               companyId,
+               title: `Aviso de ASO Pendente: ${record.employee.name}`,
+               message: 'Um novo ASO de rotina (periódico) foi gerado automaticamente após 12 meses do último.',
+               type: 'SYSTEM',
+               status: 'SENT',
+               targetType: 'ALL' // Or specific ROLE
+             }
+          });
+        }
+      }
+    } catch (err) {
+      this.safeLog('triggerPeriodicAso', err);
+    }
+  }
+
   async list(companyId: string) {
     try {
+      await this.triggerPeriodicAso(companyId);
       return await this.prisma.employeeAsoRecord.findMany({
         where: { companyId },
         include: { employee: { select: { id: true, name: true } } },
@@ -85,6 +125,13 @@ export class AsoService {
 
   async update(companyId: string, id: string, data: any) {
     try {
+      // Automacao 12 meses
+      if ((data.status === 'APTO' || data.status === 'REALIZADO' || data.status === 'CONCLUIDO') && !data.dueDate) {
+        const d = new Date();
+        d.setFullYear(d.getFullYear() + 1);
+        data.dueDate = d;
+      }
+      
       return await this.prisma.employeeAsoRecord.update({
         where: { id },
         data: {
@@ -111,6 +158,7 @@ export class AsoService {
 
   async getRhAlerts(companyId: string) {
     try {
+      await this.triggerPeriodicAso(companyId);
       const today = new Date();
       const in30Days = new Date(today);
       in30Days.setUTCDate(today.getUTCDate() + 30);

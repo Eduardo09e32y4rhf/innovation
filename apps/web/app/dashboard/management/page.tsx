@@ -153,6 +153,52 @@ function ManagementContent() {
   const employees = useMemo(() => (employeesQuery.data as Employee[] | undefined) ?? [], [employeesQuery.data]);
   const company = companyQuery.data ?? null;
 
+  // Notificações de PC para Agenda (15m, 5m, 0, -5m)
+  useEffect(() => {
+    if (!canView || typeof window === 'undefined' || !('Notification' in window)) return;
+    if (Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+  }, [canView]);
+
+  useEffect(() => {
+    if (!canView || typeof window === 'undefined' || !('Notification' in window) || Notification.permission !== 'granted') return;
+    
+    const events = [...(columns.TODAY || []), ...(columns.OVERDUE || [])];
+    const pendingEvents = events.filter((e: any) => e.status === 'PENDENTE' && e.startDateTime);
+    
+    const checkAndNotify = () => {
+      const notified = JSON.parse(sessionStorage.getItem('agenda-notified') || '{}');
+      const now = new Date().getTime();
+      let changed = false;
+      
+      pendingEvents.forEach((evt: any) => {
+        const startTime = new Date(evt.startDateTime).getTime();
+        const diffMinutes = (startTime - now) / 60000;
+        
+        const notify = (keySuffix: string, title: string, body: string) => {
+          const key = `${evt.id}-${keySuffix}`;
+          if (!notified[key]) {
+            new Notification(title, { body });
+            notified[key] = true;
+            changed = true;
+          }
+        };
+
+        if (diffMinutes <= 15 && diffMinutes > 14) notify('15m', 'Compromisso em 15 minutos', evt.title);
+        else if (diffMinutes <= 5 && diffMinutes > 4) notify('5m', 'Compromisso em 5 minutos', evt.title);
+        else if (diffMinutes <= 0 && diffMinutes > -1) notify('0m', 'Compromisso agora', evt.title);
+        else if (diffMinutes <= -5 && diffMinutes > -6) notify('late', 'Compromisso atrasado', evt.title);
+      });
+      
+      if (changed) sessionStorage.setItem('agenda-notified', JSON.stringify(notified));
+    };
+
+    const interval = setInterval(checkAndNotify, 60000);
+    checkAndNotify();
+    return () => clearInterval(interval);
+  }, [columns, canView]);
+
   return (
     <div className="mx-auto max-w-7xl space-y-5 px-4 py-5 sm:px-6 lg:px-8">
       <header>
@@ -207,6 +253,7 @@ function ManagementContent() {
       {asoForm.open && <AsoModal
         record={asoForm.edit}
         employees={employees}
+        asos={asos}
         onClose={() => setAsoForm({ open: false })}
         onSave={(data) => asoMut.mutate({ id: asoForm.edit?.id, data }).catch(() => {})}
         saving={asoMut.loading}
@@ -1495,8 +1542,8 @@ function EventModal({ event, employees, onClose, onSave, saving }: {
   );
 }
 
-function AsoModal({ record, employees, onClose, onSave, saving }: {
-  record?: EmployeeAsoRecord; employees: Employee[]; onClose: () => void; onSave: (data: any) => void; saving: boolean;
+function AsoModal({ record, employees, asos, onClose, onSave, saving }: {
+  record?: EmployeeAsoRecord; employees: Employee[]; asos: EmployeeAsoRecord[]; onClose: () => void; onSave: (data: any) => void; saving: boolean;
 }) {
   const init = record ?? { employeeId: '', asoType: 'PERIODICO', status: 'PENDENTE', examDate: '', dueDate: '', clinicName: '', doctorName: '', observation: '' };
   const [employeeId, setEmployeeId] = useState(init.employeeId ?? '');
@@ -1507,6 +1554,85 @@ function AsoModal({ record, employees, onClose, onSave, saving }: {
   const [clinic, setClinic] = useState(init.clinicName ?? '');
   const [doctor, setDoctor] = useState(init.doctorName ?? '');
   const [observation, setObservation] = useState(init.observation ?? '');
+  const [cep, setCep] = useState('');
+  const [address, setAddress] = useState('');
+
+  // Presets
+  const clinicPresets = Array.from(new Set(asos.map(a => a.clinicName).filter(Boolean)));
+  const doctorPresets = Array.from(new Set(asos.map(a => a.doctorName).filter(Boolean)));
+
+  const handleCep = async (val: string) => {
+    setCep(val);
+    const cleanCep = val.replace(/\D/g, '');
+    if (cleanCep.length === 8) {
+      try {
+        const res = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
+        const data = await res.json();
+        if (!data.erro) {
+          setAddress(`${data.logradouro}, ${data.bairro}, ${data.localidade} - ${data.uf}`);
+        }
+      } catch (err) {}
+    }
+  };
+
+  const handlePrint = () => {
+    const emp = employees.find(e => e.id === employeeId);
+    if (!emp) return;
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Encaminhamento ASO - ${emp.name}</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 40px; color: #333; line-height: 1.6; }
+            .header { text-align: center; margin-bottom: 40px; border-bottom: 2px solid #eee; padding-bottom: 20px; }
+            .title { font-size: 24px; font-weight: bold; margin-bottom: 10px; text-transform: uppercase; }
+            .section { margin-bottom: 30px; }
+            .section-title { font-size: 14px; font-weight: bold; text-transform: uppercase; color: #666; border-bottom: 1px solid #eee; padding-bottom: 5px; margin-bottom: 15px; }
+            .row { display: flex; margin-bottom: 10px; }
+            .label { width: 150px; font-weight: bold; }
+            .value { flex: 1; }
+            .footer { margin-top: 60px; text-align: center; font-size: 12px; color: #999; }
+            .signature { margin-top: 80px; text-align: center; }
+            .signature-line { width: 300px; border-top: 1px solid #000; margin: 0 auto 10px; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="title">ENCAMINHAMENTO MÉDICO OCUPACIONAL</div>
+            <div>Gerado em ${new Date().toLocaleDateString('pt-BR')}</div>
+          </div>
+          <div class="section">
+            <div class="section-title">Dados do Colaborador</div>
+            <div class="row"><div class="label">Nome:</div><div class="value">${emp.name}</div></div>
+            <div class="row"><div class="label">CPF:</div><div class="value">${emp.cpf || 'Não informado'}</div></div>
+            <div class="row"><div class="label">Cargo:</div><div class="value">${emp.role || 'Não informado'}</div></div>
+            <div class="row"><div class="label">Tipo de ASO:</div><div class="value">${ASO_TYPES.find(t => t.value === asoType)?.label || asoType}</div></div>
+          </div>
+          <div class="section">
+            <div class="section-title">Dados do Agendamento</div>
+            <div class="row"><div class="label">Data/Hora:</div><div class="value">${examDate ? new Date(examDate).toLocaleString('pt-BR') : 'A definir'}</div></div>
+            <div class="row"><div class="label">Clínica/Local:</div><div class="value">${clinic}</div></div>
+            <div class="row"><div class="label">Endereço:</div><div class="value">${address || 'Não informado'}</div></div>
+            <div class="row"><div class="label">Médico Ref.:</div><div class="value">${doctor || 'A definir'}</div></div>
+          </div>
+          <div class="section">
+            <div class="section-title">Observações</div>
+            <div>${observation || 'Nenhuma.'}</div>
+          </div>
+          <div class="signature">
+            <div class="signature-line"></div>
+            <div>Assinatura RH / Gestão</div>
+          </div>
+          <div class="footer">Este documento é confidencial e de uso exclusivo para fins de saúde ocupacional.</div>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => printWindow.print(), 500);
+  };
 
   const ok = !!employeeId;
   const save = () => {
@@ -1519,7 +1645,7 @@ function AsoModal({ record, employees, onClose, onSave, saving }: {
       dueDate: dueDate || null,
       clinicName: clinic.trim() || null,
       doctorName: doctor.trim() || null,
-      observation: observation.trim() || null,
+      observation: (observation + (address ? `\nEndereço: ${address}` : '')).trim() || null,
     });
   };
 
@@ -1534,15 +1660,28 @@ function AsoModal({ record, employees, onClose, onSave, saving }: {
           <label className="sm:col-span-2 space-y-1 text-xs font-medium text-slate-600"><span>FUNCIONÁRIO</span><select value={employeeId} onChange={e => setEmployeeId(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500"><option value="">Selecione...</option>{employees.map(e => <option key={e.id} value={e.id}>{normalizeDisplayName(e.name)}</option>)}</select></label>
           <label className="space-y-1 text-xs font-medium text-slate-600"><span>TIPO ASO</span><select value={asoType} onChange={e => setAsoType(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500">{ASO_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}</select></label>
           <label className="space-y-1 text-xs font-medium text-slate-600"><span>STATUS</span><select value={status} onChange={e => setStatus(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500">{ASO_STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}</select></label>
-          <label className="space-y-1 text-xs font-medium text-slate-600"><span>DATA EXAME</span><input type="date" value={examDate} onChange={e => setExamDate(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500"/></label>
+          <label className="space-y-1 text-xs font-medium text-slate-600"><span>DATA EXAME</span><input type="datetime-local" value={examDate} onChange={e => setExamDate(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500"/></label>
           <label className="space-y-1 text-xs font-medium text-slate-600"><span>DATA VENCIMENTO</span><input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500"/></label>
-          <label className="space-y-1 text-xs font-medium text-slate-600"><span>CLÍNICA</span><input value={clinic} onChange={e => setClinic(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500"/></label>
-          <label className="space-y-1 text-xs font-medium text-slate-600"><span>MÉDICO</span><input value={doctor} onChange={e => setDoctor(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500"/></label>
+          <label className="space-y-1 text-xs font-medium text-slate-600">
+            <span>CLÍNICA</span>
+            <input list="clinic-presets" value={clinic} onChange={e => setClinic(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500"/>
+            <datalist id="clinic-presets">{clinicPresets.map(c => <option key={c} value={c} />)}</datalist>
+          </label>
+          <label className="space-y-1 text-xs font-medium text-slate-600">
+            <span>MÉDICO</span>
+            <input list="doctor-presets" value={doctor} onChange={e => setDoctor(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500"/>
+            <datalist id="doctor-presets">{doctorPresets.map(d => <option key={d} value={d} />)}</datalist>
+          </label>
+          <label className="space-y-1 text-xs font-medium text-slate-600"><span>CEP (BUSCA ENDEREÇO)</span><input value={cep} onChange={e => handleCep(e.target.value)} placeholder="Apenas números" className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500"/></label>
+          <label className="space-y-1 text-xs font-medium text-slate-600"><span>ENDEREÇO</span><input value={address} onChange={e => setAddress(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500"/></label>
           <label className="sm:col-span-2 space-y-1 text-xs font-medium text-slate-600"><span>OBSERVAÇÕES</span><textarea value={observation} onChange={e => setObservation(e.target.value)} rows={2} className="w-full rounded-[8px] border border-slate-200 px-3 py-2 text-sm outline-none focus:border-teal-500"/></label>
         </div>
-        <div className="mt-5 flex justify-end gap-2">
-          <button onClick={onClose} className="btn-outline h-10 rounded-[8px] px-4 text-xs font-bold">CANCELAR</button>
-          <button onClick={save} disabled={!ok || saving} className="crystal-button h-10 rounded-[8px] px-4 text-xs font-black text-white disabled:opacity-60">{saving ? 'SALVANDO...' : 'SALVAR'}</button>
+        <div className="mt-5 flex justify-between">
+          <button onClick={handlePrint} disabled={!clinic || !employeeId} className="flex items-center gap-2 rounded-[8px] bg-slate-100 px-4 h-10 text-xs font-bold text-slate-600 hover:bg-slate-200 disabled:opacity-50"><FileText size={16}/> IMPRIMIR ENCAMINHAMENTO</button>
+          <div className="flex gap-2">
+            <button onClick={onClose} className="btn-outline h-10 rounded-[8px] px-4 text-xs font-bold">CANCELAR</button>
+            <button onClick={save} disabled={!ok || saving} className="crystal-button h-10 rounded-[8px] px-4 text-xs font-black text-white disabled:opacity-60">{saving ? 'SALVANDO...' : 'SALVAR'}</button>
+          </div>
         </div>
       </div>
     </div>
