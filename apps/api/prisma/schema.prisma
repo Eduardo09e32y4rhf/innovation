@@ -265,6 +265,9 @@ model Company {
   phone                 String?
   email                 String?
   address               String?
+  latitude              Float?
+  longitude             Float?
+  radiusTolerance       Int?          @default(150)
   primaryColor          String?
   theme                 String?       @default("light")
   commercialOwnerId     String?       @db.Uuid
@@ -280,8 +283,6 @@ model Company {
   maxUsers        Int      @default(6)
   maxEmployees    Int      @default(50)
   isActive        Boolean  @default(true)
-  latitude        Float?
-  longitude       Float?
   payrollStartDay Int      @default(1)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -497,6 +498,7 @@ model TimeTrack {
   observation  String?
   latitude     Float?
   longitude    Float?
+  locationAddress String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

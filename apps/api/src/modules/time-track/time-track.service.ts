@@ -20,6 +20,21 @@ function getDistanceInMeters(lat1: number, lon1: number, lat2: number, lon2: num
   return R * c;
 }
 
+function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371e3; // metres
+  const φ1 = lat1 * Math.PI / 180;
+  const φ2 = lat2 * Math.PI / 180;
+  const Δφ = (lat2 - lat1) * Math.PI / 180;
+  const Δλ = (lon2 - lon1) * Math.PI / 180;
+
+  const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+            Math.cos(φ1) * Math.cos(φ2) *
+            Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  return R * c;
+}
+
 const REASON_LABEL: Record<string, string> = {
   ajuste_erro_marcacao: 'AJUSTE - ERRO MARCAÇÃO',
   ajuste_atestado_integral: 'ATESTADO INTEGRAL',
@@ -43,6 +58,23 @@ export class TimeTrackService {
   ) {}
 
   private readonly PUNCH_LOCK_TTL = 8;
+
+  private async getStreetName(latitude: number, longitude: number): Promise<string | null> {
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`, {
+        headers: {
+          'User-Agent': 'InnovationRHConnect/1.0'
+        }
+      });
+      if (res.ok) {
+        const data = await res.json() as any;
+        return data.address?.road || data.display_name || null;
+      }
+    } catch (e) {
+      console.error('Nominatim Geocoding error', e);
+    }
+    return null;
+  }
   private readonly logger = new Logger(TimeTrackService.name);
 
   async list(companyId: string, actor: JwtUser, month?: string) {

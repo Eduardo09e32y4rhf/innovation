@@ -176,6 +176,9 @@ function CompanySettings() {
   const [address, setAddress] = useState('');
   const [primaryColor, setPrimaryColor] = useState('');
   const [theme, setTheme] = useState('light');
+    const [latitude, setLatitude] = useState<number | ''>('');
+    const [longitude, setLongitude] = useState<number | ''>('');
+    const [radiusTolerance, setRadiusTolerance] = useState<number>(150);
   const [removeLogo, setRemoveLogo] = useState(false);
 
   useEffect(() => {
@@ -189,6 +192,9 @@ function CompanySettings() {
       setAddress(company.data.address ?? '');
       setPrimaryColor(company.data.primaryColor ?? '');
       setTheme(company.data.theme ?? 'light');
+          setLatitude(company.data.latitude ?? '');
+          setLongitude(company.data.longitude ?? '');
+          setRadiusTolerance(company.data.radiusTolerance ?? 150);
       setRemoveLogo(false);
     }
   }, [company.data]);
@@ -268,10 +274,52 @@ function CompanySettings() {
               <span>E-mail da empresa</span>
               <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="contato@empresa.com" disabled={company.loading} className={inputClass} />
             </label>
-            <label className="space-y-2 text-xs font-bold uppercase tracking-wider text-slate-600">
-              <span>Endereço</span>
-              <input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Rua, número, cidade - UF" disabled={company.loading} className={inputClass} />
-            </label>
+                          <label className="space-y-2 text-xs font-bold uppercase tracking-wider text-slate-600">
+                <span>Endereço</span>
+                <input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Rua, número, cidade - UF" disabled={company.loading} className={inputClass} />
+              </label>
+              
+              <div className="col-span-1 sm:col-span-2 grid grid-cols-1 gap-6 sm:grid-cols-3 rounded-[12px] border border-teal-100 bg-teal-50/30 p-4">
+                <div className="sm:col-span-3 flex items-center justify-between">
+                  <div>
+                    <h4 className="text-sm font-black text-slate-900">Geolocalização da Empresa</h4>
+                    <p className="text-xs text-slate-500">Usado para validar a localização dos funcionários ao bater ponto.</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (navigator.geolocation) {
+                        navigator.geolocation.getCurrentPosition(
+                          (pos) => {
+                            setLatitude(pos.coords.latitude);
+                            setLongitude(pos.coords.longitude);
+                          },
+                          (err) => alert('Erro ao pegar localização: ' + err.message),
+                          { enableHighAccuracy: true }
+                        );
+                      } else {
+                        alert('Geolocalização não suportada no navegador.');
+                      }
+                    }}
+                    className="flex items-center gap-2 rounded-lg bg-teal-600 px-3 py-2 text-xs font-bold text-white transition-colors hover:bg-teal-700"
+                  >
+                    <MapPin size={14} /> Pegar Atual
+                  </button>
+                </div>
+                
+                <label className="space-y-2 text-xs font-bold uppercase tracking-wider text-slate-600">
+                  <span>Latitude</span>
+                  <input type="number" step="any" value={latitude} onChange={(e) => setLatitude(e.target.value ? Number(e.target.value) : '')} className={inputClass} placeholder="-23.55052" disabled={company.loading} />
+                </label>
+                <label className="space-y-2 text-xs font-bold uppercase tracking-wider text-slate-600">
+                  <span>Longitude</span>
+                  <input type="number" step="any" value={longitude} onChange={(e) => setLongitude(e.target.value ? Number(e.target.value) : '')} className={inputClass} placeholder="-46.63330" disabled={company.loading} />
+                </label>
+                <label className="space-y-2 text-xs font-bold uppercase tracking-wider text-slate-600">
+                  <span>Tolerância (metros)</span>
+                  <input type="number" value={radiusTolerance} onChange={(e) => setRadiusTolerance(Number(e.target.value))} className={inputClass} disabled={company.loading} />
+                </label>
+              </div>
             <label className="space-y-2 text-xs font-bold uppercase tracking-wider text-slate-600 sm:col-span-2">
               <span>URL HTTPS da logo</span>
               <input value={removeLogo ? '' : logoUrl} onChange={(e) => { setRemoveLogo(false); setLogoUrl(e.target.value); }} placeholder="https://seudominio.com/logo.png" disabled={company.loading} className={inputClass} />

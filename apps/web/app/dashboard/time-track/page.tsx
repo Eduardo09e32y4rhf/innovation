@@ -1,9 +1,12 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { CalendarDays, Check, Clock3, Edit3, XCircle, FileText } from 'lucide-react';
+import { 
+  Check, Edit3, MapPin, Printer, Shield, Save, X, RefreshCw, FileText, Download, 
+  Trash2, Filter, AlertTriangle, FileSpreadsheet, Send, Search, Image as ImageIcon, CalendarDays, Clock3, XCircle 
+} from 'lucide-react';
 import { ErrorState, LoadingState } from '@/app/components/data-states';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useMutation, useQuery } from '@/app/hooks/use-data';
@@ -636,7 +639,16 @@ function MonthGrid({ employee, tracks, month, canManage, canApprove, refreshing,
 
               return (
                 <tr key={day.key} className={`h-9 border-t border-slate-100 text-[11px] font-semibold text-slate-700 hover:bg-slate-50/70 ${bg}`}>
-                  <td className="px-3 text-slate-500 text-[11px] font-bold">{fmtDateFull(day.key)}</td>
+                  <td className="px-3 text-slate-500 text-[11px] font-bold">
+    <div className="flex flex-col">
+      <span>{fmtDateFull(day.key)}</span>
+      {t?.locationAddress && (
+        <span className="mt-0.5 flex items-center gap-0.5 text-[9px] font-semibold text-teal-600" title={t.locationAddress}>
+          <MapPin size={9} /> <span className="max-w-[80px] truncate">{t.locationAddress}</span>
+        </span>
+      )}
+    </div>
+  </td>
               <td className={`px-3 font-mono text-[11px] ${isAtestado?'text-slate-300':t?.entry?'text-slate-950 font-black':'text-slate-300'}`}>{isAtestado?'---':t?.entry?fmtTime(t.entry):'--:--'}</td>
               <td className={`px-3 font-mono text-[11px] ${t?.lunchStart||t?.lunchReturn?'text-slate-600':'text-slate-300'}`}>{isAtestado?'---':t?.lunchStart?fmtLunch(t?.lunchStart,t?.lunchReturn):'--:--'}</td>
               <td className={`px-3 font-mono text-[11px] ${isAtestado?'text-slate-300':t?.exit?'text-slate-950 font-black':'text-slate-300'}`}>{isAtestado?'---':t?.exit?fmtTime(t.exit):'--:--'}</td>
