@@ -195,17 +195,17 @@ export class EmployeesService {
       voterZone: this.emptyToUndefined(dto.voterZone),
       voterSection: this.emptyToUndefined(dto.voterSection),
       voterState: this.emptyToUndefined(dto.voterState),
-      rgDate: this.emptyToUndefined(dto.rgDate),
+      rgIssueDate: dto.rgDate ? new Date(dto.rgDate) : undefined,
       reservist: this.emptyToUndefined(dto.reservist),
       cnh: this.emptyToUndefined(dto.cnh),
       cnhCategory: this.emptyToUndefined(dto.cnhCategory),
-      cnhExpiry: this.emptyToUndefined(dto.cnhExpiry),
+      cnhExpiry: dto.cnhExpiry ? new Date(dto.cnhExpiry) : undefined,
       bankCode: this.emptyToUndefined(dto.bankCode),
       bankName: this.emptyToUndefined(dto.bankName),
       bankAgency: this.emptyToUndefined(dto.bankAgency),
       bankAccount: this.emptyToUndefined(dto.bankAccount),
       bankAccountType: this.emptyToUndefined(dto.bankAccountType),
-      dependents: dto.dependents ?? undefined,
+      dependents: dto.dependents ? JSON.parse(dto.dependents) : undefined,
     };
   }
 
