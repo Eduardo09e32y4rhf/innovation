@@ -181,6 +181,7 @@ export interface TimeTrack {
   latitude?: number | null; longitude?: number | null;
   manualReason?: string | null; manualStatus?: string | null;
   incidentType?: string | null;
+  overtimeApprovalStatus?: string | null;
 }
 export type TimeTrackAdjustmentReason = 'ajuste_erro_marcacao' | 'ajuste_atestado_integral' | 'ajuste_feriado' | 'ajuste_abono_atestado_horas' | 'ajuste_folga_dsr' | 'ajuste_abono_folga' | 'ajuste_abono_banco_saida_antecipada' | 'ajuste_abono_atraso' | 'ajuste_suspensao';
 export interface RegisterTimeInput { employeeId?: string; type?: PunchType; timestamp?: string; observation?: string; latitude?: number; longitude?: number; manualReason?: string; }
