@@ -145,7 +145,7 @@ export class EmployeesService {
   }
 
   private toData(dto: CreateEmployeeDto | UpdateEmployeeDto) {
-    const { accessEnabled, accessProfile, ...employeeData } = dto;
+    const { accessEnabled, accessProfile, firstJob, reservista, ...employeeData } = dto as any;
     const status = dto.status ?? 'ACTIVE';
     return {
       ...employeeData,
