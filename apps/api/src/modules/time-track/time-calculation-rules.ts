@@ -53,9 +53,13 @@ export class TimeCalculationRulesService {
       absenceMinutes: null,
     };
 
-    const workScale = rule?.workScale || '5x2';
+    const workScale = (rule?.workScale || '5x2').toLowerCase();
     const dayOfWeek = input.workDate.getUTCDay();
-    const restDays = rule?.restDaysOfWeek || [0, 6];
+    let restDays = rule?.restDaysOfWeek || [0, 6];
+
+    if (workScale === '6x1' && restDays.includes(6)) {
+      restDays = restDays.filter((d: number) => d !== 6);
+    }
 
     // Determine if it's a rest day based on standard rules
     if (restDays.includes(dayOfWeek)) {
