@@ -222,11 +222,11 @@ export class CreateEmployeeDto {
 
   @IsOptional()
   @IsString()
-  rgDate?: string;
+  rgIssueDate?: string;
 
   @IsOptional()
   @IsString()
-  reservist?: string;
+  reservista?: string;
 
   @IsOptional()
   @IsString()

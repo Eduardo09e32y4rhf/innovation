@@ -135,6 +135,7 @@ function ManagementContent() {
   const kanbanQuery = useQuery(() => api.management.events.kanban(), [], { enabled: canView });
   const asoQuery = useQuery(() => api.management.aso.list(), [], { enabled: canView });
   const employeesQuery = useQuery(() => api.employees.list(), [], { enabled: canView });
+  const companyQuery = useQuery(() => api.companies.me(), [], { enabled: canView });
 
   const eventsMut = useMutation((input: { id?: string; data: any }) => {
     if (input.id) return api.management.events.update(input.id, input.data);
@@ -150,6 +151,7 @@ function ManagementContent() {
   const columns = (kanbanQuery.data as any) ?? { OVERDUE: [], TODAY: [], THIS_WEEK: [], UPCOMING: [], COMPLETED: [] };
   const asos = useMemo(() => (asoQuery.data as EmployeeAsoRecord[] | undefined) ?? [], [asoQuery.data]);
   const employees = useMemo(() => (employeesQuery.data as Employee[] | undefined) ?? [], [employeesQuery.data]);
+  const company = companyQuery.data ?? null;
 
   return (
     <div className="mx-auto max-w-7xl space-y-5 px-4 py-5 sm:px-6 lg:px-8">
@@ -183,15 +185,17 @@ function ManagementContent() {
         <AsoTab
           records={asos}
           employees={employees}
+          company={company}
           canManage={canManage}
           onOpenForm={(edit) => setAsoForm({ open: true, edit })}
           onSave={(data, id) => asoMut.mutate({ id, data }).catch(() => {})}
           onDelete={(id) => deleteAsoMut.mutate(id).catch(() => {})}
           saving={asoMut.loading}
         />)}
-      {tab === 'notifications' && <NotificationsTab canManage={canManage} />}
+
+      {tab === 'notifications' && <NotificationsTab canManage={canManage} company={company} employees={employees} />}
       {tab === 'rules' && <RulesTab canManage={canManage} />}
-      {tab === 'closing' && <ClosingTab canManage={canManage} />}
+      {tab === 'closing' && <ClosingTab canManage={canManage} company={company} />}
 
       {eventForm.open && <EventModal
         event={eventForm.edit}
@@ -355,8 +359,8 @@ function AgendaKanban({ columns, employees, canManage, onOpenForm, onSave, onDel
 
 // ─── ASO ───────────────────────────────────────────────────────────────────────
 
-function AsoTab({ records, employees, canManage, onOpenForm, onSave, onDelete, saving }: {
-  records: EmployeeAsoRecord[]; employees: Employee[]; canManage: boolean;
+function AsoTab({ records, employees, company, canManage, onOpenForm, onSave, onDelete, saving }: {
+  records: EmployeeAsoRecord[]; employees: Employee[]; company: any; canManage: boolean;
   onOpenForm: (edit?: EmployeeAsoRecord) => void; onSave: (data: any, id?: string) => void;
   onDelete: (id: string) => void; saving: boolean;
 }) {
@@ -391,9 +395,21 @@ function AsoTab({ records, employees, canManage, onOpenForm, onSave, onDelete, s
     const text = `<p style="font-size:11px;color:#334155;text-align:justify;line-height:1.6;">Encaminhamos o(a) colaborador(a) abaixo qualificado(a) para a realização de <strong>Exame Médico Ocupacional (${subtitle})</strong>, conforme previsto na NR-7.</p>
     <p style="font-size:11px;color:#334155;text-align:justify;line-height:1.6;">Por favor, realizem a avaliação clínica e os exames complementares (se aplicáveis) e emitam o respectivo Atestado de Saúde Ocupacional (ASO).</p>`;
 
-    const html = buildPdfShell({ title: docTitle, subtitle: emp.name }, null, `
+    const companyInfo = company ? {
+      name: company.name,
+      legalName: company.legalName,
+      document: company.cnpj,
+      logoUrl: company.logoUrl,
+      phone: company.phone,
+      email: company.email,
+      address: [company.street, company.streetNumber, company.city, company.state].filter(Boolean).join(', '),
+    } : null;
+
+    const html = buildPdfShell({ title: docTitle, subtitle: emp.name }, companyInfo, `
       ${section('Dados do Empregador (Empresa)', infoGrid([
-        { label: 'Razão Social', value: emp.companyId ? 'Razão Social Padrão' : '---' },
+        { label: 'Razão Social', value: company?.legalName || company?.name || '---' },
+        { label: 'CNPJ', value: company?.cnpj || '---' },
+        { label: 'Endereço', value: [company?.street, company?.streetNumber, company?.city, company?.state].filter(Boolean).join(', ') || '---' },
       ], 1))}
       ${section('Qualificação do Colaborador', infoGrid([
         { label: 'Nome Completo', value: emp.name },
@@ -533,7 +549,7 @@ function AsoTab({ records, employees, canManage, onOpenForm, onSave, onDelete, s
 
 // ─── NOTIFICAÇÕES ─────────────────────────────────────────────────────────────
 
-function NotificationsTab({ canManage }: { canManage: boolean }) {
+function NotificationsTab({ canManage, company, employees: propEmployees }: { canManage: boolean; company?: any; employees?: any[] }) {
   const [filterStatus, setFilterStatus] = useState('');
   const [filterType, setFilterType] = useState('');
 
@@ -585,7 +601,17 @@ function NotificationsTab({ canManage }: { canManage: boolean }) {
       ocorra reincidência.
     </p>`;
 
-    const html = buildPdfShell({ title: docTitle, subtitle: emp.name }, null, `
+    const companyInfo = company ? {
+      name: company.name,
+      legalName: company.legalName,
+      document: company.cnpj,
+      logoUrl: company.logoUrl,
+      phone: company.phone,
+      email: company.email,
+      address: [company.street, company.streetNumber, company.city, company.state].filter(Boolean).join(', '),
+    } : null;
+
+    const html = buildPdfShell({ title: docTitle, subtitle: emp.name }, companyInfo, `
       ${section('Qualificação do Colaborador', infoGrid([
         { label: 'Nome', value: emp.name },
         { label: 'CPF', value: emp.cpf },
@@ -615,7 +641,7 @@ function NotificationsTab({ canManage }: { canManage: boolean }) {
         {canNotify && <button onClick={() => setShowForm(!showForm)} className="btn-outline inline-flex h-9 items-center gap-2 rounded-[8px] px-4 text-[11px] font-black">{showForm ? 'FECHAR' : '+ NOVA NOTIFICAÇÃO'}</button>}
       </div>
 
-      {showForm && <CreateNotificationForm employees={employees} onCreated={() => { listQuery.refetch(); setShowForm(false); }} />}
+      {showForm && <CreateNotificationForm employees={employees} company={company} onCreated={() => { listQuery.refetch(); setShowForm(false); }} />}
 
       <div className="flex flex-wrap gap-2">
         <select value={filterType} onChange={e => setFilterType(e.target.value)} className="h-9 rounded-[6px] border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 outline-none focus:border-teal-500">
@@ -746,7 +772,7 @@ function NotificationsTab({ canManage }: { canManage: boolean }) {
   );
 }
 
-function CreateNotificationForm({ onCreated, employees }: { onCreated: () => void, employees: Employee[] }) {
+function CreateNotificationForm({ onCreated, employees, company }: { onCreated: () => void, employees: Employee[], company?: any }) {
   const [title, setTitle] = useState('');
   const [message, setMessage] = useState('');
   const [type, setType] = useState('SIMPLE_NOTICE');
@@ -813,8 +839,17 @@ function CreateNotificationForm({ onCreated, employees }: { onCreated: () => voi
     
     text += `<p style="font-size:11px;color:#334155;text-align:justify;line-height:1.6;margin-top:24px;">Esclarecemos que a reincidência em condutas semelhantes poderá resultar em rescisão do contrato de trabalho por justa causa, nos termos do art. 482 da CLT. Solicitamos sua assinatura confirmando o recebimento.</p>`;
     
+    const companyInfo2 = company ? {
+      name: company.name,
+      legalName: company.legalName,
+      document: company.cnpj,
+      logoUrl: company.logoUrl,
+      phone: company.phone,
+      email: company.email,
+      address: [company.street, company.streetNumber, company.city, company.state].filter(Boolean).join(', '),
+    } : null;
     const { buildPdfShell, infoGrid, section, signatureBlock, printPdf } = require('@/app/lib/pdf-utils');
-    const html = buildPdfShell({ title: docTitle, subtitle: emp.name }, null, `
+    const html = buildPdfShell({ title: docTitle, subtitle: emp.name }, companyInfo2, `
       ${section('Qualificação do Colaborador', infoGrid([
         { label: 'Nome', value: emp.name },
         { label: 'CPF', value: emp.cpf },
@@ -1175,7 +1210,7 @@ function RuleForm({ rule, onSave, onClose, saving }: { rule: any | null; onSave:
 
 // ─── FECHAMENTO ────────────────────────────────────────────────────────────────
 
-function ClosingTab({ canManage }: { canManage: boolean }) {
+function ClosingTab({ canManage, company }: { canManage: boolean; company?: any }) {
   const [month, setMonth] = useState(new Date().getMonth() + 1);
   const [year, setYear] = useState(new Date().getFullYear());
 
@@ -1241,7 +1276,17 @@ function ClosingTab({ canManage }: { canManage: boolean }) {
       `;
     }).join('');
 
-    const html = buildPdfShell({ title: docTitle, subtitle: 'Relatório Oficial de Fechamento' }, null, `
+    const companyInfo3 = company ? {
+      name: company.name,
+      legalName: company.legalName,
+      document: company.cnpj,
+      logoUrl: company.logoUrl,
+      phone: company.phone,
+      email: company.email,
+      address: [company.street, company.streetNumber, company.city, company.state].filter(Boolean).join(', '),
+    } : null;
+
+    const html = buildPdfShell({ title: docTitle, subtitle: 'Relatório Oficial de Fechamento' }, companyInfo3, `
       ${section('Resumo do Fechamento', infoGrid([
         { label: 'Total de Funcionários', value: summaries.length.toString() },
         { label: 'Horas normais', value: `${totals.worked} min` },

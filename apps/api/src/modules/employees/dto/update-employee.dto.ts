@@ -226,11 +226,11 @@ export class UpdateEmployeeDto {
 
   @IsOptional()
   @IsString()
-  rgDate?: string;
+  rgIssueDate?: string;
 
   @IsOptional()
   @IsString()
-  reservist?: string;
+  reservista?: string;
 
   @IsOptional()
   @IsString()
