@@ -127,67 +127,76 @@ export class TimeClosingService {
     const holidayMap = new Map(holidays.map((h: any) => [h.date.toISOString().split('T')[0], h]));
 
     const summaries: any[] = [];
-    for (const emp of employees) {
-      const tracks = await this.prisma.timeTrack.findMany({
-        where: {
-          companyId,
-          employeeId: emp.id,
-          date: {
-            gte: periodStart,
-            lte: periodEnd,
-          },
-        },
-      });
+    // ⚡ Bolt: Replaced sequential for...of with chunked concurrency to avoid N+1 I/O wait times
+    // while preventing database connection pool exhaustion.
+    const chunkSize = 10;
+    for (let i = 0; i < employees.length; i += chunkSize) {
+      const chunk = employees.slice(i, i + chunkSize);
+      const chunkResults = await Promise.all(
+        chunk.map(async (emp) => {
+          const tracks = await this.prisma.timeTrack.findMany({
+            where: {
+              companyId,
+              employeeId: emp.id,
+              date: {
+                gte: periodStart,
+                lte: periodEnd,
+              },
+            },
+          });
 
-      const consolidation = {
-        normalMinutes: 0,
-        overtime50Minutes: 0,
-        overtime100Minutes: 0,
-        overtimeBankMinutes: 0,
-        overtimePaymentMinutes: 0,
-        lateMinutes: 0,
-        absenceDays: 0,
-        holidayDays: 0,
-        paidHolidayDays: 0,
-        vacationDays: 0,
-        daysWorked: 0,
-      };
+          const consolidation = {
+            normalMinutes: 0,
+            overtime50Minutes: 0,
+            overtime100Minutes: 0,
+            overtimeBankMinutes: 0,
+            overtimePaymentMinutes: 0,
+            lateMinutes: 0,
+            absenceDays: 0,
+            holidayDays: 0,
+            paidHolidayDays: 0,
+            vacationDays: 0,
+            daysWorked: 0,
+          };
 
-      for (const track of tracks) {
-        const dateStr = track.date.toISOString().split('T')[0];
-        const holiday = holidayMap.get(dateStr);
+          for (const track of tracks) {
+            const dateStr = track.date.toISOString().split('T')[0];
+            const holiday = holidayMap.get(dateStr);
 
-        const workload = this.parseWorkloadMinutes(emp.dailyWorkload);
-        consolidation.normalMinutes += Math.min(track.totalWorked ?? 0, workload);
+            const workload = this.parseWorkloadMinutes(emp.dailyWorkload);
+            consolidation.normalMinutes += Math.min(track.totalWorked ?? 0, workload);
 
-        consolidation.overtime50Minutes += track.overtime50Minutes ?? 0;
-        consolidation.overtime100Minutes += track.overtime100Minutes ?? 0;
+            consolidation.overtime50Minutes += track.overtime50Minutes ?? 0;
+            consolidation.overtime100Minutes += track.overtime100Minutes ?? 0;
 
-        consolidation.overtimeBankMinutes += track.overtimeBankMinutes ?? 0;
-        consolidation.overtimePaymentMinutes += track.overtimePaymentMinutes ?? 0;
+            consolidation.overtimeBankMinutes += track.overtimeBankMinutes ?? 0;
+            consolidation.overtimePaymentMinutes += track.overtimePaymentMinutes ?? 0;
 
-        consolidation.lateMinutes += track.lateMinutes ?? 0;
-        if (track.incidentType === 'falta') consolidation.absenceDays += 1;
+            consolidation.lateMinutes += track.lateMinutes ?? 0;
+            if (track.incidentType === 'falta') consolidation.absenceDays += 1;
 
-        if (holiday) {
-          if (holiday.handling === 'FOLGA') {
-            consolidation.holidayDays += 1;
-          } else if (holiday.handling === 'PAID_100') {
-            consolidation.paidHolidayDays += 1;
+            if (holiday) {
+              if (holiday.handling === 'FOLGA') {
+                consolidation.holidayDays += 1;
+              } else if (holiday.handling === 'PAID_100') {
+                consolidation.paidHolidayDays += 1;
+              }
+            }
+
+            if (track.totalWorked && track.totalWorked > 0) consolidation.daysWorked += 1;
           }
-        }
 
-        if (track.totalWorked && track.totalWorked > 0) consolidation.daysWorked += 1;
-      }
+          const totalDays = this.daysInMonth(referenceMonth, referenceYear);
+          const attendancePercent = (consolidation.daysWorked / totalDays) * 100;
 
-      const totalDays = this.daysInMonth(referenceMonth, referenceYear);
-      const attendancePercent = (consolidation.daysWorked / totalDays) * 100;
-
-      summaries.push({
-        employeeId: emp.id,
-        ...consolidation,
-        attendancePercent: Math.round(attendancePercent * 100) / 100,
-      });
+          return {
+            employeeId: emp.id,
+            ...consolidation,
+            attendancePercent: Math.round(attendancePercent * 100) / 100,
+          };
+        })
+      );
+      summaries.push(...chunkResults);
     }
 
     const period = await this.prisma.$transaction(async (tx: any) => {
