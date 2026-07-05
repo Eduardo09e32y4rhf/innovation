@@ -111,6 +111,29 @@ export class TimeTrackService {
     const employee = await this.ensureCanAccessEmployee(companyId, actor, dto.employeeId);
     const date = this.toDateOnly(this.parseDate(dto.date, 'Invalid date'));
     this.validateEmployeeDateRange(employee, date);
+
+    // Validação de Interjornada da CLT (11h mínimas)
+    if (dto.entry) {
+       const previousDate = new Date(date);
+       previousDate.setDate(previousDate.getDate() - 1);
+       const previousTrack = await this.repository.findByEmployeeDate(employee.id, previousDate);
+       
+       if (previousTrack && previousTrack.exit) {
+          const entryTime = new Date(`${dto.date}T${dto.entry}:00.000Z`);
+          const tzOffset = entryTime.getTimezoneOffset() * 60000;
+          const localEntryTime = new Date(entryTime.getTime() + tzOffset);
+          
+          const exitTime = previousTrack.exit;
+          const diffHours = (localEntryTime.getTime() - exitTime.getTime()) / (1000 * 60 * 60);
+          
+          if (diffHours > 0 && diffHours < 11) {
+             const isFullDayAdjustment = dto.reason?.toLowerCase().includes('atestado') || dto.reason?.toLowerCase().includes('licença') || dto.reason?.toLowerCase().includes('abono');
+             if (!isFullDayAdjustment) {
+                 throw new BadRequestException(`Erro de Interjornada: O descanso foi de apenas ${diffHours.toFixed(1)}h. A CLT exige 11h minimas.`);
+             }
+          }
+       }
+    }
     const isFutureAllowed = dto.reason === 'ajuste_atestado_integral' || dto.reason === 'ajuste_feriado' || dto.reason === 'ajuste_suspensao' || dto.reason === 'ajuste_folga_dsr' || dto.reason === 'ajuste_abono_folga' || dto.reason === 'ajuste_abono_banco_saida_antecipada' || dto.reason === 'ajuste_abono_atraso' || dto.reason === 'ajuste_abono_atestado_horas';
     this.validateManualTimestamp(employee, dto.entry, dto.lunchStart, dto.lunchReturn, dto.exit, date, isFutureAllowed);
     return this.applyManual(companyId, employee, dto.date, dto);
