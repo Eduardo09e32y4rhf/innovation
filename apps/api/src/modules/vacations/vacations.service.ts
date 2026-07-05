@@ -63,7 +63,13 @@ export class VacationsService {
     const allTracks = await this.repository.listTimeTracksInPeriod(dto.employeeId, periodStart, periodEnd);
 
     // Contar dias úteis sem batida de ponto
-    const unjustifiedAbsences = this.countUnjustifiedAbsences(allTracks, periodStart, periodEnd, employee.workScale || undefined);
+    const unjustifiedAbsences = this.countUnjustifiedAbsences(
+      allTracks,
+      periodStart,
+      periodEnd,
+      employee.admissionDate,
+      employee.workScale || undefined
+    );
 
     // Calcular desconto CLT:
     // Até 5 faltas: sem desconto
@@ -127,10 +133,19 @@ export class VacationsService {
     tracks: { date: Date; entry?: Date | null; manualStatus?: string | null }[],
     periodStart: Date,
     periodEnd: Date,
+    admissionDate?: Date | string | null,
     workScale?: string,
   ): number {
     let absences = 0;
-    const cursor = new Date(periodStart);
+    const admission = admissionDate ? new Date(admissionDate) : new Date(0);
+    // Only count from admission or periodStart, whichever is later
+    const startCursor = periodStart > admission ? periodStart : admission;
+    
+    const cursor = new Date(startCursor);
+    
+    const now = new Date();
+    // Do not count future days!
+    const endCursor = periodEnd < now ? periodEnd : now;
 
     // Mapa de datas com ponto
     const trackDates = new Set<string>();
@@ -142,7 +157,7 @@ export class VacationsService {
     // Dias da semana de folga
     const daysOff = this.getDaysOff(workScale);
 
-    while (cursor < periodEnd) {
+    while (cursor < endCursor) {
       const weekday = cursor.getUTCDay();
       // Pular fins de semana e folgas
       if (daysOff.includes(weekday)) {

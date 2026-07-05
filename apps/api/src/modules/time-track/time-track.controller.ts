@@ -68,14 +68,21 @@ export class TimeTrackController {
 
     if (!enrollment || !enrollment.active) {
       // Primeira vez: Cadastrar a biometria facial automaticamente
-      await this.facialRecognitionService.addSubject(employeeId);
-      await this.facialRecognitionService.addFace(employeeId, dto.imageBase64);
-      await this.service['prisma'].faceEnrollment.upsert({
-        where: { employeeId },
-        update: { comprefaceSubjectId: employeeId, enrolledAt: new Date(), active: true },
-        create: { companyId, employeeId, comprefaceSubjectId: employeeId, active: true }
-      });
-      facialSuccess = true;
+      try {
+        await this.facialRecognitionService.addSubject(employeeId);
+        const faceRes = await this.facialRecognitionService.addFace(employeeId, dto.imageBase64);
+        if (!faceRes) {
+          throw new Error('Nenhum rosto detectado ou imagem inválida.');
+        }
+        await this.service['prisma'].faceEnrollment.upsert({
+          where: { employeeId },
+          update: { comprefaceSubjectId: employeeId, enrolledAt: new Date(), active: true },
+          create: { companyId, employeeId, comprefaceSubjectId: employeeId, active: true }
+        });
+        facialSuccess = true;
+      } catch (error: any) {
+        throw new BadRequestException('Erro ao cadastrar biometria na inteligência artificial: ' + (error.message || 'Verifique se o rosto está legível.'));
+      }
     } else if (dto.imageBase64) {
       matchResult = await this.facialRecognitionService.recognize(dto.imageBase64);
       if (matchResult && matchResult.subject === employeeId) {
@@ -89,7 +96,7 @@ export class TimeTrackController {
     // Log attempt
     await this.service.logFacialAttempt({
       companyId,
-      employeeId: actor.sub,
+      employeeId,
       matched: facialSuccess,
       similarity: matchResult ? matchResult.similarity : undefined,
       livenessOk: matchResult ? matchResult.liveness : undefined

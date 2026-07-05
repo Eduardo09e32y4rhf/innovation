@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -33,7 +33,11 @@ function DashboardContent() {
   const vacations = useQuery(() => api.vacations.list(), [], { enabled: !isCommercial && !isFuncionario });
   const employees = useQuery(() => api.employees.list(), [], { enabled: !isCommercial && !isFuncionario });
 
-  const [dashMonth, setDashMonth] = useState('');
+  const [dashMonth, setDashMonth] = useState(() => {
+    const today = new Date();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    return `${today.getFullYear()}-${mm}`;
+  });
   const [dashDept, setDashDept] = useState('');
   const departments = useMemo(() => [...new Set((employees.data ?? []).map((e) => e.department).filter(Boolean))].sort(), [employees.data]);
 
@@ -82,6 +86,28 @@ function DashboardContent() {
       return true;
     });
   }, [vacationData, dashDept]);
+
+  const { birthdays, workAnniversaries } = useMemo(() => {
+    const b: any[] = [];
+    const w: any[] = [];
+    if (!dashMonth || !employees.data) return { birthdays: b, workAnniversaries: w };
+    const month = dashMonth.split('-')[1];
+    const year = parseInt(dashMonth.split('-')[0], 10);
+    
+    employees.data.forEach((emp) => {
+      if (emp.birthDate && emp.birthDate.substring(5, 7) === month) {
+        b.push(emp);
+      }
+      if (emp.admissionDate && emp.admissionDate.substring(5, 7) === month) {
+        const admissionYear = parseInt(emp.admissionDate.substring(0, 4), 10);
+        const years = year - admissionYear;
+        if (years > 0) {
+          w.push({ ...emp, years });
+        }
+      }
+    });
+    return { birthdays: b, workAnniversaries: w };
+  }, [dashMonth, employees.data]);
 
   const todayRows = filteredTimeTracks.slice(0, 5);
   const vacationRows = filteredVacations.slice(0, 5);
@@ -193,7 +219,7 @@ function DashboardContent() {
 
           {/* Alert & Action Cards */}
           {!isFuncionario && (
-            <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {/* Pendências */}
               <div className="rounded-[16px] border border-amber-200/60 bg-gradient-to-br from-amber-50 to-white p-5 shadow-sm">
                 <div className="flex items-center justify-between mb-3">
@@ -245,6 +271,31 @@ function DashboardContent() {
                     </div>
                     <span className="text-sm font-black text-rose-600">{terminationsThisMonth}</span>
                   </div>
+                </div>
+              </div>
+              
+              {/* Datas Importantes */}
+              <div className="rounded-[16px] border border-fuchsia-200/60 bg-gradient-to-br from-fuchsia-50 to-white p-5 shadow-sm">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-xs font-black uppercase tracking-wider text-fuchsia-800">Datas Importantes</h3>
+                  <Cake size={18} strokeWidth={2.5} className="text-fuchsia-500" />
+                </div>
+                <div className="space-y-2.5 max-h-[160px] overflow-y-auto pr-1">
+                  {birthdays.length === 0 && workAnniversaries.length === 0 && (
+                    <p className="text-xs text-slate-500 text-center py-4 font-semibold">Nenhum evento neste mês.</p>
+                  )}
+                  {birthdays.map(emp => (
+                    <div key={`birth-${emp.id}`} className="flex items-center justify-between rounded-[8px] bg-fuchsia-50/50 px-3 py-2 text-xs">
+                      <span className="font-bold text-fuchsia-800 line-clamp-1">{emp.name}</span>
+                      <span className="text-[10px] font-black uppercase text-fuchsia-600 bg-fuchsia-100 px-2 py-0.5 rounded-full shrink-0">Nascimento</span>
+                    </div>
+                  ))}
+                  {workAnniversaries.map(emp => (
+                    <div key={`work-${emp.id}`} className="flex items-center justify-between rounded-[8px] bg-indigo-50/50 px-3 py-2 text-xs">
+                      <span className="font-bold text-indigo-800 line-clamp-1">{emp.name}</span>
+                      <span className="text-[10px] font-black uppercase text-indigo-600 bg-indigo-100 px-2 py-0.5 rounded-full shrink-0">{emp.years} {emp.years === 1 ? 'ano' : 'anos'} de casa</span>
+                    </div>
+                  ))}
                 </div>
               </div>
             </section>
