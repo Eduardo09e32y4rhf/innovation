@@ -496,7 +496,7 @@ function downloadCollectiveSheet(month: string, visibleEmployees: Employee[], by
         <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;">
           <div style="background:#f0fdfa;border:1px solid #ccfbf1;border-radius:8px;padding:12px;text-align:center;">
             <div style="font-size:8px;font-weight:800;text-transform:uppercase;color:#0f766e;letter-spacing:0.05em;">Dias Trabalhados</div>
-            <div style="font-size:16px;font-weight:900;color:#0f172a;margin-top:4px;">${validTracks.length}</div>
+            <div style="font-size:16px;font-weight:900;color:#0f172a;margin-top:4px;">${validTracks.filter(t => t.incidentType !== 'falta' && (t.totalWorked || 0) > 0).length}</div>
           </div>
           <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px;text-align:center;">
             <div style="font-size:8px;font-weight:800;text-transform:uppercase;color:#e11d48;letter-spacing:0.05em;">Faltas Integrais</div>
