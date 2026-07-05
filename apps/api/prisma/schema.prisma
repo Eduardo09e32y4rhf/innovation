@@ -160,12 +160,6 @@ enum TimeRuleStatus {
   INACTIVE
 }
 
-enum TimeClosingStatus {
-  DRAFT
-  IN_REVIEW
-  CLOSED
-  EXPORTED
-}
 
 enum TimeOccurrenceType {
   LATE_ARRIVAL
@@ -314,8 +308,7 @@ model Company {
   timeTracks        TimeTrack[]
   overtimeRule      OvertimeRule?
   holidays          Holiday[]
-  timeClosings      TimeClosing[]
-
+  
   @@index([commercialOwnerId])
 }
 
@@ -450,8 +443,7 @@ model Employee {
 
   commitments    Commitment[]
   overtimeBank   OvertimeBank?
-  timeClosings   TimeClosing[]
-  faceEnrollment FaceEnrollment?
+    faceEnrollment FaceEnrollment?
 
   @@index([companyId])
   @@index([cpf])
@@ -1054,50 +1046,6 @@ model Holiday {
 
   @@index([companyId, date])
   @@index([date])
-}
-
-model TimeClosing {
-  id              String                  @id @default(uuid()) @db.Uuid
-  companyId       String                  @db.Uuid
-  company         Company                 @relation(fields: [companyId], references: [id])
-  employeeId      String                  @db.Uuid
-  employee        Employee                @relation(fields: [employeeId], references: [id])
-  periodStart     DateTime                @db.Date
-  periodEnd       DateTime                @db.Date
-  status          TimeClosingStatus       @default(DRAFT)
-  normalHours     Decimal                 @default(0)
-  overtime50      Decimal                 @default(0)
-  overtime100     Decimal                 @default(0)
-  nightShift      Decimal                 @default(0)
-  dsrValue        Decimal                 @default(0)
-  absences        Int                     @default(0)
-  lateArrivals    Int                     @default(0)
-  fallbackPunches Int                     @default(0)
-  totalPayable    Decimal                 @default(0)
-  reportPdfUrl    String?
-  closedAt        DateTime?
-  closedBy        String?                 @db.Uuid
-  reopenedAt      DateTime?
-  reopenedBy      String?                 @db.Uuid
-  reopenReason    String?
-  createdAt       DateTime                @default(now())
-  updatedAt       DateTime                @updatedAt
-  adjustments     TimeClosingAdjustment[]
-
-  @@unique([companyId, employeeId, periodStart, periodEnd])
-  @@index([companyId, employeeId, periodStart])
-}
-
-model TimeClosingAdjustment {
-  id            String      @id @default(uuid()) @db.Uuid
-  timeClosingId String      @db.Uuid
-  timeClosing   TimeClosing @relation(fields: [timeClosingId], references: [id])
-  field         String
-  oldValue      String
-  newValue      String
-  reason        String
-  changedBy     String      @db.Uuid
-  changedAt     DateTime    @default(now())
 }
 
 model FaceEnrollment {
