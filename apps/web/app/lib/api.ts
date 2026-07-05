@@ -385,6 +385,7 @@ export const api = {
     create: (input: CreateUserInput) => request<AppUser>('/users', { method: 'POST', body: input }),
     update: (id: string, input: Partial<CreateUserInput>) => request<AppUser>(`/users/${id}`, { method: 'PATCH', body: input }),
     delete: (id: string) => request<void>(`/users/${id}`, { method: 'DELETE' }),
+    resetPassword: (id: string) => request<void>(`/users/${id}/reset-password`, { method: 'POST' }),
   },
 
   companies: {

@@ -55,4 +55,10 @@ export class UsersController {
   delete(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string) {
     return this.service.delete(companyId, actor, id);
   }
+
+  @Roles('ADMIN', 'RH')
+  @Post(':id/reset-password')
+  resetPassword(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string) {
+    return this.service.resetPassword(companyId, actor, id);
+  }
 }

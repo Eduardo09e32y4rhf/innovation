@@ -188,7 +188,7 @@ function UserModal({ user, availableRoles, onClose, onDone }: { user?: AppUser; 
           {[
             { label: 'Nome', key: 'name' as const, type: 'text' },
             { label: 'E-mail', key: 'email' as const, type: 'email' },
-            { label: user ? 'Nova senha (opcional)' : 'Senha padrão (min. 8)', key: 'password' as const, type: 'password' },
+            ...(user ? [] : [{ label: 'Senha padrão (min. 8)', key: 'password' as const, type: 'password' }]),
           ].map(({ label, key, type }) => (
             <label key={key} className="block space-y-1 text-xs font-medium text-slate-600">
               <span>{label}</span>
@@ -200,6 +200,27 @@ function UserModal({ user, availableRoles, onClose, onDone }: { user?: AppUser; 
               />
             </label>
           ))}
+          {user && (
+            <div className="flex items-center justify-between rounded-[8px] border border-slate-200 p-3">
+              <div>
+                <div className="text-xs font-bold text-slate-800">Resetar senha</div>
+                <div className="text-[10px] text-slate-500">Define a senha padrão (12345678) e exige troca no login.</div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  if (window.confirm('Tem certeza que deseja resetar a senha para 12345678?')) {
+                    api.users.resetPassword(user.id)
+                      .then(() => window.alert('Senha resetada com sucesso!'))
+                      .catch((e) => window.alert(e.message));
+                  }
+                }}
+                className="rounded border border-slate-300 px-3 py-1.5 text-[10px] font-bold text-slate-700 hover:bg-slate-50"
+              >
+                Resetar
+              </button>
+            </div>
+          )}
           <label className="block space-y-1 text-xs font-medium text-slate-600">
             <span>Perfil</span>
             <select

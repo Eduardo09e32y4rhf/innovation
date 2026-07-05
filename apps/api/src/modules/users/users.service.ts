@@ -66,6 +66,17 @@ export class UsersService {
     return this.get(companyId, actor, id);
   }
 
+  async resetPassword(companyId: string, actor: JwtUser, id: string) {
+    await this.get(companyId, actor, id);
+    const passwordHash = await bcrypt.hash('12345678', 12);
+    const result = await this.repository.update(companyId, id, {
+      passwordHash,
+      forcePasswordChange: true
+    });
+    if (!result.count) throw new NotFoundException('Usuario nao encontrado');
+    return { reset: true };
+  }
+
   async delete(companyId: string, actor: JwtUser, id: string) {
     await this.get(companyId, actor, id);
     const result = await this.repository.delete(companyId, id);
