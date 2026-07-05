@@ -47,6 +47,7 @@ export class TimeTrackController {
   @UseGuards(RateLimitGuard)
   @RateLimit({ window: 60, max: 10, prefix: 'punch-facial' })
   @Roles('ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO')
+  @Post('clock-in-facial')
   async clockInFacial(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Body() dto: { imageBase64: string, fallback?: boolean } & any) {
     if (!dto.imageBase64 && !dto.fallback) {
       throw new BadRequestException('Imagem facial é obrigatória para o registro.');
@@ -55,9 +56,13 @@ export class TimeTrackController {
     let facialSuccess = false;
     let matchResult = null;
 
+    let employeeId = '';
+    const emp = await this.service['prisma'].employee.findFirst({ where: { userId: actor.sub, companyId } });
+    if (emp) employeeId = emp.id;
+
     if (dto.imageBase64) {
       matchResult = await this.facialRecognitionService.recognize(dto.imageBase64);
-      if (matchResult && matchResult.subject === actor.sub) {
+      if (matchResult && matchResult.subject === employeeId) {
         // Here we can check liveness if provided
         if (matchResult.liveness !== false) {
           facialSuccess = true;

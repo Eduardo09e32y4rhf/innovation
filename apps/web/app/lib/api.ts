@@ -352,7 +352,10 @@ export const api = {
     approve: (id: string) => request<any>(`/time-occurrences/${id}/approve`, { method: 'PUT' }),
     reject: (id: string) => request<any>(`/time-occurrences/${id}/reject`, { method: 'PUT' }),
   },
-  timeTrack: {
+  facialRecognition: {
+      enroll: (input: { imageBase64: string, employeeId?: string }) => request('/facial-recognition/enroll', { method: 'POST', body: input }),
+    },
+    timeTrack: {
     list: (month?: string) =>
       request<TimeTrack[]>(`/time-track${month ? `?month=${encodeURIComponent(month)}` : ''}`, { timeoutMs: 12000 }),
     listEmployeeMonth: (employeeId: string, month?: string) =>

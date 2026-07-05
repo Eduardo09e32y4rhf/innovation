@@ -53,7 +53,8 @@ export class FacialRecognitionService {
       });
 
       if (!res.ok) {
-        throw new Error(await res.text());
+        this.logger.warn(`CompreFace recognition warning: ${await res.text()}`);
+        return null;
       }
       return await res.json();
     } catch (error: any) {

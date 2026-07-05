@@ -155,6 +155,23 @@ export default function ClockInPage() {
   const [fallbackMode, setFallbackMode] = useState(false);
   const successTimer = useRef<ReturnType<typeof setTimeout>>();
 
+  const enroll = useMutation(
+    async () => {
+      if (!imageBase64) throw new Error('Capture sua foto primeiro.');
+      return api.facialRecognition.enroll({ imageBase64 });
+    },
+    {
+      onSuccess: () => {
+        setSuccess('Rosto cadastrado com sucesso! Agora você pode bater ponto.');
+        if (successTimer.current) clearTimeout(successTimer.current);
+        successTimer.current = setTimeout(() => {
+          setSuccess(null);
+          employees.mutate(); // refresh employee data
+        }, 2500);
+      }
+    }
+  );
+
   const punch = useMutation(
     async (params: { type: PunchType; manual?: boolean }) => {
       if (!myEmployee) throw new Error('Seu usuario ainda nao esta vinculado a um funcionario ativo. Procure o RH.');
@@ -164,15 +181,20 @@ export default function ClockInPage() {
       if (params.manual) {
         input.employeeId = myEmployee.id;
         input.type = params.type;
-      }
-      if (params.manual) {
         const [h, m] = manualTime.split(':').map(Number);
         const dt = new Date(manualDate);
         dt.setHours(h, m, 0, 0);
         input.timestamp = dt.toISOString();
         input.manualReason = MANUAL_REASONS.find((r) => r.value === manualReason)?.label ?? manualReason;
+        return api.timeTrack.manual(input as any);
+      } else {
+        return api.timeTrack.clockInFacial({
+          ...input,
+          type: params.type,
+          imageBase64,
+          fallback: fallbackMode,
+        } as any);
       }
-      return api.timeTrack.register(input);
     },
     {
       onSuccess: (_data, params) => {
@@ -240,25 +262,44 @@ export default function ClockInPage() {
         <MapView lat={geo.position.lat} lng={geo.position.lng} />
       ) : null}
 
-      {punch.error && <p className="rounded-[8px] border border-rose-200 bg-rose-50 px-4 py-2 text-xs font-semibold text-rose-700">{punch.error}</p>}
+      {(punch.error || enroll.error) && <p className="rounded-[8px] border border-rose-200 bg-rose-50 px-4 py-2 text-xs font-semibold text-rose-700">{punch.error || enroll.error}</p>}
 
-      
-      <section className="ops-card rounded-[12px] border border-slate-200 bg-white p-5">
-        <h3 className="mb-4 text-sm font-black text-slate-950">Registrar ponto</h3>
-        <CameraCapture onCapture={(b64) => setImageBase64(b64)} />
-        <div className="mt-4 flex items-center justify-between">
-           <label className="flex items-center gap-2 text-xs text-slate-600">
-             <input type="checkbox" checked={fallbackMode} onChange={(e) => setFallbackMode(e.target.checked)} className="rounded border-slate-300 text-teal-600 focus:ring-teal-500" />
-             Ativar Fallback (Ponto sem foto facial)
-           </label>
-        </div>
-        <button onClick={() => handlePunch('ENTRY')} disabled={punch.loading || !myEmployee || (!imageBase64 && !fallbackMode)} className="mt-4 crystal-button flex h-14 w-full items-center justify-center gap-2 rounded-[10px] text-sm font-black text-white disabled:opacity-60">
-          <Clock3 size={18} />
-          Bater ponto agora
-        </button>
-        <p className="mt-3 text-xs font-medium text-slate-500">A sequencia e automatica: entrada, saida para almoco, retorno do almoco e saida.</p>
-      </section>
-  
+      {!(myEmployee?.faceEnrollment?.active) ? (
+        <section className="ops-card rounded-[12px] border border-slate-200 bg-white p-5">
+          <div className="mb-4 text-center">
+            <h3 className="text-lg font-black text-slate-950">Cadastrar Facial</h3>
+            <p className="text-sm text-slate-500">Para bater ponto, você precisa registrar seu rosto no sistema.</p>
+          </div>
+          <CameraCapture onCapture={(b64) => setImageBase64(b64)} />
+          <button
+            onClick={() => enroll.mutate().catch(() => {})}
+            disabled={!imageBase64 || enroll.loading}
+            className="mt-6 flex w-full items-center justify-center gap-2 rounded-[8px] bg-emerald-600 py-3 text-sm font-bold text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
+          >
+            {enroll.loading ? 'Cadastrando...' : 'Salvar meu rosto'}
+          </button>
+        </section>
+      ) : (
+        <section className="ops-card rounded-[12px] border border-slate-200 bg-white p-5">
+          <h3 className="mb-4 text-sm font-black text-slate-950">Registrar ponto</h3>
+          <CameraCapture onCapture={(b64) => setImageBase64(b64)} />
+          <div className="mt-4 flex items-center justify-between">
+             <label className="flex items-center gap-2 text-xs text-slate-600">
+               <input type="checkbox" checked={fallbackMode} onChange={e => setFallbackMode(e.target.checked)} className="rounded border-slate-300" />
+               Ativar Fallback (Ponto sem foto facial)
+             </label>
+          </div>
+          <button
+            onClick={() => handlePunch('ENTRY')}
+            disabled={(!imageBase64 && !fallbackMode) || punch.loading}
+            className="mt-6 flex w-full items-center justify-center gap-2 rounded-[8px] bg-teal-700 py-4 text-sm font-bold text-white transition-colors hover:bg-teal-800 disabled:opacity-50"
+          >
+            <Clock3 size={18} />
+            {punch.loading ? 'Registrando...' : 'Bater ponto agora'}
+          </button>
+          <p className="mt-4 text-center text-xs text-slate-500">A sequencia e automatica: entrada, saida para almoco, retorno do almoco e saida.</p>
+        </section>
+      )}
 
       <section className="ops-card rounded-[12px] border border-slate-200 bg-white p-5">
         <button onClick={() => setShowManual(!showManual)} className="flex w-full items-center gap-2 text-sm font-black text-slate-700">
