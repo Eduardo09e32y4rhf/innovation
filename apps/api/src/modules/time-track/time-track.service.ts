@@ -68,7 +68,16 @@ export class TimeTrackService {
       });
       if (res.ok) {
         const data = await res.json() as any;
-        return data.address?.road || data.display_name || null;
+        const addr = data.address;
+        if (addr) {
+           const road = addr.road || addr.pedestrian || addr.street || '';
+           const suburb = addr.suburb || addr.neighbourhood || addr.city_district || '';
+           const city = addr.city || addr.town || addr.village || '';
+           const postcode = addr.postcode || '';
+           const parts = [road, suburb, city, postcode].filter(Boolean);
+           if (parts.length > 0) return parts.join(' - ');
+        }
+        return data.display_name || null;
       }
     } catch (e) {
       console.error('Nominatim Geocoding error', e);
@@ -224,13 +233,29 @@ export class TimeTrackService {
         if (dto.longitude !== undefined) updateData.longitude = dto.longitude;
         
         // GEOFENCING LOGIC
+        let isOutOfLocation = false;
+        let distanceVal = 0;
+
         if (!employee.allowExternalWork && dto.latitude && dto.longitude) {
           const company = await this.prisma.company.findUnique({ where: { id: companyId } });
           if (company?.latitude && company?.longitude) {
             const distance = getDistanceInMeters(dto.latitude, dto.longitude, company.latitude, company.longitude);
-            if (distance > 300) {
+            const tolerance = company.radiusTolerance || 150;
+            if (distance > tolerance) {
+              isOutOfLocation = true;
+              distanceVal = Math.round(distance);
               await this.repository.createGeofenceNotification(companyId, employee as any, dateStr, timestampToRecord.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'}), distance);
             }
+          }
+        }
+
+        if (isOutOfLocation) {
+          updateData.manualStatus = 'pending';
+          updateData.manualReason = 'Ponto fora do local permitido (' + distanceVal + 'm)';
+
+          if (dto.latitude && dto.longitude) {
+             const address = await this.getStreetName(dto.latitude, dto.longitude);
+             updateData.observation = 'BATIDA FACIAL - ENDERECO: ' + (address || 'Desconhecido');
           }
         }
       } else {

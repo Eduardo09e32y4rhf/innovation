@@ -85,6 +85,8 @@ services:
       DEMO_COMPANY_DOCUMENT: ${DEMO_COMPANY_DOCUMENT:-00000000000191}
       WHATSAPP_SESSION_PATH: /data/whatsapp
       WHATSAPPMEDIA_PATH: /data/whatsapp-media
+      COMPREFACE_URL: ${COMPREFACE_URL}
+      COMPREFACE_API_KEY: ${COMPREFACE_API_KEY}
     ports:
       - "127.0.0.1:${API_HOST_PORT:-3333}:${API_PORT:-3333}"
     volumes:
