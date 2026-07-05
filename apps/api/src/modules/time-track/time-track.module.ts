@@ -11,9 +11,10 @@ import { TimeOccurrencesService } from './time-occurrences.service';
 import { TimeCalculationRulesService } from './time-calculation-rules';
 
 import { FacialRecognitionModule } from '../facial-recognition/facial-recognition.module';
+import { HolidaysModule } from '../holidays/holidays.module';
 
 @Module({
-  imports: [FacialRecognitionModule],
+  imports: [FacialRecognitionModule, HolidaysModule],
   controllers: [TimeTrackController, WorkScheduleRulesController, TimeClosingController, TimeOccurrencesController],
   providers: [TimeTrackService, TimeTrackRepository, WorkScheduleRulesService, TimeClosingService, TimeOccurrencesService, TimeCalculationRulesService],
   exports: [TimeTrackService, TimeTrackRepository, WorkScheduleRulesService, TimeClosingService, TimeOccurrencesService, TimeCalculationRulesService],
