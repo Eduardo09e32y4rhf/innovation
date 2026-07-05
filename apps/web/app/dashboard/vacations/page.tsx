@@ -766,11 +766,12 @@ function downloadVacationReceipt(vacation: { employee?: Employee; startDate: str
   const companyInfo: PdfCompanyInfo | null = companyData
     ? {
         name: normalizeDisplayName(companyData.name),
-        document: companyData.document ?? null,
+        legalName: companyData.legalName,
+        document: companyData.cnpj ?? null,
         logoUrl: companyData.logoUrl ?? null,
-        address: (companyData as any).address ?? null,
-        phone: (companyData as any).phone ?? null,
-        email: (companyData as any).email ?? null,
+        address: [companyData.street, companyData.streetNumber, companyData.neighborhood, companyData.city, companyData.state, companyData.cep].filter(Boolean).map(String).join(', ') || undefined,
+        phone: companyData.phone ?? null,
+        email: companyData.email ?? null,
       }
     : null;
 

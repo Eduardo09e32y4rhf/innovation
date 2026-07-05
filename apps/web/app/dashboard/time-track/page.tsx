@@ -525,7 +525,17 @@ function downloadCollectiveSheet(month: string, visibleEmployees: Employee[], by
     return empHtml + (index < visibleEmployees.length - 1 ? '<div style="page-break-after: always;"></div>' : '');
   }).join('');
 
-  const html = buildPdfShell({ title: 'FOLHA DE PONTO', subtitle, landscape: false }, companyData || null, blocks);
+  const pdfCompanyData: PdfCompanyInfo | null = companyData ? {
+    name: companyData.name,
+    legalName: companyData.legalName,
+    document: companyData.cnpj,
+    logoUrl: companyData.logoUrl,
+    phone: companyData.phone,
+    email: companyData.email,
+    address: [companyData.street, companyData.streetNumber, companyData.neighborhood, companyData.city, companyData.state, companyData.cep].filter(Boolean).map(String).join(', ') || undefined
+  } : null;
+
+  const html = buildPdfShell({ title: 'FOLHA DE PONTO', subtitle, landscape: false }, pdfCompanyData, blocks);
   printPdf(html, `folha-coletiva-${month}.pdf`);
 }
 
