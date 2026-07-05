@@ -161,9 +161,33 @@ function dayStatus(row: TimeTrack, holidayName?: string) {
   return 'NORMAL';
 }
 function isFalta(row: TimeTrack) {
-  if (!row.entry && !row.exit) return true;
+  if (row.entry || row.exit) return false;
   const o = (row.observation ?? '').toLowerCase();
-  return !o.includes('atestado') && !o.includes('feriado') && !o.includes('folga') && !o.includes('suspensao') && !o.includes('suspensão');
+  const r = (row.manualReason ?? '').toLowerCase();
+  if (o.includes('atestado') || r.includes('atestado')) return false;
+  if (o.includes('feriado') || r.includes('feriado')) return false;
+  if (o.includes('folga') || r.includes('folga')) return false;
+  if (o.includes('abonado') || r.includes('abonado')) return false;
+  if (o.includes('suspensao') || o.includes('suspensão') || r.includes('suspensao') || r.includes('suspensão')) return false;
+  return true;
+}
+
+function isOcorrencia(row: TimeTrack) {
+  const o = (row.observation ?? '').toLowerCase();
+  const r = (row.manualReason ?? '').toLowerCase();
+  
+  if (o.includes('abonado') || r.includes('abonado')) return false;
+  if (o.includes('atestado') || r.includes('atestado')) return false;
+  if (o.includes('feriado') || r.includes('feriado')) return false;
+  if (o.includes('folga') || r.includes('folga')) return false;
+
+  if (isFalta(row)) return true;
+  if (row.incidentType === 'atraso') return true;
+  if (row.incidentType === 'saida_antecipada') return true;
+  if (o.includes('suspensao') || o.includes('suspensão') || r.includes('suspensao') || r.includes('suspensão')) return true;
+  if (row.dailyBalance != null && row.dailyBalance < 0) return true;
+  
+  return false;
 }
 
 function getEffectiveStats(rows: TimeTrack[]) {
@@ -444,7 +468,10 @@ function downloadCollectiveSheet(month: string, visibleEmployees: Employee[], by
       const balanceColor = balance < 0 ? '#e11d48' : balance > 0 ? '#059669' : '#64748b';
       const hasMissing = !t.entry || !t.exit;
       let ocorrencia = dayStatus(t, g.holidayName);
-      if (ocorrencia === 'NORMAL' && hasMissing) ocorrencia = 'FALTA DE MARCACAO';
+      if (ocorrencia === 'NORMAL') {
+        if (isFalta(t)) ocorrencia = 'FALTA NAO JUSTIFICADA';
+        else if (hasMissing) ocorrencia = 'FALTA DE MARCACAO';
+      }
       
       return `<tr>
         <td style="padding:4px 8px;font-size:8px;font-weight:600;color:#0f172a;">${dateStr}</td>
@@ -503,7 +530,7 @@ function downloadCollectiveSheet(month: string, visibleEmployees: Employee[], by
 }
 
 function OcorrenciasList({ employees, byEmpMap, month, onSelect }: { employees: Employee[]; byEmpMap: Record<string,TimeTrack[]>; month: string; onSelect: (id:string)=>void }) {
-  const withIssues = employees.filter(e => (byEmpMap[e.id] ?? []).some(t => isFalta(t) || t.incidentType === 'atraso' || t.incidentType === 'saida_antecipada' || (t.dailyBalance != null && t.dailyBalance < 0)));
+  const withIssues = employees.filter(e => (byEmpMap[e.id] ?? []).some(t => isOcorrencia(t)));
   if (withIssues.length===0) return <p className="text-center text-sm font-semibold text-slate-400 py-8">Nenhuma ocorrencia no mes.</p>;
   return (
     <section className="overflow-hidden rounded-[14px] border border-slate-200 bg-white">
@@ -511,7 +538,7 @@ function OcorrenciasList({ employees, byEmpMap, month, onSelect }: { employees: 
       <div className="divide-y divide-slate-100">
         {withIssues.map(e=> {
           const rows = byEmpMap[e.id] ?? [];
-          const ocorrenciasCount = rows.filter(t => isFalta(t) || t.incidentType === 'atraso' || t.incidentType === 'saida_antecipada' || (t.dailyBalance != null && t.dailyBalance < 0)).length;
+          const ocorrenciasCount = rows.filter(t => isOcorrencia(t)).length;
           return (
             <div key={e.id} className="flex items-center justify-between px-5 py-4 hover:bg-slate-50">
               <div className="flex items-center gap-3">
@@ -646,7 +673,7 @@ function Ocorrencias({ employee, tracks, month, canManage, canApprove, refreshin
   const grid = useMemo(()=> buildGrid(month, employee, tracks, company?.payrollStartDay, holidays), [month, employee, tracks, company, holidays]);
   const ocorrencias = useMemo(()=>grid.filter(g=>{
     if (!g.track) return false;
-    return isFalta(g.track) || g.track.incidentType === 'atraso' || g.track.incidentType === 'saida_antecipada' || (g.track.dailyBalance != null && g.track.dailyBalance < 0);
+    return isOcorrencia(g.track);
   }), [grid]);
   return (
     <section className="overflow-hidden rounded-[14px] border border-slate-200 bg-white">
