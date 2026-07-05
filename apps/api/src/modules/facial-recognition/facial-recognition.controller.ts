@@ -18,12 +18,16 @@ export class FacialRecognitionController {
   @Roles('ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO')
   async enrollFace(@Req() req: any, @Body() body: { imageBase64: string, employeeId?: string }) {
     const user = req.user as any;
-    // An admin/rh can enroll for an employee. An employee enrolls for themselves.
-    const targetEmployeeId = (user.role === 'FUNCIONARIO' || !body.employeeId) ? user.sub : body.employeeId;
-
-    const employee = await this.prisma.employee.findUnique({
-      where: { id: targetEmployeeId, companyId: user.companyId }
-    });
+    let employee;
+    if (user.role === 'FUNCIONARIO' || !body.employeeId) {
+      employee = await this.prisma.employee.findFirst({
+        where: { userId: user.sub, companyId: user.companyId }
+      });
+    } else {
+      employee = await this.prisma.employee.findUnique({
+        where: { id: body.employeeId, companyId: user.companyId }
+      });
+    }
 
     if (!employee) throw new BadRequestException('Employee not found');
 
