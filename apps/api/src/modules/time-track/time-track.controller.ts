@@ -60,7 +60,23 @@ export class TimeTrackController {
     const emp = await this.service['prisma'].employee.findFirst({ where: { userId: actor.sub, companyId } });
     if (emp) employeeId = emp.id;
 
-    if (dto.imageBase64) {
+    if (!employeeId) {
+      throw new BadRequestException('Funcionário não encontrado para este usuário.');
+    }
+
+    const enrollment = await this.service['prisma'].faceEnrollment.findUnique({ where: { employeeId } });
+
+    if (!enrollment || !enrollment.active) {
+      // Primeira vez: Cadastrar a biometria facial automaticamente
+      await this.facialRecognitionService.addSubject(employeeId);
+      await this.facialRecognitionService.addFace(employeeId, dto.imageBase64);
+      await this.service['prisma'].faceEnrollment.upsert({
+        where: { employeeId },
+        update: { comprefaceSubjectId: employeeId, enrolledAt: new Date(), active: true },
+        create: { companyId, employeeId, comprefaceSubjectId: employeeId, active: true }
+      });
+      facialSuccess = true;
+    } else if (dto.imageBase64) {
       matchResult = await this.facialRecognitionService.recognize(dto.imageBase64);
       if (matchResult && matchResult.subject === employeeId) {
         // Here we can check liveness if provided

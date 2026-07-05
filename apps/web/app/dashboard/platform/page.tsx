@@ -13,6 +13,12 @@ const COMPANY_USER_ROLES: PlatformCompanyUserRole[] = ['ADMIN', 'RH', 'GESTOR', 
 
 type CompanyUserForm = { name: string; email: string; password: string; role: PlatformCompanyUserRole; isActive?: boolean };
 
+function safeIsoDate(val: any) {
+  if (!val) return '';
+  const d = new Date(val);
+  return Number.isNaN(d.getTime()) ? '' : d.toISOString().split('T')[0];
+}
+
 export default function PlatformPage() {
   const { user } = useAuth();
   const currentRole = user?.profile?.toUpperCase();
@@ -388,12 +394,12 @@ function F({ label, value, onChange, type = 'text', required }: { label: string;
 
 function LicenseModal({ company, onClose, onSave, loading, error }: { company: PlatformCompany; onClose: () => void; onSave: (maxUsers: number, maxEmployees: number, plan: any, billingStatus: any, trialEndsAt: string) => void; loading: boolean; error: string | null }) {
     const [maxUsers, setMaxUsers] = useState(company.maxUsers);
-  const [maxEmployees, setMaxEmployees] = useState(company.maxEmployees);
+  const [maxEmployees, setMaxEmployees] = useState(company.maxEmployees ?? 1);
   const [plan, setPlan] = useState<any>(company.plan ?? 'FREE');
   const [billingStatus, setBillingStatus] = useState<any>(company.billingStatus ?? 'TRIAL');
-  const [trialEndsAt, setTrialEndsAt] = useState(company.trialEndsAt ? new Date(company.trialEndsAt).toISOString().split('T')[0] : '');
+  const [trialEndsAt, setTrialEndsAt] = useState(safeIsoDate(company.trialEndsAt));
 
-  const changed = maxUsers !== company.maxUsers || maxEmployees !== company.maxEmployees || plan !== (company.plan ?? 'FREE') || billingStatus !== (company.billingStatus ?? 'TRIAL') || trialEndsAt !== (company.trialEndsAt ? new Date(company.trialEndsAt).toISOString().split('T')[0] : '');
+  const changed = maxUsers !== (company.maxUsers ?? 1) || maxEmployees !== (company.maxEmployees ?? 1) || plan !== (company.plan ?? 'FREE') || billingStatus !== (company.billingStatus ?? 'TRIAL') || trialEndsAt !== safeIsoDate(company.trialEndsAt);
   const valid = maxUsers >= 1 && maxUsers >= company.usersCount && maxEmployees >= 1 && maxEmployees >= company.employeesCount;
 
   return (

@@ -38,9 +38,9 @@ function useGeolocation() {
   return { position, error, loading };
 }
 
-function MapView({ lat, lng }: { lat: number; lng: number }) {
+function MapView({ lat, lng, className = "h-64" }: { lat: number; lng: number; className?: string }) {
   return (
-    <div className="relative h-64 w-full overflow-hidden rounded-[12px] border border-slate-200 bg-slate-100">
+    <div className={`relative w-full overflow-hidden rounded-[12px] border border-slate-200 bg-slate-100 ${className}`}>
       <iframe
         title="Localizacao"
         src={`https://www.openstreetmap.org/export/embed.html?bbox=${lng - 0.005},${lat - 0.003},${lng + 0.005},${lat + 0.003}&layer=mapnik&marker=${lat},${lng}`}
@@ -252,54 +252,60 @@ export default function ClockInPage() {
           <div className="h-5 w-5 animate-spin rounded-full border-2 border-teal-500 border-t-transparent" />
           <span className="text-sm text-slate-500">Obtendo localizacao...</span>
         </div>
-      ) : geo.error ? (
-        <div className="rounded-[12px] border border-amber-200 bg-amber-50 p-4 text-center">
-          <AlertTriangle size={24} className="mx-auto mb-2 text-amber-500" />
-          <p className="text-sm font-semibold text-amber-800">{geo.error}</p>
-          <p className="mt-1 text-xs text-amber-600">Voce ainda pode bater o ponto sem localizacao.</p>
+      ) : (
+        <div className="relative h-[480px] w-full overflow-hidden rounded-[16px] border border-slate-200 bg-slate-100 shadow-md">
+          {geo.position ? (
+            <MapView lat={geo.position.lat} lng={geo.position.lng} className="h-full border-none rounded-none" />
+          ) : (
+            <div className="h-full w-full flex flex-col items-center justify-center bg-slate-50 p-4">
+              <AlertTriangle size={32} className="text-amber-500 mb-2" />
+              <p className="text-sm font-semibold text-amber-800">{geo.error || 'Localização não disponível'}</p>
+              <p className="text-xs text-slate-400 mt-1">Você ainda pode bater o ponto sem localização.</p>
+            </div>
+          )}
+
+          {/* Camera Floating Box */}
+          <div className="absolute bottom-4 right-4 left-4 md:left-auto md:w-80 rounded-[16px] bg-white/95 p-4 shadow-xl border border-slate-200/50 backdrop-blur-md z-10">
+            {!(myEmployee?.faceEnrollment?.active) ? (
+              <div>
+                <div className="mb-3 text-center">
+                  <h3 className="text-sm font-black text-slate-950">Cadastrar Facial</h3>
+                  <p className="text-[10px] text-slate-500">Registre seu rosto para bater ponto.</p>
+                </div>
+                <CameraCapture onCapture={(b64) => setImageBase64(b64)} />
+                <button
+                  onClick={() => enroll.mutate().catch(() => {})}
+                  disabled={!imageBase64 || enroll.loading}
+                  className="mt-3 flex w-full items-center justify-center gap-2 rounded-[8px] bg-emerald-600 py-2.5 text-xs font-bold text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
+                >
+                  {enroll.loading ? 'Cadastrando...' : 'Salvar meu rosto'}
+                </button>
+              </div>
+            ) : (
+              <div>
+                <h3 className="mb-2 text-xs font-black text-slate-950">Registrar ponto</h3>
+                <CameraCapture onCapture={(b64) => setImageBase64(b64)} />
+                <div className="mt-2 flex items-center justify-between">
+                  <label className="flex items-center gap-1.5 text-[10px] text-slate-600">
+                    <input type="checkbox" checked={fallbackMode} onChange={e => setFallbackMode(e.target.checked)} className="rounded border-slate-300" />
+                    Ativar Fallback (Sem foto)
+                  </label>
+                </div>
+                <button
+                  onClick={() => handlePunch('ENTRY')}
+                  disabled={(!imageBase64 && !fallbackMode) || punch.loading}
+                  className="mt-3 flex w-full items-center justify-center gap-2 rounded-[8px] bg-teal-700 py-3 text-xs font-bold text-white transition-colors hover:bg-teal-800 disabled:opacity-50"
+                >
+                  <Clock3 size={14} />
+                  {punch.loading ? 'Registrando...' : 'Bater ponto agora'}
+                </button>
+              </div>
+            )}
+          </div>
         </div>
-      ) : geo.position ? (
-        <MapView lat={geo.position.lat} lng={geo.position.lng} />
-      ) : null}
+      )}
 
       {(punch.error || enroll.error) && <p className="rounded-[8px] border border-rose-200 bg-rose-50 px-4 py-2 text-xs font-semibold text-rose-700">{punch.error || enroll.error}</p>}
-
-      {!(myEmployee?.faceEnrollment?.active) ? (
-        <section className="ops-card rounded-[12px] border border-slate-200 bg-white p-5">
-          <div className="mb-4 text-center">
-            <h3 className="text-lg font-black text-slate-950">Cadastrar Facial</h3>
-            <p className="text-sm text-slate-500">Para bater ponto, você precisa registrar seu rosto no sistema.</p>
-          </div>
-          <CameraCapture onCapture={(b64) => setImageBase64(b64)} />
-          <button
-            onClick={() => enroll.mutate().catch(() => {})}
-            disabled={!imageBase64 || enroll.loading}
-            className="mt-6 flex w-full items-center justify-center gap-2 rounded-[8px] bg-emerald-600 py-3 text-sm font-bold text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
-          >
-            {enroll.loading ? 'Cadastrando...' : 'Salvar meu rosto'}
-          </button>
-        </section>
-      ) : (
-        <section className="ops-card rounded-[12px] border border-slate-200 bg-white p-5">
-          <h3 className="mb-4 text-sm font-black text-slate-950">Registrar ponto</h3>
-          <CameraCapture onCapture={(b64) => setImageBase64(b64)} />
-          <div className="mt-4 flex items-center justify-between">
-             <label className="flex items-center gap-2 text-xs text-slate-600">
-               <input type="checkbox" checked={fallbackMode} onChange={e => setFallbackMode(e.target.checked)} className="rounded border-slate-300" />
-               Ativar Fallback (Ponto sem foto facial)
-             </label>
-          </div>
-          <button
-            onClick={() => handlePunch('ENTRY')}
-            disabled={(!imageBase64 && !fallbackMode) || punch.loading}
-            className="mt-6 flex w-full items-center justify-center gap-2 rounded-[8px] bg-teal-700 py-4 text-sm font-bold text-white transition-colors hover:bg-teal-800 disabled:opacity-50"
-          >
-            <Clock3 size={18} />
-            {punch.loading ? 'Registrando...' : 'Bater ponto agora'}
-          </button>
-          <p className="mt-4 text-center text-xs text-slate-500">A sequencia e automatica: entrada, saida para almoco, retorno do almoco e saida.</p>
-        </section>
-      )}
 
       <section className="ops-card rounded-[12px] border border-slate-200 bg-white p-5">
         <button onClick={() => setShowManual(!showManual)} className="flex w-full items-center gap-2 text-sm font-black text-slate-700">

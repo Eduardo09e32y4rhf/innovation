@@ -9,7 +9,7 @@ export function DashboardTopbar() {
   const { isAuthenticated, logout } = useAuth();
 
   return (
-    <header className="dash-topbar flex-col items-start gap-3 sm:flex-row sm:items-center">
+    <header className="dash-topbar flex-col items-start gap-3 sm:flex-row sm:items-center relative z-50">
       <div className="min-w-0">
         <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-gray-400">
           Innovation RH Connect

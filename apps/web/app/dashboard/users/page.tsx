@@ -56,7 +56,7 @@ export default function UsersPage() {
         <div>
           <p className="text-[11px] font-black uppercase tracking-[0.2em] text-teal-600">Usuários</p>
           <h2 className="text-2xl font-black text-slate-950">Permissões de acesso</h2>
-          {usage.data && (
+          {usage.data && typeof usage.data.used === 'number' && (
             <p className="mt-1 text-xs text-slate-500">
               {usage.data.used} de {usage.data.max} usuários
               {isFull && <span className="ml-1 font-bold text-amber-600">- limite atingido</span>}
@@ -102,8 +102,8 @@ export default function UsersPage() {
                   return (
                     <tr key={user.id} className="border-t border-slate-100 text-xs text-slate-700">
                       <td className="py-3 pr-4 font-medium text-slate-950">{normalizeDisplayName(user.name)}</td>
-                      <td className="py-3 pr-4">{user.email}</td>
-                      <td className="py-3 pr-4">{ROLE_LABEL[user.role] ?? user.role}</td>
+                      <td className="py-3 pr-4">{user.email || '-'}</td>
+                      <td className="py-3 pr-4">{user.role ? (ROLE_LABEL[user.role] ?? user.role) : '-'}</td>
                       <td className="py-3 pr-4">
                         <span className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-bold ${user.isActive === false ? 'border-slate-200 bg-slate-100 text-slate-500' : 'border-emerald-200 bg-emerald-50 text-emerald-700'}`}>
                           {user.isActive === false ? 'Bloqueado' : 'Ativo'}
