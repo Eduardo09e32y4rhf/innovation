@@ -49,13 +49,13 @@ const ASO_TYPES: { value: string; label: string }[] = [
 ];
 
 const ASO_STATUSES: { value: string; label: string }[] = [
-  { value: 'PENDENTE', label: 'Pendente' },
-  { value: 'AGENDADO', label: 'Agendado' },
-  { value: 'REALIZADO', label: 'Realizado' },
-  { value: 'APTO', label: 'Apto' },
-  { value: 'INAPTO', label: 'Inapto' },
-  { value: 'VENCIDO', label: 'Vencido' },
-  { value: 'CANCELADO', label: 'Cancelado' },
+  { value: 'PENDING', label: 'Pendente' },
+  { value: 'SCHEDULED', label: 'Agendado' },
+  { value: 'COMPLETED', label: 'Concluído / Apto' },
+  { value: 'CANCELLED', label: 'Cancelado' },
+  { value: 'EXPIRED', label: 'Vencido' },
+  { value: 'WAITING_DOCUMENT', label: 'Aguardando doc' },
+  { value: 'WAITING_ADDITIONAL_EXAM', label: 'Exame extra' },
 ];
 
 function fmtDate(v?: string | null) {
@@ -73,6 +73,8 @@ function fmtDateTime(v?: string | null) {
 }
 
 function getAsoAlert(status: string, dueDate?: string | null): { label: string; cls: string } {
+  if (status === 'COMPLETED' || status === 'APTO') return { label: 'Concluído', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' };
+  if (status === 'CANCELLED') return { label: 'Cancelado', cls: 'bg-slate-100 text-slate-600 border-slate-200' };
   if (!dueDate) return { label: 'Sem data definida', cls: 'bg-slate-100 text-slate-600 border-slate-200' };
   const today = new Date();
   const exp = new Date(dueDate);
@@ -297,6 +299,7 @@ function ManagementContent() {
         record={asoForm.edit}
         employees={employees}
         asos={asos}
+        company={company}
         onClose={() => setAsoForm({ open: false })}
         onSave={(data) => asoMut.mutate({ id: asoForm.edit?.id, data }).catch(() => {})}
         saving={asoMut.loading}
@@ -449,7 +452,54 @@ function AgendaKanban({ columns, employees, canManage, onOpenForm, onSave, onDel
 
 // ─── ASO ───────────────────────────────────────────────────────────────────────
 
-function AsoTab({ records, employees, company, canManage, onOpenForm, onSave, onDelete, saving }: {
+
+export function printAsoPdf(emp: any, r: any, company: any) {
+  const { buildPdfShell, infoGrid, section, signatureBlock, printPdf } = require('@/app/lib/pdf-utils');
+  const docTitle = 'Encaminhamento para Exame Médico (ASO)';
+  const asoType = r.asoType || 'ADMISSIONAL';
+  const subtitle = asoType.replace(/_/g, ' ');
+  
+  const text = `<p style="font-size:11px;color:#334155;text-align:justify;line-height:1.6;">Encaminhamos o(a) colaborador(a) abaixo qualificado(a) para a realização de <strong>Exame Médico Ocupacional (${subtitle})</strong>, conforme previsto na NR-7.</p>
+  <p style="font-size:11px;color:#334155;text-align:justify;line-height:1.6;">Por favor, realizem a avaliação clínica e os exames complementares (se aplicáveis) e emitam o respectivo Atestado de Saúde Ocupacional (ASO).</p>`;
+
+  const companyInfo = company ? {
+    name: company.name,
+    legalName: company.legalName,
+    document: company.document || company.cnpj,
+    logoUrl: company.logoUrl,
+    phone: company.phone,
+    email: company.email,
+    address: [company.street, company.streetNumber, company.city, company.state].filter(Boolean).join(', '),
+  } : null;
+
+  const html = buildPdfShell({ title: docTitle, subtitle: emp.name }, companyInfo, `
+    ${section('Dados do Empregador (Empresa)', infoGrid([
+      { label: 'Razão Social', value: company?.legalName || company?.name || '---' },
+      { label: 'CNPJ', value: company?.document || company?.cnpj || '---' },
+      { label: 'Endereço', value: [company?.street, company?.streetNumber, company?.city, company?.state].filter(Boolean).join(', ') || '---' },
+    ], 1))}
+    ${section('Qualificação do Colaborador', infoGrid([
+      { label: 'Nome Completo', value: emp.name },
+      { label: 'CPF', value: emp.cpf },
+      { label: 'Data Nasc.', value: emp.birthDate ? new Date(emp.birthDate).toLocaleDateString('pt-BR') : '---' },
+      { label: 'Cargo', value: emp.position },
+      { label: 'Setor/Depto', value: emp.department },
+    ], 3))}
+    ${section('Dados do Encaminhamento', `
+      ${infoGrid([
+        { label: 'Tipo de Exame', value: subtitle },
+        { label: 'Clínica Agendada', value: r.clinicName || 'À definir' },
+        { label: 'Endereço da Clínica', value: (r.clinicAddress || r.observation) || 'Não informado' },
+        { label: 'Data Prevista', value: r.examDate ? new Date(r.examDate).toLocaleDateString('pt-BR') : 'Não agendado' },
+      ], 2)}
+    `)}
+    ${section('Mensagem', text)}
+    ${signatureBlock(['Autorização RH / Empregador', 'Recebimento pela Clínica', 'Assinatura do Funcionário'])}
+  `);
+  
+  printPdf(html, `encaminhamento-aso-${emp.id}.pdf`);
+}
+\nfunction AsoTab({ records, employees, company, canManage, onOpenForm, onSave, onDelete, saving }: {
   records: EmployeeAsoRecord[]; employees: Employee[]; company: any; canManage: boolean;
   onOpenForm: (edit?: EmployeeAsoRecord) => void; onSave: (data: any, id?: string) => void;
   onDelete: (id: string) => void; saving: boolean;
@@ -470,57 +520,14 @@ function AsoTab({ records, employees, company, canManage, onOpenForm, onSave, on
 
   const empName = (id: string) => employees.find(e => e.id === id)?.name ?? '---';
 
-  const vencidosCount = records.filter(r => r.status === 'VENCIDO' || (r.dueDate && new Date(r.dueDate) < new Date() && r.status !== 'REALIZADO' && r.status !== 'APTO' && r.status !== 'INAPTO')).length;
-  const agendadosCount = records.filter(r => r.status === 'AGENDADO').length;
-  const pendentesCount = records.filter(r => r.status === 'PENDENTE').length;
+  const vencidosCount = records.filter(r => r.status === 'EXPIRED' || (r.dueDate && new Date(r.dueDate) < new Date() && r.status !== 'COMPLETED' && r.status !== 'CANCELLED')).length;
+  const agendadosCount = records.filter(r => r.status === 'SCHEDULED').length;
+  const pendentesCount = records.filter(r => r.status === 'PENDING').length;
 
   const handleGenerateAsoPdf = (r: EmployeeAsoRecord) => {
     const emp = employees.find(e => e.id === r.employeeId);
     if (!emp) return;
-    
-    const { buildPdfShell, infoGrid, section, signatureBlock, printPdf } = require('@/app/lib/pdf-utils');
-    const docTitle = 'Encaminhamento para Exame Médico (ASO)';
-    const subtitle = r.asoType.replace(/_/g, ' ');
-    
-    const text = `<p style="font-size:11px;color:#334155;text-align:justify;line-height:1.6;">Encaminhamos o(a) colaborador(a) abaixo qualificado(a) para a realização de <strong>Exame Médico Ocupacional (${subtitle})</strong>, conforme previsto na NR-7.</p>
-    <p style="font-size:11px;color:#334155;text-align:justify;line-height:1.6;">Por favor, realizem a avaliação clínica e os exames complementares (se aplicáveis) e emitam o respectivo Atestado de Saúde Ocupacional (ASO).</p>`;
-
-    const companyInfo = company ? {
-      name: company.name,
-      legalName: company.legalName,
-      document: company.cnpj,
-      logoUrl: company.logoUrl,
-      phone: company.phone,
-      email: company.email,
-      address: [company.street, company.streetNumber, company.city, company.state].filter(Boolean).join(', '),
-    } : null;
-
-    const html = buildPdfShell({ title: docTitle, subtitle: emp.name }, companyInfo, `
-      ${section('Dados do Empregador (Empresa)', infoGrid([
-        { label: 'Razão Social', value: company?.legalName || company?.name || '---' },
-        { label: 'CNPJ', value: company?.cnpj || '---' },
-        { label: 'Endereço', value: [company?.street, company?.streetNumber, company?.city, company?.state].filter(Boolean).join(', ') || '---' },
-      ], 1))}
-      ${section('Qualificação do Colaborador', infoGrid([
-        { label: 'Nome Completo', value: emp.name },
-        { label: 'CPF', value: emp.cpf },
-        { label: 'Data Nasc.', value: emp.birthDate ? new Date(emp.birthDate).toLocaleDateString('pt-BR') : '---' },
-        { label: 'Cargo', value: emp.position },
-        { label: 'Setor/Depto', value: emp.department },
-      ], 3))}
-      ${section('Dados do Encaminhamento', `
-        ${infoGrid([
-          { label: 'Tipo de Exame', value: subtitle },
-          { label: 'Clínica Agendada', value: r.clinicName || 'À definir' },
-          { label: 'Endereço da Clínica', value: r.observation || 'Não informado' },
-          { label: 'Data Prevista', value: r.examDate ? new Date(r.examDate).toLocaleDateString('pt-BR') : 'Não agendado' },
-        ], 2)}
-      `)}
-      ${section('Mensagem', text)}
-      ${signatureBlock(['Autorização RH / Empregador', 'Recebimento pela Clínica', 'Assinatura do Funcionário'])}
-    `);
-    
-    printPdf(html, `encaminhamento-aso-${emp.id}.pdf`);
+    printAsoPdf(emp, r, company);
   };
 
   return (
@@ -1585,8 +1592,8 @@ function EventModal({ event, employees, onClose, onSave, saving }: {
   );
 }
 
-function AsoModal({ record, employees, asos, onClose, onSave, saving }: {
-  record?: EmployeeAsoRecord; employees: Employee[]; asos: EmployeeAsoRecord[]; onClose: () => void; onSave: (data: any) => void; saving: boolean;
+function AsoModal({ record, employees, asos, company, onClose, onSave, saving }: {
+  record?: EmployeeAsoRecord; employees: Employee[]; asos: EmployeeAsoRecord[]; company: any; onClose: () => void; onSave: (data: any) => void; saving: boolean;
 }) {
   const init = record ?? { employeeId: '', asoType: 'PERIODICO', status: 'PENDENTE', examDate: '', dueDate: '', clinicName: '', doctorName: '', observation: '' };
   const [employeeId, setEmployeeId] = useState(init.employeeId ?? '');
@@ -1649,86 +1656,14 @@ function AsoModal({ record, employees, asos, onClose, onSave, saving }: {
 
   const handlePrint = () => {
     const emp = employees.find(e => e.id === employeeId);
-    if (!emp) return;
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
-    
-    // Fallback company data if available
-    const compName = 'Innovation RH Connect';
-    
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>Encaminhamento ASO - ${emp.name}</title>
-          <style>
-            body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; padding: 40px; color: #333; line-height: 1.6; }
-            .header { text-align: center; margin-bottom: 40px; border-bottom: 2px solid #0d9488; padding-bottom: 20px; }
-            .company { font-size: 18px; font-weight: bold; color: #0f172a; margin-bottom: 10px; }
-            .title { font-size: 22px; font-weight: 900; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px; }
-            .date { font-size: 12px; color: #64748b; }
-            .section { margin-bottom: 25px; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; }
-            .section-title { font-size: 13px; font-weight: bold; text-transform: uppercase; color: #0d9488; margin-bottom: 15px; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px; }
-            .row { display: flex; margin-bottom: 8px; font-size: 14px; }
-            .label { width: 140px; font-weight: bold; color: #475569; }
-            .value { flex: 1; color: #0f172a; font-weight: 500; }
-            .footer { margin-top: 60px; text-align: center; font-size: 11px; color: #94a3b8; }
-            .signature-box { display: flex; justify-content: space-around; margin-top: 80px; }
-            .signature { text-align: center; width: 40%; }
-            .signature-line { border-top: 1px solid #333; margin: 0 auto 10px; }
-            .signature-name { font-size: 14px; font-weight: bold; color: #333; }
-            .signature-role { font-size: 12px; color: #666; }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <div class="company">${compName}</div>
-            <div class="title">ENCAMINHAMENTO MÉDICO OCUPACIONAL</div>
-            <div class="date">Emitido em ${new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}</div>
-          </div>
-
-          <div class="section">
-            <div class="section-title">1. Dados do Colaborador</div>
-            <div class="row"><div class="label">Nome Completo:</div><div class="value">${emp.name}</div></div>
-            <div class="row"><div class="label">CPF:</div><div class="value">${emp.cpf || '—'}</div></div>
-            <div class="row"><div class="label">Cargo/Função:</div><div class="value">${emp.position || '—'}</div></div>
-            <div class="row"><div class="label">Data de Admissão:</div><div class="value">${emp.admissionDate ? new Date(emp.admissionDate).toLocaleDateString('pt-BR') : '—'}</div></div>
-          </div>
-
-          <div class="section">
-            <div class="section-title">2. Dados do Exame</div>
-            <div class="row"><div class="label">Tipo de ASO:</div><div class="value">${ASO_TYPES.find(t => t.value === asoType)?.label || asoType}</div></div>
-            <div class="row"><div class="label">Data/Hora Agendada:</div><div class="value">${examDate ? new Date(examDate).toLocaleString('pt-BR') : 'A DEFINIR PELA CLÍNICA / RH'}</div></div>
-            <div class="row"><div class="label">Clínica Referência:</div><div class="value">${clinicName || 'A definir'}</div></div>
-            ${clinicAddress ? `<div class="row"><div class="label">Endereço:</div><div class="value">${clinicAddress} ${clinicCity ? `- ${clinicCity}/${clinicState}` : ''}</div></div>` : ''}
-            ${clinicPhone ? `<div class="row"><div class="label">Telefone:</div><div class="value">${clinicPhone}</div></div>` : ''}
-            ${doctorName ? `<div class="row"><div class="label">Médico Solicitado:</div><div class="value">${doctorName}</div></div>` : ''}
-          </div>
-
-          <div class="section">
-            <div class="section-title">3. Observações / Procedimentos</div>
-            <div class="row"><div class="value">${observation || 'Realizar avaliação clínica ocupacional padrão e exames complementares conforme PCMSO da empresa para a respectiva função.'}</div></div>
-          </div>
-
-          <div class="signature-box">
-            <div class="signature">
-              <div class="signature-line"></div>
-              <div class="signature-name">Recursos Humanos</div>
-              <div class="signature-role">Assinatura e Carimbo da Empresa</div>
-            </div>
-            <div class="signature">
-              <div class="signature-line"></div>
-              <div class="signature-name">${emp.name}</div>
-              <div class="signature-role">Assinatura do Colaborador</div>
-            </div>
-          </div>
-
-          <div class="footer">Este documento é confidencial e de uso exclusivo para fins de saúde ocupacional. O atestado original (ASO) deve ser devolvido ao RH após a consulta.</div>
-        </body>
-      </html>
-    `);
-    printWindow.document.close();
-    printWindow.focus();
-    setTimeout(() => printWindow.print(), 500);
+    if (!emp) return window.alert('Selecione um funcionário antes de imprimir.');
+    printAsoPdf(emp, {
+      asoType,
+      clinicName,
+      clinicAddress,
+      examDate,
+      observation
+    }, company);
   };
 
   const ok = !!employeeId;

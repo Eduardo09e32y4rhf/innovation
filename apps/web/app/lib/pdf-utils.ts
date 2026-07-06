@@ -18,7 +18,7 @@ export type PdfOptions = {
 
 function buildBaseStyles(landscape = false) {
   const pageSize = landscape ? 'A4 landscape' : 'A4';
-  const margin = landscape ? '5mm 10mm' : '5mm 10mm';
+  const margin = landscape ? '10mm' : '10mm';
 
   return `
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
