@@ -1,4 +1,4 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, HttpCode, HttpStatus } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { RedisService } from '../common/redis/redis.service';
 
@@ -10,6 +10,7 @@ export class HealthController {
   ) {}
 
   @Get()
+  @HttpCode(HttpStatus.OK)
   async check() {
     const checks: Record<string, any> = {
       service: 'innovation-api',
@@ -18,21 +19,36 @@ export class HealthController {
       memory: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + 'MB',
     };
 
+    let dbOk = false;
     try {
       await this.prisma.$queryRaw`SELECT 1`;
       checks.database = { status: 'ok' };
+      dbOk = true;
     } catch {
       checks.database = { status: 'error', message: 'Database connection failed' };
     }
 
+    let redisOk = false;
     try {
-      const redisOk = this.redis.getStatus();
+      redisOk = this.redis.getStatus(); // true only when connected
       checks.redis = { status: redisOk ? 'ok' : 'unavailable' };
     } catch {
       checks.redis = { status: 'error', message: 'Redis check failed' };
     }
 
-    const isHealthy = checks.database?.status === 'ok';
-    return { status: isHealthy ? 'ok' : 'error', ...checks };
+    const isHealthy = dbOk && redisOk;
+
+    // Return 503 so load balancers and monitoring systems detect degraded state
+    if (!isHealthy) {
+      // We cannot use @Res() here without breaking Fastify interceptors, so we throw
+      // a manual HttpException to force 503
+      const { HttpException } = await import('@nestjs/common');
+      throw new HttpException(
+        { status: 'error', ...checks },
+        HttpStatus.SERVICE_UNAVAILABLE,
+      );
+    }
+
+    return { status: 'ok', ...checks };
   }
 }

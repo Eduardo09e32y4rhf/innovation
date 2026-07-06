@@ -28,9 +28,9 @@ export class TimeOccurrencesService {
   async approve(companyId: string, actor: JwtUser, id: string) {
     const allowed = ['ADMIN', 'RH', 'GESTOR', 'DEV'];
     if (!allowed.includes(actor.role)) throw new ForbiddenException('Not allowed');
-    const occ = await this.getById(companyId, id);
+    await this.getById(companyId, id); // validates ownership before update
     return this.prisma.timeOccurrence.update({
-      where: { id },
+      where: { id, companyId },
       data: { status: 'APPROVED', approvedByUserId: actor.sub, approvedAt: new Date() },
     });
   }
@@ -38,9 +38,9 @@ export class TimeOccurrencesService {
   async reject(companyId: string, actor: JwtUser, id: string) {
     const allowed = ['ADMIN', 'RH', 'GESTOR', 'DEV'];
     if (!allowed.includes(actor.role)) throw new ForbiddenException('Not allowed');
-    const occ = await this.getById(companyId, id);
+    await this.getById(companyId, id); // validates ownership before update
     return this.prisma.timeOccurrence.update({
-      where: { id },
+      where: { id, companyId },
       data: { status: 'REJECTED', approvedByUserId: actor.sub, approvedAt: new Date() },
     });
   }

@@ -8,32 +8,8 @@ import { RedisService } from '../../common/redis/redis.service';
 import { WorkScheduleRulesService } from './work-schedule-rules.service';
 import { TimeCalculationRulesService } from './time-calculation-rules';
 import { PrismaService } from '../../database/prisma.service';
-
-function getDistanceInMeters(lat1: number, lon1: number, lat2: number, lon2: number) {
-  const R = 6371e3;
-  const p1 = lat1 * Math.PI / 180;
-  const p2 = lat2 * Math.PI / 180;
-  const dp = (lat2 - lat1) * Math.PI / 180;
-  const dl = (lon2 - lon1) * Math.PI / 180;
-  const a = Math.sin(dp / 2) * Math.sin(dp / 2) + Math.cos(p1) * Math.cos(p2) * Math.sin(dl / 2) * Math.sin(dl / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-}
-
-function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const R = 6371e3; // metres
-  const φ1 = lat1 * Math.PI / 180;
-  const φ2 = lat2 * Math.PI / 180;
-  const Δφ = (lat2 - lat1) * Math.PI / 180;
-  const Δλ = (lon2 - lon1) * Math.PI / 180;
-
-  const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-            Math.cos(φ1) * Math.cos(φ2) *
-            Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-  return R * c;
-}
+import { getDistanceInMeters } from '../../common/utils/geo.utils';
+import { toDateOnly } from '../../common/utils/date.utils';
 
 const REASON_LABEL: Record<string, string> = {
   ajuste_erro_marcacao: 'AJUSTE - ERRO MARCAÇÃO',
@@ -668,10 +644,7 @@ export class TimeTrackService {
     return cleanDetail ? `${label} - ${cleanDetail}` : label;
   }
 
-  private toDateOnly(date: Date) {
-    const tzDateStr = date.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
-    return new Date(`${tzDateStr}T00:00:00.000Z`);
-  }
+  // toDateOnly is now imported from common/utils/date.utils.ts
 
   private parseWorkloadToMinutes(workload?: string | null): number | null {
     if (!workload) return null;

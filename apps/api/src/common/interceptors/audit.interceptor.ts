@@ -52,8 +52,10 @@ export class AuditInterceptor implements NestInterceptor {
   }
 
   private resolveEntity(path: string) {
-    const clean = String(path || '').split('/').filter(Boolean)[0] || 'Unknown';
-    return clean.charAt(0).toUpperCase() + clean.slice(1);
+    const parts = String(path || '').split('/').filter(Boolean);
+    // Skip common API prefix segments like 'api' or 'v1'
+    const meaningful = parts.find(p => !['api', 'v1', 'v2'].includes(p.toLowerCase())) ?? parts[0] ?? 'Unknown';
+    return meaningful.charAt(0).toUpperCase() + meaningful.slice(1);
   }
 }
 

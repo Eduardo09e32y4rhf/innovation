@@ -295,8 +295,9 @@ export class AuthService {
   }
 
   private async buildAuthResponse(payload: JwtUser, passwordChangeRequired = false) {
+    // Uses expiresIn from auth.module.ts (JWT_EXPIRES_IN env var, defaulting to '60m')
     return {
-      access_token: await this.jwtService.signAsync(payload, { expiresIn: '60m' }),
+      access_token: await this.jwtService.signAsync(payload),
       user: payload,
       passwordChangeRequired,
     };

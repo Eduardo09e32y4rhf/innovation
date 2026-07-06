@@ -3,6 +3,8 @@ import type { JwtUser } from '../../common/types/auth.types';
 import { CreateVacationDto } from './dto/create-vacation.dto';
 import { UpdateVacationStatusDto } from './dto/update-vacation-status.dto';
 import { VacationsRepository } from './vacations.repository';
+import { getDaysOffByScale } from '../../common/utils/work-schedule.utils';
+import { toDateOnlyStr } from '../../common/utils/date.utils';
 
 @Injectable()
 export class VacationsService {
@@ -34,7 +36,6 @@ export class VacationsService {
     const monthsSinceAdmission = this.monthDiff(admissionDate, now);
 
     if (monthsSinceAdmission < 12) {
-      // Calcular contador regressivo: quando exatamente completa 12 meses
       const eligibilityDate = new Date(admissionDate);
       eligibilityDate.setFullYear(eligibilityDate.getFullYear() + 1);
       const remainingMs = eligibilityDate.getTime() - now.getTime();
@@ -42,11 +43,11 @@ export class VacationsService {
 
       const years = Math.floor(remainingDays / 365);
       const months = Math.floor((remainingDays % 365) / 30);
-      const days = remainingDays - (years * 365) - (months * 30);
+      const days = remainingDays - years * 365 - months * 30;
 
       throw new BadRequestException(
         `Colaborador ainda nao completou 12 meses de empresa desde a admissao (${admissionDate.toISOString().slice(0, 10)}). ` +
-        `Faltam ${years > 0 ? `${years} anos, ` : ''}${months} mes(es) e ${days} dia(s) para adquirir o direito.`
+        `Faltam ${years > 0 ? `${years} anos, ` : ''}${months} mes(es) e ${days} dia(s) para adquirir o direito.`,
       );
     }
 
@@ -56,30 +57,24 @@ export class VacationsService {
 
     // REGRA: Calcular faltas injustificadas do período aquisitivo
     const acquisitionYear = parseInt(dto.acquisitionPeriod.split('/')[0], 10);
-    const periodStart = new Date(acquisitionYear, 0, 1); // Janeiro do ano aquisitivo
-    const periodEnd = new Date(acquisitionYear + 1, 0, 1); // Janeiro do ano seguinte
+    const periodStart = new Date(acquisitionYear, 0, 1);
+    const periodEnd = new Date(acquisitionYear + 1, 0, 1);
 
-    // Faltas injustificadas = days without any time track entry
     const allTracks = await this.repository.listTimeTracksInPeriod(dto.employeeId, periodStart, periodEnd);
 
-    // Contar dias úteis sem batida de ponto
     const unjustifiedAbsences = this.countUnjustifiedAbsences(
       allTracks,
       periodStart,
       periodEnd,
       employee.admissionDate,
-      employee.workScale || undefined
+      employee.workScale || undefined,
     );
 
-    // Calcular desconto CLT:
-    // Até 5 faltas: sem desconto
-    // 6 a 14 faltas: perde 1/3 das férias
-    // 15 a 23 faltas: perde 2/3
-    // 24 a 31 faltas: perde 3/3 (não tem direito)
+    // Calcular desconto CLT
     let cltDiscount = 0;
-    if (unjustifiedAbsences >= 6 && unjustifiedAbsences <= 14) cltDiscount = Math.ceil(30 / 3); // 10 dias
-    else if (unjustifiedAbsences >= 15 && unjustifiedAbsences <= 23) cltDiscount = Math.ceil(30 * 2 / 3); // 20 dias
-    else if (unjustifiedAbsences >= 24) cltDiscount = 30; // perde todas
+    if (unjustifiedAbsences >= 6 && unjustifiedAbsences <= 14) cltDiscount = Math.ceil(30 / 3);
+    else if (unjustifiedAbsences >= 15 && unjustifiedAbsences <= 23) cltDiscount = Math.ceil((30 * 2) / 3);
+    else if (unjustifiedAbsences >= 24) cltDiscount = 30;
 
     if (unjustifiedAbsences > 5) {
       const remainingDays = dto.daysUsed - cltDiscount;
@@ -87,10 +82,9 @@ export class VacationsService {
         throw new BadRequestException(
           `Colaborador possui ${unjustifiedAbsences} faltas injustificadas no período aquisitivo. ` +
           `Pela CLT, perde o direito a ferias (desconto de ${cltDiscount} dias). ` +
-          `Regularize a situacao antes de solicitar.`
+          `Regularize a situacao antes de solicitar.`,
         );
       }
-      // Anexar info de faltas na observação
       dto.observation = dto.observation
         ? `${dto.observation} | Faltas injustificadas no período: ${unjustifiedAbsences} (CLT: desconto de ${cltDiscount} dias)`
         : `Faltas injustificadas no período aquisitivo: ${unjustifiedAbsences} (CLT: desconto de ${cltDiscount} dias)`;
@@ -101,7 +95,7 @@ export class VacationsService {
       acquisitionPeriod: dto.acquisitionPeriod,
       startDate,
       endDate,
-      daysUsed: dto.daysUsed - cltDiscount, // Aplicar desconto CLT
+      daysUsed: dto.daysUsed - cltDiscount,
       observation: dto.observation,
     });
   }
@@ -125,8 +119,11 @@ export class VacationsService {
   // ─── UTILITIES ───────────────────────────────────────────────────────────
 
   private monthDiff(start: Date, end: Date): number {
-    return (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth()) +
-      (end.getDate() >= start.getDate() ? 0 : -1);
+    return (
+      (end.getFullYear() - start.getFullYear()) * 12 +
+      (end.getMonth() - start.getMonth()) +
+      (end.getDate() >= start.getDate() ? 0 : -1)
+    );
   }
 
   private countUnjustifiedAbsences(
@@ -138,52 +135,34 @@ export class VacationsService {
   ): number {
     let absences = 0;
     const admission = admissionDate ? new Date(admissionDate) : new Date(0);
-    // Only count from admission or periodStart, whichever is later
     const startCursor = periodStart > admission ? periodStart : admission;
-    
     const cursor = new Date(startCursor);
-    
     const now = new Date();
-    // Do not count future days!
     const endCursor = periodEnd < now ? periodEnd : now;
 
     // Mapa de datas com ponto
     const trackDates = new Set<string>();
     for (const track of tracks) {
-      const dateStr = this.toDateOnlyStr(track.date);
-      trackDates.add(dateStr);
+      trackDates.add(toDateOnlyStr(track.date));
     }
 
-    // Dias da semana de folga
-    const daysOff = this.getDaysOff(workScale);
+    // Dias da semana de folga — usa utilitário compartilhado (case-insensitive)
+    const daysOff = getDaysOffByScale(workScale);
 
     while (cursor < endCursor) {
       const weekday = cursor.getUTCDay();
-      // Pular fins de semana e folgas
       if (daysOff.includes(weekday)) {
         cursor.setUTCDate(cursor.getUTCDate() + 1);
         continue;
       }
 
-      const dateStr = this.toDateOnlyStr(cursor);
-      if (!trackDates.has(dateStr)) {
+      if (!trackDates.has(toDateOnlyStr(cursor))) {
         absences++;
       }
-
       cursor.setUTCDate(cursor.getUTCDate() + 1);
     }
 
     return absences;
-  }
-
-  private getDaysOff(workScale?: string): number[] {
-    if (workScale === '5X2') return [0, 6]; // domingo e sábado
-    if (workScale === '6X1') return [0]; // domingo
-    return [0]; // padrão: domingo
-  }
-
-  private toDateOnlyStr(date: Date): string {
-    return date.toISOString().slice(0, 10);
   }
 
   private async ensureEmployee(companyId: string, employeeId: string) {
