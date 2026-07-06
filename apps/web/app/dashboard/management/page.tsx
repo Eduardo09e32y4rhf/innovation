@@ -453,7 +453,7 @@ function AgendaKanban({ columns, employees, canManage, onOpenForm, onSave, onDel
 // ─── ASO ───────────────────────────────────────────────────────────────────────
 
 
-export function printAsoPdf(emp: any, r: any, company: any) {
+function printAsoPdf(emp: any, r: any, company: any) {
   const { buildPdfShell, infoGrid, section, signatureBlock, printPdf } = require('@/app/lib/pdf-utils');
   const docTitle = 'Encaminhamento para Exame Médico (ASO)';
   const asoType = r.asoType || 'ADMISSIONAL';
