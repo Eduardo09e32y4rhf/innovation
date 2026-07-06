@@ -240,8 +240,10 @@ export type CompanyStatus = 'ACTIVE' | 'SUSPENDED' | 'CANCELLED';
 export interface Company {
   id: string; name: string; legalName?: string | null; document?: string | null; logoUrl?: string | null;
   phone?: string | null; email?: string | null; address?: string | null;
+  cnpj?: string | null; street?: string | null; streetNumber?: string | null; neighborhood?: string | null; city?: string | null; state?: string | null; cep?: string | null;
   primaryColor?: string | null; theme?: string | null;
   commercialOwnerId?: string | null; maxUsers: number; maxEmployees: number;
+  latitude?: number | null; longitude?: number | null; radiusTolerance?: number | null;
   isActive: boolean; status?: CompanyStatus; createdAt: string;
   subscriptionStartedAt?: string; suspensionReason?: string | null;
     plan?: 'FREE' | 'STARTER' | 'PRO';

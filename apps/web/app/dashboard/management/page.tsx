@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, Suspense } from 'react';
+import { useMemo, useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { CalendarDays, Check, Clock3, XCircle, FileText, FileCheck2, Bell, AlertTriangle, Gavel, Plus, Search, RefreshCcw, Upload, Download, Eye, EyeOff, MessageSquare, Send, Settings, Zap } from 'lucide-react';
 import { LoadingState, ErrorState } from '@/app/components/data-states';
@@ -1607,7 +1607,7 @@ function AsoModal({ record, employees, asos, onClose, onSave, saving }: {
             <div class="section-title">Dados do Colaborador</div>
             <div class="row"><div class="label">Nome:</div><div class="value">${emp.name}</div></div>
             <div class="row"><div class="label">CPF:</div><div class="value">${emp.cpf || 'Não informado'}</div></div>
-            <div class="row"><div class="label">Cargo:</div><div class="value">${emp.role || 'Não informado'}</div></div>
+            <div class="row"><div class="label">Cargo:</div><div class="value">${emp.contractType || 'Não informado'}</div></div>
             <div class="row"><div class="label">Tipo de ASO:</div><div class="value">${ASO_TYPES.find(t => t.value === asoType)?.label || asoType}</div></div>
           </div>
           <div class="section">
