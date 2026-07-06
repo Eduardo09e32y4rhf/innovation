@@ -2,7 +2,7 @@
 
 import { useMemo, useState, Suspense, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { CalendarDays, Check, Clock3, XCircle, FileText, FileCheck2, Bell, AlertTriangle, Gavel, Plus, Search, RefreshCcw, Upload, Download, Eye, EyeOff, MessageSquare, Send, Settings, Zap } from 'lucide-react';
+import { CalendarDays, Check, Clock3, XCircle, FileText, FileCheck2, Bell, AlertTriangle, Gavel, Plus, Search, RefreshCcw, Upload, Download, Eye, EyeOff, MessageSquare, Send, Settings, Zap, Activity, X } from 'lucide-react';
 import { LoadingState, ErrorState } from '@/app/components/data-states';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useQuery, useMutation } from '@/app/hooks/use-data';
@@ -1690,7 +1690,7 @@ function AsoModal({ record, employees, asos, onClose, onSave, saving }: {
             <div class="section-title">1. Dados do Colaborador</div>
             <div class="row"><div class="label">Nome Completo:</div><div class="value">${emp.name}</div></div>
             <div class="row"><div class="label">CPF:</div><div class="value">${emp.cpf || '—'}</div></div>
-            <div class="row"><div class="label">Cargo/Função:</div><div class="value">${emp.role || '—'}</div></div>
+            <div class="row"><div class="label">Cargo/Função:</div><div class="value">${emp.position || '—'}</div></div>
             <div class="row"><div class="label">Data de Admissão:</div><div class="value">${emp.admissionDate ? new Date(emp.admissionDate).toLocaleDateString('pt-BR') : '—'}</div></div>
           </div>
 
