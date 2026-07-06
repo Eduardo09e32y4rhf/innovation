@@ -21,12 +21,21 @@ function monthDiff(start: Date, end: Date): number {
 
 interface EligibilityInfo {
   monthsSinceAdmission: number;
-  isEligible: boolean;
-  remainingDays: number;
+  isEligible: boolean;           // Completou 12 meses
+  remainingDays: number;         // Dias restantes para completar 12 meses
   remainingMonths: number;
   remainingYearsText: string;
   eligibilityDate: string;
   admissionDateStr: string;
+  // Período Concessivo: quanto falta para 1a e 11 meses (prazo fatal)
+  concessivePeriodMonths: number;  // Total de meses desde admissão
+  concessiveDeadlineText: string;  // Quanto tempo falta para o prazo fatal
+  isConcessiveUrgent: boolean;     // Está no 11º mês concessivo (obrigatório tirar)
+  isConcessiveWarning: boolean;    // Passou de 9m20d no período concessivo (alerta RH)
+  mustTakeAll: boolean;            // Obrigado a tirar todos os dias de uma vez
+  canSellDays: boolean;            // Pode vender até 10 dias (Abono Pecuniário)
+  canFraction: boolean;            // Pode fracionar em parcelas
+  isCritical: boolean;             // Passou de 10 meses no período concessivo
 }
 
 function calcEligibility(admissionDateStr: string): EligibilityInfo | null {
@@ -34,29 +43,70 @@ function calcEligibility(admissionDateStr: string): EligibilityInfo | null {
     const now = new Date();
     const admission = new Date(admissionDateStr);
     if (Number.isNaN(admission.getTime())) return null;
-    const months = monthDiff(admission, now);
+
+    // Meses desde a admissão
+    const totalMonths = monthDiff(admission, now);
+
+    // Data de elegibilidade (1 ano)
     const eligibilityDate = new Date(admission);
     eligibilityDate.setFullYear(eligibilityDate.getFullYear() + 1);
-    if (Number.isNaN(eligibilityDate.getTime())) return null;
-    const remainingMs = eligibilityDate.getTime() - now.getTime();
-    const remainingDays = Math.max(0, Math.ceil(remainingMs / (1000 * 60 * 60 * 24)));
 
+    // Tempo restante para completar 12 meses
+    const remainingMs = Math.max(0, eligibilityDate.getTime() - now.getTime());
+    const remainingDays = Math.ceil(remainingMs / (1000 * 60 * 60 * 24));
     const years = Math.floor(remainingDays / 365);
     const remainingMonths = Math.floor((remainingDays % 365) / 30);
     const days = remainingDays - (years * 365) - (remainingMonths * 30);
-
     let remainingYearsText = '';
     if (years > 0) remainingYearsText += `${years} ano(s), `;
     remainingYearsText += `${remainingMonths} mes(es) e ${days} dia(s)`;
 
+    const isEligible = totalMonths >= 12;
+
+    // Período Concessivo: começa quando o funcionário completa 12 meses
+    // Prazo fatal: 1 ano e 11 meses de casa (11º mês do período concessivo)
+    const concessiveMonths = isEligible ? totalMonths - 12 : 0; // meses dentro do período concessivo
+    
+    // Calcular o prazo fatal: 23 meses desde admissão (1a11m)
+    const fatalDeadline = new Date(admission);
+    fatalDeadline.setMonth(fatalDeadline.getMonth() + 23);
+    const msToFatal = Math.max(0, fatalDeadline.getTime() - now.getTime());
+    const daysToFatal = Math.ceil(msToFatal / 86400000);
+    const concessiveDeadlineText = daysToFatal === 0 
+      ? 'PRAZO ESGOTADO!' 
+      : `${Math.floor(daysToFatal / 30)} mes(es) e ${daysToFatal % 30} dia(s) para o vencimento`;
+
+    // Regras da CLT:
+    // - concessiveMonths >= 11: 11º mês concessivo = URGENTE, obrigado a tirar tudo
+    // - concessiveMonths >= 10: Alerta crítico para RH
+    // - concessiveMonths >= 9 e 20 dias: Alerta para RH (conforme solicitado)
+    const nowDayOfMonth = now.getDate();
+    const isConcessiveUrgent  = isEligible && concessiveMonths >= 11; // 1a e 11m
+    const isCritical          = isEligible && concessiveMonths >= 10; // 1a e 10m
+    const isConcessiveWarning = isEligible && (concessiveMonths >= 9 && (concessiveMonths > 9 || nowDayOfMonth >= 20));
+
+    // Antes do 11º mês: pode fracionar e pode vender dias
+    // No 11º mês: proibido fracionar, proibido vender, obrigado a tirar os 30 dias
+    const mustTakeAll = isConcessiveUrgent;
+    const canSellDays = isEligible && !mustTakeAll;
+    const canFraction = isEligible && !mustTakeAll;
+
     return {
-      monthsSinceAdmission: months,
-      isEligible: months >= 12,
+      monthsSinceAdmission: totalMonths,
+      isEligible,
       remainingDays,
       remainingMonths,
       remainingYearsText,
       eligibilityDate: eligibilityDate.toISOString().slice(0, 10),
       admissionDateStr: admission.toISOString().slice(0, 10),
+      concessivePeriodMonths: concessiveMonths,
+      concessiveDeadlineText,
+      isConcessiveUrgent,
+      isConcessiveWarning,
+      mustTakeAll,
+      canSellDays,
+      canFraction,
+      isCritical,
     };
   } catch {
     return null;
@@ -173,10 +223,11 @@ export default function VacationsPage() {
     return employees.data.map(emp => {
       if (!emp.admissionDate) return null;
       const el = calcEligibility(emp.admissionDate);
-      if (!el || !el.isEligible) return null;
+      // Mostrar alerta a partir de 9 meses e 20 dias do período concessivo (conforme CLT)
+      if (!el || !el.isConcessiveWarning) return null;
       const usedDays = vacationDaysByEmployee.get(emp.id) || 0;
       const totalEarned = Math.floor(el.monthsSinceAdmission / 12) * 30;
-      const remainingDaysTotal = totalEarned - usedDays;
+      const remainingDaysTotal = Math.max(0, totalEarned - usedDays);
       if (remainingDaysTotal > 0) {
         return { ...emp, remainingDaysTotal, el };
       }
@@ -259,47 +310,70 @@ export default function VacationsPage() {
       {tab === 'alerts' ? (
         <section className="overflow-hidden rounded-[18px] border border-amber-200/60 bg-white shadow-[0_12px_40px_rgba(15,23,42,0.08)] transition-all duration-300 hover:shadow-[0_20px_50px_rgba(15,23,42,0.12)]">
           <div className="border-b border-amber-100 bg-amber-50/50 px-5 py-4">
-            <h3 className="text-sm font-black text-amber-900">Avisos de Férias Pendentes</h3>
-            <p className="mt-1 text-xs text-amber-700">Funcionários que já completaram o período aquisitivo e ainda possuem saldo de férias para tirar. Evite multas programando as férias antes do vencimento do segundo período.</p>
+            <h3 className="text-sm font-black text-amber-900">Avisos de Férias Obrigatórias (CLT)</h3>
+            <p className="mt-1 text-xs text-amber-700">Funcionários com período concessivo avançado. A CLT exige que as férias sejam concedidas até 11 meses após o período aquisitivo — após isso, a empresa paga em dobro.</p>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[800px] text-left">
+            <table className="w-full min-w-[900px] text-left">
               <thead>
                 <tr className="bg-white text-[10px] font-black uppercase tracking-[0.14em] text-slate-600 border-b border-slate-100">
                   <th className="px-6 py-4">Funcionário</th>
                   <th className="px-6 py-4">Admissão</th>
-                  <th className="px-6 py-4">Tempo de Casa</th>
-                  <th className="px-6 py-4 text-right">Saldo Restante (Dias)</th>
+                  <th className="px-6 py-4">Meses de Casa</th>
+                  <th className="px-6 py-4">Prazo Concessivo</th>
+                  <th className="px-6 py-4 text-right">Saldo Restante</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {alertEmployees.length === 0 && (
-                  <tr><td colSpan={4} className="p-8 text-center text-sm font-semibold text-slate-500">Nenhum alerta de férias pendentes.</td></tr>
+                  <tr><td colSpan={5} className="p-8 text-center text-sm font-semibold text-slate-500">Nenhum alerta de férias pendentes. Todos os funcionários estão dentro do prazo.</td></tr>
                 )}
                 {alertEmployees.map((emp: any) => {
-                  const danger = emp.el.monthsSinceAdmission >= 22; // 22 months means close to 24 (multa em dobro)
+                  const { el } = emp;
+                  const isUrgent = el.isConcessiveUrgent;
+                  const isCritical = el.isCritical;
+                  const bgClass = isUrgent
+                    ? 'bg-gradient-to-br from-rose-500 to-red-600'
+                    : isCritical
+                    ? 'bg-gradient-to-br from-orange-500 to-amber-600'
+                    : 'bg-gradient-to-br from-amber-500 to-orange-500';
                   return (
                     <tr key={emp.id} className="group transition-all duration-200 hover:bg-slate-50/40">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className={`flex h-10 w-10 items-center justify-center rounded-[10px] text-sm font-black text-white shadow-sm ${danger ? 'bg-gradient-to-br from-rose-500 to-red-600' : 'bg-gradient-to-br from-amber-500 to-orange-600'}`}>
+                          <div className={`flex h-10 w-10 items-center justify-center rounded-[10px] text-sm font-black text-white shadow-sm ${bgClass}`}>
                             {emp.name?.charAt(0).toUpperCase() || '?'}
                           </div>
                           <div>
                             <p className="text-sm font-black text-slate-950">{normalizeDisplayName(emp.name) ?? '—'}</p>
-                            {danger && (
-                              <p className="text-[10px] font-bold text-rose-600 flex items-center gap-1 mt-1">
+                            {isUrgent && (
+                              <p className="text-[10px] font-bold text-rose-600 flex items-center gap-1 mt-0.5">
                                 <AlertTriangle size={10} strokeWidth={2.5} />
-                                Risco de multa (dobro)
+                                URGENTE — 11º mês: obrigatório tirar as férias já!
+                              </p>
+                            )}
+                            {!isUrgent && isCritical && (
+                              <p className="text-[10px] font-bold text-orange-600 flex items-center gap-1 mt-0.5">
+                                <AlertTriangle size={10} strokeWidth={2.5} />
+                                10º mês — Notificação obrigatória (CLT)
                               </p>
                             )}
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-4 text-xs font-semibold text-slate-600">{formatDate(emp.admissionDate)}</td>
-                      <td className="px-6 py-4 text-xs font-semibold text-slate-600">{emp.el.remainingYearsText}</td>
+                      <td className="px-6 py-4 text-xs font-semibold text-slate-600">{el.monthsSinceAdmission} meses</td>
+                      <td className="px-6 py-4">
+                        <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-black ${
+                          isUrgent ? 'bg-rose-100 text-rose-800 border border-rose-200' :
+                          isCritical ? 'bg-orange-100 text-orange-800 border border-orange-200' :
+                          'bg-amber-100 text-amber-800 border border-amber-200'
+                        }`}>
+                          {el.concessiveDeadlineText}
+                        </span>
+                      </td>
                       <td className="px-6 py-4 text-right">
-                        <span className={`inline-flex items-center justify-center rounded-[8px] px-3 py-1.5 text-xs font-black shadow-sm ${danger ? 'bg-rose-100 text-rose-800 border border-rose-200' : 'bg-amber-100 text-amber-800 border border-amber-200'}`}>
+                        <span className={`inline-flex items-center justify-center rounded-[8px] px-3 py-1.5 text-xs font-black shadow-sm ${isUrgent ? 'bg-rose-100 text-rose-800 border border-rose-200' : 'bg-amber-100 text-amber-800 border border-amber-200'}`}>
                           {emp.remainingDaysTotal} dias
                         </span>
                       </td>
@@ -571,6 +645,16 @@ function NewVacationModal({
   const remainingDays = MAX_VACATION_DAYS - daysUsed;
   const exceedsBalance = days > remainingDays;
 
+  // Regra CLT: máximo 30 dias por solicitação
+  const exceedsMaxPeriod = days > 30;
+
+  // Regra CLT: antecedência mínima de 45 dias
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const startDateObj = form.startDate ? new Date(form.startDate + 'T00:00:00') : null;
+  const daysUntilStart = startDateObj ? Math.floor((startDateObj.getTime() - today.getTime()) / 86400000) : 0;
+  const tooClose = form.startDate ? daysUntilStart < 45 : false;
+
   // Check conflict with existing active periods
   const conflict = existingVacations.find(v => 
     v.employeeId === form.employeeId && 
@@ -582,24 +666,35 @@ function NewVacationModal({
   // Eligibility check: 12 months from admission
   const selectedEmployee = employees.find(e => e.id === form.employeeId);
   const eligibility = selectedEmployee?.admissionDate ? calcEligibility(selectedEmployee.admissionDate) : null;
+  
+  // Abono pecuniário (venda de 10 dias) - só antes do 11º mês concessivo
+  const [sellDays, setSellDays] = useState(false);
+  const effectiveDays = sellDays ? days + 10 : days; // Conta os dias vendidos no total consumido
+
+  // Calcular min date: hoje + 45 dias
+  const minStartDate = new Date(today);
+  minStartDate.setDate(minStartDate.getDate() + 45);
+  const minStartDateStr = minStartDate.toISOString().slice(0, 10);
 
   const create = useMutation(
     () => {
       const payload: CreateVacationInput = {
         employeeId: form.employeeId,
         acquisitionPeriod: form.acquisitionPeriod,
-        startDate: new Date(form.startDate).toISOString(),
-        endDate: new Date(form.endDate).toISOString(),
+        // Enviar como YYYY-MM-DDTHH:mm:ss sem UTC para não mudar o dia
+        startDate: form.startDate + 'T12:00:00.000Z',
+        endDate: form.endDate + 'T12:00:00.000Z',
         daysUsed: days,
-        observation: observation || undefined,
+        observation: [observation, sellDays ? 'Abono pecuniário (venda de 10 dias) solicitado.' : ''].filter(Boolean).join(' ') || undefined,
       };
       return api.vacations.create(payload);
     },
     { onSuccess: onDone },
   );
 
-
-  const valid = form.employeeId && form.startDate && form.endDate && days > 0 && !exceedsBalance && !conflictMessage && (eligibility?.isEligible ?? true);
+  const valid = form.employeeId && form.startDate && form.endDate && days > 0 
+    && !exceedsBalance && !exceedsMaxPeriod && !conflictMessage && !tooClose
+    && (eligibility?.isEligible ?? true);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm">
@@ -648,14 +743,42 @@ function NewVacationModal({
           )}
 
           {form.employeeId && eligibility && eligibility.isEligible && (
-            <div className="rounded-[10px] border border-emerald-200 bg-emerald-50 px-4 py-3">
+            <div className={`rounded-[10px] border px-4 py-3 ${
+              eligibility.isConcessiveUrgent
+                ? 'border-rose-200 bg-rose-50'
+                : eligibility.isCritical
+                ? 'border-orange-200 bg-orange-50'
+                : 'border-emerald-200 bg-emerald-50'
+            }`}>
               <div className="flex items-start gap-2">
-                <Check size={16} className="text-emerald-600 shrink-0 mt-0.5" />
+                {eligibility.isConcessiveUrgent ? (
+                  <AlertTriangle size={16} className="text-rose-600 shrink-0 mt-0.5" />
+                ) : (
+                  <Check size={16} className="text-emerald-600 shrink-0 mt-0.5" />
+                )}
                 <div>
-                  <p className="text-xs font-bold text-emerald-800">Elegível para férias</p>
-                  <p className="mt-1 text-[11px] font-semibold text-emerald-700">
+                  <p className={`text-xs font-bold ${
+                    eligibility.isConcessiveUrgent ? 'text-rose-800' : eligibility.isCritical ? 'text-orange-800' : 'text-emerald-800'
+                  }`}>
+                    {eligibility.isConcessiveUrgent
+                      ? '⚠️ URGENTE — 11º mês concessivo: obrigatório tirar todos os dias!'
+                      : eligibility.isCritical
+                      ? 'Alerta: 10º mês — notificação obrigatória emitida ao RH'
+                      : 'Elegível para férias'}
+                  </p>
+                  <p className={`mt-1 text-[11px] font-semibold ${
+                    eligibility.isConcessiveUrgent ? 'text-rose-700' : eligibility.isCritical ? 'text-orange-700' : 'text-emerald-700'
+                  }`}>
                     Admissão em {formatDate(eligibility.admissionDateStr)} · {eligibility.monthsSinceAdmission} meses de casa
                   </p>
+                  {eligibility.isEligible && (
+                    <p className="mt-0.5 text-[11px] font-black text-slate-700">
+                      Período concessivo: {eligibility.concessiveDeadlineText}
+                    </p>
+                  )}
+                  {eligibility.mustTakeAll && (
+                    <p className="mt-1 text-[11px] font-black text-rose-800">Não é possível fracionar nem vender dias neste estágio.</p>
+                  )}
                 </div>
               </div>
             </div>
@@ -692,6 +815,7 @@ function NewVacationModal({
               <span>Início</span>
               <input
                 type="date"
+                min={minStartDateStr}
                 value={form.startDate}
                 onChange={(e) => setForm((f) => ({ ...f, startDate: e.target.value }))}
                 className="h-11 w-full rounded-[10px] border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-900 shadow-sm outline-none transition-all focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10"
@@ -701,12 +825,33 @@ function NewVacationModal({
               <span>Fim</span>
               <input
                 type="date"
+                min={form.startDate || minStartDateStr}
+                max={form.startDate ? (() => { const d = new Date(form.startDate + 'T00:00:00'); d.setDate(d.getDate() + 29); return d.toISOString().slice(0, 10); })() : undefined}
                 value={form.endDate}
                 onChange={(e) => setForm((f) => ({ ...f, endDate: e.target.value }))}
                 className="h-11 w-full rounded-[10px] border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-900 shadow-sm outline-none transition-all focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10"
               />
             </label>
           </div>
+          <p className="text-[10px] font-semibold text-slate-500">* Mínimo 45 dias de antecedência (CLT) · Máximo 30 dias por solicitação</p>
+
+          {tooClose && form.startDate && (
+            <div className="rounded-[10px] border border-rose-200 bg-rose-50 px-4 py-3">
+              <div className="flex items-center gap-2">
+                <AlertTriangle size={14} className="text-rose-600 shrink-0" />
+                <p className="text-xs font-semibold text-rose-700">Antecedência insuficiente: a CLT exige mínimo 45 dias. Faltam {45 - daysUntilStart} dias para atingir o prazo mínimo.</p>
+              </div>
+            </div>
+          )}
+
+          {exceedsMaxPeriod && (
+            <div className="rounded-[10px] border border-rose-200 bg-rose-50 px-4 py-3">
+              <div className="flex items-center gap-2">
+                <AlertTriangle size={14} className="text-rose-600 shrink-0" />
+                <p className="text-xs font-semibold text-rose-700">Período excede o limite máximo de 30 dias por solicitação (CLT).</p>
+              </div>
+            </div>
+          )}
 
           {conflictMessage && (
             <div className="rounded-[10px] border border-rose-200 bg-rose-50 px-4 py-3">
@@ -716,8 +861,6 @@ function NewVacationModal({
               </div>
             </div>
           )}
-
-
 
           {exceedsBalance && (
             <div className="rounded-[10px] border border-rose-200 bg-rose-50 px-4 py-3">
@@ -732,6 +875,22 @@ function NewVacationModal({
             <p className="text-xs font-semibold text-slate-600">Total de dias</p>
             <p className="mt-1 text-lg font-black text-teal-700">{days} {days === 1 ? 'dia' : 'dias'}</p>
           </div>
+
+          {/* Abono Pecuniário: só antes do 11º mês concessivo */}
+          {eligibility?.canSellDays && days > 0 && (
+            <label className="flex items-center gap-3 rounded-[10px] border border-indigo-200 bg-indigo-50 px-4 py-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={sellDays}
+                onChange={e => setSellDays(e.target.checked)}
+                className="h-4 w-4 rounded border-indigo-300 text-indigo-600 focus:ring-indigo-500"
+              />
+              <div>
+                <p className="text-xs font-bold text-indigo-800">Solicitar Abono Pecuniário (Venda de 10 dias)</p>
+                <p className="text-[10px] font-semibold text-indigo-600 mt-0.5">O funcionário recebe 10 dias de férias convertidos em pécunia (valor em dinheiro), conforme CLT Art. 143.</p>
+              </div>
+            </label>
+          )}
 
           <label className="space-y-2 block text-xs font-bold uppercase tracking-wider text-slate-600">
             <span>Observação (opcional)</span>

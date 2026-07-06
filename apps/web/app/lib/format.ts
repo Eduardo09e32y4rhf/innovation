@@ -1,7 +1,14 @@
 export function formatDate(value?: string | null): string {
-  if (!value) return 'â€”';
+  if (!value) return '—';
+  // Parse as local date (YYYY-MM-DD) to avoid timezone shift
+  const str = typeof value === 'string' ? value : String(value);
+  // If the string is just a date (no time part), parse it as local to avoid UTC offset shifting the day
+  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+    const [year, month, day] = str.split('-').map(Number);
+    return new Date(year, month - 1, day).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  }
   const d = new Date(value);
-  return Number.isNaN(d.getTime()) ? 'â€”' : d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  return Number.isNaN(d.getTime()) ? '—' : d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' });
 }
 export function formatTime(value?: string | null): string {
   if (!value) return 'â€”';
