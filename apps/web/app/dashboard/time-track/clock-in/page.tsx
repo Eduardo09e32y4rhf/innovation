@@ -166,7 +166,7 @@ export default function ClockInPage() {
         if (successTimer.current) clearTimeout(successTimer.current);
         successTimer.current = setTimeout(() => {
           setSuccess(null);
-          employees.mutate(); // refresh employee data
+          employees.refetch(); // refresh employee data
         }, 2500);
       }
     }
@@ -266,7 +266,7 @@ export default function ClockInPage() {
 
           {/* Camera Floating Box */}
           <div className="absolute bottom-4 right-4 left-4 md:left-auto md:w-80 rounded-[16px] bg-white/95 p-4 shadow-xl border border-slate-200/50 backdrop-blur-md z-10">
-            {!(myEmployee?.faceEnrollment?.active) ? (
+            {!((myEmployee as any)?.faceEnrollment?.active) ? (
               <div>
                 <div className="mb-3 text-center">
                   <h3 className="text-sm font-black text-slate-950">Cadastrar Facial</h3>
