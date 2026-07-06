@@ -499,7 +499,8 @@ export function printAsoPdf(emp: any, r: any, company: any) {
   
   printPdf(html, `encaminhamento-aso-${emp.id}.pdf`);
 }
-\nfunction AsoTab({ records, employees, company, canManage, onOpenForm, onSave, onDelete, saving }: {
+
+function AsoTab({ records, employees, company, canManage, onOpenForm, onSave, onDelete, saving }: {
   records: EmployeeAsoRecord[]; employees: Employee[]; company: any; canManage: boolean;
   onOpenForm: (edit?: EmployeeAsoRecord) => void; onSave: (data: any, id?: string) => void;
   onDelete: (id: string) => void; saving: boolean;
