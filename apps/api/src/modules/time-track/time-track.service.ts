@@ -86,7 +86,7 @@ export class TimeTrackService {
   async manual(companyId: string, actor: JwtUser, dto: ManualTimeTrackDto) {
     try {
       const employee = await this.ensureCanAccessEmployee(companyId, actor, dto.employeeId);
-      const date = this.toDateOnly(this.parseDate(dto.date, 'Invalid date'));
+      const date = toDateOnly(this.parseDate(dto.date, 'Invalid date'));
       this.validateEmployeeDateRange(employee, date);
 
       // Validação de Interjornada da CLT (11h mínimas)
@@ -160,13 +160,13 @@ export class TimeTrackService {
     if (!isManual) {
       if (dto.timestamp) throw new ForbiddenException('Ponto regular nao permite alterar data/hora. Use ajuste manual para correcoes.');
       const now = new Date();
-      targetDate = this.toDateOnly(now);
+      targetDate = toDateOnly(now);
       timestampToRecord = now;
       this.validateEmployeeDateRange(employee, targetDate);
     } else {
       timestampToRecord = new Date(dto.timestamp!);
       if (Number.isNaN(timestampToRecord.getTime())) throw new BadRequestException('Invalid timestamp');
-      targetDate = this.toDateOnly(timestampToRecord);
+      targetDate = toDateOnly(timestampToRecord);
       this.validateEmployeeDateRange(employee, targetDate);
       const targetDateStr = targetDate.toISOString().slice(0, 10);
       const isFutureAllowed = dto.manualReason === 'ajuste_atestado_integral' || dto.manualReason === 'ajuste_feriado' || dto.manualReason === 'ajuste_suspensao' || dto.manualReason === 'ajuste_folga_dsr' || dto.manualReason === 'ajuste_abono_folga' || dto.manualReason === 'ajuste_abono_banco_saida_antecipada' || dto.manualReason === 'ajuste_abono_atraso' || dto.manualReason === 'ajuste_abono_atestado_horas';
@@ -460,11 +460,11 @@ export class TimeTrackService {
 
   private validateEmployeeDateRange(employee: { admissionDate: Date | string; terminationDate?: Date | string | null }, requestedDate: Date) {
     const admission = new Date(employee.admissionDate);
-    const admissionDate = this.toDateOnly(admission);
+    const admissionDate = toDateOnly(admission);
     if (requestedDate < admissionDate) throw new BadRequestException(`Nao e permitido lancar ponto anterior a data de admissao (${this.formatDateOnly(admissionDate)}).`);
     if (employee.terminationDate) {
       const termination = new Date(employee.terminationDate);
-      const terminationDate = this.toDateOnly(termination);
+      const terminationDate = toDateOnly(termination);
       if (requestedDate > terminationDate) throw new BadRequestException(`Nao e permitido lancar ponto posterior a data de demissao (${this.formatDateOnly(terminationDate)}).`);
     }
   }
@@ -479,7 +479,7 @@ export class TimeTrackService {
     isFutureAllowed: boolean = false,
   ) {
     const now = new Date();
-    const today = this.toDateOnly(now);
+    const today = toDateOnly(now);
     if (date) {
       this.validateEmployeeDateRange(employee, date);
       if (date > today && !isFutureAllowed) throw new BadRequestException('Ajuste manual nao permite lancamento em datas futuras.');
@@ -508,7 +508,7 @@ export class TimeTrackService {
       if (isNaN(hours) || isNaN(minutes)) continue;
       const fieldDate = new Date(now);
       fieldDate.setHours(hours, minutes, 0, 0);
-      if (date && this.toDateOnly(date).getTime() === today.getTime() && fieldDate > now) {
+      if (date && toDateOnly(date).getTime() === today.getTime() && fieldDate > now) {
         throw new BadRequestException(`Ajuste manual nao permite lancamento de horario futuro para "${field.label}". Agora sao ${now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}.`);
       }
     }
@@ -519,7 +519,7 @@ export class TimeTrackService {
   }
 
   private async applyManual(companyId: string, employee: { id: string; dailyWorkload?: string | null; workScheduleRuleId?: string | null; }, dateValue: string, dto: Pick<ManualTimeTrackDto, 'entry' | 'lunchStart' | 'lunchReturn' | 'exit' | 'reason' | 'observation'>) {
-    const date = this.toDateOnly(this.parseDate(dateValue, 'Invalid date'));
+    const date = toDateOnly(this.parseDate(dateValue, 'Invalid date'));
     const isFullDayAdjustment = dto.reason === 'ajuste_atestado_integral' || dto.reason === 'ajuste_feriado' || dto.reason === 'ajuste_suspensao';
     const isBanco = dto.reason === 'ajuste_folga_dsr' || dto.reason === 'ajuste_abono_folga' || dto.reason === 'ajuste_abono_banco_saida_antecipada' || dto.reason === 'ajuste_abono_atraso';
     

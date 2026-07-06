@@ -22,7 +22,7 @@ CREATE INDEX "aso_clinic_presets_companyId_idx" ON "aso_clinic_presets"("company
 -- AddForeignKey
 ALTER TABLE "aso_clinic_presets"
     ADD CONSTRAINT "aso_clinic_presets_companyId_fkey"
-    FOREIGN KEY ("companyId") REFERENCES "companies"("id")
+    FOREIGN KEY ("companyId") REFERENCES "Company"("id")
     ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- Trigger to auto-update updatedAt
