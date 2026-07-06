@@ -278,7 +278,7 @@ export interface UpdateManagementEventInput {
   status?: string; priority?: string;
 }
 
-export type AsoType = 'ADMISSIONAL' | 'DEMISSIONAL' | 'PERIODICO' | 'RETORNO_TRABALHO' | 'MUDANCA_FUNCAO' | 'OUTROS';
+export type AsoType = 'ADMISSIONAL' | 'DEMISSIONAL' | 'PERIODICO' | 'RETORNO_AO_TRABALHO' | 'MUDANCA_DE_FUNCAO' | 'COMPLEMENTAR';
 export type AsoStatus = 'PENDENTE' | 'AGENDADO' | 'REALIZADO' | 'APTO' | 'INAPTO' | 'VENCIDO' | 'CANCELADO';
 export interface EmployeeAsoRecord {
   id: string; companyId: string; employeeId: string;
@@ -287,18 +287,29 @@ export interface EmployeeAsoRecord {
   documentUrl?: string | null; documentNumber?: string | null;
   observation?: string | null;
   createdBy?: string | null; createdAt: string; updatedAt: string;
-  employee?: { id: string; name: string } | null;
+  employee?: { id: string; name: string; cpf?: string | null; role?: string | null; admissionDate?: string | null; department?: string | null } | null;
+}
+export interface AsoClinicPreset {
+  id: string; companyId: string;
+  name: string; cep?: string | null; address?: string | null;
+  city?: string | null; state?: string | null; phone?: string | null;
+  doctorName?: string | null; active: boolean;
+  createdAt: string; updatedAt: string;
 }
 export interface CreateAsoInput {
-  employeeId: string; asoType: string;
+  employeeId: string; asoType: string; status?: string;
   examDate?: string; dueDate?: string;
   clinicName?: string; doctorName?: string; documentUrl?: string;
   observation?: string;
+  saveClinicPreset?: boolean; clinicCep?: string; clinicAddress?: string;
+  clinicCity?: string; clinicState?: string; clinicPhone?: string;
 }
 export interface UpdateAsoInput {
   asoType?: string; examDate?: string; dueDate?: string;
   status?: string; clinicName?: string; doctorName?: string;
   documentUrl?: string; observation?: string;
+  saveClinicPreset?: boolean; clinicCep?: string; clinicAddress?: string;
+  clinicCity?: string; clinicState?: string; clinicPhone?: string;
 }
 
 // Module API
@@ -435,6 +446,11 @@ export const api = {
       create: (input: CreateAsoInput) => request<EmployeeAsoRecord>('/management/aso', { method: 'POST', body: input }),
       update: (id: string, input: UpdateAsoInput) => request<EmployeeAsoRecord>(`/management/aso/${id}`, { method: 'PATCH', body: input }),
       delete: (id: string) => request<void>(`/management/aso/${id}`, { method: 'DELETE' }),
+      clinicPresets: {
+        list: () => request<AsoClinicPreset[]>('/management/aso/clinic-presets'),
+        create: (data: Partial<AsoClinicPreset>) => request<AsoClinicPreset>('/management/aso/clinic-presets', { method: 'POST', body: data }),
+        delete: (id: string) => request<void>(`/management/aso/clinic-presets/${id}`, { method: 'DELETE' }),
+      },
     },
   },
 

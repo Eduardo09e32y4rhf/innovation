@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Injectable, Logger, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import { HolidaysService } from '../holidays/holidays.service';

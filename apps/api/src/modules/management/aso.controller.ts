@@ -28,6 +28,25 @@ export class AsoController {
     return this.svc.getRhAlerts(companyId);
   }
 
+  // ─── CLINIC PRESETS ──────────────────────────────────────────────────────────
+
+  @Get('clinic-presets')
+  listClinicPresets(@CurrentCompany() companyId: string, @CurrentUser() _actor: JwtUser) {
+    return this.svc.listClinicPresets(companyId);
+  }
+
+  @Post('clinic-presets')
+  createClinicPreset(@CurrentCompany() companyId: string, @CurrentUser() _actor: JwtUser, @Body() body: any) {
+    return this.svc.createClinicPreset(companyId, body);
+  }
+
+  @Delete('clinic-presets/:id')
+  deleteClinicPreset(@CurrentCompany() companyId: string, @CurrentUser() _actor: JwtUser, @Param('id') id: string) {
+    return this.svc.deleteClinicPreset(companyId, id);
+  }
+
+  // ─── ASO RECORDS ─────────────────────────────────────────────────────────────
+
   @Get(':id')
   find(@CurrentCompany() companyId: string, @CurrentUser() _actor: JwtUser, @Param('id') id: string) {
     return this.svc.find(companyId, id);

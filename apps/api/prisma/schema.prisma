@@ -296,6 +296,7 @@ model Company {
   auditLogs        AuditLog[]
   managementEvents ManagementEvent[]
   asoRecords       EmployeeAsoRecord[]
+  asoClinicPresets AsoClinicPreset[]
   notifications    Notification[]
 
   workScheduleRules WorkScheduleRule[]
@@ -664,6 +665,26 @@ model EmployeeAsoRecord {
   @@index([asoType])
   @@index([dueDate])
   @@map("employee_aso_records")
+}
+
+model AsoClinicPreset {
+  id          String   @id @default(uuid()) @db.Uuid
+  companyId   String   @db.Uuid
+  name        String
+  cep         String?
+  address     String?
+  city        String?
+  state       String?
+  phone       String?
+  doctorName  String?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@map("aso_clinic_presets")
 }
 
 model Commitment {

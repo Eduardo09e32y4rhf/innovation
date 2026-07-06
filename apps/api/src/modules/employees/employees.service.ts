@@ -69,13 +69,13 @@ export class EmployeesService {
     const employee = await this.get(companyId, actor, id);
     
     // Se o status mudou para INATIVO/TERMINATED
-    if (dto.status === 'TERMINATED' && employee.status === 'TERMINATED') {
+    if (dto.status === 'TERMINATED' && employee?.status === 'TERMINATED') {
       const latestAso = await this.asoService.getLatestByEmployee(companyId, id);
       if (!latestAso || latestAso.asoType !== 'DEMISSIONAL') {
         await this.asoService.create(companyId, actor.sub, {
           employeeId: id,
           asoType: 'DEMISSIONAL',
-          status: 'PENDENTE'
+          status: 'PENDING'
         });
       }
     }

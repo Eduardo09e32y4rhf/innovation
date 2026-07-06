@@ -199,6 +199,49 @@ function ManagementContent() {
     return () => clearInterval(interval);
   }, [columns, canView]);
 
+  // Notificações de PC para ASO
+  useEffect(() => {
+    if (!canView || !asos.length || typeof window === 'undefined' || !('Notification' in window) || Notification.permission !== 'granted') return;
+    
+    const checkAsoAndNotify = () => {
+      const notified = JSON.parse(sessionStorage.getItem('aso-notified') || '{}');
+      let changed = false;
+      const today = new Date().toISOString().slice(0, 10);
+      
+      asos.forEach((aso: any) => {
+        const empName = employees.find(e => e.id === aso.employeeId)?.name || 'Funcionário';
+        const typeStr = aso.asoType === 'ADMISSIONAL' ? 'Admissional' : aso.asoType === 'DEMISSIONAL' ? 'Demissional' : aso.asoType === 'PERIODICO' ? 'Periódico' : aso.asoType;
+        
+        // Pendentes
+        if (aso.status === 'PENDENTE' || aso.status === 'PENDING') {
+          const key = `aso-${aso.id}-pending`;
+          if (!notified[key]) {
+            new Notification('ASO Pendente', { body: `ASO ${typeStr} pendente para ${empName}` });
+            notified[key] = true;
+            changed = true;
+          }
+        }
+        
+        // Vencidos
+        if (aso.dueDate && aso.dueDate.slice(0, 10) < today && !['CANCELADO', 'CANCELLED'].includes(aso.status)) {
+          const key = `aso-${aso.id}-expired`;
+          if (!notified[key]) {
+            new Notification('ASO Vencido!', { body: `ASO ${typeStr} de ${empName} está vencido desde ${new Date(aso.dueDate).toLocaleDateString('pt-BR')}` });
+            notified[key] = true;
+            changed = true;
+          }
+        }
+      });
+      
+      if (changed) sessionStorage.setItem('aso-notified', JSON.stringify(notified));
+    };
+
+    // Check once on load and every 1h
+    checkAsoAndNotify();
+    const interval = setInterval(checkAsoAndNotify, 3600000);
+    return () => clearInterval(interval);
+  }, [asos, employees, canView]);
+
   return (
     <div className="mx-auto max-w-7xl space-y-5 px-4 py-5 sm:px-6 lg:px-8">
       <header>
@@ -1549,30 +1592,59 @@ function AsoModal({ record, employees, asos, onClose, onSave, saving }: {
   const [employeeId, setEmployeeId] = useState(init.employeeId ?? '');
   const [asoType, setAsoType] = useState(init.asoType as string);
   const [status, setStatus] = useState(init.status as string);
-  const [examDate, setExamDate] = useState(init.examDate?.slice(0, 10) ?? '');
+  const [examDate, setExamDate] = useState(init.examDate?.slice(0, 16) ?? '');
   const [dueDate, setDueDate] = useState(init.dueDate?.slice(0, 10) ?? '');
-  const [clinic, setClinic] = useState(init.clinicName ?? '');
-  const [doctor, setDoctor] = useState(init.doctorName ?? '');
+  
+  // Clinic data
+  const [clinicName, setClinicName] = useState(init.clinicName ?? '');
+  const [doctorName, setDoctorName] = useState(init.doctorName ?? '');
+  const [clinicCep, setClinicCep] = useState('');
+  const [clinicAddress, setClinicAddress] = useState('');
+  const [clinicCity, setClinicCity] = useState('');
+  const [clinicState, setClinicState] = useState('');
+  const [clinicPhone, setClinicPhone] = useState('');
+  const [savePreset, setSavePreset] = useState(false);
   const [observation, setObservation] = useState(init.observation ?? '');
-  const [cep, setCep] = useState('');
-  const [address, setAddress] = useState('');
 
-  // Presets
-  const clinicPresets = Array.from(new Set(asos.map(a => a.clinicName).filter(Boolean)));
-  const doctorPresets = Array.from(new Set(asos.map(a => a.doctorName).filter(Boolean)));
+  // Presets from API
+  const { data: presets } = useQuery(() => api.management.aso.clinicPresets.list(), []);
+
+  // Update due date automatically +12 months when examDate changes
+  useEffect(() => {
+    if (examDate && !record?.dueDate) {
+      const d = new Date(examDate);
+      d.setFullYear(d.getFullYear() + 1);
+      setDueDate(d.toISOString().slice(0, 10));
+    }
+  }, [examDate, record]);
 
   const handleCep = async (val: string) => {
-    setCep(val);
+    setClinicCep(val);
     const cleanCep = val.replace(/\D/g, '');
     if (cleanCep.length === 8) {
       try {
         const res = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
         const data = await res.json();
         if (!data.erro) {
-          setAddress(`${data.logradouro}, ${data.bairro}, ${data.localidade} - ${data.uf}`);
+          setClinicAddress(data.logradouro + (data.bairro ? `, ${data.bairro}` : ''));
+          setClinicCity(data.localidade);
+          setClinicState(data.uf);
         }
       } catch (err) {}
     }
+  };
+
+  const applyPreset = (presetId: string) => {
+    const p = presets?.find(x => x.id === presetId);
+    if (!p) return;
+    setClinicName(p.name);
+    setClinicCep(p.cep || '');
+    setClinicAddress(p.address || '');
+    setClinicCity(p.city || '');
+    setClinicState(p.state || '');
+    setClinicPhone(p.phone || '');
+    if (p.doctorName) setDoctorName(p.doctorName);
+    setSavePreset(false);
   };
 
   const handlePrint = () => {
@@ -1580,52 +1652,77 @@ function AsoModal({ record, employees, asos, onClose, onSave, saving }: {
     if (!emp) return;
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
+    
+    // Fallback company data if available
+    const compName = 'Innovation RH Connect';
+    
     printWindow.document.write(`
       <html>
         <head>
           <title>Encaminhamento ASO - ${emp.name}</title>
           <style>
-            body { font-family: Arial, sans-serif; padding: 40px; color: #333; line-height: 1.6; }
-            .header { text-align: center; margin-bottom: 40px; border-bottom: 2px solid #eee; padding-bottom: 20px; }
-            .title { font-size: 24px; font-weight: bold; margin-bottom: 10px; text-transform: uppercase; }
-            .section { margin-bottom: 30px; }
-            .section-title { font-size: 14px; font-weight: bold; text-transform: uppercase; color: #666; border-bottom: 1px solid #eee; padding-bottom: 5px; margin-bottom: 15px; }
-            .row { display: flex; margin-bottom: 10px; }
-            .label { width: 150px; font-weight: bold; }
-            .value { flex: 1; }
-            .footer { margin-top: 60px; text-align: center; font-size: 12px; color: #999; }
-            .signature { margin-top: 80px; text-align: center; }
-            .signature-line { width: 300px; border-top: 1px solid #000; margin: 0 auto 10px; }
+            body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; padding: 40px; color: #333; line-height: 1.6; }
+            .header { text-align: center; margin-bottom: 40px; border-bottom: 2px solid #0d9488; padding-bottom: 20px; }
+            .company { font-size: 18px; font-weight: bold; color: #0f172a; margin-bottom: 10px; }
+            .title { font-size: 22px; font-weight: 900; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px; }
+            .date { font-size: 12px; color: #64748b; }
+            .section { margin-bottom: 25px; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; }
+            .section-title { font-size: 13px; font-weight: bold; text-transform: uppercase; color: #0d9488; margin-bottom: 15px; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px; }
+            .row { display: flex; margin-bottom: 8px; font-size: 14px; }
+            .label { width: 140px; font-weight: bold; color: #475569; }
+            .value { flex: 1; color: #0f172a; font-weight: 500; }
+            .footer { margin-top: 60px; text-align: center; font-size: 11px; color: #94a3b8; }
+            .signature-box { display: flex; justify-content: space-around; margin-top: 80px; }
+            .signature { text-align: center; width: 40%; }
+            .signature-line { border-top: 1px solid #333; margin: 0 auto 10px; }
+            .signature-name { font-size: 14px; font-weight: bold; color: #333; }
+            .signature-role { font-size: 12px; color: #666; }
           </style>
         </head>
         <body>
           <div class="header">
+            <div class="company">${compName}</div>
             <div class="title">ENCAMINHAMENTO MÉDICO OCUPACIONAL</div>
-            <div>Gerado em ${new Date().toLocaleDateString('pt-BR')}</div>
+            <div class="date">Emitido em ${new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}</div>
           </div>
+
           <div class="section">
-            <div class="section-title">Dados do Colaborador</div>
-            <div class="row"><div class="label">Nome:</div><div class="value">${emp.name}</div></div>
-            <div class="row"><div class="label">CPF:</div><div class="value">${emp.cpf || 'Não informado'}</div></div>
-            <div class="row"><div class="label">Cargo:</div><div class="value">${emp.role || 'Não informado'}</div></div>
+            <div class="section-title">1. Dados do Colaborador</div>
+            <div class="row"><div class="label">Nome Completo:</div><div class="value">${emp.name}</div></div>
+            <div class="row"><div class="label">CPF:</div><div class="value">${emp.cpf || '—'}</div></div>
+            <div class="row"><div class="label">Cargo/Função:</div><div class="value">${emp.role || '—'}</div></div>
+            <div class="row"><div class="label">Data de Admissão:</div><div class="value">${emp.admissionDate ? new Date(emp.admissionDate).toLocaleDateString('pt-BR') : '—'}</div></div>
+          </div>
+
+          <div class="section">
+            <div class="section-title">2. Dados do Exame</div>
             <div class="row"><div class="label">Tipo de ASO:</div><div class="value">${ASO_TYPES.find(t => t.value === asoType)?.label || asoType}</div></div>
+            <div class="row"><div class="label">Data/Hora Agendada:</div><div class="value">${examDate ? new Date(examDate).toLocaleString('pt-BR') : 'A DEFINIR PELA CLÍNICA / RH'}</div></div>
+            <div class="row"><div class="label">Clínica Referência:</div><div class="value">${clinicName || 'A definir'}</div></div>
+            ${clinicAddress ? `<div class="row"><div class="label">Endereço:</div><div class="value">${clinicAddress} ${clinicCity ? `- ${clinicCity}/${clinicState}` : ''}</div></div>` : ''}
+            ${clinicPhone ? `<div class="row"><div class="label">Telefone:</div><div class="value">${clinicPhone}</div></div>` : ''}
+            ${doctorName ? `<div class="row"><div class="label">Médico Solicitado:</div><div class="value">${doctorName}</div></div>` : ''}
           </div>
+
           <div class="section">
-            <div class="section-title">Dados do Agendamento</div>
-            <div class="row"><div class="label">Data/Hora:</div><div class="value">${examDate ? new Date(examDate).toLocaleString('pt-BR') : 'A definir'}</div></div>
-            <div class="row"><div class="label">Clínica/Local:</div><div class="value">${clinic}</div></div>
-            <div class="row"><div class="label">Endereço:</div><div class="value">${address || 'Não informado'}</div></div>
-            <div class="row"><div class="label">Médico Ref.:</div><div class="value">${doctor || 'A definir'}</div></div>
+            <div class="section-title">3. Observações / Procedimentos</div>
+            <div class="row"><div class="value">${observation || 'Realizar avaliação clínica ocupacional padrão e exames complementares conforme PCMSO da empresa para a respectiva função.'}</div></div>
           </div>
-          <div class="section">
-            <div class="section-title">Observações</div>
-            <div>${observation || 'Nenhuma.'}</div>
+
+          <div class="signature-box">
+            <div class="signature">
+              <div class="signature-line"></div>
+              <div class="signature-name">Recursos Humanos</div>
+              <div class="signature-role">Assinatura e Carimbo da Empresa</div>
+            </div>
+            <div class="signature">
+              <div class="signature-line"></div>
+              <div class="signature-name">${emp.name}</div>
+              <div class="signature-role">Assinatura do Colaborador</div>
+            </div>
           </div>
-          <div class="signature">
-            <div class="signature-line"></div>
-            <div>Assinatura RH / Gestão</div>
-          </div>
-          <div class="footer">Este documento é confidencial e de uso exclusivo para fins de saúde ocupacional.</div>
+
+          <div class="footer">Este documento é confidencial e de uso exclusivo para fins de saúde ocupacional. O atestado original (ASO) deve ser devolvido ao RH após a consulta.</div>
         </body>
       </html>
     `);
@@ -1641,46 +1738,151 @@ function AsoModal({ record, employees, asos, onClose, onSave, saving }: {
       employeeId,
       asoType,
       status,
-      examDate: examDate || null,
+      examDate: examDate ? new Date(examDate).toISOString() : null,
       dueDate: dueDate || null,
-      clinicName: clinic.trim() || null,
-      doctorName: doctor.trim() || null,
-      observation: (observation + (address ? `\nEndereço: ${address}` : '')).trim() || null,
+      clinicName: clinicName.trim() || null,
+      doctorName: doctorName.trim() || null,
+      observation: observation.trim() || null,
+      saveClinicPreset: savePreset,
+      clinicCep, clinicAddress, clinicCity, clinicState, clinicPhone
     });
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4">
-      <div className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-[12px] border border-slate-200 bg-white p-6 shadow-xl">
-        <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-base font-black text-slate-950">{record ? 'EDITAR ASO' : 'NOVO ASO'}</h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-700"><XCircle size={18} className="rotate-45"/></button>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4 backdrop-blur-sm">
+      <div className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-[24px] border border-slate-200 bg-white p-8 shadow-2xl">
+        <div className="mb-6 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-50 text-teal-600">
+              <Activity size={20} strokeWidth={2.5} />
+            </div>
+            <div>
+              <h3 className="text-xl font-black text-slate-900">{record ? 'Editar ASO' : 'Agendar ASO'}</h3>
+              <p className="text-xs font-semibold text-slate-500">Atestado de Saúde Ocupacional</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="rounded-full p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700">
+            <X size={20} strokeWidth={2.5} />
+          </button>
         </div>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <label className="sm:col-span-2 space-y-1 text-xs font-medium text-slate-600"><span>FUNCIONÁRIO</span><select value={employeeId} onChange={e => setEmployeeId(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500"><option value="">Selecione...</option>{employees.map(e => <option key={e.id} value={e.id}>{normalizeDisplayName(e.name)}</option>)}</select></label>
-          <label className="space-y-1 text-xs font-medium text-slate-600"><span>TIPO ASO</span><select value={asoType} onChange={e => setAsoType(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500">{ASO_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}</select></label>
-          <label className="space-y-1 text-xs font-medium text-slate-600"><span>STATUS</span><select value={status} onChange={e => setStatus(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500">{ASO_STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}</select></label>
-          <label className="space-y-1 text-xs font-medium text-slate-600"><span>DATA EXAME</span><input type="datetime-local" value={examDate} onChange={e => setExamDate(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500"/></label>
-          <label className="space-y-1 text-xs font-medium text-slate-600"><span>DATA VENCIMENTO</span><input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500"/></label>
-          <label className="space-y-1 text-xs font-medium text-slate-600">
-            <span>CLÍNICA</span>
-            <input list="clinic-presets" value={clinic} onChange={e => setClinic(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500"/>
-            <datalist id="clinic-presets">{clinicPresets.map(c => <option key={c} value={c} />)}</datalist>
-          </label>
-          <label className="space-y-1 text-xs font-medium text-slate-600">
-            <span>MÉDICO</span>
-            <input list="doctor-presets" value={doctor} onChange={e => setDoctor(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500"/>
-            <datalist id="doctor-presets">{doctorPresets.map(d => <option key={d} value={d} />)}</datalist>
-          </label>
-          <label className="space-y-1 text-xs font-medium text-slate-600"><span>CEP (BUSCA ENDEREÇO)</span><input value={cep} onChange={e => handleCep(e.target.value)} placeholder="Apenas números" className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500"/></label>
-          <label className="space-y-1 text-xs font-medium text-slate-600"><span>ENDEREÇO</span><input value={address} onChange={e => setAddress(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500"/></label>
-          <label className="sm:col-span-2 space-y-1 text-xs font-medium text-slate-600"><span>OBSERVAÇÕES</span><textarea value={observation} onChange={e => setObservation(e.target.value)} rows={2} className="w-full rounded-[8px] border border-slate-200 px-3 py-2 text-sm outline-none focus:border-teal-500"/></label>
+
+        <div className="grid gap-x-6 gap-y-8 lg:grid-cols-2">
+          {/* Col 1: Identificação */}
+          <div className="space-y-5">
+            <div>
+              <h4 className="mb-3 flex items-center gap-2 text-xs font-black uppercase tracking-wider text-slate-800">
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-200 text-[10px]">1</span>
+                Identificação
+              </h4>
+              <div className="space-y-3">
+                <label className="block">
+                  <span className="mb-1 block text-xs font-bold text-slate-600">Funcionário *</span>
+                  <select value={employeeId} onChange={e => setEmployeeId(e.target.value)} className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm font-semibold text-slate-800 outline-none transition-all focus:border-teal-500 focus:bg-white focus:ring-4 focus:ring-teal-500/10">
+                    <option value="">Selecione um funcionário...</option>
+                    {employees.map(e => <option key={e.id} value={e.id}>{normalizeDisplayName(e.name)}</option>)}
+                  </select>
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <label className="block">
+                    <span className="mb-1 block text-xs font-bold text-slate-600">Tipo de ASO *</span>
+                    <select value={asoType} onChange={e => setAsoType(e.target.value)} className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm font-semibold text-slate-800 outline-none transition-all focus:border-teal-500 focus:bg-white focus:ring-4 focus:ring-teal-500/10">
+                      {ASO_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                    </select>
+                  </label>
+                  <label className="block">
+                    <span className="mb-1 block text-xs font-bold text-slate-600">Status</span>
+                    <select value={status} onChange={e => setStatus(e.target.value)} className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm font-semibold text-slate-800 outline-none transition-all focus:border-teal-500 focus:bg-white focus:ring-4 focus:ring-teal-500/10">
+                      {ASO_STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                    </select>
+                  </label>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <label className="block">
+                    <span className="mb-1 block text-xs font-bold text-slate-600">Data e Hora do Exame</span>
+                    <input type="datetime-local" value={examDate} onChange={e => setExamDate(e.target.value)} className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm font-semibold text-slate-800 outline-none transition-all focus:border-teal-500 focus:bg-white focus:ring-4 focus:ring-teal-500/10"/>
+                  </label>
+                  <label className="block opacity-70 cursor-not-allowed">
+                    <span className="mb-1 block text-xs font-bold text-slate-600">Vencimento (Automático)</span>
+                    <input type="date" value={dueDate} readOnly title="O vencimento é calculado automaticamente como 1 ano após a data do exame" className="h-11 w-full rounded-xl border border-slate-200 bg-slate-100 px-3 text-sm font-semibold text-slate-600 outline-none cursor-not-allowed"/>
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Col 2: Clínica / Agendamento */}
+          <div className="space-y-5 rounded-2xl border border-slate-100 bg-slate-50/50 p-5">
+            <div>
+              <h4 className="mb-3 flex items-center justify-between">
+                <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-slate-800">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-200 text-[10px]">2</span>
+                  Dados da Clínica
+                </div>
+                {presets && presets.length > 0 && (
+                  <select onChange={e => applyPreset(e.target.value)} value="" className="h-8 max-w-[140px] rounded-lg border border-slate-200 bg-white px-2 text-[10px] font-bold text-teal-700 outline-none">
+                    <option value="">Usar clínica salva...</option>
+                    {presets.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  </select>
+                )}
+              </h4>
+              <div className="space-y-3">
+                <label className="block">
+                  <span className="mb-1 block text-xs font-bold text-slate-600">Nome da Clínica / Local</span>
+                  <input value={clinicName} onChange={e => setClinicName(e.target.value)} placeholder="Ex: Clínica Saúde Ocupacional" className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-800 outline-none transition-all focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10"/>
+                </label>
+                <div className="grid grid-cols-3 gap-3">
+                  <label className="block">
+                    <span className="mb-1 block text-xs font-bold text-slate-600">CEP</span>
+                    <input value={clinicCep} onChange={e => handleCep(e.target.value)} placeholder="00000-000" className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-800 outline-none transition-all focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10"/>
+                  </label>
+                  <label className="block col-span-2">
+                    <span className="mb-1 block text-xs font-bold text-slate-600">Endereço Completo</span>
+                    <input value={clinicAddress} onChange={e => setClinicAddress(e.target.value)} placeholder="Rua, Número, Bairro" className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-800 outline-none transition-all focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10"/>
+                  </label>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <label className="block">
+                    <span className="mb-1 block text-xs font-bold text-slate-600">Médico (Opcional)</span>
+                    <input value={doctorName} onChange={e => setDoctorName(e.target.value)} placeholder="Ex: Dr. João Silva" className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-800 outline-none transition-all focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10"/>
+                  </label>
+                  <label className="block">
+                    <span className="mb-1 block text-xs font-bold text-slate-600">Telefone</span>
+                    <input value={clinicPhone} onChange={e => setClinicPhone(e.target.value)} placeholder="(00) 0000-0000" className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-800 outline-none transition-all focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10"/>
+                  </label>
+                </div>
+                
+                {!record && clinicName && (
+                  <label className="mt-2 flex items-center gap-2 cursor-pointer rounded-lg bg-teal-50/50 p-2 text-xs font-semibold text-teal-800 border border-teal-100">
+                    <input type="checkbox" checked={savePreset} onChange={e => setSavePreset(e.target.checked)} className="h-4 w-4 rounded border-teal-300 text-teal-600 focus:ring-teal-500"/>
+                    Salvar esta clínica e médico para usar nos próximos ASOs
+                  </label>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
-        <div className="mt-5 flex justify-between">
-          <button onClick={handlePrint} disabled={!clinic || !employeeId} className="flex items-center gap-2 rounded-[8px] bg-slate-100 px-4 h-10 text-xs font-bold text-slate-600 hover:bg-slate-200 disabled:opacity-50"><FileText size={16}/> IMPRIMIR ENCAMINHAMENTO</button>
-          <div className="flex gap-2">
-            <button onClick={onClose} className="btn-outline h-10 rounded-[8px] px-4 text-xs font-bold">CANCELAR</button>
-            <button onClick={save} disabled={!ok || saving} className="crystal-button h-10 rounded-[8px] px-4 text-xs font-black text-white disabled:opacity-60">{saving ? 'SALVANDO...' : 'SALVAR'}</button>
+
+        <div className="mt-6 border-t border-slate-100 pt-6">
+          <label className="block">
+            <span className="mb-1 block text-xs font-bold text-slate-600">Observações Extras</span>
+            <textarea value={observation} onChange={e => setObservation(e.target.value)} rows={2} placeholder="Ex: Funcionário necessita de exame de audiometria complementar..." className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-800 outline-none transition-all focus:border-teal-500 focus:bg-white focus:ring-4 focus:ring-teal-500/10"/>
+          </label>
+        </div>
+
+        <div className="mt-8 flex flex-col-reverse justify-between gap-4 sm:flex-row sm:items-center">
+          <button 
+            onClick={handlePrint} 
+            disabled={!employeeId} 
+            className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 h-12 text-sm font-black text-slate-700 shadow-sm transition-all hover:bg-slate-50 hover:text-teal-600 hover:border-teal-200 disabled:opacity-50 disabled:hover:bg-white"
+          >
+            <FileText size={18} strokeWidth={2.5}/> GERAR ENCAMINHAMENTO (PDF)
+          </button>
+          
+          <div className="flex gap-3">
+            <button onClick={onClose} className="h-12 flex-1 rounded-xl bg-slate-100 px-6 text-sm font-bold text-slate-600 hover:bg-slate-200 sm:flex-none">CANCELAR</button>
+            <button onClick={save} disabled={!ok || saving} className="crystal-button h-12 flex-1 rounded-xl bg-gradient-to-r from-teal-500 to-cyan-600 px-8 text-sm font-black text-white shadow-lg shadow-teal-500/30 transition-all hover:-translate-y-0.5 hover:shadow-xl hover:shadow-teal-500/40 disabled:opacity-60 sm:flex-none">
+              {saving ? 'SALVANDO...' : record ? 'SALVAR ALTERAÇÕES' : 'AGENDAR ASO'}
+            </button>
           </div>
         </div>
       </div>
