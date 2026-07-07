@@ -29,7 +29,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (isAuthenticated && company) {
-      const slug = (company as any).slug || company.id;
+      const slug = (company as any).slug || company.name?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || company.id;
       router.push(`/${slug}/dashboard`);
     }
   }, [isAuthenticated, company, router]);
