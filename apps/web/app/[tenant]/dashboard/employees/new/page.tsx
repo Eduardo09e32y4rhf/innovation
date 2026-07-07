@@ -1,7 +1,7 @@
 'use client';
 
 import { Suspense, useEffect, useMemo, useState } from 'react';
-import { useRouter, useSearchParams , useParams } from 'next/navigation';
+import { useRouter, useSearchParams, useParams } from 'next/navigation';
 import { ArrowLeft, Plus, Save, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useMutation, useQuery } from '@/app/hooks/use-data';
@@ -187,6 +187,8 @@ const EMPTY: EmployeeFormState = {
 };
 
 export default function NewEmployeePage() {
+  const params = useParams();
+  const tenant = params?.tenant as string;
   return (
     <Suspense fallback={<div className="mx-auto max-w-4xl py-16 text-center text-sm text-slate-500">Carregando...</div>}>
       <EmployeeForm />
@@ -195,6 +197,8 @@ export default function NewEmployeePage() {
 }
 
 function EmployeeForm() {
+  const paramsHook = useParams();
+  const tenant = paramsHook?.tenant as string;
   const router = useRouter();
   const params = useSearchParams();
   const editId = params.get('id');

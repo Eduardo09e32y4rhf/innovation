@@ -1,4 +1,5 @@
 'use client';
+import { useParams } from 'next/navigation';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -203,7 +204,7 @@ function getEffectiveStats(rows: TimeTrack[]) {
     let dailyBal = r.dailyBalance ?? 0;
     let ext = Math.max(dailyBal, 0);
     let mis = Math.abs(Math.min(dailyBal, 0));
-    if (r.overtimeApprovalStatus === 'PENDING' || r.overtimeApprovalStatus === 'REJECTED') {
+    if ((r as any).overtimeApprovalStatus === 'PENDING' || (r as any).overtimeApprovalStatus === 'REJECTED') {
       if (ext > 0) {
         dailyTotal -= ext;
         dailyBal -= ext;
