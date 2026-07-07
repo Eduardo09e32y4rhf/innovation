@@ -1,5 +1,8 @@
-import { redirect } from 'next/navigation';
+import { redirect , useParams } from 'next/navigation';
 
 export default function TimeTrackRedirect() {
-  redirect('/dashboard/time-track');
+  const params = useParams();
+  const tenant = params?.tenant as string;
+
+  redirect(`/${tenant}/dashboard/time-track`);
 }

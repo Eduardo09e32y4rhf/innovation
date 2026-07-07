@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter , useParams } from 'next/navigation';
 import { Check, Clock3, MapPin, AlertTriangle, FileEdit } from 'lucide-react';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useMutation, useQuery } from '@/app/hooks/use-data';
@@ -135,6 +135,9 @@ function CameraCapture({ onCapture }: { onCapture: (base64: string) => void }) {
 }
 
 export default function ClockInPage() {
+  const params = useParams();
+  const tenant = params?.tenant || '';
+
   const router = useRouter();
   const { user } = useAuth();
   const profile = user?.profile?.toUpperCase();
@@ -202,7 +205,7 @@ export default function ClockInPage() {
         const label = labels[params.type];
         setSuccess(params.manual ? `${label} manual registrada! Aguardando aprovacao do gestor.` : 'Ponto registrado com sucesso!');
         if (successTimer.current) clearTimeout(successTimer.current);
-        successTimer.current = setTimeout(() => router.push(`/${useParams().tenant}/dashboard/time-track`), 2500);
+        successTimer.current = setTimeout(() => router.push(`/${tenant}/dashboard/time-track`), 2500);
       },
     },
   );
@@ -352,7 +355,7 @@ export default function ClockInPage() {
       </section>
 
       <div className="text-center">
-        <button onClick={() => router.push(`/${useParams().tenant}/dashboard/time-track`)} className="text-sm font-semibold text-teal-600 hover:underline">
+        <button onClick={() => router.push(`/${tenant}/dashboard/time-track`)} className="text-sm font-semibold text-teal-600 hover:underline">
           Voltar para a folha de ponto
         </button>
       </div>

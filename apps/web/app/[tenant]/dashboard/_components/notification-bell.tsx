@@ -8,6 +8,9 @@ import { api } from '@/app/lib/api';
 import { useState, useRef, useEffect } from 'react';
 
 export function NotificationBell() {
+  const params = useParams();
+  const tenant = params?.tenant || '';
+
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -157,7 +160,7 @@ export function NotificationBell() {
           </div>
 
           <div className="border-t border-slate-100 bg-slate-50 px-4 py-2.5 text-center">
-            <Link href={`/${useParams().tenant}/dashboard/notifications`} onClick={() => setOpen(false)} className="text-[11px] font-black text-teal-700 hover:text-teal-800">
+            <Link href={`/${tenant}/dashboard/notifications`} onClick={() => setOpen(false)} className="text-[11px] font-black text-teal-700 hover:text-teal-800">
               Ver todas as notificações
             </Link>
           </div>

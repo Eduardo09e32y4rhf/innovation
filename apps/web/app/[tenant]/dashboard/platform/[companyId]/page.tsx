@@ -21,6 +21,9 @@ import {
 import { useAuth } from '@/app/contexts/AuthContext';
 
 export default function TenantDashboardPage({ params }: { params: { companyId: string } }) {
+  const params = useParams();
+  const tenant = params?.tenant || '';
+
   const { user } = useAuth();
   const currentRole = user?.profile?.toUpperCase();
   
@@ -85,7 +88,7 @@ export default function TenantDashboardPage({ params }: { params: { companyId: s
           <p className="text-sm font-medium text-slate-500">CNPJ: {companyMock.cnpj}</p>
         </div>
         
-        <Link href={`/${useParams().tenant}/dashboard/platform`} className="inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-xs font-semibold text-slate-700 shadow-sm transition-colors hover:bg-slate-50 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2">
+        <Link href={`/${tenant}/dashboard/platform`} className="inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-xs font-semibold text-slate-700 shadow-sm transition-colors hover:bg-slate-50 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2">
           <ArrowLeft size={14} /> Voltar para Empresas
         </Link>
       </header>

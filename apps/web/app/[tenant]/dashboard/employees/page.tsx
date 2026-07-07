@@ -15,6 +15,9 @@ import { buildPdfShell, section, infoGrid, pdfTable, signatureBlock, printPdf, t
 const collator = new Intl.Collator('pt-BR', { sensitivity: 'base', numeric: true });
 
 export default function EmployeesPage() {
+  const params = useParams();
+  const tenant = params?.tenant as string;
+
   const router = useRouter();
   const { user } = useAuth();
   const profile = user?.profile?.toUpperCase();
@@ -112,7 +115,7 @@ export default function EmployeesPage() {
             </h1>
           </div>
           {canEdit && (
-            <Link href={`/${useParams().tenant}/dashboard/employees/new`} className="crystal-button inline-flex h-11 items-center gap-2 rounded-[10px] bg-gradient-to-r from-teal-500 to-cyan-600 px-5 text-xs font-black text-white shadow-lg shadow-teal-500/25 transition-all hover:-translate-y-0.5 hover:shadow-xl hover:shadow-teal-500/30 active:translate-y-0">
+            <Link href={`/${tenant}/dashboard/employees/new`} className="crystal-button inline-flex h-11 items-center gap-2 rounded-[10px] bg-gradient-to-r from-teal-500 to-cyan-600 px-5 text-xs font-black text-white shadow-lg shadow-teal-500/25 transition-all hover:-translate-y-0.5 hover:shadow-xl hover:shadow-teal-500/30 active:translate-y-0">
               <UserPlus size={15} strokeWidth={2.5} />
               Novo funcionário
             </Link>
@@ -245,13 +248,13 @@ export default function EmployeesPage() {
                                 </>
                               )}
                               {(canEdit || isGestor) && (
-                                <button onClick={() => router.push(`/dashboard/time-track?employeeId=${employee.id}`)} className="btn-outline inline-flex h-8 items-center gap-1.5 rounded-[6px] px-2.5 text-[11px] font-black transition-all hover:-translate-y-0.5">
+                                <button onClick={() => router.push(`/${tenant}/dashboard/time-track?employeeId=${employee.id}`)} className="btn-outline inline-flex h-8 items-center gap-1.5 rounded-[6px] px-2.5 text-[11px] font-black transition-all hover:-translate-y-0.5">
                                   Ponto
                                 </button>
                               )}
                               {canEdit && (
                                 <>
-                                  <Link href={`/dashboard/employees/new?id=${employee.id}`} className="btn-outline-premium inline-flex h-8 items-center gap-1.5 rounded-[6px] px-2.5 text-[11px] font-black transition-all hover:-translate-y-0.5">
+                                  <Link href={`/${tenant}/dashboard/employees/new?id=${employee.id}`} className="btn-outline-premium inline-flex h-8 items-center gap-1.5 rounded-[6px] px-2.5 text-[11px] font-black transition-all hover:-translate-y-0.5">
                                     <Edit3 size={12} strokeWidth={2.5} />
                                     Editar
                                   </Link>

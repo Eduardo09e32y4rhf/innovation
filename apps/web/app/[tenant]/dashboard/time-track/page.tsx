@@ -219,6 +219,9 @@ function getEffectiveStats(rows: TimeTrack[]) {
 }
 
 export default function TimeTrackPage() {
+  const params = useParams();
+  const tenant = params?.tenant as string;
+
   const { user } = useAuth();
   const profile = user?.profile?.toUpperCase();
   const canManage = profile==='DEV'||profile==='ADMIN'||profile==='RH';
@@ -295,7 +298,7 @@ export default function TimeTrackPage() {
           <h2 className="text-2xl font-black text-slate-950">{isFunc?'MEU PONTO':isGestor?'PONTO DA EQUIPE':'FOLHA DE PONTO'}</h2>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Link href={`/${useParams().tenant}/dashboard/time-track/clock-in`} className="crystal-button inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black text-white"><Clock3 size={14}/> BATER PONTO</Link>
+          <Link href={`/${tenant}/dashboard/time-track/clock-in`} className="crystal-button inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black text-white"><Clock3 size={14}/> BATER PONTO</Link>
           {(canManage||isGestor) && <button onClick={() => downloadCollectiveSheet(month, visible, byEmpMap, company.data || null, holidays.data || [])} disabled={refreshing || visible.length === 0} className="btn-outline-premium inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black"><FileText size={14}/> FOLHAS DE PONTO</button>}
           {canManage && <button onClick={()=>setOpen(true)} disabled={refreshing} className="crystal-button inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black text-white"><Edit3 size={14}/> LANÇAR PONTO</button>}
         </div>
@@ -379,7 +382,7 @@ export default function TimeTrackPage() {
                         <div className="rounded-[6px] border border-slate-200 px-2 py-1"><span className="block text-[8px] uppercase text-slate-400">TRAB</span><span>{fmtWorked(worked)}</span></div>
                         <div className={`rounded-[6px] border px-2 py-1 ${saldo>=0?'border-emerald-200 bg-emerald-50 text-emerald-700':'border-rose-200 bg-rose-50 text-rose-700'}`}><span className="block text-[8px] uppercase text-slate-400">SALDO</span><span className="font-black">{fmtBalance(saldo)}</span></div>
                       </div>
-                      <button onClick={()=>router.push(`/dashboard/time-track?employeeId=${emp.id}`)} className="btn-outline-premium inline-flex h-8 items-center gap-1.5 rounded-[6px] px-3 text-[10px] font-black"><CalendarDays size={12}/> ABRIR</button>
+                      <button onClick={()=>router.push(`/${tenant}/dashboard/time-track?employeeId=${emp.id}`)} className="btn-outline-premium inline-flex h-8 items-center gap-1.5 rounded-[6px] px-3 text-[10px] font-black"><CalendarDays size={12}/> ABRIR</button>
                     </div>
                   </div>
                 );
