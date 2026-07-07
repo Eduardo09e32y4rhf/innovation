@@ -202,7 +202,7 @@ export default function ClockInPage() {
         const label = labels[params.type];
         setSuccess(params.manual ? `${label} manual registrada! Aguardando aprovacao do gestor.` : 'Ponto registrado com sucesso!');
         if (successTimer.current) clearTimeout(successTimer.current);
-        successTimer.current = setTimeout(() => router.push('/dashboard/time-track'), 2500);
+        successTimer.current = setTimeout(() => router.push(`/${useParams().tenant}/dashboard/time-track`), 2500);
       },
     },
   );
@@ -352,7 +352,7 @@ export default function ClockInPage() {
       </section>
 
       <div className="text-center">
-        <button onClick={() => router.push('/dashboard/time-track')} className="text-sm font-semibold text-teal-600 hover:underline">
+        <button onClick={() => router.push(`/${useParams().tenant}/dashboard/time-track`)} className="text-sm font-semibold text-teal-600 hover:underline">
           Voltar para a folha de ponto
         </button>
       </div>

@@ -66,10 +66,10 @@ function DashboardContent() {
 
   // Action shortcuts
   const actionShortcuts: { label: string; href: string; icon: LucideIcon; color: string; onClick?: () => void }[] = isFuncionario ? [] : [
-    { label: 'Novo funcionário', href: '/dashboard/employees/new', icon: UserPlus, color: 'teal' },
-    { label: 'Lançar ponto', href: '/dashboard/time-track', icon: Clock3, color: 'indigo' },
-    { label: 'Nova solicitação', href: '/dashboard/vacations', icon: CalendarDays, color: 'emerald' },
-    { label: 'Exportar folha', href: '/dashboard/time-track/closing', icon: Download, color: 'amber' },
+    { label: 'Novo funcionário', href: `/${useParams().tenant}/dashboard/employees/new`, icon: UserPlus, color: 'teal' },
+    { label: 'Lançar ponto', href: `/${useParams().tenant}/dashboard/time-track`, icon: Clock3, color: 'indigo' },
+    { label: 'Nova solicitação', href: `/${useParams().tenant}/dashboard/vacations`, icon: CalendarDays, color: 'emerald' },
+    { label: 'Exportar folha', href: `/${useParams().tenant}/dashboard/time-track/closing`, icon: Download, color: 'amber' },
   ];
 
   const filteredTimeTracks = useMemo(() => {

@@ -1,2 +1,2 @@
 import { redirect } from 'next/navigation';
-export default function NotificationsPage() { redirect('/dashboard/management?tab=notifications'); }
+export default function NotificationsPage({ params }: { params: { tenant: string } }) { redirect(//dashboard/management?tab=notifications); }
