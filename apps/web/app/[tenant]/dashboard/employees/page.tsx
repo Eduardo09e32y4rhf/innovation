@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { Download, Edit3, FileText, Search, Trash2, UserMinus, UserPlus, Users, Filter, XCircle, AlertTriangle } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { EmptyState, ErrorState, LoadingState } from '@/app/components/data-states';
@@ -25,7 +25,8 @@ export default function EmployeesPage() {
   const canDownloadSheet = profile === 'RH';
   const isGestor = profile === 'GESTOR';
   const { data, loading, error, refetch } = useQuery(() => api.employees.list(), []);
-  const company = useQuery(() => api.companies.me(), []);
+  const companyQuery = useQuery(() => api.companies.me(), []);
+  const company = companyQuery.data as any;
   const [search, setSearch] = useState('');
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const terminate = useMutation((id: string) => api.employees.terminate(id), { onSuccess: () => refetch() });
@@ -533,14 +534,14 @@ function downloadEmployeeSheet(employee: Employee, rows: TimeTrack[], month: str
     </tr>`;
   });
 
-  const companyData: PdfCompanyInfo | null = company?.data ? {
-    name: company.data.name,
-    legalName: company.data.legalName,
-    document: company.data.cnpj,
-    logoUrl: company.data.logoUrl,
-    phone: company.data.phone,
-    email: company.data.email,
-    address: [company.data.street, company.data.streetNumber, company.data.neighborhood, company.data.city, company.data.state, company.data.cep].filter(Boolean).map(String).join(', ') || undefined
+  const companyData: PdfCompanyInfo | null = company ? {
+    name: (company as any)?.data?.name,
+    legalName: (company as any)?.data?.legalName,
+    document: (company as any)?.data?.cnpj,
+    logoUrl: (company as any)?.data?.logoUrl,
+    phone: (company as any)?.data?.phone,
+    email: (company as any)?.data?.email,
+    address: [(company as any)?.data?.street, (company as any)?.data?.streetNumber, (company as any)?.data?.neighborhood, (company as any)?.data?.city, (company as any)?.data?.state, (company as any)?.data?.cep].filter(Boolean).map(String).join(', ') || undefined
   } : null;
 
   const html = buildPdfShell({ title: 'Espelho de Ponto Oficial', subtitle: `${monthLabelText} — ${normalizeDisplayName(employee.name)}`, landscape: false }, companyData, `
@@ -655,14 +656,14 @@ function downloadEmployeeOcorrenciasSheet(employee: Employee, rows: TimeTrack[],
     });
   }
 
-  const companyData: PdfCompanyInfo | null = company?.data ? {
-    name: company.data.name,
-    legalName: company.data.legalName,
-    document: company.data.cnpj,
-    logoUrl: company.data.logoUrl,
-    phone: company.data.phone,
-    email: company.data.email,
-    address: [company.data.street, company.data.streetNumber, company.data.neighborhood, company.data.city, company.data.state, company.data.cep].filter(Boolean).map(String).join(', ') || undefined
+  const companyData: PdfCompanyInfo | null = company ? {
+    name: (company as any)?.data?.name,
+    legalName: (company as any)?.data?.legalName,
+    document: (company as any)?.data?.cnpj,
+    logoUrl: (company as any)?.data?.logoUrl,
+    phone: (company as any)?.data?.phone,
+    email: (company as any)?.data?.email,
+    address: [(company as any)?.data?.street, (company as any)?.data?.streetNumber, (company as any)?.data?.neighborhood, (company as any)?.data?.city, (company as any)?.data?.state, (company as any)?.data?.cep].filter(Boolean).map(String).join(', ') || undefined
   } : null;
 
   const html = buildPdfShell({ title: 'Ficha de Ocorrências de Ponto', subtitle: `${monthLabelText} — ${normalizeDisplayName(employee.name)}`, landscape: false }, companyData, `
@@ -797,14 +798,14 @@ function downloadEmployeeRecord(employee: Employee, company: Company | null, man
     } catch { /* ignore */ }
   }
 
-  const companyData: PdfCompanyInfo | null = company?.data ? {
-    name: company.data.name,
-    legalName: company.data.legalName,
-    document: company.data.cnpj,
-    logoUrl: company.data.logoUrl,
-    phone: company.data.phone,
-    email: company.data.email,
-    address: [company.data.street, company.data.streetNumber, company.data.neighborhood, company.data.city, company.data.state, company.data.cep].filter(Boolean).map(String).join(', ') || undefined
+  const companyData: PdfCompanyInfo | null = company ? {
+    name: (company as any)?.data?.name,
+    legalName: (company as any)?.data?.legalName,
+    document: (company as any)?.data?.cnpj,
+    logoUrl: (company as any)?.data?.logoUrl,
+    phone: (company as any)?.data?.phone,
+    email: (company as any)?.data?.email,
+    address: [(company as any)?.data?.street, (company as any)?.data?.streetNumber, (company as any)?.data?.neighborhood, (company as any)?.data?.city, (company as any)?.data?.state, (company as any)?.data?.cep].filter(Boolean).map(String).join(', ') || undefined
   } : null;
 
   const html = buildPdfShell({ title, subtitle: normalizeDisplayName(employee.name), landscape: false }, companyData, `

@@ -195,6 +195,8 @@ export default function NewEmployeePage() {
 }
 
 function EmployeeForm() {
+  const params_ = useParams();
+  const tenant = params_?.tenant as string;
   const router = useRouter();
   const params = useSearchParams();
   const editId = params.get('id');
