@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter } useParams, from 'next/navigation';
 import Link from 'next/link';
 import { AlertTriangle, ArrowUpRight, Bell, Cake, CalendarDays, Clock3, MessageSquareText, TrendingUp, Users, UserPlus, FileText, Download, AlertCircle, CheckCircle, XCircle, UserMinus, UserX, Stethoscope } from 'lucide-react';
 import { ErrorState } from '@/app/components/data-states';
@@ -227,8 +227,8 @@ function DashboardContent() {
                   <AlertCircle size={18} strokeWidth={2.5} className="text-amber-500" />
                 </div>
                 <div className="space-y-2.5">
-                  <PendencyItem label="Pontos manuais" count={pendingTimeTracks} href="/dashboard/time-track" />
-                  <PendencyItem label="Férias" count={pendingVacations} href="/dashboard/vacations" />
+                  <PendencyItem label="Pontos manuais" count={pendingTimeTracks} href={`/${useParams().tenant}/dashboard/time-track`} />
+                  <PendencyItem label="Férias" count={pendingVacations} href={`/${useParams().tenant}/dashboard/vacations`} />
                 </div>
               </div>
 
@@ -239,8 +239,8 @@ function DashboardContent() {
                   <UserX size={18} strokeWidth={2.5} className="text-rose-500" />
                 </div>
                 <div className="space-y-2.5">
-                  <PendencyItem label="Sem gestor" count={employeesNoManager} href="/dashboard/employees" />
-                  <PendencyItem label="Sem acesso" count={employeesNoAccess} href="/dashboard/employees" />
+                  <PendencyItem label="Sem gestor" count={employeesNoManager} href={`/${useParams().tenant}/dashboard/employees`} />
+                  <PendencyItem label="Sem acesso" count={employeesNoAccess} href={`/${useParams().tenant}/dashboard/employees`} />
                   {alertItems.slice(0, 2).map((item) => (
                     <div key={item.label} className="flex items-center justify-between rounded-[8px] bg-rose-50/50 px-3 py-2 text-xs">
                       <span className="font-bold text-rose-700">{item.label}</span>
@@ -341,7 +341,7 @@ function DashboardContent() {
                       );
                     })}
                     {notificationWidgetData.notifications.length > 5 && (
-                      <Link href="/dashboard/notifications" className="block text-center text-[11px] font-black text-teal-700 hover:text-teal-800">
+                      <Link href={`/${useParams().tenant}/dashboard/notifications`} className="block text-center text-[11px] font-black text-teal-700 hover:text-teal-800">
                         Ver todas ({notificationWidgetData.notifications.length})
                       </Link>
                     )}
@@ -377,15 +377,15 @@ function DashboardContent() {
                   </div>
                 </div>
                 <div className="mt-4 space-y-2">
-                  <Link href="/dashboard/time-track/occurrences" className="flex items-center justify-between rounded-[8px] border border-slate-100 bg-white px-4 py-3 text-xs transition-all hover:border-teal-200 hover:bg-teal-50/30">
+                  <Link href={`/${useParams().tenant}/dashboard/time-track/occurrences`} className="flex items-center justify-between rounded-[8px] border border-slate-100 bg-white px-4 py-3 text-xs transition-all hover:border-teal-200 hover:bg-teal-50/30">
                     <span className="font-bold text-slate-700">Ver todas as ocorrências</span>
                     <span className="text-teal-700">â†’</span>
                   </Link>
-                  <Link href="/dashboard/time-track/closing" className="flex items-center justify-between rounded-[8px] border border-slate-100 bg-white px-4 py-3 text-xs transition-all hover:border-teal-200 hover:bg-teal-50/30">
+                  <Link href={`/${useParams().tenant}/dashboard/time-track/closing`} className="flex items-center justify-between rounded-[8px] border border-slate-100 bg-white px-4 py-3 text-xs transition-all hover:border-teal-200 hover:bg-teal-50/30">
                     <span className="font-bold text-slate-700">Fechamento de período</span>
                     <span className="text-teal-700">â†’</span>
                   </Link>
-                  <Link href="/dashboard/time-track/rules" className="flex items-center justify-between rounded-[8px] border border-slate-100 bg-white px-4 py-3 text-xs transition-all hover:border-teal-200 hover:bg-teal-50/30">
+                  <Link href={`/${useParams().tenant}/dashboard/time-track/rules`} className="flex items-center justify-between rounded-[8px] border border-slate-100 bg-white px-4 py-3 text-xs transition-all hover:border-teal-200 hover:bg-teal-50/30">
                     <span className="font-bold text-slate-700">Regras de jornada</span>
                     <span className="text-teal-700">â†’</span>
                   </Link>
@@ -471,7 +471,7 @@ function DashboardContent() {
           {todayRows.length > 0 && (
             <tr className="border-t border-slate-100">
               <td colSpan={isFuncionario ? 3 : 4} className="py-3 text-center">
-                <Link href="/dashboard/time-track" className="text-xs font-black text-teal-600 hover:text-teal-700 transition-colors">Ver todos os registros &rarr;</Link>
+                <Link href={`/${useParams().tenant}/dashboard/time-track`} className="text-xs font-black text-teal-600 hover:text-teal-700 transition-colors">Ver todos os registros &rarr;</Link>
               </td>
             </tr>
           )}
@@ -506,7 +506,7 @@ function DashboardContent() {
             {vacationRows.length > 0 && (
               <tr className="border-t border-slate-100">
                 <td colSpan={3} className="py-3 text-center">
-                  <Link href="/dashboard/vacations" className="text-xs font-black text-teal-600 hover:text-teal-700 transition-colors">Ver todas as solicitações â†’</Link>
+                  <Link href={`/${useParams().tenant}/dashboard/vacations`} className="text-xs font-black text-teal-600 hover:text-teal-700 transition-colors">Ver todas as solicitações â†’</Link>
                 </td>
               </tr>
             )}

@@ -1,4 +1,5 @@
 'use client';
+import { useParams } from 'next/navigation';
 
 import { Bell, X } from 'lucide-react';
 import Link from 'next/link';
@@ -156,7 +157,7 @@ export function NotificationBell() {
           </div>
 
           <div className="border-t border-slate-100 bg-slate-50 px-4 py-2.5 text-center">
-            <Link href="/dashboard/notifications" onClick={() => setOpen(false)} className="text-[11px] font-black text-teal-700 hover:text-teal-800">
+            <Link href={`/${useParams().tenant}/dashboard/notifications`} onClick={() => setOpen(false)} className="text-[11px] font-black text-teal-700 hover:text-teal-800">
               Ver todas as notificações
             </Link>
           </div>

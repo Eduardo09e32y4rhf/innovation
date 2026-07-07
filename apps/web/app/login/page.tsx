@@ -17,7 +17,7 @@ import { api } from '@/app/lib/api';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login, loading, error, isAuthenticated } = useAuth();
+  const { login, loading, error, isAuthenticated, company } = useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -28,8 +28,11 @@ export default function LoginPage() {
   const [resetToken, setResetToken] = useState('');
 
   useEffect(() => {
-    if (isAuthenticated) router.push('/dashboard');
-  }, [isAuthenticated, router]);
+    if (isAuthenticated && company) {
+      const slug = (company as any).slug || company.id;
+      router.push(`/${slug}/dashboard`);
+    }
+  }, [isAuthenticated, company, router]);
 
   const handleLogin = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -62,7 +65,7 @@ export default function LoginPage() {
 
     try {
       await login(email.trim(), password);
-      router.push('/dashboard');
+      // O useEffect lidará com o redirecionamento assim que isAuthenticated for true
     } catch (err) {
       setLocalError(err instanceof Error ? err.message : 'Não foi possível entrar agora. Tente novamente.');
     }

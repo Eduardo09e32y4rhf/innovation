@@ -10,7 +10,7 @@ export default function NotFound() {
           O caminho acessado nao existe ou foi movido dentro do painel.
         </p>
         <Link
-          href="/dashboard"
+          href="/login"
           className="mt-5 inline-flex h-11 items-center justify-center rounded-[14px] bg-slate-950 px-5 text-sm font-black text-white"
         >
           Voltar ao painel

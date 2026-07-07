@@ -1,4 +1,4 @@
-﻿import type { Metadata } from 'next';
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import {
   ArrowRight,
@@ -130,7 +130,7 @@ export default function Home() {
               Entrar
             </Link>
             <Link
-              href="/dashboard"
+              href="/login"
               className="inline-flex h-11 items-center justify-center rounded-full bg-gradient-to-r from-teal-300 to-cyan-400 px-4 text-sm font-black text-slate-950 shadow-[0_16px_36px_rgba(45,212,191,0.24)] transition-transform hover:-translate-y-0.5"
             >
               Abrir painel
@@ -327,7 +327,7 @@ export default function Home() {
                   Entrar na conta
                 </Link>
                 <Link
-                  href="/dashboard"
+                  href="/login"
                   className="inline-flex h-12 items-center justify-center rounded-full border border-white/12 bg-white/5 px-6 text-sm font-black text-white transition-colors hover:bg-white/10"
                 >
                   Ir ao dashboard
