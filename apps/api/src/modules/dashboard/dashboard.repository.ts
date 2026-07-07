@@ -28,7 +28,7 @@ export class DashboardRepository {
       select: { id: true, name: true, birthDate: true, admissionDate: true, terminationDate: true, status: true, userId: true, managerId: true, cpf: true, workScale: true, dailyWorkload: true },
       orderBy: { name: 'asc' },
     });
-    const employeeIds = employees.map((employee) => employee.id);
+    const employeeIds = employees.map((employee: { id: string }) => employee.id);
     const scopedTrackWhere = { employeeId: { in: employeeIds } };
     const [pendingTimeTracks, pendingVacations, admissionsThisMonth, terminationsThisMonth] = employeeIds.length ? await Promise.all([
       this.prisma.timeTrack.count({ where: { ...scopedTrackWhere, manualStatus: 'pending' } }),
@@ -38,8 +38,8 @@ export class DashboardRepository {
     ]) : [0, 0, 0, 0];
     // Bolt Optimization: Replace multiple O(N) array passes with a single O(N) loop to calculate aggregates
     // Reduces CPU usage and redundant memory allocations for large employee datasets
-    const birthdaysToday = [];
-    const birthdaysThisMonth = [];
+    const birthdaysToday: { id: string; name: string; birthDate: Date | null }[] = [];
+    const birthdaysThisMonth: { id: string; name: string; birthDate: Date | null }[] = [];
     let missingUser = 0;
     let missingManager = 0;
     let missingCpf = 0;
