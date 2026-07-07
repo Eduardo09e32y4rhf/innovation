@@ -461,7 +461,7 @@ function DashboardContent() {
               <td className="py-3.5 text-xs font-semibold text-slate-600">{formatTime(row.exit)}</td>
               {!isFuncionario && (
                 <td className="py-3.5">
-                  <Link href={`/dashboard/time-track?employeeId=${row.employeeId}`} className="inline-flex h-7 items-center gap-1.5 rounded-[6px] bg-gradient-to-r from-teal-500 to-cyan-600 px-2.5 text-[10px] font-black text-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md">
+                  <Link href={`/${useParams().tenant}/dashboard/time-track?employeeId=${row.employeeId}`} className="inline-flex h-7 items-center gap-1.5 rounded-[6px] bg-gradient-to-r from-teal-500 to-cyan-600 px-2.5 text-[10px] font-black text-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md">
                     Ponto
                   </Link>
                 </td>

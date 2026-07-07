@@ -42,7 +42,7 @@ const devNavItem: NavItemConfig = {
 
 function isActive(pathname: string | null, item: NavItemConfig) {
   const route = item.match ?? item.href;
-  if (route === '/dashboard') return pathname === '/dashboard';
+  if (route.endsWith('/dashboard')) return pathname === route || pathname === route + '/';
   return Boolean(pathname?.startsWith(route));
 }
 
@@ -60,11 +60,19 @@ function getInitials(name?: string, email?: string) {
 
 export function DashboardSidebar() {
   const pathname = usePathname();
+  const params = useParams();
+  const tenant = params.tenant;
   const { user } = useAuth();
   const company = useQuery(() => api.companies.me(), []);
   const profile = user?.profile?.toUpperCase();
   const navItems = baseNavItems.filter((item) => canSeeItem(item, profile));
   if (profile === 'DEV' || profile === 'COMERCIAL') navItems.push(devNavItem);
+
+  const tenantNavItems = navItems.map((item) => ({
+    ...item,
+    href: `/${tenant}${item.href}`,
+    match: item.match ? `/${tenant}${item.match}` : `/${tenant}${item.href}`,
+  }));
 
   return (
     <aside className="sidebar-shell flex w-full shrink-0 flex-col md:h-screen md:w-[220px]">
@@ -73,7 +81,7 @@ export function DashboardSidebar() {
       </div>
 
       <nav className="flex gap-1 overflow-x-auto px-3 pb-3 md:block md:flex-1 md:space-y-0.5 md:overflow-visible md:pb-0">
-        {navItems.map((item) => (
+        {tenantNavItems.map((item) => (
           <NavItem key={item.href} item={item} active={isActive(pathname, item)} />
         ))}
       </nav>
