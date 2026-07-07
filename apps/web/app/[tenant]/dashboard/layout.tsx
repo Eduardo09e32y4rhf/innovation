@@ -1,7 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { ProtectedRoute } from '../components/ProtectedRoute';
+import { ProtectedRoute } from '../../components/ProtectedRoute';
 import { DashboardSidebar } from './_components/dashboard-sidebar';
 import { DashboardTopbar } from './_components/dashboard-topbar';
 import { PasswordChangeGate } from './_components/password-change-gate';

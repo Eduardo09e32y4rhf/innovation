@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } useParams, from 'next/navigation';
+import { usePathname , useParams } from 'next/navigation';
 import {
   Building2,
   CalendarDays,

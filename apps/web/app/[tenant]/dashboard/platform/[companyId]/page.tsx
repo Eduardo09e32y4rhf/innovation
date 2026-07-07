@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { notFound } useParams, from 'next/navigation';
+import { notFound , useParams } from 'next/navigation';
 import { 
   ArrowLeft, 
   Building2, 
