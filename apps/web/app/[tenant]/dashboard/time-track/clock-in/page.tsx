@@ -169,7 +169,7 @@ export default function ClockInPage() {
         if (successTimer.current) clearTimeout(successTimer.current);
         successTimer.current = setTimeout(() => {
           setSuccess(null);
-          employees.mutate(); // refresh employee data
+          employees.refetch(); // refresh employee data
         }, 2500);
       }
     }

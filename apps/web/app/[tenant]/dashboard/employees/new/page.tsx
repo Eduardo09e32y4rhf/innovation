@@ -197,6 +197,8 @@ export default function NewEmployeePage() {
 function EmployeeForm() {
   const router = useRouter();
   const params = useSearchParams();
+  const routeParams = useParams();
+  const tenant = routeParams?.tenant as string;
   const editId = params.get('id');
   const isEdit = Boolean(editId);
   const employeesQuery = useQuery(() => api.employees.list(), []);

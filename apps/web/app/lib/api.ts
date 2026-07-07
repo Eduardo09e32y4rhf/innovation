@@ -140,6 +140,7 @@ export interface Employee {
   standardEntry?: string | null; standardLunchStart?: string | null; standardLunchReturn?: string | null; standardExit?: string | null;
   user?: { id: string; role: UserRole; isActive: boolean; forcePasswordChange?: boolean } | null;
   createdAt: string; updatedAt: string;
+  faceEnrollment?: { active: boolean } | null;
 }
 
 export interface CreateEmployeeInput {
@@ -181,6 +182,7 @@ export interface TimeTrack {
   latitude?: number | null; longitude?: number | null;
   manualReason?: string | null; manualStatus?: string | null;
   incidentType?: string | null;
+  overtimeApprovalStatus?: string | null;
 }
 export type TimeTrackAdjustmentReason = 'ajuste_erro_marcacao' | 'ajuste_atestado_integral' | 'ajuste_feriado' | 'ajuste_abono_atestado_horas' | 'ajuste_folga_dsr' | 'ajuste_abono_folga' | 'ajuste_abono_banco_saida_antecipada' | 'ajuste_abono_atraso' | 'ajuste_suspensao';
 export interface RegisterTimeInput { employeeId?: string; type?: PunchType; timestamp?: string; observation?: string; latitude?: number; longitude?: number; manualReason?: string; }
@@ -243,6 +245,16 @@ export interface Company {
   primaryColor?: string | null; theme?: string | null;
   commercialOwnerId?: string | null; maxUsers: number; maxEmployees: number;
   isActive: boolean; status?: CompanyStatus; createdAt: string;
+  cnpj?: string | null;
+  street?: string | null;
+  streetNumber?: string | null;
+  neighborhood?: string | null;
+  city?: string | null;
+  state?: string | null;
+  cep?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  radiusTolerance?: number | null;
   subscriptionStartedAt?: string; suspensionReason?: string | null;
     plan?: 'FREE' | 'STARTER' | 'PRO';
     billingStatus?: 'TRIAL' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED';
