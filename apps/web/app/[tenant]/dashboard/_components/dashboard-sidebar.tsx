@@ -61,7 +61,7 @@ function getInitials(name?: string, email?: string) {
 export function DashboardSidebar() {
   const pathname = usePathname();
   const params = useParams();
-  const tenant = params.tenant;
+  const tenant = params?.tenant as string;
   const { user } = useAuth();
   const company = useQuery(() => api.companies.me(), []);
   const profile = user?.profile?.toUpperCase();
