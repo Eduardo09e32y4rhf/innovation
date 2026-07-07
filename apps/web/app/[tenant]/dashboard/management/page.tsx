@@ -132,7 +132,7 @@ function ManagementContent() {
   const [tab, setTab] = useState<Tab>(current && ['agenda','aso','notifications','rules','closing'].includes(current) ? current : 'agenda');
 
   function navigate(next: ManagementTab) {
-    router.push('/dashboard/management?tab=' + next);
+    router.push(`/${tenant}/dashboard/management?tab=` + next);
     setTab(next);
   }
 
