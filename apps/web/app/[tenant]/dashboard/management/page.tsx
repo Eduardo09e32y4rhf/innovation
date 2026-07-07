@@ -118,7 +118,9 @@ export default function ManagementPage() {
   );
 }
 
-function ManagementContent() {\n  const params = useParams();\n  const tenant = params?.tenant as string;
+function ManagementContent() {
+  const params = useParams();
+  const tenant = params?.tenant as string;
   const { user } = useAuth();
   const profile = user?.profile?.toUpperCase();
   const canManage = profile === 'DEV' || profile === 'ADMIN' || profile === 'RH';
@@ -932,7 +934,8 @@ function CreateNotificationForm({ onCreated, employees, company }: { onCreated: 
     const docTitle = type === 'WARNING_NOTICE' ? 'Aviso de Advertência Escrita' : 'Aviso de Suspensão Disciplinar';
     let text = `<p style="font-size:11px;color:#334155;text-align:justify;line-height:1.6;">Pelo presente documento, aplicamos-lhe a pena de <strong>${docTitle.toUpperCase()}</strong>, em virtude da seguinte ocorrência disciplinar verificada no dia <strong>${occurrenceDate ? new Date(occurrenceDate).toLocaleDateString('pt-BR') : '____/____/______'}</strong>:</p>
     <p style="font-size:11px;color:#0f172a;text-align:justify;line-height:1.6;font-weight:700;margin:16px 0;">Motivo / Embargo Legal: ${legalReason}</p>
-    <p style="font-size:11px;color:#334155;text-align:justify;line-height:1.6;">Detalhes da Infração:<br/>${message.replace(/\\n/g, '<br/>')}</p>`;
+    <p style="font-size:11px;color:#334155;text-align:justify;line-height:1.6;">Detalhes da Infração:<br/>${message.replace(/\
+/g, '<br/>')}</p>`;
     
     if (type === 'SUSPENSION_NOTICE') {
       text += `<p style="font-size:11px;color:#e11d48;text-align:justify;line-height:1.6;font-weight:700;margin:16px 0;">Por consequência, o(a) Sr(a). fica suspenso(a) de suas atividades por ${suspensionDays} dia(s), com desconto em folha de pagamento.</p>`;

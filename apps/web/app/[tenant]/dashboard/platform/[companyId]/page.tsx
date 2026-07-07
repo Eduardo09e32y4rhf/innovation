@@ -21,8 +21,8 @@ import {
 import { useAuth } from '@/app/contexts/AuthContext';
 
 export default function TenantDashboardPage({ params }: { params: { companyId: string } }) {
-  const params = useParams();
-  const tenant = params?.tenant || '';
+  const routeParams = useParams();
+  const tenant = routeParams?.tenant || '';
 
   const { user } = useAuth();
   const currentRole = user?.profile?.toUpperCase();
