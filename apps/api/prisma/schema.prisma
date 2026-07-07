@@ -160,7 +160,6 @@ enum TimeRuleStatus {
   INACTIVE
 }
 
-
 enum TimeOccurrenceType {
   LATE_ARRIVAL
   EARLY_LEAVE
@@ -310,7 +309,8 @@ model Company {
   timeTracks        TimeTrack[]
   overtimeRule      OvertimeRule?
   holidays          Holiday[]
-  
+  timeClosings      TimeClosing[]
+
   @@index([commercialOwnerId])
 }
 
@@ -445,7 +445,8 @@ model Employee {
 
   commitments    Commitment[]
   overtimeBank   OvertimeBank?
-    faceEnrollment FaceEnrollment?
+  faceEnrollment FaceEnrollment?
+  timeClosings   TimeClosing[]
 
   @@index([companyId])
   @@index([cpf])
@@ -487,11 +488,11 @@ model TimeTrack {
   overtimePaymentMinutes Int    @default(0) // Quanto entra em folha
 
   // Ajuste manual
-  manualReason String?
-  manualStatus String? @default("approved") // "pending", "approved", "rejected"
-  observation  String?
-  latitude     Float?
-  longitude    Float?
+  manualReason    String?
+  manualStatus    String? @default("approved") // "pending", "approved", "rejected"
+  observation     String?
+  latitude        Float?
+  longitude       Float?
   locationAddress String?
 
   createdAt DateTime @default(now())
@@ -669,18 +670,18 @@ model EmployeeAsoRecord {
 }
 
 model AsoClinicPreset {
-  id          String   @id @default(uuid()) @db.Uuid
-  companyId   String   @db.Uuid
-  name        String
-  cep         String?
-  address     String?
-  city        String?
-  state       String?
-  phone       String?
-  doctorName  String?
-  active      Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id         String   @id @default(uuid()) @db.Uuid
+  companyId  String   @db.Uuid
+  name       String
+  cep        String?
+  address    String?
+  city       String?
+  state      String?
+  phone      String?
+  doctorName String?
+  active     Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
@@ -1096,4 +1097,56 @@ model FaceClockAttempt {
   createdAt      DateTime @default(now())
 
   @@index([companyId, employeeId, createdAt])
+}
+
+enum TimeClosingStatus {
+  DRAFT
+  IN_REVIEW
+  APPROVED
+  CLOSED
+}
+
+model TimeClosing {
+  id         String   @id @default(uuid()) @db.Uuid
+  companyId  String   @db.Uuid
+  company    Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  employeeId String   @db.Uuid
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  periodStart DateTime
+  periodEnd   DateTime
+  status      TimeClosingStatus @default(DRAFT)
+
+  normalHours     Float @default(0)
+  overtime50      Float @default(0)
+  overtime100     Float @default(0)
+  nightShift      Float @default(0)
+  dsrValue        Float @default(0)
+  absences        Float @default(0)
+  lateArrivals    Float @default(0)
+  fallbackPunches Int   @default(0)
+  totalPayable    Float @default(0)
+
+  closedAt     DateTime?
+  reopenedAt   DateTime?
+  reopenReason String?
+
+  adjustments TimeClosingAdjustment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model TimeClosingAdjustment {
+  id            String      @id @default(uuid()) @db.Uuid
+  timeClosingId String      @db.Uuid
+  timeClosing   TimeClosing @relation(fields: [timeClosingId], references: [id], onDelete: Cascade)
+
+  field     String
+  oldValue  String
+  newValue  String
+  reason    String
+  changedBy String
+
+  createdAt DateTime @default(now())
 }
