@@ -94,11 +94,9 @@ export default function PlatformPage() {
 
   return (
     <div className="mx-auto max-w-6xl space-y-5">
-      <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-teal-600">Plataforma</p>
       <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
+          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-teal-600">Plataforma</p>
           <h2 className="text-2xl font-black text-slate-950">Gestão da Plataforma</h2>
           <div className="mt-4 flex gap-4 border-b border-slate-200">
             <button className="border-b-2 border-indigo-600 pb-2 text-sm font-bold text-indigo-600">Empresas</button>
