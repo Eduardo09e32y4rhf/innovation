@@ -68,14 +68,12 @@ const getApiUrl = () => process.env.NEXT_PUBLIC_API_URL || '/api';
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   // readParsedAuthSession lê do sessionStorage (isolado por aba) e já deserializa
   const initialSession = readParsedAuthSession();
-  const [user, setUser] = useState<User | null>(initialSession.user);
-  const [company, setCompany] = useState<Company | null>(initialSession.company);
-  const [token, setToken] = useState<string | null>(initialSession.token);
+  const [user, setUser] = useState<User | null>(null);
+  const [company, setCompany] = useState<Company | null>(null);
+  const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [passwordChangeRequired, setPasswordChangeRequired] = useState(
-    initialSession.passwordChangeRequired,
-  );
+  const [passwordChangeRequired, setPasswordChangeRequired] = useState(false);
 
   useEffect(() => {
     setAuthScopeSnapshot({
@@ -100,7 +98,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     let active = true;
 
     const bootstrap = async () => {
-      if (!token) {
+      // Carrega a sessão inicial do client-side
+      const session = readParsedAuthSession();
+      if (session.token) {
+        setToken(session.token);
+        setUser(session.user);
+        setCompany(session.company);
+        setPasswordChangeRequired(session.passwordChangeRequired);
+      }
+
+      if (!session.token) {
         if (LOCAL_SESSION_ENABLED) {
           startLocalSession();
         }
@@ -108,7 +115,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return;
       }
 
-      if (token === LOCAL_SESSION_TOKEN) {
+      if (session.token === LOCAL_SESSION_TOKEN) {
         if (!canUseLocalSession()) {
           clearStoredSession();
         }
@@ -116,12 +123,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return;
       }
 
-      if (!user || !company) {
+      if (!session.user || !session.company) {
         if (active) setLoading(false);
         return;
       }
 
-      await refreshStoredUser(token, company);
+      await refreshStoredUser(session.token, session.company);
       if (active) setLoading(false);
     };
 

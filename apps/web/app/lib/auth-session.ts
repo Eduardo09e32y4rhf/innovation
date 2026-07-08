@@ -110,8 +110,12 @@ function _writeToSessionStorage(session: StoredAuthSession): void {
 }
 
 function _purgeLocalStorage(): void {
-  const ls = window.localStorage;
-  PROHIBITED_LOCALSTORAGE_KEYS.forEach((k) => ls.removeItem(k));
+  try {
+    const ls = window.localStorage;
+    PROHIBITED_LOCALSTORAGE_KEYS.forEach((k) => ls.removeItem(k));
+  } catch (e) {
+    // Ignora SecurityError
+  }
 }
 
 // ─── API pública ──────────────────────────────────────────────────────────────
@@ -138,22 +142,26 @@ export function readAuthSession(): StoredAuthSession {
   }
 
   // Migração: chaves legadas do localStorage → sessionStorage
-  const ls = window.localStorage;
-  const legacyToken = ls.getItem('token') ?? ls.getItem('auth.token');
-  const legacyUser = ls.getItem('user') ?? ls.getItem('auth.user');
-  const legacyCompany = ls.getItem('company') ?? ls.getItem('auth.company');
-  const legacyPcr = ls.getItem('passwordChangeRequired') ?? ls.getItem('auth.passwordChangeRequired');
+  try {
+    const ls = window.localStorage;
+    const legacyToken = ls.getItem('token') ?? ls.getItem('auth.token');
+    const legacyUser = ls.getItem('user') ?? ls.getItem('auth.user');
+    const legacyCompany = ls.getItem('company') ?? ls.getItem('auth.company');
+    const legacyPcr = ls.getItem('passwordChangeRequired') ?? ls.getItem('auth.passwordChangeRequired');
 
-  if (hasValue(legacyToken) || hasValue(legacyUser)) {
-    const migrated: StoredAuthSession = {
-      token: legacyToken,
-      user: legacyUser,
-      company: legacyCompany,
-      passwordChangeRequired: legacyPcr,
-    };
-    _writeToSessionStorage(migrated);
-    _purgeLocalStorage();
-    return migrated;
+    if (hasValue(legacyToken) || hasValue(legacyUser)) {
+      const migrated: StoredAuthSession = {
+        token: legacyToken,
+        user: legacyUser,
+        company: legacyCompany,
+        passwordChangeRequired: legacyPcr,
+      };
+      _writeToSessionStorage(migrated);
+      _purgeLocalStorage();
+      return migrated;
+    }
+  } catch (e) {
+    // Ignora erros de SecurityError caso o browser bloqueie localStorage
   }
 
   return current;
