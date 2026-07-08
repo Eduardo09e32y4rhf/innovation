@@ -2,8 +2,6 @@ import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../../database/prisma.service';
 
-const DEMO_TOKEN = 'demo-token-innovation-rh-connect-2026';
-const LOCAL_SESSION_TOKEN = 'innovation-rh-connect-local-session';
 const LOCAL_COMPANY_ID = '00000000-0000-0000-0000-000000000001';
 const PLATFORM_OWNER_EMAIL = 'eduardo998468@gmail.com';
 const SESSION_DENIED_MESSAGE = 'Nao foi possivel entrar';
@@ -26,7 +24,7 @@ function isDemoEnabled() {
   return process.env.NODE_ENV !== 'production' && process.env.ENABLE_DEMO_TOKEN === 'true' && Boolean(process.env.DEMO_TOKEN);
 }
 function isLocalEnabled() {
-  return process.env.NODE_ENV !== 'production' && process.env.ENABLE_LOCAL_SESSION === 'true';
+  return process.env.NODE_ENV !== 'production' && process.env.ENABLE_LOCAL_SESSION === 'true' && Boolean(process.env.LOCAL_SESSION_TOKEN);
 }
 
 @Injectable()
@@ -50,7 +48,7 @@ export class JwtAuthGuard implements CanActivate {
       request.user = DEMO_PAYLOAD;
       return true;
     }
-    if (isLocalEnabled() && token === LOCAL_SESSION_TOKEN) {
+    if (isLocalEnabled() && token === process.env.LOCAL_SESSION_TOKEN) {
       request.user = LOCAL_PAYLOAD;
       return true;
     }
