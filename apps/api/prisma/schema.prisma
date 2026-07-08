@@ -284,6 +284,7 @@ model Company {
   asaasCustomerId     String?
   asaasSubscriptionId String?
   internalNotes       String?  @db.Text
+  platformPlanId      String?  @db.Uuid
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -317,6 +318,9 @@ model Company {
   overtimeRule      OvertimeRule?
   holidays          Holiday[]
   timeClosings      TimeClosing[]
+  platformPlan      PlatformPlan?          @relation(fields: [platformPlanId], references: [id])
+  platformInvoices  PlatformInvoice[]
+  platformContract  PlatformContract?
 
   @@index([commercialOwnerId])
 }
@@ -1158,4 +1162,67 @@ model TimeClosingAdjustment {
   changedBy String
 
   createdAt DateTime @default(now())
+}
+
+enum BillingCycle {
+  MONTHLY
+  QUARTERLY
+  YEARLY
+  CUSTOM
+}
+
+enum InvoiceStatus {
+  OPEN
+  PAID
+  OVERDUE
+  CANCELED
+}
+
+model GlobalRolePermission {
+  role        UserRole @id
+  permissions String[]
+}
+
+model PlatformPlan {
+  id             String @id @default(uuid()) @db.Uuid
+  name           String
+  description    String?
+  price          Decimal @db.Decimal(10,2)
+  cycle          BillingCycle @default(MONTHLY)
+  maxUsers       Int @default(9999)
+  maxEmployees   Int @default(9999)
+  activeModules  String[]
+  isActive       Boolean @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  
+  companies      Company[]
+  invoices       PlatformInvoice[]
+}
+
+model PlatformInvoice {
+  id            String @id @default(uuid()) @db.Uuid
+  companyId     String @db.Uuid
+  planId        String? @db.Uuid
+  amount        Decimal @db.Decimal(10,2)
+  dueDate       DateTime
+  status        InvoiceStatus @default(OPEN)
+  paidAt        DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  company       Company @relation(fields: [companyId], references: [id])
+  plan          PlatformPlan? @relation(fields: [planId], references: [id])
+}
+
+model PlatformContract {
+  id            String @id @default(uuid()) @db.Uuid
+  companyId     String @db.Uuid @unique
+  documentUrl   String?
+  signedAt      DateTime?
+  contentHtml   String @db.Text
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  company       Company @relation(fields: [companyId], references: [id])
 }

@@ -99,7 +99,27 @@ export class PlatformService {
 
   async deleteCompany(id: string) {
     await this.repository.deleteCompany(id);
-    return { deleted: true };
+    return { success: true };
+  }
+
+  async lookupCnpj(cnpj: string) {
+    const cleanCnpj = cnpj.replace(/\D/g, '');
+    if (cleanCnpj.length !== 14) {
+      throw new ConflictException('CNPJ invalido');
+    }
+    try {
+      const response = await fetch(`https://www.receitaws.com.br/v1/cnpj/${cleanCnpj}`);
+      if (!response.ok) {
+        throw new Error('Falha ao consultar CNPJ');
+      }
+      const data = await response.json();
+      if (data.status === 'ERROR') {
+        throw new ConflictException(data.message || 'CNPJ rejeitado pela Receita');
+      }
+      return data;
+    } catch (e: any) {
+      throw new ConflictException(e.message || 'Erro ao consultar CNPJ');
+    }
   }
 
   async listCompanyUsers(actor: JwtUser, companyId: string) {

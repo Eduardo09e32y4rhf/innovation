@@ -99,7 +99,12 @@ export class PlatformController {
 
   private assertDevOrCommercial(actor: JwtUser) {
     if (actor.role !== 'DEV' && actor.role !== 'COMERCIAL') {
-      throw new ForbiddenException('Apenas DEV ou COMERCIAL pode alterar dados da empresa.');
+      throw new ForbiddenException('Acesso negado.');
     }
+  }
+
+  @Get('receita/:cnpj')
+  async lookupCnpj(@Param('cnpj') cnpj: string) {
+    return this.service.lookupCnpj(cnpj);
   }
 }
