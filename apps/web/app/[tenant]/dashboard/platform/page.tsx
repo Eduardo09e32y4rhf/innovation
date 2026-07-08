@@ -97,14 +97,22 @@ export default function PlatformPage() {
       <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-[11px] font-black uppercase tracking-[0.2em] text-teal-600">Plataforma</p>
-          <h2 className="text-2xl font-black text-slate-950">Gestão de empresas</h2>
+      <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="text-2xl font-black text-slate-950">Gestão da Plataforma</h2>
+          <div className="mt-4 flex gap-4 border-b border-slate-200">
+            <button className="border-b-2 border-indigo-600 pb-2 text-sm font-bold text-indigo-600">Empresas</button>
+            <button className="pb-2 text-sm font-medium text-slate-500 hover:text-slate-800">Planos & Assinaturas (Em Breve)</button>
+            <button className="pb-2 text-sm font-medium text-slate-500 hover:text-slate-800">Financeiro (Em Breve)</button>
+            <button className="pb-2 text-sm font-medium text-slate-500 hover:text-slate-800">Permissões Globais (Em Breve)</button>
+          </div>
         </div>
         <button onClick={() => setOpen(true)} className="crystal-button inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black text-white">
           <Plus size={14} /> Nova empresa
         </button>
       </header>
 
-      <section className="grid grid-cols-2 gap-4 md:grid-cols-4">
+      <section className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-4">
         {[
           { label: 'Empresas', value: stats.data?.companies, icon: Building2 },
           { label: 'Usuários', value: stats.data?.users, icon: Users },
