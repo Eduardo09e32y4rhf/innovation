@@ -244,9 +244,12 @@ export interface Company {
   commercialOwnerId?: string | null; maxUsers: number; maxEmployees: number;
   isActive: boolean; status?: CompanyStatus; createdAt: string;
   subscriptionStartedAt?: string; suspensionReason?: string | null;
-    plan?: 'FREE' | 'STARTER' | 'PRO';
+    plan?: 'FREE' | 'BASE' | 'PRO' | 'ENTERPRISE';
     billingStatus?: 'TRIAL' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED';
     trialEndsAt?: string | null;
+    activeModules?: string[];
+    asaasCustomerId?: string | null;
+    asaasSubscriptionId?: string | null;
 }
 export interface PlatformCompany extends Company { usersCount: number; employeesCount: number; }
 export interface PlatformStats { companies: number; users: number; employees: number; messages: number; }
@@ -459,7 +462,7 @@ export const api = {
     listCompanies: () => request<PlatformCompany[]>('/platform/companies'),
     getCompany: (id: string) => request<PlatformCompany>(`/platform/companies/${id}`),
     createCompany: (input: CreatePlatformCompanyInput) => request<unknown>('/platform/companies', { method: 'POST', body: input }),
-    updateCompany: (id: string, input: Partial<Omit<CreatePlatformCompanyInput, 'adminName' | 'adminEmail' | 'adminPassword'>> & { isActive?: boolean; status?: CompanyStatus; suspensionReason?: string | null; plan?: 'FREE' | 'STARTER' | 'PRO'; billingStatus?: 'TRIAL' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED'; trialEndsAt?: string }) =>
+    updateCompany: (id: string, input: Partial<Omit<CreatePlatformCompanyInput, 'adminName' | 'adminEmail' | 'adminPassword'>> & { isActive?: boolean; status?: CompanyStatus; suspensionReason?: string | null; plan?: 'FREE' | 'BASE' | 'PRO' | 'ENTERPRISE'; billingStatus?: 'TRIAL' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED'; trialEndsAt?: string; activeModules?: string[] }) =>
       request<unknown>(`/platform/companies/${id}`, { method: 'PATCH', body: input }),
     deleteCompany: (id: string) => request<void>(`/platform/companies/${id}`, { method: 'DELETE' }),
     listCompanyUsers: (companyId: string) => request<AppUser[]>(`/platform/company-users/${companyId}`),

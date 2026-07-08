@@ -59,7 +59,7 @@ export class PlatformService {
       throw new ForbiddenException('Comercial so pode alterar empresas sob sua responsabilidade.');
     }
     const status = dto.status;
-    const { name, document, plan, billingStatus, trialEndsAt, ...rest } = dto;
+    const { name, document, plan, billingStatus, trialEndsAt, activeModules, ...rest } = dto;
     const data = {
       ...rest,
       ...(name !== undefined ? { name: normalizeDisplayName(name) } : {}),
@@ -69,6 +69,7 @@ export class PlatformService {
       ...(plan ? { plan } : {}),
       ...(billingStatus ? { billingStatus } : {}),
       ...(trialEndsAt !== undefined ? { trialEndsAt: trialEndsAt ? new Date(trialEndsAt) : null } : {}),
+      ...(activeModules !== undefined ? { activeModules } : {}),
       ...(status === 'CANCELLED' && !dto.suspensionReason ? { suspensionReason: 'solicitacao_voluntaria' } : {}),
     };
     return this.repository.updateCompany(id, data);

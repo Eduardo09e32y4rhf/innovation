@@ -25,8 +25,9 @@ enum CompanyStatus {
 
 enum PlanType {
   FREE
-  STARTER
+  BASE
   PRO
+  ENTERPRISE
 }
 
 enum BillingStatus {
@@ -274,12 +275,17 @@ model Company {
   billingStatus BillingStatus @default(TRIAL)
   trialEndsAt   DateTime?
 
-  maxUsers        Int      @default(6)
-  maxEmployees    Int      @default(50)
-  isActive        Boolean  @default(true)
-  payrollStartDay Int      @default(1)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  maxUsers        Int     @default(6)
+  maxEmployees    Int     @default(50)
+  isActive        Boolean @default(true)
+  payrollStartDay Int     @default(1)
+
+  activeModules       String[] @default(["employees", "time-track", "vacations", "management", "whatsapp"])
+  asaasCustomerId     String?
+  asaasSubscriptionId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   users            User[]
   commercialOwner  User?                  @relation("CommercialOwner", fields: [commercialOwnerId], references: [id], onDelete: SetNull)

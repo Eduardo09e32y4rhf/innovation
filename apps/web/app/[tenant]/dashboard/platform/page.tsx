@@ -40,8 +40,8 @@ export default function PlatformPage() {
   });
 
   const updateLicense = useMutation(
-    ({ id, maxUsers, maxEmployees, plan, billingStatus, trialEndsAt }: { id: string; maxUsers: number; maxEmployees: number; plan?: 'FREE' | 'STARTER' | 'PRO'; billingStatus?: 'TRIAL' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED'; trialEndsAt?: string }) =>
-      api.platform.updateCompany(id, { maxUsers, maxEmployees, plan, billingStatus, trialEndsAt }),
+    ({ id, maxUsers, maxEmployees, plan, billingStatus, trialEndsAt, activeModules }: { id: string; maxUsers: number; maxEmployees: number; plan?: 'FREE' | 'BASE' | 'PRO' | 'ENTERPRISE'; billingStatus?: 'TRIAL' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED'; trialEndsAt?: string; activeModules?: string[] }) =>
+      api.platform.updateCompany(id, { maxUsers, maxEmployees, plan, billingStatus, trialEndsAt, activeModules }),
     { onSuccess: () => { companies.refetch(); stats.refetch(); setLicenseCompany(null); } },
   );
 
@@ -91,7 +91,6 @@ export default function PlatformPage() {
           { label: 'Empresas', value: stats.data?.companies, icon: Building2 },
           { label: 'Usuários', value: stats.data?.users, icon: Users },
           { label: 'Funcionários', value: stats.data?.employees, icon: Users },
-          { label: 'Mensagens', value: stats.data?.messages, icon: Users },
         ].map(({ label, value, icon: Icon }) => (
           <div key={label} className="ops-card rounded-[8px] border border-slate-200 bg-white p-4">
             <div className="mb-3 flex items-center justify-between">
@@ -202,7 +201,7 @@ export default function PlatformPage() {
         <LicenseModal
           company={licenseCompany}
           onClose={() => setLicenseCompany(null)}
-          onSave={(maxUsers, maxEmployees, plan, billingStatus, trialEndsAt) => updateLicense.mutate({ id: licenseCompany.id, maxUsers, maxEmployees, plan, billingStatus, trialEndsAt }).catch(() => {})}
+          onSave={(maxUsers, maxEmployees, plan, billingStatus, trialEndsAt, activeModules) => updateLicense.mutate({ id: licenseCompany.id, maxUsers, maxEmployees, plan, billingStatus, trialEndsAt, activeModules }).catch(() => {})}
           loading={updateLicense.loading}
           error={updateLicense.error}
         />
@@ -392,14 +391,15 @@ function F({ label, value, onChange, type = 'text', required }: { label: string;
 
 // ─── LICENSE MODAL ─────────────────────────────────────────────────────────
 
-function LicenseModal({ company, onClose, onSave, loading, error }: { company: PlatformCompany; onClose: () => void; onSave: (maxUsers: number, maxEmployees: number, plan: any, billingStatus: any, trialEndsAt: string) => void; loading: boolean; error: string | null }) {
+function LicenseModal({ company, onClose, onSave, loading, error }: { company: PlatformCompany; onClose: () => void; onSave: (maxUsers: number, maxEmployees: number, plan: any, billingStatus: any, trialEndsAt: string, activeModules: string[]) => void; loading: boolean; error: string | null }) {
     const [maxUsers, setMaxUsers] = useState(company.maxUsers);
   const [maxEmployees, setMaxEmployees] = useState(company.maxEmployees ?? 1);
   const [plan, setPlan] = useState<any>(company.plan ?? 'FREE');
   const [billingStatus, setBillingStatus] = useState<any>(company.billingStatus ?? 'TRIAL');
   const [trialEndsAt, setTrialEndsAt] = useState(safeIsoDate(company.trialEndsAt));
+  const [activeModules, setActiveModules] = useState<string[]>(company.activeModules || ['employees', 'time-track', 'vacations', 'management', 'whatsapp']);
 
-  const changed = maxUsers !== (company.maxUsers ?? 1) || maxEmployees !== (company.maxEmployees ?? 1) || plan !== (company.plan ?? 'FREE') || billingStatus !== (company.billingStatus ?? 'TRIAL') || trialEndsAt !== safeIsoDate(company.trialEndsAt);
+  const changed = maxUsers !== (company.maxUsers ?? 1) || maxEmployees !== (company.maxEmployees ?? 1) || plan !== (company.plan ?? 'FREE') || billingStatus !== (company.billingStatus ?? 'TRIAL') || trialEndsAt !== safeIsoDate(company.trialEndsAt) || JSON.stringify(activeModules) !== JSON.stringify(company.activeModules || ['employees', 'time-track', 'vacations', 'management', 'whatsapp']);
   const valid = maxUsers >= 1 && maxUsers >= company.usersCount && maxEmployees >= 1 && maxEmployees >= company.employeesCount;
 
   return (
@@ -456,6 +456,46 @@ function LicenseModal({ company, onClose, onSave, loading, error }: { company: P
                 <p className="mt-1 text-[10px] font-semibold text-rose-600">Não pode ser menor que o número atual de funcionários ({company.employeesCount})</p>
               )}
             </div>
+
+            <div>
+              <label className="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-600">Plano</label>
+              <select
+                value={plan}
+                onChange={(e) => setPlan(e.target.value)}
+                className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm font-semibold text-slate-900 outline-none focus:border-teal-500 bg-white"
+              >
+                <option value="FREE">Free Trial</option>
+                <option value="BASE">Base (R$ 299,00)</option>
+                <option value="PRO">Pro (R$ 399,00)</option>
+                <option value="ENTERPRISE">Enterprise (R$ 699,99)</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="rounded-[10px] border border-slate-100 bg-slate-50 p-4">
+            <label className="mb-3 block text-xs font-bold uppercase tracking-wider text-slate-600">Módulos Ativos</label>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { id: 'employees', label: 'Funcionários' },
+                { id: 'time-track', label: 'Ponto' },
+                { id: 'vacations', label: 'Férias' },
+                { id: 'management', label: 'Gestão' },
+                { id: 'whatsapp', label: 'WhatsApp' },
+              ].map(mod => (
+                <label key={mod.id} className="flex cursor-pointer items-center gap-2 text-xs font-semibold text-slate-700">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-600"
+                    checked={activeModules.includes(mod.id)}
+                    onChange={(e) => {
+                      if (e.target.checked) setActiveModules(prev => [...prev, mod.id]);
+                      else setActiveModules(prev => prev.filter(id => id !== mod.id));
+                    }}
+                  />
+                  {mod.label}
+                </label>
+              ))}
+            </div>
           </div>
 
           <div className="rounded-[10px] border border-teal-100 bg-teal-50 p-3">
@@ -487,7 +527,7 @@ function LicenseModal({ company, onClose, onSave, loading, error }: { company: P
         <div className="mt-5 flex justify-end gap-2">
           <button onClick={onClose} className="btn-outline h-10 rounded-[8px] px-4 text-xs font-bold">Cancelar</button>
           <button
-            onClick={() => valid && changed && onSave(maxUsers, maxEmployees, plan, billingStatus, trialEndsAt ? new Date(trialEndsAt).toISOString() : '')}
+            onClick={() => valid && changed && onSave(maxUsers, maxEmployees, plan, billingStatus, trialEndsAt ? new Date(trialEndsAt).toISOString() : '', activeModules)}
             disabled={!valid || !changed || loading}
             className="crystal-button h-10 rounded-[8px] px-4 text-xs font-black text-white disabled:opacity-60"
           >
