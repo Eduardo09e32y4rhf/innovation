@@ -8,13 +8,14 @@ import { useMutation, useQuery } from '@/app/hooks/use-data';
 import { api, type AppUser, type CreateUserInput, type UserRole } from '@/app/lib/api';
 import { ROLE_LABEL } from '@/app/lib/format';
 import { normalizeDisplayName } from '@/app/lib/text';
+import { PERMISSIONS_LABELS, type Permission, getDefaultPermissions } from '@/app/lib/permissions';
 
 const ALL_ROLES: UserRole[] = ['DEV', 'COMERCIAL', 'ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'];
 const COMPANY_ROLES: UserRole[] = ['ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'];
 const RH_ROLES: UserRole[] = ['RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'];
 const PLATFORM_OWNER_EMAIL = 'eduardo998468@gmail.com';
 
-type UserForm = CreateUserInput & { isActive?: boolean };
+type UserForm = CreateUserInput & { isActive?: boolean; customPermissions?: string[] };
 
 function getAvailableRoles(currentRole?: string, email?: string): UserRole[] {
   if (currentRole === 'DEV' && email?.toLowerCase() === PLATFORM_OWNER_EMAIL) return ALL_ROLES;
@@ -165,6 +166,7 @@ function UserModal({ user, availableRoles, onClose, onDone }: { user?: AppUser; 
     password: '',
     role: user?.role ?? (availableRoles.includes('FUNCIONARIO') ? 'FUNCIONARIO' : availableRoles[0] ?? 'FUNCIONARIO'),
     isActive: user ? user.isActive ?? true : undefined,
+    customPermissions: user?.customPermissions && Array.isArray(user.customPermissions) && user.customPermissions.length > 0 ? user.customPermissions : undefined,
   });
   const save = useMutation(() => {
     if (user) {
@@ -242,6 +244,54 @@ function UserModal({ user, availableRoles, onClose, onDone }: { user?: AppUser; 
               Usuário ativo
             </label>
           )}
+
+          <div className="mt-4 border-t border-slate-100 pt-4">
+            <h4 className="mb-2 text-sm font-bold text-slate-800">Acessos Personalizados</h4>
+            <p className="mb-3 text-[10px] text-slate-500">
+              Caso nenhuma caixa esteja marcada, o usuário terá as permissões padrões do <strong>Perfil</strong> escolhido acima. Se você marcar uma ou mais opções, as permissões do perfil serão ignoradas e o usuário só terá os acessos marcados aqui.
+            </p>
+            <div className="max-h-48 overflow-y-auto rounded border border-slate-200 bg-slate-50 p-2 space-y-1">
+              {(Object.keys(PERMISSIONS_LABELS) as Permission[]).map(p => {
+                const isSelected = form.customPermissions?.includes(p) || (!form.customPermissions && getDefaultPermissions(form.role || 'FUNCIONARIO').includes(p));
+                const isOverride = !!form.customPermissions && form.customPermissions.length > 0;
+                
+                return (
+                  <label key={p} className="flex items-start gap-2 text-[11px] font-medium text-slate-700 py-1 hover:bg-slate-100 rounded px-1 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={!!form.customPermissions?.includes(p)}
+                      onChange={(e) => {
+                        setForm(f => {
+                          const current = Array.isArray(f.customPermissions) ? f.customPermissions : [];
+                          if (e.target.checked) {
+                            return { ...f, customPermissions: [...current, p] };
+                          } else {
+                            // If they uncheck something when there's no override yet, we take all defaults and remove this one
+                            if (current.length === 0) {
+                               const defs = getDefaultPermissions(f.role || 'FUNCIONARIO');
+                               return { ...f, customPermissions: defs.filter(x => x !== p) };
+                            }
+                            return { ...f, customPermissions: current.filter(x => x !== p) };
+                          }
+                        });
+                      }}
+                      className="mt-0.5 h-3.5 w-3.5 rounded border-slate-300 text-teal-600 focus:ring-teal-600"
+                    />
+                    <span>{PERMISSIONS_LABELS[p]} {(!isOverride && isSelected) ? <span className="text-[9px] text-slate-400 font-normal">(Padrão do perfil)</span> : null}</span>
+                  </label>
+                );
+              })}
+            </div>
+            {!!form.customPermissions && form.customPermissions.length > 0 && (
+              <button 
+                type="button" 
+                onClick={() => setForm(f => ({ ...f, customPermissions: undefined }))}
+                className="mt-2 text-[10px] font-bold text-teal-600 hover:underline"
+              >
+                Restaurar acessos padrões do perfil
+              </button>
+            )}
+          </div>
         </div>
         <div className="mt-5 flex justify-end gap-2">
           <button onClick={onClose} className="btn-outline h-10 rounded-[8px] px-4 text-xs font-bold">Cancelar</button>

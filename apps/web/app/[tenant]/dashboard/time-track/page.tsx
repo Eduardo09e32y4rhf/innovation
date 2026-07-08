@@ -13,6 +13,7 @@ import { useMutation, useQuery } from '@/app/hooks/use-data';
 import { api, type Employee, type TimeTrack, type TimeTrackAdjustmentReason } from '@/app/lib/api';
 import { formatMinutes } from '@/app/lib/format';
 import { normalizeDisplayName } from '@/app/lib/text';
+import { hasPermission } from '@/app/lib/permissions';
 import { buildPdfShell, section, infoGrid, pdfTable, signatureBlock, printPdf, type PdfCompanyInfo } from '@/app/lib/pdf-utils';
 
 const WEEKDAYS = ['DOM','SEG','TER','QUA','QUI','SEX','SÁB'];
@@ -224,10 +225,10 @@ export default function TimeTrackPage() {
 
   const { user } = useAuth();
   const profile = user?.profile?.toUpperCase();
-  const canManage = profile==='DEV'||profile==='ADMIN'||profile==='RH';
-  const canApprove = canManage || profile==='GESTOR';
-  const isFunc = profile==='FUNCIONARIO';
-  const isGestor = profile==='GESTOR';
+  const canManage = hasPermission(user, 'time_tracking.view_all');
+  const canApprove = hasPermission(user, 'time_tracking.approve_all') || hasPermission(user, 'time_tracking.approve_team');
+  const isGestor = hasPermission(user, 'time_tracking.view_team') && !canManage;
+  const isFunc = !canManage && !isGestor;
 
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -241,6 +242,7 @@ export default function TimeTrackPage() {
   const [empFilter, setEmpFilter] = useState(searchParams.get('employeeId') ?? '');
   const [deptFilter, setDeptFilter] = useState('');
   const [tab, setTab] = useState<'ponto'|'ocorrencias'>('ponto');
+  const [selectedPending, setSelectedPending] = useState<string[]>([]);
 
   useEffect(() => {
     const q = searchParams.get('employeeId');
@@ -281,6 +283,7 @@ export default function TimeTrackPage() {
   const remove = useMutation((id:string)=> api.timeTrack.delete(id), { onSuccess: ()=> tracks.refetch() });
   const pending = useQuery(() => api.timeTrack.listPending(), [], { enabled: canApprove });
   const approveMut = useMutation((p:{id:string;approved:boolean})=> api.timeTrack.approve(p.id, p.approved), { onSuccess:()=>{ pending.refetch(); tracks.refetch(); }});
+  const batchApproveMut = useMutation((p:{ids:string[];approved:boolean})=> api.timeTrack.batchApprove(p.ids, p.approved), { onSuccess:()=>{ pending.refetch(); tracks.refetch(); setSelectedPending([]); }});
 
   const onDelete = async (r: TimeTrack) => {
     if (!window.confirm(`Excluir ponto de ${normalizeDisplayName(r.employee?.name ??'-')} em ${fmtDateFull(r.date)}?`)) return;
@@ -306,16 +309,31 @@ export default function TimeTrackPage() {
 
       {canApprove && (pending.data ?? []).length > 0 && (
         <section className="rounded-[12px] border border-amber-200 bg-amber-50 p-4">
-          <h3 className="mb-3 text-sm font-black text-amber-900">PONTOS PENDENTES DE APROVAÇÃO ({(pending.data ?? []).length})</h3>
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+            <h3 className="text-sm font-black text-amber-900">PONTOS PENDENTES DE APROVAÇÃO ({(pending.data ?? []).length})</h3>
+            {selectedPending.length > 0 && (
+              <div className="flex gap-2">
+                <button onClick={()=>batchApproveMut.mutate({ids:selectedPending,approved:true}).catch(()=>{})} disabled={batchApproveMut.loading} className="inline-flex h-8 items-center gap-1 rounded-[6px] bg-emerald-600 px-3 text-[11px] font-bold text-white disabled:opacity-60"><Check size={12}/>APROVAR LOTE ({selectedPending.length})</button>
+                <button onClick={()=>batchApproveMut.mutate({ids:selectedPending,approved:false}).catch(()=>{})} disabled={batchApproveMut.loading} className="inline-flex h-8 items-center gap-1 rounded-[6px] bg-rose-600 px-3 text-[11px] font-bold text-white disabled:opacity-60"><XCircle size={12}/>RECUSAR LOTE ({selectedPending.length})</button>
+              </div>
+            )}
+          </div>
           {approveMut.error && <p className="mb-3 rounded-[8px] border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">{approveMut.error}</p>}
+          {batchApproveMut.error && <p className="mb-3 rounded-[8px] border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">{batchApproveMut.error}</p>}
           <div className="space-y-2">{(pending.data ?? []).map(t=> (
             <div key={t.id} className="flex items-center justify-between rounded-[8px] border border-amber-200 bg-white px-4 py-3">
-              <div className="text-xs">
-                  <p className="font-black text-slate-950">{normalizeDisplayName(t.employee?.name ??'-')}</p>
-                  <p className="text-slate-500 mt-0.5 flex items-center gap-2">
-                    <span className="font-semibold">{fmtDateFull(t.date)}</span>
-                    <span className="inline-flex items-center rounded-sm bg-slate-100 border border-slate-200 px-1.5 py-0.5 text-[9px] font-black text-slate-600">{REASONS.find(r => r.value === t.manualReason)?.label || t.manualReason || 'AJUSTE MANUAL'}</span>
-                  </p>
+              <div className="flex items-center gap-3 text-xs">
+                  <input type="checkbox" className="h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-600" checked={selectedPending.includes(t.id)} onChange={e => {
+                    if(e.target.checked) setSelectedPending(prev => [...prev, t.id]);
+                    else setSelectedPending(prev => prev.filter(id => id !== t.id));
+                  }} />
+                  <div>
+                    <p className="font-black text-slate-950">{normalizeDisplayName(t.employee?.name ??'-')}</p>
+                    <p className="text-slate-500 mt-0.5 flex items-center gap-2">
+                      <span className="font-semibold">{fmtDateFull(t.date)}</span>
+                      <span className="inline-flex items-center rounded-sm bg-slate-100 border border-slate-200 px-1.5 py-0.5 text-[9px] font-black text-slate-600">{REASONS.find(r => r.value === t.manualReason)?.label || t.manualReason || 'AJUSTE MANUAL'}</span>
+                    </p>
+                  </div>
                 </div>
               <div className="flex gap-2">
                 <button onClick={()=>approveMut.mutate({id:t.id,approved:true}).catch(()=>{})} disabled={approveMut.loading} className="inline-flex h-8 items-center gap-1 rounded-[6px] bg-emerald-600 px-3 text-[11px] font-bold text-white disabled:opacity-60"><Check size={12}/>APROVAR</button>

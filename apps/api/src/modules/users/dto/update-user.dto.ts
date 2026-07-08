@@ -21,4 +21,7 @@ export class UpdateUserDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  @IsOptional()
+  customPermissions?: any;
 }

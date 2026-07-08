@@ -442,6 +442,20 @@ export class TimeTrackService {
     return this.repository.updateManualStatus(companyId, id, status);
   }
 
+  async batchApproveManual(companyId: string, actor: JwtUser, ids: string[], approved: boolean) {
+    if (!Array.isArray(ids) || ids.length === 0) throw new BadRequestException('A lista de IDs nao pode estar vazia');
+    const results = [];
+    // Doing it sequentially to reuse validation logic
+    for (const id of ids) {
+      try {
+        const result = await this.approveManual(companyId, actor, id, approved);
+        results.push({ id, status: 'success', data: result });
+      } catch (err: any) {
+        results.push({ id, status: 'error', message: err.message });
+      }
+    }
+    return { results };
+  }
   async revokeManual(companyId: string, actor: JwtUser, id: string, reason: string) {
     if (actor.role !== 'ADMIN' && actor.role !== 'RH' && actor.role !== 'DEV') {
       throw new ForbiddenException('Apenas RH pode revogar um ajuste de ponto.');

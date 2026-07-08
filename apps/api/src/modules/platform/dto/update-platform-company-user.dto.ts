@@ -1,4 +1,4 @@
-﻿import { IsBoolean, IsEmail, IsIn, IsOptional, IsString, MinLength } from 'class-validator';
+import { IsBoolean, IsEmail, IsIn, IsOptional, IsString, MinLength } from 'class-validator';
 
 export class UpdatePlatformCompanyUserDto {
   @IsOptional()
@@ -21,4 +21,7 @@ export class UpdatePlatformCompanyUserDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  @IsOptional()
+  customPermissions?: any;
 }

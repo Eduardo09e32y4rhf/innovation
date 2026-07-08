@@ -66,7 +66,7 @@ export class PlatformService {
       adminEmail,
       adminPasswordHash,
       commercialOwnerId: actor.role === 'COMERCIAL' ? actor.sub : null,
-        plan: 'FREE',
+        plan: 'PRO',
         billingStatus: 'TRIAL',
         trialEndsAt,
     });
@@ -117,7 +117,7 @@ export class PlatformService {
     if (existing) throw new ConflictException('E-mail ja cadastrado');
 
     const count = await this.repository.countUsers(companyId);
-    if (count >= (company.plan === 'PRO' ? 9999 : company.plan === 'STARTER' ? 20 : 6)) {
+    if (count >= (company.plan === 'PRO' ? 9999 : company.plan === 'BASE' ? 20 : 6)) {
       throw new ForbiddenException(`Limite de usuarios atingido para esta empresa.`);
     }
 

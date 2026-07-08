@@ -50,9 +50,16 @@ function isActive(pathname: string | null, item: NavItemConfig) {
   return Boolean(pathname?.startsWith(route));
 }
 
-function canSeeItem(item: NavItemConfig, profile: string | undefined) {
+import { hasPermission } from '@/app/lib/permissions';
+
+function canSeeItem(item: NavItemConfig, user: any) {
+  if (item.label === 'Usuários' && !hasPermission(user, 'users.manage_employees')) return false;
+  if (item.label === 'Gestão' && !hasPermission(user, 'platform.manage') && !hasPermission(user, 'users.view_team')) return false;
+  if (item.label === 'Funcionários' && !hasPermission(user, 'users.manage_employees') && !hasPermission(user, 'users.view_team')) return false;
+  if (item.label === 'Plataforma' && !hasPermission(user, 'platform.manage')) return false;
+  
   if (!item.roles?.length) return true;
-  return item.roles.includes(String(profile || '').toUpperCase());
+  return item.roles.includes(String(user?.profile || '').toUpperCase());
 }
 
 function getInitials(name?: string, email?: string) {
@@ -72,7 +79,7 @@ export function DashboardSidebar() {
   const activeModules = company.data?.activeModules || ['employees', 'time-track', 'vacations', 'management', 'whatsapp'];
 
   const navItems = baseNavItems.filter((item) => {
-    if (!canSeeItem(item, profile)) return false;
+    if (!canSeeItem(item, user)) return false;
     if (item.moduleKey && !activeModules.includes(item.moduleKey)) return false;
     return true;
   });

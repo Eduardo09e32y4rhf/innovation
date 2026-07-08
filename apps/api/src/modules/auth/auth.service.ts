@@ -37,6 +37,7 @@ export class AuthService {
       name: admin.name,
       companyId: admin.companyId,
       role: this.resolveRole(admin.email, admin.role),
+      customPermissions: admin.customPermissions,
     }, true);
   }
 
@@ -71,7 +72,7 @@ export class AuthService {
       await this.repository.resetFailedLogins(user.id);
     }
 
-    return this.buildAuthResponse({ sub: user.id, email: user.email, name: user.name, companyId: user.companyId, role }, this.passwordChangeRequired(user));
+    return this.buildAuthResponse({ sub: user.id, email: user.email, name: user.name, companyId: user.companyId, role, customPermissions: user.customPermissions }, this.passwordChangeRequired(user));
   }
 
 
@@ -219,6 +220,7 @@ export class AuthService {
       name: freshUser.name,
       companyId: freshUser.companyId,
       role,
+      customPermissions: freshUser.customPermissions,
       passwordChangeRequired: this.passwordChangeRequired(freshUser),
     };
   }

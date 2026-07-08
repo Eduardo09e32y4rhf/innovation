@@ -17,6 +17,7 @@ export interface User {
   email: string;
   profile: string;
   companyId: string;
+  customPermissions?: string[];
 }
 
 export interface Company {
@@ -168,6 +169,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         email: freshUser.email,
         profile: String(freshUser.role || 'USER').toLowerCase(),
         companyId: freshUser.companyId,
+        customPermissions: Array.isArray(freshUser.customPermissions) ? freshUser.customPermissions : [],
       };
       const nextCompany = { ...savedCompany, id: freshUser.companyId || savedCompany.id };
       const mustChangePassword = Boolean(freshUser.passwordChangeRequired);
@@ -222,6 +224,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         email: authData.user.email,
         profile: String(authData.user.role || 'USER').toLowerCase(),
         companyId: authData.user.companyId,
+        customPermissions: Array.isArray(authData.user.customPermissions) ? authData.user.customPermissions : [],
       };
       const nextCompany: Company = {
         id: authData.user.companyId,

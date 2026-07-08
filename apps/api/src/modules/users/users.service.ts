@@ -38,7 +38,7 @@ export class UsersService {
       this.repository.countByCompany(companyId),
       this.repository.getCompanyLimits(companyId),
     ]);
-    const maxUsers = limits?.plan === 'PRO' ? 9999 : limits?.plan === 'STARTER' ? 20 : 6;
+    const maxUsers = limits?.plan === 'PRO' ? 9999 : limits?.plan === 'BASE' ? 20 : 6;
     if (count >= maxUsers) {
       throw new ForbiddenException(
         `Limite de ${maxUsers} usuarios atingido para esta empresa. Contate o suporte para ampliar o plano.`,
@@ -93,7 +93,7 @@ export class UsersService {
       this.repository.countByCompany(companyId),
       this.repository.getCompanyLimits(companyId),
     ]);
-    return { used: count, max: limits?.plan === 'PRO' ? 9999 : limits?.plan === 'STARTER' ? 20 : 6 };
+    return { used: count, max: limits?.plan === 'PRO' ? 9999 : limits?.plan === 'BASE' ? 20 : 6 };
   }
 
   private assertRoleChangeAllowed(actor: JwtUser, nextRole?: string) {

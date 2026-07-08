@@ -336,6 +336,7 @@ model User {
   resetPasswordCode    String?
   resetPasswordExpires DateTime?
   lastActiveAt         DateTime?
+  customPermissions    Json?
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
 

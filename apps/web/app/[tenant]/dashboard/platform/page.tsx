@@ -368,7 +368,7 @@ function CompanyUserFormModal({ companyId, user, onClose, onDone }: { companyId:
 
 function NewCompanyModal({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
   const [form, setForm] = useState<CreatePlatformCompanyInput>({
-    name: '', document: '', maxUsers: 6, maxEmployees: 50,
+    name: '', document: '', slug: '', maxUsers: 10, maxEmployees: 20,
     adminName: '', adminEmail: '', adminPassword: '',
   });
   const create = useMutation(() => api.platform.createCompany({

@@ -6,8 +6,9 @@ import { EmptyState, ErrorState, LoadingState } from '@/app/components/data-stat
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useMutation, useQuery } from '@/app/hooks/use-data';
 import { api, type Company, type CreateVacationInput, type Employee, type VacationStatus } from '@/app/lib/api';
-import { VACATION_STATUS_LABEL, formatPeriod, formatDate } from '@/app/lib/format';
+import { VACATION_STATUS_LABEL, formatPeriod, formatDate, ROLE_LABEL } from '@/app/lib/format';
 import { normalizeDisplayName } from '@/app/lib/text';
+import { hasPermission } from '@/app/lib/permissions';
 import { buildPdfShell, section, infoGrid, signatureBlock, printPdf, type PdfCompanyInfo } from '@/app/lib/pdf-utils';
 
 const MAX_VACATION_DAYS = 30;
@@ -115,9 +116,8 @@ function calcEligibility(admissionDateStr: string): EligibilityInfo | null {
 
 export default function VacationsPage() {
   const { user } = useAuth();
-  const profile = user?.profile?.toUpperCase();
-  const canApprove = profile === 'DEV' || profile === 'ADMIN' || profile === 'RH' || profile === 'GESTOR';
-  const isGestor = profile === 'GESTOR';
+  const canApprove = hasPermission(user, 'vacations.approve');
+  const isGestor = !hasPermission(user, 'users.manage_employees') && hasPermission(user, 'vacations.request_team');
 
   const vacations = useQuery(() => api.vacations.list(), []);
   const employees = useQuery(() => api.employees.list(), []);

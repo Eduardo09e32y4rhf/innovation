@@ -6,4 +6,5 @@ export interface JwtUser {
   name?: string;
   companyId: string;
   role: UserRole;
+  customPermissions?: any;
 }

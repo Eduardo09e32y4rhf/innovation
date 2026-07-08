@@ -136,6 +136,11 @@ export class TimeTrackController {
     return this.service.approveManual(companyId, actor, id, body.approved);
   }
 
+  @Post('batch-approve')
+  batchApprove(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Body() body: { ids: string[], approved: boolean }) {
+    return this.service.batchApproveManual(companyId, actor, body.ids, body.approved);
+  }
+
   @Roles('DEV', 'ADMIN', 'RH')
   @Patch(':id')
   update(@CurrentCompany() companyId: string, @Param('id') id: string, @Body() dto: UpdateTimeTrackDto) {

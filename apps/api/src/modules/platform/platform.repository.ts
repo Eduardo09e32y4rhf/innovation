@@ -92,7 +92,7 @@ export class PlatformRepository {
     adminEmail: string;
     adminPasswordHash: string;
     commercialOwnerId?: string | null;
-    plan?: 'FREE' | 'STARTER' | 'PRO';
+    plan?: 'FREE' | 'BASE' | 'PRO' | 'ENTERPRISE';
     billingStatus?: 'TRIAL' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED';
     trialEndsAt?: Date;
   }) {

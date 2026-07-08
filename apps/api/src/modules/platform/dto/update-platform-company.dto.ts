@@ -9,12 +9,6 @@ export class UpdatePlatformCompanyDto {
   @IsString()
   document?: string;
 
-
-
-  @IsOptional()
-  @IsBoolean()
-  
-
   @IsOptional()
   @IsIn(['ACTIVE', 'SUSPENDED', 'CANCELLED'])
   status?: 'ACTIVE' | 'SUSPENDED' | 'CANCELLED';
@@ -41,4 +35,26 @@ export class UpdatePlatformCompanyDto {
   @IsOptional()
   @IsString()
   internalNotes?: string | null;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  maxUsers?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  maxEmployees?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
+
+  @IsOptional()
+  @IsString()
+  asaasCustomerId?: string | null;
+
+  @IsOptional()
+  @IsString()
+  asaasSubscriptionId?: string | null;
 }

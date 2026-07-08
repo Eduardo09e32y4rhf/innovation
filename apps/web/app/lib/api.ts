@@ -139,6 +139,7 @@ export interface Employee {
   workScale?: WorkScale | null; customWorkScale?: string | null; dailyWorkload?: DailyWorkload | null;
   standardEntry?: string | null; standardLunchStart?: string | null; standardLunchReturn?: string | null; standardExit?: string | null;
   user?: { id: string; role: UserRole; isActive: boolean; forcePasswordChange?: boolean } | null;
+  faceEnrollment?: { active: boolean; vectors?: number[] } | null;
   createdAt: string; updatedAt: string;
 }
 
@@ -181,6 +182,10 @@ export interface TimeTrack {
   latitude?: number | null; longitude?: number | null;
   manualReason?: string | null; manualStatus?: string | null;
   incidentType?: string | null;
+  isFuture: boolean;
+  isRest: boolean;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  overtimeApprovalStatus?: 'PENDING' | 'APPROVED' | 'REJECTED';
 }
 export type TimeTrackAdjustmentReason = 'ajuste_erro_marcacao' | 'ajuste_atestado_integral' | 'ajuste_feriado' | 'ajuste_abono_atestado_horas' | 'ajuste_folga_dsr' | 'ajuste_abono_folga' | 'ajuste_abono_banco_saida_antecipada' | 'ajuste_abono_atraso' | 'ajuste_suspensao';
 export interface RegisterTimeInput { employeeId?: string; type?: PunchType; timestamp?: string; observation?: string; latitude?: number; longitude?: number; manualReason?: string; }
@@ -217,10 +222,10 @@ export interface DashboardInsights {
 }
 export interface AppUser {
   id: string; name: string; email: string; role: UserRole;
-  companyId: string; isActive?: boolean; createdAt?: string;
+  companyId: string; isActive?: boolean; createdAt?: string; customPermissions?: string[];
 }
 export interface UsersUsage { used: number; max: number; }
-export interface CreateUserInput { name: string; email: string; password: string; role?: UserRole; }
+export interface CreateUserInput { name: string; email: string; password: string; role?: UserRole; customPermissions?: string[]; }
 
 export interface WhatsappStatus {
   status: 'CONNECTED' | 'CONNECTING' | 'DISCONNECTED' | 'QR_CODE' | string;
@@ -240,23 +245,42 @@ export type CompanyStatus = 'ACTIVE' | 'SUSPENDED' | 'CANCELLED';
 export interface Company {
   id: string; name: string; legalName?: string | null; document?: string | null; logoUrl?: string | null;
   phone?: string | null; email?: string | null; address?: string | null;
+  cnpj?: string | null; street?: string | null; streetNumber?: string | null;
+  neighborhood?: string | null; city?: string | null; state?: string | null; cep?: string | null;
+  latitude?: number | null; longitude?: number | null; radiusTolerance?: number | null;
   primaryColor?: string | null; theme?: string | null;
   commercialOwnerId?: string | null; maxUsers: number; maxEmployees: number;
   isActive: boolean; status?: CompanyStatus; createdAt: string;
   subscriptionStartedAt?: string; suspensionReason?: string | null;
-    plan?: 'FREE' | 'BASE' | 'PRO' | 'ENTERPRISE';
-    billingStatus?: 'TRIAL' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED';
-    trialEndsAt?: string | null;
-    activeModules?: string[];
-    asaasCustomerId?: string | null;
-    asaasSubscriptionId?: string | null;
-    internalNotes?: string | null;
+  plan?: 'FREE' | 'BASE' | 'PRO' | 'ENTERPRISE';
+  billingStatus?: 'TRIAL' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED';
+  trialEndsAt?: string | null;
+  activeModules?: string[];
+  asaasCustomerId?: string | null;
+  asaasSubscriptionId?: string | null;
+  internalNotes?: string | null;
 }
-export interface PlatformCompany extends Company { usersCount: number; employeesCount: number; }
+export interface PlatformCompany {
+  id: string; name: string; document: string; slug: string;
+  status: CompanyStatus; isActive: boolean;
+  maxUsers?: number; maxEmployees?: number;
+  asaasCustomerId?: string; asaasSubscriptionId?: string;
+  createdAt: string; updatedAt: string;
+  usersCount: number; employeesCount: number;
+  plan?: 'FREE' | 'BASE' | 'PRO' | 'ENTERPRISE';
+  billingStatus?: 'TRIAL' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED';
+  trialEndsAt?: string | null;
+  activeModules?: string[];
+  internalNotes?: string | null;
+  commercialOwnerId?: string | null;
+  suspensionReason?: string | null;
+}
 export interface PlatformStats { companies: number; users: number; employees: number; messages: number; }
 export interface CreatePlatformCompanyInput {
-  name: string; document?: string; maxUsers?: number; maxEmployees?: number;
-  adminName: string; adminEmail: string; adminPassword: string;
+  name: string; document: string; slug: string;
+  maxUsers?: number; maxEmployees?: number;
+  asaasCustomerId?: string; asaasSubscriptionId?: string;
+  adminName: string; adminEmail: string; adminPassword?: string;
 }
 export type PlatformCompanyUserRole = 'ADMIN' | 'RH' | 'GESTOR' | 'FUNCIONARIO' | 'CONSULTA';
 export interface CreatePlatformCompanyUserInput { name: string; email: string; password: string; role?: PlatformCompanyUserRole; }
@@ -383,6 +407,7 @@ export const api = {
     delete: (id: string) => request<void>(`/time-track/${id}`, { method: 'DELETE' }),
     listPending: () => request<TimeTrack[]>('/time-track/pending', { timeoutMs: 12000 }),
     approve: (id: string, approved: boolean) => request<TimeTrack>(`/time-track/${id}/approve`, { method: 'PATCH', body: { approved } }),
+    batchApprove: (ids: string[], approved: boolean) => request<any>(`/time-track/batch-approve`, { method: 'POST', body: { ids, approved } }),
     revoke: (id: string, reason: string) => request<TimeTrack>(`/time-track/${id}/revoke`, { method: 'PATCH', body: { reason } }),
   },
   vacations: {
@@ -464,8 +489,8 @@ export const api = {
     listCompanies: () => request<PlatformCompany[]>('/platform/companies'),
     getCompany: (id: string) => request<PlatformCompany>(`/platform/companies/${id}`),
     createCompany: (input: CreatePlatformCompanyInput) => request<unknown>('/platform/companies', { method: 'POST', body: input }),
-    updateCompany: (id: string, input: Partial<Omit<CreatePlatformCompanyInput, 'adminName' | 'adminEmail' | 'adminPassword'>> & { isActive?: boolean; status?: CompanyStatus; suspensionReason?: string | null; plan?: 'FREE' | 'BASE' | 'PRO' | 'ENTERPRISE'; billingStatus?: 'TRIAL' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED'; trialEndsAt?: string; activeModules?: string[] }) =>
-      request<unknown>(`/platform/companies/${id}`, { method: 'PATCH', body: input }),
+    updateCompany: (id: string, input: Partial<Omit<CreatePlatformCompanyInput, 'adminName' | 'adminEmail' | 'adminPassword'>> & { isActive?: boolean; status?: CompanyStatus; suspensionReason?: string | null; plan?: 'FREE' | 'BASE' | 'PRO' | 'ENTERPRISE'; billingStatus?: 'TRIAL' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED'; trialEndsAt?: string; activeModules?: string[]; asaasCustomerId?: string; asaasSubscriptionId?: string; internalNotes?: string }) =>
+      request<PlatformCompany>(`/platform/companies/${id}`, { method: 'PATCH', body: input }),
     deleteCompany: (id: string) => request<void>(`/platform/companies/${id}`, { method: 'DELETE' }),
     listCompanyUsers: (companyId: string) => request<AppUser[]>(`/platform/company-users/${companyId}`),
     createCompanyUser: (companyId: string, input: CreatePlatformCompanyUserInput) => request<AppUser>(`/platform/company-users/${companyId}`, { method: 'POST', body: input }),
