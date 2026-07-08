@@ -15,7 +15,7 @@ import {
   Zap,
   Shield,
   MessageCircle,
-  Atom,
+  Orbit,
   type LucideIcon,
 } from 'lucide-react';
 import { useAuth } from '@/app/contexts/AuthContext';
@@ -111,7 +111,7 @@ function CompanyBrandCard({ name, document, logoUrl }: { name?: string | null; d
         {logoUrl ? (
           <img src={logoUrl} alt="Logo da empresa" className="h-full w-full object-contain p-1.5" />
         ) : (
-          <Atom size={16} strokeWidth={2.2} className="text-[#0D0D0E]" />
+          <Orbit size={16} strokeWidth={2.2} className="text-[#0D0D0E]" />
         )}
       </div>
       <div className="min-w-0">
