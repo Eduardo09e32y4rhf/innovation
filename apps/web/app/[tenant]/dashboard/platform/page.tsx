@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Building2, Edit3, Plus, Power, Settings, Trash2, Users, X, Database, Shield, CreditCard, MessageSquare, Key } from 'lucide-react';
 import { EmptyState, ErrorState, LoadingState } from '@/app/components/data-states';
 import { useAuth } from '@/app/contexts/AuthContext';
+import { getAuthScopeSnapshot } from '@/app/lib/auth-session';
 import { useMutation, useQuery } from '@/app/hooks/use-data';
 import { api, type AppUser, type CreatePlatformCompanyInput, type PlatformCompany, type PlatformCompanyUserRole } from '@/app/lib/api';
 import { ROLE_LABEL, formatDate } from '@/app/lib/format';
@@ -54,6 +55,23 @@ export default function PlatformPage() {
     if (isSuperAdmin) return true;
     return currentRole === 'COMERCIAL' && c.commercialOwnerId === user?.id;
   }
+
+  const handleGhostMode = async (c: PlatformCompany) => {
+    try {
+      const res = await fetch(`/api/platform/companies/${c.id}/ghost-token`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${getAuthScopeSnapshot().token}` },
+      });
+      const data = await res.json();
+      if (data?.data?.token) {
+        window.open(`/auth/ghost?token=${data.data.token}`, '_blank');
+      } else {
+        window.alert('Não foi possível gerar o token de acesso (Ghost Mode).');
+      }
+    } catch {
+      window.alert('Erro ao tentar acessar a empresa.');
+    }
+  };
 
   async function handleToggle(c: PlatformCompany) {
     if (!isSuperAdmin) return;
