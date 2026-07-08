@@ -1,4 +1,5 @@
 import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import type { JwtUser } from '../../common/types/auth.types';
 import { emptyToNull, normalizeDisplayName } from '../../common/utils/text-normalization';
@@ -13,10 +14,31 @@ const PROTECTED_PLATFORM_ROLES = ['DEV', 'COMERCIAL'];
 
 @Injectable()
 export class PlatformService {
-  constructor(private readonly repository: PlatformRepository) {}
+  constructor(
+    private readonly repository: PlatformRepository,
+    private readonly jwtService: JwtService,
+  ) {}
 
   listCompanies() {
     return this.repository.listCompanies();
+  }
+
+  getOnlineUsers() {
+    return this.repository.getOnlineUsers();
+  }
+
+  async ghostMode(companyId: string) {
+    const admin = await this.repository.getFirstAdmin(companyId);
+    if (!admin) throw new NotFoundException('Nenhum administrador encontrado nesta empresa para o Ghost Mode');
+    
+    const payload = {
+      sub: admin.id,
+      email: admin.email,
+      role: admin.role,
+      companyId: admin.companyId,
+      ghostMode: true,
+    };
+    return { token: this.jwtService.sign(payload) };
   }
 
   async getCompany(id: string) {

@@ -283,6 +283,7 @@ model Company {
   activeModules       String[] @default(["employees", "time-track", "vacations", "management", "whatsapp"])
   asaasCustomerId     String?
   asaasSubscriptionId String?
+  internalNotes       String?  @db.Text
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -334,6 +335,7 @@ model User {
   previousPasswords    String[]  @default([])
   resetPasswordCode    String?
   resetPasswordExpires DateTime?
+  lastActiveAt         DateTime?
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
 

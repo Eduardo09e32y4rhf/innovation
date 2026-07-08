@@ -5,13 +5,17 @@ import { usePathname , useParams } from 'next/navigation';
 import {
   Building2,
   CalendarDays,
-  Clock3,
+  FileText,
+  Clock,
   LayoutDashboard,
   Settings,
   Smartphone,
   UserCog,
   Users,
   Zap,
+  Shield,
+  MessageCircle,
+  Atom,
   type LucideIcon,
 } from 'lucide-react';
 import { useAuth } from '@/app/contexts/AuthContext';
@@ -107,12 +111,12 @@ function CompanyBrandCard({ name, document, logoUrl }: { name?: string | null; d
         {logoUrl ? (
           <img src={logoUrl} alt="Logo da empresa" className="h-full w-full object-contain p-1.5" />
         ) : (
-          <Zap size={15} strokeWidth={2.2} className="text-[#0D0D0E]" />
+          <Atom size={16} strokeWidth={2.2} className="text-[#0D0D0E]" />
         )}
       </div>
       <div className="min-w-0">
         <p className="truncate text-[9px] font-semibold uppercase leading-none tracking-[0.18em] text-white/40">
-          {normalizeDisplayName(name) || 'Innovation RH Connect'}
+          {normalizeDisplayName(name) || 'Innovation RH System'}
         </p>
         <p className="mt-0.5 truncate text-[13px] font-semibold leading-tight text-white">{document || 'Console RH'}</p>
       </div>

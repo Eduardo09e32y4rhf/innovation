@@ -19,7 +19,7 @@ type ConsentStatus = {
 const TERM_SECTIONS = [
   {
     title: '1. Finalidade do sistema e Segurança',
-    text: 'O Innovation RH Connect é utilizado para apoiar rotinas de RH, controle de ponto, férias, jornada e cadastro de colaboradores da empresa cliente. O sistema adota padrões rigorosos de segurança e criptografia de ponta a ponta para garantir a proteção avançada dos dados dos colaboradores contra acessos indevidos e vazamentos.',
+    text: 'O Innovation RH System é utilizado para apoiar rotinas de RH, controle de ponto, férias, jornada e cadastro de colaboradores da empresa cliente. O sistema adota padrões rigorosos de segurança e criptografia de ponta a ponta para garantir a proteção avançada dos dados dos colaboradores contra acessos indevidos e vazamentos.',
   },
   {
     title: '2. Ferramentas de IA da Prosolution',
@@ -27,7 +27,7 @@ const TERM_SECTIONS = [
   },
   {
     title: '3. Papéis na LGPD',
-    text: 'A empresa cliente atua como Controladora dos dados pessoais de seus colaboradores e dita as regras e finalidades do tratamento. O Innovation RH Connect atua apenas como Operador, processando dados exclusivamente conforme instruções contratuais da Controladora.',
+    text: 'A empresa cliente atua como Controladora dos dados pessoais de seus colaboradores e dita as regras e finalidades do tratamento. O Innovation RH System atua apenas como Operador, processando dados exclusivamente conforme instruções contratuais da Controladora.',
   },
   {
     title: '4. Dados tratados e Dados Sensíveis',
@@ -147,7 +147,7 @@ export function PrivacyConsentGate({ children }: { children: React.ReactNode }) 
         <div className="min-h-0 flex-1 overflow-y-auto p-5 sm:p-7">
           <div className="grid gap-3 text-sm text-slate-700 md:grid-cols-2">
             <InfoLine label="Controladora" value="A empresa cliente detém o controle dos dados de seus colaboradores." />
-            <InfoLine label="Operadora e IA" value="Innovation RH Connect operado sob tecnologia da Prosolution." />
+            <InfoLine label="Operadora e IA" value="Innovation RH System operado sob tecnologia da Prosolution." />
             <InfoLine label="Finalidade Base" value={status.purpose || FALLBACK_PURPOSE} />
             <InfoLine label="Versão Contratual" value={status.termVersion || TERMS_VERSION} />
           </div>

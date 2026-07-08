@@ -4,7 +4,7 @@ import { clearAuthSession, readAuthSession } from './auth-session';
 import { resetAllQueryStates } from '@/app/hooks/use-data';
 
 /**
- * Cliente HTTP central do Innovation RH Connect.
+ * Cliente HTTP central do Innovation RH System.
  * Injeta JWT, trata 401 automaticamente, expoe api.modulo.metodo() tipado.
  */
 
@@ -250,6 +250,7 @@ export interface Company {
     activeModules?: string[];
     asaasCustomerId?: string | null;
     asaasSubscriptionId?: string | null;
+    internalNotes?: string | null;
 }
 export interface PlatformCompany extends Company { usersCount: number; employeesCount: number; }
 export interface PlatformStats { companies: number; users: number; employees: number; messages: number; }
@@ -400,6 +401,7 @@ export const api = {
     update: (id: string, input: Partial<CreateUserInput>) => request<AppUser>(`/users/${id}`, { method: 'PATCH', body: input }),
     delete: (id: string) => request<void>(`/users/${id}`, { method: 'DELETE' }),
     resetPassword: (id: string) => request<void>(`/users/${id}/reset-password`, { method: 'POST' }),
+    ping: () => request<void>('/users/ping', { method: 'POST', silent: true }),
   },
 
   companies: {
@@ -469,6 +471,8 @@ export const api = {
     createCompanyUser: (companyId: string, input: CreatePlatformCompanyUserInput) => request<AppUser>(`/platform/company-users/${companyId}`, { method: 'POST', body: input }),
     updateCompanyUser: (companyId: string, userId: string, input: UpdatePlatformCompanyUserInput) => request<AppUser>(`/platform/company-users/${companyId}/${userId}`, { method: 'PATCH', body: input }),
     deleteCompanyUser: (companyId: string, userId: string) => request<void>(`/platform/company-users/${companyId}/${userId}`, { method: 'DELETE' }),
+    getOnlineUsers: () => request<any[]>('/platform/online-users'),
+    ghostMode: (companyId: string) => request<{ token: string }>(`/platform/ghost-mode/${companyId}`, { method: 'POST' }),
   },
 };
 

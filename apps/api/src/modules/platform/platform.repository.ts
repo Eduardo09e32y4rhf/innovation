@@ -35,6 +35,13 @@ export class PlatformRepository {
       status: c.status,
       suspensionReason: c.suspensionReason,
       subscriptionStartedAt: c.subscriptionStartedAt,
+      plan: c.plan,
+      billingStatus: c.billingStatus,
+      trialEndsAt: c.trialEndsAt,
+      activeModules: c.activeModules,
+      asaasCustomerId: c.asaasCustomerId,
+      asaasSubscriptionId: c.asaasSubscriptionId,
+      internalNotes: c.internalNotes,
       createdAt: c.createdAt,
       usersCount: c._count.users,
       employeesCount: c._count.employees,
@@ -134,5 +141,20 @@ export class PlatformRepository {
       this.prisma.message.count(),
     ]);
     return { companies, users, employees, messages };
+  }
+
+  getOnlineUsers() {
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+    return this.prisma.user.findMany({
+      where: { lastActiveAt: { gte: fiveMinutesAgo } },
+      select: { id: true, name: true, email: true, role: true, lastActiveAt: true, company: { select: { name: true } } },
+      orderBy: { lastActiveAt: 'desc' },
+    });
+  }
+
+  getFirstAdmin(companyId: string) {
+    return this.prisma.user.findFirst({
+      where: { companyId, role: 'ADMIN', isActive: true },
+    });
   }
 }

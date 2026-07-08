@@ -17,6 +17,10 @@ export class UsersService {
     return this.filterRestrictedUsers(users, actor);
   }
 
+  async ping(userId: string) {
+    return this.repository.ping(userId);
+  }
+
   async get(companyId: string, actor: JwtUser, id: string) {
     const user = await this.repository.findById(companyId, id);
     if (!this.canAccessUser(actor, user)) throw new NotFoundException('Usuario nao encontrado');

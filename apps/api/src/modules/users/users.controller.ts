@@ -14,6 +14,12 @@ import { UsersService } from './users.service';
 export class UsersController {
   constructor(private readonly service: UsersService) {}
 
+  @Roles('ADMIN', 'RH', 'FUNCIONARIO', 'GESTOR')
+  @Post('ping')
+  ping(@CurrentUser() actor: JwtUser) {
+    return this.service.ping(actor.sub);
+  }
+
   @Roles('ADMIN', 'RH')
   @Get()
   list(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser) {

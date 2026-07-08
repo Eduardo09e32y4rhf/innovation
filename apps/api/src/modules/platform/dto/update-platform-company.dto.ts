@@ -37,4 +37,8 @@ export class UpdatePlatformCompanyDto {
 
   @IsOptional()
   activeModules?: string[];
+
+  @IsOptional()
+  @IsString()
+  internalNotes?: string | null;
 }

@@ -12,7 +12,7 @@ export function DashboardTopbar() {
     <header className="dash-topbar flex-col items-start gap-3 sm:flex-row sm:items-center relative z-50">
       <div className="min-w-0">
         <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-gray-400">
-          Innovation RH Connect
+          Innovation RH System
         </p>
         <h1 className="mt-0.5 text-[18px] font-bold leading-tight text-gray-900">
           Gestão de pessoas e jornada

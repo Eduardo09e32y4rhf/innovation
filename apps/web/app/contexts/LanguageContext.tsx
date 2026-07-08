@@ -7,7 +7,7 @@ const translations = {
   'pt-BR': {
     // Login
     'login.title': 'Acesse sua Conta',
-    'login.subtitle': 'Entre no Innovation RH Connect',
+    'login.subtitle': 'Entre no Innovation RH System',
     'login.email': 'E-mail Corporativo',
     'login.email_placeholder': 'ex: admin@innovation.ia',
     'login.password': 'Sua Senha',
@@ -32,7 +32,7 @@ const translations = {
   'en-US': {
     // Login
     'login.title': 'Access Your Account',
-    'login.subtitle': 'Enter Innovation RH Connect',
+    'login.subtitle': 'Enter Innovation RH System',
     'login.email': 'Corporate Email',
     'login.email_placeholder': 'ex: admin@innovation.ia',
     'login.password': 'Your Password',
@@ -57,7 +57,7 @@ const translations = {
   'es-ES': {
     // Login
     'login.title': 'Accede a tu Cuenta',
-    'login.subtitle': 'Entra en Innovation RH Connect',
+    'login.subtitle': 'Entra en Innovation RH System',
     'login.email': 'Correo Corporativo',
     'login.email_placeholder': 'ej: admin@innovation.ia',
     'login.password': 'Tu Contraseña',

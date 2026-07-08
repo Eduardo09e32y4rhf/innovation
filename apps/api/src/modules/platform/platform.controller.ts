@@ -26,6 +26,16 @@ export class PlatformController {
     return this.service.listCompanies();
   }
 
+  @Get('online-users')
+  getOnlineUsers() {
+    return this.service.getOnlineUsers();
+  }
+
+  @Post('ghost-mode/:companyId')
+  ghostMode(@Param('companyId') companyId: string) {
+    return this.service.ghostMode(companyId);
+  }
+
   @Get('company-users/:companyId')
   listCompanyUsers(@CurrentUser() actor: JwtUser, @Param('companyId') companyId: string) {
     return this.service.listCompanyUsers(actor, companyId);

@@ -9,6 +9,7 @@ import {
   setAuthScopeSnapshot,
   startLocalStorageGuard,
 } from '@/app/lib/auth-session';
+import api from '@/app/lib/api';
 
 export interface User {
   id: string;
@@ -52,7 +53,7 @@ const LOCAL_USER: User = {
 
 const LOCAL_COMPANY: Company = {
   id: LOCAL_COMPANY_ID,
-  name: 'Innovation RH Connect',
+  name: 'Innovation RH System',
 };
 
 const isLocalBrowser = () => {
@@ -133,6 +134,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    if (!token || !user || token === LOCAL_SESSION_TOKEN) return;
+    api.users.ping().catch(() => {});
+    const interval = setInterval(() => {
+      api.users.ping().catch(() => {});
+    }, 60000);
+    return () => clearInterval(interval);
+  }, [token, user]);
+
   const refreshStoredUser = async (savedToken: string, savedCompany: Company) => {
     try {
       const response = await fetch(`${getApiUrl()}/auth/me`, {
@@ -208,7 +218,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       };
       const nextCompany: Company = {
         id: authData.user.companyId,
-        name: 'Innovation RH Connect',
+        name: 'Innovation RH System',
       };
       const mustChangePassword = Boolean(authData.passwordChangeRequired);
       setToken(nextToken);

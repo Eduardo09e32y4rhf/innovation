@@ -54,4 +54,12 @@ export class UsersRepository {
   delete(companyId: string, id: string) {
     return this.prisma.user.deleteMany({ where: { id, companyId } });
   }
+
+  ping(userId: string) {
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { lastActiveAt: new Date() },
+      select: { id: true, lastActiveAt: true },
+    }).catch(() => null);
+  }
 }

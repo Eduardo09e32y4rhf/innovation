@@ -19,9 +19,9 @@ const display = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: 'Innovation RH Connect | RH, ponto e comunicação em um só lugar',
+  title: 'Innovation RH System | RH, ponto e comunicação em um só lugar',
   description:
-    'Uma landing page premium para apresentar a plataforma Innovation RH Connect com foco em controle de ponto, férias, alertas e comunicação corporativa.',
+    'Uma landing page premium para apresentar a plataforma Innovation RH System com foco em controle de ponto, férias, alertas e comunicação corporativa.',
 };
 
 const pillars = [
@@ -150,7 +150,7 @@ export default function Home() {
             </h1>
 
             <p className="mt-6 max-w-xl text-base font-medium leading-8 text-slate-300 sm:text-lg">
-              A Innovation RH Connect reúne ponto, férias, alertas, equipes e comunicação em uma
+              A Innovation RH System reúne ponto, férias, alertas, equipes e comunicação em uma
               experiência única, clara e premium. Menos ruído. Mais decisão. Mais presença de marca.
             </p>
 
