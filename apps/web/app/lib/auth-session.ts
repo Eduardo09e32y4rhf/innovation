@@ -93,20 +93,24 @@ function safeParse<T>(v: string | null): T | null {
 }
 
 function _writeToSessionStorage(session: StoredAuthSession): void {
-  const ss = window.sessionStorage;
-  const entries: Array<[string, string | null]> = [
-    [SESSION_KEYS.token, session.token],
-    [SESSION_KEYS.user, session.user],
-    [SESSION_KEYS.company, session.company],
-    [SESSION_KEYS.passwordChangeRequired, session.passwordChangeRequired],
-  ];
-  entries.forEach(([key, value]) => {
-    if (value === null || value === undefined) {
-      ss.removeItem(key);
-    } else {
-      ss.setItem(key, value);
-    }
-  });
+  try {
+    const ss = window.sessionStorage;
+    const entries: Array<[string, string | null]> = [
+      [SESSION_KEYS.token, session.token],
+      [SESSION_KEYS.user, session.user],
+      [SESSION_KEYS.company, session.company],
+      [SESSION_KEYS.passwordChangeRequired, session.passwordChangeRequired],
+    ];
+    entries.forEach(([key, value]) => {
+      if (value === null || value === undefined) {
+        ss.removeItem(key);
+      } else {
+        ss.setItem(key, value);
+      }
+    });
+  } catch (e) {
+    // Ignora
+  }
 }
 
 function _purgeLocalStorage(): void {
@@ -129,13 +133,19 @@ export function readAuthSession(): StoredAuthSession {
     return { token: null, user: null, company: null, passwordChangeRequired: null };
   }
 
-  const ss = window.sessionStorage;
-  const current: StoredAuthSession = {
-    token: ss.getItem(SESSION_KEYS.token),
-    user: ss.getItem(SESSION_KEYS.user),
-    company: ss.getItem(SESSION_KEYS.company),
-    passwordChangeRequired: ss.getItem(SESSION_KEYS.passwordChangeRequired),
-  };
+  let current: StoredAuthSession = { token: null, user: null, company: null, passwordChangeRequired: null };
+
+  try {
+    const ss = window.sessionStorage;
+    current = {
+      token: ss.getItem(SESSION_KEYS.token),
+      user: ss.getItem(SESSION_KEYS.user),
+      company: ss.getItem(SESSION_KEYS.company),
+      passwordChangeRequired: ss.getItem(SESSION_KEYS.passwordChangeRequired),
+    };
+  } catch (e) {
+    // Ignora SecurityError caso cookies/storage bloqueados
+  }
 
   if (hasValue(current.token) || hasValue(current.user)) {
     return current;
@@ -209,8 +219,12 @@ export function persistAuthSession(
 /** Remove todos os dados de sessão do sessionStorage e do localStorage. */
 export function clearAuthSession(): void {
   if (typeof window === 'undefined') return;
-  const ss = window.sessionStorage;
-  Object.values(SESSION_KEYS).forEach((k) => ss.removeItem(k));
+  try {
+    const ss = window.sessionStorage;
+    Object.values(SESSION_KEYS).forEach((k) => ss.removeItem(k));
+  } catch (e) {
+    // Ignora
+  }
   _purgeLocalStorage();
 }
 
