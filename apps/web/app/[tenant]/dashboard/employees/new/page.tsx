@@ -196,6 +196,8 @@ export default function NewEmployeePage() {
 
 function EmployeeForm() {
   const router = useRouter();
+  const paramsHooks = useParams();
+  const tenant = paramsHooks?.tenant as string;
   const params = useSearchParams();
   const editId = params.get('id');
   const isEdit = Boolean(editId);

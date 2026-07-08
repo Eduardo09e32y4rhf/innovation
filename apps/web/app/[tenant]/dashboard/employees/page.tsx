@@ -533,14 +533,10 @@ function downloadEmployeeSheet(employee: Employee, rows: TimeTrack[], month: str
     </tr>`;
   });
 
-  const companyData: PdfCompanyInfo | null = company?.data ? {
-    name: company.data.name,
-    legalName: company.data.legalName,
-    document: company.data.cnpj,
-    logoUrl: company.data.logoUrl,
-    phone: company.data.phone,
-    email: company.data.email,
-    address: [company.data.street, company.data.streetNumber, company.data.neighborhood, company.data.city, company.data.state, company.data.cep].filter(Boolean).map(String).join(', ') || undefined
+  const companyData: PdfCompanyInfo | null = company ? {
+    name: company.name,
+    document: (company as any).cnpj || '',
+    address: [(company as any).street, (company as any).streetNumber, (company as any).neighborhood, (company as any).city, (company as any).state, (company as any).cep].filter(Boolean).join(', ')
   } : null;
 
   const html = buildPdfShell({ title: 'Espelho de Ponto Oficial', subtitle: `${monthLabelText} — ${normalizeDisplayName(employee.name)}`, landscape: false }, companyData, `
@@ -655,14 +651,10 @@ function downloadEmployeeOcorrenciasSheet(employee: Employee, rows: TimeTrack[],
     });
   }
 
-  const companyData: PdfCompanyInfo | null = company?.data ? {
-    name: company.data.name,
-    legalName: company.data.legalName,
-    document: company.data.cnpj,
-    logoUrl: company.data.logoUrl,
-    phone: company.data.phone,
-    email: company.data.email,
-    address: [company.data.street, company.data.streetNumber, company.data.neighborhood, company.data.city, company.data.state, company.data.cep].filter(Boolean).map(String).join(', ') || undefined
+  const companyData: PdfCompanyInfo | null = company ? {
+    name: company.name,
+    document: (company as any).cnpj || '',
+    address: [(company as any).street, (company as any).streetNumber, (company as any).neighborhood, (company as any).city, (company as any).state, (company as any).cep].filter(Boolean).join(', ')
   } : null;
 
   const html = buildPdfShell({ title: 'Ficha de Ocorrências de Ponto', subtitle: `${monthLabelText} — ${normalizeDisplayName(employee.name)}`, landscape: false }, companyData, `
@@ -797,14 +789,10 @@ function downloadEmployeeRecord(employee: Employee, company: Company | null, man
     } catch { /* ignore */ }
   }
 
-  const companyData: PdfCompanyInfo | null = company?.data ? {
-    name: company.data.name,
-    legalName: company.data.legalName,
-    document: company.data.cnpj,
-    logoUrl: company.data.logoUrl,
-    phone: company.data.phone,
-    email: company.data.email,
-    address: [company.data.street, company.data.streetNumber, company.data.neighborhood, company.data.city, company.data.state, company.data.cep].filter(Boolean).map(String).join(', ') || undefined
+  const companyData: PdfCompanyInfo | null = company ? {
+    name: company.name,
+    document: (company as any).cnpj || '',
+    address: [(company as any).street, (company as any).streetNumber, (company as any).neighborhood, (company as any).city, (company as any).state, (company as any).cep].filter(Boolean).join(', ')
   } : null;
 
   const html = buildPdfShell({ title, subtitle: normalizeDisplayName(employee.name), landscape: false }, companyData, `

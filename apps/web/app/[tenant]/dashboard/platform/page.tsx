@@ -171,7 +171,7 @@ export default function PlatformPage() {
                           )}
                           {isSuperAdmin && (
                             <>
-                              <button onClick={() => handleGhostMode(c)} className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px] text-[#0030B9] hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700 font-semibold">
+                              <button onClick={() => {}} className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px] text-[#0030B9] hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700 font-semibold">
                                 <Key size={12} />Acessar
                               </button>
                               <button onClick={() => handleToggle(c)} disabled={toggleActive.loading} className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px]">

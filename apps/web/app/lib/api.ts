@@ -251,6 +251,16 @@ export interface Company {
     asaasCustomerId?: string | null;
     asaasSubscriptionId?: string | null;
     internalNotes?: string | null;
+  latitude?: string;
+  longitude?: string;
+  radiusTolerance?: number;
+  cnpj?: string;
+  street?: string;
+  streetNumber?: string;
+  neighborhood?: string;
+  city?: string;
+  state?: string;
+  cep?: string;
 }
 export interface PlatformCompany extends Company { usersCount: number; employeesCount: number; }
 export interface PlatformStats { companies: number; users: number; employees: number; messages: number; }
@@ -464,7 +474,7 @@ export const api = {
     listCompanies: () => request<PlatformCompany[]>('/platform/companies'),
     getCompany: (id: string) => request<PlatformCompany>(`/platform/companies/${id}`),
     createCompany: (input: CreatePlatformCompanyInput) => request<unknown>('/platform/companies', { method: 'POST', body: input }),
-    updateCompany: (id: string, input: Partial<Omit<CreatePlatformCompanyInput, 'adminName' | 'adminEmail' | 'adminPassword'>> & { isActive?: boolean; status?: CompanyStatus; suspensionReason?: string | null; plan?: 'FREE' | 'BASE' | 'PRO' | 'ENTERPRISE'; billingStatus?: 'TRIAL' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED'; trialEndsAt?: string; activeModules?: string[] }) =>
+    updateCompany: (id: string, input: Partial<Omit<CreatePlatformCompanyInput, 'adminName' | 'adminEmail' | 'adminPassword'>> & { isActive?: boolean; status?: CompanyStatus; suspensionReason?: string | null; plan?: 'FREE' | 'BASE' | 'PRO' | 'ENTERPRISE'; billingStatus?: 'TRIAL' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED'; trialEndsAt?: string; activeModules?: string[]; asaasCustomerId?: string; asaasSubscriptionId?: string; internalNotes?: string }) =>
       request<unknown>(`/platform/companies/${id}`, { method: 'PATCH', body: input }),
     deleteCompany: (id: string) => request<void>(`/platform/companies/${id}`, { method: 'DELETE' }),
     listCompanyUsers: (companyId: string) => request<AppUser[]>(`/platform/company-users/${companyId}`),

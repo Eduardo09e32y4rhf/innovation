@@ -1,3 +1,0 @@
-## 2025-07-08 - Adding accessibility & state feedback to auth screens
-**Learning:** Icon-only password visibility toggles (`Eye`/`EyeOff`) in this codebase lacked crucial `aria-label`, `aria-pressed`, and clear keyboard focus indicators (`focus-visible`). Additionally, the main authentication async buttons lacked a clear visual loading indicator (`Loader2` spinner), relying only on changing text ("Processando...").
-**Action:** Always add `aria-label` along with `aria-hidden="true"` on the inner SVG icon for icon-only buttons to prevent redundant screen reader announcements. Add explicit `focus-visible` ring styling for keyboard navigation and ensure loading states include both text and a visual spinner for better interaction feedback.

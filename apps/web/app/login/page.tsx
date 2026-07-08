@@ -8,7 +8,6 @@ import {
   CheckCircle2,
   Eye,
   EyeOff,
-  Loader2,
   Lock,
   Mail,
   ShieldCheck,
@@ -169,11 +168,9 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 flex items-center pr-4 text-slate-500 hover:text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 rounded-r-xl"
-                  aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
-                  aria-pressed={showPassword}
+                  className="absolute inset-y-0 right-0 flex items-center pr-4 text-slate-500 hover:text-white transition-colors focus:outline-none"
                 >
-                  {showPassword ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
             )}
@@ -187,14 +184,11 @@ export default function LoginPage() {
               >
                 <span className="relative z-10 flex items-center gap-2">
                   {loading ? (
-                    <>
-                      <Loader2 size={18} className="animate-spin" aria-hidden="true" />
-                      <span>Processando...</span>
-                    </>
+                    'Processando...'
                   ) : (
                     <>
                       {forgotPassword ? 'Enviar instruções' : 'Acessar painel'}
-                      <ArrowRight size={18} className="transition-transform group-hover:translate-x-1" aria-hidden="true" />
+                      <ArrowRight size={18} className="transition-transform group-hover:translate-x-1" />
                     </>
                   )}
                 </span>
