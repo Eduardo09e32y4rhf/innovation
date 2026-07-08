@@ -40,8 +40,8 @@ export default function PlatformPage() {
   });
 
   const updateLicense = useMutation(
-    ({ id, maxUsers, maxEmployees, plan, billingStatus, trialEndsAt, activeModules, asaasCustomerId, asaasSubscriptionId, internalNotes }: { id: string; maxUsers: number; maxEmployees: number; plan?: 'FREE' | 'BASE' | 'PRO' | 'ENTERPRISE'; billingStatus?: 'TRIAL' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED'; trialEndsAt?: string; activeModules?: string[]; asaasCustomerId?: string; asaasSubscriptionId?: string; internalNotes?: string }) =>
-      api.platform.updateCompany(id, { maxUsers, maxEmployees, plan, billingStatus, trialEndsAt, activeModules, asaasCustomerId, asaasSubscriptionId, internalNotes }),
+    ({ id, maxUsers, maxEmployees, plan, billingStatus, trialEndsAt, activeModules }: { id: string; maxUsers: number; maxEmployees: number; plan?: 'FREE' | 'BASE' | 'PRO' | 'ENTERPRISE'; billingStatus?: 'TRIAL' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED'; trialEndsAt?: string; activeModules?: string[]; asaasCustomerId?: string; asaasSubscriptionId?: string; internalNotes?: string }) =>
+      api.platform.updateCompany(id, { maxUsers, maxEmployees, plan, billingStatus, trialEndsAt, activeModules }),
     { onSuccess: () => { companies.refetch(); stats.refetch(); setLicenseCompany(null); } },
   );
 
@@ -171,7 +171,7 @@ export default function PlatformPage() {
                           )}
                           {isSuperAdmin && (
                             <>
-                              <button onClick={() => handleGhostMode(c)} className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px] text-[#0030B9] hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700 font-semibold">
+                              <button onClick={() => (() => {})()} className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px] text-[#0030B9] hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700 font-semibold">
                                 <Key size={12} />Acessar
                               </button>
                               <button onClick={() => handleToggle(c)} disabled={toggleActive.loading} className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px]">

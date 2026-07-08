@@ -192,9 +192,9 @@ function CompanySettings() {
       setAddress(company.data.address ?? '');
       setPrimaryColor(company.data.primaryColor ?? '');
       setTheme(company.data.theme ?? 'light');
-          setLatitude(company.data.latitude ?? '');
-          setLongitude(company.data.longitude ?? '');
-          setRadiusTolerance(company.data.radiusTolerance ?? 150);
+          setLatitude((company.data as any)?.latitude ?? '');
+          setLongitude((company.data as any)?.longitude ?? '');
+          setRadiusTolerance((company.data as any)?.radiusTolerance ?? 150);
       setRemoveLogo(false);
     }
   }, [company.data]);

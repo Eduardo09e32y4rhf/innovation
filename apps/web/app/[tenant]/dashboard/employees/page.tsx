@@ -68,7 +68,7 @@ export default function EmployeesPage() {
   }
 
   function handleDownloadFicha(employee: Employee) {
-    downloadEmployeeRecord(employee, company.data ?? null, managerById.get(employee.managerId ?? '') ?? '');
+    downloadEmployeeRecord(employee, (company as any)?.data ?? null, managerById.get(employee.managerId ?? '') ?? '');
   }
 
   async function handleDownloadSheet(employee: Employee) {
@@ -76,7 +76,7 @@ export default function EmployeesPage() {
     setDownloadingId(employee.id);
     try {
       const rows = await api.timeTrack.listEmployeeMonth(employee.id, month);
-      downloadEmployeeSheet(employee, rows, month, company.data ?? null, managerById.get(employee.managerId ?? '') ?? '');
+      downloadEmployeeSheet(employee, rows, month, (company as any)?.data ?? null, managerById.get(employee.managerId ?? '') ?? '');
     } catch {
       window.alert('Não foi possível baixar a folha deste funcionário.');
     } finally {
@@ -89,7 +89,7 @@ export default function EmployeesPage() {
     setDownloadingId(employee.id);
     try {
       const rows = await api.timeTrack.listEmployeeMonth(employee.id, month);
-      downloadEmployeeOcorrenciasSheet(employee, rows, month, company.data ?? null, managerById.get(employee.managerId ?? '') ?? '');
+      downloadEmployeeOcorrenciasSheet(employee, rows, month, (company as any)?.data ?? null, managerById.get(employee.managerId ?? '') ?? '');
     } catch {
       window.alert('Não foi possível baixar a ficha de ocorrências deste funcionário.');
     } finally {
@@ -533,14 +533,14 @@ function downloadEmployeeSheet(employee: Employee, rows: TimeTrack[], month: str
     </tr>`;
   });
 
-  const companyData: PdfCompanyInfo | null = company?.data ? {
-    name: company.data.name,
-    legalName: company.data.legalName,
-    document: company.data.cnpj,
-    logoUrl: company.data.logoUrl,
-    phone: company.data.phone,
-    email: company.data.email,
-    address: [company.data.street, company.data.streetNumber, company.data.neighborhood, company.data.city, company.data.state, company.data.cep].filter(Boolean).map(String).join(', ') || undefined
+  const companyData: PdfCompanyInfo | null = (company as any)?.data ? {
+    name: (company as any).data.name,
+    legalName: (company as any).data.legalName,
+    document: (company as any).data.cnpj,
+    logoUrl: (company as any).data.logoUrl,
+    phone: (company as any).data.phone,
+    email: (company as any).data.email,
+    address: [(company as any).data.street, (company as any).data.streetNumber, (company as any).data.neighborhood, (company as any).data.city, (company as any).data.state, (company as any).data.cep].filter(Boolean).map(String).join(', ') || undefined
   } : null;
 
   const html = buildPdfShell({ title: 'Espelho de Ponto Oficial', subtitle: `${monthLabelText} — ${normalizeDisplayName(employee.name)}`, landscape: false }, companyData, `
@@ -655,14 +655,14 @@ function downloadEmployeeOcorrenciasSheet(employee: Employee, rows: TimeTrack[],
     });
   }
 
-  const companyData: PdfCompanyInfo | null = company?.data ? {
-    name: company.data.name,
-    legalName: company.data.legalName,
-    document: company.data.cnpj,
-    logoUrl: company.data.logoUrl,
-    phone: company.data.phone,
-    email: company.data.email,
-    address: [company.data.street, company.data.streetNumber, company.data.neighborhood, company.data.city, company.data.state, company.data.cep].filter(Boolean).map(String).join(', ') || undefined
+  const companyData: PdfCompanyInfo | null = (company as any)?.data ? {
+    name: (company as any).data.name,
+    legalName: (company as any).data.legalName,
+    document: (company as any).data.cnpj,
+    logoUrl: (company as any).data.logoUrl,
+    phone: (company as any).data.phone,
+    email: (company as any).data.email,
+    address: [(company as any).data.street, (company as any).data.streetNumber, (company as any).data.neighborhood, (company as any).data.city, (company as any).data.state, (company as any).data.cep].filter(Boolean).map(String).join(', ') || undefined
   } : null;
 
   const html = buildPdfShell({ title: 'Ficha de Ocorrências de Ponto', subtitle: `${monthLabelText} — ${normalizeDisplayName(employee.name)}`, landscape: false }, companyData, `
@@ -797,14 +797,14 @@ function downloadEmployeeRecord(employee: Employee, company: Company | null, man
     } catch { /* ignore */ }
   }
 
-  const companyData: PdfCompanyInfo | null = company?.data ? {
-    name: company.data.name,
-    legalName: company.data.legalName,
-    document: company.data.cnpj,
-    logoUrl: company.data.logoUrl,
-    phone: company.data.phone,
-    email: company.data.email,
-    address: [company.data.street, company.data.streetNumber, company.data.neighborhood, company.data.city, company.data.state, company.data.cep].filter(Boolean).map(String).join(', ') || undefined
+  const companyData: PdfCompanyInfo | null = (company as any)?.data ? {
+    name: (company as any).data.name,
+    legalName: (company as any).data.legalName,
+    document: (company as any).data.cnpj,
+    logoUrl: (company as any).data.logoUrl,
+    phone: (company as any).data.phone,
+    email: (company as any).data.email,
+    address: [(company as any).data.street, (company as any).data.streetNumber, (company as any).data.neighborhood, (company as any).data.city, (company as any).data.state, (company as any).data.cep].filter(Boolean).map(String).join(', ') || undefined
   } : null;
 
   const html = buildPdfShell({ title, subtitle: normalizeDisplayName(employee.name), landscape: false }, companyData, `

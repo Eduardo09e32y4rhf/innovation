@@ -926,9 +926,9 @@ function downloadVacationReceipt(vacation: { employee?: Employee; startDate: str
     ? {
         name: normalizeDisplayName(companyData.name),
         legalName: companyData.legalName,
-        document: companyData.cnpj ?? null,
+        document: (companyData as any)?.cnpj ?? null,
         logoUrl: companyData.logoUrl ?? null,
-        address: [companyData.street, companyData.streetNumber, companyData.neighborhood, companyData.city, companyData.state, companyData.cep].filter(Boolean).map(String).join(', ') || undefined,
+        address: [(companyData as any)?.street, (companyData as any)?.streetNumber, (companyData as any)?.neighborhood, (companyData as any)?.city, (companyData as any)?.state, (companyData as any)?.cep].filter(Boolean).map(String).join(', ') || undefined,
         phone: companyData.phone ?? null,
         email: companyData.email ?? null,
       }

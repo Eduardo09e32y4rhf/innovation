@@ -337,7 +337,7 @@ function EmployeeForm() {
   const save = useMutation(
     (payload: CreateEmployeeInput) =>
       isEdit && editId ? api.employees.update(editId, payload) : api.employees.create(payload),
-    { onSuccess: () => router.push(`/${tenant}/dashboard/employees`) },
+    { onSuccess: () => router.push(`/dashboard/employees`) },
   );
 
   function set<K extends keyof EmployeeFormState>(key: K, value: EmployeeFormState[K]) {
@@ -432,7 +432,7 @@ function EmployeeForm() {
   return (
     <div className="mx-auto max-w-5xl space-y-4">
       <header className="flex items-center gap-3">
-        <Link href={`/${tenant}/dashboard/employees`} className="btn-outline inline-flex h-8 w-8 items-center justify-center rounded-[6px]">
+        <Link href={`/dashboard/employees`} className="btn-outline inline-flex h-8 w-8 items-center justify-center rounded-[6px]">
           <ArrowLeft size={15} />
         </Link>
         <div>
@@ -639,7 +639,7 @@ function EmployeeForm() {
         )}
 
         <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-end">
-          <Link href={`/${tenant}/dashboard/employees`} className="btn-outline inline-flex h-9 items-center justify-center rounded-[6px] px-3 text-[11px] font-bold">Cancelar</Link>
+          <Link href={`/dashboard/employees`} className="btn-outline inline-flex h-9 items-center justify-center rounded-[6px] px-3 text-[11px] font-bold">Cancelar</Link>
           <button
             type="button"
             onClick={handleSubmit}
