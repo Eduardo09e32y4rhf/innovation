@@ -114,6 +114,23 @@ export class TimeTrackController {
     return this.service.register(companyId, actor, { ...dto, clockedInWithoutFacial: !facialSuccess });
   }
 
+  @Post('enroll-facial')
+  async enrollFacial(
+    @CurrentCompany() companyId: string,
+    @CurrentUser() actor: JwtUser,
+    @Body() dto: { descriptor: number[] }
+  ) {
+    const employee = await this.service['prisma'].employee.findUnique({ where: { userId: actor.sub } });
+    if (!employee) throw new UnauthorizedException('Employee not found');
+    
+    await this.service['prisma'].faceEnrollment.upsert({
+      where: { employeeId: employee.id },
+      update: { descriptor: dto.descriptor, enrolledAt: new Date(), active: true },
+      create: { companyId, employeeId: employee.id, descriptor: dto.descriptor, enrolledAt: new Date() },
+    });
+    return { success: true };
+  }
+
   @Post('register')
   @UseGuards(RateLimitGuard)
   @RateLimit({ window: 60, max: 20, prefix: 'punch' }) // 20 punches per minute per user/IP

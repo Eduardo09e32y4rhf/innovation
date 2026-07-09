@@ -7,6 +7,10 @@ import { useAuth } from '@/app/contexts/AuthContext';
 import { useMutation, useQuery } from '@/app/hooks/use-data';
 import { api, type Employee, type PunchType } from '@/app/lib/api';
 
+import dynamic from 'next/dynamic';
+
+const FaceIDOverlay = dynamic(() => import('@/app/components/FaceIDOverlay').then((m) => m.FaceIDOverlay), { ssr: false });
+
 const MANUAL_REASONS = [
   { value: 'esquecimento', label: 'Esquecimento de registro' },
   { value: 'problema_sistema', label: 'Problema no sistema' },
@@ -28,7 +32,16 @@ function useGeolocation() {
       return;
     }
     const watchId = navigator.geolocation.watchPosition(
-      (pos) => { setPosition({ lat: pos.coords.latitude, lng: pos.coords.longitude }); setLoading(false); },
+      (pos) => { 
+         setPosition(prev => {
+           if (!prev) return { lat: pos.coords.latitude, lng: pos.coords.longitude };
+           const dLat = Math.abs(prev.lat - pos.coords.latitude);
+           const dLng = Math.abs(prev.lng - pos.coords.longitude);
+           if (dLat > 0.0001 || dLng > 0.0001) return { lat: pos.coords.latitude, lng: pos.coords.longitude };
+           return prev; // Ignore micro fluctuations to prevent map reloading
+         });
+         setLoading(false); 
+      },
       () => { setError('Permita o acesso a localizacao para bater o ponto'); setLoading(false); },
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 },
     );
@@ -92,12 +105,30 @@ export default function ClockInPage() {
   const [manualReason, setManualReason] = useState<ManualReason>('esquecimento');
   const [manualDate, setManualDate] = useState(new Date().toISOString().slice(0, 10));
   const [manualTime, setManualTime] = useState('');
-
-
+  const [fallbackMode, setFallbackMode] = useState(false);
+  const [showFaceID, setShowFaceID] = useState(false);
+  const [activePunchType, setActivePunchType] = useState<PunchType | null>(null);
   const successTimer = useRef<ReturnType<typeof setTimeout>>();
 
+  const enroll = useMutation(
+    async (descriptor: number[]) => {
+      return api.timeTrack.enrollFacial({ descriptor });
+    },
+    {
+      onSuccess: () => {
+        setSuccess('Rosto cadastrado com sucesso! Registrando seu ponto...');
+        employees.refetch(); // refresh employee data
+        if (activePunchType) {
+          punch.mutate({ type: activePunchType, skipEnroll: true }).catch(() => {});
+        } else {
+          successTimer.current = setTimeout(() => setSuccess(null), 2500);
+        }
+      }
+    }
+  );
+
   const punch = useMutation(
-    async (params: { type: PunchType; manual?: boolean }) => {
+    async (params: { type: PunchType; manual?: boolean; imageBase64?: string; faceDescriptor?: number[]; skipEnroll?: boolean }) => {
       if (!myEmployee) throw new Error('Seu usuario ainda nao esta vinculado a um funcionario ativo. Procure o RH.');
       const input: Parameters<typeof api.timeTrack.register>[0] = {
         ...(geo.position ? { latitude: geo.position.lat, longitude: geo.position.lng } : {}),
@@ -112,9 +143,12 @@ export default function ClockInPage() {
         input.manualReason = MANUAL_REASONS.find((r) => r.value === manualReason)?.label ?? manualReason;
         return api.timeTrack.manual(input as any);
       } else {
-        return api.timeTrack.register({
+        return api.timeTrack.clockInFacial({
           ...input,
           type: params.type,
+          imageBase64: params.imageBase64,
+          faceDescriptor: params.faceDescriptor,
+          fallback: fallbackMode,
         } as any);
       }
     },
@@ -130,8 +164,24 @@ export default function ClockInPage() {
   );
 
   const handlePunch = useCallback((type: PunchType) => {
-    punch.mutate({ type }).catch(() => {});
-  }, [punch]);
+      if (fallbackMode) {
+        punch.mutate({ type }).catch(() => {});
+        return;
+      }
+      setActivePunchType(type);
+      setShowFaceID(true);
+  }, [punch, fallbackMode]);
+
+  const handleFaceCapture = async (photoBase64: string, faceDescriptor?: number[]) => {
+    setShowFaceID(false);
+    if (!activePunchType) return;
+    
+    if (!(myEmployee?.faceEnrollment?.active) && faceDescriptor) {
+      enroll.mutate(faceDescriptor).catch(() => {});
+    } else {
+      punch.mutate({ type: activePunchType, imageBase64: photoBase64, faceDescriptor }).catch(() => {});
+    }
+  };
 
   const handleManualPunch = useCallback(() => {
     if (!manualTime) return;
@@ -189,12 +239,19 @@ export default function ClockInPage() {
           {/* Floating Box */}
           <div className="absolute bottom-4 right-4 left-4 md:left-auto md:w-80 rounded-[16px] bg-white/95 p-4 shadow-xl border border-slate-200/50 backdrop-blur-md z-10">
             <div>
-              <h3 className="mb-4 text-sm font-black text-slate-950">Registrar ponto</h3>
+              <h3 className="mb-2 text-xs font-black text-slate-950">Registrar ponto</h3>
               
+              <div className="mt-2 flex items-center justify-between mb-4">
+                <label className="flex items-center gap-1.5 text-[10px] text-slate-600">
+                  <input type="checkbox" checked={fallbackMode} onChange={e => setFallbackMode(e.target.checked)} className="rounded border-slate-300" />
+                  Ativar Fallback (Sem biometria facial)
+                </label>
+              </div>
+
               <div className="grid grid-cols-2 gap-2">
                 <button
                   onClick={() => handlePunch('ENTRY')}
-                  disabled={punch.loading}
+                  disabled={punch.loading || enroll.loading}
                   className="flex items-center justify-center gap-2 rounded-[8px] bg-emerald-600 py-3 text-xs font-bold text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
                 >
                   <Clock3 size={14} />
@@ -202,7 +259,7 @@ export default function ClockInPage() {
                 </button>
                 <button
                   onClick={() => handlePunch('LUNCH_START')}
-                  disabled={punch.loading}
+                  disabled={punch.loading || enroll.loading}
                   className="flex items-center justify-center gap-2 rounded-[8px] bg-amber-500 py-3 text-xs font-bold text-white transition-colors hover:bg-amber-600 disabled:opacity-50"
                 >
                   <Clock3 size={14} />
@@ -210,7 +267,7 @@ export default function ClockInPage() {
                 </button>
                 <button
                   onClick={() => handlePunch('LUNCH_RETURN')}
-                  disabled={punch.loading}
+                  disabled={punch.loading || enroll.loading}
                   className="flex items-center justify-center gap-2 rounded-[8px] bg-sky-500 py-3 text-xs font-bold text-white transition-colors hover:bg-sky-600 disabled:opacity-50"
                 >
                   <Clock3 size={14} />
@@ -218,7 +275,7 @@ export default function ClockInPage() {
                 </button>
                 <button
                   onClick={() => handlePunch('EXIT')}
-                  disabled={punch.loading}
+                  disabled={punch.loading || enroll.loading}
                   className="flex items-center justify-center gap-2 rounded-[8px] bg-slate-800 py-3 text-xs font-bold text-white transition-colors hover:bg-slate-900 disabled:opacity-50"
                 >
                   <Clock3 size={14} />
@@ -230,7 +287,16 @@ export default function ClockInPage() {
         </div>
       )}
 
-      {(punch.error) && <p className="rounded-[8px] border border-rose-200 bg-rose-50 px-4 py-2 text-xs font-semibold text-rose-700">{punch.error}</p>}
+      {showFaceID && (
+        <FaceIDOverlay 
+          title={!(myEmployee?.faceEnrollment?.active) ? "Cadastrar Biometria Facial" : "Validar Biometria Facial"}
+          onCapture={handleFaceCapture}
+          onCancel={() => setShowFaceID(false)}
+          compareDescriptor={myEmployee?.faceEnrollment?.active && myEmployee.faceEnrollment.descriptor ? (myEmployee.faceEnrollment.descriptor as number[]) : undefined}
+        />
+      )}
+
+      {(punch.error || enroll.error) && <p className="rounded-[8px] border border-rose-200 bg-rose-50 px-4 py-2 text-xs font-semibold text-rose-700">{punch.error || enroll.error}</p>}
 
       <section className="ops-card rounded-[12px] border border-slate-200 bg-white p-5">
         <button onClick={() => setShowManual(!showManual)} className="flex w-full items-center gap-2 text-sm font-black text-slate-700">
