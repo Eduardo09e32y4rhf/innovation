@@ -115,8 +115,8 @@ export default function ClockInPage() {
   });
 
   const { data: punchesData } = useQuery<TimeTrack[]>(
-    ['timeTrack', myEmployee?.id, currentMonth],
     () => api.timeTrack.listEmployeeMonth(myEmployee!.id, currentMonth),
+    [myEmployee?.id, currentMonth],
     { enabled: !!myEmployee }
   );
 
