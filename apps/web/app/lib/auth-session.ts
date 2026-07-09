@@ -4,9 +4,7 @@
  * Camada única de persistência de sessão de autenticação.
  *
  * Regras de ouro:
- *  - Sessão ativa SEMPRE em sessionStorage (isolada por aba).
- *  - localStorage é ZONA PROIBIDA para auth — startLocalStorageGuard() elimina
- *    qualquer chave de auth que apareça lá, inclusive escritas de outras abas.
+ *  - Sessão ativa SEMPRE em localStorage para persistir entre abas.
  *  - Serialização de User/Company acontece AQUI, nunca no chamador.
  */
 
@@ -92,9 +90,9 @@ function safeParse<T>(v: string | null): T | null {
   try { return JSON.parse(v!) as T; } catch { return null; }
 }
 
-function _writeToSessionStorage(session: StoredAuthSession): void {
+function _writeToStorage(session: StoredAuthSession): void {
   try {
-    const ss = window.sessionStorage;
+    const ls = window.localStorage;
     const entries: Array<[string, string | null]> = [
       [SESSION_KEYS.token, session.token],
       [SESSION_KEYS.user, session.user],
@@ -103,9 +101,9 @@ function _writeToSessionStorage(session: StoredAuthSession): void {
     ];
     entries.forEach(([key, value]) => {
       if (value === null || value === undefined) {
-        ss.removeItem(key);
+        ls.removeItem(key);
       } else {
-        ss.setItem(key, value);
+        ls.setItem(key, value);
       }
     });
   } catch (e) {
@@ -114,19 +112,13 @@ function _writeToSessionStorage(session: StoredAuthSession): void {
 }
 
 function _purgeLocalStorage(): void {
-  try {
-    const ls = window.localStorage;
-    PROHIBITED_LOCALSTORAGE_KEYS.forEach((k) => ls.removeItem(k));
-  } catch (e) {
-    // Ignora SecurityError
-  }
+  // Empty function to keep compatibility if called
 }
 
 // ─── API pública ──────────────────────────────────────────────────────────────
 
 /**
- * Lê a sessão do sessionStorage (isolada por aba).
- * Se não existir, migra silenciosamente do localStorage legado e o limpa.
+ * Lê a sessão do localStorage.
  */
 export function readAuthSession(): StoredAuthSession {
   if (typeof window === 'undefined') {
@@ -136,42 +128,15 @@ export function readAuthSession(): StoredAuthSession {
   let current: StoredAuthSession = { token: null, user: null, company: null, passwordChangeRequired: null };
 
   try {
-    const ss = window.sessionStorage;
+    const ls = window.localStorage;
     current = {
-      token: ss.getItem(SESSION_KEYS.token),
-      user: ss.getItem(SESSION_KEYS.user),
-      company: ss.getItem(SESSION_KEYS.company),
-      passwordChangeRequired: ss.getItem(SESSION_KEYS.passwordChangeRequired),
+      token: ls.getItem(SESSION_KEYS.token) ?? ls.getItem('token') ?? ls.getItem('auth.token'),
+      user: ls.getItem(SESSION_KEYS.user) ?? ls.getItem('user') ?? ls.getItem('auth.user'),
+      company: ls.getItem(SESSION_KEYS.company) ?? ls.getItem('company') ?? ls.getItem('auth.company'),
+      passwordChangeRequired: ls.getItem(SESSION_KEYS.passwordChangeRequired) ?? ls.getItem('passwordChangeRequired') ?? ls.getItem('auth.passwordChangeRequired'),
     };
   } catch (e) {
     // Ignora SecurityError caso cookies/storage bloqueados
-  }
-
-  if (hasValue(current.token) || hasValue(current.user)) {
-    return current;
-  }
-
-  // Migração: chaves legadas do localStorage → sessionStorage
-  try {
-    const ls = window.localStorage;
-    const legacyToken = ls.getItem('token') ?? ls.getItem('auth.token');
-    const legacyUser = ls.getItem('user') ?? ls.getItem('auth.user');
-    const legacyCompany = ls.getItem('company') ?? ls.getItem('auth.company');
-    const legacyPcr = ls.getItem('passwordChangeRequired') ?? ls.getItem('auth.passwordChangeRequired');
-
-    if (hasValue(legacyToken) || hasValue(legacyUser)) {
-      const migrated: StoredAuthSession = {
-        token: legacyToken,
-        user: legacyUser,
-        company: legacyCompany,
-        passwordChangeRequired: legacyPcr,
-      };
-      _writeToSessionStorage(migrated);
-      _purgeLocalStorage();
-      return migrated;
-    }
-  } catch (e) {
-    // Ignora erros de SecurityError caso o browser bloqueie localStorage
   }
 
   return current;
@@ -196,9 +161,8 @@ export function readParsedAuthSession(): {
 }
 
 /**
- * Persiste a sessão no sessionStorage com objetos brutos.
+ * Persiste a sessão no localStorage com objetos brutos.
  * A serialização JSON acontece aqui — nunca no chamador.
- * Garante que o localStorage esteja limpo após cada escrita.
  */
 export function persistAuthSession(
   token: string,
@@ -207,50 +171,30 @@ export function persistAuthSession(
   passwordChangeRequired: boolean,
 ): void {
   if (typeof window === 'undefined') return;
-  _writeToSessionStorage({
+  _writeToStorage({
     token,
     user: JSON.stringify(user),
     company: JSON.stringify(company),
     passwordChangeRequired: String(passwordChangeRequired),
   });
-  _purgeLocalStorage();
 }
 
-/** Remove todos os dados de sessão do sessionStorage e do localStorage. */
+/** Remove todos os dados de sessão do localStorage. */
 export function clearAuthSession(): void {
   if (typeof window === 'undefined') return;
   try {
-    const ss = window.sessionStorage;
-    Object.values(SESSION_KEYS).forEach((k) => ss.removeItem(k));
+    const ls = window.localStorage;
+    Object.values(SESSION_KEYS).forEach((k) => ls.removeItem(k));
+    PROHIBITED_LOCALSTORAGE_KEYS.forEach((k) => ls.removeItem(k));
   } catch (e) {
     // Ignora
   }
-  _purgeLocalStorage();
 }
 
 /**
- * Ativa o guard de localStorage por aba — chamar UMA VEZ no AuthProvider.
- *
- * O evento `storage` é disparado pelo browser quando OUTRA aba escreve no
- * localStorage. Este listener elimina imediatamente qualquer chave de auth
- * proibida, tornando o localStorage uma zona inerte para sessão de usuário.
- *
- * Retorna uma função de cleanup para usar em useEffect.
+ * Stub para o guard de localStorage por aba.
+ * Como agora usamos localStorage, o guard original foi desativado.
  */
 export function startLocalStorageGuard(): () => void {
-  if (typeof window === 'undefined') return () => undefined;
-
-  // Limpeza imediata ao montar (resíduos de sessões anteriores)
-  _purgeLocalStorage();
-
-  const handler = (event: StorageEvent) => {
-    if (event.storageArea !== window.localStorage) return;
-    if (!event.key) return;
-    if (PROHIBITED_LOCALSTORAGE_KEYS.includes(event.key)) {
-      window.localStorage.removeItem(event.key);
-    }
-  };
-
-  window.addEventListener('storage', handler);
-  return () => window.removeEventListener('storage', handler);
+  return () => undefined;
 }
