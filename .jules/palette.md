@@ -1,0 +1,3 @@
+## 2024-11-20 - Ensure focus visibility on interactive elements and icons
+**Learning:** Adding `focus-visible:ring-2 focus-visible:outline-none` class styles drastically improves accessibility for keyboard navigation. For screen readers, always add `aria-hidden="true"` to SVG elements within icon buttons and add a clear `aria-label` to the button to prevent screen readers from missing context or unnecessarily reading out the icon component.
+**Action:** Always verify `focus-visible` styling and ARIA tags are present on icon-only buttons to ensure they remain accessible without visual impairment dependencies.
