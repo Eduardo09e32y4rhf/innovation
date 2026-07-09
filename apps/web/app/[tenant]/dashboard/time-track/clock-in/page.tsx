@@ -6,9 +6,6 @@ import { Check, Clock3, MapPin, AlertTriangle, FileEdit } from 'lucide-react';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useMutation, useQuery } from '@/app/hooks/use-data';
 import { api, type Employee, type PunchType } from '@/app/lib/api';
-import dynamic from 'next/dynamic';
-
-const FaceIDOverlay = dynamic(() => import('@/app/components/FaceIDOverlay').then(mod => mod.FaceIDOverlay), { ssr: false });
 
 const MANUAL_REASONS = [
   { value: 'esquecimento', label: 'Esquecimento de registro' },
@@ -158,24 +155,21 @@ export default function ClockInPage() {
   const [manualDate, setManualDate] = useState(new Date().toISOString().slice(0, 10));
   const [manualTime, setManualTime] = useState('');
   const [imageBase64, setImageBase64] = useState<string>('');
-  const [faceDescriptor, setFaceDescriptor] = useState<number[] | undefined>();
   const [fallbackMode, setFallbackMode] = useState(false);
   const successTimer = useRef<ReturnType<typeof setTimeout>>();
 
   const enroll = useMutation(
     async () => {
-      if (!imageBase64 || !faceDescriptor) throw new Error('Capture sua foto primeiro com o reconhecimento facial.');
-      // O backend de bater ponto agora registra automaticamente na primeira vez
-      // Mas se houver um endpoint específico de enroll, ele foi removido ou substituído.
-      // Aqui simulamos sucesso já que o clockIn que fará isso, mas deixamos preparado caso seja usado explicitamente.
-      return { success: true }; 
+      if (!imageBase64) throw new Error('Capture sua foto primeiro.');
+      return api.facialRecognition.enroll({ imageBase64 });
     },
     {
       onSuccess: () => {
-        setSuccess('Rosto capturado com sucesso! Agora você pode bater ponto.');
+        setSuccess('Rosto cadastrado com sucesso! Agora você pode bater ponto.');
         if (successTimer.current) clearTimeout(successTimer.current);
         successTimer.current = setTimeout(() => {
           setSuccess(null);
+          employees.refetch(); // refresh employee data
         }, 2500);
       }
     }
@@ -201,7 +195,6 @@ export default function ClockInPage() {
           ...input,
           type: params.type,
           imageBase64,
-          faceDescriptor,
           fallback: fallbackMode,
         } as any);
       }
@@ -275,49 +268,29 @@ export default function ClockInPage() {
           )}
 
           {/* Camera Floating Box */}
-          <div className="absolute bottom-4 right-4 left-4 md:left-auto md:w-[350px] rounded-[16px] bg-white/95 p-4 shadow-xl border border-slate-200/50 backdrop-blur-md z-10">
+          <div className="absolute bottom-4 right-4 left-4 md:left-auto md:w-80 rounded-[16px] bg-white/95 p-4 shadow-xl border border-slate-200/50 backdrop-blur-md z-10">
             {!(myEmployee?.faceEnrollment?.active) ? (
-              <div className="text-center">
-                <div className="mb-3">
+              <div>
+                <div className="mb-3 text-center">
                   <h3 className="text-sm font-black text-slate-950">Cadastrar Facial</h3>
-                  <p className="text-[10px] text-slate-500">Registre seu rosto pela primeira vez.</p>
+                  <p className="text-[10px] text-slate-500">Registre seu rosto para bater ponto.</p>
                 </div>
-                {imageBase64 ? (
-                  <div className="flex flex-col items-center">
-                    <img src={imageBase64} className="h-32 w-32 rounded-full object-cover border border-slate-300 mb-2" />
-                    <button onClick={() => { setImageBase64(''); setFaceDescriptor(undefined); }} className="text-xs font-semibold text-rose-500 underline">Recapturar</button>
-                    <p className="text-xs text-slate-500 mt-2">Tudo certo! Clique no botão verde abaixo para bater o ponto e salvar a biometria.</p>
-                  </div>
-                ) : (
-                  <button onClick={() => setFallbackMode(false)} className="mx-auto block rounded-[12px] bg-teal-50 px-4 py-8 border border-teal-100 text-teal-700 w-full hover:bg-teal-100 transition text-sm font-semibold">
-                    Ativar Câmera
-                  </button>
-                )}
-                
+                <CameraCapture onCapture={(b64) => setImageBase64(b64)} />
                 <button
-                  onClick={() => handlePunch('ENTRY')}
-                  disabled={!imageBase64 || punch.loading}
+                  onClick={() => enroll.mutate().catch(() => {})}
+                  disabled={!imageBase64 || enroll.loading}
                   className="mt-3 flex w-full items-center justify-center gap-2 rounded-[8px] bg-emerald-600 py-2.5 text-xs font-bold text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
                 >
-                  {punch.loading ? 'Registrando...' : 'Bater ponto e Salvar'}
+                  {enroll.loading ? 'Cadastrando...' : 'Salvar meu rosto'}
                 </button>
               </div>
             ) : (
               <div>
-                <h3 className="mb-2 text-xs font-black text-slate-950 text-center">Registrar ponto</h3>
-                {imageBase64 ? (
-                  <div className="flex flex-col items-center">
-                    <img src={imageBase64} className="h-32 w-32 rounded-full object-cover border border-slate-300 mb-2" />
-                    <button onClick={() => { setImageBase64(''); setFaceDescriptor(undefined); }} className="text-xs font-semibold text-rose-500 underline">Recapturar</button>
-                  </div>
-                ) : (
-                  <button onClick={() => setFallbackMode(false)} className="mx-auto block rounded-[12px] bg-teal-50 px-4 py-8 border border-teal-100 text-teal-700 w-full hover:bg-teal-100 transition text-sm font-semibold">
-                    Ativar Câmera
-                  </button>
-                )}
+                <h3 className="mb-2 text-xs font-black text-slate-950">Registrar ponto</h3>
+                <CameraCapture onCapture={(b64) => setImageBase64(b64)} />
                 <div className="mt-2 flex items-center justify-between">
                   <label className="flex items-center gap-1.5 text-[10px] text-slate-600">
-                    <input type="checkbox" checked={fallbackMode} onChange={e => { setFallbackMode(e.target.checked); if(e.target.checked) setImageBase64(''); }} className="rounded border-slate-300" />
+                    <input type="checkbox" checked={fallbackMode} onChange={e => setFallbackMode(e.target.checked)} className="rounded border-slate-300" />
                     Ativar Fallback (Sem foto)
                   </label>
                 </div>
@@ -333,18 +306,6 @@ export default function ClockInPage() {
             )}
           </div>
         </div>
-      )}
-
-      {!imageBase64 && !fallbackMode && (
-        <FaceIDOverlay 
-          title={myEmployee?.faceEnrollment?.active ? "Bater Ponto" : "Cadastro de Face ID"}
-          compareDescriptor={myEmployee?.faceEnrollment?.active && myEmployee?.faceEnrollment?.descriptor ? myEmployee.faceEnrollment.descriptor : undefined}
-          onCapture={(b64, desc) => {
-            setImageBase64(b64);
-            setFaceDescriptor(desc);
-          }} 
-          onCancel={() => {}} // Não deixar cancelar sem voltar pra trás
-        />
       )}
 
       {(punch.error || enroll.error) && <p className="rounded-[8px] border border-rose-200 bg-rose-50 px-4 py-2 text-xs font-semibold text-rose-700">{punch.error || enroll.error}</p>}

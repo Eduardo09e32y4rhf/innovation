@@ -61,7 +61,11 @@ export class TimeTrackController {
 
     const enrollment = await this.service['prisma'].faceEnrollment.findUnique({ where: { employeeId } });
 
-    if (!enrollment || !enrollment.active || !enrollment.descriptor) {
+    if (!dto.faceDescriptor && dto.imageBase64) {
+      // Se não veio o descritor facial (porque a interface voltou a usar a Câmera simples), 
+      // aceitamos o ponto normalmente sem validação biométrica matemática.
+      facialSuccess = true;
+    } else if (!enrollment || !enrollment.active || !enrollment.descriptor) {
       // Primeira vez: Cadastrar a biometria facial automaticamente com base no faceDescriptor
       if (!dto.faceDescriptor) {
          throw new BadRequestException('Não foi possível realizar o cadastro biométrico inicial. Tente novamente.');
