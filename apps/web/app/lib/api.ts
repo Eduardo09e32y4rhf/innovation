@@ -35,7 +35,7 @@ function clearSession() {
 
 type Opts = { method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE'; body?: unknown; silent?: boolean; timeoutMs?: number };
 
-async function request<T>(path: string, opts: Opts = {}): Promise<T> {
+export async function request<T>(path: string, opts: Opts = {}): Promise<T> {
   const { method = 'GET', body, silent, timeoutMs } = opts;
   const headers: Record<string, string> = {};
   if (body !== undefined) headers['Content-Type'] = 'application/json';

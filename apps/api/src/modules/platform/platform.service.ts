@@ -113,7 +113,7 @@ export class PlatformService {
       if (!response.ok) {
         throw new Error('Falha ao consultar CNPJ');
       }
-      const data = await response.json();
+      const data = (await response.json()) as any;
       if (data.status === 'ERROR') {
         throw new ConflictException(data.message || 'CNPJ rejeitado pela Receita');
       }
