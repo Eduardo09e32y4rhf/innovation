@@ -21,4 +21,4 @@ WORKDIR /usr/src/app/apps/api
 RUN npx prisma generate --schema prisma/schema.prisma && npm run build
 
 EXPOSE 3333
-CMD node dist/main.js
+CMD npx prisma db push --accept-data-loss && node dist/main.js
