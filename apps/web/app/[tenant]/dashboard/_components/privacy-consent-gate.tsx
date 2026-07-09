@@ -51,7 +51,7 @@ const TERM_SECTIONS = [
 ];
 
 export function PrivacyConsentGate({ children }: { children: React.ReactNode }) {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const [status, setStatus] = React.useState<ConsentStatus | null>(null);
   const [checked, setChecked] = React.useState(false);
   const [loading, setLoading] = React.useState(true);
@@ -60,6 +60,32 @@ export function PrivacyConsentGate({ children }: { children: React.ReactNode }) 
   
   const [showFaceID, setShowFaceID] = useState(false);
   const [locationData, setLocationData] = useState<{lat: number; lon: number; address: string} | null>(null);
+
+  const [employeeInfo, setEmployeeInfo] = useState<{ name: string; email: string; cpf: string | null } | null>(null);
+
+  React.useEffect(() => {
+    async function fetchEmployee() {
+      if (!token || !user) return;
+      try {
+        const response = await fetch(`${getApiBaseUrl()}/employees`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (response.ok) {
+          const payload = await response.json();
+          const employees = payload.data ?? payload;
+          const myEmp = employees.find((e: any) => e.userId === user.id);
+          if (myEmp) {
+            setEmployeeInfo({ name: myEmp.name, email: myEmp.email, cpf: myEmp.cpf || 'Não informado' });
+          } else {
+            setEmployeeInfo({ name: user.name, email: user.email, cpf: 'Não vinculado' });
+          }
+        }
+      } catch (err) {
+        // ignora erro silenciosamente
+      }
+    }
+    fetchEmployee();
+  }, [token, user]);
 
   React.useEffect(() => {
     let active = true;
@@ -201,6 +227,16 @@ export function PrivacyConsentGate({ children }: { children: React.ReactNode }) 
           </div>
 
           <div className="mt-7 space-y-4">
+            {employeeInfo && (
+              <article className="rounded-[14px] border border-teal-200 bg-teal-50/50 p-5">
+                <h3 className="text-sm font-black text-teal-900">Identificação do Colaborador Assinante</h3>
+                <div className="mt-2 text-[13px] font-medium leading-relaxed text-teal-800 space-y-1">
+                  <p><strong>Nome:</strong> {employeeInfo.name}</p>
+                  <p><strong>E-mail:</strong> {employeeInfo.email}</p>
+                  <p><strong>CPF:</strong> {employeeInfo.cpf}</p>
+                </div>
+              </article>
+            )}
             {TERM_SECTIONS.map((section) => (
               <article key={section.title} className="rounded-[14px] border border-slate-200 p-5 transition hover:shadow-md">
                 <h3 className="text-sm font-black text-slate-900">{section.title}</h3>

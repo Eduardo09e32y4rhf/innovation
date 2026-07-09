@@ -28,6 +28,8 @@ export function FaceIDOverlay({ onCapture, onCancel, title = 'Verificação Faci
     async function loadModelsAndCamera() {
       try {
         setInstruction('Carregando modelos de IA...');
+        await faceapi.tf.ready();
+        
         await Promise.all([
           faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
           faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
