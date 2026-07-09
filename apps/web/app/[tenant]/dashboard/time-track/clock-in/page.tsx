@@ -105,10 +105,36 @@ export default function ClockInPage() {
   const [manualReason, setManualReason] = useState<ManualReason>('esquecimento');
   const [manualDate, setManualDate] = useState(new Date().toISOString().slice(0, 10));
   const [manualTime, setManualTime] = useState('');
-  const [fallbackMode, setFallbackMode] = useState(false);
   const [showFaceID, setShowFaceID] = useState(false);
   const [activePunchType, setActivePunchType] = useState<PunchType | null>(null);
   const successTimer = useRef<ReturnType<typeof setTimeout>>();
+
+  const [currentMonth] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  });
+
+  const { data: punchesData } = useQuery<TimeTrack[]>(
+    ['timeTrack', myEmployee?.id, currentMonth],
+    () => api.timeTrack.listEmployeeMonth(myEmployee!.id, currentMonth),
+    { enabled: !!myEmployee }
+  );
+
+  const todayPunches = useMemo(() => {
+    if (!punchesData) return [];
+    const today = new Date().toISOString().slice(0, 10);
+    return punchesData.filter(p => p.timestamp.startsWith(today)).sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+  }, [punchesData]);
+
+  const nextPunchType = useMemo<PunchType>(() => {
+    const count = todayPunches.length;
+    if (count === 0) return 'ENTRY';
+    if (count === 1) return 'LUNCH_START';
+    if (count === 2) return 'LUNCH_RETURN';
+    return 'EXIT';
+  }, [todayPunches]);
+
+  const nextPunchLabel: Record<PunchType, string> = { ENTRY: 'Entrada', LUNCH_START: 'Saída para o Almoço', LUNCH_RETURN: 'Retorno do Almoço', EXIT: 'Saída' };
 
   const enroll = useMutation(
     async (descriptor: number[]) => {
@@ -148,7 +174,7 @@ export default function ClockInPage() {
           type: params.type,
           imageBase64: params.imageBase64,
           faceDescriptor: params.faceDescriptor,
-          fallback: fallbackMode,
+          fallback: false,
         } as any);
       }
     },
@@ -164,13 +190,9 @@ export default function ClockInPage() {
   );
 
   const handlePunch = useCallback((type: PunchType) => {
-      if (fallbackMode) {
-        punch.mutate({ type }).catch(() => {});
-        return;
-      }
       setActivePunchType(type);
       setShowFaceID(true);
-  }, [punch, fallbackMode]);
+  }, [punch]);
 
   const handleFaceCapture = async (photoBase64: string, faceDescriptor?: number[]) => {
     setShowFaceID(false);
@@ -239,49 +261,16 @@ export default function ClockInPage() {
           {/* Floating Box */}
           <div className="absolute bottom-4 right-4 left-4 md:left-auto md:w-80 rounded-[16px] bg-white/95 p-4 shadow-xl border border-slate-200/50 backdrop-blur-md z-10">
             <div>
-              <h3 className="mb-2 text-xs font-black text-slate-950">Registrar ponto</h3>
+              <h3 className="mb-4 text-sm font-black text-slate-950 text-center">Bater Ponto</h3>
               
-              <div className="mt-2 flex items-center justify-between mb-4">
-                <label className="flex items-center gap-1.5 text-[10px] text-slate-600">
-                  <input type="checkbox" checked={fallbackMode} onChange={e => setFallbackMode(e.target.checked)} className="rounded border-slate-300" />
-                  Ativar Fallback (Sem biometria facial)
-                </label>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  onClick={() => handlePunch('ENTRY')}
-                  disabled={punch.loading || enroll.loading}
-                  className="flex items-center justify-center gap-2 rounded-[8px] bg-emerald-600 py-3 text-xs font-bold text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
-                >
-                  <Clock3 size={14} />
-                  Entrada
-                </button>
-                <button
-                  onClick={() => handlePunch('LUNCH_START')}
-                  disabled={punch.loading || enroll.loading}
-                  className="flex items-center justify-center gap-2 rounded-[8px] bg-amber-500 py-3 text-xs font-bold text-white transition-colors hover:bg-amber-600 disabled:opacity-50"
-                >
-                  <Clock3 size={14} />
-                  Almoço
-                </button>
-                <button
-                  onClick={() => handlePunch('LUNCH_RETURN')}
-                  disabled={punch.loading || enroll.loading}
-                  className="flex items-center justify-center gap-2 rounded-[8px] bg-sky-500 py-3 text-xs font-bold text-white transition-colors hover:bg-sky-600 disabled:opacity-50"
-                >
-                  <Clock3 size={14} />
-                  Retorno
-                </button>
-                <button
-                  onClick={() => handlePunch('EXIT')}
-                  disabled={punch.loading || enroll.loading}
-                  className="flex items-center justify-center gap-2 rounded-[8px] bg-slate-800 py-3 text-xs font-bold text-white transition-colors hover:bg-slate-900 disabled:opacity-50"
-                >
-                  <Clock3 size={14} />
-                  Saída
-                </button>
-              </div>
+              <button
+                onClick={() => handlePunch(nextPunchType)}
+                disabled={punch.loading || enroll.loading}
+                className="w-full flex items-center justify-center gap-2 rounded-[12px] bg-teal-600 py-4 text-sm font-bold text-white transition-colors hover:bg-teal-700 disabled:opacity-50"
+              >
+                <Clock3 size={18} />
+                {nextPunchLabel[nextPunchType]}
+              </button>
             </div>
           </div>
         </div>

@@ -25,6 +25,7 @@ export function FaceIDOverlay({ onCapture, onCancel, title = 'Verificação Faci
 
   useEffect(() => {
     let active = true;
+    let currentStream: MediaStream | null = null;
     async function loadModelsAndCamera() {
       try {
         setInstruction('Carregando modelos de IA...');
@@ -42,6 +43,8 @@ export function FaceIDOverlay({ onCapture, onCancel, title = 'Verificação Faci
         const stream = await navigator.mediaDevices.getUserMedia({ 
           video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } } 
         });
+        
+        currentStream = stream;
         
         if (!active) {
           stream.getTracks().forEach(track => track.stop());
@@ -65,9 +68,8 @@ export function FaceIDOverlay({ onCapture, onCancel, title = 'Verificação Faci
     
     return () => {
       active = false;
-      if (videoRef.current?.srcObject) {
-        const stream = videoRef.current.srcObject as MediaStream;
-        stream.getTracks().forEach(track => track.stop());
+      if (currentStream) {
+        currentStream.getTracks().forEach(track => track.stop());
       }
     };
   }, []);
