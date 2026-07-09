@@ -7,4 +7,5 @@ export interface JwtUser {
   companyId: string;
   role: UserRole;
   customPermissions?: any;
+  ghostMode?: boolean;
 }
