@@ -70,69 +70,7 @@ function ClockDisplay() {
 }
 
 
-function CameraCapture({ onCapture }: { onCapture: (base64: string) => void }) {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [captured, setCaptured] = useState<string | null>(null);
 
-  useEffect(() => {
-    let stream: MediaStream | null = null;
-    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } })
-      .then((s) => {
-        stream = s;
-        if (videoRef.current) {
-          videoRef.current.srcObject = s;
-        }
-      })
-      .catch((err) => {
-        setError('Não foi possível acessar a câmera. Verifique as permissões.');
-      });
-
-    return () => {
-      if (stream) {
-        stream.getTracks().forEach((track) => track.stop());
-      }
-    };
-  }, []);
-
-  const capture = () => {
-    if (videoRef.current && canvasRef.current) {
-      const context = canvasRef.current.getContext('2d');
-      if (context) {
-        canvasRef.current.width = videoRef.current.videoWidth;
-        canvasRef.current.height = videoRef.current.videoHeight;
-        context.drawImage(videoRef.current, 0, 0, canvasRef.current.width, canvasRef.current.height);
-        const dataUrl = canvasRef.current.toDataURL('image/jpeg');
-        setCaptured(dataUrl);
-        onCapture(dataUrl);
-      }
-    }
-  };
-
-  return (
-    <div className="flex flex-col items-center space-y-4">
-      {error ? (
-        <div className="text-sm text-red-500">{error}</div>
-      ) : captured ? (
-        <div className="relative overflow-hidden rounded-[12px] border border-slate-200">
-          <img src={captured} alt="Rosto capturado" className="h-64 w-full object-cover" />
-          <button onClick={() => { setCaptured(null); onCapture(''); }} className="absolute bottom-2 right-2 rounded-md bg-white/90 px-3 py-1 text-xs font-bold text-slate-700 shadow-sm">
-            Tirar outra
-          </button>
-        </div>
-      ) : (
-        <div className="relative overflow-hidden rounded-[12px] border border-slate-200 bg-black">
-          <video ref={videoRef} autoPlay playsInline className="h-64 w-full object-cover transform -scale-x-100" />
-          <canvas ref={canvasRef} className="hidden" />
-          <button onClick={capture} className="absolute bottom-4 left-1/2 flex h-12 w-12 -translate-x-1/2 items-center justify-center rounded-full bg-white shadow-lg border-4 border-slate-200 transition-transform active:scale-95">
-             <div className="h-8 w-8 rounded-full bg-teal-500"></div>
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
 
 export default function ClockInPage() {
   const params = useParams();
@@ -154,26 +92,9 @@ export default function ClockInPage() {
   const [manualReason, setManualReason] = useState<ManualReason>('esquecimento');
   const [manualDate, setManualDate] = useState(new Date().toISOString().slice(0, 10));
   const [manualTime, setManualTime] = useState('');
-  const [imageBase64, setImageBase64] = useState<string>('');
-  const [fallbackMode, setFallbackMode] = useState(false);
-  const successTimer = useRef<ReturnType<typeof setTimeout>>();
 
-  const enroll = useMutation(
-    async () => {
-      if (!imageBase64) throw new Error('Capture sua foto primeiro.');
-      return api.facialRecognition.enroll({ imageBase64 });
-    },
-    {
-      onSuccess: () => {
-        setSuccess('Rosto cadastrado com sucesso! Agora você pode bater ponto.');
-        if (successTimer.current) clearTimeout(successTimer.current);
-        successTimer.current = setTimeout(() => {
-          setSuccess(null);
-          employees.refetch(); // refresh employee data
-        }, 2500);
-      }
-    }
-  );
+
+  const successTimer = useRef<ReturnType<typeof setTimeout>>();
 
   const punch = useMutation(
     async (params: { type: PunchType; manual?: boolean }) => {
@@ -191,11 +112,9 @@ export default function ClockInPage() {
         input.manualReason = MANUAL_REASONS.find((r) => r.value === manualReason)?.label ?? manualReason;
         return api.timeTrack.manual(input as any);
       } else {
-        return api.timeTrack.clockInFacial({
+        return api.timeTrack.register({
           ...input,
           type: params.type,
-          imageBase64,
-          fallback: fallbackMode,
         } as any);
       }
     },
@@ -267,48 +186,51 @@ export default function ClockInPage() {
             </div>
           )}
 
-          {/* Camera Floating Box */}
+          {/* Floating Box */}
           <div className="absolute bottom-4 right-4 left-4 md:left-auto md:w-80 rounded-[16px] bg-white/95 p-4 shadow-xl border border-slate-200/50 backdrop-blur-md z-10">
-            {!(myEmployee?.faceEnrollment?.active) ? (
-              <div>
-                <div className="mb-3 text-center">
-                  <h3 className="text-sm font-black text-slate-950">Cadastrar Facial</h3>
-                  <p className="text-[10px] text-slate-500">Registre seu rosto para bater ponto.</p>
-                </div>
-                <CameraCapture onCapture={(b64) => setImageBase64(b64)} />
-                <button
-                  onClick={() => enroll.mutate().catch(() => {})}
-                  disabled={!imageBase64 || enroll.loading}
-                  className="mt-3 flex w-full items-center justify-center gap-2 rounded-[8px] bg-emerald-600 py-2.5 text-xs font-bold text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
-                >
-                  {enroll.loading ? 'Cadastrando...' : 'Salvar meu rosto'}
-                </button>
-              </div>
-            ) : (
-              <div>
-                <h3 className="mb-2 text-xs font-black text-slate-950">Registrar ponto</h3>
-                <CameraCapture onCapture={(b64) => setImageBase64(b64)} />
-                <div className="mt-2 flex items-center justify-between">
-                  <label className="flex items-center gap-1.5 text-[10px] text-slate-600">
-                    <input type="checkbox" checked={fallbackMode} onChange={e => setFallbackMode(e.target.checked)} className="rounded border-slate-300" />
-                    Ativar Fallback (Sem foto)
-                  </label>
-                </div>
+            <div>
+              <h3 className="mb-4 text-sm font-black text-slate-950">Registrar ponto</h3>
+              
+              <div className="grid grid-cols-2 gap-2">
                 <button
                   onClick={() => handlePunch('ENTRY')}
-                  disabled={(!imageBase64 && !fallbackMode) || punch.loading}
-                  className="mt-3 flex w-full items-center justify-center gap-2 rounded-[8px] bg-teal-700 py-3 text-xs font-bold text-white transition-colors hover:bg-teal-800 disabled:opacity-50"
+                  disabled={punch.loading}
+                  className="flex items-center justify-center gap-2 rounded-[8px] bg-emerald-600 py-3 text-xs font-bold text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
                 >
                   <Clock3 size={14} />
-                  {punch.loading ? 'Registrando...' : 'Bater ponto agora'}
+                  Entrada
+                </button>
+                <button
+                  onClick={() => handlePunch('LUNCH_START')}
+                  disabled={punch.loading}
+                  className="flex items-center justify-center gap-2 rounded-[8px] bg-amber-500 py-3 text-xs font-bold text-white transition-colors hover:bg-amber-600 disabled:opacity-50"
+                >
+                  <Clock3 size={14} />
+                  Almoço
+                </button>
+                <button
+                  onClick={() => handlePunch('LUNCH_RETURN')}
+                  disabled={punch.loading}
+                  className="flex items-center justify-center gap-2 rounded-[8px] bg-sky-500 py-3 text-xs font-bold text-white transition-colors hover:bg-sky-600 disabled:opacity-50"
+                >
+                  <Clock3 size={14} />
+                  Retorno
+                </button>
+                <button
+                  onClick={() => handlePunch('EXIT')}
+                  disabled={punch.loading}
+                  className="flex items-center justify-center gap-2 rounded-[8px] bg-slate-800 py-3 text-xs font-bold text-white transition-colors hover:bg-slate-900 disabled:opacity-50"
+                >
+                  <Clock3 size={14} />
+                  Saída
                 </button>
               </div>
-            )}
+            </div>
           </div>
         </div>
       )}
 
-      {(punch.error || enroll.error) && <p className="rounded-[8px] border border-rose-200 bg-rose-50 px-4 py-2 text-xs font-semibold text-rose-700">{punch.error || enroll.error}</p>}
+      {(punch.error) && <p className="rounded-[8px] border border-rose-200 bg-rose-50 px-4 py-2 text-xs font-semibold text-rose-700">{punch.error}</p>}
 
       <section className="ops-card rounded-[12px] border border-slate-200 bg-white p-5">
         <button onClick={() => setShowManual(!showManual)} className="flex w-full items-center gap-2 text-sm font-black text-slate-700">

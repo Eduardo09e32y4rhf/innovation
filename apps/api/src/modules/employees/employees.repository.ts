@@ -8,7 +8,10 @@ export class EmployeesRepository {
   list(companyId: string, skip = 0, take = 100) {
     return this.prisma.employee.findMany({
       where: { companyId },
-      include: { user: { select: { id: true, role: true, isActive: true, forcePasswordChange: true } } },
+      include: { 
+        user: { select: { id: true, role: true, isActive: true, forcePasswordChange: true } },
+        faceEnrollment: { select: { active: true } }
+      },
       orderBy: [{ name: 'asc' }, { createdAt: 'desc' }],
       skip,
       take,
@@ -22,7 +25,10 @@ export class EmployeesRepository {
   findById(companyId: string, id: string) {
     return this.prisma.employee.findFirst({
       where: { companyId, id },
-      include: { user: { select: { id: true, role: true, isActive: true, forcePasswordChange: true } } },
+      include: { 
+        user: { select: { id: true, role: true, isActive: true, forcePasswordChange: true } },
+        faceEnrollment: { select: { active: true } }
+      },
     });
   }
 
@@ -36,14 +42,20 @@ export class EmployeesRepository {
           ...(normalizedEmail ? [{ email: { equals: normalizedEmail, mode: 'insensitive' as const } }] : []),
         ],
       },
-      include: { user: { select: { id: true, role: true, isActive: true, forcePasswordChange: true } } },
+      include: { 
+        user: { select: { id: true, role: true, isActive: true, forcePasswordChange: true } },
+        faceEnrollment: { select: { active: true } }
+      },
     });
   }
 
   listByManager(companyId: string, managerId: string, skip = 0, take = 100) {
     return this.prisma.employee.findMany({
       where: { companyId, managerId },
-      include: { user: { select: { id: true, role: true, isActive: true, forcePasswordChange: true } } },
+      include: { 
+        user: { select: { id: true, role: true, isActive: true, forcePasswordChange: true } },
+        faceEnrollment: { select: { active: true } }
+      },
       orderBy: { createdAt: 'desc' },
       skip,
       take,
