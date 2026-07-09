@@ -120,19 +120,20 @@ export default function ClockInPage() {
     { enabled: !!myEmployee }
   );
 
-  const todayPunches = useMemo(() => {
-    if (!punchesData) return [];
+  const todayTrack = useMemo(() => {
+    if (!punchesData) return null;
     const today = new Date().toISOString().slice(0, 10);
-    return punchesData.filter(p => p.timestamp.startsWith(today)).sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+    return punchesData.find(p => p.date && p.date.startsWith(today)) || null;
   }, [punchesData]);
 
   const nextPunchType = useMemo<PunchType>(() => {
-    const count = todayPunches.length;
-    if (count === 0) return 'ENTRY';
-    if (count === 1) return 'LUNCH_START';
-    if (count === 2) return 'LUNCH_RETURN';
-    return 'EXIT';
-  }, [todayPunches]);
+    if (!todayTrack) return 'ENTRY';
+    if (!todayTrack.entry) return 'ENTRY';
+    if (!todayTrack.lunchStart) return 'LUNCH_START';
+    if (!todayTrack.lunchReturn) return 'LUNCH_RETURN';
+    if (!todayTrack.exit) return 'EXIT';
+    return 'EXIT'; // Já bateu todos os pontos
+  }, [todayTrack]);
 
   const nextPunchLabel: Record<PunchType, string> = { ENTRY: 'Entrada', LUNCH_START: 'Saída para o Almoço', LUNCH_RETURN: 'Retorno do Almoço', EXIT: 'Saída' };
 
