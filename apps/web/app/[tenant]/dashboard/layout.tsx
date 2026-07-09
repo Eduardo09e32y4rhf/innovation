@@ -7,8 +7,17 @@ import { DashboardTopbar } from './_components/dashboard-topbar';
 import { PasswordChangeGate } from './_components/password-change-gate';
 import { PrivacyConsentGate } from './_components/privacy-consent-gate';
 import { PendingNotificationsGate } from './_components/pending-notifications-gate';
+import { BillingBlockScreen } from '../../components/billing-block-screen';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
+  const { company } = useAuth();
+
+  // Bloqueio de Inadimplência
+  if (company && (company as any).billingStatus === 'PAST_DUE_BLOCK') {
+    return <BillingBlockScreen />;
+  }
+
   return (
     <ProtectedRoute>
       <PasswordChangeGate>

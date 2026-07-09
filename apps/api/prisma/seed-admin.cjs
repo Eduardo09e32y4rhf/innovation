@@ -43,7 +43,11 @@ async function main() {
   const devPassword = requiredEnv('DEV_PASSWORD') || randomLocalPassword();
   await prisma.user.upsert({
     where: { email: devEmail },
-    update: { role: 'DEV' },
+    update: { 
+      role: 'DEV',
+      passwordHash: await bcrypt.hash(devPassword, 12),
+      isActive: true,
+    },
     create: {
       companyId: platformCompany.id,
       name: 'Engenharia',

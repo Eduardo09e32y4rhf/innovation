@@ -23,6 +23,8 @@ import { ManagementModule } from './modules/management/management.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { AuditInterceptor } from './common/interceptors/audit.interceptor';
 import { CryptoModule } from './common/crypto/crypto.module';
+import { FinanceModule } from './modules/finance/finance.module';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
@@ -51,6 +53,8 @@ import { CryptoModule } from './common/crypto/crypto.module';
     ManagementModule,
     NotificationsModule,
     CryptoModule,
+    FinanceModule,
+    ScheduleModule.forRoot(),
   ],
   providers: [{ provide: APP_INTERCEPTOR, useClass: AuditInterceptor }],
 })
