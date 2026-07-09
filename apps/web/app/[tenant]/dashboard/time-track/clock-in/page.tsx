@@ -5,7 +5,7 @@ import { useRouter , useParams } from 'next/navigation';
 import { Check, Clock3, MapPin, AlertTriangle, FileEdit } from 'lucide-react';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useMutation, useQuery } from '@/app/hooks/use-data';
-import { api, type Employee, type PunchType } from '@/app/lib/api';
+import { api, type Employee, type PunchType, type TimeTrack } from '@/app/lib/api';
 
 import dynamic from 'next/dynamic';
 
@@ -69,15 +69,25 @@ function MapView({ lat, lng, className = "h-64" }: { lat: number; lng: number; c
 }
 
 function ClockDisplay() {
-  const [time, setTime] = useState(new Date());
+  const [time, setTime] = useState<Date | null>(null);
   useEffect(() => {
+    setTime(new Date());
     const id = setInterval(() => setTime(new Date()), 1000);
     return () => clearInterval(id);
   }, []);
+  
+  if (!time) {
+    return (
+      <div className="text-center min-h-[72px]">
+        <p className="text-4xl font-black tabular-nums text-transparent select-none">00:00:00</p>
+      </div>
+    );
+  }
+  
   return (
-    <div className="text-center">
+    <div className="text-center min-h-[72px]">
       <p className="text-4xl font-black tabular-nums text-slate-950">{time.toLocaleTimeString('pt-BR')}</p>
-      <p className="mt-1 text-sm text-slate-500">{time.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
+      <p className="mt-1 text-sm text-slate-500 capitalize">{time.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
     </div>
   );
 }

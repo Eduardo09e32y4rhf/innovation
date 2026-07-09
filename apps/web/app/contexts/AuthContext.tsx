@@ -212,7 +212,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       if (!response.ok) {
         const payload = await response.json().catch(() => null);
-        throw new Error(payload?.message || payload?.error?.message || 'Não foi possível entrar.');
+        throw new Error(payload?.message || payload?.error?.message || (typeof payload?.error === 'string' ? payload.error : `Não foi possível entrar (Erro ${response.status}).`));
       }
 
       const data = await response.json();
