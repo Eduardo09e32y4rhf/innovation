@@ -6,6 +6,9 @@ import { Check, Clock3, MapPin, AlertTriangle, FileEdit } from 'lucide-react';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useMutation, useQuery } from '@/app/hooks/use-data';
 import { api, type Employee, type PunchType } from '@/app/lib/api';
+import dynamic from 'next/dynamic';
+
+const FaceIDOverlay = dynamic(() => import('@/app/components/FaceIDOverlay').then(mod => mod.FaceIDOverlay), { ssr: false });
 
 const MANUAL_REASONS = [
   { value: 'esquecimento', label: 'Esquecimento de registro' },

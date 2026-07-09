@@ -3,7 +3,9 @@
 import React, { useState } from 'react';
 import { ShieldCheck, ArrowRight, Camera } from 'lucide-react';
 import { useAuth } from '@/app/contexts/AuthContext';
-import { FaceIDOverlay } from '@/app/components/FaceIDOverlay';
+import dynamic from 'next/dynamic';
+
+const FaceIDOverlay = dynamic(() => import('@/app/components/FaceIDOverlay').then(mod => mod.FaceIDOverlay), { ssr: false });
 
 const TERMS_VERSION = 'lgpd-rh-innovation-v2.0.0';
 
