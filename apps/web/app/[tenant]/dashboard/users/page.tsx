@@ -189,7 +189,7 @@ export default function UsersPage() {
                                 onClick={async () => {
                                   try {
                                     const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || '/api'}/legal/terms/download/${user.id}?t=${Date.now()}`, {
-                                      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+                                      headers: { Authorization: `Bearer ${window.sessionStorage.getItem('auth.token')}` },
                                       cache: 'no-store'
                                     });
                                     if (!res.ok) throw new Error('Não foi possível baixar o termo');
