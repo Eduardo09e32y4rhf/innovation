@@ -1,47 +1,51 @@
 # 🚀 Innovation RH Connect
 
-Sistema corporativo completo e profissional para Gestão de RH, controle de ponto eletrônico digital e comunicação integrada via WhatsApp. Projetado para otimizar a operação de departamento pessoal de pequenas e médias empresas com uma interface moderna, rápida e de alta performance.
+Um sistema corporativo *premium* e completo para Gestão de Recursos Humanos, controle eletrônico de jornada e comunicação inteligente. Projetado com foco absoluto em usabilidade (UX/UI), segurança e alta performance para revolucionar e automatizar o Departamento Pessoal de médias e grandes empresas.
 
 ---
 
-## 📸 Capturas de Tela (Demonstração)
+## 📸 Conheça o Sistema
 
-Conheça as principais interfaces do sistema (dados confidenciais foram ocultados com tarjas para preservar a privacidade):
+Abaixo estão as principais interfaces da plataforma, construídas com um design moderno, limpo e responsivo:
 
-### 📊 1. Painel Executivo (Dashboard)
-Acompanhamento em tempo real de indicadores gerais, pendências de ponto, férias solicitadas, banco de horas e movimentações mensais (admissões e desligamentos) de forma consolidada.
-![Painel Executivo](screenshots/01_dashboard.png)
+### 📍 1. Bater Ponto (Ponto Eletrônico com Geolocalização)
+Interface de registro de jornada do colaborador, com validação de geolocalização em tempo real integrada ao mapa, relógio sincronizado e opção de lançamento manual com justificativas parametrizadas, tudo com suporte a biometria facial.
+![Bater Ponto](screenshots/01_clock_in.png)
 
-### 👥 2. Gestão de Funcionários
-Cadastro completo e listagem de colaboradores com status lógico (Ativos, Inativos, Desligados), filtro por departamento ou matrícula e geração automática de Ficha de Registro em PDF.
-![Gestão de Funcionários](screenshots/02_employees.png)
+### 📊 2. Painel Executivo (Dashboard)
+Visão consolidada da operação de RH em tempo real. Acompanhe métricas vitais como funcionários ativos, jornadas registradas no dia, saldo do banco de horas global, e alertas críticos (férias pendentes, alertas cadastrais e aniversariantes).
+![Painel Executivo](screenshots/02_dashboard.png)
 
-### 📅 3. Controle de Férias
-Solicitações de férias individuais ou coletivas, acompanhamento do período concessivo e cálculo automático de elegibilidade de dias com base nas faltas injustificadas.
-![Controle de Férias](screenshots/03_vacations.png)
+### 👥 3. Cadastro da Equipe (Funcionários)
+Módulo centralizado para gestão do quadro de colaboradores. Listagem interativa com filtros avançados, exibição de status, departamento, cargo e nível de acesso ao sistema, permitindo ações rápidas como edição, desligamento e acesso rápido ao espelho de ponto.
+![Gestão de Funcionários](screenshots/03_employees.png)
 
-### ⏱️ 4. Folha de Ponto Eletrônica
-Espelho de ponto mensal com marcação de entrada, almoço e saída. Cálculo de horas trabalhadas, horas extras (50% e 100%), adicional noturno e saldo diário com visualização limpa de atestados, suspensões e faltas.
-![Folha de Ponto](screenshots/04_time-track.png)
+### ⏱️ 4. Folha de Ponto (Gestão de Jornada)
+Painel do gestor e do RH para acompanhamento do espelho de ponto de toda a equipe. Visão consolidada por colaborador mostrando as horas trabalhadas e saldos (positivos ou negativos) no mês selecionado, permitindo auditoria detalhada, aprovação em lote e exportação.
+![Folha de Ponto](screenshots/04_time_track.png)
 
-### 🩺 5. Saúde Ocupacional & ASO
-Gestão de Exames Médicos Ocupacionais (ASO) por funcionário com controle de vencimento, fechamento de períodos de folha e regras de controle interno parametrizáveis.
-![Saúde Ocupacional](screenshots/05_management.png)
+### 🏢 5. Gestão da Plataforma (Multi-Tenant)
+Painel administrativo global (Super Admin) para gerenciamento de múltiplas empresas (Multi-Tenant). Controle completo sobre clientes, planos, limites de usuários ativos e status financeiro das empresas cadastradas no sistema.
+![Gestão da Plataforma](screenshots/05_platform.png)
 
 ---
 
 ## 🛠️ Stack Tecnológica
 
-### Frontend
-- **Framework:** Next.js 14 (App Router)
-- **Biblioteca Visual:** React, TailwindCSS, Framer Motion
-- **Gráficos & Ícones:** Recharts, Lucide Icons
+O sistema utiliza o que há de mais moderno na engenharia de software para garantir estabilidade, segurança e velocidade:
 
-### Backend
+### 🎨 Frontend (Web App)
+- **Framework:** Next.js 14 (App Router)
+- **Linguagem:** TypeScript
+- **Estilização:** Tailwind CSS & Framer Motion (para micro-animações fluidas)
+- **Gráficos & Componentes:** Recharts, Lucide Icons
+
+### ⚙️ Backend (API RESTful)
 - **Framework:** NestJS (Node.js)
-- **Banco de Dados & ORM:** PostgreSQL & Prisma ORM
+- **Linguagem:** TypeScript
+- **Banco de Dados & ORM:** PostgreSQL + Prisma ORM
 - **Cache & Filas:** Redis
-- **Segurança:** JWT, Helmet, Throttler, Cookie Parser
+- **Segurança:** Autenticação robusta (JWT persistente), Helmet, Throttler, Cookie Parser
 
 ---
 
@@ -65,37 +69,37 @@ Gestão de Exames Médicos Ocupacionais (ASO) por funcionário com controle de v
    ```
 
 4. **Inicie os servidores de desenvolvimento:**
-   - **Backend API:** `npm run dev:api` (porta `3333` padrão)
-   - **Frontend Web:** `npm run dev:web` (porta `3000` padrão)
+   - **Backend API:** `npm run dev:api` (porta `3333`)
+   - **Frontend Web:** `npm run dev:web` (porta `3000`)
 
 ---
 
 ## 🚢 Deploy de Produção (VPS)
 
-Para rodar o ambiente de produção completo utilizando Docker Compose:
+Para rodar o ambiente de produção completo utilizando a infraestrutura conteinerizada via Docker Compose:
 
 1. **Copie o arquivo de variáveis de ambiente de produção:**
    ```bash
    cp .env.prod.example .env
    ```
-2. **Preencha os valores do `.env` adequadamente (Senhas, Secrets, etc).**
+2. **Preencha os valores do `.env` adequadamente (Senhas, Secrets do JWT, etc).**
 
-3. **Inicie os containers de Produção:**
+3. **Inicie os containers de Produção em segundo plano:**
    ```bash
    docker compose -f docker-compose.prod.yml up -d --build
    ```
 
 ---
 
-## 🗄️ Comandos de Migrações (Prisma)
+## 🗄️ Comandos de Banco de Dados (Prisma)
 
-Sempre que alterar o schema localizado em `apps/api/prisma/schema.prisma`:
+Comandos úteis para manutenção da estrutura do banco (schema `apps/api/prisma/schema.prisma`):
 
 ```bash
-npm run db:generate  # Gera os tipos locais do client
-npm run db:migrate   # Cria e executa uma nova migration
-npm run db:deploy    # Executa migrations pendentes em producao
-npm run db:studio    # Abre o gerenciador visual do banco
+npm run db:generate  # Gera/Atualiza as tipagens locais do Prisma Client
+npm run db:migrate   # Cria e executa uma nova migration de desenvolvimento
+npm run db:deploy    # Executa migrations pendentes no banco de produção
+npm run db:studio    # Abre a interface gráfica do banco (Admin)
 ```
 
 ---
@@ -103,4 +107,4 @@ npm run db:studio    # Abre o gerenciador visual do banco
 ## 📜 Licença e Propriedade
 
 Este software é **PROPRIETÁRIO**.  
-O uso, cópia, modificação ou distribuição comercial não autorizada é estritamente proibida. Para mais detalhes, consulte o arquivo [LICENSE](LICENSE) na raiz do projeto.
+O uso, cópia, modificação ou distribuição não autorizada (comercial ou não comercial) é estritamente proibida. Para mais detalhes sobre uso e direitos, consulte o arquivo [LICENSE](LICENSE) na raiz do projeto.
