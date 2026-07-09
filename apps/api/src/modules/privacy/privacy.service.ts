@@ -14,6 +14,7 @@ export class PrivacyService {
     return {
       required: !consent,
       accepted: Boolean(consent),
+      pdfPending: consent ? !consent.pdfBase64 : false,
       termVersion: CURRENT_TERMS_VERSION,
       acceptedAt: consent?.acceptedAt ?? null,
       purpose: TERMS_PURPOSE,
@@ -38,7 +39,7 @@ export class PrivacyService {
         longitude: body?.longitude,
         address: body?.address,
         photoBase64: body?.photoBase64,
-        date: new Date().toLocaleString('pt-BR'),
+        date: new Date().toLocaleString('pt-BR').replace(/\u202F/g, ' '),
       });
     } catch (e) {
       console.error('Erro gerando PDF', e);
@@ -85,13 +86,49 @@ export class PrivacyService {
       if (user.sub !== targetUserId) return null;
     }
     
+    let targetUser: any;
     if (user.role !== 'DEV' && user.sub !== targetUserId) {
-      const targetUser = await this.repository.getUserData(targetUserId);
+      targetUser = await this.repository.getUserData(targetUserId);
       if (targetUser?.companyId !== user.companyId) return null;
+    } else {
+      targetUser = await this.repository.getUserData(targetUserId);
     }
 
     const consent = await this.repository.findActiveConsent(targetUserId, CURRENT_TERMS_VERSION);
-    return consent?.pdfBase64 || null;
+    if (!consent) return null;
+
+    if (consent.pdfBase64) {
+      return consent.pdfBase64;
+    }
+
+    // PDF is missing, let's regenerate it on demand
+    try {
+      const userName = targetUser?.name || 'Usuário';
+      const companyName = targetUser?.company?.name || 'Empresa Cliente';
+      
+      const newPdfBase64 = await this.generatePDFBase64({
+        userName,
+        userEmail: targetUser?.email || '',
+        companyName,
+        termVersion: consent.termVersion,
+        purpose: consent.purpose || TERMS_PURPOSE,
+        ipAddress: consent.ipAddress,
+        latitude: consent.latitude,
+        longitude: consent.longitude,
+        address: consent.address,
+        photoBase64: consent.photoBase64,
+        date: consent.acceptedAt ? consent.acceptedAt.toLocaleString('pt-BR').replace(/\u202F/g, ' ') : new Date().toLocaleString('pt-BR').replace(/\u202F/g, ' '),
+      });
+      
+      if (newPdfBase64) {
+        await this.repository.updatePdfBase64(consent.id, newPdfBase64);
+        return newPdfBase64;
+      }
+    } catch (e) {
+      console.error('Falha ao regenerar PDF sob demanda:', e);
+    }
+
+    return null;
   }
 
   private generatePDFBase64(data: any): Promise<string> {

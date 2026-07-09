@@ -65,6 +65,13 @@ export class PrivacyRepository {
     });
   }
 
+  updatePdfBase64(id: string, pdfBase64: string) {
+    return this.prisma.privacyConsent.update({
+      where: { id },
+      data: { pdfBase64 },
+    });
+  }
+
   createAuditLog(data: {
     companyId: string;
     userId?: string;
