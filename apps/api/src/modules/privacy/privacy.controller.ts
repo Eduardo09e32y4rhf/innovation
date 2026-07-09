@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, Req, Res, UseGuards } from '@nestjs/common';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import type { JwtUser } from '../../common/types/auth.types';
@@ -29,16 +29,15 @@ export class PrivacyController {
   }
 
   @Get('terms/download/:userId')
-  async downloadTerms(@CurrentUser() user: JwtUser, @Req() request: any) {
+  async downloadTerms(@CurrentUser() user: JwtUser, @Req() request: any, @Res() reply: any) {
     const userId = request.params.userId;
     const base64Pdf = await this.service.getTermsPdf(user, userId);
-    if (!base64Pdf) return { success: false, message: 'PDF não encontrado' };
+    if (!base64Pdf) return reply.status(404).send({ success: false, message: 'PDF não encontrado' });
     
     const buffer = Buffer.from(base64Pdf, 'base64');
-    const response = request.res;
-    response.setHeader('Content-Type', 'application/pdf');
-    response.setHeader('Content-Disposition', `attachment; filename=Termo_De_Uso_${userId}.pdf`);
-    response.send(buffer);
+    reply.header('Content-Type', 'application/pdf');
+    reply.header('Content-Disposition', `attachment; filename=Termo_De_Uso_${userId}.pdf`);
+    reply.send(buffer);
   }
 }
 

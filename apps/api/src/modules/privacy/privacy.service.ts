@@ -2,7 +2,8 @@ import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import type { JwtUser } from '../../common/types/auth.types';
 import { CURRENT_TERMS_VERSION, TERMS_PURPOSE } from './privacy.constants';
 import { PrivacyRepository } from './privacy.repository';
-import * as PDFDocument from 'pdfkit';
+import * as PDFDocumentType from 'pdfkit';
+const PDFDocument = require('pdfkit');
 
 @Injectable()
 export class PrivacyService {
