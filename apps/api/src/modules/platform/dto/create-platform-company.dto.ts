@@ -19,6 +19,10 @@ export class CreatePlatformCompanyDto {
   @Min(1)
   maxEmployees?: number;
 
+  @IsOptional()
+  @IsString()
+  planId?: string;
+
   // Admin inicial da empresa — criado na mesma transacao
   @IsString()
   @IsNotEmpty()

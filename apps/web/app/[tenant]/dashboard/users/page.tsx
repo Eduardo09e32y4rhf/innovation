@@ -91,6 +91,7 @@ export default function UsersPage() {
               <thead>
                 <tr className="text-[11px] font-medium text-slate-500">
                   <th className="pb-3 pr-4">Nome</th>
+                  {currentRole === 'DEV' && <th className="pb-3 pr-4">Empresa</th>}
                   <th className="pb-3 pr-4">E-mail</th>
                   <th className="pb-3 pr-4">Perfil</th>
                   <th className="pb-3 pr-4">Status</th>
@@ -103,6 +104,9 @@ export default function UsersPage() {
                   return (
                     <tr key={user.id} className="border-t border-slate-100 text-xs text-slate-700">
                       <td className="py-3 pr-4 font-medium text-slate-950">{normalizeDisplayName(user.name)}</td>
+                      {currentRole === 'DEV' && (
+                        <td className="py-3 pr-4">{user.company?.name ?? '-'}</td>
+                      )}
                       <td className="py-3 pr-4">{user.email || '-'}</td>
                       <td className="py-3 pr-4">{user.role ? (ROLE_LABEL[user.role] ?? user.role) : '-'}</td>
                       <td className="py-3 pr-4">
@@ -126,6 +130,18 @@ export default function UsersPage() {
                             >
                               <Trash2 size={12} />Remover
                             </button>
+                            {currentRole === 'DEV' && (
+                              <button
+                                onClick={async () => {
+                                  if (!window.confirm(`Resetar a senha de ${user.name}? O usuário precisará criar uma nova senha no próximo login.`)) return;
+                                  await api.users.resetPassword(user.id).catch(() => {});
+                                  alert('Senha resetada com sucesso.');
+                                }}
+                                className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px] text-amber-600"
+                              >
+                                Resetar
+                              </button>
+                            )}
                           </div>
                         ) : (
                           <span className="text-[11px] font-semibold text-slate-400">Restrito</span>

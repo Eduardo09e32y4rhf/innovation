@@ -95,6 +95,7 @@ export class PlatformRepository {
     plan?: 'FREE' | 'BASE' | 'PRO' | 'ENTERPRISE';
     billingStatus?: 'TRIAL' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED';
     trialEndsAt?: Date;
+    platformPlanId?: string;
   }) {
     return this.prisma.$transaction(async (tx: any) => {
       const company = await tx.company.create({
@@ -109,6 +110,7 @@ export class PlatformRepository {
           plan: params.plan ?? 'FREE',
           billingStatus: params.billingStatus ?? 'TRIAL',
           trialEndsAt: params.trialEndsAt,
+          platformPlanId: params.platformPlanId ?? null,
         },
       });
       const admin = await tx.user.create({

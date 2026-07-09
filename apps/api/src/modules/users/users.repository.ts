@@ -24,6 +24,18 @@ export class UsersRepository {
     });
   }
 
+  listAll() {
+    return this.prisma.user.findMany({
+      select: {
+        ...safeUserSelect,
+        company: {
+          select: { name: true }
+        }
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
   findById(companyId: string, id: string) {
     return this.prisma.user.findFirst({ where: { id, companyId }, select: safeUserSelect });
   }

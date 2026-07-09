@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { Building2, Edit3, Plus, Power, Settings, Trash2, Users, X, Database, Shield, CreditCard, MessageSquare, Key } from 'lucide-react';
 import { EmptyState, ErrorState, LoadingState } from '@/app/components/data-states';
 import { useAuth } from '@/app/contexts/AuthContext';
@@ -96,13 +97,12 @@ export default function PlatformPage() {
     <div className="mx-auto max-w-6xl space-y-5">
       <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-teal-600">Plataforma</p>
           <h2 className="text-2xl font-black text-slate-950">Gestão da Plataforma</h2>
           <div className="mt-4 flex gap-4 border-b border-slate-200">
-            <button className="border-b-2 border-indigo-600 pb-2 text-sm font-bold text-indigo-600">Empresas</button>
-            <button className="pb-2 text-sm font-medium text-slate-500 hover:text-slate-800">Planos & Assinaturas (Em Breve)</button>
-            <button className="pb-2 text-sm font-medium text-slate-500 hover:text-slate-800">Financeiro (Em Breve)</button>
-            <button className="pb-2 text-sm font-medium text-slate-500 hover:text-slate-800">Permissões Globais (Em Breve)</button>
+            <Link href={`/${tenant}/dashboard/platform`} className="border-b-2 border-indigo-600 pb-2 text-sm font-bold text-indigo-600">Empresas</Link>
+            <Link href={`/${tenant}/dashboard/platform/plans`} className="pb-2 text-sm font-medium text-slate-500 hover:text-slate-800">Planos & Assinaturas</Link>
+            <Link href={`/${tenant}/dashboard/platform/finance`} className="pb-2 text-sm font-medium text-slate-500 hover:text-slate-800">Financeiro (Em Breve)</Link>
+            <Link href={`/${tenant}/dashboard/platform/permissions`} className="pb-2 text-sm font-medium text-slate-500 hover:text-slate-800">Permissões Globais</Link>
           </div>
         </div>
         <button onClick={() => setOpen(true)} className="crystal-button inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black text-white">
@@ -373,20 +373,26 @@ function CompanyUserFormModal({ companyId, user, onClose, onDone }: { companyId:
 }
 
 function NewCompanyModal({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
-  const [form, setForm] = useState<CreatePlatformCompanyInput>({
+  const plansData = useQuery(() => request<any[]>('/platform/plans'), []);
+
+  const [form, setForm] = useState<CreatePlatformCompanyInput & { planId?: string }>({
     name: '', document: '', slug: '', maxUsers: 10, maxEmployees: 20,
     adminName: '', adminEmail: '', adminPassword: '',
   });
+  
   const create = useMutation(() => api.platform.createCompany({
     ...form,
     name: normalizeDisplayName(form.name),
     document: form.document?.trim(),
     adminName: normalizeDisplayName(form.adminName),
     adminEmail: form.adminEmail.trim().toLowerCase(),
+    // @ts-ignore
+    planId: form.planId
   }), { onSuccess: onDone });
+  
   const valid = form.name && form.adminName && form.adminEmail && form.adminPassword.length >= 8;
 
-  function set<K extends keyof CreatePlatformCompanyInput>(k: K, v: CreatePlatformCompanyInput[K]) {
+  function set<K extends keyof (CreatePlatformCompanyInput & { planId?: string })>(k: K, v: any) {
     setForm((f) => ({ ...f, [k]: v }));
   }
 
@@ -398,9 +404,47 @@ function NewCompanyModal({ onClose, onDone }: { onClose: () => void; onDone: () 
           <button onClick={onClose} className="text-slate-400 hover:text-slate-700"><X size={18} /></button>
         </div>
         {create.error && <p className="mb-3 rounded-[8px] border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">{create.error}</p>}
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-3 sm:grid-cols-2 mb-3">
           <F label="Nome da empresa" value={form.name} onChange={(v) => set('name', v)} required />
-          <F label="CNPJ" value={form.document ?? ''} onChange={(v) => set('document', v)} />
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-slate-600">CNPJ</label>
+            <div className="flex gap-2">
+              <input type="text" value={form.document ?? ''} onChange={(e) => set('document', e.target.value)} className="h-10 flex-1 rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500" />
+              <button 
+                type="button"
+                onClick={async () => {
+                  if (!form.document || form.document.length < 14) return alert('Digite um CNPJ válido');
+                  try {
+                    const res = await api.platform.getReceitaCnpj(form.document.replace(/\D/g, ''));
+                    if (res.nome) set('name', res.nome);
+                    if (res.email) set('adminEmail', res.email);
+                  } catch (e: any) {
+                    alert(e.message || 'Erro ao buscar CNPJ');
+                  }
+                }}
+                className="btn-outline px-3 rounded-[8px] text-xs font-bold whitespace-nowrap h-10"
+              >
+                Buscar
+              </button>
+            </div>
+          </div>
+          <label className="space-y-1 text-xs font-medium text-slate-600 sm:col-span-2">
+            <span>Plano (Opcional)</span>
+            <select value={form.planId || ''} onChange={e => {
+              const pId = e.target.value;
+              set('planId', pId);
+              const plan = plansData.data?.find(p => p.id === pId);
+              if (plan) {
+                set('maxUsers', plan.maxUsers);
+                set('maxEmployees', plan.maxEmployees);
+              }
+            }} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500">
+              <option value="">Sem plano (Limites manuais)</option>
+              {plansData.data?.map(p => (
+                <option key={p.id} value={p.id}>{p.name} - R$ {Number(p.price).toFixed(2)}</option>
+              ))}
+            </select>
+          </label>
           <F label="Max. usuarios" type="number" value={String(form.maxUsers)} onChange={(v) => set('maxUsers', Number(v) || 6)} />
           <F label="Max. funcionarios" type="number" value={String(form.maxEmployees)} onChange={(v) => set('maxEmployees', Number(v) || 50)} />
         </div>

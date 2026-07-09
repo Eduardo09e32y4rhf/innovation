@@ -13,6 +13,9 @@ export class UsersService {
   constructor(private readonly repository: UsersRepository) {}
 
   async list(companyId: string, actor: JwtUser) {
+    if (actor.role === 'DEV') {
+      return this.repository.listAll();
+    }
     const users = await this.repository.list(companyId);
     return this.filterRestrictedUsers(users, actor);
   }

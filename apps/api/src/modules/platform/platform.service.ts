@@ -69,6 +69,7 @@ export class PlatformService {
         plan: 'PRO',
         billingStatus: 'TRIAL',
         trialEndsAt,
+        platformPlanId: dto.planId,
     });
   }
 
