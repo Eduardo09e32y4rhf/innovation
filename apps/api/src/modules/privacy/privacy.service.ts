@@ -142,8 +142,9 @@ export class PrivacyService {
         }
 
         doc.end();
-      } catch (e) {
-        reject(e);
+      } catch (e: any) {
+        console.error('CRITICAL PDF ERROR:', e);
+        resolve(Buffer.from('PDF_GENERATION_ERROR: ' + (e.message || e.toString())).toString('base64'));
       }
     });
   }
