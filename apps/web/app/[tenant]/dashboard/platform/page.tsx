@@ -23,6 +23,7 @@ function safeIsoDate(val: any) {
 
 export default function PlatformPage() {
   const { user } = useAuth();
+  const tenant = user?.companyId || 'empresa';
   const currentRole = user?.profile?.toUpperCase();
   const isSuperAdmin = currentRole === 'DEV';
   const stats = useQuery(() => api.platform.stats(), []);
