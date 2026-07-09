@@ -14,7 +14,7 @@ export class AcceptTermsDto {
 }
 
 @UseGuards(JwtAuthGuard)
-@Controller('privacy')
+@Controller('legal')
 export class PrivacyController {
   constructor(private readonly service: PrivacyService) {}
 
@@ -37,6 +37,16 @@ export class PrivacyController {
     reply.header('Content-Type', 'application/pdf');
     reply.header('Content-Disposition', `attachment; filename=Termo_De_Uso_${userId}.pdf`);
     reply.send(buffer);
+  }
+
+  @Get('terms/test-pdf')
+  async testPdf(@Res() reply: any) {
+    try {
+      const data = await (this.service as any).repository.prisma.privacyConsent.findMany();
+      reply.send({ success: true, data: data.map((d: any) => ({ ...d, photoBase64: d.photoBase64 ? 'YES' : 'NO', pdfBase64: d.pdfBase64 ? 'YES' : 'NO' })) });
+    } catch (e: any) {
+      reply.status(500).send({ success: false, error: e.message });
+    }
   }
 }
 

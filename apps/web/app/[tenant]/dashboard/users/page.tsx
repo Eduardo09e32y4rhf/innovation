@@ -188,7 +188,7 @@ export default function UsersPage() {
                               <button
                                 onClick={async () => {
                                   try {
-                                    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || '/api'}/privacy/terms/download/${user.id}?t=${Date.now()}`, {
+                                    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || '/api'}/legal/terms/download/${user.id}?t=${Date.now()}`, {
                                       headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
                                       cache: 'no-store'
                                     });

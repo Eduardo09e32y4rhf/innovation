@@ -100,7 +100,7 @@ export function PrivacyConsentGate({ children }: { children: React.ReactNode }) 
       setLoading(true);
       setError('');
       try {
-        const response = await fetch(`${getApiBaseUrl()}/privacy/terms/status`, {
+        const response = await fetch(`${getApiBaseUrl()}/legal/terms/status`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (!response.ok) throw new Error('status unavailable');
@@ -164,7 +164,7 @@ export function PrivacyConsentGate({ children }: { children: React.ReactNode }) 
     setSaving(true);
     setError('');
     try {
-      const response = await fetch(`${getApiBaseUrl()}/privacy/terms/accept`, {
+      const response = await fetch(`${getApiBaseUrl()}/legal/terms/accept`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
