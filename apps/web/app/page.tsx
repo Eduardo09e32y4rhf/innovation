@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Image from 'next/image';
 import Link from 'next/link';
 import {
   ArrowRight,
@@ -194,53 +195,20 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="relative hidden lg:block">
+          <div className="relative hidden lg:block perspective-1000">
             <div className="absolute inset-0 -z-10 rounded-[2.5rem] bg-gradient-to-br from-teal-500/10 to-cyan-500/10 blur-3xl" />
             
-            {/* Abstract Dashboard Representation */}
-            <div className="relative rounded-[2rem] border border-white/10 bg-slate-900/60 p-4 shadow-2xl backdrop-blur-2xl">
-              <div className="rounded-[1.5rem] border border-white/10 bg-[#0b131e] p-6">
-                <div className="flex items-center justify-between border-b border-white/5 pb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="h-8 w-8 rounded-full bg-gradient-to-br from-teal-400 to-cyan-400" />
-                    <div>
-                      <div className="h-2 w-24 rounded-full bg-white/20" />
-                      <div className="mt-2 h-1.5 w-16 rounded-full bg-white/10" />
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <div className="h-6 w-16 rounded-full bg-teal-400/20" />
-                  </div>
-                </div>
-                
-                <div className="mt-6 grid grid-cols-2 gap-4">
-                  <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-4">
-                    <div className="h-2 w-12 rounded-full bg-white/10" />
-                    <div className="mt-3 text-2xl font-black text-white">84%</div>
-                    <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-white/5">
-                      <div className="h-full w-[84%] bg-teal-400" />
-                    </div>
-                  </div>
-                  <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-4">
-                    <div className="h-2 w-16 rounded-full bg-white/10" />
-                    <div className="mt-3 text-2xl font-black text-white">+1,2k</div>
-                    <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-white/5">
-                      <div className="h-full w-[60%] bg-cyan-400" />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-4 space-y-3">
-                  {[1, 2, 3].map((i) => (
-                    <div key={i} className="flex items-center justify-between rounded-xl bg-white/[0.02] p-3">
-                      <div className="flex items-center gap-3">
-                        <div className="h-6 w-6 rounded-md bg-white/5" />
-                        <div className="h-1.5 w-20 rounded-full bg-white/10" />
-                      </div>
-                      <div className="h-1.5 w-10 rounded-full bg-teal-400/30" />
-                    </div>
-                  ))}
-                </div>
+            {/* Real Dashboard Image Representation */}
+            <div className="relative rounded-[2rem] border border-white/10 bg-slate-900/60 p-2 shadow-2xl backdrop-blur-2xl transform rotate-y-[-5deg] rotate-x-[2deg] transition-transform duration-700 hover:rotate-0">
+              <div className="overflow-hidden rounded-[1.5rem] border border-white/5 bg-[#0b131e]">
+                <Image
+                  src="/hero-mockup.jpg"
+                  alt="Dashboard Innovation RH Connect"
+                  width={800}
+                  height={450}
+                  className="w-full h-auto object-cover opacity-90 transition-opacity duration-500 hover:opacity-100"
+                  priority
+                />
               </div>
             </div>
           </div>
