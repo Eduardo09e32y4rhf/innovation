@@ -60,7 +60,7 @@ export default function PlatformPage() {
 
   const handleGhostMode = async (c: PlatformCompany) => {
     try {
-      const res = await fetch(`/api/platform/companies/${c.id}/ghost-token`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || '/api'}/platform/ghost-mode/${c.id}`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${getAuthScopeSnapshot().token}` },
       });
