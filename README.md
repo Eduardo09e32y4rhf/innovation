@@ -24,9 +24,13 @@ Módulo centralizado para gestão do quadro de colaboradores. Listagem interativ
 Painel do gestor e do RH para acompanhamento do espelho de ponto de toda a equipe. Visão consolidada por colaborador mostrando as horas trabalhadas e saldos (positivos ou negativos) no mês selecionado, permitindo auditoria detalhada, aprovação em lote e exportação.
 ![Folha de Ponto](screenshots/04_time_track.png)
 
-### 🏢 5. Gestão da Plataforma (Multi-Tenant)
+### 📅 5. Gestão de RH (Agenda & Operacional)
+Módulo administrativo completo para gestão de compromissos, exames ocupacionais (ASO), notificações, regras de negócio da jornada e fechamento de folha. Possui visualização intuitiva em calendário (Agenda) e Kanban para facilitar o dia a dia da equipe de DP/RH.
+![Gestão de RH](screenshots/05_management.png)
+
+### 🏢 6. Gestão da Plataforma (Multi-Tenant)
 Painel administrativo global (Super Admin) para gerenciamento de múltiplas empresas (Multi-Tenant). Controle completo sobre clientes, planos, limites de usuários ativos e status financeiro das empresas cadastradas no sistema.
-![Gestão da Plataforma](screenshots/05_platform.png)
+![Gestão da Plataforma](screenshots/06_platform.png)
 
 ---
 
