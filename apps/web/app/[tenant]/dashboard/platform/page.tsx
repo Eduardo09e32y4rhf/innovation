@@ -7,7 +7,7 @@ import { EmptyState, ErrorState, LoadingState } from '@/app/components/data-stat
 import { useAuth } from '@/app/contexts/AuthContext';
 import { getAuthScopeSnapshot } from '@/app/lib/auth-session';
 import { useMutation, useQuery } from '@/app/hooks/use-data';
-import { api, type AppUser, type CreatePlatformCompanyInput, type PlatformCompany, type PlatformCompanyUserRole } from '@/app/lib/api';
+import { api, request, type AppUser, type CreatePlatformCompanyInput, type PlatformCompany, type PlatformCompanyUserRole } from '@/app/lib/api';
 import { ROLE_LABEL, formatDate } from '@/app/lib/format';
 import { normalizeDisplayName } from '@/app/lib/text';
 
@@ -434,14 +434,14 @@ function NewCompanyModal({ onClose, onDone }: { onClose: () => void; onDone: () 
             <select value={form.planId || ''} onChange={e => {
               const pId = e.target.value;
               set('planId', pId);
-              const plan = plansData.data?.find(p => p.id === pId);
+              const plan = (plansData.data as any[] | undefined)?.find(p => p.id === pId);
               if (plan) {
                 set('maxUsers', plan.maxUsers);
                 set('maxEmployees', plan.maxEmployees);
               }
             }} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500">
               <option value="">Sem plano (Limites manuais)</option>
-              {plansData.data?.map(p => (
+              {(plansData.data as any[] | undefined)?.map(p => (
                 <option key={p.id} value={p.id}>{p.name} - R$ {Number(p.price).toFixed(2)}</option>
               ))}
             </select>
