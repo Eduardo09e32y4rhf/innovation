@@ -36,17 +36,41 @@ export class DashboardRepository {
       this.prisma.employee.count({ where: { ...employeeWhere, admissionDate: { gte: startOfMonth, lt: endOfMonth } } }),
       this.prisma.employee.count({ where: { ...employeeWhere, terminationDate: { gte: startOfMonth, lt: endOfMonth } } }),
     ]) : [0, 0, 0, 0];
-    const birthdaysToday = employees.filter((employee) => employee.birthDate && employee.birthDate.getUTCMonth() + 1 === month && employee.birthDate.getUTCDate() === day).slice(0, 8);
-    const birthdaysThisMonth = employees.filter((employee) => employee.birthDate && employee.birthDate.getUTCMonth() + 1 === month).slice(0, 12);
-    const missingUser = employees.filter((employee) => employee.status === 'ACTIVE' && !employee.userId).length;
-    const missingManager = employees.filter((employee) => employee.status === 'ACTIVE' && !employee.managerId).length;
-    const missingCpf = employees.filter((employee) => !employee.cpf).length;
-    const missingWorkScale = employees.filter((employee) => employee.status === 'ACTIVE' && !employee.workScale).length;
-    const missingWorkload = employees.filter((employee) => employee.status === 'ACTIVE' && !employee.dailyWorkload).length;
+    const birthdaysToday: { id: string; name: string; birthDate: Date }[] = [];
+    const birthdaysThisMonth: { id: string; name: string; birthDate: Date }[] = [];
+    let missingUser = 0;
+    let missingManager = 0;
+    let missingCpf = 0;
+    let missingWorkScale = 0;
+    let missingWorkload = 0;
+
+    // ⚡ Bolt: Optimize CPU performance by consolidating multiple O(N) array filter passes into a single loop
+    for (const employee of employees) {
+      if (employee.birthDate) {
+        const bMonth = employee.birthDate.getUTCMonth() + 1;
+        const bDay = employee.birthDate.getUTCDate();
+        if (bMonth === month) {
+          if (birthdaysThisMonth.length < 12) {
+            birthdaysThisMonth.push({ id: employee.id, name: employee.name, birthDate: employee.birthDate });
+          }
+          if (bDay === day && birthdaysToday.length < 8) {
+            birthdaysToday.push({ id: employee.id, name: employee.name, birthDate: employee.birthDate });
+          }
+        }
+      }
+
+      if (employee.status === 'ACTIVE') {
+        if (!employee.userId) missingUser++;
+        if (!employee.managerId) missingManager++;
+        if (!employee.workScale) missingWorkScale++;
+        if (!employee.dailyWorkload) missingWorkload++;
+      }
+      if (!employee.cpf) missingCpf++;
+    }
     const company = await this.prisma.company.findUnique({ where: { id: companyId }, select: { name: true, document: true, logoUrl: true } });
     return {
-      birthdaysToday: birthdaysToday.map((employee) => ({ id: employee.id, name: employee.name, birthDate: employee.birthDate })),
-      birthdaysThisMonth: birthdaysThisMonth.map((employee) => ({ id: employee.id, name: employee.name, birthDate: employee.birthDate })),
+      birthdaysToday,
+      birthdaysThisMonth,
       pending: { timeTracks: pendingTimeTracks, vacations: pendingVacations },
       movements: { admissionsThisMonth, terminationsThisMonth },
       alerts: {
