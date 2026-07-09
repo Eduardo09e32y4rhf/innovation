@@ -844,6 +844,11 @@ model PrivacyConsent {
   userAgent   String?
   acceptedAt  DateTime  @default(now())
   revokedAt   DateTime?
+  latitude    Float?
+  longitude   Float?
+  address     String?
+  photoBase64 String?   @db.Text
+  pdfBase64   String?   @db.Text
 
   company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -1090,7 +1095,7 @@ model FaceEnrollment {
   company             Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
   employeeId          String    @unique @db.Uuid
   employee            Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  comprefaceSubjectId String
+  descriptor          Json?
   enrolledAt          DateTime  @default(now())
   consentGiven        Boolean   @default(false)
   consentAt           DateTime?

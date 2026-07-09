@@ -1,12 +1,13 @@
 'use client';
 
-import React from 'react';
-import { ShieldCheck, ArrowRight } from 'lucide-react';
+import React, { useState } from 'react';
+import { ShieldCheck, ArrowRight, Camera } from 'lucide-react';
 import { useAuth } from '@/app/contexts/AuthContext';
+import { FaceIDOverlay } from '@/app/components/FaceIDOverlay';
 
-const TERMS_VERSION = 'lgpd-rh-prosolution-v2.0.0';
+const TERMS_VERSION = 'lgpd-rh-innovation-v2.0.0';
 
-const FALLBACK_PURPOSE = 'Uso do sistema SaaS para gestão de RH, departamento pessoal, colaboradores, ponto, jornada, férias, comunicação operacional e registros administrativos, com integração às ferramentas de Inteligência Artificial da Prosolution, conforme bases legais aplicáveis da LGPD e normas de proteção avançada de dados.';
+const FALLBACK_PURPOSE = 'Uso do sistema SaaS para gestão de RH, departamento pessoal, colaboradores, ponto, jornada, férias, comunicação operacional e registros administrativos, com integração às ferramentas de Inteligência Artificial da Innovation System e consultoria, conforme bases legais aplicáveis da LGPD e normas de proteção avançada de dados.';
 
 type ConsentStatus = {
   required: boolean;
@@ -22,8 +23,8 @@ const TERM_SECTIONS = [
     text: 'O Innovation RH System é utilizado para apoiar rotinas de RH, controle de ponto, férias, jornada e cadastro de colaboradores da empresa cliente. O sistema adota padrões rigorosos de segurança e criptografia de ponta a ponta para garantir a proteção avançada dos dados dos colaboradores contra acessos indevidos e vazamentos.',
   },
   {
-    title: '2. Ferramentas de IA da Prosolution',
-    text: 'A plataforma emprega Ferramentas de Inteligência Artificial da Prosolution para análise de jornadas, recomendações de alocação, alertas de absenteísmo e predição de eventos de RH. A Prosolution atua de forma ética, não utilizando os dados sensíveis dos colaboradores para treinamento de modelos públicos e garantindo a anonimização de métricas coletivas.',
+    title: '2. Ferramentas de IA da Innovation System e consultoria',
+    text: 'A plataforma emprega Ferramentas de Inteligência Artificial da Innovation System e consultoria para análise de jornadas, recomendações de alocação, alertas de absenteísmo e predição de eventos de RH. A Innovation atua de forma ética, não utilizando os dados sensíveis dos colaboradores para treinamento de modelos públicos e garantindo a anonimização de métricas coletivas.',
   },
   {
     title: '3. Papéis na LGPD',
@@ -54,6 +55,9 @@ export function PrivacyConsentGate({ children }: { children: React.ReactNode }) 
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState('');
+  
+  const [showFaceID, setShowFaceID] = useState(false);
+  const [locationData, setLocationData] = useState<{lat: number; lon: number; address: string} | null>(null);
 
   React.useEffect(() => {
     let active = true;
@@ -92,14 +96,56 @@ export function PrivacyConsentGate({ children }: { children: React.ReactNode }) 
     };
   }, [token]);
 
-  const acceptTerms = async () => {
+  const handleInitiateAccept = async () => {
     if (!token || !checked) return;
+    setSaving(true);
+    setError('Obtendo localização...');
+    
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          try {
+            const { latitude, longitude } = position.coords;
+            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
+            const data = await res.json();
+            const address = data.display_name || 'Endereço não identificado';
+            setLocationData({ lat: latitude, lon: longitude, address });
+            setError('');
+            setSaving(false);
+            setShowFaceID(true);
+          } catch (e) {
+            setLocationData({ lat: position.coords.latitude, lon: position.coords.longitude, address: 'Erro ao buscar endereço' });
+            setError('');
+            setSaving(false);
+            setShowFaceID(true);
+          }
+        },
+        (err) => {
+          setError('É necessário permitir a localização para assinar eletronicamente.');
+          setSaving(false);
+        }
+      );
+    } else {
+      setError('Seu navegador não suporta geolocalização.');
+      setSaving(false);
+    }
+  };
+
+  const acceptTerms = async (photoBase64: string, faceDescriptor?: number[]) => {
+    setShowFaceID(false);
     setSaving(true);
     setError('');
     try {
       const response = await fetch(`${getApiBaseUrl()}/privacy/terms/accept`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          latitude: locationData?.lat,
+          longitude: locationData?.lon,
+          address: locationData?.address,
+          photoBase64,
+          faceDescriptor
+        })
       });
       if (!response.ok) throw new Error('accept failed');
       const payload = await response.json();
@@ -147,7 +193,7 @@ export function PrivacyConsentGate({ children }: { children: React.ReactNode }) 
         <div className="min-h-0 flex-1 overflow-y-auto p-5 sm:p-7">
           <div className="grid gap-3 text-sm text-slate-700 md:grid-cols-2">
             <InfoLine label="Controladora" value="A empresa cliente detém o controle dos dados de seus colaboradores." />
-            <InfoLine label="Operadora e IA" value="Innovation RH System operado sob tecnologia da Prosolution." />
+            <InfoLine label="Operadora e IA" value="Innovation RH System operado sob tecnologia da Innovation System e consultoria." />
             <InfoLine label="Finalidade Base" value={status.purpose || FALLBACK_PURPOSE} />
             <InfoLine label="Versão Contratual" value={status.termVersion || TERMS_VERSION} />
           </div>
@@ -177,22 +223,30 @@ export function PrivacyConsentGate({ children }: { children: React.ReactNode }) 
               checked={checked} 
               onChange={(event) => setChecked(event.target.checked)} 
             />
-            <span>Declaro que li, compreendi e aceito integralmente os Termos de Uso e a Política de Privacidade (incluindo cláusulas LGPD e Prosolution IA), assumindo a responsabilidade civil e profissional pelo uso adequado desta plataforma.</span>
+            <span>Declaro que li, compreendi e aceito integralmente os Termos de Uso e a Política de Privacidade (incluindo cláusulas LGPD e ferramentas de IA da Innovation System). Estou ciente de que esta é uma assinatura eletrônica com validade legal e que descumprimentos das regras da empresa podem acarretar em medidas disciplinares como advertência e suspensão.</span>
           </label>
 
           <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-xs font-semibold text-slate-400 max-w-sm">Seu consentimento ficará gravado no log de auditoria do sistema associado ao seu perfil de acesso.</p>
+            <p className="text-xs font-semibold text-slate-400 max-w-sm">A assinatura requer acesso à câmera e à localização (GPS). O documento final estará disponível na sua área de notificações.</p>
             <button
-              onClick={acceptTerms}
+              onClick={handleInitiateAccept}
               disabled={!checked || saving}
               className="flex h-12 items-center gap-2 rounded-[14px] bg-slate-900 px-6 text-sm font-black text-white shadow-[0_12px_24px_rgba(15,23,42,0.15)] transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {saving ? 'Validando Aceite...' : 'Aceitar e Continuar'}
-              {!saving && <ArrowRight size={18} />}
+              {saving ? 'Processando...' : 'Assinar com Face ID'}
+              {!saving && <Camera size={18} />}
             </button>
           </div>
         </footer>
       </section>
+
+      {showFaceID && (
+        <FaceIDOverlay 
+          title="Assinatura Biométrica Facial"
+          onCapture={acceptTerms} 
+          onCancel={() => setShowFaceID(false)} 
+        />
+      )}
     </div>
   );
 }

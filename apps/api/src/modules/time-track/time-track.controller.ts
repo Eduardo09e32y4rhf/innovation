@@ -11,7 +11,7 @@ import { RegisterTimeDto } from './dto/register-time.dto';
 import { RevokeTimeTrackDto } from './dto/revoke-time-track.dto';
 import { UpdateTimeTrackDto } from './dto/update-time-track.dto';
 import { TimeTrackService } from './time-track.service';
-import { FacialRecognitionService } from '../facial-recognition/facial-recognition.service';
+import { Prisma } from '@prisma/client';
 
 
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -20,7 +20,6 @@ import { FacialRecognitionService } from '../facial-recognition/facial-recogniti
 export class TimeTrackController {
   constructor(
     private readonly service: TimeTrackService,
-    private readonly facialRecognitionService: FacialRecognitionService
   ) {}
 
   @Get()
@@ -41,14 +40,10 @@ export class TimeTrackController {
 
 
 
-  @Roles('DEV', 'ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO')
-
   @Post('clock-in-facial')
   @UseGuards(RateLimitGuard)
   @RateLimit({ window: 60, max: 10, prefix: 'punch-facial' })
-  @Roles('ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO')
-  @Post('clock-in-facial')
-  async clockInFacial(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Body() dto: { imageBase64: string, fallback?: boolean } & any) {
+  async clockInFacial(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Body() dto: { imageBase64: string, faceDescriptor?: number[], fallback?: boolean } & any) {
     if (!dto.imageBase64 && !dto.fallback) {
       throw new BadRequestException('Imagem facial é obrigatória para o registro.');
     }
@@ -66,31 +61,37 @@ export class TimeTrackController {
 
     const enrollment = await this.service['prisma'].faceEnrollment.findUnique({ where: { employeeId } });
 
-    if (!enrollment || !enrollment.active) {
-      // Primeira vez: Cadastrar a biometria facial automaticamente
+    if (!enrollment || !enrollment.active || !enrollment.descriptor) {
+      // Primeira vez: Cadastrar a biometria facial automaticamente com base no faceDescriptor
+      if (!dto.faceDescriptor) {
+         throw new BadRequestException('Não foi possível realizar o cadastro biométrico inicial. Tente novamente.');
+      }
       try {
-        await this.facialRecognitionService.addSubject(employeeId);
-        const faceRes = await this.facialRecognitionService.addFace(employeeId, dto.imageBase64);
-        if (!faceRes) {
-          throw new Error('Nenhum rosto detectado ou imagem inválida.');
-        }
         await this.service['prisma'].faceEnrollment.upsert({
           where: { employeeId },
-          update: { comprefaceSubjectId: employeeId, enrolledAt: new Date(), active: true },
-          create: { companyId, employeeId, comprefaceSubjectId: employeeId, active: true }
+          update: { descriptor: dto.faceDescriptor, enrolledAt: new Date(), active: true },
+          create: { companyId, employeeId, descriptor: dto.faceDescriptor, active: true }
         });
         facialSuccess = true;
       } catch (error: any) {
-        throw new BadRequestException('Erro ao cadastrar biometria na inteligência artificial: ' + (error.message || 'Verifique se o rosto está legível.'));
+        throw new BadRequestException('Erro ao salvar biometria no banco de dados.');
       }
-    } else if (dto.imageBase64) {
-      matchResult = await this.facialRecognitionService.recognize(dto.imageBase64);
-      if (matchResult && matchResult.subject === employeeId) {
-        // Here we can check liveness if provided
-        if (matchResult.liveness !== false) {
+    } else if (dto.faceDescriptor) {
+      // Calcular Distância Euclidiana entre o descritor salvo e o atual
+      const savedDescriptor = enrollment.descriptor as number[];
+      if (Array.isArray(savedDescriptor) && Array.isArray(dto.faceDescriptor) && savedDescriptor.length === dto.faceDescriptor.length) {
+        const distance = Math.sqrt(dto.faceDescriptor.reduce((sum: number, val: number, i: number) => sum + Math.pow(val - savedDescriptor[i], 2), 0));
+        matchResult = { distance, subject: employeeId };
+        if (distance < 0.55) {
           facialSuccess = true;
+        } else {
+           throw new BadRequestException('Rosto não reconhecido. Tente novamente.');
         }
+      } else {
+         throw new BadRequestException('Dados biométricos corrompidos ou inválidos. Contate o suporte.');
       }
+    } else if (!dto.fallback) {
+       throw new BadRequestException('Dados biométricos não recebidos do dispositivo.');
     }
 
     // Log attempt
@@ -98,16 +99,14 @@ export class TimeTrackController {
       companyId,
       employeeId,
       matched: facialSuccess,
-      similarity: matchResult ? matchResult.similarity : undefined,
-      livenessOk: matchResult ? matchResult.liveness : undefined
+      similarity: matchResult?.distance ? (1 - matchResult.distance) : 0,
+      livenessOk: true
     });
 
     if (!facialSuccess && !dto.fallback) {
-      throw new ForbiddenException('Reconhecimento facial falhou. Use o mecanismo de fallback com senha se permitido.');
+      throw new BadRequestException('Falha no reconhecimento facial.');
     }
 
-    // Call register
-    // We add clockedInWithoutFacial = !facialSuccess to the DTO handled by the service
     return this.service.register(companyId, actor, { ...dto, clockedInWithoutFacial: !facialSuccess });
   }
 

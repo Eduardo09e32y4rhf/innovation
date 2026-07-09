@@ -40,6 +40,7 @@
     "class-validator": "^0.14.1",
     "ioredis": "5.11.1",
     "nodemailer": "9.0.1",
+    "pdfkit": "0.19.1",
     "qrcode": "^1.5.4",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
@@ -51,6 +52,7 @@
     "@types/cron": "2.0.1",
     "@types/node": "^20.17.32",
     "@types/nodemailer": "8.0.1",
+    "@types/pdfkit": "0.17.6",
     "@types/qrcode": "^1.5.5",
     "prisma": "^6.6.0",
     "typescript": "^5.8.3"

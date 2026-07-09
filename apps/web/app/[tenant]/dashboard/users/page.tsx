@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Edit3, Trash2, UserPlus, X } from 'lucide-react';
+import { Edit3, Trash2, UserPlus, X, Search, Building2, Download } from 'lucide-react';
 import { EmptyState, ErrorState, LoadingState } from '@/app/components/data-states';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useMutation, useQuery } from '@/app/hooks/use-data';
@@ -37,12 +37,28 @@ export default function UsersPage() {
   const usage = useQuery(() => api.users.usage(), []);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<AppUser | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [companyFilter, setCompanyFilter] = useState('');
 
   const remove = useMutation((id: string) => api.users.delete(id), {
     onSuccess: () => { users.refetch(); usage.refetch(); },
   });
 
   const rows = users.data ?? [];
+  const filteredRows = rows.filter(u => {
+    if (searchTerm) {
+      const q = searchTerm.toLowerCase();
+      if (!u.name.toLowerCase().includes(q) && !u.email.toLowerCase().includes(q)) return false;
+    }
+    if (currentRole === 'DEV' && companyFilter) {
+      if (u.company?.name !== companyFilter) return false;
+    }
+    return true;
+  });
+  const uniqueCompanies = currentRole === 'DEV' 
+    ? Array.from(new Set(rows.map(u => u.company?.name).filter(Boolean) as string[])).sort()
+    : [];
+
   const isFull = usage.data ? usage.data.used >= usage.data.max : false;
 
   async function handleDelete(user: AppUser) {
@@ -74,6 +90,32 @@ export default function UsersPage() {
         </button>
       </header>
 
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="relative flex-1">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input
+            type="text"
+            placeholder="Buscar por nome ou e-mail..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="h-10 w-full rounded-[8px] border border-slate-200 bg-white pl-10 pr-4 text-sm text-slate-800 outline-none focus:border-teal-500"
+          />
+        </div>
+        {currentRole === 'DEV' && uniqueCompanies.length > 0 && (
+          <div className="relative sm:w-64">
+            <Building2 size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <select
+              value={companyFilter}
+              onChange={(e) => setCompanyFilter(e.target.value)}
+              className="h-10 w-full appearance-none rounded-[8px] border border-slate-200 bg-white pl-10 pr-8 text-sm text-slate-800 outline-none focus:border-teal-500"
+            >
+              <option value="">Todas as empresas</option>
+              {uniqueCompanies.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+        )}
+      </div>
+
       {remove.error && (
         <p className="rounded-[8px] border border-rose-200 bg-rose-50 px-4 py-2 text-xs text-rose-700">{remove.error}</p>
       )}
@@ -99,7 +141,7 @@ export default function UsersPage() {
                 </tr>
               </thead>
               <tbody>
-                {rows.map((user) => {
+                {filteredRows.map((user) => {
                   const allowed = canManageRow(currentRole, user.role);
                   return (
                     <tr key={user.id} className="border-t border-slate-100 text-xs text-slate-700">
@@ -140,6 +182,31 @@ export default function UsersPage() {
                                 className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px] text-amber-600"
                               >
                                 Resetar
+                              </button>
+                            )}
+                            {(currentRole === 'DEV' || currentRole === 'ADMIN' || currentRole === 'RH') && (
+                              <button
+                                onClick={async () => {
+                                  try {
+                                    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || '/api'}/privacy/terms/download/${user.id}`, {
+                                      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+                                    });
+                                    if (!res.ok) throw new Error('Não foi possível baixar o termo');
+                                    const blob = await res.blob();
+                                    const url = window.URL.createObjectURL(blob);
+                                    const a = document.createElement('a');
+                                    a.href = url;
+                                    a.download = `Termo_De_Uso_${user.id}.pdf`;
+                                    a.click();
+                                    window.URL.revokeObjectURL(url);
+                                  } catch (e) {
+                                    alert('Erro ao baixar o PDF. Pode não ter sido assinado ainda.');
+                                  }
+                                }}
+                                className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px] text-teal-700"
+                                title="Baixar Termo Assinado"
+                              >
+                                <Download size={12} />Termo
                               </button>
                             )}
                           </div>
