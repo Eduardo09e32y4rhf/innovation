@@ -134,7 +134,7 @@ export class PrivacyService {
   private generatePDFBase64(data: any): Promise<string> {
     return new Promise((resolve, reject) => {
       try {
-        const doc = new PDFDocument({ margin: 50 });
+        const doc = new PDFDocument({ margin: 0, size: 'A4' });
         const buffers: Buffer[] = [];
         doc.on('data', buffers.push.bind(buffers));
         doc.on('error', (err: any) => {
@@ -145,43 +145,139 @@ export class PrivacyService {
           resolve(Buffer.concat(buffers).toString('base64'));
         });
 
-        doc.fontSize(20).font('Helvetica-Bold').text('Termo de Uso e Privacidade', { align: 'center' });
-        doc.moveDown();
-        doc.fontSize(12).font('Helvetica').text(`Versão: ${data.termVersion}`);
-        doc.text(`Data e Hora: ${data.date}`);
-        doc.text(`IP: ${data.ipAddress || 'Não identificado'}`);
-        if (data.latitude && data.longitude) {
-          doc.text(`Localização: Lat ${data.latitude}, Lon ${data.longitude}`);
-        }
-        if (data.address) {
-          doc.text(`Endereço Aproximado: ${data.address}`);
-        }
-        doc.moveDown();
+        // Cores
+        const primaryColor = '#1e293b'; // Slate 800
+        const secondaryColor = '#64748b'; // Slate 500
+        const accentColor = '#3b82f6'; // Blue 500
+        const lightGray = '#f8fafc'; // Slate 50
+        const borderColor = '#e2e8f0'; // Slate 200
+
+        // ==========================================
+        // HEADER
+        // ==========================================
+        doc.rect(0, 0, doc.page.width, 100).fill(primaryColor);
+        doc.fillColor('#ffffff')
+           .fontSize(24)
+           .font('Helvetica-Bold')
+           .text('TERMO DE USO E PRIVACIDADE', 50, 35);
+        doc.fillColor('#94a3b8')
+           .fontSize(10)
+           .font('Helvetica')
+           .text(`Innovation System - Em conformidade com a LGPD`, 50, 65);
+
+        // ==========================================
+        // BODY CONFIG
+        // ==========================================
+        let cursorY = 130;
+        const leftMargin = 50;
+        const contentWidth = doc.page.width - 100;
+
+        const drawLabelValue = (label: string, value: string, x: number, y: number, w: number) => {
+          doc.fontSize(9).font('Helvetica-Bold').fillColor(secondaryColor).text(label.toUpperCase(), x, y);
+          doc.fontSize(11).font('Helvetica').fillColor('#0f172a').text(value, x, y + 12, { width: w });
+        };
+
+        const drawSectionTitle = (title: string, y: number) => {
+          doc.rect(leftMargin, y, contentWidth, 24).fill(lightGray);
+          doc.rect(leftMargin, y, 4, 24).fill(accentColor);
+          doc.fontSize(12).font('Helvetica-Bold').fillColor(primaryColor).text(title, leftMargin + 15, y + 6);
+          return y + 40;
+        };
+
+        // ==========================================
+        // SEÇÃO: DADOS DO TITULAR E EMPRESA
+        // ==========================================
+        cursorY = drawSectionTitle('DADOS DO TITULAR E CONTROLADORA', cursorY);
         
-        doc.fontSize(14).font('Helvetica-Bold').text('Dados do Titular:');
-        doc.fontSize(12).font('Helvetica');
-        doc.text(`Nome: ${data.userName}`);
-        doc.text(`E-mail: ${data.userEmail}`);
-        doc.text(`Empresa (Controladora): ${data.companyName}`);
-        doc.text(`Operadora: Innovation System e consultoria`);
-        doc.moveDown();
+        drawLabelValue('Nome do Titular', data.userName, leftMargin, cursorY, 250);
+        drawLabelValue('E-mail', data.userEmail, leftMargin + 260, cursorY, 200);
+        cursorY += 40;
+        
+        drawLabelValue('Empresa (Controladora)', data.companyName, leftMargin, cursorY, 250);
+        drawLabelValue('Operadora de Dados', 'Innovation System e consultoria', leftMargin + 260, cursorY, 200);
+        cursorY += 50;
 
-        doc.fontSize(14).font('Helvetica-Bold').text('Declaração de Aceite:');
-        doc.fontSize(12).font('Helvetica');
-        const declaration = `Declaro que li, compreendi e aceito integralmente os Termos de Uso e a Política de Privacidade (incluindo cláusulas LGPD e ferramentas de IA da Innovation System). Estou ciente de que esta é uma assinatura eletrônica com validade legal e que descumprimentos das regras da empresa podem acarretar em medidas disciplinares como advertência e suspensão. Finalidade: ${data.purpose}`;
-        doc.text(declaration, { align: 'justify' });
-        doc.moveDown(2);
+        // ==========================================
+        // SEÇÃO: DADOS TÉCNICOS DO ACEITE
+        // ==========================================
+        cursorY = drawSectionTitle('DADOS TÉCNICOS DO ACEITE ELETRÔNICO', cursorY);
+        
+        drawLabelValue('Data e Hora do Registro', data.date, leftMargin, cursorY, 250);
+        drawLabelValue('Endereço IP', data.ipAddress || 'Não identificado', leftMargin + 260, cursorY, 200);
+        cursorY += 40;
 
+        drawLabelValue('Versão do Termo', data.termVersion, leftMargin, cursorY, 250);
+        
+        if (data.latitude && data.longitude) {
+          drawLabelValue('Coordenadas (Lat/Lon)', `${data.latitude}, ${data.longitude}`, leftMargin + 260, cursorY, 200);
+          cursorY += 40;
+        } else {
+          drawLabelValue('Localização', 'Não capturada', leftMargin + 260, cursorY, 200);
+          cursorY += 40;
+        }
+
+        if (data.address) {
+          drawLabelValue('Endereço Aproximado', data.address, leftMargin, cursorY, contentWidth);
+          cursorY += (doc.heightOfString(data.address, { width: contentWidth, font: 'Helvetica', size: 11 }) + 20);
+        }
+
+        // ==========================================
+        // SEÇÃO: DECLARAÇÃO E FINALIDADE
+        // ==========================================
+        cursorY = drawSectionTitle('TERMOS DA DECLARAÇÃO DE ACEITE', cursorY);
+        
+        const declaration = `Declaro que li, compreendi e aceito integralmente os Termos de Uso e a Política de Privacidade (incluindo cláusulas LGPD e ferramentas de IA da Innovation System). Estou ciente de que esta é uma assinatura eletrônica com validade legal e que descumprimentos das regras da empresa podem acarretar em medidas disciplinares como advertência e suspensão.\n\nFinalidade do Tratamento: ${data.purpose}`;
+        
+        doc.rect(leftMargin, cursorY, contentWidth, doc.heightOfString(declaration, { width: contentWidth - 30, font: 'Helvetica', size: 10 }) + 30)
+           .strokeColor(borderColor)
+           .lineWidth(1)
+           .stroke();
+           
+        doc.fontSize(10).font('Helvetica').fillColor('#334155').text(declaration, leftMargin + 15, cursorY + 15, { width: contentWidth - 30, align: 'justify', lineGap: 3 });
+        
+        cursorY += doc.heightOfString(declaration, { width: contentWidth - 30, font: 'Helvetica', size: 10 }) + 50;
+
+        // ==========================================
+        // SEÇÃO: BIOMETRIA FACIAL (SE HOUVER)
+        // ==========================================
         if (data.photoBase64) {
+          // Checar se há espaço na página atual, senão quebrar página
+          if (cursorY + 180 > doc.page.height - 50) {
+            doc.addPage();
+            cursorY = 50;
+          }
+
+          cursorY = drawSectionTitle('EVIDÊNCIA BIOMÉTRICA FACIAL (FACE ID)', cursorY);
+          
           try {
             const base64Data = data.photoBase64.replace(/^data:image\/\w+;base64,/, '');
             const imgBuffer = Buffer.from(base64Data, 'base64');
-            doc.text('Registro Biomêtrico Facial (Face ID):');
-            doc.moveDown(0.5);
-            doc.image(imgBuffer, { width: 150 });
+            
+            // Fundo da imagem
+            doc.rect(leftMargin, cursorY, 120, 160).fillAndStroke(lightGray, borderColor);
+            
+            // Centralizar a imagem no quadro
+            doc.image(imgBuffer, leftMargin + 5, cursorY + 5, { fit: [110, 150], align: 'center', valign: 'center' });
+            
+            doc.fontSize(8).font('Helvetica-Oblique').fillColor(secondaryColor).text('Imagem capturada no momento exato do aceite para fins de auditoria e validação de identidade (Art. 10, II da LGPD).', leftMargin + 140, cursorY + 20, { width: contentWidth - 140, align: 'justify' });
+            
           } catch (e) {
             console.error('Falha ao inserir foto no PDF', e);
+            doc.fontSize(10).font('Helvetica-Oblique').fillColor('#ef4444').text('A imagem biométrica foi recebida, mas ocorreu um erro ao anexá-la no documento físico.', leftMargin, cursorY + 10);
           }
+        }
+
+        // ==========================================
+        // FOOTER
+        // ==========================================
+        const pageCount = doc.bufferedPageRange().count;
+        for (let i = 0; i < pageCount; i++) {
+          doc.switchToPage(i);
+          doc.rect(0, doc.page.height - 40, doc.page.width, 40).fill(lightGray);
+          doc.fontSize(8).font('Helvetica').fillColor(secondaryColor)
+             .text(`Gerado por Innovation System - Autenticação Digital segura.`, leftMargin, doc.page.height - 25);
+          doc.fontSize(8)
+             .text(`Página ${i + 1} de ${pageCount}`, doc.page.width - leftMargin - 50, doc.page.height - 25, { width: 50, align: 'right' });
         }
 
         doc.end();
