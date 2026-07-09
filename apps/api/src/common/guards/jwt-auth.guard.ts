@@ -76,8 +76,9 @@ export class JwtAuthGuard implements CanActivate {
         sub: freshUser.id,
         email: freshUser.email,
         name: freshUser.name,
-        companyId: freshUser.companyId,
+        companyId: payload.ghostMode ? payload.companyId : freshUser.companyId,
         role,
+        ghostMode: payload.ghostMode || false,
       };
       return true;
     } catch (error) {

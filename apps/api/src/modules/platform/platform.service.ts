@@ -27,15 +27,15 @@ export class PlatformService {
     return this.repository.getOnlineUsers();
   }
 
-  async ghostMode(companyId: string) {
-    const admin = await this.repository.getFirstAdmin(companyId);
-    if (!admin) throw new NotFoundException('Nenhum administrador encontrado nesta empresa para o Ghost Mode');
+  async ghostMode(companyId: string, devUserId: string, devEmail: string, devRole: string) {
+    const company = await this.repository.getCompany(companyId);
+    if (!company) throw new NotFoundException('Empresa não encontrada');
     
     const payload = {
-      sub: admin.id,
-      email: admin.email,
-      role: admin.role,
-      companyId: admin.companyId,
+      sub: devUserId,
+      email: devEmail,
+      role: 'DEV',
+      companyId: companyId,
       ghostMode: true,
     };
     return { token: this.jwtService.sign(payload) };

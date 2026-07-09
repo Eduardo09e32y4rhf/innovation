@@ -32,8 +32,8 @@ export class PlatformController {
   }
 
   @Post('ghost-mode/:companyId')
-  ghostMode(@Param('companyId') companyId: string) {
-    return this.service.ghostMode(companyId);
+  ghostMode(@Param('companyId') companyId: string, @CurrentUser() user: JwtUser) {
+    return this.service.ghostMode(companyId, user.sub, user.email, user.role);
   }
 
   @Get('company-users/:companyId')

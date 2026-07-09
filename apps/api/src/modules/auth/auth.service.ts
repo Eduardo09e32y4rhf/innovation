@@ -218,7 +218,7 @@ export class AuthService {
       sub: freshUser.id,
       email: freshUser.email,
       name: freshUser.name,
-      companyId: freshUser.companyId,
+      companyId: user.ghostMode ? user.companyId : freshUser.companyId,
       role,
       customPermissions: freshUser.customPermissions,
       passwordChangeRequired: this.passwordChangeRequired(freshUser),
