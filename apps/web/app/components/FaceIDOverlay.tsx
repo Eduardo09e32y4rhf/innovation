@@ -22,6 +22,7 @@ export function FaceIDOverlay({ onCapture, onCancel, title = 'Verificação Faci
   const [instruction, setInstruction] = useState('Carregando câmera...');
   const [isFaceDetected, setIsFaceDetected] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
+  const [currentDescriptor, setCurrentDescriptor] = useState<Float32Array | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -99,25 +100,34 @@ export function FaceIDOverlay({ onCapture, onCancel, title = 'Verificação Faci
           setInstruction('Centralize o rosto');
           setIsFaceDetected(false);
         } else {
-          setInstruction('Rosto detectado! Processando...');
+          setInstruction(compareDescriptor ? 'Rosto detectado! Processando...' : 'Rosto detectado! Clique para capturar.');
           setIsFaceDetected(true);
+          setCurrentDescriptor(detection.descriptor);
           
-          if (!isValidating) {
+          if (compareDescriptor && !isValidating) {
             setIsValidating(true);
             processCapture(detection.descriptor);
           }
         }
       } else {
         setIsFaceDetected(false);
+        setCurrentDescriptor(null);
         setInstruction('Posicione seu rosto no círculo');
       }
       
-      if (!isValidating) {
+      if (!isValidating && !(isFaceDetected && !compareDescriptor)) {
         requestAnimationFrame(detectFace);
       }
     };
     
     detectFace();
+  };
+
+  const handleManualCapture = () => {
+    if (currentDescriptor && !isValidating) {
+      setIsValidating(true);
+      processCapture(currentDescriptor);
+    }
   };
   
   const processCapture = async (descriptor: Float32Array) => {
@@ -203,12 +213,23 @@ export function FaceIDOverlay({ onCapture, onCancel, title = 'Verificação Faci
           </div>
         )}
         
-        <button
-          onClick={onCancel}
-          className="rounded-full bg-slate-800 px-8 py-3 text-sm font-bold text-slate-300 transition hover:bg-slate-700 hover:text-white"
-        >
-          Cancelar
-        </button>
+        <div className="flex gap-4">
+          {!compareDescriptor && isFaceDetected && !isValidating && (
+            <button
+              onClick={handleManualCapture}
+              className="flex items-center gap-2 rounded-full bg-teal-600 px-8 py-3 text-sm font-bold text-white transition hover:bg-teal-700"
+            >
+              <Camera size={18} />
+              Tirar Foto
+            </button>
+          )}
+          <button
+            onClick={onCancel}
+            className="rounded-full bg-slate-800 px-8 py-3 text-sm font-bold text-slate-300 transition hover:bg-slate-700 hover:text-white"
+          >
+            Cancelar
+          </button>
+        </div>
       </div>
       <canvas ref={canvasRef} className="hidden" />
     </div>
