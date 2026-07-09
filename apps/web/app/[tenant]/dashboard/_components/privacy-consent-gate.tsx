@@ -134,7 +134,9 @@ export function PrivacyConsentGate({ children }: { children: React.ReactNode }) 
         async (position) => {
           try {
             const { latitude, longitude } = position.coords;
-            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
+            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`, {
+              headers: { 'User-Agent': 'InnovationRHSystem/1.0 (https://innovation.ia)' }
+            });
             const data = await res.json();
             const address = data.display_name || 'Endereço não identificado';
             setLocationData({ lat: latitude, lon: longitude, address });
@@ -184,14 +186,8 @@ export function PrivacyConsentGate({ children }: { children: React.ReactNode }) 
         accepted: true,
         acceptedAt: data.acceptedAt,
       }));
-    } catch {
-      localStorage.setItem(`privacy-consent:${TERMS_VERSION}`, 'accepted');
-      setStatus((current) => ({
-        ...(current ?? { purpose: FALLBACK_PURPOSE, termVersion: TERMS_VERSION }),
-        required: false,
-        accepted: true,
-      }));
-      setError('');
+    } catch (err: any) {
+      setError(err.message || 'Falha ao registrar o aceite. Tente novamente mais tarde ou contate o suporte.');
     } finally {
       setSaving(false);
     }

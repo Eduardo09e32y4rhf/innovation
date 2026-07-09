@@ -61,6 +61,8 @@ export class PrivacyService {
       const employee = await this.repository.getEmployeeId(user.sub);
       if (employee) {
         await this.repository.saveFaceEnrollment(user.companyId, employee.id, body.faceDescriptor);
+      } else {
+        console.warn(`User ${user.sub} accepted terms with faceDescriptor, but has no employee record to bind to.`);
       }
     }
 
@@ -98,6 +100,10 @@ export class PrivacyService {
         const doc = new PDFDocument({ margin: 50 });
         const buffers: Buffer[] = [];
         doc.on('data', buffers.push.bind(buffers));
+        doc.on('error', (err: any) => {
+          console.error('PDFKit Stream Error:', err);
+          reject(err);
+        });
         doc.on('end', () => {
           resolve(Buffer.concat(buffers).toString('base64'));
         });
@@ -144,7 +150,7 @@ export class PrivacyService {
         doc.end();
       } catch (e: any) {
         console.error('CRITICAL PDF ERROR:', e);
-        resolve(Buffer.from('PDF_GENERATION_ERROR: ' + (e.message || e.toString())).toString('base64'));
+        reject(e);
       }
     });
   }

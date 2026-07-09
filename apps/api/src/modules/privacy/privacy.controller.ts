@@ -3,14 +3,14 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import type { JwtUser } from '../../common/types/auth.types';
 import { PrivacyService } from './privacy.service';
-import { IsNumber, IsOptional, IsString } from 'class-validator';
+import { IsNumber, IsOptional, IsString, IsArray } from 'class-validator';
 
 export class AcceptTermsDto {
   @IsOptional() @IsNumber() latitude?: number;
   @IsOptional() @IsNumber() longitude?: number;
   @IsOptional() @IsString() address?: string;
   @IsOptional() @IsString() photoBase64?: string;
-  @IsOptional() faceDescriptor?: number[];
+  @IsOptional() @IsArray() faceDescriptor?: number[];
 }
 
 @UseGuards(JwtAuthGuard)
@@ -39,15 +39,7 @@ export class PrivacyController {
     reply.send(buffer);
   }
 
-  @Get('terms/test-pdf')
-  async testPdf(@Res() reply: any) {
-    try {
-      const data = await (this.service as any).repository.prisma.privacyConsent.findMany();
-      reply.send({ success: true, data: data.map((d: any) => ({ ...d, photoBase64: d.photoBase64 ? 'YES' : 'NO', pdfBase64: d.pdfBase64 ? 'YES' : 'NO' })) });
-    } catch (e: any) {
-      reply.status(500).send({ success: false, error: e.message });
-    }
-  }
+
 }
 
 function getRequestMeta(request: any) {
