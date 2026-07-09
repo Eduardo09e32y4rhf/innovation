@@ -10,6 +10,10 @@ import {
   MessageSquareText,
   ShieldCheck,
   Sparkles,
+  Users,
+  Building2,
+  Lock,
+  Zap,
 } from 'lucide-react';
 import { Space_Grotesk } from 'next/font/google';
 
@@ -19,365 +23,336 @@ const display = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: 'Innovation RH System | RH, ponto e comunicação em um só lugar',
+  title: 'Innovation RH System | Gestão de RH e Ponto Eletrônico',
   description:
-    'Uma landing page premium para apresentar a plataforma Innovation RH System com foco em controle de ponto, férias, alertas e comunicação corporativa.',
+    'A plataforma definitiva para controle de ponto digital, gestão de férias, departamento pessoal e comunicação corporativa inteligente.',
 };
 
 const pillars = [
   {
     icon: Clock3,
-    title: 'Ponto sem atrito',
+    title: 'Ponto com Geolocalização',
     description:
-      'Registros e ajustes organizados em um fluxo claro, com leitura rápida para RH, gestor e colaborador.',
+      'Registro de jornada com precisão GPS e biometria facial, garantindo segurança jurídica e compliance absoluto.',
   },
   {
     icon: CalendarDays,
-    title: 'Férias e ausências',
+    title: 'Gestão de Férias e Ausências',
     description:
-      'Pedidos, aprovações e acompanhamento centralizados para reduzir ruído e acelerar decisões.',
+      'Solicitações, aprovações e controle automático de períodos aquisitivos e saldos, totalmente digital.',
   },
   {
-    icon: MessageSquareText,
-    title: 'Comunicação direta',
+    icon: Users,
+    title: 'Organograma e Equipes',
     description:
-      'Alertas e mensagens no contexto certo, para a informação certa chegar no momento certo.',
+      'Estruture departamentos, líderes e regras de acesso de forma clara e visual, simplificando a governança.',
   },
   {
     icon: BellRing,
-    title: 'Gestão com alertas',
+    title: 'Notificações e Alertas',
     description:
-      'Pendências, notificações e sinais de risco visíveis antes que virem gargalo operacional.',
+      'Sistema proativo que avisa sobre vencimentos, atrasos e divergências de ponto antes que virem passivos.',
   },
 ];
 
-const modules = [
-  'Dashboard executivo',
-  'Controle de ponto',
-  'Fechamento de período',
-  'Férias e afastamentos',
-  'Equipe e cadastros',
-  'Notificações corporativas',
-];
-
-const steps = [
+const features = [
   {
-    number: '01',
-    title: 'Centralize a operação',
-    description:
-      'Traga o fluxo de RH para um painel único, sem depender de planilhas espalhadas e mensagens soltas.',
+    title: 'Dashboards Executivos',
+    desc: 'Indicadores chave em tempo real para embasar decisões estratégicas da liderança.',
+    icon: LineChart,
   },
   {
-    number: '02',
-    title: 'Enxergue o que importa',
-    description:
-      'Acompanhe marcações, pendências e movimentações com leitura objetiva e priorização visual.',
+    title: 'Fechamento de Folha Rápido',
+    desc: 'Auditoria de ponto inteligente e cálculos automáticos de horas extras (50% e 100%) e banco de horas.',
+    icon: Zap,
   },
   {
-    number: '03',
-    title: 'Tome ação com segurança',
-    description:
-      'Feche ciclos, responda solicitações e atue com dados organizados, não com suposições.',
+    title: 'Saúde Ocupacional (ASO)',
+    desc: 'Controle de exames médicos ocupacionais e atestados integrados à folha.',
+    icon: ShieldCheck,
+  },
+  {
+    title: 'Ambiente Multi-Tenant',
+    desc: 'Gerencie múltiplas empresas, filiais e CNPJs de forma centralizada e segregada.',
+    icon: Building2,
+  },
+  {
+    title: 'Segurança de Classe Empresarial',
+    desc: 'Controle granular de perfis, auditoria de ações e criptografia de ponta a ponta.',
+    icon: Lock,
+  },
+  {
+    title: 'Comunicação Direta',
+    desc: 'Mural de recados, chats e avisos para engajar e manter todos alinhados.',
+    icon: MessageSquareText,
   },
 ];
 
 const highlights = [
-  'Experiência premium para RH moderno',
-  'Visão executiva para gestão e operação',
-  'Baseada nos módulos reais da plataforma',
+  'Zero papelada no DP',
+  'Totalmente adequado à LGPD',
+  'Reconhecimento Facial',
+  'Alta performance',
 ];
 
 export default function Home() {
   return (
-    <main className={`${display.className} relative overflow-hidden bg-[#07111a] text-slate-100`}>
-      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-[size:72px_72px] opacity-35" />
-      <div className="absolute -top-40 left-1/2 h-[32rem] w-[32rem] -translate-x-1/2 rounded-full bg-teal-400/15 blur-[140px]" />
-      <div className="absolute -bottom-40 right-[-6rem] h-[26rem] w-[26rem] rounded-full bg-cyan-500/10 blur-[120px]" />
+    <main className={`${display.className} relative overflow-hidden bg-[#050b14] text-slate-100 selection:bg-teal-500/30 selection:text-teal-200`}>
+      {/* Background Grids and Blurs */}
+      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:64px_64px] opacity-40" />
+      <div className="absolute top-[-10%] left-[-10%] h-[40rem] w-[40rem] rounded-full bg-teal-500/10 blur-[150px]" />
+      <div className="absolute bottom-[-20%] right-[-10%] h-[35rem] w-[35rem] rounded-full bg-cyan-600/10 blur-[150px]" />
 
-      <div className="relative mx-auto flex min-h-screen max-w-7xl flex-col px-6 pb-16 pt-5 lg:px-8">
-        <header className="flex items-center justify-between rounded-full border border-white/10 bg-white/5 px-4 py-3 backdrop-blur-xl">
+      <div className="relative mx-auto flex min-h-screen max-w-7xl flex-col px-6 pb-20 pt-6 lg:px-8">
+        {/* Navigation */}
+        <header className="flex items-center justify-between rounded-full border border-white/10 bg-white/[0.03] px-5 py-3 backdrop-blur-2xl">
           <Link href="/" className="flex items-center gap-3">
-            <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-teal-300 to-cyan-500 text-slate-950 shadow-[0_14px_40px_rgba(45,212,191,0.22)]">
-              <ShieldCheck size={22} strokeWidth={2.6} />
+            <span className="flex h-10 w-10 items-center justify-center rounded-[14px] bg-gradient-to-br from-teal-400 to-cyan-500 text-slate-950 shadow-[0_8px_30px_rgba(45,212,191,0.3)]">
+              <ShieldCheck size={20} strokeWidth={2.5} />
             </span>
             <span className="leading-tight">
-              <span className="block text-sm font-black uppercase tracking-[0.24em] text-teal-200">
+              <span className="block text-sm font-black uppercase tracking-[0.2em] text-white">
                 Innovation
               </span>
-              <span className="block text-[11px] font-semibold tracking-[0.22em] text-slate-400">
+              <span className="block text-[10px] font-bold tracking-[0.25em] text-teal-400">
                 RH Connect
               </span>
             </span>
           </Link>
 
-          <nav className="hidden items-center gap-6 text-sm font-bold text-slate-300 md:flex">
+          <nav className="hidden items-center gap-8 text-xs font-bold uppercase tracking-wider text-slate-400 md:flex">
             <a href="#solucoes" className="transition-colors hover:text-white">
               Soluções
             </a>
-            <a href="#fluxo" className="transition-colors hover:text-white">
-              Fluxo
+            <a href="#recursos" className="transition-colors hover:text-white">
+              Recursos
             </a>
-            <a href="#modulos" className="transition-colors hover:text-white">
-              Módulos
+            <a href="#" className="transition-colors hover:text-white">
+              Preços
             </a>
           </nav>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <Link
               href="/login"
-              className="inline-flex h-11 items-center justify-center rounded-full border border-white/10 px-4 text-sm font-black text-slate-200 transition-all hover:border-teal-300/40 hover:bg-teal-400/10 hover:text-white"
+              className="hidden h-10 items-center justify-center rounded-full border border-white/10 px-5 text-xs font-bold text-slate-300 transition-all hover:border-white/20 hover:bg-white/5 hover:text-white sm:flex"
             >
-              Entrar
+              Área do Cliente
             </Link>
             <Link
               href="/login"
-              className="inline-flex h-11 items-center justify-center rounded-full bg-gradient-to-r from-teal-300 to-cyan-400 px-4 text-sm font-black text-slate-950 shadow-[0_16px_36px_rgba(45,212,191,0.24)] transition-transform hover:-translate-y-0.5"
+              className="inline-flex h-10 items-center justify-center rounded-full bg-white px-5 text-xs font-black text-slate-950 transition-transform hover:-translate-y-0.5 hover:shadow-[0_10px_40px_rgba(255,255,255,0.15)]"
             >
-              Abrir painel
+              Acessar Painel
             </Link>
           </div>
         </header>
 
-        <section className="grid flex-1 items-center gap-12 py-12 lg:grid-cols-[1.1fr_0.9fr] lg:py-16">
+        {/* Hero Section */}
+        <section className="mt-16 grid flex-1 items-center gap-16 lg:mt-24 lg:grid-cols-[1fr_1fr]">
           <div className="max-w-2xl">
-            <div className="inline-flex items-center gap-2 rounded-full border border-teal-300/20 bg-teal-400/10 px-4 py-2 text-[11px] font-black uppercase tracking-[0.24em] text-teal-100">
-              <Sparkles size={14} />
-              Landing premium para a sua marca
+            <div className="inline-flex items-center gap-2 rounded-full border border-teal-400/20 bg-teal-400/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-teal-300">
+              <Sparkles size={14} className="text-teal-400" />
+              O futuro do Departamento Pessoal
             </div>
 
-            <h1 className="mt-6 text-5xl font-black tracking-[-0.05em] text-white sm:text-6xl lg:text-7xl">
-              O centro operacional do RH moderno.
+            <h1 className="mt-6 text-5xl font-black tracking-[-0.04em] text-white sm:text-6xl lg:text-[5.5rem] lg:leading-[0.95]">
+              Gestão de RH <br className="hidden lg:block" />
+              <span className="bg-gradient-to-r from-teal-300 to-cyan-400 bg-clip-text text-transparent">sem atrito.</span>
             </h1>
 
-            <p className="mt-6 max-w-xl text-base font-medium leading-8 text-slate-300 sm:text-lg">
-              A Innovation RH System reúne ponto, férias, alertas, equipes e comunicação em uma
-              experiência única, clara e premium. Menos ruído. Mais decisão. Mais presença de marca.
+            <p className="mt-6 max-w-xl text-base font-medium leading-relaxed text-slate-400 sm:text-lg">
+              Automatize rotinas exaustivas, feche a folha em minutos e dê aos seus colaboradores uma experiência transparente. O <strong>Innovation RH Connect</strong> centraliza ponto digital, férias e dados em uma única plataforma incrivelmente rápida.
             </p>
 
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            <div className="mt-8 flex flex-col gap-4 sm:flex-row">
               <Link
                 href="/login"
-                className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-white px-6 text-sm font-black text-slate-950 transition-transform hover:-translate-y-0.5"
+                className="inline-flex h-14 items-center justify-center gap-2 rounded-full bg-gradient-to-r from-teal-400 to-cyan-500 px-8 text-sm font-black text-slate-950 shadow-[0_20px_50px_rgba(45,212,191,0.25)] transition-all hover:-translate-y-1 hover:shadow-[0_20px_50px_rgba(45,212,191,0.35)]"
               >
-                Acessar plataforma
-                <ArrowRight size={16} />
+                Explorar Plataforma
+                <ArrowRight size={18} />
               </Link>
               <a
-                href="#modulos"
-                className="inline-flex h-12 items-center justify-center rounded-full border border-white/12 bg-white/5 px-6 text-sm font-black text-white backdrop-blur-sm transition-colors hover:bg-white/10"
+                href="#solucoes"
+                className="inline-flex h-14 items-center justify-center rounded-full border border-white/10 bg-white/5 px-8 text-sm font-black text-white backdrop-blur-md transition-colors hover:bg-white/10"
               >
-                Ver módulos
+                Ver como funciona
               </a>
             </div>
 
-            <div className="mt-8 flex flex-wrap gap-3">
+            <div className="mt-10 flex flex-wrap gap-4">
               {highlights.map((item) => (
                 <span
                   key={item}
-                  className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-bold text-slate-300"
+                  className="inline-flex items-center gap-2 text-xs font-bold text-slate-400"
                 >
-                  <CheckCircle2 size={14} className="text-teal-300" />
+                  <CheckCircle2 size={16} className="text-teal-400" />
                   {item}
                 </span>
               ))}
             </div>
           </div>
 
-          <div className="relative">
-            <div className="absolute inset-0 -z-10 rounded-[2rem] bg-gradient-to-br from-teal-400/10 via-white/5 to-cyan-400/10 blur-3xl" />
-            <div className="rounded-[2rem] border border-white/10 bg-slate-900/70 p-4 shadow-[0_30px_90px_rgba(0,0,0,0.35)] backdrop-blur-xl">
-              <div className="rounded-[1.5rem] border border-white/10 bg-[radial-gradient(circle_at_top,rgba(45,212,191,0.16),transparent_60%),linear-gradient(180deg,rgba(15,23,42,0.95),rgba(15,23,42,0.78))] p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-[11px] font-black uppercase tracking-[0.25em] text-teal-200">
-                      Painel executivo
-                    </p>
-                    <h2 className="mt-2 text-2xl font-black tracking-tight text-white">
-                      Visão em tempo real
-                    </h2>
+          <div className="relative hidden lg:block">
+            <div className="absolute inset-0 -z-10 rounded-[2.5rem] bg-gradient-to-br from-teal-500/10 to-cyan-500/10 blur-3xl" />
+            
+            {/* Abstract Dashboard Representation */}
+            <div className="relative rounded-[2rem] border border-white/10 bg-slate-900/60 p-4 shadow-2xl backdrop-blur-2xl">
+              <div className="rounded-[1.5rem] border border-white/10 bg-[#0b131e] p-6">
+                <div className="flex items-center justify-between border-b border-white/5 pb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="h-8 w-8 rounded-full bg-gradient-to-br from-teal-400 to-cyan-400" />
+                    <div>
+                      <div className="h-2 w-24 rounded-full bg-white/20" />
+                      <div className="mt-2 h-1.5 w-16 rounded-full bg-white/10" />
+                    </div>
                   </div>
-                  <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
-                    <LineChart size={20} className="text-teal-300" />
+                  <div className="flex gap-2">
+                    <div className="h-6 w-16 rounded-full bg-teal-400/20" />
+                  </div>
+                </div>
+                
+                <div className="mt-6 grid grid-cols-2 gap-4">
+                  <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-4">
+                    <div className="h-2 w-12 rounded-full bg-white/10" />
+                    <div className="mt-3 text-2xl font-black text-white">84%</div>
+                    <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-white/5">
+                      <div className="h-full w-[84%] bg-teal-400" />
+                    </div>
+                  </div>
+                  <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-4">
+                    <div className="h-2 w-16 rounded-full bg-white/10" />
+                    <div className="mt-3 text-2xl font-black text-white">+1,2k</div>
+                    <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-white/5">
+                      <div className="h-full w-[60%] bg-cyan-400" />
+                    </div>
                   </div>
                 </div>
 
-                <div className="mt-6 grid gap-3 sm:grid-cols-2">
-                  <StatCard label="Pontos de hoje" value="128" tone="teal" />
-                  <StatCard label="Férias pendentes" value="07" tone="cyan" />
-                  <StatCard label="Alertas críticos" value="03" tone="slate" />
-                  <StatCard label="Comunicações ativas" value="16" tone="emerald" />
-                </div>
-
-                <div className="mt-6 space-y-3">
-                  <MiniRow title="Fechamento do período" detail="Fluxo pronto para revisão e exportação." />
-                  <MiniRow title="Ocorrências do ponto" detail="Pendências priorizadas por criticidade." />
-                  <MiniRow title="Notificações da equipe" detail="Central organizada para comunicação interna." />
+                <div className="mt-4 space-y-3">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="flex items-center justify-between rounded-xl bg-white/[0.02] p-3">
+                      <div className="flex items-center gap-3">
+                        <div className="h-6 w-6 rounded-md bg-white/5" />
+                        <div className="h-1.5 w-20 rounded-full bg-white/10" />
+                      </div>
+                      <div className="h-1.5 w-10 rounded-full bg-teal-400/30" />
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
           </div>
         </section>
 
-        <section id="solucoes" className="grid gap-4 border-t border-white/10 py-8 sm:grid-cols-2 xl:grid-cols-4">
-          {pillars.map((pillar) => {
-            const Icon = pillar.icon;
-            return (
-              <article
-                key={pillar.title}
-                className="rounded-[1.5rem] border border-white/10 bg-white/5 p-5 backdrop-blur-sm transition-transform hover:-translate-y-1"
-              >
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-teal-400/10 text-teal-200">
-                  <Icon size={20} strokeWidth={2.4} />
-                </div>
-                <h3 className="mt-4 text-lg font-black text-white">{pillar.title}</h3>
-                <p className="mt-2 text-sm font-medium leading-7 text-slate-300">{pillar.description}</p>
-              </article>
-            );
-          })}
-        </section>
-
-        <section id="fluxo" className="grid gap-4 border-t border-white/10 py-10 lg:grid-cols-[0.8fr_1.2fr]">
-          <div>
-            <p className="text-[11px] font-black uppercase tracking-[0.3em] text-teal-200">
-              Como a plataforma trabalha
-            </p>
-            <h2 className="mt-4 max-w-md text-3xl font-black tracking-tight text-white sm:text-4xl">
-              Uma jornada simples para a equipe e forte para a liderança.
+        {/* Pillars Section */}
+        <section id="solucoes" className="mt-32 pt-10">
+          <div className="text-center">
+            <h2 className="text-3xl font-black tracking-tight text-white sm:text-4xl">
+              Tudo o que o DP precisa.
             </h2>
-            <p className="mt-4 max-w-md text-sm font-medium leading-7 text-slate-300">
-              A landing pode vender a plataforma como ela realmente é: um centro de operação com
-              leitura executiva, ação prática e identidade de marca.
+            <p className="mx-auto mt-4 max-w-2xl text-sm text-slate-400">
+              Desenhado meticulosamente para resolver os gargalos reais da gestão de pessoas, eliminando o retrabalho e protegendo a empresa contra passivos trabalhistas.
             </p>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-3">
-            {steps.map((step) => (
-              <article
-                key={step.number}
-                className="rounded-[1.5rem] border border-white/10 bg-slate-900/60 p-5 shadow-[0_14px_50px_rgba(0,0,0,0.2)]"
-              >
-                <p className="text-[11px] font-black uppercase tracking-[0.28em] text-teal-200">
-                  {step.number}
-                </p>
-                <h3 className="mt-4 text-xl font-black text-white">{step.title}</h3>
-                <p className="mt-3 text-sm font-medium leading-7 text-slate-300">{step.description}</p>
-              </article>
-            ))}
-          </div>
-        </section>
-
-        <section id="modulos" className="border-t border-white/10 py-10">
-          <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
-            <div>
-              <p className="text-[11px] font-black uppercase tracking-[0.3em] text-teal-200">
-                Módulos da marca
-              </p>
-              <h2 className="mt-4 text-3xl font-black tracking-tight text-white sm:text-4xl">
-                Tudo que o RH precisa, sem parecer uma tela genérica.
-              </h2>
-              <p className="mt-4 max-w-xl text-sm font-medium leading-7 text-slate-300">
-                Os blocos ao lado refletem a organização real da solução e ajudam a apresentar a
-                proposta com clareza para decisores, gestores e operação.
-              </p>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              {modules.map((module, index) => (
+          <div className="mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {pillars.map((pillar) => {
+              const Icon = pillar.icon;
+              return (
                 <article
-                  key={module}
-                  className="rounded-[1.25rem] border border-white/10 bg-white/5 p-5 transition-all hover:border-teal-300/30 hover:bg-white/8"
+                  key={pillar.title}
+                  className="group relative overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.02] p-8 transition-all hover:bg-white/[0.04]"
                 >
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-black text-white">{module}</p>
-                    <span className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">
-                      0{index + 1}
-                    </span>
+                  <div className="absolute inset-0 -z-10 bg-gradient-to-b from-teal-400/5 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-400/10 text-teal-400">
+                    <Icon size={24} strokeWidth={2} />
                   </div>
-                  <p className="mt-3 text-sm font-medium leading-7 text-slate-300">
-                    Estrutura pensada para comunicar valor com mais sofisticação e menos esforço.
-                  </p>
+                  <h3 className="mt-6 text-xl font-black text-white">{pillar.title}</h3>
+                  <p className="mt-3 text-sm leading-relaxed text-slate-400">{pillar.description}</p>
                 </article>
-              ))}
+              );
+            })}
+          </div>
+        </section>
+
+        {/* Features Grid */}
+        <section id="recursos" className="mt-32 rounded-[3rem] border border-white/5 bg-[#081018] p-8 lg:p-16">
+          <div className="grid gap-12 lg:grid-cols-[0.8fr_1.2fr]">
+            <div>
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-white">
+                Vantagens Competitivas
+              </div>
+              <h2 className="mt-6 text-3xl font-black tracking-tight text-white sm:text-4xl lg:text-5xl lg:leading-[1.1]">
+                Um ecossistema feito para escalar.
+              </h2>
+              <p className="mt-6 text-base leading-relaxed text-slate-400">
+                A tecnologia da Innovation RH Connect foi construída para atender desde startups enxutas até corporações complexas com matriz e filiais, sem perder a agilidade e a simplicidade de uso.
+              </p>
+              
+              <div className="mt-8">
+                <Link
+                  href="/login"
+                  className="inline-flex items-center gap-2 font-bold text-teal-400 transition-colors hover:text-teal-300"
+                >
+                  Conheça o painel executivo
+                  <ArrowRight size={16} />
+                </Link>
+              </div>
+            </div>
+
+            <div className="grid gap-x-8 gap-y-10 sm:grid-cols-2">
+              {features.map((feature) => {
+                const Icon = feature.icon;
+                return (
+                  <div key={feature.title}>
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/5 text-teal-400">
+                        <Icon size={20} strokeWidth={2} />
+                      </div>
+                      <h3 className="font-bold text-white">{feature.title}</h3>
+                    </div>
+                    <p className="mt-3 text-sm leading-relaxed text-slate-400">
+                      {feature.desc}
+                    </p>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </section>
 
-        <section className="border-t border-white/10 py-10">
-          <div className="rounded-[2rem] border border-teal-300/15 bg-[radial-gradient(circle_at_top_left,rgba(45,212,191,0.18),transparent_55%),linear-gradient(135deg,rgba(15,23,42,0.96),rgba(3,7,18,0.92))] p-8 shadow-[0_30px_90px_rgba(0,0,0,0.35)] sm:p-10">
-            <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
-              <div>
-                <p className="text-[11px] font-black uppercase tracking-[0.28em] text-teal-200">
-                  Próximo passo
-                </p>
-                <h2 className="mt-4 text-3xl font-black tracking-tight text-white sm:text-4xl">
-                  A landing que representa a marca precisa abrir com autoridade.
-                </h2>
-                <p className="mt-4 max-w-2xl text-sm font-medium leading-7 text-slate-300">
-                  Esta versão já entrega isso: visual premium, mensagem clara, foco em RH e CTA
-                  direto para o painel. Se quiser, eu também posso refinar para um tom mais
-                  comercial, institucional ou agressivo.
-                </p>
-              </div>
-
-              <div className="flex flex-col gap-3 sm:flex-row lg:justify-end">
-                <Link
-                  href="/login"
-                  className="inline-flex h-12 items-center justify-center rounded-full bg-teal-300 px-6 text-sm font-black text-slate-950 transition-transform hover:-translate-y-0.5"
-                >
-                  Entrar na conta
-                </Link>
-                <Link
-                  href="/login"
-                  className="inline-flex h-12 items-center justify-center rounded-full border border-white/12 bg-white/5 px-6 text-sm font-black text-white transition-colors hover:bg-white/10"
-                >
-                  Ir ao dashboard
-                </Link>
-              </div>
-            </div>
+        {/* CTA Section */}
+        <section className="mt-32 text-center">
+          <h2 className="mx-auto max-w-3xl text-4xl font-black tracking-tight text-white sm:text-5xl lg:text-6xl">
+            Pronto para transformar o seu RH?
+          </h2>
+          <p className="mx-auto mt-6 max-w-xl text-lg text-slate-400">
+            Acesse o sistema e descubra na prática como a Innovation pode revolucionar a gestão de pessoas da sua empresa.
+          </p>
+          <div className="mt-10 flex justify-center">
+            <Link
+              href="/login"
+              className="inline-flex h-14 items-center justify-center rounded-full bg-white px-8 text-sm font-black text-slate-950 transition-transform hover:-translate-y-1 hover:shadow-[0_20px_40px_rgba(255,255,255,0.15)]"
+            >
+              Acessar Painel Agora
+            </Link>
           </div>
         </section>
+        
+        {/* Footer */}
+        <footer className="mt-32 flex flex-col items-center justify-between gap-6 border-t border-white/10 pt-8 sm:flex-row">
+          <p className="text-xs font-bold text-slate-500">
+            &copy; {new Date().getFullYear()} Innovation RH System. Todos os direitos reservados.
+          </p>
+          <div className="flex gap-6 text-xs font-bold text-slate-500">
+            <Link href="#" className="hover:text-white">Privacidade</Link>
+            <Link href="#" className="hover:text-white">Termos</Link>
+            <Link href="#" className="hover:text-white">Suporte</Link>
+          </div>
+        </footer>
       </div>
     </main>
   );
 }
-
-function StatCard({
-  label,
-  value,
-  tone,
-}: {
-  label: string;
-  value: string;
-  tone: 'teal' | 'cyan' | 'slate' | 'emerald';
-}) {
-  const toneStyles: Record<typeof tone, string> = {
-    teal: 'from-teal-300/25 to-teal-300/5 text-teal-100 border-teal-300/15',
-    cyan: 'from-cyan-300/20 to-cyan-300/5 text-cyan-100 border-cyan-300/15',
-    slate: 'from-slate-200/10 to-slate-200/5 text-slate-100 border-white/10',
-    emerald: 'from-emerald-300/20 to-emerald-300/5 text-emerald-100 border-emerald-300/15',
-  };
-
-  return (
-    <div className={`rounded-2xl border bg-gradient-to-br p-4 ${toneStyles[tone]}`}>
-      <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-300">{label}</p>
-      <p className="mt-2 text-3xl font-black tracking-tight text-white">{value}</p>
-    </div>
-  );
-}
-
-function MiniRow({ title, detail }: { title: string; detail: string }) {
-  return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-      <div className="flex items-center gap-3">
-        <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-teal-400/10 text-teal-200">
-          <CheckCircle2 size={16} />
-        </span>
-        <div>
-          <p className="text-sm font-black text-white">{title}</p>
-          <p className="text-xs font-medium text-slate-400">{detail}</p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
