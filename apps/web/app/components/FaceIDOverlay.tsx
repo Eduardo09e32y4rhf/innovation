@@ -43,11 +43,20 @@ export function FaceIDOverlay({ onCapture, onCancel, title = 'Verificação Faci
           video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } } 
         });
         
-        if (videoRef.current && active) {
-          videoRef.current.srcObject = stream;
-          setLoadingModels(false);
-          setInstruction('Aguardando vídeo...');
+        if (!active) {
+          stream.getTracks().forEach(track => track.stop());
+          return;
         }
+        
+        setLoadingModels(false);
+        setInstruction('Aguardando vídeo...');
+        
+        // Delay slighty so React can render the <video> element
+        setTimeout(() => {
+          if (videoRef.current && active) {
+            videoRef.current.srcObject = stream;
+          }
+        }, 50);
       } catch (err: any) {
         if (active) setError(err.message || 'Erro ao carregar câmera/modelos. Verifique as permissões.');
       }
