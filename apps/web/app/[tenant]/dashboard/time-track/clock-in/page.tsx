@@ -281,7 +281,7 @@ export default function ClockInPage() {
           title={!(myEmployee?.faceEnrollment?.active) ? "Cadastrar Biometria Facial" : "Validar Biometria Facial"}
           onCapture={handleFaceCapture}
           onCancel={() => setShowFaceID(false)}
-          compareDescriptor={myEmployee?.faceEnrollment?.active && myEmployee.faceEnrollment.descriptor ? (myEmployee.faceEnrollment.descriptor as number[]) : undefined}
+          compareDescriptor={myEmployee?.faceEnrollment?.active && myEmployee.faceEnrollment.vectors ? (myEmployee.faceEnrollment.vectors as number[]) : undefined}
         />
       )}
 
