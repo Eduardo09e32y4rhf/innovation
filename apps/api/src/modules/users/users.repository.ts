@@ -36,8 +36,11 @@ export class UsersRepository {
     });
   }
 
-  findById(companyId: string, id: string) {
-    return this.prisma.user.findFirst({ where: { id, companyId }, select: safeUserSelect });
+  findById(id: string, companyId?: string) {
+    return this.prisma.user.findFirst({ 
+      where: { id, ...(companyId ? { companyId } : {}) }, 
+      select: safeUserSelect 
+    });
   }
 
   findByEmail(email: string) {
@@ -59,12 +62,17 @@ export class UsersRepository {
     return this.prisma.user.create({ data, select: safeUserSelect });
   }
 
-  update(companyId: string, id: string, data: any) {
-    return this.prisma.user.updateMany({ where: { id, companyId }, data });
+  update(id: string, data: any, companyId?: string) {
+    return this.prisma.user.updateMany({ 
+      where: { id, ...(companyId ? { companyId } : {}) }, 
+      data 
+    });
   }
 
-  delete(companyId: string, id: string) {
-    return this.prisma.user.deleteMany({ where: { id, companyId } });
+  delete(id: string, companyId?: string) {
+    return this.prisma.user.deleteMany({ 
+      where: { id, ...(companyId ? { companyId } : {}) } 
+    });
   }
 
   ping(userId: string) {

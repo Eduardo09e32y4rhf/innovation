@@ -25,7 +25,9 @@ export class UsersService {
   }
 
   async get(companyId: string, actor: JwtUser, id: string) {
-    const user = await this.repository.findById(companyId, id);
+    const user = actor.role === 'DEV'
+      ? await this.repository.findById(id)
+      : await this.repository.findById(id, companyId);
     if (!this.canAccessUser(actor, user)) throw new NotFoundException('Usuario nao encontrado');
     return user;
   }
@@ -68,7 +70,9 @@ export class UsersService {
       ...(email !== undefined ? { email: email.trim().toLowerCase() } : {}),
       ...(password ? { passwordHash: await bcrypt.hash(password, 12) } : {}),
     };
-    const result = await this.repository.update(companyId, id, data);
+    const result = actor.role === 'DEV'
+      ? await this.repository.update(id, data)
+      : await this.repository.update(id, data, companyId);
     if (!result.count) throw new NotFoundException('Usuario nao encontrado');
     return this.get(companyId, actor, id);
   }
@@ -76,17 +80,19 @@ export class UsersService {
   async resetPassword(companyId: string, actor: JwtUser, id: string) {
     await this.get(companyId, actor, id);
     const passwordHash = await bcrypt.hash('12345678', 12);
-    const result = await this.repository.update(companyId, id, {
-      passwordHash,
-      forcePasswordChange: true
-    });
+    const data = { passwordHash, forcePasswordChange: true };
+    const result = actor.role === 'DEV'
+      ? await this.repository.update(id, data)
+      : await this.repository.update(id, data, companyId);
     if (!result.count) throw new NotFoundException('Usuario nao encontrado');
     return { reset: true };
   }
 
   async delete(companyId: string, actor: JwtUser, id: string) {
     await this.get(companyId, actor, id);
-    const result = await this.repository.delete(companyId, id);
+    const result = actor.role === 'DEV'
+      ? await this.repository.delete(id)
+      : await this.repository.delete(id, companyId);
     if (!result.count) throw new NotFoundException('Usuario nao encontrado');
     return { deleted: true };
   }
