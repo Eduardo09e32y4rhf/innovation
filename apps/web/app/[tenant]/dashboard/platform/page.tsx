@@ -7,7 +7,7 @@ import { EmptyState, ErrorState, LoadingState } from '@/app/components/data-stat
 import { useAuth } from '@/app/contexts/AuthContext';
 import { getAuthScopeSnapshot } from '@/app/lib/auth-session';
 import { useMutation, useQuery } from '@/app/hooks/use-data';
-import { api, type AppUser, type CreatePlatformCompanyInput, type PlatformCompany, type PlatformCompanyUserRole } from '@/app/lib/api';
+import { api, request, type AppUser, type CreatePlatformCompanyInput, type PlatformCompany, type PlatformCompanyUserRole } from '@/app/lib/api';
 import { ROLE_LABEL, formatDate } from '@/app/lib/format';
 import { normalizeDisplayName } from '@/app/lib/text';
 
@@ -374,7 +374,7 @@ function CompanyUserFormModal({ companyId, user, onClose, onDone }: { companyId:
 }
 
 function NewCompanyModal({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
-  const plansData = useQuery(() => request<any[]>('/platform/plans'), []);
+  const plansData = useQuery<{id: string, maxUsers: number, maxEmployees: number, name: string, price: string}[]>(() => request<any[]>('/platform/plans'), []);
 
   const [form, setForm] = useState<CreatePlatformCompanyInput & { planId?: string }>({
     name: '', document: '', slug: '', maxUsers: 10, maxEmployees: 20,
