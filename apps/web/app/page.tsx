@@ -202,7 +202,7 @@ export default function Home() {
             <div className="relative rounded-[2rem] border border-white/10 bg-slate-900/60 p-2 shadow-2xl backdrop-blur-2xl transform rotate-y-[-5deg] rotate-x-[2deg] transition-transform duration-700 hover:rotate-0">
               <div className="overflow-hidden rounded-[1.5rem] border border-white/5 bg-[#0b131e]">
                 <Image
-                  src="/hero-mockup.jpg"
+                  src="/dashboard.png"
                   alt="Dashboard Innovation RH Connect"
                   width={800}
                   height={450}
@@ -315,9 +315,9 @@ export default function Home() {
             &copy; {new Date().getFullYear()} Innovation RH System. Todos os direitos reservados.
           </p>
           <div className="flex gap-6 text-xs font-bold text-slate-500">
-            <Link href="#" className="hover:text-white">Privacidade</Link>
-            <Link href="#" className="hover:text-white">Termos</Link>
-            <Link href="#" className="hover:text-white">Suporte</Link>
+            <Link href="/privacidade" className="hover:text-white">Privacidade</Link>
+            <Link href="/termos" className="hover:text-white">Termos</Link>
+            <Link href="/suporte" className="hover:text-white">Suporte</Link>
           </div>
         </footer>
       </div>
