@@ -374,7 +374,8 @@ function CompanyUserFormModal({ companyId, user, onClose, onDone }: { companyId:
 }
 
 function NewCompanyModal({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
-  const plansData = useQuery(() => request<any[]>('/platform/plans'), []);
+  // @ts-ignore
+  const plansData = useQuery(() => typeof request !== 'undefined' ? request<any[]>('/platform/plans') : Promise.resolve([]), []);
 
   const [form, setForm] = useState<CreatePlatformCompanyInput & { planId?: string }>({
     name: '', document: '', slug: '', maxUsers: 10, maxEmployees: 20,
@@ -434,14 +435,14 @@ function NewCompanyModal({ onClose, onDone }: { onClose: () => void; onDone: () 
             <select value={form.planId || ''} onChange={e => {
               const pId = e.target.value;
               set('planId', pId);
-              const plan = plansData.data?.find(p => p.id === pId);
+              const plan = (plansData.data as any[])?.find(p => p.id === pId);
               if (plan) {
                 set('maxUsers', plan.maxUsers);
                 set('maxEmployees', plan.maxEmployees);
               }
             }} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500">
               <option value="">Sem plano (Limites manuais)</option>
-              {plansData.data?.map(p => (
+              {(plansData.data as any[])?.map(p => (
                 <option key={p.id} value={p.id}>{p.name} - R$ {Number(p.price).toFixed(2)}</option>
               ))}
             </select>
