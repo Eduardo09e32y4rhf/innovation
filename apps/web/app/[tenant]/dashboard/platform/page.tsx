@@ -59,19 +59,22 @@ export default function PlatformPage() {
   }
 
   const handleGhostMode = async (c: PlatformCompany) => {
+    const newWindow = window.open('about:blank', '_blank');
+    if (!newWindow) {
+      window.alert('Por favor, permita pop-ups para abrir a nova empresa.');
+      return;
+    }
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || '/api'}/platform/ghost-mode/${c.id}`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${getAuthScopeSnapshot().token}` },
-      });
-      const data = await res.json();
-      if (data?.data?.token) {
-        window.open(`/auth/ghost?token=${data.data.token}`, '_blank');
+      const { token } = await api.platform.ghostMode(c.id);
+      if (token) {
+        newWindow.location.href = `/auth/ghost?token=${token}`;
       } else {
+        newWindow.close();
         window.alert('Não foi possível gerar o token de acesso (Ghost Mode).');
       }
-    } catch {
-      window.alert('Erro ao tentar acessar a empresa.');
+    } catch (err: any) {
+      newWindow.close();
+      window.alert(err.message || 'Erro ao tentar acessar a empresa.');
     }
   };
 
