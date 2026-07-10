@@ -490,6 +490,7 @@ export const api = {
     stats: () => request<PlatformStats>('/platform/stats'),
     listCompanies: () => request<PlatformCompany[]>('/platform/companies'),
     getCompany: (id: string) => request<PlatformCompany>(`/platform/companies/${id}`),
+    listPlans: () => request<any[]>('/platform/plans'),
     createCompany: (input: CreatePlatformCompanyInput) => request<unknown>('/platform/companies', { method: 'POST', body: input }),
     updateCompany: (id: string, input: Partial<Omit<CreatePlatformCompanyInput, 'adminName' | 'adminEmail' | 'adminPassword'>> & { isActive?: boolean; status?: CompanyStatus; suspensionReason?: string | null; plan?: 'FREE' | 'BASE' | 'PRO' | 'ENTERPRISE'; billingStatus?: 'TRIAL' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED'; trialEndsAt?: string; activeModules?: string[]; asaasCustomerId?: string; asaasSubscriptionId?: string; internalNotes?: string }) =>
       request<PlatformCompany>(`/platform/companies/${id}`, { method: 'PATCH', body: input }),

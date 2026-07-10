@@ -374,7 +374,7 @@ function CompanyUserFormModal({ companyId, user, onClose, onDone }: { companyId:
 }
 
 function NewCompanyModal({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
-  const plansData = useQuery(() => request<any[]>('/platform/plans'), []);
+  const plansData = useQuery(() => api.platform.listPlans(), []);
 
   const [form, setForm] = useState<CreatePlatformCompanyInput & { planId?: string }>({
     name: '', document: '', slug: '', maxUsers: 10, maxEmployees: 20,
