@@ -116,6 +116,7 @@ services:
     environment:
       NODE_OPTIONS: "--max-old-space-size=2048"
       PORT: ${WEB_PORT:-3000}
+      HOSTNAME: "0.0.0.0"
     ports:
       - "${WEB_HOST_PORT:-3000}:${WEB_PORT:-3000}"
 
