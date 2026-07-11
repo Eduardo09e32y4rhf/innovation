@@ -31,17 +31,15 @@ export class HealthController {
     let redisOk = false;
     try {
       redisOk = this.redis.getStatus(); // true only when connected
-      checks.redis = { status: redisOk ? 'ok' : 'unavailable' };
+      checks.redis = { status: redisOk ? 'ok' : 'degraded (optional)' };
     } catch {
-      checks.redis = { status: 'error', message: 'Redis check failed' };
+      checks.redis = { status: 'unavailable (optional)' };
     }
 
-    const isHealthy = dbOk && redisOk;
+    // Only the database is required for the API to function
+    const isHealthy = dbOk;
 
-    // Return 503 so load balancers and monitoring systems detect degraded state
     if (!isHealthy) {
-      // We cannot use @Res() here without breaking Fastify interceptors, so we throw
-      // a manual HttpException to force 503
       const { HttpException } = await import('@nestjs/common');
       throw new HttpException(
         { status: 'error', ...checks },
