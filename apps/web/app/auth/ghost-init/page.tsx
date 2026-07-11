@@ -20,9 +20,19 @@ function GhostInitPageContent() {
     let active = true;
 
     async function initGhostMode() {
+      // Pequeno delay para garantir que o localStorage está acessível na aba nova
+      await new Promise(r => setTimeout(r, 200));
+      
       try {
-        const adminToken = readAuthSession().token;
-        if (!adminToken) throw new Error('Não autenticado como administrador.');
+        // Lê token do admin com múltiplas estratégias para garantir compatibilidade
+        const session = readAuthSession();
+        const adminToken = 
+          session.token ||
+          window.localStorage.getItem('auth.token') ||
+          window.localStorage.getItem('token') ||
+          window.sessionStorage.getItem('auth.token');
+        
+        if (!adminToken) throw new Error('Sessão expirada. Feche esta aba e tente novamente estando logado.');
 
         const getApiUrl = () => process.env.NEXT_PUBLIC_API_URL || '/api';
         
@@ -38,7 +48,9 @@ function GhostInitPageContent() {
         if (!res.ok) {
           const errorData = await res.json().catch(() => ({}));
           const errorMsg = errorData?.message || errorData?.error || `Erro ${res.status}`;
-          throw new Error(res.status === 403 ? 'Empresa não está disponível para acesso' : errorMsg);
+          if (res.status === 401) throw new Error('Sessão expirada. Feche esta aba, recarregue a página principal e tente novamente.');
+          if (res.status === 403) throw new Error('Sem permissão. Apenas o DEV pode usar o modo ghost.');
+          throw new Error(errorMsg);
         }
 
         const data = await res.json();

@@ -1,6 +1,19 @@
-import { IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator';
+import { IsOptional, IsString, MaxLength, MinLength, Validate, ValidatorConstraint, ValidatorConstraintInterface } from 'class-validator';
 
-const SAFE_LOGO_URL = /^https:\/\/[^\s?#]+\.(png|jpe?g|webp)(\?[^\s#]*)?(#[^\s]*)?$/i;
+@ValidatorConstraint({ name: 'safeLogoValue', async: false })
+export class SafeLogoConstraint implements ValidatorConstraintInterface {
+  validate(value: any) {
+    if (value === null || value === undefined || value === '') return true;
+    const str = String(value);
+    // Accept base64 image data URLs (created from Canvas - safe by design)
+    if (/^data:image\/(png|jpeg|webp);base64,/.test(str)) return true;
+    // Accept HTTPS URLs ending in image extensions
+    return /^https:\/\/[^\s?#]+\.(png|jpe?g|webp)(\?[^\s#]*)?(#[^\s]*)?$/i.test(str);
+  }
+  defaultMessage() {
+    return 'logoUrl must be an HTTPS image URL or a base64 image (PNG, JPG, WebP).';
+  }
+}
 
 export class UpdateCompanyDto {
   @IsOptional()
@@ -17,9 +30,8 @@ export class UpdateCompanyDto {
   document?: string;
 
   @IsOptional()
-  @IsString()
-  @MaxLength(2048)
-  @Matches(SAFE_LOGO_URL, { message: 'logoUrl must be an HTTPS PNG, JPG or WebP URL.' })
+  @MaxLength(5_000_000) // ~3.75 MB base64
+  @Validate(SafeLogoConstraint)
   logoUrl?: string | null;
 
   @IsOptional()
