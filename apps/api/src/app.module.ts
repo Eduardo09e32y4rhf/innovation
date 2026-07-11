@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
-import { APP_INTERCEPTOR } from '@nestjs/core';
+import { APP_INTERCEPTOR, APP_GUARD } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
-import { ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { HealthModule } from './health/health.module';
 import { appConfig } from './config/app.config';
 import { validateEnv } from './config/env.validation';
@@ -19,6 +19,8 @@ import { HolidaysModule } from './modules/holidays/holidays.module';
 import { VacationsModule } from './modules/vacations/vacations.module';
 import { PlatformModule } from './modules/platform/platform.module';
 import { ManagementModule } from './modules/management/management.module';
+import { QueueModule } from './modules/queue/queue.module';
+import { ProposalsModule } from './modules/proposals/proposals.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { AuditInterceptor } from './common/interceptors/audit.interceptor';
 import { CryptoModule } from './common/crypto/crypto.module';
@@ -27,6 +29,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
+    QueueModule,
     HolidaysModule,
     ConfigModule.forRoot({
       isGlobal: true,
@@ -49,11 +52,16 @@ import { ScheduleModule } from '@nestjs/schedule';
     VacationsModule,
     PlatformModule,
     ManagementModule,
+    QueueModule,
+    ProposalsModule,
     NotificationsModule,
     CryptoModule,
     FinanceModule,
     ScheduleModule.forRoot(),
   ],
-  providers: [{ provide: APP_INTERCEPTOR, useClass: AuditInterceptor }],
+  providers: [
+    { provide: APP_INTERCEPTOR, useClass: AuditInterceptor },
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
+  ],
 })
 export class AppModule {}

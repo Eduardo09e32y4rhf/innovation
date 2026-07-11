@@ -55,6 +55,16 @@ O sistema utiliza o que há de mais moderno na engenharia de software para garan
 
 ---
 
+## 🛡️ Segurança e Rate Limiting
+
+O sistema possui proteção contra ataques de força bruta e abusos da API configurada globalmente através do `ThrottlerGuard`:
+- **Global**: 20 requisições por minuto (60s).
+- **Login (`/auth/login`)**: 5 requisições a cada 15 minutos.
+- **Registro (`/auth/register-company`)**: 3 requisições a cada 30 minutos.
+- **Recuperação de Senha (`/auth/password-reset/request`)**: 5 requisições a cada 30 minutos.
+
+---
+
 ## 🚀 Como Rodar Localmente (Desenvolvimento)
 
 1. **Instale as dependências:**

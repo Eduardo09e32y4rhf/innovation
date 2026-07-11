@@ -40,6 +40,11 @@ export class PrivacyController {
   }
 
 
+  @Get('job/:jobId/status')
+  async getJobStatus(@Param('jobId') jobId: string) {
+    return this.service.getJobStatus(jobId);
+  }
+
 }
 
 function getRequestMeta(request: any) {

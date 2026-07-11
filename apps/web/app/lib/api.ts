@@ -11,6 +11,11 @@ import { resetAllQueryStates } from '@/app/hooks/use-data';
 export const API_URL =
   process.env.NEXT_PUBLIC_API_URL || '/api';
 
+export const getImageUrl = (relativePath: string) => {
+  const cdnUrl = process.env.NEXT_PUBLIC_CDN_URL || process.env.NEXT_PUBLIC_API_URL || '';
+  return `${cdnUrl}${relativePath}`;
+};
+
 export class ApiError extends Error {
   status: number;
   body: unknown;
@@ -501,6 +506,15 @@ export const api = {
     getOnlineUsers: () => request<AppUser[]>('/platform/online'),
     getReceitaCnpj: (cnpj: string) => request<any>(`/platform/receita/${cnpj}`),
     ghostMode: (companyId: string) => request<{ token: string }>(`/platform/ghost-mode/${companyId}`, { method: 'POST' }),
+  },
+
+  proposals: {
+    list: () => request<any[]>('/proposals'),
+    getCompanyProposals: () => request<any[]>('/proposals/company'),
+    getStatus: (id: string) => request<any>(`/proposals/${id}/status`),
+    create: (data: any) => request<any>('/proposals', { method: 'POST', body: data }),
+    send: (id: string) => request<any>(`/proposals/${id}/send`, { method: 'POST' }),
+    acceptTerms: (id: string, data: any) => request<any>(`/proposals/${id}/accept-terms`, { method: 'POST', body: data }),
   },
 };
 

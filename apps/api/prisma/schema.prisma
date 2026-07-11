@@ -318,9 +318,10 @@ model Company {
   overtimeRule      OvertimeRule?
   holidays          Holiday[]
   timeClosings      TimeClosing[]
-  platformPlan      PlatformPlan?          @relation(fields: [platformPlanId], references: [id])
+  platformPlan      PlatformPlan?      @relation(fields: [platformPlanId], references: [id])
   platformInvoices  PlatformInvoice[]
   platformContract  PlatformContract?
+  proposals         Proposal[]
 
   @@index([commercialOwnerId])
 }
@@ -360,6 +361,7 @@ model User {
   uploadedAttachments    Attachment[]
   activityHistories      ActivityHistory[]
   overtimeApprovals      TimeTrack[]             @relation("OvertimeApprovals")
+  createdProposals       Proposal[]
 
   @@index([companyId])
 }
@@ -1090,16 +1092,16 @@ model Holiday {
 }
 
 model FaceEnrollment {
-  id                  String    @id @default(uuid()) @db.Uuid
-  companyId           String    @db.Uuid
-  company             Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  employeeId          String    @unique @db.Uuid
-  employee            Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  descriptor          Json?
-  enrolledAt          DateTime  @default(now())
-  consentGiven        Boolean   @default(false)
-  consentAt           DateTime?
-  active              Boolean   @default(true)
+  id           String    @id @default(uuid()) @db.Uuid
+  companyId    String    @db.Uuid
+  company      Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  employeeId   String    @unique @db.Uuid
+  employee     Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  descriptor   Json?
+  enrolledAt   DateTime  @default(now())
+  consentGiven Boolean   @default(false)
+  consentAt    DateTime?
+  active       Boolean   @default(true)
 
   @@index([companyId, employeeId])
 }
@@ -1189,45 +1191,107 @@ model GlobalRolePermission {
 }
 
 model PlatformPlan {
-  id             String @id @default(uuid()) @db.Uuid
-  name           String
-  description    String?
-  price          Decimal @db.Decimal(10,2)
-  cycle          BillingCycle @default(MONTHLY)
-  maxUsers       Int @default(9999)
-  maxEmployees   Int @default(9999)
-  activeModules  String[]
-  isActive       Boolean @default(true)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  
-  companies      Company[]
-  invoices       PlatformInvoice[]
+  id            String       @id @default(uuid()) @db.Uuid
+  name          String
+  description   String?
+  price         Decimal      @db.Decimal(10, 2)
+  cycle         BillingCycle @default(MONTHLY)
+  maxUsers      Int          @default(9999)
+  maxEmployees  Int          @default(9999)
+  activeModules String[]
+  isActive      Boolean      @default(true)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  companies Company[]
+  invoices  PlatformInvoice[]
 }
 
 model PlatformInvoice {
-  id            String @id @default(uuid()) @db.Uuid
-  companyId     String @db.Uuid
-  planId        String? @db.Uuid
-  amount        Decimal @db.Decimal(10,2)
-  dueDate       DateTime
-  status        InvoiceStatus @default(OPEN)
-  paidAt        DateTime?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id        String        @id @default(uuid()) @db.Uuid
+  companyId String        @db.Uuid
+  planId    String?       @db.Uuid
+  amount    Decimal       @db.Decimal(10, 2)
+  dueDate   DateTime
+  status    InvoiceStatus @default(OPEN)
+  paidAt    DateTime?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
 
-  company       Company @relation(fields: [companyId], references: [id])
-  plan          PlatformPlan? @relation(fields: [planId], references: [id])
+  company Company       @relation(fields: [companyId], references: [id])
+  plan    PlatformPlan? @relation(fields: [planId], references: [id])
 }
 
 model PlatformContract {
-  id            String @id @default(uuid()) @db.Uuid
-  companyId     String @db.Uuid @unique
-  documentUrl   String?
-  signedAt      DateTime?
-  contentHtml   String @db.Text
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id          String    @id @default(uuid()) @db.Uuid
+  companyId   String    @unique @db.Uuid
+  documentUrl String?
+  signedAt    DateTime?
+  contentHtml String    @db.Text
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
-  company       Company @relation(fields: [companyId], references: [id])
+  company Company @relation(fields: [companyId], references: [id])
+}
+
+model Proposal {
+  id        String @id @default(uuid()) @db.Uuid
+  companyId String @db.Uuid
+
+  status         String @default("DRAFT")
+  proposalNumber String @unique
+
+  title       String
+  description String?   @db.Text
+  startDate   DateTime
+  endDate     DateTime?
+
+  planType       String
+  monthlyPrice   Float
+  usersLimit     Int
+  employeesLimit Int
+  features       String[]
+
+  termsAccepted   Boolean   @default(false)
+  termsAcceptedAt DateTime?
+  termsPdfBase64  String?   @db.Text
+  termsBucketUrl  String?
+
+  asaasPaymentLinkId String?
+  asaasPaymentLink   String?
+  asaasInvoiceId     String?
+
+  paymentStatus String    @default("PENDING")
+  paidAt        DateTime?
+
+  signedByName    String?
+  signedByEmail   String?
+  signedAt        DateTime?
+  signatureBase64 String?   @db.Text
+
+  createdBy String   @db.Uuid
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  company   Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  creator   User               @relation(fields: [createdBy], references: [id])
+  auditLogs ProposalAuditLog[]
+
+  @@index([companyId])
+  @@index([status])
+  @@index([proposalNumber])
+}
+
+model ProposalAuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  proposalId String   @db.Uuid
+  action     String
+  actor      String
+  metadata   String   @db.Text
+  createdAt  DateTime @default(now())
+
+  proposal Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+
+  @@index([proposalId])
+  @@index([createdAt])
 }

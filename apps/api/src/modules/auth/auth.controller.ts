@@ -1,4 +1,5 @@
 import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import type { JwtUser } from '../../common/types/auth.types';
@@ -13,16 +14,19 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
 export class AuthController {
   constructor(private readonly service: AuthService) {}
 
+  @Throttle({ default: { limit: 3, ttl: 1800000 } })
   @Post('register-company')
   registerCompany(@Body() dto: RegisterCompanyDto) {
     return this.service.registerCompany(dto);
   }
 
+  @Throttle({ default: { limit: 5, ttl: 900000 } })
   @Post('login')
   login(@Body() dto: LoginDto, @Req() request: any) {
     return this.service.login(dto, getRequestMeta(request));
   }
 
+  @Throttle({ default: { limit: 5, ttl: 1800000 } })
   @Post('password-reset/request')
   requestPasswordReset(@Body() dto: RequestPasswordResetDto, @Req() request: any) {
     return this.service.requestPasswordReset(dto, getRequestMeta(request));

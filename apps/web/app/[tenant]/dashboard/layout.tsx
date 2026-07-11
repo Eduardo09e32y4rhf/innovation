@@ -7,6 +7,7 @@ import { DashboardTopbar } from './_components/dashboard-topbar';
 import { PasswordChangeGate } from './_components/password-change-gate';
 import { PrivacyConsentGate } from './_components/privacy-consent-gate';
 import { PendingNotificationsGate } from './_components/pending-notifications-gate';
+import { ProposalGate } from './_components/proposal-gate';
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (
@@ -18,9 +19,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             <DashboardTopbar />
             <PrivacyConsentGate>
             <PendingNotificationsGate>
+            <ProposalGate>
               <div className="min-w-0 flex-1 px-3 py-4 sm:px-5 sm:py-5 lg:px-8 lg:py-7">
                 {children}
               </div>
+            </ProposalGate>
             </PendingNotificationsGate>
             </PrivacyConsentGate>
           </main>

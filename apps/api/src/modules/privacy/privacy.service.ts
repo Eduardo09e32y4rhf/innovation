@@ -1,4 +1,6 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { InjectQueue } from '@nestjs/bull';
+import { Queue } from 'bull';
 import type { JwtUser } from '../../common/types/auth.types';
 import { CURRENT_TERMS_VERSION, TERMS_PURPOSE } from './privacy.constants';
 import { PrivacyRepository } from './privacy.repository';
@@ -7,7 +9,10 @@ const PDFDocument = require('pdfkit');
 
 @Injectable()
 export class PrivacyService {
-  constructor(private readonly repository: PrivacyRepository) {}
+  constructor(
+    private readonly repository: PrivacyRepository,
+    @InjectQueue('pdf-generation') private readonly pdfQueue: Queue
+  ) {}
 
   async status(user: JwtUser) {
     const consent = await this.repository.findActiveConsent(user.sub, CURRENT_TERMS_VERSION);
@@ -26,25 +31,6 @@ export class PrivacyService {
     const userName = userData?.name || user.name || 'Usuário';
     const companyName = userData?.company?.name || 'Empresa Cliente';
     
-    let pdfBase64: string | undefined;
-    try {
-      pdfBase64 = await this.generatePDFBase64({
-        userName,
-        userEmail: user.email,
-        companyName,
-        termVersion: CURRENT_TERMS_VERSION,
-        purpose: TERMS_PURPOSE,
-        ipAddress: requestMeta.ipAddress,
-        latitude: body?.latitude,
-        longitude: body?.longitude,
-        address: body?.address,
-        photoBase64: body?.photoBase64,
-        date: new Date().toLocaleString('pt-BR').replace(/\u202F/g, ' '),
-      });
-    } catch (e) {
-      console.error('Erro gerando PDF', e);
-    }
-
     const consent = await this.repository.acceptConsent({
       companyId: user.companyId,
       userId: user.sub,
@@ -54,7 +40,7 @@ export class PrivacyService {
       longitude: body?.longitude,
       address: body?.address,
       photoBase64: body?.photoBase64,
-      pdfBase64,
+      pdfBase64: null,
       ...requestMeta,
     });
 
@@ -77,7 +63,57 @@ export class PrivacyService {
       ...requestMeta,
     });
 
-    return { accepted: true, termVersion: CURRENT_TERMS_VERSION, acceptedAt: consent.acceptedAt };
+    const pdfData = {
+      userName,
+      userEmail: user.email,
+      companyName,
+      termVersion: CURRENT_TERMS_VERSION,
+      purpose: TERMS_PURPOSE,
+      ipAddress: requestMeta.ipAddress,
+      latitude: body?.latitude,
+      longitude: body?.longitude,
+      address: body?.address,
+      photoBase64: body?.photoBase64,
+      date: new Date().toLocaleString('pt-BR').replace(/\u202F/g, ' '),
+    };
+
+    const job = await this.pdfQueue.add({
+      consentId: consent.id,
+      userEmail: user.email,
+      pdfData
+    }, {
+      delay: 0,
+      attempts: 3,
+      backoff: {
+        type: 'exponential',
+        delay: 2000,
+      },
+    });
+
+    return { 
+      id: consent.id, 
+      status: 'QUEUED',
+      jobId: job.id,
+      accepted: true, 
+      termVersion: CURRENT_TERMS_VERSION, 
+      acceptedAt: consent.acceptedAt,
+      message: 'Seu termo está sendo gerado. Você receberá um aviso quando pronto.'
+    };
+  }
+
+  async getJobStatus(jobId: string) {
+    const job = await this.pdfQueue.getJob(jobId);
+    if (!job) return { status: 'NOT_FOUND' };
+    return {
+      id: job.id,
+      status: await job.getState(),
+      progress: job.progress(),
+      data: job.data,
+    };
+  }
+
+  async updatePdfBase64(consentId: string, pdfBase64: string) {
+    return this.repository.updatePdfBase64(consentId, pdfBase64);
   }
 
   async getTermsPdf(user: JwtUser, targetUserId: string) {
@@ -131,7 +167,7 @@ export class PrivacyService {
     return null;
   }
 
-  private generatePDFBase64(data: any): Promise<string> {
+  public async generatePDFBase64(data: any): Promise<string> {
     return new Promise((resolve, reject) => {
       try {
         const doc = new PDFDocument({ margin: 0, size: 'A4' });
