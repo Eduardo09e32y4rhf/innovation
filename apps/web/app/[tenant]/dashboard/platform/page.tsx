@@ -489,6 +489,42 @@ function CompanyManageModal({ company, onClose, onSave, loading, error }: { comp
   const [asaasSubscriptionId, setAsaasSubscriptionId] = useState(company.asaasSubscriptionId || '');
   const [internalNotes, setInternalNotes] = useState(company.internalNotes || '');
 
+  const handleGeneratePdf = () => {
+    const selectedPlan = plansData.data?.find(p => p.id === plan);
+    if (!selectedPlan) return alert('Selecione um plano da plataforma primeiro.');
+    
+    const { buildPdfShell, infoGrid, section, signatureBlock, printPdf } = require('@/app/lib/pdf-utils');
+    const pdfCompanyData = { 
+      name: company.name, 
+      document: company.document || 'N/A', 
+      address: company.address || 'Não informado', 
+      city: '', state: '' 
+    };
+    
+    const html = buildPdfShell({ title: 'Contrato de Prestação de Serviços', subtitle: 'Innovation.ia Plataforma' }, pdfCompanyData, `
+      ${section('1. O Objeto', `
+        <p class="text-[11px] text-slate-700 text-justify mb-2">
+          O presente contrato tem como objeto a licença de uso do software como serviço (SaaS) denominado "Innovation.ia", referente ao plano <strong>${selectedPlan.name}</strong>.
+        </p>
+      `)}
+      ${section('2. Condições Comerciais', infoGrid([
+        { label: 'Plano', value: selectedPlan.name },
+        { label: 'Valor', value: selectedPlan.isFree ? 'Gratuito' : `R$ ${parseFloat(String(selectedPlan.price)).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} / ${selectedPlan.cycle}` },
+        { label: 'Max. Usuários', value: String(maxUsers) },
+        { label: 'Max. Funcionários', value: String(maxEmployees) },
+      ]))}
+      ${section('3. Termos Gerais', `
+        <p class="text-[11px] text-slate-700 text-justify mb-2">
+          1. A CONTRATADA compromete-se a manter a plataforma acessível e funcional, ressalvadas as manutenções programadas.<br><br>
+          2. Em caso de inadimplência (status: Inadimplente), o sistema suspenderá automaticamente o acesso aos módulos contratados, limitando o acesso a funções de administração até a regularização.<br><br>
+          3. O suporte será prestado dentro do horário comercial e os SLAs obedecem a política de suporte estabelecida.
+        </p>
+      `)}
+      ${signatureBlock()}
+    `);
+    printPdf(html, `contrato-${company.id}.pdf`);
+  };
+
   const changed = 
     maxUsers !== (company.maxUsers ?? 1) || 
     maxEmployees !== (company.maxEmployees ?? 1) || 
@@ -584,42 +620,9 @@ function CompanyManageModal({ company, onClose, onSave, loading, error }: { comp
                 </div>
                 
                 <div className="mt-4 pt-4 border-t border-slate-100 flex justify-end">
+                <div className="mt-4 pt-4 border-t border-slate-100 flex justify-end">
                   <button 
-                    onClick={() => {
-                      const selectedPlan = plansData.data?.find(p => p.id === plan);
-                      if (!selectedPlan) return alert('Selecione um plano da plataforma primeiro.');
-                      
-                      const { buildPdfShell, infoGrid, section, signatureBlock, printPdf } = require('@/app/lib/pdf-utils');
-                      const pdfCompanyData = { 
-                        name: company.name, 
-                        document: company.document || 'N/A', 
-                        address: company.address || 'Não informado', 
-                        city: '', state: '' 
-                      };
-                      
-                      const html = buildPdfShell({ title: 'Contrato de Prestação de Serviços', subtitle: 'Innovation.ia Plataforma' }, pdfCompanyData, `
-                        ${section('1. O Objeto', `
-                          <p class="text-[11px] text-slate-700 text-justify mb-2">
-                            O presente contrato tem como objeto a licença de uso do software como serviço (SaaS) denominado "Innovation.ia", referente ao plano <strong>${selectedPlan.name}</strong>.
-                          </p>
-                        `)}
-                        ${section('2. Condições Comerciais', infoGrid([
-                          { label: 'Plano', value: selectedPlan.name },
-                          { label: 'Valor', value: selectedPlan.isFree ? 'Gratuito' : \`R$ \${parseFloat(String(selectedPlan.price)).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} / \${selectedPlan.cycle}\` },
-                          { label: 'Max. Usuários', value: String(maxUsers) },
-                          { label: 'Max. Funcionários', value: String(maxEmployees) },
-                        ]))}
-                        ${section('3. Termos Gerais', `
-                          <p class="text-[11px] text-slate-700 text-justify mb-2">
-                            1. A CONTRATADA compromete-se a manter a plataforma acessível e funcional, ressalvadas as manutenções programadas.<br><br>
-                            2. Em caso de inadimplência (status: Inadimplente), o sistema suspenderá automaticamente o acesso aos módulos contratados, limitando o acesso a funções de administração até a regularização.<br><br>
-                            3. O suporte será prestado dentro do horário comercial e os SLAs obedecem a política de suporte estabelecida.
-                          </p>
-                        `)}
-                        ${signatureBlock()}
-                      `);
-                      printPdf(html, \`contrato-\${company.id}.pdf\`);
-                    }}
+                    onClick={handleGeneratePdf}
                     className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px]"
                   >
                     Gerar Contrato (PDF)
