@@ -35,4 +35,4 @@ COPY --from=builder /app/apps/web ./apps/web
 
 EXPOSE 3000
 
-CMD ["sh", "-c", "cd apps/web && npx next start -p ${PORT:-3000}"]
+CMD ["sh", "-c", "cd apps/web && npx next start -H 0.0.0.0 -p ${PORT:-3000}"]
