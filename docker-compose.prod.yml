@@ -115,10 +115,10 @@ services:
       - api
     environment:
       NODE_OPTIONS: "--max-old-space-size=2048"
-      PORT: ${WEB_PORT:-3000}
+      PORT: 3000
       HOSTNAME: "0.0.0.0"
     ports:
-      - "${WEB_HOST_PORT:-3000}:${WEB_PORT:-3000}"
+      - "${WEB_HOST_PORT:-3000}:3000"
 
   nginx-lb:
     image: nginx:alpine
