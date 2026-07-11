@@ -476,13 +476,13 @@ function F({ label, value, onChange, type = 'text', required }: { label: string;
 // ─── COMPANY MANAGE MODAL ───────────────────────────────────────────────────
 
 function CompanyManageModal({ company, onClose, onSave, loading, error }: { company: PlatformCompany; onClose: () => void; onSave: (data: any) => void; loading: boolean; error: string | null }) {
-  const [activeTab, setActiveTab] = useState<'plan' | 'permissions' | 'finance' | 'crm'>('plan');
+  const [activeTab, setActiveTab] = useState<string>('plan');
 
   const plansData = useQuery({ queryKey: ['platform', 'plans'], queryFn: () => api.platform.listPlans() });
   const [maxUsers, setMaxUsers] = useState(company.maxUsers);
   const [maxEmployees, setMaxEmployees] = useState(company.maxEmployees ?? 1);
-  const [plan, setPlan] = useState<any>(company.platformPlanId || company.plan || 'FREE');
-  const [billingStatus, setBillingStatus] = useState<any>(company.billingStatus ?? 'TRIAL');
+  const [plan, setPlan] = useState(company.platformPlanId || company.plan || 'FREE');
+  const [billingStatus, setBillingStatus] = useState(company.billingStatus ?? 'TRIAL');
   const [trialEndsAt, setTrialEndsAt] = useState(safeIsoDate(company.trialEndsAt));
   const [activeModules, setActiveModules] = useState<string[]>(company.activeModules || ['employees', 'time-track', 'vacations', 'management', 'whatsapp']);
   const [asaasCustomerId, setAsaasCustomerId] = useState(company.asaasCustomerId || '');
