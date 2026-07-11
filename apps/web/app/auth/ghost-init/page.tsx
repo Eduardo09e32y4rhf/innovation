@@ -3,7 +3,7 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { LoadingState } from '@/app/components/data-states';
-import { persistAuthSession, getAuthScopeSnapshot } from '@/app/lib/auth-session';
+import { persistAuthSession, readAuthSession } from '@/app/lib/auth-session';
 
 function GhostInitPageContent() {
   const router = useRouter();
@@ -21,7 +21,7 @@ function GhostInitPageContent() {
 
     async function initGhostMode() {
       try {
-        const adminToken = getAuthScopeSnapshot().token || window.localStorage.getItem('auth.token');
+        const adminToken = readAuthSession().token;
         if (!adminToken) throw new Error('Não autenticado como administrador.');
 
         const getApiUrl = () => process.env.NEXT_PUBLIC_API_URL || '/api';
