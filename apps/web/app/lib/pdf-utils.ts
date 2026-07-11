@@ -167,6 +167,32 @@ export function signatureBlock(lines: string[]) {
 }
 
 export function printPdf(html: string, title: string) {
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+  if (isMobile) {
+    try {
+      const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const newWindow = window.open(url, '_blank');
+      
+      if (!newWindow) {
+        window.alert('Pop-up bloqueado. Por favor, permita pop-ups para visualizar o PDF.');
+        return;
+      }
+      
+      newWindow.onload = () => {
+        newWindow.print();
+        // Give time for the print dialog before revoking
+        setTimeout(() => URL.revokeObjectURL(url), 10000);
+      };
+      return;
+    } catch (err) {
+      console.error('Error generating PDF on mobile:', err);
+      // Fallback for extremely strict mobile browsers
+    }
+  }
+
+  // Desktop flow
   const iframe = document.createElement('iframe');
   iframe.style.position = 'fixed';
   iframe.style.right = '0';

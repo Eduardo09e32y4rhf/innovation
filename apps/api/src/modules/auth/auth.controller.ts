@@ -56,12 +56,18 @@ export class AuthController {
 
 function getRequestMeta(request: any) {
   const forwardedFor = request.headers['x-forwarded-for'];
-  const ipAddress = Array.isArray(forwardedFor)
-    ? forwardedFor[0]
-    : forwardedFor?.split(',')[0]?.trim() || request.ip;
+  const cfIp = request.headers['cf-connecting-ip'];
+  const realIp = request.headers['x-real-ip'];
+
+  let ipAddress = cfIp || realIp;
+  if (!ipAddress) {
+    ipAddress = Array.isArray(forwardedFor)
+      ? forwardedFor[0]
+      : forwardedFor?.split(',')[0]?.trim() || request.ip;
+  }
 
   return {
-    ipAddress,
-    userAgent: request.headers['user-agent'],
+    ipAddress: ipAddress || 'unknown',
+    userAgent: request.headers['user-agent'] || 'unknown',
   };
 }
