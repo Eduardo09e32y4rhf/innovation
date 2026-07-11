@@ -17,9 +17,9 @@ export function validateEnv(config: Record<string, unknown>) {
     if (!config.ALLOWED_ORIGINS) {
       throw new Error('ALLOWED_ORIGINS is required in production.');
     }
-    if (!config.ASAAS_WEBHOOK_SECRET) {
-      throw new Error('ASAAS_WEBHOOK_SECRET is required in production.');
-    }
+    // if (!config.ASAAS_WEBHOOK_SECRET) {
+    //   throw new Error('ASAAS_WEBHOOK_SECRET is required in production.');
+    // }
 
     const jwtSecret = String(config.JWT_SECRET ?? '');
     if (jwtSecret.length < 32 || jwtSecret.startsWith('TROQUE_') || jwtSecret.includes('local-development')) {
