@@ -12,7 +12,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 COPY package.json package-lock.json ./
 COPY apps/web/package.json ./apps/web/package.json
 
-RUN npm ci --no-audit --prefer-offline --force
+RUN npm install --no-audit --legacy-peer-deps
 
 COPY . .
 
