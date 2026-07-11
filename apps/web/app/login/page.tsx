@@ -139,9 +139,10 @@ export default function LoginPage() {
             {/* Email Field */}
             <div className="group relative">
               <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-500 transition-colors group-focus-within:text-teal-400">
-                <Mail size={18} />
+                <Mail size={18} aria-hidden="true" />
               </div>
               <input
+                aria-label="E-mail"
                 type="email"
                 required
                 value={email}
@@ -155,9 +156,10 @@ export default function LoginPage() {
             {!forgotPassword && (
               <div className="group relative">
                 <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-500 transition-colors group-focus-within:text-teal-400">
-                  <Lock size={18} />
+                  <Lock size={18} aria-hidden="true" />
                 </div>
                 <input
+                  aria-label="Senha"
                   type={showPassword ? 'text' : 'password'}
                   required
                   value={password}
@@ -168,9 +170,10 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 flex items-center pr-4 text-slate-500 hover:text-white transition-colors focus:outline-none"
+                  aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                  className="absolute inset-y-0 right-0 flex items-center px-4 text-slate-500 hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 rounded-r-xl"
                 >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  {showPassword ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
                 </button>
               </div>
             )}
@@ -203,7 +206,7 @@ export default function LoginPage() {
                   setLocalError('');
                   setForgotSuccess('');
                 }}
-                className="text-center text-xs font-semibold text-slate-400 hover:text-white transition-colors"
+                className="text-center text-xs font-semibold text-slate-400 hover:text-white transition-colors rounded px-2 py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
               >
                 {forgotPassword ? 'Voltar para o Login' : 'Esqueceu sua senha?'}
               </button>
