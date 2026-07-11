@@ -65,6 +65,12 @@ export default function PlatformPage() {
       return;
     }
 
+    const popup = window.open('', '_blank');
+    if (!popup) {
+      toast.error('Por favor, permita pop-ups no seu navegador para acessar a empresa.');
+      return;
+    }
+
     setLoadingCompanyId(c.id);
     try {
       const res = await fetch(`/api/platform/ghost-mode/${c.id}`, {
@@ -88,9 +94,10 @@ export default function PlatformPage() {
 
       console.log(`[Ghost Mode] Accessing company: ${c.name} (${c.id})`);
 
-      window.open(`/auth/ghost?token=${data.token}`, '_blank');
+      popup.location.href = `/auth/ghost?token=${data.token}`;
       toast.success(`Acessando "${c.name}"...`);
     } catch (error) {
+      popup.close();
       const message = error instanceof Error ? error.message : 'Erro ao acessar empresa. Tente novamente.';
       console.error('Ghost Mode error:', error);
       toast.error(message);
