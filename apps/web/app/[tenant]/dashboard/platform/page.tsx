@@ -60,51 +60,7 @@ export default function PlatformPage() {
     return currentRole === 'COMERCIAL' && c.commercialOwnerId === user?.id;
   }
 
-  const handleGhostMode = async (c: PlatformCompany) => {
-    if (!window.confirm(`Acessar "${c.name}"? Será aberto em nova aba.`)) {
-      return;
-    }
-
-    const popup = window.open('', '_blank');
-    if (!popup) {
-      toast.error('Por favor, permita pop-ups no seu navegador para acessar a empresa.');
-      return;
-    }
-
-    setLoadingCompanyId(c.id);
-    try {
-      const res = await fetch(`/api/platform/ghost-mode/${c.id}`, {
-        method: 'POST',
-        headers: { 
-          Authorization: `Bearer ${getAuthScopeSnapshot().token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        const errorMsg = errorData?.message || errorData?.error || `Erro ${res.status}`;
-        throw new Error(res.status === 403 ? 'Empresa não está disponível para acesso' : errorMsg);
-      }
-
-      const data = await res.json();
-      if (!data?.token) {
-        throw new Error('Falha ao gerar token de acesso. Verifique se há administrador na empresa.');
-      }
-
-      console.log(`[Ghost Mode] Accessing company: ${c.name} (${c.id})`);
-
-      popup.location.href = `/auth/ghost?token=${data.token}`;
-      toast.success(`Acessando "${c.name}"...`);
-    } catch (error) {
-      popup.close();
-      const message = error instanceof Error ? error.message : 'Erro ao acessar empresa. Tente novamente.';
-      console.error('Ghost Mode error:', error);
-      toast.error(message);
-    } finally {
-      setLoadingCompanyId(null);
-    }
-  };
+  // Acesso Ghost isolado via nova aba (rota nativa para não dar popup blocker)
 
   async function handleToggle(c: PlatformCompany) {
     if (!isSuperAdmin) return;
@@ -227,19 +183,10 @@ export default function PlatformPage() {
                           )}
                           {isSuperAdmin && (
                             <>
-                              <button onClick={() => handleGhostMode(c)} disabled={loadingCompanyId === c.id} className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px] text-[#0030B9] hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700 font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-opacity">
-                                {loadingCompanyId === c.id ? (
-                                  <>
-                                    <Loader2 size={12} className="animate-spin" />
-                                    <span>Abrindo...</span>
-                                  </>
-                                ) : (
-                                  <>
-                                    <Key size={12} />
-                                    <span>Acessar</span>
-                                  </>
-                                )}
-                              </button>
+                              <Link href={`/auth/ghost-init?companyId=${c.id}`} target="_blank" className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px] text-[#0030B9] hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700 font-semibold transition-opacity">
+                                <Key size={12} />
+                                <span>Acessar</span>
+                              </Link>
                               <button onClick={() => handleToggle(c)} disabled={toggleActive.loading} className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px]">
                                 <Power size={12} />{status === 'ACTIVE' ? 'Suspender' : 'Ativar'}
                               </button>

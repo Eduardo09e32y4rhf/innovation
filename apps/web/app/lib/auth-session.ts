@@ -90,9 +90,9 @@ function safeParse<T>(v: string | null): T | null {
   try { return JSON.parse(v!) as T; } catch { return null; }
 }
 
-function _writeToStorage(session: StoredAuthSession): void {
+function _writeToStorage(session: StoredAuthSession, isolateTab: boolean = false): void {
   try {
-    const ls = window.localStorage;
+    const storage = isolateTab ? window.sessionStorage : window.localStorage;
     const entries: Array<[string, string | null]> = [
       [SESSION_KEYS.token, session.token],
       [SESSION_KEYS.user, session.user],
@@ -101,9 +101,9 @@ function _writeToStorage(session: StoredAuthSession): void {
     ];
     entries.forEach(([key, value]) => {
       if (value === null || value === undefined) {
-        ls.removeItem(key);
+        storage.removeItem(key);
       } else {
-        ls.setItem(key, value);
+        storage.setItem(key, value);
       }
     });
   } catch (e) {
@@ -118,7 +118,7 @@ function _purgeLocalStorage(): void {
 // ─── API pública ──────────────────────────────────────────────────────────────
 
 /**
- * Lê a sessão do localStorage.
+ * Lê a sessão priorizando sessionStorage (abas isoladas como Ghost Mode), depois localStorage.
  */
 export function readAuthSession(): StoredAuthSession {
   if (typeof window === 'undefined') {
@@ -128,12 +128,13 @@ export function readAuthSession(): StoredAuthSession {
   let current: StoredAuthSession = { token: null, user: null, company: null, passwordChangeRequired: null };
 
   try {
+    const ss = window.sessionStorage;
     const ls = window.localStorage;
     current = {
-      token: ls.getItem(SESSION_KEYS.token) ?? ls.getItem('token') ?? ls.getItem('auth.token'),
-      user: ls.getItem(SESSION_KEYS.user) ?? ls.getItem('user') ?? ls.getItem('auth.user'),
-      company: ls.getItem(SESSION_KEYS.company) ?? ls.getItem('company') ?? ls.getItem('auth.company'),
-      passwordChangeRequired: ls.getItem(SESSION_KEYS.passwordChangeRequired) ?? ls.getItem('passwordChangeRequired') ?? ls.getItem('auth.passwordChangeRequired'),
+      token: ss.getItem(SESSION_KEYS.token) ?? ss.getItem('token') ?? ss.getItem('auth.token') ?? ls.getItem(SESSION_KEYS.token) ?? ls.getItem('token') ?? ls.getItem('auth.token'),
+      user: ss.getItem(SESSION_KEYS.user) ?? ss.getItem('user') ?? ss.getItem('auth.user') ?? ls.getItem(SESSION_KEYS.user) ?? ls.getItem('user') ?? ls.getItem('auth.user'),
+      company: ss.getItem(SESSION_KEYS.company) ?? ss.getItem('company') ?? ss.getItem('auth.company') ?? ls.getItem(SESSION_KEYS.company) ?? ls.getItem('company') ?? ls.getItem('auth.company'),
+      passwordChangeRequired: ss.getItem(SESSION_KEYS.passwordChangeRequired) ?? ss.getItem('passwordChangeRequired') ?? ss.getItem('auth.passwordChangeRequired') ?? ls.getItem(SESSION_KEYS.passwordChangeRequired) ?? ls.getItem('passwordChangeRequired') ?? ls.getItem('auth.passwordChangeRequired'),
     };
   } catch (e) {
     // Ignora SecurityError caso cookies/storage bloqueados
@@ -169,6 +170,7 @@ export function persistAuthSession(
   user: User,
   company: Company,
   passwordChangeRequired: boolean,
+  isolateTab: boolean = false
 ): void {
   if (typeof window === 'undefined') return;
   _writeToStorage({
@@ -176,7 +178,7 @@ export function persistAuthSession(
     user: JSON.stringify(user),
     company: JSON.stringify(company),
     passwordChangeRequired: String(passwordChangeRequired),
-  });
+  }, isolateTab);
 }
 
 /** Remove todos os dados de sessão do localStorage. */
