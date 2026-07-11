@@ -30,6 +30,7 @@ export function FaceIDOverlay({ onCapture, onCancel, title = 'Verificação Faci
     async function loadModelsAndCamera() {
       try {
         setInstruction('Carregando modelos de IA...');
+        // @ts-ignore
         await faceapi.tf.ready();
         
         await Promise.all([
