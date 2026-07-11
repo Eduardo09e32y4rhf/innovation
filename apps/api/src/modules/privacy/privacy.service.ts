@@ -74,7 +74,7 @@ export class PrivacyService {
       longitude: body?.longitude,
       address: body?.address,
       photoBase64: body?.photoBase64,
-      date: new Date().toLocaleString('pt-BR').replace(/\u202F/g, ' '),
+      date: new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }).replace(/\u202F/g, ' '),
     };
 
     const job = await this.pdfQueue.add({
@@ -153,7 +153,7 @@ export class PrivacyService {
         longitude: consent.longitude,
         address: consent.address,
         photoBase64: consent.photoBase64,
-        date: consent.acceptedAt ? consent.acceptedAt.toLocaleString('pt-BR').replace(/\u202F/g, ' ') : new Date().toLocaleString('pt-BR').replace(/\u202F/g, ' '),
+        date: consent.acceptedAt ? consent.acceptedAt.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }).replace(/\u202F/g, ' ') : new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }).replace(/\u202F/g, ' '),
       });
       
       if (newPdfBase64) {

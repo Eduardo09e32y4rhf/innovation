@@ -153,7 +153,8 @@ export function PrivacyConsentGate({ children }: { children: React.ReactNode }) 
         (err) => {
           setError('É necessário permitir a localização para assinar eletronicamente.');
           setSaving(false);
-        }
+        },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
       );
     } else {
       setError('Seu navegador não suporta geolocalização.');
