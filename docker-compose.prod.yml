@@ -92,6 +92,8 @@ services:
       WHATSAPPMEDIA_PATH: /data/whatsapp-media
       COMPREFACE_URL: ${COMPREFACE_URL}
       COMPREFACE_API_KEY: ${COMPREFACE_API_KEY}
+      ASAAS_API_KEY: ${ASAAS_API_KEY}
+      ASAAS_WEBHOOK_SECRET: ${ASAAS_WEBHOOK_SECRET}
     # ports:
     #   - "127.0.0.1:${API_HOST_PORT:-3333}:${API_PORT:-3333}"
     volumes:
