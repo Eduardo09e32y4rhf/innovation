@@ -3,10 +3,6 @@
 import { ReactNode, useEffect, useState } from 'react';
 import { api } from '@/app/lib/api';
 import { useAuth } from '@/app/contexts/AuthContext';
-import { Card, CardHeader, CardTitle, CardContent } from '@/app/components/ui/card';
-import { Button } from '@/app/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/app/components/ui/dialog';
-import { Input } from '@/app/components/ui/input';
 import { toast } from 'sonner';
 
 export function ProposalGate({ children }: { children: ReactNode }) {
@@ -21,7 +17,8 @@ export function ProposalGate({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (user?.role === 'ADMIN' || user?.role === 'DEV' || user?.role === 'GESTOR') {
+    const p = user?.profile?.toLowerCase();
+    if (p === 'admin' || p === 'dev' || p === 'gestor') {
       checkProposals();
     }
   }, [user]);
@@ -70,23 +67,23 @@ export function ProposalGate({ children }: { children: ReactNode }) {
           <p className="text-yellow-800 text-sm font-medium">
             Você tem uma proposta comercial pendente de assinatura.
           </p>
-          <Button size="sm" variant="outline" className="border-yellow-400 text-yellow-800 hover:bg-yellow-200" onClick={() => setModalOpen(true)}>
+          <button className="text-sm px-3 py-1 border rounded-md border-yellow-400 text-yellow-800 hover:bg-yellow-200" onClick={() => setModalOpen(true)}>
             Revisar e Assinar
-          </Button>
+          </button>
         </div>
       )}
 
       {children}
 
-      {pendingProposal && (
-        <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>Proposta Comercial: {pendingProposal.title}</DialogTitle>
-              <DialogDescription>
+      {pendingProposal && modalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-background rounded-lg shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6">
+            <div className="mb-4">
+              <h2 className="text-xl font-semibold">Proposta Comercial: {pendingProposal.title}</h2>
+              <p className="text-sm text-muted-foreground">
                 Revise os detalhes do plano e assine para ativar sua conta.
-              </DialogDescription>
-            </DialogHeader>
+              </p>
+            </div>
 
             <div className="space-y-4">
               <div className="bg-muted p-4 rounded-md text-sm space-y-2">
@@ -106,11 +103,11 @@ export function ProposalGate({ children }: { children: ReactNode }) {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="text-sm font-medium">Assinado por (Nome)</label>
-                    <Input value={signedByName} onChange={e => setSignedByName(e.target.value)} />
+                    <input className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={signedByName} onChange={e => setSignedByName(e.target.value)} />
                   </div>
                   <div>
                     <label className="text-sm font-medium">E-mail</label>
-                    <Input value={signedByEmail} onChange={e => setSignedByEmail(e.target.value)} />
+                    <input className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={signedByEmail} onChange={e => setSignedByEmail(e.target.value)} />
                   </div>
                 </div>
 
@@ -127,13 +124,16 @@ export function ProposalGate({ children }: { children: ReactNode }) {
                   </label>
                 </div>
                 
-                <Button className="w-full" onClick={handleSign} disabled={loading || !acceptedTerms}>
-                  {loading ? 'Processando...' : 'Assinar Eletronicamente e Ir para Pagamento'}
-                </Button>
+                <div className="flex justify-end space-x-2 mt-4">
+                  <button className="px-4 py-2 border rounded-md text-sm" onClick={() => setModalOpen(false)}>Cancelar</button>
+                  <button className="px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm disabled:opacity-50" onClick={handleSign} disabled={loading || !acceptedTerms}>
+                    {loading ? 'Processando...' : 'Assinar e Ir para Pagamento'}
+                  </button>
+                </div>
               </div>
             </div>
-          </DialogContent>
-        </Dialog>
+          </div>
+        </div>
       )}
     </>
   );

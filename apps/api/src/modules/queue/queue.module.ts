@@ -8,7 +8,7 @@ import { PrivacyModule } from '../privacy/privacy.module';
 @Module({
   imports: [
     BullModule.forRoot({
-      connection: {
+      redis: {
         host: process.env.REDIS_HOST || 'localhost',
         port: parseInt(process.env.REDIS_PORT || '6379'),
       },

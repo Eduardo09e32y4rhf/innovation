@@ -40,7 +40,7 @@ export class PrivacyService {
       longitude: body?.longitude,
       address: body?.address,
       photoBase64: body?.photoBase64,
-      pdfBase64: null,
+      pdfBase64: undefined,
       ...requestMeta,
     });
 

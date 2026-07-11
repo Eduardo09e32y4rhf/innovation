@@ -2,12 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { api } from '@/app/lib/api';
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/app/components/ui/card';
-import { Button } from '@/app/components/ui/button';
 import { useRouter, useParams } from 'next/navigation';
 import { ArrowLeft, Send, FileText, CheckCircle, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
-import { Badge } from '@/app/components/ui/badge';
 
 export default function ProposalDetailsPage() {
   const router = useRouter();
@@ -48,29 +45,29 @@ export default function ProposalDetailsPage() {
 
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-4">
-          <Button variant="ghost" size="icon" onClick={() => router.push(`/${tenant}/dashboard/platform/proposals`)}>
+          <button className="p-2 hover:bg-muted rounded-md" onClick={() => router.push(`/${tenant}/dashboard/platform/proposals`)}>
             <ArrowLeft className="w-5 h-5" />
-          </Button>
+          </button>
           <h1 className="text-2xl font-bold">Proposta {proposal.proposalNumber}</h1>
-          <Badge variant={proposal.status === 'SENT' ? 'secondary' : 'default'}>{proposal.status}</Badge>
+          <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${proposal.status === 'SENT' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}`}>{proposal.status}</span>
         </div>
         
         {proposal.status === 'DRAFT' && (
-          <Button onClick={handleSend} disabled={loading}>
+          <button className="flex items-center px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm disabled:opacity-50" onClick={handleSend} disabled={loading}>
             <Send className="w-4 h-4 mr-2" />
             {loading ? 'Enviando...' : 'Enviar para Cliente'}
-          </Button>
+          </button>
         )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Detalhes da Oferta</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4 text-sm">
+        <div className="bg-card text-card-foreground rounded-xl border shadow-sm">
+          <div className="p-6 pb-4">
+            <h3 className="text-lg font-semibold">Detalhes da Oferta</h3>
+          </div>
+          <div className="p-6 pt-0 space-y-4 text-sm">
             <div className="flex justify-between border-b pb-2">
               <span className="text-muted-foreground">Cliente:</span>
               <span className="font-medium">{proposal.company?.name}</span>
@@ -87,14 +84,14 @@ export default function ProposalDetailsPage() {
               <span className="text-muted-foreground">Limites:</span>
               <span className="font-medium">{proposal.usersLimit} usuários / {proposal.employeesLimit} func.</span>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Status da Assinatura</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+        <div className="bg-card text-card-foreground rounded-xl border shadow-sm">
+          <div className="p-6 pb-4">
+            <h3 className="text-lg font-semibold">Status da Assinatura</h3>
+          </div>
+          <div className="p-6 pt-0 space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <FileText className={`w-5 h-5 ${proposal.termsAccepted ? 'text-green-500' : 'text-muted-foreground'}`} />
@@ -111,16 +108,14 @@ export default function ProposalDetailsPage() {
 
             {proposal.asaasPaymentLink && (
               <div className="pt-4 mt-4 border-t">
-                <Button variant="outline" className="w-full" asChild>
-                  <a href={proposal.asaasPaymentLink} target="_blank" rel="noopener noreferrer">
-                    <ExternalLink className="w-4 h-4 mr-2" />
-                    Abrir Link de Pagamento (Asaas)
-                  </a>
-                </Button>
+                <a href={proposal.asaasPaymentLink} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center w-full px-4 py-2 border rounded-md text-sm hover:bg-muted">
+                  <ExternalLink className="w-4 h-4 mr-2" />
+                  Abrir Link de Pagamento (Asaas)
+                </a>
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     </div>
   );

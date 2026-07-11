@@ -2,11 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { api } from '@/app/lib/api';
-import { Card, CardHeader, CardTitle, CardContent } from '@/app/components/ui/card';
-import { Button } from '@/app/components/ui/button';
 import { useRouter, useParams } from 'next/navigation';
 import { Eye, Plus } from 'lucide-react';
-import { Badge } from '@/app/components/ui/badge';
 
 export default function ProposalsPage() {
   const [proposals, setProposals] = useState<any[]>([]);
@@ -31,14 +28,14 @@ export default function ProposalsPage() {
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">Propostas Comerciais</h1>
-        <Button onClick={() => router.push(`/${tenant}/dashboard/platform/proposals/new`)}>
+        <button className="flex items-center px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm" onClick={() => router.push(`/${tenant}/dashboard/platform/proposals/new`)}>
           <Plus className="w-4 h-4 mr-2" />
           Nova Proposta
-        </Button>
+        </button>
       </div>
 
-      <Card>
-        <CardContent className="p-0">
+      <div className="bg-card text-card-foreground rounded-xl border shadow-sm">
+        <div className="p-0">
           <table className="w-full">
             <thead className="bg-muted">
               <tr>
@@ -58,18 +55,18 @@ export default function ProposalsPage() {
                   <td className="p-4">{p.planType}</td>
                   <td className="p-4">R$ {p.monthlyPrice?.toFixed(2)}</td>
                   <td className="p-4">
-                    <Badge variant={
-                      p.status === 'ACTIVE' || p.status === 'PAID' ? 'success' :
-                      p.status === 'SENT' ? 'secondary' :
-                      p.status === 'PAYMENT_PENDING' ? 'warning' : 'default'
-                    }>
+                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                      p.status === 'ACTIVE' || p.status === 'PAID' ? 'bg-green-100 text-green-800' :
+                      p.status === 'SENT' ? 'bg-blue-100 text-blue-800' :
+                      p.status === 'PAYMENT_PENDING' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800'
+                    }`}>
                       {p.status}
-                    </Badge>
+                    </span>
                   </td>
                   <td className="p-4 text-right">
-                    <Button variant="ghost" size="icon" onClick={() => router.push(`/${tenant}/dashboard/platform/proposals/${p.id}`)}>
+                    <button className="p-2 hover:bg-muted rounded-md" onClick={() => router.push(`/${tenant}/dashboard/platform/proposals/${p.id}`)}>
                       <Eye className="w-4 h-4" />
-                    </Button>
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -82,8 +79,8 @@ export default function ProposalsPage() {
               )}
             </tbody>
           </table>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }
