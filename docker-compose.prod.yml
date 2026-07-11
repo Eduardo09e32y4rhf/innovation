@@ -125,6 +125,7 @@ services:
       - "443:443"
     volumes:
       - ./infra/nginx-lb.conf:/etc/nginx/nginx.conf:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
     depends_on:
       - api
 
