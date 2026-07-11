@@ -27,15 +27,34 @@ export class PlatformService {
     return this.repository.getOnlineUsers();
   }
 
-  async ghostMode(companyId: string, devUserId: string, devEmail: string, devRole: string) {
+  async ghostMode(companyId: string, actor?: JwtUser, req?: any) {
     const company = await this.repository.getCompany(companyId);
     if (!company) throw new NotFoundException('Empresa não encontrada');
+    if (company.status !== 'ACTIVE') {
+      throw new ForbiddenException(`Não pode acessar empresa ${company.status === 'SUSPENDED' ? 'suspensa' : 'cancelada'}`);
+    }
+
+    const admin = await this.repository.getFirstAdmin(companyId);
+    if (!admin) throw new NotFoundException('Nenhum administrador encontrado nesta empresa');
+    
+    if (actor) {
+      await this.repository.createAuditLog({
+        companyId,
+        action: 'GHOST_MODE_ACCESSED',
+        actor: actor.email,
+        metadata: {
+          targetCompany: company.name,
+          ip: req?.ip || 'unknown',
+          userAgent: req?.headers?.['user-agent'] || 'unknown',
+        },
+      });
+    }
     
     const payload = {
-      sub: devUserId,
-      email: devEmail,
-      role: 'DEV',
-      companyId: companyId,
+      sub: admin.id,
+      email: admin.email,
+      role: admin.role,
+      companyId: admin.companyId,
       ghostMode: true,
     };
     return { token: this.jwtService.sign(payload) };

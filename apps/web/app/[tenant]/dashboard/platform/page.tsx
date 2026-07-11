@@ -2,8 +2,9 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Building2, Edit3, Plus, Power, Settings, Trash2, Users, X, Database, Shield, CreditCard, MessageSquare, Key } from 'lucide-react';
+import { Building2, Edit3, Plus, Power, Settings, Trash2, Users, X, Database, Shield, CreditCard, MessageSquare, Key, Loader2, LogIn } from 'lucide-react';
 import { EmptyState, ErrorState, LoadingState } from '@/app/components/data-states';
+import { toast } from 'sonner';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { getAuthScopeSnapshot } from '@/app/lib/auth-session';
 import { useMutation, useQuery } from '@/app/hooks/use-data';
@@ -31,6 +32,7 @@ export default function PlatformPage() {
   const [open, setOpen] = useState(false);
   const [usersCompany, setUsersCompany] = useState<PlatformCompany | null>(null);
   const [licenseCompany, setLicenseCompany] = useState<PlatformCompany | null>(null);
+  const [loadingCompanyId, setLoadingCompanyId] = useState<string | null>(null);
 
   const toggleActive = useMutation(
     ({ id, status, suspensionReason }: { id: string; status: 'ACTIVE' | 'SUSPENDED' | 'CANCELLED'; suspensionReason?: string | null }) =>
@@ -59,22 +61,41 @@ export default function PlatformPage() {
   }
 
   const handleGhostMode = async (c: PlatformCompany) => {
-    const newWindow = window.open('about:blank', '_blank');
-    if (!newWindow) {
-      window.alert('Por favor, permita pop-ups para abrir a nova empresa.');
+    if (!window.confirm(`Acessar "${c.name}"? Será aberto em nova aba.`)) {
       return;
     }
+
+    setLoadingCompanyId(c.id);
     try {
-      const { token } = await api.platform.ghostMode(c.id);
-      if (token) {
-        newWindow.location.href = `/auth/ghost?token=${token}`;
-      } else {
-        newWindow.close();
-        window.alert('Não foi possível gerar o token de acesso (Ghost Mode).');
+      const res = await fetch(`/api/platform/ghost-mode/${c.id}`, {
+        method: 'POST',
+        headers: { 
+          Authorization: `Bearer ${getAuthScopeSnapshot().token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        const errorMsg = errorData?.message || errorData?.error || `Erro ${res.status}`;
+        throw new Error(res.status === 403 ? 'Empresa não está disponível para acesso' : errorMsg);
       }
-    } catch (err: any) {
-      newWindow.close();
-      window.alert(err.message || 'Erro ao tentar acessar a empresa.');
+
+      const data = await res.json();
+      if (!data?.token) {
+        throw new Error('Falha ao gerar token de acesso. Verifique se há administrador na empresa.');
+      }
+
+      console.log(`[Ghost Mode] Accessing company: ${c.name} (${c.id})`);
+
+      window.open(`/auth/ghost?token=${data.token}`, '_blank');
+      toast.success(`Acessando "${c.name}"...`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Erro ao acessar empresa. Tente novamente.';
+      console.error('Ghost Mode error:', error);
+      toast.error(message);
+    } finally {
+      setLoadingCompanyId(null);
     }
   };
 
@@ -199,8 +220,18 @@ export default function PlatformPage() {
                           )}
                           {isSuperAdmin && (
                             <>
-                              <button onClick={() => handleGhostMode(c)} className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px] text-[#0030B9] hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700 font-semibold">
-                                <Key size={12} />Acessar
+                              <button onClick={() => handleGhostMode(c)} disabled={loadingCompanyId === c.id} className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px] text-[#0030B9] hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700 font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-opacity">
+                                {loadingCompanyId === c.id ? (
+                                  <>
+                                    <Loader2 size={12} className="animate-spin" />
+                                    <span>Abrindo...</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Key size={12} />
+                                    <span>Acessar</span>
+                                  </>
+                                )}
                               </button>
                               <button onClick={() => handleToggle(c)} disabled={toggleActive.loading} className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px]">
                                 <Power size={12} />{status === 'ACTIVE' ? 'Suspender' : 'Ativar'}

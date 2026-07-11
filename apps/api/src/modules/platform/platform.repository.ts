@@ -159,4 +159,23 @@ export class PlatformRepository {
       where: { companyId, role: 'ADMIN', isActive: true },
     });
   }
+
+  createAuditLog(data: {
+    companyId: string;
+    action: string;
+    actor: string;
+    metadata?: any;
+  }) {
+    return this.prisma.auditLog.create({
+      data: {
+        companyId: data.companyId,
+        action: data.action,
+        entity: 'Platform',
+        metadata: {
+          actorEmail: data.actor,
+          ...data.metadata
+        }
+      }
+    });
+  }
 }

@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, ForbiddenException, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, ForbiddenException, Get, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -32,8 +32,12 @@ export class PlatformController {
   }
 
   @Post('ghost-mode/:companyId')
-  ghostMode(@Param('companyId') companyId: string, @CurrentUser() user: JwtUser) {
-    return this.service.ghostMode(companyId, user.sub, user.email, user.role);
+  ghostMode(
+    @Param('companyId') companyId: string,
+    @CurrentUser() actor: JwtUser,
+    @Req() req: any,
+  ) {
+    return this.service.ghostMode(companyId, actor, req);
   }
 
   @Get('company-users/:companyId')
