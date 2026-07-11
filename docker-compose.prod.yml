@@ -121,8 +121,7 @@ services:
     container_name: innovation-nginx-lb
     restart: unless-stopped
     ports:
-      - "80:80"
-      - "443:443"
+      - "${API_HOST_PORT:-3333}:80"
     volumes:
       - ./infra/nginx-lb.conf:/etc/nginx/nginx.conf:ro
     depends_on:
