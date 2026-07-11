@@ -18,8 +18,12 @@ export class UpdatePlatformCompanyDto {
   suspensionReason?: string | null;
 
   @IsOptional()
-  @IsIn(['FREE', 'BASE', 'PRO', 'ENTERPRISE'])
-  plan?: 'FREE' | 'BASE' | 'PRO' | 'ENTERPRISE';
+  @IsString()
+  plan?: string;
+
+  @IsOptional()
+  @IsString()
+  platformPlanId?: string | null;
 
   @IsOptional()
   @IsIn(['TRIAL', 'ACTIVE', 'PAST_DUE', 'CANCELED'])

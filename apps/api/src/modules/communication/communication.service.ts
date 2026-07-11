@@ -163,28 +163,16 @@ export class CommunicationService implements OnModuleInit {
 
   async listChats(companyId: string) {
     const isConnected = this.provider.isConnected(companyId);
-    const [sessionChats, legacyChats, storedConversations] = await Promise.all([
+    const [sessionChats, storedConversations] = await Promise.all([
       Promise.resolve().then(() => this.provider.getChats(companyId)).catch(() => []),
-      isConnected ? Promise.resolve([]) : Promise.resolve().then(() => this.omnius.getChats(companyId)).catch(() => []),
-      isConnected ? Promise.resolve([]) : this.repository.listConversations(companyId).catch(() => memoryConversations.get(companyId) ?? []),
+      // Always load DB conversations to show history even after restart
+      this.repository.listConversations(companyId).catch(() => memoryConversations.get(companyId) ?? []),
     ]);
 
     const safeSessionChats = Array.isArray(sessionChats) ? sessionChats : [];
-    const safeLegacyChats = Array.isArray(legacyChats) ? legacyChats : [];
     const safeStoredConversations = Array.isArray(storedConversations) ? storedConversations : [];
 
     const liveChats = safeSessionChats.map((chat: any) => ({
-      id: normalizeChatId(chat.id),
-      name: chatDisplayName(chat.name, chat.id),
-      isGroup: isGroupChat(chat.id),
-      unreadCount: chat.unreadCount ?? 0,
-      timestamp: chatTimestamp(chat.timestamp),
-      time: chatTime(chat.timestamp),
-      lastMessage: chat.lastMessage ?? '',
-      avatarUrl: chat.avatarUrl ?? null,
-    }));
-
-    const chats = safeLegacyChats.map((chat: any) => ({
       id: normalizeChatId(chat.id),
       name: chatDisplayName(chat.name, chat.id),
       isGroup: isGroupChat(chat.id),
@@ -210,7 +198,8 @@ export class CommunicationService implements OnModuleInit {
     });
 
     const merged = new Map<string, any>();
-    [...savedChats, ...chats, ...liveChats].forEach((chat) => {
+    // DB first (base), then live overwrites with fresher data
+    [...savedChats, ...liveChats].forEach((chat) => {
       if (isTechnicalChat(chat.id)) return;
       const current = merged.get(chat.id);
       if (!current) {
@@ -238,56 +227,11 @@ export class CommunicationService implements OnModuleInit {
   }
 
   async listChatMessages(companyId: string, chatId: string) {
+    // First try in-memory session (most recent if connected)
     const sessionMessages = await Promise.resolve().then(() => this.provider.getMessages(companyId, chatId)).catch(() => []);
     const safeSessionMessages = Array.isArray(sessionMessages) ? sessionMessages : [];
-    if (safeSessionMessages.length) {
-      return safeSessionMessages.map((message: any) => ({
-        id: message.key?.id ?? `${message.messageTimestamp ?? Date.now()}`,
-        sender: message.key?.fromMe ? 'bot' : 'user',
-        participantId: message.key?.participant,
-        participantName: message.pushName,
-        media: message.__media ?? null,
-        text:
-          message.message?.conversation ??
-          message.message?.extendedTextMessage?.text ??
-          message.message?.imageMessage?.caption ??
-          message.message?.videoMessage?.caption ??
-          message.message?.documentMessage?.caption ??
-          '',
-        time: new Date(Number(message.messageTimestamp ?? Math.floor(Date.now() / 1000)) * 1000).toLocaleTimeString([], {
-          hour: '2-digit',
-          minute: '2-digit',
-        }),
-        read: Boolean(message.key?.fromMe),
-      }));
-    }
 
-    const legacyMessages = this.provider.isConnected(companyId)
-      ? []
-      : await Promise.resolve().then(() => this.omnius.getMessages(companyId, chatId)).catch(() => []);
-    const safeLegacyMessages = Array.isArray(legacyMessages) ? legacyMessages : [];
-    if (safeLegacyMessages.length) {
-      return safeLegacyMessages.map((message: any) => ({
-        id: message.key?.id ?? `${message.timestamp ?? Date.now()}`,
-        sender: message.key?.fromMe ? 'bot' : 'user',
-        participantId: message.key?.participant,
-        participantName: message.pushName,
-        media: message.__media ?? null,
-        text:
-          message.message?.conversation ??
-          message.message?.extendedTextMessage?.text ??
-          message.message?.imageMessage?.caption ??
-          message.message?.videoMessage?.caption ??
-          message.message?.documentMessage?.caption ??
-          '',
-        time: new Date((message.timestamp ?? Date.now()) * (message.timestamp < 1e12 ? 1000 : 1)).toLocaleTimeString([], {
-          hour: '2-digit',
-          minute: '2-digit',
-        }),
-        read: Boolean(message.key?.fromMe),
-      }));
-    }
-
+    // Always load DB messages (persisted across restarts)
     const storedMessages = await this.repository.listMessagesByWhatsappJid(companyId, chatId).catch(() =>
       (memoryMessages.get(companyId) ?? []).filter((message) => {
         const conversationId = message.conversationId ?? '';
@@ -295,11 +239,11 @@ export class CommunicationService implements OnModuleInit {
         return conversationId.includes(normalizedChat) || conversationId === chatId;
       }),
     );
-
     const safeStoredMessages = Array.isArray(storedMessages) ? storedMessages : [];
 
-    return safeStoredMessages.map((message: any) => ({
-      id: message.externalId ?? message.id ?? `${message.timestamp ?? Date.now()}`,
+    // Build a map from DB messages first (as base)
+    const dbMapped = safeStoredMessages.map((message: any) => ({
+      id: message.externalId ?? message.id ?? `${message.createdAt ?? Date.now()}`,
       sender: message.direction === 'OUTBOUND' || message.key?.fromMe ? 'bot' : 'user',
       participantId: message.participantId ?? message.key?.participant,
       participantName: message.participantName ?? message.pushName,
@@ -309,7 +253,40 @@ export class CommunicationService implements OnModuleInit {
         minute: '2-digit',
       }),
       read: message.status === 'SENT' || Boolean(message.key?.fromMe),
+      _ts: new Date(message.sentAt ?? message.createdAt ?? 0).getTime(),
     }));
+
+    // Session messages (in-memory, most recent)
+    const sessionMapped = safeSessionMessages.map((message: any) => ({
+      id: message.key?.id ?? `${message.messageTimestamp ?? Date.now()}`,
+      sender: message.key?.fromMe ? 'bot' : 'user',
+      participantId: message.key?.participant,
+      participantName: message.pushName,
+      media: message.__media ?? null,
+      text:
+        message.message?.conversation ??
+        message.message?.extendedTextMessage?.text ??
+        message.message?.imageMessage?.caption ??
+        message.message?.videoMessage?.caption ??
+        message.message?.documentMessage?.caption ??
+        '',
+      time: new Date(Number(message.messageTimestamp ?? Math.floor(Date.now() / 1000)) * 1000).toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit',
+      }),
+      read: Boolean(message.key?.fromMe),
+      _ts: Number(message.messageTimestamp ?? 0) * 1000,
+    }));
+
+    // Merge: use session messages as override when IDs match, keep DB messages for history
+    const merged = new Map<string, any>();
+    [...dbMapped, ...sessionMapped].forEach((msg) => {
+      if (msg.id) merged.set(msg.id, msg);
+    });
+
+    return Array.from(merged.values())
+      .sort((a, b) => (a._ts ?? 0) - (b._ts ?? 0))
+      .map(({ _ts, ...msg }) => msg);
   }
 
   async updateConversationStatus(companyId: string, id: string, dto: UpdateConversationStatusDto) {

@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AuthModule } from '../auth/auth.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { PlatformController } from './platform.controller';
 import { PlatformRepository } from './platform.repository';
 import { PlatformService } from './platform.service';
@@ -9,7 +10,7 @@ import { PlatformPlansController } from './plans.controller';
 import { PlatformPlansService } from './plans.service';
 
 @Module({
-  imports: [AuthModule],
+  imports: [AuthModule, NotificationsModule],
   controllers: [PlatformController, GlobalPermissionsController, PlatformPlansController],
   providers: [PlatformService, PlatformRepository, GlobalPermissionsService, PlatformPlansService],
   exports: [PlatformService, GlobalPermissionsService],

@@ -1200,6 +1200,8 @@ model PlatformPlan {
   maxEmployees  Int          @default(9999)
   activeModules String[]
   isActive      Boolean      @default(true)
+  isFree        Boolean      @default(false)
+  isHidden      Boolean      @default(false)
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
 

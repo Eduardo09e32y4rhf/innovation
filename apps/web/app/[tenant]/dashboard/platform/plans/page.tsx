@@ -17,6 +17,8 @@ function PlanModal({ plan, onClose, onDone }: { plan?: any; onClose: () => void;
     maxUsers: plan?.maxUsers ?? 9999,
     maxEmployees: plan?.maxEmployees ?? 9999,
     activeModules: plan?.activeModules ?? MODULES,
+    isFree: plan?.isFree ?? false,
+    isHidden: plan?.isHidden ?? false,
   });
 
   const save = useMutation(() => {
@@ -71,6 +73,17 @@ function PlanModal({ plan, onClose, onDone }: { plan?: any; onClose: () => void;
             <label className="block space-y-1 text-xs font-medium text-slate-600">
               <span>Limite de Colaboradores (Ponto/RH)</span>
               <input type="number" value={form.maxEmployees} onChange={e => setForm(f => ({ ...f, maxEmployees: e.target.value }))} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-indigo-500" />
+            </label>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-3">
+            <label className="flex items-center gap-2 text-xs font-medium text-slate-600 p-2 border border-slate-200 rounded-[8px] bg-slate-50 cursor-pointer hover:bg-slate-100">
+              <input type="checkbox" checked={form.isFree} onChange={e => setForm(f => ({ ...f, isFree: e.target.checked, price: e.target.checked ? '0' : f.price }))} className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" />
+              Plano Gratuito (Sempre R$ 0)
+            </label>
+            <label className="flex items-center gap-2 text-xs font-medium text-slate-600 p-2 border border-slate-200 rounded-[8px] bg-slate-50 cursor-pointer hover:bg-slate-100">
+              <input type="checkbox" checked={form.isHidden} onChange={e => setForm(f => ({ ...f, isHidden: e.target.checked }))} className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" />
+              Oculto (Uso Interno)
             </label>
           </div>
           
@@ -133,10 +146,12 @@ export default function PlansPage({ params: { tenant } }: { params: { tenant: st
           {plansData.data?.map(plan => (
             <div key={plan.id} className="ops-card flex flex-col justify-between rounded-[12px] border border-slate-200 bg-white p-6 relative">
               {!plan.isActive && <div className="absolute top-4 right-4 bg-slate-100 text-slate-500 text-[10px] font-bold px-2 py-0.5 rounded-full border border-slate-200">Inativo</div>}
-              <div>
+              {plan.isHidden && <div className="absolute top-4 right-16 bg-amber-100 text-amber-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-amber-200">Oculto</div>}
+              {plan.isFree && <div className="absolute top-4 left-4 bg-emerald-100 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-200">FREE</div>}
+              <div className="mt-6">
                 <h3 className="text-lg font-black text-slate-900">{plan.name}</h3>
                 <div className="mt-2 text-3xl font-black text-indigo-600">
-                  R$ {Number(plan.price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  {plan.isFree ? 'R$ 0,00' : `R$ ${parseFloat(String(plan.price || 0)).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
                   <span className="text-sm font-medium text-slate-400">/{plan.cycle === 'MONTHLY' ? 'mês' : plan.cycle === 'YEARLY' ? 'ano' : 'ciclo'}</span>
                 </div>
                 <div className="mt-4 space-y-2 text-xs font-medium text-slate-600">

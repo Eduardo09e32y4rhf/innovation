@@ -12,11 +12,14 @@ import { PlatformRepository } from './platform.repository';
 const PLATFORM_OWNER_EMAIL = 'eduardo998468@gmail.com';
 const PROTECTED_PLATFORM_ROLES = ['DEV', 'COMERCIAL'];
 
+import { NotificationsService } from '../notifications/notifications.service';
+
 @Injectable()
 export class PlatformService {
   constructor(
     private readonly repository: PlatformRepository,
     private readonly jwtService: JwtService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   listCompanies() {
@@ -102,18 +105,41 @@ export class PlatformService {
     }
     const status = dto.status;
     const { name, document, plan, billingStatus, trialEndsAt, activeModules, ...rest } = dto;
+
+    // Auto-suspend on PAST_DUE, auto-activate on ACTIVE billing
+    const autoStatus = billingStatus === 'PAST_DUE' ? 'SUSPENDED' 
+                     : billingStatus === 'ACTIVE' ? 'ACTIVE' 
+                     : undefined;
+    const autoSuspensionReason = billingStatus === 'PAST_DUE' ? 'inadimplencia'
+                               : billingStatus === 'ACTIVE' ? null
+                               : undefined;
+
     const data = {
       ...rest,
       ...(name !== undefined ? { name: normalizeDisplayName(name) } : {}),
       ...(document !== undefined ? { cnpj: emptyToNull(document) } : {}),
-      ...(status ? { status } : {}),
-      ...(status === 'ACTIVE' ? { suspensionReason: null } : {}),
+      ...(status ? { status } : autoStatus !== undefined ? { status: autoStatus } : {}),
+      ...((status === 'ACTIVE' || autoStatus === 'ACTIVE') ? { suspensionReason: null } : {}),
       ...(plan ? { plan } : {}),
       ...(billingStatus ? { billingStatus } : {}),
       ...(trialEndsAt !== undefined ? { trialEndsAt: trialEndsAt ? new Date(trialEndsAt) : null } : {}),
       ...(activeModules !== undefined ? { activeModules } : {}),
       ...(status === 'CANCELLED' && !dto.suspensionReason ? { suspensionReason: 'solicitacao_voluntaria' } : {}),
+      ...(autoSuspensionReason !== undefined && !status ? { suspensionReason: autoSuspensionReason } : {}),
     };
+    
+    // Notificar admin(s) da empresa sobre inadimplência caso mude para PAST_DUE
+    if (billingStatus === 'PAST_DUE' && company.billingStatus !== 'PAST_DUE') {
+      await this.notificationsService.createAdminNotice(id, actor.sub, {
+        type: 'SYSTEM_ALERT',
+        title: 'Aviso de Inadimplência e Bloqueio',
+        message: 'Consta um débito pendente na sua assinatura. Seu acesso a módulos foi restrito. Regularize para reativar o acesso integral à plataforma.',
+        priority: 'HIGH',
+        targetType: 'ROLE',
+        targetRole: 'ADMIN',
+      }).catch(err => console.error('[PlatformService] Error sending suspension notice:', err));
+    }
+
     return this.repository.updateCompany(id, data);
   }
 

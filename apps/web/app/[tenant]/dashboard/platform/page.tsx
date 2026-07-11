@@ -45,8 +45,8 @@ export default function PlatformPage() {
   });
 
   const updateLicense = useMutation(
-    ({ id, maxUsers, maxEmployees, plan, billingStatus, trialEndsAt, activeModules, asaasCustomerId, asaasSubscriptionId, internalNotes }: { id: string; maxUsers: number; maxEmployees: number; plan?: 'FREE' | 'BASE' | 'PRO' | 'ENTERPRISE'; billingStatus?: 'TRIAL' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED'; trialEndsAt?: string; activeModules?: string[]; asaasCustomerId?: string; asaasSubscriptionId?: string; internalNotes?: string }) =>
-      api.platform.updateCompany(id, { maxUsers, maxEmployees, plan, billingStatus, trialEndsAt, activeModules, asaasCustomerId, asaasSubscriptionId, internalNotes }),
+    ({ id, maxUsers, maxEmployees, platformPlanId, billingStatus, trialEndsAt, activeModules, asaasCustomerId, asaasSubscriptionId, internalNotes }: { id: string; maxUsers: number; maxEmployees: number; platformPlanId?: string; billingStatus?: 'TRIAL' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED'; trialEndsAt?: string; activeModules?: string[]; asaasCustomerId?: string; asaasSubscriptionId?: string; internalNotes?: string }) =>
+      api.platform.updateCompany(id, { maxUsers, maxEmployees, platformPlanId, billingStatus, trialEndsAt, activeModules, asaasCustomerId, asaasSubscriptionId, internalNotes }),
     { onSuccess: () => { companies.refetch(); stats.refetch(); setLicenseCompany(null); } },
   );
 
@@ -217,7 +217,10 @@ export default function PlatformPage() {
         <CompanyManageModal
           company={licenseCompany}
           onClose={() => setLicenseCompany(null)}
-          onSave={(data) => updateLicense.mutate({ id: licenseCompany.id, ...data }).catch(() => {})}
+          onSave={(data) => {
+            const { plan: selectedPlanId, ...rest } = data;
+            updateLicense.mutate({ id: licenseCompany.id, platformPlanId: selectedPlanId, ...rest }).catch(() => {});
+          }}
           loading={updateLicense.loading}
           error={updateLicense.error}
         />
@@ -362,11 +365,10 @@ function CompanyUserFormModal({ companyId, user, onClose, onDone }: { companyId:
 }
 
 function NewCompanyModal({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
-  const plansData = { data: [
-    { id: 'BASE', name: 'Base', price: 299, maxUsers: 5, maxEmployees: 20 },
-    { id: 'PRO', name: 'Pro', price: 399, maxUsers: 10, maxEmployees: 50 },
-    { id: 'ENTERPRISE', name: 'Enterprise', price: 699, maxUsers: 999, maxEmployees: 999 }
-  ] as any[] };
+  const plansData = useQuery({
+    queryKey: ['platform', 'plans'],
+    queryFn: () => api.platform.listPlans(),
+  });
 
   const [form, setForm] = useState<CreatePlatformCompanyInput & { planId?: string }>({
     name: '', document: '', slug: '', maxUsers: 10, maxEmployees: 20,
@@ -434,7 +436,9 @@ function NewCompanyModal({ onClose, onDone }: { onClose: () => void; onDone: () 
             }} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500">
               <option value="">Sem plano (Limites manuais)</option>
               {plansData.data?.map(p => (
-                <option key={p.id} value={p.id}>{p.name} - R$ {Number(p.price).toFixed(2)}</option>
+                <option key={p.id} value={p.id}>
+                  {p.name} {p.isHidden ? '(Uso Interno)' : ''} - {p.isFree ? 'FREE' : `R$ ${parseFloat(String(p.price || 0)).toFixed(2)}`}
+                </option>
               ))}
             </select>
           </label>
@@ -474,9 +478,10 @@ function F({ label, value, onChange, type = 'text', required }: { label: string;
 function CompanyManageModal({ company, onClose, onSave, loading, error }: { company: PlatformCompany; onClose: () => void; onSave: (data: any) => void; loading: boolean; error: string | null }) {
   const [activeTab, setActiveTab] = useState<'plan' | 'permissions' | 'finance' | 'crm'>('plan');
 
+  const plansData = useQuery({ queryKey: ['platform', 'plans'], queryFn: () => api.platform.listPlans() });
   const [maxUsers, setMaxUsers] = useState(company.maxUsers);
   const [maxEmployees, setMaxEmployees] = useState(company.maxEmployees ?? 1);
-  const [plan, setPlan] = useState<any>(company.plan ?? 'FREE');
+  const [plan, setPlan] = useState<any>(company.platformPlanId || company.plan || 'FREE');
   const [billingStatus, setBillingStatus] = useState<any>(company.billingStatus ?? 'TRIAL');
   const [trialEndsAt, setTrialEndsAt] = useState(safeIsoDate(company.trialEndsAt));
   const [activeModules, setActiveModules] = useState<string[]>(company.activeModules || ['employees', 'time-track', 'vacations', 'management', 'whatsapp']);
@@ -561,10 +566,10 @@ function CompanyManageModal({ company, onClose, onSave, loading, error }: { comp
                   <div>
                     <label className="mb-2 block text-[11px] font-black uppercase tracking-wider text-slate-500">Plano Ativo</label>
                     <select value={plan} onChange={(e) => setPlan(e.target.value)} className="h-9 w-full rounded-[6px] border border-slate-200 px-3 text-sm font-semibold outline-none focus:border-teal-500 bg-white">
-                      <option value="FREE">Free Trial</option>
-                      <option value="BASE">Base (R$ 299,00)</option>
-                      <option value="PRO">Pro (R$ 399,00)</option>
-                      <option value="ENTERPRISE">Enterprise (R$ 699,99)</option>
+                      <option value="FREE">Free Trial / Nenhum</option>
+                      {plansData.data?.map(p => (
+                        <option key={p.id} value={p.id}>{p.name} {p.isHidden ? '(Uso Interno)' : ''} - {p.isFree ? 'FREE' : `R$ ${parseFloat(String(p.price || 0)).toFixed(2)}`}</option>
+                      ))}
                     </select>
                   </div>
                   <div>
@@ -576,6 +581,49 @@ function CompanyManageModal({ company, onClose, onSave, loading, error }: { comp
                       <option value="CANCELED">Cancelado</option>
                     </select>
                   </div>
+                </div>
+                
+                <div className="mt-4 pt-4 border-t border-slate-100 flex justify-end">
+                  <button 
+                    onClick={() => {
+                      const selectedPlan = plansData.data?.find(p => p.id === plan);
+                      if (!selectedPlan) return alert('Selecione um plano da plataforma primeiro.');
+                      
+                      const { buildPdfShell, infoGrid, section, signatureBlock, printPdf } = require('@/app/lib/pdf-utils');
+                      const pdfCompanyData = { 
+                        name: company.name, 
+                        document: company.document || 'N/A', 
+                        address: company.address || 'Não informado', 
+                        city: '', state: '' 
+                      };
+                      
+                      const html = buildPdfShell({ title: 'Contrato de Prestação de Serviços', subtitle: 'Innovation.ia Plataforma' }, pdfCompanyData, `
+                        ${section('1. O Objeto', `
+                          <p class="text-[11px] text-slate-700 text-justify mb-2">
+                            O presente contrato tem como objeto a licença de uso do software como serviço (SaaS) denominado "Innovation.ia", referente ao plano <strong>${selectedPlan.name}</strong>.
+                          </p>
+                        `)}
+                        ${section('2. Condições Comerciais', infoGrid([
+                          { label: 'Plano', value: selectedPlan.name },
+                          { label: 'Valor', value: selectedPlan.isFree ? 'Gratuito' : \`R$ \${parseFloat(String(selectedPlan.price)).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} / \${selectedPlan.cycle}\` },
+                          { label: 'Max. Usuários', value: String(maxUsers) },
+                          { label: 'Max. Funcionários', value: String(maxEmployees) },
+                        ]))}
+                        ${section('3. Termos Gerais', `
+                          <p class="text-[11px] text-slate-700 text-justify mb-2">
+                            1. A CONTRATADA compromete-se a manter a plataforma acessível e funcional, ressalvadas as manutenções programadas.<br><br>
+                            2. Em caso de inadimplência (status: Inadimplente), o sistema suspenderá automaticamente o acesso aos módulos contratados, limitando o acesso a funções de administração até a regularização.<br><br>
+                            3. O suporte será prestado dentro do horário comercial e os SLAs obedecem a política de suporte estabelecida.
+                          </p>
+                        `)}
+                        ${signatureBlock()}
+                      `);
+                      printPdf(html, \`contrato-\${company.id}.pdf\`);
+                    }}
+                    className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px]"
+                  >
+                    Gerar Contrato (PDF)
+                  </button>
                 </div>
               </div>
             </div>
