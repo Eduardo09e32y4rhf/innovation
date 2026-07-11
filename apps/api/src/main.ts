@@ -13,7 +13,7 @@ import { RedisIoAdapter } from './common/adapters/redis-io.adapter';
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
-    new FastifyAdapter({ logger: true }),
+    new FastifyAdapter({ logger: true, bodyLimit: 10_485_760 }), // 10MB limit for base64 images
   );
   const reflector = app.get(Reflector);
   const allowedOrigins = (process.env.ALLOWED_ORIGINS ?? '')
