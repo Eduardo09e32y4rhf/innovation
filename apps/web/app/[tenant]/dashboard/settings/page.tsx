@@ -321,9 +321,45 @@ function CompanySettings() {
                 </label>
               </div>
             <label className="space-y-2 text-xs font-bold uppercase tracking-wider text-slate-600 sm:col-span-2">
-              <span>URL HTTPS da logo</span>
-              <input value={removeLogo ? '' : logoUrl} onChange={(e) => { setRemoveLogo(false); setLogoUrl(e.target.value); }} placeholder="https://seudominio.com/logo.png" disabled={company.loading} className={inputClass} />
-              <span className="block text-[10px] font-semibold text-slate-400">PNG, JPG ou WebP. SVG e base64 bloqueados por segurança.</span>
+              <div className="flex items-center justify-between">
+                <span>Logo da Empresa (URL ou Upload)</span>
+                <div className="relative overflow-hidden rounded bg-teal-50 px-3 py-1 text-[10px] font-bold text-teal-700 hover:bg-teal-100 cursor-pointer">
+                  Fazer Upload
+                  <input 
+                    type="file" 
+                    accept="image/png, image/jpeg, image/webp" 
+                    className="absolute inset-0 cursor-pointer opacity-0" 
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      const reader = new FileReader();
+                      reader.onload = (ev) => {
+                        const img = new window.Image();
+                        img.onload = () => {
+                          const canvas = document.createElement('canvas');
+                          let width = img.width;
+                          let height = img.height;
+                          const max = 300;
+                          if (width > height && width > max) { height = Math.round(height * (max / width)); width = max; }
+                          else if (height > max) { width = Math.round(width * (max / height)); height = max; }
+                          canvas.width = width; canvas.height = height;
+                          const ctx = canvas.getContext('2d');
+                          if (ctx) {
+                            ctx.drawImage(img, 0, 0, width, height);
+                            const dataUrl = canvas.toDataURL('image/webp', 0.85);
+                            setRemoveLogo(false);
+                            setLogoUrl(dataUrl);
+                          }
+                        };
+                        img.src = ev.target?.result as string;
+                      };
+                      reader.readAsDataURL(file);
+                    }}
+                  />
+                </div>
+              </div>
+              <input value={removeLogo ? '' : logoUrl} onChange={(e) => { setRemoveLogo(false); setLogoUrl(e.target.value); }} placeholder="https://seudominio.com/logo.png ou faça o upload..." disabled={company.loading} className={inputClass} />
+              <span className="block text-[10px] font-semibold text-slate-400">Insira um link HTTPS ou faça upload do seu computador/celular. (A imagem será otimizada).</span>
             </label>
             <label className="space-y-2 text-xs font-bold uppercase tracking-wider text-slate-600">
               <span>Cor principal</span>
@@ -659,9 +695,9 @@ function formatCnpj(value: string) {
 function validateLogoUrl(value: string) {
   const trimmed = value.trim();
   if (!trimmed) return '';
+  if (trimmed.startsWith('data:image/')) return ''; // Allow base64 images
   if (trimmed.length > MAX_LOGO_URL_LENGTH) return 'A URL da logo precisa ter no máximo 2048 caracteres.';
-  if (trimmed.startsWith('data:')) return 'Não salve base64 no banco. Use uma URL HTTPS da imagem.';
   if (/\.svg(\?|#|$)/i.test(trimmed)) return 'SVG está bloqueado por segurança. Use PNG, JPG ou WebP.';
-  if (!SAFE_LOGO_URL.test(trimmed)) return 'Use uma URL HTTPS terminando em PNG, JPG, JPEG ou WebP.';
+  if (!SAFE_LOGO_URL.test(trimmed)) return 'Use uma URL HTTPS terminando em PNG, JPG, JPEG ou WebP, ou faça upload de um arquivo local.';
   return '';
 }

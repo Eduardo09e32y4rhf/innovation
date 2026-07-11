@@ -188,18 +188,27 @@ export default function UsersPage() {
                               <button
                                 onClick={async () => {
                                   try {
+                                    const { readAuthSession } = require('@/app/lib/auth-session');
+                                    const token = readAuthSession().token;
                                     const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || '/api'}/legal/terms/download/${user.id}?t=${Date.now()}`, {
-                                      headers: { Authorization: `Bearer ${window.localStorage.getItem('auth.token')}` },
+                                      headers: { Authorization: `Bearer ${token}` },
                                       cache: 'no-store'
                                     });
                                     if (!res.ok) throw new Error('Não foi possível baixar o termo');
                                     const blob = await res.blob();
                                     const url = window.URL.createObjectURL(blob);
+                                    
+                                    // Try native download
                                     const a = document.createElement('a');
                                     a.href = url;
                                     a.download = `Termo_De_Uso_${user.id}.pdf`;
+                                    a.style.display = 'none';
+                                    document.body.appendChild(a);
                                     a.click();
-                                    window.URL.revokeObjectURL(url);
+                                    setTimeout(() => {
+                                      a.remove();
+                                      window.URL.revokeObjectURL(url);
+                                    }, 1000);
                                   } catch (e) {
                                     alert('Erro ao baixar o PDF. Pode não ter sido assinado ainda.');
                                   }
