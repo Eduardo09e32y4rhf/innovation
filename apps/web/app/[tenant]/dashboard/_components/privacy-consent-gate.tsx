@@ -182,7 +182,17 @@ export function PrivacyConsentGate({ children }: { children: React.ReactNode }) 
           faceDescriptor
         })
       });
-      if (!response.ok) throw new Error('accept failed');
+      if (!response.ok) {
+        let errorMsg = 'Falha no servidor';
+        try {
+          const errData = await response.json();
+          errorMsg = errData.message || JSON.stringify(errData);
+        } catch {
+          errorMsg = `Erro ${response.status}: ${await response.text()}`;
+        }
+        throw new Error(errorMsg);
+      }
+      
       const payload = await response.json();
       const data = payload.data ?? payload;
       setStatus((current) => ({
