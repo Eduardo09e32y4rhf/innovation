@@ -492,44 +492,48 @@ function downloadEmployeeSheet(employee: Employee, rows: TimeTrack[], month: str
     { label: 'Período', value: monthLabelText },
   ];
 
-  const tableHeaders = ['Data', 'Entrada', 'Saída Almoço', 'Retorno Almoço', 'Saída', 'Trabalhado', 'Saldo', 'Ocorrência', 'Assinatura Diária'];
+  const tableHeaders = ['Data', 'Dia', '1a E.', '1a S.', '2a E.', '2a S.', 'Abono', 'H.E.', 'Absent.', 'Jornada', 'Ad. Not.', 'Observacao'];
   const tableRows = grid.map((g) => {
     const WEEKDAYS = ['DOM','SEG','TER','QUA','QUI','SEX','SÁB'];
     const wd = WEEKDAYS[g.wd];
-    const dateStr = `${String(g.day).padStart(2,'0')} - ${wd}`;
+    const dateStr = String(g.day).padStart(2,'0') + '/' + month.split('-')[1] + '/' + month.split('-')[0];
 
     if (g.isFuture) {
-      return `<tr><td style="padding:4px 8px;font-size:8px;color:#cbd5e1;">${dateStr}</td><td colspan="8" style="padding:4px 8px;font-size:8px;color:#cbd5e1;text-align:center;">—</td></tr>`;
+      return `<tr><td style="padding:2px 4px;font-size:7px;color:#cbd5e1;">${dateStr}</td><td style="padding:2px 4px;font-size:7px;color:#cbd5e1;">${wd}</td><td colspan="10" style="padding:2px 4px;font-size:7px;color:#cbd5e1;text-align:center;">-</td></tr>`;
     }
     if (g.antesAdmissao) {
-      return `<tr><td style="padding:4px 8px;font-size:8px;color:#94a3b8;">${dateStr}</td><td colspan="8" style="padding:4px 8px;font-size:8px;color:#94a3b8;text-align:center;">ANTES DA ADMISSÃO</td></tr>`;
+      return `<tr><td style="padding:2px 4px;font-size:7px;color:#94a3b8;">${dateStr}</td><td style="padding:2px 4px;font-size:7px;color:#94a3b8;">${wd}</td><td colspan="10" style="padding:2px 4px;font-size:7px;color:#94a3b8;text-align:center;">ANTES DA ADMISSÃO</td></tr>`;
     }
 
     const t = g.track;
     if (!t) {
-      if (g.isRest) return `<tr><td style="padding:4px 8px;font-size:8px;color:#64748b;">${dateStr}</td><td colspan="8" style="padding:4px 8px;font-size:8px;color:#64748b;text-align:center;font-weight:700;">DSR / FOLGA</td></tr>`;
-      return `<tr><td style="padding:4px 8px;font-size:8px;color:#e11d48;font-weight:600;">${dateStr}</td><td colspan="8" style="padding:4px 8px;font-size:8px;color:#e11d48;text-align:center;font-weight:700;">FALTA NÃO JUSTIFICADA</td></tr>`;
+      if (g.isRest) return `<tr><td style="padding:2px 4px;font-size:7px;color:#64748b;">${dateStr}</td><td style="padding:2px 4px;font-size:7px;color:#64748b;">${wd}</td><td colspan="10" style="padding:2px 4px;font-size:7px;color:#64748b;text-align:center;font-weight:700;">DSR / FOLGA</td></tr>`;
+      return `<tr><td style="padding:2px 4px;font-size:7px;color:#e11d48;font-weight:600;">${dateStr}</td><td style="padding:2px 4px;font-size:7px;color:#e11d48;font-weight:600;">${wd}</td><td colspan="10" style="padding:2px 4px;font-size:7px;color:#e11d48;text-align:center;font-weight:700;">FALTA NÃO JUSTIFICADA</td></tr>`;
     }
 
     const balance = t.dailyBalance ?? 0;
     const balanceColor = balance < 0 ? '#e11d48' : balance > 0 ? '#059669' : '#64748b';
     const hasMissing = !t.entry || !t.exit;
     let ocorrencia = dayStatus(t);
-    if (ocorrencia === 'NORMAL' && hasMissing) ocorrencia = 'FALTA DE MARCAÇÃO';
-    
-    // Almoço dummy split (if there is an observation with lunch time, we can parse it, else just leave empty or show the format)
-    // The current TimeTrack model only has entry and exit. It doesn't have 4 punches yet. We leave lunch blank or '--:--'.
+    if (ocorrencia === 'NORMAL') ocorrencia = hasMissing ? 'FALTA DE MARCAÇÃO' : '';
+
+    const he = balance > 0 ? formatMinutes(balance) : '';
+    const absent = balance < 0 ? formatMinutes(Math.abs(balance)) : '';
+    const jornada = formatMinutes(t.totalWorked ?? 0);
     
     return `<tr>
-      <td style="padding:4px 8px;font-size:8px;font-weight:600;color:#0f172a;">${dateStr}</td>
-      <td style="padding:4px 8px;font-size:8px;color:#334155;text-align:center;">${escapeHtml(formatTime(t.entry))}</td>
-      <td style="padding:4px 8px;font-size:8px;color:#94a3b8;text-align:center;">--:--</td>
-      <td style="padding:4px 8px;font-size:8px;color:#94a3b8;text-align:center;">--:--</td>
-      <td style="padding:4px 8px;font-size:8px;color:#334155;text-align:center;">${escapeHtml(formatTime(t.exit))}</td>
-      <td style="padding:4px 8px;font-size:8px;font-weight:700;color:#0f172a;text-align:center;">${escapeHtml(formatMinutes(t.totalWorked))}</td>
-      <td style="padding:4px 8px;font-size:8px;font-weight:700;color:${balanceColor};text-align:center;">${escapeHtml(formatMinutes(balance))}</td>
-      <td style="padding:4px 8px;font-size:7px;color:#64748b;">${escapeHtml(ocorrencia !== 'NORMAL' ? ocorrencia : '')}</td>
-      <td style="padding:4px 8px;font-size:8px;color:#cbd5e1;border-bottom:1px dashed #e2e8f0;"></td>
+      <td style="padding:2px 4px;font-size:7px;font-weight:600;color:#0f172a;">${dateStr}</td>
+      <td style="padding:2px 4px;font-size:7px;color:#334155;">${wd}</td>
+      <td style="padding:2px 4px;font-size:7px;color:#334155;text-align:center;">${escapeHtml(formatTime(t.entry))}</td>
+      <td style="padding:2px 4px;font-size:7px;color:#94a3b8;text-align:center;">--:--</td>
+      <td style="padding:2px 4px;font-size:7px;color:#94a3b8;text-align:center;">--:--</td>
+      <td style="padding:2px 4px;font-size:7px;color:#334155;text-align:center;">${escapeHtml(formatTime(t.exit))}</td>
+      <td style="padding:2px 4px;font-size:7px;color:#334155;text-align:center;"></td>
+      <td style="padding:2px 4px;font-size:7px;color:#059669;text-align:center;font-weight:600;">${escapeHtml(he)}</td>
+      <td style="padding:2px 4px;font-size:7px;color:#e11d48;text-align:center;font-weight:600;">${escapeHtml(absent)}</td>
+      <td style="padding:2px 4px;font-size:7px;font-weight:700;color:#0f172a;text-align:center;">${escapeHtml(jornada)}</td>
+      <td style="padding:2px 4px;font-size:7px;color:#334155;text-align:center;"></td>
+      <td style="padding:2px 4px;font-size:6px;color:#64748b;">${escapeHtml(ocorrencia)}</td>
     </tr>`;
   });
 
