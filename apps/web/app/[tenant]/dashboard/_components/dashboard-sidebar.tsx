@@ -114,7 +114,7 @@ export function DashboardSidebar() {
 function CompanyBrandCard({ name, document, logoUrl }: { name?: string | null; document?: string | null; logoUrl?: string | null }) {
   return (
     <div className="sidebar-brand-card flex items-center gap-3 p-3">
-      <div className="flex h-9 min-w-[36px] max-w-[120px] shrink-0 items-center justify-center overflow-hidden rounded-[7px] bg-white px-1">
+      <div className="flex h-9 min-w-[36px] max-w-[120px] shrink-0 items-center justify-center overflow-hidden rounded-[7px] bg-slate-100 px-1">
         {logoUrl ? (
           <img src={logoUrl} alt="Logo da empresa" className="h-full w-auto object-contain py-1.5" />
         ) : (
@@ -122,10 +122,10 @@ function CompanyBrandCard({ name, document, logoUrl }: { name?: string | null; d
         )}
       </div>
       <div className="min-w-0">
-        <p className="truncate text-[9px] font-semibold uppercase leading-none tracking-[0.18em] text-white/40">
+        <p className="truncate text-[9px] font-bold uppercase leading-none tracking-[0.15em] text-slate-400">
           {normalizeDisplayName(name) || 'Innovation RH System'}
         </p>
-        <p className="mt-0.5 truncate text-[13px] font-semibold leading-tight text-white">{document || 'Console RH'}</p>
+        <p className="mt-0.5 truncate text-[13px] font-bold leading-tight text-slate-800">{document || 'Console RH'}</p>
       </div>
     </div>
   );
@@ -133,14 +133,14 @@ function CompanyBrandCard({ name, document, logoUrl }: { name?: string | null; d
 
 function UserIdentityCard({ name, email, profile }: { name?: string; email?: string; profile?: string }) {
   return (
-    <div className="sidebar-copilot-card p-4">
+    <div className="sidebar-copilot-card p-3">
       <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-teal-400/15 text-[12px] font-black text-teal-200 ring-1 ring-teal-300/20">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-200 text-[12px] font-black text-slate-600">
           {getInitials(name, email)}
         </div>
         <div className="min-w-0">
-          <p className="truncate text-[13px] font-semibold leading-tight text-white">{normalizeDisplayName(name) || email || 'Usuário'}</p>
-          <p className="mt-1 text-[10px] font-black uppercase tracking-[0.16em] text-white/40">
+          <p className="truncate text-[13px] font-bold leading-tight text-slate-800">{normalizeDisplayName(name) || email || 'Usuário'}</p>
+          <p className="mt-1 text-[10px] font-black uppercase tracking-[0.1em] text-slate-500">
             {ROLE_LABEL[profile || ''] ?? profile ?? 'Perfil'}
           </p>
         </div>

@@ -51,7 +51,6 @@ const DEFAULT_PERMISSIONS: Record<string, Permission[]> = {
     'time_tracking.clock_in',
     'time_tracking.view_own',
     'time_tracking.view_team',
-    'time_tracking.approve_team',
     'vacations.request_own',
     'vacations.request_team',
     'settings.change_own_password',

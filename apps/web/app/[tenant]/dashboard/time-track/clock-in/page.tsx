@@ -112,6 +112,7 @@ export default function ClockInPage() {
   const myEmployee = (employees.data ?? []).find((e: Employee) => e.userId === user?.id || (userEmail && e.email?.trim().toLowerCase() === userEmail));
 
   const [success, setSuccess] = useState<string | null>(null);
+  const [punchError, setPunchError] = useState<string | null>(null);
   const [showManual, setShowManual] = useState(false);
   const [manualType, setManualType] = useState<PunchType>('ENTRY');
   const [manualReason, setManualReason] = useState<ManualReason>('esquecimento');
@@ -151,6 +152,7 @@ export default function ClockInPage() {
 
   const enroll = useMutation(
     async (descriptor: number[]) => {
+      setPunchError(null);
       return api.timeTrack.enrollFacial({ descriptor });
     },
     {
@@ -158,10 +160,13 @@ export default function ClockInPage() {
         setSuccess('Rosto cadastrado com sucesso! Registrando seu ponto...');
         employees.refetch(); // refresh employee data
         if (activePunchType) {
-          punch.mutate({ type: activePunchType, skipEnroll: true }).catch(() => {});
+          punch.mutate({ type: activePunchType, skipEnroll: true }).catch((err) => setPunchError(err.message || 'Erro ao bater ponto'));
         } else {
           successTimer.current = setTimeout(() => setSuccess(null), 2500);
         }
+      },
+      onError: (err: any) => {
+        setPunchError(err.message || 'Erro ao cadastrar biometria facial.');
       }
     }
   );
@@ -200,6 +205,9 @@ export default function ClockInPage() {
         if (successTimer.current) clearTimeout(successTimer.current);
         successTimer.current = setTimeout(() => router.push(`/${tenant}/dashboard/time-track`), 2500);
       },
+      onError: (err: any) => {
+        setPunchError(err.message || 'Erro ao bater ponto.');
+      }
     },
   );
 
@@ -213,9 +221,9 @@ export default function ClockInPage() {
     if (!activePunchType) return;
     
     if (!(myEmployee?.faceEnrollment?.active) && faceDescriptor) {
-      enroll.mutate(faceDescriptor).catch(() => {});
+      enroll.mutate(faceDescriptor).catch((err) => setPunchError(err.message || 'Erro no cadastro biométrico'));
     } else {
-      punch.mutate({ type: activePunchType, imageBase64: photoBase64, faceDescriptor }).catch(() => {});
+      punch.mutate({ type: activePunchType, imageBase64: photoBase64, faceDescriptor }).catch((err) => setPunchError(err.message || 'Erro ao registrar ponto'));
     }
   };
 
@@ -277,6 +285,14 @@ export default function ClockInPage() {
             <div>
               <h3 className="mb-4 text-sm font-black text-slate-950 text-center">Bater Ponto</h3>
               
+              {punchError && (
+                <div className="mb-4 rounded-[8px] bg-rose-50 border border-rose-200 p-3 text-center">
+                  <p className="text-xs font-bold text-rose-600 flex items-center justify-center gap-1">
+                    <AlertTriangle size={14} /> {punchError}
+                  </p>
+                </div>
+              )}
+
               <button
                 onClick={() => handlePunch(nextPunchType)}
                 disabled={punch.loading || enroll.loading}

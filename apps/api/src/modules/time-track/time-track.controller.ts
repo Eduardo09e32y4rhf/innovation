@@ -52,7 +52,15 @@ export class TimeTrackController {
     let matchResult = null;
 
     let employeeId = '';
-    const emp = await this.service['prisma'].employee.findFirst({ where: { userId: actor.sub, companyId } });
+    const emp = await this.service['prisma'].employee.findFirst({ 
+      where: { 
+        companyId,
+        OR: [
+          { userId: actor.sub },
+          { email: actor.email }
+        ]
+      } 
+    });
     if (emp) employeeId = emp.id;
 
     if (!employeeId) {
@@ -120,8 +128,16 @@ export class TimeTrackController {
     @CurrentUser() actor: JwtUser,
     @Body() dto: { descriptor: number[] }
   ) {
-    const employee = await this.service['prisma'].employee.findUnique({ where: { userId: actor.sub } });
-    if (!employee) throw new UnauthorizedException('Employee not found');
+    const employee = await this.service['prisma'].employee.findFirst({ 
+      where: { 
+        companyId,
+        OR: [
+          { userId: actor.sub },
+          { email: actor.email }
+        ]
+      } 
+    });
+    if (!employee) throw new BadRequestException('Funcionário não encontrado no banco de dados. Contate o RH para vincular seu usuário.');
     
     await this.service['prisma'].faceEnrollment.upsert({
       where: { employeeId: employee.id },

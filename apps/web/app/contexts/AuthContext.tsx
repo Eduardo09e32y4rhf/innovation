@@ -69,13 +69,13 @@ const getApiUrl = () => process.env.NEXT_PUBLIC_API_URL || '/api';
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   // readParsedAuthSession lê do sessionStorage (isolado por aba) e já deserializa
   const initialSession = readParsedAuthSession();
-  const [user, setUser] = useState<User | null>(null);
-  const [company, setCompany] = useState<Company | null>(null);
-  const [token, setToken] = useState<string | null>(null);
+  const [user, setUser] = useState<User | null>(initialSession.user);
+  const [company, setCompany] = useState<Company | null>(initialSession.company);
+  const [token, setToken] = useState<string | null>(initialSession.token);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [passwordChangeRequired, setPasswordChangeRequired] = useState(false);
-  const [isIsolatedTab, setIsIsolatedTab] = useState(false);
+  const [passwordChangeRequired, setPasswordChangeRequired] = useState(initialSession.passwordChangeRequired);
+  const [isIsolatedTab, setIsIsolatedTab] = useState(initialSession.isIsolatedTab);
 
   useEffect(() => {
     setAuthScopeSnapshot({
@@ -85,6 +85,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       role: user?.profile?.toUpperCase() ?? null,
     });
 
+    if (loading) return; // Não altere a persistência enquanto ainda está carregando/validando
+
     if (token && user && company) {
       // persistAuthSession recebe objetos brutos — serialização acontece dentro do módulo
       persistAuthSession(token, user, company, passwordChangeRequired, isIsolatedTab);
@@ -92,7 +94,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
 
     clearAuthSession(isIsolatedTab);
-  }, [token, user, company, passwordChangeRequired, isIsolatedTab]);
+  }, [token, user, company, passwordChangeRequired, isIsolatedTab, loading]);
 
   useEffect(() => {
     // Ativa o guard: localStorage vira zona proibida para auth nesta aba
