@@ -560,14 +560,14 @@ function downloadCollectiveSheet(month: string, visibleEmployees: Employee[], by
       ${section('Horários', pdfTable(
         ['Data Base', 'Entrada', 'Saída Almoço', 'Retorno Almoço', 'Saída', 'Turno / Carga Horária'],
         [
-          \`<tr>
-            <td style="padding:2px 4px;font-size:7px;color:#334155;text-align:center;">01/\${month.split('-')[1]}/\${month.split('-')[0]}</td>
+          `<tr>
+            <td style="padding:2px 4px;font-size:7px;color:#334155;text-align:center;">01/${month.split('-')[1]}/${month.split('-')[0]}</td>
             <td style="padding:2px 4px;font-size:7px;color:#334155;text-align:center;">--:--</td>
             <td style="padding:2px 4px;font-size:7px;color:#334155;text-align:center;">--:--</td>
             <td style="padding:2px 4px;font-size:7px;color:#334155;text-align:center;">--:--</td>
             <td style="padding:2px 4px;font-size:7px;color:#334155;text-align:center;">--:--</td>
-            <td style="padding:2px 4px;font-size:7px;color:#0f172a;text-align:center;">\${escapeHtml(employee.workScale || 'Não definida')} - \${escapeHtml(employee.dailyWorkload || '')}</td>
-          </tr>\`
+            <td style="padding:2px 4px;font-size:7px;color:#0f172a;text-align:center;">${escapeHtml(employee.workScale || 'Não definida')} - ${escapeHtml(employee.dailyWorkload || '')}</td>
+          </tr>`
         ],
         { compact: true, border: true }
       ), { avoidBreak: true })}
