@@ -336,7 +336,7 @@ function CompanySettings() {
                       reader.onload = (ev) => {
                         const img = new window.Image();
                         img.onload = () => {
-                          const canvas = window.document.createElement('canvas');
+                          const canvas = document.createElement('canvas');
                           let width = img.width;
                           let height = img.height;
                           const max = 300;
@@ -624,10 +624,10 @@ function downloadCSV(data: unknown[], headers: string[], filename: string) {
   const csv = '\uFEFF' + headers.join(',') + '\n' + rows;
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
-  const link = window.document.createElement('a');
+  const link = document.createElement('a');
   link.href = url;
   link.download = `${filename}-${new Date().toISOString().slice(0, 10)}.csv`;
-  window.document.body.appendChild(link);
+  document.body.appendChild(link);
   link.click();
   link.remove();
   URL.revokeObjectURL(url);

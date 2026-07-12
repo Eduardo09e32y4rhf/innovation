@@ -1,3 +1,0 @@
-## 2024-06-03 - O(N) Array Pass Optimization in Dashboards
-**Learning:** The dashboard insights build process (e.g. `buildInsights`) originally used multiple sequential `.filter()` and `.map()` calls on the entire employee dataset to calculate various summary metrics. This O(N*M) pattern causes unnecessary CPU overhead and redundant memory allocations.
-**Action:** When calculating multiple aggregated metrics from large database collections (like `employees`), avoid sequential `.filter()` passes. Consolidate them into a single O(N) `for...of` loop to calculate all metrics simultaneously and optimize performance.
