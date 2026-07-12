@@ -365,10 +365,7 @@ function CompanyUserFormModal({ companyId, user, onClose, onDone }: { companyId:
 }
 
 function NewCompanyModal({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
-  const plansData = useQuery({
-    queryKey: ['platform', 'plans'],
-    queryFn: () => api.platform.listPlans(),
-  });
+  const plansData = useQuery(() => api.platform.listPlans(), []);
 
   const [form, setForm] = useState<CreatePlatformCompanyInput & { planId?: string }>({
     name: '', document: '', slug: '', maxUsers: 10, maxEmployees: 20,
@@ -478,10 +475,10 @@ function F({ label, value, onChange, type = 'text', required }: { label: string;
 function CompanyManageModal({ company, onClose, onSave, loading, error }: { company: PlatformCompany; onClose: () => void; onSave: (data: any) => void; loading: boolean; error: string | null }) {
   const [activeTab, setActiveTab] = useState<string>('plan');
 
-  const plansData = useQuery({ queryKey: ['platform', 'plans'], queryFn: () => api.platform.listPlans() });
+  const plansData = useQuery(() => api.platform.listPlans(), []);
   const [maxUsers, setMaxUsers] = useState(company.maxUsers);
   const [maxEmployees, setMaxEmployees] = useState(company.maxEmployees ?? 1);
-  const [plan, setPlan] = useState(company.platformPlanId || company.plan || 'FREE');
+  const [plan, setPlan] = useState((company as any).platformPlanId || company.plan || 'FREE');
   const [billingStatus, setBillingStatus] = useState(company.billingStatus ?? 'TRIAL');
   const [trialEndsAt, setTrialEndsAt] = useState(safeIsoDate(company.trialEndsAt));
   const [activeModules, setActiveModules] = useState<string[]>(company.activeModules || ['employees', 'time-track', 'vacations', 'management', 'whatsapp']);
@@ -497,7 +494,7 @@ function CompanyManageModal({ company, onClose, onSave, loading, error }: { comp
     const pdfCompanyData = { 
       name: company.name, 
       document: company.document || 'N/A', 
-      address: company.address || 'Não informado', 
+      address: (company as any).address || 'Não informado',
       city: '', state: '' 
     };
 
@@ -600,7 +597,7 @@ function CompanyManageModal({ company, onClose, onSave, loading, error }: { comp
                   </div>
                   <div>
                     <label className="mb-2 block text-[11px] font-black uppercase tracking-wider text-slate-500">Status de Faturamento</label>
-                    <select value={billingStatus} onChange={(e) => setBillingStatus(e.target.value)} className="h-9 w-full rounded-[6px] border border-slate-200 px-3 text-sm font-semibold outline-none focus:border-teal-500 bg-white">
+                    <select value={billingStatus} onChange={(e) => setBillingStatus(e.target.value as any)} className="h-9 w-full rounded-[6px] border border-slate-200 px-3 text-sm font-semibold outline-none focus:border-teal-500 bg-white">
                       <option value="TRIAL">Em Teste (Trial)</option>
                       <option value="ACTIVE">Ativo</option>
                       <option value="PAST_DUE">Inadimplente</option>
