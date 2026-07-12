@@ -83,6 +83,10 @@ export class WhatsappProvider {
           const loggedOut = update.lastDisconnect?.error?.output?.statusCode === DisconnectReason.loggedOut;
           this.sessions.delete(companyId);
           if (loggedOut) {
+            try {
+              const authDir = join(process.cwd(), 'storage', 'whatsapp', companyId);
+              require('fs').rmSync(authDir, { recursive: true, force: true });
+            } catch (e) {}
             this.setSnapshot(companyId, {
               status: 'DISCONNECTED',
               qrCode: null,
