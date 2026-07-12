@@ -5,6 +5,7 @@ import { useRouter , useParams } from 'next/navigation';
 import { Check, Clock3, MapPin, AlertTriangle, FileEdit } from 'lucide-react';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useMutation, useQuery } from '@/app/hooks/use-data';
+import { useQueryClient } from '@tanstack/react-query';
 import { api, type Employee, type PunchType, type TimeTrack } from '@/app/lib/api';
 
 import dynamic from 'next/dynamic';
@@ -98,6 +99,7 @@ function ClockDisplay() {
 export default function ClockInPage() {
   const params = useParams();
   const tenant = params?.tenant || '';
+  const queryClient = useQueryClient();
 
   const router = useRouter();
   const { user } = useAuth();
@@ -191,6 +193,7 @@ export default function ClockInPage() {
     },
     {
       onSuccess: (_data, params) => {
+        queryClient.invalidateQueries(['time-track']);
         const labels: Record<PunchType, string> = { ENTRY: 'Entrada', LUNCH_START: 'Saida almoco', LUNCH_RETURN: 'Retorno almoco', EXIT: 'Saida' };
         const label = labels[params.type];
         setSuccess(params.manual ? `${label} manual registrada! Aguardando aprovacao do gestor.` : 'Ponto registrado com sucesso!');
