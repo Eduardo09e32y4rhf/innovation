@@ -85,15 +85,15 @@ function PasswordChangeSection({ changePassword }: { changePassword: (current: s
   const inputClass = 'h-11 w-full rounded-[10px] border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-900 shadow-sm outline-none transition-all focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10';
 
   return (
-    <section className="overflow-hidden rounded-[8px] border border-slate-200 bg-white shadow-sm">
-      <div className="border-b border-slate-200 bg-slate-50 px-6 py-5">
+    <section className="overflow-hidden rounded-[18px] border border-slate-200/60 bg-white shadow-[0_8px_30px_rgba(15,23,42,0.08)]">
+      <div className="border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white px-6 py-5">
         <div className="flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-[6px] bg-teal-100">
-            <Shield size={16} className="text-teal-600" />
+          <div className="flex h-9 w-9 items-center justify-center rounded-[8px] bg-gradient-to-br from-teal-500 to-cyan-600 shadow-md">
+            <Shield size={16} className="text-white" />
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-slate-800">Segurança da conta</h3>
-            <p className="text-xs text-slate-500">Política de senha forte e proteção de acesso</p>
+            <h3 className="text-sm font-black text-slate-950">Segurança da conta</h3>
+            <p className="text-xs font-semibold text-slate-500">Política de senha forte e proteção de acesso</p>
           </div>
         </div>
       </div>
@@ -143,8 +143,8 @@ function PasswordChangeSection({ changePassword }: { changePassword: (current: s
           </label>
         </div>
 
-        <button type="button" onClick={handleSubmit} disabled={!valid || loading} className="mt-5 inline-flex h-10 items-center gap-2 rounded-[6px] bg-teal-600 px-5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-teal-700 active:scale-[0.98] disabled:opacity-60">
-          <Lock size={16} strokeWidth={2} />
+        <button type="button" onClick={handleSubmit} disabled={!valid || loading} className="crystal-button mt-5 inline-flex h-10 items-center gap-2 rounded-[10px] bg-gradient-to-r from-teal-500 to-cyan-600 px-5 text-xs font-black text-white shadow-lg shadow-teal-500/25 transition-all hover:-translate-y-0.5 hover:shadow-xl active:translate-y-0 disabled:opacity-60">
+          <Lock size={14} strokeWidth={2.5} />
           {loading ? 'Salvando...' : 'Alterar senha'}
         </button>
 

@@ -239,23 +239,25 @@ export default function VacationsPage() {
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
-      {/* Clean Header */}
-      <section className="mb-6 rounded-[8px] border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      {/* Premium Header */}
+      <section className="group relative overflow-hidden rounded-[24px] border border-slate-200/60 bg-gradient-to-br from-white via-slate-50/30 to-teal-50/20 p-6 shadow-[0_20px_70px_-15px_rgba(15,23,42,0.12)] transition-all duration-500 hover:shadow-[0_25px_80px_-15px_rgba(15,23,42,0.18)] sm:p-8">
+        <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-gradient-to-br from-teal-100/40 to-cyan-100/30 blur-3xl" />
+        <div className="absolute -bottom-16 -left-16 h-48 w-48 rounded-full bg-gradient-to-tr from-blue-100/30 to-teal-100/20 blur-2xl" />
+        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <div className="inline-flex items-center gap-2">
-              <div className="h-2 w-2 rounded-full bg-teal-500" />
-              <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-slate-500">Gestão de Férias</p>
+            <div className="inline-flex items-center gap-2 rounded-full border border-teal-200/60 bg-gradient-to-r from-teal-50 to-cyan-50 px-4 py-1.5 shadow-sm">
+              <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-teal-500" />
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-teal-700">Férias</p>
             </div>
-            <h1 className="mt-2 text-2xl font-semibold text-slate-800">
+            <h1 className="mt-3 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 bg-clip-text text-3xl font-black tracking-tight text-transparent lg:text-4xl">
               {isGestor ? 'Férias da equipe' : 'Solicitações'}
             </h1>
           </div>
           <button
             onClick={() => setOpen(true)}
-            className="inline-flex h-10 items-center gap-2 rounded-[6px] bg-teal-600 px-5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-teal-700 active:scale-[0.98]"
+            className="crystal-button inline-flex h-11 items-center gap-2 rounded-[10px] bg-gradient-to-r from-teal-500 to-cyan-600 px-5 text-xs font-black text-white shadow-lg shadow-teal-500/25 transition-all hover:-translate-y-0.5 hover:shadow-xl hover:shadow-teal-500/30 active:translate-y-0"
           >
-            <Plus size={16} strokeWidth={2} />
+            <Plus size={15} strokeWidth={2.5} />
             Nova solicitação
           </button>
         </div>
@@ -306,9 +308,9 @@ export default function VacationsPage() {
       )}
 
       {tab === 'alerts' ? (
-        <section className="overflow-hidden rounded-[8px] border border-amber-200 bg-white shadow-sm">
+        <section className="overflow-hidden rounded-[18px] border border-amber-200/60 bg-white shadow-[0_12px_40px_rgba(15,23,42,0.08)] transition-all duration-300 hover:shadow-[0_20px_50px_rgba(15,23,42,0.12)]">
           <div className="border-b border-amber-100 bg-amber-50/50 px-5 py-4">
-            <h3 className="text-sm font-semibold text-amber-900">Avisos de Férias Obrigatórias (CLT)</h3>
+            <h3 className="text-sm font-black text-amber-900">Avisos de Férias Obrigatórias (CLT)</h3>
             <p className="mt-1 text-xs text-amber-700">Funcionários com período concessivo avançado. A CLT exige que as férias sejam concedidas até 11 meses após o período aquisitivo — após isso, a empresa paga em dobro.</p>
           </div>
           <div className="overflow-x-auto">
@@ -339,11 +341,11 @@ export default function VacationsPage() {
                     <tr key={emp.id} className="group transition-all duration-200 hover:bg-slate-50/40">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className={`flex h-10 w-10 items-center justify-center rounded-[6px] text-sm font-bold text-slate-700 bg-slate-100`}>
+                          <div className={`flex h-10 w-10 items-center justify-center rounded-[10px] text-sm font-black text-white shadow-sm ${bgClass}`}>
                             {emp.name?.charAt(0).toUpperCase() || '?'}
                           </div>
                           <div>
-                            <p className="text-sm font-semibold text-slate-800">{normalizeDisplayName(emp.name) ?? '—'}</p>
+                            <p className="text-sm font-black text-slate-950">{normalizeDisplayName(emp.name) ?? '—'}</p>
                             {isUrgent && (
                               <p className="text-[10px] font-bold text-rose-600 flex items-center gap-1 mt-0.5">
                                 <AlertTriangle size={10} strokeWidth={2.5} />
@@ -389,7 +391,7 @@ export default function VacationsPage() {
       ) : rows.length === 0 ? (
         <EmptyState message="Nenhuma solicitação de férias registrada." />
       ) : (
-        <section className="overflow-hidden rounded-[8px] border border-slate-200 bg-white shadow-sm">
+        <section className="overflow-hidden rounded-[18px] border border-slate-200/60 bg-white shadow-[0_12px_40px_rgba(15,23,42,0.08)] transition-all duration-300 hover:shadow-[0_20px_50px_rgba(15,23,42,0.12)]">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[900px] text-left">
               <thead>
@@ -436,11 +438,11 @@ export default function VacationsPage() {
                       )}
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-[6px] bg-slate-100 text-sm font-bold text-slate-700">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-[10px] bg-gradient-to-br from-teal-500 to-cyan-600 text-sm font-black text-white shadow-sm">
                             {row.employee?.name?.charAt(0).toUpperCase() || '?'}
                           </div>
                           <div>
-                            <p className="text-sm font-semibold text-slate-800">{normalizeDisplayName(row.employee?.name) ?? '—'}</p>
+                            <p className="text-sm font-black text-slate-950">{normalizeDisplayName(row.employee?.name) ?? '—'}</p>
                             {conflict.conflict && (
                               <p className="text-[10px] font-bold text-rose-600 flex items-center gap-1 mt-1">
                                 <AlertTriangle size={10} strokeWidth={2.5} />

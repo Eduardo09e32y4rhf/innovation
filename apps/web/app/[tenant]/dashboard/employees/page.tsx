@@ -99,21 +99,24 @@ export default function EmployeesPage() {
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
-      {/* Clean Header */}
-      <section className="mb-6 rounded-[8px] border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      {/* Premium Header */}
+      <section className="group relative overflow-hidden rounded-[24px] border border-slate-200/60 bg-gradient-to-br from-white via-slate-50/30 to-teal-50/20 p-6 shadow-[0_20px_70px_-15px_rgba(15,23,42,0.12)] transition-all duration-500 hover:shadow-[0_25px_80px_-15px_rgba(15,23,42,0.18)] sm:p-8">
+        <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-gradient-to-br from-teal-100/40 to-cyan-100/30 blur-3xl" />
+        <div className="absolute -bottom-16 -left-16 h-48 w-48 rounded-full bg-gradient-to-tr from-blue-100/30 to-teal-100/20 blur-2xl" />
+        
+        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <div className="inline-flex items-center gap-2">
-              <div className="h-2 w-2 rounded-full bg-teal-500" />
-              <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-slate-500">Funcionários</p>
+            <div className="inline-flex items-center gap-2 rounded-full border border-teal-200/60 bg-gradient-to-r from-teal-50 to-cyan-50 px-4 py-1.5 shadow-sm">
+              <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-teal-500" />
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-teal-700">Funcionários</p>
             </div>
-            <h1 className="mt-2 text-2xl font-semibold text-slate-800">
+            <h1 className="mt-3 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 bg-clip-text text-3xl font-black tracking-tight text-transparent lg:text-4xl">
               {isGestor ? 'Minha equipe' : 'Cadastro da equipe'}
             </h1>
           </div>
           {canEdit && (
-            <Link href={`/${tenant}/dashboard/employees/new`} className="inline-flex h-10 items-center gap-2 rounded-[6px] bg-teal-600 px-5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-teal-700 active:scale-[0.98]">
-              <UserPlus size={16} strokeWidth={2} />
+            <Link href={`/${tenant}/dashboard/employees/new`} className="crystal-button inline-flex h-11 items-center gap-2 rounded-[10px] bg-gradient-to-r from-teal-500 to-cyan-600 px-5 text-xs font-black text-white shadow-lg shadow-teal-500/25 transition-all hover:-translate-y-0.5 hover:shadow-xl hover:shadow-teal-500/30 active:translate-y-0">
+              <UserPlus size={15} strokeWidth={2.5} />
               Novo funcionário
             </Link>
           )}
@@ -122,36 +125,36 @@ export default function EmployeesPage() {
 
       {/* Stats Cards */}
       <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <div className="rounded-[8px] border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="group relative overflow-hidden rounded-[12px] border border-emerald-200/60 bg-gradient-to-br from-emerald-50 to-white p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-wider text-emerald-700">Ativos</p>
-              <p className="mt-1 text-xl font-bold text-slate-800">{activeCount}</p>
+              <p className="text-[11px] font-black uppercase tracking-wider text-emerald-700">Ativos</p>
+              <p className="mt-1 text-xl font-black text-slate-950">{activeCount}</p>
             </div>
-            <div className="flex h-10 w-10 items-center justify-center rounded-[6px] bg-emerald-100 text-emerald-600">
-              <Users size={18} strokeWidth={2} />
+            <div className="flex h-10 w-10 items-center justify-center rounded-[10px] bg-gradient-to-br from-emerald-500 to-teal-600 shadow-lg shadow-emerald-500/25">
+              <Users size={18} strokeWidth={2.5} className="text-white" />
             </div>
           </div>
         </div>
-        <div className="rounded-[8px] border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="group relative overflow-hidden rounded-[12px] border border-slate-200/60 bg-gradient-to-br from-slate-50 to-white p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Inativos</p>
-              <p className="mt-1 text-xl font-bold text-slate-800">{inactiveCount}</p>
+              <p className="text-[11px] font-black uppercase tracking-wider text-slate-600">Inativos</p>
+              <p className="mt-1 text-xl font-black text-slate-950">{inactiveCount}</p>
             </div>
-            <div className="flex h-10 w-10 items-center justify-center rounded-[6px] bg-slate-100 text-slate-600">
-              <Users size={18} strokeWidth={2} />
+            <div className="flex h-10 w-10 items-center justify-center rounded-[10px] bg-gradient-to-br from-slate-400 to-slate-500 shadow-lg shadow-slate-500/25">
+              <Users size={18} strokeWidth={2.5} className="text-white" />
             </div>
           </div>
         </div>
-        <div className="rounded-[8px] border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="group relative overflow-hidden rounded-[12px] border border-rose-200/60 bg-gradient-to-br from-rose-50 to-white p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-wider text-rose-700">Desligados</p>
-              <p className="mt-1 text-xl font-bold text-slate-800">{terminatedCount}</p>
+              <p className="text-[11px] font-black uppercase tracking-wider text-rose-700">Desligados</p>
+              <p className="mt-1 text-xl font-black text-slate-950">{terminatedCount}</p>
             </div>
-            <div className="flex h-10 w-10 items-center justify-center rounded-[6px] bg-rose-100 text-rose-600">
-              <UserMinus size={18} strokeWidth={2} />
+            <div className="flex h-10 w-10 items-center justify-center rounded-[10px] bg-gradient-to-br from-rose-500 to-pink-600 shadow-lg shadow-rose-500/25">
+              <XCircle size={18} strokeWidth={2.5} className="text-white" />
             </div>
           </div>
         </div>
@@ -484,45 +487,49 @@ function downloadEmployeeSheet(employee: Employee, rows: TimeTrack[], month: str
     { label: 'CPF', value: employee.cpf || '-' },
     { label: 'Cargo', value: employee.position || '-' },
     { label: 'Departamento', value: employee.department || '-' },
+    { label: 'Gestor', value: managerName || '-' },
     { label: 'Admissão', value: formatDate(employee.admissionDate) },
     { label: 'Período', value: monthLabelText },
   ];
 
-  const tableHeaders = ['Data', 'Dia', '1a E', '1a S', '2a E', '2a S', 'Trabalhado', 'Saldo', 'Observação', 'Assinatura'];
+  const tableHeaders = ['Data', 'Entrada', 'Saída Almoço', 'Retorno Almoço', 'Saída', 'Trabalhado', 'Saldo', 'Ocorrência', 'Assinatura Diária'];
   const tableRows = grid.map((g) => {
     const WEEKDAYS = ['DOM','SEG','TER','QUA','QUI','SEX','SÁB'];
     const wd = WEEKDAYS[g.wd];
-    const dateStr = String(g.day).padStart(2,'0');
+    const dateStr = `${String(g.day).padStart(2,'0')} - ${wd}`;
 
     if (g.isFuture) {
-      return `<tr><td style="padding:2px 4px;font-size:7px;color:#cbd5e1;text-align:center;">${dateStr}</td><td style="padding:2px 4px;font-size:7px;color:#cbd5e1;text-align:center;">${wd}</td><td colspan="8" style="padding:2px 4px;font-size:7px;color:#cbd5e1;text-align:center;">—</td></tr>`;
+      return `<tr><td style="padding:4px 8px;font-size:8px;color:#cbd5e1;">${dateStr}</td><td colspan="8" style="padding:4px 8px;font-size:8px;color:#cbd5e1;text-align:center;">—</td></tr>`;
     }
     if (g.antesAdmissao) {
-      return `<tr><td style="padding:2px 4px;font-size:7px;color:#94a3b8;text-align:center;">${dateStr}</td><td style="padding:2px 4px;font-size:7px;color:#94a3b8;text-align:center;">${wd}</td><td colspan="8" style="padding:2px 4px;font-size:7px;color:#94a3b8;text-align:center;">ANTES DA ADMISSÃO</td></tr>`;
+      return `<tr><td style="padding:4px 8px;font-size:8px;color:#94a3b8;">${dateStr}</td><td colspan="8" style="padding:4px 8px;font-size:8px;color:#94a3b8;text-align:center;">ANTES DA ADMISSÃO</td></tr>`;
     }
 
     const t = g.track;
     if (!t) {
-      if (g.isRest) return `<tr><td style="padding:2px 4px;font-size:7px;color:#64748b;text-align:center;">${dateStr}</td><td style="padding:2px 4px;font-size:7px;color:#64748b;text-align:center;">${wd}</td><td colspan="8" style="padding:2px 4px;font-size:7px;color:#64748b;text-align:center;font-weight:700;">DSR / FOLGA</td></tr>`;
-      return `<tr><td style="padding:2px 4px;font-size:7px;color:#000000;font-weight:600;text-align:center;">${dateStr}</td><td style="padding:2px 4px;font-size:7px;color:#000000;font-weight:600;text-align:center;">${wd}</td><td colspan="8" style="padding:2px 4px;font-size:7px;color:#000000;text-align:center;font-weight:700;">FALTA NÃO JUSTIFICADA</td></tr>`;
+      if (g.isRest) return `<tr><td style="padding:4px 8px;font-size:8px;color:#64748b;">${dateStr}</td><td colspan="8" style="padding:4px 8px;font-size:8px;color:#64748b;text-align:center;font-weight:700;">DSR / FOLGA</td></tr>`;
+      return `<tr><td style="padding:4px 8px;font-size:8px;color:#e11d48;font-weight:600;">${dateStr}</td><td colspan="8" style="padding:4px 8px;font-size:8px;color:#e11d48;text-align:center;font-weight:700;">FALTA NÃO JUSTIFICADA</td></tr>`;
     }
 
     const balance = t.dailyBalance ?? 0;
+    const balanceColor = balance < 0 ? '#e11d48' : balance > 0 ? '#059669' : '#64748b';
     const hasMissing = !t.entry || !t.exit;
     let ocorrencia = dayStatus(t);
     if (ocorrencia === 'NORMAL' && hasMissing) ocorrencia = 'FALTA DE MARCAÇÃO';
     
+    // Almoço dummy split (if there is an observation with lunch time, we can parse it, else just leave empty or show the format)
+    // The current TimeTrack model only has entry and exit. It doesn't have 4 punches yet. We leave lunch blank or '--:--'.
+    
     return `<tr>
-      <td style="padding:2px 4px;font-size:7px;font-weight:600;color:#000000;text-align:center;">${dateStr}</td>
-      <td style="padding:2px 4px;font-size:7px;color:#000000;text-align:center;">${wd}</td>
-      <td style="padding:2px 4px;font-size:7px;color:#000000;text-align:center;">${escapeHtml(formatTime(t.entry))}</td>
-      <td style="padding:2px 4px;font-size:7px;color:#000000;text-align:center;">--:--</td>
-      <td style="padding:2px 4px;font-size:7px;color:#000000;text-align:center;">--:--</td>
-      <td style="padding:2px 4px;font-size:7px;color:#000000;text-align:center;">${escapeHtml(formatTime(t.exit))}</td>
-      <td style="padding:2px 4px;font-size:7px;font-weight:700;color:#000000;text-align:center;">${escapeHtml(formatMinutes(t.totalWorked))}</td>
-      <td style="padding:2px 4px;font-size:7px;font-weight:700;color:#000000;text-align:center;">${escapeHtml(formatMinutes(balance))}</td>
-      <td style="padding:2px 4px;font-size:6px;color:#000000;">${escapeHtml(ocorrencia !== 'NORMAL' ? ocorrencia : '')}</td>
-      <td style="padding:2px 4px;font-size:7px;color:#000000;border-bottom:1px dashed #000000;"></td>
+      <td style="padding:4px 8px;font-size:8px;font-weight:600;color:#0f172a;">${dateStr}</td>
+      <td style="padding:4px 8px;font-size:8px;color:#334155;text-align:center;">${escapeHtml(formatTime(t.entry))}</td>
+      <td style="padding:4px 8px;font-size:8px;color:#94a3b8;text-align:center;">--:--</td>
+      <td style="padding:4px 8px;font-size:8px;color:#94a3b8;text-align:center;">--:--</td>
+      <td style="padding:4px 8px;font-size:8px;color:#334155;text-align:center;">${escapeHtml(formatTime(t.exit))}</td>
+      <td style="padding:4px 8px;font-size:8px;font-weight:700;color:#0f172a;text-align:center;">${escapeHtml(formatMinutes(t.totalWorked))}</td>
+      <td style="padding:4px 8px;font-size:8px;font-weight:700;color:${balanceColor};text-align:center;">${escapeHtml(formatMinutes(balance))}</td>
+      <td style="padding:4px 8px;font-size:7px;color:#64748b;">${escapeHtml(ocorrencia !== 'NORMAL' ? ocorrencia : '')}</td>
+      <td style="padding:4px 8px;font-size:8px;color:#cbd5e1;border-bottom:1px dashed #e2e8f0;"></td>
     </tr>`;
   });
 
@@ -542,27 +549,36 @@ function downloadEmployeeSheet(employee: Employee, rows: TimeTrack[], month: str
     ${section('Registros de Ponto Diário', pdfTable(tableHeaders, tableRows, { compact: true }))}
 
     ${section('Resumo do Período', `
-      <table style="width:100%;font-size:8px;border-collapse:collapse;border:1px solid #000;">
-        <tr>
-          <td style="border:1px solid #000;padding:4px;font-weight:bold;">Dias Trabalhados:</td>
-          <td style="border:1px solid #000;padding:4px;">${validTracks.length}</td>
-          <td style="border:1px solid #000;padding:4px;font-weight:bold;">Total Horas Trabalhadas:</td>
-          <td style="border:1px solid #000;padding:4px;">${escapeHtml(formatMinutes(totalWorked))}</td>
-          <td style="border:1px solid #000;padding:4px;font-weight:bold;">Horas Extras:</td>
-          <td style="border:1px solid #000;padding:4px;">${escapeHtml(formatMinutes(positiveBalance))}</td>
-        </tr>
-        <tr>
-          <td style="border:1px solid #000;padding:4px;font-weight:bold;">Faltas Integrais:</td>
-          <td style="border:1px solid #000;padding:4px;">${faltasCount}</td>
-          <td style="border:1px solid #000;padding:4px;font-weight:bold;">Atrasos/Saídas Antecipadas:</td>
-          <td style="border:1px solid #000;padding:4px;">${escapeHtml(formatMinutes(negativeBalance))}</td>
-          <td style="border:1px solid #000;padding:4px;font-weight:bold;background:#f0f0f0;">Saldo Mês:</td>
-          <td style="border:1px solid #000;padding:4px;font-weight:bold;background:#f0f0f0;">${escapeHtml(formatMinutes(totalBalance))}</td>
-        </tr>
-      </table>
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;">
+        <div style="background:#f0fdfa;border:1px solid #ccfbf1;border-radius:8px;padding:12px;text-align:center;">
+          <div style="font-size:8px;font-weight:800;text-transform:uppercase;color:#0f766e;letter-spacing:0.05em;">Dias Trabalhados</div>
+          <div style="font-size:16px;font-weight:900;color:#0f172a;margin-top:4px;">${validTracks.length}</div>
+        </div>
+        <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px;text-align:center;">
+          <div style="font-size:8px;font-weight:800;text-transform:uppercase;color:#e11d48;letter-spacing:0.05em;">Faltas Integrais</div>
+          <div style="font-size:16px;font-weight:900;color:#e11d48;margin-top:4px;">${faltasCount}</div>
+        </div>
+        <div style="background:#f0fdfa;border:1px solid #ccfbf1;border-radius:8px;padding:12px;text-align:center;">
+          <div style="font-size:8px;font-weight:800;text-transform:uppercase;color:#0f766e;letter-spacing:0.05em;">Total Horas</div>
+          <div style="font-size:16px;font-weight:900;color:#0f172a;margin-top:4px;">${escapeHtml(formatMinutes(totalWorked))}</div>
+        </div>
+        <div style="background:#f0fdfa;border:1px solid #ccfbf1;border-radius:8px;padding:12px;text-align:center;">
+          <div style="font-size:8px;font-weight:800;text-transform:uppercase;color:#0f766e;letter-spacing:0.05em;">Horas Extras</div>
+          <div style="font-size:16px;font-weight:900;color:#059669;margin-top:4px;">${escapeHtml(formatMinutes(positiveBalance))}</div>
+        </div>
+        <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px;text-align:center;">
+          <div style="font-size:8px;font-weight:800;text-transform:uppercase;color:#e11d48;letter-spacing:0.05em;">Horas Atraso</div>
+          <div style="font-size:16px;font-weight:900;color:#e11d48;margin-top:4px;">${escapeHtml(formatMinutes(negativeBalance))}</div>
+        </div>
+      </div>
+      <div style="margin-top:16px;background:#f8fafc;padding:16px;border-radius:8px;font-size:12px;color:#334155;font-weight:700;text-align:center;border:1px solid #e2e8f0;">
+        SALDO DO BANCO DE HORAS NESTE MÊS: <span style="font-weight:900;color:${totalBalance < 0 ? '#e11d48' : totalBalance > 0 ? '#059669' : '#64748b'};">
+          ${escapeHtml(formatMinutes(totalBalance))}
+        </span>
+      </div>
     `)}
 
-    ${signatureBlock(['Assinatura do Colaborador', 'Assinatura do Responsável'])}
+    ${signatureBlock(['Assinatura do Colaborador', 'Assinatura do RH / Responsável'])}
   `);
 
   printPdf(html, `folha-ponto-${slugify(employee.name)}-${month}.pdf`);

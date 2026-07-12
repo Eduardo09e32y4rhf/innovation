@@ -54,13 +54,35 @@ function DashboardContent() {
   const rhAlertData = rhAlerts.data;
   const notificationWidgetData = notificationsWidget.data;
 
-  // Compute real indicators
-  const pendingTimeTracks = (timeTrackData ?? []).filter(t => t.manualStatus === 'pending').length;
-  const pendingVacations = (vacationData ?? []).filter(v => v.status === 'PENDING').length;
+  // Compute real indicators dynamically based on selected month (dashMonth)
+  const isSelectedMonth = (dateStr: string | null | undefined) => {
+    if (!dashMonth || !dateStr) return false;
+    return dateStr.startsWith(dashMonth);
+  };
+
+  const filteredTimeTracks = useMemo(() => {
+    return timeTrackData.filter((row) => {
+      if (dashMonth && !row.date.startsWith(dashMonth)) return false;
+      if (dashDept && row.employee?.department !== dashDept) return false;
+      return true;
+    });
+  }, [timeTrackData, dashMonth, dashDept]);
+
+  const filteredVacations = useMemo(() => {
+    return vacationData.filter((row) => {
+      if (dashDept && row.employee?.department !== dashDept) return false;
+      return true;
+    });
+  }, [vacationData, dashDept]);
+
+  const pendingTimeTracks = filteredTimeTracks.filter(t => t.manualStatus === 'pending').length;
+  const pendingVacations = filteredVacations.filter(v => v.status === 'PENDING').length;
   const employeesNoManager = (employees.data ?? []).filter(e => !e.managerId).length;
   const employeesNoAccess = (employees.data ?? []).filter(e => !e.userId).length;
-  const admissionsThisMonth = insightData?.movements.admissionsThisMonth ?? 0;
-  const terminationsThisMonth = insightData?.movements.terminationsThisMonth ?? 0;
+  
+  // Local movements tracking based on the selected month
+  const admissionsThisMonth = (employees.data ?? []).filter(e => isSelectedMonth(e.admissionDate)).length;
+  const terminationsThisMonth = (employees.data ?? []).filter(e => isSelectedMonth(e.terminationDate)).length;
 
   const heroTitle = isFuncionario ? 'Meu painel' : isGestor ? 'Painel da equipe' : isConsulta ? 'Painel de consulta' : 'Painel executivo';
   const heroH2 = isFuncionario
@@ -77,20 +99,10 @@ function DashboardContent() {
     { label: 'Exportar folha', href: `/${tenant}/dashboard/time-track/closing`, icon: Download, color: 'amber' },
   ];
 
-  const filteredTimeTracks = useMemo(() => {
-    return timeTrackData.filter((row) => {
-      if (dashMonth && !row.date.startsWith(dashMonth)) return false;
-      if (dashDept && row.employee?.department !== dashDept) return false;
-      return true;
-    });
-  }, [timeTrackData, dashMonth, dashDept]);
-  
-  const filteredVacations = useMemo(() => {
-    return vacationData.filter((row) => {
-      if (dashDept && row.employee?.department !== dashDept) return false;
-      return true;
-    });
-  }, [vacationData, dashDept]);
+  if (profile === 'DEV') {
+    actionShortcuts.push({ label: 'Envelope de pagamento', href: '#', icon: FileText, color: 'slate', onClick: () => alert('Em desenvolvimento') });
+  }
+
 
   const { birthdays, workAnniversaries } = useMemo(() => {
     const b: any[] = [];
@@ -119,42 +131,48 @@ function DashboardContent() {
 
   return (
 <div className="mx-auto max-w-7xl space-y-4 px-3 py-4 sm:px-6 lg:px-8">
-      {/* Clean Header Section */}
-      <section className="mb-6">
-        <h1 className="text-2xl font-light text-slate-800">Olá, <span className="font-semibold uppercase">{user?.name?.split(' ')[0] ?? 'Usuário'}</span></h1>
-        <p className="text-sm font-medium text-slate-500">{isFuncionario ? 'Seus indicadores e atalhos em um só lugar.' : isGestor ? 'Indicadores da sua equipe em tempo real.' : 'Visão completa da operação de RH.'}</p>
-      </section>
-
-      {/* Action Shortcuts (Mais Acessados) */}
-      <section className="mb-8">
-        <h2 className="mb-4 text-lg font-semibold text-slate-700">Mais acessados</h2>
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
-          <Link href={`/${tenant}/dashboard/time-track`} className="flex flex-col items-center justify-center gap-3 rounded-[8px] border border-slate-200 bg-white p-4 text-slate-600 transition-colors hover:bg-slate-50">
-            <Clock3 size={24} strokeWidth={1.5} className="text-teal-600" />
-            <span className="text-center text-xs font-semibold">Bater ponto</span>
-          </Link>
-          <Link href={`/${tenant}/dashboard/time-track/closing`} className="flex flex-col items-center justify-center gap-3 rounded-[8px] border border-slate-200 bg-white p-4 text-slate-600 transition-colors hover:bg-slate-50">
-            <FileText size={24} strokeWidth={1.5} className="text-teal-600" />
-            <span className="text-center text-xs font-semibold">Espelho de ponto</span>
-          </Link>
-          <div className="flex flex-col items-center justify-center gap-3 rounded-[8px] border border-slate-200 bg-slate-50/50 p-4 text-slate-400 opacity-60">
-            <FileText size={24} strokeWidth={1.5} />
-            <span className="text-center text-xs font-semibold">Envelope de pagamento</span>
+      {/* Premium Hero Section */}
+      <section className="group relative overflow-hidden rounded-[24px] border border-slate-200/60 bg-gradient-to-br from-white via-slate-50/30 to-teal-50/20 p-6 shadow-[0_20px_70px_-15px_rgba(15,23,42,0.12)] transition-all duration-500 hover:shadow-[0_25px_80px_-15px_rgba(15,23,42,0.18)] sm:p-8">
+        <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-gradient-to-br from-teal-100/40 to-cyan-100/30 blur-3xl" />
+        <div className="absolute -bottom-16 -left-16 h-48 w-48 rounded-full bg-gradient-to-tr from-blue-100/30 to-teal-100/20 blur-2xl" />
+        <div className="relative">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="inline-flex items-center gap-2 rounded-full border border-teal-200/60 bg-gradient-to-r from-teal-50 to-cyan-50 px-4 py-1.5 shadow-sm">
+              <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-teal-500" />
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-teal-700">{heroTitle}</p>
+            </div>
           </div>
-          <Link href={`/${tenant}/dashboard/vacations`} className="flex flex-col items-center justify-center gap-3 rounded-[8px] border border-slate-200 bg-white p-4 text-slate-600 transition-colors hover:bg-slate-50">
-            <CalendarDays size={24} strokeWidth={1.5} className="text-teal-600" />
-            <span className="text-center text-xs font-semibold">Férias</span>
-          </Link>
-          <div className="flex flex-col items-center justify-center gap-3 rounded-[8px] border border-slate-200 bg-slate-50/50 p-4 text-slate-400 opacity-60">
-            <FileText size={24} strokeWidth={1.5} />
-            <span className="text-center text-xs font-semibold">Informe de rendimentos</span>
-          </div>
-          <div className="flex flex-col items-center justify-center gap-3 rounded-[8px] border border-slate-200 bg-slate-50/50 p-4 text-slate-400 opacity-60">
-            <Users size={24} strokeWidth={1.5} />
-            <span className="text-center text-xs font-semibold">Dependentes</span>
-          </div>
+          <h1 className="mt-4 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 bg-clip-text text-3xl font-black tracking-tight text-transparent lg:text-4xl">{heroH2}</h1>
+          <p className="mt-2 text-sm font-semibold text-slate-500">{isFuncionario ? 'Seus indicadores pessoais de jornada e ponto.' : isGestor ? 'Indicadores da sua equipe em tempo real.' : 'Visão completa da operação de RH.'}</p>
         </div>
       </section>
+
+      {/* Action Shortcuts */}
+      {!isFuncionario && !isCommercial && (
+        <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {actionShortcuts.map((action) => {
+            const Icon = action.icon;
+            const colorMap: Record<string, string> = {
+              teal: 'from-teal-500 to-cyan-600 shadow-teal-500/25 hover:shadow-teal-500/30',
+              indigo: 'from-indigo-500 to-violet-600 shadow-indigo-500/25 hover:shadow-indigo-500/30',
+              emerald: 'from-emerald-500 to-teal-600 shadow-emerald-500/25 hover:shadow-emerald-500/30',
+              amber: 'from-amber-500 to-orange-600 shadow-amber-500/25 hover:shadow-amber-500/30',
+              slate: 'from-slate-700 to-slate-900 shadow-slate-500/25 hover:shadow-slate-500/30',
+            };
+            return action.onClick ? (
+              <button key={action.label} type="button" onClick={action.onClick} className={`flex items-center gap-3 rounded-[14px] bg-gradient-to-r ${colorMap[action.color]} p-4 text-xs font-black text-white shadow-lg transition-all duration-200 hover:shadow-xl active:scale-[0.98]`}>
+                <Icon size={18} strokeWidth={2.5} className="shrink-0" />
+                <span className="leading-tight">{action.label}</span>
+              </button>
+            ) : (
+              <Link key={action.label} href={action.href} className={`flex items-center gap-3 rounded-[14px] bg-gradient-to-r ${colorMap[action.color]} p-4 text-xs font-black text-white shadow-lg transition-all duration-200 hover:shadow-xl active:scale-[0.98]`}>
+                <Icon size={18} strokeWidth={2.5} className="shrink-0" />
+                <span className="leading-tight">{action.label}</span>
+              </Link>
+            );
+          })}
+        </section>
+      )}
 
       {/* Filters */}
       {!isFuncionario && !isCommercial && (
@@ -179,7 +197,7 @@ function DashboardContent() {
       ) : (
         <>
           {/* Main KPI Cards */}
-          <section className={`grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4`}>
+          <section className={`grid grid-cols-1 gap-4 sm:grid-cols-2 ${isFuncionario ? '' : 'lg:grid-cols-4'}`}>
             <MetricCard 
               label="Funcionários ativos" 
               value={summaryData?.activeEmployees} 
@@ -196,88 +214,47 @@ function DashboardContent() {
               detail="jornadas registradas"
               loading={summary.loading}
             />
-            <MetricCard 
-              label="Férias pendentes" 
-              value={pendingVacations} 
-              icon={CalendarDays} 
-              detail="aguardando decisão"
-              alert={pendingVacations > 0}
-              loading={summary.loading}
-            />
-            <MetricCard 
-              label="Banco de horas" 
-              value={summaryData ? formatMinutes(summaryData.totalTimeBalance) : undefined} 
-              icon={TrendingUp} 
-              detail="saldo consolidado"
-              loading={summary.loading}
-            />
-          </section>
-
-          {/* Alert & Action Cards */}
-          <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {/* Eventos / Aniversários */}
-            <div className="rounded-[8px] border border-slate-200 bg-white p-5">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-[13px] font-semibold text-slate-700">Eventos</h3>
-                <Cake size={18} strokeWidth={2} className="text-teal-600" />
-              </div>
-              <div className="space-y-4">
-                {birthdays.length > 0 ? (
-                  <div className="flex items-center gap-4">
-                    <div className="flex -space-x-3">
-                      {birthdays.slice(0, 3).map((b, i) => (
-                        <div key={b.id} className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-white bg-slate-200 text-xs font-bold text-slate-600 shadow-sm" style={{ zIndex: 10 - i }}>
-                          {b.name?.charAt(0)?.toUpperCase() || 'U'}
-                        </div>
-                      ))}
-                    </div>
-                    <div>
-                      <h4 className="text-xs font-bold text-slate-700 leading-tight">
-                        <span className="uppercase">{birthdays[0]?.name?.split(' ')[0]}</span>
-                        {birthdays.length > 1 && ` e mais ${birthdays.length - 1} pessoas`}
-                      </h4>
-                      <p className="text-[10px] text-slate-500 leading-none mt-0.5">fazem aniversário esse mês</p>
-                    </div>
-                  </div>
-                ) : (
-                  <p className="text-xs text-slate-500">Nenhum aniversariante esse mês.</p>
-                )}
-              </div>
-            </div>
-
-            {/* Meu Saldo de Horas */}
-            <div className="rounded-[8px] border border-slate-200 bg-white p-5 lg:col-span-2">
-              <h3 className="mb-4 text-[13px] font-semibold text-slate-700">Meu Saldo de Horas</h3>
-              <div className="flex flex-col items-center justify-center">
-                <p className={`text-4xl font-bold tracking-tight ${summaryData?.totalTimeBalance && summaryData.totalTimeBalance < 0 ? 'text-rose-600' : summaryData?.totalTimeBalance && summaryData.totalTimeBalance > 0 ? 'text-teal-600' : 'text-slate-400'}`}>
-                  {summaryData?.totalTimeBalance ? formatMinutes(summaryData.totalTimeBalance) : '00:00'}
-                </p>
-                <p className="mt-1 text-xs text-slate-500">{summaryData?.totalTimeBalance && summaryData.totalTimeBalance < 0 ? 'Horas negativas' : 'Horas positivas'}</p>
-              </div>
-            </div>
-
-            {/* Pendências */}
             {!isFuncionario && (
-            <div className="rounded-[8px] border border-amber-200 bg-amber-50/30 p-5">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-[13px] font-semibold text-amber-900">Pendências</h3>
-                <AlertCircle size={18} strokeWidth={2} className="text-amber-600" />
-              </div>
-              <div className="space-y-2.5">
-                <PendencyItem label="Pontos manuais" count={pendingTimeTracks} href={`/${tenant}/dashboard/time-track`} />
-                <PendencyItem label="Férias" count={pendingVacations} href={`/${tenant}/dashboard/vacations`} />
-              </div>
-            </div>
+              <>
+                <MetricCard 
+                  label="Férias pendentes" 
+                  value={pendingVacations} 
+                  icon={CalendarDays} 
+                  detail="aguardando decisão"
+                  alert={pendingVacations > 0}
+                  loading={summary.loading}
+                />
+                <MetricCard 
+                  label="Banco de horas" 
+                  value={summaryData ? formatMinutes(summaryData.totalTimeBalance) : undefined} 
+                  icon={TrendingUp} 
+                  detail="saldo consolidado"
+                  loading={summary.loading}
+                />
+              </>
             )}
           </section>
 
+          {/* Alert & Action Cards */}
           {!isFuncionario && (
             <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {/* Cadastro */}
-              <div className="rounded-[8px] border border-rose-200 bg-rose-50/30 p-5">
+              {/* Pendências */}
+              <div className="rounded-[16px] border border-amber-200/60 bg-gradient-to-br from-amber-50 to-white p-5 shadow-sm">
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-[13px] font-semibold text-rose-900">Alertas cadastrais</h3>
-                  <UserX size={18} strokeWidth={2} className="text-rose-600" />
+                  <h3 className="text-xs font-black uppercase tracking-wider text-amber-800">Pendências</h3>
+                  <AlertCircle size={18} strokeWidth={2.5} className="text-amber-500" />
+                </div>
+                <div className="space-y-2.5">
+                  <PendencyItem label="Pontos manuais" count={pendingTimeTracks} href={`/${tenant}/dashboard/time-track`} />
+                  <PendencyItem label="Férias" count={pendingVacations} href={`/${tenant}/dashboard/vacations`} />
+                </div>
+              </div>
+
+              {/* Cadastro */}
+              <div className="rounded-[16px] border border-rose-200/60 bg-gradient-to-br from-rose-50 to-white p-5 shadow-sm">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-xs font-black uppercase tracking-wider text-rose-800">Alertas cadastrais</h3>
+                  <UserX size={18} strokeWidth={2.5} className="text-rose-500" />
                 </div>
                 <div className="space-y-2.5">
                   <PendencyItem label="Sem gestor" count={employeesNoManager} href={`/${tenant}/dashboard/employees`} />
@@ -292,10 +269,10 @@ function DashboardContent() {
               </div>
 
               {/* Movimentações */}
-              <div className="rounded-[8px] border border-teal-200 bg-teal-50/30 p-5">
+              <div className="rounded-[16px] border border-teal-200/60 bg-gradient-to-br from-teal-50 to-white p-5 shadow-sm">
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-[13px] font-semibold text-teal-900">Movimentações do mês</h3>
-                  <UserPlus size={18} strokeWidth={2} className="text-teal-600" />
+                  <h3 className="text-xs font-black uppercase tracking-wider text-teal-800">Movimentações do mês</h3>
+                  <UserPlus size={18} strokeWidth={2.5} className="text-teal-500" />
                 </div>
                 <div className="space-y-2.5">
                   <div className="flex items-center justify-between rounded-[8px] bg-teal-50/50 px-3 py-2.5">
@@ -316,10 +293,10 @@ function DashboardContent() {
               </div>
               
               {/* Datas Importantes */}
-              <div className="rounded-[8px] border border-slate-200 bg-white p-5">
+              <div className="rounded-[16px] border border-fuchsia-200/60 bg-gradient-to-br from-fuchsia-50 to-white p-5 shadow-sm">
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-[13px] font-semibold text-slate-700">Datas Importantes</h3>
-                  <Cake size={18} strokeWidth={2} className="text-slate-500" />
+                  <h3 className="text-xs font-black uppercase tracking-wider text-fuchsia-800">Datas Importantes</h3>
+                  <Cake size={18} strokeWidth={2.5} className="text-fuchsia-500" />
                 </div>
                 <div className="space-y-2.5 max-h-[160px] overflow-y-auto pr-1">
                   {birthdays.length === 0 && workAnniversaries.length === 0 && (
@@ -328,13 +305,13 @@ function DashboardContent() {
                   {birthdays.map(emp => (
                     <div key={`birth-${emp.id}`} className="flex items-center justify-between rounded-[8px] bg-fuchsia-50/50 px-3 py-2 text-xs">
                       <span className="font-bold text-fuchsia-800 line-clamp-1">{emp.name}</span>
-                      <span className="text-[10px] font-black uppercase text-fuchsia-600 bg-fuchsia-100 px-2 py-0.5 rounded-full shrink-0">Nascimento</span>
+                      <span className="text-[10px] font-black uppercase text-fuchsia-600 bg-fuchsia-100 px-2 py-0.5 rounded-full shrink-0">Aniversariantes</span>
                     </div>
                   ))}
                   {workAnniversaries.map(emp => (
                     <div key={`work-${emp.id}`} className="flex items-center justify-between rounded-[8px] bg-indigo-50/50 px-3 py-2 text-xs">
                       <span className="font-bold text-indigo-800 line-clamp-1">{emp.name}</span>
-                      <span className="text-[10px] font-black uppercase text-indigo-600 bg-indigo-100 px-2 py-0.5 rounded-full shrink-0">{emp.years} {emp.years === 1 ? 'ano' : 'anos'} de casa</span>
+                      <span className="text-[10px] font-black uppercase text-indigo-600 bg-indigo-100 px-2 py-0.5 rounded-full shrink-0">Tempo de casa</span>
                     </div>
                   ))}
                 </div>
@@ -344,12 +321,12 @@ function DashboardContent() {
 
           {/* Notifications Widget */}
           {!isFuncionario && !isCommercial && notificationWidgetData && (
-            <section className="rounded-[8px] border border-slate-200 bg-white overflow-hidden">
-              <div className="border-b border-slate-200 bg-slate-50 px-5 py-4">
+            <section className="rounded-[16px] border border-slate-200/60 bg-white shadow-sm overflow-hidden">
+              <div className="border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white px-5 py-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Bell size={16} strokeWidth={2} className="text-slate-600" />
-                    <h3 className="text-sm font-semibold text-slate-800">Central de Notificações</h3>
+                    <Bell size={16} strokeWidth={2.5} className="text-teal-600" />
+                    <h3 className="text-sm font-black text-slate-950">Central de Notificações</h3>
                   </div>
                   {notificationWidgetData.unreadCount > 0 && (
                     <span className="rounded-full bg-rose-500 px-2.5 py-0.5 text-[10px] font-black text-white">
@@ -394,11 +371,11 @@ function DashboardContent() {
 
           {/* Time Rules Alerts */}
           {!isFuncionario && !isCommercial && (
-            <section className="rounded-[8px] border border-slate-200 bg-white overflow-hidden">
-              <div className="border-b border-slate-200 bg-slate-50 px-5 py-4">
+            <section className="rounded-[16px] border border-slate-200/60 bg-white shadow-sm overflow-hidden">
+              <div className="border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white px-5 py-4">
                 <div className="flex items-center gap-2">
-                  <Clock3 size={16} strokeWidth={2} className="text-slate-600" />
-                  <h3 className="text-sm font-semibold text-slate-800">Alertas de Ponto e Fechamento</h3>
+                  <Clock3 size={16} strokeWidth={2.5} className="text-teal-600" />
+                  <h3 className="text-sm font-black text-slate-950">Alertas de Ponto e Fechamento</h3>
                 </div>
                 <p className="mt-1 text-xs text-slate-500">Pendências de ocorrências e fechamento de folha.</p>
               </div>
@@ -437,11 +414,11 @@ function DashboardContent() {
 
           {/* RH Alerts Section */}
           {!isFuncionario && !isCommercial && (
-            <section className="rounded-[8px] border border-slate-200 bg-white overflow-hidden">
-              <div className="border-b border-slate-200 bg-slate-50 px-5 py-4">
+            <section className="rounded-[16px] border border-slate-200/60 bg-white shadow-sm overflow-hidden">
+              <div className="border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white px-5 py-4">
                 <div className="flex items-center gap-2">
-                  <Stethoscope size={16} strokeWidth={2} className="text-slate-600" />
-                  <h3 className="text-sm font-semibold text-slate-800">Alertas e Pendências do RH</h3>
+                  <Stethoscope size={16} strokeWidth={2.5} className="text-teal-600" />
+                  <h3 className="text-sm font-black text-slate-950">Alertas e Pendências do RH</h3>
                 </div>
               </div>
               <div className="p-4">
@@ -565,13 +542,13 @@ function MetricCard({ label, value, icon: Icon, detail, trend, trendColor = 'eme
   trend?: string; trendColor?: string; alert?: boolean; loading?: boolean;
 }) {
   return (
-    <div className="group relative rounded-[8px] border border-slate-200 bg-white p-5 shadow-sm transition-all duration-300 hover:shadow-md">
+    <div className="group relative rounded-[18px] border border-slate-200/60 bg-gradient-to-br from-white to-slate-50/30 p-5 shadow-[0_8px_30px_rgba(15,23,42,0.08)] transition-shadow duration-300 hover:shadow-[0_12px_40px_rgba(15,23,42,0.12)]">
       {alert && <div className="absolute right-3 top-3 h-2 w-2 animate-pulse rounded-full bg-amber-500" />}
       <div className="relative">
         <div className="mb-4 flex items-start justify-between gap-3">
           <p className="text-[11px] font-black uppercase tracking-wider text-slate-500">{label}</p>
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[6px] bg-teal-100 transition-transform duration-300 group-hover:scale-110">
-            <Icon size={17} strokeWidth={2.5} className="text-teal-600" />
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-gradient-to-br from-teal-500 to-cyan-600 shadow-lg shadow-teal-500/25 transition-transform duration-300 group-hover:scale-110">
+            <Icon size={17} strokeWidth={2.5} className="text-white" />
           </div>
         </div>
         <p className="text-2xl font-black tracking-tight text-slate-950">
@@ -603,9 +580,9 @@ function PendencyItem({ label, count, href }: { label: string; count: number; hr
 
 function DataTable({ title, headers, children }: { title: string; headers: string[]; children: React.ReactNode }) {
   return (
-    <div className="overflow-hidden rounded-[8px] border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:shadow-md">
-      <div className="border-b border-slate-200 bg-slate-50 px-5 py-4">
-        <h3 className="text-sm font-semibold text-slate-800">{title}</h3>
+    <div className="overflow-hidden rounded-[18px] border border-slate-200/60 bg-white shadow-[0_8px_30px_rgba(15,23,42,0.08)] transition-all duration-300 hover:shadow-[0_20px_50px_rgba(15,23,42,0.12)]">
+      <div className="border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white px-5 py-4">
+        <h3 className="text-sm font-black uppercase tracking-wider text-slate-950">{title}</h3>
       </div>
       <div className="overflow-x-auto px-5 py-3">
         <table className="w-full min-w-[380px] text-left">
