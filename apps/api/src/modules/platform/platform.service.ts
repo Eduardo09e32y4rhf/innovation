@@ -114,13 +114,15 @@ export class PlatformService {
                                : billingStatus === 'ACTIVE' ? null
                                : undefined;
 
+    const isCustomPlan = plan && !['FREE', 'BASE', 'PRO', 'ENTERPRISE'].includes(plan);
+
     const data = {
       ...rest,
       ...(name !== undefined ? { name: normalizeDisplayName(name) } : {}),
       ...(document !== undefined ? { document: emptyToNull(document) } : {}),
       ...(status ? { status } : autoStatus !== undefined ? { status: autoStatus } : {}),
       ...((status === 'ACTIVE' || autoStatus === 'ACTIVE') ? { suspensionReason: null } : {}),
-      ...(plan ? { plan } : {}),
+      ...(plan ? (isCustomPlan ? { plan: 'PRO', platformPlanId: plan } : { plan: plan as any, platformPlanId: null }) : {}),
       ...(billingStatus ? { billingStatus } : {}),
       ...(trialEndsAt !== undefined ? { trialEndsAt: trialEndsAt ? new Date(trialEndsAt) : null } : {}),
       ...(activeModules !== undefined ? { activeModules } : {}),
