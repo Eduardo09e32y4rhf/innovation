@@ -141,7 +141,7 @@ function ChatWorkspace() {
   }, [chats.data, activeId]);
 
   return (
-    <section className="ops-card relative flex h-[calc(100vh-220px)] min-h-[480px] w-full overflow-hidden rounded-[10px] border border-slate-200 bg-white">
+    <section className="relative flex h-[calc(100vh-220px)] min-h-[480px] w-full overflow-hidden rounded-[10px] border border-slate-200 bg-white shadow-sm">
       <ChatList
         chats={chats.data ?? []}
         loading={chats.loading}
@@ -149,12 +149,12 @@ function ChatWorkspace() {
         activeId={activeId}
         onSelect={setActiveId}
         onRefresh={chats.refetch}
-        className={`${activeId ? 'hidden md:flex' : 'flex'} w-full shrink-0 flex-col min-h-0 border-r border-slate-200 md:w-[320px]`}
+        className={`${activeId ? 'hidden md:flex' : 'flex'} w-full shrink-0 flex-col min-h-0 border-r border-slate-200 bg-white md:w-[400px]`}
       />
       <ChatThread 
         chat={activeChat} 
         onBack={() => setActiveId(null)} 
-        className={`${activeId ? 'flex' : 'hidden md:flex'} flex-1 flex-col min-h-0 w-full bg-white`}
+        className={`${activeId ? 'flex' : 'hidden md:flex'} flex-1 flex-col min-h-0 w-full bg-[#efeae2]`}
       />
     </section>
   );
@@ -171,45 +171,114 @@ function ChatList({
   onRefresh: () => void;
   className?: string;
 }) {
+  const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState<'all' | 'unread' | 'groups'>('all');
+
+  const filtered = chats.filter((c) => {
+    if (search && !c.name.toLowerCase().includes(search.toLowerCase())) return false;
+    if (filter === 'unread' && c.unreadCount === 0) return false;
+    if (filter === 'groups' && !c.isGroup) return false;
+    return true;
+  });
+
   return (
     <div className={className || "flex min-h-0 flex-col border-b border-slate-200 md:border-b-0 md:border-r"}>
-      <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
-        <h3 className="text-sm font-black text-slate-950">Conversas</h3>
-        <button onClick={onRefresh} className="text-slate-400 hover:text-teal-600">
-          <RefreshCw size={14} />
+      {/* WhatsApp Web Style Header */}
+      <div className="flex h-[59px] shrink-0 items-center justify-between bg-[#f0f2f5] px-4">
+        <h3 className="text-xl font-bold text-[#111b21]">Conversas</h3>
+        <div className="flex items-center gap-4 text-[#54656f]">
+          <button onClick={onRefresh} className="hover:text-teal-600 transition" title="Atualizar">
+            <RefreshCw size={20} />
+          </button>
+        </div>
+      </div>
+
+      {/* Search Bar */}
+      <div className="shrink-0 bg-white p-2 border-b border-slate-100">
+        <div className="flex h-[35px] items-center gap-3 rounded-[8px] bg-[#f0f2f5] px-3">
+          <MessageSquareText size={16} className="text-[#54656f]" />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Pesquisar ou começar uma nova conversa"
+            className="flex-1 bg-transparent text-[14px] text-[#111b21] outline-none placeholder:text-[#54656f]"
+          />
+        </div>
+      </div>
+
+      {/* Filter Pills */}
+      <div className="flex shrink-0 gap-2 overflow-x-auto border-b border-slate-100 bg-white px-4 py-2 scrollbar-hide">
+        <button
+          onClick={() => setFilter('all')}
+          className={`shrink-0 rounded-full px-3 py-1.5 text-[13px] font-medium transition ${
+            filter === 'all' ? 'bg-[#e7fce3] text-[#008069]' : 'bg-[#f0f2f5] text-[#54656f] hover:bg-[#e9edef]'
+          }`}
+        >
+          Tudo
+        </button>
+        <button
+          onClick={() => setFilter('unread')}
+          className={`shrink-0 rounded-full px-3 py-1.5 text-[13px] font-medium transition ${
+            filter === 'unread' ? 'bg-[#e7fce3] text-[#008069]' : 'bg-[#f0f2f5] text-[#54656f] hover:bg-[#e9edef]'
+          }`}
+        >
+          Não lidas
+        </button>
+        <button
+          onClick={() => setFilter('groups')}
+          className={`shrink-0 rounded-full px-3 py-1.5 text-[13px] font-medium transition ${
+            filter === 'groups' ? 'bg-[#e7fce3] text-[#008069]' : 'bg-[#f0f2f5] text-[#54656f] hover:bg-[#e9edef]'
+          }`}
+        >
+          Grupos
         </button>
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto">
+
+      {/* Chat List */}
+      <div className="min-h-0 flex-1 overflow-y-auto bg-white">
         {loading && chats.length === 0 && (
-          <p className="px-4 py-6 text-center text-xs text-slate-400">Carregando conversas...</p>
+          <p className="px-4 py-6 text-center text-[13px] text-slate-400">Carregando conversas...</p>
         )}
-        {error && <p className="px-4 py-6 text-center text-xs text-rose-600">{error}</p>}
-        {!loading && !error && chats.length === 0 && (
-          <p className="px-4 py-6 text-center text-xs text-slate-400">Nenhuma conversa ainda.</p>
+        {error && <p className="px-4 py-6 text-center text-[13px] text-rose-600">{error}</p>}
+        {!loading && !error && filtered.length === 0 && (
+          <p className="px-4 py-6 text-center text-[13px] text-slate-400">Nenhuma conversa encontrada.</p>
         )}
-        {chats.map((chat) => (
+        
+        {filtered.map((chat) => (
           <button
             key={chat.id}
             onClick={() => onSelect(chat.id)}
-            className={`flex w-full items-center gap-3 border-b border-slate-50 px-4 py-3 text-left transition hover:bg-slate-50 ${
-              activeId === chat.id ? 'bg-teal-50/60' : ''
+            className={`flex w-full items-center gap-3 px-3 py-3 text-left transition hover:bg-[#f5f6f6] ${
+              activeId === chat.id ? 'bg-[#f0f2f5]' : ''
             }`}
           >
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500">
-              {chat.isGroup ? <Users size={16} /> : <Smartphone size={16} />}
+            <div className="flex h-[49px] w-[49px] shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#dfe5e7] text-white">
+              {chat.avatarUrl ? (
+                <img src={chat.avatarUrl} alt={chat.name} className="h-full w-full object-cover" />
+              ) : chat.isGroup ? (
+                <Users size={24} />
+              ) : (
+                <Smartphone size={24} />
+              )}
             </div>
-            <div className="min-w-0 flex-1">
+            <div className="min-w-0 flex-1 border-b border-[#f0f2f5] pb-3 pr-2 pt-1 h-full flex flex-col justify-center">
               <div className="flex items-center justify-between gap-2">
-                <p className="truncate text-xs font-bold text-slate-900">{chat.name}</p>
-                <span className="shrink-0 text-[10px] text-slate-400">{chat.time}</span>
+                <p className="truncate text-[16px] text-[#111b21]">{chat.name}</p>
+                <span className={`shrink-0 text-[12px] ${chat.unreadCount > 0 ? 'text-[#25D366]' : 'text-[#667781]'}`}>
+                  {chat.time}
+                </span>
               </div>
-              <p className="truncate text-[11px] text-slate-500">{chat.lastMessage || '--'}</p>
+              <div className="flex items-center justify-between mt-0.5">
+                <p className={`truncate text-[13px] ${chat.unreadCount > 0 ? 'font-medium text-[#111b21]' : 'text-[#667781]'}`}>
+                  {chat.lastMessage || '--'}
+                </p>
+                {chat.unreadCount > 0 && (
+                  <span className="ml-2 inline-flex h-[20px] min-w-[20px] shrink-0 items-center justify-center rounded-full bg-[#25D366] px-1.5 text-[11px] font-bold text-white">
+                    {chat.unreadCount}
+                  </span>
+                )}
+              </div>
             </div>
-            {chat.unreadCount > 0 && (
-              <span className="ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-teal-600 px-1.5 text-[10px] font-bold text-white">
-                {chat.unreadCount}
-              </span>
-            )}
           </button>
         ))}
       </div>
@@ -258,51 +327,75 @@ function ChatThread({ chat, onBack, className }: { chat: Chat | null; onBack: ()
   }
 
   return (
-    <div className={className || "flex min-h-0 flex-1 flex-col"}>
-      <div className="flex shrink-0 items-center gap-3 border-b border-slate-100 px-4 py-3">
-        <button onClick={onBack} className="md:hidden flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+    <div className={className || "flex min-h-0 flex-1 flex-col relative"}>
+      {/* WhatsApp Web Style Chat Header */}
+      <div className="flex h-[59px] shrink-0 items-center gap-3 bg-[#f0f2f5] px-4">
+        <button onClick={onBack} className="md:hidden flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[#54656f] hover:bg-black/5">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
         </button>
-        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-500">
-          {chat.isGroup ? <Users size={15} /> : <Smartphone size={15} />}
+        <div className="flex h-[40px] w-[40px] shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#dfe5e7] text-white">
+          {chat.avatarUrl ? (
+            <img src={chat.avatarUrl} alt={chat.name} className="h-full w-full object-cover" />
+          ) : chat.isGroup ? (
+            <Users size={20} />
+          ) : (
+            <Smartphone size={20} />
+          )}
         </div>
-        <div>
-          <p className="text-xs font-black text-slate-950">{chat.name}</p>
-          <p className="text-[10px] text-slate-400">{chat.isGroup ? 'Grupo' : 'Contato'}</p>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-[16px] font-medium text-[#111b21]">{chat.name}</p>
+          <p className="truncate text-[13px] text-[#667781]">{chat.isGroup ? 'Grupo' : 'Contato WhatsApp'}</p>
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 space-y-2 overflow-y-auto bg-slate-50/60 px-4 py-4">
+      <div 
+        className="min-h-0 flex-1 space-y-1.5 overflow-y-auto px-[5%] py-4" 
+        style={{ backgroundImage: 'url("https://web.whatsapp.com/img/bg-chat-tile-dark_a4be512e7195b6b733d9110b408f075d.png")', backgroundRepeat: 'repeat', opacity: 0.8 }}
+      >
         {messages.loading && (messages.data ?? []).length === 0 && (
-          <p className="py-6 text-center text-xs text-slate-400">Carregando mensagens...</p>
+          <div className="flex justify-center py-6">
+            <span className="rounded-lg bg-white/80 px-3 py-1 text-[12.5px] text-[#54656f] shadow-sm">Carregando mensagens...</span>
+          </div>
         )}
-        {messages.error && <p className="py-6 text-center text-xs text-rose-600">{messages.error}</p>}
-        {(messages.data ?? []).map((msg) => {
+        {messages.error && (
+          <div className="flex justify-center py-6">
+            <span className="rounded-lg bg-white/80 px-3 py-1 text-[12.5px] text-rose-600 shadow-sm">{messages.error}</span>
+          </div>
+        )}
+        {(messages.data ?? []).map((msg, index, array) => {
           const fromMe = msg.sender === 'bot';
+          const prevMsg = array[index - 1];
+          const isConsecutive = prevMsg && prevMsg.sender === msg.sender && prevMsg.participantId === msg.participantId;
+          
           return (
-            <div key={msg.id} className={`flex ${fromMe ? 'justify-end' : 'justify-start'}`}>
+            <div key={msg.id} className={`flex ${fromMe ? 'justify-end' : 'justify-start'} ${isConsecutive ? 'mt-[2px]' : 'mt-[12px]'}`}>
               <div
-                className={`max-w-[85%] rounded-[10px] px-3 py-2 text-xs leading-relaxed ${
-                  fromMe ? 'bg-teal-600 text-white' : 'border border-slate-200 bg-white text-slate-800'
-                }`}
+                className={`relative max-w-[85%] sm:max-w-[75%] px-[9px] py-[6px] text-[14.5px] leading-[19px] shadow-[0_1px_0.5px_rgba(11,20,26,.13)] ${
+                  fromMe 
+                    ? 'bg-[#d9fdd3] text-[#111b21] rounded-l-lg rounded-br-lg' 
+                    : 'bg-white text-[#111b21] rounded-r-lg rounded-bl-lg'
+                } ${!isConsecutive && fromMe ? 'rounded-tr-none' : ''} ${!isConsecutive && !fromMe ? 'rounded-tl-none' : ''}`}
               >
-                {chat.isGroup && !fromMe && msg.participantName && (
-                  <p className="mb-1 text-[10px] font-bold text-teal-600">{msg.participantName}</p>
+                {chat.isGroup && !fromMe && msg.participantName && !isConsecutive && (
+                  <p className="mb-0.5 text-[12.5px] font-medium text-[#027eb5]">{msg.participantName}</p>
                 )}
                 
                 {msg.media?.url && msg.media.type === 'image' && (
-                  <img src={msg.media.url} alt="Imagem" className="mb-2 max-h-48 rounded-[6px] object-contain" />
+                  <img src={msg.media.url} alt="Imagem" className="mb-1 max-h-64 rounded-[6px] object-contain" />
                 )}
                 {msg.media?.url && msg.media.type === 'video' && (
-                  <video src={msg.media.url} controls className="mb-2 max-h-48 rounded-[6px] object-contain" />
+                  <video src={msg.media.url} controls className="mb-1 max-h-64 rounded-[6px] object-contain" />
                 )}
                 {msg.media?.url && msg.media.type === 'audio' && (
-                  <audio src={msg.media.url} controls className="mb-2 max-w-full h-8" />
+                  <audio src={msg.media.url} controls className="mb-1 max-w-full h-[40px]" />
                 )}
                 
-                {msg.text && <p className="whitespace-pre-wrap break-words">{msg.text}</p>}
-                
-                <p className={`mt-1 text-right text-[9px] ${fromMe ? 'text-teal-100' : 'text-slate-400'}`}>{msg.time}</p>
+                <div className="flex items-end gap-3 flex-wrap">
+                  {msg.text && <p className="whitespace-pre-wrap break-words">{msg.text}</p>}
+                  <span className={`ml-auto float-right translate-y-[3px] text-[11px] leading-[15px] ${fromMe ? 'text-[#667781]' : 'text-[#667781]'}`}>
+                    {msg.time}
+                  </span>
+                </div>
               </div>
             </div>
           );
@@ -314,25 +407,33 @@ function ChatThread({ chat, onBack, className }: { chat: Chat | null; onBack: ()
         <p className="shrink-0 border-t border-rose-100 bg-rose-50 px-4 py-1.5 text-[11px] text-rose-700">{send.error}</p>
       )}
 
-      <div className="flex shrink-0 items-center gap-2 border-t border-slate-100 px-4 py-3">
-        <input
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-              e.preventDefault();
-              handleSend();
-            }
-          }}
-          placeholder="Digite uma mensagem..."
-          className="h-10 flex-1 rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500"
-        />
+      <div className="flex shrink-0 items-center gap-3 bg-[#f0f2f5] px-4 py-2 min-h-[62px]">
+        <button className="text-[#54656f] hover:text-[#111b21] transition">
+          <svg viewBox="0 0 24 24" width="24" height="24" className=""><path fill="currentColor" d="M12 20.664a9.163 9.163 0 0 1-6.521-2.702.977.977 0 0 1 1.381-1.381 7.269 7.269 0 0 0 10.024.244.977.977 0 0 1 1.313 1.445A9.192 9.192 0 0 1 12 20.664zm7.965-6.112a.977.977 0 0 1-.944-1.229 7.26 7.26 0 0 0-4.8-8.804.977.977 0 0 1 .594-1.86 9.212 9.212 0 0 1 6.092 11.169.976.976 0 0 1-.942.724zm-16.025-.39a.977.977 0 0 1-.953-.769 9.21 9.21 0 0 1 6.626-10.86.977.977 0 1 1 .507 1.886 7.259 7.259 0 0 0-5.225 8.563.978.978 0 0 1-.955 1.18z"></path></svg>
+        </button>
+        <button className="text-[#54656f] hover:text-[#111b21] transition">
+          <svg viewBox="0 0 24 24" width="24" height="24" className=""><path fill="currentColor" d="M11.999 14.942c2.001 0 3.531-1.53 3.531-3.531V4.35c0-2.001-1.53-3.531-3.531-3.531S8.469 2.35 8.469 4.35v7.061c0 2.001 1.53 3.531 3.531 3.531zM8.95 14.66c.655.625 1.547 1.015 2.529 1.082V20h1.04v-4.258c.982-.067 1.874-.457 2.529-1.082a.983.983 0 0 1 1.353 1.425c-.947.904-2.247 1.468-3.665 1.564V22h-1.47v-4.351c-1.418-.096-2.718-.66-3.665-1.564a.983.983 0 1 1 1.353-1.425z"></path></svg>
+        </button>
+        <div className="flex-1 bg-white rounded-lg flex items-center shadow-sm">
+          <input
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSend();
+              }
+            }}
+            placeholder="Digite uma mensagem"
+            className="w-full h-11 bg-transparent px-4 py-2 text-[15px] text-[#111b21] outline-none placeholder:text-[#8696a0]"
+          />
+        </div>
         <button
           onClick={handleSend}
           disabled={send.loading || !draft.trim()}
-          className="crystal-button inline-flex h-10 w-10 items-center justify-center rounded-[8px] text-white disabled:opacity-50"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[#54656f] transition hover:text-[#111b21] disabled:opacity-50"
         >
-          {send.loading ? <Loader2 className="animate-spin" size={16} /> : <Send size={16} />}
+          {send.loading ? <Loader2 className="animate-spin" size={20} /> : <Send size={24} />}
         </button>
       </div>
     </div>
