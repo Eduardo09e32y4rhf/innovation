@@ -4,8 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter , useParams } from 'next/navigation';
 import { Check, Clock3, MapPin, AlertTriangle, FileEdit } from 'lucide-react';
 import { useAuth } from '@/app/contexts/AuthContext';
-import { useMutation, useQuery } from '@/app/hooks/use-data';
-import { useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@/app/hooks/use-data';
 import { api, type Employee, type PunchType, type TimeTrack } from '@/app/lib/api';
 
 import dynamic from 'next/dynamic';
