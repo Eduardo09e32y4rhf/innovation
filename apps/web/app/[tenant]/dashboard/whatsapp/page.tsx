@@ -141,16 +141,20 @@ function ChatWorkspace() {
   }, [chats.data, activeId]);
 
   return (
-    <section className="ops-card grid h-[calc(100vh-220px)] min-h-[480px] grid-cols-1 overflow-hidden rounded-[10px] border border-slate-200 bg-white md:grid-cols-[320px_1fr]">
-      <ChatList
-        chats={chats.data ?? []}
-        loading={chats.loading}
-        error={chats.error}
-        activeId={activeId}
-        onSelect={setActiveId}
-        onRefresh={chats.refetch}
-      />
-      <ChatThread chat={activeChat} />
+    <section className="ops-card relative grid h-[calc(100vh-220px)] min-h-[480px] grid-cols-1 overflow-hidden rounded-[10px] border border-slate-200 bg-white md:grid-cols-[320px_1fr]">
+      <div className={`md:block ${activeId ? 'hidden' : 'block'}`}>
+        <ChatList
+          chats={chats.data ?? []}
+          loading={chats.loading}
+          error={chats.error}
+          activeId={activeId}
+          onSelect={setActiveId}
+          onRefresh={chats.refetch}
+        />
+      </div>
+      <div className={`md:flex md:flex-col ${activeId ? 'flex flex-col h-full' : 'hidden'}`}>
+        <ChatThread chat={activeChat} onBack={() => setActiveId(null)} />
+      </div>
     </section>
   );
 }
@@ -211,7 +215,7 @@ function ChatList({
   );
 }
 
-function ChatThread({ chat }: { chat: Chat | null }) {
+function ChatThread({ chat, onBack }: { chat: Chat | null; onBack: () => void }) {
   const messages = useQuery<ChatMessage[]>(
     () => (chat ? api.whatsapp.chatMessages(chat.id) : Promise.resolve([])),
     [chat?.id],
@@ -254,6 +258,9 @@ function ChatThread({ chat }: { chat: Chat | null }) {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex items-center gap-3 border-b border-slate-100 px-4 py-3">
+        <button onClick={onBack} className="md:hidden flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        </button>
         <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-500">
           {chat.isGroup ? <Users size={15} /> : <Smartphone size={15} />}
         </div>
@@ -273,14 +280,26 @@ function ChatThread({ chat }: { chat: Chat | null }) {
           return (
             <div key={msg.id} className={`flex ${fromMe ? 'justify-end' : 'justify-start'}`}>
               <div
-                className={`max-w-[75%] rounded-[10px] px-3 py-2 text-xs leading-relaxed ${
+                className={`max-w-[85%] rounded-[10px] px-3 py-2 text-xs leading-relaxed ${
                   fromMe ? 'bg-teal-600 text-white' : 'border border-slate-200 bg-white text-slate-800'
                 }`}
               >
                 {chat.isGroup && !fromMe && msg.participantName && (
-                  <p className="mb-0.5 text-[10px] font-bold text-teal-600">{msg.participantName}</p>
+                  <p className="mb-1 text-[10px] font-bold text-teal-600">{msg.participantName}</p>
                 )}
-                <p className="whitespace-pre-wrap break-words">{msg.text || '[midia]'}</p>
+                
+                {msg.media?.url && msg.media.type === 'image' && (
+                  <img src={msg.media.url} alt="Imagem" className="mb-2 max-h-48 rounded-[6px] object-contain" />
+                )}
+                {msg.media?.url && msg.media.type === 'video' && (
+                  <video src={msg.media.url} controls className="mb-2 max-h-48 rounded-[6px] object-contain" />
+                )}
+                {msg.media?.url && msg.media.type === 'audio' && (
+                  <audio src={msg.media.url} controls className="mb-2 max-w-full h-8" />
+                )}
+                
+                {msg.text && <p className="whitespace-pre-wrap break-words">{msg.text}</p>}
+                
                 <p className={`mt-1 text-right text-[9px] ${fromMe ? 'text-teal-100' : 'text-slate-400'}`}>{msg.time}</p>
               </div>
             </div>

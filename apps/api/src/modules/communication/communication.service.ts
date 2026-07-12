@@ -446,7 +446,7 @@ export class CommunicationService implements OnModuleInit {
 
   private saveMemoryInboundMessage(
     companyId: string,
-    phone: string,
+    jid: string,
     body: string,
     contactName: string | undefined,
     externalId: string | undefined,
@@ -454,12 +454,12 @@ export class CommunicationService implements OnModuleInit {
     fromMe: boolean,
     participantId?: string,
   ) {
-    return this.saveMemoryMessage(companyId, phone, body, contactName, externalId, sentAt, fromMe, participantId);
+    return this.saveMemoryMessage(companyId, jid, body, contactName, externalId, sentAt, fromMe, participantId);
   }
 
   private saveMemoryMessage(
     companyId: string,
-    phone: string,
+    jid: string,
     body: string,
     contactName: string | undefined,
     externalId: string | undefined,
@@ -467,15 +467,15 @@ export class CommunicationService implements OnModuleInit {
     fromMe: boolean,
     participantId?: string,
   ) {
-    const cleanPhone = phone.replace(/\D/g, '');
-    const conversationId = `memory-conversation-${cleanPhone}`;
+    const cleanPhone = chatDigits(jid);
+    const conversationId = `memory-conversation-${jid}`;
     const conversations = memoryConversations.get(companyId) ?? [];
     let conversation = conversations.find((item) => item.id === conversationId);
     if (!conversation) {
       conversation = {
         id: conversationId,
         companyId,
-        whatsappJid: `${cleanPhone}@s.whatsapp.net`,
+        whatsappJid: jid.includes('@') ? jid : `${cleanPhone}@s.whatsapp.net`,
         status: 'OPEN',
         contact: { id: `memory-contact-${cleanPhone}`, name: contactName, phone: cleanPhone },
         unreadCount: 0,

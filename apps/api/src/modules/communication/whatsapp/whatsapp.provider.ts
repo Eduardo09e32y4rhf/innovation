@@ -131,8 +131,7 @@ export class WhatsappProvider {
         }
         for (const message of payload.messages ?? []) {
           await this.storeMessage(companyId, message, { downloadMedia: false });
-          const normalized = this.normalizeIncomingMessage(companyId, message);
-          if (normalized) await this.events?.onMessage(normalized);
+          // O histórico fica em memória, não emitimos eventos para o DB para evitar sobrecarga de lock
         }
       });
 
