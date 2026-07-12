@@ -6,10 +6,17 @@ export class SendMessageDto {
   phone!: string;
 
   @IsString()
-  @IsNotEmpty()
+  @IsOptional()
   body!: string;
 
   @IsOptional()
   @IsString()
   contactName?: string;
+
+  @IsOptional()
+  media?: {
+    base64: string;
+    mimeType: string;
+    name?: string;
+  };
 }

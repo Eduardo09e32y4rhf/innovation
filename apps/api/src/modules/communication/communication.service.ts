@@ -296,7 +296,7 @@ export class CommunicationService implements OnModuleInit {
   }
 
   async sendMessage(companyId: string, dto: SendMessageDto) {
-    const sent = await this.provider.sendText(companyId, dto.phone, dto.body);
+    const sent = await this.provider.sendMessage(companyId, dto.phone, dto.body || '', dto.media);
     let conversation: any;
     let message: any;
     try {

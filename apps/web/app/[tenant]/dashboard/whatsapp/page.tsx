@@ -154,7 +154,7 @@ function ChatWorkspace() {
       <ChatThread 
         chat={activeChat} 
         onBack={() => setActiveId(null)} 
-        className={`${activeId ? 'flex' : 'hidden md:flex'} flex-1 flex-col min-h-0 w-full bg-[#efeae2]`}
+        className={`${activeId ? 'flex' : 'hidden md:flex'} flex-1 flex-col min-h-0 bg-[#efeae2]`}
       />
     </section>
   );
@@ -254,7 +254,7 @@ function ChatList({
           >
             <div className="flex h-[49px] w-[49px] shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#dfe5e7] text-white">
               {chat.avatarUrl ? (
-                <img src={chat.avatarUrl} alt={chat.name} className="h-full w-full object-cover" />
+                <img src={chat.avatarUrl} alt={chat.name} className="h-full w-full object-cover" referrerPolicy="no-referrer" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
               ) : chat.isGroup ? (
                 <Users size={24} />
               ) : (
@@ -293,16 +293,19 @@ function ChatThread({ chat, onBack, className }: { chat: Chat | null; onBack: ()
     { enabled: Boolean(chat), pollMs: chat ? 6000 : undefined },
   );
   const [draft, setDraft] = useState('');
+  const [attachment, setAttachment] = useState<{ file: File; base64: string } | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const send = useMutation(
-    (body: string) => {
+    (payload: { body: string; media?: { base64: string; mimeType: string; name: string } }) => {
       const phone = chat?.isGroup ? chat.id : chat?.id.replace(/@.*$/, '') ?? '';
-      return api.whatsapp.sendMessage({ phone, body, contactName: chat?.name });
+      return api.whatsapp.sendMessage({ phone, body: payload.body, contactName: chat?.name, media: payload.media });
     },
     {
       onSuccess: () => {
         setDraft('');
+        setAttachment(null);
         messages.refetch();
       },
     },
@@ -322,8 +325,29 @@ function ChatThread({ chat, onBack, className }: { chat: Chat | null; onBack: ()
 
   function handleSend() {
     const body = draft.trim();
-    if (!body) return;
-    send.mutate(body).catch(() => {});
+    if (!body && !attachment) return;
+    
+    let mediaPayload;
+    if (attachment) {
+      mediaPayload = {
+        base64: attachment.base64,
+        mimeType: attachment.file.type || 'application/octet-stream',
+        name: attachment.file.name,
+      };
+    }
+    
+    send.mutate({ body, media: mediaPayload }).catch(() => {});
+  }
+
+  function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setAttachment({ file, base64: reader.result as string });
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
   }
 
   return (
@@ -335,7 +359,7 @@ function ChatThread({ chat, onBack, className }: { chat: Chat | null; onBack: ()
         </button>
         <div className="flex h-[40px] w-[40px] shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#dfe5e7] text-white">
           {chat.avatarUrl ? (
-            <img src={chat.avatarUrl} alt={chat.name} className="h-full w-full object-cover" />
+            <img src={chat.avatarUrl} alt={chat.name} className="h-full w-full object-cover" referrerPolicy="no-referrer" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
           ) : chat.isGroup ? (
             <Users size={20} />
           ) : (
@@ -408,13 +432,29 @@ function ChatThread({ chat, onBack, className }: { chat: Chat | null; onBack: ()
       )}
 
       <div className="flex shrink-0 items-center gap-3 bg-[#f0f2f5] px-4 py-2 min-h-[62px]">
+        <input type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden" />
         <button className="text-[#54656f] hover:text-[#111b21] transition">
           <svg viewBox="0 0 24 24" width="24" height="24" className=""><path fill="currentColor" d="M12 20.664a9.163 9.163 0 0 1-6.521-2.702.977.977 0 0 1 1.381-1.381 7.269 7.269 0 0 0 10.024.244.977.977 0 0 1 1.313 1.445A9.192 9.192 0 0 1 12 20.664zm7.965-6.112a.977.977 0 0 1-.944-1.229 7.26 7.26 0 0 0-4.8-8.804.977.977 0 0 1 .594-1.86 9.212 9.212 0 0 1 6.092 11.169.976.976 0 0 1-.942.724zm-16.025-.39a.977.977 0 0 1-.953-.769 9.21 9.21 0 0 1 6.626-10.86.977.977 0 1 1 .507 1.886 7.259 7.259 0 0 0-5.225 8.563.978.978 0 0 1-.955 1.18z"></path></svg>
         </button>
-        <button className="text-[#54656f] hover:text-[#111b21] transition">
+        <button onClick={() => fileInputRef.current?.click()} className="text-[#54656f] hover:text-[#111b21] transition" title="Anexar">
           <svg viewBox="0 0 24 24" width="24" height="24" className=""><path fill="currentColor" d="M11.999 14.942c2.001 0 3.531-1.53 3.531-3.531V4.35c0-2.001-1.53-3.531-3.531-3.531S8.469 2.35 8.469 4.35v7.061c0 2.001 1.53 3.531 3.531 3.531zM8.95 14.66c.655.625 1.547 1.015 2.529 1.082V20h1.04v-4.258c.982-.067 1.874-.457 2.529-1.082a.983.983 0 0 1 1.353 1.425c-.947.904-2.247 1.468-3.665 1.564V22h-1.47v-4.351c-1.418-.096-2.718-.66-3.665-1.564a.983.983 0 1 1 1.353-1.425z"></path></svg>
         </button>
-        <div className="flex-1 bg-white rounded-lg flex items-center shadow-sm">
+        
+        <div className="flex-1 bg-white rounded-lg flex items-center shadow-sm relative">
+          {attachment && (
+            <div className="absolute bottom-[110%] left-0 z-10 flex items-center gap-3 rounded-lg bg-white p-3 shadow-md border border-slate-200">
+              {attachment.file.type.startsWith('image/') ? (
+                <img src={attachment.base64} alt="Preview" className="h-16 w-16 rounded object-cover" />
+              ) : (
+                <div className="flex h-16 w-16 items-center justify-center rounded bg-slate-100 text-[10px] text-slate-500 text-center break-all">
+                  {attachment.file.name}
+                </div>
+              )}
+              <button onClick={() => setAttachment(null)} className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-rose-100 hover:text-rose-600">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+              </button>
+            </div>
+          )}
           <input
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
@@ -424,13 +464,13 @@ function ChatThread({ chat, onBack, className }: { chat: Chat | null; onBack: ()
                 handleSend();
               }
             }}
-            placeholder="Digite uma mensagem"
+            placeholder={attachment ? "Adicione uma legenda..." : "Digite uma mensagem"}
             className="w-full h-11 bg-transparent px-4 py-2 text-[15px] text-[#111b21] outline-none placeholder:text-[#8696a0]"
           />
         </div>
         <button
           onClick={handleSend}
-          disabled={send.loading || !draft.trim()}
+          disabled={send.loading || (!draft.trim() && !attachment)}
           className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[#54656f] transition hover:text-[#111b21] disabled:opacity-50"
         >
           {send.loading ? <Loader2 className="animate-spin" size={20} /> : <Send size={24} />}

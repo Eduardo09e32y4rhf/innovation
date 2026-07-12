@@ -204,25 +204,69 @@ export class WhatsappProvider {
     return { status: 'DISCONNECTED' };
   }
 
-  async sendText(companyId: string, phone: string, body: string) {
+  async sendMessage(companyId: string, phone: string, body: string, media?: { base64: string; mimeType: string; name?: string }) {
     const socket = this.sessions.get(companyId);
     if (!socket) throw new ServiceUnavailableException('WhatsApp session is not connected');
     const jid = phone.includes('@') ? phone : `${phone.replace(/\D/g, '')}@s.whatsapp.net`;
-    const sent = await socket.sendMessage(jid, { text: body });
+    
+    let content: any = { text: body };
+    if (media && media.base64) {
+      const buffer = Buffer.from(media.base64.replace(/^data:.*?;base64,/, ''), 'base64');
+      if (media.mimeType.startsWith('image/')) {
+        content = { image: buffer, caption: body };
+      } else if (media.mimeType.startsWith('video/')) {
+        content = { video: buffer, caption: body };
+      } else if (media.mimeType.startsWith('audio/')) {
+        content = { audio: buffer, mimetype: media.mimeType, ptt: true };
+      } else {
+        content = { document: buffer, mimetype: media.mimeType, fileName: media.name || 'document', caption: body };
+      }
+    }
+
+    const sent = await socket.sendMessage(jid, content);
     const externalId = sent?.key?.id;
     if (!externalId) {
       throw new BadGatewayException('WhatsApp did not confirm the message send');
     }
+    
+    let simulatedMessage: any = { conversation: body };
+    if (content.image) simulatedMessage = { imageMessage: { caption: body } };
+    if (content.video) simulatedMessage = { videoMessage: { caption: body } };
+    if (content.audio) simulatedMessage = { audioMessage: {} };
+    if (content.document) simulatedMessage = { documentMessage: { caption: body, fileName: content.fileName } };
+    
+    const mediaPayload = media ? {
+      type: media.mimeType.startsWith('image/') ? 'image' : media.mimeType.startsWith('video/') ? 'video' : media.mimeType.startsWith('audio/') ? 'audio' : 'document',
+      mimeType: media.mimeType,
+      fileName: media.name,
+      url: media.base64,
+    } : null;
+
     await this.storeMessage(companyId, {
       key: { id: externalId, remoteJid: jid, fromMe: true },
-      message: { conversation: body },
+      message: simulatedMessage,
       messageTimestamp: Math.floor(Date.now() / 1000),
+      __media: mediaPayload,
     });
     return { externalId, jid };
   }
 
   async getChats(companyId: string) {
     const chats = Array.from(this.chats.get(companyId)?.values() ?? []).sort((a, b) => b.timestamp - a.timestamp);
+    // Lazy fetch avatars in background
+    for (const chat of chats) {
+      if (chat.avatarUrl === undefined || chat.avatarUrl === null) {
+        chat.avatarUrl = ''; // Mark as fetching/failed to avoid loops
+        this.getProfilePicture(companyId, chat.id)
+          .then((url) => {
+            if (url) {
+              chat.avatarUrl = url;
+              this.storeChat(companyId, chat.id, chat);
+            }
+          })
+          .catch(() => {});
+      }
+    }
     return chats;
   }
 
