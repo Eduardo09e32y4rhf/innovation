@@ -25,7 +25,7 @@ function buildBaseStyles(landscape = false) {
     
     @page { 
       size: ${pageSize}; 
-      margin: ${margin}; 
+      margin: 8mm; 
     }
     
     @media print {
@@ -45,8 +45,8 @@ function buildBaseStyles(landscape = false) {
       font-family: 'Inter', -apple-system, sans-serif; 
       color: #1e293b; /* slate-800 */
       background: #fff; 
-      font-size: 8pt; 
-      line-height: 1.25; 
+      font-size: 7.5pt; 
+      line-height: 1.2; 
     }
     
     .page { width: 100%; }
@@ -75,9 +75,9 @@ export function buildPdfShell(options: PdfOptions, company: PdfCompanyInfo | nul
         </div>
       </div>
       <div style="text-align:right;">
-        <div style="font-size:14px;font-weight:900;color:#0f172a;text-transform:uppercase;letter-spacing:-0.02em;">${escapeHtml(title)}</div>
-        ${subtitle ? `<div style="font-size:10px;font-weight:600;color:#475569;margin-top:2px;">${escapeHtml(subtitle)}</div>` : ''}
-        <div style="font-size:8px;color:#94a3b8;margin-top:6px;font-weight:500;">EMITIDO EM ${escapeHtml(emittedDate)}</div>
+        <div style="font-size:12px;font-weight:900;color:#0f172a;text-transform:uppercase;letter-spacing:-0.02em;">${escapeHtml(title)}</div>
+        ${subtitle ? `<div style="font-size:9px;font-weight:600;color:#475569;margin-top:2px;">${escapeHtml(subtitle)}</div>` : ''}
+        <div style="font-size:7px;color:#94a3b8;margin-top:4px;font-weight:500;">EMITIDO EM ${escapeHtml(emittedDate)}</div>
       </div>
     </div>
   `;
@@ -117,13 +117,16 @@ export function buildPdfShell(options: PdfOptions, company: PdfCompanyInfo | nul
 </html>`;
 }
 
-export function section(title: string, content: string) {
+export function section(title: string, content: string, options?: { avoidBreak?: boolean; noBorder?: boolean; noBg?: boolean }) {
+  const avoidBreak = options?.avoidBreak ?? true;
+  const noBorder = options?.noBorder ?? false;
+  const noBg = options?.noBg ?? false;
   return `
-    <div class="print-section" style="margin-bottom:6px;border:1px solid #e2e8f0;border-radius:6px;overflow:hidden;page-break-inside:avoid;">
-      <div style="background:#f8fafc;border-bottom:1px solid #e2e8f0;color:#334155;padding:4px 8px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;">
+    <div class="print-section" style="margin-bottom:6px;border:${noBorder ? 'none' : '1px solid #e2e8f0'};border-radius:6px;overflow:hidden;page-break-inside:${avoidBreak ? 'avoid' : 'auto'};">
+      <div style="background:${noBg ? 'transparent' : '#f8fafc'};border-bottom:${noBorder ? 'none' : '1px solid #e2e8f0'};color:#334155;padding:4px 8px;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;">
         ${escapeHtml(title)}
       </div>
-      <div style="padding:6px 8px;">${content}</div>
+      <div style="padding:${noBorder ? '0' : '6px 8px'};">${content}</div>
     </div>
   `;
 }
@@ -138,17 +141,20 @@ export function infoGrid(items: { label: string; value: string | null | undefine
   return `<div style="display:grid;grid-template-columns:repeat(${columns},1fr);gap:8px 4px;">${cells}</div>`;
 }
 
-export function pdfTable(headers: string[], rows: string[], options?: { zebra?: boolean; headerBg?: string; headerColor?: string; fontSize?: string; compact?: boolean }) {
+export function pdfTable(headers: string[], rows: string[], options?: { zebra?: boolean; headerBg?: string; headerColor?: string; fontSize?: string; compact?: boolean; border?: boolean }) {
   const zebra = options?.zebra ?? true;
   const headerBg = options?.headerBg ?? '#f1f5f9';
   const headerColor = options?.headerColor ?? '#475569';
-  const fontSize = options?.fontSize ?? '8px';
-  const paddingY = options?.compact ? '1.5px' : '4px';
+  const fontSize = options?.fontSize ?? '7.5px';
+  const paddingY = options?.compact ? '1px' : '3px';
+  const border = options?.border ? 'border: 1px solid #cbd5e1;' : '';
+  const cellBorder = options?.border ? 'border: 1px solid #cbd5e1;' : 'border-bottom: 2px solid #cbd5e1;';
+  const rowBorder = options?.border ? 'border: 1px solid #cbd5e1;' : 'border-bottom: 1px solid #f1f5f9;';
   
-  const thead = headers.map(h => `<th style="padding:${paddingY} 8px;text-align:left;font-size:7.5px;font-weight:700;text-transform:uppercase;color:${headerColor};border-bottom:2px solid #cbd5e1;letter-spacing:0.05em;">${escapeHtml(h)}</th>`).join('');
+  const thead = headers.map(h => `<th style="padding:${paddingY} 4px;text-align:left;font-size:7px;font-weight:700;text-transform:uppercase;color:${headerColor};${cellBorder}letter-spacing:0.02em;">${escapeHtml(h)}</th>`).join('');
   const tbody = rows.map((r, i) => {
     const bg = zebra ? (i % 2 === 0 ? '#ffffff' : '#f8fafc') : 'transparent';
-    return `<tr style="background:${bg};border-bottom:1px solid #f1f5f9;">${r}</tr>`;
+    return `<tr style="background:${bg};${rowBorder}">${r}</tr>`;
   }).join('');
   return `
     <table style="width:100%;border-collapse:collapse;margin:2px 0;font-size:${fontSize};">

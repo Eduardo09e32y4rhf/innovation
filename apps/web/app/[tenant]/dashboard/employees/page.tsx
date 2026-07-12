@@ -546,7 +546,7 @@ function downloadEmployeeSheet(employee: Employee, rows: TimeTrack[], month: str
   const html = buildPdfShell({ title: 'Espelho de Ponto Oficial', subtitle: `${monthLabelText} — ${normalizeDisplayName(employee.name)}`, landscape: false }, companyData, `
     ${section('Dados do Colaborador', infoGrid(employeeInfo, 4))}
 
-    ${section('Registros de Ponto Diário', pdfTable(tableHeaders, tableRows, { compact: true }))}
+    ${section('Registros de Ponto Diário', pdfTable(tableHeaders, tableRows, { compact: true, border: true }), { avoidBreak: false, noBg: true })}
 
     ${section('Resumo do Período', `
       <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;">
@@ -577,6 +577,21 @@ function downloadEmployeeSheet(employee: Employee, rows: TimeTrack[], month: str
         </span>
       </div>
     `)}
+
+    ${section('Horários', pdfTable(
+      ['Data Base', 'Entrada', 'Saída Almoço', 'Retorno Almoço', 'Saída', 'Turno / Carga Horária'],
+      [
+        \`<tr>
+          <td style="padding:2px 4px;font-size:7px;color:#334155;text-align:center;">01/\${month.split('-')[1]}/\${month.split('-')[0]}</td>
+          <td style="padding:2px 4px;font-size:7px;color:#334155;text-align:center;">--:--</td>
+          <td style="padding:2px 4px;font-size:7px;color:#334155;text-align:center;">--:--</td>
+          <td style="padding:2px 4px;font-size:7px;color:#334155;text-align:center;">--:--</td>
+          <td style="padding:2px 4px;font-size:7px;color:#334155;text-align:center;">--:--</td>
+          <td style="padding:2px 4px;font-size:7px;color:#0f172a;text-align:center;">\${escapeHtml(employee.workScale || 'Não definida')} - \${escapeHtml(employee.dailyWorkload || '')}</td>
+        </tr>\`
+      ],
+      { compact: true, border: true }
+    ), { avoidBreak: true })}
 
     ${signatureBlock(['Assinatura do Colaborador', 'Assinatura do RH / Responsável'])}
   `);
@@ -619,38 +634,38 @@ function downloadEmployeeOcorrenciasSheet(employee: Employee, rows: TimeTrack[],
     { label: 'Período', value: monthLabelText },
   ];
 
-  const tableHeaders = ['Data', 'Entrada', 'Saída Almoço', 'Retorno Almoço', 'Saída', 'Trabalhado', 'Saldo', 'Ocorrência', 'Assinatura Diária'];
+  const tableHeaders = ['Data', 'Dia', '1a E.', '1a S.', '2a E.', '2a S.', 'Abono', 'H.E.', 'Absent.', 'Jornada', 'Ad. Not.', 'Observacao'];
   
   let tableRows: string[];
+  const WEEKDAYS = ['DOM','SEG','TER','QUA','QUI','SEX','SÁB'];
   if (occurrenceGrid.length === 0) {
-    tableRows = [`<tr><td colspan="9" style="padding:12px;text-align:center;font-size:9px;color:#64748b;font-weight:600;">Nenhuma ocorrência registrada neste período.</td></tr>`];
+    tableRows = [`<tr><td colspan="12" style="padding:12px;text-align:center;font-size:9px;color:#64748b;font-weight:600;">Nenhuma ocorrência registrada neste período.</td></tr>`];
   } else {
     tableRows = occurrenceGrid.map((g) => {
-      const WEEKDAYS = ['DOM','SEG','TER','QUA','QUI','SEX','SÁB'];
       const wd = WEEKDAYS[g.wd];
-      const dateStr = `${String(g.day).padStart(2,'0')} - ${wd}`;
-
+      const dateStr = `${String(g.day).padStart(2,'0')}/${month.split('-')[1]}/${month.split('-')[0]}`;
       const t = g.track;
-      if (!t) {
-        return `<tr><td style="padding:4px 8px;font-size:8px;color:#e11d48;font-weight:600;">${dateStr}</td><td colspan="8" style="padding:4px 8px;font-size:8px;color:#e11d48;text-align:center;font-weight:700;">FALTA NÃO JUSTIFICADA</td></tr>`;
-      }
-
+      if (!t) return `<tr><td style="padding:2px 4px;font-size:7px;color:#e11d48;font-weight:600;">${dateStr}</td><td style="padding:2px 4px;font-size:7px;color:#e11d48;">${wd}</td><td colspan="10" style="padding:2px 4px;font-size:7px;color:#e11d48;text-align:center;font-weight:700;">FALTA NÃO JUSTIFICADA</td></tr>`;
       const balance = t.dailyBalance ?? 0;
-      const balanceColor = balance < 0 ? '#e11d48' : balance > 0 ? '#059669' : '#64748b';
       const hasMissing = !t.entry || !t.exit;
       let ocorrencia = dayStatus(t);
-      if (ocorrencia === 'NORMAL' && hasMissing) ocorrencia = 'FALTA DE MARCAÇÃO';
-      
+      if (ocorrencia === 'NORMAL') ocorrencia = hasMissing ? 'FALTA DE MARCAÇÃO' : '';
+      const he = balance > 0 ? formatMinutes(balance) : '';
+      const absent = balance < 0 ? formatMinutes(Math.abs(balance)) : '';
+      const jornada = formatMinutes(t.totalWorked ?? 0);
       return `<tr>
-        <td style="padding:4px 8px;font-size:8px;font-weight:600;color:#0f172a;">${dateStr}</td>
-        <td style="padding:4px 8px;font-size:8px;color:#334155;text-align:center;">${escapeHtml(formatTime(t.entry))}</td>
-        <td style="padding:4px 8px;font-size:8px;color:#94a3b8;text-align:center;">--:--</td>
-        <td style="padding:4px 8px;font-size:8px;color:#94a3b8;text-align:center;">--:--</td>
-        <td style="padding:4px 8px;font-size:8px;color:#334155;text-align:center;">${escapeHtml(formatTime(t.exit))}</td>
-        <td style="padding:4px 8px;font-size:8px;font-weight:700;color:#0f172a;text-align:center;">${escapeHtml(formatMinutes(t.totalWorked))}</td>
-        <td style="padding:4px 8px;font-size:8px;font-weight:700;color:${balanceColor};text-align:center;">${escapeHtml(formatMinutes(balance))}</td>
-        <td style="padding:4px 8px;font-size:7px;color:#64748b;">${escapeHtml(ocorrencia !== 'NORMAL' ? ocorrencia : '')}</td>
-        <td style="padding:4px 8px;font-size:8px;color:#cbd5e1;border-bottom:1px dashed #e2e8f0;"></td>
+        <td style="padding:2px 4px;font-size:7px;font-weight:600;color:#0f172a;">${dateStr}</td>
+        <td style="padding:2px 4px;font-size:7px;color:#334155;">${wd}</td>
+        <td style="padding:2px 4px;font-size:7px;color:#334155;text-align:center;">${escapeHtml(formatTime(t.entry))}</td>
+        <td style="padding:2px 4px;font-size:7px;color:#94a3b8;text-align:center;">--:--</td>
+        <td style="padding:2px 4px;font-size:7px;color:#94a3b8;text-align:center;">--:--</td>
+        <td style="padding:2px 4px;font-size:7px;color:#334155;text-align:center;">${escapeHtml(formatTime(t.exit))}</td>
+        <td style="padding:2px 4px;font-size:7px;color:#334155;text-align:center;"></td>
+        <td style="padding:2px 4px;font-size:7px;color:#059669;text-align:center;font-weight:600;">${escapeHtml(he)}</td>
+        <td style="padding:2px 4px;font-size:7px;color:#e11d48;text-align:center;font-weight:600;">${escapeHtml(absent)}</td>
+        <td style="padding:2px 4px;font-size:7px;font-weight:700;color:#0f172a;text-align:center;">${escapeHtml(jornada)}</td>
+        <td style="padding:2px 4px;font-size:7px;color:#334155;text-align:center;"></td>
+        <td style="padding:2px 4px;font-size:6px;color:#64748b;">${escapeHtml(ocorrencia)}</td>
       </tr>`;
     });
   }
@@ -668,7 +683,7 @@ function downloadEmployeeOcorrenciasSheet(employee: Employee, rows: TimeTrack[],
   const html = buildPdfShell({ title: 'Ficha de Ocorrências de Ponto', subtitle: `${monthLabelText} — ${normalizeDisplayName(employee.name)}`, landscape: false }, companyData, `
     ${section('Dados do Colaborador', infoGrid(employeeInfo, 4))}
 
-    ${section('Divergências e Ocorrências no Período', pdfTable(tableHeaders, tableRows, { compact: true }))}
+    ${section('Divergências e Ocorrências no Período', pdfTable(tableHeaders, tableRows, { compact: true, border: true }), { avoidBreak: false, noBg: true })}
 
     ${section('Resumo do Período', `
       <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;">
