@@ -154,7 +154,7 @@ function ChatWorkspace() {
       <ChatThread 
         chat={activeChat} 
         onBack={() => setActiveId(null)} 
-        className={`${activeId ? 'flex' : 'hidden md:flex'} flex-1 flex-col min-h-0 bg-[#efeae2]`}
+        className={`${activeId ? 'flex' : 'hidden md:flex'} flex-1 flex-col min-h-0 min-w-0 bg-[#efeae2]`}
       />
     </section>
   );
