@@ -312,12 +312,17 @@ export default function TimeTrackPage() {
         <section className="rounded-[12px] border border-amber-200 bg-amber-50 p-4">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
             <h3 className="text-sm font-black text-amber-900">PONTOS PENDENTES DE APROVAÇÃO ({(pending.data ?? []).length})</h3>
-            {selectedPending.length > 0 && (
-              <div className="flex gap-2">
-                <button onClick={()=>batchApproveMut.mutate({ids:selectedPending,approved:true}).catch(()=>{})} disabled={batchApproveMut.loading} className="inline-flex h-8 items-center gap-1 rounded-[6px] bg-emerald-600 px-3 text-[11px] font-bold text-white disabled:opacity-60"><Check size={12}/>APROVAR LOTE ({selectedPending.length})</button>
-                <button onClick={()=>batchApproveMut.mutate({ids:selectedPending,approved:false}).catch(()=>{})} disabled={batchApproveMut.loading} className="inline-flex h-8 items-center gap-1 rounded-[6px] bg-rose-600 px-3 text-[11px] font-bold text-white disabled:opacity-60"><XCircle size={12}/>RECUSAR LOTE ({selectedPending.length})</button>
-              </div>
-            )}
+            <div className="flex gap-2">
+              <button onClick={()=>setSelectedPending(selectedPending.length === (pending.data ?? []).length ? [] : (pending.data ?? []).map(p=>p.id))} className="inline-flex h-8 items-center gap-1 rounded-[6px] bg-slate-200 px-3 text-[11px] font-bold text-slate-700 hover:bg-slate-300">
+                {selectedPending.length === (pending.data ?? []).length ? 'DESMARCAR TODOS' : 'MARCAR TODOS'}
+              </button>
+              {selectedPending.length > 0 && (
+                <>
+                  <button onClick={()=>batchApproveMut.mutate({ids:selectedPending,approved:true}).catch(()=>{})} disabled={batchApproveMut.loading} className="inline-flex h-8 items-center gap-1 rounded-[6px] bg-emerald-600 px-3 text-[11px] font-bold text-white disabled:opacity-60"><Check size={12}/>APROVAR LOTE ({selectedPending.length})</button>
+                  <button onClick={()=>batchApproveMut.mutate({ids:selectedPending,approved:false}).catch(()=>{})} disabled={batchApproveMut.loading} className="inline-flex h-8 items-center gap-1 rounded-[6px] bg-rose-600 px-3 text-[11px] font-bold text-white disabled:opacity-60"><XCircle size={12}/>RECUSAR LOTE ({selectedPending.length})</button>
+                </>
+              )}
+            </div>
           </div>
           {approveMut.error && <p className="mb-3 rounded-[8px] border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">{approveMut.error}</p>}
           {batchApproveMut.error && <p className="mb-3 rounded-[8px] border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">{batchApproveMut.error}</p>}
@@ -412,7 +417,7 @@ export default function TimeTrackPage() {
           <OcorrenciasList employees={visible} byEmpMap={byEmpMap} month={month} onSelect={setEmpFilter} />
         )}
 
-      {(open || editing) && <Modal employees={actives} track={editing ?? undefined} defaultEmpId={empFilter} onClose={()=>{setOpen(false);setEditing(null);}} onDone={()=>{setOpen(false);setEditing(null);tracks.refetch();}} />}
+      {open && <TimeTrackModal track={editing} employees={employees.data || []} onClose={()=>{setOpen(false);setEditing(null);}} onDone={()=>{setOpen(false);setEditing(null);tracks.refetch();}} defaultEmpId={empFilter} canManage={canManage} />}
     </div>
   );
 }
@@ -580,7 +585,7 @@ function OcorrenciasList({ employees, byEmpMap, month, onSelect }: { employees: 
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-gradient-to-br from-rose-500 to-pink-600 text-sm font-black text-white">{normalizeDisplayName(e.name).charAt(0).toUpperCase()}</div>
                 <div>
                   <p className="text-sm font-black text-slate-950">{normalizeDisplayName(e.name)}</p>
-                  <p className="text-[10px] font-semibold text-rose-600">{ocorrenciasCount} OCORRÃNCIA(S) -¢ {e.department || '-'}</p>
+                  <p className="text-[10px] font-semibold text-rose-600">{ocorrenciasCount} OCORRÃŠNCIA(S) -€¢ {e.department || '-'}</p>
                 </div>
               </div>
               <button onClick={()=>onSelect(e.id)} className="btn-outline inline-flex h-8 items-center gap-1.5 rounded-[6px] px-3 text-[10px] font-black"><CalendarDays size={12}/> VER</button>
@@ -639,13 +644,13 @@ function MonthGrid({ employee, tracks, month, canManage, canApprove, refreshing,
             <tr className="bg-slate-50 text-[9px] font-black uppercase tracking-[0.1em] text-slate-500">
               <th className="px-3 py-2 w-[16%] border-b border-slate-200">DATA</th>
               <th className="px-3 py-2 w-[9%] border-b border-slate-200">ENTRADA</th>
-              <th className="px-3 py-2 w-[11%] border-b border-slate-200">ALMOÃO</th>
+              <th className="px-3 py-2 w-[11%] border-b border-slate-200">ALMOÃ‡O</th>
               <th className="px-3 py-2 w-[9%] border-b border-slate-200">saída</th>
               <th className="px-3 py-2 w-[9%] border-b border-slate-200">TRAB</th>
               <th className="px-3 py-2 w-[9%] border-b border-slate-200">SALDO</th>
               <th className="px-3 py-2 w-[8%] border-b border-slate-200">ABONO</th>
               <th className="px-3 py-2 w-[10%] border-b border-slate-200">STATUS</th>
-              <th className="px-3 py-2 w-[19%] border-b border-slate-200 text-center">AÃÃES</th>
+              <th className="px-3 py-2 w-[19%] border-b border-slate-200 text-center">AÃ‡Ã•ES</th>
             </tr>
           </thead>
           <tbody>
@@ -657,7 +662,7 @@ function MonthGrid({ employee, tracks, month, canManage, canApprove, refreshing,
               else if (!t && !day.antesAdmissao && !day.depoisDemissao) bg = 'bg-amber-50/20';
               else if (day.antesAdmissao || day.depoisDemissao) bg = 'bg-slate-100/50 opacity-50';
               const status = day.isRest ? 'FOLGA' : (day.antesAdmissao || day.depoisDemissao) ? '---' : t ? dayStatus(t) : day.isFuture ? '---' : 'FALTA';
-              const isAtestado = ['ATESTADO','FERIADO','SUSPENSÃO','FOLGA','FOLGA EXTRA','FOLGA BANCO','FOLGA (DSR)','---'].includes(status);
+              const isAtestado = ['ATESTADO','FERIADO','SUSPENSÃƒO','FOLGA','FOLGA EXTRA','FOLGA BANCO','FOLGA (DSR)','---'].includes(status);
 
               return (
                 <tr key={day.key} className={`h-9 border-t border-slate-100 text-[11px] font-semibold text-slate-700 hover:bg-slate-50/70 ${bg}`}>
@@ -733,7 +738,7 @@ function Ocorrencias({ employee, tracks, month, canManage, canApprove, refreshin
           <table className="w-full min-w-[800px] border-separate border-spacing-0 text-left">
             <thead>
               <tr className="bg-slate-50 text-[10px] font-black uppercase text-slate-500">
-                <th className="px-3 py-2 w-[20%]">DATA</th><th className="px-3 py-2 w-[15%]">STATUS</th><th className="px-3 py-2 w-[15%]">ENTRADA</th><th className="px-3 py-2 w-[15%]">saída</th><th className="px-3 py-2 w-[35%]">AÃÃES</th>
+                <th className="px-3 py-2 w-[20%]">DATA</th><th className="px-3 py-2 w-[15%]">STATUS</th><th className="px-3 py-2 w-[15%]">ENTRADA</th><th className="px-3 py-2 w-[15%]">saída</th><th className="px-3 py-2 w-[35%]">AÃ‡Ã•ES</th>
               </tr>
             </thead>
             <tbody>
@@ -773,7 +778,7 @@ function StatusBadge({ status }: { status: string }) {
     'FERIADO':'bg-teal-50 text-teal-700 border-teal-200',
     'ATESTADO':'bg-violet-50 text-violet-700 border-violet-200',
     'ATESTADO (HORAS)':'bg-violet-50 text-violet-700 border-violet-200',
-    'SUSPENSÃO':'bg-orange-50 text-orange-700 border-orange-200',
+    'SUSPENSÃƒO':'bg-orange-50 text-orange-700 border-orange-200',
     'FOLGA':'bg-sky-50 text-sky-700 border-sky-200',
     'FOLGA (DSR)':'bg-sky-50 text-sky-700 border-sky-200',
     'FOLGA EXTRA':'bg-indigo-50 text-indigo-700 border-indigo-200',
@@ -786,7 +791,7 @@ function StatusBadge({ status }: { status: string }) {
   return <span className={`inline-flex items-center rounded-[5px] border px-2 py-0.5 text-[9px] font-black whitespace-nowrap ${c[u]||'bg-slate-100 text-slate-600 border-slate-200'}`}>{u}</span>;
 }
 
-function Modal({ employees, track, defaultEmpId, onClose, onDone }: { employees: Employee[]; track?: TimeTrack; defaultEmpId: string; onClose: ()=>void; onDone: ()=>void; }) {
+function TimeTrackModal({ track, employees, onClose, onDone, defaultEmpId, canManage }: { track: TimeTrack|null; employees: Employee[]; onClose: ()=>void; onDone: ()=>void; defaultEmpId?: string; canManage: boolean; }) {
   const initDate = track ? toDateKey(track.date) : getLocalToday();
   const [date, setDate] = useState(initDate);
   const [endDate, setEndDate] = useState('');
@@ -811,7 +816,7 @@ function Modal({ employees, track, defaultEmpId, onClose, onDone }: { employees:
       observation: detail,
     };
 
-    if (track) {
+    if (track && canManage) {
       await api.timeTrack.update(track.id, {
         entry: payload.entry,
         lunchStart: payload.lunchStart,
@@ -874,7 +879,7 @@ function Modal({ employees, track, defaultEmpId, onClose, onDone }: { employees:
             <label className="space-y-1 text-xs font-medium text-slate-600 flex-1"><span>{track || endDate ? 'DATA' : 'DATA INICIAL'}</span><input disabled={!!track} type="date" value={date} onChange={e=>setDate(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500 disabled:bg-slate-50"/></label>
             {!track && <label className="space-y-1 text-xs font-medium text-slate-600 flex-1"><span>DATA FINAL (OPCIONAL)</span><input type="date" value={endDate} onChange={e=>setEndDate(e.target.value)} min={date} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500 disabled:bg-slate-50"/></label>}
           </div>
-          {!track && <label className="space-y-1 text-xs font-medium text-slate-600"><span>MOTIVO</span><select value={reason} onChange={e=>setReason(e.target.value as TimeTrackAdjustmentReason)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500">{REASONS.map(r=><option key={r.value} value={r.value}>{r.label}</option>)}</select></label>}
+          {(!track || !canManage) && <label className="space-y-1 text-xs font-medium text-slate-600"><span>MOTIVO</span><select value={reason} onChange={e=>setReason(e.target.value as TimeTrackAdjustmentReason)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500">{REASONS.map(r=><option key={r.value} value={r.value}>{r.label}</option>)}</select></label>}
           {!fullDay && <><TimeField label="ENTRADA" value={entry} onChange={setEntry}/><TimeField label="SAÍDA ALMOÇO" value={lunchS} onChange={setLunchS}/><TimeField label="RETORNO ALMOÇO" value={lunchR} onChange={setLunchR}/><TimeField label="SAÍDA" value={exit} onChange={setExit}/></>}
           <label className="space-y-1 text-xs font-medium text-slate-600 sm:col-span-2"><span>OBSERVAÇÃO</span><input value={detail} onChange={e=>setDetail(e.target.value)} placeholder={track ? track.observation ?? '' : ''} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500"/></label>
         </div>
