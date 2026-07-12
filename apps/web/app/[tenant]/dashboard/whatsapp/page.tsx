@@ -11,6 +11,8 @@ export default function WhatsappPage() {
   const status = useQuery(() => api.whatsapp.status(), [], { pollMs: 5000 });
   const isConnected = status.data?.status === 'CONNECTED' || (status.data?.status === 'CONNECTING' && Boolean(status.data?.phone));
 
+  const disconnect = useMutation(() => api.whatsapp.disconnect(), { onSuccess: status.refetch });
+
   return (
     <div className="mx-auto max-w-6xl space-y-5">
       <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -18,7 +20,19 @@ export default function WhatsappPage() {
           <p className="text-[11px] font-black uppercase tracking-[0.2em] text-teal-600">WhatsApp</p>
           <h2 className="text-2xl font-black text-slate-950">Comunicacao WhatsApp</h2>
         </div>
-        <ConnectionPill status={status.data?.status} phone={status.data?.phone} />
+        <div className="flex items-center gap-3">
+          <ConnectionPill status={status.data?.status} phone={status.data?.phone} />
+          {isConnected && (
+            <button 
+              onClick={() => disconnect.mutate().catch(() => {})}
+              disabled={disconnect.loading}
+              className="flex items-center gap-2 rounded-[8px] bg-rose-50 px-3 py-1.5 text-xs font-bold text-rose-600 hover:bg-rose-100 disabled:opacity-50"
+            >
+              {disconnect.loading ? <Loader2 className="animate-spin" size={14} /> : <Power size={14} />}
+              Desconectar
+            </button>
+          )}
+        </div>
       </header>
 
       {isConnected ? (
