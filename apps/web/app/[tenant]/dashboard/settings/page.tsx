@@ -330,7 +330,7 @@ function CompanySettings() {
                   Fazer Upload
                   <input 
                     type="file" 
-                    accept="image/png, image/jpeg, image/webp" 
+                    accept="image/png, image/jpeg, image/webp, image/svg+xml" 
                     className="absolute inset-0 cursor-pointer opacity-0" 
                     onChange={(e) => {
                       const file = e.target.files?.[0];
@@ -338,37 +338,8 @@ function CompanySettings() {
                       const reader = new FileReader();
                       reader.onload = (ev) => {
                         const result = ev.target?.result as string;
-                        const img = new window.Image();
-                        img.onload = () => {
-                          try {
-                            const canvas = document.createElement('canvas');
-                            let width = img.width;
-                            let height = img.height;
-                            const max = 300;
-                            if (width > height && width > max) { height = Math.round(height * (max / width)); width = max; }
-                            else if (height > max) { width = Math.round(width * (max / height)); height = max; }
-                            canvas.width = width || 300; 
-                            canvas.height = height || 300;
-                            const ctx = canvas.getContext('2d');
-                            if (ctx) {
-                              ctx.drawImage(img, 0, 0, width, height);
-                              const dataUrl = canvas.toDataURL('image/png');
-                              setRemoveLogo(false);
-                              setLogoUrl(dataUrl);
-                            } else {
-                              setRemoveLogo(false);
-                              setLogoUrl(result);
-                            }
-                          } catch (err) {
-                            setRemoveLogo(false);
-                            setLogoUrl(result);
-                          }
-                        };
-                        img.onerror = () => {
-                          setRemoveLogo(false);
-                          setLogoUrl(result);
-                        };
-                        img.src = result;
+                        setRemoveLogo(false);
+                        setLogoUrl(result);
                       };
                       reader.readAsDataURL(file);
                       e.target.value = ''; // Limpa para permitir selecionar o mesmo arquivo novamente
