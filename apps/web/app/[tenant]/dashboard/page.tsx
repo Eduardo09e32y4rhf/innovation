@@ -80,6 +80,10 @@ function DashboardContent() {
   const employeesNoManager = (employees.data ?? []).filter(e => !e.managerId).length;
   const employeesNoAccess = (employees.data ?? []).filter(e => !e.userId).length;
   
+  const totalBalanceThisMonth = useMemo(() => {
+    return filteredTimeTracks.reduce((acc, t) => acc + (t.dailyBalance ?? 0), 0);
+  }, [filteredTimeTracks]);
+
   // Local movements tracking based on the selected month
   const admissionsThisMonth = (employees.data ?? []).filter(e => isSelectedMonth(e.admissionDate)).length;
   const terminationsThisMonth = (employees.data ?? []).filter(e => isSelectedMonth(e.terminationDate)).length;
@@ -226,9 +230,9 @@ function DashboardContent() {
                 />
                 <MetricCard 
                   label="Banco de horas" 
-                  value={summaryData ? formatMinutes(summaryData.totalTimeBalance) : undefined} 
+                  value={formatMinutes(totalBalanceThisMonth)} 
                   icon={TrendingUp} 
-                  detail="saldo consolidado"
+                  detail="saldo do período"
                   loading={summary.loading}
                 />
               </>
