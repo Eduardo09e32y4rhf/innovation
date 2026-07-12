@@ -82,14 +82,25 @@ export class WhatsappProvider {
         if (update.connection === 'close') {
           const loggedOut = update.lastDisconnect?.error?.output?.statusCode === DisconnectReason.loggedOut;
           this.sessions.delete(companyId);
-          this.setSnapshot(companyId, {
-            status: 'DISCONNECTED',
-            qrCode: null,
-            phone: null,
-            displayName: null,
-          });
-          await this.updateStatus(companyId, 'DISCONNECTED');
-          if (!loggedOut) setTimeout(() => void this.connect(companyId), 5000);
+          if (loggedOut) {
+            this.setSnapshot(companyId, {
+              status: 'DISCONNECTED',
+              qrCode: null,
+              phone: null,
+              displayName: null,
+            });
+            await this.updateStatus(companyId, 'DISCONNECTED');
+          } else {
+            const current = this.sessionState.get(companyId);
+            this.setSnapshot(companyId, {
+              status: 'CONNECTING',
+              qrCode: null,
+              phone: current?.phone ?? null,
+              displayName: current?.displayName ?? null,
+            });
+            await this.updateStatus(companyId, 'CONNECTING');
+            setTimeout(() => void this.connect(companyId), 5000);
+          }
         }
       });
 

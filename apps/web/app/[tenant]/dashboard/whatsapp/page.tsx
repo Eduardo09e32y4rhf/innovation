@@ -9,7 +9,7 @@ import { api, type Chat, type ChatMessage } from '@/app/lib/api';
 
 export default function WhatsappPage() {
   const status = useQuery(() => api.whatsapp.status(), [], { pollMs: 5000 });
-  const isConnected = status.data?.status === 'CONNECTED';
+  const isConnected = status.data?.status === 'CONNECTED' || (status.data?.status === 'CONNECTING' && Boolean(status.data?.phone));
 
   return (
     <div className="mx-auto max-w-6xl space-y-5">
