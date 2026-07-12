@@ -141,26 +141,27 @@ function ChatWorkspace() {
   }, [chats.data, activeId]);
 
   return (
-    <section className="ops-card relative grid h-[calc(100vh-220px)] min-h-[480px] grid-cols-1 overflow-hidden rounded-[10px] border border-slate-200 bg-white md:grid-cols-[320px_1fr]">
-      <div className={`md:block ${activeId ? 'hidden' : 'block'}`}>
-        <ChatList
-          chats={chats.data ?? []}
-          loading={chats.loading}
-          error={chats.error}
-          activeId={activeId}
-          onSelect={setActiveId}
-          onRefresh={chats.refetch}
-        />
-      </div>
-      <div className={`md:flex md:flex-col ${activeId ? 'flex flex-col h-full' : 'hidden'}`}>
-        <ChatThread chat={activeChat} onBack={() => setActiveId(null)} />
-      </div>
+    <section className="ops-card relative flex h-[calc(100vh-220px)] min-h-[480px] w-full overflow-hidden rounded-[10px] border border-slate-200 bg-white">
+      <ChatList
+        chats={chats.data ?? []}
+        loading={chats.loading}
+        error={chats.error}
+        activeId={activeId}
+        onSelect={setActiveId}
+        onRefresh={chats.refetch}
+        className={`${activeId ? 'hidden md:flex' : 'flex'} w-full shrink-0 flex-col min-h-0 border-r border-slate-200 md:w-[320px]`}
+      />
+      <ChatThread 
+        chat={activeChat} 
+        onBack={() => setActiveId(null)} 
+        className={`${activeId ? 'flex' : 'hidden md:flex'} flex-1 flex-col min-h-0 w-full bg-white`}
+      />
     </section>
   );
 }
 
 function ChatList({
-  chats, loading, error, activeId, onSelect, onRefresh,
+  chats, loading, error, activeId, onSelect, onRefresh, className
 }: {
   chats: Chat[];
   loading: boolean;
@@ -168,9 +169,10 @@ function ChatList({
   activeId: string | null;
   onSelect: (id: string) => void;
   onRefresh: () => void;
+  className?: string;
 }) {
   return (
-    <div className="flex min-h-0 flex-col border-b border-slate-200 md:border-b-0 md:border-r">
+    <div className={className || "flex min-h-0 flex-col border-b border-slate-200 md:border-b-0 md:border-r"}>
       <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
         <h3 className="text-sm font-black text-slate-950">Conversas</h3>
         <button onClick={onRefresh} className="text-slate-400 hover:text-teal-600">
@@ -215,7 +217,7 @@ function ChatList({
   );
 }
 
-function ChatThread({ chat, onBack }: { chat: Chat | null; onBack: () => void }) {
+function ChatThread({ chat, onBack, className }: { chat: Chat | null; onBack: () => void; className?: string }) {
   const messages = useQuery<ChatMessage[]>(
     () => (chat ? api.whatsapp.chatMessages(chat.id) : Promise.resolve([])),
     [chat?.id],
@@ -243,7 +245,7 @@ function ChatThread({ chat, onBack }: { chat: Chat | null; onBack: () => void })
 
   if (!chat) {
     return (
-      <div className="flex min-h-0 flex-1 items-center justify-center text-sm text-slate-400">
+      <div className={`${className || "flex min-h-0 flex-1"} items-center justify-center text-sm text-slate-400`}>
         Selecione uma conversa
       </div>
     );
@@ -256,8 +258,8 @@ function ChatThread({ chat, onBack }: { chat: Chat | null; onBack: () => void })
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex items-center gap-3 border-b border-slate-100 px-4 py-3">
+    <div className={className || "flex min-h-0 flex-1 flex-col"}>
+      <div className="flex shrink-0 items-center gap-3 border-b border-slate-100 px-4 py-3">
         <button onClick={onBack} className="md:hidden flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
         </button>
@@ -309,10 +311,10 @@ function ChatThread({ chat, onBack }: { chat: Chat | null; onBack: () => void })
       </div>
 
       {send.error && (
-        <p className="border-t border-rose-100 bg-rose-50 px-4 py-1.5 text-[11px] text-rose-700">{send.error}</p>
+        <p className="shrink-0 border-t border-rose-100 bg-rose-50 px-4 py-1.5 text-[11px] text-rose-700">{send.error}</p>
       )}
 
-      <div className="flex items-center gap-2 border-t border-slate-100 px-4 py-3">
+      <div className="flex shrink-0 items-center gap-2 border-t border-slate-100 px-4 py-3">
         <input
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
