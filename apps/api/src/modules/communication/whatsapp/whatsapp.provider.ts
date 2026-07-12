@@ -224,12 +224,7 @@ export class WhatsappProvider {
 
   async getChats(companyId: string) {
     const chats = Array.from(this.chats.get(companyId)?.values() ?? []).sort((a, b) => b.timestamp - a.timestamp);
-    return Promise.all(
-      chats.map(async (chat) => ({
-        ...chat,
-        avatarUrl: chat.avatarUrl ?? (await this.getProfilePicture(companyId, chat.id)),
-      })),
-    );
+    return chats;
   }
 
   getMessages(companyId: string, chatId: string) {
