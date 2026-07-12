@@ -33,6 +33,7 @@ export class WhatsappProvider {
   private readonly sessionState = new Map<string, SessionSnapshot>();
   private readonly chats = new Map<string, Map<string, StoredChat>>();
   private readonly messages = new Map<string, Map<string, any[]>>();
+  private readonly contacts = new Map<string, Map<string, string>>();
   private events?: WhatsappProviderEvents;
 
   setEvents(events: WhatsappProviderEvents) {
@@ -147,6 +148,33 @@ export class WhatsappProvider {
         }
       });
 
+      socket.ev.on('contacts.upsert', (contacts: any[]) => {
+        if (!this.contacts.has(companyId)) this.contacts.set(companyId, new Map());
+        for (const contact of contacts ?? []) {
+          if (contact.name || contact.notify) {
+            this.contacts.get(companyId)?.set(contact.id, contact.name || contact.notify);
+          }
+        }
+      });
+
+      socket.ev.on('contacts.update', (contacts: any[]) => {
+        if (!this.contacts.has(companyId)) this.contacts.set(companyId, new Map());
+        for (const contact of contacts ?? []) {
+          if (contact.name || contact.notify) {
+            this.contacts.get(companyId)?.set(contact.id, contact.name || contact.notify);
+          }
+        }
+      });
+
+      socket.ev.on('contacts.set', (payload: any) => {
+        if (!this.contacts.has(companyId)) this.contacts.set(companyId, new Map());
+        for (const contact of payload.contacts ?? []) {
+          if (contact.name || contact.notify) {
+            this.contacts.get(companyId)?.set(contact.id, contact.name || contact.notify);
+          }
+        }
+      });
+
       return { status: 'CONNECTING' };
     } catch (error) {
       this.logger.error(`WhatsApp provider failed: ${(error as Error).message}`);
@@ -247,9 +275,10 @@ export class WhatsappProvider {
     if (!chatId || chatId === 'status@broadcast') return;
     if (!this.chats.has(companyId)) this.chats.set(companyId, new Map());
     const current = this.chats.get(companyId)?.get(chatId);
+    const realName = this.contacts.get(companyId)?.get(chatId);
     this.chats.get(companyId)?.set(chatId, {
       id: chatId,
-      name: chat.name || current?.name || chatId.split('@')[0],
+      name: realName || chat.name || current?.name || chatId.split('@')[0],
       unreadCount: chat.unreadCount ?? current?.unreadCount ?? 0,
       timestamp: chat.timestamp || current?.timestamp || Date.now(),
       lastMessage: chat.lastMessage ?? current?.lastMessage ?? '',
