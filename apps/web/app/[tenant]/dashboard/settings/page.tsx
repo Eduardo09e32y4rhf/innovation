@@ -213,6 +213,9 @@ function CompanySettings() {
       address: address.trim() || undefined,
       primaryColor: primaryColor.trim() || undefined,
       theme: theme || undefined,
+      latitude: latitude === '' ? null : latitude,
+      longitude: longitude === '' ? null : longitude,
+      radiusTolerance: radiusTolerance,
     }),
     { onSuccess: () => company.refetch() },
   );

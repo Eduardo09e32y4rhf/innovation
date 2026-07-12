@@ -12,11 +12,10 @@ export class CompaniesService {
   }
 
   updateMe(companyId: string, dto: UpdateCompanyDto) {
-    const { document, ...rest } = dto;
     const data = {
-      ...rest,
+      ...dto,
       ...(dto.name !== undefined ? { name: normalizeDisplayName(dto.name) } : {}),
-      ...(document !== undefined ? { cnpj: emptyToNull(document) } : {}),
+      ...(dto.document !== undefined ? { document: emptyToNull(dto.document) } : {}),
       logoUrl: dto.logoUrl === null ? null : dto.logoUrl?.trim(),
     };
     return this.repository.updateMe(companyId, data as any);
