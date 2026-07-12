@@ -151,13 +151,23 @@ export function readParsedAuthSession(): {
   user: User | null;
   company: Company | null;
   passwordChangeRequired: boolean;
+  isIsolatedTab: boolean;
 } {
   const raw = readAuthSession();
+  
+  // Verifica se o token veio do sessionStorage ou localStorage
+  let isIsolated = false;
+  if (typeof window !== 'undefined') {
+    const ssToken = window.sessionStorage.getItem(SESSION_KEYS.token) ?? window.sessionStorage.getItem('token') ?? window.sessionStorage.getItem('auth.token');
+    isIsolated = Boolean(ssToken && raw.token === ssToken);
+  }
+
   return {
     token: raw.token,
     user: safeParse<User>(raw.user),
     company: safeParse<Company>(raw.company),
     passwordChangeRequired: raw.passwordChangeRequired === 'true',
+    isIsolatedTab: isIsolated,
   };
 }
 
@@ -181,13 +191,13 @@ export function persistAuthSession(
   }, isolateTab);
 }
 
-/** Remove todos os dados de sessão do localStorage. */
-export function clearAuthSession(): void {
+/** Remove todos os dados de sessão do localStorage ou sessionStorage. */
+export function clearAuthSession(isIsolatedTab: boolean = false): void {
   if (typeof window === 'undefined') return;
   try {
-    const ls = window.localStorage;
-    Object.values(SESSION_KEYS).forEach((k) => ls.removeItem(k));
-    PROHIBITED_LOCALSTORAGE_KEYS.forEach((k) => ls.removeItem(k));
+    const storage = isIsolatedTab ? window.sessionStorage : window.localStorage;
+    Object.values(SESSION_KEYS).forEach((k) => storage.removeItem(k));
+    PROHIBITED_LOCALSTORAGE_KEYS.forEach((k) => storage.removeItem(k));
   } catch (e) {
     // Ignora
   }

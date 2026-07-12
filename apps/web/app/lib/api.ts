@@ -1,6 +1,6 @@
 'use client';
 
-import { clearAuthSession, readAuthSession } from './auth-session';
+import { clearAuthSession, readAuthSession, readParsedAuthSession } from './auth-session';
 import { resetAllQueryStates } from '@/app/hooks/use-data';
 
 /**
@@ -33,7 +33,8 @@ function getToken(): string | null {
 }
 
 function clearSession() {
-  clearAuthSession();
+  const { isIsolatedTab } = readParsedAuthSession();
+  clearAuthSession(isIsolatedTab);
   // Zera cache em memória imediatamente — evita flash de dados do usuário anterior
   resetAllQueryStates();
 }

@@ -75,6 +75,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [passwordChangeRequired, setPasswordChangeRequired] = useState(false);
+  const [isIsolatedTab, setIsIsolatedTab] = useState(false);
 
   useEffect(() => {
     setAuthScopeSnapshot({
@@ -86,12 +87,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     if (token && user && company) {
       // persistAuthSession recebe objetos brutos — serialização acontece dentro do módulo
-      persistAuthSession(token, user, company, passwordChangeRequired);
+      persistAuthSession(token, user, company, passwordChangeRequired, isIsolatedTab);
       return;
     }
 
-    clearAuthSession();
-  }, [token, user, company, passwordChangeRequired]);
+    clearAuthSession(isIsolatedTab);
+  }, [token, user, company, passwordChangeRequired, isIsolatedTab]);
 
   useEffect(() => {
     // Ativa o guard: localStorage vira zona proibida para auth nesta aba
@@ -106,6 +107,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setUser(session.user);
         setCompany(session.company);
         setPasswordChangeRequired(session.passwordChangeRequired);
+        setIsIsolatedTab(session.isIsolatedTab);
       }
 
       if (!session.token) {
@@ -194,7 +196,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setUser(null);
     setCompany(null);
     setPasswordChangeRequired(false);
-    clearAuthSession();
+    clearAuthSession(isIsolatedTab);
     resetAllQueryStates();
   };
 
