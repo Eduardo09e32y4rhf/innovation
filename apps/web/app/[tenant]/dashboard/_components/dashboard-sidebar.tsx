@@ -114,7 +114,7 @@ export function DashboardSidebar() {
 function CompanyBrandCard({ name, document, logoUrl }: { name?: string | null; document?: string | null; logoUrl?: string | null }) {
   return (
     <div className="sidebar-brand-card flex items-center gap-3 p-3">
-      <div className={\`flex shrink-0 items-center justify-center overflow-hidden \${logoUrl ? 'h-11 max-w-[140px]' : 'h-10 w-10 rounded-[8px] bg-white'}\`}>
+      <div className={`flex shrink-0 items-center justify-center overflow-hidden ${logoUrl ? 'h-11 max-w-[140px]' : 'h-10 w-10 rounded-[8px] bg-white'}`}>
         {logoUrl ? (
           <img src={logoUrl} alt="Logo da empresa" className="h-full w-auto object-contain rounded-[4px]" />
         ) : (
