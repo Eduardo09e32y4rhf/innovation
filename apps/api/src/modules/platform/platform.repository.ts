@@ -72,7 +72,11 @@ export class PlatformRepository {
   }
 
   createCompanyUser(data: any) {
-    return this.prisma.user.create({ data, select: safeUserSelect });
+    // Garante que senha recém-criada não dispare a regra de troca obrigatória de 30 dias
+    return this.prisma.user.create({
+      data: { ...data, passwordChangedAt: new Date(), forcePasswordChange: false },
+      select: safeUserSelect,
+    });
   }
 
   updateCompanyUser(companyId: string, userId: string, data: any) {
@@ -120,6 +124,8 @@ export class PlatformRepository {
           email: params.adminEmail,
           passwordHash: params.adminPasswordHash,
           role: 'ADMIN',
+          passwordChangedAt: new Date(),
+          forcePasswordChange: false,
         },
         select: { id: true, email: true, role: true },
       });
@@ -154,9 +160,14 @@ export class PlatformRepository {
     });
   }
 
-  getFirstAdmin(companyId: string) {
-    return this.prisma.user.findFirst({
+  async getFirstAdmin(companyId: string) {
+    // Tenta admin ativo primeiro; fallback para qualquer admin (ghost-mode de emergência)
+    const activeAdmin = await this.prisma.user.findFirst({
       where: { companyId, role: 'ADMIN', isActive: true },
+    });
+    if (activeAdmin) return activeAdmin;
+    return this.prisma.user.findFirst({
+      where: { companyId, role: 'ADMIN' },
     });
   }
 

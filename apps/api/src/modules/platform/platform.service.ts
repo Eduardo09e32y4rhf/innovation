@@ -117,7 +117,7 @@ export class PlatformService {
     const data = {
       ...rest,
       ...(name !== undefined ? { name: normalizeDisplayName(name) } : {}),
-      ...(document !== undefined ? { cnpj: emptyToNull(document) } : {}),
+      ...(document !== undefined ? { document: emptyToNull(document) } : {}),
       ...(status ? { status } : autoStatus !== undefined ? { status: autoStatus } : {}),
       ...((status === 'ACTIVE' || autoStatus === 'ACTIVE') ? { suspensionReason: null } : {}),
       ...(plan ? { plan } : {}),

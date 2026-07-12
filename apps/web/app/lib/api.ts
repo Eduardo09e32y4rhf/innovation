@@ -281,6 +281,10 @@ export interface PlatformCompany {
   internalNotes?: string | null;
   commercialOwnerId?: string | null;
   suspensionReason?: string | null;
+  platformPlanId?: string | null;
+  logoUrl?: string | null;
+  address?: string | null;
+  subscriptionStartedAt?: string | null;
 }
 export interface PlatformStats { companies: number; users: number; employees: number; messages: number; }
 export interface CreatePlatformCompanyInput {
@@ -505,7 +509,7 @@ export const api = {
     createCompanyUser: (companyId: string, input: CreatePlatformCompanyUserInput) => request<AppUser>(`/platform/company-users/${companyId}`, { method: 'POST', body: input }),
     updateCompanyUser: (companyId: string, userId: string, input: UpdatePlatformCompanyUserInput) => request<AppUser>(`/platform/company-users/${companyId}/${userId}`, { method: 'PATCH', body: input }),
     deleteCompanyUser: (companyId: string, userId: string) => request<void>(`/platform/company-users/${companyId}/${userId}`, { method: 'DELETE' }),
-    getOnlineUsers: () => request<AppUser[]>('/platform/online'),
+    getOnlineUsers: () => request<AppUser[]>('/platform/online-users'),
     getReceitaCnpj: (cnpj: string) => request<any>(`/platform/receita/${cnpj}`),
     ghostMode: (companyId: string) => request<{ token: string }>(`/platform/ghost-mode/${companyId}`, { method: 'POST' }),
   },

@@ -30,8 +30,15 @@ export class PlatformPlansController {
     return this.service.update(id, body);
   }
 
+  /** Soft-delete: desativa o plano (não remove do banco) */
   @Delete(':id')
-  delete(@Param('id') id: string) {
-    return this.service.delete(id);
+  deactivate(@Param('id') id: string) {
+    return this.service.deactivate(id);
+  }
+
+  /** Hard-delete: remove permanentemente (só funciona se o plano já estiver inativo) */
+  @Delete(':id/permanent')
+  deletePermanent(@Param('id') id: string) {
+    return this.service.deletePermanent(id);
   }
 }

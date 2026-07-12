@@ -45,8 +45,8 @@ export default function PlatformPage() {
   });
 
   const updateLicense = useMutation(
-    ({ id, maxUsers, maxEmployees, platformPlanId, billingStatus, trialEndsAt, activeModules, asaasCustomerId, asaasSubscriptionId, internalNotes }: { id: string; maxUsers: number; maxEmployees: number; platformPlanId?: string; billingStatus?: 'TRIAL' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED'; trialEndsAt?: string; activeModules?: string[]; asaasCustomerId?: string; asaasSubscriptionId?: string; internalNotes?: string }) =>
-      api.platform.updateCompany(id, { maxUsers, maxEmployees, platformPlanId, billingStatus, trialEndsAt, activeModules, asaasCustomerId, asaasSubscriptionId, internalNotes }),
+    ({ id, name, document, maxUsers, maxEmployees, platformPlanId, billingStatus, trialEndsAt, activeModules, asaasCustomerId, asaasSubscriptionId, internalNotes }: { id: string; name?: string; document?: string; maxUsers: number; maxEmployees: number; platformPlanId?: string; billingStatus?: 'TRIAL' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED'; trialEndsAt?: string; activeModules?: string[]; asaasCustomerId?: string; asaasSubscriptionId?: string; internalNotes?: string }) =>
+      api.platform.updateCompany(id, { name, document, maxUsers, maxEmployees, platformPlanId, billingStatus, trialEndsAt, activeModules, asaasCustomerId, asaasSubscriptionId, internalNotes }),
     { onSuccess: () => { companies.refetch(); stats.refetch(); setLicenseCompany(null); } },
   );
 
@@ -218,8 +218,8 @@ export default function PlatformPage() {
           company={licenseCompany}
           onClose={() => setLicenseCompany(null)}
           onSave={(data) => {
-            const { plan: selectedPlanId, ...rest } = data;
-            updateLicense.mutate({ id: licenseCompany.id, platformPlanId: selectedPlanId, ...rest }).catch(() => {});
+            const { plan: selectedPlanId, name, document: cnpj, ...rest } = data;
+            updateLicense.mutate({ id: licenseCompany.id, name, document: cnpj, platformPlanId: selectedPlanId, ...rest }).catch(() => {});
           }}
           loading={updateLicense.loading}
           error={updateLicense.error}
@@ -365,10 +365,7 @@ function CompanyUserFormModal({ companyId, user, onClose, onDone }: { companyId:
 }
 
 function NewCompanyModal({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
-  const plansData = useQuery({
-    queryKey: ['platform', 'plans'],
-    queryFn: () => api.platform.listPlans(),
-  });
+  const plansData = useQuery(() => api.platform.listPlans(), []);
 
   const [form, setForm] = useState<CreatePlatformCompanyInput & { planId?: string }>({
     name: '', document: '', slug: '', maxUsers: 10, maxEmployees: 20,
@@ -478,11 +475,13 @@ function F({ label, value, onChange, type = 'text', required }: { label: string;
 function CompanyManageModal({ company, onClose, onSave, loading, error }: { company: PlatformCompany; onClose: () => void; onSave: (data: any) => void; loading: boolean; error: string | null }) {
   const [activeTab, setActiveTab] = useState<string>('plan');
 
-  const plansData = useQuery({ queryKey: ['platform', 'plans'], queryFn: () => api.platform.listPlans() });
+  const plansData = useQuery(() => api.platform.listPlans(), []);
+  const [name, setName] = useState(company.name || '');
+  const [cnpj, setCnpj] = useState(company.document || '');
   const [maxUsers, setMaxUsers] = useState(company.maxUsers);
   const [maxEmployees, setMaxEmployees] = useState(company.maxEmployees ?? 1);
   const [plan, setPlan] = useState(company.platformPlanId || company.plan || 'FREE');
-  const [billingStatus, setBillingStatus] = useState(company.billingStatus ?? 'TRIAL');
+  const [billingStatus, setBillingStatus] = useState<'TRIAL' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED'>(company.billingStatus ?? 'TRIAL');
   const [trialEndsAt, setTrialEndsAt] = useState(safeIsoDate(company.trialEndsAt));
   const [activeModules, setActiveModules] = useState<string[]>(company.activeModules || ['employees', 'time-track', 'vacations', 'management', 'whatsapp']);
   const [asaasCustomerId, setAsaasCustomerId] = useState(company.asaasCustomerId || '');
@@ -516,6 +515,8 @@ function CompanyManageModal({ company, onClose, onSave, loading, error }: { comp
   };
 
   const changed = 
+    name !== (company.name || '') ||
+    cnpj !== (company.document || '') ||
     maxUsers !== (company.maxUsers ?? 1) || 
     maxEmployees !== (company.maxEmployees ?? 1) || 
     plan !== (company.plan ?? 'FREE') || 
@@ -526,7 +527,7 @@ function CompanyManageModal({ company, onClose, onSave, loading, error }: { comp
     asaasSubscriptionId !== (company.asaasSubscriptionId || '') ||
     internalNotes !== (company.internalNotes || '');
 
-  const valid = maxUsers >= 1 && maxUsers >= company.usersCount && maxEmployees >= 1 && maxEmployees >= company.employeesCount;
+  const valid = name.trim().length > 0 && maxUsers >= 1 && maxUsers >= company.usersCount && maxEmployees >= 1 && maxEmployees >= company.employeesCount;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4">
@@ -562,6 +563,33 @@ function CompanyManageModal({ company, onClose, onSave, loading, error }: { comp
         {/* BODY */}
         <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-50/50">
           {error && <p className="mb-3 rounded-[8px] border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">{error}</p>}
+
+          {/* Campos de Nome e CNPJ — sempre visíveis, independente da aba */}
+          <div className="rounded-[10px] border border-slate-100 bg-white p-4 shadow-sm">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label className="mb-2 block text-[11px] font-black uppercase tracking-wider text-slate-500">Nome da Empresa <span className="text-rose-500">*</span></label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Razão social ou nome fantasia"
+                  className="h-9 w-full rounded-[6px] border border-slate-200 px-3 text-sm font-semibold outline-none focus:border-teal-500"
+                />
+                {name.trim().length === 0 && <p className="mt-1 text-[10px] font-semibold text-rose-600">Nome obrigatório</p>}
+              </div>
+              <div>
+                <label className="mb-2 block text-[11px] font-black uppercase tracking-wider text-slate-500">CNPJ</label>
+                <input
+                  type="text"
+                  value={cnpj}
+                  onChange={(e) => setCnpj(e.target.value)}
+                  placeholder="00.000.000/0000-00"
+                  className="h-9 w-full rounded-[6px] border border-slate-200 px-3 text-sm font-semibold outline-none focus:border-teal-500"
+                />
+              </div>
+            </div>
+          </div>
 
           {activeTab === 'plan' && (
             <div className="grid gap-4 sm:grid-cols-2">
@@ -600,7 +628,7 @@ function CompanyManageModal({ company, onClose, onSave, loading, error }: { comp
                   </div>
                   <div>
                     <label className="mb-2 block text-[11px] font-black uppercase tracking-wider text-slate-500">Status de Faturamento</label>
-                    <select value={billingStatus} onChange={(e) => setBillingStatus(e.target.value)} className="h-9 w-full rounded-[6px] border border-slate-200 px-3 text-sm font-semibold outline-none focus:border-teal-500 bg-white">
+                    <select value={billingStatus} onChange={(e) => setBillingStatus(e.target.value as 'TRIAL' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED')} className="h-9 w-full rounded-[6px] border border-slate-200 px-3 text-sm font-semibold outline-none focus:border-teal-500 bg-white">
                       <option value="TRIAL">Em Teste (Trial)</option>
                       <option value="ACTIVE">Ativo</option>
                       <option value="PAST_DUE">Inadimplente</option>
@@ -714,6 +742,8 @@ function CompanyManageModal({ company, onClose, onSave, loading, error }: { comp
             <button onClick={onClose} className="btn-outline h-9 rounded-[8px] px-4 text-xs font-bold">Cancelar</button>
             <button
               onClick={() => valid && changed && onSave({ 
+                name,
+                document: cnpj,
                 maxUsers, 
                 maxEmployees, 
                 plan, 
