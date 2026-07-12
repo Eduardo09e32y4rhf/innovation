@@ -45,7 +45,8 @@ export class WhatsappProvider {
     try {
       const baileys = require('@whiskeysockets/baileys');
       const { default: makeWASocket, useMultiFileAuthState, DisconnectReason } = baileys;
-      const authDir = join(process.cwd(), 'storage', 'whatsapp', companyId);
+      const baseDir = process.env.WHATSAPP_SESSION_PATH || join(process.cwd(), 'storage', 'whatsapp');
+      const authDir = join(baseDir, companyId);
       const { state, saveCreds } = await useMultiFileAuthState(authDir);
       const socket = makeWASocket({ auth: state, printQRInTerminal: false, syncFullHistory: true });
 
@@ -84,7 +85,8 @@ export class WhatsappProvider {
           this.sessions.delete(companyId);
           if (loggedOut) {
             try {
-              const authDir = join(process.cwd(), 'storage', 'whatsapp', companyId);
+              const baseDir = process.env.WHATSAPP_SESSION_PATH || join(process.cwd(), 'storage', 'whatsapp');
+              const authDir = join(baseDir, companyId);
               require('fs').rmSync(authDir, { recursive: true, force: true });
             } catch (e) {}
             this.setSnapshot(companyId, {
