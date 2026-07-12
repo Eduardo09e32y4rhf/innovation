@@ -63,7 +63,7 @@ export function buildPdfShell(options: PdfOptions, company: PdfCompanyInfo | nul
     <div style="display:flex;align-items:flex-start;justify-content:space-between;border-bottom:1px solid #e2e8f0;padding-bottom:16px;margin-bottom:16px;page-break-inside:avoid;">
       <div style="display:flex;align-items:center;gap:16px;">
         ${company?.logoUrl
-          ? `<div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;background:#f8fafc;border-radius:6px;padding:4px;"><img src="${escapeAttr(company.logoUrl)}" alt="Logo" style="max-width:100%;max-height:100%;object-fit:contain;" /></div>`
+          ? `<div style="max-width:140px;height:48px;display:flex;align-items:center;justify-content:flex-start;overflow:hidden;"><img src="${escapeAttr(company.logoUrl)}" alt="Logo" style="width:auto;height:100%;object-fit:contain;border-radius:4px;" /></div>`
           : `<div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;border:2px solid #0d9488;border-radius:6px;color:#0d9488;font-weight:900;font-size:14px;background:#f0fdfa;">RH</div>`
         }
         <div>
