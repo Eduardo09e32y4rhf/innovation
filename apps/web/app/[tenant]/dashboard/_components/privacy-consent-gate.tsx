@@ -7,6 +7,11 @@ import dynamic from 'next/dynamic';
 
 const FaceIDOverlay = dynamic(() => import('@/app/components/FaceIDOverlay').then(mod => mod.FaceIDOverlay), { ssr: false });
 
+// Pré-carrega os modelos de IA assim que o arquivo é importado
+if (typeof window !== 'undefined') {
+  import('@/app/components/FaceIDOverlay').catch(() => {});
+}
+
 const TERMS_VERSION = 'lgpd-rh-innovation-v2.0.0';
 
 const FALLBACK_PURPOSE = 'Uso do sistema SaaS para gestão de RH, departamento pessoal, colaboradores, ponto, jornada, férias, comunicação operacional e registros administrativos, com integração às ferramentas de Inteligência Artificial da Innovation System e consultoria, conforme bases legais aplicáveis da LGPD e normas de proteção avançada de dados.';
@@ -127,38 +132,37 @@ export function PrivacyConsentGate({ children }: { children: React.ReactNode }) 
   const handleInitiateAccept = async () => {
     if (!token || !checked) return;
     setSaving(true);
-    setError('Obtendo localização...');
-    
+    setError('');
+
+    // Abre a câmera IMEDIATAMENTE — não espera o GPS
+    setShowFaceID(true);
+    setSaving(false);
+
+    // Geolocalização em paralelo (não bloqueia a câmera)
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         async (position) => {
           try {
             const { latitude, longitude } = position.coords;
-            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`, {
-              headers: { 'User-Agent': 'InnovationRHSystem/1.0 (https://innovation.ia)' }
-            });
+            const res = await fetch(
+              `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`,
+              { headers: { 'User-Agent': 'InnovationRHSystem/1.0' } }
+            );
             const data = await res.json();
             const address = data.display_name || 'Endereço não identificado';
             setLocationData({ lat: latitude, lon: longitude, address });
-            setError('');
-            setSaving(false);
-            setShowFaceID(true);
-          } catch (e) {
-            setLocationData({ lat: position.coords.latitude, lon: position.coords.longitude, address: 'Erro ao buscar endereço' });
-            setError('');
-            setSaving(false);
-            setShowFaceID(true);
+          } catch {
+            setLocationData({ lat: position.coords.latitude, lon: position.coords.longitude, address: 'Localização obtida' });
           }
         },
-        (err) => {
-          setError('É necessário permitir a localização para assinar eletronicamente.');
-          setSaving(false);
+        () => {
+          // Se GPS falhar, continua sem localização (não bloqueia assinatura)
+          setLocationData({ lat: 0, lon: 0, address: 'Localização não disponível' });
         },
-        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+        { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 }
       );
     } else {
-      setError('Seu navegador não suporta geolocalização.');
-      setSaving(false);
+      setLocationData({ lat: 0, lon: 0, address: 'Geolocalização não suportada' });
     }
   };
 
