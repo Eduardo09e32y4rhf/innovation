@@ -337,26 +337,41 @@ function CompanySettings() {
                       if (!file) return;
                       const reader = new FileReader();
                       reader.onload = (ev) => {
+                        const result = ev.target?.result as string;
                         const img = new window.Image();
                         img.onload = () => {
-                          const canvas = document.createElement('canvas');
-                          let width = img.width;
-                          let height = img.height;
-                          const max = 300;
-                          if (width > height && width > max) { height = Math.round(height * (max / width)); width = max; }
-                          else if (height > max) { width = Math.round(width * (max / height)); height = max; }
-                          canvas.width = width; canvas.height = height;
-                          const ctx = canvas.getContext('2d');
-                          if (ctx) {
-                            ctx.drawImage(img, 0, 0, width, height);
-                            const dataUrl = canvas.toDataURL('image/webp', 0.85);
+                          try {
+                            const canvas = document.createElement('canvas');
+                            let width = img.width;
+                            let height = img.height;
+                            const max = 300;
+                            if (width > height && width > max) { height = Math.round(height * (max / width)); width = max; }
+                            else if (height > max) { width = Math.round(width * (max / height)); height = max; }
+                            canvas.width = width || 300; 
+                            canvas.height = height || 300;
+                            const ctx = canvas.getContext('2d');
+                            if (ctx) {
+                              ctx.drawImage(img, 0, 0, width, height);
+                              const dataUrl = canvas.toDataURL('image/png');
+                              setRemoveLogo(false);
+                              setLogoUrl(dataUrl);
+                            } else {
+                              setRemoveLogo(false);
+                              setLogoUrl(result);
+                            }
+                          } catch (err) {
                             setRemoveLogo(false);
-                            setLogoUrl(dataUrl);
+                            setLogoUrl(result);
                           }
                         };
-                        img.src = ev.target?.result as string;
+                        img.onerror = () => {
+                          setRemoveLogo(false);
+                          setLogoUrl(result);
+                        };
+                        img.src = result;
                       };
                       reader.readAsDataURL(file);
+                      e.target.value = ''; // Limpa para permitir selecionar o mesmo arquivo novamente
                     }}
                   />
                 </div>
