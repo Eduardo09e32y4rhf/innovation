@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowLeft, Lock, ShieldCheck, User, Hash, KeyRound } from 'lucide-react';
+import { ArrowLeft, Lock, ShieldCheck, User, Hash, KeyRound, Eye, EyeOff } from 'lucide-react';
 import { FormEvent, Suspense, useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { api } from '@/app/lib/api';
@@ -28,6 +28,8 @@ function ResetPasswordForm() {
   const [resetToken, setResetToken] = useState(queryToken);
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   
   // State
   const [loading, setLoading] = useState(false);
@@ -152,7 +154,10 @@ function ResetPasswordForm() {
               <span className="mb-1.5 block text-xs font-black uppercase tracking-[0.12em] text-slate-600">Nova Senha</span>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required disabled={loading} className="h-12 w-full rounded-[14px] border border-slate-300 pl-10 pr-3 text-sm font-semibold outline-none focus:border-slate-950 focus:ring-4 focus:ring-slate-950/5" />
+                <input type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} required disabled={loading} className="h-12 w-full rounded-[14px] border border-slate-300 pl-10 pr-11 text-sm font-semibold outline-none focus:border-slate-950 focus:ring-4 focus:ring-slate-950/5" />
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 flex items-center pr-4 text-slate-500 hover:text-slate-950 transition-colors focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:outline-none focus:outline-none rounded-r-[14px]" aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'} title={showPassword ? 'Ocultar senha' : 'Mostrar senha'}>
+                  {showPassword ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
+                </button>
               </div>
             </label>
 
@@ -160,7 +165,10 @@ function ResetPasswordForm() {
               <span className="mb-1.5 block text-xs font-black uppercase tracking-[0.12em] text-slate-600">Confirmar Nova Senha</span>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                <input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} required disabled={loading} className="h-12 w-full rounded-[14px] border border-slate-300 pl-10 pr-3 text-sm font-semibold outline-none focus:border-slate-950 focus:ring-4 focus:ring-slate-950/5" />
+                <input type={showConfirmPassword ? 'text' : 'password'} value={confirm} onChange={(e) => setConfirm(e.target.value)} required disabled={loading} className="h-12 w-full rounded-[14px] border border-slate-300 pl-10 pr-11 text-sm font-semibold outline-none focus:border-slate-950 focus:ring-4 focus:ring-slate-950/5" />
+                <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute inset-y-0 right-0 flex items-center pr-4 text-slate-500 hover:text-slate-950 transition-colors focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:outline-none focus:outline-none rounded-r-[14px]" aria-label={showConfirmPassword ? 'Ocultar senha' : 'Mostrar senha'} title={showConfirmPassword ? 'Ocultar senha' : 'Mostrar senha'}>
+                  {showConfirmPassword ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
+                </button>
               </div>
             </label>
 

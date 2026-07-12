@@ -1,0 +1,3 @@
+## 2024-05-18 - Add ARIA attributes and focus styles to password toggle button
+**Learning:** Icon-only buttons used for toggling password visibility often lack accessible names for screen readers and miss clear focus indicators, which can make them difficult to use for keyboard navigators or visually impaired users.
+**Action:** Always add `aria-label` providing clear action intent ("Mostrar senha" / "Ocultar senha"), `title` for visual tooltips, apply `focus-visible` styles using the app's theme colors (`focus-visible:ring-teal-500`), and hide purely decorative SVG icons from screen readers using `aria-hidden="true"`.
