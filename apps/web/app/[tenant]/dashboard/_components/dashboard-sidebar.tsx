@@ -25,12 +25,24 @@ import { api } from '@/app/lib/api';
 import { ROLE_LABEL } from '@/app/lib/format';
 import { normalizeDisplayName } from '@/app/lib/text';
 
-type NavItemConfig = { label: string; href: string; icon: LucideIcon; match?: string; roles?: string[]; moduleKey?: string };
+type NavItemConfig = { label: string; href: string; icon: LucideIcon; match?: string; roles?: string[]; moduleKey?: string; subItems?: { label: string; href: string; roles?: string[] }[] };
 
 const baseNavItems: NavItemConfig[] = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard', roles: ['DEV', 'ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'] },
   { icon: Users, label: 'Funcionários', href: '/dashboard/employees', match: '/dashboard/employees', roles: ['DEV', 'ADMIN', 'RH', 'GESTOR', 'CONSULTA'], moduleKey: 'employees' },
-  { icon: CalendarClock, label: 'Escala', href: '/dashboard/escala', match: '/dashboard/escala', roles: ['DEV', 'ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'], moduleKey: 'time-track' },
+  { 
+    icon: CalendarClock, 
+    label: 'Escala', 
+    href: '/dashboard/escala', 
+    match: '/dashboard/escala', 
+    roles: ['DEV', 'ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'], 
+    moduleKey: 'time-track',
+    subItems: [
+      { label: 'Minha Jornada', href: '/dashboard/escala?tab=minha' },
+      { label: 'Escala de Equipe', href: '/dashboard/escala?tab=equipe', roles: ['DEV', 'ADMIN', 'RH', 'GESTOR'] },
+      { label: 'Trocar de Escala', href: '/dashboard/escala?tab=trocas' }
+    ]
+  },
   { icon: Clock, label: 'Ponto', href: '/dashboard/time-track', match: '/dashboard/time-track', roles: ['DEV', 'ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'], moduleKey: 'time-track' },
   { icon: CalendarDays, label: 'Férias', href: '/dashboard/vacations', match: '/dashboard/vacations', roles: ['DEV', 'ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'], moduleKey: 'vacations' },
   { icon: Users, label: 'Gestão', href: '/dashboard/management', match: '/dashboard/management', roles: ['DEV', 'ADMIN', 'RH', 'GESTOR'], moduleKey: 'management' },
@@ -153,10 +165,29 @@ function UserIdentityCard({ name, email, profile }: { name?: string; email?: str
 
 function NavItem({ item, active }: { item: NavItemConfig; active: boolean }) {
   const Icon = item.icon;
+  const { user } = useAuth();
+  const profile = user?.profile?.toUpperCase();
+
+  const visibleSubItems = item.subItems?.filter(sub => {
+    if (!sub.roles?.length) return true;
+    return sub.roles.includes(String(profile || ''));
+  });
+
   return (
-    <Link href={item.href} className={`sidebar-nav-item shrink-0 ${active ? 'sidebar-nav-active' : 'sidebar-nav-idle'}`}>
-      <Icon size={14} strokeWidth={active ? 2.2 : 1.8} className="shrink-0" />
-      <span>{item.label}</span>
-    </Link>
+    <div className="flex flex-col">
+      <Link href={item.href} className={`sidebar-nav-item shrink-0 ${active ? 'sidebar-nav-active' : 'sidebar-nav-idle'}`}>
+        <Icon size={14} strokeWidth={active ? 2.2 : 1.8} className="shrink-0" />
+        <span>{item.label}</span>
+      </Link>
+      {active && visibleSubItems && visibleSubItems.length > 0 && (
+        <div className="ml-6 mt-1 flex flex-col gap-1 border-l border-white/10 pl-2 hidden md:flex">
+          {visibleSubItems.map(sub => (
+            <Link key={sub.href} href={sub.href} className="text-xs font-medium text-white/50 hover:text-white py-1 transition-colors">
+              {sub.label}
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }

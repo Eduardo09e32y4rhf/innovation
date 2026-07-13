@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { api } from '@/app/lib/api';
 import {
@@ -211,7 +212,8 @@ export default function EscalaPage() {
   const canWrite   = ['DEV', 'ADMIN', 'RH'].includes(role);
 
   const now = new Date();
-  const [tab, setTab]           = useState<Tab>('minha');
+  const searchParams = useSearchParams();
+  const tab = (searchParams.get('tab') as Tab) || 'minha';
   const [currentMonth, setCurrentMonth] = useState(toMonthString(now.getFullYear(), now.getMonth() + 1));
   const [calendarData, setCalendarData] = useState<any>(null);
   const [teamData, setTeamData]   = useState<any>(null);
@@ -292,14 +294,7 @@ export default function EscalaPage() {
         </div>
       </div>
 
-      {/* Abas */}
-      <div className="flex gap-1 rounded-xl bg-slate-50 p-1 ring-1 ring-slate-200">
-        <TabButton active={tab === 'minha'}  onClick={() => setTab('minha')}  icon={<CalendarClock size={14}/>} label="Minha Escala" />
-        {canApprove && (
-          <TabButton active={tab === 'equipe'} onClick={() => setTab('equipe')} icon={<Users size={14}/>} label="Escala de Equipe" />
-        )}
-        <TabButton active={tab === 'trocas'} onClick={() => setTab('trocas')} icon={<ArrowLeftRight size={14}/>} label="Trocar de Escala" />
-      </div>
+
 
       {tab === 'minha' && (
         <MinhaEscalaTab
@@ -433,14 +428,14 @@ function MinhaEscalaTab({ loading, calendarData, year, month, onPrev, onNext, se
         <button onClick={onNext} className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-50 text-slate-500 hover:bg-slate-100 hover:text-slate-900 transition-colors"><ChevronRight size={16}/></button>
       </div>
 
-      {/* Legenda */}
+      {/* Legenda Dinâmica */}
       <div className="flex flex-wrap gap-1.5 text-xs">
         {[
           { t: 'WORK', l: 'Trabalho' }, { t: 'FOLGA', l: 'Folga' }, { t: 'FERIADO', l: 'Feriado' },
           { t: 'ATESTADO', l: 'Atestado' }, { t: 'ATRASO', l: 'Atraso' },
           { t: 'FALTA', l: 'Falta' }, { t: 'SAIDA_ANTECIPADA', l: 'Saída Antec.' },
           { t: 'SUSPENSAO', l: 'Suspensão' },
-        ].map(({ t, l }) => {
+        ].filter(({ t }) => new Set(days.map(resolveDayType)).has(t)).map(({ t, l }) => {
           const m = getMeta(t);
           return (
             <span key={t} className={`flex items-center gap-1 rounded-full border px-2 py-0.5 font-medium ${m.color} ${m.textColor}`}>
