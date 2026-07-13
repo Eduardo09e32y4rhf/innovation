@@ -522,6 +522,52 @@ export const api = {
     send: (id: string) => request<any>(`/proposals/${id}/send`, { method: 'POST' }),
     acceptTerms: (id: string, data: any) => request<any>(`/proposals/${id}/accept-terms`, { method: 'POST', body: data }),
   },
+
+  schedules: {
+    /** Lista todos os templates de escala da empresa */
+    list: () => request<any[]>('/schedules'),
+    /** Detalhe de um template */
+    get: (id: string) => request<any>(`/schedules/${id}`),
+    /** Cria novo template (ADM/RH/DEV) */
+    create: (data: any) => request<any>('/schedules', { method: 'POST', body: data }),
+    /** Atualiza template */
+    update: (id: string, data: any) => request<any>(`/schedules/${id}`, { method: 'PATCH', body: data }),
+    /** Arquiva template */
+    archive: (id: string) => request<any>(`/schedules/${id}/archive`, { method: 'PATCH' }),
+    /** Atribui escala a funcionário (ADM/RH/DEV) */
+    assign: (data: { employeeId: string; scheduleId: string; startDate: string; endDate?: string; entryTimeOverride?: string; lunchStartTimeOverride?: string; lunchReturnTimeOverride?: string; exitTimeOverride?: string }) =>
+      request<any>('/schedules/assign', { method: 'POST', body: data }),
+    /** Escala do usuário logado */
+    mySchedule: () => request<any>('/schedules/my'),
+    /** Calendário do usuário logado (mês no formato "2025-07") */
+    myCalendar: (month?: string) =>
+      request<any>(`/schedules/calendar/me${month ? `?month=${encodeURIComponent(month)}` : ''}`),
+    /** Calendário de um funcionário específico */
+    employeeCalendar: (employeeId: string, month?: string) =>
+      request<any>(`/schedules/calendar/${employeeId}${month ? `?month=${encodeURIComponent(month)}` : ''}`),
+    /** Escala de equipe (GESTOR+) */
+    teamSchedule: (month?: string) =>
+      request<any>(`/schedules/team${month ? `?month=${encodeURIComponent(month)}` : ''}`),
+    /** Cria exceção de escala (folga, atestado, feriado local) */
+    createException: (data: { employeeId: string; date: string; exceptionType: string; reason?: string; observation?: string; altEntryTime?: string; altExitTime?: string }) =>
+      request<any>('/schedules/exceptions', { method: 'POST', body: data }),
+    /** Remove exceção */
+    deleteException: (id: string) => request<void>(`/schedules/exceptions/${id}`, { method: 'DELETE' }),
+  },
+
+  scheduleSwaps: {
+    /** Lista solicitações de troca */
+    list: (status?: 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED') =>
+      request<any[]>(`/schedule-swaps${status ? `?status=${status}` : ''}`),
+    /** Cria solicitação de troca */
+    create: (data: { originalDate: string; targetDate: string; justification?: string }) =>
+      request<any>('/schedule-swaps', { method: 'POST', body: data }),
+    /** Aprova ou rejeita (GESTOR/RH/ADM/DEV) */
+    review: (id: string, action: 'APPROVED' | 'REJECTED', rejectionReason?: string) =>
+      request<any>(`/schedule-swaps/${id}/review`, { method: 'PATCH', body: { action, rejectionReason } }),
+    /** Cancela solicitação */
+    cancel: (id: string) => request<any>(`/schedule-swaps/${id}/cancel`, { method: 'PATCH' }),
+  },
 };
 
 export default api;

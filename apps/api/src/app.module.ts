@@ -26,6 +26,7 @@ import { AuditInterceptor } from './common/interceptors/audit.interceptor';
 import { CryptoModule } from './common/crypto/crypto.module';
 import { FinanceModule } from './modules/finance/finance.module';
 import { ScheduleModule } from '@nestjs/schedule';
+import { EscalaModule } from './modules/schedule/escala.module';
 
 @Module({
   imports: [
@@ -57,6 +58,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     NotificationsModule,
     CryptoModule,
     FinanceModule,
+    EscalaModule,
     ScheduleModule.forRoot(),
   ],
   providers: [

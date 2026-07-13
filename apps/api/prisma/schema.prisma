@@ -323,6 +323,12 @@ model Company {
   platformContract  PlatformContract?
   proposals         Proposal[]
 
+  // Módulo Escala
+  schedules          Schedule[]
+  userSchedules      UserSchedule[]
+  scheduleExceptions ScheduleException[]
+  swapRequests       ScheduleSwapRequest[]
+
   @@index([commercialOwnerId])
 }
 
@@ -462,6 +468,11 @@ model Employee {
   overtimeBank   OvertimeBank?
   faceEnrollment FaceEnrollment?
   timeClosings   TimeClosing[]
+
+  // Módulo Escala
+  userSchedules      UserSchedule[]
+  scheduleExceptions ScheduleException[]
+  swapRequests       ScheduleSwapRequest[]
 
   @@index([companyId])
   @@index([cpf])
@@ -1296,4 +1307,157 @@ model ProposalAuditLog {
 
   @@index([proposalId])
   @@index([createdAt])
+}
+
+// ─────────────────────────────────────────────────
+// MÓDULO ESCALA
+// ─────────────────────────────────────────────────
+
+enum ScheduleStatus {
+  ACTIVE
+  INACTIVE
+  ARCHIVED
+}
+
+enum SwapRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+/// Template de escala de trabalho (ex: 5x2, 12x36)
+model Schedule {
+  id          String         @id @default(uuid()) @db.Uuid
+  companyId   String         @db.Uuid
+  name        String
+  description String?
+  scaleType   String         @default("5x2") // "5x2", "6x1", "12x36", "4x2", "PERSONALIZADA", "PLANTAO"
+  status      ScheduleStatus @default(ACTIVE)
+
+  // Horários padrão
+  entryTime       String? // "08:00"
+  lunchStartTime  String? // "12:00"
+  lunchReturnTime String? // "13:00"
+  exitTime        String? // "17:00"
+
+  // Dias de trabalho (0=Dom, 1=Seg, ... 6=Sáb)
+  workDays    Int[]  @default([1, 2, 3, 4, 5])
+  restDays    Int[]  @default([0, 6])
+
+  // Configurações 12x36
+  cycleWorkHours  Int?    // horas trabalhadas no ciclo (ex: 12)
+  cycleRestHours  Int?    // horas de descanso no ciclo (ex: 36)
+  cycleStartDate  DateTime? // data de início do ciclo 12x36
+
+  // Turno noturno
+  isNightShift     Boolean @default(false)
+  nightStartTime   String? // "22:00"
+  nightEndTime     String? // "05:00"
+
+  createdByUserId String?  @db.Uuid
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  company       Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  userSchedules UserSchedule[]
+
+  @@index([companyId])
+  @@index([status])
+  @@map("schedules")
+}
+
+/// Vínculo entre funcionário e escala (com período de vigência)
+model UserSchedule {
+  id         String   @id @default(uuid()) @db.Uuid
+  companyId  String   @db.Uuid
+  employeeId String   @db.Uuid
+  scheduleId String   @db.Uuid
+
+  startDate  DateTime @db.Date
+  endDate    DateTime? @db.Date // null = vigente indefinidamente
+
+  // Override dos horários padrão da escala (opcional por funcionário)
+  entryTimeOverride       String?
+  lunchStartTimeOverride  String?
+  lunchReturnTimeOverride String?
+  exitTimeOverride        String?
+
+  assignedByUserId String?  @db.Uuid
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  company  Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  schedule Schedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@index([employeeId])
+  @@index([scheduleId])
+  @@index([startDate])
+  @@map("user_schedules")
+}
+
+/// Exceções individuais na escala (folga específica, feriado local, atestado)
+model ScheduleException {
+  id         String   @id @default(uuid()) @db.Uuid
+  companyId  String   @db.Uuid
+  employeeId String   @db.Uuid
+  date       DateTime @db.Date
+
+  exceptionType String // "FOLGA", "FERIADO_LOCAL", "ATESTADO", "SUSPENSAO", "COMPENSACAO"
+  reason        String?
+  observation   String?
+
+  // Se for compensação, registra o horário alternativo
+  altEntryTime  String?
+  altExitTime   String?
+
+  createdByUserId String?  @db.Uuid
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  company  Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@unique([employeeId, date, exceptionType])
+  @@index([companyId])
+  @@index([employeeId])
+  @@index([date])
+  @@map("schedule_exceptions")
+}
+
+/// Solicitações de troca de escala/folga
+model ScheduleSwapRequest {
+  id         String            @id @default(uuid()) @db.Uuid
+  companyId  String            @db.Uuid
+  requesterId String           @db.Uuid // employeeId de quem solicitou
+  status     SwapRequestStatus @default(PENDING)
+
+  // Dia original que quer trocar
+  originalDate DateTime @db.Date
+  // Dia pretendido para trabalhar no lugar
+  targetDate   DateTime @db.Date
+
+  justification String?
+
+  // Aprovação
+  approvedByUserId String?   @db.Uuid
+  approvedAt       DateTime?
+  rejectionReason  String?
+
+  // Notificação enviada para
+  notifiedUserId String? @db.Uuid
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  requester Employee @relation(fields: [requesterId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@index([requesterId])
+  @@index([status])
+  @@index([originalDate])
+  @@map("schedule_swap_requests")
 }
