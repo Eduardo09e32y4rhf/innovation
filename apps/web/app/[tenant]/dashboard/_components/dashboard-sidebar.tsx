@@ -104,6 +104,7 @@ export function DashboardSidebar() {
     ...item,
     href: `/${tenant}${item.href}`,
     match: item.match ? `/${tenant}${item.match}` : `/${tenant}${item.href}`,
+    subItems: item.subItems?.map(sub => ({ ...sub, href: `/${tenant}${sub.href}` }))
   }));
 
   return (
@@ -181,11 +182,19 @@ function NavItem({ item, active }: { item: NavItemConfig; active: boolean }) {
       </Link>
       {active && visibleSubItems && visibleSubItems.length > 0 && (
         <div className="ml-6 mt-1 flex flex-col gap-1 border-l border-white/10 pl-2 hidden md:flex">
-          {visibleSubItems.map(sub => (
-            <Link key={sub.href} href={sub.href} className="text-xs font-medium text-white/50 hover:text-white py-1 transition-colors">
-              {sub.label}
-            </Link>
-          ))}
+          {visibleSubItems.map(sub => {
+            // Se a URL atual tiver o mesmo tab, destaca
+            const searchParams = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
+            const currentTab = searchParams.get('tab') || 'minha';
+            const subTab = sub.href.split('tab=')[1] || 'minha';
+            const isActiveSub = currentTab === subTab;
+            
+            return (
+              <Link key={sub.href} href={sub.href} className={`text-xs font-medium py-1 transition-colors ${isActiveSub ? 'text-white' : 'text-white/40 hover:text-white/80'}`}>
+                {sub.label}
+              </Link>
+            );
+          })}
         </div>
       )}
     </div>
