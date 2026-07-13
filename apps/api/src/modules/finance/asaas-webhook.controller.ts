@@ -30,7 +30,12 @@ export class AsaasWebhookController {
         .update(payloadString)
         .digest('hex');
 
-      if (signature !== expectedSignature) {
+      // Utilizar Buffer e timingSafeEqual para prevenir ataques de tempo (timing attacks)
+      const signatureBuffer = Buffer.from(signature || '');
+      const expectedSignatureBuffer = Buffer.from(expectedSignature);
+      const isSignatureValid = signatureBuffer.length === expectedSignatureBuffer.length && crypto.timingSafeEqual(signatureBuffer, expectedSignatureBuffer);
+
+      if (!isSignatureValid) {
         throw new ForbiddenException('Assinatura inválida');
       }
     }
