@@ -1,0 +1,3 @@
+## 2024-05-30 - Optimize O(N) array filtering in Dashboard Insights
+**Learning:** In the NestJS backend, large collections of employees in `dashboard.repository.ts` were being repeatedly iterated over using 7 consecutive `.filter()` calls to calculate different dashboard aggregates (birthdays, missing data alerts). This redundant iteration (O(7N)) and intermediate array allocation causes unnecessary CPU and garbage collection overhead.
+**Action:** Replace multiple sequential `.filter()` or `.map()` passes on identical datasets with a single O(N) `for...of` loop to calculate multiple aggregates simultaneously, reducing iterations and memory allocations.
