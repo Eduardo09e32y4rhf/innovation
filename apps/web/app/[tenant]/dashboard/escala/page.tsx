@@ -106,21 +106,21 @@ function resolveDayType(day: CalendarDay): string {
 }
 
 const DAY_TYPE_META: Record<string, { label: string; color: string; textColor: string; icon: string }> = {
-  WORK:            { label: 'Trabalho',           color: 'bg-emerald-500/10 border-emerald-500/25',  textColor: 'text-emerald-300', icon: '✅' },
-  FOLGA:           { label: 'Folga',              color: 'bg-blue-500/10 border-blue-500/25',        textColor: 'text-blue-300',    icon: '🔵' },
-  FOLGA_DSR:       { label: 'Folga DSR',          color: 'bg-blue-500/10 border-blue-500/25',        textColor: 'text-blue-300',    icon: '🔵' },
-  FOLGA_BANCO:     { label: 'Folga Banco',        color: 'bg-cyan-500/10 border-cyan-500/25',        textColor: 'text-cyan-300',    icon: '🏦' },
-  FERIADO:         { label: 'Feriado',            color: 'bg-amber-500/10 border-amber-500/25',      textColor: 'text-amber-300',   icon: '🟡' },
-  FERIADO_LOCAL:   { label: 'Feriado Local',      color: 'bg-amber-500/10 border-amber-500/25',      textColor: 'text-amber-300',   icon: '🟡' },
-  ATESTADO:        { label: 'Atestado',           color: 'bg-purple-500/10 border-purple-500/25',    textColor: 'text-purple-300',  icon: '💊' },
-  ATESTADO_HORAS:  { label: 'Atestado (horas)',   color: 'bg-purple-500/10 border-purple-500/25',    textColor: 'text-purple-300',  icon: '💊' },
-  SUSPENSAO:       { label: 'Suspensão',          color: 'bg-red-900/20 border-red-700/30',          textColor: 'text-red-400',     icon: '🚫' },
-  ATRASO:          { label: 'Atraso',             color: 'bg-orange-500/10 border-orange-500/25',    textColor: 'text-orange-300',  icon: '⏰' },
-  SAIDA_ANTECIPADA:{ label: 'Saída Antecipada',   color: 'bg-orange-500/10 border-orange-500/25',    textColor: 'text-orange-300',  icon: '🏃' },
-  FALTA:           { label: 'Falta',              color: 'bg-red-500/10 border-red-500/25',          textColor: 'text-red-400',     icon: '❌' },
-  REVOGADO:        { label: 'Revogado',           color: 'bg-zinc-500/10 border-zinc-600/25',        textColor: 'text-zinc-400',    icon: '↩' },
+  WORK:            { label: 'Trabalho',           color: 'bg-emerald-50 border-emerald-500/25',  textColor: 'text-emerald-600', icon: '✅' },
+  FOLGA:           { label: 'Folga',              color: 'bg-blue-50 border-blue-500/25',        textColor: 'text-blue-600',    icon: '🔵' },
+  FOLGA_DSR:       { label: 'Folga DSR',          color: 'bg-blue-50 border-blue-500/25',        textColor: 'text-blue-600',    icon: '🔵' },
+  FOLGA_BANCO:     { label: 'Folga Banco',        color: 'bg-cyan-50 border-cyan-500/25',        textColor: 'text-cyan-600',    icon: '🏦' },
+  FERIADO:         { label: 'Feriado',            color: 'bg-amber-50 border-amber-500/25',      textColor: 'text-amber-600',   icon: '🟡' },
+  FERIADO_LOCAL:   { label: 'Feriado Local',      color: 'bg-amber-50 border-amber-500/25',      textColor: 'text-amber-600',   icon: '🟡' },
+  ATESTADO:        { label: 'Atestado',           color: 'bg-purple-50 border-purple-500/25',    textColor: 'text-purple-600',  icon: '💊' },
+  ATESTADO_HORAS:  { label: 'Atestado (horas)',   color: 'bg-purple-50 border-purple-500/25',    textColor: 'text-purple-600',  icon: '💊' },
+  SUSPENSAO:       { label: 'Suspensão',          color: 'bg-red-100 border-red-700/30',          textColor: 'text-red-700',     icon: '🚫' },
+  ATRASO:          { label: 'Atraso',             color: 'bg-orange-50 border-orange-500/25',    textColor: 'text-orange-600',  icon: '⏰' },
+  SAIDA_ANTECIPADA:{ label: 'Saída Antecipada',   color: 'bg-orange-50 border-orange-500/25',    textColor: 'text-orange-600',  icon: '🏃' },
+  FALTA:           { label: 'Falta',              color: 'bg-red-50 border-red-500/25',          textColor: 'text-red-700',     icon: '❌' },
+  REVOGADO:        { label: 'Revogado',           color: 'bg-zinc-50 border-zinc-600/25',        textColor: 'text-zinc-700',    icon: '↩' },
   SEM_ESCALA:      { label: 'Sem Escala',         color: 'bg-zinc-800/30 border-zinc-700/30',        textColor: 'text-zinc-500',    icon: '—' },
-  COMPENSACAO:     { label: 'Compensação',        color: 'bg-teal-500/10 border-teal-500/25',        textColor: 'text-teal-300',    icon: '🔄' },
+  COMPENSACAO:     { label: 'Compensação',        color: 'bg-teal-50 border-teal-500/25',        textColor: 'text-teal-600',    icon: '🔄' },
 };
 
 function getMeta(type: string) {
@@ -193,10 +193,10 @@ function calcMonthlyTotals(days: CalendarDay[]) {
 // ─── STATUS BADGE ─────────────────────────────────────────────────────────────
 
 const SWAP_STATUS_BADGE: Record<string, string> = {
-  PENDING:   'bg-amber-500/15 text-amber-300 border-amber-500/30',
-  APPROVED:  'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
-  REJECTED:  'bg-red-500/15 text-red-300 border-red-500/30',
-  CANCELLED: 'bg-zinc-500/15 text-zinc-400 border-zinc-500/30',
+  PENDING:   'bg-amber-50 text-amber-600 border-amber-500/30',
+  APPROVED:  'bg-emerald-50 text-emerald-600 border-emerald-500/30',
+  REJECTED:  'bg-red-50 text-red-600 border-red-500/30',
+  CANCELLED: 'bg-zinc-50 text-zinc-700 border-zinc-500/30',
 };
 const SWAP_STATUS_LABEL: Record<string, string> = {
   PENDING: 'Pendente', APPROVED: 'Aprovado', REJECTED: 'Rejeitado', CANCELLED: 'Cancelado',
@@ -283,17 +283,17 @@ export default function EscalaPage() {
     <div className="flex flex-col gap-6 p-4 md:p-6 min-h-screen">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-500/15 text-indigo-400 ring-1 ring-indigo-500/25">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200">
           <CalendarClock size={20} />
         </div>
         <div>
-          <h1 className="text-xl font-bold text-white">Escala</h1>
-          <p className="text-xs text-white/40">Jornada programada · Ponto · Ocorrências</p>
+          <h1 className="text-xl font-bold text-slate-900">Escala</h1>
+          <p className="text-xs text-slate-500">Jornada programada · Ponto · Ocorrências</p>
         </div>
       </div>
 
       {/* Abas */}
-      <div className="flex gap-1 rounded-xl bg-white/5 p-1 ring-1 ring-white/10">
+      <div className="flex gap-1 rounded-xl bg-slate-50 p-1 ring-1 ring-slate-200">
         <TabButton active={tab === 'minha'}  onClick={() => setTab('minha')}  icon={<CalendarClock size={14}/>} label="Minha Escala" />
         {canApprove && (
           <TabButton active={tab === 'equipe'} onClick={() => setTab('equipe')} icon={<Users size={14}/>} label="Escala de Equipe" />
@@ -341,7 +341,7 @@ function TabButton({ active, onClick, icon, label }: { active: boolean; onClick:
   return (
     <button onClick={onClick}
       className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium transition-all ${
-        active ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20' : 'text-white/50 hover:text-white/80 hover:bg-white/5'
+        active ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'
       }`}
     >
       {icon}<span className="hidden sm:inline">{label}</span>
@@ -363,21 +363,21 @@ function MinhaEscalaTab({ loading, calendarData, year, month, onPrev, onNext, se
 
       {/* Escala ativa */}
       {schedule ? (
-        <div className="flex items-center gap-4 rounded-xl bg-indigo-500/10 p-4 ring-1 ring-indigo-500/20">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-500/20 text-indigo-400">
+        <div className="flex items-center gap-4 rounded-xl bg-indigo-50 p-4 ring-1 ring-indigo-200">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-100 text-indigo-700">
             <Briefcase size={18} />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-white">{schedule.name}</p>
-            <p className="text-xs text-white/50 mt-0.5">
+            <p className="text-sm font-semibold text-slate-900">{schedule.name}</p>
+            <p className="text-xs text-slate-500 mt-0.5">
               {schedule.scaleType} · Entrada: {schedule.entryTime ?? '--'} · Saída: {schedule.exitTime ?? '--'}
               {schedule.lunchStartTime ? ` · Almoço: ${schedule.lunchStartTime}–${schedule.lunchReturnTime ?? '?'}` : ''}
             </p>
           </div>
-          <span className="shrink-0 rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-400 ring-1 ring-emerald-500/20">ATIVA</span>
+          <span className="shrink-0 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700 ring-1 ring-emerald-200">ATIVA</span>
         </div>
       ) : !loading && (
-        <div className="flex items-center gap-3 rounded-xl bg-amber-500/10 p-4 ring-1 ring-amber-500/20 text-amber-300 text-sm">
+        <div className="flex items-center gap-3 rounded-xl bg-amber-50 p-4 ring-1 ring-amber-200 text-amber-600 text-sm">
           <AlertCircle size={16} className="shrink-0" />
           Nenhuma escala atribuída. Fale com seu gestor ou RH.
         </div>
@@ -390,37 +390,37 @@ function MinhaEscalaTab({ loading, calendarData, year, month, onPrev, onNext, se
             label="Hora Extra"
             value={totals.horaExtra > 0 ? formatMin(totals.horaExtra) : '0h00m'}
             sub={`50%: ${formatMin(totals.overtime50)} · 100%: ${formatMin(totals.overtime100)}`}
-            color="text-emerald-400" bg="bg-emerald-500/8 ring-emerald-500/15"
-            icon={<TrendingUp size={16} className="text-emerald-400"/>}
+            color="text-emerald-700" bg="bg-emerald-500/8 ring-emerald-200"
+            icon={<TrendingUp size={16} className="text-emerald-700"/>}
           />
           <SummaryCard
             label="Faltas"
             value={String(totals.faltas)}
             sub={totals.absenceMinutes > 0 ? `${formatMin(totals.absenceMinutes)} de ausência` : 'Nenhuma falta'}
-            color="text-red-400" bg="bg-red-500/8 ring-red-500/15"
-            icon={<Ban size={16} className="text-red-400"/>}
+            color="text-red-700" bg="bg-red-500/8 ring-red-200"
+            icon={<Ban size={16} className="text-red-700"/>}
           />
           <SummaryCard
             label="Atrasos"
             value={String(totals.atrasos)}
             sub={totals.lateMinutes > 0 ? `${formatMin(totals.lateMinutes)} acumulados` : 'Nenhum atraso'}
-            color="text-orange-400" bg="bg-orange-500/8 ring-orange-500/15"
-            icon={<AlertTriangle size={16} className="text-orange-400"/>}
+            color="text-orange-700" bg="bg-orange-500/8 ring-orange-200"
+            icon={<AlertTriangle size={16} className="text-orange-700"/>}
           />
           <SummaryCard
             label="Saldo do Mês"
             value={formatMin(totals.totalBalance)}
             sub={totals.saidasAntecipadas > 0 ? `${totals.saidasAntecipadas} saída(s) antecipada(s)` : 'Banco de horas'}
-            color={totals.totalBalance >= 0 ? 'text-emerald-400' : 'text-red-400'}
-            bg={totals.totalBalance >= 0 ? 'bg-emerald-500/8 ring-emerald-500/15' : 'bg-red-500/8 ring-red-500/15'}
-            icon={totals.totalBalance >= 0 ? <TrendingUp size={16} className="text-emerald-400"/> : <TrendingDown size={16} className="text-red-400"/>}
+            color={totals.totalBalance >= 0 ? 'text-emerald-700' : 'text-red-700'}
+            bg={totals.totalBalance >= 0 ? 'bg-emerald-500/8 ring-emerald-200' : 'bg-red-500/8 ring-red-200'}
+            icon={totals.totalBalance >= 0 ? <TrendingUp size={16} className="text-emerald-700"/> : <TrendingDown size={16} className="text-red-700"/>}
           />
         </div>
       )}
 
       {/* Turno noturno adicional */}
       {totals.nightShift > 0 && (
-        <div className="flex items-center gap-2 rounded-xl bg-indigo-900/20 px-4 py-2.5 ring-1 ring-indigo-500/20 text-xs text-indigo-300">
+        <div className="flex items-center gap-2 rounded-xl bg-indigo-900/20 px-4 py-2.5 ring-1 ring-indigo-200 text-xs text-indigo-600">
           <Moon size={13} className="shrink-0" />
           Adicional noturno no mês: <span className="font-bold ml-1">{formatMin(totals.nightShift)}</span>
         </div>
@@ -428,9 +428,9 @@ function MinhaEscalaTab({ loading, calendarData, year, month, onPrev, onNext, se
 
       {/* Navegação de mês */}
       <div className="flex items-center justify-between">
-        <button onClick={onPrev} className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/5 text-white/60 hover:bg-white/10 hover:text-white transition-colors"><ChevronLeft size={16}/></button>
-        <h2 className="text-base font-bold text-white">{MONTH_NAMES[month - 1]} {year}</h2>
-        <button onClick={onNext} className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/5 text-white/60 hover:bg-white/10 hover:text-white transition-colors"><ChevronRight size={16}/></button>
+        <button onClick={onPrev} className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-50 text-slate-500 hover:bg-slate-100 hover:text-slate-900 transition-colors"><ChevronLeft size={16}/></button>
+        <h2 className="text-base font-bold text-slate-900">{MONTH_NAMES[month - 1]} {year}</h2>
+        <button onClick={onNext} className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-50 text-slate-500 hover:bg-slate-100 hover:text-slate-900 transition-colors"><ChevronRight size={16}/></button>
       </div>
 
       {/* Legenda */}
@@ -452,13 +452,13 @@ function MinhaEscalaTab({ loading, calendarData, year, month, onPrev, onNext, se
 
       {/* Grid calendário */}
       {loading ? (
-        <div className="flex items-center justify-center py-20"><Loader2 size={28} className="animate-spin text-indigo-400"/></div>
+        <div className="flex items-center justify-center py-20"><Loader2 size={28} className="animate-spin text-indigo-700"/></div>
       ) : (
-        <div className="rounded-2xl bg-white/4 p-4 ring-1 ring-white/8">
+        <div className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-200">
           {/* Cabeçalho semana */}
           <div className="mb-2 grid grid-cols-7 gap-1">
             {WEEK_LABELS.map((d) => (
-              <div key={d} className="text-center text-[10px] font-bold uppercase tracking-wider text-white/25 py-1">{d}</div>
+              <div key={d} className="text-center text-[10px] font-bold uppercase tracking-wider text-slate-700 py-1">{d}</div>
             ))}
           </div>
           {/* Dias */}
@@ -476,8 +476,8 @@ function MinhaEscalaTab({ loading, calendarData, year, month, onPrev, onNext, se
                   key={day.date}
                   onClick={() => onSelectDay(isSelected ? null : day)}
                   className={`relative flex flex-col items-center rounded-xl border transition-all min-h-[58px] py-1.5 px-1 ${meta.color} ${
-                    isSelected ? 'ring-2 ring-indigo-400 ring-offset-1 ring-offset-[#0e0e12]' : 'hover:ring-1 hover:ring-white/15'
-                  } ${isToday ? 'ring-2 ring-indigo-500/60' : ''}`}
+                    isSelected ? 'ring-2 ring-indigo-400 ring-offset-1 ring-offset-[#0e0e12]' : 'hover:ring-1 hover:ring-slate-200'
+                  } ${isToday ? 'ring-2 ring-indigo-200' : ''}`}
                 >
                   <span className={`text-[11px] font-bold ${meta.textColor} ${isToday ? 'underline underline-offset-2' : ''}`}>
                     {new Date(day.date + 'T00:00:00').getDate()}
@@ -485,7 +485,7 @@ function MinhaEscalaTab({ loading, calendarData, year, month, onPrev, onNext, se
                   <span className="text-[11px] mt-0.5">{meta.icon}</span>
                   {/* Horário programado (dias de trabalho) */}
                   {resolved === 'WORK' && day.scheduled.entry && (
-                    <span className="text-[9px] text-white/40 mt-0.5">{day.scheduled.entry.slice(0,5)}</span>
+                    <span className="text-[9px] text-slate-500 mt-0.5">{day.scheduled.entry.slice(0,5)}</span>
                   )}
                   {/* Badge hora extra */}
                   {hasHE && day.actual?.overtimeApprovalStatus === 'APPROVED' && (
@@ -493,7 +493,7 @@ function MinhaEscalaTab({ loading, calendarData, year, month, onPrev, onNext, se
                   )}
                   {/* Badge ocorrência */}
                   {(resolved === 'FALTA' || resolved === 'ATRASO' || resolved === 'SAIDA_ANTECIPADA') && (
-                    <span className="absolute -top-1 -right-1 flex h-3 w-3 items-center justify-center rounded-full bg-red-500 text-[7px] font-bold text-white">!</span>
+                    <span className="absolute -top-1 -right-1 flex h-3 w-3 items-center justify-center rounded-full bg-red-500 text-[7px] font-bold text-slate-900">!</span>
                   )}
                   {/* Badge HE pendente */}
                   {hasHE && day.actual?.overtimeApprovalStatus === 'PENDING' && (
@@ -518,11 +518,11 @@ function SummaryCard({ label, value, sub, color, bg, icon }: { label: string; va
   return (
     <div className={`flex flex-col gap-2 rounded-xl p-4 ring-1 ${bg}`}>
       <div className="flex items-center justify-between">
-        <p className="text-[11px] font-bold uppercase tracking-wider text-white/40">{label}</p>
+        <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">{label}</p>
         {icon}
       </div>
       <p className={`text-xl font-bold ${color}`}>{value}</p>
-      <p className="text-[10px] text-white/30 leading-tight">{sub}</p>
+      <p className="text-[10px] text-slate-700 leading-tight">{sub}</p>
     </div>
   );
 }
@@ -540,25 +540,25 @@ function DayDetailPanel({ day, onClose }: { day: CalendarDay; onClose: () => voi
   const totalOT = (a?.overtime50Minutes ?? 0) + (a?.overtime100Minutes ?? 0);
 
   return (
-    <div className="rounded-2xl bg-zinc-900 ring-1 ring-white/10 p-5 relative">
-      <button onClick={onClose} className="absolute top-4 right-4 text-white/40 hover:text-white transition-colors"><X size={16}/></button>
+    <div className="rounded-2xl bg-white shadow-sm ring-1 ring-slate-200 p-5 relative">
+      <button onClick={onClose} className="absolute top-4 right-4 text-slate-500 hover:text-slate-900 transition-colors"><X size={16}/></button>
 
       {/* Cabeçalho */}
       <div className="flex items-center gap-3 mb-5">
         <span className={`rounded-lg border px-3 py-1 text-xs font-bold ${meta.color} ${meta.textColor}`}>
           {meta.icon} {meta.label}
         </span>
-        <p className="text-sm font-medium text-white/80 capitalize">{dateLabel}</p>
-        {day.holiday && <span className="text-xs text-amber-300 bg-amber-500/10 px-2 py-0.5 rounded-full ring-1 ring-amber-500/20">🟡 {day.holiday.name}</span>}
+        <p className="text-sm font-medium text-slate-700 capitalize">{dateLabel}</p>
+        {day.holiday && <span className="text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full ring-1 ring-amber-200">🟡 {day.holiday.name}</span>}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         {/* PREVISTO — vem da Escala */}
         <div className="flex flex-col gap-3">
-          <p className="text-[11px] font-bold uppercase tracking-wider text-white/30 flex items-center gap-1.5">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
             <CalendarClock size={12}/> Previsto (Escala)
           </p>
-          <div className="flex flex-col gap-2 rounded-xl bg-white/4 p-3 ring-1 ring-white/8">
+          <div className="flex flex-col gap-2 rounded-xl bg-slate-50 p-3 ring-1 ring-slate-200">
             <TimeDetailRow label="Entrada"       value={day.scheduled.entry?.slice(0,5) ?? '--:--'} />
             <TimeDetailRow label="Início almoço" value={day.scheduled.lunchStart?.slice(0,5) ?? '--:--'} />
             <TimeDetailRow label="Fim almoço"    value={day.scheduled.lunchReturn?.slice(0,5) ?? '--:--'} />
@@ -568,16 +568,16 @@ function DayDetailPanel({ day, onClose }: { day: CalendarDay; onClose: () => voi
 
         {/* REALIZADO — vem do Ponto */}
         <div className="flex flex-col gap-3">
-          <p className="text-[11px] font-bold uppercase tracking-wider text-white/30 flex items-center gap-1.5">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
             <Clock size={12}/> Realizado (Ponto)
           </p>
           {a ? (
-            <div className="flex flex-col gap-2 rounded-xl bg-white/4 p-3 ring-1 ring-white/8">
+            <div className="flex flex-col gap-2 rounded-xl bg-slate-50 p-3 ring-1 ring-slate-200">
               <TimeDetailRow label="Entrada"       value={formatTime(a.entry)}      highlight={resolved === 'ATRASO'} />
               <TimeDetailRow label="Início almoço" value={formatTime(a.lunchStart)} />
               <TimeDetailRow label="Fim almoço"    value={formatTime(a.lunchReturn)}/>
               <TimeDetailRow label="Saída"         value={formatTime(a.exit)}       highlight={resolved === 'SAIDA_ANTECIPADA'} />
-              <div className="mt-1 border-t border-white/8 pt-2 flex flex-col gap-1.5">
+              <div className="mt-1 border-t border-slate-200 pt-2 flex flex-col gap-1.5">
                 <TimeDetailRow label="Total trabalhado" value={formatMin(a.totalWorked)} />
                 <TimeDetailRow
                   label="Saldo do dia"
@@ -588,7 +588,7 @@ function DayDetailPanel({ day, onClose }: { day: CalendarDay; onClose: () => voi
               </div>
             </div>
           ) : (
-            <div className="flex items-center justify-center rounded-xl bg-white/3 ring-1 ring-white/8 py-6 text-xs text-white/25">
+            <div className="flex items-center justify-center rounded-xl bg-slate-50 ring-1 ring-slate-200 py-6 text-xs text-slate-700">
               Sem registro de ponto neste dia
             </div>
           )}
@@ -598,28 +598,28 @@ function DayDetailPanel({ day, onClose }: { day: CalendarDay; onClose: () => voi
       {/* Ocorrências — dados críticos do Ponto */}
       {a && (
         <div className="mt-4 flex flex-col gap-2">
-          <p className="text-[11px] font-bold uppercase tracking-wider text-white/30 flex items-center gap-1.5">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
             <AlertTriangle size={12}/> Ocorrências
           </p>
           <div className="flex flex-wrap gap-2">
             {/* Atraso */}
             {resolved === 'ATRASO' && (
-              <OccurrenceBadge color="bg-orange-500/15 text-orange-300 ring-orange-500/25" icon="⏰" label={`Atraso: ${formatMin(a.lateMinutes)}`} />
+              <OccurrenceBadge color="bg-orange-50 text-orange-600 ring-orange-200" icon="⏰" label={`Atraso: ${formatMin(a.lateMinutes)}`} />
             )}
             {/* Saída antecipada */}
             {resolved === 'SAIDA_ANTECIPADA' && (
-              <OccurrenceBadge color="bg-orange-500/15 text-orange-300 ring-orange-500/25" icon="🏃" label="Saída Antecipada" />
+              <OccurrenceBadge color="bg-orange-50 text-orange-600 ring-orange-200" icon="🏃" label="Saída Antecipada" />
             )}
             {/* Falta */}
             {resolved === 'FALTA' && (
-              <OccurrenceBadge color="bg-red-500/15 text-red-400 ring-red-500/25" icon="❌" label={`Falta: ${formatMin(a.absenceMinutes)} ausência`} />
+              <OccurrenceBadge color="bg-red-50 text-red-700 ring-red-200" icon="❌" label={`Falta: ${formatMin(a.absenceMinutes)} ausência`} />
             )}
             {/* Hora extra 50% */}
             {(a.overtime50Minutes ?? 0) > 0 && (
               <OccurrenceBadge
                 color={a.overtimeApprovalStatus === 'APPROVED'
-                  ? 'bg-emerald-500/15 text-emerald-300 ring-emerald-500/25'
-                  : 'bg-amber-500/15 text-amber-300 ring-amber-500/25'}
+                  ? 'bg-emerald-50 text-emerald-600 ring-emerald-200'
+                  : 'bg-amber-50 text-amber-600 ring-amber-200'}
                 icon="⏱"
                 label={`HE 50%: ${formatMin(a.overtime50Minutes)} ${a.overtimeApprovalStatus === 'PENDING' ? '(aguard. aprov.)' : ''}`}
               />
@@ -628,50 +628,50 @@ function DayDetailPanel({ day, onClose }: { day: CalendarDay; onClose: () => voi
             {(a.overtime100Minutes ?? 0) > 0 && (
               <OccurrenceBadge
                 color={a.overtimeApprovalStatus === 'APPROVED'
-                  ? 'bg-emerald-500/15 text-emerald-300 ring-emerald-500/25'
-                  : 'bg-amber-500/15 text-amber-300 ring-amber-500/25'}
+                  ? 'bg-emerald-50 text-emerald-600 ring-emerald-200'
+                  : 'bg-amber-50 text-amber-600 ring-amber-200'}
                 icon="⏱"
                 label={`HE 100%: ${formatMin(a.overtime100Minutes)} ${a.overtimeApprovalStatus === 'PENDING' ? '(aguard. aprov.)' : ''}`}
               />
             )}
             {/* Turno noturno */}
             {(a.nightShiftMinutes ?? 0) > 0 && (
-              <OccurrenceBadge color="bg-indigo-500/15 text-indigo-300 ring-indigo-500/25" icon="🌙" label={`Noturno: ${formatMin(a.nightShiftMinutes)}`} />
+              <OccurrenceBadge color="bg-indigo-50 text-indigo-600 ring-indigo-200" icon="🌙" label={`Noturno: ${formatMin(a.nightShiftMinutes)}`} />
             )}
             {/* Atestado */}
             {(resolved === 'ATESTADO' || resolved === 'ATESTADO_HORAS') && (
-              <OccurrenceBadge color="bg-purple-500/15 text-purple-300 ring-purple-500/25" icon="💊" label={resolved === 'ATESTADO' ? 'Atestado Integral' : 'Atestado (horas)'} />
+              <OccurrenceBadge color="bg-purple-50 text-purple-600 ring-purple-200" icon="💊" label={resolved === 'ATESTADO' ? 'Atestado Integral' : 'Atestado (horas)'} />
             )}
             {/* Suspensão */}
             {resolved === 'SUSPENSAO' && (
-              <OccurrenceBadge color="bg-red-900/30 text-red-400 ring-red-700/30" icon="🚫" label="Suspensão" />
+              <OccurrenceBadge color="bg-red-100 text-red-700 ring-red-200" icon="🚫" label="Suspensão" />
             )}
             {/* Feriado */}
             {resolved === 'FERIADO' && (
-              <OccurrenceBadge color="bg-amber-500/15 text-amber-300 ring-amber-500/25" icon="🟡" label={`Feriado${day.holiday ? ': ' + day.holiday.name : ''}`} />
+              <OccurrenceBadge color="bg-amber-50 text-amber-600 ring-amber-200" icon="🟡" label={`Feriado${day.holiday ? ': ' + day.holiday.name : ''}`} />
             )}
             {/* Folgas */}
             {(resolved === 'FOLGA' || resolved === 'FOLGA_DSR' || resolved === 'FOLGA_BANCO') && (
-              <OccurrenceBadge color="bg-blue-500/15 text-blue-300 ring-blue-500/25" icon="🔵" label={getMeta(resolved).label} />
+              <OccurrenceBadge color="bg-blue-50 text-blue-600 ring-blue-200" icon="🔵" label={getMeta(resolved).label} />
             )}
             {/* Ponto fora do local */}
             {a.locationAddress && (
-              <OccurrenceBadge color="bg-zinc-500/15 text-zinc-300 ring-zinc-500/25" icon="📍" label={`Local: ${a.locationAddress}`} />
+              <OccurrenceBadge color="bg-zinc-50 text-zinc-600 ring-zinc-200" icon="📍" label={`Local: ${a.locationAddress}`} />
             )}
             {/* Sem biometria */}
             {a.clockedInWithoutFacial && (
-              <OccurrenceBadge color="bg-yellow-500/15 text-yellow-300 ring-yellow-500/25" icon="⚠️" label="Sem biometria facial" />
+              <OccurrenceBadge color="bg-yellow-50 text-yellow-600 ring-yellow-200" icon="⚠️" label="Sem biometria facial" />
             )}
             {/* Nenhuma ocorrência */}
             {resolved === 'WORK' && !((a.overtime50Minutes ?? 0) + (a.overtime100Minutes ?? 0) > 0) &&
              !a.lateMinutes && !(a.dailyBalance && a.dailyBalance < 0) && (
-              <OccurrenceBadge color="bg-emerald-500/10 text-emerald-400 ring-emerald-500/15" icon="✅" label="Sem ocorrências" />
+              <OccurrenceBadge color="bg-emerald-50 text-emerald-700 ring-emerald-200" icon="✅" label="Sem ocorrências" />
             )}
           </div>
 
           {/* Observação / motivo do ajuste */}
           {a.observation && (
-            <div className="mt-2 flex items-start gap-2 rounded-xl bg-white/3 p-3 ring-1 ring-white/8 text-xs text-white/50">
+            <div className="mt-2 flex items-start gap-2 rounded-xl bg-slate-50 p-3 ring-1 ring-slate-200 text-xs text-slate-500">
               <FileText size={12} className="shrink-0 mt-0.5"/>
               <p>{a.observation}</p>
             </div>
@@ -680,10 +680,10 @@ function DayDetailPanel({ day, onClose }: { day: CalendarDay; onClose: () => voi
           {totalOT > 0 && (
             <div className={`flex items-center gap-2 rounded-xl px-3 py-2 text-xs ring-1 ${
               a.overtimeApprovalStatus === 'APPROVED'
-                ? 'bg-emerald-500/8 text-emerald-400 ring-emerald-500/15'
+                ? 'bg-emerald-500/8 text-emerald-700 ring-emerald-200'
                 : a.overtimeApprovalStatus === 'REJECTED'
-                  ? 'bg-red-500/8 text-red-400 ring-red-500/15'
-                  : 'bg-amber-500/8 text-amber-400 ring-amber-500/15'
+                  ? 'bg-red-500/8 text-red-700 ring-red-200'
+                  : 'bg-amber-500/8 text-amber-700 ring-amber-200'
             }`}>
               <Info size={12}/>
               Hora Extra ({formatMin(totalOT)}): {
@@ -700,7 +700,7 @@ function DayDetailPanel({ day, onClose }: { day: CalendarDay; onClose: () => voi
           )}
           {/* Pendente de aprovação de ajuste manual */}
           {a.manualStatus === 'pending' && (
-            <div className="flex items-center gap-2 rounded-xl bg-amber-500/8 px-3 py-2 text-xs text-amber-400 ring-1 ring-amber-500/15">
+            <div className="flex items-center gap-2 rounded-xl bg-amber-500/8 px-3 py-2 text-xs text-amber-700 ring-1 ring-amber-200">
               <AlertCircle size={12}/> Ajuste manual aguardando aprovação do gestor
             </div>
           )}
@@ -713,8 +713,8 @@ function DayDetailPanel({ day, onClose }: { day: CalendarDay; onClose: () => voi
 function TimeDetailRow({ label, value, highlight, positive }: { label: string; value: string; highlight?: boolean; positive?: boolean }) {
   return (
     <div className="flex items-center justify-between gap-2">
-      <span className="text-xs text-white/40">{label}</span>
-      <span className={`text-xs font-medium ${highlight ? 'text-red-400' : positive ? 'text-emerald-400' : 'text-white/80'}`}>{value}</span>
+      <span className="text-xs text-slate-500">{label}</span>
+      <span className={`text-xs font-medium ${highlight ? 'text-red-700' : positive ? 'text-emerald-700' : 'text-slate-700'}`}>{value}</span>
     </div>
   );
 }
@@ -737,14 +737,14 @@ function EscalaEquipeTab({ loading, teamData, schedules, canWrite, year, month, 
     <div className="flex flex-col gap-5">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <button onClick={onPrev} className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/5 text-white/60 hover:bg-white/10 hover:text-white transition-colors"><ChevronLeft size={16}/></button>
-          <h2 className="text-base font-bold text-white">{MONTH_NAMES[month-1]} {year}</h2>
-          <button onClick={onNext} className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/5 text-white/60 hover:bg-white/10 hover:text-white transition-colors"><ChevronRight size={16}/></button>
+          <button onClick={onPrev} className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-50 text-slate-500 hover:bg-slate-100 hover:text-slate-900 transition-colors"><ChevronLeft size={16}/></button>
+          <h2 className="text-base font-bold text-slate-900">{MONTH_NAMES[month-1]} {year}</h2>
+          <button onClick={onNext} className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-50 text-slate-500 hover:bg-slate-100 hover:text-slate-900 transition-colors"><ChevronRight size={16}/></button>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={onRefresh} className="flex items-center gap-1.5 rounded-lg bg-white/5 px-3 py-2 text-xs text-white/60 hover:text-white transition-colors"><RefreshCw size={13}/> Atualizar</button>
+          <button onClick={onRefresh} className="flex items-center gap-1.5 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-500 hover:text-slate-900 transition-colors"><RefreshCw size={13}/> Atualizar</button>
           {canWrite && (
-            <button onClick={onLancar} className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-medium text-white hover:bg-indigo-500 transition-colors shadow-lg shadow-indigo-500/20">
+            <button onClick={onLancar} className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-medium text-slate-900 hover:bg-indigo-500 transition-colors shadow-lg shadow-indigo-500/20">
               <Plus size={13}/> Lançar Escala
             </button>
           )}
@@ -752,43 +752,43 @@ function EscalaEquipeTab({ loading, teamData, schedules, canWrite, year, month, 
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-20"><Loader2 size={28} className="animate-spin text-indigo-400"/></div>
+        <div className="flex items-center justify-center py-20"><Loader2 size={28} className="animate-spin text-indigo-700"/></div>
       ) : (
         <>
           {withSchedule.length > 0 && (
             <div className="flex flex-col gap-2">
-              <p className="text-xs font-bold uppercase tracking-wider text-white/30">Com Escala</p>
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-700">Com Escala</p>
               {withSchedule.map((us: any) => (
-                <div key={us.id} className="flex items-center gap-4 rounded-xl bg-white/5 p-4 ring-1 ring-white/8 hover:ring-white/12 transition-all">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-indigo-500/20 text-indigo-300 text-xs font-bold">
+                <div key={us.id} className="flex items-center gap-4 rounded-xl bg-slate-50 p-4 ring-1 ring-slate-200 hover:ring-slate-200 transition-all">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-indigo-600 text-xs font-bold">
                     {us.employee?.name?.split(' ').map((n: string) => n[0]).slice(0,2).join('').toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-white truncate">{us.employee?.name}</p>
-                    <p className="text-xs text-white/40 truncate">{us.employee?.department} · {us.employee?.position}</p>
+                    <p className="text-sm font-semibold text-slate-900 truncate">{us.employee?.name}</p>
+                    <p className="text-xs text-slate-500 truncate">{us.employee?.department} · {us.employee?.position}</p>
                   </div>
                   <div className="text-right shrink-0">
-                    <p className="text-sm font-semibold text-indigo-300">{us.schedule?.name}</p>
-                    <p className="text-xs text-white/40">{us.schedule?.scaleType} · {us.schedule?.entryTime ?? '--'} – {us.schedule?.exitTime ?? '--'}</p>
+                    <p className="text-sm font-semibold text-indigo-600">{us.schedule?.name}</p>
+                    <p className="text-xs text-slate-500">{us.schedule?.scaleType} · {us.schedule?.entryTime ?? '--'} – {us.schedule?.exitTime ?? '--'}</p>
                   </div>
-                  <span className="shrink-0 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold text-emerald-400 ring-1 ring-emerald-500/20">ATIVA</span>
+                  <span className="shrink-0 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 ring-1 ring-emerald-200">ATIVA</span>
                 </div>
               ))}
             </div>
           )}
           {withoutSchedule.length > 0 && (
             <div className="flex flex-col gap-2">
-              <p className="text-xs font-bold uppercase tracking-wider text-amber-400/70">⚠ Sem Escala</p>
+              <p className="text-xs font-bold uppercase tracking-wider text-amber-700/70">⚠ Sem Escala</p>
               {withoutSchedule.map((emp: any) => (
-                <div key={emp.id} className="flex items-center gap-4 rounded-xl bg-amber-500/5 p-4 ring-1 ring-amber-500/20">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-500/15 text-amber-300 text-xs font-bold">
+                <div key={emp.id} className="flex items-center gap-4 rounded-xl bg-amber-500/5 p-4 ring-1 ring-amber-200">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-50 text-amber-600 text-xs font-bold">
                     {emp.name?.split(' ').map((n: string) => n[0]).slice(0,2).join('').toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-white truncate">{emp.name}</p>
-                    <p className="text-xs text-white/40">{emp.department} · {emp.position}</p>
+                    <p className="text-sm font-semibold text-slate-900 truncate">{emp.name}</p>
+                    <p className="text-xs text-slate-500">{emp.department} · {emp.position}</p>
                   </div>
-                  <span className="text-xs text-amber-400/70">Sem escala atribuída</span>
+                  <span className="text-xs text-amber-700/70">Sem escala atribuída</span>
                 </div>
               ))}
             </div>
@@ -813,32 +813,32 @@ function TrocarEscalaTab({ loading, swaps, canApprove, onNovatroca, onApprove, o
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           {pending.length > 0 && (
-            <span className="flex items-center gap-1.5 rounded-full bg-amber-500/15 px-3 py-1 text-xs font-semibold text-amber-300 ring-1 ring-amber-500/20">
+            <span className="flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-600 ring-1 ring-amber-200">
               <AlertCircle size={12}/> {pending.length} pendente{pending.length !== 1 ? 's' : ''}
             </span>
           )}
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={onRefresh} className="flex items-center gap-1.5 rounded-lg bg-white/5 px-3 py-2 text-xs text-white/60 hover:text-white transition-colors"><RefreshCw size={13}/> Atualizar</button>
-          <button onClick={onNovatroca} className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-medium text-white hover:bg-indigo-500 transition-colors shadow-lg shadow-indigo-500/20">
+          <button onClick={onRefresh} className="flex items-center gap-1.5 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-500 hover:text-slate-900 transition-colors"><RefreshCw size={13}/> Atualizar</button>
+          <button onClick={onNovatroca} className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-medium text-slate-900 hover:bg-indigo-500 transition-colors shadow-lg shadow-indigo-500/20">
             <Plus size={13}/> Nova Solicitação
           </button>
         </div>
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-20"><Loader2 size={28} className="animate-spin text-indigo-400"/></div>
+        <div className="flex items-center justify-center py-20"><Loader2 size={28} className="animate-spin text-indigo-700"/></div>
       ) : (
         <>
           {pending.length > 0 && (
             <div className="flex flex-col gap-3">
-              <p className="text-xs font-bold uppercase tracking-wider text-amber-400/60">Aguardando Aprovação</p>
+              <p className="text-xs font-bold uppercase tracking-wider text-amber-700/60">Aguardando Aprovação</p>
               {pending.map((s: any) => <SwapCard key={s.id} swap={s} canApprove={canApprove} onApprove={onApprove} onCancel={onCancel}/>)}
             </div>
           )}
           {others.length > 0 && (
             <div className="flex flex-col gap-3">
-              <p className="text-xs font-bold uppercase tracking-wider text-white/30">Histórico</p>
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-700">Histórico</p>
               {others.map((s: any) => <SwapCard key={s.id} swap={s} canApprove={false} onApprove={onApprove} onCancel={onCancel}/>)}
             </div>
           )}
@@ -854,30 +854,30 @@ function TrocarEscalaTab({ loading, swaps, canApprove, onNovatroca, onApprove, o
 function SwapCard({ swap, canApprove, onApprove, onCancel }: any) {
   const fmtDate = (d: string) => new Date(d).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
   return (
-    <div className="rounded-xl bg-white/5 p-4 ring-1 ring-white/8 hover:ring-white/12 transition-all">
+    <div className="rounded-xl bg-slate-50 p-4 ring-1 ring-slate-200 hover:ring-slate-200 transition-all">
       <div className="flex items-start gap-4">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-500/15 text-indigo-400"><ArrowLeftRight size={16}/></div>
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-700"><ArrowLeftRight size={16}/></div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <p className="text-sm font-semibold text-white truncate">{swap.requester?.name ?? 'Usuário'}</p>
+            <p className="text-sm font-semibold text-slate-900 truncate">{swap.requester?.name ?? 'Usuário'}</p>
             <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${SWAP_STATUS_BADGE[swap.status]}`}>{SWAP_STATUS_LABEL[swap.status]}</span>
           </div>
-          <p className="text-xs text-white/50">
-            <span className="text-red-400 font-medium">{fmtDate(swap.originalDate)}</span>
+          <p className="text-xs text-slate-500">
+            <span className="text-red-700 font-medium">{fmtDate(swap.originalDate)}</span>
             {' '}→{' '}
-            <span className="text-emerald-400 font-medium">{fmtDate(swap.targetDate)}</span>
+            <span className="text-emerald-700 font-medium">{fmtDate(swap.targetDate)}</span>
           </p>
-          {swap.justification && <p className="mt-1 text-xs text-white/35 italic">"{swap.justification}"</p>}
-          {swap.rejectionReason && <p className="mt-1 text-xs text-red-400">Motivo: {swap.rejectionReason}</p>}
+          {swap.justification && <p className="mt-1 text-xs text-slate-700 italic">"{swap.justification}"</p>}
+          {swap.rejectionReason && <p className="mt-1 text-xs text-red-700">Motivo: {swap.rejectionReason}</p>}
         </div>
         {swap.status === 'PENDING' && (
           <div className="flex gap-2 shrink-0">
             {canApprove && (
-              <button onClick={() => onApprove(swap)} className="flex items-center gap-1 rounded-lg bg-emerald-600/20 px-2.5 py-1.5 text-xs font-medium text-emerald-400 hover:bg-emerald-600/30 transition-colors ring-1 ring-emerald-500/20">
+              <button onClick={() => onApprove(swap)} className="flex items-center gap-1 rounded-lg bg-emerald-600/20 px-2.5 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-600/30 transition-colors ring-1 ring-emerald-200">
                 <Check size={12}/> Revisar
               </button>
             )}
-            <button onClick={() => onCancel(swap.id)} className="flex items-center gap-1 rounded-lg bg-red-500/10 px-2.5 py-1.5 text-xs font-medium text-red-400 hover:bg-red-500/20 transition-colors ring-1 ring-red-500/20">
+            <button onClick={() => onCancel(swap.id)} className="flex items-center gap-1 rounded-lg bg-red-50 px-2.5 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100 transition-colors ring-1 ring-red-200">
               <X size={12}/> Cancelar
             </button>
           </div>
@@ -910,33 +910,33 @@ function ModalSolicitarTroca({ onClose, onSuccess }: { onClose: () => void; onSu
   return (
     <Modal title="Nova Solicitação de Troca" onClose={onClose}>
       <div className="flex flex-col gap-4">
-        <div className="rounded-xl bg-indigo-500/8 p-3 text-xs text-indigo-300 ring-1 ring-indigo-500/20 flex items-start gap-2">
+        <div className="rounded-xl bg-indigo-500/8 p-3 text-xs text-indigo-600 ring-1 ring-indigo-200 flex items-start gap-2">
           <Info size={13} className="shrink-0 mt-0.5"/>
           Sua solicitação será encaminhada automaticamente ao seu gestor para aprovação.
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs text-white/50">Dia a folgar (original)</label>
+            <label className="text-xs text-slate-500">Dia a folgar (original)</label>
             <input type="date" value={originalDate} onChange={(e) => setOriginalDate(e.target.value)}
-              className="rounded-lg bg-white/5 px-3 py-2 text-sm text-white ring-1 ring-white/10 focus:outline-none focus:ring-indigo-500/50"/>
+              className="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-900 ring-1 ring-slate-200 focus:outline-none focus:ring-indigo-200"/>
           </div>
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs text-white/50">Dia para trabalhar</label>
+            <label className="text-xs text-slate-500">Dia para trabalhar</label>
             <input type="date" value={targetDate} onChange={(e) => setTargetDate(e.target.value)}
-              className="rounded-lg bg-white/5 px-3 py-2 text-sm text-white ring-1 ring-white/10 focus:outline-none focus:ring-indigo-500/50"/>
+              className="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-900 ring-1 ring-slate-200 focus:outline-none focus:ring-indigo-200"/>
           </div>
         </div>
         <div className="flex flex-col gap-1.5">
-          <label className="text-xs text-white/50">Justificativa (opcional)</label>
+          <label className="text-xs text-slate-500">Justificativa (opcional)</label>
           <textarea value={justification} onChange={(e) => setJustification(e.target.value)} rows={3}
             placeholder="Descreva o motivo da troca..."
-            className="rounded-lg bg-white/5 px-3 py-2 text-sm text-white ring-1 ring-white/10 focus:outline-none focus:ring-indigo-500/50 resize-none"/>
+            className="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-900 ring-1 ring-slate-200 focus:outline-none focus:ring-indigo-200 resize-none"/>
         </div>
-        {error && <p className="text-xs text-red-400">{error}</p>}
+        {error && <p className="text-xs text-red-700">{error}</p>}
         <div className="flex gap-2 justify-end">
-          <button onClick={onClose} className="rounded-lg px-4 py-2 text-sm text-white/60 hover:text-white transition-colors">Cancelar</button>
+          <button onClick={onClose} className="rounded-lg px-4 py-2 text-sm text-slate-500 hover:text-slate-900 transition-colors">Cancelar</button>
           <button onClick={submit} disabled={loading}
-            className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500 disabled:opacity-50 transition-colors">
+            className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-slate-900 hover:bg-indigo-500 disabled:opacity-50 transition-colors">
             {loading ? <Loader2 size={14} className="animate-spin"/> : <Check size={14}/>} Enviar
           </button>
         </div>
@@ -967,21 +967,21 @@ function ModalAprovarTroca({ swap, onClose, onSuccess }: { swap: any; onClose: (
   return (
     <Modal title="Revisar Solicitação de Troca" onClose={onClose}>
       <div className="flex flex-col gap-4">
-        <div className="rounded-xl bg-white/5 p-4 ring-1 ring-white/10">
-          <p className="text-sm font-semibold text-white mb-1">{swap.requester?.name}</p>
-          <p className="text-xs text-white/50">
-            Folgar em <span className="text-red-400 font-medium">{fmtDate(swap.originalDate)}</span>{' '}
-            e trabalhar em <span className="text-emerald-400 font-medium">{fmtDate(swap.targetDate)}</span>
+        <div className="rounded-xl bg-slate-50 p-4 ring-1 ring-slate-200">
+          <p className="text-sm font-semibold text-slate-900 mb-1">{swap.requester?.name}</p>
+          <p className="text-xs text-slate-500">
+            Folgar em <span className="text-red-700 font-medium">{fmtDate(swap.originalDate)}</span>{' '}
+            e trabalhar em <span className="text-emerald-700 font-medium">{fmtDate(swap.targetDate)}</span>
           </p>
-          {swap.justification && <p className="mt-2 text-xs text-white/40 italic">"{swap.justification}"</p>}
+          {swap.justification && <p className="mt-2 text-xs text-slate-500 italic">"{swap.justification}"</p>}
         </div>
         <div className="grid grid-cols-2 gap-2">
           {(['APPROVED', 'REJECTED'] as const).map((opt) => (
             <button key={opt} onClick={() => setAction(opt)}
               className={`flex items-center justify-center gap-2 rounded-xl py-3 text-sm font-medium transition-all ring-1 ${
                 action === opt
-                  ? opt === 'APPROVED' ? 'bg-emerald-600/30 text-emerald-300 ring-emerald-500/50' : 'bg-red-600/20 text-red-300 ring-red-500/40'
-                  : 'bg-white/5 text-white/50 ring-white/10 hover:ring-white/20'
+                  ? opt === 'APPROVED' ? 'bg-emerald-600/30 text-emerald-600 ring-emerald-200' : 'bg-red-600/20 text-red-600 ring-red-200'
+                  : 'bg-slate-50 text-slate-500 ring-slate-200 hover:ring-slate-200'
               }`}>
               {opt === 'APPROVED' ? <CheckCircle2 size={16}/> : <XCircle size={16}/>}
               {opt === 'APPROVED' ? 'Aprovar' : 'Rejeitar'}
@@ -990,17 +990,17 @@ function ModalAprovarTroca({ swap, onClose, onSuccess }: { swap: any; onClose: (
         </div>
         {action === 'REJECTED' && (
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs text-white/50">Motivo *</label>
+            <label className="text-xs text-slate-500">Motivo *</label>
             <textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={2}
-              className="rounded-lg bg-white/5 px-3 py-2 text-sm text-white ring-1 ring-white/10 focus:outline-none resize-none"
+              className="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-900 ring-1 ring-slate-200 focus:outline-none resize-none"
               placeholder="Explique o motivo..."/>
           </div>
         )}
-        {error && <p className="text-xs text-red-400">{error}</p>}
+        {error && <p className="text-xs text-red-700">{error}</p>}
         <div className="flex gap-2 justify-end">
-          <button onClick={onClose} className="rounded-lg px-4 py-2 text-sm text-white/60 hover:text-white transition-colors">Cancelar</button>
+          <button onClick={onClose} className="rounded-lg px-4 py-2 text-sm text-slate-500 hover:text-slate-900 transition-colors">Cancelar</button>
           <button onClick={submit} disabled={loading}
-            className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white disabled:opacity-50 transition-colors ${
+            className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-slate-900 disabled:opacity-50 transition-colors ${
               action === 'APPROVED' ? 'bg-emerald-600 hover:bg-emerald-500' : 'bg-red-600 hover:bg-red-500'
             }`}>
             {loading ? <Loader2 size={14} className="animate-spin"/> : action === 'APPROVED' ? <Check size={14}/> : <X size={14}/>}
@@ -1053,9 +1053,9 @@ function ModalLancarEscala({ schedules, onClose, onSuccess }: { schedules: any[]
 
   return (
     <Modal title="Lançar / Criar Escala" onClose={onClose} wide>
-      <div className="flex gap-1 rounded-lg bg-white/5 p-1 mb-5">
+      <div className="flex gap-1 rounded-lg bg-slate-50 p-1 mb-5">
         {(['assign', 'create'] as const).map((m) => (
-          <button key={m} onClick={() => setMode(m)} className={`flex-1 rounded-md py-2 text-xs font-medium transition-all ${mode === m ? 'bg-indigo-600 text-white' : 'text-white/50 hover:text-white'}`}>
+          <button key={m} onClick={() => setMode(m)} className={`flex-1 rounded-md py-2 text-xs font-medium transition-all ${mode === m ? 'bg-indigo-600 text-white' : 'text-slate-500 hover:text-slate-900'}`}>
             {m === 'assign' ? 'Atribuir Existente' : 'Criar Nova Escala'}
           </button>
         ))}
@@ -1064,46 +1064,46 @@ function ModalLancarEscala({ schedules, onClose, onSuccess }: { schedules: any[]
       {mode === 'assign' ? (
         <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs text-white/50">Funcionário</label>
+            <label className="text-xs text-slate-500">Funcionário</label>
             <input value={employeeSearch} onChange={(e) => setEmployeeSearch(e.target.value)} placeholder="Buscar..."
-              className="rounded-lg bg-white/5 px-3 py-2 text-sm text-white ring-1 ring-white/10 focus:outline-none focus:ring-indigo-500/50"/>
+              className="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-900 ring-1 ring-slate-200 focus:outline-none focus:ring-indigo-200"/>
             {employeeSearch && filteredEmployees.length > 0 && (
-              <div className="max-h-40 overflow-y-auto rounded-lg bg-zinc-900 ring-1 ring-white/10">
+              <div className="max-h-40 overflow-y-auto rounded-lg bg-white shadow-sm ring-1 ring-slate-200">
                 {filteredEmployees.slice(0,8).map((e) => (
                   <button key={e.id} onClick={() => { setSelectedEmployee(e.id); setEmployeeSearch(e.name); }}
-                    className="w-full px-3 py-2 text-left text-sm text-white hover:bg-white/5">
-                    {e.name} <span className="text-white/30 text-xs">· {e.department}</span>
+                    className="w-full px-3 py-2 text-left text-sm text-slate-900 hover:bg-slate-50">
+                    {e.name} <span className="text-slate-700 text-xs">· {e.department}</span>
                   </button>
                 ))}
               </div>
             )}
           </div>
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs text-white/50">Escala</label>
+            <label className="text-xs text-slate-500">Escala</label>
             <select value={selectedSchedule} onChange={(e) => setSelectedSchedule(e.target.value)}
-              className="rounded-lg bg-white/5 px-3 py-2 text-sm text-white ring-1 ring-white/10 focus:outline-none">
+              className="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-900 ring-1 ring-slate-200 focus:outline-none">
               <option value="">Selecionar...</option>
               {schedules.map((s: any) => <option key={s.id} value={s.id}>{s.name} ({s.scaleType})</option>)}
             </select>
           </div>
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs text-white/50">Início da Vigência</label>
+            <label className="text-xs text-slate-500">Início da Vigência</label>
             <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)}
-              className="rounded-lg bg-white/5 px-3 py-2 text-sm text-white ring-1 ring-white/10 focus:outline-none"/>
+              className="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-900 ring-1 ring-slate-200 focus:outline-none"/>
           </div>
         </div>
       ) : (
         <div className="flex flex-col gap-4">
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs text-white/50">Nome</label>
+              <label className="text-xs text-slate-500">Nome</label>
               <input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Ex: Administrativo 8h"
-                className="rounded-lg bg-white/5 px-3 py-2 text-sm text-white ring-1 ring-white/10 focus:outline-none"/>
+                className="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-900 ring-1 ring-slate-200 focus:outline-none"/>
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs text-white/50">Tipo</label>
+              <label className="text-xs text-slate-500">Tipo</label>
               <select value={newType} onChange={(e) => setNewType(e.target.value)}
-                className="rounded-lg bg-white/5 px-3 py-2 text-sm text-white ring-1 ring-white/10 focus:outline-none">
+                className="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-900 ring-1 ring-slate-200 focus:outline-none">
                 {['5x2','6x1','12x36','4x2','PERSONALIZADA','PLANTAO'].map((t) => <option key={t} value={t}>{t}</option>)}
               </select>
             </div>
@@ -1112,20 +1112,20 @@ function ModalLancarEscala({ schedules, onClose, onSuccess }: { schedules: any[]
             {[{l:'Entrada',v:newEntry,s:setNewEntry},{l:'Início Almoço',v:newLunchStart,s:setNewLunchStart},{l:'Fim Almoço',v:newLunchReturn,s:setNewLunchReturn},{l:'Saída',v:newExit,s:setNewExit}]
               .map(({ l, v, s }) => (
                 <div key={l} className="flex flex-col gap-1.5">
-                  <label className="text-xs text-white/50">{l}</label>
+                  <label className="text-xs text-slate-500">{l}</label>
                   <input type="time" value={v} onChange={(e) => s(e.target.value)}
-                    className="rounded-lg bg-white/5 px-2 py-2 text-sm text-white ring-1 ring-white/10 focus:outline-none"/>
+                    className="rounded-lg bg-slate-50 px-2 py-2 text-sm text-slate-900 ring-1 ring-slate-200 focus:outline-none"/>
                 </div>
               ))}
           </div>
         </div>
       )}
 
-      {error && <p className="text-xs text-red-400 mt-2">{error}</p>}
+      {error && <p className="text-xs text-red-700 mt-2">{error}</p>}
       <div className="flex gap-2 justify-end mt-5">
-        <button onClick={onClose} className="rounded-lg px-4 py-2 text-sm text-white/60 hover:text-white transition-colors">Cancelar</button>
+        <button onClick={onClose} className="rounded-lg px-4 py-2 text-sm text-slate-500 hover:text-slate-900 transition-colors">Cancelar</button>
         <button onClick={mode === 'assign' ? submitAssign : submitCreate} disabled={loading}
-          className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500 disabled:opacity-50 transition-colors">
+          className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-slate-900 hover:bg-indigo-500 disabled:opacity-50 transition-colors">
           {loading ? <Loader2 size={14} className="animate-spin"/> : <Check size={14}/>}
           {mode === 'assign' ? 'Atribuir' : 'Criar'}
         </button>
@@ -1139,10 +1139,10 @@ function ModalLancarEscala({ schedules, onClose, onSuccess }: { schedules: any[]
 function Modal({ title, onClose, children, wide }: { title: string; onClose: () => void; children: React.ReactNode; wide?: boolean }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-      <div className={`relative flex flex-col rounded-2xl bg-zinc-950 ring-1 ring-white/10 shadow-2xl w-full ${wide ? 'max-w-2xl' : 'max-w-md'}`}>
-        <div className="flex items-center justify-between border-b border-white/8 px-6 py-4">
-          <h2 className="text-base font-bold text-white">{title}</h2>
-          <button onClick={onClose} className="text-white/40 hover:text-white transition-colors"><X size={18}/></button>
+      <div className={`relative flex flex-col rounded-2xl bg-white ring-1 ring-slate-200 shadow-2xl w-full ${wide ? 'max-w-2xl' : 'max-w-md'}`}>
+        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+          <h2 className="text-base font-bold text-slate-900">{title}</h2>
+          <button onClick={onClose} className="text-slate-500 hover:text-slate-900 transition-colors"><X size={18}/></button>
         </div>
         <div className="p-6">{children}</div>
       </div>
@@ -1152,7 +1152,7 @@ function Modal({ title, onClose, children, wide }: { title: string; onClose: () 
 
 function EmptyState({ icon, message, hint }: { icon: React.ReactNode; message: string; hint?: string }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-3 py-16 text-center text-white/30">
+    <div className="flex flex-col items-center justify-center gap-3 py-16 text-center text-slate-700">
       <div className="opacity-30">{icon}</div>
       <p className="text-sm">{message}</p>
       {hint && <p className="text-xs opacity-60">{hint}</p>}
