@@ -1886,15 +1886,10 @@ function ModalLancarEscala({ schedules, onClose, onSuccess }: { schedules: any[]
                       {/* Info */}
                       <div className="min-w-0 flex-1">
                         <p className={`text-sm truncate ${isSelected ? 'font-bold text-slate-900' : 'font-medium text-slate-800'}`}>
-                          {e.name?.toUpperCase()}
+                          {e.registration ? String(e.registration).padStart(4, '0') : 'S/N'} - {e.name?.toUpperCase()}
                         </p>
                         <p className="text-[10px] text-slate-500 truncate">{e.department?.toUpperCase() || 'SEM DEPTO'}</p>
                       </div>
-
-                      {/* Matrícula */}
-                      <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[9px] font-bold text-slate-500 ring-1 ring-slate-200">
-                        {reg}
-                      </span>
                     </button>
                   );
                 })
