@@ -135,6 +135,12 @@ function resolveDayType(day: CalendarDay): string {
   if (day.actual?.incidentType === 'falta') return 'FALTA';
   if (day.actual && !day.actual.entry && !day.actual.exit && day.dayType === 'WORK') return 'FALTA';
 
+  // Se não tem registro, é dia de trabalho, e a data já passou (ontem para trás)
+  // Ou se for hoje, dependeria da hora, mas para simplificar, a folha de ponto geralmente só dá falta no dia seguinte
+  // No ponto (time-track), se não for isFuture, ele marca FALTA.
+  const todayStr = new Date().toISOString().split('T')[0];
+  if (!day.actual && day.dayType === 'WORK' && day.date < todayStr) return 'FALTA';
+
   return day.dayType;
 }
 
@@ -196,8 +202,14 @@ function calcMonthlyTotals(days: CalendarDay[]) {
   let horaExtra = 0;
 
   for (const day of days) {
+    const resolved = resolveDayType(day);
+    if (resolved === 'FALTA') faltas++;
+    else if (resolved === 'ATRASO') atrasos++;
+    else if (resolved === 'SAIDA_ANTECIPADA') saidasAntecipadas++;
+
     const a = day.actual;
     if (!a) continue;
+    
     totalWorked += a.totalWorked ?? 0;
     totalBalance += a.dailyBalance ?? 0;
     const ot50 = a.overtime50Minutes ?? 0;
@@ -210,11 +222,6 @@ function calcMonthlyTotals(days: CalendarDay[]) {
     nightShift += a.nightShiftMinutes ?? 0;
     lateMinutes += a.lateMinutes ?? 0;
     absenceMinutes += a.absenceMinutes ?? 0;
-
-    const resolved = resolveDayType(day);
-    if (resolved === 'FALTA') faltas++;
-    else if (resolved === 'ATRASO') atrasos++;
-    else if (resolved === 'SAIDA_ANTECIPADA') saidasAntecipadas++;
   }
 
   return {
@@ -254,7 +261,12 @@ export default function EscalaPage() {
   const [schedules, setSchedules] = useState<any[]>([]);
   const [loading, setLoading]     = useState(false);
   const [selectedDay, setSelectedDay] = useState<CalendarDay | null>(null);
-  const [targetEmployeeId, setTargetEmployeeId] = useState<string>('');
+  const targetEmployeeId = searchParams.get('emp') || '';
+  const setTargetEmployeeId = useCallback((id: string) => {
+    const p = new URLSearchParams(searchParams.toString());
+    if (id) p.set('emp', id); else p.delete('emp');
+    router.push(`?${p.toString()}`);
+  }, [searchParams, router]);
   const [allEmployees, setAllEmployees] = useState<any[]>([]);
 
   // Modais
@@ -306,7 +318,7 @@ export default function EscalaPage() {
     if (tab === 'minha') loadMyCalendar();
     else if (tab === 'equipe') { loadTeam(); if (canWrite) loadSchedules(); }
     else if (tab === 'trocas') loadSwaps();
-  }, [tab, currentMonth]);
+  }, [tab, currentMonth, targetEmployeeId, loadMyCalendar, loadTeam, loadSchedules, loadSwaps, canWrite]);
 
   const prevMonth = () => {
     const [y, m] = parseMonth(currentMonth);
@@ -323,8 +335,7 @@ export default function EscalaPage() {
 
   // Handler para selecionar funcionário na aba equipe (navega para Minha Jornada)
   const handleSelectEmployeeFromTeam = useCallback((employeeId: string) => {
-    setTargetEmployeeId(employeeId);
-    router.push(`?tab=minha`);
+    router.push(`?tab=minha&emp=${employeeId}`);
   }, [router]);
 
   const targetEmployee = allEmployees.find(e => e.id === targetEmployeeId);

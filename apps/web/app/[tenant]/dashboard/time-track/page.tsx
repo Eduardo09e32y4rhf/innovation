@@ -689,13 +689,13 @@ function MonthGrid({ employee, tracks, month, canManage, canApprove, refreshing,
             <tr className="bg-slate-50 text-[9px] font-black uppercase tracking-[0.1em] text-slate-500">
               <th className="px-3 py-2 w-[16%] border-b border-slate-200">DATA</th>
               <th className="px-3 py-2 w-[9%] border-b border-slate-200">ENTRADA</th>
-              <th className="px-3 py-2 w-[11%] border-b border-slate-200">ALMOÃ‡O</th>
-              <th className="px-3 py-2 w-[9%] border-b border-slate-200">saída</th>
+              <th className="px-3 py-2 w-[11%] border-b border-slate-200">ALMOÇO</th>
+              <th className="px-3 py-2 w-[9%] border-b border-slate-200">SAÍDA</th>
               <th className="px-3 py-2 w-[9%] border-b border-slate-200">TRAB</th>
               <th className="px-3 py-2 w-[9%] border-b border-slate-200">SALDO</th>
               <th className="px-3 py-2 w-[8%] border-b border-slate-200">ABONO</th>
               <th className="px-3 py-2 w-[10%] border-b border-slate-200">STATUS</th>
-              <th className="px-3 py-2 w-[22%] border-b border-slate-200 text-center">AÃ‡Ã•ES</th>
+              <th className="px-3 py-2 w-[22%] border-b border-slate-200 text-center">AÇÕES</th>
             </tr>
           </thead>
           <tbody>
@@ -732,15 +732,15 @@ function MonthGrid({ employee, tracks, month, canManage, canApprove, refreshing,
                     {t?.observation && <div className="text-[9px] font-medium text-amber-700 w-full text-center leading-tight whitespace-normal break-words" title={t.observation}>{t.observation}</div>}
                   </td>
                   <td className="px-2">
-                    <div className="flex justify-center gap-1 whitespace-nowrap">
+                    <div className="flex justify-center gap-1.5 whitespace-nowrap">
                       {showActions && !day.isRest && !day.isFuture && (
-                        <button onClick={()=>onEdit(t||{id:'',employeeId:employee.id,date:day.key,entry:null,lunchStart:null,lunchReturn:null,exit:null,totalWorked:null,dailyBalance:null} as unknown as TimeTrack)} disabled={refreshing||removeLoading} className="btn-outline-premium h-6 px-1.5 text-[9px] font-bold"><Edit3 size={10}/>{t?'EDITAR':'SOLICITAR'}</button>
+                        <button onClick={()=>onEdit(t||{id:'',employeeId:employee.id,date:day.key,entry:null,lunchStart:null,lunchReturn:null,exit:null,totalWorked:null,dailyBalance:null} as unknown as TimeTrack)} disabled={refreshing||removeLoading} className="btn-outline-premium h-6 px-2 text-[9px] font-bold"><Edit3 size={10}/>{t?'EDITAR':'SOLICITAR'}</button>
                       )}
                       {showActions && t && canApprove && t.manualStatus==='pending' && (
-                        <button onClick={()=>onEdit(t)} disabled={refreshing||removeLoading} className="crystal-button h-6 px-1.5 text-[9px] font-bold"><Check size={10}/>ACEITAR</button>
+                        <button onClick={()=>onEdit(t)} disabled={refreshing||removeLoading} className="crystal-button h-6 px-2 text-[9px] font-bold"><Check size={10}/>ACEITAR</button>
                       )}
                       {showActions && t && canManage && (
-                        <button onClick={()=>onDelete(t)} disabled={refreshing||removeLoading} className="inline-flex h-6 items-center justify-center gap-1 rounded-[5px] bg-gradient-to-r from-rose-500 to-pink-600 px-1.5 text-[9px] font-black text-white"><Edit3 size={10}/></button>
+                        <button onClick={()=>onDelete(t)} disabled={refreshing||removeLoading} className="flex h-6 items-center justify-center gap-1 rounded-[5px] border border-red-200 bg-red-50 px-2 text-[9px] font-bold text-red-600 hover:bg-red-100 transition-colors"><Trash2 size={10}/>EXCLUIR</button>
                       )}
                     </div>
                   </td>
@@ -783,7 +783,11 @@ function Ocorrencias({ employee, tracks, month, canManage, canApprove, refreshin
           <table className="w-full min-w-[800px] border-separate border-spacing-0 text-left">
             <thead>
               <tr className="bg-slate-50 text-[10px] font-black uppercase text-slate-500">
-                <th className="px-3 py-2 w-[20%]">DATA</th><th className="px-3 py-2 w-[15%]">STATUS</th><th className="px-3 py-2 w-[15%]">ENTRADA</th><th className="px-3 py-2 w-[15%]">saída</th><th className="px-3 py-2 w-[35%]">AÃ‡Ã•ES</th>
+                <th className="px-3 py-2 w-[20%] border-b border-slate-200">DATA</th>
+                <th className="px-3 py-2 w-[15%] border-b border-slate-200">STATUS</th>
+                <th className="px-3 py-2 w-[15%] border-b border-slate-200">ENTRADA</th>
+                <th className="px-3 py-2 w-[15%] border-b border-slate-200">SAÍDA</th>
+                <th className="px-3 py-2 w-[35%] border-b border-slate-200 text-center">AÇÕES</th>
               </tr>
             </thead>
             <tbody>
