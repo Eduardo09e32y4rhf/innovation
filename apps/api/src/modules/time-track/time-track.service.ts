@@ -86,7 +86,7 @@ export class TimeTrackService {
   async manual(companyId: string, actor: JwtUser, dto: ManualTimeTrackDto) {
     try {
       const employee = await this.ensureCanAccessEmployee(companyId, actor, dto.employeeId);
-      const date = toDateOnly(this.parseDate(dto.date, 'Invalid date'));
+      const date = this.parseDateOnly(dto.date, 'Invalid date');
       this.validateEmployeeDateRange(employee, date);
 
       // Validação de Interjornada da CLT (11h mínimas)
@@ -533,7 +533,7 @@ export class TimeTrackService {
   }
 
   private async applyManual(companyId: string, employee: { id: string; dailyWorkload?: string | null; workScheduleRuleId?: string | null; }, dateValue: string, dto: Pick<ManualTimeTrackDto, 'entry' | 'lunchStart' | 'lunchReturn' | 'exit' | 'reason' | 'observation'>) {
-    const date = toDateOnly(this.parseDate(dateValue, 'Invalid date'));
+    const date = this.parseDateOnly(dateValue, 'Invalid date');
     const isFullDayAdjustment = dto.reason === 'ajuste_atestado_integral' || dto.reason === 'ajuste_feriado' || dto.reason === 'ajuste_suspensao';
     const isBanco = dto.reason === 'ajuste_folga_dsr' || dto.reason === 'ajuste_abono_folga' || dto.reason === 'ajuste_abono_banco_saida_antecipada' || dto.reason === 'ajuste_abono_atraso';
     
@@ -641,9 +641,19 @@ export class TimeTrackService {
     return { start, end };
   }
 
-  private parseDate(value: string, message: string) {
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) throw new BadRequestException(message);
+  private parseDateOnly(val: string | null | undefined, errorMessage: string): Date {
+    if (!val) throw new BadRequestException(errorMessage);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(val)) {
+      return new Date(`${val}T00:00:00.000Z`);
+    }
+    const date = new Date(val);
+    if (isNaN(date.getTime())) throw new BadRequestException(errorMessage);
+    return toDateOnly(date);
+  }
+
+  private parseDate(val: string | null | undefined, errorMessage: string): Date {
+    const date = new Date(val || '');
+    if (Number.isNaN(date.getTime())) throw new BadRequestException(errorMessage);
     return date;
   }
 
