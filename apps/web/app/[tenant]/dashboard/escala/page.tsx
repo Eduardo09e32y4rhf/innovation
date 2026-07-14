@@ -879,8 +879,6 @@ function DayDetailPanel({ day, onClose, canWrite, targetEmployeeId, refresh, cur
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [altEntry, setAltEntry]       = useState(day.scheduled.entry?.slice(0,5) || '');
-  const [altLunchStart, setAltLunchStart] = useState(day.scheduled.lunchStart?.slice(0,5) || '');
-  const [altLunchReturn, setAltLunchReturn] = useState(day.scheduled.lunchReturn?.slice(0,5) || '');
   const [altExit, setAltExit]         = useState(day.scheduled.exit?.slice(0,5) || '');
   const [loading, setLoading]         = useState(false);
   const [success, setSuccess]         = useState(false);
@@ -905,8 +903,6 @@ function DayDetailPanel({ day, onClose, canWrite, targetEmployeeId, refresh, cur
         exceptionType: 'AJUSTE_ESCALA',
         altEntryTime: altEntry,
         altExitTime: altExit,
-        altLunchStartTime: altLunchStart,
-        altLunchReturnTime: altLunchReturn,
       });
       setIsEditing(false);
       setSuccess(true);
@@ -1006,8 +1002,6 @@ function DayDetailPanel({ day, onClose, canWrite, targetEmployeeId, refresh, cur
                 <div className="grid grid-cols-2 gap-2">
                   {[
                     { label: 'Entrada', val: altEntry, set: setAltEntry },
-                    { label: 'Início Almoço', val: altLunchStart, set: setAltLunchStart },
-                    { label: 'Fim Almoço', val: altLunchReturn, set: setAltLunchReturn },
                     { label: 'Saída', val: altExit, set: setAltExit },
                   ].map(({ label, val, set }) => (
                     <div key={label} className="flex flex-col gap-1">

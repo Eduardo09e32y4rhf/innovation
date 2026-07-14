@@ -174,8 +174,13 @@ function dayStatus(row: TimeTrack, holidayName?: string) {
   if (r.includes('atestado integral')) return 'ATESTADO';
   if (r.includes('feriado')) return 'FERIADO';
   if (r.includes('folga dsr')) return 'FOLGA';
+  if (r === 'ajuste_erro_marcacao') return 'ERRO DE MARCAÇÃO';
+  if (r === 'ajuste_abono_atraso') return 'ABONO DE ATRASO';
+  if (r === 'ajuste_abono_banco_saida_antecipada') return 'ABONO SAÍDA';
+  if (r === 'ajuste_abono_atestado_horas') return 'ATESTADO (HORAS)';
+  if (r === 'ajuste_suspensao') return 'SUSPENSÃO';
   if (row.incidentType === 'atraso') return 'ATRASO';
-  if (row.incidentType === 'saida_antecipada') return 'saída ANTECIPADA';
+  if (row.incidentType === 'saida_antecipada') return 'SAÍDA ANTECIPADA';
   if (row.manualStatus==='pending') return 'PENDENTE';
   if (row.manualStatus==='rejected') return 'REJEITADO';
   if (row.manualReason || o.includes('ajuste')) return 'AJUSTE MANUAL';
@@ -706,8 +711,8 @@ function MonthGrid({ employee, tracks, month, canManage, canApprove, refreshing,
               else if (day.isFuture) bg = 'bg-slate-50/40 opacity-70';
               else if (!t && !day.antesAdmissao && !day.depoisDemissao) bg = 'bg-amber-50/20';
               else if (day.antesAdmissao || day.depoisDemissao) bg = 'bg-slate-100/50 opacity-50';
-              const status = day.isRest ? 'FOLGA' : (day.antesAdmissao || day.depoisDemissao) ? '---' : t ? dayStatus(t) : day.isFuture ? '---' : 'FALTA';
-              const isAtestado = ['ATESTADO','FERIADO','SUSPENSÃƒO','FOLGA','FOLGA EXTRA','FOLGA BANCO','FOLGA (DSR)','---'].includes(status);
+              const status = t ? dayStatus(t) : day.isRest ? 'FOLGA' : (day.antesAdmissao || day.depoisDemissao) ? '---' : day.isFuture ? '---' : 'FALTA';
+              const isAtestado = ['ATESTADO','FERIADO','SUSPENSÃO','FOLGA','FOLGA EXTRA','FOLGA BANCO','FOLGA (DSR)','---'].includes(status);
 
               return (
                 <tr key={day.key} className={`h-9 border-t border-slate-100 text-[11px] font-semibold text-slate-700 hover:bg-slate-50/70 ${bg}`}>
@@ -729,11 +734,15 @@ function MonthGrid({ employee, tracks, month, canManage, canApprove, refreshing,
                   <td className={`px-3 text-[11px] ${isAtestado?'text-slate-300':'text-slate-400'}`}>{isAtestado?'---':'--:--'}</td>
                   <td className="px-3 text-center flex flex-col items-center gap-1 py-1">
                     <StatusBadge status={status}/>
-                    {t?.observation && <div className="text-[9px] font-medium text-amber-700 w-full text-center leading-tight whitespace-normal break-words" title={t.observation}>{t.observation}</div>}
+                    {t?.observation && t.observation.toUpperCase() !== status.toUpperCase() && !t.observation.toUpperCase().includes(status.toUpperCase()) && !status.toUpperCase().includes(t.observation.toUpperCase()) && (
+                      <div className="text-[9px] font-medium text-amber-700 w-full text-center leading-tight whitespace-normal break-words" title={t.observation}>
+                        {t.observation.replace(/ajuste - /i, '')}
+                      </div>
+                    )}
                   </td>
                   <td className="px-2">
                     <div className="flex justify-center gap-1.5 whitespace-nowrap">
-                      {showActions && !day.isRest && !day.isFuture && (
+                      {showActions && !day.isFuture && (
                         <button onClick={()=>onEdit(t||{id:'',employeeId:employee.id,date:day.key,entry:null,lunchStart:null,lunchReturn:null,exit:null,totalWorked:null,dailyBalance:null} as unknown as TimeTrack)} disabled={refreshing||removeLoading} className="btn-outline-premium h-6 px-2 text-[9px] font-bold"><Edit3 size={10}/>{t?'EDITAR':'SOLICITAR'}</button>
                       )}
                       {showActions && t && canApprove && t.manualStatus==='pending' && (
@@ -833,9 +842,12 @@ function StatusBadge({ status }: { status: string }) {
     'FOLGA EXTRA':'bg-indigo-50 text-indigo-700 border-indigo-200',
     'FOLGA BANCO':'bg-cyan-50 text-cyan-700 border-cyan-200',
     'AJUSTE MANUAL':'bg-orange-50 text-orange-700 border-orange-200',
+    'ERRO DE MARCAÇÃO':'bg-orange-50 text-orange-700 border-orange-200',
+    'ABONO DE ATRASO':'bg-indigo-50 text-indigo-700 border-indigo-200',
+    'ABONO SAÍDA':'bg-indigo-50 text-indigo-700 border-indigo-200',
     'FALTA':'bg-rose-50 text-rose-700 border-rose-200',
     'ATRASO':'bg-rose-50 text-rose-800 border-rose-300 shadow-sm',
-    'saída ANTECIPADA':'bg-rose-50 text-rose-800 border-rose-300 shadow-sm',
+    'SAÍDA ANTECIPADA':'bg-rose-50 text-rose-800 border-rose-300 shadow-sm',
   };
   return <span className={`inline-flex items-center rounded-[5px] border px-2 py-0.5 text-[9px] font-black whitespace-nowrap ${c[u]||'bg-slate-100 text-slate-600 border-slate-200'}`}>{u}</span>;
 }

@@ -53,9 +53,9 @@ export class TimeCalculationRulesService {
       absenceMinutes: null,
     };
 
-    const workScale = (rule?.workScale || '5x2').toLowerCase();
+    const workScale = (rule?.workScale || employee?.workScale || '5x2').toLowerCase();
     const dayOfWeek = input.workDate.getUTCDay();
-    let restDays = rule?.restDaysOfWeek || [0, 6];
+    let restDays = rule?.restDaysOfWeek || (workScale === '6x1' ? [0] : [0, 6]);
 
     if (workScale === '6x1' && restDays.includes(6)) {
       restDays = restDays.filter((d: number) => d !== 6);
@@ -75,11 +75,19 @@ export class TimeCalculationRulesService {
       }
     }
 
-    // Determine expected minutes for today
+    if (input.manualReason === 'ajuste_feriado') {
+      result.isHoliday = true;
+      result.holidayHandling = 'PAID_100';
+    }
+    if (input.manualReason === 'ajuste_folga_dsr' || input.manualReason === 'ajuste_abono_folga') {
+      result.isRest = true;
+    }
+
     let expectedMinutes = 0;
-    const dailyMinutes = rule?.dailyMinutes || 480;
+    const empDaily = employee?.dailyWorkload ? (parseInt(employee.dailyWorkload.split(':')[0]) * 60 + parseInt(employee.dailyWorkload.split(':')[1] || '0')) : 480;
+    const dailyMinutes = rule?.dailyMinutes || empDaily;
     
-    if (!result.isRest) {
+    if (!result.isRest && !result.isHoliday) {
        if (workScale === '6x1' && dayOfWeek === 6) { // Saturday in 6x1
           const weekly = rule?.weeklyMinutes || 2640; // 44h
           expectedMinutes = weekly - (dailyMinutes * 5);
@@ -94,7 +102,7 @@ export class TimeCalculationRulesService {
 
     // If completely missing (falta)
     if (!input.entryTime || !input.exitTime) {
-      if (result.isRest || this.isFullDayAdjustment(input.manualReason)) {
+      if (result.isRest || result.isHoliday || this.isFullDayAdjustment(input.manualReason)) {
         return result;
       }
       result.incidentType = 'falta';
