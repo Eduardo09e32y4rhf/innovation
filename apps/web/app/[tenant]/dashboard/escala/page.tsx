@@ -269,7 +269,7 @@ export default function EscalaPage() {
         api.employees.list().then(setAllEmployees).catch(() => {});
       }
       const data = targetEmployeeId && targetEmployeeId !== user?.id
-        ? await api.schedules.calendar(targetEmployeeId, currentMonth)
+        ? await api.schedules.employeeCalendar(targetEmployeeId, currentMonth)
         : await api.schedules.myCalendar(currentMonth);
       setCalendarData(data);
     } catch { setCalendarData(null); }
