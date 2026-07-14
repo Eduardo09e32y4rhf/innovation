@@ -766,24 +766,24 @@ function EscalaEquipeTab({ loading, teamData, schedules, canWrite, year, month, 
                     <p className="text-sm font-semibold text-slate-700">{us.schedule?.name}</p>
                     <p className="text-xs text-slate-500">{us.schedule?.scaleType} · {us.schedule?.entryTime ?? '--'} – {us.schedule?.exitTime ?? '--'}</p>
                   </div>
-                  <span className="shrink-0 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 ring-1 ring-emerald-200">ATIVA</span>
+                  <span className="shrink-0 rounded-full bg-slate-50 border border-slate-200 px-2 py-0.5 text-[10px] font-bold text-slate-600">ATIVA</span>
                 </div>
               ))}
             </div>
           )}
           {withoutSchedule.length > 0 && (
             <div className="flex flex-col gap-2">
-              <p className="text-xs font-bold uppercase tracking-wider text-amber-700/70">⚠ Sem Escala</p>
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Sem Escala</p>
               {withoutSchedule.map((emp: any) => (
-                <div key={emp.id} className="flex items-center gap-4 rounded-xl bg-amber-500/5 p-4 ring-1 ring-amber-200">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-50 text-amber-600 text-xs font-bold">
+                <div key={emp.id} className="flex items-center gap-4 rounded-xl bg-slate-50 p-4 ring-1 ring-slate-200">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white ring-1 ring-slate-200 text-slate-700 text-xs font-bold">
                     {emp.name?.split(' ').map((n: string) => n[0]).slice(0,2).join('').toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-slate-900 truncate">{emp.name}</p>
                     <p className="text-xs text-slate-500">{emp.department} · {emp.position}</p>
                   </div>
-                  <span className="text-xs text-amber-700/70">Sem escala atribuída</span>
+                  <span className="text-xs text-slate-400">Sem escala atribuída</span>
                 </div>
               ))}
             </div>
@@ -1066,8 +1066,8 @@ function ModalLancarEscala({ schedules, onClose, onSuccess }: { schedules: any[]
               <div className="max-h-40 overflow-y-auto rounded-lg bg-white shadow-sm ring-1 ring-slate-200 mt-1">
                 {filteredEmployees.slice(0, 20).map((e) => (
                   <button key={e.id} onClick={() => { setSelectedEmployee(e.id); setEmployeeSearch(e.name); }}
-                    className={`w-full px-3 py-2 text-left text-sm text-slate-900 hover:bg-slate-50 ${selectedEmployee === e.id ? 'bg-teal-50 text-teal-900 font-bold' : ''}`}>
-                    {e.name} <span className="text-slate-500 text-[10px] font-medium ml-1">· {e.department || 'Sem depto'}</span>
+                    className={`w-full px-3 py-2 text-left text-sm text-slate-900 hover:bg-slate-50 ${selectedEmployee === e.id ? 'bg-slate-100 font-bold' : ''}`}>
+                    [{e.registration || '-'}] {e.name?.toUpperCase()} <span className="text-slate-500 text-[10px] font-medium ml-1">· {e.department || 'Sem depto'}</span>
                   </button>
                 ))}
               </div>
