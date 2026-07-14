@@ -850,6 +850,25 @@ function SummaryCard({ label, value, sub, color, bg, icon }: { label: string; va
 
 // ─── Day Detail Panel ─────────────────────────────────────────────────────────
 
+const PONTO_REASONS: { value: string; label: string; fullDay?: boolean }[] = [
+  { value:'ajuste_erro_marcacao', label:'AJUSTE - ERRO MARCAÇÃO', fullDay:false },
+  { value:'ajuste_atestado_integral', label:'ATESTADO INTEGRAL', fullDay:true },
+  { value:'ajuste_feriado', label:'FERIADO', fullDay:true },
+  { value:'ajuste_abono_atestado_horas', label:'ABONO - ATESTADO DE HORAS', fullDay:true },
+  { value:'ajuste_folga_dsr', label:'FOLGA', fullDay:true },
+  { value:'ajuste_abono_folga', label:'ABONO - FOLGA (BANCO)', fullDay:true },
+  { value:'ajuste_abono_banco_saida_antecipada', label:'ABONO - BANCO SAÍDA ANTECIPADA', fullDay:true },
+  { value:'ajuste_abono_atraso', label:'ABONO - ATRASO', fullDay:true },
+  { value:'ajuste_suspensao', label:'SUSPENSÃO', fullDay:true },
+];
+
+function toIso(date: string, time: string) {
+  if (!date || !time) return null;
+  const [y,m,d] = date.split('-').map(Number);
+  const [hh,mm] = time.split(':').map(Number);
+  return new Date(y,m-1,d,hh,mm,0,0).toISOString();
+}
+
 function DayDetailPanel({ day, onClose, canWrite, targetEmployeeId, refresh, currentMonth }: {
   day: CalendarDay;
   onClose: () => void;
@@ -866,6 +885,16 @@ function DayDetailPanel({ day, onClose, canWrite, targetEmployeeId, refresh, cur
   const [loading, setLoading]         = useState(false);
   const [success, setSuccess]         = useState(false);
   const [showMonthlyAdj, setShowMonthlyAdj] = useState(false);
+
+  // States for Ajuste de Ponto
+  const [isEditingPonto, setIsEditingPonto] = useState(false);
+  const [pontoReason, setPontoReason] = useState<string>('ajuste_erro_marcacao');
+  const [pontoEntry, setPontoEntry] = useState(day.actual?.entry ? new Date(day.actual.entry).toLocaleTimeString('pt-BR',{ hour:'2-digit', minute:'2-digit' }) : '');
+  const [pontoLunchS, setPontoLunchS] = useState(day.actual?.lunchStart ? new Date(day.actual.lunchStart).toLocaleTimeString('pt-BR',{ hour:'2-digit', minute:'2-digit' }) : '');
+  const [pontoLunchR, setPontoLunchR] = useState(day.actual?.lunchReturn ? new Date(day.actual.lunchReturn).toLocaleTimeString('pt-BR',{ hour:'2-digit', minute:'2-digit' }) : '');
+  const [pontoExit, setPontoExit] = useState(day.actual?.exit ? new Date(day.actual.exit).toLocaleTimeString('pt-BR',{ hour:'2-digit', minute:'2-digit' }) : '');
+  const [pontoDetail, setPontoDetail] = useState(day.actual?.observation ?? '');
+  const selReason = PONTO_REASONS.find(r => r.value === pontoReason);
 
   const handleAjuste = async () => {
     setLoading(true);
@@ -884,6 +913,30 @@ function DayDetailPanel({ day, onClose, canWrite, targetEmployeeId, refresh, cur
       setTimeout(() => setSuccess(false), 3000);
       if (refresh) refresh();
     } catch (e: any) { alert(e.message || 'Erro ao ajustar'); }
+    setLoading(false);
+  };
+
+  const handleAjustePonto = async () => {
+    setLoading(true);
+    try {
+      const payload = {
+        entry: toIso(day.date, pontoEntry),
+        lunchStart: toIso(day.date, pontoLunchS),
+        lunchReturn: toIso(day.date, pontoLunchR),
+        exit: toIso(day.date, pontoExit),
+        reason: pontoReason as any,
+        observation: pontoDetail,
+      };
+      await api.timeTrack.manual({
+        employeeId: targetEmployeeId || 'me',
+        date: day.date,
+        ...payload
+      });
+      setIsEditingPonto(false);
+      setSuccess(true);
+      setTimeout(() => setSuccess(false), 3000);
+      if (refresh) refresh();
+    } catch (e: any) { alert(e.message || 'Erro ao lançar ponto'); }
     setLoading(false);
   };
 
@@ -1013,9 +1066,74 @@ function DayDetailPanel({ day, onClose, canWrite, targetEmployeeId, refresh, cur
 
           {/* REALIZADO */}
           <div className="flex flex-col gap-3">
-            <p className="text-[11px] font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
-              <Clock size={12}/> Realizado (Ponto)
-            </p>
+            <div className="flex items-center justify-between">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
+                <Clock size={12}/> Realizado (Ponto)
+              </p>
+              {canWrite && !isEditingPonto && (
+                <button
+                  onClick={() => setIsEditingPonto(true)}
+                  className="flex items-center gap-1 rounded-full bg-slate-100 hover:bg-teal-50 px-2.5 py-1 text-[10px] font-semibold text-slate-600 hover:text-teal-700 transition-colors ring-1 ring-slate-200 hover:ring-teal-200"
+                >
+                  <Pencil size={10}/> Lançar Ajuste
+                </button>
+              )}
+            </div>
+
+            {isEditingPonto && (
+              <div className="flex flex-col gap-3 rounded-2xl bg-teal-50 p-4 ring-1 ring-teal-200 animate-in slide-in-from-top-2 mb-2">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-teal-700">Ajuste de Ponto</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="flex flex-col gap-1 sm:col-span-2">
+                    <label className="text-[10px] text-teal-700 font-semibold">Motivo do Ajuste</label>
+                    <select
+                      value={pontoReason}
+                      onChange={(e) => setPontoReason(e.target.value)}
+                      className="rounded-xl bg-white px-3 py-2 text-sm text-slate-900 ring-1 ring-teal-200 focus:outline-none focus:ring-teal-400"
+                    >
+                      {PONTO_REASONS.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+                    </select>
+                  </div>
+                  {!selReason?.fullDay && (
+                    <>
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[10px] text-teal-700 font-semibold">Entrada</label>
+                        <input type="time" value={pontoEntry} onChange={e=>setPontoEntry(e.target.value)} className="rounded-xl bg-white px-3 py-2 text-sm text-slate-900 ring-1 ring-teal-200 focus:outline-none" />
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[10px] text-teal-700 font-semibold">Saída</label>
+                        <input type="time" value={pontoExit} onChange={e=>setPontoExit(e.target.value)} className="rounded-xl bg-white px-3 py-2 text-sm text-slate-900 ring-1 ring-teal-200 focus:outline-none" />
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[10px] text-teal-700 font-semibold">Início Almoço</label>
+                        <input type="time" value={pontoLunchS} onChange={e=>setPontoLunchS(e.target.value)} className="rounded-xl bg-white px-3 py-2 text-sm text-slate-900 ring-1 ring-teal-200 focus:outline-none" />
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[10px] text-teal-700 font-semibold">Fim Almoço</label>
+                        <input type="time" value={pontoLunchR} onChange={e=>setPontoLunchR(e.target.value)} className="rounded-xl bg-white px-3 py-2 text-sm text-slate-900 ring-1 ring-teal-200 focus:outline-none" />
+                      </div>
+                    </>
+                  )}
+                  <div className="flex flex-col gap-1 sm:col-span-2">
+                    <label className="text-[10px] text-teal-700 font-semibold">Observação (Opcional)</label>
+                    <input
+                      type="text"
+                      value={pontoDetail}
+                      onChange={(e) => setPontoDetail(e.target.value)}
+                      placeholder="Detalhes adicionais do ajuste..."
+                      className="rounded-xl bg-white px-3 py-2 text-sm text-slate-900 ring-1 ring-teal-200 focus:outline-none focus:ring-teal-400"
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2 mt-2">
+                  <button onClick={() => setIsEditingPonto(false)} className="rounded-xl px-3 py-1.5 text-xs text-slate-500 hover:text-slate-900">Cancelar</button>
+                  <button onClick={handleAjustePonto} disabled={loading} className="flex items-center gap-1.5 rounded-xl bg-teal-600 hover:bg-teal-500 px-4 py-1.5 text-xs font-bold text-white disabled:opacity-50 shadow-sm">
+                    {loading ? <Loader2 size={12} className="animate-spin"/> : <Check size={12}/>} Salvar Ajuste
+                  </button>
+                </div>
+              </div>
+            )}
+
             {a ? (
               <div className="flex flex-col gap-2 rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-200">
                 <TimeDetailRow label="Entrada"       value={formatTime(a.entry)}      highlight={resolved === 'ATRASO'} />
