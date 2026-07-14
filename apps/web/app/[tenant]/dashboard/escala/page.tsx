@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { api } from '@/app/lib/api';
 import {
@@ -97,6 +97,7 @@ function resolveDayType(day: CalendarDay): string {
   if (obs.includes('folga banco') || reason === 'ajuste_abono_folga') return 'FOLGA_BANCO';
   if (obs.includes('folga dsr') || reason === 'ajuste_folga_dsr') return 'FOLGA_DSR';
   if (obs.includes('folga') || reason === 'ajuste_abono_banco_saida_antecipada') return 'FOLGA';
+  if (day.exception?.exceptionType === 'AJUSTE_ESCALA') return 'AJUSTE';
   if (day.actual?.incidentType === 'atraso') return 'ATRASO';
   if (day.actual?.incidentType === 'saida_antecipada') return 'SAIDA_ANTECIPADA';
   if (day.actual?.incidentType === 'falta') return 'FALTA';
@@ -122,6 +123,7 @@ const DAY_TYPE_META: Record<string, { label: string; color: string; textColor: s
   REVOGADO:        { label: 'Revogado',           color: 'bg-zinc-50 border-zinc-600/25',        textColor: 'text-zinc-700',    icon: '↩' },
   SEM_ESCALA:      { label: 'Sem Escala',         color: 'bg-zinc-800/30 border-zinc-700/30',        textColor: 'text-zinc-500',    icon: '—' },
   COMPENSACAO:     { label: 'Compensação',        color: 'bg-teal-50 border-teal-500/25',        textColor: 'text-teal-600',    icon: '🔄' },
+  AJUSTE:          { label: 'Ajuste Escala',      color: 'bg-indigo-50 border-indigo-500/25',    textColor: 'text-indigo-600',  icon: '⚙️' },
 };
 
 function getMeta(type: string) {
@@ -213,6 +215,7 @@ export default function EscalaPage() {
 
   const now = new Date();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const tab = (searchParams.get('tab') as Tab) || 'minha';
   const [currentMonth, setCurrentMonth] = useState(toMonthString(now.getFullYear(), now.getMonth() + 1));
   const [calendarData, setCalendarData] = useState<any>(null);
@@ -221,6 +224,8 @@ export default function EscalaPage() {
   const [schedules, setSchedules] = useState<any[]>([]);
   const [loading, setLoading]     = useState(false);
   const [selectedDay, setSelectedDay] = useState<CalendarDay | null>(null);
+  const [targetEmployeeId, setTargetEmployeeId] = useState<string>('');
+  const [allEmployees, setAllEmployees] = useState<any[]>([]);
 
   // Modais
   const [showModalSwap,    setShowModalSwap]    = useState(false);
@@ -230,11 +235,16 @@ export default function EscalaPage() {
   const loadMyCalendar = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await api.schedules.myCalendar(currentMonth);
+      if (canApprove && allEmployees.length === 0) {
+        api.employees.list().then(setAllEmployees).catch(() => {});
+      }
+      const data = targetEmployeeId && targetEmployeeId !== user?.id
+        ? await api.schedules.calendar(targetEmployeeId, currentMonth)
+        : await api.schedules.myCalendar(currentMonth);
       setCalendarData(data);
     } catch { setCalendarData(null); }
     setLoading(false);
-  }, [currentMonth]);
+  }, [currentMonth, targetEmployeeId, canApprove, allEmployees.length, user?.id]);
 
   const loadTeam = useCallback(async () => {
     setLoading(true);
@@ -297,13 +307,27 @@ export default function EscalaPage() {
 
 
       {tab === 'minha' && (
-        <MinhaEscalaTab
-          loading={loading}
-          calendarData={calendarData}
-          year={year} month={month}
-          onPrev={prevMonth} onNext={nextMonth}
-          selectedDay={selectedDay} onSelectDay={setSelectedDay}
-        />
+        <div className="flex flex-col gap-4">
+          {canApprove && (
+            <div className="flex items-center gap-2 rounded-xl bg-white p-3 ring-1 ring-slate-200 shadow-sm">
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-500 shrink-0">Ver Escala de:</label>
+              <select value={targetEmployeeId} onChange={(e) => setTargetEmployeeId(e.target.value)}
+                className="flex-1 rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-900 ring-1 ring-slate-200 focus:outline-none">
+                <option value="">Minha Escala</option>
+                {allEmployees.map(e => <option key={e.id} value={e.id}>[{e.registration || '-'}] {e.name?.toUpperCase()}</option>)}
+              </select>
+            </div>
+          )}
+          <MinhaEscalaTab
+            loading={loading}
+            calendarData={calendarData}
+            year={year} month={month}
+            onPrev={prevMonth} onNext={nextMonth}
+            selectedDay={selectedDay} onSelectDay={setSelectedDay}
+            targetEmployeeId={targetEmployeeId}
+            canWrite={canWrite}
+          />
+        </div>
       )}
       {tab === 'equipe' && canApprove && (
         <EscalaEquipeTab
@@ -323,7 +347,7 @@ export default function EscalaPage() {
         />
       )}
 
-      {showModalSwap    && <ModalSolicitarTroca onClose={() => setShowModalSwap(false)} onSuccess={() => { setShowModalSwap(false); loadSwaps(); }} />}
+      {showModalSwap && <ModalSolicitarTroca onClose={() => setShowModalSwap(false)} onSuccess={() => { setShowModalSwap(false); loadSwaps(); }} canApprove={canApprove} allEmployees={allEmployees} />}
       {showModalLancar  && <ModalLancarEscala schedules={schedules} onClose={() => setShowModalLancar(false)} onSuccess={() => { setShowModalLancar(false); loadTeam(); loadSchedules(); }} />}
       {showModalApprove && <ModalAprovarTroca swap={showModalApprove} onClose={() => setShowModalApprove(null)} onSuccess={() => { setShowModalApprove(null); loadSwaps(); }} />}
     </div>
@@ -502,7 +526,7 @@ function MinhaEscalaTab({ loading, calendarData, year, month, onPrev, onNext, se
       )}
 
       {/* Painel de detalhe do dia */}
-      {selectedDay && <DayDetailPanel day={selectedDay} onClose={() => onSelectDay(null)} />}
+      {selectedDay && <DayDetailPanel day={selectedDay} onClose={() => onSelectDay(null)} canWrite={canWrite} targetEmployeeId={targetEmployeeId} refresh={loadMyCalendar} />}
     </div>
   );
 }
@@ -524,7 +548,28 @@ function SummaryCard({ label, value, sub, color, bg, icon }: { label: string; va
 
 // ─── Day Detail Panel ─────────────────────────────────────────────────────────
 
-function DayDetailPanel({ day, onClose }: { day: CalendarDay; onClose: () => void }) {
+function DayDetailPanel({ day, onClose, canWrite, targetEmployeeId, refresh }: { day: CalendarDay; onClose: () => void; canWrite?: boolean; targetEmployeeId?: string; refresh?: () => void }) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [altEntry, setAltEntry] = useState(day.scheduled.entry?.slice(0,5) || '');
+  const [altExit, setAltExit] = useState(day.scheduled.exit?.slice(0,5) || '');
+  const [loading, setLoading] = useState(false);
+
+  const handleAjuste = async () => {
+    setLoading(true);
+    try {
+      await api.schedules.createException({
+        employeeId: targetEmployeeId || 'me',
+        date: day.date,
+        exceptionType: 'AJUSTE_ESCALA',
+        altEntryTime: altEntry,
+        altExitTime: altExit
+      });
+      setIsEditing(false);
+      if (refresh) refresh();
+    } catch (e: any) { alert(e.message || 'Erro ao ajustar'); }
+    setLoading(false);
+  };
+
   const resolved = resolveDayType(day);
   const meta = getMeta(resolved);
   const dateLabel = new Date(day.date + 'T00:00:00').toLocaleDateString('pt-BR', {
@@ -550,15 +595,36 @@ function DayDetailPanel({ day, onClose }: { day: CalendarDay; onClose: () => voi
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         {/* PREVISTO — vem da Escala */}
         <div className="flex flex-col gap-3">
-          <p className="text-[11px] font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
-            <CalendarClock size={12}/> Previsto (Escala)
-          </p>
-          <div className="flex flex-col gap-2 rounded-xl bg-slate-50 p-3 ring-1 ring-slate-200">
-            <TimeDetailRow label="Entrada"       value={day.scheduled.entry?.slice(0,5) ?? '--:--'} />
-            <TimeDetailRow label="Início almoço" value={day.scheduled.lunchStart?.slice(0,5) ?? '--:--'} />
-            <TimeDetailRow label="Fim almoço"    value={day.scheduled.lunchReturn?.slice(0,5) ?? '--:--'} />
-            <TimeDetailRow label="Saída"         value={day.scheduled.exit?.slice(0,5) ?? '--:--'} />
+          <div className="flex items-center justify-between">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+              <CalendarClock size={12}/> Previsto (Escala)
+            </p>
+            {canWrite && !isEditing && (
+              <button onClick={() => setIsEditing(true)} className="text-[10px] text-slate-500 hover:text-slate-900">
+                Editar Horário
+              </button>
+            )}
           </div>
+          {isEditing ? (
+            <div className="flex flex-col gap-2 rounded-xl bg-slate-50 p-3 ring-1 ring-slate-200">
+              <div className="flex items-center gap-2">
+                <input type="time" value={altEntry} onChange={e => setAltEntry(e.target.value)} className="rounded bg-white px-2 py-1 text-sm ring-1 ring-slate-200" />
+                <span className="text-slate-400">-</span>
+                <input type="time" value={altExit} onChange={e => setAltExit(e.target.value)} className="rounded bg-white px-2 py-1 text-sm ring-1 ring-slate-200" />
+              </div>
+              <div className="flex justify-end gap-2 mt-2">
+                <button onClick={() => setIsEditing(false)} className="text-xs text-slate-500">Cancelar</button>
+                <button onClick={handleAjuste} disabled={loading} className="text-xs font-bold text-slate-900 bg-slate-200 px-2 py-1 rounded">{loading ? 'Salvando...' : 'Salvar'}</button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2 rounded-xl bg-slate-50 p-3 ring-1 ring-slate-200">
+              <TimeDetailRow label="Entrada"       value={day.scheduled.entry?.slice(0,5) ?? '--:--'} />
+              <TimeDetailRow label="Início almoço" value={day.scheduled.lunchStart?.slice(0,5) ?? '--:--'} />
+              <TimeDetailRow label="Fim almoço"    value={day.scheduled.lunchReturn?.slice(0,5) ?? '--:--'} />
+              <TimeDetailRow label="Saída"         value={day.scheduled.exit?.slice(0,5) ?? '--:--'} />
+            </div>
+          )}
         </div>
 
         {/* REALIZADO — vem do Ponto */}
@@ -724,7 +790,7 @@ function OccurrenceBadge({ color, icon, label }: { color: string; icon: string; 
 
 // ─── ESCALA DE EQUIPE ─────────────────────────────────────────────────────────
 
-function EscalaEquipeTab({ loading, teamData, schedules, canWrite, year, month, onPrev, onNext, onLancar, onRefresh }: any) {
+function EscalaEquipeTab({ loading, teamData, schedules, canWrite, year, month, onPrev, onNext, onLancar, onRefresh, onSelectEmployee }: any) {
   const withSchedule    = teamData?.withSchedule ?? [];
   const withoutSchedule = teamData?.withoutSchedule ?? [];
 
@@ -754,8 +820,8 @@ function EscalaEquipeTab({ loading, teamData, schedules, canWrite, year, month, 
             <div className="flex flex-col gap-2">
               <p className="text-xs font-bold uppercase tracking-wider text-slate-700">Com Escala</p>
               {withSchedule.map((us: any) => (
-                <div key={us.id} className="flex items-center gap-4 rounded-xl bg-slate-50 p-4 ring-1 ring-slate-200 hover:ring-slate-200 transition-all">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-700 text-xs font-bold">
+                <button key={us.id} onClick={() => onSelectEmployee?.(us.employeeId)} className="flex items-center gap-4 w-full text-left rounded-xl bg-slate-50 p-4 ring-1 ring-slate-200 hover:ring-slate-300 hover:bg-slate-100 transition-all">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-200 text-slate-700 text-xs font-bold">
                     {us.employee?.name?.split(' ').map((n: string) => n[0]).slice(0,2).join('').toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -767,7 +833,7 @@ function EscalaEquipeTab({ loading, teamData, schedules, canWrite, year, month, 
                     <p className="text-xs text-slate-500">{us.schedule?.scaleType} · {us.schedule?.entryTime ?? '--'} – {us.schedule?.exitTime ?? '--'}</p>
                   </div>
                   <span className="shrink-0 rounded-full bg-slate-50 border border-slate-200 px-2 py-0.5 text-[10px] font-bold text-slate-600">ATIVA</span>
-                </div>
+                </button>
               ))}
             </div>
           )}
@@ -775,7 +841,7 @@ function EscalaEquipeTab({ loading, teamData, schedules, canWrite, year, month, 
             <div className="flex flex-col gap-2">
               <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Sem Escala</p>
               {withoutSchedule.map((emp: any) => (
-                <div key={emp.id} className="flex items-center gap-4 rounded-xl bg-slate-50 p-4 ring-1 ring-slate-200">
+                <button key={emp.id} onClick={() => onSelectEmployee?.(emp.id)} className="flex items-center gap-4 w-full text-left rounded-xl bg-slate-50 p-4 ring-1 ring-slate-200 hover:ring-slate-300 hover:bg-slate-100 transition-all">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white ring-1 ring-slate-200 text-slate-700 text-xs font-bold">
                     {emp.name?.split(' ').map((n: string) => n[0]).slice(0,2).join('').toUpperCase()}
                   </div>
@@ -784,7 +850,7 @@ function EscalaEquipeTab({ loading, teamData, schedules, canWrite, year, month, 
                     <p className="text-xs text-slate-500">{emp.department} · {emp.position}</p>
                   </div>
                   <span className="text-xs text-slate-400">Sem escala atribuída</span>
-                </div>
+                </button>
               ))}
             </div>
           )}
@@ -884,11 +950,12 @@ function SwapCard({ swap, canApprove, onApprove, onCancel }: any) {
 
 // ─── Modal: Solicitar Troca ───────────────────────────────────────────────────
 
-function ModalSolicitarTroca({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
+function ModalSolicitarTroca({ onClose, onSuccess, canApprove, allEmployees }: { onClose: () => void; onSuccess: () => void; canApprove?: boolean; allEmployees?: any[] }) {
   const today = new Date().toISOString().split('T')[0];
   const [originalDate, setOriginalDate] = useState(today);
   const [targetDate, setTargetDate]     = useState('');
   const [justification, setJustification] = useState('');
+  const [targetEmployeeId, setTargetEmployeeId] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState('');
 
@@ -896,7 +963,7 @@ function ModalSolicitarTroca({ onClose, onSuccess }: { onClose: () => void; onSu
     if (!originalDate || !targetDate) { setError('Informe os dois dias.'); return; }
     setLoading(true); setError('');
     try {
-      await api.scheduleSwaps.create({ originalDate, targetDate, justification: justification || undefined });
+      await api.scheduleSwaps.create({ originalDate, targetDate, justification: justification || undefined, employeeId: targetEmployeeId || undefined });
       onSuccess();
     } catch (e: any) { setError(e.message || 'Erro ao criar solicitação.'); }
     setLoading(false);
@@ -909,6 +976,16 @@ function ModalSolicitarTroca({ onClose, onSuccess }: { onClose: () => void; onSu
           <Info size={13} className="shrink-0 mt-0.5"/>
           Sua solicitação será encaminhada automaticamente ao seu gestor para aprovação.
         </div>
+        {canApprove && (
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs text-slate-500">Em nome de (Opcional)</label>
+            <select value={targetEmployeeId} onChange={(e) => setTargetEmployeeId(e.target.value)}
+              className="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-900 ring-1 ring-slate-200 focus:outline-none focus:ring-slate-200">
+              <option value="">Minha Escala</option>
+              {allEmployees?.map(e => <option key={e.id} value={e.id}>[{e.registration || '-'}] {e.name?.toUpperCase()}</option>)}
+            </select>
+          </div>
+        )}
         <div className="grid grid-cols-2 gap-3">
           <div className="flex flex-col gap-1.5">
             <label className="text-xs text-slate-500">Dia a folgar (original)</label>
@@ -1013,7 +1090,7 @@ function ModalLancarEscala({ schedules, onClose, onSuccess }: { schedules: any[]
   const [mode, setMode] = useState<'assign' | 'create'>('assign');
   const [employeeSearch, setEmployeeSearch] = useState('');
   const [employees, setEmployees] = useState<any[]>([]);
-  const [selectedEmployee, setSelectedEmployee] = useState('');
+  const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
   const [selectedSchedule, setSelectedSchedule] = useState('');
   const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
   const [newName, setNewName] = useState('');
@@ -1029,9 +1106,9 @@ function ModalLancarEscala({ schedules, onClose, onSuccess }: { schedules: any[]
   const filteredEmployees = employees.filter((e) => e.name?.toLowerCase().includes(employeeSearch.toLowerCase()));
 
   const submitAssign = async () => {
-    if (!selectedEmployee || !selectedSchedule || !startDate) { setError('Preencha todos os campos.'); return; }
+    if (selectedEmployees.length === 0 || !selectedSchedule || !startDate) { setError('Preencha todos os campos.'); return; }
     setLoading(true); setError('');
-    try { await api.schedules.assign({ employeeId: selectedEmployee, scheduleId: selectedSchedule, startDate }); onSuccess(); }
+    try { await api.schedules.assign({ employeeIds: selectedEmployees, scheduleId: selectedSchedule, startDate }); onSuccess(); }
     catch (e: any) { setError(e.message || 'Erro.'); }
     setLoading(false);
   };
@@ -1059,17 +1136,36 @@ function ModalLancarEscala({ schedules, onClose, onSuccess }: { schedules: any[]
       {mode === 'assign' ? (
         <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs text-slate-500">Funcionário</label>
+            <div className="flex items-center justify-between">
+              <label className="text-xs text-slate-500">Funcionários ({selectedEmployees.length} selecionados)</label>
+              <button onClick={() => {
+                if (selectedEmployees.length === filteredEmployees.length) setSelectedEmployees([]);
+                else setSelectedEmployees(filteredEmployees.map(e => e.id));
+              }} className="text-[10px] font-bold text-slate-500 hover:text-slate-800">
+                {selectedEmployees.length === filteredEmployees.length ? 'Desmarcar Todos' : 'Selecionar Todos'}
+              </button>
+            </div>
             <input value={employeeSearch} onChange={(e) => setEmployeeSearch(e.target.value)} placeholder="Buscar..."
               className="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-900 ring-1 ring-slate-200 focus:outline-none focus:ring-slate-200"/>
             {filteredEmployees.length > 0 && (
-              <div className="max-h-40 overflow-y-auto rounded-lg bg-white shadow-sm ring-1 ring-slate-200 mt-1">
-                {filteredEmployees.slice(0, 20).map((e) => (
-                  <button key={e.id} onClick={() => { setSelectedEmployee(e.id); setEmployeeSearch(e.name); }}
-                    className={`w-full px-3 py-2 text-left text-sm text-slate-900 hover:bg-slate-50 ${selectedEmployee === e.id ? 'bg-slate-100 font-bold' : ''}`}>
-                    [{e.registration || '-'}] {e.name?.toUpperCase()} <span className="text-slate-500 text-[10px] font-medium ml-1">· {e.department || 'Sem depto'}</span>
-                  </button>
-                ))}
+              <div className="max-h-40 overflow-y-auto rounded-lg bg-white shadow-sm ring-1 ring-slate-200 mt-1 flex flex-col">
+                {filteredEmployees.slice(0, 50).map((e) => {
+                  const isSelected = selectedEmployees.includes(e.id);
+                  return (
+                    <button key={e.id} onClick={() => {
+                      if (isSelected) setSelectedEmployees(prev => prev.filter(id => id !== e.id));
+                      else setSelectedEmployees(prev => [...prev, e.id]);
+                    }}
+                      className={`flex items-center gap-3 w-full px-3 py-2 text-left text-sm text-slate-900 hover:bg-slate-50 ${isSelected ? 'bg-slate-100 font-bold' : ''}`}>
+                      <div className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${isSelected ? 'border-slate-800 bg-slate-800 text-white' : 'border-slate-300'}`}>
+                        {isSelected && <Check size={12} strokeWidth={3} />}
+                      </div>
+                      <div className="min-w-0 flex-1 truncate">
+                        [{e.registration || '-'}] {e.name?.toUpperCase()} <span className="text-slate-500 text-[10px] font-medium ml-1">· {e.department || 'Sem depto'}</span>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>

@@ -10,6 +10,10 @@ export class SwapRequestDto {
   @IsOptional()
   @IsString()
   justification?: string;
+
+  @IsOptional()
+  @IsString()
+  employeeId?: string;
 }
 
 export class ApproveSwapDto {
@@ -30,7 +34,7 @@ export class CreateScheduleExceptionDto {
   date: string;
 
   @IsString()
-  @IsIn(['FOLGA', 'FERIADO_LOCAL', 'ATESTADO', 'SUSPENSAO', 'COMPENSACAO'])
+  @IsIn(['FOLGA', 'FERIADO_LOCAL', 'ATESTADO', 'SUSPENSAO', 'COMPENSACAO', 'AJUSTE_ESCALA'])
   exceptionType: string;
 
   @IsOptional()

@@ -1,8 +1,10 @@
-import { IsString, IsOptional, IsDateString } from 'class-validator';
+import { IsString, IsOptional, IsDateString, IsArray, ArrayMinSize } from 'class-validator';
 
 export class AssignScheduleDto {
-  @IsString()
-  employeeId: string;
+  @IsArray()
+  @IsString({ each: true })
+  @ArrayMinSize(1)
+  employeeIds: string[];
 
   @IsString()
   scheduleId: string;

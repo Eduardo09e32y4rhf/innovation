@@ -70,28 +70,25 @@ export class ScheduleService {
   async assignSchedule(companyId: string, actor: JwtUser, dto: AssignScheduleDto) {
     this.assertCanWrite(actor);
 
-    // Verifica existência da escala e funcionário
-    const [schedule, employee] = await Promise.all([
-      this.prisma.schedule.findFirst({ where: { id: dto.scheduleId, companyId } }),
-      this.prisma.employee.findFirst({ where: { id: dto.employeeId, companyId } }),
-    ]);
+    // Verifica existência da escala
+    const schedule = await this.prisma.schedule.findFirst({ where: { id: dto.scheduleId, companyId } });
     if (!schedule) throw new NotFoundException('Escala não encontrada.');
-    if (!employee) throw new NotFoundException('Funcionário não encontrado.');
 
-    // Encerra vigência anterior (se houver escala ativa sem endDate)
-    await this.prisma.userSchedule.updateMany({
-      where: {
-        employeeId: dto.employeeId,
-        companyId,
-        endDate: null,
-      },
-      data: { endDate: new Date(dto.startDate) },
-    });
+    return this.prisma.$transaction(async (tx) => {
+      // Encerra vigência anterior (se houver escala ativa sem endDate)
+      await tx.userSchedule.updateMany({
+        where: {
+          employeeId: { in: dto.employeeIds },
+          companyId,
+          endDate: null,
+        },
+        data: { endDate: new Date(dto.startDate) },
+      });
 
-    return this.prisma.userSchedule.create({
-      data: {
+      // Cria a nova atribuição para cada funcionário
+      const dataToInsert = dto.employeeIds.map(empId => ({
         companyId,
-        employeeId: dto.employeeId,
+        employeeId: empId,
         scheduleId: dto.scheduleId,
         startDate: new Date(dto.startDate),
         endDate: dto.endDate ? new Date(dto.endDate) : null,
@@ -100,8 +97,10 @@ export class ScheduleService {
         lunchReturnTimeOverride: dto.lunchReturnTimeOverride,
         exitTimeOverride: dto.exitTimeOverride,
         assignedByUserId: actor.sub,
-      },
-      include: { schedule: true },
+      }));
+
+      await tx.userSchedule.createMany({ data: dataToInsert });
+      return { success: true, count: dto.employeeIds.length };
     });
   }
 

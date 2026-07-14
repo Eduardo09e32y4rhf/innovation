@@ -16,10 +16,20 @@ export class ScheduleSwapService {
   // ─── Criar solicitação de troca ──────────────────────────────────────────
 
   async createSwapRequest(companyId: string, actor: JwtUser, dto: SwapRequestDto) {
-    const employee = await this.prisma.employee.findFirst({
-      where: { companyId, userId: actor.sub },
-    });
-    if (!employee) throw new NotFoundException('Funcionário não encontrado para este usuário.');
+    const isManagerOrHr = CAN_APPROVE.includes(actor.role);
+    let employee;
+
+    if (isManagerOrHr && dto.employeeId) {
+      employee = await this.prisma.employee.findFirst({
+        where: { companyId, id: dto.employeeId },
+      });
+    } else {
+      employee = await this.prisma.employee.findFirst({
+        where: { companyId, userId: actor.sub },
+      });
+    }
+
+    if (!employee) throw new NotFoundException('Funcionário não encontrado.');
 
     // Determina para quem notificar
     const notifiedUserId = await this.resolveApprover(companyId, actor, employee);
