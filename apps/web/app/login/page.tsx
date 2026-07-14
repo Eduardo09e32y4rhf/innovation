@@ -11,6 +11,7 @@ import {
   Lock,
   Mail,
   ShieldCheck,
+  Loader2,
 } from 'lucide-react';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { api } from '@/app/lib/api';
@@ -142,11 +143,14 @@ export default function LoginPage() {
                 <Mail size={18} />
               </div>
               <input
+                id="email"
+                name="email"
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="nome@empresa.com.br"
+                aria-label="Email"
                 className="h-12 w-full rounded-xl border border-white/10 bg-black/20 pl-11 pr-4 text-sm font-medium text-white placeholder-slate-600 outline-none transition-all focus:border-teal-500 focus:bg-black/40 focus:ring-1 focus:ring-teal-500"
               />
             </div>
@@ -158,19 +162,23 @@ export default function LoginPage() {
                   <Lock size={18} />
                 </div>
                 <input
+                  id="password"
+                  name="password"
                   type={showPassword ? 'text' : 'password'}
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Sua senha secreta"
+                  aria-label="Senha"
                   className="h-12 w-full rounded-xl border border-white/10 bg-black/20 pl-11 pr-11 text-sm font-medium text-white placeholder-slate-600 outline-none transition-all focus:border-teal-500 focus:bg-black/40 focus:ring-1 focus:ring-teal-500"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 flex items-center pr-4 text-slate-500 hover:text-white transition-colors focus:outline-none"
+                  aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                  className="absolute inset-y-0 right-0 flex items-center pr-4 text-slate-500 hover:text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:outline-none rounded-xl"
                 >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  {showPassword ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
                 </button>
               </div>
             )}
@@ -180,15 +188,19 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="group relative flex h-12 w-full items-center justify-center overflow-hidden rounded-xl bg-teal-500 font-bold text-slate-950 transition-all hover:bg-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 focus:ring-offset-slate-900 disabled:opacity-70 disabled:hover:bg-teal-500"
+                aria-busy={loading}
+                className="group relative flex h-12 w-full items-center justify-center overflow-hidden rounded-xl bg-teal-500 font-bold text-slate-950 transition-all hover:bg-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 focus:ring-offset-slate-900 disabled:opacity-70 disabled:hover:bg-teal-500 disabled:cursor-not-allowed"
               >
                 <span className="relative z-10 flex items-center gap-2">
                   {loading ? (
-                    'Processando...'
+                    <>
+                      <Loader2 className="animate-spin" size={18} aria-hidden="true" />
+                      <span>Processando...</span>
+                    </>
                   ) : (
                     <>
                       {forgotPassword ? 'Enviar instruções' : 'Acessar painel'}
-                      <ArrowRight size={18} className="transition-transform group-hover:translate-x-1" />
+                      <ArrowRight size={18} className="transition-transform group-hover:translate-x-1" aria-hidden="true" />
                     </>
                   )}
                 </span>
