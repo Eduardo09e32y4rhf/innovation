@@ -773,30 +773,27 @@ function MinhaEscalaTab({ loading, calendarData, year, month, onPrev, onNext, se
                     {dayNum}
                   </span>
 
-                  {/* Ícone de status */}
-                  <span className="text-[14px] mt-1 leading-none">{meta.icon}</span>
-
-                  {/* Horário previsto */}
-                  {resolved === 'WORK' && day.scheduled.entry && (
-                    <span className={`text-[9px] mt-1 font-medium ${meta.textColor} opacity-70 leading-none`}>
-                      {day.scheduled.entry.slice(0,5)}
+                  {/* Conteúdo central do dia */}
+                  {day.scheduled.entry && day.scheduled.exit ? (
+                    <div className="flex flex-col items-center justify-center mt-1.5 gap-1">
+                      <span className={`text-[10px] font-bold ${meta.textColor} leading-none`}>
+                        {day.scheduled.entry.slice(0,5)}
+                      </span>
+                      <span className={`text-[10px] font-bold ${meta.textColor} leading-none`}>
+                        {day.scheduled.exit.slice(0,5)}
+                      </span>
+                    </div>
+                  ) : resolved !== 'SEM_ESCALA' ? (
+                    <span className={`text-[9px] mt-3 font-bold uppercase tracking-wider ${meta.textColor} opacity-80 leading-none text-center`}>
+                      {meta.label}
                     </span>
-                  )}
-                  {resolved === 'AJUSTE' && day.exception && (
-                    <span className="text-[9px] mt-1 font-bold text-indigo-600 leading-none">ajuste</span>
+                  ) : (
+                    <span className="text-[14px] mt-2 leading-none opacity-40">{meta.icon}</span>
                   )}
 
-                  {/* Badge HE aprovada */}
-                  {hasHE && day.actual?.overtimeApprovalStatus === 'APPROVED' && (
-                    <span className="absolute -top-1.5 -right-1.5 rounded-full bg-emerald-500 px-1 py-0.5 text-[8px] font-bold text-white shadow-sm leading-none">HE</span>
-                  )}
-                  {/* Badge ocorrência crítica */}
+                  {/* Badge ocorrência crítica (Atraso/Falta) */}
                   {(resolved === 'FALTA' || resolved === 'ATRASO' || resolved === 'SAIDA_ANTECIPADA') && (
                     <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[8px] font-bold text-white shadow-sm">!</span>
-                  )}
-                  {/* Badge HE pendente */}
-                  {hasHE && day.actual?.overtimeApprovalStatus === 'PENDING' && (
-                    <span className="absolute -top-1.5 -right-1.5 rounded-full bg-amber-500 px-1 py-0.5 text-[8px] font-bold text-white shadow-sm leading-none">?</span>
                   )}
 
                   {/* Indicador de seleção */}
