@@ -197,7 +197,7 @@ export default function ClockInPage() {
     },
     {
       onSuccess: (_data, params) => {
-        queryClient.invalidateQueries(['time-track']);
+        (queryClient as any).invalidateQueries(['time-track']);
         const labels: Record<PunchType, string> = { ENTRY: 'Entrada', LUNCH_START: 'Saida almoco', LUNCH_RETURN: 'Retorno almoco', EXIT: 'Saida' };
         const label = labels[params.type];
         setSuccess(params.manual ? `${label} manual registrada! Aguardando aprovacao do gestor.` : 'Ponto registrado com sucesso!');

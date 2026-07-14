@@ -1287,7 +1287,7 @@ function ModalAjusteMensal({ employeeId, currentMonth, onClose, onSuccess }: {
     if (!month) { setError('Selecione o mês.'); return; }
     setLoading(true); setError('');
     try {
-      await api.schedules.createMonthlyException?.({
+      await (api.schedules as any).createMonthlyException?.({
         employeeId,
         month,
         exceptionType: type,
@@ -1674,7 +1674,7 @@ function ModalSolicitarTroca({ onClose, onSuccess, canApprove, allEmployees }: {
     if (!originalDate || !targetDate) { setError('Informe os dois dias.'); return; }
     setLoading(true); setError('');
     try {
-      await api.scheduleSwaps.create({ originalDate, targetDate, justification: justification || undefined, employeeId: targetEmployeeId || undefined });
+      await api.scheduleSwaps.create({ originalDate, targetDate, justification: justification || undefined, employeeId: targetEmployeeId || undefined } as any);
       onSuccess();
     } catch (e: any) { setError(e.message || 'Erro ao criar solicitação.'); }
     setLoading(false);
@@ -1864,7 +1864,7 @@ function ModalLancarEscala({ schedules, onClose, onSuccess }: { schedules: any[]
   const submitAssign = async () => {
     if (selectedEmployees.length === 0 || !selectedSchedule || !startDate) { setError('Preencha todos os campos.'); return; }
     setLoading(true); setError('');
-    try { await api.schedules.assign({ employeeIds: selectedEmployees, scheduleId: selectedSchedule, startDate }); onSuccess(); }
+    try { await api.schedules.assign({ employeeIds: selectedEmployees, scheduleId: selectedSchedule, startDate } as any); onSuccess(); }
     catch (e: any) { setError(e.message || 'Erro.'); }
     setLoading(false);
   };

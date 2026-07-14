@@ -314,7 +314,7 @@ function ChatThread({ chat, onBack, className }: { chat: Chat | null; onBack: ()
   const send = useMutation(
     (payload: { body: string; media?: { base64: string; mimeType: string; name: string } }) => {
       const phone = chat?.isGroup ? chat.id : chat?.id.replace(/@.*$/, '') ?? '';
-      return api.whatsapp.sendMessage({ phone, body: payload.body, contactName: chat?.name, media: payload.media });
+      return api.whatsapp.sendMessage({ phone, body: payload.body, contactName: chat?.name, media: payload.media } as any);
     },
     {
       onSuccess: () => {
@@ -418,14 +418,14 @@ function ChatThread({ chat, onBack, className }: { chat: Chat | null; onBack: ()
                   <p className="mb-0.5 text-[12.5px] font-medium text-[#027eb5]">{msg.participantName}</p>
                 )}
                 
-                {msg.media?.url && msg.media.type === 'image' && (
-                  <img src={msg.media.url} alt="Imagem" className="mb-1 max-h-64 rounded-[6px] object-contain" />
+                {(msg.media as any)?.url && (msg.media as any).type === 'image' && (
+                  <img src={(msg.media as any).url} alt="Imagem" className="mb-1 max-h-64 rounded-[6px] object-contain" />
                 )}
-                {msg.media?.url && msg.media.type === 'video' && (
-                  <video src={msg.media.url} controls className="mb-1 max-h-64 rounded-[6px] object-contain" />
+                {(msg.media as any)?.url && (msg.media as any).type === 'video' && (
+                  <video src={(msg.media as any).url} controls className="mb-1 max-h-64 rounded-[6px] object-contain" />
                 )}
-                {msg.media?.url && msg.media.type === 'audio' && (
-                  <audio src={msg.media.url} controls className="mb-1 max-w-full h-[40px]" />
+                {(msg.media as any)?.url && (msg.media as any).type === 'audio' && (
+                  <audio src={(msg.media as any).url} controls className="mb-1 max-w-full h-[40px]" />
                 )}
                 
                 <div className="flex items-end gap-3 flex-wrap">
