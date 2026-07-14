@@ -405,7 +405,7 @@ export default function EscalaPage() {
       )}
 
       {showModalSwap && <ModalSolicitarTroca onClose={() => setShowModalSwap(false)} onSuccess={() => { setShowModalSwap(false); loadSwaps(); }} canApprove={canApprove} allEmployees={allEmployees} />}
-      {showModalLancar  && <ModalLancarEscala schedules={schedules} onClose={() => setShowModalLancar(false)} onSuccess={() => { setShowModalLancar(false); loadTeam(); loadSchedules(); }} />}
+      {showModalLancar  && <ModalLancarEscala schedules={schedules} onClose={() => setShowModalLancar(false)} onSuccess={() => { setShowModalLancar(false); loadTeam(); loadSchedules(); loadMyCalendar(); }} />}
       {showModalApprove && <ModalAprovarTroca swap={showModalApprove} onClose={() => setShowModalApprove(null)} onSuccess={() => { setShowModalApprove(null); loadSwaps(); }} />}
     </div>
   );
@@ -448,18 +448,16 @@ function EmployeeCombobox({ employees, selectedId, onSelect }: {
         {selected ? (
           <>
             <div
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-white text-xs font-bold shadow-sm"
-              style={{ background: stringToHsl(selected.name || '') }}
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-white text-xs font-bold shadow-sm bg-slate-900"
             >
               {getInitials(selected.name || '')}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-slate-900 truncate">{selected.name?.toUpperCase()}</p>
+              <p className="text-sm font-semibold text-slate-900 truncate">
+                {selected.registration ? String(selected.registration).padStart(4, '0') : 'S/N'} - {selected.name?.toUpperCase()}
+              </p>
               <p className="text-[11px] text-slate-500 truncate">{selected.department} · {selected.position}</p>
             </div>
-            <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-500 ring-1 ring-slate-200">
-              {regDisplay(selected)}
-            </span>
           </>
         ) : (
           <>
@@ -534,19 +532,17 @@ function EmployeeCombobox({ employees, selectedId, onSelect }: {
                   className={`flex w-full items-center gap-3 px-4 py-3 hover:bg-slate-50 transition-colors ${selectedId === e.id ? 'bg-slate-50' : ''}`}
                 >
                   <div
-                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-white text-xs font-bold shadow-sm"
-                    style={{ background: stringToHsl(e.name || '') }}
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-white text-xs font-bold shadow-sm bg-slate-900"
                   >
                     {getInitials(e.name || '')}
                   </div>
                   <div className="flex-1 min-w-0 text-left">
-                    <p className="text-sm font-semibold text-slate-900 truncate">{e.name?.toUpperCase()}</p>
+                    <p className="text-sm font-semibold text-slate-900 truncate">
+                      {e.registration ? String(e.registration).padStart(4, '0') : 'S/N'} - {e.name?.toUpperCase()}
+                    </p>
                     <p className="text-[11px] text-slate-500 truncate">{e.department} · {e.position}</p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-500 ring-1 ring-slate-200">
-                      {regDisplay(e)}
-                    </span>
                     {selectedId === e.id && <Check size={14} className="text-slate-700" />}
                   </div>
                 </button>
@@ -579,9 +575,9 @@ function MinhaEscalaTab({ loading, calendarData, year, month, onPrev, onNext, se
             <Briefcase size={18} />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-bold text-slate-900">{schedule.name}</p>
+            <p className="text-sm font-bold text-slate-900">{schedule.name?.toUpperCase()}</p>
             <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-1.5">
-              <span className="rounded-full bg-slate-100 px-2 py-0.5 font-semibold text-slate-600">{schedule.scaleType}</span>
+              <span className="rounded-full bg-slate-100 px-2 py-0.5 font-semibold text-slate-600">{schedule.scaleType?.toUpperCase()}</span>
               <Clock3 size={11} className="text-slate-400" />
               {schedule.entryTime ?? '--'} → {schedule.exitTime ?? '--'}
               {schedule.lunchStartTime ? ` · Almoço: ${schedule.lunchStartTime}–${schedule.lunchReturnTime ?? '?'}` : ''}
@@ -1361,7 +1357,6 @@ function EmployeeTeamCard({ employee, schedule, hasSchedule, onSelect }: {
   onSelect: () => void;
 }) {
   if (!employee) return null;
-  const avatarColor = stringToHsl(employee.name || '');
   const reg = employee.registration ? `#${String(employee.registration).padStart(4, '0')}` : 'S/N';
 
   return (
@@ -1774,8 +1769,7 @@ function ModalLancarEscala({ schedules, onClose, onSuccess }: { schedules: any[]
               {selectedEmployeeObjects.map(e => (
                 <span
                   key={e.id}
-                  className="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 text-white shadow-sm"
-                  style={{ background: stringToHsl(e.name || '') }}
+                  className="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 text-white shadow-sm bg-slate-900"
                 >
                   {getInitials(e.name || '')} {e.name?.split(' ')[0]}
                   <button
@@ -1867,8 +1861,7 @@ function ModalLancarEscala({ schedules, onClose, onSuccess }: { schedules: any[]
 
                       {/* Avatar */}
                       <div
-                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-white text-xs font-bold shadow-sm"
-                        style={{ background: stringToHsl(e.name || '') }}
+                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-white text-xs font-bold shadow-sm bg-slate-900"
                       >
                         {getInitials(e.name || '')}
                       </div>
@@ -1902,7 +1895,7 @@ function ModalLancarEscala({ schedules, onClose, onSuccess }: { schedules: any[]
             >
               <option value="">Selecionar...</option>
               {schedules.map((s: any) => (
-                <option key={s.id} value={s.id}>{s.name} ({s.scaleType})</option>
+                <option key={s.id} value={s.id}>{s.name?.toUpperCase()} ({s.scaleType?.toUpperCase()})</option>
               ))}
             </select>
           </div>
