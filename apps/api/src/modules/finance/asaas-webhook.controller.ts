@@ -30,7 +30,9 @@ export class AsaasWebhookController {
         .update(payloadString)
         .digest('hex');
 
-      if (signature !== expectedSignature) {
+      const signatureBuf = Buffer.from(signature);
+      const expectedSignatureBuf = Buffer.from(expectedSignature);
+      if (signatureBuf.length !== expectedSignatureBuf.length || !crypto.timingSafeEqual(signatureBuf, expectedSignatureBuf)) {
         throw new ForbiddenException('Assinatura inválida');
       }
     }

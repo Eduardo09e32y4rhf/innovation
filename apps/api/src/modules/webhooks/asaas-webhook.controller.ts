@@ -26,7 +26,14 @@ export class AsaasWebhookController {
     hmac.update(rawBody);
     const signature = hmac.digest('hex');
 
-    if (signature !== req.headers['x-asaas-signature']) {
+    const signatureBuf = Buffer.from(signature);
+    const expectedSignature = req.headers['x-asaas-signature'] as string;
+    if (!expectedSignature) {
+      this.logger.error('Assinatura do webhook do Asaas ausente');
+      throw new UnauthorizedException('Invalid signature');
+    }
+    const expectedSignatureBuf = Buffer.from(expectedSignature);
+    if (signatureBuf.length !== expectedSignatureBuf.length || !crypto.timingSafeEqual(signatureBuf, expectedSignatureBuf)) {
       this.logger.error('Assinatura do webhook do Asaas inválida');
       throw new UnauthorizedException('Invalid signature');
     }
