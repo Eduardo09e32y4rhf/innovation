@@ -1369,8 +1369,7 @@ function EmployeeTeamCard({ employee, schedule, hasSchedule, onSelect }: {
 
       {/* Avatar */}
       <div
-        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-white text-sm font-bold shadow-md group-hover:scale-105 transition-transform"
-        style={{ background: avatarColor }}
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-white text-sm font-bold shadow-md group-hover:scale-105 transition-transform bg-slate-900"
       >
         {getInitials(employee.name || '')}
       </div>
@@ -1378,10 +1377,9 @@ function EmployeeTeamCard({ employee, schedule, hasSchedule, onSelect }: {
       {/* Info */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <p className="text-sm font-bold text-slate-900 truncate">{employee.name?.toUpperCase()}</p>
-          <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[9px] font-bold text-slate-500 ring-1 ring-slate-200">
-            {reg}
-          </span>
+          <p className="text-sm font-bold text-slate-900 truncate">
+            {employee.registration ? String(employee.registration).padStart(4, '0') : 'S/N'} - {employee.name?.toUpperCase()}
+          </p>
         </div>
         <p className="text-xs text-slate-500 truncate mt-0.5">
           {employee.department?.toUpperCase()} · {employee.position?.toUpperCase()}
@@ -1391,8 +1389,8 @@ function EmployeeTeamCard({ employee, schedule, hasSchedule, onSelect }: {
       {/* Escala info */}
       {hasSchedule && schedule ? (
         <div className="text-right shrink-0 hidden sm:block">
-          <p className="text-sm font-semibold text-slate-700">{schedule.name}</p>
-          <p className="text-xs text-slate-500">{schedule.scaleType} · {schedule.entryTime ?? '--'} – {schedule.exitTime ?? '--'}</p>
+          <p className="text-sm font-semibold text-slate-700">{schedule.name?.toUpperCase()}</p>
+          <p className="text-xs text-slate-500">{schedule.scaleType?.toUpperCase()} · {schedule.entryTime ?? '--'} – {schedule.exitTime ?? '--'}</p>
         </div>
       ) : (
         <div className="shrink-0">
