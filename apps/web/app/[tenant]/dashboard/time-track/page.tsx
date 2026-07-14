@@ -112,13 +112,17 @@ function isDepoisDemissao(key: string, emp: Employee): boolean {
   return key > dem;
 }
 
-function buildGrid(month: string, emp: Employee, tracks: TimeTrack[], startDay: number = 1, holidays: any[] = []) {
+function buildGrid(month: string, emp: Employee, tracks: TimeTrack[], startDay: number = 1, holidays: any[] = [], teamSchedules: any[] = []) {
   const safeHolidays = holidays || [];
   const [y,m] = month.split('-').map(Number); if (!y||!m) return [];
   const today = getLocalToday();
   const map = new Map<string, TimeTrack>();
   for (const t of tracks) map.set(toDateKey(t.date), t);
-  const g: any[] = [];
+  const g: any[] = [];\n
+  const empSchedule = teamSchedules.find(ts => ts.employee.id === emp.id);
+  const calDays = empSchedule ? empSchedule.days : [];
+  const getCalDay = (k: string) => calDays.find((cd: any) => cd.date === k);
+
   
   let startDate = new Date(Date.UTC(y, m - 1, 1));
   let endDate = new Date(Date.UTC(y, m, 0)); // last day of month
@@ -134,10 +138,24 @@ function buildGrid(month: string, emp: Employee, tracks: TimeTrack[], startDay: 
     const key = date.toISOString().slice(0,10);
     const holiday = safeHolidays.find(h => h.date && h.date.startsWith(key));
     const isHoliday = !!holiday;
+    const cd = getCalDay(key);
+    let isRest = isRestDay(date,emp);
+    let holidayName = holiday?.name;
+    let scheduled = null;
+    let exception = null;
+    let dayType = 'WORK';
+    if (cd) {
+      isRest = cd.dayType === 'FOLGA' || cd.dayType === 'FOLGA_DSR' || cd.dayType === 'FOLGA_BANCO';
+      if (cd.dayType === 'FERIADO' || cd.dayType === 'FERIADO_LOCAL') holidayName = holidayName || 'Feriado';
+      scheduled = cd.scheduled;
+      exception = cd.exception;
+      dayType = cd.dayType;
+    }
+
     g.push({
       date, key, day: date.getUTCDate(), wd: date.getUTCDay(),
-      isRest: isRestDay(date,emp), isFuture: key>today, antesAdmissao: isAntesAdmissao(key,emp), depoisDemissao: isDepoisDemissao(key,emp),
-      track: map.get(key), holidayName: holiday?.name
+      isRest, isFuture: key>today, antesAdmissao: isAntesAdmissao(key,emp), depoisDemissao: isDepoisDemissao(key,emp),
+      track: map.get(key), holidayName, scheduled, exception, dayType
     });
   }
   return g;
@@ -233,7 +251,7 @@ export default function TimeTrackPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [month, setMonth] = useState(currentMonth());
-  const tracks = useQuery(() => api.timeTrack.list(month), [month]);
+  const tracks = useQuery(() => api.timeTrack.list(month), [month]);\n  const teamSchedules = useQuery(() => api.schedules.teamSchedule(month), [month]);
   const employees = useQuery(() => api.employees.list(), []);
   const company = useQuery(() => api.companies.me(), []);
   const holidays = useQuery(() => api.companies.getHolidays(), []);
@@ -641,7 +659,11 @@ function MonthGrid({ employee, tracks, month, canManage, canApprove, refreshing,
               <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] font-semibold text-slate-500">
                 <span>{employee.department||'-'}</span><span className="text-slate-300">|</span>
                 <span>{employee.position||'-'}</span><span className="text-slate-300">|</span>
-                <span className="rounded-full border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[9px]">ESCALA: {employee.workScale || (employee.customWorkScale || '6X1')}</span>
+                {(() => {
+                  const empSchedule = teamSchedules?.find(ts => ts.employee.id === employee.id);
+                  const scaleName = empSchedule?.schedule ? `${empSchedule.schedule.name} (${empSchedule.schedule.scaleType})` : (employee.workScale || employee.customWorkScale || '6X1');
+                  return <span className="rounded-full border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[9px]">ESCALA: {scaleName}</span>;
+                })()}
               </div>
             </div>
           </div>
@@ -698,9 +720,9 @@ function MonthGrid({ employee, tracks, month, canManage, canApprove, refreshing,
       )}
     </div>
   </td>
-              <td className={`px-3 font-mono text-[11px] ${isAtestado?'text-slate-300':t?.entry?'text-slate-950 font-black':'text-slate-300'}`}>{isAtestado?'---':t?.entry?fmtTime(t.entry):'--:--'}</td>
-              <td className={`px-3 font-mono text-[11px] ${t?.lunchStart||t?.lunchReturn?'text-slate-600':'text-slate-300'}`}>{isAtestado?'---':t?.lunchStart?fmtLunch(t?.lunchStart,t?.lunchReturn):'--:--'}</td>
-              <td className={`px-3 font-mono text-[11px] ${isAtestado?'text-slate-300':t?.exit?'text-slate-950 font-black':'text-slate-300'}`}>{isAtestado?'---':t?.exit?fmtTime(t.exit):'--:--'}</td>
+              <td className={`px-3 font-mono text-[11px] ${isAtestado?'text-slate-300':t?.entry?'text-slate-950 font-black':day.scheduled?.entry?'text-slate-400':'text-slate-300'}`}>{isAtestado?'---':t?.entry?fmtTime(t.entry):(day.scheduled?.entry ? fmtTime(day.scheduled.entry) + ' (P)' : '--:--')}</td>
+              <td className={`px-3 font-mono text-[11px] ${t?.lunchStart||t?.lunchReturn?'text-slate-600':day.scheduled?.lunchStart?'text-slate-400':'text-slate-300'}`}>{isAtestado?'---':t?.lunchStart?fmtLunch(t?.lunchStart,t?.lunchReturn):(day.scheduled?.lunchStart ? fmtLunch(day.scheduled.lunchStart, day.scheduled.lunchReturn) + ' (P)' : '--:--')}</td>
+              <td className={`px-3 font-mono text-[11px] ${isAtestado?'text-slate-300':t?.exit?'text-slate-950 font-black':day.scheduled?.exit?'text-slate-400':'text-slate-300'}`}>{isAtestado?'---':t?.exit?fmtTime(t.exit):(day.scheduled?.exit ? fmtTime(day.scheduled.exit) + ' (P)' : '--:--')}</td>
               <td className="px-3 text-slate-600 text-[11px]">{isAtestado?'---':t?fmtWorked(t.totalWorked):'--:--'}</td>
               <td className={`px-3 text-[11px] font-black ${isAtestado?'text-slate-300':t&&(t.dailyBalance??0)<0?'text-rose-600':t?'text-emerald-600':'text-slate-300'}`}>{isAtestado?'---':t?fmtBalance(t.dailyBalance):'--:--'}</td>
                   <td className={`px-3 text-[11px] ${isAtestado?'text-slate-300':'text-slate-400'}`}>{isAtestado?'---':'--:--'}</td>
