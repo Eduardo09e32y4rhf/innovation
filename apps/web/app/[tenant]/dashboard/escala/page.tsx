@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { api } from '@/app/lib/api';
@@ -29,6 +29,18 @@ import {
   Stethoscope,
   MapPin,
   Info,
+  Search,
+  ChevronDown,
+  User,
+  Pencil,
+  CalendarDays,
+  Sparkles,
+  CheckSquare,
+  Square,
+  UserCheck,
+  Zap,
+  Clock3,
+  ArrowRight,
 } from 'lucide-react';
 import { formatMinutes } from '@/app/lib/format';
 
@@ -84,6 +96,26 @@ const MONTH_NAMES = [
   'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro',
 ];
 
+/** Gera cor HSL determinística a partir de uma string */
+function stringToHsl(str: string): string {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const h = Math.abs(hash) % 360;
+  return `hsl(${h}, 60%, 45%)`;
+}
+
+function getInitials(name: string): string {
+  return (name || '')
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((n) => n[0])
+    .join('')
+    .toUpperCase();
+}
+
 /** Interpreta o dayType vindo da API, mas também lê observation/manualReason do ponto */
 function resolveDayType(day: CalendarDay): string {
   const obs = (day.actual?.observation ?? '').toLowerCase();
@@ -103,27 +135,26 @@ function resolveDayType(day: CalendarDay): string {
   if (day.actual?.incidentType === 'falta') return 'FALTA';
   if (day.actual && !day.actual.entry && !day.actual.exit && day.dayType === 'WORK') return 'FALTA';
 
-  // fallback ao dayType da API (escala)
   return day.dayType;
 }
 
-const DAY_TYPE_META: Record<string, { label: string; color: string; textColor: string; icon: string }> = {
-  WORK:            { label: 'Trabalho',           color: 'bg-emerald-50 border-emerald-500/25',  textColor: 'text-emerald-600', icon: '✅' },
-  FOLGA:           { label: 'Folga',              color: 'bg-blue-50 border-blue-500/25',        textColor: 'text-blue-600',    icon: '🔵' },
-  FOLGA_DSR:       { label: 'Folga DSR',          color: 'bg-blue-50 border-blue-500/25',        textColor: 'text-blue-600',    icon: '🔵' },
-  FOLGA_BANCO:     { label: 'Folga Banco',        color: 'bg-cyan-50 border-cyan-500/25',        textColor: 'text-cyan-600',    icon: '🏦' },
-  FERIADO:         { label: 'Feriado',            color: 'bg-amber-50 border-amber-500/25',      textColor: 'text-amber-600',   icon: '🟡' },
-  FERIADO_LOCAL:   { label: 'Feriado Local',      color: 'bg-amber-50 border-amber-500/25',      textColor: 'text-amber-600',   icon: '🟡' },
-  ATESTADO:        { label: 'Atestado',           color: 'bg-purple-50 border-purple-500/25',    textColor: 'text-purple-600',  icon: '💊' },
-  ATESTADO_HORAS:  { label: 'Atestado (horas)',   color: 'bg-purple-50 border-purple-500/25',    textColor: 'text-purple-600',  icon: '💊' },
-  SUSPENSAO:       { label: 'Suspensão',          color: 'bg-red-100 border-red-700/30',          textColor: 'text-red-700',     icon: '🚫' },
-  ATRASO:          { label: 'Atraso',             color: 'bg-orange-50 border-orange-500/25',    textColor: 'text-orange-600',  icon: '⏰' },
-  SAIDA_ANTECIPADA:{ label: 'Saída Antecipada',   color: 'bg-orange-50 border-orange-500/25',    textColor: 'text-orange-600',  icon: '🏃' },
-  FALTA:           { label: 'Falta',              color: 'bg-red-50 border-red-500/25',          textColor: 'text-red-700',     icon: '❌' },
-  REVOGADO:        { label: 'Revogado',           color: 'bg-zinc-50 border-zinc-600/25',        textColor: 'text-zinc-700',    icon: '↩' },
-  SEM_ESCALA:      { label: 'Sem Escala',         color: 'bg-zinc-800/30 border-zinc-700/30',        textColor: 'text-zinc-500',    icon: '—' },
-  COMPENSACAO:     { label: 'Compensação',        color: 'bg-teal-50 border-teal-500/25',        textColor: 'text-teal-600',    icon: '🔄' },
-  AJUSTE:          { label: 'Ajuste Escala',      color: 'bg-indigo-50 border-indigo-500/25',    textColor: 'text-indigo-600',  icon: '⚙️' },
+const DAY_TYPE_META: Record<string, { label: string; color: string; textColor: string; border: string; icon: string; bg: string }> = {
+  WORK:            { label: 'Trabalho',         color: 'bg-emerald-50',   textColor: 'text-emerald-700',  border: 'border-emerald-200',  icon: '✅', bg: '#ecfdf5' },
+  FOLGA:           { label: 'Folga',            color: 'bg-blue-50',      textColor: 'text-blue-700',     border: 'border-blue-200',     icon: '🔵', bg: '#eff6ff' },
+  FOLGA_DSR:       { label: 'Folga DSR',        color: 'bg-blue-50',      textColor: 'text-blue-700',     border: 'border-blue-200',     icon: '🔵', bg: '#eff6ff' },
+  FOLGA_BANCO:     { label: 'Folga Banco',      color: 'bg-cyan-50',      textColor: 'text-cyan-700',     border: 'border-cyan-200',     icon: '🏦', bg: '#ecfeff' },
+  FERIADO:         { label: 'Feriado',          color: 'bg-amber-50',     textColor: 'text-amber-700',    border: 'border-amber-200',    icon: '🟡', bg: '#fffbeb' },
+  FERIADO_LOCAL:   { label: 'Feriado Local',    color: 'bg-amber-50',     textColor: 'text-amber-700',    border: 'border-amber-200',    icon: '🟡', bg: '#fffbeb' },
+  ATESTADO:        { label: 'Atestado',         color: 'bg-purple-50',    textColor: 'text-purple-700',   border: 'border-purple-200',   icon: '💊', bg: '#faf5ff' },
+  ATESTADO_HORAS:  { label: 'Atestado (h)',     color: 'bg-purple-50',    textColor: 'text-purple-700',   border: 'border-purple-200',   icon: '💊', bg: '#faf5ff' },
+  SUSPENSAO:       { label: 'Suspensão',        color: 'bg-red-100',      textColor: 'text-red-700',      border: 'border-red-300',      icon: '🚫', bg: '#fee2e2' },
+  ATRASO:          { label: 'Atraso',           color: 'bg-orange-50',    textColor: 'text-orange-700',   border: 'border-orange-200',   icon: '⏰', bg: '#fff7ed' },
+  SAIDA_ANTECIPADA:{ label: 'Saída Antec.',     color: 'bg-orange-50',    textColor: 'text-orange-700',   border: 'border-orange-200',   icon: '🏃', bg: '#fff7ed' },
+  FALTA:           { label: 'Falta',            color: 'bg-red-50',       textColor: 'text-red-700',      border: 'border-red-200',      icon: '❌', bg: '#fef2f2' },
+  REVOGADO:        { label: 'Revogado',         color: 'bg-zinc-100',     textColor: 'text-zinc-600',     border: 'border-zinc-200',     icon: '↩',  bg: '#f4f4f5' },
+  SEM_ESCALA:      { label: 'Sem Escala',       color: 'bg-slate-100',    textColor: 'text-slate-400',    border: 'border-slate-200',    icon: '—',  bg: '#f1f5f9' },
+  COMPENSACAO:     { label: 'Compensação',      color: 'bg-teal-50',      textColor: 'text-teal-700',     border: 'border-teal-200',     icon: '🔄', bg: '#f0fdfa' },
+  AJUSTE:          { label: 'Ajuste Escala',    color: 'bg-indigo-50',    textColor: 'text-indigo-700',   border: 'border-indigo-200',   icon: '⚙️', bg: '#eef2ff' },
 };
 
 function getMeta(type: string) {
@@ -136,7 +167,7 @@ function formatTime(t?: string | null) {
   return isNaN(d.getTime()) ? (t.slice(0, 5) ?? '--:--') : d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 }
 
-function formatMin(min?: number | null, showSign = true) {
+function formatMin(min?: number | null) {
   if (min == null) return '--';
   return formatMinutes(min);
 }
@@ -171,7 +202,6 @@ function calcMonthlyTotals(days: CalendarDay[]) {
     totalBalance += a.dailyBalance ?? 0;
     const ot50 = a.overtime50Minutes ?? 0;
     const ot100 = a.overtime100Minutes ?? 0;
-    // Só conta HE aprovadas
     if (a.overtimeApprovalStatus === 'APPROVED') {
       overtime50 += ot50;
       overtime100 += ot100;
@@ -196,10 +226,10 @@ function calcMonthlyTotals(days: CalendarDay[]) {
 // ─── STATUS BADGE ─────────────────────────────────────────────────────────────
 
 const SWAP_STATUS_BADGE: Record<string, string> = {
-  PENDING:   'bg-amber-50 text-amber-600 border-amber-500/30',
-  APPROVED:  'bg-emerald-50 text-emerald-600 border-emerald-500/30',
-  REJECTED:  'bg-red-50 text-red-600 border-red-500/30',
-  CANCELLED: 'bg-zinc-50 text-zinc-700 border-zinc-500/30',
+  PENDING:   'bg-amber-50 text-amber-700 border-amber-300',
+  APPROVED:  'bg-emerald-50 text-emerald-700 border-emerald-300',
+  REJECTED:  'bg-red-50 text-red-700 border-red-300',
+  CANCELLED: 'bg-zinc-100 text-zinc-600 border-zinc-300',
 };
 const SWAP_STATUS_LABEL: Record<string, string> = {
   PENDING: 'Pendente', APPROVED: 'Aprovado', REJECTED: 'Rejeitado', CANCELLED: 'Cancelado',
@@ -291,11 +321,19 @@ export default function EscalaPage() {
 
   const [year, month] = parseMonth(currentMonth);
 
+  // Handler para selecionar funcionário na aba equipe (navega para Minha Jornada)
+  const handleSelectEmployeeFromTeam = useCallback((employeeId: string) => {
+    setTargetEmployeeId(employeeId);
+    router.push(`?tab=minha`);
+  }, [router]);
+
+  const targetEmployee = allEmployees.find(e => e.id === targetEmployeeId);
+
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6 min-h-screen">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-50 text-slate-800 ring-1 ring-slate-200">
+        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 text-white shadow-lg shadow-slate-900/20">
           <CalendarClock size={20} />
         </div>
         <div>
@@ -304,19 +342,35 @@ export default function EscalaPage() {
         </div>
       </div>
 
-
+      {/* Tab Nav — inline pills modernos */}
+      <div className="flex gap-1 rounded-2xl bg-slate-100 p-1.5 ring-1 ring-slate-200">
+        {([
+          { key: 'minha',  label: 'Minha Jornada',  icon: <User size={14}/> },
+          ...(canApprove ? [{ key: 'equipe', label: 'Escala de Equipe', icon: <Users size={14}/> }] : []),
+          { key: 'trocas', label: 'Trocas',          icon: <ArrowLeftRight size={14}/> },
+        ] as { key: Tab; label: string; icon: React.ReactNode }[]).map(({ key, label, icon }) => (
+          <button
+            key={key}
+            onClick={() => router.push(`?tab=${key}`)}
+            className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold transition-all duration-200 ${
+              tab === key
+                ? 'bg-white text-slate-900 shadow-sm ring-1 ring-slate-200'
+                : 'text-slate-500 hover:text-slate-700 hover:bg-white/60'
+            }`}
+          >
+            {icon}<span className="hidden sm:inline">{label}</span>
+          </button>
+        ))}
+      </div>
 
       {tab === 'minha' && (
         <div className="flex flex-col gap-4">
           {canApprove && (
-            <div className="flex items-center gap-2 rounded-xl bg-white p-3 ring-1 ring-slate-200 shadow-sm">
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-500 shrink-0">Ver Escala de:</label>
-              <select value={targetEmployeeId} onChange={(e) => setTargetEmployeeId(e.target.value)}
-                className="flex-1 rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-900 ring-1 ring-slate-200 focus:outline-none">
-                <option value="">Minha Escala</option>
-                {allEmployees.map(e => <option key={e.id} value={e.id}>[{e.registration || '-'}] {e.name?.toUpperCase()}</option>)}
-              </select>
-            </div>
+            <EmployeeCombobox
+              employees={allEmployees}
+              selectedId={targetEmployeeId}
+              onSelect={(id) => { setTargetEmployeeId(id); setSelectedDay(null); }}
+            />
           )}
           <MinhaEscalaTab
             loading={loading}
@@ -326,6 +380,8 @@ export default function EscalaPage() {
             selectedDay={selectedDay} onSelectDay={setSelectedDay}
             targetEmployeeId={targetEmployeeId}
             canWrite={canWrite}
+            onRefresh={loadMyCalendar}
+            targetEmployee={targetEmployee}
           />
         </div>
       )}
@@ -335,6 +391,7 @@ export default function EscalaPage() {
           year={year} month={month}
           onPrev={prevMonth} onNext={nextMonth}
           onLancar={() => setShowModalLancar(true)} onRefresh={loadTeam}
+          onSelectEmployee={handleSelectEmployeeFromTeam}
         />
       )}
       {tab === 'trocas' && (
@@ -354,170 +411,383 @@ export default function EscalaPage() {
   );
 }
 
-// ─── Tab Button ───────────────────────────────────────────────────────────────
+// ─── Employee Combobox Premium ─────────────────────────────────────────────────
 
-function TabButton({ active, onClick, icon, label }: { active: boolean; onClick: () => void; icon: React.ReactNode; label: string }) {
+function EmployeeCombobox({ employees, selectedId, onSelect }: {
+  employees: any[];
+  selectedId: string;
+  onSelect: (id: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const filtered = employees.filter(e =>
+    !search || e.name?.toLowerCase().includes(search.toLowerCase()) ||
+    (e.registration || '').includes(search)
+  );
+
+  const selected = selectedId ? employees.find(e => e.id === selectedId) : null;
+  const regDisplay = (e: any) => e.registration ? `#${String(e.registration).padStart(4, '0')}` : 'S/N';
+
   return (
-    <button onClick={onClick}
-      className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium transition-all ${
-        active ? 'bg-slate-900 text-white shadow-lg shadow-slate-500/20' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'
-      }`}
-    >
-      {icon}<span className="hidden sm:inline">{label}</span>
-    </button>
+    <div ref={ref} className="relative">
+      {/* Trigger */}
+      <button
+        onClick={() => setOpen(!open)}
+        className="flex w-full items-center gap-3 rounded-2xl bg-white px-4 py-3 ring-1 ring-slate-200 shadow-sm hover:ring-slate-300 transition-all duration-200 text-left"
+      >
+        {selected ? (
+          <>
+            <div
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-white text-xs font-bold shadow-sm"
+              style={{ background: stringToHsl(selected.name || '') }}
+            >
+              {getInitials(selected.name || '')}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-slate-900 truncate">{selected.name?.toUpperCase()}</p>
+              <p className="text-[11px] text-slate-500 truncate">{selected.department} · {selected.position}</p>
+            </div>
+            <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-500 ring-1 ring-slate-200">
+              {regDisplay(selected)}
+            </span>
+          </>
+        ) : (
+          <>
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-slate-700 to-slate-900 text-white shadow-sm">
+              <User size={14} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-slate-900">Minha Escala</p>
+              <p className="text-[11px] text-slate-500">Visualizando seus próprios dados</p>
+            </div>
+          </>
+        )}
+        <div className="flex items-center gap-2 shrink-0">
+          {selected && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onSelect(''); setSearch(''); }}
+              className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-red-50 hover:text-red-600 transition-colors"
+            >
+              <X size={12} />
+            </button>
+          )}
+          <ChevronDown size={16} className={`text-slate-400 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+        </div>
+      </button>
+
+      {/* Dropdown */}
+      {open && (
+        <div className="absolute left-0 right-0 top-full z-50 mt-2 rounded-2xl bg-white shadow-2xl shadow-slate-900/15 ring-1 ring-slate-200 overflow-hidden">
+          {/* Search */}
+          <div className="flex items-center gap-2 px-4 py-3 border-b border-slate-100">
+            <Search size={14} className="text-slate-400 shrink-0" />
+            <input
+              autoFocus
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Buscar funcionário..."
+              className="flex-1 bg-transparent text-sm text-slate-900 placeholder-slate-400 outline-none"
+            />
+            {search && (
+              <button onClick={() => setSearch('')} className="text-slate-400 hover:text-slate-600">
+                <X size={12} />
+              </button>
+            )}
+          </div>
+
+          {/* Opção: Minha Escala */}
+          <div className="max-h-72 overflow-y-auto">
+            <button
+              onClick={() => { onSelect(''); setOpen(false); setSearch(''); }}
+              className={`flex w-full items-center gap-3 px-4 py-3 hover:bg-slate-50 transition-colors border-b border-slate-100 ${!selectedId ? 'bg-slate-50' : ''}`}
+            >
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-slate-700 to-slate-900 text-white shadow-sm">
+                <User size={14} />
+              </div>
+              <div className="flex-1 text-left">
+                <p className="text-sm font-semibold text-slate-900">Minha Escala</p>
+                <p className="text-[11px] text-slate-500">Seus próprios dados</p>
+              </div>
+              {!selectedId && <Check size={14} className="text-slate-700 shrink-0" />}
+            </button>
+
+            {filtered.length === 0 ? (
+              <div className="flex flex-col items-center gap-2 py-8 text-slate-400">
+                <Search size={20} className="opacity-40" />
+                <p className="text-sm">Nenhum funcionário encontrado</p>
+              </div>
+            ) : (
+              filtered.slice(0, 50).map((e) => (
+                <button
+                  key={e.id}
+                  onClick={() => { onSelect(e.id); setOpen(false); setSearch(''); }}
+                  className={`flex w-full items-center gap-3 px-4 py-3 hover:bg-slate-50 transition-colors ${selectedId === e.id ? 'bg-slate-50' : ''}`}
+                >
+                  <div
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-white text-xs font-bold shadow-sm"
+                    style={{ background: stringToHsl(e.name || '') }}
+                  >
+                    {getInitials(e.name || '')}
+                  </div>
+                  <div className="flex-1 min-w-0 text-left">
+                    <p className="text-sm font-semibold text-slate-900 truncate">{e.name?.toUpperCase()}</p>
+                    <p className="text-[11px] text-slate-500 truncate">{e.department} · {e.position}</p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-500 ring-1 ring-slate-200">
+                      {regDisplay(e)}
+                    </span>
+                    {selectedId === e.id && <Check size={14} className="text-slate-700" />}
+                  </div>
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
 // ─── MINHA ESCALA ─────────────────────────────────────────────────────────────
 
-function MinhaEscalaTab({ loading, calendarData, year, month, onPrev, onNext, selectedDay, onSelectDay }: any) {
+function MinhaEscalaTab({ loading, calendarData, year, month, onPrev, onNext, selectedDay, onSelectDay, targetEmployeeId, canWrite, onRefresh, targetEmployee }: any) {
   const days: CalendarDay[] = calendarData?.days || [];
   const schedule = calendarData?.schedule;
 
   const totals = calcMonthlyTotals(days);
   const firstDow = days[0] ? new Date(days[0].date + 'T00:00:00').getDay() : 0;
+  const todayStr = new Date().toISOString().split('T')[0];
 
   return (
     <div className="flex flex-col gap-5">
 
       {/* Escala ativa */}
       {schedule ? (
-        <div className="flex items-center gap-4 rounded-xl bg-slate-50 p-4 ring-1 ring-slate-200">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-800">
+        <div className="flex items-center gap-4 rounded-2xl bg-gradient-to-r from-slate-50 to-white p-4 ring-1 ring-slate-200 shadow-sm">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-slate-700 to-slate-900 text-white shadow-md">
             <Briefcase size={18} />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-slate-900">{schedule.name}</p>
-            <p className="text-xs text-slate-500 mt-0.5">
-              {schedule.scaleType} · Entrada: {schedule.entryTime ?? '--'} · Saída: {schedule.exitTime ?? '--'}
+            <p className="text-sm font-bold text-slate-900">{schedule.name}</p>
+            <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-1.5">
+              <span className="rounded-full bg-slate-100 px-2 py-0.5 font-semibold text-slate-600">{schedule.scaleType}</span>
+              <Clock3 size={11} className="text-slate-400" />
+              {schedule.entryTime ?? '--'} → {schedule.exitTime ?? '--'}
               {schedule.lunchStartTime ? ` · Almoço: ${schedule.lunchStartTime}–${schedule.lunchReturnTime ?? '?'}` : ''}
             </p>
           </div>
-          <span className="shrink-0 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700 ring-1 ring-emerald-200">ATIVA</span>
+          <span className="shrink-0 rounded-full bg-emerald-50 px-3 py-1 text-[11px] font-bold text-emerald-700 ring-1 ring-emerald-200 flex items-center gap-1">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse inline-block" />
+            ATIVA
+          </span>
         </div>
       ) : !loading && (
-        <div className="flex items-center gap-3 rounded-xl bg-amber-50 p-4 ring-1 ring-amber-200 text-amber-600 text-sm">
-          <AlertCircle size={16} className="shrink-0" />
-          Nenhuma escala atribuída. Fale com seu gestor ou RH.
+        <div className="flex items-center gap-3 rounded-2xl bg-amber-50 p-4 ring-1 ring-amber-200 text-amber-700 text-sm">
+          <AlertCircle size={18} className="shrink-0" />
+          <div>
+            <p className="font-semibold">Sem escala atribuída</p>
+            <p className="text-xs mt-0.5 text-amber-600">Fale com seu gestor ou RH para configurar sua jornada.</p>
+          </div>
         </div>
       )}
 
-      {/* Cards de resumo mensal — integração direta com Ponto */}
+      {/* Cards de resumo mensal */}
       {days.length > 0 && !loading && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <SummaryCard
             label="Hora Extra"
             value={totals.horaExtra > 0 ? formatMin(totals.horaExtra) : '0h00m'}
             sub={`50%: ${formatMin(totals.overtime50)} · 100%: ${formatMin(totals.overtime100)}`}
-            color="text-emerald-700" bg="bg-emerald-500/8 ring-emerald-200"
-            icon={<TrendingUp size={16} className="text-emerald-700"/>}
+            color="text-emerald-700" bg="bg-emerald-50 ring-emerald-200"
+            icon={<TrendingUp size={16} className="text-emerald-600"/>}
           />
           <SummaryCard
             label="Faltas"
             value={String(totals.faltas)}
             sub={totals.absenceMinutes > 0 ? `${formatMin(totals.absenceMinutes)} de ausência` : 'Nenhuma falta'}
-            color="text-red-700" bg="bg-red-500/8 ring-red-200"
-            icon={<Ban size={16} className="text-red-700"/>}
+            color="text-red-700" bg="bg-red-50 ring-red-200"
+            icon={<Ban size={16} className="text-red-600"/>}
           />
           <SummaryCard
             label="Atrasos"
             value={String(totals.atrasos)}
             sub={totals.lateMinutes > 0 ? `${formatMin(totals.lateMinutes)} acumulados` : 'Nenhum atraso'}
-            color="text-orange-700" bg="bg-orange-500/8 ring-orange-200"
-            icon={<AlertTriangle size={16} className="text-orange-700"/>}
+            color="text-orange-700" bg="bg-orange-50 ring-orange-200"
+            icon={<AlertTriangle size={16} className="text-orange-600"/>}
           />
           <SummaryCard
             label="Saldo do Mês"
             value={formatMin(totals.totalBalance)}
             sub={totals.saidasAntecipadas > 0 ? `${totals.saidasAntecipadas} saída(s) antecipada(s)` : 'Banco de horas'}
             color={totals.totalBalance >= 0 ? 'text-emerald-700' : 'text-red-700'}
-            bg={totals.totalBalance >= 0 ? 'bg-emerald-500/8 ring-emerald-200' : 'bg-red-500/8 ring-red-200'}
-            icon={totals.totalBalance >= 0 ? <TrendingUp size={16} className="text-emerald-700"/> : <TrendingDown size={16} className="text-red-700"/>}
+            bg={totals.totalBalance >= 0 ? 'bg-emerald-50 ring-emerald-200' : 'bg-red-50 ring-red-200'}
+            icon={totals.totalBalance >= 0 ? <TrendingUp size={16} className="text-emerald-600"/> : <TrendingDown size={16} className="text-red-600"/>}
           />
         </div>
       )}
 
       {/* Turno noturno adicional */}
       {totals.nightShift > 0 && (
-        <div className="flex items-center gap-2 rounded-xl bg-slate-100 px-4 py-2.5 ring-1 ring-slate-200 text-xs text-slate-700">
-          <Moon size={13} className="shrink-0" />
-          Adicional noturno no mês: <span className="font-bold ml-1">{formatMin(totals.nightShift)}</span>
+        <div className="flex items-center gap-2 rounded-2xl bg-slate-800 px-4 py-2.5 text-xs text-slate-200">
+          <Moon size={13} className="shrink-0 text-indigo-400" />
+          Adicional noturno no mês: <span className="font-bold ml-1 text-white">{formatMin(totals.nightShift)}</span>
         </div>
       )}
 
       {/* Navegação de mês */}
       <div className="flex items-center justify-between">
-        <button onClick={onPrev} className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-50 text-slate-500 hover:bg-slate-100 hover:text-slate-900 transition-colors"><ChevronLeft size={16}/></button>
-        <h2 className="text-base font-bold text-slate-900">{MONTH_NAMES[month - 1]} {year}</h2>
-        <button onClick={onNext} className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-50 text-slate-500 hover:bg-slate-100 hover:text-slate-900 transition-colors"><ChevronRight size={16}/></button>
+        <button
+          onClick={onPrev}
+          className="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50 hover:text-slate-900 hover:ring-slate-300 transition-all shadow-sm"
+        >
+          <ChevronLeft size={16}/>
+        </button>
+        <h2 className="text-base font-bold text-slate-900 tracking-tight">
+          {MONTH_NAMES[month - 1]} <span className="text-slate-400 font-normal">{year}</span>
+        </h2>
+        <button
+          onClick={onNext}
+          className="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50 hover:text-slate-900 hover:ring-slate-300 transition-all shadow-sm"
+        >
+          <ChevronRight size={16}/>
+        </button>
       </div>
 
-      {/* Legenda Dinâmica */}
-      <div className="flex flex-wrap gap-1.5 text-xs">
-        {[
-          { t: 'WORK', l: 'Trabalho' }, { t: 'FOLGA', l: 'Folga' }, { t: 'FERIADO', l: 'Feriado' },
-          { t: 'ATESTADO', l: 'Atestado' }, { t: 'ATRASO', l: 'Atraso' },
-          { t: 'FALTA', l: 'Falta' }, { t: 'SAIDA_ANTECIPADA', l: 'Saída Antec.' },
-          { t: 'SUSPENSAO', l: 'Suspensão' },
-        ].filter(({ t }) => new Set(days.map(resolveDayType)).has(t)).map(({ t, l }) => {
-          const m = getMeta(t);
-          return (
-            <span key={t} className={`flex items-center gap-1 rounded-full border px-2 py-0.5 font-medium ${m.color} ${m.textColor}`}>
-              <span>{m.icon}</span> {l}
-            </span>
-          );
-        })}
-      </div>
+      {/* Legenda dinâmica */}
+      {days.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 text-xs">
+          {[
+            { t: 'WORK', l: 'Trabalho' }, { t: 'FOLGA', l: 'Folga' }, { t: 'FERIADO', l: 'Feriado' },
+            { t: 'ATESTADO', l: 'Atestado' }, { t: 'ATRASO', l: 'Atraso' },
+            { t: 'FALTA', l: 'Falta' }, { t: 'SAIDA_ANTECIPADA', l: 'Saída Antec.' },
+            { t: 'SUSPENSAO', l: 'Suspensão' }, { t: 'AJUSTE', l: 'Ajuste' },
+          ].filter(({ t }) => new Set(days.map(resolveDayType)).has(t)).map(({ t, l }) => {
+            const m = getMeta(t);
+            return (
+              <span key={t} className={`flex items-center gap-1 rounded-full border px-2.5 py-0.5 font-medium ${m.color} ${m.textColor} ${m.border}`}>
+                <span>{m.icon}</span> {l}
+              </span>
+            );
+          })}
+        </div>
+      )}
 
       {/* Grid calendário */}
       {loading ? (
-        <div className="flex items-center justify-center py-20"><Loader2 size={28} className="animate-spin text-slate-800"/></div>
-      ) : (
-        <div className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-200">
-          {/* Cabeçalho semana */}
-          <div className="mb-2 grid grid-cols-7 gap-1">
+        <div className="rounded-2xl bg-white p-4 ring-1 ring-slate-200">
+          <div className="mb-3 grid grid-cols-7 gap-1.5">
             {WEEK_LABELS.map((d) => (
-              <div key={d} className="text-center text-[10px] font-bold uppercase tracking-wider text-slate-700 py-1">{d}</div>
+              <div key={d} className="text-center text-[10px] font-bold uppercase tracking-wider text-slate-500 py-1">{d}</div>
+            ))}
+          </div>
+          <div className="grid grid-cols-7 gap-1.5">
+            {Array(35).fill(null).map((_, i) => (
+              <div key={i} className="h-20 rounded-xl bg-slate-100 animate-pulse" />
+            ))}
+          </div>
+        </div>
+      ) : days.length === 0 ? (
+        <div className="flex flex-col items-center gap-3 rounded-2xl bg-slate-50 py-16 ring-1 ring-slate-200 text-center">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-400">
+            <CalendarDays size={28} />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-slate-700">Nenhum dado para este mês</p>
+            <p className="text-xs text-slate-500 mt-1">
+              {!calendarData ? 'Sem escala atribuída para este período.' : 'Nenhum dia encontrado.'}
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div className="rounded-2xl bg-white p-4 ring-1 ring-slate-200 shadow-sm">
+          {/* Cabeçalho semana */}
+          <div className="mb-3 grid grid-cols-7 gap-1.5">
+            {WEEK_LABELS.map((d, i) => (
+              <div
+                key={d}
+                className={`text-center text-[10px] font-bold uppercase tracking-wider py-1 rounded-lg ${
+                  i === 0 || i === 6 ? 'text-slate-400' : 'text-slate-600'
+                }`}
+              >
+                {d}
+              </div>
             ))}
           </div>
           {/* Dias */}
-          <div className="grid grid-cols-7 gap-1">
+          <div className="grid grid-cols-7 gap-1.5">
             {Array(firstDow).fill(null).map((_, i) => <div key={`b${i}`}/>)}
             {days.map((day) => {
               const resolved = resolveDayType(day);
               const meta = getMeta(resolved);
               const isSelected = selectedDay?.date === day.date;
-              const isToday = day.date === new Date().toISOString().split('T')[0];
+              const isToday = day.date === todayStr;
               const hasHE = (day.actual?.overtime50Minutes ?? 0) + (day.actual?.overtime100Minutes ?? 0) > 0;
+              const dayNum = new Date(day.date + 'T00:00:00').getDate();
+              const isWeekend = day.dayOfWeek === 0 || day.dayOfWeek === 6;
 
               return (
                 <button
                   key={day.date}
                   onClick={() => onSelectDay(isSelected ? null : day)}
-                  className={`relative flex flex-col items-center rounded-xl border transition-all min-h-[58px] py-1.5 px-1 ${meta.color} ${
-                    isSelected ? 'ring-2 ring-slate-400 ring-offset-1 ring-offset-[#0e0e12]' : 'hover:ring-1 hover:ring-slate-200'
-                  } ${isToday ? 'ring-2 ring-slate-200' : ''}`}
+                  className={`relative flex flex-col items-center rounded-xl border-2 transition-all duration-200 min-h-[80px] py-2 px-1 group select-none ${
+                    isSelected
+                      ? `${meta.border} ${meta.color} shadow-lg scale-105 ring-2 ring-offset-1 ring-slate-400`
+                      : `${meta.color} ${meta.border} hover:shadow-md hover:scale-102`
+                  } ${isToday && !isSelected ? 'ring-2 ring-slate-900 ring-offset-1' : ''}`}
+                  style={isToday && !isSelected ? { boxShadow: '0 0 0 2px #0f172a, 0 0 0 3px rgba(15,23,42,0.15)' } : {}}
                 >
-                  <span className={`text-[11px] font-bold ${meta.textColor} ${isToday ? 'underline underline-offset-2' : ''}`}>
-                    {new Date(day.date + 'T00:00:00').getDate()}
+                  {/* Número do dia */}
+                  <span className={`text-[13px] font-bold leading-none ${
+                    isToday
+                      ? 'flex h-6 w-6 items-center justify-center rounded-full bg-slate-900 text-white text-[11px]'
+                      : isWeekend
+                        ? `${meta.textColor} opacity-70`
+                        : meta.textColor
+                  }`}>
+                    {dayNum}
                   </span>
-                  <span className="text-[11px] mt-0.5">{meta.icon}</span>
-                  {/* Horário programado (dias de trabalho) */}
+
+                  {/* Ícone de status */}
+                  <span className="text-[14px] mt-1 leading-none">{meta.icon}</span>
+
+                  {/* Horário previsto */}
                   {resolved === 'WORK' && day.scheduled.entry && (
-                    <span className="text-[9px] text-slate-500 mt-0.5">{day.scheduled.entry.slice(0,5)}</span>
+                    <span className={`text-[9px] mt-1 font-medium ${meta.textColor} opacity-70 leading-none`}>
+                      {day.scheduled.entry.slice(0,5)}
+                    </span>
                   )}
-                  {/* Badge hora extra */}
+                  {resolved === 'AJUSTE' && day.exception && (
+                    <span className="text-[9px] mt-1 font-bold text-indigo-600 leading-none">ajuste</span>
+                  )}
+
+                  {/* Badge HE aprovada */}
                   {hasHE && day.actual?.overtimeApprovalStatus === 'APPROVED' && (
-                    <span className="absolute -top-1 -right-1 rounded-full bg-emerald-500 px-1 text-[8px] font-bold text-black">HE</span>
+                    <span className="absolute -top-1.5 -right-1.5 rounded-full bg-emerald-500 px-1 py-0.5 text-[8px] font-bold text-white shadow-sm leading-none">HE</span>
                   )}
-                  {/* Badge ocorrência */}
+                  {/* Badge ocorrência crítica */}
                   {(resolved === 'FALTA' || resolved === 'ATRASO' || resolved === 'SAIDA_ANTECIPADA') && (
-                    <span className="absolute -top-1 -right-1 flex h-3 w-3 items-center justify-center rounded-full bg-red-500 text-[7px] font-bold text-slate-900">!</span>
+                    <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[8px] font-bold text-white shadow-sm">!</span>
                   )}
                   {/* Badge HE pendente */}
                   {hasHE && day.actual?.overtimeApprovalStatus === 'PENDING' && (
-                    <span className="absolute -top-1 -right-1 rounded-full bg-amber-500 px-1 text-[8px] font-bold text-black">?</span>
+                    <span className="absolute -top-1.5 -right-1.5 rounded-full bg-amber-500 px-1 py-0.5 text-[8px] font-bold text-white shadow-sm leading-none">?</span>
                   )}
+
+                  {/* Indicador de seleção */}
+                  <span className={`absolute inset-0 rounded-xl transition-opacity duration-200 ${
+                    isSelected ? 'opacity-0' : 'opacity-0 group-hover:opacity-100 bg-slate-900/5'
+                  }`} />
                 </button>
               );
             })}
@@ -526,7 +796,16 @@ function MinhaEscalaTab({ loading, calendarData, year, month, onPrev, onNext, se
       )}
 
       {/* Painel de detalhe do dia */}
-      {selectedDay && <DayDetailPanel day={selectedDay} onClose={() => onSelectDay(null)} canWrite={canWrite} targetEmployeeId={targetEmployeeId} refresh={loadMyCalendar} />}
+      {selectedDay && (
+        <DayDetailPanel
+          day={selectedDay}
+          onClose={() => onSelectDay(null)}
+          canWrite={canWrite}
+          targetEmployeeId={targetEmployeeId}
+          refresh={onRefresh}
+          currentMonth={`${year}-${String(month).padStart(2,'0')}`}
+        />
+      )}
     </div>
   );
 }
@@ -535,24 +814,35 @@ function MinhaEscalaTab({ loading, calendarData, year, month, onPrev, onNext, se
 
 function SummaryCard({ label, value, sub, color, bg, icon }: { label: string; value: string; sub: string; color: string; bg: string; icon: React.ReactNode }) {
   return (
-    <div className={`flex flex-col gap-2 rounded-xl p-4 ring-1 ${bg}`}>
+    <div className={`flex flex-col gap-2.5 rounded-2xl p-4 ring-1 ${bg} transition-transform hover:scale-[1.02] duration-200`}>
       <div className="flex items-center justify-between">
-        <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">{label}</p>
+        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{label}</p>
         {icon}
       </div>
-      <p className={`text-xl font-bold ${color}`}>{value}</p>
-      <p className="text-[10px] text-slate-700 leading-tight">{sub}</p>
+      <p className={`text-2xl font-bold ${color} leading-none`}>{value}</p>
+      <p className="text-[10px] text-slate-600 leading-tight">{sub}</p>
     </div>
   );
 }
 
 // ─── Day Detail Panel ─────────────────────────────────────────────────────────
 
-function DayDetailPanel({ day, onClose, canWrite, targetEmployeeId, refresh }: { day: CalendarDay; onClose: () => void; canWrite?: boolean; targetEmployeeId?: string; refresh?: () => void }) {
+function DayDetailPanel({ day, onClose, canWrite, targetEmployeeId, refresh, currentMonth }: {
+  day: CalendarDay;
+  onClose: () => void;
+  canWrite?: boolean;
+  targetEmployeeId?: string;
+  refresh?: () => void;
+  currentMonth?: string;
+}) {
   const [isEditing, setIsEditing] = useState(false);
-  const [altEntry, setAltEntry] = useState(day.scheduled.entry?.slice(0,5) || '');
-  const [altExit, setAltExit] = useState(day.scheduled.exit?.slice(0,5) || '');
-  const [loading, setLoading] = useState(false);
+  const [altEntry, setAltEntry]       = useState(day.scheduled.entry?.slice(0,5) || '');
+  const [altLunchStart, setAltLunchStart] = useState(day.scheduled.lunchStart?.slice(0,5) || '');
+  const [altLunchReturn, setAltLunchReturn] = useState(day.scheduled.lunchReturn?.slice(0,5) || '');
+  const [altExit, setAltExit]         = useState(day.scheduled.exit?.slice(0,5) || '');
+  const [loading, setLoading]         = useState(false);
+  const [success, setSuccess]         = useState(false);
+  const [showMonthlyAdj, setShowMonthlyAdj] = useState(false);
 
   const handleAjuste = async () => {
     setLoading(true);
@@ -562,9 +852,13 @@ function DayDetailPanel({ day, onClose, canWrite, targetEmployeeId, refresh }: {
         date: day.date,
         exceptionType: 'AJUSTE_ESCALA',
         altEntryTime: altEntry,
-        altExitTime: altExit
+        altExitTime: altExit,
+        altLunchStartTime: altLunchStart,
+        altLunchReturnTime: altLunchReturn,
       });
       setIsEditing(false);
+      setSuccess(true);
+      setTimeout(() => setSuccess(false), 3000);
       if (refresh) refresh();
     } catch (e: any) { alert(e.message || 'Erro ao ajustar'); }
     setLoading(false);
@@ -580,194 +874,364 @@ function DayDetailPanel({ day, onClose, canWrite, targetEmployeeId, refresh }: {
   const totalOT = (a?.overtime50Minutes ?? 0) + (a?.overtime100Minutes ?? 0);
 
   return (
-    <div className="rounded-2xl bg-white shadow-sm ring-1 ring-slate-200 p-5 relative">
-      <button onClick={onClose} className="absolute top-4 right-4 text-slate-500 hover:text-slate-900 transition-colors"><X size={16}/></button>
+    <div className="rounded-2xl bg-white shadow-lg ring-1 ring-slate-200 overflow-hidden animate-in slide-in-from-bottom-2 duration-300">
+      {/* Barra colorida no topo baseada no status */}
+      <div className={`h-1.5 w-full ${meta.color}`} style={{ background: meta.bg }} />
 
-      {/* Cabeçalho */}
-      <div className="flex items-center gap-3 mb-5">
-        <span className={`rounded-lg border px-3 py-1 text-xs font-bold ${meta.color} ${meta.textColor}`}>
-          {meta.icon} {meta.label}
-        </span>
-        <p className="text-sm font-medium text-slate-700 capitalize">{dateLabel}</p>
-        {day.holiday && <span className="text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full ring-1 ring-amber-200">🟡 {day.holiday.name}</span>}
-      </div>
+      <div className="p-5 relative">
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-900 transition-colors"
+        >
+          <X size={14}/>
+        </button>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        {/* PREVISTO — vem da Escala */}
-        <div className="flex flex-col gap-3">
-          <div className="flex items-center justify-between">
-            <p className="text-[11px] font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
-              <CalendarClock size={12}/> Previsto (Escala)
-            </p>
+        {/* Cabeçalho */}
+        <div className="flex items-center gap-3 mb-5 pr-10">
+          <span className={`rounded-xl border px-3 py-1.5 text-xs font-bold ${meta.color} ${meta.textColor} ${meta.border} flex items-center gap-1.5`}>
+            {meta.icon} {meta.label}
+          </span>
+          <p className="text-sm font-semibold text-slate-700 capitalize">{dateLabel}</p>
+          {day.holiday && (
+            <span className="text-xs text-amber-700 bg-amber-50 px-2.5 py-1 rounded-full ring-1 ring-amber-200 font-medium">
+              🟡 {day.holiday.name}
+            </span>
+          )}
+        </div>
+
+        {/* Toast de sucesso */}
+        {success && (
+          <div className="mb-4 flex items-center gap-2 rounded-xl bg-emerald-50 px-4 py-2.5 ring-1 ring-emerald-200 text-sm text-emerald-700 font-medium">
+            <CheckCircle2 size={16} />
+            Ajuste salvo com sucesso!
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          {/* PREVISTO */}
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
+                <CalendarClock size={12}/> Previsto (Escala)
+              </p>
+              {canWrite && !isEditing && (
+                <button
+                  onClick={() => setIsEditing(true)}
+                  className="flex items-center gap-1 rounded-full bg-slate-100 hover:bg-indigo-50 px-2.5 py-1 text-[10px] font-semibold text-slate-600 hover:text-indigo-700 transition-colors ring-1 ring-slate-200 hover:ring-indigo-200"
+                >
+                  <Pencil size={10}/> Editar horário
+                </button>
+              )}
+            </div>
+
+            {isEditing ? (
+              <div className="flex flex-col gap-3 rounded-2xl bg-indigo-50 p-4 ring-1 ring-indigo-200">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-indigo-600">Ajuste individual — {new Date(day.date + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { label: 'Entrada', val: altEntry, set: setAltEntry },
+                    { label: 'Início Almoço', val: altLunchStart, set: setAltLunchStart },
+                    { label: 'Fim Almoço', val: altLunchReturn, set: setAltLunchReturn },
+                    { label: 'Saída', val: altExit, set: setAltExit },
+                  ].map(({ label, val, set }) => (
+                    <div key={label} className="flex flex-col gap-1">
+                      <label className="text-[10px] text-indigo-600 font-semibold">{label}</label>
+                      <input
+                        type="time"
+                        value={val}
+                        onChange={(e) => set(e.target.value)}
+                        className="rounded-xl bg-white px-3 py-2 text-sm text-slate-900 ring-1 ring-indigo-200 focus:outline-none focus:ring-indigo-400 transition-colors"
+                      />
+                    </div>
+                  ))}
+                </div>
+                <div className="flex justify-end gap-2 mt-1">
+                  <button
+                    onClick={() => setIsEditing(false)}
+                    className="rounded-xl px-3 py-1.5 text-xs text-slate-500 hover:text-slate-900 transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={handleAjuste}
+                    disabled={loading}
+                    className="flex items-center gap-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 px-4 py-1.5 text-xs font-bold text-white disabled:opacity-50 transition-colors shadow-sm"
+                  >
+                    {loading ? <Loader2 size={12} className="animate-spin"/> : <Check size={12}/>}
+                    Salvar Ajuste
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2 rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-200">
+                <TimeDetailRow label="Entrada"       value={day.scheduled.entry?.slice(0,5) ?? '--:--'} />
+                <TimeDetailRow label="Início almoço" value={day.scheduled.lunchStart?.slice(0,5) ?? '--:--'} />
+                <TimeDetailRow label="Fim almoço"    value={day.scheduled.lunchReturn?.slice(0,5) ?? '--:--'} />
+                <TimeDetailRow label="Saída"         value={day.scheduled.exit?.slice(0,5) ?? '--:--'} />
+                {day.exception?.exceptionType === 'AJUSTE_ESCALA' && (
+                  <div className="mt-1 pt-2 border-t border-indigo-100 flex items-center gap-1.5 text-[10px] text-indigo-600 font-semibold">
+                    <Zap size={10}/> Horário ajustado manualmente
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Ajuste Mensal — botão para RH */}
             {canWrite && !isEditing && (
-              <button onClick={() => setIsEditing(true)} className="text-[10px] text-slate-500 hover:text-slate-900">
-                Editar Horário
+              <button
+                onClick={() => setShowMonthlyAdj(true)}
+                className="flex items-center gap-2 rounded-2xl bg-slate-50 hover:bg-slate-100 px-4 py-2.5 ring-1 ring-slate-200 hover:ring-slate-300 transition-all text-xs font-semibold text-slate-600 hover:text-slate-900"
+              >
+                <CalendarDays size={13}/> Ajuste do mês inteiro
+                <ArrowRight size={11} className="ml-auto text-slate-400"/>
               </button>
             )}
           </div>
-          {isEditing ? (
-            <div className="flex flex-col gap-2 rounded-xl bg-slate-50 p-3 ring-1 ring-slate-200">
-              <div className="flex items-center gap-2">
-                <input type="time" value={altEntry} onChange={e => setAltEntry(e.target.value)} className="rounded bg-white px-2 py-1 text-sm ring-1 ring-slate-200" />
-                <span className="text-slate-400">-</span>
-                <input type="time" value={altExit} onChange={e => setAltExit(e.target.value)} className="rounded bg-white px-2 py-1 text-sm ring-1 ring-slate-200" />
-              </div>
-              <div className="flex justify-end gap-2 mt-2">
-                <button onClick={() => setIsEditing(false)} className="text-xs text-slate-500">Cancelar</button>
-                <button onClick={handleAjuste} disabled={loading} className="text-xs font-bold text-slate-900 bg-slate-200 px-2 py-1 rounded">{loading ? 'Salvando...' : 'Salvar'}</button>
-              </div>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-2 rounded-xl bg-slate-50 p-3 ring-1 ring-slate-200">
-              <TimeDetailRow label="Entrada"       value={day.scheduled.entry?.slice(0,5) ?? '--:--'} />
-              <TimeDetailRow label="Início almoço" value={day.scheduled.lunchStart?.slice(0,5) ?? '--:--'} />
-              <TimeDetailRow label="Fim almoço"    value={day.scheduled.lunchReturn?.slice(0,5) ?? '--:--'} />
-              <TimeDetailRow label="Saída"         value={day.scheduled.exit?.slice(0,5) ?? '--:--'} />
-            </div>
-          )}
-        </div>
 
-        {/* REALIZADO — vem do Ponto */}
-        <div className="flex flex-col gap-3">
-          <p className="text-[11px] font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
-            <Clock size={12}/> Realizado (Ponto)
-          </p>
-          {a ? (
-            <div className="flex flex-col gap-2 rounded-xl bg-slate-50 p-3 ring-1 ring-slate-200">
-              <TimeDetailRow label="Entrada"       value={formatTime(a.entry)}      highlight={resolved === 'ATRASO'} />
-              <TimeDetailRow label="Início almoço" value={formatTime(a.lunchStart)} />
-              <TimeDetailRow label="Fim almoço"    value={formatTime(a.lunchReturn)}/>
-              <TimeDetailRow label="Saída"         value={formatTime(a.exit)}       highlight={resolved === 'SAIDA_ANTECIPADA'} />
-              <div className="mt-1 border-t border-slate-200 pt-2 flex flex-col gap-1.5">
-                <TimeDetailRow label="Total trabalhado" value={formatMin(a.totalWorked)} />
-                <TimeDetailRow
-                  label="Saldo do dia"
-                  value={formatMin(a.dailyBalance)}
-                  highlight={(a.dailyBalance ?? 0) < 0}
-                  positive={(a.dailyBalance ?? 0) > 0}
-                />
+          {/* REALIZADO */}
+          <div className="flex flex-col gap-3">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
+              <Clock size={12}/> Realizado (Ponto)
+            </p>
+            {a ? (
+              <div className="flex flex-col gap-2 rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-200">
+                <TimeDetailRow label="Entrada"       value={formatTime(a.entry)}      highlight={resolved === 'ATRASO'} />
+                <TimeDetailRow label="Início almoço" value={formatTime(a.lunchStart)} />
+                <TimeDetailRow label="Fim almoço"    value={formatTime(a.lunchReturn)}/>
+                <TimeDetailRow label="Saída"         value={formatTime(a.exit)}       highlight={resolved === 'SAIDA_ANTECIPADA'} />
+                <div className="mt-1 border-t border-slate-200 pt-2.5 flex flex-col gap-1.5">
+                  <TimeDetailRow label="Total trabalhado" value={formatMin(a.totalWorked)} />
+                  <TimeDetailRow
+                    label="Saldo do dia"
+                    value={formatMin(a.dailyBalance)}
+                    highlight={(a.dailyBalance ?? 0) < 0}
+                    positive={(a.dailyBalance ?? 0) > 0}
+                  />
+                </div>
               </div>
-            </div>
-          ) : (
-            <div className="flex items-center justify-center rounded-xl bg-slate-50 ring-1 ring-slate-200 py-6 text-xs text-slate-700">
-              Sem registro de ponto neste dia
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Ocorrências — dados críticos do Ponto */}
-      {a && (
-        <div className="mt-4 flex flex-col gap-2">
-          <p className="text-[11px] font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
-            <AlertTriangle size={12}/> Ocorrências
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {/* Atraso */}
-            {resolved === 'ATRASO' && (
-              <OccurrenceBadge color="bg-orange-50 text-orange-600 ring-orange-200" icon="⏰" label={`Atraso: ${formatMin(a.lateMinutes)}`} />
-            )}
-            {/* Saída antecipada */}
-            {resolved === 'SAIDA_ANTECIPADA' && (
-              <OccurrenceBadge color="bg-orange-50 text-orange-600 ring-orange-200" icon="🏃" label="Saída Antecipada" />
-            )}
-            {/* Falta */}
-            {resolved === 'FALTA' && (
-              <OccurrenceBadge color="bg-red-50 text-red-700 ring-red-200" icon="❌" label={`Falta: ${formatMin(a.absenceMinutes)} ausência`} />
-            )}
-            {/* Hora extra 50% */}
-            {(a.overtime50Minutes ?? 0) > 0 && (
-              <OccurrenceBadge
-                color={a.overtimeApprovalStatus === 'APPROVED'
-                  ? 'bg-emerald-50 text-emerald-600 ring-emerald-200'
-                  : 'bg-amber-50 text-amber-600 ring-amber-200'}
-                icon="⏱"
-                label={`HE 50%: ${formatMin(a.overtime50Minutes)} ${a.overtimeApprovalStatus === 'PENDING' ? '(aguard. aprov.)' : ''}`}
-              />
-            )}
-            {/* Hora extra 100% */}
-            {(a.overtime100Minutes ?? 0) > 0 && (
-              <OccurrenceBadge
-                color={a.overtimeApprovalStatus === 'APPROVED'
-                  ? 'bg-emerald-50 text-emerald-600 ring-emerald-200'
-                  : 'bg-amber-50 text-amber-600 ring-amber-200'}
-                icon="⏱"
-                label={`HE 100%: ${formatMin(a.overtime100Minutes)} ${a.overtimeApprovalStatus === 'PENDING' ? '(aguard. aprov.)' : ''}`}
-              />
-            )}
-            {/* Turno noturno */}
-            {(a.nightShiftMinutes ?? 0) > 0 && (
-              <OccurrenceBadge color="bg-slate-50 text-slate-700 ring-slate-200" icon="🌙" label={`Noturno: ${formatMin(a.nightShiftMinutes)}`} />
-            )}
-            {/* Atestado */}
-            {(resolved === 'ATESTADO' || resolved === 'ATESTADO_HORAS') && (
-              <OccurrenceBadge color="bg-purple-50 text-purple-600 ring-purple-200" icon="💊" label={resolved === 'ATESTADO' ? 'Atestado Integral' : 'Atestado (horas)'} />
-            )}
-            {/* Suspensão */}
-            {resolved === 'SUSPENSAO' && (
-              <OccurrenceBadge color="bg-red-100 text-red-700 ring-red-200" icon="🚫" label="Suspensão" />
-            )}
-            {/* Feriado */}
-            {resolved === 'FERIADO' && (
-              <OccurrenceBadge color="bg-amber-50 text-amber-600 ring-amber-200" icon="🟡" label={`Feriado${day.holiday ? ': ' + day.holiday.name : ''}`} />
-            )}
-            {/* Folgas */}
-            {(resolved === 'FOLGA' || resolved === 'FOLGA_DSR' || resolved === 'FOLGA_BANCO') && (
-              <OccurrenceBadge color="bg-blue-50 text-blue-600 ring-blue-200" icon="🔵" label={getMeta(resolved).label} />
-            )}
-            {/* Ponto fora do local */}
-            {a.locationAddress && (
-              <OccurrenceBadge color="bg-zinc-50 text-zinc-600 ring-zinc-200" icon="📍" label={`Local: ${a.locationAddress}`} />
-            )}
-            {/* Sem biometria */}
-            {a.clockedInWithoutFacial && (
-              <OccurrenceBadge color="bg-yellow-50 text-yellow-600 ring-yellow-200" icon="⚠️" label="Sem biometria facial" />
-            )}
-            {/* Nenhuma ocorrência */}
-            {resolved === 'WORK' && !((a.overtime50Minutes ?? 0) + (a.overtime100Minutes ?? 0) > 0) &&
-             !a.lateMinutes && !(a.dailyBalance && a.dailyBalance < 0) && (
-              <OccurrenceBadge color="bg-emerald-50 text-emerald-700 ring-emerald-200" icon="✅" label="Sem ocorrências" />
+            ) : (
+              <div className="flex flex-col items-center justify-center gap-2 rounded-2xl bg-slate-50 ring-1 ring-slate-200 py-8 text-xs text-slate-500">
+                <Clock size={20} className="opacity-30" />
+                Sem registro de ponto neste dia
+              </div>
             )}
           </div>
+        </div>
 
-          {/* Observação / motivo do ajuste */}
-          {a.observation && (
-            <div className="mt-2 flex items-start gap-2 rounded-xl bg-slate-50 p-3 ring-1 ring-slate-200 text-xs text-slate-500">
-              <FileText size={12} className="shrink-0 mt-0.5"/>
-              <p>{a.observation}</p>
-            </div>
-          )}
-          {/* Status de aprovação HE */}
-          {totalOT > 0 && (
-            <div className={`flex items-center gap-2 rounded-xl px-3 py-2 text-xs ring-1 ${
-              a.overtimeApprovalStatus === 'APPROVED'
-                ? 'bg-emerald-500/8 text-emerald-700 ring-emerald-200'
-                : a.overtimeApprovalStatus === 'REJECTED'
-                  ? 'bg-red-500/8 text-red-700 ring-red-200'
-                  : 'bg-amber-500/8 text-amber-700 ring-amber-200'
-            }`}>
-              <Info size={12}/>
-              Hora Extra ({formatMin(totalOT)}): {
-                a.overtimeApprovalStatus === 'APPROVED' ? 'Aprovada' :
-                a.overtimeApprovalStatus === 'REJECTED' ? 'Rejeitada' : 'Aguardando aprovação'
-              }
-              {a.overtimeHandling && a.overtimeApprovalStatus === 'APPROVED' && (
-                <span className="ml-1 opacity-60">— destino: {
-                  a.overtimeHandling === 'BANK' ? 'Banco de Horas' :
-                  a.overtimeHandling === 'PAYMENT' ? 'Pagamento em Folha' : 'Dividido'
-                }</span>
+        {/* Ocorrências */}
+        {a && (
+          <div className="mt-5 flex flex-col gap-3">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
+              <AlertTriangle size={12}/> Ocorrências
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {resolved === 'ATRASO' && (
+                <OccurrenceBadge color="bg-orange-50 text-orange-700 ring-orange-200" icon="⏰" label={`Atraso: ${formatMin(a.lateMinutes)}`} />
+              )}
+              {resolved === 'SAIDA_ANTECIPADA' && (
+                <OccurrenceBadge color="bg-orange-50 text-orange-700 ring-orange-200" icon="🏃" label="Saída Antecipada" />
+              )}
+              {resolved === 'FALTA' && (
+                <OccurrenceBadge color="bg-red-50 text-red-700 ring-red-200" icon="❌" label={`Falta: ${formatMin(a.absenceMinutes)} ausência`} />
+              )}
+              {(a.overtime50Minutes ?? 0) > 0 && (
+                <OccurrenceBadge
+                  color={a.overtimeApprovalStatus === 'APPROVED' ? 'bg-emerald-50 text-emerald-700 ring-emerald-200' : 'bg-amber-50 text-amber-700 ring-amber-200'}
+                  icon="⏱"
+                  label={`HE 50%: ${formatMin(a.overtime50Minutes)} ${a.overtimeApprovalStatus === 'PENDING' ? '(aguard. aprov.)' : ''}`}
+                />
+              )}
+              {(a.overtime100Minutes ?? 0) > 0 && (
+                <OccurrenceBadge
+                  color={a.overtimeApprovalStatus === 'APPROVED' ? 'bg-emerald-50 text-emerald-700 ring-emerald-200' : 'bg-amber-50 text-amber-700 ring-amber-200'}
+                  icon="⏱"
+                  label={`HE 100%: ${formatMin(a.overtime100Minutes)} ${a.overtimeApprovalStatus === 'PENDING' ? '(aguard. aprov.)' : ''}`}
+                />
+              )}
+              {(a.nightShiftMinutes ?? 0) > 0 && (
+                <OccurrenceBadge color="bg-slate-100 text-slate-700 ring-slate-200" icon="🌙" label={`Noturno: ${formatMin(a.nightShiftMinutes)}`} />
+              )}
+              {(resolved === 'ATESTADO' || resolved === 'ATESTADO_HORAS') && (
+                <OccurrenceBadge color="bg-purple-50 text-purple-700 ring-purple-200" icon="💊" label={resolved === 'ATESTADO' ? 'Atestado Integral' : 'Atestado (horas)'} />
+              )}
+              {resolved === 'SUSPENSAO' && (
+                <OccurrenceBadge color="bg-red-100 text-red-700 ring-red-200" icon="🚫" label="Suspensão" />
+              )}
+              {resolved === 'FERIADO' && (
+                <OccurrenceBadge color="bg-amber-50 text-amber-700 ring-amber-200" icon="🟡" label={`Feriado${day.holiday ? ': ' + day.holiday.name : ''}`} />
+              )}
+              {(resolved === 'FOLGA' || resolved === 'FOLGA_DSR' || resolved === 'FOLGA_BANCO') && (
+                <OccurrenceBadge color="bg-blue-50 text-blue-700 ring-blue-200" icon="🔵" label={getMeta(resolved).label} />
+              )}
+              {a.locationAddress && (
+                <OccurrenceBadge color="bg-zinc-50 text-zinc-700 ring-zinc-200" icon="📍" label={`Local: ${a.locationAddress}`} />
+              )}
+              {a.clockedInWithoutFacial && (
+                <OccurrenceBadge color="bg-yellow-50 text-yellow-700 ring-yellow-200" icon="⚠️" label="Sem biometria facial" />
+              )}
+              {resolved === 'WORK' && !((a.overtime50Minutes ?? 0) + (a.overtime100Minutes ?? 0) > 0) &&
+               !a.lateMinutes && !(a.dailyBalance && a.dailyBalance < 0) && (
+                <OccurrenceBadge color="bg-emerald-50 text-emerald-700 ring-emerald-200" icon="✅" label="Sem ocorrências" />
               )}
             </div>
-          )}
-          {/* Pendente de aprovação de ajuste manual */}
-          {a.manualStatus === 'pending' && (
-            <div className="flex items-center gap-2 rounded-xl bg-amber-500/8 px-3 py-2 text-xs text-amber-700 ring-1 ring-amber-200">
-              <AlertCircle size={12}/> Ajuste manual aguardando aprovação do gestor
-            </div>
-          )}
-        </div>
+
+            {a.observation && (
+              <div className="flex items-start gap-2 rounded-2xl bg-slate-50 p-3.5 ring-1 ring-slate-200 text-xs text-slate-600">
+                <FileText size={12} className="shrink-0 mt-0.5 text-slate-400"/>
+                <p>{a.observation}</p>
+              </div>
+            )}
+
+            {totalOT > 0 && (
+              <div className={`flex items-center gap-2 rounded-2xl px-4 py-2.5 text-xs ring-1 font-medium ${
+                a.overtimeApprovalStatus === 'APPROVED'
+                  ? 'bg-emerald-50 text-emerald-700 ring-emerald-200'
+                  : a.overtimeApprovalStatus === 'REJECTED'
+                    ? 'bg-red-50 text-red-700 ring-red-200'
+                    : 'bg-amber-50 text-amber-700 ring-amber-200'
+              }`}>
+                <Info size={12}/>
+                Hora Extra ({formatMin(totalOT)}): {
+                  a.overtimeApprovalStatus === 'APPROVED' ? 'Aprovada ✓' :
+                  a.overtimeApprovalStatus === 'REJECTED' ? 'Rejeitada ✗' : 'Aguardando aprovação...'
+                }
+                {a.overtimeHandling && a.overtimeApprovalStatus === 'APPROVED' && (
+                  <span className="ml-1 opacity-70">— {
+                    a.overtimeHandling === 'BANK' ? 'Banco de Horas' :
+                    a.overtimeHandling === 'PAYMENT' ? 'Pagamento em Folha' : 'Dividido'
+                  }</span>
+                )}
+              </div>
+            )}
+
+            {a.manualStatus === 'pending' && (
+              <div className="flex items-center gap-2 rounded-2xl bg-amber-50 px-4 py-2.5 text-xs text-amber-700 ring-1 ring-amber-200 font-medium">
+                <AlertCircle size={12}/> Ajuste manual aguardando aprovação do gestor
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Modal de Ajuste Mensal */}
+      {showMonthlyAdj && (
+        <ModalAjusteMensal
+          employeeId={targetEmployeeId || 'me'}
+          currentMonth={currentMonth || ''}
+          onClose={() => setShowMonthlyAdj(false)}
+          onSuccess={() => { setShowMonthlyAdj(false); if (refresh) refresh(); }}
+        />
       )}
     </div>
+  );
+}
+
+// ─── Modal Ajuste Mensal ──────────────────────────────────────────────────────
+
+function ModalAjusteMensal({ employeeId, currentMonth, onClose, onSuccess }: {
+  employeeId: string;
+  currentMonth: string;
+  onClose: () => void;
+  onSuccess: () => void;
+}) {
+  const [type, setType] = useState('FOLGA');
+  const [month, setMonth] = useState(currentMonth);
+  const [observation, setObservation] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const TYPES = [
+    { value: 'FOLGA',    label: 'Folga',             icon: '🔵' },
+    { value: 'ATESTADO', label: 'Atestado',           icon: '💊' },
+    { value: 'FERIADO',  label: 'Feriado',            icon: '🟡' },
+    { value: 'AJUSTE',   label: 'Ajuste de Horário',  icon: '⚙️' },
+    { value: 'FOLGA_BANCO', label: 'Folga Banco',     icon: '🏦' },
+  ];
+
+  const submit = async () => {
+    if (!month) { setError('Selecione o mês.'); return; }
+    setLoading(true); setError('');
+    try {
+      await api.schedules.createMonthlyException?.({
+        employeeId,
+        month,
+        exceptionType: type,
+        observation: observation || undefined,
+      });
+      onSuccess();
+    } catch (e: any) {
+      // Fallback: informar que o ajuste mensal pode precisar de implementação no backend
+      setError(e.message || 'Erro ao criar ajuste mensal. Verifique se o backend suporta esta operação.');
+    }
+    setLoading(false);
+  };
+
+  return (
+    <Modal title="Ajuste do Mês Inteiro" onClose={onClose}>
+      <div className="flex flex-col gap-4">
+        <div className="rounded-2xl bg-amber-50 p-3.5 ring-1 ring-amber-200 text-xs text-amber-700 flex items-start gap-2">
+          <Info size={13} className="shrink-0 mt-0.5"/>
+          <div>
+            <p className="font-semibold">Ajuste aplicado a todos os dias úteis do mês</p>
+            <p className="mt-0.5 text-amber-600">Use para casos como saída antecipada recorrente, licença mensal etc.</p>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <label className="text-xs font-semibold text-slate-600">Mês de referência</label>
+          <input
+            type="month"
+            value={month}
+            onChange={(e) => setMonth(e.target.value)}
+            className="rounded-xl bg-slate-50 px-4 py-2.5 text-sm text-slate-900 ring-1 ring-slate-200 focus:outline-none focus:ring-slate-400"
+          />
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <label className="text-xs font-semibold text-slate-600">Tipo de ajuste</label>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {TYPES.map((t) => (
+              <button
+                key={t.value}
+                onClick={() => setType(t.value)}
+                className={`flex items-center gap-2 rounded-xl px-3 py-2.5 text-xs font-semibold ring-1 transition-all ${
+                  type === t.value
+                    ? 'bg-slate-900 text-white ring-slate-900 shadow-sm'
+                    : 'bg-slate-50 text-slate-600 ring-slate-200 hover:ring-slate-300 hover:bg-slate-100'
+                }`}
+              >
+                <span>{t.icon}</span> {t.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <label className="text-xs font-semibold text-slate-600">Observação (opcional)</label>
+          <textarea
+            value={observation}
+            onChange={(e) => setObservation(e.target.value)}
+            rows={3}
+            placeholder="Descreva o motivo do ajuste..."
+            className="rounded-xl bg-slate-50 px-4 py-2.5 text-sm text-slate-900 ring-1 ring-slate-200 focus:outline-none focus:ring-slate-400 resize-none"
+          />
+        </div>
+
+        {error && <p className="text-xs text-red-700 bg-red-50 px-3 py-2 rounded-xl ring-1 ring-red-200">{error}</p>}
+
+        <div className="flex gap-2 justify-end pt-1">
+          <button onClick={onClose} className="rounded-xl px-4 py-2 text-sm text-slate-500 hover:text-slate-900 transition-colors">Cancelar</button>
+          <button
+            onClick={submit}
+            disabled={loading}
+            className="flex items-center gap-2 rounded-xl bg-slate-900 hover:bg-slate-700 px-5 py-2 text-sm font-semibold text-white disabled:opacity-50 transition-colors shadow-sm"
+          >
+            {loading ? <Loader2 size={14} className="animate-spin"/> : <Check size={14}/>}
+            Aplicar Ajuste
+          </button>
+        </div>
+      </div>
+    </Modal>
   );
 }
 
@@ -775,14 +1239,16 @@ function TimeDetailRow({ label, value, highlight, positive }: { label: string; v
   return (
     <div className="flex items-center justify-between gap-2">
       <span className="text-xs text-slate-500">{label}</span>
-      <span className={`text-xs font-medium ${highlight ? 'text-red-700' : positive ? 'text-emerald-700' : 'text-slate-700'}`}>{value}</span>
+      <span className={`text-xs font-semibold tabular-nums ${
+        highlight ? 'text-red-700' : positive ? 'text-emerald-700' : 'text-slate-800'
+      }`}>{value}</span>
     </div>
   );
 }
 
 function OccurrenceBadge({ color, icon, label }: { color: string; icon: string; label: string }) {
   return (
-    <span className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ring-1 ${color}`}>
+    <span className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ring-1 ${color}`}>
       {icon} {label}
     </span>
   );
@@ -798,14 +1264,34 @@ function EscalaEquipeTab({ loading, teamData, schedules, canWrite, year, month, 
     <div className="flex flex-col gap-5">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <button onClick={onPrev} className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-50 text-slate-500 hover:bg-slate-100 hover:text-slate-900 transition-colors"><ChevronLeft size={16}/></button>
-          <h2 className="text-base font-bold text-slate-900">{MONTH_NAMES[month-1]} {year}</h2>
-          <button onClick={onNext} className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-50 text-slate-500 hover:bg-slate-100 hover:text-slate-900 transition-colors"><ChevronRight size={16}/></button>
+          <button
+            onClick={onPrev}
+            className="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50 hover:ring-slate-300 transition-all shadow-sm"
+          >
+            <ChevronLeft size={16}/>
+          </button>
+          <h2 className="text-base font-bold text-slate-900">
+            {MONTH_NAMES[month-1]} <span className="text-slate-400 font-normal">{year}</span>
+          </h2>
+          <button
+            onClick={onNext}
+            className="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50 hover:ring-slate-300 transition-all shadow-sm"
+          >
+            <ChevronRight size={16}/>
+          </button>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={onRefresh} className="flex items-center gap-1.5 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-500 hover:text-slate-900 transition-colors"><RefreshCw size={13}/> Atualizar</button>
+          <button
+            onClick={onRefresh}
+            className="flex items-center gap-1.5 rounded-xl bg-white px-3 py-2 text-xs font-medium text-slate-600 ring-1 ring-slate-200 hover:ring-slate-300 hover:text-slate-900 transition-all shadow-sm"
+          >
+            <RefreshCw size={12}/> Atualizar
+          </button>
           {canWrite && (
-            <button onClick={onLancar} className="flex items-center gap-1.5 rounded-lg bg-white border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:text-slate-900 hover:bg-slate-50 shadow-sm transition-colors">
+            <button
+              onClick={onLancar}
+              className="flex items-center gap-1.5 rounded-xl bg-slate-900 hover:bg-slate-700 px-4 py-2 text-xs font-bold text-white transition-all shadow-sm"
+            >
               <Plus size={13}/> Lançar Escala
             </button>
           )}
@@ -813,48 +1299,47 @@ function EscalaEquipeTab({ loading, teamData, schedules, canWrite, year, month, 
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-20"><Loader2 size={28} className="animate-spin text-slate-800"/></div>
+        <div className="flex flex-col gap-2">
+          {Array(5).fill(null).map((_, i) => (
+            <div key={i} className="h-20 rounded-2xl bg-slate-100 animate-pulse" />
+          ))}
+        </div>
       ) : (
         <>
           {withSchedule.length > 0 && (
             <div className="flex flex-col gap-2">
-              <p className="text-xs font-bold uppercase tracking-wider text-slate-700">Com Escala</p>
+              <div className="flex items-center gap-2">
+                <p className="text-xs font-bold uppercase tracking-wider text-slate-700">Com Escala</p>
+                <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 ring-1 ring-emerald-200">
+                  {withSchedule.length}
+                </span>
+              </div>
               {withSchedule.map((us: any) => (
-                <button key={us.id} onClick={() => onSelectEmployee?.(us.employeeId)} className="flex items-center gap-4 w-full text-left rounded-xl bg-slate-50 p-4 ring-1 ring-slate-200 hover:ring-slate-300 hover:bg-slate-100 transition-all">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-200 text-slate-700 text-xs font-bold">
-                    {us.employee?.name?.split(' ').map((n: string) => n[0]).slice(0,2).join('').toUpperCase()}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-slate-900 truncate">
-                      {us.employee?.registration ? `[${us.employee.registration}] ` : ''}{us.employee?.name?.toUpperCase()}
-                    </p>
-                    <p className="text-xs text-slate-500 truncate">{us.employee?.department?.toUpperCase()} · {us.employee?.position?.toUpperCase()}</p>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <p className="text-sm font-semibold text-slate-700">{us.schedule?.name}</p>
-                    <p className="text-xs text-slate-500">{us.schedule?.scaleType} · {us.schedule?.entryTime ?? '--'} – {us.schedule?.exitTime ?? '--'}</p>
-                  </div>
-                  <span className="shrink-0 rounded-full bg-slate-50 border border-slate-200 px-2 py-0.5 text-[10px] font-bold text-slate-600">ATIVA</span>
-                </button>
+                <EmployeeTeamCard
+                  key={us.id}
+                  employee={us.employee}
+                  schedule={us.schedule}
+                  hasSchedule
+                  onSelect={() => onSelectEmployee?.(us.employee?.id || us.employeeId)}
+                />
               ))}
             </div>
           )}
           {withoutSchedule.length > 0 && (
             <div className="flex flex-col gap-2">
-              <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Sem Escala</p>
+              <div className="flex items-center gap-2">
+                <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Sem Escala</p>
+                <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-700 ring-1 ring-amber-200">
+                  {withoutSchedule.length}
+                </span>
+              </div>
               {withoutSchedule.map((emp: any) => (
-                <button key={emp.id} onClick={() => onSelectEmployee?.(emp.id)} className="flex items-center gap-4 w-full text-left rounded-xl bg-slate-50 p-4 ring-1 ring-slate-200 hover:ring-slate-300 hover:bg-slate-100 transition-all">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white ring-1 ring-slate-200 text-slate-700 text-xs font-bold">
-                    {emp.name?.split(' ').map((n: string) => n[0]).slice(0,2).join('').toUpperCase()}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-slate-900 truncate">
-                      {emp.registration ? `[${emp.registration}] ` : ''}{emp.name?.toUpperCase()}
-                    </p>
-                    <p className="text-xs text-slate-500">{emp.department?.toUpperCase()} · {emp.position?.toUpperCase()}</p>
-                  </div>
-                  <span className="text-xs text-slate-400">Sem escala atribuída</span>
-                </button>
+                <EmployeeTeamCard
+                  key={emp.id}
+                  employee={emp}
+                  hasSchedule={false}
+                  onSelect={() => onSelectEmployee?.(emp.id)}
+                />
               ))}
             </div>
           )}
@@ -864,6 +1349,75 @@ function EscalaEquipeTab({ loading, teamData, schedules, canWrite, year, month, 
         </>
       )}
     </div>
+  );
+}
+
+// ─── Employee Team Card Premium ────────────────────────────────────────────────
+
+function EmployeeTeamCard({ employee, schedule, hasSchedule, onSelect }: {
+  employee: any;
+  schedule?: any;
+  hasSchedule: boolean;
+  onSelect: () => void;
+}) {
+  if (!employee) return null;
+  const avatarColor = stringToHsl(employee.name || '');
+  const reg = employee.registration ? `#${String(employee.registration).padStart(4, '0')}` : 'S/N';
+
+  return (
+    <button
+      onClick={onSelect}
+      className="group flex items-center gap-4 w-full text-left rounded-2xl bg-white p-4 ring-1 ring-slate-200 hover:ring-slate-300 hover:shadow-md transition-all duration-200 relative overflow-hidden"
+    >
+      {/* Linha lateral colorida no hover */}
+      <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-slate-900 opacity-0 group-hover:opacity-100 transition-opacity rounded-full" />
+
+      {/* Avatar */}
+      <div
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-white text-sm font-bold shadow-md group-hover:scale-105 transition-transform"
+        style={{ background: avatarColor }}
+      >
+        {getInitials(employee.name || '')}
+      </div>
+
+      {/* Info */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <p className="text-sm font-bold text-slate-900 truncate">{employee.name?.toUpperCase()}</p>
+          <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[9px] font-bold text-slate-500 ring-1 ring-slate-200">
+            {reg}
+          </span>
+        </div>
+        <p className="text-xs text-slate-500 truncate mt-0.5">
+          {employee.department?.toUpperCase()} · {employee.position?.toUpperCase()}
+        </p>
+      </div>
+
+      {/* Escala info */}
+      {hasSchedule && schedule ? (
+        <div className="text-right shrink-0 hidden sm:block">
+          <p className="text-sm font-semibold text-slate-700">{schedule.name}</p>
+          <p className="text-xs text-slate-500">{schedule.scaleType} · {schedule.entryTime ?? '--'} – {schedule.exitTime ?? '--'}</p>
+        </div>
+      ) : (
+        <div className="shrink-0">
+          <span className="flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-[10px] font-bold text-amber-700 ring-1 ring-amber-200">
+            <AlertCircle size={10}/> Sem escala
+          </span>
+        </div>
+      )}
+
+      {/* Badge Ativa + Chevron */}
+      <div className="flex items-center gap-2 shrink-0">
+        {hasSchedule && (
+          <span className="hidden sm:flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-bold text-emerald-700 ring-1 ring-emerald-200">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse inline-block" />
+            ATIVA
+          </span>
+        )}
+        <ChevronRight size={14} className="text-slate-300 group-hover:text-slate-600 transition-colors" />
+      </div>
+    </button>
   );
 }
 
@@ -878,32 +1432,43 @@ function TrocarEscalaTab({ loading, swaps, canApprove, onNovatroca, onApprove, o
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           {pending.length > 0 && (
-            <span className="flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-600 ring-1 ring-amber-200">
-              <AlertCircle size={12}/> {pending.length} pendente{pending.length !== 1 ? 's' : ''}
+            <span className="flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-700 ring-1 ring-amber-200">
+              <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse inline-block" />
+              {pending.length} pendente{pending.length !== 1 ? 's' : ''}
             </span>
           )}
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={onRefresh} className="flex items-center gap-1.5 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-500 hover:text-slate-900 transition-colors"><RefreshCw size={13}/> Atualizar</button>
-          <button onClick={onNovatroca} className="flex items-center gap-1.5 rounded-lg bg-white border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:text-slate-900 hover:bg-slate-50 shadow-sm transition-colors">
+          <button
+            onClick={onRefresh}
+            className="flex items-center gap-1.5 rounded-xl bg-white px-3 py-2 text-xs font-medium text-slate-600 ring-1 ring-slate-200 hover:ring-slate-300 transition-all shadow-sm"
+          >
+            <RefreshCw size={12}/> Atualizar
+          </button>
+          <button
+            onClick={onNovatroca}
+            className="flex items-center gap-1.5 rounded-xl bg-slate-900 hover:bg-slate-700 px-4 py-2 text-xs font-bold text-white transition-all shadow-sm"
+          >
             <Plus size={13}/> Nova Solicitação
           </button>
         </div>
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-20"><Loader2 size={28} className="animate-spin text-slate-800"/></div>
+        <div className="flex items-center justify-center py-20">
+          <Loader2 size={28} className="animate-spin text-slate-400"/>
+        </div>
       ) : (
         <>
           {pending.length > 0 && (
             <div className="flex flex-col gap-3">
-              <p className="text-xs font-bold uppercase tracking-wider text-amber-700/60">Aguardando Aprovação</p>
+              <p className="text-xs font-bold uppercase tracking-wider text-amber-700">Aguardando Aprovação</p>
               {pending.map((s: any) => <SwapCard key={s.id} swap={s} canApprove={canApprove} onApprove={onApprove} onCancel={onCancel}/>)}
             </div>
           )}
           {others.length > 0 && (
             <div className="flex flex-col gap-3">
-              <p className="text-xs font-bold uppercase tracking-wider text-slate-700">Histórico</p>
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Histórico</p>
               {others.map((s: any) => <SwapCard key={s.id} swap={s} canApprove={false} onApprove={onApprove} onCancel={onCancel}/>)}
             </div>
           )}
@@ -919,30 +1484,40 @@ function TrocarEscalaTab({ loading, swaps, canApprove, onNovatroca, onApprove, o
 function SwapCard({ swap, canApprove, onApprove, onCancel }: any) {
   const fmtDate = (d: string) => new Date(d).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
   return (
-    <div className="rounded-xl bg-slate-50 p-4 ring-1 ring-slate-200 hover:ring-slate-200 transition-all">
+    <div className="rounded-2xl bg-white p-4 ring-1 ring-slate-200 hover:ring-slate-300 transition-all shadow-sm">
       <div className="flex items-start gap-4">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-50 text-slate-800"><ArrowLeftRight size={16}/></div>
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-slate-600">
+          <ArrowLeftRight size={16}/>
+        </div>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <p className="text-sm font-semibold text-slate-900 truncate">{swap.requester?.name?.toUpperCase() ?? 'USUÁRIO'}</p>
-            <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${SWAP_STATUS_BADGE[swap.status]}`}>{SWAP_STATUS_LABEL[swap.status]}</span>
+          <div className="flex items-center gap-2 mb-1.5">
+            <p className="text-sm font-bold text-slate-900 truncate">{swap.requester?.name?.toUpperCase() ?? 'USUÁRIO'}</p>
+            <span className={`rounded-full border px-2.5 py-0.5 text-[10px] font-bold ${SWAP_STATUS_BADGE[swap.status]}`}>
+              {SWAP_STATUS_LABEL[swap.status]}
+            </span>
           </div>
-          <p className="text-xs text-slate-500">
-            <span className="text-red-700 font-medium">{fmtDate(swap.originalDate)}</span>
-            {' '}→{' '}
-            <span className="text-emerald-700 font-medium">{fmtDate(swap.targetDate)}</span>
+          <p className="text-xs text-slate-500 flex items-center gap-1.5">
+            <span className="text-red-700 font-semibold">{fmtDate(swap.originalDate)}</span>
+            <ArrowRight size={11} className="text-slate-300" />
+            <span className="text-emerald-700 font-semibold">{fmtDate(swap.targetDate)}</span>
           </p>
-          {swap.justification && <p className="mt-1 text-xs text-slate-700 italic">"{swap.justification}"</p>}
-          {swap.rejectionReason && <p className="mt-1 text-xs text-red-700">Motivo: {swap.rejectionReason}</p>}
+          {swap.justification && <p className="mt-1 text-xs text-slate-600 italic">"{swap.justification}"</p>}
+          {swap.rejectionReason && <p className="mt-1 text-xs text-red-700 font-medium">Motivo: {swap.rejectionReason}</p>}
         </div>
         {swap.status === 'PENDING' && (
           <div className="flex gap-2 shrink-0">
             {canApprove && (
-              <button onClick={() => onApprove(swap)} className="flex items-center gap-1 rounded-lg bg-emerald-600/20 px-2.5 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-600/30 transition-colors ring-1 ring-emerald-200">
+              <button
+                onClick={() => onApprove(swap)}
+                className="flex items-center gap-1 rounded-xl bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700 hover:bg-emerald-100 transition-colors ring-1 ring-emerald-200"
+              >
                 <Check size={12}/> Revisar
               </button>
             )}
-            <button onClick={() => onCancel(swap.id)} className="flex items-center gap-1 rounded-lg bg-red-50 px-2.5 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100 transition-colors ring-1 ring-red-200">
+            <button
+              onClick={() => onCancel(swap.id)}
+              className="flex items-center gap-1 rounded-xl bg-red-50 px-3 py-1.5 text-xs font-bold text-red-700 hover:bg-red-100 transition-colors ring-1 ring-red-200"
+            >
               <X size={12}/> Cancelar
             </button>
           </div>
@@ -976,43 +1551,57 @@ function ModalSolicitarTroca({ onClose, onSuccess, canApprove, allEmployees }: {
   return (
     <Modal title="Nova Solicitação de Troca" onClose={onClose}>
       <div className="flex flex-col gap-4">
-        <div className="rounded-xl bg-indigo-500/8 p-3 text-xs text-slate-700 ring-1 ring-slate-200 flex items-start gap-2">
+        <div className="rounded-2xl bg-indigo-50 p-3.5 ring-1 ring-indigo-200 text-xs text-indigo-700 flex items-start gap-2">
           <Info size={13} className="shrink-0 mt-0.5"/>
           Sua solicitação será encaminhada automaticamente ao seu gestor para aprovação.
         </div>
         {canApprove && (
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs text-slate-500">Em nome de (Opcional)</label>
-            <select value={targetEmployeeId} onChange={(e) => setTargetEmployeeId(e.target.value)}
-              className="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-900 ring-1 ring-slate-200 focus:outline-none focus:ring-slate-200">
+            <label className="text-xs font-semibold text-slate-600">Em nome de (Opcional)</label>
+            <select
+              value={targetEmployeeId}
+              onChange={(e) => setTargetEmployeeId(e.target.value)}
+              className="rounded-xl bg-slate-50 px-4 py-2.5 text-sm text-slate-900 ring-1 ring-slate-200 focus:outline-none"
+            >
               <option value="">Minha Escala</option>
-              {allEmployees?.map(e => <option key={e.id} value={e.id}>[{e.registration || '-'}] {e.name?.toUpperCase()}</option>)}
+              {allEmployees?.map(e => (
+                <option key={e.id} value={e.id}>
+                  {e.registration ? `#${String(e.registration).padStart(4,'0')}` : 'S/N'} — {e.name?.toUpperCase()}
+                </option>
+              ))}
             </select>
           </div>
         )}
         <div className="grid grid-cols-2 gap-3">
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs text-slate-500">Dia a folgar (original)</label>
+            <label className="text-xs font-semibold text-slate-600">Dia a folgar</label>
             <input type="date" value={originalDate} onChange={(e) => setOriginalDate(e.target.value)}
-              className="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-900 ring-1 ring-slate-200 focus:outline-none focus:ring-slate-200"/>
+              className="rounded-xl bg-slate-50 px-4 py-2.5 text-sm text-slate-900 ring-1 ring-slate-200 focus:outline-none"/>
           </div>
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs text-slate-500">Dia para trabalhar</label>
+            <label className="text-xs font-semibold text-slate-600">Dia para trabalhar</label>
             <input type="date" value={targetDate} onChange={(e) => setTargetDate(e.target.value)}
-              className="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-900 ring-1 ring-slate-200 focus:outline-none focus:ring-slate-200"/>
+              className="rounded-xl bg-slate-50 px-4 py-2.5 text-sm text-slate-900 ring-1 ring-slate-200 focus:outline-none"/>
           </div>
         </div>
         <div className="flex flex-col gap-1.5">
-          <label className="text-xs text-slate-500">Justificativa (opcional)</label>
-          <textarea value={justification} onChange={(e) => setJustification(e.target.value)} rows={3}
+          <label className="text-xs font-semibold text-slate-600">Justificativa (opcional)</label>
+          <textarea
+            value={justification}
+            onChange={(e) => setJustification(e.target.value)}
+            rows={3}
             placeholder="Descreva o motivo da troca..."
-            className="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-900 ring-1 ring-slate-200 focus:outline-none focus:ring-slate-200 resize-none"/>
+            className="rounded-xl bg-slate-50 px-4 py-2.5 text-sm text-slate-900 ring-1 ring-slate-200 focus:outline-none resize-none"
+          />
         </div>
-        {error && <p className="text-xs text-red-700">{error}</p>}
-        <div className="flex gap-2 justify-end">
-          <button onClick={onClose} className="rounded-lg px-4 py-2 text-sm text-slate-500 hover:text-slate-900 transition-colors">Cancelar</button>
-          <button onClick={submit} disabled={loading}
-            className="flex items-center gap-2 rounded-lg bg-white border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:text-slate-900 hover:bg-slate-50 shadow-sm disabled:opacity-50 transition-colors">
+        {error && <p className="text-xs text-red-700 bg-red-50 px-3 py-2 rounded-xl ring-1 ring-red-200">{error}</p>}
+        <div className="flex gap-2 justify-end pt-1">
+          <button onClick={onClose} className="rounded-xl px-4 py-2 text-sm text-slate-500 hover:text-slate-900 transition-colors">Cancelar</button>
+          <button
+            onClick={submit}
+            disabled={loading}
+            className="flex items-center gap-2 rounded-xl bg-slate-900 hover:bg-slate-700 px-5 py-2 text-sm font-semibold text-white disabled:opacity-50 transition-colors shadow-sm"
+          >
             {loading ? <Loader2 size={14} className="animate-spin"/> : <Check size={14}/>} Enviar
           </button>
         </div>
@@ -1043,22 +1632,28 @@ function ModalAprovarTroca({ swap, onClose, onSuccess }: { swap: any; onClose: (
   return (
     <Modal title="Revisar Solicitação de Troca" onClose={onClose}>
       <div className="flex flex-col gap-4">
-        <div className="rounded-xl bg-slate-50 p-4 ring-1 ring-slate-200">
-          <p className="text-sm font-semibold text-slate-900 mb-1">{swap.requester?.name?.toUpperCase()}</p>
-          <p className="text-xs text-slate-500">
-            Folgar em <span className="text-red-700 font-medium">{fmtDate(swap.originalDate)}</span>{' '}
-            e trabalhar em <span className="text-emerald-700 font-medium">{fmtDate(swap.targetDate)}</span>
+        <div className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-200">
+          <p className="text-sm font-bold text-slate-900 mb-1">{swap.requester?.name?.toUpperCase()}</p>
+          <p className="text-xs text-slate-500 flex items-center gap-2">
+            Folgar em <span className="text-red-700 font-semibold">{fmtDate(swap.originalDate)}</span>
+            <ArrowRight size={11} className="text-slate-400" />
+            trabalhar em <span className="text-emerald-700 font-semibold">{fmtDate(swap.targetDate)}</span>
           </p>
-          {swap.justification && <p className="mt-2 text-xs text-slate-500 italic">"{swap.justification}"</p>}
+          {swap.justification && <p className="mt-2 text-xs text-slate-600 italic">"{swap.justification}"</p>}
         </div>
         <div className="grid grid-cols-2 gap-2">
           {(['APPROVED', 'REJECTED'] as const).map((opt) => (
-            <button key={opt} onClick={() => setAction(opt)}
-              className={`flex items-center justify-center gap-2 rounded-xl py-3 text-sm font-medium transition-all ring-1 ${
+            <button
+              key={opt}
+              onClick={() => setAction(opt)}
+              className={`flex items-center justify-center gap-2 rounded-2xl py-3.5 text-sm font-semibold transition-all ring-1 ${
                 action === opt
-                  ? opt === 'APPROVED' ? 'bg-emerald-600/30 text-emerald-600 ring-emerald-200' : 'bg-red-600/20 text-red-600 ring-red-200'
-                  : 'bg-slate-50 text-slate-500 ring-slate-200 hover:ring-slate-200'
-              }`}>
+                  ? opt === 'APPROVED'
+                    ? 'bg-emerald-600 text-white ring-emerald-600 shadow-md'
+                    : 'bg-red-600 text-white ring-red-600 shadow-md'
+                  : 'bg-slate-50 text-slate-500 ring-slate-200 hover:ring-slate-300 hover:bg-slate-100'
+              }`}
+            >
               {opt === 'APPROVED' ? <CheckCircle2 size={16}/> : <XCircle size={16}/>}
               {opt === 'APPROVED' ? 'Aprovar' : 'Rejeitar'}
             </button>
@@ -1066,19 +1661,26 @@ function ModalAprovarTroca({ swap, onClose, onSuccess }: { swap: any; onClose: (
         </div>
         {action === 'REJECTED' && (
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs text-slate-500">Motivo *</label>
-            <textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={2}
-              className="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-900 ring-1 ring-slate-200 focus:outline-none resize-none"
-              placeholder="Explique o motivo..."/>
+            <label className="text-xs font-semibold text-slate-600">Motivo *</label>
+            <textarea
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              rows={2}
+              className="rounded-xl bg-slate-50 px-4 py-2.5 text-sm text-slate-900 ring-1 ring-slate-200 focus:outline-none resize-none"
+              placeholder="Explique o motivo..."
+            />
           </div>
         )}
-        {error && <p className="text-xs text-red-700">{error}</p>}
-        <div className="flex gap-2 justify-end">
-          <button onClick={onClose} className="rounded-lg px-4 py-2 text-sm text-slate-500 hover:text-slate-900 transition-colors">Cancelar</button>
-          <button onClick={submit} disabled={loading}
-            className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-slate-900 disabled:opacity-50 transition-colors ${
+        {error && <p className="text-xs text-red-700 bg-red-50 px-3 py-2 rounded-xl ring-1 ring-red-200">{error}</p>}
+        <div className="flex gap-2 justify-end pt-1">
+          <button onClick={onClose} className="rounded-xl px-4 py-2 text-sm text-slate-500 hover:text-slate-900 transition-colors">Cancelar</button>
+          <button
+            onClick={submit}
+            disabled={loading}
+            className={`flex items-center gap-2 rounded-xl px-5 py-2 text-sm font-semibold text-white disabled:opacity-50 transition-colors shadow-sm ${
               action === 'APPROVED' ? 'bg-emerald-600 hover:bg-emerald-500' : 'bg-red-600 hover:bg-red-500'
-            }`}>
+            }`}
+          >
             {loading ? <Loader2 size={14} className="animate-spin"/> : action === 'APPROVED' ? <Check size={14}/> : <X size={14}/>}
             {action === 'APPROVED' ? 'Confirmar Aprovação' : 'Confirmar Rejeição'}
           </button>
@@ -1107,7 +1709,25 @@ function ModalLancarEscala({ schedules, onClose, onSuccess }: { schedules: any[]
   const [error, setError] = useState('');
 
   useEffect(() => { api.employees.list().then(setEmployees).catch(() => {}); }, []);
-  const filteredEmployees = employees.filter((e) => e.name?.toLowerCase().includes(employeeSearch.toLowerCase()));
+
+  const filteredEmployees = employees.filter((e) =>
+    !employeeSearch || e.name?.toLowerCase().includes(employeeSearch.toLowerCase()) ||
+    (e.registration || '').toString().includes(employeeSearch)
+  );
+
+  const allFilteredSelected = filteredEmployees.length > 0 && filteredEmployees.every(e => selectedEmployees.includes(e.id));
+
+  const toggleEmployee = (id: string) => {
+    setSelectedEmployees(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    );
+  };
+
+  const selectAction = (action: 'none' | 'all' | 'filtered') => {
+    if (action === 'none') setSelectedEmployees([]);
+    else if (action === 'all') setSelectedEmployees(employees.map(e => e.id));
+    else setSelectedEmployees(filteredEmployees.map(e => e.id));
+  };
 
   const submitAssign = async () => {
     if (selectedEmployees.length === 0 || !selectedSchedule || !startDate) { setError('Preencha todos os campos.'); return; }
@@ -1127,11 +1747,20 @@ function ModalLancarEscala({ schedules, onClose, onSuccess }: { schedules: any[]
     setLoading(false);
   };
 
+  const selectedEmployeeObjects = employees.filter(e => selectedEmployees.includes(e.id));
+
   return (
     <Modal title="Lançar / Criar Escala" onClose={onClose} wide>
-      <div className="flex gap-1 rounded-lg bg-slate-50 p-1 mb-5">
+      {/* Tabs */}
+      <div className="flex gap-1 rounded-2xl bg-slate-100 p-1.5 mb-6">
         {(['assign', 'create'] as const).map((m) => (
-          <button key={m} onClick={() => setMode(m)} className={`flex-1 rounded-md py-2 text-xs font-semibold transition-all ${mode === m ? 'bg-white text-slate-800 shadow-sm ring-1 ring-slate-200' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'}`}>
+          <button
+            key={m}
+            onClick={() => setMode(m)}
+            className={`flex-1 rounded-xl py-2.5 text-xs font-bold transition-all ${
+              mode === m ? 'bg-white text-slate-900 shadow-sm ring-1 ring-slate-200' : 'text-slate-500 hover:text-slate-700 hover:bg-white/50'
+            }`}
+          >
             {m === 'assign' ? 'Atribuir Existente' : 'Criar Nova Escala'}
           </button>
         ))}
@@ -1139,90 +1768,212 @@ function ModalLancarEscala({ schedules, onClose, onSuccess }: { schedules: any[]
 
       {mode === 'assign' ? (
         <div className="flex flex-col gap-4">
-          <div className="flex flex-col gap-1.5">
-            <div className="flex items-center justify-between">
-              <label className="text-xs text-slate-500">Funcionários ({selectedEmployees.length} selecionados)</label>
-              <button onClick={() => {
-                if (selectedEmployees.length === filteredEmployees.length) setSelectedEmployees([]);
-                else setSelectedEmployees(filteredEmployees.map(e => e.id));
-              }} className="text-[10px] font-bold text-slate-500 hover:text-slate-800">
-                {selectedEmployees.length === filteredEmployees.length ? 'Desmarcar Todos' : 'Selecionar Todos'}
-              </button>
+          {/* Chips dos selecionados */}
+          {selectedEmployeeObjects.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {selectedEmployeeObjects.map(e => (
+                <span
+                  key={e.id}
+                  className="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 text-white shadow-sm"
+                  style={{ background: stringToHsl(e.name || '') }}
+                >
+                  {getInitials(e.name || '')} {e.name?.split(' ')[0]}
+                  <button
+                    onClick={() => toggleEmployee(e.id)}
+                    className="flex h-4 w-4 items-center justify-center rounded-full bg-white/20 hover:bg-white/40 transition-colors"
+                  >
+                    <X size={9} />
+                  </button>
+                </span>
+              ))}
             </div>
-            <input value={employeeSearch} onChange={(e) => setEmployeeSearch(e.target.value)} placeholder="Buscar..."
-              className="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-900 ring-1 ring-slate-200 focus:outline-none focus:ring-slate-200"/>
-            {filteredEmployees.length > 0 && (
-              <div className="max-h-40 overflow-y-auto rounded-lg bg-white shadow-sm ring-1 ring-slate-200 mt-1 flex flex-col">
-                {filteredEmployees.slice(0, 50).map((e) => {
+          )}
+
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-semibold text-slate-600">
+                Funcionários
+                {selectedEmployees.length > 0 && (
+                  <span className="ml-2 rounded-full bg-slate-900 text-white px-2 py-0.5 text-[10px] font-bold">
+                    {selectedEmployees.length} selecionado{selectedEmployees.length !== 1 ? 's' : ''}
+                  </span>
+                )}
+              </label>
+              {/* Botões de ação em grupo */}
+              <div className="flex items-center gap-1 rounded-xl bg-slate-100 p-1">
+                <button
+                  onClick={() => selectAction('none')}
+                  className={`rounded-lg px-2 py-1 text-[10px] font-bold transition-all ${
+                    selectedEmployees.length === 0 ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  Nenhum
+                </button>
+                <button
+                  onClick={() => selectAction('filtered')}
+                  className={`rounded-lg px-2 py-1 text-[10px] font-bold transition-all ${
+                    allFilteredSelected && employeeSearch ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  Filtrados
+                </button>
+                <button
+                  onClick={() => selectAction('all')}
+                  className={`rounded-lg px-2 py-1 text-[10px] font-bold transition-all ${
+                    selectedEmployees.length === employees.length && employees.length > 0 ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  Todos
+                </button>
+              </div>
+            </div>
+
+            {/* Busca */}
+            <div className="relative">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                value={employeeSearch}
+                onChange={(e) => setEmployeeSearch(e.target.value)}
+                placeholder="Buscar por nome ou matrícula..."
+                className="w-full rounded-xl bg-slate-50 pl-9 pr-4 py-2.5 text-sm text-slate-900 ring-1 ring-slate-200 focus:outline-none focus:ring-slate-400"
+              />
+            </div>
+
+            {/* Lista de funcionários */}
+            <div className="max-h-52 overflow-y-auto rounded-2xl bg-white ring-1 ring-slate-200 divide-y divide-slate-100 shadow-sm">
+              {filteredEmployees.length === 0 ? (
+                <div className="flex flex-col items-center gap-2 py-8 text-slate-400">
+                  <Search size={18} className="opacity-40"/>
+                  <p className="text-xs">Nenhum funcionário encontrado</p>
+                </div>
+              ) : (
+                filteredEmployees.slice(0, 50).map((e) => {
                   const isSelected = selectedEmployees.includes(e.id);
+                  const reg = e.registration ? `#${String(e.registration).padStart(4, '0')}` : 'S/N';
                   return (
-                    <button key={e.id} onClick={() => {
-                      if (isSelected) setSelectedEmployees(prev => prev.filter(id => id !== e.id));
-                      else setSelectedEmployees(prev => [...prev, e.id]);
-                    }}
-                      className={`flex items-center gap-3 w-full px-3 py-2 text-left text-sm text-slate-900 hover:bg-slate-50 ${isSelected ? 'bg-slate-100 font-bold' : ''}`}>
-                      <div className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${isSelected ? 'border-slate-800 bg-slate-800 text-white' : 'border-slate-300'}`}>
-                        {isSelected && <Check size={12} strokeWidth={3} />}
+                    <button
+                      key={e.id}
+                      onClick={() => toggleEmployee(e.id)}
+                      className={`flex items-center gap-3 w-full px-4 py-3 text-left transition-colors ${
+                        isSelected ? 'bg-slate-50' : 'hover:bg-slate-50'
+                      }`}
+                    >
+                      {/* Checkbox */}
+                      <div className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-lg border-2 transition-all ${
+                        isSelected ? 'border-slate-900 bg-slate-900' : 'border-slate-300 bg-white hover:border-slate-500'
+                      }`}>
+                        {isSelected && <Check size={11} strokeWidth={3} className="text-white"/>}
                       </div>
-                      <div className="min-w-0 flex-1 truncate">
-                        [{e.registration || '-'}] {e.name?.toUpperCase()} <span className="text-slate-500 text-[10px] font-medium ml-1">· {e.department?.toUpperCase() || 'SEM DEPTO'}</span>
+
+                      {/* Avatar */}
+                      <div
+                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-white text-xs font-bold shadow-sm"
+                        style={{ background: stringToHsl(e.name || '') }}
+                      >
+                        {getInitials(e.name || '')}
                       </div>
+
+                      {/* Info */}
+                      <div className="min-w-0 flex-1">
+                        <p className={`text-sm truncate ${isSelected ? 'font-bold text-slate-900' : 'font-medium text-slate-800'}`}>
+                          {e.name?.toUpperCase()}
+                        </p>
+                        <p className="text-[10px] text-slate-500 truncate">{e.department?.toUpperCase() || 'SEM DEPTO'}</p>
+                      </div>
+
+                      {/* Matrícula */}
+                      <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[9px] font-bold text-slate-500 ring-1 ring-slate-200">
+                        {reg}
+                      </span>
                     </button>
                   );
-                })}
-              </div>
-            )}
+                })
+              )}
+            </div>
           </div>
+
+          {/* Escala */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs text-slate-500">Escala</label>
-            <select value={selectedSchedule} onChange={(e) => setSelectedSchedule(e.target.value)}
-              className="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-900 ring-1 ring-slate-200 focus:outline-none">
+            <label className="text-xs font-semibold text-slate-600">Escala</label>
+            <select
+              value={selectedSchedule}
+              onChange={(e) => setSelectedSchedule(e.target.value)}
+              className="rounded-xl bg-slate-50 px-4 py-2.5 text-sm text-slate-900 ring-1 ring-slate-200 focus:outline-none"
+            >
               <option value="">Selecionar...</option>
-              {schedules.map((s: any) => <option key={s.id} value={s.id}>{s.name} ({s.scaleType})</option>)}
+              {schedules.map((s: any) => (
+                <option key={s.id} value={s.id}>{s.name} ({s.scaleType})</option>
+              ))}
             </select>
           </div>
+
+          {/* Início da Vigência */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs text-slate-500">Início da Vigência</label>
-            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)}
-              className="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-900 ring-1 ring-slate-200 focus:outline-none"/>
+            <label className="text-xs font-semibold text-slate-600">Início da Vigência</label>
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="rounded-xl bg-slate-50 px-4 py-2.5 text-sm text-slate-900 ring-1 ring-slate-200 focus:outline-none"
+            />
           </div>
         </div>
       ) : (
         <div className="flex flex-col gap-4">
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs text-slate-500">Nome</label>
-              <input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Ex: Administrativo 8h"
-                className="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-900 ring-1 ring-slate-200 focus:outline-none"/>
+              <label className="text-xs font-semibold text-slate-600">Nome</label>
+              <input
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                placeholder="Ex: Administrativo 8h"
+                className="rounded-xl bg-slate-50 px-4 py-2.5 text-sm text-slate-900 ring-1 ring-slate-200 focus:outline-none"
+              />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs text-slate-500">Tipo</label>
-              <select value={newType} onChange={(e) => setNewType(e.target.value)}
-                className="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-900 ring-1 ring-slate-200 focus:outline-none">
-                {['5x2','6x1','12x36','4x2','PERSONALIZADA','PLANTAO'].map((t) => <option key={t} value={t}>{t}</option>)}
+              <label className="text-xs font-semibold text-slate-600">Tipo</label>
+              <select
+                value={newType}
+                onChange={(e) => setNewType(e.target.value)}
+                className="rounded-xl bg-slate-50 px-4 py-2.5 text-sm text-slate-900 ring-1 ring-slate-200 focus:outline-none"
+              >
+                {['5x2','6x1','12x36','4x2','PERSONALIZADA','PLANTAO'].map((t) => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
               </select>
             </div>
           </div>
-          <div className="grid grid-cols-4 gap-2">
-            {[{l:'Entrada',v:newEntry,s:setNewEntry},{l:'Início Almoço',v:newLunchStart,s:setNewLunchStart},{l:'Fim Almoço',v:newLunchReturn,s:setNewLunchReturn},{l:'Saída',v:newExit,s:setNewExit}]
-              .map(({ l, v, s }) => (
-                <div key={l} className="flex flex-col gap-1.5">
-                  <label className="text-xs text-slate-500">{l}</label>
-                  <input type="time" value={v} onChange={(e) => s(e.target.value)}
-                    className="rounded-lg bg-slate-50 px-2 py-2 text-sm text-slate-900 ring-1 ring-slate-200 focus:outline-none"/>
-                </div>
-              ))}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {[
+              { l: 'Entrada',      v: newEntry,      s: setNewEntry },
+              { l: 'Início Almoço', v: newLunchStart, s: setNewLunchStart },
+              { l: 'Fim Almoço',   v: newLunchReturn, s: setNewLunchReturn },
+              { l: 'Saída',        v: newExit,        s: setNewExit },
+            ].map(({ l, v, s }) => (
+              <div key={l} className="flex flex-col gap-1.5">
+                <label className="text-xs font-semibold text-slate-600">{l}</label>
+                <input
+                  type="time"
+                  value={v}
+                  onChange={(e) => s(e.target.value)}
+                  className="rounded-xl bg-slate-50 px-3 py-2.5 text-sm text-slate-900 ring-1 ring-slate-200 focus:outline-none"
+                />
+              </div>
+            ))}
           </div>
         </div>
       )}
 
-      {error && <p className="text-xs text-red-700 mt-2">{error}</p>}
-      <div className="flex gap-2 justify-end mt-5">
-        <button onClick={onClose} className="rounded-lg px-4 py-2 text-sm text-slate-500 hover:text-slate-900 transition-colors">Cancelar</button>
-        <button onClick={mode === 'assign' ? submitAssign : submitCreate} disabled={loading}
-          className="flex items-center gap-2 rounded-lg bg-white border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:text-slate-900 hover:bg-slate-50 shadow-sm disabled:opacity-50 transition-colors">
+      {error && <p className="text-xs text-red-700 bg-red-50 px-3 py-2 rounded-xl ring-1 ring-red-200 mt-3">{error}</p>}
+      <div className="flex gap-2 justify-end mt-6">
+        <button onClick={onClose} className="rounded-xl px-4 py-2 text-sm text-slate-500 hover:text-slate-900 transition-colors">Cancelar</button>
+        <button
+          onClick={mode === 'assign' ? submitAssign : submitCreate}
+          disabled={loading}
+          className="flex items-center gap-2 rounded-xl bg-slate-900 hover:bg-slate-700 px-5 py-2 text-sm font-bold text-white disabled:opacity-50 transition-colors shadow-sm"
+        >
           {loading ? <Loader2 size={14} className="animate-spin"/> : <Check size={14}/>}
-          {mode === 'assign' ? 'Atribuir' : 'Criar'}
+          {mode === 'assign' ? `Atribuir${selectedEmployees.length > 0 ? ` (${selectedEmployees.length})` : ''}` : 'Criar Escala'}
         </button>
       </div>
     </Modal>
@@ -1233,13 +1984,18 @@ function ModalLancarEscala({ schedules, onClose, onSuccess }: { schedules: any[]
 
 function Modal({ title, onClose, children, wide }: { title: string; onClose: () => void; children: React.ReactNode; wide?: boolean }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-      <div className={`relative flex flex-col rounded-2xl bg-white ring-1 ring-slate-200 shadow-2xl w-full ${wide ? 'max-w-2xl' : 'max-w-md'}`}>
-        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+      <div className={`relative flex flex-col rounded-2xl bg-white ring-1 ring-slate-200 shadow-2xl w-full ${wide ? 'max-w-2xl' : 'max-w-md'} animate-in slide-in-from-bottom-4 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-300`}>
+        <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
           <h2 className="text-base font-bold text-slate-900">{title}</h2>
-          <button onClick={onClose} className="text-slate-500 hover:text-slate-900 transition-colors"><X size={18}/></button>
+          <button
+            onClick={onClose}
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-900 transition-colors"
+          >
+            <X size={16}/>
+          </button>
         </div>
-        <div className="p-6">{children}</div>
+        <div className="p-6 overflow-y-auto max-h-[80vh]">{children}</div>
       </div>
     </div>
   );
@@ -1247,10 +2003,14 @@ function Modal({ title, onClose, children, wide }: { title: string; onClose: () 
 
 function EmptyState({ icon, message, hint }: { icon: React.ReactNode; message: string; hint?: string }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-3 py-16 text-center text-slate-700">
-      <div className="opacity-30">{icon}</div>
-      <p className="text-sm">{message}</p>
-      {hint && <p className="text-xs opacity-60">{hint}</p>}
+    <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
+      <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100 text-slate-400">
+        {icon}
+      </div>
+      <div>
+        <p className="text-sm font-semibold text-slate-700">{message}</p>
+        {hint && <p className="text-xs text-slate-500 mt-1">{hint}</p>}
+      </div>
     </div>
   );
 }
