@@ -924,7 +924,7 @@ function SwapCard({ swap, canApprove, onApprove, onCancel }: any) {
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-50 text-slate-800"><ArrowLeftRight size={16}/></div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <p className="text-sm font-semibold text-slate-900 truncate">{swap.requester?.name ?? 'Usuário'}</p>
+            <p className="text-sm font-semibold text-slate-900 truncate">{swap.requester?.name?.toUpperCase() ?? 'USUÁRIO'}</p>
             <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${SWAP_STATUS_BADGE[swap.status]}`}>{SWAP_STATUS_LABEL[swap.status]}</span>
           </div>
           <p className="text-xs text-slate-500">
@@ -1044,7 +1044,7 @@ function ModalAprovarTroca({ swap, onClose, onSuccess }: { swap: any; onClose: (
     <Modal title="Revisar Solicitação de Troca" onClose={onClose}>
       <div className="flex flex-col gap-4">
         <div className="rounded-xl bg-slate-50 p-4 ring-1 ring-slate-200">
-          <p className="text-sm font-semibold text-slate-900 mb-1">{swap.requester?.name}</p>
+          <p className="text-sm font-semibold text-slate-900 mb-1">{swap.requester?.name?.toUpperCase()}</p>
           <p className="text-xs text-slate-500">
             Folgar em <span className="text-red-700 font-medium">{fmtDate(swap.originalDate)}</span>{' '}
             e trabalhar em <span className="text-emerald-700 font-medium">{fmtDate(swap.targetDate)}</span>
@@ -1165,7 +1165,7 @@ function ModalLancarEscala({ schedules, onClose, onSuccess }: { schedules: any[]
                         {isSelected && <Check size={12} strokeWidth={3} />}
                       </div>
                       <div className="min-w-0 flex-1 truncate">
-                        [{e.registration || '-'}] {e.name?.toUpperCase()} <span className="text-slate-500 text-[10px] font-medium ml-1">· {e.department || 'Sem depto'}</span>
+                        [{e.registration || '-'}] {e.name?.toUpperCase()} <span className="text-slate-500 text-[10px] font-medium ml-1">· {e.department?.toUpperCase() || 'SEM DEPTO'}</span>
                       </div>
                     </button>
                   );
