@@ -251,7 +251,8 @@ export default function TimeTrackPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [month, setMonth] = useState(currentMonth());
-  const tracks = useQuery(() => api.timeTrack.list(month), [month]);\n  const teamSchedules = useQuery(() => api.schedules.teamSchedule(month), [month]);
+  const tracks = useQuery(() => api.timeTrack.list(month), [month]);
+  const teamSchedules = useQuery(() => api.schedules.teamSchedule(month), [month]);
   const employees = useQuery(() => api.employees.list(), []);
   const company = useQuery(() => api.companies.me(), []);
   const holidays = useQuery(() => api.companies.getHolidays(), []);
@@ -637,8 +638,8 @@ function OcorrenciasList({ employees, byEmpMap, month, onSelect }: { employees: 
   );
 }
 
-function MonthGrid({ employee, tracks, month, canManage, canApprove, refreshing, removeLoading, onEdit, onDelete, showActions, company }: { employee: Employee; tracks: TimeTrack[]; month: string; canManage: boolean; canApprove: boolean; refreshing: boolean; removeLoading: boolean; onEdit: (r:TimeTrack)=>void; onDelete: (r:TimeTrack)=>void; showActions?: boolean; company?: any }) {
-  const grid = useMemo(()=> buildGrid(month, employee, tracks, company?.payrollStartDay || 1), [month, employee, tracks, company]);
+function MonthGrid({ employee, tracks, month, canManage, canApprove, refreshing, removeLoading, onEdit, onDelete, showActions, company, teamSchedules = [] }: { employee: Employee; tracks: TimeTrack[]; month: string; canManage: boolean; canApprove: boolean; refreshing: boolean; removeLoading: boolean; onEdit: (r:TimeTrack)=>void; onDelete: (r:TimeTrack)=>void; showActions?: boolean; company?: any; teamSchedules?: any[] }) {
+  const grid = useMemo(()=> buildGrid(month, employee, tracks, company?.payrollStartDay || 1, [], teamSchedules), [month, employee, tracks, company, teamSchedules]);
   const worked = sumMin(tracks,'totalWorked');
   const saldo = sumMin(tracks,'dailyBalance');
   const restDays = grid.filter(g=>g.isRest).length;
