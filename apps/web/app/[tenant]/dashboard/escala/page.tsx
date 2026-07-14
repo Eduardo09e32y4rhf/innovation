@@ -558,8 +558,27 @@ function EmployeeCombobox({ employees, selectedId, onSelect }: {
 // ─── MINHA ESCALA ─────────────────────────────────────────────────────────────
 
 function MinhaEscalaTab({ loading, calendarData, year, month, onPrev, onNext, selectedDay, onSelectDay, targetEmployeeId, canWrite, onRefresh, targetEmployee }: any) {
-  const days: CalendarDay[] = calendarData?.days || [];
+  const apiDays: CalendarDay[] = calendarData?.days || [];
   const schedule = calendarData?.schedule;
+  
+  // Preencher os dias do mês
+  const numDays = new Date(year, month, 0).getDate();
+  const days: CalendarDay[] = [];
+  for (let i = 1; i <= numDays; i++) {
+    const dString = `${year}-${String(month).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+    const apiDay = apiDays.find(d => d.date === dString);
+    if (apiDay) {
+      days.push(apiDay);
+    } else {
+      days.push({
+        date: dString,
+        dayOfWeek: new Date(year, month - 1, i).getDay(),
+        dayType: 'SEM_ESCALA',
+        scheduled: {},
+        actual: null,
+      });
+    }
+  }
 
   const totals = calcMonthlyTotals(days);
   const firstDow = days[0] ? new Date(days[0].date + 'T00:00:00').getDay() : 0;
@@ -1253,8 +1272,8 @@ function OccurrenceBadge({ color, icon, label }: { color: string; icon: string; 
 // ─── ESCALA DE EQUIPE ─────────────────────────────────────────────────────────
 
 function EscalaEquipeTab({ loading, teamData, schedules, canWrite, year, month, onPrev, onNext, onLancar, onRefresh, onSelectEmployee }: any) {
-  const withSchedule    = teamData?.withSchedule ?? [];
-  const withoutSchedule = teamData?.withoutSchedule ?? [];
+  const withSchedule    = [...(teamData?.withSchedule ?? [])].sort((a: any, b: any) => (a.employee?.name || '').localeCompare(b.employee?.name || ''));
+  const withoutSchedule = [...(teamData?.withoutSchedule ?? [])].sort((a: any, b: any) => (a.name || '').localeCompare(b.name || ''));
 
   return (
     <div className="flex flex-col gap-5">
