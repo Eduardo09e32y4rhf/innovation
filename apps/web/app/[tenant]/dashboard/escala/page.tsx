@@ -1062,12 +1062,12 @@ function ModalLancarEscala({ schedules, onClose, onSuccess }: { schedules: any[]
             <label className="text-xs text-slate-500">Funcionário</label>
             <input value={employeeSearch} onChange={(e) => setEmployeeSearch(e.target.value)} placeholder="Buscar..."
               className="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-900 ring-1 ring-slate-200 focus:outline-none focus:ring-slate-200"/>
-            {employeeSearch && filteredEmployees.length > 0 && (
-              <div className="max-h-40 overflow-y-auto rounded-lg bg-white shadow-sm ring-1 ring-slate-200">
-                {filteredEmployees.slice(0,8).map((e) => (
+            {filteredEmployees.length > 0 && (
+              <div className="max-h-40 overflow-y-auto rounded-lg bg-white shadow-sm ring-1 ring-slate-200 mt-1">
+                {filteredEmployees.slice(0, 20).map((e) => (
                   <button key={e.id} onClick={() => { setSelectedEmployee(e.id); setEmployeeSearch(e.name); }}
-                    className="w-full px-3 py-2 text-left text-sm text-slate-900 hover:bg-slate-50">
-                    {e.name} <span className="text-slate-700 text-xs">· {e.department}</span>
+                    className={`w-full px-3 py-2 text-left text-sm text-slate-900 hover:bg-slate-50 ${selectedEmployee === e.id ? 'bg-teal-50 text-teal-900 font-bold' : ''}`}>
+                    {e.name} <span className="text-slate-500 text-[10px] font-medium ml-1">· {e.department || 'Sem depto'}</span>
                   </button>
                 ))}
               </div>

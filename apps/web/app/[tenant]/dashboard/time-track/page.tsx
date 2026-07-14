@@ -672,7 +672,7 @@ function MonthGrid({ employee, tracks, month, canManage, canApprove, refreshing,
               <th className="px-3 py-2 w-[9%] border-b border-slate-200">SALDO</th>
               <th className="px-3 py-2 w-[8%] border-b border-slate-200">ABONO</th>
               <th className="px-3 py-2 w-[10%] border-b border-slate-200">STATUS</th>
-              <th className="px-3 py-2 w-[19%] border-b border-slate-200 text-center">AÃ‡Ã•ES</th>
+              <th className="px-3 py-2 w-[22%] border-b border-slate-200 text-center">AÃ‡Ã•ES</th>
             </tr>
           </thead>
           <tbody>
@@ -704,20 +704,20 @@ function MonthGrid({ employee, tracks, month, canManage, canApprove, refreshing,
               <td className="px-3 text-slate-600 text-[11px]">{isAtestado?'---':t?fmtWorked(t.totalWorked):'--:--'}</td>
               <td className={`px-3 text-[11px] font-black ${isAtestado?'text-slate-300':t&&(t.dailyBalance??0)<0?'text-rose-600':t?'text-emerald-600':'text-slate-300'}`}>{isAtestado?'---':t?fmtBalance(t.dailyBalance):'--:--'}</td>
                   <td className={`px-3 text-[11px] ${isAtestado?'text-slate-300':'text-slate-400'}`}>{isAtestado?'---':'--:--'}</td>
-                  <td className="px-3 text-center">
+                  <td className="px-3 text-center flex flex-col items-center gap-1 py-1">
                     <StatusBadge status={status}/>
-                    {t?.observation && <div className="mt-0.5 text-[9px] font-medium text-amber-700 max-w-[120px] truncate mx-auto" title={t.observation}>{t.observation}</div>}
+                    {t?.observation && <div className="text-[9px] font-medium text-amber-700 w-full text-center leading-tight whitespace-normal break-words" title={t.observation}>{t.observation}</div>}
                   </td>
-                  <td className="px-3">
+                  <td className="px-2">
                     <div className="flex justify-center gap-1 whitespace-nowrap">
                       {showActions && !day.isRest && !day.isFuture && (
-                        <button onClick={()=>onEdit(t||{id:'',employeeId:employee.id,date:day.key,entry:null,lunchStart:null,lunchReturn:null,exit:null,totalWorked:null,dailyBalance:null} as unknown as TimeTrack)} disabled={refreshing||removeLoading} className="btn-outline-premium h-6 px-2 text-[9px] font-bold"><Edit3 size={10}/>{t?'EDITAR':'SOLICITAR'}</button>
+                        <button onClick={()=>onEdit(t||{id:'',employeeId:employee.id,date:day.key,entry:null,lunchStart:null,lunchReturn:null,exit:null,totalWorked:null,dailyBalance:null} as unknown as TimeTrack)} disabled={refreshing||removeLoading} className="btn-outline-premium h-6 px-1.5 text-[9px] font-bold"><Edit3 size={10}/>{t?'EDITAR':'SOLICITAR'}</button>
                       )}
                       {showActions && t && canApprove && t.manualStatus==='pending' && (
-                        <button onClick={()=>onEdit(t)} disabled={refreshing||removeLoading} className="crystal-button h-6 px-2 text-[9px] font-bold"><Check size={10}/>ACEITAR</button>
+                        <button onClick={()=>onEdit(t)} disabled={refreshing||removeLoading} className="crystal-button h-6 px-1.5 text-[9px] font-bold"><Check size={10}/>ACEITAR</button>
                       )}
                       {showActions && t && canManage && (
-                        <button onClick={()=>onDelete(t)} disabled={refreshing||removeLoading} className="inline-flex h-6 items-center gap-1 rounded-[5px] bg-gradient-to-r from-rose-500 to-pink-600 px-2 text-[9px] font-black text-white"><Edit3 size={10}/></button>
+                        <button onClick={()=>onDelete(t)} disabled={refreshing||removeLoading} className="inline-flex h-6 items-center justify-center gap-1 rounded-[5px] bg-gradient-to-r from-rose-500 to-pink-600 px-1.5 text-[9px] font-black text-white"><Edit3 size={10}/></button>
                       )}
                     </div>
                   </td>
