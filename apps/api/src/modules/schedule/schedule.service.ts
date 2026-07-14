@@ -330,7 +330,7 @@ export class ScheduleService {
       },
       include: {
         schedule: true,
-        employee: { select: { id: true, name: true, department: true, position: true } },
+        employee: { select: { id: true, name: true, department: true, position: true, registration: true } },
       },
       orderBy: [{ employee: { name: 'asc' } }],
     });
@@ -339,7 +339,7 @@ export class ScheduleService {
     const withSchedule = new Set(userSchedules.map((us) => us.employeeId));
     const withoutSchedule = await this.prisma.employee.findMany({
       where: { id: { in: employeeIds.filter((id) => !withSchedule.has(id)) } },
-      select: { id: true, name: true, department: true, position: true },
+      select: { id: true, name: true, department: true, position: true, registration: true },
     });
 
     return {

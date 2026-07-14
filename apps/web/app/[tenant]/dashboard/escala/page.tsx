@@ -825,8 +825,10 @@ function EscalaEquipeTab({ loading, teamData, schedules, canWrite, year, month, 
                     {us.employee?.name?.split(' ').map((n: string) => n[0]).slice(0,2).join('').toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-slate-900 truncate">{us.employee?.name}</p>
-                    <p className="text-xs text-slate-500 truncate">{us.employee?.department} · {us.employee?.position}</p>
+                    <p className="text-sm font-semibold text-slate-900 truncate">
+                      {us.employee?.registration ? `[${us.employee.registration}] ` : ''}{us.employee?.name?.toUpperCase()}
+                    </p>
+                    <p className="text-xs text-slate-500 truncate">{us.employee?.department?.toUpperCase()} · {us.employee?.position?.toUpperCase()}</p>
                   </div>
                   <div className="text-right shrink-0">
                     <p className="text-sm font-semibold text-slate-700">{us.schedule?.name}</p>
@@ -846,8 +848,10 @@ function EscalaEquipeTab({ loading, teamData, schedules, canWrite, year, month, 
                     {emp.name?.split(' ').map((n: string) => n[0]).slice(0,2).join('').toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-slate-900 truncate">{emp.name}</p>
-                    <p className="text-xs text-slate-500">{emp.department} · {emp.position}</p>
+                    <p className="text-sm font-semibold text-slate-900 truncate">
+                      {emp.registration ? `[${emp.registration}] ` : ''}{emp.name?.toUpperCase()}
+                    </p>
+                    <p className="text-xs text-slate-500">{emp.department?.toUpperCase()} · {emp.position?.toUpperCase()}</p>
                   </div>
                   <span className="text-xs text-slate-400">Sem escala atribuída</span>
                 </button>
