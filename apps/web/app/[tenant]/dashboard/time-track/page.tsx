@@ -118,7 +118,7 @@ function buildGrid(month: string, emp: Employee, tracks: TimeTrack[], startDay: 
   const today = getLocalToday();
   const map = new Map<string, TimeTrack>();
   for (const t of tracks) map.set(toDateKey(t.date), t);
-  const g: any[] = [];\n
+  const g: any[] = [];
   const empSchedule = teamSchedules.find(ts => ts.employee.id === emp.id);
   const calDays = empSchedule ? empSchedule.days : [];
   const getCalDay = (k: string) => calDays.find((cd: any) => cd.date === k);
