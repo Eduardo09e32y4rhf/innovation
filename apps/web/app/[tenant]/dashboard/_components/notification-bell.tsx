@@ -68,7 +68,7 @@ export function NotificationBell() {
         type="button"
         onClick={() => setOpen(!open)}
         className="relative inline-flex h-10 w-10 items-center justify-center rounded-[8px] border border-slate-200 bg-white text-slate-700 transition-all hover:border-teal-500 hover:text-teal-700 focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:outline-none"
-        aria-label="Notificações"
+        aria-label={`Notificações, ${unreadCount} não lidas`}
         aria-expanded={open}
         aria-haspopup="dialog"
       >
