@@ -174,7 +174,7 @@ function dayStatus(row: TimeTrack, holidayName?: string) {
   if (r.includes('atestado integral')) return 'ATESTADO';
   if (r.includes('feriado')) return 'FERIADO';
   if (r.includes('folga dsr')) return 'FOLGA';
-  if (r === 'ajuste_erro_marcacao') return 'ERRO DE MARCAÇÃO';
+  if (r === 'ajuste_erro_marcacao') return 'MARCAÇÃO INCOMPLETA';
   if (r === 'ajuste_abono_atraso') return 'ABONO DE ATRASO';
   if (r === 'ajuste_abono_banco_saida_antecipada') return 'ABONO SAÍDA';
   if (r === 'ajuste_abono_atestado_horas') return 'ATESTADO (HORAS)';
@@ -654,9 +654,9 @@ function MonthGrid({ employee, tracks, month, canManage, canApprove, refreshing,
   return (
     <section className="overflow-hidden rounded-[14px] border border-slate-200 bg-white">
       <div className="border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white px-5 py-4">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-gradient-to-br from-teal-500 to-cyan-600 text-sm font-black text-white">{normalizeDisplayName(employee.name).charAt(0).toUpperCase()}</div>
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-center gap-3.5">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[12px] bg-gradient-to-br from-indigo-500 to-purple-600 text-sm font-black text-white shadow-sm ring-1 ring-black/5">{normalizeDisplayName(employee.name).charAt(0).toUpperCase()}</div>
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <span className="rounded-full border border-teal-200 bg-teal-50 px-2 py-0.5 text-[10px] font-black text-teal-700">{employee.registration || employee.id.slice(0,8).toUpperCase()}</span>
@@ -681,7 +681,7 @@ function MonthGrid({ employee, tracks, month, canManage, canApprove, refreshing,
           </div>
         </div>
         <div className="mt-3 flex flex-wrap gap-3 rounded-[8px] border border-slate-100 bg-slate-50/50 px-3 py-2 text-[10px] font-semibold text-slate-600">
-          <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500"/>{batidas} BATIDA(S)</span>
+          <span className="flex items-center gap-1.5"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400"/>{batidas} BATIDA(S)</span>
           <span className="text-slate-300">|</span>
           <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-sky-500"/>{restDays} FOLGA(S)</span>
           {pendentes>0 && <><span className="text-slate-300">|</span><span className="flex items-center gap-1 text-amber-700"><span className="h-1.5 w-1.5 rounded-full bg-amber-500"/>{pendentes} PENDENTE(S)</span></>}
@@ -691,16 +691,16 @@ function MonthGrid({ employee, tracks, month, canManage, canApprove, refreshing,
       <div className="overflow-x-auto">
         <table className="w-full min-w-[1200px] border-separate border-spacing-0 text-left">
           <thead>
-            <tr className="bg-slate-50 text-[9px] font-black uppercase tracking-[0.1em] text-slate-500">
-              <th className="px-3 py-2 w-[16%] border-b border-slate-200">DATA</th>
-              <th className="px-3 py-2 w-[9%] border-b border-slate-200">ENTRADA</th>
-              <th className="px-3 py-2 w-[11%] border-b border-slate-200">ALMOÇO</th>
-              <th className="px-3 py-2 w-[9%] border-b border-slate-200">SAÍDA</th>
-              <th className="px-3 py-2 w-[9%] border-b border-slate-200">TRAB</th>
-              <th className="px-3 py-2 w-[9%] border-b border-slate-200">SALDO</th>
-              <th className="px-3 py-2 w-[8%] border-b border-slate-200">ABONO</th>
-              <th className="px-3 py-2 w-[10%] border-b border-slate-200">STATUS</th>
-              <th className="px-3 py-2 w-[22%] border-b border-slate-200 text-center">AÇÕES</th>
+            <tr className="bg-slate-50/60 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+              <th className="px-4 py-3 w-[16%] border-b border-slate-100">DATA</th>
+              <th className="px-4 py-3 w-[9%] border-b border-slate-100 text-center">ENTRADA</th>
+              <th className="px-4 py-3 w-[11%] border-b border-slate-100 text-center">ALMOÇO</th>
+              <th className="px-4 py-3 w-[9%] border-b border-slate-100 text-center">SAÍDA</th>
+              <th className="px-4 py-3 w-[9%] border-b border-slate-100 text-center">TRAB</th>
+              <th className="px-4 py-3 w-[9%] border-b border-slate-100 text-center">SALDO</th>
+              <th className="px-4 py-3 w-[8%] border-b border-slate-100 text-center">ABONO</th>
+              <th className="px-4 py-3 w-[10%] border-b border-slate-100 text-center">STATUS</th>
+              <th className="px-4 py-3 w-[22%] border-b border-slate-100 text-center">AÇÕES</th>
             </tr>
           </thead>
           <tbody>
@@ -711,7 +711,16 @@ function MonthGrid({ employee, tracks, month, canManage, canApprove, refreshing,
               else if (day.isFuture) bg = 'bg-slate-50/40 opacity-70';
               else if (!t && !day.antesAdmissao && !day.depoisDemissao) bg = 'bg-amber-50/20';
               else if (day.antesAdmissao || day.depoisDemissao) bg = 'bg-slate-100/50 opacity-50';
-              const status = t ? dayStatus(t) : day.isRest ? 'FOLGA' : (day.antesAdmissao || day.depoisDemissao) ? '---' : day.isFuture ? '---' : 'FALTA';
+              let status = '';
+              if (t) status = dayStatus(t);
+              else if (day.dayType === 'ATESTADO' || day.dayType === 'ATESTADO_HORAS') status = 'ATESTADO';
+              else if (day.dayType === 'FERIADO' || day.dayType === 'FERIADO_LOCAL') status = 'FERIADO';
+              else if (day.dayType === 'SUSPENSAO') status = 'SUSPENSÃO';
+              else if (day.dayType === 'FOLGA' || day.dayType === 'FOLGA_DSR' || day.dayType === 'FOLGA_BANCO') status = 'FOLGA';
+              else if (day.antesAdmissao || day.depoisDemissao) status = '---';
+              else if (day.isFuture) status = '---';
+              else status = 'FALTA';
+
               const isAtestado = ['ATESTADO','FERIADO','SUSPENSÃO','FOLGA','FOLGA EXTRA','FOLGA BANCO','FOLGA (DSR)','---'].includes(status);
 
               return (
@@ -726,12 +735,12 @@ function MonthGrid({ employee, tracks, month, canManage, canApprove, refreshing,
       )}
     </div>
   </td>
-              <td className={`px-3 font-mono text-[11px] ${isAtestado?'text-slate-300':t?.entry?'text-slate-950 font-black':day.scheduled?.entry?'text-slate-400':'text-slate-300'}`}>{isAtestado?'---':t?.entry?fmtTime(t.entry):(day.scheduled?.entry ? fmtTime(day.scheduled.entry) + ' (P)' : '--:--')}</td>
-              <td className={`px-3 font-mono text-[11px] ${t?.lunchStart||t?.lunchReturn?'text-slate-600':day.scheduled?.lunchStart?'text-slate-400':'text-slate-300'}`}>{isAtestado?'---':t?.lunchStart?fmtLunch(t?.lunchStart,t?.lunchReturn):(day.scheduled?.lunchStart ? fmtLunch(day.scheduled.lunchStart, day.scheduled.lunchReturn) + ' (P)' : '--:--')}</td>
-              <td className={`px-3 font-mono text-[11px] ${isAtestado?'text-slate-300':t?.exit?'text-slate-950 font-black':day.scheduled?.exit?'text-slate-400':'text-slate-300'}`}>{isAtestado?'---':t?.exit?fmtTime(t.exit):(day.scheduled?.exit ? fmtTime(day.scheduled.exit) + ' (P)' : '--:--')}</td>
-              <td className="px-3 text-slate-600 text-[11px]">{isAtestado?'---':t?fmtWorked(t.totalWorked):'--:--'}</td>
-              <td className={`px-3 text-[11px] font-black ${isAtestado?'text-slate-300':t&&(t.dailyBalance??0)<0?'text-rose-600':t?'text-emerald-600':'text-slate-300'}`}>{isAtestado?'---':t?fmtBalance(t.dailyBalance):'--:--'}</td>
-                  <td className={`px-3 text-[11px] ${isAtestado?'text-slate-300':'text-slate-400'}`}>{isAtestado?'---':'--:--'}</td>
+              <td className={`px-4 text-center font-mono text-[11px] font-medium ${isAtestado?'text-slate-300':t?.entry?'text-slate-900':day.scheduled?.entry?'text-slate-400':'text-slate-300'}`}>{isAtestado?'---':t?.entry?fmtTime(t.entry):(day.scheduled?.entry ? fmtTime(day.scheduled.entry) + ' (P)' : '--:--')}</td>
+              <td className={`px-4 text-center font-mono text-[11px] font-medium ${t?.lunchStart||t?.lunchReturn?'text-slate-500':day.scheduled?.lunchStart?'text-slate-400':'text-slate-300'}`}>{isAtestado?'---':t?.lunchStart?fmtLunch(t?.lunchStart,t?.lunchReturn):(day.scheduled?.lunchStart ? fmtLunch(day.scheduled.lunchStart, day.scheduled.lunchReturn) + ' (P)' : '--:--')}</td>
+              <td className={`px-4 text-center font-mono text-[11px] font-medium ${isAtestado?'text-slate-300':t?.exit?'text-slate-900':day.scheduled?.exit?'text-slate-400':'text-slate-300'}`}>{isAtestado?'---':t?.exit?fmtTime(t.exit):(day.scheduled?.exit ? fmtTime(day.scheduled.exit) + ' (P)' : '--:--')}</td>
+              <td className="px-4 text-center text-slate-500 text-[11px] font-medium">{isAtestado?'---':t?fmtWorked(t.totalWorked):'--:--'}</td>
+              <td className={`px-4 text-center text-[11px] font-bold ${isAtestado?'text-slate-300':t&&(t.dailyBalance??0)<0?'text-rose-500':t?'text-emerald-500':'text-slate-300'}`}>{isAtestado?'---':t?fmtBalance(t.dailyBalance):'--:--'}</td>
+                  <td className={`px-4 text-center text-[11px] ${isAtestado?'text-slate-300':'text-slate-400'}`}>{isAtestado?'---':'--:--'}</td>
                   <td className="px-3 text-center flex flex-col items-center gap-1 py-1">
                     <StatusBadge status={status}/>
                     {t?.observation && t.observation.toUpperCase() !== status.toUpperCase() && !t.observation.toUpperCase().includes(status.toUpperCase()) && !status.toUpperCase().includes(t.observation.toUpperCase()) && (
@@ -743,13 +752,13 @@ function MonthGrid({ employee, tracks, month, canManage, canApprove, refreshing,
                   <td className="px-2">
                     <div className="flex justify-center gap-1.5 whitespace-nowrap">
                       {showActions && !day.isFuture && (
-                        <button onClick={()=>onEdit(t||{id:'',employeeId:employee.id,date:day.key,entry:null,lunchStart:null,lunchReturn:null,exit:null,totalWorked:null,dailyBalance:null} as unknown as TimeTrack)} disabled={refreshing||removeLoading} className="btn-outline-premium h-6 px-2 text-[9px] font-bold"><Edit3 size={10}/>{t?'EDITAR':'SOLICITAR'}</button>
+                        <button onClick={()=>onEdit(t||{id:'',employeeId:employee.id,date:day.key,entry:null,lunchStart:null,lunchReturn:null,exit:null,totalWorked:null,dailyBalance:null} as unknown as TimeTrack)} disabled={refreshing||removeLoading} className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-[10px] font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors shadow-sm flex items-center gap-1.5"><Edit3 size={11}/>{t?'EDITAR':'SOLICITAR'}</button>
                       )}
                       {showActions && t && canApprove && t.manualStatus==='pending' && (
                         <button onClick={()=>onEdit(t)} disabled={refreshing||removeLoading} className="crystal-button h-6 px-2 text-[9px] font-bold"><Check size={10}/>ACEITAR</button>
                       )}
                       {showActions && t && canManage && (
-                        <button onClick={()=>onDelete(t)} disabled={refreshing||removeLoading} className="flex h-6 items-center justify-center gap-1 rounded-[5px] border border-red-200 bg-red-50 px-2 text-[9px] font-bold text-red-600 hover:bg-red-100 transition-colors"><Trash2 size={10}/>EXCLUIR</button>
+                        <button onClick={()=>onDelete(t)} disabled={refreshing||removeLoading} className="rounded-lg border border-red-100 bg-red-50/50 px-2 py-1 text-[10px] font-semibold text-red-600 hover:bg-red-50 hover:border-red-200 transition-colors shadow-sm flex items-center gap-1.5"><Trash2 size={11}/>EXCLUIR</button>
                       )}
                     </div>
                   </td>
@@ -842,7 +851,7 @@ function StatusBadge({ status }: { status: string }) {
     'FOLGA EXTRA':'bg-indigo-50 text-indigo-700 border-indigo-200',
     'FOLGA BANCO':'bg-cyan-50 text-cyan-700 border-cyan-200',
     'AJUSTE MANUAL':'bg-orange-50 text-orange-700 border-orange-200',
-    'ERRO DE MARCAÇÃO':'bg-orange-50 text-orange-700 border-orange-200',
+    'MARCAÇÃO INCOMPLETA':'bg-amber-50 text-amber-700 border-amber-200',
     'ABONO DE ATRASO':'bg-indigo-50 text-indigo-700 border-indigo-200',
     'ABONO SAÍDA':'bg-indigo-50 text-indigo-700 border-indigo-200',
     'FALTA':'bg-rose-50 text-rose-700 border-rose-200',

@@ -647,15 +647,23 @@ function MinhaEscalaTab({ loading, calendarData, year, month, onPrev, onNext, se
           />
           <SummaryCard
             label="Atrasos"
-            value={String(totals.atrasos)}
-            sub={totals.lateMinutes > 0 ? `${formatMin(totals.lateMinutes)} acumulados` : 'Nenhum atraso'}
+            value={totals.lateMinutes > 0 ? formatMin(totals.lateMinutes) : '0h00m'}
+            sub={totals.atrasos > 0 ? `${totals.atrasos} ocorrência(s)` : 'Nenhum atraso'}
             color="text-orange-700" bg="bg-orange-50 ring-orange-200"
             icon={<AlertTriangle size={16} className="text-orange-600"/>}
           />
           <SummaryCard
+            label="Saídas Antecipadas"
+            value={totals.saidasAntecipadas > 0 ? 'Ocorreram' : '0'}
+            sub={totals.saidasAntecipadas > 0 ? `${totals.saidasAntecipadas} ocorrência(s)` : 'Nenhuma'}
+            color={totals.saidasAntecipadas > 0 ? 'text-orange-700' : 'text-slate-500'}
+            bg={totals.saidasAntecipadas > 0 ? 'bg-orange-50 ring-orange-200' : 'bg-slate-50 ring-slate-200'}
+            icon={<Ban size={16} className={totals.saidasAntecipadas > 0 ? "text-orange-600" : "text-slate-400"}/>}
+          />
+          <SummaryCard
             label="Saldo do Mês"
             value={formatMin(totals.totalBalance)}
-            sub={totals.saidasAntecipadas > 0 ? `${totals.saidasAntecipadas} saída(s) antecipada(s)` : 'Banco de horas'}
+            sub="Banco de horas"
             color={totals.totalBalance >= 0 ? 'text-emerald-700' : 'text-red-700'}
             bg={totals.totalBalance >= 0 ? 'bg-emerald-50 ring-emerald-200' : 'bg-red-50 ring-red-200'}
             icon={totals.totalBalance >= 0 ? <TrendingUp size={16} className="text-emerald-600"/> : <TrendingDown size={16} className="text-red-600"/>}
@@ -1667,14 +1675,25 @@ function ModalSolicitarTroca({ onClose, onSuccess, canApprove, allEmployees }: {
   const [targetDate, setTargetDate]     = useState('');
   const [justification, setJustification] = useState('');
   const [targetEmployeeId, setTargetEmployeeId] = useState('');
+  const [swapWithId, setSwapWithId] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState('');
+
+  const [candidates, setCandidates] = useState<any[]>([]);
+  useEffect(() => {
+    api.employees.swapCandidates().then(setCandidates).catch(() => {});
+  }, []);
 
   const submit = async () => {
     if (!originalDate || !targetDate) { setError('Informe os dois dias.'); return; }
     setLoading(true); setError('');
     try {
-      await api.scheduleSwaps.create({ originalDate, targetDate, justification: justification || undefined, employeeId: targetEmployeeId || undefined } as any);
+      let finalJustif = justification;
+      if (swapWithId) {
+        const sw = candidates.find(c => c.id === swapWithId);
+        if (sw) finalJustif = `[Troca com: ${sw.name}] ${justification}`;
+      }
+      await api.scheduleSwaps.create({ originalDate, targetDate, justification: finalJustif || undefined, employeeId: targetEmployeeId || undefined } as any);
       onSuccess();
     } catch (e: any) { setError(e.message || 'Erro ao criar solicitação.'); }
     setLoading(false);
@@ -1704,6 +1723,21 @@ function ModalSolicitarTroca({ onClose, onSuccess, canApprove, allEmployees }: {
             </select>
           </div>
         )}
+        <div className="flex flex-col gap-1.5">
+          <label className="text-xs font-semibold text-slate-600">Trocar com colaborador (Opcional)</label>
+          <select
+            value={swapWithId}
+            onChange={(e) => setSwapWithId(e.target.value)}
+            className="rounded-xl bg-slate-50 px-4 py-2.5 text-sm text-slate-900 ring-1 ring-slate-200 focus:outline-none"
+          >
+            <option value="">Nenhum (Apenas datas)</option>
+            {candidates.map(e => (
+              <option key={e.id} value={e.id}>
+                {e.registration ? `#${String(e.registration).padStart(4,'0')}` : 'S/N'} — {e.name?.toUpperCase()}
+              </option>
+            ))}
+          </select>
+        </div>
         <div className="grid grid-cols-2 gap-3">
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-semibold text-slate-600">Dia a folgar</label>

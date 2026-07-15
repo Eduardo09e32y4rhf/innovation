@@ -370,6 +370,7 @@ export const api = {
 
   employees: {
     list: () => request<Employee[]>('/employees'),
+    swapCandidates: () => request<any[]>('/employees/swap-candidates'),
     get: (id: string) => request<Employee>(`/employees/${id}`),
     create: (input: CreateEmployeeInput) => request<Employee>('/employees', { method: 'POST', body: input }),
     update: (id: string, input: Partial<CreateEmployeeInput>) => request<Employee>(`/employees/${id}`, { method: 'PATCH', body: input }),

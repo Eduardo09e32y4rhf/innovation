@@ -309,7 +309,14 @@ export class ScheduleService {
       employeeIds = team.map((e: any) => e.id);
     } else if (['ADMIN', 'RH', 'DEV'].includes(actor.role)) {
       const all = await this.prisma.employee.findMany({
-        where: { companyId, status: 'ACTIVE' },
+        where: { 
+          companyId, 
+          status: 'ACTIVE',
+          OR: [
+            { user: null },
+            { user: { role: { notIn: ['ADMIN', 'DEV'] } } }
+          ]
+        },
         select: { id: true },
       });
       employeeIds = all.map((e: any) => e.id);

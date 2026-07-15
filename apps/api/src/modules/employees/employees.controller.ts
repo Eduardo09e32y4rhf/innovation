@@ -22,6 +22,7 @@ export class EmployeesController {
 
   @Get(':id')
   get(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string) {
+    if (id === 'swap-candidates') return this.service.listSwapCandidates(companyId, actor);
     return this.service.get(companyId, actor, id);
   }
 

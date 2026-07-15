@@ -30,6 +30,24 @@ export class EmployeesService {
     return [];
   }
 
+  async listSwapCandidates(companyId: string, actor: JwtUser) {
+    const me = await this.repository.findByUserId(companyId, actor.sub, actor.email);
+    if (!me) return [];
+
+    let roleFilter: any = {};
+    if (['ADMIN', 'RH', 'DEV'].includes(actor.role)) {
+       roleFilter = { status: 'ACTIVE' };
+    } else {
+       roleFilter = { status: 'ACTIVE', position: me.position };
+    }
+    
+    return this.repository['prisma'].employee.findMany({
+      where: { companyId, ...roleFilter },
+      select: { id: true, name: true, registration: true, position: true },
+      orderBy: { name: 'asc' }
+    });
+  }
+
   async get(companyId: string, actor: JwtUser, id: string) {
     const employee = await this.repository.findById(companyId, id);
     if (!this.canAccessEmployee(actor, employee)) throw new NotFoundException('Employee not found');

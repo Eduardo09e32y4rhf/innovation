@@ -116,7 +116,11 @@ export class TimeTrackService {
       }
       const isFutureAllowed = dto.reason === 'ajuste_atestado_integral' || dto.reason === 'ajuste_feriado' || dto.reason === 'ajuste_suspensao' || dto.reason === 'ajuste_folga_dsr' || dto.reason === 'ajuste_abono_folga' || dto.reason === 'ajuste_abono_banco_saida_antecipada' || dto.reason === 'ajuste_abono_atraso' || dto.reason === 'ajuste_abono_atestado_horas';
       this.validateManualTimestamp(employee, dto.entry, dto.lunchStart, dto.lunchReturn, dto.exit, date, isFutureAllowed);
-      return await this.applyManual(companyId, employee, dto.date, dto);
+      
+      const dates = this.getDatesInRange(dto.date, dto.endDate);
+      for (const d of dates) {
+        await this.applyManual(companyId, actor, employee, d.toISOString().split('T')[0], dto);
+      }
     } catch (error: any) {
       if (error instanceof BadRequestException || error instanceof ForbiddenException || error instanceof NotFoundException) {
         throw error;
@@ -532,7 +536,7 @@ export class TimeTrackService {
     return date.toISOString().slice(0, 10);
   }
 
-  private async applyManual(companyId: string, employee: { id: string; dailyWorkload?: string | null; workScheduleRuleId?: string | null; }, dateValue: string, dto: Pick<ManualTimeTrackDto, 'entry' | 'lunchStart' | 'lunchReturn' | 'exit' | 'reason' | 'observation'>) {
+  private async applyManual(companyId: string, actor: JwtUser, employee: { id: string; dailyWorkload?: string | null; workScheduleRuleId?: string | null; }, dateValue: string, dto: Pick<ManualTimeTrackDto, 'entry' | 'lunchStart' | 'lunchReturn' | 'exit' | 'reason' | 'observation'>) {
     const date = this.parseDateOnly(dateValue, 'Invalid date');
     const isFullDayAdjustment = dto.reason === 'ajuste_atestado_integral' || dto.reason === 'ajuste_feriado' || dto.reason === 'ajuste_suspensao';
     const isBanco = dto.reason === 'ajuste_folga_dsr' || dto.reason === 'ajuste_abono_folga' || dto.reason === 'ajuste_abono_banco_saida_antecipada' || dto.reason === 'ajuste_abono_atraso';
@@ -586,7 +590,7 @@ export class TimeTrackService {
       exit,
       observation: this.buildObservation(dto.reason, dto.observation),
       manualReason: dto.reason,
-      manualStatus: 'pending',
+      manualStatus: ['ADMIN', 'RH', 'DEV'].includes(actor.role) ? 'approved' : 'pending',
       ...totalsData
     };
 
