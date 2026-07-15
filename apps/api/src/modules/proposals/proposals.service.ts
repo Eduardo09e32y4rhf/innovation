@@ -135,17 +135,22 @@ export class ProposalsService {
       }) as any;
 
       asaasSubscriptionId = subscription.id;
-      // Em sandbox Asaas, o retorno contém o invoiceUrl se for gerada uma cobrança imediata
-      // Ou podemos pegar da cobrança futuramente
+
+      if (asaasSubscriptionId) {
+        const paymentsResponse = await this.asaasService.getPaymentsBySubscription(asaasSubscriptionId) as any;
+        if (paymentsResponse && paymentsResponse.data && paymentsResponse.data.length > 0) {
+          asaasPaymentLink = paymentsResponse.data[0].invoiceUrl;
+        }
+      }
     }
     
-    // Fallback pra criar um link fictício no ambiente dev se a API Key do Asaas estiver vazia
-    if (!asaasSubscriptionId) {
-       asaasPaymentLink = `https://sandbox.asaas.com/checkout/mock/${proposal.id}`;
-    } else {
-       // Idealmente, busca-se a primeira fatura da subscription para pegar o invoiceUrl, 
-       // mas para simplificar, setaremos um link padrão do Asaas (ou o retorno da sub).
-       asaasPaymentLink = `https://sandbox.asaas.com/payment/mock/${asaasSubscriptionId}`; // Ajuste conforme a real reposta
+    // Fallback pra criar um link fictício no ambiente dev se a API Key do Asaas estiver vazia ou mockada
+    if (!asaasPaymentLink) {
+       if (asaasSubscriptionId) {
+         asaasPaymentLink = `https://sandbox.asaas.com/payment/mock/${asaasSubscriptionId}`;
+       } else {
+         asaasPaymentLink = `https://sandbox.asaas.com/checkout/mock/${proposal.id}`;
+       }
     }
 
     const updated = await this.prisma.proposal.update({

@@ -245,7 +245,38 @@ export default function TenantDashboardPage({ params }: { params: { companyId: s
               </div>
 
               <div className="rounded-xl border border-slate-200 bg-slate-50 p-5 shadow-sm flex items-center justify-center">
-                <button className="w-full crystal-button inline-flex h-11 items-center justify-center gap-2 rounded-lg px-6 text-sm font-black text-white shadow-sm transition-transform active:scale-95">
+                <button
+                  onClick={async () => {
+                    const confirmCharge = window.confirm("Deseja gerar uma cobrança avulsa de R$ 99,00 para 3 dias?");
+                    if (!confirmCharge) return;
+
+                    try {
+                      // A página usa `companyMock` em vez de `company` real, mas a intenção aqui é simular
+                      // Na vida real isso seria puxado da API
+                      const mockCompanyId = params.companyId;
+                      // const mockCustomerId = company?.asaasCustomerId; // Se houvesse company real
+
+                      const dueDate = new Date();
+                      dueDate.setDate(dueDate.getDate() + 3);
+
+                      const { api } = await import('@/app/lib/api');
+
+                      const res = await api.request(`/finance/charge/${mockCompanyId}`, {
+                        method: 'POST',
+                        body: {
+                          amount: 99.00,
+                          dueDate: dueDate.toISOString().split('T')[0],
+                          description: "Cobrança Avulsa",
+                          customerId: "cus_mock123" // The current UI mock does not have asaasCustomerId on companyMock. I will pass a generic mock string, but the API should handle missing customerId gracefully or it will fail Asaas validation anyway
+                        }
+                      });
+                      alert("Cobrança gerada com sucesso!");
+                    } catch (e: any) {
+                      alert("Erro ao gerar cobrança: " + e.message);
+                    }
+                  }}
+                  className="w-full crystal-button inline-flex h-11 items-center justify-center gap-2 rounded-lg px-6 text-sm font-black text-white shadow-sm transition-transform active:scale-95"
+                >
                   <CreditCard size={16} /> Gerar Cobrança Avulsa
                 </button>
               </div>

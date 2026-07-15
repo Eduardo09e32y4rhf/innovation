@@ -194,13 +194,13 @@ export class ScheduleService {
       const dateStr = cursor.toISOString().split('T')[0];
       const dow = cursor.getDay(); // 0=dom, 6=sab
       const exception = exceptions.find(
-        (e) => e.date.toISOString().split('T')[0] === dateStr,
+        (e: any) => e.date.toISOString().split('T')[0] === dateStr,
       );
       const holiday = holidays.find(
-        (h) => (h.date as Date).toISOString().split('T')[0] === dateStr,
+        (h: any) => (h.date as Date).toISOString().split('T')[0] === dateStr,
       );
       const timeTrack = timeTracks.find(
-        (t) => (t.date as Date).toISOString().split('T')[0] === dateStr,
+        (t: any) => (t.date as Date).toISOString().split('T')[0] === dateStr,
       );
 
       let dayType: string = 'WORK';
@@ -306,13 +306,13 @@ export class ScheduleService {
         where: { companyId, managerId: self.id, status: 'ACTIVE' },
         select: { id: true },
       });
-      employeeIds = team.map((e) => e.id);
+      employeeIds = team.map((e: any) => e.id);
     } else if (['ADMIN', 'RH', 'DEV'].includes(actor.role)) {
       const all = await this.prisma.employee.findMany({
         where: { companyId, status: 'ACTIVE' },
         select: { id: true },
       });
-      employeeIds = all.map((e) => e.id);
+      employeeIds = all.map((e: any) => e.id);
     } else {
       throw new ForbiddenException('Acesso negado.');
     }
