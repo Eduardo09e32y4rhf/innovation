@@ -117,10 +117,7 @@ export class TimeTrackService {
       const isFutureAllowed = dto.reason === 'ajuste_atestado_integral' || dto.reason === 'ajuste_feriado' || dto.reason === 'ajuste_suspensao' || dto.reason === 'ajuste_folga_dsr' || dto.reason === 'ajuste_abono_folga' || dto.reason === 'ajuste_abono_banco_saida_antecipada' || dto.reason === 'ajuste_abono_atraso' || dto.reason === 'ajuste_abono_atestado_horas';
       this.validateManualTimestamp(employee, dto.entry, dto.lunchStart, dto.lunchReturn, dto.exit, date, isFutureAllowed);
       
-      const dates = this.getDatesInRange(dto.date, dto.endDate);
-      for (const d of dates) {
-        await this.applyManual(companyId, actor, employee, d.toISOString().split('T')[0], dto);
-      }
+      await this.applyManual(companyId, actor, employee, dto.date, dto);
     } catch (error: any) {
       if (error instanceof BadRequestException || error instanceof ForbiddenException || error instanceof NotFoundException) {
         throw error;
