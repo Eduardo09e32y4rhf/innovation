@@ -24,6 +24,12 @@ export interface TimeCalculationOutput {
   overtimeExceedsLimit: boolean;
   overtimeApprovalNeeded: boolean;
   absenceMinutes: number | null;
+  sortedTimestamps?: {
+    entryTime: Date | null;
+    lunchStartTime: Date | null;
+    lunchReturnTime: Date | null;
+    exitTime: Date | null;
+  };
 }
 
 @Injectable()
@@ -100,10 +106,20 @@ export class TimeCalculationRulesService {
        }
     }
 
-    // If completely missing (falta)
-    if (!input.entryTime || !input.exitTime) {
+    // Reorder timestamps chronologically before calculation
+    const timestamps = [input.entryTime, input.lunchStartTime, input.lunchReturnTime, input.exitTime]
+      .filter((t): t is Date => t !== null && t !== undefined)
+      .sort((a, b) => a.getTime() - b.getTime());
+    
+    const entryTime = timestamps[0] || null;
+    const lunchStartTime = timestamps.length >= 3 ? timestamps[1] : null;
+    const lunchReturnTime = timestamps.length >= 4 ? timestamps[2] : null;
+    const exitTime = timestamps.length === 2 ? timestamps[1] : timestamps[timestamps.length - 1] || null;
+
+    // If completely missing (falta) or full day absence
+    if (!entryTime || !exitTime) {
       if (result.isRest || result.isHoliday || this.isFullDayAdjustment(input.manualReason)) {
-        return result;
+        return result; // null balances
       }
       result.incidentType = 'falta';
       result.absenceMinutes = expectedMinutes;
@@ -111,16 +127,32 @@ export class TimeCalculationRulesService {
       return result;
     }
 
-    // Calculate actual worked minutes
-    const gross = this.diffMinutes(input.entryTime, input.exitTime);
+    // Calculate actual worked minutes with reordered timestamps
+    const p1 = this.diffMinutes(entryTime, lunchStartTime || exitTime);
+    const p2 = (lunchReturnTime && timestamps.length === 4) ? this.diffMinutes(lunchReturnTime, exitTime) : 0;
+    
     let lunch = 0;
-    if (input.lunchStartTime && input.lunchReturnTime) {
-      lunch = this.diffMinutes(input.lunchStartTime, input.lunchReturnTime);
+    if (lunchStartTime && lunchReturnTime) {
+      lunch = this.diffMinutes(lunchStartTime, lunchReturnTime);
     } else {
       lunch = rule?.breakMinutes ?? 60;
     }
     
-    const workedMinutes = Math.max(gross - lunch, 0);
+    const gross = this.diffMinutes(entryTime, exitTime);
+    const workedMinutes = timestamps.length >= 4 ? (p1 + p2) : Math.max(gross - lunch, 0);
+    
+    if (result.isRest || result.isHoliday || this.isFullDayAdjustment(input.manualReason)) {
+       result.totalWorkedMinutes = null;
+       result.dailyBalanceMinutes = null;
+       // However, if they worked on a rest day/holiday, it's 100% overtime
+       if (workedMinutes > 0) {
+           result.totalWorkedMinutes = workedMinutes;
+           result.overtime100Minutes = workedMinutes;
+           result.dailyBalanceMinutes = workedMinutes;
+       }
+       return result;
+    }
+
     result.totalWorkedMinutes = workedMinutes;
 
     // Apply exact tolerance
@@ -129,28 +161,30 @@ export class TimeCalculationRulesService {
        balance = 0;
     }
     
+    // Check for partial sick leave (atestado horas)
+    const isPartialAtestado = (input.manualReason || '').toLowerCase().includes('atestado') || 
+                              (input.manualReason || '').toLowerCase().includes('abono');
+    
+    if (balance < 0 && isPartialAtestado) {
+       balance = 0; // Does not generate negative balance for partial atestado/abono
+    }
+
     result.dailyBalanceMinutes = balance;
 
     if (balance > 0) {
-      if (result.isHoliday && result.holidayHandling === 'PAID_100') {
-        result.overtime100Minutes = balance;
-      } else if (result.isRest) {
-        result.overtime100Minutes = balance;
-      } else {
-        result.overtime50Minutes = balance;
-      }
+      result.overtime50Minutes = balance;
 
       const maxDaily = rule?.maxDailyOvertimeMinutes ?? 120;
-      if (result.overtime50Minutes > maxDaily || result.overtime100Minutes > maxDaily) {
+      if (result.overtime50Minutes > maxDaily) {
         result.overtimeExceedsLimit = true;
         result.overtimeApprovalNeeded = true;
       }
     }
 
-    if (balance < 0 && !result.isRest) {
+    if (balance < 0) {
       // Missing time
       const missing = Math.abs(balance);
-      const entryMin = input.entryTime.getHours() * 60 + input.entryTime.getMinutes();
+      const entryMin = entryTime.getHours() * 60 + entryTime.getMinutes();
       const expectedEntry = this.timeStringToMinutes(rule?.standardEntry ?? '08:00');
       const lateTolerance = rule?.lateToleranceMinutes ?? 10;
       
@@ -162,16 +196,19 @@ export class TimeCalculationRulesService {
         result.earlyLeaveMinutes = missing;
         result.incidentType = 'saida_antecipada';
       }
+      result.absenceMinutes = missing;
     }
 
-    if (rule?.nightShiftEnabled && input.entryTime && input.exitTime) {
+    if (rule?.nightShiftEnabled && entryTime && exitTime) {
       result.nightShiftMinutes = this.calculateNightShiftMinutes(
-        input.entryTime,
-        input.exitTime,
+        entryTime,
+        exitTime,
         rule.nightStartTime ?? '22:00',
         rule.nightEndTime ?? '05:00',
       );
     }
+
+    result.sortedTimestamps = { entryTime, lunchStartTime, lunchReturnTime, exitTime };
 
     return result;
   }

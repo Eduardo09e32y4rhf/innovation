@@ -183,8 +183,10 @@ export function FaceIDOverlay({ onCapture, onCancel, title = 'Verificação Faci
     if (videoRef.current && canvasRef.current) {
       const canvas = canvasRef.current;
       const video = videoRef.current;
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
+      const MAX_WIDTH = 480;
+      const scale = Math.min(MAX_WIDTH / video.videoWidth, 1);
+      canvas.width = video.videoWidth * scale;
+      canvas.height = video.videoHeight * scale;
       const ctx = canvas.getContext('2d');
       if (ctx) {
         // Espelhar a imagem para ficar igual ao vídeo visualizado
@@ -193,8 +195,8 @@ export function FaceIDOverlay({ onCapture, onCancel, title = 'Verificação Faci
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         ctx.setTransform(1, 0, 0, 1, 0, 0);
 
-        // Qualidade 0.7 — boa qualidade, arquivo menor, processamento mais rápido
-        const photoBase64 = canvas.toDataURL('image/jpeg', 0.7);
+        // Qualidade 0.5 e resolução menor previne payload muito grande (evita loop de falhas)
+        const photoBase64 = canvas.toDataURL('image/jpeg', 0.5);
         onCapture(photoBase64, Array.from(descriptor));
       }
     }

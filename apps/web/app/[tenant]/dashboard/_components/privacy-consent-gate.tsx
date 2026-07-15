@@ -111,6 +111,9 @@ export function PrivacyConsentGate({ children }: { children: React.ReactNode }) 
         if (!response.ok) throw new Error('status unavailable');
         const payload = await response.json();
         const data = payload.data ?? payload;
+        if (data.accepted) {
+          localStorage.setItem(`privacy-consent:${data.termVersion || TERMS_VERSION}`, 'accepted');
+        }
         if (active) setStatus(data);
       } catch {
         const localAccepted = localStorage.getItem(`privacy-consent:${TERMS_VERSION}`) === 'accepted';
@@ -195,6 +198,9 @@ export function PrivacyConsentGate({ children }: { children: React.ReactNode }) 
       
       const payload = await response.json();
       const data = payload.data ?? payload;
+      
+      localStorage.setItem(`privacy-consent:${data.termVersion || TERMS_VERSION}`, 'accepted');
+      
       setStatus((current) => ({
         ...(current ?? { purpose: FALLBACK_PURPOSE, termVersion: TERMS_VERSION }),
         required: false,

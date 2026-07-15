@@ -220,7 +220,10 @@ export class TimeTrackService {
 
       const updateData: any = {
         companyId,
-        [field]: timestampToRecord,
+        entry: calculation.sortedTimestamps?.entryTime || (field === 'entry' ? timestampToRecord : currentTrack?.entry),
+        lunchStart: calculation.sortedTimestamps?.lunchStartTime || (field === 'lunchStart' ? timestampToRecord : currentTrack?.lunchStart),
+        lunchReturn: calculation.sortedTimestamps?.lunchReturnTime || (field === 'lunchReturn' ? timestampToRecord : currentTrack?.lunchReturn),
+        exit: calculation.sortedTimestamps?.exitTime || (field === 'exit' ? timestampToRecord : currentTrack?.exit),
         totalWorked: calculation.totalWorkedMinutes,
         dailyBalance: calculation.dailyBalanceMinutes,
         overtime50Minutes: calculation.overtime50Minutes,
@@ -321,10 +324,10 @@ export class TimeTrackService {
     );
 
     const updateData = {
-      entry: nextEntry,
-      lunchStart: nextLunchStart,
-      lunchReturn: nextLunchReturn,
-      exit: nextExit,
+      entry: calculation.sortedTimestamps?.entryTime ?? nextEntry,
+      lunchStart: calculation.sortedTimestamps?.lunchStartTime ?? nextLunchStart,
+      lunchReturn: calculation.sortedTimestamps?.lunchReturnTime ?? nextLunchReturn,
+      exit: calculation.sortedTimestamps?.exitTime ?? nextExit,
       observation: nextObservation,
       totalWorked: calculation.totalWorkedMinutes,
       dailyBalance: calculation.dailyBalanceMinutes,
@@ -554,7 +557,7 @@ export class TimeTrackService {
     let totalsData: any = {};
     if (isBanco) {
       const workload = this.parseWorkloadToMinutes(employee.dailyWorkload) ?? (rule?.dailyMinutes || 480);
-      totalsData = { totalWorked: -workload, dailyBalance: -workload };
+      totalsData = { totalWorked: -workload, dailyBalance: -workload, sortedTimestamps: { entryTime: entry, lunchStartTime: lunchStart, lunchReturnTime: lunchReturn, exitTime: exit } };
     } else {
       const calculation = this.timeCalcRules.calculateTotals(
         { entryTime: entry, lunchStartTime: lunchStart, lunchReturnTime: lunchReturn, exitTime: exit, workDate: date, manualReason: dto.reason },
@@ -576,15 +579,16 @@ export class TimeTrackService {
         overtimeHandling: 'PAYMENT',
         overtimeBankMinutes: 0,
         overtimePaymentMinutes: calculation.overtime50Minutes + calculation.overtime100Minutes,
+        sortedTimestamps: calculation.sortedTimestamps,
       };
     }
 
     const data = {
       companyId,
-      entry,
-      lunchStart,
-      lunchReturn,
-      exit,
+      entry: totalsData.sortedTimestamps?.entryTime ?? entry,
+      lunchStart: totalsData.sortedTimestamps?.lunchStartTime ?? lunchStart,
+      lunchReturn: totalsData.sortedTimestamps?.lunchReturnTime ?? lunchReturn,
+      exit: totalsData.sortedTimestamps?.exitTime ?? exit,
       observation: this.buildObservation(dto.reason, dto.observation),
       manualReason: dto.reason,
       manualStatus: ['ADMIN', 'RH', 'DEV'].includes(actor.role) ? 'approved' : 'pending',

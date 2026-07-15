@@ -8,6 +8,7 @@ type EmployeeSummary = {
   department: string | null;
   status: string;
   user?: { role: UserRole } | null;
+  workScheduleRule?: { restDaysOfWeek: number[] } | null;
 };
 
 type TrackWithEmployee = {
@@ -49,6 +50,7 @@ export class TimeTrackRepository {
     department: true,
     status: true,
     user: { select: { role: true } },
+    workScheduleRule: { select: { restDaysOfWeek: true } },
   } as const;
 
   private readonly trackSelect = {

@@ -82,6 +82,9 @@ function defaultCycle(scale?: string | null) {
 
 function isRestDay(date: Date, emp: Employee): boolean {
   const wd = date.getUTCDay();
+  if (emp.workScheduleRule?.restDaysOfWeek && emp.workScheduleRule.restDaysOfWeek.length > 0) {
+    return emp.workScheduleRule.restDaysOfWeek.includes(wd);
+  }
   const s = emp.workScale; const c = emp.customWorkScale;
   if (s==='5X2') return wd===0||wd===6;
   if (s==='6X1') return wd===0;
@@ -518,8 +521,8 @@ function downloadCollectiveSheet(month: string, visibleEmployees: Employee[], by
         return `<tr><td style="padding:2px 4px;font-size:7px;color:#e11d48;font-weight:600;">${dateStr}</td><td style="padding:2px 4px;font-size:7px;color:#e11d48;font-weight:600;">${wd}</td><td colspan="10" style="padding:2px 4px;font-size:7px;color:#e11d48;text-align:center;font-weight:700;">FALTA NAO JUSTIFICADA</td></tr>`;
       }
 
-      const balance = t.dailyBalance ?? 0;
-      const balanceColor = balance < 0 ? '#e11d48' : balance > 0 ? '#059669' : '#64748b';
+      const balance = t.dailyBalance;
+      const balanceColor = (balance != null && balance < 0) ? '#e11d48' : (balance != null && balance > 0) ? '#059669' : '#64748b';
       const hasMissing = !t.entry || !t.exit;
       let ocorrencia = dayStatus(t, g.holidayName);
       if (ocorrencia === 'NORMAL') {
@@ -528,9 +531,9 @@ function downloadCollectiveSheet(month: string, visibleEmployees: Employee[], by
         else ocorrencia = '';
       }
 
-      const he = balance > 0 ? formatMinutes(balance) : '';
-      const absent = balance < 0 ? formatMinutes(Math.abs(balance)) : '';
-      const jornada = formatMinutes(t.totalWorked ?? 0);
+      const he = (balance != null && balance > 0) ? formatMinutes(balance) : '';
+      const absent = (balance != null && balance < 0) ? formatMinutes(Math.abs(balance)) : '';
+      const jornada = t.totalWorked == null ? '' : formatMinutes(t.totalWorked);
       
       return `<tr>
         <td style="padding:2px 4px;font-size:7px;font-weight:600;color:#0f172a;">${dateStr}</td>

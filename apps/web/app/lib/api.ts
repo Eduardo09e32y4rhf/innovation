@@ -144,6 +144,7 @@ export interface Employee {
   unit?: string | null;
   workScale?: WorkScale | null; customWorkScale?: string | null; dailyWorkload?: DailyWorkload | null;
   standardEntry?: string | null; standardLunchStart?: string | null; standardLunchReturn?: string | null; standardExit?: string | null;
+  workScheduleRule?: { restDaysOfWeek?: number[] } | null;
   user?: { id: string; role: UserRole; isActive: boolean; forcePasswordChange?: boolean } | null;
   faceEnrollment?: { active: boolean; vectors?: number[] } | null;
   createdAt: string; updatedAt: string;
