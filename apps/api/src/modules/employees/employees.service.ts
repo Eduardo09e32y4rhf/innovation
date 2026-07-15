@@ -15,13 +15,13 @@ export class EmployeesService {
 
   async list(companyId: string, actor: JwtUser) {
     if (actor.role === 'ADMIN' || actor.role === 'RH' || actor.role === 'DEV' || actor.role === 'CONSULTA') {
-      return (await this.repository.list(companyId)).filter((employee) => this.canAccessEmployee(actor, employee));
+      return (await this.repository.list(companyId)).filter((employee: any) => this.canAccessEmployee(actor, employee));
     }
     if (actor.role === 'GESTOR') {
       const managerEmployee = await this.repository.findByUserId(companyId, actor.sub, actor.email);
       if (!managerEmployee || !this.canAccessEmployee(actor, managerEmployee)) return [];
       const team = await this.repository.listByManager(companyId, managerEmployee.id);
-      return [managerEmployee, ...team.filter((employee) => employee.id !== managerEmployee.id && this.canAccessEmployee(actor, employee))];
+      return [managerEmployee, ...team.filter((employee: any) => employee.id !== managerEmployee.id && this.canAccessEmployee(actor, employee))];
     }
     if (actor.role === 'FUNCIONARIO') {
       const employee = await this.repository.findByUserId(companyId, actor.sub, actor.email);
