@@ -79,4 +79,11 @@ export class AsaasService {
       }),
     });
   }
+
+  async getPaymentsBySubscription(subscriptionId: string) {
+    this.logger.log(`Buscando pagamentos da assinatura: ${subscriptionId}`);
+    return this.request(`/payments?subscription=${subscriptionId}`, {
+      method: 'GET',
+    });
+  }
 }
