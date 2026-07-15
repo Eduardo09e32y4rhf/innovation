@@ -1,6 +1,6 @@
 {
   "name": "innovation-rh-connect",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "description": "Sistema de RH com controle de ponto e comunicação via WhatsApp para pequenas e médias empresas",
   "scripts": {
