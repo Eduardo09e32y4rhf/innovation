@@ -139,7 +139,7 @@ export class AsaasWebhookController {
         // Vamos garantir que a empresa tá ativa
         await this.prisma.company.update({
            where: { id: companyIdToActivate },
-           data: { billingStatus: 'ACTIVE', status: 'ACTIVE' }
+           data: { billingStatus: 'ACTIVE', status: 'ACTIVE', suspensionReason: null }
         });
       }
     } else if (event === 'PAYMENT_OVERDUE') {

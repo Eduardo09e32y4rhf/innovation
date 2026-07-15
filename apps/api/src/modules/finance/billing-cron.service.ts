@@ -46,7 +46,8 @@ export class BillingCronService {
              where: { id: company.id },
              data: {
                status: 'SUSPENDED',
-               billingStatus: 'PAST_DUE'
+               billingStatus: 'PAST_DUE',
+               suspensionReason: 'Falta de pagamento (inadimplência)'
              }
            });
 

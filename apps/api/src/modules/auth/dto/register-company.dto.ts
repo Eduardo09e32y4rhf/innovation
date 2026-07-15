@@ -5,13 +5,17 @@ export class RegisterCompanyDto {
   @IsNotEmpty()
   companyName!: string;
 
-  @IsOptional()
   @IsString()
-  document?: string;
+  @IsNotEmpty()
+  document!: string;
 
   @IsString()
   @IsNotEmpty()
   name!: string;
+
+  @IsString()
+  @IsOptional()
+  phone?: string;
 
   @IsEmail()
   email!: string;

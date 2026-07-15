@@ -14,6 +14,17 @@ export class AuthRepository {
     return this.prisma.user.findUnique({ where: { id }, include: { company: true } });
   }
 
+  async findInadimplenteCompanyByDocument(document: string) {
+    if (!document) return null;
+    return this.prisma.company.findFirst({
+      where: {
+        document: document,
+        billingStatus: { in: ['PAST_DUE', 'CANCELED'] },
+        status: { in: ['SUSPENDED', 'CANCELLED'] }
+      }
+    });
+  }
+
   createCompanyWithAdmin(data: {
     companyName: string;
     document?: string;
@@ -25,6 +36,10 @@ export class AuthRepository {
       data: {
         name: normalizeDisplayName(data.companyName),
         document: emptyToNull(data.document),
+        billingStatus: 'TRIAL',
+        plan: 'BASE',
+        trialEndsAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days trial
+        phone: (data as any).phone ? emptyToNull((data as any).phone) : null,
         users: {
           create: {
             name: normalizeDisplayName(data.name),

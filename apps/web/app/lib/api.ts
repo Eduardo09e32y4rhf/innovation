@@ -360,6 +360,7 @@ export const api = {
     requestPasswordReset: (email: string) => request<{ requested: boolean; demoCode?: string }>('/auth/password-reset/request', { method: 'POST', body: { email } }),
     validateResetCode: (email: string, code: string, cpfStart: string, registration: string) => request<{ valid: boolean; resetToken: string }>('/auth/password-reset/validate-code', { method: 'POST', body: { email, code, cpfStart, registration } }),
     resetPassword: (token: string, newPassword: string) => request<{ changed: boolean }>('/auth/password-reset/confirm', { method: 'POST', body: { token, newPassword } }),
+    registerCompany: (data: any) => request<any>('/auth/register-company', { method: 'POST', body: data }),
   },
 
   dashboard: {

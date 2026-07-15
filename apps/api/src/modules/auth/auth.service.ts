@@ -10,6 +10,7 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
 import type { JwtUser, UserRole } from '../../common/types/auth.types';
 
 import { NotificationsService } from '../notifications/notifications.service';
+import { AsaasService } from '../finance/asaas.service';
 
 const PLATFORM_OWNER_EMAIL = 'eduardo998468@gmail.com';
 const LOGIN_DENIED_MESSAGE = 'Nao foi possivel entrar';
@@ -22,15 +23,54 @@ export class AuthService {
     private readonly repository: AuthRepository,
     private readonly jwtService: JwtService,
     private readonly notificationsService: NotificationsService,
+    private readonly asaasService: AsaasService,
   ) {}
 
   async registerCompany(dto: RegisterCompanyDto) {
     const existing = await this.repository.findUserByEmail(dto.email);
     if (existing) throw new ConflictException('Email already registered');
 
+    // Verifica inadimplência se forneceu documento (CPF/CNPJ)
+    if (dto.document) {
+      const inadimplente = await this.repository.findInadimplenteCompanyByDocument(dto.document);
+      if (inadimplente) {
+        throw new ConflictException('Foi detectada uma pendência financeira associada a este documento. Regularize a situação para criar uma nova conta.');
+      }
+    }
+
     const passwordHash = await bcrypt.hash(dto.password, 12);
     const company = await this.repository.createCompanyWithAdmin({ ...dto, passwordHash });
     const admin = company.users[0];
+
+    // Integração Asaas
+    try {
+      const customer = await this.asaasService.createCustomer({
+        name: company.name,
+        cpfCnpj: company.document || '',
+        email: admin.email,
+        phone: dto.phone,
+      });
+
+      if (customer && (customer as any).id) {
+        // Criar assinatura de 9,99 pro 7º dia
+        const nextDueDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        
+        await this.asaasService.createSubscription((customer as any).id, {
+          value: 9.99,
+          nextDueDate: nextDueDate,
+          description: 'Assinatura Plataforma Innovation RH Connect',
+        });
+
+        // Atualizar company com asaasCustomerId
+        await this.repository['prisma'].company.update({
+          where: { id: company.id },
+          data: { asaasCustomerId: (customer as any).id },
+        });
+      }
+    } catch (error) {
+      console.error('Falha ao registrar no Asaas, prosseguindo com trial local.', error);
+    }
+
     return this.buildAuthResponse({
       sub: admin.id,
       email: admin.email,
@@ -72,7 +112,15 @@ export class AuthService {
       await this.repository.resetFailedLogins(user.id);
     }
 
-    return this.buildAuthResponse({ sub: user.id, email: user.email, name: user.name, companyId: user.companyId, role, customPermissions: user.customPermissions }, this.passwordChangeRequired(user));
+    return this.buildAuthResponse({ 
+      sub: user.id, 
+      email: user.email, 
+      name: user.name, 
+      companyId: user.companyId, 
+      role, 
+      customPermissions: user.customPermissions,
+      companyStatus: user.company?.status 
+    }, this.passwordChangeRequired(user));
   }
 
 
@@ -293,6 +341,7 @@ export class AuthService {
 
   private canAccessCompany(company: { status?: string; billingStatus?: string } | null | undefined, role: UserRole) {
     if (role === 'DEV') return true;
+    if (role === 'ADMIN') return Boolean(company && company.billingStatus !== 'CANCELED');
     return Boolean(company && (company.status ?? 'ACTIVE') === 'ACTIVE' && company.billingStatus !== 'CANCELED');
   }
 

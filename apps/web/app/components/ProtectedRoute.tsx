@@ -103,13 +103,20 @@ function AtomLoader() {
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const router = useRouter();
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading, user, company } = useAuth();
 
   React.useEffect(() => {
     if (!loading && !isAuthenticated) {
       router.replace('/login');
     }
-  }, [isAuthenticated, loading, router]);
+
+    if (!loading && isAuthenticated && user && (user as any).companyStatus === 'SUSPENDED') {
+      const slug = (company as any)?.slug || company?.name?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || company?.id || 'company';
+      if (!window.location.pathname.includes('/fatura-pendente')) {
+        router.replace(`/${slug}/fatura-pendente`);
+      }
+    }
+  }, [isAuthenticated, loading, router, user, company]);
 
   if (loading || !isAuthenticated) {
     return (
