@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import { TimeCalculationRulesService } from './src/modules/time-track/time-calculation-rules';
+import { TimeCalculationRulesService } from '../src/modules/time-track/time-calculation-rules';
 
 const prisma = new PrismaClient();
 const calcRules = new TimeCalculationRulesService();
