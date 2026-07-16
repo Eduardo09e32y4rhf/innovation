@@ -16,6 +16,7 @@ export interface User {
   name: string;
   email: string;
   profile: string;
+  role?: string;
   companyId: string;
   customPermissions?: string[];
 }
