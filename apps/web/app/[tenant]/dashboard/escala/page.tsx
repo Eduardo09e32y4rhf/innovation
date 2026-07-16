@@ -208,7 +208,27 @@ function calcMonthlyTotals(days: CalendarDay[]) {
     else if (resolved === 'SAIDA_ANTECIPADA') saidasAntecipadas++;
 
     const a = day.actual;
-    if (!a) continue;
+    if (!a) {
+      // Se não há batida e o dia foi resolvido como FALTA, devemos deduzir a jornada do saldo
+      if (resolved === 'FALTA') {
+        let expected = 480; // default 8 hours
+        if (day.scheduled && day.scheduled.entry && day.scheduled.exit) {
+          const ent = new Date(`1970-01-01T${day.scheduled.entry}Z`);
+          const ext = new Date(`1970-01-01T${day.scheduled.exit}Z`);
+          expected = (ext.getTime() - ent.getTime()) / 60000;
+          if (day.scheduled.lunchStart && day.scheduled.lunchReturn) {
+            const ls = new Date(`1970-01-01T${day.scheduled.lunchStart}Z`);
+            const lr = new Date(`1970-01-01T${day.scheduled.lunchReturn}Z`);
+            expected -= (lr.getTime() - ls.getTime()) / 60000;
+          } else {
+            expected -= 60; // default 1 hour lunch
+          }
+        }
+        totalBalance -= expected;
+        absenceMinutes += expected;
+      }
+      continue;
+    }
     
     totalWorked += a.totalWorked ?? 0;
     totalBalance += a.dailyBalance ?? 0;
@@ -630,7 +650,7 @@ function MinhaEscalaTab({ loading, calendarData, year, month, onPrev, onNext, se
 
       {/* Cards de resumo mensal */}
       {days.length > 0 && !loading && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
           <SummaryCard
             label="Hora Extra"
             value={totals.horaExtra > 0 ? formatMin(totals.horaExtra) : '0h00m'}
