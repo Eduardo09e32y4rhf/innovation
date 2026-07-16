@@ -30,6 +30,17 @@ export interface TimeCalculationOutput {
     lunchReturnTime: Date | null;
     exitTime: Date | null;
   };
+  punchStatus?: 'COMPLETE PUNCHES' | 'INCOMPLETE PUNCHES' | 'ABSENT' | 'JUSTIFIED ABSENCE';
+}
+
+export interface MonthlyConsolidationOutput {
+  totalOvertime50: number;
+  totalOvertime100: number;
+  totalOvertime: number;
+  totalDelaysAbsencesDebt: number;
+  timeBankBalance: number;
+  daysWorked: number;
+  fullAbsences: number;
 }
 
 @Injectable()
@@ -67,7 +78,6 @@ export class TimeCalculationRulesService {
       restDays = restDays.filter((d: number) => d !== 6);
     }
 
-    // Determine if it's a rest day based on standard rules
     if (restDays.includes(dayOfWeek)) {
       result.isRest = true;
     }
@@ -94,19 +104,17 @@ export class TimeCalculationRulesService {
     const dailyMinutes = rule?.dailyMinutes || empDaily;
     
     if (!result.isRest && !result.isHoliday) {
-       if (workScale === '6x1' && dayOfWeek === 6) { // Saturday in 6x1
-          const weekly = rule?.weeklyMinutes || 2640; // 44h
+       if (workScale === '6x1' && dayOfWeek === 6) {
+          const weekly = rule?.weeklyMinutes || 2640;
           expectedMinutes = weekly - (dailyMinutes * 5);
           if (expectedMinutes < 0) expectedMinutes = 0;
        } else if (workScale === '12x36') {
-          // Since we don't have alternate tracking yet, we'll assume 720 if not explicitly marked as rest.
           expectedMinutes = 720;
        } else {
           expectedMinutes = dailyMinutes;
        }
     }
 
-    // Reorder timestamps chronologically before calculation
     const timestamps = [input.entryTime, input.lunchStartTime, input.lunchReturnTime, input.exitTime]
       .filter((t): t is Date => t !== null && t !== undefined)
       .sort((a, b) => a.getTime() - b.getTime());
@@ -116,10 +124,27 @@ export class TimeCalculationRulesService {
     const lunchReturnTime = timestamps.length >= 4 ? timestamps[2] : null;
     const exitTime = timestamps.length === 2 ? timestamps[1] : timestamps[timestamps.length - 1] || null;
 
-    // If completely missing (falta) or full day absence
+    const isFullDaySickLeave = this.isFullDaySickLeaveAdjustment(input.manualReason);
+
+    if (isFullDaySickLeave) {
+      result.punchStatus = 'JUSTIFIED ABSENCE';
+      result.totalWorkedMinutes = 0;
+      result.dailyBalanceMinutes = 0;
+      result.absenceMinutes = null;
+      return result;
+    }
+
+    if (timestamps.length === 4) {
+      result.punchStatus = 'COMPLETE PUNCHES';
+    } else if (timestamps.length > 0 && timestamps.length < 4) {
+      result.punchStatus = 'INCOMPLETE PUNCHES';
+    } else if (timestamps.length === 0 && !result.isRest && !result.isHoliday) {
+      result.punchStatus = 'ABSENT';
+    }
+
     if (!entryTime || !exitTime) {
       if (result.isRest || result.isHoliday || this.isFullDayAdjustment(input.manualReason)) {
-        return result; // null balances
+        return result;
       }
       result.incidentType = 'falta';
       result.absenceMinutes = expectedMinutes;
@@ -127,7 +152,6 @@ export class TimeCalculationRulesService {
       return result;
     }
 
-    // Calculate actual worked minutes with reordered timestamps
     const p1 = this.diffMinutes(entryTime, lunchStartTime || exitTime);
     const p2 = (lunchReturnTime && timestamps.length === 4) ? this.diffMinutes(lunchReturnTime, exitTime) : 0;
     
@@ -138,13 +162,20 @@ export class TimeCalculationRulesService {
       lunch = rule?.breakMinutes ?? 60;
     }
     
-    const gross = this.diffMinutes(entryTime, exitTime);
-    const workedMinutes = timestamps.length >= 4 ? (p1 + p2) : Math.max(gross - lunch, 0);
+    let workedMinutes = 0;
+    if (timestamps.length === 4) {
+        workedMinutes = p1 + p2;
+    } else if (timestamps.length === 2) {
+        const gross = this.diffMinutes(entryTime, exitTime);
+        workedMinutes = Math.max(gross - lunch, 0);
+    } else {
+        const gross = this.diffMinutes(entryTime, exitTime);
+        workedMinutes = Math.max(gross - lunch, 0);
+    }
     
     if (result.isRest || result.isHoliday || this.isFullDayAdjustment(input.manualReason)) {
        result.totalWorkedMinutes = null;
        result.dailyBalanceMinutes = null;
-       // However, if they worked on a rest day/holiday, it's 100% overtime
        if (workedMinutes > 0) {
            result.totalWorkedMinutes = workedMinutes;
            result.overtime100Minutes = workedMinutes;
@@ -155,18 +186,16 @@ export class TimeCalculationRulesService {
 
     result.totalWorkedMinutes = workedMinutes;
 
-    // Apply exact tolerance
     let balance = workedMinutes - expectedMinutes;
     if (Math.abs(balance) <= this.TOLERANCIA_DIARIA_MINUTOS) {
        balance = 0;
     }
     
-    // Check for partial sick leave (atestado horas)
     const isPartialAtestado = (input.manualReason || '').toLowerCase().includes('atestado') || 
                               (input.manualReason || '').toLowerCase().includes('abono');
     
     if (balance < 0 && isPartialAtestado) {
-       balance = 0; // Does not generate negative balance for partial atestado/abono
+       balance = 0;
     }
 
     result.dailyBalanceMinutes = balance;
@@ -179,9 +208,18 @@ export class TimeCalculationRulesService {
         result.overtimeExceedsLimit = true;
         result.overtimeApprovalNeeded = true;
       }
+    } else if (balance < 0) {
+        const expectedEntryMin = this.timeStringToMinutes(employee?.standardEntry || rule?.standardEntry || '08:00');
+        const entryMin = entryTime.getHours() * 60 + entryTime.getMinutes();
+        const lateTolerance = rule?.lateToleranceMinutes ?? 10;
+
+        if (entryMin > expectedEntryMin + lateTolerance) {
+             result.incidentType = 'DELAY';
+        } else {
+             result.incidentType = 'EARLY DEPARTURE';
+        }
     }
 
-    // New occurrence calculation independently of balance
     const expectedEntryMin = this.timeStringToMinutes(employee?.standardEntry || rule?.standardEntry || '08:00');
     const lateTolerance = rule?.lateToleranceMinutes ?? 10;
     const earlyTolerance = rule?.earlyLeaveToleranceMinutes ?? 10;
@@ -219,7 +257,7 @@ export class TimeCalculationRulesService {
     if (incidents.length > 0) {
       result.incidentType = incidents.join(', ');
     } else if (balance < 0) {
-      result.incidentType = 'atraso';
+      result.incidentType = result.incidentType || 'atraso';
     } else {
       result.incidentType = 'normal';
     }
@@ -246,6 +284,46 @@ export class TimeCalculationRulesService {
     result.sortedTimestamps = { entryTime, lunchStartTime, lunchReturnTime, exitTime };
 
     return result;
+  }
+
+  consolidateMonthly(days: TimeCalculationOutput[]): MonthlyConsolidationOutput {
+    let totalOvertime50 = 0;
+    let totalOvertime100 = 0;
+    let totalDelaysAbsencesDebt = 0;
+    let daysWorked = 0;
+    let fullAbsences = 0;
+
+    for (const day of days) {
+      totalOvertime50 += day.overtime50Minutes || 0;
+      totalOvertime100 += day.overtime100Minutes || 0;
+
+      if (day.dailyBalanceMinutes !== null && day.dailyBalanceMinutes < 0) {
+          totalDelaysAbsencesDebt += Math.abs(day.dailyBalanceMinutes);
+      } else if (day.absenceMinutes && day.absenceMinutes > 0 && day.punchStatus !== 'JUSTIFIED ABSENCE') {
+          totalDelaysAbsencesDebt += day.absenceMinutes;
+      }
+
+      if (day.totalWorkedMinutes && day.totalWorkedMinutes > 0 && day.punchStatus !== 'JUSTIFIED ABSENCE') {
+          daysWorked++;
+      }
+
+      if (day.punchStatus === 'ABSENT') {
+          fullAbsences++;
+      }
+    }
+
+    const totalOvertime = totalOvertime50 + totalOvertime100;
+    const timeBankBalance = totalOvertime - totalDelaysAbsencesDebt;
+
+    return {
+      totalOvertime50,
+      totalOvertime100,
+      totalOvertime,
+      totalDelaysAbsencesDebt,
+      timeBankBalance,
+      daysWorked,
+      fullAbsences
+    };
   }
 
   private diffMinutes(start: Date, end: Date): number {
@@ -286,5 +364,11 @@ export class TimeCalculationRulesService {
     if (!reason) return false;
     const lower = reason.toLowerCase();
     return lower.includes('atestado') || lower.includes('licença') || lower.includes('abono');
+  }
+
+  private isFullDaySickLeaveAdjustment(reason?: string | null): boolean {
+    if (!reason) return false;
+    const lower = reason.toLowerCase();
+    return lower === 'sick leave' || lower.includes('atestado integral') || lower.includes('licença médica');
   }
 }
