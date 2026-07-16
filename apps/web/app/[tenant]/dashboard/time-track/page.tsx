@@ -122,8 +122,8 @@ function buildGrid(month: string, emp: Employee, tracks: TimeTrack[], startDay: 
   const map = new Map<string, TimeTrack>();
   for (const t of tracks) map.set(toDateKey(t.date), t);
   const g: any[] = [];
-  const empSchedule = teamSchedules.find(ts => ts.employee.id === emp.id);
-  const calDays = empSchedule ? empSchedule.days : [];
+  const empSchedule = teamSchedules.find(ts => ts.employee?.id === emp.id || ts.employeeId === emp.id);
+  const calDays = empSchedule ? (empSchedule.days || []) : [];
   const getCalDay = (k: string) => calDays.find((cd: any) => cd.date === k);
 
   
@@ -651,8 +651,8 @@ function downloadCollectiveSheet(month: string, visibleEmployees: Employee[], by
         </div>
       `)}
       ${(() => {
-        const empSchedule = teamSchedules.find(ts => ts.employee.id === employee.id);
-        const schedRule = empSchedule?.workScheduleRule;
+        const empSchedule = teamSchedules.find(ts => ts.employee?.id === employee.id || ts.employeeId === employee.id);
+        const schedRule = empSchedule?.schedule || empSchedule?.workScheduleRule;
         let schHtml = `<td style="padding:2px 4px;font-size:7px;color:#334155;text-align:center;" colspan="4">--:--</td>`;
         if (schedRule) {
           schHtml = `
