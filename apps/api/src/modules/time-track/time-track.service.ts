@@ -594,6 +594,8 @@ export class TimeTrackService {
       manualStatus: ['ADMIN', 'RH', 'DEV'].includes(actor.role) ? 'approved' : 'pending',
       ...totalsData
     };
+    
+    delete data.sortedTimestamps;
 
     return this.repository.upsert(employee.id, date, data);
   }
