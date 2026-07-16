@@ -6,7 +6,13 @@
 
 # The frontend app (Next.js)
 {$DOMAIN:localhost} {
-    reverse_proxy web:3000
+    handle /api/* {
+        uri strip_prefix /api
+        reverse_proxy api:3333
+    }
+    handle {
+        reverse_proxy web:3000
+    }
 }
 
 # The backend API (NestJS)
