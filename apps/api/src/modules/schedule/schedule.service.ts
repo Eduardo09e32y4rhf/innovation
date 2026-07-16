@@ -342,15 +342,23 @@ export class ScheduleService {
       orderBy: [{ employee: { name: 'asc' } }],
     });
 
-    // Adiciona funcionários sem escala vinculada
-    const withSchedule = new Set(userSchedules.map((us) => us.employeeId));
+    // Adiciona funcionários sem escala vinculada e deduplica
+    const withScheduleMap = new Map();
+    for (const us of userSchedules) {
+      if (!withScheduleMap.has(us.employeeId)) {
+        withScheduleMap.set(us.employeeId, us);
+      }
+    }
+    const uniqueUserSchedules = Array.from(withScheduleMap.values());
+    const withScheduleIds = new Set(withScheduleMap.keys());
+
     const withoutSchedule = await this.prisma.employee.findMany({
-      where: { id: { in: employeeIds.filter((id) => !withSchedule.has(id)) } },
+      where: { id: { in: employeeIds.filter((id) => !withScheduleIds.has(id)) } },
       select: { id: true, name: true, department: true, position: true, registration: true },
     });
 
     return {
-      withSchedule: userSchedules,
+      withSchedule: uniqueUserSchedules,
       withoutSchedule,
       month,
     };
