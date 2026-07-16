@@ -69,8 +69,8 @@ export class DashboardRepository {
     }
     const company = await this.prisma.company.findUnique({ where: { id: companyId }, select: { name: true, document: true, logoUrl: true } });
     return {
-      birthdaysToday: birthdaysToday.map((employee) => ({ id: employee.id, name: employee.name, birthDate: employee.birthDate })),
-      birthdaysThisMonth: birthdaysThisMonth.map((employee) => ({ id: employee.id, name: employee.name, birthDate: employee.birthDate })),
+      birthdaysToday: birthdaysToday.map((employee: typeof employees[0]) => ({ id: employee.id, name: employee.name, birthDate: employee.birthDate })),
+      birthdaysThisMonth: birthdaysThisMonth.map((employee: typeof employees[0]) => ({ id: employee.id, name: employee.name, birthDate: employee.birthDate })),
       pending: { timeTracks: pendingTimeTracks, vacations: pendingVacations },
       movements: { admissionsThisMonth, terminationsThisMonth },
       alerts: {
