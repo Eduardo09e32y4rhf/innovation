@@ -329,8 +329,8 @@ export default function TimeTrackPage() {
         </div>
         <div className="flex flex-wrap gap-2">
           <Link href={`/${tenant}/dashboard/time-track/clock-in`} className="crystal-button inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black text-white"><Clock3 size={14}/> BATER PONTO</Link>
-          {(canManage||isGestor) && <button onClick={() => downloadCollectiveSheet(month, visible, byEmpMap, company.data || null, holidays.data || [])} disabled={refreshing || visible.length === 0} className="btn-outline-premium inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black"><FileText size={14}/> FOLHAS DE PONTO</button>}
-          {isFunc && <button onClick={() => downloadCollectiveSheet(month, visible, byEmpMap, company.data || null, holidays.data || [])} disabled={refreshing || visible.length === 0} className="btn-outline-premium inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black"><FileText size={14}/> MINHA FOLHA</button>}
+          {(canManage||isGestor) && <button onClick={() => downloadCollectiveSheet(month, visible, byEmpMap, company.data || null, holidays.data || [], teamSchedules.data || [])} disabled={refreshing || visible.length === 0} className="btn-outline-premium inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black"><FileText size={14}/> FOLHAS DE PONTO</button>}
+          {isFunc && <button onClick={() => downloadCollectiveSheet(month, visible, byEmpMap, company.data || null, holidays.data || [], teamSchedules.data || [])} disabled={refreshing || visible.length === 0} className="btn-outline-premium inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black"><FileText size={14}/> MINHA FOLHA</button>}
           {canManage && <button onClick={()=>setOpen(true)} disabled={refreshing} className="crystal-button inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black text-white"><Edit3 size={14}/> LANÇAR PONTO</button>}
         </div>
       </header>
@@ -464,30 +464,91 @@ function escapeHtml(value: unknown) {
   return String(value ?? '').replace(/[&<>"]/g, (char) => ({ '&': '&', '<': '<', '>': '>', '"': '"' })[char] ?? char);
 }
 
-function downloadCollectiveSheet(month: string, visibleEmployees: Employee[], byEmpMap: Record<string, TimeTrack[]>, companyData: any, holidaysData: any[]) {
+function downloadCollectiveSheet(month: string, visibleEmployees: Employee[], byEmpMap: Record<string, TimeTrack[]>, companyData: any, holidaysData: any[], teamSchedules: any[] = []) {
   const subtitle = monthLabelFn(month);
   
   const blocks = visibleEmployees.map((employee, index) => {
     const rows = byEmpMap[employee.id] || [];
-    const grid = buildGrid(month, employee, rows, companyData?.payrollStartDay || 1, holidaysData);
+    const grid = buildGrid(month, employee, rows, companyData?.payrollStartDay || 1, holidaysData, teamSchedules);
 
     const validTracks = grid.map(g => g.track).filter(Boolean) as TimeTrack[];
     
-    const { worked: totalWorked, saldo: totalBalance, extra: positiveBalance, missing: negativeBalance } = getEffectiveStats(validTracks);
+    let pdfWorked = 0;
+    let pdfSaldo = 0;
+    let pdfExtra = 0;
+    let pdfMissing = 0;
     
     let faltasCount = 0;
     let dsrLost = 0;
     let currentWeekFaltas = 0;
+
     grid.forEach(g => {
-      if (g.wd === 1) currentWeekFaltas = 0; // Reset on Monday
+      if (g.isFuture || g.antesAdmissao || g.depoisDemissao) return;
+      if (g.wd === 1) currentWeekFaltas = 0;
+      
       const t = g.track;
-      const isFaltaDay = t ? isFalta(t) : (!g.isRest && !g.isFuture && !g.antesAdmissao && !g.depoisDemissao);
+      let isFaltaDay = false;
+      
+      if (!t) {
+        if (!g.isRest) {
+          isFaltaDay = true;
+          let expected = 480;
+          if (g.scheduled && g.scheduled.entry && g.scheduled.exit) {
+            const ent = new Date(`1970-01-01T${g.scheduled.entry}Z`);
+            const ext = new Date(`1970-01-01T${g.scheduled.exit}Z`);
+            expected = (ext.getTime() - ent.getTime()) / 60000;
+            if (g.scheduled.lunchStart && g.scheduled.lunchReturn) {
+              const ls = new Date(`1970-01-01T${g.scheduled.lunchStart}Z`);
+              const lr = new Date(`1970-01-01T${g.scheduled.lunchReturn}Z`);
+              expected -= (lr.getTime() - ls.getTime()) / 60000;
+            } else {
+              expected -= 60;
+            }
+          }
+          pdfSaldo -= expected;
+          pdfMissing += expected;
+        }
+      } else {
+        isFaltaDay = isFalta(t);
+        let ocorrencia = dayStatus(t, g.holidayName);
+        if (ocorrencia === 'NORMAL') {
+          if (isFaltaDay) ocorrencia = 'FALTA NAO JUSTIFICADA';
+        }
+        if (isFaltaDay && !t.entry && !t.exit) {
+          let expected = 480;
+          if (g.scheduled && g.scheduled.entry && g.scheduled.exit) {
+            const ent = new Date(`1970-01-01T${g.scheduled.entry}Z`);
+            const ext = new Date(`1970-01-01T${g.scheduled.exit}Z`);
+            expected = (ext.getTime() - ent.getTime()) / 60000;
+            if (g.scheduled.lunchStart && g.scheduled.lunchReturn) {
+              const ls = new Date(`1970-01-01T${g.scheduled.lunchStart}Z`);
+              const lr = new Date(`1970-01-01T${g.scheduled.lunchReturn}Z`);
+              expected -= (lr.getTime() - ls.getTime()) / 60000;
+            } else {
+              expected -= 60;
+            }
+          }
+          pdfSaldo -= expected;
+          pdfMissing += expected;
+        } else {
+          const balance = t.dailyBalance ?? 0;
+          const heMinutes = Math.max(balance, 0);
+          const absentMinutes = Math.abs(Math.min(balance, 0));
+          const jornadaMinutes = t.totalWorked ?? 0;
+
+          pdfWorked += jornadaMinutes;
+          pdfSaldo += balance;
+          pdfExtra += heMinutes;
+          pdfMissing += absentMinutes;
+        }
+      }
+
       if (isFaltaDay) {
         faltasCount++;
         if (g.wd !== 0) currentWeekFaltas++;
       }
       if (g.wd === 0 && currentWeekFaltas > 0) {
-        dsrLost++; // Lost Sunday DSR
+        dsrLost++;
       }
     });
 
@@ -521,16 +582,21 @@ function downloadCollectiveSheet(month: string, visibleEmployees: Employee[], by
         return `<tr><td style="padding:2px 4px;font-size:7px;color:#e11d48;font-weight:600;">${dateStr}</td><td style="padding:2px 4px;font-size:7px;color:#e11d48;font-weight:600;">${wd}</td><td colspan="10" style="padding:2px 4px;font-size:7px;color:#e11d48;text-align:center;font-weight:700;">FALTA NAO JUSTIFICADA</td></tr>`;
       }
 
-      const balance = t.dailyBalance;
-      const balanceColor = (balance != null && balance < 0) ? '#e11d48' : (balance != null && balance > 0) ? '#059669' : '#64748b';
-      const hasMissing = !t.entry || !t.exit;
       let ocorrencia = dayStatus(t, g.holidayName);
+      const hasMissing = !t.entry || !t.exit;
       if (ocorrencia === 'NORMAL') {
         if (isFalta(t)) ocorrencia = 'FALTA NAO JUSTIFICADA';
         else if (hasMissing) ocorrencia = 'FALTA DE MARCACAO';
         else ocorrencia = '';
       }
 
+      const isIntegral = ['ATESTADO','FERIADO','SUSPENSÃO','FOLGA','FOLGA EXTRA','FOLGA BANCO','FOLGA (DSR)','FALTA NAO JUSTIFICADA'].includes(ocorrencia.toUpperCase());
+      if (isIntegral && !t.entry && !t.exit) {
+        const color = (ocorrencia.toUpperCase().includes('ATESTADO') || ocorrencia.toUpperCase().includes('SUSPENS') || ocorrencia.toUpperCase().includes('FALTA')) ? '#e11d48' : '#64748b';
+        return `<tr><td style="padding:2px 4px;font-size:7px;color:${color};font-weight:600;">${dateStr}</td><td style="padding:2px 4px;font-size:7px;color:${color};font-weight:600;">${wd}</td><td colspan="10" style="padding:2px 4px;font-size:7px;color:${color};text-align:center;font-weight:700;">${escapeHtml(ocorrencia.toUpperCase())}</td></tr>`;
+      }
+
+      const balance = t.dailyBalance ?? 0;
       const he = (balance != null && balance > 0) ? formatMinutes(balance) : '';
       const absent = (balance != null && balance < 0) ? formatMinutes(Math.abs(balance)) : '';
       const jornada = t.totalWorked == null ? '' : formatMinutes(t.totalWorked);
@@ -567,37 +633,47 @@ function downloadCollectiveSheet(month: string, visibleEmployees: Employee[], by
           </div>
           <div style="background:#f0fdfa;border:1px solid #ccfbf1;border-radius:8px;padding:12px;text-align:center;">
             <div style="font-size:8px;font-weight:800;text-transform:uppercase;color:#0f766e;letter-spacing:0.05em;">Total Horas</div>
-            <div style="font-size:16px;font-weight:900;color:#0f172a;margin-top:4px;">${escapeHtml(formatMinutes(totalWorked))}</div>
+            <div style="font-size:16px;font-weight:900;color:#0f172a;margin-top:4px;">${escapeHtml(formatMinutes(pdfWorked))}</div>
           </div>
           <div style="background:#f0fdfa;border:1px solid #ccfbf1;border-radius:8px;padding:12px;text-align:center;">
             <div style="font-size:8px;font-weight:800;text-transform:uppercase;color:#0f766e;letter-spacing:0.05em;">Horas Extras</div>
-            <div style="font-size:16px;font-weight:900;color:#059669;margin-top:4px;">${escapeHtml(formatMinutes(positiveBalance))}</div>
+            <div style="font-size:16px;font-weight:900;color:#059669;margin-top:4px;">${escapeHtml(formatMinutes(pdfExtra))}</div>
           </div>
           <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px;text-align:center;">
             <div style="font-size:8px;font-weight:800;text-transform:uppercase;color:#e11d48;letter-spacing:0.05em;">Horas Atraso</div>
-            <div style="font-size:16px;font-weight:900;color:#e11d48;margin-top:4px;">${escapeHtml(formatMinutes(negativeBalance))}</div>
+            <div style="font-size:16px;font-weight:900;color:#e11d48;margin-top:4px;">${escapeHtml(formatMinutes(pdfMissing))}</div>
           </div>
         </div>
         <div style="margin-top:16px;background:#f8fafc;padding:16px;border-radius:8px;font-size:12px;color:#334155;font-weight:700;text-align:center;border:1px solid #e2e8f0;">
-          SALDO DO BANCO DE HORAS NESTE MES: <span style="font-weight:900;color:${totalBalance < 0 ? '#e11d48' : totalBalance > 0 ? '#059669' : '#64748b'};">
-            ${escapeHtml(formatMinutes(totalBalance))}
+          SALDO DO BANCO DE HORAS NESTE MES: <span style="font-weight:900;color:${pdfSaldo < 0 ? '#e11d48' : pdfSaldo > 0 ? '#059669' : '#64748b'};">
+            ${escapeHtml(formatMinutes(pdfSaldo))}
           </span>
         </div>
       `)}
-      ${section('Horários', pdfTable(
-        ['Data Base', 'Entrada', 'Saída Almoço', 'Retorno Almoço', 'Saída', 'Turno / Carga Horária'],
-        [
-          `<tr>
-            <td style="padding:2px 4px;font-size:7px;color:#334155;text-align:center;">01/${month.split('-')[1]}/${month.split('-')[0]}</td>
-            <td style="padding:2px 4px;font-size:7px;color:#334155;text-align:center;">--:--</td>
-            <td style="padding:2px 4px;font-size:7px;color:#334155;text-align:center;">--:--</td>
-            <td style="padding:2px 4px;font-size:7px;color:#334155;text-align:center;">--:--</td>
-            <td style="padding:2px 4px;font-size:7px;color:#334155;text-align:center;">--:--</td>
-            <td style="padding:2px 4px;font-size:7px;color:#0f172a;text-align:center;">${escapeHtml(employee.workScale || 'Não definida')} - ${escapeHtml(employee.dailyWorkload || '')}</td>
-          </tr>`
-        ],
-        { compact: true, border: true }
-      ), { avoidBreak: true })}
+      ${(() => {
+        const empSchedule = teamSchedules.find(ts => ts.employee.id === employee.id);
+        const schedRule = empSchedule?.workScheduleRule;
+        let schHtml = `<td style="padding:2px 4px;font-size:7px;color:#334155;text-align:center;" colspan="4">--:--</td>`;
+        if (schedRule) {
+          schHtml = `
+            <td style="padding:2px 4px;font-size:7px;color:#334155;text-align:center;">${escapeHtml(schedRule.entryTime || '--:--')}</td>
+            <td style="padding:2px 4px;font-size:7px;color:#334155;text-align:center;">${escapeHtml(schedRule.lunchStartTime || '--:--')}</td>
+            <td style="padding:2px 4px;font-size:7px;color:#334155;text-align:center;">${escapeHtml(schedRule.lunchReturnTime || '--:--')}</td>
+            <td style="padding:2px 4px;font-size:7px;color:#334155;text-align:center;">${escapeHtml(schedRule.exitTime || '--:--')}</td>
+          `;
+        }
+        return section('Horários', pdfTable(
+          ['Data Base', 'Entrada', 'Saída Almoço', 'Retorno Almoço', 'Saída', 'Turno / Carga Horária'],
+          [
+            `<tr>
+              <td style="padding:2px 4px;font-size:7px;color:#334155;text-align:center;">01/${month.split('-')[1]}/${month.split('-')[0]}</td>
+              ${schHtml}
+              <td style="padding:2px 4px;font-size:7px;color:#0f172a;text-align:center;">${escapeHtml(employee.workScale || 'Não definida')} - ${escapeHtml(employee.dailyWorkload || '')}</td>
+            </tr>`
+          ],
+          { compact: true, border: true }
+        ), { avoidBreak: true });
+      })()}
       ${signatureBlock(['Assinatura do Colaborador', 'Assinatura do RH / Responsavel'])}
     `;
 
