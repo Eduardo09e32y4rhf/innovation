@@ -200,26 +200,6 @@ export class TimeCalculationRulesService {
 
     result.dailyBalanceMinutes = balance;
 
-    if (balance > 0) {
-      result.overtime50Minutes = balance;
-
-      const maxDaily = rule?.maxDailyOvertimeMinutes ?? 120;
-      if (result.overtime50Minutes > maxDaily) {
-        result.overtimeExceedsLimit = true;
-        result.overtimeApprovalNeeded = true;
-      }
-    } else if (balance < 0) {
-        const expectedEntryMin = this.timeStringToMinutes(employee?.standardEntry || rule?.standardEntry || '08:00');
-        const entryMin = entryTime.getHours() * 60 + entryTime.getMinutes();
-        const lateTolerance = rule?.lateToleranceMinutes ?? 10;
-
-        if (entryMin > expectedEntryMin + lateTolerance) {
-             result.incidentType = 'DELAY';
-        } else {
-             result.incidentType = 'EARLY DEPARTURE';
-        }
-    }
-
     const expectedEntryMin = this.timeStringToMinutes(employee?.standardEntry || rule?.standardEntry || '08:00');
     const lateTolerance = rule?.lateToleranceMinutes ?? 10;
     const earlyTolerance = rule?.earlyLeaveToleranceMinutes ?? 10;
@@ -235,42 +215,44 @@ export class TimeCalculationRulesService {
     const entryMin = entryTime.getHours() * 60 + entryTime.getMinutes();
     const exitMin = exitTime.getHours() * 60 + exitTime.getMinutes();
 
-    const incidents: string[] = [];
     let calcLate = 0;
     let calcEarly = 0;
 
     if (entryMin > expectedEntryMin + lateTolerance) {
-      incidents.push('atraso');
       calcLate += (entryMin - expectedEntryMin);
     }
     
     if (lunch > breakMins + lateTolerance) {
-      incidents.push('atraso_pausa');
       calcLate += (lunch - breakMins);
     }
 
     if (exitMin < expectedExitMin - earlyTolerance) {
-      incidents.push('saida_antecipada');
       calcEarly += (expectedExitMin - exitMin);
     }
 
-    if (incidents.length > 0) {
-      result.incidentType = incidents.join(', ');
-    } else if (balance < 0) {
-      result.incidentType = result.incidentType || 'atraso';
-    } else {
-      result.incidentType = 'normal';
-    }
+    if (balance > 0) {
+      result.overtime50Minutes = balance;
 
-    result.lateMinutes = calcLate;
-    result.earlyLeaveMinutes = calcEarly;
-
-    if (balance < 0) {
-      result.absenceMinutes = Math.abs(balance);
-      if (incidents.length === 0) {
-        result.lateMinutes = Math.abs(balance);
+      const maxDaily = rule?.maxDailyOvertimeMinutes ?? 120;
+      if (result.overtime50Minutes > maxDaily) {
+        result.overtimeExceedsLimit = true;
+        result.overtimeApprovalNeeded = true;
       }
+      result.incidentType = 'normal';
+    } else if (balance < 0) {
+        if (entryMin > expectedEntryMin + lateTolerance) {
+             result.incidentType = 'DELAY';
+        } else {
+             result.incidentType = 'EARLY DEPARTURE';
+        }
+        result.absenceMinutes = Math.abs(balance);
+        result.lateMinutes = Math.abs(balance);
+    } else {
+        result.incidentType = 'normal';
     }
+
+    result.lateMinutes = calcLate || result.lateMinutes;
+    result.earlyLeaveMinutes = calcEarly;
 
     if (rule?.nightShiftEnabled && entryTime && exitTime) {
       result.nightShiftMinutes = this.calculateNightShiftMinutes(
