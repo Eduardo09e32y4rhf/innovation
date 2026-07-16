@@ -17,7 +17,7 @@ export interface TimeCalculationOutput {
   lateMinutes: number;
   earlyLeaveMinutes: number;
   nightShiftMinutes: number;
-  incidentType: 'atraso' | 'saida_antecipada' | 'falta' | null;
+  incidentType: string | null;
   isRest: boolean;
   isHoliday: boolean;
   holidayHandling: 'FOLGA' | 'PAID_100';
