@@ -10,6 +10,7 @@ import { TimeCalculationRulesService } from './time-calculation-rules';
 import { PrismaService } from '../../database/prisma.service';
 import { getDistanceInMeters } from '../../common/utils/geo.utils';
 import { toDateOnly } from '../../common/utils/date.utils';
+import { TimeZoneService } from '../../common/services/timezone.service';
 
 const REASON_LABEL: Record<string, string> = {
   ajuste_erro_marcacao: 'AJUSTE - ERRO MARCAÇÃO',
@@ -31,6 +32,7 @@ export class TimeTrackService {
     private readonly rulesService: WorkScheduleRulesService,
     private readonly timeCalcRules: TimeCalculationRulesService,
     private readonly prisma: PrismaService,
+    private readonly tzService: TimeZoneService,
   ) {}
 
   private readonly PUNCH_LOCK_TTL = 8;
@@ -96,7 +98,7 @@ export class TimeTrackService {
          const previousTrack = await this.repository.findByEmployeeDate(employee.id, previousDate);
          
          if (previousTrack && previousTrack.exit) {
-            const entryTime = new Date(dto.entry);
+            const entryTime = this.tzService.parseFromBRT(dto.entry);
             
             if (!isNaN(entryTime.getTime())) {
                const tzOffset = entryTime.getTimezoneOffset() * 60000;
@@ -643,15 +645,15 @@ export class TimeTrackService {
   private resolveMonth(month?: string) {
     const reference = month ? new Date(`${month}-01T00:00:00.000Z`) : new Date();
     if (Number.isNaN(reference.getTime())) throw new BadRequestException('Invalid month');
-    const start = new Date(Date.UTC(reference.getUTCFullYear(), reference.getUTCMonth(), 1));
-    const end = new Date(Date.UTC(reference.getUTCFullYear(), reference.getUTCMonth() + 1, 1));
+    const start = this.tzService.startOfMonthBRT(reference);
+    const end = this.tzService.endOfMonthBRT(reference);
     return { start, end };
   }
 
   private parseDateOnly(val: string | null | undefined, errorMessage: string): Date {
     if (!val) throw new BadRequestException(errorMessage);
     if (/^\d{4}-\d{2}-\d{2}$/.test(val)) {
-      return new Date(`${val}T00:00:00.000Z`);
+      return this.tzService.parseFromBRT(val);
     }
     const date = new Date(val);
     if (isNaN(date.getTime())) throw new BadRequestException(errorMessage);

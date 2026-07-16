@@ -533,6 +533,8 @@ model TimeTrack {
   @@index([companyId])
   @@index([overtimeApprovalStatus])
   @@index([date])
+  @@index([companyId, date])
+  @@index([companyId, employeeId, date])
 }
 
 model WorkScheduleRule {
@@ -1166,6 +1168,9 @@ model TimeClosing {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([companyId, status, periodStart])
+  @@index([employeeId, periodStart])
 }
 
 model TimeClosingAdjustment {

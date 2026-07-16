@@ -92,7 +92,20 @@ export class TimeTrackController {
       // Calcular Distância Euclidiana entre o descritor salvo e o atual
       const savedDescriptor = enrollment.descriptor as number[];
       if (Array.isArray(savedDescriptor) && Array.isArray(dto.faceDescriptor) && savedDescriptor.length === dto.faceDescriptor.length) {
-        const distance = Math.sqrt(dto.faceDescriptor.reduce((sum: number, val: number, i: number) => sum + Math.pow(val - savedDescriptor[i], 2), 0));
+        
+        // Offload calculation to prevent Event Loop blocking (Deadlock Fix)
+        const distance = await new Promise<number>((resolve) => {
+          setImmediate(() => {
+            let sum = 0;
+            const len = dto.faceDescriptor.length;
+            for (let i = 0; i < len; i++) {
+              const diff = dto.faceDescriptor[i] - savedDescriptor[i];
+              sum += diff * diff;
+            }
+            resolve(Math.sqrt(sum));
+          });
+        });
+
         matchResult = { distance, subject: employeeId };
         if (distance < 0.55) {
           facialSuccess = true;

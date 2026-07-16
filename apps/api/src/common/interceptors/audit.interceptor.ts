@@ -3,7 +3,7 @@ import { Observable, tap } from 'rxjs';
 import { PrismaService } from '../../database/prisma.service';
 
 const WRITE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
-const SECRET_KEYS = ['password', 'currentPassword', 'newPassword', 'passwordHash', 'token', 'access_token', 'authorization'];
+const SECRET_KEYS = ['password', 'currentPassword', 'newPassword', 'passwordHash', 'token', 'access_token', 'authorization', 'cpf', 'email', 'document', 'phone'];
 
 @Injectable()
 export class AuditInterceptor implements NestInterceptor {

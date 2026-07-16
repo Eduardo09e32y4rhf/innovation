@@ -120,21 +120,26 @@ services:
     ports:
       - "${WEB_HOST_PORT:-3000}:3000"
 
-  nginx-lb:
-    image: nginx:alpine
-    container_name: innovation-nginx-lb
+  caddy:
+    image: caddy:2-alpine
+    container_name: innovation-caddy
     restart: unless-stopped
     ports:
       - "80:80"
       - "443:443"
+      - "443:443/udp"
     volumes:
-      - ./infra/nginx-lb.conf:/etc/nginx/nginx.conf:ro
-      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - ./infra/Caddyfile:/etc/caddy/Caddyfile:ro
+      - innovation_caddy_data:/data
+      - innovation_caddy_config:/config
     depends_on:
       - api
+      - web
 
 volumes:
   innovation_pgdata:
   innovation_wa:
   innovation_redisdata:
   compreface_db_data:
+  innovation_caddy_data:
+  innovation_caddy_config:

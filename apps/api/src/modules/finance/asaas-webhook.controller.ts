@@ -1,7 +1,9 @@
 import { Controller, Post, Body, Headers, ForbiddenException, HttpCode, Logger } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
 import * as crypto from 'crypto';
 import { PrismaService } from '../../database/prisma.service';
 
+@SkipThrottle()
 @Controller('finance/webhook')
 export class AsaasWebhookController {
   private readonly logger = new Logger(AsaasWebhookController.name);
@@ -173,7 +175,11 @@ export class AsaasWebhookController {
 
         await this.prisma.company.update({
           where: { id: company.id },
-          data: { billingStatus: 'PAST_DUE' },
+          data: { 
+            billingStatus: 'PAST_DUE',
+            status: 'SUSPENDED',
+            suspensionReason: 'Fatura Vencida' 
+          },
         });
       }
     }

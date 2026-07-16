@@ -233,4 +233,53 @@ export class TimeClosingService {
     // Here we would typically return a stream or a URL.
     return { url: `/time-closing/${id}/pdf-stream` };
   }
+
+  async streamPdf(companyId: string, id: string, res: any) {
+    const closing = await this.prisma.timeClosing.findFirst({
+      where: { id, companyId },
+      include: { employee: true, company: true }
+    });
+
+    if (!closing) throw new NotFoundException('Time closing not found');
+
+    const PDFDocument = require('pdfkit');
+    const doc = new PDFDocument({ margin: 50 });
+
+    // Assuming Fastify response object (res.raw)
+    res.header('Content-Type', 'application/pdf');
+    res.header('Content-Disposition', `attachment; filename=Fechamento_${closing.employee.name.replace(/\s+/g, '_')}_${closing.periodStart.toISOString().split('T')[0]}.pdf`);
+    
+    doc.pipe(res.raw);
+
+    // Header
+    doc.fontSize(20).text('Espelho de Ponto', { align: 'center' });
+    doc.moveDown();
+    
+    // Company Info
+    doc.fontSize(12).text(`Empresa: ${closing.company?.name || 'Innovation RH'}`);
+    doc.text(`Funcionário: ${closing.employee.name}`);
+    doc.text(`Período: ${closing.periodStart.toLocaleDateString()} a ${closing.periodEnd.toLocaleDateString()}`);
+    doc.moveDown();
+
+    // Summary
+    doc.fontSize(16).text('Resumo do Período');
+    doc.moveDown(0.5);
+    doc.fontSize(12)
+       .text(`Horas Normais: ${closing.normalHours?.toFixed(2) || '0.00'}h`)
+       .text(`Horas Extras (50%): ${closing.overtime50?.toFixed(2) || '0.00'}h`)
+       .text(`Horas Extras (100%): ${closing.overtime100?.toFixed(2) || '0.00'}h`)
+       .text(`Adicional Noturno: ${closing.nightShift?.toFixed(2) || '0.00'}h`)
+       .text(`DSR: ${closing.dsrValue?.toFixed(2) || '0.00'}h`)
+       .text(`Faltas: ${closing.absences || 0} dias`)
+       .text(`Atrasos: ${closing.lateArrivals || 0} dias`)
+       .text(`Batidas de Contingência (Sem Biometria): ${closing.fallbackPunches || 0}`);
+
+    doc.moveDown();
+    doc.fontSize(14).text(`Total a Pagar Estimado: R$ ${closing.totalPayable?.toFixed(2) || '0.00'}`);
+
+    doc.moveDown(2);
+    doc.fontSize(10).text('Documento gerado automaticamente pelo sistema Innovation RH Connect.', { align: 'center', color: 'grey' });
+
+    doc.end();
+  }
 }

@@ -1,0 +1,15 @@
+# Replace with your actual domain name and email
+# The global block can contain an email for Let's Encrypt recovery
+{
+    email {$CADDY_EMAIL:admin@example.com}
+}
+
+# The frontend app (Next.js)
+{$DOMAIN:localhost} {
+    reverse_proxy web:3000
+}
+
+# The backend API (NestJS)
+api.{$DOMAIN:localhost} {
+    reverse_proxy api:3333
+}

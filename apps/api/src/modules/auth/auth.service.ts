@@ -43,6 +43,7 @@ export class AuthService {
     const admin = company.users[0];
 
     // Integração Asaas
+    let paymentUrl = null;
     try {
       const customer = await this.asaasService.createCustomer({
         name: company.name,
@@ -52,33 +53,52 @@ export class AuthService {
       });
 
       if (customer && (customer as any).id) {
-        // Criar assinatura de 9,99 pro 7º dia
-        const nextDueDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-        
-        await this.asaasService.createSubscription((customer as any).id, {
-          value: 9.99,
-          nextDueDate: nextDueDate,
-          description: 'Assinatura Plataforma Innovation RH Connect',
+        // Criar cobrança imediata
+        const today = new Date().toISOString().split('T')[0];
+        const charge = await this.asaasService.createCharge((customer as any).id, {
+          value: 49.90, // Valor da primeira mensalidade ou setup
+          dueDate: today,
+          description: 'Ativação da Conta - Innovation RH Connect',
         });
 
-        // Atualizar company com asaasCustomerId
+        if (charge && (charge as any).invoiceUrl) {
+          paymentUrl = (charge as any).invoiceUrl;
+        }
+
+        // Criar assinatura para os próximos meses
+        const nextMonth = new Date();
+        nextMonth.setMonth(nextMonth.getMonth() + 1);
+        await this.asaasService.createSubscription((customer as any).id, {
+          value: 49.90,
+          nextDueDate: nextMonth.toISOString().split('T')[0],
+          description: 'Mensalidade - Innovation RH Connect',
+        });
+
+        // Atualizar company: suspensa até pagar
         await this.repository['prisma'].company.update({
           where: { id: company.id },
-          data: { asaasCustomerId: (customer as any).id },
+          data: { 
+            asaasCustomerId: (customer as any).id,
+            billingStatus: 'PAST_DUE',
+            status: 'SUSPENDED'
+          },
         });
       }
     } catch (error) {
       console.error('Falha ao registrar no Asaas, prosseguindo com trial local.', error);
     }
 
-    return this.buildAuthResponse({
-      sub: admin.id,
-      email: admin.email,
-      name: admin.name,
-      companyId: admin.companyId,
-      role: this.resolveRole(admin.email, admin.role),
-      customPermissions: admin.customPermissions,
-    }, true);
+    return {
+      ...(await this.buildAuthResponse({
+        sub: admin.id,
+        email: admin.email,
+        name: admin.name,
+        companyId: admin.companyId,
+        role: this.resolveRole(admin.email, admin.role),
+        customPermissions: admin.customPermissions,
+      }, true)),
+      paymentUrl,
+    };
   }
 
   async login(dto: LoginDto, requestMeta?: { ipAddress?: string; userAgent?: string }) {

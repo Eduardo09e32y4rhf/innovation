@@ -53,13 +53,43 @@ export class PrivacyService {
       }
     }
 
+    const crypto = require('crypto');
+    
+    // Mock KMS or process.env for RSA Private Key
+    const privateKey = process.env.PRIVACY_RSA_PRIVATE_KEY || crypto.generateKeyPairSync('rsa', {
+      modulusLength: 2048,
+      publicKeyEncoding: { type: 'spki', format: 'pem' },
+      privateKeyEncoding: { type: 'pkcs8', format: 'pem' }
+    }).privateKey;
+
+    const payloadToSign = JSON.stringify({
+      companyId: user.companyId,
+      userId: user.sub,
+      termVersion: CURRENT_TERMS_VERSION,
+      purpose: TERMS_PURPOSE,
+      ipAddress: requestMeta.ipAddress,
+      acceptedAt: consent.acceptedAt.toISOString(),
+    });
+
+    const sign = crypto.createSign('SHA256');
+    sign.update(payloadToSign);
+    sign.end();
+    const signature = sign.sign(privateKey, 'base64');
+
     await this.repository.createAuditLog({
       companyId: user.companyId,
       userId: user.sub,
       action: 'PRIVACY_TERMS_ACCEPTED',
       entity: 'PrivacyConsent',
       entityId: consent.id,
-      metadata: { termVersion: CURRENT_TERMS_VERSION, latitude: body?.latitude, longitude: body?.longitude },
+      metadata: { 
+        termVersion: CURRENT_TERMS_VERSION, 
+        latitude: body?.latitude, 
+        longitude: body?.longitude,
+        signatureAlgorithm: 'RSA-SHA256',
+        payloadHash: crypto.createHash('sha256').update(payloadToSign).digest('hex'),
+        digitalSignature: signature,
+      },
       ...requestMeta,
     });
 

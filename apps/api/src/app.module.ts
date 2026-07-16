@@ -27,9 +27,26 @@ import { CryptoModule } from './common/crypto/crypto.module';
 import { FinanceModule } from './modules/finance/finance.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { EscalaModule } from './modules/schedule/escala.module';
+import { TenantGuard } from './common/guards/tenant.guard';
+
+import { PrometheusModule } from '@willsoto/nestjs-prometheus';
+
+import { MetricsInterceptor } from './common/interceptors/metrics.interceptor';
+import { CacheModule } from '@nestjs/cache-manager';
+import { redisStore } from 'cache-manager-ioredis-yet';
 
 @Module({
   imports: [
+    PrometheusModule.register(),
+    CacheModule.registerAsync({
+      isGlobal: true,
+      useFactory: async () => ({
+        store: await redisStore({
+          url: process.env.REDIS_URL || 'redis://localhost:6379',
+          ttl: 60000, // 60 seconds default
+        }),
+      }),
+    }),
     QueueModule,
     HolidaysModule,
     ConfigModule.forRoot({
@@ -53,7 +70,6 @@ import { EscalaModule } from './modules/schedule/escala.module';
     VacationsModule,
     PlatformModule,
     ManagementModule,
-    QueueModule,
     ProposalsModule,
     NotificationsModule,
     CryptoModule,
@@ -63,7 +79,9 @@ import { EscalaModule } from './modules/schedule/escala.module';
   ],
   providers: [
     { provide: APP_INTERCEPTOR, useClass: AuditInterceptor },
+    { provide: APP_INTERCEPTOR, useClass: MetricsInterceptor },
     { provide: APP_GUARD, useClass: ThrottlerGuard },
+    { provide: APP_GUARD, useClass: TenantGuard },
   ],
 })
 export class AppModule {}

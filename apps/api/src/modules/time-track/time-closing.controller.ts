@@ -67,4 +67,11 @@ export class TimeClosingController {
     const user = req.user as any;
     return this.timeClosingService.getPdf(user.companyId, id);
   }
+
+  @Get(':id/pdf-stream')
+  @Roles('ADMIN', 'RH', 'FUNCIONARIO')
+  async streamPdf(@Req() req: any, @Res() res: any, @Param('id') id: string) {
+    const user = req.user as any;
+    return this.timeClosingService.streamPdf(user.companyId, id, res);
+  }
 }

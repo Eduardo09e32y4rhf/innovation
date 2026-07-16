@@ -9,13 +9,14 @@ import { TimeClosingService } from './time-closing.service';
 import { TimeOccurrencesController } from './time-occurrences.controller';
 import { TimeOccurrencesService } from './time-occurrences.service';
 import { TimeCalculationRulesService } from './time-calculation-rules';
+import { TimeZoneService } from '../../common/services/timezone.service';
 
 import { HolidaysModule } from '../holidays/holidays.module';
 
 @Module({
   imports: [HolidaysModule],
   controllers: [TimeTrackController, WorkScheduleRulesController, TimeClosingController, TimeOccurrencesController],
-  providers: [TimeTrackService, TimeTrackRepository, WorkScheduleRulesService, TimeClosingService, TimeOccurrencesService, TimeCalculationRulesService],
-  exports: [TimeTrackService, TimeTrackRepository, WorkScheduleRulesService, TimeClosingService, TimeOccurrencesService, TimeCalculationRulesService],
+  providers: [TimeTrackService, TimeTrackRepository, WorkScheduleRulesService, TimeClosingService, TimeOccurrencesService, TimeCalculationRulesService, TimeZoneService],
+  exports: [TimeTrackService, TimeTrackRepository, WorkScheduleRulesService, TimeClosingService, TimeOccurrencesService, TimeCalculationRulesService, TimeZoneService],
 })
 export class TimeTrackModule {}

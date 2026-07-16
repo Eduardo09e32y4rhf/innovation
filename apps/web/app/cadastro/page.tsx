@@ -52,7 +52,7 @@ export default function CadastroPage() {
 
     setLoading(true);
     try {
-      await api.auth.registerCompany({
+      const response = await api.auth.registerCompany({
         companyName: formData.companyName,
         document: formData.document.replace(/\D/g, ''), // Send only numbers
         name: formData.name,
@@ -63,12 +63,10 @@ export default function CadastroPage() {
 
       setSuccess(true);
       
-      // Auto login after success
-      setTimeout(async () => {
-        try {
-          await login(formData.email, formData.password);
-          router.push('/');
-        } catch {
+      setTimeout(() => {
+        if (response.paymentUrl) {
+          window.location.href = response.paymentUrl;
+        } else {
           router.push('/login');
         }
       }, 2000);
@@ -89,9 +87,9 @@ export default function CadastroPage() {
           </div>
           <h1 className="text-3xl font-black text-white mb-2">Conta Criada!</h1>
           <p className="text-slate-400">
-            Sua empresa foi cadastrada com sucesso. Você ganhou 7 dias de teste grátis!
+            Sua empresa foi cadastrada com sucesso.
           </p>
-          <p className="mt-4 text-sm font-bold text-teal-400">Redirecionando para o seu painel...</p>
+          <p className="mt-4 text-sm font-bold text-teal-400">Redirecionando para o pagamento da ativação...</p>
         </div>
       </main>
     );
