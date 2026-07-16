@@ -1,7 +1,7 @@
 import { IoAdapter } from '@nestjs/platform-socket.io';
 import { ServerOptions } from 'socket.io';
 import { createAdapter } from '@socket.io/redis-adapter';
-import Redis from 'ioredis';
+import { Redis } from 'ioredis';
 
 export class RedisIoAdapter extends IoAdapter {
   private pubClient: Redis;
@@ -16,7 +16,7 @@ export class RedisIoAdapter extends IoAdapter {
         return new Promise((resolve, reject) => {
           const timeout = setTimeout(() => reject(new Error('Redis connection timeout')), 5000);
           client.on('ready', () => { clearTimeout(timeout); resolve(true); });
-          client.on('error', (err) => { clearTimeout(timeout); reject(err); });
+          client.on('error', (err: any) => { clearTimeout(timeout); reject(err); });
         });
       };
 

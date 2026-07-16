@@ -1,5 +1,5 @@
 import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import Redis from 'ioredis';
+import { Redis } from 'ioredis';
 
 @Injectable()
 export class RedisService implements OnModuleInit, OnModuleDestroy {
@@ -12,7 +12,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
       lazyConnect: true,
       enableAutoPipelining: true,
       maxRetriesPerRequest: 3,
-      retryStrategy(times) {
+      retryStrategy(times: number) {
         if (times > 5) return null;
         return Math.min(times * 200, 2000);
       },
@@ -26,7 +26,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
       this.isConnected = false;
     });
 
-    this.client.on('error', (err) => {
+    this.client.on('error', (err: any) => {
       console.error('[Redis] Connection error:', err.message);
       this.isConnected = false;
     });
