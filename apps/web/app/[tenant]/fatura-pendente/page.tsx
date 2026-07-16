@@ -31,7 +31,7 @@ export default function FaturaPendentePage() {
           Sua empresa possui pendências financeiras e o acesso à plataforma foi suspenso.
         </p>
 
-        {user.role === 'ADMIN' ? (
+        {user.profile === 'admin' ? (
           <div className="flex flex-col gap-4">
             <p className="text-sm font-medium text-slate-300">
               Como administrador, você pode regularizar a situação pagando a fatura pendente.
