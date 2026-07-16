@@ -181,22 +181,57 @@ export class TimeCalculationRulesService {
       }
     }
 
+    // New occurrence calculation independently of balance
+    const expectedEntryMin = this.timeStringToMinutes(employee?.standardEntry || rule?.standardEntry || '08:00');
+    const lateTolerance = rule?.lateToleranceMinutes ?? 10;
+    const earlyTolerance = rule?.earlyLeaveToleranceMinutes ?? 10;
+    const breakMins = rule?.breakMinutes ?? 60;
+    
+    let expectedExitStr = employee?.standardExit || rule?.standardExit;
+    if (!expectedExitStr) {
+      const derivedExit = expectedEntryMin + expectedMinutes + (expectedMinutes > 360 ? breakMins : 0);
+      expectedExitStr = `${String(Math.floor(derivedExit/60)).padStart(2,'0')}:${String(derivedExit%60).padStart(2,'0')}`;
+    }
+    const expectedExitMin = this.timeStringToMinutes(expectedExitStr);
+
+    const entryMin = entryTime.getHours() * 60 + entryTime.getMinutes();
+    const exitMin = exitTime.getHours() * 60 + exitTime.getMinutes();
+
+    const incidents: string[] = [];
+    let calcLate = 0;
+    let calcEarly = 0;
+
+    if (entryMin > expectedEntryMin + lateTolerance) {
+      incidents.push('atraso');
+      calcLate += (entryMin - expectedEntryMin);
+    }
+    
+    if (lunch > breakMins + lateTolerance) {
+      incidents.push('atraso_pausa');
+      calcLate += (lunch - breakMins);
+    }
+
+    if (exitMin < expectedExitMin - earlyTolerance) {
+      incidents.push('saida_antecipada');
+      calcEarly += (expectedExitMin - exitMin);
+    }
+
+    if (incidents.length > 0) {
+      result.incidentType = incidents.join(', ');
+    } else if (balance < 0) {
+      result.incidentType = 'atraso';
+    } else {
+      result.incidentType = 'normal';
+    }
+
+    result.lateMinutes = calcLate;
+    result.earlyLeaveMinutes = calcEarly;
+
     if (balance < 0) {
-      // Missing time
-      const missing = Math.abs(balance);
-      const entryMin = entryTime.getHours() * 60 + entryTime.getMinutes();
-      const expectedEntry = this.timeStringToMinutes(rule?.standardEntry ?? '08:00');
-      const lateTolerance = rule?.lateToleranceMinutes ?? 10;
-      
-      // Determine if it was late arrival or early leave for the report
-      if (entryMin > expectedEntry + lateTolerance) {
-        result.lateMinutes = missing;
-        result.incidentType = 'atraso';
-      } else {
-        result.earlyLeaveMinutes = missing;
-        result.incidentType = 'saida_antecipada';
+      result.absenceMinutes = Math.abs(balance);
+      if (incidents.length === 0) {
+        result.lateMinutes = Math.abs(balance);
       }
-      result.absenceMinutes = missing;
     }
 
     if (rule?.nightShiftEnabled && entryTime && exitTime) {
