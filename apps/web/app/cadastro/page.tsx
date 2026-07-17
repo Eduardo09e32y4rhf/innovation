@@ -16,12 +16,10 @@ import {
   User,
   FileText,
 } from 'lucide-react';
-import { api } from '@/app/lib/api';
-import { useAuth } from '@/app/contexts/AuthContext';
+import { api, type PublicPlatformPlan } from '@/app/lib/api';
 
 export default function CadastroPage() {
   const router = useRouter();
-  const { login } = useAuth();
   
   const [formData, setFormData] = useState({
     companyName: '',
@@ -30,12 +28,26 @@ export default function CadastroPage() {
     email: '',
     phone: '',
     password: '',
+    planId: '',
   });
 
+  const [plans, setPlans] = useState<PublicPlatformPlan[]>([]);
+  const [plansLoading, setPlansLoading] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+
+  useEffect(() => {
+    api.auth.publicPlans()
+      .then((items) => {
+        setPlans(items);
+        const recommended = items.find((item) => !item.isFree) ?? items[0];
+        if (recommended) setFormData((current) => ({ ...current, planId: recommended.id }));
+      })
+      .catch(() => setPlans([]))
+      .finally(() => setPlansLoading(false));
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -67,7 +79,7 @@ export default function CadastroPage() {
         if (response.paymentUrl) {
           window.location.href = response.paymentUrl;
         } else {
-          router.push('/login');
+          router.push('/login?cadastro=concluido');
         }
       }, 2000);
       
@@ -159,6 +171,28 @@ export default function CadastroPage() {
                   className="h-12 w-full rounded-xl border border-white/10 bg-black/20 pl-11 pr-4 text-sm font-medium text-white placeholder-slate-600 outline-none focus:border-teal-500 focus:bg-black/40 focus:ring-1 focus:ring-teal-500"
                 />
               </div>
+
+              <label className="col-span-1 md:col-span-2 space-y-2">
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Plano</span>
+                <select
+                  name="planId"
+                  value={formData.planId}
+                  onChange={(event) => setFormData((current) => ({ ...current, planId: event.target.value }))}
+                  disabled={plansLoading}
+                  className="h-12 w-full rounded-xl border border-white/10 bg-slate-950 px-4 text-sm font-semibold text-white outline-none focus:border-teal-500"
+                >
+                  {plansLoading && <option value="">Carregando planos...</option>}
+                  {!plansLoading && plans.length === 0 && <option value="">Plano Base - R$ 49,90/mes</option>}
+                  {plans.map((plan) => (
+                    <option key={plan.id} value={plan.id}>
+                      {plan.name} - {plan.isFree ? 'Gratis' : Number(plan.price).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} / {plan.cycle === 'YEARLY' ? 'ano' : plan.cycle === 'QUARTERLY' ? 'trimestre' : 'mes'}
+                    </option>
+                  ))}
+                </select>
+                {formData.planId && plans.find((plan) => plan.id === formData.planId) && (
+                  <p className="text-xs text-slate-500">Ate {plans.find((plan) => plan.id === formData.planId)?.maxUsers} usuarios e {plans.find((plan) => plan.id === formData.planId)?.maxEmployees} colaboradores.</p>
+                )}
+              </label>
 
               <div className="group relative col-span-1 md:col-span-2">
                 <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-500 group-focus-within:text-teal-400">

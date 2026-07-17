@@ -1,4 +1,4 @@
-import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { ConflictException, Injectable, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { AuthRepository } from './auth.repository';
@@ -10,7 +10,7 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
 import type { JwtUser, UserRole } from '../../common/types/auth.types';
 
 import { NotificationsService } from '../notifications/notifications.service';
-import { AsaasService } from '../finance/asaas.service';
+import { PlatformFinanceService } from '../finance/platform-finance.service';
 
 const PLATFORM_OWNER_EMAIL = 'eduardo998468@gmail.com';
 const LOGIN_DENIED_MESSAGE = 'Nao foi possivel entrar';
@@ -19,73 +19,54 @@ const PASSWORD_RESET_PURPOSE = 'PASSWORD_RESET';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly repository: AuthRepository,
     private readonly jwtService: JwtService,
     private readonly notificationsService: NotificationsService,
-    private readonly asaasService: AsaasService,
+    private readonly platformFinance: PlatformFinanceService,
   ) {}
 
-  async registerCompany(dto: RegisterCompanyDto) {
-    const existing = await this.repository.findUserByEmail(dto.email);
-    if (existing) throw new ConflictException('Email already registered');
+  publicPlans() {
+    return this.repository.listPublicPlans();
+  }
 
-    // Verifica inadimplência se forneceu documento (CPF/CNPJ)
-    if (dto.document) {
-      const inadimplente = await this.repository.findInadimplenteCompanyByDocument(dto.document);
-      if (inadimplente) {
-        throw new ConflictException('Foi detectada uma pendência financeira associada a este documento. Regularize a situação para criar uma nova conta.');
-      }
+  async registerCompany(dto: RegisterCompanyDto) {
+    const email = dto.email.trim().toLowerCase();
+    const document = dto.document.replace(/\D/g, '');
+    const existing = await this.repository.findUserByEmail(email);
+    if (existing) throw new ConflictException('Este e-mail ja esta cadastrado. Entre na sua conta para continuar.');
+    const existingCompany = await this.repository.findCompanyByDocument(document);
+    if (existingCompany) {
+      throw new ConflictException('Este CPF/CNPJ ja possui uma empresa cadastrada. Entre com o administrador existente.');
     }
 
+    const selectedPlan = await this.repository.findPublicPlan(dto.planId);
+    if (dto.planId && !selectedPlan) throw new NotFoundException('O plano selecionado nao esta mais disponivel.');
     const passwordHash = await bcrypt.hash(dto.password, 12);
-    const company = await this.repository.createCompanyWithAdmin({ ...dto, passwordHash });
+    const company = await this.repository.createCompanyWithAdmin({
+      ...dto,
+      email,
+      document,
+      passwordHash,
+      platformPlanId: selectedPlan?.id,
+      maxUsers: selectedPlan?.maxUsers ?? 6,
+      maxEmployees: selectedPlan?.maxEmployees ?? 50,
+      activeModules: selectedPlan?.activeModules ?? ['employees', 'time-track', 'vacations', 'management', 'whatsapp'],
+      isFree: selectedPlan?.isFree ?? false,
+    });
     const admin = company.users[0];
 
-    // Integração Asaas
-    let paymentUrl = null;
-    try {
-      const customer = await this.asaasService.createCustomer({
-        name: company.name,
-        cpfCnpj: company.document || '',
-        email: admin.email,
-        phone: dto.phone,
-      });
-
-      if (customer && (customer as any).id) {
-        // Criar cobrança imediata
-        const today = new Date().toISOString().split('T')[0];
-        const charge = await this.asaasService.createCharge((customer as any).id, {
-          value: 49.90, // Valor da primeira mensalidade ou setup
-          dueDate: today,
-          description: 'Ativação da Conta - Innovation RH Connect',
-        });
-
-        if (charge && (charge as any).invoiceUrl) {
-          paymentUrl = (charge as any).invoiceUrl;
-        }
-
-        // Criar assinatura para os próximos meses
-        const nextMonth = new Date();
-        nextMonth.setMonth(nextMonth.getMonth() + 1);
-        await this.asaasService.createSubscription((customer as any).id, {
-          value: 49.90,
-          nextDueDate: nextMonth.toISOString().split('T')[0],
-          description: 'Mensalidade - Innovation RH Connect',
-        });
-
-        // Atualizar company: suspensa até pagar
-        await this.repository['prisma'].company.update({
-          where: { id: company.id },
-          data: { 
-            asaasCustomerId: (customer as any).id,
-            billingStatus: 'PAST_DUE',
-            status: 'SUSPENDED'
-          },
-        });
+    let checkout: { active: boolean; paymentUrl: string | null } = { active: Boolean(selectedPlan?.isFree), paymentUrl: null };
+    let billingSetupPending = false;
+    if (!selectedPlan?.isFree) {
+      try {
+        checkout = await this.platformFinance.ensureCompanyCheckout(company.id);
+      } catch (error) {
+        billingSetupPending = true;
+        this.logger.error(`Cadastro ${company.id} criado, mas checkout Asaas ficou pendente: ${String(error)}`);
       }
-    } catch (error) {
-      console.error('Falha ao registrar no Asaas, prosseguindo com trial local.', error);
     }
 
     return {
@@ -96,8 +77,11 @@ export class AuthService {
         companyId: admin.companyId,
         role: this.resolveRole(admin.email, admin.role),
         customPermissions: admin.customPermissions,
-      }, true)),
-      paymentUrl,
+        companyStatus: company.status,
+        billingStatus: company.billingStatus,
+      }, false)),
+      paymentUrl: checkout.paymentUrl,
+      billingSetupPending,
     };
   }
 
@@ -139,7 +123,8 @@ export class AuthService {
       companyId: user.companyId, 
       role, 
       customPermissions: user.customPermissions,
-      companyStatus: user.company?.status 
+      companyStatus: user.company?.status,
+      billingStatus: user.company?.billingStatus,
     }, this.passwordChangeRequired(user));
   }
 
@@ -289,6 +274,8 @@ export class AuthService {
       companyId: user.ghostMode ? user.companyId : freshUser.companyId,
       role,
       customPermissions: freshUser.customPermissions,
+      companyStatus: freshUser.company?.status,
+      billingStatus: freshUser.company?.billingStatus,
       passwordChangeRequired: this.passwordChangeRequired(freshUser),
     };
   }

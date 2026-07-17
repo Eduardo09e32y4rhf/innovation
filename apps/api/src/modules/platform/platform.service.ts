@@ -13,6 +13,7 @@ const PLATFORM_OWNER_EMAIL = 'eduardo998468@gmail.com';
 const PROTECTED_PLATFORM_ROLES = ['DEV', 'COMERCIAL'];
 
 import { NotificationsService } from '../notifications/notifications.service';
+import { PlatformFinanceService } from '../finance/platform-finance.service';
 
 @Injectable()
 export class PlatformService {
@@ -20,6 +21,7 @@ export class PlatformService {
     private readonly repository: PlatformRepository,
     private readonly jwtService: JwtService,
     private readonly notificationsService: NotificationsService,
+    private readonly platformFinance: PlatformFinanceService,
   ) {}
 
   listCompanies() {
@@ -66,33 +68,47 @@ export class PlatformService {
   async getCompany(id: string) {
     const company = await this.repository.getCompany(id);
     if (!company) throw new NotFoundException('Empresa nao encontrada');
-    return company;
+    return { ...company, usersCount: company._count.users, employeesCount: company._count.employees };
+  }
+
+  async companyAuditLogs(id: string) {
+    await this.getCompany(id);
+    return this.repository.listCompanyAuditLogs(id);
   }
 
   async createCompany(actor: JwtUser, dto: CreatePlatformCompanyDto) {
     const adminEmail = dto.adminEmail.trim().toLowerCase();
     const existing = await this.repository.findUserByEmail(adminEmail);
     if (existing) throw new ConflictException('E-mail do admin ja esta em uso');
+    const selectedPlan = dto.planId ? await this.repository.getPlan(dto.planId) : null;
+    if (dto.planId && !selectedPlan) throw new NotFoundException('Plano nao encontrado ou inativo.');
 
-    
-      const trialEndsAt = new Date();
-      trialEndsAt.setDate(trialEndsAt.getDate() + 14);
-
-    const adminPasswordHash = await bcrypt.hash(dto.adminPassword, 12);
-    return this.repository.createCompanyWithAdmin({
+    const isFree = Boolean(selectedPlan?.isFree);
+    const created = await this.repository.createCompanyWithAdmin({
       name: normalizeDisplayName(dto.name),
-      document: emptyToNull(dto.document),
-      maxUsers: dto.maxUsers ?? 6,
-      maxEmployees: dto.maxEmployees ?? 50,
+      document: emptyToNull(dto.document?.replace(/\D/g, '')),
+      maxUsers: selectedPlan?.maxUsers ?? dto.maxUsers ?? 6,
+      maxEmployees: selectedPlan?.maxEmployees ?? dto.maxEmployees ?? 50,
       adminName: normalizeDisplayName(dto.adminName),
       adminEmail,
-      adminPasswordHash,
+      adminPasswordHash: await bcrypt.hash(dto.adminPassword, 12),
       commercialOwnerId: actor.role === 'COMERCIAL' ? actor.sub : null,
-        plan: 'PRO',
-        billingStatus: 'TRIAL',
-        trialEndsAt,
-        platformPlanId: dto.planId,
+      plan: isFree ? 'FREE' : 'PRO',
+      billingStatus: isFree ? 'ACTIVE' : 'PAST_DUE',
+      platformPlanId: selectedPlan?.id,
     });
+
+    let paymentUrl: string | null = null;
+    let billingSetupPending = false;
+    if (!isFree) {
+      try {
+        const checkout = await this.platformFinance.ensureCompanyCheckout(created.company.id);
+        paymentUrl = checkout.paymentUrl;
+      } catch (error) {
+        billingSetupPending = true;
+      }
+    }
+    return { ...created.company, adminId: created.adminId, paymentUrl, billingSetupPending };
   }
 
   async updateCompany(actor: JwtUser, id: string, dto: UpdatePlatformCompanyDto) {

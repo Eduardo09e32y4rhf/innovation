@@ -19,6 +19,8 @@ export interface User {
   role?: string;
   companyId: string;
   customPermissions?: string[];
+  companyStatus?: 'ACTIVE' | 'SUSPENDED' | 'CANCELLED';
+  billingStatus?: 'TRIAL' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED';
 }
 
 export interface Company {
@@ -175,6 +177,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         profile: String(freshUser.role || 'USER').toLowerCase(),
         companyId: freshUser.companyId,
         customPermissions: Array.isArray(freshUser.customPermissions) ? freshUser.customPermissions : [],
+        companyStatus: freshUser.companyStatus,
+        billingStatus: freshUser.billingStatus,
       };
       const nextCompany = { ...savedCompany, id: freshUser.companyId || savedCompany.id };
       const mustChangePassword = Boolean(freshUser.passwordChangeRequired);
@@ -230,6 +234,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         profile: String(authData.user.role || 'USER').toLowerCase(),
         companyId: authData.user.companyId,
         customPermissions: Array.isArray(authData.user.customPermissions) ? authData.user.customPermissions : [],
+        companyStatus: authData.user.companyStatus,
+        billingStatus: authData.user.billingStatus,
       };
       const nextCompany: Company = {
         id: authData.user.companyId,

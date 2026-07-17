@@ -27,7 +27,8 @@ export class AsaasService {
   private readonly apiKey: string;
 
   constructor(private readonly configService: ConfigService) {
-    this.apiUrl = (this.configService.get<string>('ASAAS_API_URL') || 'https://api-sandbox.asaas.com/v3').replace(/\/$/, '');
+    const defaultUrl = process.env.NODE_ENV === 'production' ? 'https://api.asaas.com/v3' : 'https://api-sandbox.asaas.com/v3';
+    this.apiUrl = (this.configService.get<string>('ASAAS_API_URL') || defaultUrl).replace(/\/$/, '');
     this.apiKey = this.configService.get<string>('ASAAS_API_KEY') || '';
   }
 

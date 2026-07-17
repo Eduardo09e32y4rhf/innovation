@@ -58,15 +58,20 @@ export class AsaasWebhookController {
         where: { id: company.id },
         data: { billingStatus: 'PAST_DUE' },
       });
+    } else if (status === 'CANCELED') {
+      await this.prisma.company.update({
+        where: { id: company.id },
+        data: { billingStatus: 'PAST_DUE', status: 'SUSPENDED', isActive: false, suspensionReason: 'pagamento_cancelado_ou_estornado' },
+      });
     }
 
     return { received: true };
   }
 
   private validateToken(accessToken?: string) {
-    const expected = process.env.ASAAS_WEBHOOK_TOKEN;
+    const expected = process.env.ASAAS_WEBHOOK_TOKEN || process.env.ASAAS_WEBHOOK_SECRET;
     if (!expected) {
-      this.logger.warn('ASAAS_WEBHOOK_TOKEN nao configurado.');
+      this.logger.warn('ASAAS_WEBHOOK_TOKEN/ASAAS_WEBHOOK_SECRET nao configurado.');
       if (process.env.NODE_ENV === 'production') {
         throw new ForbiddenException('Webhook nao configurado.');
       }

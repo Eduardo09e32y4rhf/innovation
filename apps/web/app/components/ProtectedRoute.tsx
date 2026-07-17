@@ -110,7 +110,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
       router.replace('/login');
     }
 
-    if (!loading && isAuthenticated && user && (user as any).companyStatus === 'SUSPENDED') {
+    if (!loading && isAuthenticated && user && (user.companyStatus === 'SUSPENDED' || user.companyStatus === 'CANCELLED' || user.billingStatus === 'CANCELED')) {
       const slug = (company as any)?.slug || company?.name?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || company?.id || 'company';
       if (!window.location.pathname.includes('/fatura-pendente')) {
         router.replace(`/${slug}/fatura-pendente`);

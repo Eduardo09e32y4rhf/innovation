@@ -73,6 +73,11 @@ export class PlatformController {
     return this.service.deleteCompanyUser(actor, companyId, userId);
   }
 
+  @Get('companies/:id/audit-logs')
+  companyAuditLogs(@Param('id') id: string) {
+    return this.service.companyAuditLogs(id);
+  }
+
   @Get('companies/:id')
   getCompany(@Param('id') id: string) {
     return this.service.getCompany(id);

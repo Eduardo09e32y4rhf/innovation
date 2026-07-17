@@ -9,4 +9,5 @@ export interface JwtUser {
   customPermissions?: any;
   ghostMode?: boolean;
   companyStatus?: string;
+  billingStatus?: string;
 }

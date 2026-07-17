@@ -14,6 +14,11 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
 export class AuthController {
   constructor(private readonly service: AuthService) {}
 
+  @Get('public-plans')
+  publicPlans() {
+    return this.service.publicPlans();
+  }
+
   @Throttle({ default: { limit: 3, ttl: 1800000 } })
   @Post('register-company')
   registerCompany(@Body() dto: RegisterCompanyDto) {

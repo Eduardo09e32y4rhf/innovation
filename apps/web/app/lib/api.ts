@@ -279,7 +279,7 @@ export interface Company {
 export interface PlatformCompany {
   id: string; name: string; document: string; slug: string;
   status: CompanyStatus; isActive: boolean;
-  maxUsers?: number; maxEmployees?: number;
+  maxUsers?: number; maxEmployees?: number; planId?: string;
   asaasCustomerId?: string; asaasSubscriptionId?: string;
   createdAt: string; updatedAt: string;
   usersCount: number; employeesCount: number;
@@ -324,10 +324,18 @@ export interface CreatePlatformInvoiceInput {
 export interface UpdatePlatformInvoiceInput {
   description?: string; amount?: number; dueDate?: string; billingType?: PlatformBillingType; status?: PlatformInvoiceStatus;
 }
-export interface PlatformStats { companies: number; users: number; employees: number; messages: number; }
+export interface PublicPlatformPlan {
+  id: string; name: string; description?: string | null; price: number | string; cycle: string;
+  maxUsers: number; maxEmployees: number; activeModules: string[]; isFree: boolean;
+}
+export interface CompanyBillingResult {
+  company?: { id: string; name: string; status: CompanyStatus; billingStatus: 'TRIAL' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED'; suspensionReason?: string | null };
+  invoice?: PlatformInvoice | null; active: boolean; paymentUrl?: string | null;
+}
+export interface PlatformStats { companies: number; users: number; employees: number; messages: number; activeCompanies: number; suspendedCompanies: number; pastDueCompanies: number; }
 export interface CreatePlatformCompanyInput {
   name: string; document: string; slug: string;
-  maxUsers?: number; maxEmployees?: number;
+  maxUsers?: number; maxEmployees?: number; planId?: string;
   asaasCustomerId?: string; asaasSubscriptionId?: string;
   adminName: string; adminEmail: string; adminPassword?: string;
 }
@@ -398,6 +406,7 @@ export const api = {
     requestPasswordReset: (email: string) => request<{ requested: boolean; demoCode?: string }>('/auth/password-reset/request', { method: 'POST', body: { email } }),
     validateResetCode: (email: string, code: string, cpfStart: string, registration: string) => request<{ valid: boolean; resetToken: string }>('/auth/password-reset/validate-code', { method: 'POST', body: { email, code, cpfStart, registration } }),
     resetPassword: (token: string, newPassword: string) => request<{ changed: boolean }>('/auth/password-reset/confirm', { method: 'POST', body: { token, newPassword } }),
+    publicPlans: () => request<PublicPlatformPlan[]>('/auth/public-plans'),
     registerCompany: (data: any) => request<any>('/auth/register-company', { method: 'POST', body: data }),
   },
 
@@ -540,7 +549,8 @@ export const api = {
     stats: () => request<PlatformStats>('/platform/stats'),
     listCompanies: () => request<PlatformCompany[]>('/platform/companies'),
     getCompany: (id: string) => request<PlatformCompany>(`/platform/companies/${id}`),
-    createCompany: (input: CreatePlatformCompanyInput) => request<unknown>('/platform/companies', { method: 'POST', body: input }),
+    getCompanyAuditLogs: (id: string) => request<any[]>(`/platform/companies/${id}/audit-logs`),
+    createCompany: (input: CreatePlatformCompanyInput) => request<PlatformCompany & { paymentUrl?: string | null; billingSetupPending?: boolean }>('/platform/companies', { method: 'POST', body: input }),
     updateCompany: (id: string, input: Partial<Omit<CreatePlatformCompanyInput, 'adminName' | 'adminEmail' | 'adminPassword'>> & { isActive?: boolean; status?: CompanyStatus; suspensionReason?: string | null; plan?: string; platformPlanId?: string; billingStatus?: 'TRIAL' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED'; trialEndsAt?: string; activeModules?: string[]; asaasCustomerId?: string; asaasSubscriptionId?: string; internalNotes?: string }) =>
       request<PlatformCompany>(`/platform/companies/${id}`, { method: 'PATCH', body: input }),
     deleteCompany: (id: string) => request<void>(`/platform/companies/${id}`, { method: 'DELETE' }),
@@ -555,6 +565,8 @@ export const api = {
     finance: {
       summary: (query: Pick<PlatformInvoiceQuery, 'from' | 'to'> = {}) => request<PlatformFinanceSummary>(`/finance/platform/summary${makeQuery(query)}`),
       list: (query: PlatformInvoiceQuery = {}) => request<PlatformInvoiceList>(`/finance/platform/invoices${makeQuery(query)}`),
+      listCompany: (companyId: string) => request<PlatformInvoice[]>(`/finance/platform/companies/${companyId}/invoices`),
+      checkoutCompany: (companyId: string) => request<CompanyBillingResult>(`/finance/platform/companies/${companyId}/checkout`, { method: 'POST' }),
       create: (input: CreatePlatformInvoiceInput) => request<PlatformInvoice>('/finance/platform/invoices', { method: 'POST', body: input }),
       update: (id: string, input: UpdatePlatformInvoiceInput) => request<PlatformInvoice>(`/finance/platform/invoices/${id}`, { method: 'PATCH', body: input }),
       sync: (id: string) => request<PlatformInvoice>(`/finance/platform/invoices/${id}/sync`, { method: 'POST' }),
@@ -562,6 +574,11 @@ export const api = {
     },
   },
 
+  companyBilling: {
+    status: () => request<CompanyBillingResult>('/finance/company/status'),
+    invoices: () => request<PlatformInvoice[]>('/finance/company/invoices'),
+    checkout: () => request<CompanyBillingResult>('/finance/company/checkout', { method: 'POST' }),
+  },
   proposals: {
     list: () => request<any[]>('/proposals'),
     getCompanyProposals: () => request<any[]>('/proposals/company'),

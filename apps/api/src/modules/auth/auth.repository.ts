@@ -14,6 +14,28 @@ export class AuthRepository {
     return this.prisma.user.findUnique({ where: { id }, include: { company: true } });
   }
 
+  findCompanyByDocument(document: string) {
+    return this.prisma.company.findUnique({ where: { document } });
+  }
+
+  findPublicPlan(id?: string) {
+    if (id) {
+      return this.prisma.platformPlan.findFirst({ where: { id, isActive: true, isHidden: false } });
+    }
+    return this.prisma.platformPlan.findFirst({
+      where: { isActive: true, isHidden: false },
+      orderBy: [{ isFree: 'asc' }, { price: 'asc' }],
+    });
+  }
+
+  listPublicPlans() {
+    return this.prisma.platformPlan.findMany({
+      where: { isActive: true, isHidden: false },
+      orderBy: { price: 'asc' },
+      select: { id: true, name: true, description: true, price: true, cycle: true, maxUsers: true, maxEmployees: true, activeModules: true, isFree: true },
+    });
+  }
+
   async findInadimplenteCompanyByDocument(document: string) {
     if (!document) return null;
     return this.prisma.company.findFirst({
@@ -27,32 +49,46 @@ export class AuthRepository {
 
   createCompanyWithAdmin(data: {
     companyName: string;
-    document?: string;
+    document: string;
     name: string;
     email: string;
+    phone?: string;
     passwordHash: string;
+    platformPlanId?: string;
+    maxUsers: number;
+    maxEmployees: number;
+    activeModules: string[];
+    isFree: boolean;
   }) {
     return this.prisma.company.create({
       data: {
         name: normalizeDisplayName(data.companyName),
-        document: emptyToNull(data.document),
-        billingStatus: 'TRIAL',
-        plan: 'BASE',
-        trialEndsAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days trial
-        phone: (data as any).phone ? emptyToNull((data as any).phone) : null,
+        document: data.document,
+        phone: emptyToNull(data.phone),
+        status: data.isFree ? 'ACTIVE' : 'SUSPENDED',
+        isActive: data.isFree,
+        suspensionReason: data.isFree ? null : 'aguardando_pagamento',
+        billingStatus: data.isFree ? 'ACTIVE' : 'PAST_DUE',
+        plan: data.isFree ? 'FREE' : 'PRO',
+        trialEndsAt: null,
+        platformPlanId: data.platformPlanId,
+        maxUsers: data.maxUsers,
+        maxEmployees: data.maxEmployees,
+        activeModules: data.activeModules,
         users: {
           create: {
             name: normalizeDisplayName(data.name),
             email: data.email.trim().toLowerCase(),
             passwordHash: data.passwordHash,
             role: 'ADMIN',
+            passwordChangedAt: new Date(),
+            forcePasswordChange: false,
           },
         },
       },
-      include: { users: true },
+      include: { users: true, platformPlan: true },
     });
   }
-
 
   updatePassword(userId: string, passwordHash: string, previousPasswords: string[] = []) {
     return this.prisma.user.update({

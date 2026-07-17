@@ -13,6 +13,161 @@ export class PlatformFinanceService {
     private readonly asaas: AsaasService,
   ) {}
 
+  async ensureCompanyCheckout(companyId: string) {
+    const company = await this.prisma.company.findUnique({
+      where: { id: companyId },
+      include: {
+        platformPlan: true,
+        users: { where: { role: 'ADMIN', isActive: true }, orderBy: { createdAt: 'asc' }, take: 1 },
+      },
+    });
+    if (!company) throw new NotFoundException('Empresa nao encontrada.');
+
+    const amount = company.platformPlan ? Number(company.platformPlan.price) : Number(process.env.DEFAULT_SIGNUP_PRICE || 49.9);
+    if (company.platformPlan?.isFree || amount <= 0) {
+      await this.prisma.company.update({
+        where: { id: company.id },
+        data: { status: 'ACTIVE', isActive: true, billingStatus: 'ACTIVE', suspensionReason: null },
+      });
+      return { active: true, paymentUrl: null, invoice: null };
+    }
+    if (!this.asaas.isConfigured()) {
+      throw new BadRequestException('A integracao Asaas nao esta configurada.');
+    }
+    if (!company.document) throw new BadRequestException('CPF ou CNPJ da empresa e obrigatorio para cobrar.');
+    const admin = company.users[0];
+    if (!admin) throw new BadRequestException('A empresa nao possui administrador ativo.');
+
+    let customerId = company.asaasCustomerId;
+    if (!customerId) {
+      const customer = await this.asaas.createCustomer({
+        name: company.legalName || company.name,
+        cpfCnpj: company.document,
+        email: admin.email,
+        phone: company.phone || undefined,
+      });
+      if (!customer.id) throw new BadRequestException('O Asaas nao retornou o identificador do cliente.');
+      customerId = customer.id;
+      await this.prisma.company.update({ where: { id: company.id }, data: { asaasCustomerId: customerId } });
+    }
+
+    const existing = await this.prisma.platformInvoice.findFirst({
+      where: { companyId, deletedAt: null, status: { in: ['OPEN', 'OVERDUE'] }, invoiceUrl: { not: null } },
+      orderBy: { createdAt: 'desc' },
+    });
+    const description = `${company.platformPlan?.name || 'Plano Innovation'} - primeira mensalidade`;
+    if (existing) {
+      await this.ensureSubscription(company.id, customerId, amount, description, company.platformPlan?.cycle || 'MONTHLY', company.asaasSubscriptionId);
+      return { active: false, paymentUrl: existing.invoiceUrl, invoice: existing };
+    }
+
+    const dueDate = new Date();
+    dueDate.setUTCDate(dueDate.getUTCDate() + 1);
+    const payment = await this.asaas.createCharge(customerId, {
+      value: amount,
+      dueDate: dueDate.toISOString().slice(0, 10),
+      description,
+      billingType: 'UNDEFINED',
+      externalReference: company.id,
+    });
+    if (!payment.id || !payment.invoiceUrl) {
+      throw new BadRequestException('O Asaas nao retornou o link da cobranca.');
+    }
+
+    const invoice = await this.prisma.platformInvoice.upsert({
+      where: { asaasPaymentId: payment.id },
+      create: {
+        companyId: company.id,
+        planId: company.platformPlanId,
+        description,
+        amount,
+        dueDate,
+        status: 'OPEN',
+        billingType: payment.billingType || 'UNDEFINED',
+        asaasPaymentId: payment.id,
+        invoiceUrl: payment.invoiceUrl,
+      },
+      update: { invoiceUrl: payment.invoiceUrl, status: 'OPEN', deletedAt: null },
+    });
+
+    await this.prisma.company.update({
+      where: { id: company.id },
+      data: { status: 'SUSPENDED', isActive: false, billingStatus: 'PAST_DUE', suspensionReason: 'aguardando_pagamento' },
+    });
+    await this.ensureSubscription(company.id, customerId, amount, description, company.platformPlan?.cycle || 'MONTHLY', company.asaasSubscriptionId);
+    return { active: false, paymentUrl: invoice.invoiceUrl, invoice };
+  }
+
+  async getCompanyBilling(companyId: string) {
+    let company = await this.prisma.company.findUnique({
+      where: { id: companyId },
+      select: { id: true, name: true, status: true, billingStatus: true, suspensionReason: true, asaasCustomerId: true, asaasSubscriptionId: true },
+    });
+    if (!company) throw new NotFoundException('Empresa nao encontrada.');
+    let invoice = await this.prisma.platformInvoice.findFirst({
+      where: { companyId, deletedAt: null, status: { in: ['OPEN', 'OVERDUE'] } },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    // Polling fallback keeps onboarding recoverable if a webhook delivery is delayed.
+    if (invoice?.asaasPaymentId && this.asaas.isConfigured() && company.status !== 'ACTIVE') {
+      try {
+        const payment = await this.asaas.getCharge(invoice.asaasPaymentId);
+        const remoteStatus = this.mapAsaasStatus(payment.status);
+        if (remoteStatus === 'PAID') {
+          const [updatedInvoice, updatedCompany] = await this.prisma.$transaction([
+            this.prisma.platformInvoice.update({ where: { id: invoice.id }, data: { status: 'PAID', paidAt: invoice.paidAt ?? new Date(), invoiceUrl: payment.invoiceUrl ?? invoice.invoiceUrl } }),
+            this.prisma.company.update({ where: { id: companyId }, data: { status: 'ACTIVE', isActive: true, billingStatus: 'ACTIVE', suspensionReason: null } }),
+          ]);
+          invoice = updatedInvoice;
+          company = updatedCompany;
+        } else if (remoteStatus && remoteStatus !== invoice.status) {
+          invoice = await this.prisma.platformInvoice.update({ where: { id: invoice.id }, data: { status: remoteStatus } });
+        }
+      } catch (error) {
+        this.logger.warn(`Falha no polling da cobranca ${invoice.asaasPaymentId}: ${String(error)}`);
+      }
+    }
+    return { company, invoice, active: company.status === 'ACTIVE' && company.billingStatus === 'ACTIVE' };
+  }
+
+  async listCompanyInvoices(companyId: string) {
+    return this.prisma.platformInvoice.findMany({
+      where: { companyId, deletedAt: null },
+      orderBy: [{ dueDate: 'desc' }, { createdAt: 'desc' }],
+      take: 100,
+    });
+  }
+
+  private async ensureSubscription(
+    companyId: string,
+    customerId: string,
+    amount: number,
+    description: string,
+    cycle: string,
+    currentSubscriptionId?: string | null,
+  ) {
+    if (currentSubscriptionId) return currentSubscriptionId;
+    const cycleMonths = cycle === 'YEARLY' ? 12 : cycle === 'QUARTERLY' ? 3 : 1;
+    const nextDueDate = new Date();
+    nextDueDate.setUTCMonth(nextDueDate.getUTCMonth() + cycleMonths);
+    try {
+      const subscription = await this.asaas.createSubscription(customerId, {
+        value: amount,
+        nextDueDate: nextDueDate.toISOString().slice(0, 10),
+        description: description.replace('primeira mensalidade', 'renovacao'),
+        cycle: ['MONTHLY', 'QUARTERLY', 'YEARLY'].includes(cycle) ? cycle : 'MONTHLY',
+      });
+      if (subscription.id) {
+        await this.prisma.company.update({ where: { id: companyId }, data: { asaasSubscriptionId: subscription.id } });
+      }
+      return subscription.id;
+    } catch (error) {
+      this.logger.error(`Falha ao criar assinatura Asaas para ${companyId}: ${String(error)}`);
+      return undefined;
+    }
+  }
+
   async summary(query: Pick<ListPlatformInvoicesDto, 'from' | 'to'>) {
     const where = this.buildWhere(query);
     const invoices = await this.prisma.platformInvoice.findMany({

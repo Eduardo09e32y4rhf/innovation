@@ -48,11 +48,24 @@ export class PlatformRepository {
     }));
   }
 
+  listCompanyAuditLogs(companyId: string) {
+    return this.prisma.auditLog.findMany({
+      where: { companyId },
+      include: { user: { select: { id: true, name: true, email: true } } },
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+    });
+  }
+
   getCompany(id: string) {
     return this.prisma.company.findUnique({
       where: { id },
       include: { _count: { select: { users: true, employees: true } } },
     });
+  }
+
+  getPlan(id: string) {
+    return this.prisma.platformPlan.findFirst({ where: { id, isActive: true } });
   }
 
   findUserByEmail(email: string) {
@@ -109,8 +122,9 @@ export class PlatformRepository {
           maxUsers: params.maxUsers,
           maxEmployees: params.maxEmployees,
           commercialOwnerId: params.commercialOwnerId ?? null,
-          status: 'ACTIVE',
-          isActive: true,
+          status: params.billingStatus === 'ACTIVE' ? 'ACTIVE' : 'SUSPENDED',
+          isActive: params.billingStatus === 'ACTIVE',
+          suspensionReason: params.billingStatus === 'ACTIVE' ? null : 'aguardando_pagamento',
           plan: params.plan ?? 'FREE',
           billingStatus: params.billingStatus ?? 'TRIAL',
           trialEndsAt: params.trialEndsAt,
@@ -142,13 +156,16 @@ export class PlatformRepository {
   }
 
   async globalStats() {
-    const [companies, users, employees, messages] = await Promise.all([
+    const [companies, users, employees, messages, activeCompanies, suspendedCompanies, pastDueCompanies] = await Promise.all([
       this.prisma.company.count(),
       this.prisma.user.count(),
       this.prisma.employee.count(),
       this.prisma.message.count(),
+      this.prisma.company.count({ where: { status: 'ACTIVE' } }),
+      this.prisma.company.count({ where: { status: 'SUSPENDED' } }),
+      this.prisma.company.count({ where: { billingStatus: 'PAST_DUE' } }),
     ]);
-    return { companies, users, employees, messages };
+    return { companies, users, employees, messages, activeCompanies, suspendedCompanies, pastDueCompanies };
   }
 
   getOnlineUsers() {

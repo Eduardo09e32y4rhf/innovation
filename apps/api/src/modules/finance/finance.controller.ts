@@ -21,6 +21,16 @@ export class FinanceController {
     return this.service.list(query);
   }
 
+  @Get('platform/companies/:companyId/invoices')
+  companyInvoices(@Param('companyId') companyId: string) {
+    return this.service.listCompanyInvoices(companyId);
+  }
+
+  @Post('platform/companies/:companyId/checkout')
+  companyCheckout(@Param('companyId') companyId: string) {
+    return this.service.ensureCompanyCheckout(companyId);
+  }
+
   @Post('platform/invoices')
   create(@Body() dto: CreatePlatformInvoiceDto) {
     return this.service.create(dto);

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Building2, Edit3, Plus, Power, Settings, Trash2, Users, X, Database, Shield, CreditCard, MessageSquare, Key, Loader2, LogIn } from 'lucide-react';
+import { Building2, Edit3, Plus, Power, Settings, Trash2, Users, X, Database, Shield, CreditCard, MessageSquare, Key, Loader2, LogIn, FileText } from 'lucide-react';
 import { EmptyState, ErrorState, LoadingState } from '@/app/components/data-states';
 import { toast } from 'sonner';
 import { useAuth } from '@/app/contexts/AuthContext';
@@ -103,6 +103,7 @@ export default function PlatformPage() {
           { label: 'Empresas', value: stats.data?.companies, icon: Building2 },
           { label: 'Usuários', value: stats.data?.users, icon: Users },
           { label: 'Funcionários', value: stats.data?.employees, icon: Users },
+          { label: 'Bloqueadas', value: stats.data?.suspendedCompanies, icon: Shield },
         ].map(({ label, value, icon: Icon }) => (
           <div key={label} className="ops-card rounded-[8px] border border-slate-200 bg-white p-4">
             <div className="mb-3 flex items-center justify-between">
@@ -169,6 +170,9 @@ export default function PlatformPage() {
                       </td>
                       <td className="py-3">
                         <div className="flex flex-wrap gap-2">
+                          <Link href={`/${tenant}/dashboard/platform/${c.id}`} className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px]">
+                            <FileText size={12} />Detalhes
+                          </Link>
                           {canManageCompanyUsers(c) && (
                             <>
                               <button onClick={() => setUsersCompany(c)} className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px]">
@@ -375,12 +379,21 @@ function NewCompanyModal({ onClose, onDone }: { onClose: () => void; onDone: () 
   const create = useMutation(() => api.platform.createCompany({
     ...form,
     name: normalizeDisplayName(form.name),
-    document: form.document?.trim(),
+    document: form.document?.replace(/\D/g, ''),
     adminName: normalizeDisplayName(form.adminName),
     adminEmail: form.adminEmail.trim().toLowerCase(),
-    // @ts-ignore
-    planId: form.planId
-  }), { onSuccess: onDone });
+    planId: form.planId,
+  }), { onSuccess: (result) => {
+    if (result.paymentUrl) {
+      window.open(result.paymentUrl, '_blank', 'noopener,noreferrer');
+      toast.success('Empresa criada. Checkout Asaas aberto em nova aba.');
+    } else if (result.billingSetupPending) {
+      toast.warning('Empresa criada, mas o checkout precisa ser retomado em Detalhes.');
+    } else {
+      toast.success('Empresa criada e ativada.');
+    }
+    onDone();
+  } });
   
   const valid = form.name && form.adminName && form.adminEmail && form.adminPassword.length >= 8;
 
