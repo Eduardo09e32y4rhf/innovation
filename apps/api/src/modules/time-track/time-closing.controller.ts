@@ -4,7 +4,8 @@ import { TimeClosingService } from './time-closing.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
-import { TimeClosingStatus } from '@prisma/client';
+import { $Enums } from '@prisma/client';
+type TimeClosingStatus = $Enums.TimeClosingStatus;
 
 @Controller('time-closing')
 @UseGuards(JwtAuthGuard, RolesGuard)

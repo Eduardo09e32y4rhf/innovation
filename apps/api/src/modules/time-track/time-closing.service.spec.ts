@@ -2,7 +2,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { TimeClosingService } from './time-closing.service';
 import { PrismaService } from '../../database/prisma.service';
 import { HolidaysService } from '../holidays/holidays.service';
-import { TimeClosingStatus } from '@prisma/client';
+import { $Enums } from '@prisma/client';
+type TimeClosingStatus = $Enums.TimeClosingStatus;
 
 describe('TimeClosingService', () => {
   let service: TimeClosingService;
