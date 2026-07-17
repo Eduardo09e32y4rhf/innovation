@@ -48,7 +48,13 @@ export class AsaasWebhookController {
         .update(payloadString)
         .digest('hex');
 
-      if (sigToUse !== expectedSignature) {
+      const sigBuffer = Buffer.from(sigToUse);
+      const expectedBuffer = Buffer.from(expectedSignature);
+
+      if (
+        sigBuffer.length !== expectedBuffer.length ||
+        !crypto.timingSafeEqual(sigBuffer, expectedBuffer)
+      ) {
         this.logger.error('Assinatura inválida no webhook');
         throw new ForbiddenException('Assinatura inválida');
       }
