@@ -17,6 +17,6 @@ import { WhatsappSessionService } from './whatsapp/whatsapp-session.service';
     WhatsappProvider,
     WhatsappSessionService,
   ],
-  exports: [CommunicationService],
+  exports: [CommunicationService, WhatsappProvider],
 })
 export class CommunicationModule {}
