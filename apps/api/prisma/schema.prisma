@@ -1226,18 +1226,26 @@ model PlatformPlan {
 }
 
 model PlatformInvoice {
-  id        String        @id @default(uuid()) @db.Uuid
-  companyId String        @db.Uuid
-  planId    String?       @db.Uuid
-  amount    Decimal       @db.Decimal(10, 2)
-  dueDate   DateTime
-  status    InvoiceStatus @default(OPEN)
-  paidAt    DateTime?
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
+  id             String        @id @default(uuid()) @db.Uuid
+  companyId      String        @db.Uuid
+  planId         String?       @db.Uuid
+  description    String?
+  amount         Decimal       @db.Decimal(10, 2)
+  dueDate        DateTime
+  status         InvoiceStatus @default(OPEN)
+  billingType    String        @default("UNDEFINED")
+  asaasPaymentId String?       @unique
+  invoiceUrl     String?
+  paidAt         DateTime?
+  deletedAt      DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
 
   company Company       @relation(fields: [companyId], references: [id])
   plan    PlatformPlan? @relation(fields: [planId], references: [id])
+
+  @@index([companyId, status, dueDate])
+  @@index([deletedAt])
 }
 
 model PlatformContract {

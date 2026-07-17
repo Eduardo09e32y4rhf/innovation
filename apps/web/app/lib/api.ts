@@ -103,6 +103,14 @@ function safeJson(text: string): unknown {
   try { return JSON.parse(text); } catch { return text; }
 }
 
+function makeQuery(input: object) {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(input)) {
+    if (value !== undefined && value !== null && value !== '') params.set(key, String(value));
+  }
+  const query = params.toString();
+  return query ? `?${query}` : '';
+}
 // Types
 
 export type EmployeeStatus = 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' | 'TERMINATED';
@@ -286,6 +294,35 @@ export interface PlatformCompany {
   logoUrl?: string | null;
   address?: string | null;
   subscriptionStartedAt?: string | null;
+}
+export type PlatformInvoiceStatus = 'OPEN' | 'PAID' | 'OVERDUE' | 'CANCELED';
+export type PlatformBillingType = 'UNDEFINED' | 'PIX' | 'BOLETO' | 'CREDIT_CARD';
+export interface PlatformInvoice {
+  id: string; companyId: string; planId?: string | null; description?: string | null;
+  amount: number | string; dueDate: string; status: PlatformInvoiceStatus; billingType: PlatformBillingType;
+  asaasPaymentId?: string | null; invoiceUrl?: string | null; paidAt?: string | null;
+  createdAt: string; updatedAt: string;
+  company: { id: string; name: string; legalName?: string | null; document?: string | null; asaasCustomerId?: string | null };
+  plan?: { id: string; name: string } | null;
+}
+export interface PlatformFinanceSummary {
+  totals: { billed: number; received: number; open: number; overdue: number; canceled: number };
+  count: number; conversionRate: number;
+  monthly: Array<{ month: string; billed: number; received: number }>;
+}
+export interface PlatformInvoiceList {
+  items: PlatformInvoice[];
+  pagination: { page: number; limit: number; total: number; pages: number };
+}
+export interface PlatformInvoiceQuery {
+  page?: number; limit?: number; status?: PlatformInvoiceStatus | ''; search?: string; from?: string; to?: string;
+}
+export interface CreatePlatformInvoiceInput {
+  companyId: string; planId?: string; description: string; amount: number; dueDate: string;
+  billingType?: PlatformBillingType; sendToAsaas?: boolean;
+}
+export interface UpdatePlatformInvoiceInput {
+  description?: string; amount?: number; dueDate?: string; billingType?: PlatformBillingType; status?: PlatformInvoiceStatus;
 }
 export interface PlatformStats { companies: number; users: number; employees: number; messages: number; }
 export interface CreatePlatformCompanyInput {
@@ -515,6 +552,14 @@ export const api = {
     getOnlineUsers: () => request<AppUser[]>('/platform/online-users'),
     getReceitaCnpj: (cnpj: string) => request<any>(`/platform/receita/${cnpj}`),
     ghostMode: (companyId: string) => request<{ token: string }>(`/platform/ghost-mode/${companyId}`, { method: 'POST' }),
+    finance: {
+      summary: (query: Pick<PlatformInvoiceQuery, 'from' | 'to'> = {}) => request<PlatformFinanceSummary>(`/finance/platform/summary${makeQuery(query)}`),
+      list: (query: PlatformInvoiceQuery = {}) => request<PlatformInvoiceList>(`/finance/platform/invoices${makeQuery(query)}`),
+      create: (input: CreatePlatformInvoiceInput) => request<PlatformInvoice>('/finance/platform/invoices', { method: 'POST', body: input }),
+      update: (id: string, input: UpdatePlatformInvoiceInput) => request<PlatformInvoice>(`/finance/platform/invoices/${id}`, { method: 'PATCH', body: input }),
+      sync: (id: string) => request<PlatformInvoice>(`/finance/platform/invoices/${id}/sync`, { method: 'POST' }),
+      delete: (id: string) => request<{ id: string }>(`/finance/platform/invoices/${id}`, { method: 'DELETE' }),
+    },
   },
 
   proposals: {

@@ -45,7 +45,7 @@ export default function GlobalPermissionsPage({ params: { tenant } }: { params: 
           <div className="mt-4 flex gap-4 border-b border-slate-200">
             <Link href={`/${tenant}/dashboard/platform`} className="pb-2 text-sm font-medium text-slate-500 hover:text-slate-800">Empresas</Link>
             <Link href={`/${tenant}/dashboard/platform/plans`} className="pb-2 text-sm font-medium text-slate-500 hover:text-slate-800">Planos & Assinaturas</Link>
-            <Link href={`/${tenant}/dashboard/platform/finance`} className="pb-2 text-sm font-medium text-slate-500 hover:text-slate-800">Financeiro (Em Breve)</Link>
+            <Link href={`/${tenant}/dashboard/platform/finance`} className="pb-2 text-sm font-medium text-slate-500 hover:text-slate-800">Financeiro</Link>
             <Link href={`/${tenant}/dashboard/platform/permissions`} className="border-b-2 border-indigo-600 pb-2 text-sm font-bold text-indigo-600">Permissões Globais</Link>
           </div>
         </div>

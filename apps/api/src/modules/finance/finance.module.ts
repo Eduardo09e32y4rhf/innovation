@@ -1,12 +1,13 @@
 import { Module } from '@nestjs/common';
 import { AsaasService } from './asaas.service';
+import { AsaasWebhookController } from './asaas-webhook.controller';
 import { BillingCronService } from './billing-cron.service';
 import { FinanceController } from './finance.controller';
-import { AsaasWebhookController } from './asaas-webhook.controller';
+import { PlatformFinanceService } from './platform-finance.service';
 
 @Module({
-  providers: [AsaasService, BillingCronService],
+  providers: [AsaasService, BillingCronService, PlatformFinanceService],
   controllers: [FinanceController, AsaasWebhookController],
-  exports: [AsaasService],
+  exports: [AsaasService, PlatformFinanceService],
 })
 export class FinanceModule {}

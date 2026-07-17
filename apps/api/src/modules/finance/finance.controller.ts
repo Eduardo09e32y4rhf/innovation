@@ -1,63 +1,59 @@
-import { Controller, Post, Body, Get, UseGuards, Req, Param, ForbiddenException } from '@nestjs/common';
-import { AsaasService } from './asaas.service';
-import { PrismaService } from '../../database/prisma.service';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { CreatePlatformInvoiceDto, ListPlatformInvoicesDto, UpdatePlatformInvoiceDto } from './dto/platform-finance.dto';
+import { PlatformFinanceService } from './platform-finance.service';
 
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('DEV', 'COMERCIAL')
 @Controller('finance')
 export class FinanceController {
-  constructor(
-     private readonly asaasService: AsaasService,
-     private readonly prisma: PrismaService
-  ) {}
+  constructor(private readonly service: PlatformFinanceService) {}
 
-  @Post('test-customer')
-  async testCustomer(@Body() body: { name: string; cpfCnpj: string; email: string }) {
-    return this.asaasService.createCustomer(body);
+  @Get('platform/summary')
+  summary(@Query() query: ListPlatformInvoicesDto) {
+    return this.service.summary(query);
   }
 
-  @Post('test-charge')
-  async testCharge(@Body() body: { customerId: string; value: number; dueDate: string; description: string }) {
-    return this.asaasService.createCharge(body.customerId, {
-      value: body.value,
-      dueDate: body.dueDate,
-      description: body.description,
-    });
+  @Get('platform/invoices')
+  list(@Query() query: ListPlatformInvoicesDto) {
+    return this.service.list(query);
   }
 
+  @Post('platform/invoices')
+  create(@Body() dto: CreatePlatformInvoiceDto) {
+    return this.service.create(dto);
+  }
+
+  @Patch('platform/invoices/:id')
+  update(@Param('id') id: string, @Body() dto: UpdatePlatformInvoiceDto) {
+    return this.service.update(id, dto);
+  }
+
+  @Post('platform/invoices/:id/sync')
+  sync(@Param('id') id: string) {
+    return this.service.sync(id);
+  }
+
+  @Delete('platform/invoices/:id')
+  remove(@Param('id') id: string) {
+    return this.service.remove(id);
+  }
+
+  // Compatibility endpoint used by the company detail screen.
   @Post('charge/:companyId')
-  async generateCharge(@Req() req: any, @Param('companyId') companyId: string, @Body() body: { amount: number; dueDate: string; description: string }) {
-    // Basic permissions check could be done via roles guard but inline for simplicity
-    if (req.user?.role !== 'DEV' && req.user?.role !== 'COMERCIAL') {
-       throw new ForbiddenException('Sem permissão');
-    }
-
-    // Na vida real a gente puxaria o customerId pelo companyId (usando a injeção do Prisma que falta adicionar no construtor mas já está disponível no módulo que exporta o serviço se injetarmos Prisma)
-    const asaasServiceAny = this.asaasService as any;
-    // However, if PrismaService is not injected here directly, let's inject it.
-
-    // Since I added PrismaService to constructor...
-    const company = await this.prisma.company.findUnique({ where: { id: companyId }});
-    if (!company || !company.asaasCustomerId) {
-       throw new ForbiddenException('Empresa não possui customerId no Asaas');
-    }
-
-    const charge = await this.asaasService.createCharge(company.asaasCustomerId, {
-      value: body.amount,
+  createCompanyCharge(
+    @Param('companyId') companyId: string,
+    @Body() body: { amount: number; dueDate: string; description: string },
+  ) {
+    return this.service.create({
+      companyId,
+      amount: body.amount,
       dueDate: body.dueDate,
       description: body.description,
+      billingType: 'UNDEFINED',
+      sendToAsaas: true,
     });
-
-    // Save local invoice copy
-    await this.prisma.platformInvoice.create({
-       data: {
-         companyId: company.id,
-         amount: body.amount,
-         dueDate: new Date(body.dueDate),
-         status: 'OPEN',
-       }
-    });
-
-    return charge;
   }
 }
