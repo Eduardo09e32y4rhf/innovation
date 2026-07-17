@@ -110,7 +110,7 @@ export class ScheduleSwapService {
 
       const teamIds = await this.prisma.employee
         .findMany({ where: { companyId, managerId: self.id }, select: { id: true } })
-        .then((r) => r.map((e) => e.id));
+        .then((r: any[]) => r.map((e: any) => e.id));
 
       return this.prisma.scheduleSwapRequest.findMany({
         where: {

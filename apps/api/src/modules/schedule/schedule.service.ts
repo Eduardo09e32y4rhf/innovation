@@ -74,7 +74,7 @@ export class ScheduleService {
     const schedule = await this.prisma.schedule.findFirst({ where: { id: dto.scheduleId, companyId } });
     if (!schedule) throw new NotFoundException('Escala não encontrada.');
 
-    return this.prisma.$transaction(async (tx) => {
+    return this.prisma.$transaction(async (tx: any) => {
       // Encerra vigência anterior (se houver escala ativa sem endDate)
       await tx.userSchedule.updateMany({
         where: {

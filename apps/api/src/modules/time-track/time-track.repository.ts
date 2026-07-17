@@ -102,7 +102,7 @@ overtimePaymentMinutes: true,
       select: this.employeeSelect,
       orderBy: { name: 'asc' },
     });
-    return new Map<string, EmployeeSummary>(employees.map((employee) => [employee.id, employee]));
+    return new Map<string, EmployeeSummary>(employees.map((employee: any) => [employee.id, employee]));
   }
 
   private async loadTracks(

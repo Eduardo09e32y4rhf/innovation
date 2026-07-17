@@ -1,7 +1,8 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import type { JwtUser } from '../../common/types/auth.types';
-import { TimeOccurrenceType } from '@prisma/client';
+import { Prisma } from '@prisma/client';
+type TimeOccurrenceType = any;
 
 @Injectable()
 export class TimeOccurrencesService {
