@@ -42,7 +42,8 @@ import { redisStore } from 'cache-manager-ioredis-yet';
       isGlobal: true,
       useFactory: async () => ({
         store: await redisStore({
-          url: process.env.REDIS_URL || 'redis://localhost:6379',
+          host: process.env.REDIS_URL ? new URL(process.env.REDIS_URL).hostname : (process.env.REDIS_HOST || 'localhost'),
+          port: process.env.REDIS_URL ? parseInt(new URL(process.env.REDIS_URL).port || '6379') : parseInt(process.env.REDIS_PORT || '6379'),
           ttl: 60000, // 60 seconds default
         }),
       }),
