@@ -38,7 +38,7 @@
   ],
   "include-workspace-root": true,
   "dependencies": {
-    "@fastify/static": "7.0.4",
+    "@fastify/static": "10.1.0",
     "@nestjs/common": "11.1.28",
     "@nestjs/core": "11.1.28",
     "class-transformer": "0.5.1",
