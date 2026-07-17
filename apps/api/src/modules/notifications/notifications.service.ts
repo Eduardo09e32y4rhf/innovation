@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { $Enums } from '@prisma/client';
-type UserRole = $Enums.UserRole;
+import { UserRole } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 import type { JwtUser } from '../../common/types/auth.types';
 
@@ -38,13 +37,13 @@ export class NotificationsService {
         take: 50,
       });
 
-      return notifications.map((n: any) => {
+      return notifications.map(n => {
         // Remetentes ou administradores veem todos os destinatários
         if (n.createdBy === actor.sub || actor.role === 'DEV' || actor.role === 'ADMIN') return n;
         // Destinatários comuns veem apenas a si mesmos (privacidade)
         return {
           ...n,
-          recipients: n.recipients.filter((r: any) => r.userId === actor.sub)
+          recipients: n.recipients.filter(r => r.userId === actor.sub)
         };
       });
     } catch (err) {
@@ -146,24 +145,24 @@ export class NotificationsService {
           where: { companyId, role: { in: NOTIFICATION_PRIVILEGED_ROLES } },
           select: { id: true },
         });
-        targetUserIds = users.map((u: any) => u.id);
+        targetUserIds = users.map(u => u.id);
       } else if (targetType === 'EMPLOYEES') {
         // 'EMPLOYEES' entrega apenas para funcionários com perfil privilegiado
         const employees = await this.prisma.employee.findMany({
           where: { companyId, status: 'ACTIVE', user: { role: { in: NOTIFICATION_PRIVILEGED_ROLES } } },
           select: { userId: true },
         });
-        targetUserIds = employees.map((e: any) => e.userId).filter(Boolean) as string[];
+        targetUserIds = employees.map(e => e.userId).filter(Boolean) as string[];
       } else if (targetType === 'ROLE') {
         const requestedRole = body.targetRole as string;
         // Garante que o role alvo é um perfil privilegiado — nunca entrega para FUNCIONARIO/CONSULTA
-        const safeRole = NOTIFICATION_PRIVILEGED_ROLES.find((r: any) => r === requestedRole) ?? null;
+        const safeRole = NOTIFICATION_PRIVILEGED_ROLES.find(r => r === requestedRole) ?? null;
         if (safeRole) {
           const users = await this.prisma.user.findMany({
             where: { companyId, role: safeRole },
             select: { id: true },
           });
-          targetUserIds = users.map((u: any) => u.id);
+          targetUserIds = users.map(u => u.id);
         }
       } else if (targetType === 'SPECIFIC' && targetIds) {
         targetUserIds = targetIds;

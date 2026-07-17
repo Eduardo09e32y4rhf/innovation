@@ -125,7 +125,7 @@ export class AsaasWebhookController {
           }
         });
 
-        let targetInvoice = possibleInvoices.find((inv: any) => Math.abs(Number(inv.amount) - Number(payment.value)) < 0.1);
+        let targetInvoice = possibleInvoices.find(inv => Math.abs(Number(inv.amount) - Number(payment.value)) < 0.1);
 
         if (targetInvoice) {
            await this.prisma.platformInvoice.update({
@@ -161,7 +161,7 @@ export class AsaasWebhookController {
           where: { companyId: company.id, status: 'OPEN' }
         });
 
-        let targetInvoice = openInvoices.find((inv: any) => Math.abs(Number(inv.amount) - Number(payment.value)) < 0.1);
+        let targetInvoice = openInvoices.find(inv => Math.abs(Number(inv.amount) - Number(payment.value)) < 0.1);
 
         if (targetInvoice) {
            await this.prisma.platformInvoice.update({

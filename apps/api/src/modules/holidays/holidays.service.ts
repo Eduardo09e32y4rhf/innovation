@@ -1,8 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import { RedisService } from '../../common/redis/redis.service';
-import { $Enums } from '@prisma/client';
-type HolidayScope = $Enums.HolidayScope;
+import { HolidayScope } from '@prisma/client';
 
 @Injectable()
 export class HolidaysService {
@@ -36,7 +35,7 @@ export class HolidaysService {
         await tx.holiday.deleteMany({
           where: {
             companyId: null,
-            scope: 'NATIONAL',
+            scope: HolidayScope.NATIONAL,
             date: {
               gte: startDate,
               lte: endDate
@@ -48,7 +47,7 @@ export class HolidaysService {
           data: data.map((h: any) => ({
             date: new Date(h.date),
             name: h.name,
-            scope: 'NATIONAL',
+            scope: HolidayScope.NATIONAL,
             companyId: null,
             source: 'brasilapi',
           }))
@@ -70,7 +69,7 @@ export class HolidaysService {
     return this.prisma.holiday.findMany({
       where: {
         OR: [
-          { companyId: null, scope: 'NATIONAL' },
+          { companyId: null, scope: HolidayScope.NATIONAL },
           { companyId: companyId }
         ],
         date: {

@@ -3,8 +3,7 @@ import { Injectable, Logger, NotFoundException, BadRequestException, ForbiddenEx
 import { PrismaService } from '../../database/prisma.service';
 import { HolidaysService } from '../holidays/holidays.service';
 import type { JwtUser } from '../../common/types/auth.types';
-import { $Enums } from '@prisma/client';
-type TimeClosingStatus = $Enums.TimeClosingStatus;
+import { TimeClosingStatus } from '@prisma/client';
 
 @Injectable()
 export class TimeClosingService {
