@@ -14,6 +14,8 @@ export interface PayrollCalculationInput {
   overtime100Factor?: number;
   nightShiftPercent?: number;
   dsrEnabled?: boolean;
+  isPartialMonth?: boolean;
+  scheduledMinutesInPeriod?: number;
 }
 
 export interface PayrollCalculationResult {
@@ -42,7 +44,7 @@ export class PayrollCalculationService {
   static readonly VERSION = 'CLT_2026_1';
 
   calculate(input: PayrollCalculationInput): PayrollCalculationResult {
-    const salaryBase = this.money(Math.max(0, input.salary));
+    let salaryBase = this.money(Math.max(0, input.salary));
     const weeklyHours = Math.max(1, input.weeklyMinutes / 60);
     const monthlyDivisor = Math.max(1, Math.round(weeklyHours * 5));
     const hourlyRate = salaryBase / monthlyDivisor;
@@ -50,10 +52,9 @@ export class PayrollCalculationService {
     const overtime100Factor = Math.max(2, input.overtime100Factor ?? 2);
     const nightShiftPercent = Math.max(20, input.nightShiftPercent ?? 20) / 100;
 
-    let salaryBase = this.money(Math.max(0, input.salary));
-    const isPartialMonth = (input as any).isPartialMonth === true;
-    if (isPartialMonth && (input as any).scheduledMinutesInPeriod > 0) {
-      salaryBase = this.money(hourlyRate * ((input as any).scheduledMinutesInPeriod / 60));
+    const isPartialMonth = input.isPartialMonth === true;
+    if (isPartialMonth && (input.scheduledMinutesInPeriod ?? 0) > 0) {
+      salaryBase = this.money(hourlyRate * (input.scheduledMinutesInPeriod! / 60));
     }
 
     const overtime50Value = this.money((input.overtime50Minutes / 60) * hourlyRate * overtime50Factor);

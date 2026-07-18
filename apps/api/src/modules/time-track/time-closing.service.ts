@@ -91,7 +91,6 @@ export class TimeClosingService {
       let missingAbsenceMinutes = 0;
       let missingAbsenceDays = 0;
       let scheduledMinutesInPeriod = 0;
-      let normalMinutes = 0;
 
       const today = new Date();
       const todayKey = this.dateKey(today);
@@ -187,7 +186,6 @@ export class TimeClosingService {
           periodStart,
           periodEnd,
           status: TimeClosingStatus.DRAFT,
-          scaleTypeUsed: schedules[0]?.schedule?.scaleType ?? employee.workScheduleRule?.workScale ?? 'INDEFINIDO',
           normalHours: this.hours(normalMinutes),
           overtime50: this.hours(overtime50Minutes),
           overtime100: this.hours(overtime100Minutes),
