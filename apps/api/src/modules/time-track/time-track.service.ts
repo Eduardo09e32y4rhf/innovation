@@ -9,7 +9,7 @@ import { WorkScheduleRulesService } from './work-schedule-rules.service';
 import { TimeCalculationRulesService } from './time-calculation-rules';
 import { PrismaService } from '../../database/prisma.service';
 import { getDistanceInMeters } from '../../common/utils/geo.utils';
-import { toDateOnly } from '../../common/utils/date.utils';
+import { saoPauloDayOfWeek, toDateOnly } from '../../common/utils/date.utils';
 import { TimeZoneService } from '../../common/services/timezone.service';
 
 const REASON_LABEL: Record<string, string> = {
@@ -560,12 +560,12 @@ export class TimeTrackService {
       entry = exception.altEntryTime ?? entry;
       exit = exception.altExitTime ?? exit;
     } else if (exception) {
-      restDays = Array.from(new Set([...restDays, date.getUTCDay()]));
+      restDays = Array.from(new Set([...restDays, saoPauloDayOfWeek(date)]));
     }
 
     if (schedule.scaleType === '12x36' && schedule.cycleStartDate) {
       const elapsedDays = Math.floor((date.getTime() - schedule.cycleStartDate.getTime()) / 86400000);
-      if (Math.abs(elapsedDays) % 2 === 1) restDays = Array.from(new Set([...restDays, date.getUTCDay()]));
+      if (Math.abs(elapsedDays) % 2 === 1) restDays = Array.from(new Set([...restDays, saoPauloDayOfWeek(date)]));
     }
 
     const firstPeriod = this.minutesBetweenClockTimes(entry, lunchStart || exit);

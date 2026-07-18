@@ -27,13 +27,20 @@ export class AsaasService {
   private readonly apiKey: string;
 
   constructor(private readonly configService: ConfigService) {
-    const defaultUrl = process.env.NODE_ENV === 'production' ? 'https://api.asaas.com/v3' : 'https://api-sandbox.asaas.com/v3';
-    this.apiUrl = (this.configService.get<string>('ASAAS_API_URL') || defaultUrl).replace(/\/$/, '');
-    this.apiKey = this.configService.get<string>('ASAAS_API_KEY') || '';
+    this.apiKey = this.configService.get<string>('ASAAS_API_KEY')?.trim() || '';
+    const configuredUrl = this.configService.get<string>('ASAAS_API_URL')?.trim();
+    const defaultUrl = this.resolveDefaultApiUrl(this.apiKey);
+    this.apiUrl = (configuredUrl || defaultUrl).replace(/\/$/, '');
   }
 
   isConfigured() {
-    return this.apiKey.length > 0;
+    return this.apiKey.length > 0 && !this.apiKey.startsWith('sua_chave_') && !this.apiKey.startsWith('your_');
+  }
+
+  private resolveDefaultApiUrl(apiKey: string) {
+    const normalized = apiKey.toLowerCase();
+    if (normalized.includes('hmlg') || normalized.includes('sandbox')) return 'https://api-sandbox.asaas.com/v3';
+    return process.env.NODE_ENV === 'production' ? 'https://api.asaas.com/v3' : 'https://api-sandbox.asaas.com/v3';
   }
 
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {

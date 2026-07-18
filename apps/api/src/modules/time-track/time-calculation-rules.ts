@@ -68,7 +68,7 @@ export class TimeCalculationRulesService {
     };
 
     const workScale = String(rule?.workScale || employee?.workScale || '5x2').toLowerCase();
-    const dayOfWeek = input.workDate.getUTCDay();
+    const dayOfWeek = this.localDayOfWeek(input.workDate);
     const restDays = Array.isArray(rule?.restDaysOfWeek)
       ? rule.restDaysOfWeek
       : workScale === '6x1' ? [0] : [0, 6];

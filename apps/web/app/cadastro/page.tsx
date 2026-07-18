@@ -71,6 +71,7 @@ export default function CadastroPage() {
         email: formData.email,
         phone: formData.phone.replace(/\D/g, ''),
         password: formData.password,
+        planId: formData.planId || undefined,
       });
 
       setSuccess(true);

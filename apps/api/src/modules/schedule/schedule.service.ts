@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
+import { saoPauloDayOfWeek, toSaoPauloDateKey } from '../../common/utils/date.utils';
 import type { JwtUser } from '../../common/types/auth.types';
 import { CreateScheduleDto } from './dto/create-schedule.dto';
 import { AssignScheduleDto } from './dto/assign-schedule.dto';
@@ -234,19 +235,19 @@ export class ScheduleService {
     const days: any[] = [];
     const cursor = new Date(startDate);
     while (cursor < endDate) {
-      const dateStr = cursor.toISOString().split('T')[0];
-      const dow = cursor.getUTCDay(); // 0=dom, 6=sab
+      const dateStr = toSaoPauloDateKey(cursor);
+      const dow = saoPauloDayOfWeek(cursor); // 0=dom, 6=sab
       const userSchedule = userSchedules.find((item) =>
         item.startDate <= cursor && (!item.endDate || item.endDate >= cursor)
       );
       const exception = exceptions.find(
-        (e: any) => e.date.toISOString().split('T')[0] === dateStr,
+        (e: any) => toSaoPauloDateKey(e.date) === dateStr,
       );
       const holiday = holidays.find(
-        (h: any) => (h.date as Date).toISOString().split('T')[0] === dateStr,
+        (h: any) => toSaoPauloDateKey(h.date as Date) === dateStr,
       );
       const timeTrack = timeTracks.find(
-        (t: any) => (t.date as Date).toISOString().split('T')[0] === dateStr,
+        (t: any) => toSaoPauloDateKey(t.date as Date) === dateStr,
       );
 
       let dayType: string = 'WORK';

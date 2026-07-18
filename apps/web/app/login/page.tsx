@@ -17,7 +17,7 @@ import { api } from '@/app/lib/api';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login, loading, error, isAuthenticated, company } = useAuth();
+  const { login, loading, error, isAuthenticated, company, user } = useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -30,9 +30,14 @@ export default function LoginPage() {
   useEffect(() => {
     if (isAuthenticated && company) {
       const slug = (company as any).slug || company.name?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || company.id;
-      router.push(`/${slug}/dashboard`);
+      const mustPay =
+        user?.companyStatus === 'SUSPENDED' ||
+        user?.companyStatus === 'CANCELLED' ||
+        user?.billingStatus === 'PAST_DUE' ||
+        user?.billingStatus === 'CANCELED';
+      router.push(mustPay ? `/${slug}/fatura-pendente` : `/${slug}/dashboard`);
     }
-  }, [isAuthenticated, company, router]);
+  }, [isAuthenticated, company, user, router]);
 
   const handleLogin = async (event: React.FormEvent) => {
     event.preventDefault();

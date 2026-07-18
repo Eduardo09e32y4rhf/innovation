@@ -15,7 +15,7 @@ import { formatMinutes } from '@/app/lib/format';
 import { normalizeDisplayName } from '@/app/lib/text';
 import { hasPermission } from '@/app/lib/permissions';
 import { buildPdfShell, section, infoGrid, pdfTable, signatureBlock, printPdf, type PdfCompanyInfo } from '@/app/lib/pdf-utils';
-import { saoPauloDateKey } from '@/app/lib/date';
+import { saoPauloDateKey, saoPauloDayOfWeek } from '@/app/lib/date';
 
 const WEEKDAYS = ['DOM','SEG','TER','QUA','QUI','SEX','SÁB'];
 
@@ -78,7 +78,7 @@ function defaultCycle(scale?: string | null) {
 }
 
 function isRestDay(date: Date, emp: Employee): boolean {
-  const wd = date.getUTCDay();
+  const wd = saoPauloDayOfWeek(date);
   if (emp.workScheduleRule?.restDaysOfWeek && emp.workScheduleRule.restDaysOfWeek.length > 0) {
     return emp.workScheduleRule.restDaysOfWeek.includes(wd);
   }
@@ -153,7 +153,7 @@ function buildGrid(month: string, emp: Employee, tracks: TimeTrack[], startDay: 
     }
 
     g.push({
-      date, key, day: date.getUTCDate(), wd: date.getUTCDay(),
+      date, key, day: date.getUTCDate(), wd: saoPauloDayOfWeek(date),
       isRest, isFuture: key>today, antesAdmissao: isAntesAdmissao(key,emp), depoisDemissao: isDepoisDemissao(key,emp),
       track: map.get(key), holidayName, scheduled, exception, dayType
     });
@@ -417,8 +417,8 @@ export default function TimeTrackPage() {
         </div>
       ) : visible.length===0 ? <p className="text-center text-sm text-slate-400 py-8">Nenhum colaborador encontrado.</p> :
         tab === 'ponto' ? (
-          <section className="overflow-hidden rounded-[14px] border border-slate-200 bg-white">
-            <div className="border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white px-5 py-4"><h3 className="text-sm font-black text-slate-950">COLABORADORES</h3><p className="mt-1 text-xs text-slate-500">Selecione para abrir a folha mensal.</p></div>
+          <section className="overflow-hidden rounded-[8px] border border-slate-200 bg-white shadow-[0_18px_45px_rgba(15,23,42,0.08)]">
+            <div className="border-b border-slate-800 bg-[#0d1117] px-5 py-4 text-white"><h3 className="text-sm font-black text-slate-950">COLABORADORES</h3><p className="mt-1 text-xs text-slate-500">Selecione para abrir a folha mensal.</p></div>
             <div className="divide-y divide-slate-100">
               {visible.map(emp=>{
                 const rows = byEmpMap[emp.id] ?? [];
@@ -429,14 +429,14 @@ export default function TimeTrackPage() {
                     <div className="flex items-center gap-3">
                       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-gradient-to-br from-teal-500 to-cyan-600 text-sm font-black text-white">{normalizeDisplayName(emp.name).charAt(0).toUpperCase()}</div>
                       <div>
-                        <div className="flex flex-wrap items-center gap-2"><span className="rounded-full border border-teal-200 bg-teal-50 px-2 py-0.5 text-[10px] font-black text-teal-700">{emp.registration || emp.id.slice(0,8).toUpperCase()}</span><p className="text-sm font-black text-slate-950">{normalizeDisplayName(emp.name)}</p></div>
+                        <div className="flex flex-wrap items-center gap-2"><span className="rounded-full border border-white/15 bg-white/10 px-2 py-0.5 text-[10px] font-black text-white">{emp.registration || emp.id.slice(0,8).toUpperCase()}</span><p className="text-sm font-black text-slate-950">{normalizeDisplayName(emp.name)}</p></div>
                         <p className="mt-1 text-[10px] font-semibold text-slate-500">{emp.department || '-'} {faltas>0 && <span className="text-rose-600 ml-2">{faltas} FALTA(S)</span>}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
                       <div className="flex gap-2 text-[10px] font-bold">
-                        <div className="rounded-[6px] border border-slate-200 px-2 py-1"><span className="block text-[8px] uppercase text-slate-400">TRAB</span><span>{fmtWorked(worked)}</span></div>
-                        <div className={`rounded-[6px] border px-2 py-1 ${saldo>=0?'border-emerald-200 bg-emerald-50 text-emerald-700':'border-rose-200 bg-rose-50 text-rose-700'}`}><span className="block text-[8px] uppercase text-slate-400">SALDO</span><span className="font-black">{fmtBalance(saldo)}</span></div>
+                        <div className="rounded-[8px] border border-white/15 bg-white/10 px-3 py-2 text-white"><span className="block text-[8px] uppercase text-white/50">TRAB</span><span>{fmtWorked(worked)}</span></div>
+                        <div className={`rounded-[6px] border px-2 py-1 ${saldo>=0?'border-emerald-300/30 bg-emerald-400/10 text-emerald-200':'border-rose-300/30 bg-rose-400/10 text-rose-200'}`}><span className="block text-[8px] uppercase text-white/50">SALDO</span><span className="font-black">{fmtBalance(saldo)}</span></div>
                       </div>
                       <button onClick={()=>router.push(`/${tenant}/dashboard/time-track?employeeId=${emp.id}`)} className="btn-outline-premium inline-flex h-8 items-center gap-1.5 rounded-[6px] px-3 text-[10px] font-black"><CalendarDays size={12}/> ABRIR</button>
                     </div>
@@ -703,8 +703,8 @@ function OcorrenciasList({ employees, byEmpMap, month, onSelect }: { employees: 
   const withIssues = employees.filter(e => (byEmpMap[e.id] ?? []).some(t => isOcorrencia(t)));
   if (withIssues.length===0) return <p className="text-center text-sm font-semibold text-slate-400 py-8">Nenhuma ocorrencia no mes.</p>;
   return (
-    <section className="overflow-hidden rounded-[14px] border border-slate-200 bg-white">
-      <div className="border-b border-slate-100 bg-amber-50/50 px-5 py-4"><h3 className="text-sm font-black text-amber-900">OCORRENCIAS DO MES</h3><p className="mt-1 text-xs text-amber-700">Atrasos, faltas e saídas antecipadas.</p></div>
+    <section className="overflow-hidden rounded-[8px] border border-slate-200 bg-white shadow-[0_18px_45px_rgba(15,23,42,0.08)]">
+      <div className="border-b border-slate-800 bg-amber-50/50 px-5 py-4"><h3 className="text-sm font-black text-amber-900">OCORRENCIAS DO MES</h3><p className="mt-1 text-xs text-amber-700">Atrasos, faltas e saídas antecipadas.</p></div>
       <div className="divide-y divide-slate-100">
         {withIssues.map(e=> {
           const rows = byEmpMap[e.id] ?? [];
@@ -736,55 +736,55 @@ function MonthGrid({ employee, tracks, month, canManage, canApprove, refreshing,
   const pendentes = grid.filter(g=>!g.isRest && !g.isFuture && !g.track).length;
 
   return (
-    <section className="overflow-hidden rounded-[14px] border border-slate-200 bg-white">
-      <div className="border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white px-5 py-4">
+    <section className="overflow-hidden rounded-[8px] border border-slate-200 bg-white shadow-[0_18px_45px_rgba(15,23,42,0.08)]">
+      <div className="border-b border-slate-800 bg-[#0d1117] px-5 py-4 text-white">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-3.5">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[12px] bg-gradient-to-br from-indigo-500 to-purple-600 text-sm font-black text-white shadow-sm ring-1 ring-black/5">{normalizeDisplayName(employee.name).charAt(0).toUpperCase()}</div>
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[8px] bg-white text-sm font-black text-slate-950 shadow-sm ring-1 ring-white/20">{normalizeDisplayName(employee.name).charAt(0).toUpperCase()}</div>
             <div>
               <div className="flex flex-wrap items-center gap-2">
-                <span className="rounded-full border border-teal-200 bg-teal-50 px-2 py-0.5 text-[10px] font-black text-teal-700">{employee.registration || employee.id.slice(0,8).toUpperCase()}</span>
-                <h3 className="text-sm font-black text-slate-950">{normalizeDisplayName(employee.name)}</h3>
+                <span className="rounded-full border border-white/15 bg-white/10 px-2 py-0.5 text-[10px] font-black text-white">{employee.registration || employee.id.slice(0,8).toUpperCase()}</span>
+                <h3 className="text-sm font-black text-white">{normalizeDisplayName(employee.name)}</h3>
               </div>
-              <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] font-semibold text-slate-500">
-                <span>{employee.department||'-'}</span><span className="text-slate-300">|</span>
-                <span>{employee.position||'-'}</span><span className="text-slate-300">|</span>
+              <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] font-semibold text-slate-300">
+                <span>{employee.department||'-'}</span><span className="text-white/25">|</span>
+                <span>{employee.position||'-'}</span><span className="text-white/25">|</span>
                 {(() => {
                   const empSchedule = teamSchedules?.find(ts => ts.employee.id === employee.id);
                   const scaleName = empSchedule?.schedule ? `${empSchedule.schedule.name} (${empSchedule.schedule.scaleType})` : (employee.workScale || employee.customWorkScale || '6X1');
-                  return <span className="rounded-full border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[9px]">ESCALA: {scaleName}</span>;
+                  return <span className="rounded-full border border-white/15 bg-white/10 px-1.5 py-0.5 text-[9px] text-white">ESCALA: {scaleName}</span>;
                 })()}
               </div>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex gap-2 text-[10px] font-bold">
-              <div className="rounded-[6px] border border-slate-200 px-2 py-1"><span className="block text-[8px] uppercase text-slate-400">TRAB</span><span className="font-black">{fmtWorked(worked)}</span></div>
-              <div className={`rounded-[6px] border px-2 py-1 ${saldo>=0?'border-emerald-200 bg-emerald-50 text-emerald-700':'border-rose-200 bg-rose-50 text-rose-700'}`}><span className="block text-[8px] uppercase text-slate-400">SALDO</span><span className="font-black">{fmtBalance(saldo)}</span></div>
+              <div className="rounded-[8px] border border-white/15 bg-white/10 px-3 py-2 text-white"><span className="block text-[8px] uppercase text-white/50">TRAB</span><span className="font-black">{fmtWorked(worked)}</span></div>
+              <div className={`rounded-[6px] border px-2 py-1 ${saldo>=0?'border-emerald-300/30 bg-emerald-400/10 text-emerald-200':'border-rose-300/30 bg-rose-400/10 text-rose-200'}`}><span className="block text-[8px] uppercase text-white/50">SALDO</span><span className="font-black">{fmtBalance(saldo)}</span></div>
             </div>
           </div>
         </div>
-        <div className="mt-3 flex flex-wrap gap-3 rounded-[8px] border border-slate-100 bg-slate-50/50 px-3 py-2 text-[10px] font-semibold text-slate-600">
+        <div className="mt-3 flex flex-wrap gap-3 rounded-[8px] border border-white/10 bg-white/[0.04] px-3 py-2 text-[10px] font-semibold text-slate-200">
           <span className="flex items-center gap-1.5"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400"/>{batidas} BATIDA(S)</span>
-          <span className="text-slate-300">|</span>
+          <span className="text-white/25">|</span>
           <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-sky-500"/>{restDays} FOLGA(S)</span>
-          {pendentes>0 && <><span className="text-slate-300">|</span><span className="flex items-center gap-1 text-amber-700"><span className="h-1.5 w-1.5 rounded-full bg-amber-500"/>{pendentes} PENDENTE(S)</span></>}
+          {pendentes>0 && <><span className="text-white/25">|</span><span className="flex items-center gap-1 text-amber-200"><span className="h-1.5 w-1.5 rounded-full bg-amber-300"/>{pendentes} PENDENTE(S)</span></>}
         </div>
       </div>
 
       <div className="overflow-x-auto">
         <table className="w-full min-w-[1200px] border-separate border-spacing-0 text-left">
           <thead>
-            <tr className="bg-slate-50/60 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-              <th className="px-4 py-3 w-[16%] border-b border-slate-100">DATA</th>
-              <th className="px-4 py-3 w-[9%] border-b border-slate-100 text-center">ENTRADA</th>
-              <th className="px-4 py-3 w-[11%] border-b border-slate-100 text-center">ALMOÇO</th>
-              <th className="px-4 py-3 w-[9%] border-b border-slate-100 text-center">SAÍDA</th>
-              <th className="px-4 py-3 w-[9%] border-b border-slate-100 text-center">TRAB</th>
-              <th className="px-4 py-3 w-[9%] border-b border-slate-100 text-center">SALDO</th>
-              <th className="px-4 py-3 w-[8%] border-b border-slate-100 text-center">ABONO</th>
-              <th className="px-4 py-3 w-[10%] border-b border-slate-100 text-center">STATUS</th>
-              <th className="px-4 py-3 w-[22%] border-b border-slate-100 text-center">AÇÕES</th>
+            <tr className="bg-slate-950 text-[10px] font-black uppercase tracking-wider text-white">
+              <th className="px-4 py-3 w-[16%] border-b border-slate-800">DATA</th>
+              <th className="px-4 py-3 w-[9%] border-b border-slate-800 text-center">ENTRADA</th>
+              <th className="px-4 py-3 w-[11%] border-b border-slate-800 text-center">ALMOÇO</th>
+              <th className="px-4 py-3 w-[9%] border-b border-slate-800 text-center">SAÍDA</th>
+              <th className="px-4 py-3 w-[9%] border-b border-slate-800 text-center">TRAB</th>
+              <th className="px-4 py-3 w-[9%] border-b border-slate-800 text-center">SALDO</th>
+              <th className="px-4 py-3 w-[8%] border-b border-slate-800 text-center">ABONO</th>
+              <th className="px-4 py-3 w-[10%] border-b border-slate-800 text-center">STATUS</th>
+              <th className="px-4 py-3 w-[22%] border-b border-slate-800 text-center">AÇÕES</th>
             </tr>
           </thead>
           <tbody>
@@ -808,7 +808,7 @@ function MonthGrid({ employee, tracks, month, canManage, canApprove, refreshing,
               const isAtestado = ['ATESTADO','FERIADO','SUSPENSÃO','FOLGA','FOLGA EXTRA','FOLGA BANCO','FOLGA (DSR)','---'].includes(status);
 
               return (
-                <tr key={day.key} className={`h-9 border-t border-slate-100 text-[11px] font-semibold text-slate-700 hover:bg-slate-50/70 ${bg}`}>
+                <tr key={day.key} className={`h-11 border-t border-slate-100 text-[11px] font-semibold text-slate-700 transition-colors hover:bg-slate-50 ${bg}`}>
                   <td className="px-3 text-slate-500 text-[11px] font-bold">
     <div className="flex flex-col">
       <span>{fmtDateFull(day.key)}</span>
@@ -819,9 +819,9 @@ function MonthGrid({ employee, tracks, month, canManage, canApprove, refreshing,
       )}
     </div>
   </td>
-              <td className={`px-4 text-center font-mono text-[11px] font-medium ${isAtestado?'text-slate-300':t?.entry?'text-slate-900':day.scheduled?.entry?'text-slate-400':'text-slate-300'}`}>{isAtestado?'---':t?.entry?fmtTime(t.entry):(day.scheduled?.entry ? fmtTime(day.scheduled.entry) + ' (P)' : '--:--')}</td>
-              <td className={`px-4 text-center font-mono text-[11px] font-medium ${t?.lunchStart||t?.lunchReturn?'text-slate-500':day.scheduled?.lunchStart?'text-slate-400':'text-slate-300'}`}>{isAtestado?'---':t?.lunchStart?fmtLunch(t?.lunchStart,t?.lunchReturn):(day.scheduled?.lunchStart ? fmtLunch(day.scheduled.lunchStart, day.scheduled.lunchReturn) + ' (P)' : '--:--')}</td>
-              <td className={`px-4 text-center font-mono text-[11px] font-medium ${isAtestado?'text-slate-300':t?.exit?'text-slate-900':day.scheduled?.exit?'text-slate-400':'text-slate-300'}`}>{isAtestado?'---':t?.exit?fmtTime(t.exit):(day.scheduled?.exit ? fmtTime(day.scheduled.exit) + ' (P)' : '--:--')}</td>
+              <td className={`px-4 text-center font-mono text-[11px] font-medium ${isAtestado?'text-slate-300':t?.entry?'text-slate-950':'text-slate-300'}`}>{isAtestado?'---':t?.entry?fmtTime(t.entry):'--:--'}</td>
+              <td className={`px-4 text-center font-mono text-[11px] font-medium ${t?.lunchStart||t?.lunchReturn?'text-slate-950':'text-slate-300'}`}>{isAtestado?'---':t?.lunchStart?fmtLunch(t?.lunchStart,t?.lunchReturn):'--:--'}</td>
+              <td className={`px-4 text-center font-mono text-[11px] font-medium ${isAtestado?'text-slate-300':t?.exit?'text-slate-950':'text-slate-300'}`}>{isAtestado?'---':t?.exit?fmtTime(t.exit):'--:--'}</td>
               <td className="px-4 text-center text-slate-500 text-[11px] font-medium">{isAtestado?'---':t?fmtWorked(t.totalWorked):'--:--'}</td>
               <td className={`px-4 text-center text-[11px] font-bold ${isAtestado?'text-slate-300':t&&(t.dailyBalance??0)<0?'text-rose-500':t?'text-emerald-500':'text-slate-300'}`}>{isAtestado?'---':t?fmtBalance(t.dailyBalance):'--:--'}</td>
                   <td className={`px-4 text-center text-[11px] ${isAtestado?'text-slate-300':'text-slate-400'}`}>{isAtestado?'---':'--:--'}</td>
@@ -872,8 +872,8 @@ function Ocorrencias({ employee, tracks, month, canManage, canApprove, refreshin
     return isOcorrencia(g.track);
   }), [grid]);
   return (
-    <section className="overflow-hidden rounded-[14px] border border-slate-200 bg-white">
-      <div className="border-b border-slate-100 bg-amber-50/50 px-5 py-4">
+    <section className="overflow-hidden rounded-[8px] border border-slate-200 bg-white shadow-[0_18px_45px_rgba(15,23,42,0.08)]">
+      <div className="border-b border-slate-800 bg-amber-50/50 px-5 py-4">
         <div className="flex items-center gap-3">
           <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-black text-amber-800">{employee.registration || employee.id.slice(0,8)}</span>
           <h3 className="text-sm font-black text-amber-900">{normalizeDisplayName(employee.name)}</h3>
@@ -1007,6 +1007,9 @@ function TimeTrackModal({ track, employees, onClose, onDone, defaultEmpId, canMa
       };
       for (const tId of targets) {
         if (!tId) continue;
+        const targetEmployee = employees.find((employee) => employee.id === tId);
+        const isBulkNormalPoint = reason === 'ajuste_erro_marcacao' && (empId === 'ALL' || datesToInsert.length > 1);
+        if (isBulkNormalPoint && targetEmployee && isRestDay(new Date(`${d}T00:00:00.000Z`), targetEmployee)) continue;
         promises.push(api.timeTrack.manual({ employeeId: tId, date: d, ...dayPayload }));
       }
     }

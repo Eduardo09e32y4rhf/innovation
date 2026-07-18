@@ -14,3 +14,11 @@ export function saoPauloDateKey(date = new Date()): string {
 export function saoPauloMonthKey(date = new Date()): string {
   return saoPauloDateKey(date).slice(0, 7);
 }
+
+export function saoPauloDayOfWeek(date = new Date()): number {
+  const weekday = new Intl.DateTimeFormat('en-US', {
+    timeZone: SAO_PAULO_TIMEZONE,
+    weekday: 'short',
+  }).format(date);
+  return ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(weekday);
+}
