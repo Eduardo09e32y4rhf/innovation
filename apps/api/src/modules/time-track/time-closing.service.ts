@@ -13,6 +13,7 @@ interface GenerateClosingDto {
   year?: number;
   referenceMonth?: number;
   referenceYear?: number;
+  overtimeHandling?: 'PAYMENT' | 'BANK';
 }
 
 @Injectable()
@@ -23,7 +24,9 @@ export class TimeClosingService {
   ) {}
 
   async generate(companyId: string, actor: JwtUser, dto: GenerateClosingDto) {
-    const { periodStart, periodEnd } = this.resolvePeriod(dto);
+    const company = await this.prisma.company.findUnique({ where: { id: companyId }, select: { payrollStartDay: true } });
+    const { periodStart, periodEnd } = this.resolvePeriod(dto, company?.payrollStartDay ?? 1);
+    const overtimeHandling = dto.overtimeHandling === 'BANK' ? 'BANK' : dto.overtimeHandling === 'PAYMENT' ? 'PAYMENT' : undefined;
     const employees = await this.prisma.employee.findMany({
       where: {
         companyId,
@@ -122,7 +125,7 @@ export class TimeClosingService {
         const totalOvertime = (track.overtime50Minutes || 0) + (track.overtime100Minutes || 0);
         normalMinutes += Math.max(0, (track.totalWorked || 0) - totalOvertime);
         const approved = track.overtimeApprovalStatus === 'APPROVED';
-        const paymentRatio = approved ? this.paymentRatio(track) : 0;
+        const paymentRatio = this.paymentRatio(track, overtimeHandling, approved);
         overtime50Minutes += Math.round((track.overtime50Minutes || 0) * paymentRatio);
         overtime100Minutes += Math.round((track.overtime100Minutes || 0) * paymentRatio);
         nightShiftMinutes += track.nightShiftMinutes || 0;
@@ -327,7 +330,7 @@ export class TimeClosingService {
     return this.prisma.timeClosing.update({ where: { id }, data: { status: next, ...extra }, include: { employee: true } });
   }
 
-  private resolvePeriod(dto: GenerateClosingDto) {
+  private resolvePeriod(dto: GenerateClosingDto, payrollStartDay = 1) {
     if (dto.periodStart && dto.periodEnd) {
       const periodStart = new Date(`${dto.periodStart.slice(0, 10)}T00:00:00.000Z`);
       const periodEnd = new Date(`${dto.periodEnd.slice(0, 10)}T00:00:00.000Z`);
@@ -343,9 +346,13 @@ export class TimeClosingService {
     };
   }
 
-  private paymentRatio(track: any): number {
+  private paymentRatio(track: any, forcedHandling?: 'PAYMENT' | 'BANK', approved = false): number {
     const total = (track.overtime50Minutes || 0) + (track.overtime100Minutes || 0);
-    if (!total || track.overtimeHandling === 'BANK') return 0;
+    if (!total) return 0;
+    const handling = forcedHandling || track.overtimeHandling;
+    if (handling === 'BANK') return 0;
+    if (handling === 'PAYMENT') return 1;
+    if (!approved) return 0;
     if (track.overtimeHandling === 'SPLIT') return Math.min(1, Math.max(0, (track.overtimePaymentMinutes || 0) / total));
     return 1;
   }

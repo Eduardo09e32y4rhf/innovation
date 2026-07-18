@@ -448,7 +448,7 @@ export const api = {
   timeClosing: {
     list: () => request<any[]>('/time-closing'),
     getById: (id: string) => request<any>(`/time-closing/${id}`),
-    generate: (month: number, year: number, employeeIds?: string[]) => request<any[]>('/time-closing/generate', { method: 'POST', body: { month, year, employeeIds } }),
+    generate: (input: { month?: number; year?: number; periodStart?: string; periodEnd?: string; employeeIds?: string[]; overtimeHandling?: 'PAYMENT' | 'BANK' }) => request<any[]>('/time-closing/generate', { method: 'POST', body: input }),
     adjust: (id: string, field: string, newValue: number, reason: string) => request<any>(`/time-closing/${id}/adjust`, { method: 'PATCH', body: { field, newValue: String(newValue), reason } }),
     submitReview: (id: string) => request<any>(`/time-closing/${id}/submit-review`, { method: 'POST' }),
     approve: (id: string) => request<any>(`/time-closing/${id}/approve`, { method: 'POST' }),
