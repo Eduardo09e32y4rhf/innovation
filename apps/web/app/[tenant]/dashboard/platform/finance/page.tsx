@@ -152,7 +152,7 @@ function InvoiceModal({ invoice, companies, onClose, onSaved }: {
 
           {!invoice && form.companyId && !selectedCompany?.asaasCustomerId && form.sendToAsaas && (
             <p className="rounded-[8px] border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800">
-              Esta empresa nao possui Customer ID Asaas. Desative o envio para criar uma fatura local.
+              Esta empresa ainda nao possui Customer ID Asaas. Ao salvar, o sistema criara o cliente automaticamente antes da cobranca.
             </p>
           )}
 

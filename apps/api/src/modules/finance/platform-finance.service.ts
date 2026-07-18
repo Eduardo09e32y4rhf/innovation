@@ -41,18 +41,7 @@ export class PlatformFinanceService {
     const admin = company.users[0];
     if (!admin) throw new BadRequestException('A empresa nao possui administrador ativo.');
 
-    let customerId = company.asaasCustomerId;
-    if (!customerId) {
-      const customer = await this.asaas.createCustomer({
-        name: company.legalName || company.name,
-        cpfCnpj: company.document,
-        email: admin.email,
-        phone: company.phone || undefined,
-      });
-      if (!customer.id) throw new BadRequestException('O Asaas nao retornou o identificador do cliente.');
-      customerId = customer.id;
-      await this.prisma.company.update({ where: { id: company.id }, data: { asaasCustomerId: customerId } });
-    }
+    const customerId = await this.ensureCustomerId(company, admin.email);
 
     const existing = await this.prisma.platformInvoice.findFirst({
       where: { companyId, deletedAt: null, status: { in: ['OPEN', 'OVERDUE'] }, invoiceUrl: { not: null } },
@@ -143,6 +132,24 @@ export class PlatformFinanceService {
     });
   }
 
+  private async ensureCustomerId(
+    company: { id: string; name: string; legalName?: string | null; document?: string | null; phone?: string | null; asaasCustomerId?: string | null },
+    adminEmail?: string | null,
+  ) {
+    if (company.asaasCustomerId) return company.asaasCustomerId;
+    if (!company.document) throw new BadRequestException('CPF ou CNPJ da empresa e obrigatorio para cobrar no Asaas.');
+    if (!adminEmail) throw new BadRequestException('A empresa nao possui administrador ativo.');
+
+    const customer = await this.asaas.createCustomer({
+      name: company.legalName || company.name,
+      cpfCnpj: company.document,
+      email: adminEmail,
+      phone: company.phone || undefined,
+    });
+    if (!customer.id) throw new BadRequestException('O Asaas nao retornou o identificador do cliente.');
+    await this.prisma.company.update({ where: { id: company.id }, data: { asaasCustomerId: customer.id } });
+    return customer.id;
+  }
   private async ensureSubscription(
     companyId: string,
     customerId: string,
@@ -238,7 +245,15 @@ export class PlatformFinanceService {
   async create(dto: CreatePlatformInvoiceDto) {
     const company = await this.prisma.company.findUnique({
       where: { id: dto.companyId },
-      select: { id: true, name: true, asaasCustomerId: true },
+      select: {
+        id: true,
+        name: true,
+        legalName: true,
+        document: true,
+        phone: true,
+        asaasCustomerId: true,
+        users: { where: { role: 'ADMIN', isActive: true }, orderBy: { createdAt: 'asc' }, take: 1, select: { email: true } },
+      },
     });
     if (!company) throw new NotFoundException('Empresa nao encontrada.');
 
@@ -247,10 +262,10 @@ export class PlatformFinanceService {
     if (!this.asaas.isConfigured()) {
         throw new BadRequestException('A integracao Asaas nao esta configurada. Crie a fatura como local.');
       }
-      if (!company.asaasCustomerId) {
-        throw new BadRequestException('A empresa ainda nao possui Customer ID no Asaas.');
-      }
-      payment = await this.asaas.createCharge(company.asaasCustomerId, {
+      const admin = company.users[0];
+      if (!admin) throw new BadRequestException('A empresa nao possui administrador ativo.');
+      const customerId = await this.ensureCustomerId(company, admin.email);
+      payment = await this.asaas.createCharge(customerId, {
         value: dto.amount,
         dueDate: dto.dueDate.slice(0, 10),
         description: dto.description,
