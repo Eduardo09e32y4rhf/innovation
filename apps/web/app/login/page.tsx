@@ -35,7 +35,7 @@ export default function LoginPage() {
         user?.companyStatus === 'CANCELLED' ||
         user?.billingStatus === 'PAST_DUE' ||
         user?.billingStatus === 'CANCELED';
-      router.push(mustPay ? `/${slug}/fatura-pendente` : `/${slug}/dashboard`);
+      router.push(mustPay ? `/${slug}/fatura-pendente?autoCheckout=1` : `/${slug}/dashboard`);
     }
   }, [isAuthenticated, company, user, router]);
 

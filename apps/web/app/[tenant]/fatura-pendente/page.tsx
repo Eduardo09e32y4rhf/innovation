@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { AlertTriangle, CreditCard, Loader2, LogOut, RefreshCw, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import api, { ApiError, type CompanyBillingResult } from '@/app/lib/api';
@@ -9,11 +9,13 @@ import { useAuth } from '@/app/contexts/AuthContext';
 
 export default function FaturaPendentePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, company, logout, loading, isAuthenticated, refreshUser } = useAuth();
   const [billing, setBilling] = useState<CompanyBillingResult>();
   const [checking, setChecking] = useState(true);
   const [creating, setCreating] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [autoStarted, setAutoStarted] = useState(false);
 
   const dashboardUrl = `/${company?.id || user?.companyId}/dashboard`;
 
@@ -44,10 +46,10 @@ export default function FaturaPendentePage() {
     }
   }
 
-  async function generateCheckout() {
+  async function generateCheckout(openMode: 'popup' | 'current' = 'popup') {
     setCreating(true);
     setErrorMessage(null);
-    const popup = window.open('', '_blank', 'noopener,noreferrer');
+    const popup = openMode === 'popup' ? window.open('', '_blank', 'noopener,noreferrer') : null;
     if (popup) popup.document.write('<p style="font-family:sans-serif;padding:24px">Gerando link seguro do Asaas...</p>');
 
     try {
@@ -56,7 +58,8 @@ export default function FaturaPendentePage() {
       const link = paymentLinkFrom(result);
       if (link) {
         await navigator.clipboard.writeText(link).catch(() => undefined);
-        if (popup) popup.location.href = link;
+        if (openMode === 'current') window.location.assign(link);
+        else if (popup) popup.location.href = link;
         else window.location.href = link;
         toast.success('Link de pagamento gerado e copiado.');
       } else if (result.active) {
@@ -96,12 +99,26 @@ export default function FaturaPendentePage() {
   const safeAmount = Number.isFinite(invoiceAmount) ? invoiceAmount : 0;
   const isAdmin = user.profile?.toUpperCase() === 'ADMIN' || user.role?.toUpperCase() === 'ADMIN';
 
+  useEffect(() => {
+    if (!isAuthenticated || !user || !isAdmin || autoStarted) return;
+    if (searchParams.get('autoCheckout') !== '1') return;
+    const key = `innovation-auto-checkout-${user.companyId}`;
+    if (sessionStorage.getItem(key) === 'done') return;
+    sessionStorage.setItem(key, 'done');
+    setAutoStarted(true);
+    if (invoiceLink) {
+      window.location.assign(invoiceLink);
+      return;
+    }
+    void generateCheckout('current');
+  }, [isAuthenticated, user?.id, isAdmin, autoStarted, invoiceLink, searchParams]);
+
   return (
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-950 p-6">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(20,184,166,0.12),transparent_48%)]" />
       <div className="relative w-full max-w-xl overflow-hidden rounded-[24px] border border-white/10 bg-slate-900/85 p-8 text-center shadow-2xl backdrop-blur-xl">
         <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full bg-amber-500/15 text-amber-400 ring-1 ring-amber-400/20">
-          {checking ? <Loader2 size={42} className="animate-spin" /> : <AlertTriangle size={44} />}
+          {checking || creating ? <Loader2 size={42} className="animate-spin" /> : <AlertTriangle size={44} />}
         </div>
         <p className="text-[10px] font-black uppercase tracking-[0.2em] text-teal-400">Innovation RH</p>
         <h1 className="mt-2 text-2xl font-black text-white">Regularize para liberar o acesso</h1>
@@ -111,6 +128,7 @@ export default function FaturaPendentePage() {
 
         {isAdmin ? (
           <div className="mt-7 space-y-4">
+            {autoStarted && creating && <p className="rounded-xl border border-teal-400/30 bg-teal-500/10 p-3 text-xs font-bold text-teal-100">Abrindo checkout seguro do Asaas para voce escolher a forma de pagamento...</p>}
             {invoice && (
               <div className="rounded-[14px] border border-white/10 bg-white/[0.04] p-4 text-left">
                 <div className="flex items-start justify-between gap-4">
@@ -138,7 +156,7 @@ export default function FaturaPendentePage() {
                 <CreditCard size={18} /> Pagar agora no Asaas
               </a>
             ) : (
-              <button onClick={generateCheckout} disabled={creating} className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-teal-400 font-black text-slate-950 transition hover:bg-teal-300 disabled:opacity-60">
+              <button onClick={() => generateCheckout()} disabled={creating} className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-teal-400 font-black text-slate-950 transition hover:bg-teal-300 disabled:opacity-60">
                 {creating ? <Loader2 size={18} className="animate-spin" /> : <CreditCard size={18} />} Gerar link de pagamento
               </button>
             )}
