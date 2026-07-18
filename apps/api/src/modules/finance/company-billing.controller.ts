@@ -1,10 +1,12 @@
 import { Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
 import { CurrentCompany } from '../../common/decorators/current-company.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { PlatformFinanceService } from './platform-finance.service';
 
+@SkipThrottle()
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('ADMIN', 'DEV')
 @Controller('finance/company')

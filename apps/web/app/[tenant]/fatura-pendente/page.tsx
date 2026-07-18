@@ -87,17 +87,15 @@ export default function FaturaPendentePage() {
   useEffect(() => {
     if (!isAuthenticated || !user) return;
     void loadStatus();
-    const interval = window.setInterval(() => loadStatus(false), 5000);
+    const interval = window.setInterval(() => loadStatus(false), 15000);
     return () => window.clearInterval(interval);
   }, [isAuthenticated, user?.id]);
-
-  if (loading || !user) return null;
 
   const invoice = billing?.invoice;
   const invoiceLink = paymentLinkFrom(billing);
   const invoiceAmount = Number(invoice?.amount ?? 0);
   const safeAmount = Number.isFinite(invoiceAmount) ? invoiceAmount : 0;
-  const isAdmin = user.profile?.toUpperCase() === 'ADMIN' || user.role?.toUpperCase() === 'ADMIN';
+  const isAdmin = user?.profile?.toUpperCase() === 'ADMIN' || user?.role?.toUpperCase() === 'ADMIN';
 
   useEffect(() => {
     if (!isAuthenticated || !user || !isAdmin || autoStarted) return;
@@ -112,6 +110,8 @@ export default function FaturaPendentePage() {
     }
     void generateCheckout('current');
   }, [isAuthenticated, user?.id, isAdmin, autoStarted, invoiceLink, searchParams]);
+
+  if (loading || !user) return null;
 
   return (
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-950 p-6">
