@@ -108,18 +108,16 @@ export function DashboardSidebar() {
   }));
 
   return (
-    <aside className="sidebar-shell flex w-full shrink-0 flex-col md:h-screen md:w-[220px]">
-      <div className="p-3 md:p-4">
-        <CompanyBrandCard name={company.data?.name} document={company.data?.document} logoUrl={company.data?.logoUrl} />
-      </div>
+    <aside className="sidebar-shell md:w-[228px]">
+      <CompanyBrandCard name={company.data?.name} document={company.data?.document} logoUrl={company.data?.logoUrl} />
 
-      <nav className="flex gap-1 overflow-x-auto px-3 pb-3 md:block md:flex-1 md:space-y-0.5 md:overflow-visible md:pb-0">
+      <nav className="flex gap-1 overflow-x-auto md:flex-col md:gap-[3px] md:overflow-visible">
         {tenantNavItems.map((item) => (
           <NavItem key={item.href} item={item} active={isActive(pathname, item)} />
         ))}
       </nav>
 
-      <div className="hidden p-3 pt-0 md:block">
+      <div className="mt-auto hidden pt-4 md:block">
         <UserIdentityCard name={user?.name} email={user?.email} profile={profile} />
       </div>
     </aside>
@@ -128,19 +126,21 @@ export function DashboardSidebar() {
 
 function CompanyBrandCard({ name, document, logoUrl }: { name?: string | null; document?: string | null; logoUrl?: string | null }) {
   return (
-    <div className="sidebar-brand-card flex items-center gap-3 p-3">
-      <div className={`flex shrink-0 items-center justify-center overflow-hidden ${logoUrl ? 'h-11 max-w-[140px]' : 'h-10 w-10 rounded-[8px] bg-white'}`}>
+    <div className="sidebar-brand-card">
+      <div className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-[11px] bg-white text-[13px] font-black text-black">
         {logoUrl ? (
-          <img src={logoUrl} alt="Logo da empresa" className="h-full w-auto object-contain rounded-[4px]" />
+          <img src={logoUrl} alt="Logo da empresa" className="h-full w-full object-contain rounded-[11px]" />
         ) : (
-          <Orbit size={18} strokeWidth={2.2} className="text-[#0D0D0E]" />
+          'IR'
         )}
       </div>
       <div className="min-w-0">
-        <p className="truncate text-[9px] font-semibold uppercase leading-none tracking-[0.18em] text-white/40">
-          {normalizeDisplayName(name) || 'Innovation RH System'}
-        </p>
-        <p className="mt-0.5 truncate text-[13px] font-semibold leading-tight text-white">{document || 'Console RH'}</p>
+        <strong className="block truncate text-[13px] font-semibold text-white">
+          {normalizeDisplayName(name) || 'Innovation RH'}
+        </strong>
+        <span className="mt-[3px] block truncate text-[10px] text-[#85858b]">
+          {document || 'Gestão de pessoas'}
+        </span>
       </div>
     </div>
   );
@@ -148,18 +148,17 @@ function CompanyBrandCard({ name, document, logoUrl }: { name?: string | null; d
 
 function UserIdentityCard({ name, email, profile }: { name?: string; email?: string; profile?: string }) {
   return (
-    <div className="sidebar-copilot-card p-4">
-      <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-teal-400/15 text-[12px] font-black text-teal-200 ring-1 ring-teal-300/20">
-          {getInitials(name, email)}
-        </div>
-        <div className="min-w-0">
-          <p className="truncate text-[13px] font-semibold leading-tight text-white">{normalizeDisplayName(name) || email || 'Usuário'}</p>
-          <p className="mt-1 text-[10px] font-black uppercase tracking-[0.16em] text-white/40">
-            {ROLE_LABEL[profile || ''] ?? profile ?? 'Perfil'}
-          </p>
-        </div>
+    <div className="sidebar-copilot-card">
+      <div className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-full bg-white text-[11px] font-black text-[#111]">
+        {getInitials(name, email)}
       </div>
+      <div className="min-w-0 flex-1">
+        <strong className="block truncate text-[13px] font-semibold text-white">{normalizeDisplayName(name) || email || 'Usuário'}</strong>
+        <span className="mt-[3px] block truncate text-[10px] text-[#85858b]">
+          {ROLE_LABEL[profile || ''] ?? profile ?? 'Perfil'}
+        </span>
+      </div>
+      <button aria-label="Mais opções" className="shrink-0 cursor-pointer border-0 bg-transparent text-[#777]">•••</button>
     </div>
   );
 }
@@ -179,7 +178,7 @@ function NavItem({ item, active }: { item: NavItemConfig; active: boolean }) {
   return (
     <div className="flex flex-col">
       <Link href={item.href} className={`sidebar-nav-item shrink-0 ${active ? 'sidebar-nav-active' : 'sidebar-nav-idle'}`}>
-        <Icon size={14} strokeWidth={active ? 2.2 : 1.8} className="shrink-0" />
+        <Icon size={15} strokeWidth={active ? 2.2 : 1.8} className="w-[18px] shrink-0 text-center" />
         <span>{item.label}</span>
       </Link>
       {active && visibleSubItems && visibleSubItems.length > 0 && (

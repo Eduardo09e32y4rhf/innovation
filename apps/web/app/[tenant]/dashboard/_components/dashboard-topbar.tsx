@@ -11,10 +11,10 @@ export function DashboardTopbar() {
   return (
     <header className="dash-topbar flex-col items-start gap-3 sm:flex-row sm:items-center relative z-50">
       <div className="min-w-0">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-gray-400">
+        <p className="text-[9px] font-extrabold uppercase tracking-[0.16em] text-[#8a8a91]">
           Innovation RH System
         </p>
-        <h1 className="mt-0.5 text-[18px] font-bold leading-tight text-gray-900">
+        <h1 className="mt-[3px] text-[20px] font-bold tracking-[-0.03em] text-[#0b0b0c]">
           Gestão de pessoas e jornada
         </h1>
       </div>
