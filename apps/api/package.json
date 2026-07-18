@@ -14,6 +14,7 @@
     "db:deploy": "npm run prisma:deploy",
     "db:seed": "npm run seed:mvp",
     "db:migrate-vps": "node prisma/migrate-vps-db.js",
+    "recalc:timetracks": "tsx scripts/recalc-timetracks.ts",
     "seed:admin": "node prisma/seed-admin.cjs",
     "seed:mvp": "node prisma/seed-admin.cjs",
     "seed:realistic-demo": "npx tsx prisma/seed-realistic-demo.ts"

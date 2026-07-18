@@ -60,6 +60,7 @@ interface ActualData {
   overtime100Minutes?: number | null;
   nightShiftMinutes?: number | null;
   lateMinutes?: number | null;
+  earlyLeaveMinutes?: number | null;
   absenceMinutes?: number | null;
   incidentType?: string | null;
   observation?: string | null;
@@ -130,6 +131,7 @@ function resolveDayType(day: CalendarDay): string {
   if (obs.includes('folga dsr') || reason === 'ajuste_folga_dsr') return 'FOLGA_DSR';
   if (obs.includes('folga') || reason === 'ajuste_abono_banco_saida_antecipada') return 'FOLGA';
   if (day.exception?.exceptionType === 'AJUSTE_ESCALA') return 'AJUSTE';
+  if (day.actual?.incidentType === 'atraso_saida_antecipada') return 'ATRASO_E_SAIDA_ANTECIPADA';
   if (day.actual?.incidentType === 'atraso') return 'ATRASO';
   if (day.actual?.incidentType === 'saida_antecipada') return 'SAIDA_ANTECIPADA';
   if (day.actual?.incidentType === 'falta') return 'FALTA';
@@ -1188,11 +1190,16 @@ function DayDetailPanel({ day, onClose, canWrite, targetEmployeeId, refresh, cur
               <AlertTriangle size={12}/> Ocorrências
             </p>
             <div className="flex flex-wrap gap-2">
-              {resolved === 'ATRASO' && (
+              {resolved === 'ATRASO_E_SAIDA_ANTECIPADA' && (
+                <>
+                  <OccurrenceBadge color="bg-orange-50 text-orange-700 ring-orange-200" icon="A" label={`Atraso: ${formatMin(a.lateMinutes)}`} />
+                  <OccurrenceBadge color="bg-orange-50 text-orange-700 ring-orange-200" icon="S" label={`Saída antecipada: ${formatMin(a.earlyLeaveMinutes ?? a.absenceMinutes)}`} />
+                </>
+              )}              {resolved === 'ATRASO' && (
                 <OccurrenceBadge color="bg-orange-50 text-orange-700 ring-orange-200" icon="⏰" label={`Atraso: ${formatMin(a.lateMinutes)}`} />
               )}
               {resolved === 'SAIDA_ANTECIPADA' && (
-                <OccurrenceBadge color="bg-orange-50 text-orange-700 ring-orange-200" icon="🏃" label="Saída Antecipada" />
+                <OccurrenceBadge color="bg-orange-50 text-orange-700 ring-orange-200" icon="🏃" label={`Saída antecipada: ${formatMin(a.earlyLeaveMinutes ?? a.absenceMinutes)}`} />
               )}
               {resolved === 'FALTA' && (
                 <OccurrenceBadge color="bg-red-50 text-red-700 ring-red-200" icon="❌" label={`Falta: ${formatMin(a.absenceMinutes)} ausência`} />

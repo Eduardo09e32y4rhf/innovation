@@ -498,6 +498,7 @@ model TimeTrack {
   nightShiftMinutes      Int     @default(0)
   incidentType           String? // "atraso", "saida_antecipada"
   lateMinutes            Int     @default(0)
+  earlyLeaveMinutes      Int     @default(0)
   toleranceMinutes       Int?
   absenceMinutes         Int?
   clockedInWithoutFacial Boolean @default(false)
@@ -1160,8 +1161,33 @@ model TimeClosing {
   fallbackPunches Int   @default(0)
   totalPayable    Float @default(0)
 
+  salaryBase         Float  @default(0)
+  monthlyDivisor     Int    @default(220)
+  payableWorkdays    Int    @default(0)
+  paidRestDays       Int    @default(0)
+  hourlyRate         Float  @default(0)
+  overtime50Value    Float  @default(0)
+  overtime100Value   Float  @default(0)
+  nightShiftValue    Float  @default(0)
+  dsrHours           Float  @default(0)
+  absenceMinutes     Int    @default(0)
+  lateMinutes        Int    @default(0)
+  earlyLeaveMinutes  Int    @default(0)
+  absenceDiscount    Float  @default(0)
+  grossPay           Float  @default(0)
+  inssBase           Float  @default(0)
+  inssDiscount       Float  @default(0)
+  irrfBase           Float  @default(0)
+  irrfDiscount       Float  @default(0)
+  fgtsBase           Float  @default(0)
+  fgtsAmount         Float  @default(0)
+  netPay             Float  @default(0)
+  calculationVersion String @default("CLT_2026_1")
+
   closedAt     DateTime?
+  closedBy     String?
   reopenedAt   DateTime?
+  reopenedBy   String?
   reopenReason String?
 
   adjustments TimeClosingAdjustment[]
@@ -1355,18 +1381,18 @@ model Schedule {
   exitTime        String? // "17:00"
 
   // Dias de trabalho (0=Dom, 1=Seg, ... 6=Sáb)
-  workDays    Int[]  @default([1, 2, 3, 4, 5])
-  restDays    Int[]  @default([0, 6])
+  workDays Int[] @default([1, 2, 3, 4, 5])
+  restDays Int[] @default([0, 6])
 
   // Configurações 12x36
-  cycleWorkHours  Int?    // horas trabalhadas no ciclo (ex: 12)
-  cycleRestHours  Int?    // horas de descanso no ciclo (ex: 36)
-  cycleStartDate  DateTime? // data de início do ciclo 12x36
+  cycleWorkHours Int? // horas trabalhadas no ciclo (ex: 12)
+  cycleRestHours Int? // horas de descanso no ciclo (ex: 36)
+  cycleStartDate DateTime? // data de início do ciclo 12x36
 
   // Turno noturno
-  isNightShift     Boolean @default(false)
-  nightStartTime   String? // "22:00"
-  nightEndTime     String? // "05:00"
+  isNightShift   Boolean @default(false)
+  nightStartTime String? // "22:00"
+  nightEndTime   String? // "05:00"
 
   createdByUserId String?  @db.Uuid
   createdAt       DateTime @default(now())
@@ -1382,13 +1408,13 @@ model Schedule {
 
 /// Vínculo entre funcionário e escala (com período de vigência)
 model UserSchedule {
-  id         String   @id @default(uuid()) @db.Uuid
-  companyId  String   @db.Uuid
-  employeeId String   @db.Uuid
-  scheduleId String   @db.Uuid
+  id         String @id @default(uuid()) @db.Uuid
+  companyId  String @db.Uuid
+  employeeId String @db.Uuid
+  scheduleId String @db.Uuid
 
-  startDate  DateTime @db.Date
-  endDate    DateTime? @db.Date // null = vigente indefinidamente
+  startDate DateTime  @db.Date
+  endDate   DateTime? @db.Date // null = vigente indefinidamente
 
   // Override dos horários padrão da escala (opcional por funcionário)
   entryTimeOverride       String?
@@ -1423,8 +1449,8 @@ model ScheduleException {
   observation   String?
 
   // Se for compensação, registra o horário alternativo
-  altEntryTime  String?
-  altExitTime   String?
+  altEntryTime String?
+  altExitTime  String?
 
   createdByUserId String?  @db.Uuid
   createdAt       DateTime @default(now())
@@ -1442,10 +1468,10 @@ model ScheduleException {
 
 /// Solicitações de troca de escala/folga
 model ScheduleSwapRequest {
-  id         String            @id @default(uuid()) @db.Uuid
-  companyId  String            @db.Uuid
-  requesterId String           @db.Uuid // employeeId de quem solicitou
-  status     SwapRequestStatus @default(PENDING)
+  id          String            @id @default(uuid()) @db.Uuid
+  companyId   String            @db.Uuid
+  requesterId String            @db.Uuid // employeeId de quem solicitou
+  status      SwapRequestStatus @default(PENDING)
 
   // Dia original que quer trocar
   originalDate DateTime @db.Date

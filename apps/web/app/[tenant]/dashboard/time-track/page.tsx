@@ -182,6 +182,7 @@ function dayStatus(row: TimeTrack, holidayName?: string) {
   if (r === 'ajuste_abono_banco_saida_antecipada') return 'ABONO SAÍDA';
   if (r === 'ajuste_abono_atestado_horas') return 'ATESTADO (HORAS)';
   if (r === 'ajuste_suspensao') return 'SUSPENSÃO';
+  if (row.incidentType === 'atraso_saida_antecipada') return 'ATRASO E SAÍDA ANTECIPADA';
   if (row.incidentType === 'atraso') return 'ATRASO';
   if (row.incidentType === 'saida_antecipada') return 'SAÍDA ANTECIPADA';
   if (row.manualStatus==='pending') return 'PENDENTE';
@@ -212,6 +213,7 @@ function isOcorrencia(row: TimeTrack) {
   if (o.includes('folga') || r.includes('folga')) return false;
 
   if (isFalta(row)) return true;
+  if (row.incidentType === 'atraso_saida_antecipada') return true;
   if (row.incidentType === 'atraso') return true;
   if (row.incidentType === 'saida_antecipada') return true;
   if (o.includes('suspensao') || o.includes('suspensão') || r.includes('suspensao') || r.includes('suspensão')) return true;

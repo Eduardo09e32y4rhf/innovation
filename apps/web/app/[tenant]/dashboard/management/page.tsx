@@ -1314,223 +1314,88 @@ function RuleForm({ rule, onSave, onClose, saving }: { rule: any | null; onSave:
 // ─── FECHAMENTO ────────────────────────────────────────────────────────────────
 
 function ClosingTab({ canManage, company }: { canManage: boolean; company?: any }) {
-  const [month, setMonth] = useState(new Date().getMonth() + 1);
-  const [year, setYear] = useState(new Date().getFullYear());
-
-  const listQuery = useQuery(() => api.timeClosing.list(), []);
-  const generateMut = useMutation(({ month, year }: { month: number; year: number }) => api.timeClosing.generate(month, year), { onSuccess: () => listQuery.refetch() });
-  const closeMut = useMutation((id: string) => api.timeClosing.close(id), { onSuccess: () => listQuery.refetch() });
-  const approveMut = useMutation((id: string) => api.timeClosing.approve(id), { onSuccess: () => listQuery.refetch() });
-  const reopenMut = useMutation(({ id, reason }: { id: string; reason: string }) => api.timeClosing.reopen(id, reason), { onSuccess: () => listQuery.refetch() });
-  const deleteMut = useMutation((id: string) => api.timeClosing.delete(id), { onSuccess: () => listQuery.refetch() });
-
-  const closings = (listQuery.data as any[] | undefined) ?? [];
+  const now = new Date();
+  const [month, setMonth] = useState(now.getMonth() + 1);
+  const [year, setYear] = useState(now.getFullYear());
   const [error, setError] = useState<string | null>(null);
+  const listQuery = useQuery(() => api.timeClosing.list(), []);
+  const refresh = () => listQuery.refetch();
+  const generateMut = useMutation((value: { month: number; year: number }) => api.timeClosing.generate(value.month, value.year), { onSuccess: refresh });
+  const reviewMut = useMutation((id: string) => api.timeClosing.submitReview(id), { onSuccess: refresh });
+  const approveMut = useMutation((id: string) => api.timeClosing.approve(id), { onSuccess: refresh });
+  const closeMut = useMutation((id: string) => api.timeClosing.close(id), { onSuccess: refresh });
+  const reopenMut = useMutation((value: { id: string; reason: string }) => api.timeClosing.reopen(value.id, value.reason), { onSuccess: refresh });
+  const deleteMut = useMutation((id: string) => api.timeClosing.delete(id), { onSuccess: refresh });
+  const closings = (listQuery.data as any[] | undefined) ?? [];
+  const money = (value: unknown) => Number(value || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  const period = (item: any) => `${new Date(item.periodStart).toLocaleDateString('pt-BR', { timeZone: 'UTC' })} a ${new Date(item.periodEnd).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}`;
+  const labels: Record<string, string> = { DRAFT: 'Rascunho', IN_REVIEW: 'Em revisão', APPROVED: 'Aprovado', CLOSED: 'Fechado' };
+  const totals = closings.reduce((acc: any, item: any) => ({
+    gross: acc.gross + Number(item.grossPay || 0), inss: acc.inss + Number(item.inssDiscount || 0),
+    irrf: acc.irrf + Number(item.irrfDiscount || 0), fgts: acc.fgts + Number(item.fgtsAmount || 0), net: acc.net + Number(item.netPay || 0),
+  }), { gross: 0, inss: 0, irrf: 0, fgts: 0, net: 0 });
 
-  const handleGenerateClosingPdf = async (c: any) => {
-    const { buildPdfShell, infoGrid, section, signatureBlock, printPdf } = require('@/app/lib/pdf-utils');
-    const fullClosing = await api.timeClosing.getById(c.id).catch(() => c);
-    const summaries = Array.isArray(fullClosing.summaries) ? fullClosing.summaries : [];
-    const docTitle = `Folha de Pagamento - Competência ${fullClosing.referenceMonth}/${fullClosing.referenceYear}`;
-
-    const totals = summaries.reduce((acc: any, s: any) => ({
-      worked: acc.worked + (Number(s.normalMinutes) || 0),
-      extra50: acc.extra50 + (Number(s.overtime50Minutes) || 0),
-      extra100: acc.extra100 + (Number(s.overtime100Minutes) || 0),
-      absences: acc.absences + (Number(s.absenceDays) || 0),
-      late: acc.late + (Number(s.lateMinutes) || 0),
-    }), { worked: 0, extra50: 0, extra100: 0, absences: 0, late: 0 });
-
-    const summariesHtml = summaries.map((s: any) => {
-      const employee = s.employee ?? {};
-      return `
-        <div style="border:1px solid #e2e8f0;border-radius:8px;padding:14px;margin-bottom:12px;page-break-inside:avoid;">
-          <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;border-bottom:1px solid #f1f5f9;padding-bottom:8px;margin-bottom:10px;">
-            <div>
-              <div style="font-size:12px;font-weight:800;color:#0f172a;">${employee.name || '---'}</div>
-              <div style="font-size:9px;color:#64748b;margin-top:2px;">CPF: ${employee.cpf || '---'} | Matrícula: ${employee.registration || '---'} | ${employee.department || '---'} / ${employee.position || '---'}</div>
-            </div>
-            <div style="text-align:right;font-size:9px;color:#64748b;">
-              <div style="font-weight:700;color:#0f172a;">Salário Base</div>
-              <div>R$ ${(Number(employee.salary) || 0).toFixed(2)}</div>
-            </div>
-          </div>
-          <table style="width:100%;font-size:10px;border-collapse:collapse;">
-            <thead>
-              <tr style="background:#f8fafc;color:#64748b;text-align:left;">
-                <th style="padding:6px;border:1px solid #e2e8f0;">Horas trabalhadas</th>
-                <th style="padding:6px;border:1px solid #e2e8f0;">Faltas</th>
-                <th style="padding:6px;border:1px solid #e2e8f0;">Extras 50%</th>
-                <th style="padding:6px;border:1px solid #e2e8f0;">Extras 100%</th>
-                <th style="padding:6px;border:1px solid #e2e8f0;">Atrasos</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td style="padding:6px;border:1px solid #e2e8f0;">${Number(s.normalMinutes || 0).toFixed(0)} min</td>
-                <td style="padding:6px;border:1px solid #e2e8f0;color:#e11d48;font-weight:700;">${Number(s.absenceDays || 0).toFixed(0)}</td>
-                <td style="padding:6px;border:1px solid #e2e8f0;color:#059669;">${Number(s.overtime50Minutes || 0).toFixed(0)} min</td>
-                <td style="padding:6px;border:1px solid #e2e8f0;color:#059669;">${Number(s.overtime100Minutes || 0).toFixed(0)} min</td>
-                <td style="padding:6px;border:1px solid #e2e8f0;color:#e11d48;">${Number(s.lateMinutes || 0).toFixed(0)} min</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      `;
-    }).join('');
-
-    const companyInfo3 = company ? {
-      name: company.name,
-      legalName: company.legalName,
-      document: company.cnpj,
-      logoUrl: company.logoUrl,
-      phone: company.phone,
-      email: company.email,
-      address: [company.street, company.streetNumber, company.city, company.state].filter(Boolean).join(', '),
-    } : null;
-
-    const html = buildPdfShell({ title: docTitle, subtitle: 'Relatório Oficial de Fechamento' }, companyInfo3, `
-      ${section('Resumo do Fechamento', infoGrid([
-        { label: 'Total de Funcionários', value: summaries.length.toString() },
-        { label: 'Horas normais', value: `${totals.worked} min` },
-        { label: 'Horas extras 50%', value: `${totals.extra50} min` },
-        { label: 'Horas extras 100%', value: `${totals.extra100} min` },
-        { label: 'Faltas', value: `${totals.absences}` },
-        { label: 'Status', value: getStatusLabel(fullClosing.status).label },
-      ], 3))}
-      
-      <div style="margin-top:20px;">
-        <h4 style="font-size:12px;font-weight:bold;color:#334155;margin-bottom:15px;text-transform:uppercase;letter-spacing:0.05em;border-bottom:2px solid #e2e8f0;padding-bottom:5px;">Detalhamento por Colaborador</h4>
-        ${summaries.length > 0 ? summariesHtml : '<p style="font-size:11px;color:#64748b;">Nenhum dado encontrado para este período.</p>'}
-      </div>
-
-      ${signatureBlock(['Responsável pelo RH / Empregador', 'Contabilidade'])}
-    `);
-
-    printPdf(html, `fechamento-${fullClosing.referenceMonth}-${fullClosing.referenceYear}.pdf`);
+  const generate = async () => {
+    setError(null);
+    try { await generateMut.mutate({ month, year }); } catch (err: any) { setError(err?.message ?? 'Erro ao gerar fechamento'); }
   };
 
-  const handleGenerate = async () => {
-    setError(null);
-    try {
-      await generateMut.mutate({ month, year });
-    } catch (err: any) {
-      setError(err?.message ?? 'Erro ao gerar fechamento');
-    }
+  const adjust = async (item: any) => {
+    const allowed = ['salaryBase', 'overtime50', 'overtime100', 'nightShift', 'absenceMinutes', 'lateMinutes', 'earlyLeaveMinutes'];
+    const field = prompt(`Campo para editar:\n${allowed.join(', ')}`);
+    if (!field || !allowed.includes(field)) return;
+    const raw = prompt(`Novo valor para ${field}:`, String(item[field] || 0));
+    if (raw === null) return;
+    const value = Number(raw.replace(',', '.'));
+    if (!Number.isFinite(value) || value < 0) return alert('Informe um valor não negativo.');
+    const reason = prompt('Justificativa obrigatória:');
+    if (!reason?.trim()) return;
+    try { await api.timeClosing.adjust(item.id, field, value, reason.trim()); await refresh(); } catch (err: any) { setError(err?.message ?? 'Erro ao ajustar'); }
+  };
+
+  const printClosing = async (summary: any) => {
+    const item = await api.timeClosing.getById(summary.id);
+    const { buildPdfShell, infoGrid, section, signatureBlock, printPdf } = require('@/app/lib/pdf-utils');
+    const companyInfo = company ? { name: company.name, legalName: company.legalName, document: company.cnpj, logoUrl: company.logoUrl, phone: company.phone, email: company.email } : null;
+    const html = buildPdfShell({ title: 'Memória de Cálculo da Folha', subtitle: `${item.employee.name} | ${period(item)}` }, companyInfo, `
+      ${section('Jornada', infoGrid([
+        { label: 'Normais', value: `${Number(item.normalHours).toFixed(2)}h` }, { label: 'Extras 50%', value: `${Number(item.overtime50).toFixed(2)}h` },
+        { label: 'Extras 100%', value: `${Number(item.overtime100).toFixed(2)}h` }, { label: 'Noturnas', value: `${Number(item.nightShift).toFixed(2)}h` },
+        { label: 'Atrasos', value: `${item.lateMinutes} min` }, { label: 'Saídas antecipadas', value: `${item.earlyLeaveMinutes} min` },
+      ], 3))}
+      ${section('Folha', infoGrid([
+        { label: 'Salário base', value: money(item.salaryBase) }, { label: `Valor hora / ${item.monthlyDivisor}`, value: money(item.hourlyRate) },
+        { label: 'Extras 50%', value: money(item.overtime50Value) }, { label: 'Extras 100%', value: money(item.overtime100Value) },
+        { label: 'Adicional noturno', value: money(item.nightShiftValue) }, { label: 'DSR', value: money(item.dsrValue) },
+        { label: 'Desconto jornada', value: `-${money(item.absenceDiscount)}` }, { label: 'INSS', value: `-${money(item.inssDiscount)}` },
+        { label: 'IRRF', value: `-${money(item.irrfDiscount)}` }, { label: 'FGTS patronal', value: money(item.fgtsAmount) },
+        { label: 'Bruto', value: money(item.grossPay) }, { label: 'Líquido', value: money(item.netPay) },
+      ], 3))}
+      ${signatureBlock(['RH / Empregador', 'Contabilidade', 'Colaborador'])}
+    `);
+    printPdf(html, `fechamento-${item.employee.name}-${item.periodStart.slice(0, 7)}.pdf`);
   };
 
   if (listQuery.loading && !listQuery.data) return <LoadingState label="Carregando fechamentos..." />;
-  if (listQuery.error && !listQuery.data) return <ErrorState message={listQuery.error} onRetry={listQuery.refetch} />;
+  if (listQuery.error && !listQuery.data) return <ErrorState message={listQuery.error} onRetry={refresh} />;
+  const months = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 
-  const months = [
-    { v: 1, l: 'Janeiro' }, { v: 2, l: 'Fevereiro' }, { v: 3, l: 'Março' }, { v: 4, l: 'Abril' },
-    { v: 5, l: 'Maio' }, { v: 6, l: 'Junho' }, { v: 7, l: 'Julho' }, { v: 8, l: 'Agosto' },
-    { v: 9, l: 'Setembro' }, { v: 10, l: 'Outubro' }, { v: 11, l: 'Novembro' }, { v: 12, l: 'Dezembro' },
-  ];
-  const years = [year - 2, year - 1, year, year + 1];
-
-  const getStatusLabel = (s: string) => {
-    const labels: Record<string, { label: string; cls: string }> = {
-      OPEN: { label: 'Aberto', cls: 'bg-amber-50 text-amber-700 border-amber-200' },
-      CLOSED: { label: 'Fechado', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
-      APPROVED: { label: 'Aprovado', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
-      REOPENED: { label: 'Reaberto', cls: 'bg-sky-50 text-sky-700 border-sky-200' },
-      GENERATING: { label: 'Gerando...', cls: 'bg-indigo-50 text-indigo-700 border-indigo-200' },
-    };
-    return labels[s] ?? { label: s, cls: 'bg-slate-100 text-slate-600 border-slate-200' };
-  };
-
-  return (
-    <section className="space-y-4">
-      <div>
-        <h3 className="text-sm font-black text-slate-950">FECHAMENTO DE PERÍODO</h3>
-        <p className="mt-1 text-xs text-slate-500">Gere e gerencie o fechamento mensal de horas dos colaboradores.</p>
-      </div>
-
-      <div className="rounded-[12px] border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="flex flex-wrap items-end gap-3">
-          <label className="space-y-1 text-xs font-medium text-slate-600">
-            <span>MÊS</span>
-            <select value={month} onChange={e => setMonth(Number(e.target.value))} className="h-10 rounded-[8px] border border-slate-200 bg-white px-3 text-sm outline-none focus:border-teal-500">
-              {months.map(m => <option key={m.v} value={m.v}>{m.l}</option>)}
-            </select>
-          </label>
-          <label className="space-y-1 text-xs font-medium text-slate-600">
-            <span>ANO</span>
-            <select value={year} onChange={e => setYear(Number(e.target.value))} className="h-10 rounded-[8px] border border-slate-200 bg-white px-3 text-sm outline-none focus:border-teal-500">
-              {years.map(y => <option key={y} value={y}>{y}</option>)}
-            </select>
-          </label>
-          <button onClick={handleGenerate} disabled={generateMut.loading} className="crystal-button h-10 rounded-[8px] px-4 text-xs font-black text-white disabled:opacity-60">
-            {generateMut.loading ? 'GERANDO...' : 'GERAR FECHAMENTO'}
-          </button>
-        </div>
-        {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
-        {generateMut.error && <p className="mt-2 text-xs text-red-600">{generateMut.error}</p>}
-      </div>
-
-      {closings.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-[16px] border border-dashed border-slate-300 bg-slate-50/50 p-10 text-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-teal-100 mb-4">
-            <FileCheck2 size={28} className="text-teal-600" />
-          </div>
-          <h4 className="text-sm font-black text-slate-900">Nenhum fechamento gerado</h4>
-          <p className="mt-1 text-xs text-slate-500 max-w-sm">Selecione o mês/ano e clique em "Gerar Fechamento" para consolidar as horas, faltas e extras da equipe.</p>
-        </div>
-      ) : (
-        <div className="overflow-x-auto rounded-[12px] border border-slate-200 bg-white shadow-sm">
-          <table className="w-full min-w-[700px] border-separate border-spacing-0 text-left">
-            <thead>
-              <tr className="bg-slate-50 text-[10px] font-black uppercase tracking-[0.1em] text-slate-500">
-                <th className="px-3 py-2 border-b border-slate-200">Período</th>
-                <th className="px-3 py-2 border-b border-slate-200">Status</th>
-                <th className="px-3 py-2 border-b border-slate-200">Criado em</th>
-                <th className="px-3 py-2 border-b border-slate-200">Fechado em</th>
-                <th className="px-3 py-2 border-b border-slate-200">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {closings.slice().sort((a: any, b: any) => {
-                if (a.referenceYear !== b.referenceYear) return (b.referenceYear ?? 0) - (a.referenceYear ?? 0);
-                return (b.referenceMonth ?? 0) - (a.referenceMonth ?? 0);
-              }).map((c: any) => {
-                const st = getStatusLabel(c.status);
-                return (
-                  <tr key={c.id} className="text-[11px] font-semibold hover:bg-slate-50/70">
-                    <td className="px-3 py-2 text-slate-950">{months.find(m => m.v === c.referenceMonth)?.l ?? c.referenceMonth}/{c.referenceYear}</td>
-                    <td className="px-3 py-2"><span className={`inline-flex rounded-[5px] border px-2 py-0.5 text-[9px] font-black ${st.cls}`}>{st.label}</span></td>
-                    <td className="px-3 py-2 text-slate-600">{fmtDateTime(c.createdAt)}</td>
-                    <td className="px-3 py-2 text-slate-600">{fmtDateTime(c.closedAt)}</td>
-                    <td className="px-3 py-2">
-                      <div className="flex justify-center gap-1">
-                        <button onClick={() => handleGenerateClosingPdf(c)} className="btn-outline-premium h-7 px-2 text-[10px] font-bold">Imprimir PDF Oficial</button>
-                        {c.status === 'OPEN' && canManage && (
-                          <button onClick={() => closeMut.mutate(c.id)} disabled={closeMut.loading} className="inline-flex h-7 items-center rounded-[5px] bg-slate-800 px-2 text-[10px] font-black text-white">Fechar</button>
-                        )}
-                        {c.status === 'CLOSED' && canManage && (
-                          <button onClick={() => approveMut.mutate(c.id)} disabled={approveMut.loading} className="inline-flex h-7 items-center rounded-[5px] bg-teal-600 px-2 text-[10px] font-black text-white">Aprovar</button>
-                        )}
-                        {c.status === 'APPROVED' && canManage && (
-                          <button onClick={() => { const r = prompt('Motivo reabertura:'); if(r) reopenMut.mutate({ id: c.id, reason: r }); }} disabled={reopenMut.loading} className="inline-flex h-7 items-center rounded-[5px] bg-amber-500 px-2 text-[10px] font-black text-white">Reabrir</button>
-                        )}
-                        {c.status !== 'APPROVED' && canManage && (
-                          <button onClick={() => { if(window.confirm('Excluir este período? Esta ação não pode ser desfeita.')) deleteMut.mutate(c.id); }} disabled={deleteMut.loading} className="inline-flex h-7 items-center rounded-[5px] bg-gradient-to-r from-rose-500 to-pink-600 px-2 text-[10px] font-black text-white">X</button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </section>
-  );
+  return <section className="space-y-4">
+    <div><h3 className="text-sm font-black text-slate-950">FECHAMENTO DA FOLHA</h3><p className="mt-1 text-xs text-slate-500">Jornada, proventos, tributos, encargos e líquido por colaborador.</p></div>
+    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">{[['Bruto',totals.gross],['INSS',totals.inss],['IRRF',totals.irrf],['FGTS patronal',totals.fgts],['Líquido',totals.net]].map(([label,value]) => <div key={String(label)} className="rounded-xl border border-slate-200 bg-white p-4"><p className="text-[9px] font-black uppercase text-slate-500">{String(label)}</p><p className="mt-1 text-base font-black">{money(value)}</p></div>)}</div>
+    <div className="rounded-xl border border-slate-200 bg-white p-5"><div className="flex flex-wrap items-end gap-3">
+      <label className="text-xs text-slate-600">MÊS<select value={month} onChange={e => setMonth(Number(e.target.value))} className="mt-1 block h-10 rounded-lg border border-slate-200 px-3">{months.map((name,index)=><option key={name} value={index+1}>{name}</option>)}</select></label>
+      <label className="text-xs text-slate-600">ANO<input type="number" value={year} onChange={e => setYear(Number(e.target.value))} className="mt-1 block h-10 w-28 rounded-lg border border-slate-200 px-3" /></label>
+      <button onClick={generate} disabled={!canManage || generateMut.loading} className="crystal-button h-10 rounded-lg px-4 text-xs font-black text-white disabled:opacity-50">{generateMut.loading ? 'CALCULANDO...' : 'ADICIONAR / RECALCULAR'}</button>
+    </div>{error && <p className="mt-3 text-xs font-bold text-rose-600">{error}</p>}</div>
+    {closings.length === 0 ? <div className="rounded-xl border border-dashed border-slate-300 p-10 text-center"><FileCheck2 className="mx-auto text-teal-600"/><p className="mt-2 text-sm font-black">Nenhum fechamento calculado</p></div> : <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white"><table className="w-full min-w-[1180px] text-left text-[10px]"><thead className="bg-slate-50 uppercase text-slate-500"><tr><th className="p-3">Colaborador</th><th className="p-3">Jornada</th><th className="p-3">Proventos</th><th className="p-3">Descontos</th><th className="p-3">FGTS</th><th className="p-3">Líquido</th><th className="p-3">Status</th><th className="p-3">Ações</th></tr></thead><tbody>{closings.map((item:any)=><tr key={item.id} className="border-t align-top"><td className="p-3"><b>{item.employee?.name}</b><p className="text-slate-500">{period(item)}</p><p>Base {money(item.salaryBase)}</p></td><td className="p-3"><p>50% {Number(item.overtime50).toFixed(2)}h</p><p>100% {Number(item.overtime100).toFixed(2)}h</p><p>Noturno {Number(item.nightShift).toFixed(2)}h</p><p className="text-rose-600">Débito {item.absenceMinutes} min</p></td><td className="p-3"><p>Extras {money(Number(item.overtime50Value)+Number(item.overtime100Value))}</p><p>Noturno {money(item.nightShiftValue)}</p><p>DSR {money(item.dsrValue)}</p><b>Bruto {money(item.grossPay)}</b></td><td className="p-3 text-rose-700"><p>Jornada {money(item.absenceDiscount)}</p><p>INSS {money(item.inssDiscount)}</p><p>IRRF {money(item.irrfDiscount)}</p></td><td className="p-3"><b>{money(item.fgtsAmount)}</b><p className="text-slate-400">não descontado</p></td><td className="p-3 text-sm font-black text-teal-700">{money(item.netPay)}</td><td className="p-3"><span className="rounded border px-2 py-1 font-black">{labels[item.status] || item.status}</span></td><td className="p-3"><div className="flex max-w-56 flex-wrap gap-1">
+      <button onClick={()=>printClosing(item)} className="btn-outline h-7 px-2">PDF</button>{canManage && ['DRAFT','IN_REVIEW'].includes(item.status) && <button onClick={()=>adjust(item)} className="btn-outline h-7 px-2">Editar</button>}
+      {canManage && item.status==='DRAFT' && <button onClick={()=>reviewMut.mutate(item.id)} className="h-7 rounded bg-sky-600 px-2 text-white">Revisar</button>}{canManage && item.status==='IN_REVIEW' && <button onClick={()=>approveMut.mutate(item.id)} className="h-7 rounded bg-teal-600 px-2 text-white">Aprovar</button>}{canManage && item.status==='APPROVED' && <button onClick={()=>closeMut.mutate(item.id)} className="h-7 rounded bg-slate-900 px-2 text-white">Fechar</button>}{canManage && item.status==='CLOSED' && <button onClick={()=>{const reason=prompt('Motivo da reabertura:');if(reason?.trim())reopenMut.mutate({id:item.id,reason});}} className="h-7 rounded bg-amber-500 px-2">Reabrir</button>}{canManage && item.status!=='CLOSED' && <button onClick={()=>window.confirm('Excluir este fechamento?')&&deleteMut.mutate(item.id)} className="h-7 rounded bg-rose-600 px-2 text-white">Excluir</button>}
+    </div></td></tr>)}</tbody></table></div>}
+  </section>;
 }
 
-// ─── MODAIS ────────────────────────────────────────────────────────────────────
-
+// MODAIS
 function EventModal({ event, employees, onClose, onSave, saving }: {
   event?: ManagementEvent; employees: Employee[]; onClose: () => void; onSave: (data: any) => void; saving: boolean;
 }) {

@@ -197,6 +197,8 @@ export interface TimeTrack {
   latitude?: number | null; longitude?: number | null;
   manualReason?: string | null; manualStatus?: string | null;
   incidentType?: string | null;
+  lateMinutes?: number | null;
+  earlyLeaveMinutes?: number | null;
   isFuture: boolean;
   isRest: boolean;
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
@@ -438,10 +440,12 @@ export const api = {
   timeClosing: {
     list: () => request<any[]>('/time-closing'),
     getById: (id: string) => request<any>(`/time-closing/${id}`),
-    generate: (month: number, year: number) => request<any>('/time-closing/generate', { method: 'POST', body: { referenceMonth: month, referenceYear: year } }),
-    close: (id: string) => request<any>(`/time-closing/${id}/close`, { method: 'PUT' }),
-    reopen: (id: string, reason: string) => request<any>(`/time-closing/${id}/reopen`, { method: 'PUT', body: { reason } }),
-    approve: (id: string) => request<any>(`/time-closing/${id}/approve`, { method: 'PUT' }),
+    generate: (month: number, year: number, employeeIds?: string[]) => request<any[]>('/time-closing/generate', { method: 'POST', body: { month, year, employeeIds } }),
+    adjust: (id: string, field: string, newValue: number, reason: string) => request<any>(`/time-closing/${id}/adjust`, { method: 'PATCH', body: { field, newValue: String(newValue), reason } }),
+    submitReview: (id: string) => request<any>(`/time-closing/${id}/submit-review`, { method: 'POST' }),
+    approve: (id: string) => request<any>(`/time-closing/${id}/approve`, { method: 'POST' }),
+    close: (id: string) => request<any>(`/time-closing/${id}/close`, { method: 'POST' }),
+    reopen: (id: string, reason: string) => request<any>(`/time-closing/${id}/reopen`, { method: 'POST', body: { reason } }),
     delete: (id: string) => request<any>(`/time-closing/${id}`, { method: 'DELETE' }),
   },
   timeOccurrences: {

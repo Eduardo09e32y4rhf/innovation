@@ -193,16 +193,7 @@ export class TimeTrackService {
 
       const currentTrack = await this.repository.findByEmployeeDate(employee.id, targetDate);
 
-      const rule = employee.workScheduleRuleId ? await this.prisma.workScheduleRule.findUnique({
-        where: { id: employee.workScheduleRuleId }
-      }) : null;
-
-      const holiday = await this.prisma.holiday.findFirst({
-        where: {
-          companyId,
-          date: targetDate,
-        },
-      });
+      const { employeeForCalculation, rule, holiday } = await this.resolveCalculationContext(companyId, employee, targetDate);
 
       const calculation = this.timeCalcRules.calculateTotals(
         {
@@ -213,7 +204,7 @@ export class TimeTrackService {
           workDate: targetDate,
           manualReason: dto.manualReason,
         },
-        employee,
+        employeeForCalculation,
         rule,
         holiday,
       );
@@ -233,7 +224,8 @@ export class TimeTrackService {
         nightShiftMinutes: calculation.nightShiftMinutes,
         incidentType: calculation.incidentType,
         lateMinutes: calculation.lateMinutes,
-          clockedInWithoutFacial: (dto as any).clockedInWithoutFacial || false,
+        earlyLeaveMinutes: calculation.earlyLeaveMinutes,
+        clockedInWithoutFacial: (dto as any).clockedInWithoutFacial || false,
         absenceMinutes: calculation.absenceMinutes,
         overtimeExceedsLimit: calculation.overtimeExceedsLimit,
         overtimeApprovalStatus: calculation.overtimeApprovalNeeded ? 'PENDING' : 'APPROVED',
@@ -294,16 +286,7 @@ export class TimeTrackService {
     const employee = await this.prisma.employee.findUnique({ where: { id: current.employeeId } });
     if (!employee) throw new NotFoundException('Employee not found');
 
-    const rule = employee.workScheduleRuleId ? await this.prisma.workScheduleRule.findUnique({
-      where: { id: employee.workScheduleRuleId }
-    }) : null;
-
-    const holiday = await this.prisma.holiday.findFirst({
-      where: {
-        companyId,
-        date: current.date,
-      },
-    });
+    const { employeeForCalculation, rule, holiday } = await this.resolveCalculationContext(companyId, employee, current.date);
 
     const nextEntry = dto.entry !== undefined ? this.parseOptionalDate(dto.entry) : current.entry;
     const nextLunchStart = dto.lunchStart !== undefined ? this.parseOptionalDate(dto.lunchStart) : current.lunchStart;
@@ -320,7 +303,7 @@ export class TimeTrackService {
         workDate: current.date,
         manualReason: current.manualReason,
       },
-      employee,
+      employeeForCalculation,
       rule,
       holiday,
     );
@@ -338,6 +321,7 @@ export class TimeTrackService {
       nightShiftMinutes: calculation.nightShiftMinutes,
       incidentType: calculation.incidentType,
       lateMinutes: calculation.lateMinutes,
+      earlyLeaveMinutes: calculation.earlyLeaveMinutes,
       absenceMinutes: calculation.absenceMinutes,
       overtimeExceedsLimit: calculation.overtimeExceedsLimit,
       overtimeApprovalStatus: calculation.overtimeApprovalNeeded ? 'PENDING' : 'APPROVED',
@@ -538,6 +522,96 @@ export class TimeTrackService {
     return date.toISOString().slice(0, 10);
   }
 
+  private async resolveCalculationContext(companyId: string, employee: any, date: Date) {
+    const [baseRule, userSchedule, exception, holiday] = await Promise.all([
+      employee.workScheduleRuleId
+        ? this.prisma.workScheduleRule.findFirst({ where: { id: employee.workScheduleRuleId, companyId } })
+        : Promise.resolve(null),
+      this.prisma.userSchedule.findFirst({
+        where: {
+          companyId,
+          employeeId: employee.id,
+          startDate: { lte: date },
+          OR: [{ endDate: null }, { endDate: { gte: date } }],
+        },
+        include: { schedule: true },
+        orderBy: { startDate: 'desc' },
+      }),
+      this.prisma.scheduleException.findFirst({ where: { companyId, employeeId: employee.id, date } }),
+      this.prisma.holiday.findFirst({ where: { OR: [{ companyId }, { companyId: null }], date } }),
+    ]);
+
+    if (!userSchedule?.schedule) {
+      return { employeeForCalculation: employee, rule: baseRule, holiday };
+    }
+
+    const schedule = userSchedule.schedule;
+    let entry = userSchedule.entryTimeOverride ?? schedule.entryTime ?? employee.standardEntry ?? baseRule?.standardEntry;
+    let lunchStart = userSchedule.lunchStartTimeOverride ?? schedule.lunchStartTime ?? employee.standardLunchStart;
+    let lunchReturn = userSchedule.lunchReturnTimeOverride ?? schedule.lunchReturnTime ?? employee.standardLunchReturn;
+    let exit = userSchedule.exitTimeOverride ?? schedule.exitTime ?? employee.standardExit ?? baseRule?.standardExit;
+    let restDays = [...schedule.restDays];
+
+    if (exception?.exceptionType === 'COMPENSACAO') {
+      entry = exception.altEntryTime ?? entry;
+      exit = exception.altExitTime ?? exit;
+    } else if (exception) {
+      restDays = Array.from(new Set([...restDays, date.getUTCDay()]));
+    }
+
+    if (schedule.scaleType === '12x36' && schedule.cycleStartDate) {
+      const elapsedDays = Math.floor((date.getTime() - schedule.cycleStartDate.getTime()) / 86400000);
+      if (Math.abs(elapsedDays) % 2 === 1) restDays = Array.from(new Set([...restDays, date.getUTCDay()]));
+    }
+
+    const firstPeriod = this.minutesBetweenClockTimes(entry, lunchStart || exit);
+    const secondPeriod = lunchReturn && exit ? this.minutesBetweenClockTimes(lunchReturn, exit) : 0;
+    const scheduledMinutes = firstPeriod + secondPeriod;
+    const dailyMinutes = scheduledMinutes > 0
+      ? scheduledMinutes
+      : (baseRule?.dailyMinutes ?? this.parseWorkloadToMinutes(employee.dailyWorkload) ?? 480);
+
+    return {
+      employeeForCalculation: {
+        ...employee,
+        standardEntry: entry,
+        standardLunchStart: lunchStart,
+        standardLunchReturn: lunchReturn,
+        standardExit: exit,
+        workScale: schedule.scaleType,
+        isNightShift: schedule.isNightShift,
+      },
+      rule: {
+        ...(baseRule || {}),
+        standardEntry: entry,
+        standardLunchStart: lunchStart,
+        standardLunchReturn: lunchReturn,
+        standardExit: exit,
+        dailyMinutes,
+        weeklyMinutes: dailyMinutes * Math.max(1, schedule.workDays.length),
+        breakMinutes: lunchStart && lunchReturn
+          ? this.minutesBetweenClockTimes(lunchStart, lunchReturn)
+          : (baseRule?.breakMinutes ?? 60),
+        restDaysOfWeek: restDays,
+        workScale: schedule.scaleType,
+        cycleWorkHours: schedule.cycleWorkHours,
+        cycleRestHours: schedule.cycleRestHours,
+        nightShiftEnabled: schedule.isNightShift || baseRule?.nightShiftEnabled,
+        nightStartTime: schedule.nightStartTime ?? baseRule?.nightStartTime ?? '22:00',
+        nightEndTime: schedule.nightEndTime ?? baseRule?.nightEndTime ?? '05:00',
+      },
+      holiday,
+    };
+  }
+
+  private minutesBetweenClockTimes(start?: string | null, end?: string | null): number {
+    if (!start || !end) return 0;
+    const [startHour, startMinute] = start.split(':').map(Number);
+    const [endHour, endMinute] = end.split(':').map(Number);
+    const startTotal = startHour * 60 + (startMinute || 0);
+    const endTotal = endHour * 60 + (endMinute || 0);
+    return (endTotal - startTotal + 1440) % 1440;
+  }
   private async applyManual(companyId: string, actor: JwtUser, employee: { id: string; dailyWorkload?: string | null; workScheduleRuleId?: string | null; }, dateValue: string, dto: Pick<ManualTimeTrackDto, 'entry' | 'lunchStart' | 'lunchReturn' | 'exit' | 'reason' | 'observation'>) {
     const date = this.parseDateOnly(dateValue, 'Invalid date');
     const isFullDayAdjustment = dto.reason === 'ajuste_atestado_integral' || dto.reason === 'ajuste_feriado' || dto.reason === 'ajuste_suspensao';
@@ -548,13 +622,7 @@ export class TimeTrackService {
     const lunchReturn = isFullDayAdjustment ? null : this.parseOptionalDate((dto as any).lunchReturn);
     const exit = isFullDayAdjustment ? null : this.parseOptionalDate((dto as any).exit);
 
-    const rule = employee.workScheduleRuleId ? await this.prisma.workScheduleRule.findUnique({
-      where: { id: employee.workScheduleRuleId }
-    }) : null;
-
-    const holiday = await this.prisma.holiday.findFirst({
-      where: { companyId, date },
-    });
+    const { employeeForCalculation, rule, holiday } = await this.resolveCalculationContext(companyId, employee, date);
 
     let totalsData: any = {};
     if (isBanco) {
@@ -563,7 +631,7 @@ export class TimeTrackService {
     } else {
       const calculation = this.timeCalcRules.calculateTotals(
         { entryTime: entry, lunchStartTime: lunchStart, lunchReturnTime: lunchReturn, exitTime: exit, workDate: date, manualReason: dto.reason },
-        employee,
+        employeeForCalculation,
         rule,
         holiday,
       );
@@ -575,7 +643,8 @@ export class TimeTrackService {
         nightShiftMinutes: calculation.nightShiftMinutes,
         incidentType: calculation.incidentType,
         lateMinutes: calculation.lateMinutes,
-        absenceMinutes: calculation.absenceMinutes,
+        earlyLeaveMinutes: calculation.earlyLeaveMinutes,
+      absenceMinutes: calculation.absenceMinutes,
         overtimeExceedsLimit: calculation.overtimeExceedsLimit,
         overtimeApprovalStatus: calculation.overtimeApprovalNeeded ? 'PENDING' : 'APPROVED',
         overtimeHandling: 'PAYMENT',

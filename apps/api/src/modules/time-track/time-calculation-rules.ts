@@ -45,14 +45,11 @@ export interface MonthlyConsolidationOutput {
 
 @Injectable()
 export class TimeCalculationRulesService {
-  private readonly TOLERANCIA_DIARIA_MINUTOS = 10;
-  
-  calculateTotals(
-    input: TimeCalculationInput,
-    employee: any,
-    rule: any,
-    holiday: any,
-  ): TimeCalculationOutput {
+  private readonly legalPunchToleranceMinutes = 5;
+  private readonly legalDailyToleranceMinutes = 10;
+  private readonly timezone = 'America/Sao_Paulo';
+
+  calculateTotals(input: TimeCalculationInput, employee: any, rule: any, holiday: any): TimeCalculationOutput {
     const result: TimeCalculationOutput = {
       totalWorkedMinutes: null,
       dailyBalanceMinutes: null,
@@ -63,33 +60,19 @@ export class TimeCalculationRulesService {
       nightShiftMinutes: 0,
       incidentType: null,
       isRest: false,
-      isHoliday: !!holiday,
-      holidayHandling: holiday?.handling ?? 'PAID_100',
+      isHoliday: Boolean(holiday),
+      holidayHandling: holiday?.handling === 'FOLGA' ? 'FOLGA' : 'PAID_100',
       overtimeExceedsLimit: false,
       overtimeApprovalNeeded: false,
       absenceMinutes: null,
     };
 
-    const workScale = (rule?.workScale || employee?.workScale || '5x2').toLowerCase();
+    const workScale = String(rule?.workScale || employee?.workScale || '5x2').toLowerCase();
     const dayOfWeek = input.workDate.getUTCDay();
-    let restDays = rule?.restDaysOfWeek || (workScale === '6x1' ? [0] : [0, 6]);
-
-    if (workScale === '6x1' && restDays.includes(6)) {
-      restDays = restDays.filter((d: number) => d !== 6);
-    }
-
-    if (restDays.includes(dayOfWeek)) {
-      result.isRest = true;
-    }
-
-    if (holiday) {
-      result.isHoliday = true;
-      result.holidayHandling = holiday.handling;
-
-      if (holiday.handling === 'FOLGA') {
-        result.isRest = true;
-      }
-    }
+    const restDays = Array.isArray(rule?.restDaysOfWeek)
+      ? rule.restDaysOfWeek
+      : workScale === '6x1' ? [0] : [0, 6];
+    result.isRest = restDays.includes(dayOfWeek);
 
     if (input.manualReason === 'ajuste_feriado') {
       result.isHoliday = true;
@@ -99,171 +82,110 @@ export class TimeCalculationRulesService {
       result.isRest = true;
     }
 
-    let expectedMinutes = 0;
-    const empDaily = employee?.dailyWorkload ? (parseInt(employee.dailyWorkload.split(':')[0]) * 60 + parseInt(employee.dailyWorkload.split(':')[1] || '0')) : 480;
-    const dailyMinutes = rule?.dailyMinutes || empDaily;
-    
-    if (!result.isRest && !result.isHoliday) {
-       if (workScale === '6x1' && dayOfWeek === 6) {
-          const weekly = rule?.weeklyMinutes || 2640;
-          expectedMinutes = weekly - (dailyMinutes * 5);
-          if (expectedMinutes < 0) expectedMinutes = 0;
-       } else if (workScale === '12x36') {
-          expectedMinutes = 720;
-       } else {
-          expectedMinutes = dailyMinutes;
-       }
-    }
+    const isTwelveByThirtySix = workScale === '12x36';
+    const holidayRequiresDoublePay = result.isHoliday && !isTwelveByThirtySix && result.holidayHandling === 'PAID_100';
+    if (result.isHoliday && result.holidayHandling === 'FOLGA') result.isRest = true;
+
+    const employeeDaily = this.durationStringToMinutes(employee?.dailyWorkload);
+    let expectedMinutes = Number(rule?.dailyMinutes || employeeDaily || 480);
+    if (isTwelveByThirtySix) expectedMinutes = Number(rule?.cycleWorkHours || 12) * 60;
+    if (result.isRest || holidayRequiresDoublePay) expectedMinutes = 0;
 
     const timestamps = [input.entryTime, input.lunchStartTime, input.lunchReturnTime, input.exitTime]
-      .filter((t): t is Date => t !== null && t !== undefined)
+      .filter((value): value is Date => value instanceof Date && !Number.isNaN(value.getTime()))
       .sort((a, b) => a.getTime() - b.getTime());
-    
-    const entryTime = timestamps[0] || null;
+    const entryTime = timestamps[0] ?? null;
     const lunchStartTime = timestamps.length >= 3 ? timestamps[1] : null;
     const lunchReturnTime = timestamps.length >= 4 ? timestamps[2] : null;
-    const exitTime = timestamps.length === 2 ? timestamps[1] : timestamps[timestamps.length - 1] || null;
+    const exitTime = timestamps.length >= 2 ? timestamps[timestamps.length - 1] : null;
+    result.sortedTimestamps = { entryTime, lunchStartTime, lunchReturnTime, exitTime };
 
-    const isFullDaySickLeave = this.isFullDaySickLeaveAdjustment(input.manualReason);
-
-    if (isFullDaySickLeave) {
+    if (this.isFullDaySickLeaveAdjustment(input.manualReason)) {
       result.punchStatus = 'JUSTIFIED ABSENCE';
       result.totalWorkedMinutes = 0;
       result.dailyBalanceMinutes = 0;
-      result.absenceMinutes = null;
       return result;
     }
 
-    if (timestamps.length === 4) {
-      result.punchStatus = 'COMPLETE PUNCHES';
-    } else if (timestamps.length > 0 && timestamps.length < 4) {
-      result.punchStatus = 'INCOMPLETE PUNCHES';
-    } else if (timestamps.length === 0 && !result.isRest && !result.isHoliday) {
-      result.punchStatus = 'ABSENT';
-    }
+    if (timestamps.length === 4 || timestamps.length === 2) result.punchStatus = 'COMPLETE PUNCHES';
+    else if (timestamps.length > 0) result.punchStatus = 'INCOMPLETE PUNCHES';
+    else if (!result.isRest && !holidayRequiresDoublePay) result.punchStatus = 'ABSENT';
 
     if (!entryTime || !exitTime) {
-      if (result.isRest || result.isHoliday || this.isFullDayAdjustment(input.manualReason)) {
-        return result;
-      }
+      if (result.isRest || holidayRequiresDoublePay || this.isFullDayAdjustment(input.manualReason)) return result;
       result.incidentType = 'falta';
       result.absenceMinutes = expectedMinutes;
       result.dailyBalanceMinutes = -expectedMinutes;
       return result;
     }
 
-    const p1 = this.diffMinutes(entryTime, lunchStartTime || exitTime);
-    const p2 = (lunchReturnTime && timestamps.length === 4) ? this.diffMinutes(lunchReturnTime, exitTime) : 0;
-    
-    let lunch = 0;
-    if (lunchStartTime && lunchReturnTime) {
-      lunch = this.diffMinutes(lunchStartTime, lunchReturnTime);
-    } else {
-      lunch = rule?.breakMinutes ?? 60;
-    }
-    
-    let workedMinutes = 0;
-    if (timestamps.length === 4) {
-        workedMinutes = p1 + p2;
-    } else if (timestamps.length === 2) {
-        const gross = this.diffMinutes(entryTime, exitTime);
-        workedMinutes = Math.max(gross - lunch, 0);
-    } else {
-        const gross = this.diffMinutes(entryTime, exitTime);
-        workedMinutes = Math.max(gross - lunch, 0);
-    }
-    
-    if (result.isRest || result.isHoliday || this.isFullDayAdjustment(input.manualReason)) {
-       result.totalWorkedMinutes = null;
-       result.dailyBalanceMinutes = null;
-       if (workedMinutes > 0) {
-           result.totalWorkedMinutes = workedMinutes;
-           result.overtime100Minutes = workedMinutes;
-           result.dailyBalanceMinutes = workedMinutes;
-       }
-       return result;
-    }
-
+    const intervals = lunchStartTime && lunchReturnTime
+      ? [[entryTime, lunchStartTime], [lunchReturnTime, exitTime]] as Array<[Date, Date]>
+      : [[entryTime, exitTime]] as Array<[Date, Date]>;
+    const grossWorkedMinutes = intervals.reduce((sum, [start, end]) => sum + this.diffMinutes(start, end), 0);
+    const configuredBreak = Number(rule?.breakMinutes ?? 60);
+    const workedMinutes = lunchStartTime && lunchReturnTime
+      ? grossWorkedMinutes
+      : Math.max(0, grossWorkedMinutes - (expectedMinutes > 360 ? configuredBreak : 0));
     result.totalWorkedMinutes = workedMinutes;
 
+    const nightActualMinutes = rule?.nightShiftEnabled || employee?.isNightShift
+      ? this.calculateNightMinutes(intervals, rule?.nightStartTime ?? '22:00', rule?.nightEndTime ?? '05:00')
+      : 0;
+    result.nightShiftMinutes = Math.round(nightActualMinutes * (60 / 52.5));
+
+    if (result.isRest || holidayRequiresDoublePay) {
+      result.dailyBalanceMinutes = workedMinutes;
+      result.overtime100Minutes = workedMinutes;
+      result.incidentType = workedMinutes > 0 ? 'hora_extra_100' : 'normal';
+      this.applyOvertimeLimit(result, rule);
+      return result;
+    }
+
+    const expectedEntry = this.timeStringToMinutes(employee?.standardEntry || rule?.standardEntry || '08:00');
+    const expectedExit = this.resolveExpectedExit(employee, rule, expectedEntry, expectedMinutes, configuredBreak);
+    const expectedLunchStart = this.optionalTimeToMinutes(employee?.standardLunchStart || rule?.standardLunchStart);
+    const expectedLunchReturn = this.optionalTimeToMinutes(employee?.standardLunchReturn || rule?.standardLunchReturn);
+    const actualEntry = this.localMinuteOfDay(entryTime);
+    const actualExit = this.localMinuteOfDay(exitTime);
+    const actualLunchStart = lunchStartTime ? this.localMinuteOfDay(lunchStartTime) : null;
+    const actualLunchReturn = lunchReturnTime ? this.localMinuteOfDay(lunchReturnTime) : null;
+
+    const lateDeviations = [
+      this.forwardDifference(expectedEntry, actualEntry),
+      expectedLunchReturn !== null && actualLunchReturn !== null ? this.forwardDifference(expectedLunchReturn, actualLunchReturn) : 0,
+    ].filter((value) => value > 0);
+    const earlyDeviations = [
+      this.forwardDifference(actualExit, expectedExit),
+      expectedLunchStart !== null && actualLunchStart !== null ? this.forwardDifference(actualLunchStart, expectedLunchStart) : 0,
+    ].filter((value) => value > 0);
+    const overtimeDeviations = [
+      this.forwardDifference(actualEntry, expectedEntry),
+      this.forwardDifference(expectedExit, actualExit),
+    ].filter((value) => value > 0);
+
     let balance = workedMinutes - expectedMinutes;
-    if (Math.abs(balance) <= this.TOLERANCIA_DIARIA_MINUTOS) {
-       balance = 0;
-    }
-    
-    const isPartialAtestado = (input.manualReason || '').toLowerCase().includes('atestado') || 
-                              (input.manualReason || '').toLowerCase().includes('abono');
-    
-    if (balance < 0 && isPartialAtestado) {
-       balance = 0;
-    }
+    const negativeDeviations = [...lateDeviations, ...earlyDeviations];
+    if (balance < 0 && this.withinLegalTolerance(negativeDeviations, rule)) balance = 0;
+    if (balance > 0 && this.withinLegalTolerance(overtimeDeviations, rule)) balance = 0;
+    if (balance < 0 && this.isPartialJustification(input.manualReason)) balance = 0;
 
     result.dailyBalanceMinutes = balance;
-
-    const expectedEntryMin = this.timeStringToMinutes(employee?.standardEntry || rule?.standardEntry || '08:00');
-    const lateTolerance = rule?.lateToleranceMinutes ?? 10;
-    const earlyTolerance = rule?.earlyLeaveToleranceMinutes ?? 10;
-    const breakMins = rule?.breakMinutes ?? 60;
-    
-    let expectedExitStr = employee?.standardExit || rule?.standardExit;
-    if (!expectedExitStr) {
-      const derivedExit = expectedEntryMin + expectedMinutes + (expectedMinutes > 360 ? breakMins : 0);
-      expectedExitStr = `${String(Math.floor(derivedExit/60)).padStart(2,'0')}:${String(derivedExit%60).padStart(2,'0')}`;
-    }
-    const expectedExitMin = this.timeStringToMinutes(expectedExitStr);
-
-    const entryMin = entryTime.getHours() * 60 + entryTime.getMinutes();
-    const exitMin = exitTime.getHours() * 60 + exitTime.getMinutes();
-
-    let calcLate = 0;
-    let calcEarly = 0;
-
-    if (entryMin > expectedEntryMin + lateTolerance) {
-      calcLate += (entryMin - expectedEntryMin);
-    }
-    
-    if (lunch > breakMins + lateTolerance) {
-      calcLate += (lunch - breakMins);
-    }
-
-    if (exitMin < expectedExitMin - earlyTolerance) {
-      calcEarly += (expectedExitMin - exitMin);
-    }
-
     if (balance > 0) {
       result.overtime50Minutes = balance;
-
-      const maxDaily = rule?.maxDailyOvertimeMinutes ?? 120;
-      if (result.overtime50Minutes > maxDaily) {
-        result.overtimeExceedsLimit = true;
-        result.overtimeApprovalNeeded = true;
-      }
-      result.incidentType = 'normal';
+      result.incidentType = 'hora_extra_50';
+      this.applyOvertimeLimit(result, rule);
     } else if (balance < 0) {
-        if (entryMin > expectedEntryMin + lateTolerance) {
-             result.incidentType = 'DELAY';
-        } else {
-             result.incidentType = 'EARLY DEPARTURE';
-        }
-        result.absenceMinutes = Math.abs(balance);
-        result.lateMinutes = Math.abs(balance);
+      result.lateMinutes = this.countDeviation(lateDeviations, rule);
+      result.earlyLeaveMinutes = this.countDeviation(earlyDeviations, rule);
+      result.absenceMinutes = Math.abs(balance);
+      if (result.earlyLeaveMinutes > 0 && result.lateMinutes > 0) result.incidentType = 'atraso_saida_antecipada';
+      else if (result.earlyLeaveMinutes > 0) result.incidentType = 'saida_antecipada';
+      else if (result.lateMinutes > 0) result.incidentType = 'atraso';
+      else result.incidentType = 'debito_jornada';
     } else {
-        result.incidentType = 'normal';
+      result.incidentType = 'normal';
     }
-
-    result.lateMinutes = calcLate || result.lateMinutes;
-    result.earlyLeaveMinutes = calcEarly;
-
-    if (rule?.nightShiftEnabled && entryTime && exitTime) {
-      result.nightShiftMinutes = this.calculateNightShiftMinutes(
-        entryTime,
-        exitTime,
-        rule.nightStartTime ?? '22:00',
-        rule.nightEndTime ?? '05:00',
-      );
-    }
-
-    result.sortedTimestamps = { entryTime, lunchStartTime, lunchReturnTime, exitTime };
 
     return result;
   }
@@ -274,83 +196,143 @@ export class TimeCalculationRulesService {
     let totalDelaysAbsencesDebt = 0;
     let daysWorked = 0;
     let fullAbsences = 0;
-
     for (const day of days) {
       totalOvertime50 += day.overtime50Minutes || 0;
       totalOvertime100 += day.overtime100Minutes || 0;
-
-      if (day.dailyBalanceMinutes !== null && day.dailyBalanceMinutes < 0) {
-          totalDelaysAbsencesDebt += Math.abs(day.dailyBalanceMinutes);
-      } else if (day.absenceMinutes && day.absenceMinutes > 0 && day.punchStatus !== 'JUSTIFIED ABSENCE') {
-          totalDelaysAbsencesDebt += day.absenceMinutes;
-      }
-
-      if (day.totalWorkedMinutes && day.totalWorkedMinutes > 0 && day.punchStatus !== 'JUSTIFIED ABSENCE') {
-          daysWorked++;
-      }
-
-      if (day.punchStatus === 'ABSENT') {
-          fullAbsences++;
-      }
+      if ((day.dailyBalanceMinutes ?? 0) < 0) totalDelaysAbsencesDebt += Math.abs(day.dailyBalanceMinutes!);
+      if ((day.totalWorkedMinutes ?? 0) > 0 && day.punchStatus !== 'JUSTIFIED ABSENCE') daysWorked++;
+      if (day.punchStatus === 'ABSENT') fullAbsences++;
     }
-
     const totalOvertime = totalOvertime50 + totalOvertime100;
-    const timeBankBalance = totalOvertime - totalDelaysAbsencesDebt;
-
     return {
       totalOvertime50,
       totalOvertime100,
       totalOvertime,
       totalDelaysAbsencesDebt,
-      timeBankBalance,
+      timeBankBalance: totalOvertime - totalDelaysAbsencesDebt,
       daysWorked,
-      fullAbsences
+      fullAbsences,
     };
   }
 
-  private diffMinutes(start: Date, end: Date): number {
-    return Math.floor((end.getTime() - start.getTime()) / 60000);
+  private applyOvertimeLimit(result: TimeCalculationOutput, rule: any): void {
+    const total = result.overtime50Minutes + result.overtime100Minutes;
+    const maximum = Math.min(120, Number(rule?.maxDailyOvertimeMinutes ?? 120));
+    if (total > maximum) {
+      result.overtimeExceedsLimit = true;
+      result.overtimeApprovalNeeded = true;
+    }
   }
 
-  private timeStringToMinutes(timeStr: string): number {
-    const [hours, minutes] = timeStr.split(':').map(Number);
-    return hours * 60 + minutes;
+  private withinLegalTolerance(deviations: number[], rule: any): boolean {
+    if (!deviations.length) return false;
+    const configured = Number(rule?.lateToleranceMinutes ?? this.legalPunchToleranceMinutes);
+    const perPunch = Math.min(this.legalPunchToleranceMinutes, Math.max(0, configured));
+    return deviations.every((value) => value <= perPunch)
+      && deviations.reduce((sum, value) => sum + value, 0) <= this.legalDailyToleranceMinutes;
   }
 
-  private calculateNightShiftMinutes(entry: Date, exit: Date, nightStart: string, nightEnd: string): number {
-    const startMins = this.timeStringToMinutes(nightStart);
-    const endMins = this.timeStringToMinutes(nightEnd);
-    const eStartMins = entry.getHours() * 60 + entry.getMinutes();
-    const eEndMins = exit.getHours() * 60 + exit.getMinutes();
-    
-    let nightMinutes = 0;
-    
-    if (startMins > endMins) {
-      if (eStartMins >= startMins) {
-        nightMinutes += (1440 - eStartMins);
-      }
-      if (eEndMins <= endMins) {
-        nightMinutes += eEndMins;
-      }
-    } else {
-      const overlapStart = Math.max(eStartMins, startMins);
-      const overlapEnd = Math.min(eEndMins, endMins);
-      if (overlapEnd > overlapStart) {
-        nightMinutes = overlapEnd - overlapStart;
+  private countDeviation(deviations: number[], rule: any): number {
+    return this.withinLegalTolerance(deviations, rule) ? 0 : deviations.reduce((sum, value) => sum + value, 0);
+  }
+
+  private calculateNightMinutes(intervals: Array<[Date, Date]>, nightStart: string, nightEnd: string): number {
+    const start = this.timeStringToMinutes(nightStart);
+    const end = this.timeStringToMinutes(nightEnd);
+    let total = 0;
+    for (const [intervalStart, intervalEnd] of intervals) {
+      const startMinute = this.localMinuteOfDay(intervalStart);
+      const endMinute = this.localMinuteOfDay(intervalEnd);
+      const startDate = this.localDateKey(intervalStart);
+      const endDate = this.localDateKey(intervalEnd);
+      const coversFullUrbanNight = start > end
+        && startDate !== endDate
+        && startMinute <= start
+        && endMinute > end
+        && this.diffMinutes(intervalStart, intervalEnd) >= (1440 - start) + end;
+      for (let cursor = intervalStart.getTime(); cursor < intervalEnd.getTime(); cursor += 60000) {
+        const instant = new Date(cursor);
+        const minute = this.localMinuteOfDay(instant);
+        const isNight = start > end ? minute >= start || minute < end : minute >= start && minute < end;
+        const isNightExtension = coversFullUrbanNight
+          && this.localDateKey(instant) === endDate
+          && minute >= end
+          && minute < 720;
+        if (isNight || isNightExtension) total++;
       }
     }
-    return nightMinutes;
+    return total;
+  }
+
+  private resolveExpectedExit(employee: any, rule: any, entry: number, expected: number, breakMinutes: number): number {
+    const explicit = employee?.standardExit || rule?.standardExit;
+    if (explicit) return this.timeStringToMinutes(explicit);
+    return (entry + expected + (expected > 360 ? breakMinutes : 0)) % 1440;
+  }
+
+  private localParts(date: Date): Record<string, number> {
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: this.timezone,
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', hourCycle: 'h23', weekday: 'short',
+    }).formatToParts(date);
+    const values: Record<string, number> = {};
+    for (const part of parts) if (part.type !== 'literal') values[part.type] = Number(part.value);
+    const weekday = parts.find((part) => part.type === 'weekday')?.value;
+    values.weekday = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(weekday ?? '');
+    return values;
+  }
+
+  private localDateKey(date: Date): string {
+    const parts = this.localParts(date);
+    return `${parts.year}-${String(parts.month).padStart(2, '0')}-${String(parts.day).padStart(2, '0')}`;
+  }
+  private localMinuteOfDay(date: Date): number {
+    const parts = this.localParts(date);
+    return parts.hour * 60 + parts.minute;
+  }
+
+  private localDayOfWeek(date: Date): number {
+    return this.localParts(date).weekday;
+  }
+
+  private forwardDifference(from: number, to: number): number {
+    const diff = (to - from + 1440) % 1440;
+    return diff > 720 ? 0 : diff;
+  }
+
+  private diffMinutes(start: Date, end: Date): number {
+    return Math.max(0, Math.round((end.getTime() - start.getTime()) / 60000));
+  }
+
+  private optionalTimeToMinutes(value?: string | null): number | null {
+    return value ? this.timeStringToMinutes(value) : null;
+  }
+
+  private timeStringToMinutes(value: string): number {
+    const [hours, minutes] = value.split(':').map(Number);
+    return hours * 60 + (minutes || 0);
+  }
+
+  private durationStringToMinutes(value?: string | null): number | null {
+    if (!value) return null;
+    const [hours, minutes] = value.split(':').map(Number);
+    if (!Number.isFinite(hours)) return null;
+    return hours * 60 + (minutes || 0);
+  }
+
+  private isPartialJustification(reason?: string | null): boolean {
+    const normalized = String(reason || '').toLowerCase();
+    return normalized.includes('atestado') || normalized.includes('abono');
   }
 
   private isFullDayAdjustment(reason?: string | null): boolean {
-    if (!reason) return false;
-    const lower = reason.toLowerCase();
-    return lower.includes('atestado') || lower.includes('licença') || lower.includes('abono');
+    const normalized = String(reason || '').toLowerCase();
+    return normalized.includes('atestado') || normalized.includes('licenca') || normalized.includes('licença') || normalized.includes('abono');
   }
 
   private isFullDaySickLeaveAdjustment(reason?: string | null): boolean {
-    if (!reason) return false;
-    const lower = reason.toLowerCase();
-    return lower === 'sick leave' || lower.includes('atestado integral') || lower.includes('licença médica');
+    const normalized = String(reason || '').toLowerCase();
+    return normalized === 'sick leave' || normalized.includes('atestado integral') || normalized.includes('licenca medica') || normalized.includes('licença médica');
   }
 }

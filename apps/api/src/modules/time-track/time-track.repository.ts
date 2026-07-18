@@ -32,6 +32,8 @@ type TrackWithEmployee = {
   overtimeApprovalStatus: string | null;
   overtimeExceedsLimit: boolean;
   incidentType: string | null;
+  lateMinutes: number;
+  earlyLeaveMinutes: number;
   toleranceMinutes: number | null;
   absenceMinutes: number | null;
   clockedInWithoutFacial: boolean;
@@ -79,6 +81,8 @@ overtimeHandling: true,
 overtimeBankMinutes: true,
 overtimePaymentMinutes: true,
     incidentType: true,
+    lateMinutes: true,
+    earlyLeaveMinutes: true,
     toleranceMinutes: true,
     absenceMinutes: true,
     clockedInWithoutFacial: true,

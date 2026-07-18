@@ -257,6 +257,7 @@ export class ScheduleService {
               // ── Ocorrências e incidentes ──────────────────────────────────
               incidentType: timeTrack.incidentType,
               lateMinutes: timeTrack.lateMinutes,
+              earlyLeaveMinutes: timeTrack.earlyLeaveMinutes,
               absenceMinutes: timeTrack.absenceMinutes,
               // ── Hora Extra ────────────────────────────────────────────────
               overtime50Minutes: timeTrack.overtime50Minutes,
