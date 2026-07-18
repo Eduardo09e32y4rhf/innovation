@@ -39,10 +39,10 @@ function clearSession() {
   resetAllQueryStates();
 }
 
-type Opts = { method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE'; body?: unknown; silent?: boolean; timeoutMs?: number };
+type Opts = { method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE'; body?: unknown; silent?: boolean; timeoutMs?: number; keepSessionOn401?: boolean };
 
 export async function request<T>(path: string, opts: Opts = {}): Promise<T> {
-  const { method = 'GET', body, silent, timeoutMs } = opts;
+  const { method = 'GET', body, silent, timeoutMs, keepSessionOn401 } = opts;
   const headers: Record<string, string> = {};
   if (body !== undefined) headers['Content-Type'] = 'application/json';
   const token = getToken();
@@ -69,8 +69,10 @@ export async function request<T>(path: string, opts: Opts = {}): Promise<T> {
   }
 
   if (res.status === 401) {
-    clearSession();
-    if (!silent && typeof window !== 'undefined') window.location.href = '/login';
+    if (!keepSessionOn401) {
+      clearSession();
+      if (!silent && typeof window !== 'undefined') window.location.href = '/login';
+    }
     throw new ApiError(401, 'Sessao expirada. Faca login novamente.');
   }
 
@@ -587,9 +589,9 @@ export const api = {
   },
 
   companyBilling: {
-    status: () => request<CompanyBillingResult>('/finance/company/status'),
-    invoices: () => request<PlatformInvoice[]>('/finance/company/invoices'),
-    checkout: () => request<CompanyBillingResult>('/finance/company/checkout', { method: 'POST' }),
+    status: () => request<CompanyBillingResult>('/finance/company/status', { silent: true, keepSessionOn401: true }),
+    invoices: () => request<PlatformInvoice[]>('/finance/company/invoices', { silent: true, keepSessionOn401: true }),
+    checkout: () => request<CompanyBillingResult>('/finance/company/checkout', { method: 'POST', silent: true, keepSessionOn401: true }),
   },
   proposals: {
     list: () => request<any[]>('/proposals'),

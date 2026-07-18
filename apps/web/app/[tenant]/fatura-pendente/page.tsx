@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { AlertTriangle, CreditCard, Loader2, LogOut, RefreshCw, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import api, { ApiError, type CompanyBillingResult } from '@/app/lib/api';
+import { readAuthSession } from '@/app/lib/auth-session';
 import { useAuth } from '@/app/contexts/AuthContext';
 
 export default function FaturaPendentePage() {
@@ -81,7 +82,8 @@ export default function FaturaPendentePage() {
   }
 
   useEffect(() => {
-    if (!loading && (!isAuthenticated || !user)) router.replace('/login');
+    const hasStoredToken = Boolean(readAuthSession().token);
+    if (!loading && !hasStoredToken && (!isAuthenticated || !user)) router.replace('/login');
   }, [loading, isAuthenticated, user, router]);
 
   useEffect(() => {
