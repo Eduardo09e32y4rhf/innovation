@@ -116,6 +116,13 @@ export class AsaasService {
     return this.request<{ deleted: boolean }>(`/payments/${encodeURIComponent(paymentId)}`, { method: 'DELETE' });
   }
 
+  refundPayment(paymentId: string, value?: number, description?: string) {
+    return this.request<AsaasPayment>(`/payments/${encodeURIComponent(paymentId)}/refund`, {
+      method: 'POST',
+      body: JSON.stringify({ value, description }),
+    });
+  }
+
   getPaymentsBySubscription(subscriptionId: string) {
     return this.request<AsaasListResponse<AsaasPayment>>(`/payments?subscription=${encodeURIComponent(subscriptionId)}`);
   }

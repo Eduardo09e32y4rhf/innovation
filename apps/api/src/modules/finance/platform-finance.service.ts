@@ -332,6 +332,41 @@ export class PlatformFinanceService {
     return { id };
   }
 
+  async requestRefund(id: string, companyId?: string) {
+    const invoice = await this.prisma.platformInvoice.findFirst({
+      where: { id, companyId, deletedAt: null },
+    });
+    if (!invoice) throw new NotFoundException('Fatura nao encontrada.');
+    if (invoice.status !== 'PAID') throw new BadRequestException('A fatura precisa estar paga para ser estornada.');
+    if (!invoice.asaasPaymentId) throw new BadRequestException('Fatura local nao pode ser estornada no Asaas.');
+
+    const paidAt = invoice.paidAt || new Date();
+    const daysSincePayment = (new Date().getTime() - paidAt.getTime()) / (1000 * 3600 * 24);
+    if (daysSincePayment > 7) {
+      throw new BadRequestException('O prazo de 7 dias para estorno automatico ja expirou.');
+    }
+
+    try {
+      await this.asaas.refundPayment(invoice.asaasPaymentId);
+    } catch (error) {
+      this.logger.error(`Falha ao solicitar estorno da fatura ${id}: ${String(error)}`);
+      throw new BadRequestException('O Asaas recusou o pedido de estorno. Verifique se o saldo esta disponivel.');
+    }
+
+    const updated = await this.prisma.platformInvoice.update({
+      where: { id },
+      data: { status: 'CANCELED' },
+      include: { company: { select: { id: true, name: true } }, plan: { select: { id: true, name: true } } },
+    });
+
+    await this.prisma.company.update({
+      where: { id: invoice.companyId },
+      data: { status: 'SUSPENDED', isActive: false, billingStatus: 'PAST_DUE', suspensionReason: 'pagamento_cancelado_ou_estornado' },
+    });
+
+    return updated;
+  }
+
   private async findActive(id: string) {
     const invoice = await this.prisma.platformInvoice.findFirst({ where: { id, deletedAt: null } });
     if (!invoice) throw new NotFoundException('Fatura nao encontrada.');

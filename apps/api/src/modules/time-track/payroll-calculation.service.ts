@@ -1,4 +1,4 @@
-﻿import { Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 
 export interface PayrollCalculationInput {
   salary: number;
@@ -50,6 +50,12 @@ export class PayrollCalculationService {
     const overtime100Factor = Math.max(2, input.overtime100Factor ?? 2);
     const nightShiftPercent = Math.max(20, input.nightShiftPercent ?? 20) / 100;
 
+    let salaryBase = this.money(Math.max(0, input.salary));
+    const isPartialMonth = (input as any).isPartialMonth === true;
+    if (isPartialMonth && (input as any).scheduledMinutesInPeriod > 0) {
+      salaryBase = this.money(hourlyRate * ((input as any).scheduledMinutesInPeriod / 60));
+    }
+
     const overtime50Value = this.money((input.overtime50Minutes / 60) * hourlyRate * overtime50Factor);
     const overtime100Value = this.money((input.overtime100Minutes / 60) * hourlyRate * overtime100Factor);
     const nightShiftValue = this.money((input.nightShiftMinutes / 60) * hourlyRate * nightShiftPercent);
@@ -60,7 +66,11 @@ export class PayrollCalculationService {
       ? this.money((variablePay / payableWorkdays) * paidRestDays)
       : 0;
     const dsrHours = hourlyRate > 0 ? this.hours(dsrValue / hourlyRate) : 0;
+    
+    // In partial months, absences might have been correctly accounted for in the reduced salary base depending on interpretation.
+    // However, if we reduced the salary base based on scheduled hours of that short period, we should STILL deduct absences that happened in that period.
     const absenceDiscount = this.money((Math.max(0, input.absenceMinutes) / 60) * hourlyRate);
+    
     const grossPay = this.money(Math.max(0, salaryBase + variablePay + dsrValue - absenceDiscount));
     const inssDiscount = this.calculateInss(grossPay);
     const legalDeductions = inssDiscount + Math.max(0, input.dependents ?? 0) * 189.59;

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { CurrentCompany } from '../../common/decorators/current-company.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -24,5 +24,10 @@ export class CompanyBillingController {
   @Post('checkout')
   checkout(@CurrentCompany() companyId: string) {
     return this.service.ensureCompanyCheckout(companyId);
+  }
+
+  @Post('refund/:id')
+  requestRefund(@Param('id') invoiceId: string, @CurrentCompany() companyId: string) {
+    return this.service.requestRefund(invoiceId, companyId);
   }
 }

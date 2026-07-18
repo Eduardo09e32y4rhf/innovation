@@ -20,7 +20,7 @@ import { saoPauloDateKey } from '@/app/lib/date';
 const WEEKDAYS = ['DOM','SEG','TER','QUA','QUI','SEX','SÁB'];
 
 const REASONS: { value: TimeTrackAdjustmentReason; label: string; fullDay?: boolean }[] = [
-  { value:'ajuste_erro_marcacao', label:'AJUSTE - ERRO MARCAÇÃO', fullDay:false },
+  { value:'ajuste_erro_marcacao', label:'AJUSTE - MARCAÇÃO INCOMPLETA', fullDay:false },
   { value:'ajuste_atestado_integral', label:'ATESTADO INTEGRAL', fullDay:true },
   { value:'ajuste_feriado', label:'FERIADO', fullDay:true },
   { value:'ajuste_abono_atestado_horas', label:'ABONO - ATESTADO DE HORAS', fullDay:true },
@@ -325,11 +325,16 @@ export default function TimeTrackPage() {
   const refreshing = tracks.loading && !!tracks.data;
 
   return (
-    <div className="mx-auto max-w-7xl space-y-5 px-4 py-5 sm:px-6 lg:px-8">
-      <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-teal-600">CONTROLE DE PONTO</p>
-          <h2 className="text-2xl font-black text-slate-950">{isFunc?'MEU PONTO':isGestor?'PONTO DA EQUIPE':'FOLHA DE PONTO'}</h2>
+    <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+      <header className="flex flex-col gap-4 rounded-2xl bg-white/60 p-6 shadow-sm ring-1 ring-slate-900/5 backdrop-blur-xl sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-4">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-teal-500 to-emerald-600 shadow-lg shadow-teal-500/20">
+            <CalendarDays className="h-6 w-6 text-white" />
+          </div>
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-teal-600">CONTROLE DE PONTO</p>
+            <h2 className="text-2xl font-black text-slate-950">{isFunc?'MEU PONTO':isGestor?'PONTO DA EQUIPE':'FOLHA DE PONTO'}</h2>
+          </div>
         </div>
         <div className="flex flex-wrap gap-2">
           <Link href={`/${tenant}/dashboard/escala`} className="btn-outline-premium inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black"><CalendarDays size={14}/> ESCALA</Link>
@@ -358,9 +363,9 @@ export default function TimeTrackPage() {
           </div>
           {approveMut.error && <p className="mb-3 rounded-[8px] border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">{approveMut.error}</p>}
           {batchApproveMut.error && <p className="mb-3 rounded-[8px] border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">{batchApproveMut.error}</p>}
-          <div className="space-y-2">{(pending.data ?? []).map(t=> (
-            <div key={t.id} className="flex items-center justify-between rounded-[8px] border border-amber-200 bg-white px-4 py-3">
-              <div className="flex items-center gap-3 text-xs">
+          <div className="space-y-3">{(pending.data ?? []).map(t=> (
+            <div key={t.id} className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-xl border border-amber-200 bg-white/80 p-4 shadow-sm backdrop-blur-sm transition-all hover:bg-white hover:shadow-md">
+              <div className="flex items-center gap-4 text-xs">
                   <input type="checkbox" className="h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-600" checked={selectedPending.includes(t.id)} onChange={e => {
                     if(e.target.checked) setSelectedPending(prev => [...prev, t.id]);
                     else setSelectedPending(prev => prev.filter(id => id !== t.id));
@@ -425,11 +430,14 @@ export default function TimeTrackPage() {
                 const { worked, saldo } = getEffectiveStats(rows);
                 const faltas = rows.filter(isFalta).length;
                 return (
-                  <div key={emp.id} className="flex items-center justify-between px-5 py-4 hover:bg-slate-50">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-gradient-to-br from-teal-500 to-cyan-600 text-sm font-black text-white">{normalizeDisplayName(emp.name).charAt(0).toUpperCase()}</div>
+                  <div key={emp.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-6 py-4 hover:bg-slate-50/50 transition-colors">
+                    <div className="flex items-center gap-4">
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[12px] bg-gradient-to-br from-teal-500 to-emerald-600 text-sm font-black text-white shadow-md shadow-teal-500/20">{normalizeDisplayName(emp.name).charAt(0).toUpperCase()}</div>
                       <div>
-                        <div className="flex flex-wrap items-center gap-2"><span className="rounded-full border border-teal-200 bg-teal-50 px-2 py-0.5 text-[10px] font-black text-teal-700">{emp.registration || emp.id.slice(0,8).toUpperCase()}</span><p className="text-sm font-black text-slate-950">{normalizeDisplayName(emp.name)}</p></div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="rounded-full border border-teal-200 bg-teal-50 px-2 py-0.5 text-[10px] font-black text-teal-700">{emp.registration || emp.id.slice(0,8).toUpperCase()}</span>
+                          <p className="text-sm font-black text-slate-950">{normalizeDisplayName(emp.name)}</p>
+                        </div>
                         <p className="mt-1 text-[10px] font-semibold text-slate-500">{emp.department || '-'} {faltas>0 && <span className="text-rose-600 ml-2">{faltas} FALTA(S)</span>}</p>
                       </div>
                     </div>
@@ -736,15 +744,15 @@ function MonthGrid({ employee, tracks, month, canManage, canApprove, refreshing,
   const pendentes = grid.filter(g=>!g.isRest && !g.isFuture && !g.track).length;
 
   return (
-    <section className="overflow-hidden rounded-[14px] border border-slate-200 bg-white">
-      <div className="border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white px-5 py-4">
+    <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm ring-1 ring-slate-900/5">
+      <div className="border-b border-slate-100 bg-slate-50/50 p-6 backdrop-blur-sm">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex items-center gap-3.5">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[12px] bg-gradient-to-br from-indigo-500 to-purple-600 text-sm font-black text-white shadow-sm ring-1 ring-black/5">{normalizeDisplayName(employee.name).charAt(0).toUpperCase()}</div>
+          <div className="flex items-center gap-4">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-teal-500 to-emerald-600 text-lg font-black text-white shadow-md shadow-teal-500/20">{normalizeDisplayName(employee.name).charAt(0).toUpperCase()}</div>
             <div>
               <div className="flex flex-wrap items-center gap-2">
-                <span className="rounded-full border border-teal-200 bg-teal-50 px-2 py-0.5 text-[10px] font-black text-teal-700">{employee.registration || employee.id.slice(0,8).toUpperCase()}</span>
-                <h3 className="text-sm font-black text-slate-950">{normalizeDisplayName(employee.name)}</h3>
+                <span className="rounded-full border border-teal-200 bg-teal-50 px-2 py-0.5 text-[10px] font-black text-teal-700 shadow-sm">{employee.registration || employee.id.slice(0,8).toUpperCase()}</span>
+                <h3 className="text-base font-black text-slate-950">{normalizeDisplayName(employee.name)}</h3>
               </div>
               <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] font-semibold text-slate-500">
                 <span>{employee.department||'-'}</span><span className="text-slate-300">|</span>
