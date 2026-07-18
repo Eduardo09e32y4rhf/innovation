@@ -75,7 +75,9 @@ function PlanModal({ plan, onClose, onDone }: { plan?: any; onClose: () => void;
     }));
   }
 
-  const isValid = form.name.trim().length > 0;
+  const parsedPrice = parseMoney(form.price);
+  const priceInvalid = !form.isFree && parsedPrice <= 0;
+  const isValid = form.name.trim().length > 0 && !priceInvalid;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4">
@@ -89,6 +91,7 @@ function PlanModal({ plan, onClose, onDone }: { plan?: any; onClose: () => void;
         {/* Body */}
         <div className="flex-1 overflow-y-auto p-6 space-y-4">
           {save.error && <p className="rounded-[8px] border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">{save.error}</p>}
+          {priceInvalid && <p className="rounded-[8px] border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-800">Plano pago precisa ter valor maior que zero. Corrija o preco antes de salvar.</p>}
 
           <label className="block space-y-1.5 text-xs font-semibold text-slate-600">
             <span>Nome do Plano <span className="text-rose-500">*</span></span>
@@ -242,6 +245,7 @@ function PlanCard({ plan, onEdit, onDeactivate, onReactivate, onDelete }: {
   const cycleLabel = CYCLE_LABEL[plan.cycle as string] ?? 'ciclo';
   const moduleNames = (plan.activeModules as string[]).map(id => MODULES.find(m => m.id === id)?.label ?? id);
   const isActive = plan.isActive !== false;
+  const paidPlanWithoutPrice = !plan.isFree && price <= 0;
 
   return (
     <div className={`ops-card relative flex flex-col rounded-[14px] border bg-white transition-all ${
@@ -274,11 +278,16 @@ function PlanCard({ plan, onEdit, onDeactivate, onReactivate, onDelete }: {
         {/* Price */}
         <div className="mt-3 flex items-end gap-1">
           <span className="text-[11px] font-semibold text-slate-500">R$</span>
-          <span className="text-3xl font-black text-indigo-600 leading-none">
+          <span className={`text-3xl font-black leading-none ${paidPlanWithoutPrice ? 'text-rose-600' : 'text-indigo-600'}`}>
             {plan.isFree ? '0,00' : formatBRL(plan.price)}
           </span>
           <span className="text-xs font-medium text-slate-400 mb-0.5">/{cycleLabel}</span>
         </div>
+        {paidPlanWithoutPrice && (
+          <p className="mt-3 rounded-[8px] border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] font-bold text-amber-800">
+            Este plano esta pago, mas foi salvo com valor zero no banco. Clique em Editar e informe o preco correto.
+          </p>
+        )}
       </div>
 
       {/* Details */}
@@ -467,3 +476,5 @@ export default function PlansPage({ params: { tenant } }: { params: { tenant: st
     </div>
   );
 }
+
+

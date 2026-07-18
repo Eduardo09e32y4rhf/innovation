@@ -20,6 +20,7 @@ import {
   X,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { buildPdfShell, escapeHtml, infoGrid, pdfTable, printPdf, section } from '@/app/lib/pdf-utils';
 import { EmptyState, ErrorState, LoadingState } from '@/app/components/data-states';
 import { useQuery } from '@/app/hooks/use-data';
 import api, {
@@ -84,37 +85,66 @@ function InvoiceModal({ invoice, companies, onClose, onSaved }: {
     sendToAsaas: invoice ? false : true,
   });
   const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
   const selectedCompany = companies.data.find(company => company.id === form.companyId);
 
   async function save() {
-    if (!form.companyId || !form.description.trim() || parseMoney(form.amount) <= 0 || !form.dueDate) {
-      toast.error('Preencha empresa, descricao, valor e vencimento.');
+    const amount = parseMoney(form.amount);
+    if (!form.companyId || !form.description.trim() || amount <= 0 || !form.dueDate) {
+      const message = 'Preencha empresa, descricao, valor maior que zero e vencimento.';
+      setFormError(message);
+      toast.error(message);
       return;
     }
+
+    setFormError(null);
     setSaving(true);
+    let paymentWindow: Window | null = null;
+    if (!invoice && form.sendToAsaas) {
+      paymentWindow = window.open('', '_blank', 'noopener,noreferrer');
+      if (paymentWindow) {
+        paymentWindow.document.write('<p style="font-family:Arial,sans-serif;padding:24px">Gerando link seguro do Asaas...</p>');
+      }
+    }
+
     try {
+      let saved: PlatformInvoice;
       if (invoice) {
-        await api.platform.finance.update(invoice.id, {
+        saved = await api.platform.finance.update(invoice.id, {
           description: form.description.trim(),
-          amount: parseMoney(form.amount),
+          amount,
           dueDate: form.dueDate,
           billingType: form.billingType,
           status: form.status,
         });
       } else {
-        await api.platform.finance.create({
+        saved = await api.platform.finance.create({
           companyId: form.companyId,
           description: form.description.trim(),
-          amount: parseMoney(form.amount),
+          amount,
           dueDate: form.dueDate,
           billingType: form.billingType,
           sendToAsaas: form.sendToAsaas,
         });
       }
-      toast.success(invoice ? 'Fatura atualizada.' : 'Fatura criada.');
+
+      if (paymentWindow) {
+        if (saved.invoiceUrl) {
+          paymentWindow.location.href = saved.invoiceUrl;
+        } else {
+          paymentWindow.close();
+        }
+      }
+      if (saved.invoiceUrl) {
+        await navigator.clipboard?.writeText(saved.invoiceUrl).catch(() => undefined);
+      }
+      toast.success(saved.invoiceUrl ? 'Fatura salva e link de pagamento aberto.' : invoice ? 'Fatura atualizada.' : 'Fatura criada.');
       onSaved();
     } catch (error) {
-      toast.error(error instanceof ApiError ? error.message : 'Nao foi possivel salvar a fatura.');
+      paymentWindow?.close();
+      const message = error instanceof ApiError ? error.message : 'Nao foi possivel salvar a fatura.';
+      setFormError(message);
+      toast.error(message);
     } finally {
       setSaving(false);
     }
@@ -132,6 +162,7 @@ function InvoiceModal({ invoice, companies, onClose, onSaved }: {
         </div>
 
         <div className="space-y-4 p-6">
+          {formError && <p className="rounded-[8px] border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-bold text-rose-700">{formError}</p>}
           {!invoice && companies.loading && <LoadingState label="Carregando empresas do banco..." />}
           {!invoice && companies.error && <ErrorState message={companies.error} onRetry={companies.refetch} />}
           {!invoice && !companies.loading && !companies.error && companies.data.length === 0 && (
@@ -164,7 +195,7 @@ function InvoiceModal({ invoice, companies, onClose, onSaved }: {
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block text-xs font-bold text-slate-600">
               Valor
-              <input type="number" min="0.01" step="0.01" value={form.amount} onChange={event => setForm(current => ({ ...current, amount: event.target.value }))} className="mt-1.5 h-11 w-full rounded-[9px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500" />
+              <input type="text" inputMode="decimal" placeholder="Ex: 99,90" value={form.amount} onChange={event => setForm(current => ({ ...current, amount: event.target.value }))} className="mt-1.5 h-11 w-full rounded-[9px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500" />
             </label>
             <label className="block text-xs font-bold text-slate-600">
               Vencimento
@@ -256,23 +287,40 @@ export default function FinancePage({ params: { tenant } }: { params: { tenant: 
     }
   }
 
-  async function exportCsv() {
+  async function exportPdf() {
     try {
-      const result = await api.platform.finance.list({ limit: 100, status, search: deferredSearch, from, to });
-      const rows = [
-        ['Empresa', 'Documento', 'Descricao', 'Valor', 'Vencimento', 'Status', 'Forma', 'ID Asaas'],
-        ...result.items.map(item => [item.company.name, item.company.document || '', item.description || '', String(item.amount), item.dueDate.slice(0, 10), item.status, item.billingType, item.asaasPaymentId || '']),
-      ];
-      const csv = rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(';')).join('\n');
-      const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const anchor = document.createElement('a');
-      anchor.href = url;
-      anchor.download = `financeiro-${new Date().toISOString().slice(0, 10)}.csv`;
-      anchor.click();
-      URL.revokeObjectURL(url);
+      const result = await api.platform.finance.list({ limit: 500, status, search: deferredSearch, from, to });
+      const rows = result.items.map(item => [
+        item.company.name,
+        item.company.document || '-',
+        item.description || 'Mensalidade',
+        money(item.amount),
+        date(item.dueDate),
+        STATUS[item.status]?.label ?? item.status,
+        BILLING_LABEL[item.billingType] ?? item.billingType,
+        item.asaasPaymentId ? 'Asaas' : 'Local',
+      ].map(cell => `<td style="padding:3px 4px;font-size:7px;color:#334155;">${escapeHtml(cell)}</td>`).join(''));
+      const filterLabel = [from ? `De ${date(from)}` : null, to ? `ate ${date(to)}` : null, status ? STATUS[status].label : null]
+        .filter(Boolean)
+        .join(' | ') || 'Todos os registros';
+      const html = buildPdfShell(
+        { title: 'Relatorio Financeiro da Plataforma', subtitle: filterLabel, landscape: true },
+        { name: 'Innovation RH System', document: 'Plataforma SaaS' },
+        `
+          ${section('Resumo', infoGrid([
+            { label: 'Faturado', value: money(summary.data?.totals.billed ?? 0) },
+            { label: 'Recebido', value: money(summary.data?.totals.received ?? 0) },
+            { label: 'A receber', value: money(summary.data?.totals.open ?? 0) },
+            { label: 'Em atraso', value: money(summary.data?.totals.overdue ?? 0) },
+          ], 4))}
+          ${section('Faturas', rows.length
+            ? pdfTable(['Empresa', 'Documento', 'Cobranca', 'Valor', 'Vencimento', 'Status', 'Forma', 'Integracao'], rows, { compact: true, border: true })
+            : `<p style="font-size:10px;color:#64748b;">${escapeHtml('Nenhuma fatura encontrada para estes filtros.')}</p>`, { noBg: true })}
+        `,
+      );
+      printPdf(html, `financeiro-${new Date().toISOString().slice(0, 10)}.pdf`);
     } catch {
-      toast.error('Nao foi possivel exportar o relatorio.');
+      toast.error('Nao foi possivel exportar o PDF.');
     }
   }
 
@@ -294,7 +342,7 @@ export default function FinancePage({ params: { tenant } }: { params: { tenant: 
           </div>
         </div>
         <div className="flex gap-2">
-          <button onClick={exportCsv} className="inline-flex h-10 items-center gap-2 rounded-[8px] border border-slate-200 bg-white px-4 text-xs font-bold text-slate-700 hover:bg-slate-50"><ArrowDownToLine size={14} /> Exportar</button>
+          <button onClick={exportPdf} className="inline-flex h-10 items-center gap-2 rounded-[8px] border border-slate-200 bg-white px-4 text-xs font-bold text-slate-700 hover:bg-slate-50"><ArrowDownToLine size={14} /> Exportar</button>
           <button onClick={() => setCreating(true)} className="crystal-button inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black text-white"><Plus size={14} /> Nova cobranca</button>
         </div>
       </header>
@@ -388,3 +436,6 @@ export default function FinancePage({ params: { tenant } }: { params: { tenant: 
     </div>
   );
 }
+
+
+
