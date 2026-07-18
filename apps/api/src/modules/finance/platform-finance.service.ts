@@ -73,7 +73,8 @@ export class PlatformFinanceService {
       billingType: 'UNDEFINED',
       externalReference: company.id,
     });
-    if (!payment.id || !payment.invoiceUrl) {
+    const paymentUrl = this.paymentUrl(payment);
+    if (!payment.id || !paymentUrl) {
       throw new BadRequestException('O Asaas nao retornou o link da cobranca.');
     }
 
@@ -88,9 +89,9 @@ export class PlatformFinanceService {
         status: 'OPEN',
         billingType: payment.billingType || 'UNDEFINED',
         asaasPaymentId: payment.id,
-        invoiceUrl: payment.invoiceUrl,
+        invoiceUrl: paymentUrl,
       },
-      update: { invoiceUrl: payment.invoiceUrl, status: 'OPEN', deletedAt: null },
+      update: { invoiceUrl: paymentUrl, status: 'OPEN', deletedAt: null },
     });
 
     await this.prisma.company.update({
@@ -119,7 +120,7 @@ export class PlatformFinanceService {
         const remoteStatus = this.mapAsaasStatus(payment.status);
         if (remoteStatus === 'PAID') {
           const [updatedInvoice, updatedCompany] = await this.prisma.$transaction([
-            this.prisma.platformInvoice.update({ where: { id: invoice.id }, data: { status: 'PAID', paidAt: invoice.paidAt ?? new Date(), invoiceUrl: payment.invoiceUrl ?? invoice.invoiceUrl } }),
+            this.prisma.platformInvoice.update({ where: { id: invoice.id }, data: { status: 'PAID', paidAt: invoice.paidAt ?? new Date(), invoiceUrl: this.paymentUrl(payment) ?? invoice.invoiceUrl } }),
             this.prisma.company.update({ where: { id: companyId }, data: { status: 'ACTIVE', isActive: true, billingStatus: 'ACTIVE', suspensionReason: null } }),
           ]);
           invoice = updatedInvoice;
@@ -268,7 +269,7 @@ export class PlatformFinanceService {
         billingType: dto.billingType,
         status: this.mapAsaasStatus(payment?.status) ?? 'OPEN',
         asaasPaymentId: payment?.id,
-        invoiceUrl: payment?.invoiceUrl,
+        invoiceUrl: payment ? this.paymentUrl(payment) : undefined,
         paidAt: this.isPaid(payment?.status) ? new Date() : null,
       },
       include: { company: { select: { id: true, name: true } }, plan: { select: { id: true, name: true } } },
@@ -315,7 +316,7 @@ export class PlatformFinanceService {
       where: { id },
       data: {
         status,
-        invoiceUrl: payment.invoiceUrl ?? invoice.invoiceUrl,
+        invoiceUrl: this.paymentUrl(payment) ?? invoice.invoiceUrl,
         paidAt: this.isPaid(payment.status) ? invoice.paidAt ?? new Date() : invoice.paidAt,
       },
       include: { company: { select: { id: true, name: true } }, plan: { select: { id: true, name: true } } },
@@ -372,6 +373,9 @@ export class PlatformFinanceService {
     return 'OPEN';
   }
 
+  private paymentUrl(payment?: AsaasPayment | null): string | null {
+    return payment?.invoiceUrl || payment?.bankSlipUrl || payment?.paymentLink || payment?.checkoutUrl || null;
+  }
   private moneyToNumber(value: unknown, fallback = 0): number {
     if (value === null || value === undefined || value === '') return fallback;
     if (typeof value === 'number') return Number.isFinite(value) ? value : fallback;

@@ -38,6 +38,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
   logout: () => void;
+  refreshUser: () => Promise<void>;
   isAuthenticated: boolean;
 }
 
@@ -268,6 +269,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setPasswordChangeRequired(false);
   };
 
+
+  const refreshUser = async () => {
+    if (!token || !company || token === LOCAL_SESSION_TOKEN) return;
+    await refreshStoredUser(token, company);
+  };
   const logout = () => {
     clearStoredSession();
     setError(null);
@@ -283,6 +289,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     login,
     changePassword,
     logout,
+    refreshUser,
     isAuthenticated: !!token && !!user,
   };
 

@@ -14,6 +14,9 @@ interface AsaasWebhookPayment {
   description?: string;
   billingType?: string;
   invoiceUrl?: string;
+  bankSlipUrl?: string;
+  paymentLink?: string;
+  checkoutUrl?: string;
 }
 
 @SkipThrottle()
@@ -155,7 +158,7 @@ export class AsaasWebhookController {
       dueDate: payment.dueDate ? new Date(payment.dueDate) : new Date(),
       status,
       billingType: payment.billingType || 'UNDEFINED',
-      invoiceUrl: payment.invoiceUrl,
+      invoiceUrl: this.paymentUrl(payment),
       paidAt: status === 'PAID' ? existing?.paidAt ?? new Date() : existing?.paidAt,
       deletedAt: event === 'PAYMENT_DELETED' ? new Date() : null,
     };
@@ -166,4 +169,7 @@ export class AsaasWebhookController {
     }
     await this.prisma.platformInvoice.create({ data: { ...data, asaasPaymentId: payment.id } });
   }
-}
+
+  private paymentUrl(payment: AsaasWebhookPayment): string | undefined {
+    return payment.invoiceUrl || payment.bankSlipUrl || payment.paymentLink || payment.checkoutUrl;
+  }}

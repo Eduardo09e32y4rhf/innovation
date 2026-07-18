@@ -11,6 +11,9 @@ export interface AsaasPayment {
   billingType?: string;
   description?: string;
   invoiceUrl?: string;
+  bankSlipUrl?: string;
+  paymentLink?: string;
+  checkoutUrl?: string;
   externalReference?: string;
 }
 
