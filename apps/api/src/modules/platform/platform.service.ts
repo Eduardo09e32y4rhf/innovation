@@ -100,13 +100,11 @@ export class PlatformService {
 
     let paymentUrl: string | null = null;
     let billingSetupPending = false;
-    if (!isFree) {
-      try {
-        const checkout = await this.platformFinance.ensureCompanyCheckout(created.company.id);
-        paymentUrl = checkout.paymentUrl;
-      } catch (error) {
-        billingSetupPending = true;
-      }
+    try {
+      const checkout = await this.platformFinance.ensureCompanyCheckout(created.company.id);
+      paymentUrl = checkout.paymentUrl;
+    } catch (error) {
+      billingSetupPending = true;
     }
     return { ...created.company, adminId: created.adminId, paymentUrl, billingSetupPending };
   }

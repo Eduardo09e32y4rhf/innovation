@@ -23,15 +23,9 @@ export class PlatformFinanceService {
     });
     if (!company) throw new NotFoundException('Empresa nao encontrada.');
 
+    const isFreePlan = Boolean(company.platformPlan?.isFree);
     const amount = company.platformPlan ? this.moneyToNumber(company.platformPlan.price) : this.moneyToNumber(process.env.DEFAULT_SIGNUP_PRICE, 49.9);
-    if (company.platformPlan?.isFree) {
-      await this.prisma.company.update({
-        where: { id: company.id },
-        data: { status: 'ACTIVE', isActive: true, billingStatus: 'ACTIVE', suspensionReason: null },
-      });
-      return { active: true, paymentUrl: null, invoice: null };
-    }
-    if (!Number.isFinite(amount) || amount <= 0) {
+    if (!isFreePlan && (!Number.isFinite(amount) || amount <= 0)) {
       throw new BadRequestException('Plano pago sem valor valido. Corrija o preco do plano antes de gerar checkout.');
     }
     if (!this.asaas.isConfigured()) {
@@ -42,6 +36,13 @@ export class PlatformFinanceService {
     if (!admin) throw new BadRequestException('A empresa nao possui administrador ativo.');
 
     const customerId = await this.ensureCustomerId(company, admin.email);
+    if (isFreePlan) {
+      await this.prisma.company.update({
+        where: { id: company.id },
+        data: { status: 'ACTIVE', isActive: true, billingStatus: 'ACTIVE', suspensionReason: null },
+      });
+      return { active: true, paymentUrl: null, invoice: null };
+    }
 
     const existing = await this.prisma.platformInvoice.findFirst({
       where: { companyId, deletedAt: null, status: { in: ['OPEN', 'OVERDUE'] }, invoiceUrl: { not: null } },
@@ -49,8 +50,22 @@ export class PlatformFinanceService {
     });
     const description = `${company.platformPlan?.name || 'Plano Innovation'} - primeira mensalidade`;
     if (existing) {
+      let invoice = existing;
+      if (this.moneyToNumber(existing.amount) <= 0 || existing.planId !== company.platformPlanId) {
+        if (existing.asaasPaymentId && this.moneyToNumber(existing.amount) <= 0) {
+          try {
+            await this.asaas.updateCharge(existing.asaasPaymentId, { value: amount, description });
+          } catch (error) {
+            this.logger.warn(`Falha ao atualizar valor da cobranca Asaas ${existing.asaasPaymentId}: ${String(error)}`);
+          }
+        }
+        invoice = await this.prisma.platformInvoice.update({
+          where: { id: existing.id },
+          data: { amount, planId: company.platformPlanId, description },
+        });
+      }
       await this.ensureSubscription(company.id, customerId, amount, description, company.platformPlan?.cycle || 'MONTHLY', company.asaasSubscriptionId);
-      return { active: false, paymentUrl: existing.invoiceUrl, invoice: existing };
+      return { active: false, paymentUrl: invoice.invoiceUrl, invoice };
     }
 
     const dueDate = new Date();

@@ -6,28 +6,45 @@ export class PlatformPlansService {
   constructor(private readonly prisma: PrismaService) {}
 
   async list() {
-    return this.prisma.platformPlan.findMany({
+    const plans = await this.prisma.platformPlan.findMany({
       orderBy: { price: 'asc' },
     });
+    return plans.map(plan => this.serializePlan(plan));
   }
 
   async get(id: string) {
     const plan = await this.prisma.platformPlan.findUnique({ where: { id } });
     if (!plan) throw new NotFoundException('Plano nao encontrado');
-    return plan;
+    return this.serializePlan(plan);
   }
 
   async create(data: any) {
-    return this.prisma.platformPlan.create({ data: this.normalizePlanPayload(data, true) });
+    const plan = await this.prisma.platformPlan.create({ data: this.normalizePlanPayload(data, true) });
+    return this.serializePlan(plan);
   }
 
   async update(id: string, data: any) {
-    return this.prisma.platformPlan.update({
+    const payload = this.normalizePlanPayload(data, false);
+    const plan = await this.prisma.platformPlan.update({
       where: { id },
-      data: this.normalizePlanPayload(data, false),
+      data: payload,
     });
+    if (payload.price !== undefined && !plan.isFree && Number(plan.price) > 0) {
+      await this.prisma.platformInvoice.updateMany({
+        where: { planId: id, deletedAt: null, status: { in: ['OPEN', 'OVERDUE'] }, amount: { lte: 0 } },
+        data: { amount: Number(plan.price) },
+      });
+    }
+    return this.serializePlan(plan);
   }
 
+
+  private serializePlan(plan: any) {
+    return {
+      ...plan,
+      price: this.moneyToNumber(plan.price),
+    };
+  }
   private normalizePlanPayload(data: any, creating: boolean) {
     const payload = { ...data };
     if (payload.price !== undefined || payload.isFree === true || creating) {
@@ -60,7 +77,7 @@ export class PlatformPlansService {
     });
   }
 
-  /** Hard-delete: remove permanentemente. Só permitido se já inativo. */
+  /** Hard-delete: remove permanentemente somente se ja estiver inativo. */
   async deletePermanent(id: string) {
     const plan = await this.prisma.platformPlan.findUnique({ where: { id } });
     if (!plan) throw new NotFoundException('Plano nao encontrado');
