@@ -28,12 +28,14 @@ export class AsaasService {
   private readonly logger = new Logger(AsaasService.name);
   private readonly apiUrl: string;
   private readonly apiKey: string;
+  private readonly appUrl: string;
 
   constructor(private readonly configService: ConfigService) {
     this.apiKey = this.configService.get<string>('ASAAS_API_KEY')?.trim() || '';
     const configuredUrl = this.configService.get<string>('ASAAS_API_URL')?.trim();
     const defaultUrl = this.resolveDefaultApiUrl(this.apiKey);
     this.apiUrl = (configuredUrl || defaultUrl).replace(/\/$/, '');
+    this.appUrl = (this.configService.get<string>('APP_URL') || this.configService.get<string>('NEXT_PUBLIC_APP_URL') || this.configService.get<string>('BASE_URL') || '').trim().replace(/\/$/, '');
   }
 
   isConfigured() {
@@ -97,7 +99,10 @@ export class AsaasService {
     });
   }
 
-  createCharge(customerId: string, data: { value: number; dueDate: string; description: string; billingType?: string; externalReference?: string }) {
+  createCharge(customerId: string, data: { value: number; dueDate: string; description: string; billingType?: string; externalReference?: string; successPath?: string }) {
+    const callback = this.appUrl
+      ? { successUrl: `${this.appUrl}${data.successPath || '/login?payment=success'}`, autoRedirect: true }
+      : undefined;
     return this.request<AsaasPayment>('/payments', {
       method: 'POST',
       body: JSON.stringify({
@@ -107,6 +112,7 @@ export class AsaasService {
         dueDate: data.dueDate,
         description: data.description,
         externalReference: data.externalReference,
+        ...(callback ? { callback } : {}),
       }),
     });
   }

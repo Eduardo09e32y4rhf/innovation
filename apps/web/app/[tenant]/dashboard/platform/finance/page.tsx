@@ -99,14 +99,6 @@ function InvoiceModal({ invoice, companies, onClose, onSaved }: {
 
     setFormError(null);
     setSaving(true);
-    let paymentWindow: Window | null = null;
-    if (!invoice && form.sendToAsaas) {
-      paymentWindow = window.open('', '_blank', 'noopener,noreferrer');
-      if (paymentWindow) {
-        paymentWindow.document.write('<p style="font-family:Arial,sans-serif;padding:24px">Gerando link seguro do Asaas...</p>');
-      }
-    }
-
     try {
       let saved: PlatformInvoice;
       if (invoice) {
@@ -128,20 +120,13 @@ function InvoiceModal({ invoice, companies, onClose, onSaved }: {
         });
       }
 
-      if (paymentWindow) {
-        if (saved.invoiceUrl) {
-          paymentWindow.location.href = saved.invoiceUrl;
-        } else {
-          paymentWindow.close();
-        }
-      }
       if (saved.invoiceUrl) {
         await navigator.clipboard?.writeText(saved.invoiceUrl).catch(() => undefined);
       }
-      toast.success(saved.invoiceUrl ? 'Fatura salva e link de pagamento aberto.' : invoice ? 'Fatura atualizada.' : 'Fatura criada.');
+      if (saved.invoiceUrl) window.open(saved.invoiceUrl, '_blank');
+      toast.success(saved.invoiceUrl ? 'Fatura salva. Link de pagamento aberto e copiado.' : invoice ? 'Fatura atualizada.' : 'Fatura criada.');
       onSaved();
     } catch (error) {
-      paymentWindow?.close();
       const message = error instanceof ApiError ? error.message : 'Nao foi possivel salvar a fatura.';
       setFormError(message);
       toast.error(message);

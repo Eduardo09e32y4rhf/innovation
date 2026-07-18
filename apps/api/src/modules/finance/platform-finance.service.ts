@@ -33,9 +33,7 @@ export class PlatformFinanceService {
     }
     if (!company.document) throw new BadRequestException('CPF ou CNPJ da empresa e obrigatorio para cobrar.');
     const admin = company.users[0];
-    if (!admin) throw new BadRequestException('A empresa nao possui administrador ativo.');
-
-    const customerId = await this.ensureCustomerId(company, admin.email);
+    const customerId = await this.ensureCustomerId(company, admin?.email);
     if (isFreePlan) {
       await this.prisma.company.update({
         where: { id: company.id },
@@ -76,6 +74,7 @@ export class PlatformFinanceService {
       description,
       billingType: 'UNDEFINED',
       externalReference: company.id,
+      successPath: '/login?payment=success',
     });
     const paymentUrl = this.paymentUrl(payment);
     if (!payment.id || !paymentUrl) {
@@ -153,12 +152,10 @@ export class PlatformFinanceService {
   ) {
     if (company.asaasCustomerId) return company.asaasCustomerId;
     if (!company.document) throw new BadRequestException('CPF ou CNPJ da empresa e obrigatorio para cobrar no Asaas.');
-    if (!adminEmail) throw new BadRequestException('A empresa nao possui administrador ativo.');
-
     const customer = await this.asaas.createCustomer({
       name: company.legalName || company.name,
       cpfCnpj: company.document,
-      email: adminEmail,
+      email: adminEmail || undefined,
       phone: company.phone || undefined,
     });
     if (!customer.id) throw new BadRequestException('O Asaas nao retornou o identificador do cliente.');
@@ -278,14 +275,14 @@ export class PlatformFinanceService {
         throw new BadRequestException('A integracao Asaas nao esta configurada. Crie a fatura como local.');
       }
       const admin = company.users[0];
-      if (!admin) throw new BadRequestException('A empresa nao possui administrador ativo.');
-      const customerId = await this.ensureCustomerId(company, admin.email);
+      const customerId = await this.ensureCustomerId(company, admin?.email);
       payment = await this.asaas.createCharge(customerId, {
         value: dto.amount,
         dueDate: dto.dueDate.slice(0, 10),
         description: dto.description,
         billingType: dto.billingType,
         externalReference: dto.companyId,
+        successPath: '/login?payment=success',
       });
     }
 

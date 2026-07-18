@@ -580,7 +580,7 @@ export const api = {
       summary: (query: Pick<PlatformInvoiceQuery, 'from' | 'to'> = {}) => request<PlatformFinanceSummary>(`/finance/platform/summary${makeQuery(query)}`),
       list: (query: PlatformInvoiceQuery = {}) => request<PlatformInvoiceList>(`/finance/platform/invoices${makeQuery(query)}`),
       listCompany: (companyId: string) => request<PlatformInvoice[]>(`/finance/platform/companies/${companyId}/invoices`),
-      checkoutCompany: (companyId: string) => request<CompanyBillingResult>(`/finance/platform/companies/${companyId}/checkout`, { method: 'POST' }),
+      checkoutCompany: (companyId: string) => request<CompanyBillingResult>(`/finance/platform/companies/${companyId}/checkout`, { method: 'POST', timeoutMs: 20000 }),
       create: (input: CreatePlatformInvoiceInput) => request<PlatformInvoice>('/finance/platform/invoices', { method: 'POST', body: input }),
       update: (id: string, input: UpdatePlatformInvoiceInput) => request<PlatformInvoice>(`/finance/platform/invoices/${id}`, { method: 'PATCH', body: input }),
       sync: (id: string) => request<PlatformInvoice>(`/finance/platform/invoices/${id}/sync`, { method: 'POST' }),
@@ -589,9 +589,9 @@ export const api = {
   },
 
   companyBilling: {
-    status: () => request<CompanyBillingResult>('/finance/company/status', { silent: true, keepSessionOn401: true }),
+    status: () => request<CompanyBillingResult>('/finance/company/status', { silent: true, keepSessionOn401: true, timeoutMs: 10000 }),
     invoices: () => request<PlatformInvoice[]>('/finance/company/invoices', { silent: true, keepSessionOn401: true }),
-    checkout: () => request<CompanyBillingResult>('/finance/company/checkout', { method: 'POST', silent: true, keepSessionOn401: true }),
+    checkout: () => request<CompanyBillingResult>('/finance/company/checkout', { method: 'POST', silent: true, keepSessionOn401: true, timeoutMs: 25000 }),
   },
   proposals: {
     list: () => request<any[]>('/proposals'),

@@ -45,32 +45,24 @@ export default function FaturaPendentePage() {
     }
   }
 
-  async function generateCheckout(openMode: 'popup' | 'current' = 'popup') {
+  async function generateCheckout() {
     setCreating(true);
     setErrorMessage(null);
-    const popup = openMode === 'popup' ? window.open('', '_blank') : null;
-    if (popup) popup.document.write('<p style="font-family:sans-serif;padding:24px">Gerando link seguro do Asaas...</p>');
-
     try {
       const result = await api.companyBilling.checkout();
       setBilling((current) => ({ ...current, ...result }));
       const link = paymentLinkFrom(result);
       if (link) {
         await navigator.clipboard.writeText(link).catch(() => undefined);
-        if (openMode === 'current') window.location.assign(link);
-        else if (popup) popup.location.href = link;
-        else window.open(link, '_blank');
+        window.location.assign(link);
         toast.success('Link de pagamento gerado e copiado.');
       } else if (result.active) {
-        if (popup) popup.close();
         await refreshUser();
         window.location.assign(dashboardUrl);
       } else {
-        if (popup) popup.close();
         setErrorMessage('O checkout foi solicitado, mas o Asaas nao retornou link de pagamento. Verifique os logs da API.');
       }
     } catch (error) {
-      if (popup) popup.close();
       const message = error instanceof ApiError ? error.message : 'Nao foi possivel gerar a cobranca.';
       setErrorMessage(message);
       toast.error(message);
@@ -139,8 +131,8 @@ export default function FaturaPendentePage() {
             )}
 
             {invoiceLink ? (
-              <button onClick={() => window.open(invoiceLink, '_blank')} className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-teal-400 font-black text-slate-950 transition hover:bg-teal-300">
-                <CreditCard size={18} /> Abrir guia de pagamento
+              <button onClick={() => window.location.assign(invoiceLink)} className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-teal-400 font-black text-slate-950 transition hover:bg-teal-300">
+                <CreditCard size={18} /> Pagar agora no Asaas
               </button>
             ) : (
               <button onClick={() => generateCheckout()} disabled={creating} className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-teal-400 font-black text-slate-950 transition hover:bg-teal-300 disabled:opacity-60">
