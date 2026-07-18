@@ -158,7 +158,7 @@ export class CommunicationService implements OnModuleInit {
         };
       });
     }
-    return this.repository.listConversations(companyId).catch(() => memoryConversations.get(companyId) ?? []);
+    return this.repository.listConversations(companyId);
   }
 
   async listChats(companyId: string) {
@@ -166,7 +166,7 @@ export class CommunicationService implements OnModuleInit {
     const [sessionChats, storedConversations] = await Promise.all([
       Promise.resolve().then(() => this.provider.getChats(companyId)).catch(() => []),
       // Always load DB conversations to show history even after restart
-      this.repository.listConversations(companyId).catch(() => memoryConversations.get(companyId) ?? []),
+      this.repository.listConversations(companyId),
     ]);
 
     const safeSessionChats = Array.isArray(sessionChats) ? sessionChats : [];
@@ -221,9 +221,7 @@ export class CommunicationService implements OnModuleInit {
   }
 
   listMessages(companyId: string, conversationId: string) {
-    return this.repository.listMessages(companyId, conversationId).catch(() =>
-      (memoryMessages.get(companyId) ?? []).filter((message) => message.conversationId === conversationId),
-    );
+    return this.repository.listMessages(companyId, conversationId);
   }
 
   async listChatMessages(companyId: string, chatId: string) {
@@ -232,13 +230,7 @@ export class CommunicationService implements OnModuleInit {
     const safeSessionMessages = Array.isArray(sessionMessages) ? sessionMessages : [];
 
     // Always load DB messages (persisted across restarts)
-    const storedMessages = await this.repository.listMessagesByWhatsappJid(companyId, chatId).catch(() =>
-      (memoryMessages.get(companyId) ?? []).filter((message) => {
-        const conversationId = message.conversationId ?? '';
-        const normalizedChat = chatId.replace(/@.*$/, '');
-        return conversationId.includes(normalizedChat) || conversationId === chatId;
-      }),
-    );
+    const storedMessages = await this.repository.listMessagesByWhatsappJid(companyId, chatId);
     const safeStoredMessages = Array.isArray(storedMessages) ? storedMessages : [];
 
     // Build a map from DB messages first (as base)

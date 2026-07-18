@@ -20,7 +20,7 @@ export class TimeClosingController {
 
   @Get(':id')
   @Roles('ADMIN', 'RH', 'FUNCIONARIO')
-  getById(@Req() req: any, @Param('id') id: string) { return this.service.getById(req.user.companyId, id); }
+  getById(@Req() req: any, @Param('id') id: string) { return this.service.getById(req.user.companyId, id, req.user); }
 
   @Patch(':id/adjust')
   @Roles('ADMIN', 'RH')
@@ -52,5 +52,5 @@ export class TimeClosingController {
 
   @Get(':id/pdf-stream')
   @Roles('ADMIN', 'RH', 'FUNCIONARIO')
-  streamPdf(@Req() req: any, @Res() res: any, @Param('id') id: string) { return this.service.streamPdf(req.user.companyId, id, res); }
+  streamPdf(@Req() req: any, @Res() res: any, @Param('id') id: string) { return this.service.streamPdf(req.user.companyId, id, res, req.user); }
 }

@@ -93,18 +93,21 @@ export class CreateEmployeeDto {
   @IsString()
   registration?: string;
 
+  @IsOptional()
   @IsString()
-  position!: string;
+  position?: string;
 
+  @IsOptional()
   @IsString()
-  department!: string;
+  department?: string;
 
   @IsOptional()
   @IsUUID()
   managerId?: string;
 
+  @IsOptional()
   @IsDateString()
-  admissionDate!: string;
+  admissionDate?: string;
 
   @IsOptional()
   @IsDateString()

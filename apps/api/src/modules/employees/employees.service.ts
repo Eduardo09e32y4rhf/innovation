@@ -1,4 +1,4 @@
-import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import type { JwtUser, UserRole } from '../../common/types/auth.types';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
@@ -196,6 +196,9 @@ export class EmployeesService {
     const status = dto.status ?? 'ACTIVE';
     return {
       ...employeeData,
+      name: this.emptyToUndefined(dto.name) ?? 'Funcionario sem nome',
+      position: this.emptyToUndefined(dto.position) ?? 'A definir',
+      department: this.emptyToUndefined(dto.department) ?? 'A definir',
       phone: this.emptyToUndefined(dto.phone),
       rg: this.emptyToUndefined(dto.rg),
       rgIssuer: this.emptyToUndefined(dto.rgIssuer),
@@ -215,7 +218,7 @@ export class EmployeesService {
       birthDate: dto.birthDate ? new Date(dto.birthDate) : undefined,
       registration: this.emptyToUndefined(dto.registration),
       managerId: this.emptyToUndefined(dto.managerId),
-      admissionDate: dto.admissionDate ? new Date(dto.admissionDate) : undefined,
+      admissionDate: dto.admissionDate ? new Date(dto.admissionDate) : this.todayInSaoPaulo(),
       terminationDate: status === 'ACTIVE' ? undefined : (dto.terminationDate ? new Date(dto.terminationDate) : undefined),
       salary: dto.salary !== undefined ? String(dto.salary) : undefined,
       contractType: this.emptyToUndefined(dto.contractType),
@@ -252,10 +255,30 @@ export class EmployeesService {
       bankAgency: this.emptyToUndefined(dto.bankAgency),
       bankAccount: this.emptyToUndefined(dto.bankAccount),
       bankAccountType: this.emptyToUndefined(dto.bankAccountType),
-      dependents: dto.dependents ? JSON.parse(dto.dependents) : undefined,
+      dependents: this.parseDependents(dto.dependents),
     };
   }
 
+  private parseDependents(value?: string | null) {
+    const normalized = this.emptyToUndefined(value);
+    if (!normalized) return undefined;
+    try {
+      return JSON.parse(normalized);
+    } catch {
+      throw new BadRequestException('Dependentes deve ser um JSON valido.');
+    }
+  }
+
+  private todayInSaoPaulo() {
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Sao_Paulo',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).formatToParts(new Date());
+    const value = (type: string) => parts.find((part) => part.type === type)?.value;
+    return new Date(`${value('year')}-${value('month')}-${value('day')}T00:00:00.000Z`);
+  }
   private emptyToUndefined(value?: string | null) {
     return value?.trim() || undefined;
   }

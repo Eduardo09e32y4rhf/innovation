@@ -3,6 +3,7 @@ import { TimeClosingStatus } from '@prisma/client';
 import type { JwtUser } from '../../common/types/auth.types';
 import { PrismaService } from '../../database/prisma.service';
 import { PayrollCalculationService } from './payroll-calculation.service';
+import { saoPauloDayOfWeek, toSaoPauloDateKey } from '../../common/utils/date.utils';
 
 interface GenerateClosingDto {
   employeeIds?: string[];
@@ -82,7 +83,9 @@ export class TimeClosingService {
       ]);
 
       const trackByDate = new Map(tracks.map((track) => [this.dateKey(track.date), track]));
-      const justifiedDates = new Set(occurrences.map((item) => this.dateKey(item.date)));
+      const justifiedDates = new Set(occurrences
+        .filter((item) => this.isJustifyingOccurrence(item.type))
+        .map((item) => this.dateKey(item.date)));
       let payableWorkdays = 0;
       let paidRestDays = 0;
       let missingAbsenceMinutes = 0;
@@ -92,8 +95,9 @@ export class TimeClosingService {
         const key = this.dateKey(date);
         const schedule = schedules.find((item) => item.startDate <= date && (!item.endDate || item.endDate >= date));
         const restDays = schedule?.schedule.restDays ?? employee.workScheduleRule?.restDaysOfWeek ?? [0, 6];
-        const isRest = restDays.includes(date.getUTCDay()) || holidayKeys.has(key) || this.isOffCycle12x36(date, schedule?.schedule);
-        if (date.getUTCDay() === 0 || holidayKeys.has(key)) paidRestDays++;
+        const dayOfWeek = saoPauloDayOfWeek(date);
+        const isRest = restDays.includes(dayOfWeek) || holidayKeys.has(key) || this.isOffCycle12x36(date, schedule?.schedule);
+        if (dayOfWeek === 0 || holidayKeys.has(key)) paidRestDays++;
         if (!isRest) {
           payableWorkdays++;
           if (!trackByDate.has(key) && !justifiedDates.has(key)) {
@@ -189,7 +193,7 @@ export class TimeClosingService {
     });
   }
 
-  async getById(companyId: string, id: string) {
+  async getById(companyId: string, id: string, actor?: JwtUser) {
     const closing = await this.prisma.timeClosing.findFirst({
       where: { id, companyId },
       include: {
@@ -279,8 +283,8 @@ export class TimeClosingService {
     return { url: `/time-closing/${id}/pdf-stream` };
   }
 
-  async streamPdf(companyId: string, id: string, res: any) {
-    const closing = await this.getById(companyId, id);
+  async streamPdf(companyId: string, id: string, res: any, actor?: JwtUser) {
+    const closing = await this.getById(companyId, id, actor);
     const PDFDocument = require('pdfkit');
     const doc = new PDFDocument({ margin: 42, size: 'A4' });
     res.header('Content-Type', 'application/pdf');
@@ -389,7 +393,10 @@ export class TimeClosingService {
   }
 
   private hours(minutes: number): number { return Math.round((minutes / 60) * 10000) / 10000; }
-  private dateKey(date: Date): string { return date.toISOString().slice(0, 10); }
+  private dateKey(date: Date): string { return toSaoPauloDateKey(date); }
+  private isJustifyingOccurrence(type: string): boolean {
+    return ['JUSTIFIED_ABSENCE', 'MEDICAL_CERTIFICATE', 'VACATION', 'LEAVE', 'DAY_OFF', 'DSR', 'HOLIDAY', 'EXTERNAL_WORK', 'HOME_OFFICE', 'TRAINING'].includes(String(type));
+  }
   private formatDate(date: Date): string { return new Intl.DateTimeFormat('pt-BR', { timeZone: 'UTC' }).format(date); }
   private currency(value: number): string { return Number(value || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }); }
   private safeFilename(value: string): string { return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9_-]+/g, '_'); }

@@ -273,7 +273,9 @@ export class TimeTrackService {
         updateData.manualStatus = 'pending';
       }
 
-      return await this.repository.upsert(employee.id, targetDate, updateData);
+      const saved = await this.repository.upsert(employee.id, targetDate, updateData);
+      await this.syncCalculatedOccurrences(companyId, saved);
+      return saved;
     } finally {
       await this.redis.releaseLock(lockKey);
     }
@@ -332,7 +334,9 @@ export class TimeTrackService {
 
     const result = await this.repository.update(companyId, id, updateData);
     if (!result.count) throw new NotFoundException('Time track not found');
-    return this.repository.findById(companyId, id);
+    const saved = await this.repository.findById(companyId, id);
+    if (saved) await this.syncCalculatedOccurrences(companyId, saved);
+    return saved;
   }
 
   async listPending(companyId: string, actor: JwtUser) {
@@ -668,9 +672,38 @@ export class TimeTrackService {
     
     delete data.sortedTimestamps;
 
-    return this.repository.upsert(employee.id, date, data);
+    const saved = await this.repository.upsert(employee.id, date, data);
+    await this.syncCalculatedOccurrences(companyId, saved);
+    return saved;
   }
 
+  private async syncCalculatedOccurrences(companyId: string, track: any) {
+    await this.prisma.timeOccurrence.deleteMany({ where: { companyId, timeTrackId: track.id } });
+
+    const occurrences: Array<{ type: any; minutes: number; reason: string }> = [];
+    if ((track.lateMinutes ?? 0) > 0) occurrences.push({ type: 'LATE_ARRIVAL', minutes: track.lateMinutes, reason: 'Atraso calculado pelo ponto' });
+    if ((track.earlyLeaveMinutes ?? 0) > 0) occurrences.push({ type: 'EARLY_LEAVE', minutes: track.earlyLeaveMinutes, reason: 'Saida antecipada calculada pelo ponto' });
+    if ((track.absenceMinutes ?? 0) > 0 && !track.entry && !track.exit) occurrences.push({ type: 'ABSENCE', minutes: track.absenceMinutes, reason: 'Falta calculada pelo ponto' });
+    if ((track.overtime50Minutes ?? 0) > 0) occurrences.push({ type: 'OVERTIME', minutes: track.overtime50Minutes, reason: 'Hora extra 50% calculada pelo ponto' });
+    if ((track.overtime100Minutes ?? 0) > 0) occurrences.push({ type: 'OVERTIME', minutes: track.overtime100Minutes, reason: 'Hora extra 100% calculada pelo ponto' });
+    if ((track.nightShiftMinutes ?? 0) > 0) occurrences.push({ type: 'OVERTIME', minutes: track.nightShiftMinutes, reason: 'Adicional noturno calculado pelo ponto' });
+    if (track.manualReason) occurrences.push({ type: 'MANUAL_ADJUSTMENT', minutes: 0, reason: track.manualReason });
+
+    if (!occurrences.length) return;
+    await this.prisma.timeOccurrence.createMany({
+      data: occurrences.map((occurrence) => ({
+        companyId,
+        employeeId: track.employeeId,
+        timeTrackId: track.id,
+        type: occurrence.type,
+        date: track.date,
+        minutes: occurrence.minutes,
+        status: track.manualStatus === 'pending' ? 'PENDING' : 'APPROVED',
+        reason: occurrence.reason,
+        observation: track.observation,
+      })),
+    });
+  }
   private async ensureEmployee(companyId: string, employeeId: string) {
     const employee = await this.repository.findEmployee(companyId, employeeId);
     if (!employee) throw new NotFoundException('Employee not found');

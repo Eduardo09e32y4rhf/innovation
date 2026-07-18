@@ -15,8 +15,21 @@ export function toDateOnlyStr(date: Date): string {
  * adjusted to the America/Sao_Paulo calendar date.
  */
 export function toDateOnly(date: Date): Date {
-  const tzDateStr = date.toLocaleDateString('en-CA', {
+  return new Date(`${toSaoPauloDateKey(date)}T00:00:00.000Z`);
+}
+export function toSaoPauloDateKey(date: Date): string {
+  return new Intl.DateTimeFormat('en-CA', {
     timeZone: 'America/Sao_Paulo',
-  });
-  return new Date(`${tzDateStr}T00:00:00.000Z`);
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(date);
+}
+
+export function saoPauloDayOfWeek(date: Date): number {
+  const weekday = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Sao_Paulo',
+    weekday: 'short',
+  }).format(date);
+  return ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(weekday);
 }
