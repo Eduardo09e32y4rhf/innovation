@@ -59,7 +59,7 @@ function monthLabel(value: string) {
 
 function InvoiceModal({ invoice, companies, onClose, onSaved }: {
   invoice?: PlatformInvoice;
-  companies: PlatformCompany[];
+  companies: { data: PlatformCompany[]; loading: boolean; error: string | null; refetch: () => void };
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -73,7 +73,7 @@ function InvoiceModal({ invoice, companies, onClose, onSaved }: {
     sendToAsaas: invoice ? false : true,
   });
   const [saving, setSaving] = useState(false);
-  const selectedCompany = companies.find(company => company.id === form.companyId);
+  const selectedCompany = companies.data.find(company => company.id === form.companyId);
 
   async function save() {
     if (!form.companyId || !form.description.trim() || Number(form.amount) <= 0 || !form.dueDate) {
@@ -121,16 +121,21 @@ function InvoiceModal({ invoice, companies, onClose, onSaved }: {
         </div>
 
         <div className="space-y-4 p-6">
+          {!invoice && companies.loading && <LoadingState label="Carregando empresas do banco..." />}
+          {!invoice && companies.error && <ErrorState message={companies.error} onRetry={companies.refetch} />}
+          {!invoice && !companies.loading && !companies.error && companies.data.length === 0 && (
+            <EmptyState message="Nenhuma empresa cadastrada no banco. Cadastre uma empresa antes de criar a cobranca." />
+          )}
           <label className="block text-xs font-bold text-slate-600">
             Empresa
             <select
               value={form.companyId}
-              disabled={!!invoice}
+              disabled={!!invoice || companies.loading || !!companies.error}
               onChange={event => setForm(current => ({ ...current, companyId: event.target.value }))}
               className="mt-1.5 h-11 w-full rounded-[9px] border border-slate-200 bg-white px-3 text-sm outline-none focus:border-teal-500 disabled:bg-slate-50"
             >
-              <option value="">Selecione uma empresa</option>
-              {companies.map(company => <option key={company.id} value={company.id}>{company.name}</option>)}
+              <option value="">{companies.loading ? 'Carregando empresas...' : companies.error ? 'Erro ao carregar empresas' : 'Selecione uma empresa'}</option>
+              {companies.data.map(company => <option key={company.id} value={company.id}>{company.name}</option>)}
             </select>
           </label>
 
@@ -183,7 +188,7 @@ function InvoiceModal({ invoice, companies, onClose, onSaved }: {
 
         <div className="flex justify-end gap-2 border-t border-slate-100 px-6 py-4">
           <button onClick={onClose} className="h-10 rounded-[8px] border border-slate-200 px-4 text-xs font-bold text-slate-600 hover:bg-slate-50">Cancelar</button>
-          <button disabled={saving} onClick={save} className="crystal-button h-10 rounded-[8px] px-5 text-xs font-black text-white disabled:opacity-50">{saving ? 'Salvando...' : 'Salvar fatura'}</button>
+          <button disabled={saving || (!invoice && (companies.loading || !!companies.error || companies.data.length === 0))} onClick={save} className="crystal-button h-10 rounded-[8px] px-5 text-xs font-black text-white disabled:opacity-50">{saving ? 'Salvando...' : 'Salvar fatura'}</button>
         </div>
       </div>
     </div>
@@ -368,7 +373,7 @@ export default function FinancePage({ params: { tenant } }: { params: { tenant: 
         {invoices.data && invoices.data.pagination.total > 0 && <div className="flex items-center justify-between border-t border-slate-100 px-5 py-3 text-xs text-slate-500"><span>{invoices.data.pagination.total} faturas</span><div className="flex items-center gap-2"><button disabled={page <= 1} onClick={() => setPage(current => current - 1)} className="rounded border border-slate-200 px-3 py-1.5 font-bold disabled:opacity-40">Anterior</button><span className="font-bold text-slate-700">{page} / {invoices.data.pagination.pages}</span><button disabled={page >= invoices.data.pagination.pages} onClick={() => setPage(current => current + 1)} className="rounded border border-slate-200 px-3 py-1.5 font-bold disabled:opacity-40">Proxima</button></div></div>}
       </section>
 
-      {(creating || editing) && <InvoiceModal invoice={editing} companies={companies.data ?? []} onClose={() => { setCreating(false); setEditing(undefined); }} onSaved={() => { setCreating(false); setEditing(undefined); refresh(); }} />}
+      {(creating || editing) && <InvoiceModal invoice={editing} companies={{ data: companies.data ?? [], loading: companies.loading, error: companies.error, refetch: companies.refetch }} onClose={() => { setCreating(false); setEditing(undefined); }} onSaved={() => { setCreating(false); setEditing(undefined); refresh(); }} />}
     </div>
   );
 }

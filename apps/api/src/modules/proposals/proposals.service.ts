@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ServiceUnavailableException } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import { AsaasService } from '../finance/asaas.service';
 import { randomBytes } from 'crypto';
@@ -144,13 +144,18 @@ export class ProposalsService {
       }
     }
     
-    // Fallback pra criar um link fictício no ambiente dev se a API Key do Asaas estiver vazia ou mockada
     if (!asaasPaymentLink) {
-       if (asaasSubscriptionId) {
-         asaasPaymentLink = `https://sandbox.asaas.com/payment/mock/${asaasSubscriptionId}`;
-       } else {
-         asaasPaymentLink = `https://sandbox.asaas.com/checkout/mock/${proposal.id}`;
-       }
+      const allowMockPayment =
+        process.env.NODE_ENV !== 'production' &&
+        process.env.ALLOW_MOCK_PAYMENTS === 'true';
+      if (!allowMockPayment) {
+        throw new ServiceUnavailableException(
+          'O Asaas nao retornou uma cobranca valida. Tente novamente antes de liberar o acesso.',
+        );
+      }
+      asaasPaymentLink = asaasSubscriptionId
+        ? `https://sandbox.asaas.com/payment/mock/${asaasSubscriptionId}`
+        : `https://sandbox.asaas.com/checkout/mock/${proposal.id}`;
     }
 
     const updated = await this.prisma.proposal.update({

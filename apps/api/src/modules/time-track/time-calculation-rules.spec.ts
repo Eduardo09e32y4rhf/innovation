@@ -59,7 +59,39 @@ describe('TimeCalculationRulesService - jornada CLT', () => {
     }, employee, rule, null);
     expect(result.dailyBalanceMinutes).toBe(-6);
     expect(result.lateMinutes).toBe(6);
-    expect(result.incidentType).toBe('ATRASO');
+    expect(result.incidentType).toBe('atraso');
+  });
+
+  it('mantem atraso e hora extra como ocorrencias independentes', () => {
+    const result = service.calculateTotals({
+      workDate: at('2026-07-15', '00:00'),
+      entryTime: at('2026-07-15', '09:00'),
+      lunchStartTime: at('2026-07-15', '12:00'),
+      lunchReturnTime: at('2026-07-15', '13:00'),
+      exitTime: at('2026-07-15', '19:00'),
+    }, employee, rule, null);
+    expect(result.totalWorkedMinutes).toBe(540);
+    expect(result.lateMinutes).toBe(60);
+    expect(result.overtime50Minutes).toBe(120);
+    expect(result.absenceMinutes).toBe(60);
+    expect(result.dailyBalanceMinutes).toBe(60);
+    expect(result.incidentType).toBe('atraso');
+  });
+
+  it('mantem entrada antecipada e saida antecipada como ocorrencias independentes', () => {
+    const result = service.calculateTotals({
+      workDate: at('2026-07-15', '00:00'),
+      entryTime: at('2026-07-15', '07:00'),
+      lunchStartTime: at('2026-07-15', '12:00'),
+      lunchReturnTime: at('2026-07-15', '13:00'),
+      exitTime: at('2026-07-15', '16:00'),
+    }, employee, rule, null);
+    expect(result.totalWorkedMinutes).toBe(480);
+    expect(result.earlyLeaveMinutes).toBe(60);
+    expect(result.overtime50Minutes).toBe(60);
+    expect(result.absenceMinutes).toBe(60);
+    expect(result.dailyBalanceMinutes).toBe(0);
+    expect(result.incidentType).toBe('saida_antecipada');
   });
 
   it('classifica todo trabalho em descanso nao compensado como 100%', () => {

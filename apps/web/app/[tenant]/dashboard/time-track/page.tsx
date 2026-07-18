@@ -15,6 +15,7 @@ import { formatMinutes } from '@/app/lib/format';
 import { normalizeDisplayName } from '@/app/lib/text';
 import { hasPermission } from '@/app/lib/permissions';
 import { buildPdfShell, section, infoGrid, pdfTable, signatureBlock, printPdf, type PdfCompanyInfo } from '@/app/lib/pdf-utils';
+import { saoPauloDateKey } from '@/app/lib/date';
 
 const WEEKDAYS = ['DOM','SEG','TER','QUA','QUI','SEX','SÁB'];
 
@@ -31,11 +32,7 @@ const REASONS: { value: TimeTrackAdjustmentReason; label: string; fullDay?: bool
 ];
 
 function getLocalToday() {
-  const d = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
+  return saoPauloDateKey();
 }
 function currentMonth() { return getLocalToday().slice(0,7); }
 function toDateKey(v?: string | null) { return v ? v.slice(0,10) : ''; }
@@ -182,9 +179,12 @@ function dayStatus(row: TimeTrack, holidayName?: string) {
   if (r === 'ajuste_abono_banco_saida_antecipada') return 'ABONO SAÍDA';
   if (r === 'ajuste_abono_atestado_horas') return 'ATESTADO (HORAS)';
   if (r === 'ajuste_suspensao') return 'SUSPENSÃO';
-  if (row.incidentType === 'atraso_saida_antecipada') return 'ATRASO E SAÍDA ANTECIPADA';
-  if (row.incidentType === 'atraso') return 'ATRASO';
-  if (row.incidentType === 'saida_antecipada') return 'SAÍDA ANTECIPADA';
+  const occurrences: string[] = [];
+  if ((row.lateMinutes ?? 0) > 0) occurrences.push(`ATRASO ${formatMinutes(row.lateMinutes ?? 0)}`);
+  if ((row.earlyLeaveMinutes ?? 0) > 0) occurrences.push(`SAÍDA ANTECIPADA ${formatMinutes(row.earlyLeaveMinutes ?? 0)}`);
+  if ((row.overtime50Minutes ?? 0) > 0) occurrences.push(`HE 50% ${formatMinutes(row.overtime50Minutes ?? 0)}`);
+  if ((row.overtime100Minutes ?? 0) > 0) occurrences.push(`HE 100% ${formatMinutes(row.overtime100Minutes ?? 0)}`);
+  if (occurrences.length) return occurrences.join(' + ');
   if (row.manualStatus==='pending') return 'PENDENTE';
   if (row.manualStatus==='rejected') return 'REJEITADO';
   if (row.manualReason || o.includes('ajuste')) return 'AJUSTE MANUAL';
@@ -213,6 +213,8 @@ function isOcorrencia(row: TimeTrack) {
   if (o.includes('folga') || r.includes('folga')) return false;
 
   if (isFalta(row)) return true;
+  if ((row.lateMinutes ?? 0) > 0 || (row.earlyLeaveMinutes ?? 0) > 0) return true;
+  if ((row.overtime50Minutes ?? 0) > 0 || (row.overtime100Minutes ?? 0) > 0) return true;
   if (row.incidentType === 'atraso_saida_antecipada') return true;
   if (row.incidentType === 'atraso') return true;
   if (row.incidentType === 'saida_antecipada') return true;
@@ -330,6 +332,7 @@ export default function TimeTrackPage() {
           <h2 className="text-2xl font-black text-slate-950">{isFunc?'MEU PONTO':isGestor?'PONTO DA EQUIPE':'FOLHA DE PONTO'}</h2>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Link href={`/${tenant}/dashboard/escala`} className="btn-outline-premium inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black"><CalendarDays size={14}/> ESCALA</Link>
           <Link href={`/${tenant}/dashboard/time-track/clock-in`} className="crystal-button inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black text-white"><Clock3 size={14}/> BATER PONTO</Link>
           {(canManage||isGestor) && <button onClick={() => downloadCollectiveSheet(month, visible, byEmpMap, company.data || null, holidays.data || [], teamSchedules.data?.withSchedule || [])} disabled={refreshing || visible.length === 0} className="btn-outline-premium inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black"><FileText size={14}/> FOLHAS DE PONTO</button>}
           {isFunc && <button onClick={() => downloadCollectiveSheet(month, visible, byEmpMap, company.data || null, holidays.data || [], teamSchedules.data?.withSchedule || [])} disabled={refreshing || visible.length === 0} className="btn-outline-premium inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black"><FileText size={14}/> MINHA FOLHA</button>}

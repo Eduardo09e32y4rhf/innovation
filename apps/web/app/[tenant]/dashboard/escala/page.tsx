@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useParams, useSearchParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { api } from '@/app/lib/api';
 import {
@@ -43,6 +44,7 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import { formatMinutes } from '@/app/lib/format';
+import { saoPauloDateKey, saoPauloMonthKey } from '@/app/lib/date';
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -140,7 +142,7 @@ function resolveDayType(day: CalendarDay): string {
   // Se não tem registro, é dia de trabalho, e a data já passou (ontem para trás)
   // Ou se for hoje, dependeria da hora, mas para simplificar, a folha de ponto geralmente só dá falta no dia seguinte
   // No ponto (time-track), se não for isFuture, ele marca FALTA.
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = saoPauloDateKey();
   if (!day.actual && day.dayType === 'WORK' && day.date < todayStr) return 'FALTA';
 
   return day.dayType;
@@ -267,16 +269,17 @@ const SWAP_STATUS_LABEL: Record<string, string> = {
 // ─── Componente Principal ─────────────────────────────────────────────────────
 
 export default function EscalaPage() {
+  const params = useParams();
+  const tenant = params?.tenant as string;
   const { user } = useAuth();
   const role = (user?.profile?.toUpperCase() || 'FUNCIONARIO') as UserRole;
   const canApprove = ['DEV', 'ADMIN', 'RH', 'GESTOR'].includes(role);
   const canWrite   = ['DEV', 'ADMIN', 'RH'].includes(role);
 
-  const now = new Date();
   const searchParams = useSearchParams();
   const router = useRouter();
   const tab = (searchParams.get('tab') as Tab) || 'minha';
-  const [currentMonth, setCurrentMonth] = useState(toMonthString(now.getFullYear(), now.getMonth() + 1));
+  const [currentMonth, setCurrentMonth] = useState(saoPauloMonthKey());
   const [calendarData, setCalendarData] = useState<any>(null);
   const [teamData, setTeamData]   = useState<any>(null);
   const [swaps, setSwaps]         = useState<any[]>([]);
@@ -365,14 +368,17 @@ export default function EscalaPage() {
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6 min-h-screen">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 text-white shadow-lg shadow-slate-900/20">
-          <CalendarClock size={20} />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 text-white shadow-lg shadow-slate-900/20">
+            <CalendarClock size={20} />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-slate-900">Escala</h1>
+            <p className="text-xs text-slate-500">Jornada programada · Ponto · Ocorrências</p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-xl font-bold text-slate-900">Escala</h1>
-          <p className="text-xs text-slate-500">Jornada programada · Ponto · Ocorrências</p>
-        </div>
+        <Link href={`/${tenant}/dashboard/time-track`} className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-xs font-black text-slate-800 shadow-sm hover:bg-slate-50"><Clock3 size={14} /> ABRIR PONTO</Link>
       </div>
 
       {/* Tab Nav — inline pills modernos */}
@@ -615,7 +621,7 @@ function MinhaEscalaTab({ loading, calendarData, year, month, onPrev, onNext, se
 
   const totals = calcMonthlyTotals(days);
   const firstDow = days[0] ? new Date(days[0].date + 'T00:00:00').getDay() : 0;
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = saoPauloDateKey();
 
   return (
     <div className="flex flex-col gap-5">
@@ -1697,7 +1703,7 @@ function SwapCard({ swap, canApprove, onApprove, onCancel }: any) {
 // ─── Modal: Solicitar Troca ───────────────────────────────────────────────────
 
 function ModalSolicitarTroca({ onClose, onSuccess, canApprove, allEmployees }: { onClose: () => void; onSuccess: () => void; canApprove?: boolean; allEmployees?: any[] }) {
-  const today = new Date().toISOString().split('T')[0];
+  const today = saoPauloDateKey();
   const [originalDate, setOriginalDate] = useState(today);
   const [targetDate, setTargetDate]     = useState('');
   const [justification, setJustification] = useState('');
@@ -1891,7 +1897,7 @@ function ModalLancarEscala({ schedules, onClose, onSuccess }: { schedules: any[]
   const [employees, setEmployees] = useState<any[]>([]);
   const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
   const [selectedSchedule, setSelectedSchedule] = useState('');
-  const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
+  const [startDate, setStartDate] = useState(saoPauloDateKey());
   const [newName, setNewName] = useState('');
   const [newType, setNewType] = useState('5x2');
   const [newEntry, setNewEntry] = useState('08:00');

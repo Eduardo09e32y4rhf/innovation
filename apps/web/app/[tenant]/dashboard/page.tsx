@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { useRouter , useParams } from 'next/navigation';
 import Link from 'next/link';
 import { AlertTriangle, ArrowUpRight, Bell, Cake, CalendarDays, Clock3, MessageSquareText, TrendingUp, Users, UserPlus, FileText, Download, AlertCircle, CheckCircle, XCircle, UserMinus, UserX, Stethoscope } from 'lucide-react';
@@ -10,6 +11,11 @@ import { useQuery } from '@/app/hooks/use-data';
 import { api } from '@/app/lib/api';
 import type { LucideIcon } from 'lucide-react';
 import { VACATION_STATUS_LABEL, formatMinutes, formatPeriod, formatTime } from '@/app/lib/format';
+
+const EmployeeDashboard = dynamic(
+  () => import('./_components/employee-dashboard').then((module) => module.EmployeeDashboard),
+  { ssr: false },
+);
 
 export default function DashboardHome() {
   const params = useParams();
@@ -88,24 +94,48 @@ function DashboardContent() {
   const admissionsThisMonth = (employees.data ?? []).filter(e => isSelectedMonth(e.admissionDate)).length;
   const terminationsThisMonth = (employees.data ?? []).filter(e => isSelectedMonth(e.terminationDate)).length;
 
-  const heroTitle = isFuncionario ? 'Meu painel' : isGestor ? 'Painel da equipe' : isConsulta ? 'Painel de consulta' : 'Painel executivo';
-  const heroH2 = isFuncionario
-    ? 'Sua jornada em tempo real'
-    : isGestor
-      ? 'Sua equipe em tempo real'
-      : 'Sua operação de RH em tempo real';
+  const rolePresentation: Record<string, { eyebrow: string; title: string; description: string }> = {
+    DEV: { eyebrow: 'Dashboard Dev', title: 'Visao global da plataforma', description: 'Empresas, acessos, faturamento e saude operacional em um so lugar.' },
+    ADMIN: { eyebrow: 'Dashboard Administrador', title: 'Controle completo da empresa', description: 'Pessoas, usuarios, jornada e fechamento sob sua administracao.' },
+    RH: { eyebrow: 'Dashboard RH', title: 'Gestao de pessoas em tempo real', description: 'Cadastros, ferias, ocorrencias e fechamento para o time de RH.' },
+    GESTOR: { eyebrow: 'Dashboard Gestor', title: 'Sua equipe em tempo real', description: 'Escala, ponto, banco de horas e pendencias da equipe sob sua gestao.' },
+    CONSULTA: { eyebrow: 'Dashboard Consulta', title: 'Indicadores da operacao', description: 'Acompanhamento em modo de consulta, sem alteracoes operacionais.' },
+  };
+  const presentation = rolePresentation[profile || ''] ?? rolePresentation.ADMIN;
 
-  // Action shortcuts
-  const actionShortcuts: { label: string; href: string; icon: LucideIcon; color: string; onClick?: () => void }[] = isFuncionario ? [] : [
-    { label: 'Novo funcionário', href: `/${tenant}/dashboard/employees/new`, icon: UserPlus, color: 'teal' },
-    { label: 'Lançar ponto', href: `/${tenant}/dashboard/time-track`, icon: Clock3, color: 'indigo' },
-    { label: 'Nova solicitação', href: `/${tenant}/dashboard/vacations`, icon: CalendarDays, color: 'emerald' },
-    { label: 'Exportar folha', href: `/${tenant}/dashboard/time-track/closing`, icon: Download, color: 'amber' },
-  ];
-
-  if (profile === 'DEV') {
-    actionShortcuts.push({ label: 'Envelope de pagamento', href: '#', icon: FileText, color: 'slate', onClick: () => alert('Em desenvolvimento') });
-  }
+  const roleActions: Record<string, { label: string; href: string; icon: LucideIcon; color: string; onClick?: () => void }[]> = {
+    DEV: [
+      { label: 'Plataforma', href: `/${tenant}/dashboard/platform`, icon: TrendingUp, color: 'slate' },
+      { label: 'Financeiro', href: `/${tenant}/dashboard/platform/finance`, icon: FileText, color: 'slate' },
+      { label: 'Usuarios', href: `/${tenant}/dashboard/users`, icon: Users, color: 'slate' },
+      { label: 'Configuracoes', href: `/${tenant}/dashboard/settings`, icon: AlertCircle, color: 'slate' },
+    ],
+    ADMIN: [
+      { label: 'Funcionarios', href: `/${tenant}/dashboard/employees`, icon: Users, color: 'slate' },
+      { label: 'Usuarios', href: `/${tenant}/dashboard/users`, icon: UserPlus, color: 'slate' },
+      { label: 'Fechamento', href: `/${tenant}/dashboard/time-track/closing`, icon: Download, color: 'slate' },
+      { label: 'Configuracoes', href: `/${tenant}/dashboard/settings`, icon: AlertCircle, color: 'slate' },
+    ],
+    RH: [
+      { label: 'Novo funcionario', href: `/${tenant}/dashboard/employees/new`, icon: UserPlus, color: 'slate' },
+      { label: 'Ferias', href: `/${tenant}/dashboard/vacations`, icon: CalendarDays, color: 'slate' },
+      { label: 'Fechamento', href: `/${tenant}/dashboard/time-track/closing`, icon: Download, color: 'slate' },
+      { label: 'Gestao', href: `/${tenant}/dashboard/management`, icon: Users, color: 'slate' },
+    ],
+    GESTOR: [
+      { label: 'Minha equipe', href: `/${tenant}/dashboard/employees`, icon: Users, color: 'slate' },
+      { label: 'Escala', href: `/${tenant}/dashboard/escala?tab=equipe`, icon: CalendarDays, color: 'slate' },
+      { label: 'Ponto da equipe', href: `/${tenant}/dashboard/time-track`, icon: Clock3, color: 'slate' },
+      { label: 'Ferias', href: `/${tenant}/dashboard/vacations`, icon: CalendarDays, color: 'slate' },
+    ],
+    CONSULTA: [
+      { label: 'Funcionarios', href: `/${tenant}/dashboard/employees`, icon: Users, color: 'slate' },
+      { label: 'Escala', href: `/${tenant}/dashboard/escala`, icon: CalendarDays, color: 'slate' },
+      { label: 'Ponto', href: `/${tenant}/dashboard/time-track`, icon: Clock3, color: 'slate' },
+      { label: 'Ferias', href: `/${tenant}/dashboard/vacations`, icon: CalendarDays, color: 'slate' },
+    ],
+  };
+  const actionShortcuts = roleActions[profile || ''] ?? roleActions.ADMIN;
 
 
   const { birthdays, workAnniversaries } = useMemo(() => {
@@ -133,21 +163,34 @@ function DashboardContent() {
   const todayRows = filteredTimeTracks.slice(0, 5);
   const vacationRows = filteredVacations.slice(0, 5);
 
+  if (isFuncionario) {
+    return (
+      <EmployeeDashboard
+        tenant={tenant}
+        userName={user?.name}
+        summary={summaryData}
+        insights={insightData}
+        tracks={timeTrackData}
+        loading={summary.loading || insights.loading || timeTracks.loading}
+      />
+    );
+  }
+
   return (
 <div className="mx-auto max-w-7xl space-y-4 px-3 py-4 sm:px-6 lg:px-8">
       {/* Premium Hero Section */}
-      <section className="group relative overflow-hidden rounded-[24px] border border-slate-200/60 bg-gradient-to-br from-white via-slate-50/30 to-teal-50/20 p-6 shadow-[0_20px_70px_-15px_rgba(15,23,42,0.12)] transition-all duration-500 hover:shadow-[0_25px_80px_-15px_rgba(15,23,42,0.18)] sm:p-8">
-        <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-gradient-to-br from-teal-100/40 to-cyan-100/30 blur-3xl" />
-        <div className="absolute -bottom-16 -left-16 h-48 w-48 rounded-full bg-gradient-to-tr from-blue-100/30 to-teal-100/20 blur-2xl" />
+      <section className="group relative overflow-hidden rounded-[24px] border border-black bg-black p-6 text-white shadow-[0_20px_70px_-20px_rgba(0,0,0,0.55)] sm:p-8">
+        <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full border border-white/10" />
+        <div className="absolute -bottom-16 -left-16 h-48 w-48 rounded-full border border-white/10" />
         <div className="relative">
           <div className="flex flex-wrap items-center gap-3">
-            <div className="inline-flex items-center gap-2 rounded-full border border-teal-200/60 bg-gradient-to-r from-teal-50 to-cyan-50 px-4 py-1.5 shadow-sm">
-              <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-teal-500" />
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-teal-700">{heroTitle}</p>
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-1.5">
+              <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-white" />
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/70">{presentation.eyebrow}</p>
             </div>
           </div>
-          <h1 className="mt-4 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 bg-clip-text text-3xl font-black tracking-tight text-transparent lg:text-4xl">{heroH2}</h1>
-          <p className="mt-2 text-sm font-semibold text-slate-500">{isFuncionario ? 'Seus indicadores pessoais de jornada e ponto.' : isGestor ? 'Indicadores da sua equipe em tempo real.' : 'Visão completa da operação de RH.'}</p>
+          <h1 className="mt-4 text-3xl font-black tracking-tight text-white lg:text-4xl">{presentation.title}</h1>
+          <p className="mt-2 text-sm font-semibold text-white/55">{presentation.description}</p>
         </div>
       </section>
 
@@ -161,7 +204,7 @@ function DashboardContent() {
               indigo: 'from-indigo-500 to-violet-600 shadow-indigo-500/25 hover:shadow-indigo-500/30',
               emerald: 'from-emerald-500 to-teal-600 shadow-emerald-500/25 hover:shadow-emerald-500/30',
               amber: 'from-amber-500 to-orange-600 shadow-amber-500/25 hover:shadow-amber-500/30',
-              slate: 'from-slate-700 to-slate-900 shadow-slate-500/25 hover:shadow-slate-500/30',
+              slate: 'from-slate-950 to-black shadow-black/20 hover:shadow-black/30',
             };
             return action.onClick ? (
               <button key={action.label} type="button" onClick={action.onClick} className={`flex items-center gap-3 rounded-[14px] bg-gradient-to-r ${colorMap[action.color]} p-4 text-xs font-black text-white shadow-lg transition-all duration-200 hover:shadow-xl active:scale-[0.98]`}>

@@ -199,6 +199,14 @@ export interface TimeTrack {
   incidentType?: string | null;
   lateMinutes?: number | null;
   earlyLeaveMinutes?: number | null;
+  absenceMinutes?: number | null;
+  overtime50Minutes?: number | null;
+  overtime100Minutes?: number | null;
+  nightShiftMinutes?: number | null;
+  overtimeExceedsLimit?: boolean;
+  overtimeHandling?: string | null;
+  overtimeBankMinutes?: number | null;
+  overtimePaymentMinutes?: number | null;
   isFuture: boolean;
   isRest: boolean;
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
@@ -551,7 +559,7 @@ export const api = {
 
   platform: {
     stats: () => request<PlatformStats>('/platform/stats'),
-    listCompanies: () => request<PlatformCompany[]>('/platform/companies'),
+    listCompanies: () => request<PlatformCompany[]>('/platform/companies', { timeoutMs: 12000 }),
     getCompany: (id: string) => request<PlatformCompany>(`/platform/companies/${id}`),
     getCompanyAuditLogs: (id: string) => request<any[]>(`/platform/companies/${id}/audit-logs`),
     createCompany: (input: CreatePlatformCompanyInput) => request<PlatformCompany & { paymentUrl?: string | null; billingSetupPending?: boolean }>('/platform/companies', { method: 'POST', body: input }),

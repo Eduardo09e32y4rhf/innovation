@@ -1,24 +1,28 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
+import { toDateOnly } from '../../common/utils/date.utils';
 
 @Injectable()
 export class DashboardRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   private todayRange() {
-    const today = new Date();
-    const startOfDay = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
-    const endOfDay = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() + 1));
+    const startOfDay = toDateOnly(new Date());
+    const endOfDay = new Date(startOfDay);
+    endOfDay.setUTCDate(endOfDay.getUTCDate() + 1);
     return { startOfDay, endOfDay };
   }
 
 
 
   private monthRange() {
-    const now = new Date();
-    const startOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
-    const endOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
-    return { startOfMonth, endOfMonth, month: now.getUTCMonth() + 1, day: now.getUTCDate() };
+    const today = toDateOnly(new Date());
+    const year = today.getUTCFullYear();
+    const month = today.getUTCMonth() + 1;
+    const day = today.getUTCDate();
+    const startOfMonth = new Date(Date.UTC(year, month - 1, 1));
+    const endOfMonth = new Date(Date.UTC(year, month, 1));
+    return { startOfMonth, endOfMonth, month, day };
   }
 
   private async buildInsights(employeeWhere: any, companyId: string) {

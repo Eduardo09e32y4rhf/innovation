@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { subscribeAuthScope, getAuthScopeSnapshot } from '@/app/lib/auth-session';
 import { ApiError } from '@/app/lib/api';
@@ -56,11 +56,13 @@ export function useQuery<T>(
     if (!enabled) return;
     if (!isRetry) setLoading(true);
     if (!isRetry) setError(null);
+    let hasError = false;
     try {
       setData(await ref.current());
       if (isRetry) setError(null);
     }
     catch (err) {
+      hasError = true;
       if (!isRetry) {
         setTimeout(() => run(true), 1500);
       } else {
@@ -68,7 +70,7 @@ export function useQuery<T>(
       }
     }
     finally {
-      if (isRetry || !error) setLoading(false);
+      if (isRetry || !hasError) setLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, authScopeKey, ...deps]);

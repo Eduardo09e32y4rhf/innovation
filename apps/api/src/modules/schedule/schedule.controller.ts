@@ -17,6 +17,10 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import type { JwtUser } from '../../common/types/auth.types';
 
+function currentMonthInSaoPaulo() {
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' }).slice(0, 7);
+}
+
 @UseGuards(JwtAuthGuard)
 @Controller('schedules')
 export class ScheduleController {
@@ -36,8 +40,13 @@ export class ScheduleController {
 
   @Get('team')
   teamSchedule(@CurrentUser() actor: JwtUser, @Query('month') month: string) {
-    const m = month || new Date().toISOString().slice(0, 7);
+    const m = month || currentMonthInSaoPaulo();
     return this.service.getTeamSchedule(actor.companyId, actor, m);
+  }
+
+  @Get('me/calendar')
+  myCalendarStable(@CurrentUser() actor: JwtUser, @Query('month') month: string) {
+    return this.service.getMyCalendar(actor.companyId, actor, month || currentMonthInSaoPaulo());
   }
 
   @Get('calendar/:employeeId')
@@ -46,14 +55,14 @@ export class ScheduleController {
     @Param('employeeId') employeeId: string,
     @Query('month') month: string,
   ) {
-    const m = month || new Date().toISOString().slice(0, 7);
+    const m = month || currentMonthInSaoPaulo();
     return this.service.getCalendar(actor.companyId, actor, employeeId, m);
   }
 
   @Get('calendar/me')
   myCalendar(@CurrentUser() actor: JwtUser, @Query('month') month: string) {
     // Resolve o employeeId do usuário logado
-    const m = month || new Date().toISOString().slice(0, 7);
+    const m = month || currentMonthInSaoPaulo();
     return this.service.getMyCalendar(actor.companyId, actor, m);
   }
 

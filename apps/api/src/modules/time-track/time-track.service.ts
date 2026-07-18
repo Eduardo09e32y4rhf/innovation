@@ -712,17 +712,19 @@ export class TimeTrackService {
   }
 
   private resolveMonth(month?: string) {
-    const reference = month ? new Date(`${month}-01T00:00:00.000Z`) : new Date();
-    if (Number.isNaN(reference.getTime())) throw new BadRequestException('Invalid month');
-    const start = this.tzService.startOfMonthBRT(reference);
-    const end = this.tzService.endOfMonthBRT(reference);
+    const key = month ?? this.tzService.formatToBRT(new Date(), 'yyyy-MM');
+    if (!/^\d{4}-\d{2}$/.test(key)) throw new BadRequestException('Invalid month');
+    const [year, value] = key.split('-').map(Number);
+    if (value < 1 || value > 12) throw new BadRequestException('Invalid month');
+    const start = new Date(Date.UTC(year, value - 1, 1));
+    const end = new Date(Date.UTC(year, value, 1));
     return { start, end };
   }
 
   private parseDateOnly(val: string | null | undefined, errorMessage: string): Date {
     if (!val) throw new BadRequestException(errorMessage);
     if (/^\d{4}-\d{2}-\d{2}$/.test(val)) {
-      return this.tzService.parseFromBRT(val);
+      return new Date(`${val}T00:00:00.000Z`);
     }
     const date = new Date(val);
     if (isNaN(date.getTime())) throw new BadRequestException(errorMessage);

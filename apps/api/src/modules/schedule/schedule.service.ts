@@ -17,6 +17,16 @@ const CAN_APPROVE = ['ADMIN', 'RH', 'GESTOR', 'DEV'];
 export class ScheduleService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private monthBounds(month: string) {
+    if (!/^\d{4}-\d{2}$/.test(month)) throw new BadRequestException('Mes invalido. Use YYYY-MM.');
+    const [year, value] = month.split('-').map(Number);
+    if (value < 1 || value > 12) throw new BadRequestException('Mes invalido. Use YYYY-MM.');
+    return {
+      start: new Date(Date.UTC(year, value - 1, 1)),
+      end: new Date(Date.UTC(year, value, 1)),
+    };
+  }
+
   // ─── Helpers de permissão ────────────────────────────────────────────────
 
   private assertCanWrite(actor: JwtUser) {
@@ -70,28 +80,57 @@ export class ScheduleService {
   async assignSchedule(companyId: string, actor: JwtUser, dto: AssignScheduleDto) {
     this.assertCanWrite(actor);
 
+    const employeeIds = [...new Set(dto.employeeIds)];
+    if (!employeeIds.length) throw new BadRequestException('Selecione pelo menos um funcionario.');
+
+    const startDate = new Date(`${dto.startDate.slice(0, 10)}T00:00:00.000Z`);
+    const endDate = dto.endDate
+      ? new Date(`${dto.endDate.slice(0, 10)}T00:00:00.000Z`)
+      : null;
+    if (Number.isNaN(startDate.getTime()) || (endDate && Number.isNaN(endDate.getTime()))) {
+      throw new BadRequestException('Data de vigencia invalida.');
+    }
+    if (endDate && endDate < startDate) {
+      throw new BadRequestException('O fim da vigencia nao pode ser anterior ao inicio.');
+    }
+
     // Verifica existência da escala
     const schedule = await this.prisma.schedule.findFirst({ where: { id: dto.scheduleId, companyId } });
     if (!schedule) throw new NotFoundException('Escala não encontrada.');
 
     return this.prisma.$transaction(async (tx) => {
+      const employees = await tx.employee.findMany({
+        where: { companyId, id: { in: employeeIds } },
+        select: { id: true },
+      });
+      if (employees.length !== employeeIds.length) {
+        throw new BadRequestException('Um ou mais funcionarios nao pertencem a esta empresa.');
+      }
+
+      const previousEndDate = new Date(startDate);
+      previousEndDate.setUTCDate(previousEndDate.getUTCDate() - 1);
+
+      await tx.userSchedule.deleteMany({
+        where: { companyId, employeeId: { in: employeeIds }, startDate },
+      });
       // Encerra vigência anterior (se houver escala ativa sem endDate)
       await tx.userSchedule.updateMany({
         where: {
-          employeeId: { in: dto.employeeIds },
+          employeeId: { in: employeeIds },
           companyId,
           endDate: null,
+          startDate: { lt: startDate },
         },
-        data: { endDate: new Date(dto.startDate) },
+        data: { endDate: previousEndDate },
       });
 
       // Cria a nova atribuição para cada funcionário
-      const dataToInsert = dto.employeeIds.map(empId => ({
+      const dataToInsert = employeeIds.map(empId => ({
         companyId,
         employeeId: empId,
         scheduleId: dto.scheduleId,
-        startDate: new Date(dto.startDate),
-        endDate: dto.endDate ? new Date(dto.endDate) : null,
+        startDate,
+        endDate,
         entryTimeOverride: dto.entryTimeOverride,
         lunchStartTimeOverride: dto.lunchStartTimeOverride,
         lunchReturnTimeOverride: dto.lunchReturnTimeOverride,
@@ -100,7 +139,7 @@ export class ScheduleService {
       }));
 
       await tx.userSchedule.createMany({ data: dataToInsert });
-      return { success: true, count: dto.employeeIds.length };
+      return { success: true, count: employeeIds.length };
     });
   }
 
@@ -144,17 +183,21 @@ export class ScheduleService {
       }
     }
 
-    // Parse do mês
-    const [year, m] = month.split('-').map(Number);
-    const startDate = new Date(year, m - 1, 1);
-    const endDate = new Date(year, m, 0);
+    if (actor.role === 'GESTOR') {
+      const manager = await this.prisma.employee.findFirst({ where: { companyId, userId: actor.sub } });
+      if (!manager || (employee.id !== manager.id && employee.managerId !== manager.id)) {
+        throw new ForbiddenException('Acesso negado.');
+      }
+    }
 
-    // Busca a escala vigente no período
-    const userSchedule = await this.prisma.userSchedule.findFirst({
+    const { start: startDate, end: endDate } = this.monthBounds(month);
+
+    // Uma escala pode mudar no meio do mes; cada dia usa sua vigencia real.
+    const userSchedules = await this.prisma.userSchedule.findMany({
       where: {
         companyId,
         employeeId,
-        startDate: { lte: endDate },
+        startDate: { lt: endDate },
         OR: [{ endDate: null }, { endDate: { gte: startDate } }],
       },
       include: { schedule: true },
@@ -166,7 +209,7 @@ export class ScheduleService {
       where: {
         companyId,
         employeeId,
-        date: { gte: startDate, lte: endDate },
+        date: { gte: startDate, lt: endDate },
       },
     });
 
@@ -174,7 +217,7 @@ export class ScheduleService {
     const holidays = await this.prisma.holiday.findMany({
       where: {
         companyId,
-        date: { gte: startDate, lte: endDate },
+        date: { gte: startDate, lt: endDate },
       },
     });
 
@@ -183,16 +226,19 @@ export class ScheduleService {
       where: {
         companyId,
         employeeId,
-        date: { gte: startDate, lte: endDate },
+        date: { gte: startDate, lt: endDate },
       },
     });
 
     // Monta calendário dia a dia
     const days: any[] = [];
     const cursor = new Date(startDate);
-    while (cursor <= endDate) {
+    while (cursor < endDate) {
       const dateStr = cursor.toISOString().split('T')[0];
-      const dow = cursor.getDay(); // 0=dom, 6=sab
+      const dow = cursor.getUTCDay(); // 0=dom, 6=sab
+      const userSchedule = userSchedules.find((item) =>
+        item.startDate <= cursor && (!item.endDate || item.endDate >= cursor)
+      );
       const exception = exceptions.find(
         (e: any) => e.date.toISOString().split('T')[0] === dateStr,
       );
@@ -282,12 +328,12 @@ export class ScheduleService {
         holiday: holiday ? { name: (holiday as any).name, date: dateStr } : null,
       });
 
-      cursor.setDate(cursor.getDate() + 1);
+      cursor.setUTCDate(cursor.getUTCDate() + 1);
     }
 
     return {
       employee: { id: employee.id, name: employee.name },
-      schedule: userSchedule?.schedule ?? null,
+      schedule: userSchedules[0]?.schedule ?? null,
       month,
       days,
     };
@@ -302,21 +348,20 @@ export class ScheduleService {
       const self = await this.prisma.employee.findFirst({
         where: { companyId, userId: actor.sub },
       });
-      if (!self) return [];
+      if (!self) return { withSchedule: [], withoutSchedule: [], calendars: [], month };
       const team = await this.prisma.employee.findMany({
         where: { companyId, managerId: self.id, status: 'ACTIVE' },
         select: { id: true },
       });
-      employeeIds = team.map((e: any) => e.id);
+      employeeIds = [self.id, ...team.map((e: any) => e.id)];
     } else if (['ADMIN', 'RH', 'DEV'].includes(actor.role)) {
       const all = await this.prisma.employee.findMany({
-        where: { 
-          companyId, 
+        where: {
+          companyId,
           status: 'ACTIVE',
-          OR: [
-            { user: null },
-            { user: { role: { notIn: ['ADMIN', 'DEV'] } } }
-          ]
+          ...(actor.role === 'DEV' ? {} : {
+            OR: [{ user: null }, { user: { role: { not: 'DEV' } } }],
+          }),
         },
         select: { id: true },
       });
@@ -325,15 +370,13 @@ export class ScheduleService {
       throw new ForbiddenException('Acesso negado.');
     }
 
-    const [year, m] = month.split('-').map(Number);
-    const startDate = new Date(year, m - 1, 1);
-    const endDate = new Date(year, m, 0);
+    const { start: startDate, end: endDate } = this.monthBounds(month);
 
     const userSchedules = await this.prisma.userSchedule.findMany({
       where: {
         companyId,
         employeeId: { in: employeeIds },
-        startDate: { lte: endDate },
+        startDate: { lt: endDate },
         OR: [{ endDate: null }, { endDate: { gte: startDate } }],
       },
       include: {
@@ -358,9 +401,19 @@ export class ScheduleService {
       select: { id: true, name: true, department: true, position: true, registration: true },
     });
 
+    const calendars = await Promise.all(employeeIds.map((employeeId) =>
+      this.getCalendar(companyId, actor, employeeId, month)
+    ));
+    const calendarByEmployee = new Map(calendars.map((calendar) => [calendar.employee.id, calendar]));
+    const withSchedule = uniqueUserSchedules.map((assignment: any) => ({
+      ...assignment,
+      days: calendarByEmployee.get(assignment.employeeId)?.days ?? [],
+    }));
+
     return {
-      withSchedule: uniqueUserSchedules,
+      withSchedule,
       withoutSchedule,
+      calendars,
       month,
     };
   }
@@ -376,18 +429,21 @@ export class ScheduleService {
     });
     if (!employee) throw new NotFoundException('Funcionário não encontrado.');
 
+    const exceptionDate = new Date(`${dto.date.slice(0, 10)}T00:00:00.000Z`);
+    if (Number.isNaN(exceptionDate.getTime())) throw new BadRequestException('Data invalida.');
+
     return this.prisma.scheduleException.upsert({
       where: {
         employeeId_date_exceptionType: {
           employeeId: dto.employeeId,
-          date: new Date(dto.date),
+          date: exceptionDate,
           exceptionType: dto.exceptionType,
         },
       },
       create: {
         companyId,
         employeeId: dto.employeeId,
-        date: new Date(dto.date),
+        date: exceptionDate,
         exceptionType: dto.exceptionType,
         reason: dto.reason,
         observation: dto.observation,

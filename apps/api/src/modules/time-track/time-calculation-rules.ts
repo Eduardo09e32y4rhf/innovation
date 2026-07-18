@@ -168,24 +168,26 @@ export class TimeCalculationRulesService {
     const negativeDeviations = [...lateDeviations, ...earlyDeviations];
     if (balance < 0 && this.withinLegalTolerance(negativeDeviations, rule)) balance = 0;
     if (balance > 0 && this.withinLegalTolerance(overtimeDeviations, rule)) balance = 0;
-    if (balance < 0 && this.isPartialJustification(input.manualReason)) balance = 0;
+    const isJustified = this.isPartialJustification(input.manualReason);
+    if (balance < 0 && isJustified) balance = 0;
 
     result.dailyBalanceMinutes = balance;
-    if (balance > 0) {
-      result.overtime50Minutes = balance;
-      result.incidentType = 'hora_extra_50';
-      this.applyOvertimeLimit(result, rule);
-    } else if (balance < 0) {
-      result.lateMinutes = this.countDeviation(lateDeviations, rule);
-      result.earlyLeaveMinutes = this.countDeviation(earlyDeviations, rule);
-      result.absenceMinutes = Math.abs(balance);
-      if (result.earlyLeaveMinutes > 0 && result.lateMinutes > 0) result.incidentType = 'atraso_saida_antecipada';
-      else if (result.earlyLeaveMinutes > 0) result.incidentType = 'saida_antecipada';
-      else if (result.lateMinutes > 0) result.incidentType = 'atraso';
-      else result.incidentType = 'debito_jornada';
-    } else {
-      result.incidentType = 'normal';
-    }
+    result.lateMinutes = isJustified ? 0 : this.countDeviation(lateDeviations, rule);
+    result.earlyLeaveMinutes = isJustified ? 0 : this.countDeviation(earlyDeviations, rule);
+    result.overtime50Minutes = this.countDeviation(overtimeDeviations, rule);
+
+    const scheduleDebt = result.lateMinutes + result.earlyLeaveMinutes;
+    const netDebt = Math.max(0, -balance);
+    result.absenceMinutes = Math.max(scheduleDebt, netDebt) || null;
+
+    if (result.overtime50Minutes > 0) this.applyOvertimeLimit(result, rule);
+
+    if (result.earlyLeaveMinutes > 0 && result.lateMinutes > 0) result.incidentType = 'atraso_saida_antecipada';
+    else if (result.earlyLeaveMinutes > 0) result.incidentType = 'saida_antecipada';
+    else if (result.lateMinutes > 0) result.incidentType = 'atraso';
+    else if (balance < 0) result.incidentType = 'debito_jornada';
+    else if (result.overtime50Minutes > 0) result.incidentType = 'hora_extra_50';
+    else result.incidentType = 'normal';
 
     return result;
   }
