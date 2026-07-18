@@ -24,8 +24,19 @@ import api, { ApiError, type PlatformInvoice } from '@/app/lib/api';
 
 const statusLabel: Record<string, string> = { ACTIVE: 'Ativa', SUSPENDED: 'Suspensa', CANCELLED: 'Cancelada', OPEN: 'Em aberto', PAID: 'Paga', OVERDUE: 'Vencida', CANCELED: 'Cancelada' };
 
-function money(value: number | string) {
-  return Number(value || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+function parseMoney(value: number | string | null | undefined) {
+  if (value === null || value === undefined || value === '') return 0;
+  if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
+  const raw = String(value).trim();
+  const normalized = raw.includes(',')
+    ? raw.replace(/\./g, '').replace(',', '.')
+    : raw.replace(/,/g, '');
+  const amount = Number(normalized);
+  return Number.isFinite(amount) ? amount : 0;
+}
+
+function money(value: number | string | null | undefined) {
+  return parseMoney(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
 function date(value?: string | null) {

@@ -44,8 +44,19 @@ const BILLING_LABEL: Record<PlatformBillingType, string> = {
   CREDIT_CARD: 'Cartao',
 };
 
-function money(value: number | string) {
-  return Number(value || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+function parseMoney(value: number | string | null | undefined) {
+  if (value === null || value === undefined || value === '') return 0;
+  if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
+  const raw = String(value).trim();
+  const normalized = raw.includes(',')
+    ? raw.replace(/\./g, '').replace(',', '.')
+    : raw.replace(/,/g, '');
+  const amount = Number(normalized);
+  return Number.isFinite(amount) ? amount : 0;
+}
+
+function money(value: number | string | null | undefined) {
+  return parseMoney(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
 function date(value: string) {
@@ -76,7 +87,7 @@ function InvoiceModal({ invoice, companies, onClose, onSaved }: {
   const selectedCompany = companies.data.find(company => company.id === form.companyId);
 
   async function save() {
-    if (!form.companyId || !form.description.trim() || Number(form.amount) <= 0 || !form.dueDate) {
+    if (!form.companyId || !form.description.trim() || parseMoney(form.amount) <= 0 || !form.dueDate) {
       toast.error('Preencha empresa, descricao, valor e vencimento.');
       return;
     }
@@ -85,7 +96,7 @@ function InvoiceModal({ invoice, companies, onClose, onSaved }: {
       if (invoice) {
         await api.platform.finance.update(invoice.id, {
           description: form.description.trim(),
-          amount: Number(form.amount),
+          amount: parseMoney(form.amount),
           dueDate: form.dueDate,
           billingType: form.billingType,
           status: form.status,
@@ -94,7 +105,7 @@ function InvoiceModal({ invoice, companies, onClose, onSaved }: {
         await api.platform.finance.create({
           companyId: form.companyId,
           description: form.description.trim(),
-          amount: Number(form.amount),
+          amount: parseMoney(form.amount),
           dueDate: form.dueDate,
           billingType: form.billingType,
           sendToAsaas: form.sendToAsaas,

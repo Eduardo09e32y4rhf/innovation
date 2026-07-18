@@ -23,13 +23,16 @@ export class PlatformFinanceService {
     });
     if (!company) throw new NotFoundException('Empresa nao encontrada.');
 
-    const amount = company.platformPlan ? Number(company.platformPlan.price) : Number(process.env.DEFAULT_SIGNUP_PRICE || 49.9);
-    if (company.platformPlan?.isFree || amount <= 0) {
+    const amount = company.platformPlan ? this.moneyToNumber(company.platformPlan.price) : this.moneyToNumber(process.env.DEFAULT_SIGNUP_PRICE, 49.9);
+    if (company.platformPlan?.isFree) {
       await this.prisma.company.update({
         where: { id: company.id },
         data: { status: 'ACTIVE', isActive: true, billingStatus: 'ACTIVE', suspensionReason: null },
       });
       return { active: true, paymentUrl: null, invoice: null };
+    }
+    if (!Number.isFinite(amount) || amount <= 0) {
+      throw new BadRequestException('Plano pago sem valor valido. Corrija o preco do plano antes de gerar checkout.');
     }
     if (!this.asaas.isConfigured()) {
       throw new BadRequestException('A integracao Asaas nao esta configurada.');
@@ -240,7 +243,7 @@ export class PlatformFinanceService {
 
     let payment: AsaasPayment | undefined;
     if (dto.sendToAsaas) {
-      if (!this.asaas.isConfigured()) {
+    if (!this.asaas.isConfigured()) {
         throw new BadRequestException('A integracao Asaas nao esta configurada. Crie a fatura como local.');
       }
       if (!company.asaasCustomerId) {
@@ -367,6 +370,18 @@ export class PlatformFinanceService {
     if (status === 'OVERDUE') return 'OVERDUE';
     if (['REFUNDED', 'REFUND_REQUESTED', 'CHARGEBACK_REQUESTED', 'CHARGEBACK_DISPUTE'].includes(status)) return 'CANCELED';
     return 'OPEN';
+  }
+
+  private moneyToNumber(value: unknown, fallback = 0): number {
+    if (value === null || value === undefined || value === '') return fallback;
+    if (typeof value === 'number') return Number.isFinite(value) ? value : fallback;
+    const raw = String(value).trim();
+    if (!raw) return fallback;
+    const normalized = raw.includes(',')
+      ? raw.replace(/\./g, '').replace(',', '.')
+      : raw.replace(/,/g, '');
+    const amount = Number(normalized);
+    return Number.isFinite(amount) ? Number(amount.toFixed(2)) : fallback;
   }
 
   private isPaid(status?: string) {

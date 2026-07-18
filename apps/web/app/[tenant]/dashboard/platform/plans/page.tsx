@@ -25,8 +25,13 @@ const CYCLE_LABEL: Record<string, string> = {
 // Prisma Decimal vem como string — converte com segurança
 function parseMoney(val: any): number {
   if (val === null || val === undefined || val === '') return 0;
-  const n = typeof val === 'number' ? val : parseFloat(String(val));
-  return isNaN(n) ? 0 : n;
+  if (typeof val === 'number') return Number.isFinite(val) ? val : 0;
+  const raw = String(val).trim();
+  const normalized = raw.includes(',')
+    ? raw.replace(/\./g, '').replace(',', '.')
+    : raw.replace(/,/g, '');
+  const n = Number(normalized);
+  return Number.isFinite(n) ? n : 0;
 }
 
 function formatBRL(val: any): string {
@@ -111,9 +116,9 @@ function PlanModal({ plan, onClose, onDone }: { plan?: any; onClose: () => void;
             <label className="block space-y-1.5 text-xs font-semibold text-slate-600">
               <span>Preço (R$)</span>
               <input
-                type="number"
-                step="0.01"
-                min="0"
+                type="text"
+                inputMode="decimal"
+                placeholder="199,90"
                 value={form.price}
                 disabled={form.isFree}
                 onChange={e => setForm(f => ({ ...f, price: e.target.value }))}

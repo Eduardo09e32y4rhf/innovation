@@ -18,16 +18,40 @@ export class PlatformPlansService {
   }
 
   async create(data: any) {
-    return this.prisma.platformPlan.create({ data });
+    return this.prisma.platformPlan.create({ data: this.normalizePlanPayload(data, true) });
   }
 
   async update(id: string, data: any) {
     return this.prisma.platformPlan.update({
       where: { id },
-      data,
+      data: this.normalizePlanPayload(data, false),
     });
   }
 
+  private normalizePlanPayload(data: any, creating: boolean) {
+    const payload = { ...data };
+    if (payload.price !== undefined || payload.isFree === true || creating) {
+      const price = payload.isFree ? 0 : this.moneyToNumber(payload.price);
+      if (!payload.isFree && (!Number.isFinite(price) || price <= 0)) {
+        throw new BadRequestException('Plano pago precisa ter valor maior que zero.');
+      }
+      payload.price = price;
+    }
+    if (payload.maxUsers !== undefined) payload.maxUsers = Math.max(1, Number(payload.maxUsers) || 1);
+    if (payload.maxEmployees !== undefined) payload.maxEmployees = Math.max(1, Number(payload.maxEmployees) || 1);
+    return payload;
+  }
+
+  private moneyToNumber(value: unknown): number {
+    if (value === null || value === undefined || value === '') return 0;
+    if (typeof value === 'number') return Number.isFinite(value) ? Number(value.toFixed(2)) : 0;
+    const raw = String(value).trim();
+    const normalized = raw.includes(',')
+      ? raw.replace(/\./g, '').replace(',', '.')
+      : raw.replace(/,/g, '');
+    const amount = Number(normalized);
+    return Number.isFinite(amount) ? Number(amount.toFixed(2)) : 0;
+  }
   /** Soft-delete: desativa o plano sem remover do banco */
   async deactivate(id: string) {
     return this.prisma.platformPlan.update({
