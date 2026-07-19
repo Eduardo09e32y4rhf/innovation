@@ -13,7 +13,86 @@ export class PlatformFinanceService {
     private readonly asaas: AsaasService,
   ) {}
 
-  async ensureCompanyCheckout(companyId: string) {
+  async ensureAsaasCustomer(company: any, admin: any) {
+    let customerId = company.asaasCustomerId;
+    if (!customerId) {
+      const customer = await this.asaas.createCustomer({
+        name: company.legalName || company.name,
+        cpfCnpj: company.document,
+        email: admin.email,
+        mobilePhone: company.phone || undefined,
+        externalReference: company.id,
+        notificationDisabled: true,
+      });
+      if (!customer.id) throw new BadRequestException('O Asaas nao retornou o identificador do cliente.');
+      customerId = customer.id;
+      await this.prisma.company.update({ where: { id: company.id }, data: { asaasCustomerId: customerId } });
+    }
+    return customerId;
+  }
+
+  async createInitialCharge(company: any, customerId: string, amount: number) {
+    const dueDate = new Date();
+    // Vencimento hoje ou amanhã
+    dueDate.setUTCDate(dueDate.getUTCDate() + 1);
+    
+    const payment = await this.asaas.createCharge(customerId, {
+      value: amount,
+      dueDate: dueDate.toISOString().slice(0, 10),
+      description: 'Mensalidade Innovation RH - avulsa',
+      billingType: 'UNDEFINED',
+      externalReference: `signup:${company.id}`,
+    });
+    
+    if (!payment.id || !payment.invoiceUrl) {
+      throw new BadRequestException('O Asaas nao retornou o link da cobranca.');
+    }
+
+    const invoice = await this.prisma.platformInvoice.upsert({
+      where: { asaasPaymentId: payment.id },
+      create: {
+        companyId: company.id,
+        planId: company.platformPlanId,
+        description: payment.description || 'Mensalidade Innovation RH - avulsa',
+        amount,
+        dueDate: new Date(payment.dueDate),
+        status: (this.mapAsaasStatus(payment.status || 'PENDING') || 'OPEN') as InvoiceStatus,
+        billingType: payment.billingType || 'UNDEFINED',
+        asaasPaymentId: payment.id,
+        invoiceUrl: payment.invoiceUrl,
+      },
+      update: { invoiceUrl: payment.invoiceUrl, status: (this.mapAsaasStatus(payment.status || 'PENDING') || 'OPEN') as InvoiceStatus, deletedAt: null },
+    });
+
+    return { paymentUrl: payment.invoiceUrl, invoice };
+  }
+
+  async createRecurringSubscription(company: any, customerId: string, amount: number) {
+    if (company.asaasSubscriptionId) return company.asaasSubscriptionId;
+    
+    const cycle = company.platformPlan?.cycle || 'MONTHLY';
+    const nextDueDate = new Date();
+    
+    // Assinatura comeca no proximo ciclo
+    if (cycle === 'YEARLY') nextDueDate.setUTCFullYear(nextDueDate.getUTCFullYear() + 1);
+    else if (cycle === 'QUARTERLY') nextDueDate.setUTCMonth(nextDueDate.getUTCMonth() + 3);
+    else nextDueDate.setUTCMonth(nextDueDate.getUTCMonth() + 1);
+
+    const sub = await this.asaas.createSubscription(customerId, {
+      value: amount,
+      nextDueDate: nextDueDate.toISOString().slice(0, 10),
+      cycle: ['MONTHLY', 'QUARTERLY', 'YEARLY'].includes(cycle) ? cycle : 'MONTHLY',
+      description: `${company.platformPlan?.name || 'Plano Innovation'} - mensalidade`,
+    });
+    
+    if (sub.id) {
+      await this.prisma.company.update({ where: { id: company.id }, data: { asaasSubscriptionId: sub.id } });
+      return sub.id;
+    }
+    return null;
+  }
+
+  async ensureCompanyOnboardingBilling(companyId: string) {
     const company = await this.prisma.company.findUnique({
       where: { id: companyId },
       include: {
@@ -38,129 +117,34 @@ export class PlatformFinanceService {
     const admin = company.users[0];
     if (!admin) throw new BadRequestException('A empresa nao possui administrador ativo.');
 
-    let customerId = company.asaasCustomerId;
-    if (!customerId) {
-      const customer = await this.asaas.createCustomer({
-        name: company.legalName || company.name,
-        cpfCnpj: company.document,
-        email: admin.email,
-        mobilePhone: company.phone || undefined,
-        externalReference: company.id,
-        notificationDisabled: true,
-      });
-      if (!customer.id) throw new BadRequestException('O Asaas nao retornou o identificador do cliente.');
-      customerId = customer.id;
-      await this.prisma.company.update({ where: { id: company.id }, data: { asaasCustomerId: customerId } });
-    }
+    const customerId = await this.ensureAsaasCustomer(company, admin);
 
     const existing = await this.prisma.platformInvoice.findFirst({
       where: { companyId, deletedAt: null, status: { in: ['OPEN', 'OVERDUE'] }, invoiceUrl: { not: null } },
       orderBy: { createdAt: 'desc' },
     });
     
-    if (existing) {
-      // If we already have an open invoice, try to ensure subscription exists in background
-      if (!company.asaasSubscriptionId) {
-        this.ensureSubscription(company.id, customerId, amount, 'Mensalidade Innovation RH', company.platformPlan?.cycle || 'MONTHLY').catch(() => {});
-      }
-      return { active: false, paymentUrl: existing.invoiceUrl, invoice: existing };
+    let paymentUrl = existing?.invoiceUrl;
+    let invoice = existing;
+
+    if (!existing) {
+      const initialCharge = await this.createInitialCharge(company, customerId, amount);
+      paymentUrl = initialCharge.paymentUrl;
+      invoice = initialCharge.invoice as any;
     }
 
-    let subscriptionId = company.asaasSubscriptionId;
-    if (!subscriptionId) {
-      const cycle = company.platformPlan?.cycle || 'MONTHLY';
-      const sub = await this.asaas.createSubscription(customerId, {
-        value: amount,
-        nextDueDate: new Date().toISOString().slice(0, 10),
-        cycle: ['MONTHLY', 'QUARTERLY', 'YEARLY'].includes(cycle) ? cycle : 'MONTHLY',
-        description: `${company.platformPlan?.name || 'Plano Innovation'} - mensalidade`,
-      });
-      if (sub.id) {
-        subscriptionId = sub.id;
-        await this.prisma.company.update({ where: { id: company.id }, data: { asaasSubscriptionId: subscriptionId } });
-      }
-    }
+    // Garante que a assinatura foi criada em paralelo (para cobrar depois da avulsa)
+    await this.createRecurringSubscription(company, customerId, amount).catch(() => {});
 
-    let paymentUrl: string | undefined;
-    let asaasPaymentId: string | undefined;
-    let finalStatus = 'OPEN';
-    let paymentDueDate = new Date();
-    let paymentDescription = 'Mensalidade Innovation RH';
-    let paymentBillingType = 'UNDEFINED';
-
-    if (subscriptionId) {
-      try {
-        const paymentsResp = await this.asaas.getPaymentsBySubscription(subscriptionId);
-        const pendingPayment = paymentsResp.data?.find(p => p.status === 'PENDING' || p.status === 'OVERDUE');
-        
-        if (pendingPayment) {
-          paymentUrl = pendingPayment.invoiceUrl;
-          asaasPaymentId = pendingPayment.id;
-          finalStatus = this.mapAsaasStatus(pendingPayment.status) || 'OPEN';
-          paymentDueDate = new Date(pendingPayment.dueDate);
-          paymentDescription = pendingPayment.description || paymentDescription;
-          paymentBillingType = pendingPayment.billingType || 'UNDEFINED';
-        } else if (paymentsResp.data?.length > 0) {
-          const lastPayment = paymentsResp.data[0];
-          if (this.isPaid(lastPayment.status)) {
-            await this.prisma.company.update({
-              where: { id: company.id },
-              data: { status: 'ACTIVE', isActive: true, billingStatus: 'ACTIVE', suspensionReason: null },
-            });
-            return { active: true, paymentUrl: null, invoice: null };
-          }
-        }
-      } catch (error) {
-        this.logger.warn(`Failed to fetch subscription payments for ${companyId}: ${String(error)}`);
-      }
-    }
-
-    if (!asaasPaymentId || !paymentUrl) {
-      // Fallback: create avulsa charge if subscription didn't yield a pending payment immediately
-      const dueDate = new Date();
-      dueDate.setUTCDate(dueDate.getUTCDate() + 1);
-      const payment = await this.asaas.createCharge(customerId, {
-        value: amount,
-        dueDate: dueDate.toISOString().slice(0, 10),
-        description: 'Mensalidade Innovation RH - avulsa',
-        billingType: 'UNDEFINED',
-        externalReference: company.id,
-      });
-      
-      if (!payment.id || !payment.invoiceUrl) {
-        throw new BadRequestException('O Asaas nao retornou o link da cobranca.');
-      }
-      asaasPaymentId = payment.id;
-      paymentUrl = payment.invoiceUrl;
-      finalStatus = 'OPEN';
-      paymentDueDate = dueDate;
-      paymentBillingType = payment.billingType || 'UNDEFINED';
-    }
-
-    const invoice = await this.prisma.platformInvoice.upsert({
-      where: { asaasPaymentId: asaasPaymentId },
-      create: {
-        companyId: company.id,
-        planId: company.platformPlanId,
-        description: paymentDescription,
-        amount,
-        dueDate: paymentDueDate,
-        status: finalStatus as InvoiceStatus,
-        billingType: paymentBillingType,
-        asaasPaymentId,
-        invoiceUrl: paymentUrl,
-      },
-      update: { invoiceUrl: paymentUrl, status: finalStatus as InvoiceStatus, deletedAt: null },
-    });
-
-    if (finalStatus !== 'PAID') {
+    // Usa PAST_DUE como status pendente aqui, mas na proxima fase (Fase 5) vamos mudar para PENDING_PAYMENT
+    if (invoice?.status !== 'PAID') {
       await this.prisma.company.update({
         where: { id: company.id },
         data: { status: 'SUSPENDED', isActive: false, billingStatus: 'PAST_DUE', suspensionReason: 'aguardando_pagamento' },
       });
     }
 
-    return { active: finalStatus === 'PAID', paymentUrl, invoice };
+    return { active: invoice?.status === 'PAID', paymentUrl, invoice };
   }
 
   async getCompanyBilling(companyId: string) {

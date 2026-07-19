@@ -70,7 +70,7 @@ export class AuthService {
     let billingSetupPending = false;
     if (!selectedPlan?.isFree) {
       try {
-        checkout = await this.platformFinance.ensureCompanyCheckout(company.id);
+        checkout = await this.platformFinance.ensureCompanyOnboardingBilling(company.id);
       } catch (error) {
         billingSetupPending = true;
         this.logger.error(`Cadastro ${company.id} criado, mas checkout Asaas ficou pendente: ${String(error)}`);
