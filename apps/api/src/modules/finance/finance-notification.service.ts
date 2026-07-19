@@ -184,12 +184,12 @@ export class FinanceNotificationService {
       const title = buildTitle(input.type);
       const body = buildMessage(input.type, input, company.name);
 
-      // Cria notificação interna para todos os ADMINs/RHs da empresa
+      // Cria notificação interna para todos os ADMINs da empresa
       const admins = await this.prisma.user.findMany({
         where: {
           companyId: input.companyId,
           isActive: true,
-          role: { in: ['ADMIN', 'RH'] as any },
+          role: 'ADMIN',
         },
         select: { id: true },
       });
@@ -277,7 +277,8 @@ export class FinanceNotificationService {
       // Tenta via fila Bull primeiro, depois fallback para messageSender direto
       if (this.whatsappQueue) {
         await this.whatsappQueue.add({
-          companyId: input.companyId,
+          sessionKey: process.env.PLATFORM_WHATSAPP_SESSION_KEY || 'innovation-platform',
+          recipientCompanyId: input.companyId,
           phone,
           message,
         });

@@ -10,8 +10,10 @@ export class WhatsappSendWorker {
   constructor(private readonly whatsappProvider: WhatsappProvider) {}
 
   @Process()
-  async handleWhatsappSend(job: Job<{ companyId: string; phone: string; message: string; mediaUrl?: string; mimeType?: string; name?: string }>) {
-    this.logger.log(`Sending WhatsApp message to ${job.data.phone} for company ${job.data.companyId}`);
+  async handleWhatsappSend(job: Job<{ companyId?: string; sessionKey?: string; recipientCompanyId?: string; phone: string; message: string; mediaUrl?: string; mimeType?: string; name?: string }>) {
+    const sessionToUse = job.data.sessionKey || job.data.companyId;
+    if (!sessionToUse) throw new Error('Missing sessionKey or companyId for WhatsApp sending');
+    this.logger.log(`Sending WhatsApp message to ${job.data.phone} from session ${sessionToUse}`);
     try {
       const media = job.data.mediaUrl && job.data.mimeType ? {
         base64: job.data.mediaUrl, // assuming base64 or downloading before sending
@@ -20,7 +22,7 @@ export class WhatsappSendWorker {
       } : undefined;
 
       await this.whatsappProvider.sendMessage(
-        job.data.companyId,
+        sessionToUse,
         job.data.phone,
         job.data.message,
         media
