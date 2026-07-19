@@ -6,6 +6,15 @@ Um sistema corporativo *premium* e completo para Gestão de Recursos Humanos, co
 
 ---
 
+## 🆕 Últimas Atualizações (v1.1.0)
+
+- **Importação de Funcionários Avançada:** Corrigido fluxo completo de importação de funcionários via planilhas Excel (`.xlsx`) com suporte robusto a uploads.
+- **Integração Completa Asaas:** Ajustes finos no redirecionamento do checkout, setup da empresa e prevenção anti-bloqueio (Rate Limit).
+- **Recuperação e Reset de Senhas:** Fluxo de redefinição e recuperação de senhas 100% estabilizado e seguro.
+- **Novas Demonstrações (UI):** Documentação (este README) atualizada com as imagens reais das interfaces atuais do sistema.
+
+---
+
 ## 📸 Conheça o Sistema
 
 Abaixo estão as principais interfaces da plataforma, construídas com um design moderno, limpo e responsivo:
