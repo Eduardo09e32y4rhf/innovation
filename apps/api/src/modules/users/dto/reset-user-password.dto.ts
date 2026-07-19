@@ -5,4 +5,9 @@ export class ResetUserPasswordDto {
   @IsString()
   @MinLength(6)
   password?: string;
+
+  @IsOptional()
+  @IsString()
+  @MinLength(6)
+  newPassword?: string;
 }
