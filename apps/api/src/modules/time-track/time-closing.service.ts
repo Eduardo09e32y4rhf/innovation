@@ -152,7 +152,7 @@ export class TimeClosingService {
 
       const weeklyMinutes = this.weeklyMinutesFromSchedule(schedules[0]?.schedule)
         ?? employee.workScheduleRule?.weeklyMinutes
-        ?? this.defaultWeeklyMinutes(employee.dailyWorkload);
+        ?? this.defaultWeeklyMinutes(employee.dailyWorkload, employee.workScale);
       
       const totalDaysInPeriod = Math.round((periodEnd.getTime() - periodStart.getTime()) / 86400000) + 1;
       const isPartialMonth = totalDaysInPeriod < 28 || totalDaysInPeriod > 31;
@@ -390,8 +390,13 @@ export class TimeClosingService {
     return this.expectedMinutes({}, schedule) * Math.max(1, schedule.workDays?.length || 5);
   }
 
-  private defaultWeeklyMinutes(workload?: string | null): number {
-    return (this.workloadMinutes(workload) ?? 528) * 5;
+  private defaultWeeklyMinutes(workload?: string | null, workScale?: string | null): number {
+    const daily = this.workloadMinutes(workload) ?? 528;
+    let days = 5;
+    const scale = workScale?.toUpperCase();
+    if (scale === '6X1') days = 6;
+    else if (scale === '4X2') days = 4;
+    return daily * days;
   }
 
   private workloadMinutes(value?: string | null): number | null {

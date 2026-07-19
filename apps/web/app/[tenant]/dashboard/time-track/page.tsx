@@ -174,7 +174,7 @@ function dayStatus(row: TimeTrack, holidayName?: string) {
   if (r.includes('atestado integral')) return 'ATESTADO';
   if (r.includes('feriado')) return 'FERIADO';
   if (r.includes('folga dsr')) return 'FOLGA';
-  if (r === 'ajuste_erro_marcacao') return 'MARCAÇÃO INCOMPLETA';
+  if (r === 'ajuste_erro_marcacao') return 'PONTO INCOMPLETO';
   if (r === 'ajuste_abono_atraso') return 'ABONO DE ATRASO';
   if (r === 'ajuste_abono_banco_saida_antecipada') return 'ABONO SAÍDA';
   if (r === 'ajuste_abono_atestado_horas') return 'ATESTADO (HORAS)';
@@ -599,7 +599,7 @@ function downloadCollectiveSheet(month: string, visibleEmployees: Employee[], by
       const hasMissing = !t.entry || !t.exit;
       if (ocorrencia === 'NORMAL') {
         if (isFalta(t)) ocorrencia = 'FALTA NAO JUSTIFICADA';
-        else if (hasMissing) ocorrencia = 'FALTA DE MARCACAO';
+        else if (hasMissing) ocorrencia = 'PONTO INCOMPLETO';
         else ocorrencia = '';
       }
 
@@ -943,7 +943,7 @@ function StatusBadge({ status }: { status: string }) {
     'FOLGA EXTRA':'bg-indigo-50 text-indigo-700 border-indigo-200',
     'FOLGA BANCO':'bg-cyan-50 text-cyan-700 border-cyan-200',
     'AJUSTE MANUAL':'bg-orange-50 text-orange-700 border-orange-200',
-    'MARCAÇÃO INCOMPLETA':'bg-amber-50 text-amber-700 border-amber-200',
+    'PONTO INCOMPLETO':'bg-amber-50 text-amber-700 border-amber-200',
     'ABONO DE ATRASO':'bg-indigo-50 text-indigo-700 border-indigo-200',
     'ABONO SAÍDA':'bg-indigo-50 text-indigo-700 border-indigo-200',
     'FALTA':'bg-rose-50 text-rose-700 border-rose-200',

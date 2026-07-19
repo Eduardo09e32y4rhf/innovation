@@ -108,16 +108,16 @@ export function DashboardSidebar() {
   }));
 
   return (
-    <aside className="sidebar-shell md:w-[228px]">
+    <aside className="sidebar">
       <CompanyBrandCard name={company.data?.name} document={company.data?.document} logoUrl={company.data?.logoUrl} />
 
-      <nav className="flex gap-1 overflow-x-auto md:flex-col md:gap-[3px] md:overflow-visible">
+      <nav className="nav">
         {tenantNavItems.map((item) => (
           <NavItem key={item.href} item={item} active={isActive(pathname, item)} />
         ))}
       </nav>
 
-      <div className="mt-auto hidden pt-4 md:block">
+      <div className="sidebar-footer">
         <UserIdentityCard name={user?.name} email={user?.email} profile={profile} />
       </div>
     </aside>
@@ -126,19 +126,19 @@ export function DashboardSidebar() {
 
 function CompanyBrandCard({ name, document, logoUrl }: { name?: string | null; document?: string | null; logoUrl?: string | null }) {
   return (
-    <div className="sidebar-brand-card">
-      <div className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-[11px] bg-white text-[13px] font-black text-black">
+    <div className="brand">
+      <div className="brand-mark">
         {logoUrl ? (
           <img src={logoUrl} alt="Logo da empresa" className="h-full w-full object-contain rounded-[11px]" />
         ) : (
           'IR'
         )}
       </div>
-      <div className="min-w-0">
-        <strong className="block truncate text-[13px] font-semibold text-white">
+      <div>
+        <strong>
           {normalizeDisplayName(name) || 'Innovation RH'}
         </strong>
-        <span className="mt-[3px] block truncate text-[10px] text-[#85858b]">
+        <span>
           {document || 'Gestão de pessoas'}
         </span>
       </div>
@@ -148,17 +148,17 @@ function CompanyBrandCard({ name, document, logoUrl }: { name?: string | null; d
 
 function UserIdentityCard({ name, email, profile }: { name?: string; email?: string; profile?: string }) {
   return (
-    <div className="sidebar-copilot-card">
-      <div className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-full bg-white text-[11px] font-black text-[#111]">
+    <div className="user-card">
+      <div className="avatar">
         {getInitials(name, email)}
       </div>
-      <div className="min-w-0 flex-1">
-        <strong className="block truncate text-[13px] font-semibold text-white">{normalizeDisplayName(name) || email || 'Usuário'}</strong>
-        <span className="mt-[3px] block truncate text-[10px] text-[#85858b]">
+      <div>
+        <strong>{normalizeDisplayName(name) || email || 'Usuário'}</strong>
+        <span>
           {ROLE_LABEL[profile || ''] ?? profile ?? 'Perfil'}
         </span>
       </div>
-      <button aria-label="Mais opções" className="shrink-0 cursor-pointer border-0 bg-transparent text-[#777]">•••</button>
+      <button aria-label="Mais opções">•••</button>
     </div>
   );
 }
@@ -177,8 +177,8 @@ function NavItem({ item, active }: { item: NavItemConfig; active: boolean }) {
 
   return (
     <div className="flex flex-col">
-      <Link href={item.href} className={`sidebar-nav-item shrink-0 ${active ? 'sidebar-nav-active' : 'sidebar-nav-idle'}`}>
-        <Icon size={15} strokeWidth={active ? 2.2 : 1.8} className="w-[18px] shrink-0 text-center" />
+      <Link href={item.href} className={`nav-item ${active ? 'active' : ''}`}>
+        <span className="icon"><Icon size={15} strokeWidth={active ? 2.2 : 1.8} /></span>
         <span>{item.label}</span>
       </Link>
       {active && visibleSubItems && visibleSubItems.length > 0 && (

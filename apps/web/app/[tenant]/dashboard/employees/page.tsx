@@ -515,7 +515,7 @@ function downloadEmployeeSheet(employee: Employee, rows: TimeTrack[], month: str
     const balanceColor = balance < 0 ? '#e11d48' : balance > 0 ? '#059669' : '#64748b';
     const hasMissing = !t.entry || !t.exit;
     let ocorrencia = dayStatus(t);
-    if (ocorrencia === 'NORMAL') ocorrencia = hasMissing ? 'FALTA DE MARCAÇÃO' : '';
+    if (ocorrencia === 'NORMAL') ocorrencia = hasMissing ? 'PONTO INCOMPLETO' : '';
 
     const he = balance > 0 ? formatMinutes(balance) : '';
     const absent = balance < 0 ? formatMinutes(Math.abs(balance)) : '';
@@ -653,7 +653,7 @@ function downloadEmployeeOcorrenciasSheet(employee: Employee, rows: TimeTrack[],
       const balance = t.dailyBalance ?? 0;
       const hasMissing = !t.entry || !t.exit;
       let ocorrencia = dayStatus(t);
-      if (ocorrencia === 'NORMAL') ocorrencia = hasMissing ? 'FALTA DE MARCAÇÃO' : '';
+      if (ocorrencia === 'NORMAL') ocorrencia = hasMissing ? 'PONTO INCOMPLETO' : '';
       const he = balance > 0 ? formatMinutes(balance) : '';
       const absent = balance < 0 ? formatMinutes(Math.abs(balance)) : '';
       const jornada = formatMinutes(t.totalWorked ?? 0);

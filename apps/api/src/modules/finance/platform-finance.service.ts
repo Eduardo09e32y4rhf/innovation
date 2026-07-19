@@ -55,47 +55,110 @@ export class PlatformFinanceService {
       where: { companyId, deletedAt: null, status: { in: ['OPEN', 'OVERDUE'] }, invoiceUrl: { not: null } },
       orderBy: { createdAt: 'desc' },
     });
-    const description = `${company.platformPlan?.name || 'Plano Innovation'} - primeira mensalidade`;
+    
     if (existing) {
-      await this.ensureSubscription(company.id, customerId, amount, description, company.platformPlan?.cycle || 'MONTHLY', company.asaasSubscriptionId);
+      // If we already have an open invoice, try to ensure subscription exists in background
+      if (!company.asaasSubscriptionId) {
+        this.ensureSubscription(company.id, customerId, amount, 'Mensalidade Innovation RH', company.platformPlan?.cycle || 'MONTHLY').catch(() => {});
+      }
       return { active: false, paymentUrl: existing.invoiceUrl, invoice: existing };
     }
 
-    const dueDate = new Date();
-    dueDate.setUTCDate(dueDate.getUTCDate() + 1);
-    const payment = await this.asaas.createCharge(customerId, {
-      value: amount,
-      dueDate: dueDate.toISOString().slice(0, 10),
-      description,
-      billingType: 'UNDEFINED',
-      externalReference: company.id,
-    });
-    if (!payment.id || !payment.invoiceUrl) {
-      throw new BadRequestException('O Asaas nao retornou o link da cobranca.');
+    let subscriptionId = company.asaasSubscriptionId;
+    if (!subscriptionId) {
+      const cycle = company.platformPlan?.cycle || 'MONTHLY';
+      const sub = await this.asaas.createSubscription(customerId, {
+        value: amount,
+        nextDueDate: new Date().toISOString().slice(0, 10),
+        cycle: ['MONTHLY', 'QUARTERLY', 'YEARLY'].includes(cycle) ? cycle : 'MONTHLY',
+        description: `${company.platformPlan?.name || 'Plano Innovation'} - mensalidade`,
+      });
+      if (sub.id) {
+        subscriptionId = sub.id;
+        await this.prisma.company.update({ where: { id: company.id }, data: { asaasSubscriptionId: subscriptionId } });
+      }
+    }
+
+    let paymentUrl: string | undefined;
+    let asaasPaymentId: string | undefined;
+    let finalStatus = 'OPEN';
+    let paymentDueDate = new Date();
+    let paymentDescription = 'Mensalidade Innovation RH';
+    let paymentBillingType = 'UNDEFINED';
+
+    if (subscriptionId) {
+      try {
+        const paymentsResp = await this.asaas.getPaymentsBySubscription(subscriptionId);
+        const pendingPayment = paymentsResp.data?.find(p => p.status === 'PENDING' || p.status === 'OVERDUE');
+        
+        if (pendingPayment) {
+          paymentUrl = pendingPayment.invoiceUrl;
+          asaasPaymentId = pendingPayment.id;
+          finalStatus = this.mapAsaasStatus(pendingPayment.status) || 'OPEN';
+          paymentDueDate = new Date(pendingPayment.dueDate);
+          paymentDescription = pendingPayment.description || paymentDescription;
+          paymentBillingType = pendingPayment.billingType || 'UNDEFINED';
+        } else if (paymentsResp.data?.length > 0) {
+          const lastPayment = paymentsResp.data[0];
+          if (this.isPaid(lastPayment.status)) {
+            await this.prisma.company.update({
+              where: { id: company.id },
+              data: { status: 'ACTIVE', isActive: true, billingStatus: 'ACTIVE', suspensionReason: null },
+            });
+            return { active: true, paymentUrl: null, invoice: null };
+          }
+        }
+      } catch (error) {
+        this.logger.warn(`Failed to fetch subscription payments for ${companyId}: ${String(error)}`);
+      }
+    }
+
+    if (!asaasPaymentId || !paymentUrl) {
+      // Fallback: create avulsa charge if subscription didn't yield a pending payment immediately
+      const dueDate = new Date();
+      dueDate.setUTCDate(dueDate.getUTCDate() + 1);
+      const payment = await this.asaas.createCharge(customerId, {
+        value: amount,
+        dueDate: dueDate.toISOString().slice(0, 10),
+        description: 'Mensalidade Innovation RH - avulsa',
+        billingType: 'UNDEFINED',
+        externalReference: company.id,
+      });
+      
+      if (!payment.id || !payment.invoiceUrl) {
+        throw new BadRequestException('O Asaas nao retornou o link da cobranca.');
+      }
+      asaasPaymentId = payment.id;
+      paymentUrl = payment.invoiceUrl;
+      finalStatus = 'OPEN';
+      paymentDueDate = dueDate;
+      paymentBillingType = payment.billingType || 'UNDEFINED';
     }
 
     const invoice = await this.prisma.platformInvoice.upsert({
-      where: { asaasPaymentId: payment.id },
+      where: { asaasPaymentId: asaasPaymentId },
       create: {
         companyId: company.id,
         planId: company.platformPlanId,
-        description,
+        description: paymentDescription,
         amount,
-        dueDate,
-        status: 'OPEN',
-        billingType: payment.billingType || 'UNDEFINED',
-        asaasPaymentId: payment.id,
-        invoiceUrl: payment.invoiceUrl,
+        dueDate: paymentDueDate,
+        status: finalStatus as InvoiceStatus,
+        billingType: paymentBillingType,
+        asaasPaymentId,
+        invoiceUrl: paymentUrl,
       },
-      update: { invoiceUrl: payment.invoiceUrl, status: 'OPEN', deletedAt: null },
+      update: { invoiceUrl: paymentUrl, status: finalStatus as InvoiceStatus, deletedAt: null },
     });
 
-    await this.prisma.company.update({
-      where: { id: company.id },
-      data: { status: 'SUSPENDED', isActive: false, billingStatus: 'PAST_DUE', suspensionReason: 'aguardando_pagamento' },
-    });
-    await this.ensureSubscription(company.id, customerId, amount, description, company.platformPlan?.cycle || 'MONTHLY', company.asaasSubscriptionId);
-    return { active: false, paymentUrl: invoice.invoiceUrl, invoice };
+    if (finalStatus !== 'PAID') {
+      await this.prisma.company.update({
+        where: { id: company.id },
+        data: { status: 'SUSPENDED', isActive: false, billingStatus: 'PAST_DUE', suspensionReason: 'aguardando_pagamento' },
+      });
+    }
+
+    return { active: finalStatus === 'PAID', paymentUrl, invoice };
   }
 
   async getCompanyBilling(companyId: string) {

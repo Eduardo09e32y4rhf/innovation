@@ -887,7 +887,7 @@ function SummaryCard({ label, value, sub, color, bg, icon }: { label: string; va
 // ─── Day Detail Panel ─────────────────────────────────────────────────────────
 
 const PONTO_REASONS: { value: string; label: string; fullDay?: boolean }[] = [
-  { value:'ajuste_erro_marcacao', label:'AJUSTE - ERRO MARCAÇÃO', fullDay:false },
+  { value:'ajuste_erro_marcacao', label:'AJUSTE - PONTO INCOMPLETO', fullDay:false },
   { value:'ajuste_atestado_integral', label:'ATESTADO INTEGRAL', fullDay:true },
   { value:'ajuste_feriado', label:'FERIADO', fullDay:true },
   { value:'ajuste_abono_atestado_horas', label:'ABONO - ATESTADO DE HORAS', fullDay:true },
