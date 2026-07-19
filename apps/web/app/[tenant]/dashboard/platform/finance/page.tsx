@@ -69,158 +69,7 @@ function monthLabel(value: string) {
   return new Intl.DateTimeFormat('pt-BR', { month: 'short' }).format(new Date(Number(year), Number(month) - 1, 1)).replace('.', '');
 }
 
-function InvoiceModal({ invoice, companies, onClose, onSaved }: {
-  invoice?: PlatformInvoice;
-  companies: { data: PlatformCompany[]; loading: boolean; error: string | null; refetch: () => void };
-  onClose: () => void;
-  onSaved: () => void;
-}) {
-  const [form, setForm] = useState({
-    companyId: invoice?.companyId ?? '',
-    description: invoice?.description ?? 'Mensalidade Innovation RH',
-    amount: invoice ? String(invoice.amount) : '',
-    dueDate: invoice?.dueDate?.slice(0, 10) ?? new Date().toISOString().slice(0, 10),
-    billingType: invoice?.billingType ?? 'UNDEFINED' as PlatformBillingType,
-    status: invoice?.status ?? 'OPEN' as PlatformInvoiceStatus,
-    sendToAsaas: invoice ? false : true,
-  });
-  const [saving, setSaving] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
-  const selectedCompany = companies.data.find(company => company.id === form.companyId);
-
-  async function save() {
-    const amount = parseMoney(form.amount);
-    if (!form.companyId || !form.description.trim() || amount <= 0 || !form.dueDate) {
-      const message = 'Preencha empresa, descricao, valor maior que zero e vencimento.';
-      setFormError(message);
-      toast.error(message);
-      return;
-    }
-
-    setFormError(null);
-    setSaving(true);
-    try {
-      let saved: PlatformInvoice;
-      if (invoice) {
-        saved = await api.platform.finance.update(invoice.id, {
-          description: form.description.trim(),
-          amount,
-          dueDate: form.dueDate,
-          billingType: form.billingType,
-          status: form.status,
-        });
-      } else {
-        saved = await api.platform.finance.create({
-          companyId: form.companyId,
-          description: form.description.trim(),
-          amount,
-          dueDate: form.dueDate,
-          billingType: form.billingType,
-          sendToAsaas: form.sendToAsaas,
-        });
-      }
-
-      if (saved.invoiceUrl) {
-        await navigator.clipboard?.writeText(saved.invoiceUrl).catch(() => undefined);
-      }
-      if (saved.invoiceUrl) window.open(saved.invoiceUrl, '_blank');
-      toast.success(saved.invoiceUrl ? 'Fatura salva. Link de pagamento aberto e copiado.' : invoice ? 'Fatura atualizada.' : 'Fatura criada.');
-      onSaved();
-    } catch (error) {
-      const message = error instanceof ApiError ? error.message : 'Nao foi possivel salvar a fatura.';
-      setFormError(message);
-      toast.error(message);
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-[2px]">
-      <div className="max-h-[92vh] w-full max-w-xl overflow-y-auto rounded-[16px] border border-slate-200 bg-white shadow-2xl">
-        <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-teal-600">Financeiro</p>
-            <h3 className="text-lg font-black text-slate-950">{invoice ? 'Editar fatura' : 'Nova cobranca'}</h3>
-          </div>
-          <button onClick={onClose} className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700"><X size={18} /></button>
-        </div>
-
-        <div className="space-y-4 p-6">
-          {formError && <p className="rounded-[8px] border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-bold text-rose-700">{formError}</p>}
-          {!invoice && companies.loading && <LoadingState label="Carregando empresas do banco..." />}
-          {!invoice && companies.error && <ErrorState message={companies.error} onRetry={companies.refetch} />}
-          {!invoice && !companies.loading && !companies.error && companies.data.length === 0 && (
-            <EmptyState message="Nenhuma empresa cadastrada no banco. Cadastre uma empresa antes de criar a cobranca." />
-          )}
-          <label className="block text-xs font-bold text-slate-600">
-            Empresa
-            <select
-              value={form.companyId}
-              disabled={!!invoice || companies.loading || !!companies.error}
-              onChange={event => setForm(current => ({ ...current, companyId: event.target.value }))}
-              className="mt-1.5 h-11 w-full rounded-[9px] border border-slate-200 bg-white px-3 text-sm outline-none focus:border-teal-500 disabled:bg-slate-50"
-            >
-              <option value="">{companies.loading ? 'Carregando empresas...' : companies.error ? 'Erro ao carregar empresas' : 'Selecione uma empresa'}</option>
-              {companies.data.map(company => <option key={company.id} value={company.id}>{company.name}</option>)}
-            </select>
-          </label>
-
-          {!invoice && form.companyId && !selectedCompany?.asaasCustomerId && form.sendToAsaas && (
-            <p className="rounded-[8px] border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800">
-              Esta empresa ainda nao possui Customer ID Asaas. Ao salvar, o sistema criara o cliente automaticamente antes da cobranca.
-            </p>
-          )}
-
-          <label className="block text-xs font-bold text-slate-600">
-            Descricao
-            <input value={form.description} maxLength={180} onChange={event => setForm(current => ({ ...current, description: event.target.value }))} className="mt-1.5 h-11 w-full rounded-[9px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500" />
-          </label>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <label className="block text-xs font-bold text-slate-600">
-              Valor
-              <input type="text" inputMode="decimal" placeholder="Ex: 99,90" value={form.amount} onChange={event => setForm(current => ({ ...current, amount: event.target.value }))} className="mt-1.5 h-11 w-full rounded-[9px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500" />
-            </label>
-            <label className="block text-xs font-bold text-slate-600">
-              Vencimento
-              <input type="date" value={form.dueDate} onChange={event => setForm(current => ({ ...current, dueDate: event.target.value }))} className="mt-1.5 h-11 w-full rounded-[9px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500" />
-            </label>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <label className="block text-xs font-bold text-slate-600">
-              Forma de pagamento
-              <select value={form.billingType} onChange={event => setForm(current => ({ ...current, billingType: event.target.value as PlatformBillingType }))} className="mt-1.5 h-11 w-full rounded-[9px] border border-slate-200 bg-white px-3 text-sm outline-none focus:border-teal-500">
-                {Object.entries(BILLING_LABEL).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-              </select>
-            </label>
-            {invoice && (
-              <label className="block text-xs font-bold text-slate-600">
-                Status
-                <select value={form.status} onChange={event => setForm(current => ({ ...current, status: event.target.value as PlatformInvoiceStatus }))} className="mt-1.5 h-11 w-full rounded-[9px] border border-slate-200 bg-white px-3 text-sm outline-none focus:border-teal-500">
-                  {Object.entries(STATUS).map(([value, item]) => <option key={value} value={value}>{item.label}</option>)}
-                </select>
-              </label>
-            )}
-          </div>
-
-          {!invoice && (
-            <label className="flex cursor-pointer items-center gap-3 rounded-[10px] border border-slate-200 bg-slate-50 p-3 text-xs font-bold text-slate-700">
-              <input type="checkbox" checked={form.sendToAsaas} onChange={event => setForm(current => ({ ...current, sendToAsaas: event.target.checked }))} className="h-4 w-4 accent-teal-600" />
-              Criar cobranca automaticamente no Asaas
-            </label>
-          )}
-        </div>
-
-        <div className="flex justify-end gap-2 border-t border-slate-100 px-6 py-4">
-          <button onClick={onClose} className="h-10 rounded-[8px] border border-slate-200 px-4 text-xs font-bold text-slate-600 hover:bg-slate-50">Cancelar</button>
-          <button disabled={saving || (!invoice && (companies.loading || !!companies.error || companies.data.length === 0))} onClick={save} className="crystal-button h-10 rounded-[8px] px-5 text-xs font-black text-white disabled:opacity-50">{saving ? 'Salvando...' : 'Salvar fatura'}</button>
-        </div>
-      </div>
-    </div>
-  );
-}
+// InvoiceModal component removed because finance is now automated via Asaas
 
 export default function FinancePage({ params: { tenant } }: { params: { tenant: string } }) {
   const [search, setSearch] = useState('');
@@ -229,11 +78,8 @@ export default function FinancePage({ params: { tenant } }: { params: { tenant: 
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [page, setPage] = useState(1);
-  const [creating, setCreating] = useState(false);
-  const [editing, setEditing] = useState<PlatformInvoice>();
   const [workingId, setWorkingId] = useState<string>();
 
-  const companies = useQuery(() => api.platform.listCompanies(), []);
   const summary = useQuery(() => api.platform.finance.summary({ from, to }), [from, to]);
   const invoices = useQuery(
     () => api.platform.finance.list({ page, limit: 20, status, search: deferredSearch, from, to }),
@@ -245,19 +91,6 @@ export default function FinancePage({ params: { tenant } }: { params: { tenant: 
     summary.refetch();
   }
 
-  async function remove(invoice: PlatformInvoice) {
-    if (!window.confirm(`Excluir a fatura de ${invoice.company.name}?${invoice.asaasPaymentId ? '\nA cobranca aberta tambem sera cancelada no Asaas.' : ''}`)) return;
-    setWorkingId(invoice.id);
-    try {
-      await api.platform.finance.delete(invoice.id);
-      toast.success('Fatura excluida.');
-      refresh();
-    } catch (error) {
-      toast.error(error instanceof ApiError ? error.message : 'Nao foi possivel excluir.');
-    } finally {
-      setWorkingId(undefined);
-    }
-  }
 
   async function sync(invoice: PlatformInvoice) {
     setWorkingId(invoice.id);
@@ -328,7 +161,6 @@ export default function FinancePage({ params: { tenant } }: { params: { tenant: 
         </div>
         <div className="flex gap-2">
           <button onClick={exportPdf} className="inline-flex h-10 items-center gap-2 rounded-[8px] border border-slate-200 bg-white px-4 text-xs font-bold text-slate-700 hover:bg-slate-50"><ArrowDownToLine size={14} /> Exportar</button>
-          <button onClick={() => setCreating(true)} className="crystal-button inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black text-white"><Plus size={14} /> Nova cobranca</button>
         </div>
       </header>
 
@@ -404,8 +236,6 @@ export default function FinancePage({ params: { tenant } }: { params: { tenant: 
                     <td className="px-5 py-4"><div className="flex justify-end gap-1">
                       {invoice.invoiceUrl && <a href={invoice.invoiceUrl} target="_blank" rel="noreferrer" title="Abrir cobranca" className="rounded-[7px] p-2 text-slate-500 hover:bg-white hover:text-teal-700 hover:shadow-sm"><ExternalLink size={14} /></a>}
                       {invoice.asaasPaymentId && <button disabled={workingId === invoice.id} onClick={() => sync(invoice)} title="Sincronizar" className="rounded-[7px] p-2 text-slate-500 hover:bg-white hover:text-teal-700 hover:shadow-sm disabled:opacity-40"><RefreshCw size={14} /></button>}
-                      <button onClick={() => setEditing(invoice)} title="Editar" className="rounded-[7px] p-2 text-slate-500 hover:bg-white hover:text-sky-700 hover:shadow-sm"><Pencil size={14} /></button>
-                      <button disabled={workingId === invoice.id} onClick={() => remove(invoice)} title="Excluir" className="rounded-[7px] p-2 text-slate-500 hover:bg-white hover:text-rose-700 hover:shadow-sm disabled:opacity-40"><Trash2 size={14} /></button>
                     </div></td>
                   </tr>
                 ))}
@@ -417,7 +247,6 @@ export default function FinancePage({ params: { tenant } }: { params: { tenant: 
         {invoices.data && invoices.data.pagination.total > 0 && <div className="flex items-center justify-between border-t border-slate-100 px-5 py-3 text-xs text-slate-500"><span>{invoices.data.pagination.total} faturas</span><div className="flex items-center gap-2"><button disabled={page <= 1} onClick={() => setPage(current => current - 1)} className="rounded border border-slate-200 px-3 py-1.5 font-bold disabled:opacity-40">Anterior</button><span className="font-bold text-slate-700">{page} / {invoices.data.pagination.pages}</span><button disabled={page >= invoices.data.pagination.pages} onClick={() => setPage(current => current + 1)} className="rounded border border-slate-200 px-3 py-1.5 font-bold disabled:opacity-40">Proxima</button></div></div>}
       </section>
 
-      {(creating || editing) && <InvoiceModal invoice={editing} companies={{ data: companies.data ?? [], loading: companies.loading, error: companies.error, refetch: companies.refetch }} onClose={() => { setCreating(false); setEditing(undefined); }} onSaved={() => { setCreating(false); setEditing(undefined); refresh(); }} />}
     </div>
   );
 }
