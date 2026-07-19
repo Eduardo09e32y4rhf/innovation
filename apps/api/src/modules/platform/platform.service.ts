@@ -33,33 +33,38 @@ export class PlatformService {
   }
 
   async ghostMode(companyId: string, actor?: JwtUser, req?: any) {
+    if (!actor || actor.role !== 'DEV') {
+      throw new ForbiddenException('Acesso de suporte permitido somente ao perfil DEV.');
+    }
+
     const company = await this.repository.getCompany(companyId);
     if (!company) throw new NotFoundException('Empresa não encontrada');
     if (company.status !== 'ACTIVE') {
       throw new ForbiddenException(`Não pode acessar empresa ${company.status === 'SUSPENDED' ? 'suspensa' : 'cancelada'}`);
     }
 
-    const admin = await this.repository.getFirstAdmin(companyId);
-    if (!admin) throw new NotFoundException('Nenhum administrador encontrado nesta empresa');
-    
-    if (actor) {
-      await this.repository.createAuditLog({
-        companyId,
-        action: 'GHOST_MODE_ACCESSED',
-        actor: actor.email,
-        metadata: {
-          targetCompany: company.name,
-          ip: req?.ip || 'unknown',
-          userAgent: req?.headers?.['user-agent'] || 'unknown',
-        },
-      });
-    }
-    
+    const reason = req?.body?.reason || 'Suporte técnico';
+
+    await this.repository.createAuditLog({
+      companyId,
+      action: 'GHOST_MODE_STARTED',
+      actor: actor.email,
+      metadata: {
+        reason,
+        targetCompany: company.name,
+        actorEmail: actor.email,
+        ip: req?.ip || 'unknown',
+        userAgent: req?.headers?.['user-agent'] || 'unknown',
+      },
+    });
+
+    // ✅ Mantém identidade do DEV — não impersona o admin da empresa
     const payload = {
-      sub: admin.id,
-      email: admin.email,
-      role: admin.role,
-      companyId: admin.companyId,
+      sub: actor.sub,
+      email: actor.email,
+      name: actor.name,
+      role: 'DEV' as const,
+      companyId,
       ghostMode: true,
     };
     return { token: this.jwtService.sign(payload) };
