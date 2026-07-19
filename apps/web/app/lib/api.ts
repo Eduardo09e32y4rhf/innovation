@@ -313,6 +313,11 @@ export interface Company {
   phone?: string | null; email?: string | null; address?: string | null;
   cnpj?: string | null; street?: string | null; streetNumber?: string | null;
   neighborhood?: string | null; city?: string | null; state?: string | null; cep?: string | null;
+  zipCode?: string | null; addressComplement?: string | null;
+  stateRegistration?: string | null; municipalRegistration?: string | null;
+  legalRepresentativeName?: string | null; legalRepresentativeCpf?: string | null;
+  legalRepresentativeRole?: string | null; legalRepresentativeEmail?: string | null;
+  legalRepresentativePhone?: string | null;
   latitude?: number | null; longitude?: number | null; radiusTolerance?: number | null;
   primaryColor?: string | null; theme?: string | null;
   commercialOwnerId?: string | null; maxUsers: number; maxEmployees: number;

@@ -228,12 +228,27 @@ function CompanySettings() {
   const [logoUrl, setLogoUrl] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
-  const [address, setAddress] = useState('');
-  const [primaryColor, setPrimaryColor] = useState('');
-  const [theme, setTheme] = useState('light');
-    const [latitude, setLatitude] = useState<number | ''>('');
-    const [longitude, setLongitude] = useState<number | ''>('');
-    const [radiusTolerance, setRadiusTolerance] = useState<number>(150);
+
+  // Endereço
+  const [zipCode, setZipCode] = useState('');
+  const [street, setStreet] = useState('');
+  const [streetNumber, setStreetNumber] = useState('');
+  const [addressComplement, setAddressComplement] = useState('');
+  const [neighborhood, setNeighborhood] = useState('');
+  const [city, setCity] = useState('');
+  const [state, setState] = useState('');
+
+  // Inscrições
+  const [stateRegistration, setStateRegistration] = useState('');
+  const [municipalRegistration, setMunicipalRegistration] = useState('');
+
+  // Representante
+  const [legalRepresentativeName, setLegalRepresentativeName] = useState('');
+  const [legalRepresentativeCpf, setLegalRepresentativeCpf] = useState('');
+  const [legalRepresentativeRole, setLegalRepresentativeRole] = useState('');
+  const [legalRepresentativeEmail, setLegalRepresentativeEmail] = useState('');
+  const [legalRepresentativePhone, setLegalRepresentativePhone] = useState('');
+
   const [removeLogo, setRemoveLogo] = useState(false);
 
   useEffect(() => {
@@ -244,12 +259,23 @@ function CompanySettings() {
       setLogoUrl(company.data.logoUrl ?? '');
       setPhone(company.data.phone ?? '');
       setEmail(company.data.email ?? '');
-      setAddress(company.data.address ?? '');
-      setPrimaryColor(company.data.primaryColor ?? '');
-      setTheme(company.data.theme ?? 'light');
-          setLatitude(company.data.latitude ?? '');
-          setLongitude(company.data.longitude ?? '');
-          setRadiusTolerance(company.data.radiusTolerance ?? 150);
+
+      setZipCode(company.data.zipCode ?? '');
+      setStreet(company.data.street ?? '');
+      setStreetNumber(company.data.streetNumber ?? '');
+      setAddressComplement(company.data.addressComplement ?? '');
+      setNeighborhood(company.data.neighborhood ?? '');
+      setCity(company.data.city ?? '');
+      setState(company.data.state ?? '');
+
+      setStateRegistration(company.data.stateRegistration ?? '');
+      setMunicipalRegistration(company.data.municipalRegistration ?? '');
+
+      setLegalRepresentativeName(company.data.legalRepresentativeName ?? '');
+      setLegalRepresentativeCpf(company.data.legalRepresentativeCpf ?? '');
+      setLegalRepresentativeRole(company.data.legalRepresentativeRole ?? '');
+      setLegalRepresentativeEmail(company.data.legalRepresentativeEmail ?? '');
+      setLegalRepresentativePhone(company.data.legalRepresentativePhone ?? '');
       setRemoveLogo(false);
     }
   }, [company.data]);
@@ -265,12 +291,23 @@ function CompanySettings() {
       logoUrl: removeLogo ? null : logoUrl.trim() || undefined,
       phone: phone.trim() || undefined,
       email: email.trim() || undefined,
-      address: address.trim() || undefined,
-      primaryColor: primaryColor.trim() || undefined,
-      theme: theme || undefined,
-      latitude: latitude === '' ? null : latitude,
-      longitude: longitude === '' ? null : longitude,
-      radiusTolerance: radiusTolerance,
+      
+      zipCode: zipCode.trim() || undefined,
+      street: street.trim() || undefined,
+      streetNumber: streetNumber.trim() || undefined,
+      addressComplement: addressComplement.trim() || undefined,
+      neighborhood: neighborhood.trim() || undefined,
+      city: city.trim() || undefined,
+      state: state.trim() || undefined,
+
+      stateRegistration: stateRegistration.trim() || undefined,
+      municipalRegistration: municipalRegistration.trim() || undefined,
+
+      legalRepresentativeName: legalRepresentativeName.trim() || undefined,
+      legalRepresentativeCpf: legalRepresentativeCpf.trim() || undefined,
+      legalRepresentativeRole: legalRepresentativeRole.trim() || undefined,
+      legalRepresentativeEmail: legalRepresentativeEmail.trim() || undefined,
+      legalRepresentativePhone: legalRepresentativePhone.trim() || undefined,
     }),
     { onSuccess: () => company.refetch() },
   );
@@ -285,8 +322,8 @@ function CompanySettings() {
             <Image size={16} className="text-white" />
           </div>
           <div>
-            <h3 className="text-sm font-black text-slate-950">Dados da empresa</h3>
-            <p className="text-xs font-semibold text-slate-500">Informações cadastrais, logo e identidade visual</p>
+            <h3 className="text-sm font-black text-slate-950">Dados cadastrais e contratuais</h3>
+            <p className="text-xs font-semibold text-slate-500">Informações jurídicas, contato, endereço e representante legal</p>
           </div>
         </div>
       </div>
@@ -332,53 +369,78 @@ function CompanySettings() {
               <span>E-mail da empresa</span>
               <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="contato@empresa.com" disabled={company.loading} className={inputClass} />
             </label>
-                          <label className="space-y-2 text-xs font-bold uppercase tracking-wider text-slate-600">
-                <span>Endereço</span>
-                <input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Rua, número, cidade - UF" disabled={company.loading} className={inputClass} />
-              </label>
-              
-              <div className="col-span-1 sm:col-span-2 grid grid-cols-1 gap-6 sm:grid-cols-3 rounded-[12px] border border-teal-100 bg-teal-50/30 p-4">
-                <div className="sm:col-span-3 flex items-center justify-between">
-                  <div>
-                    <h4 className="text-sm font-black text-slate-900">Geolocalização da Empresa</h4>
-                    <p className="text-xs text-slate-500">Usado para validar a localização dos funcionários ao bater ponto.</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (navigator.geolocation) {
-                        navigator.geolocation.getCurrentPosition(
-                          (pos) => {
-                            setLatitude(pos.coords.latitude);
-                            setLongitude(pos.coords.longitude);
-                          },
-                          (err) => alert('Erro ao pegar localização: ' + err.message),
-                          { enableHighAccuracy: true }
-                        );
-                      } else {
-                        alert('Geolocalização não suportada no navegador.');
-                      }
-                    }}
-                    className="flex items-center gap-2 rounded-lg bg-teal-600 px-3 py-2 text-xs font-bold text-white transition-colors hover:bg-teal-700"
-                  >
-                    <MapPin size={14} /> Pegar Atual
-                  </button>
-                </div>
-                
+            <label className="space-y-2 text-xs font-bold uppercase tracking-wider text-slate-600">
+              <span>Inscrição Estadual</span>
+              <input value={stateRegistration} onChange={(e) => setStateRegistration(e.target.value)} disabled={company.loading} className={inputClass} />
+            </label>
+            <label className="space-y-2 text-xs font-bold uppercase tracking-wider text-slate-600">
+              <span>Inscrição Municipal</span>
+              <input value={municipalRegistration} onChange={(e) => setMunicipalRegistration(e.target.value)} disabled={company.loading} className={inputClass} />
+            </label>
+
+            {/* Endereço */}
+            <div className="sm:col-span-2 mt-4 pt-4 border-t border-slate-100">
+              <h4 className="text-sm font-black text-slate-900 mb-4">Endereço Completo</h4>
+              <div className="grid gap-4 sm:grid-cols-2">
                 <label className="space-y-2 text-xs font-bold uppercase tracking-wider text-slate-600">
-                  <span>Latitude</span>
-                  <input type="number" step="any" value={latitude} onChange={(e) => setLatitude(e.target.value ? Number(e.target.value) : '')} className={inputClass} placeholder="-23.55052" disabled={company.loading} />
+                  <span>CEP</span>
+                  <input value={zipCode} onChange={(e) => setZipCode(e.target.value)} disabled={company.loading} className={inputClass} />
+                </label>
+                <label className="space-y-2 text-xs font-bold uppercase tracking-wider text-slate-600 sm:col-span-2">
+                  <span>Logradouro</span>
+                  <input value={street} onChange={(e) => setStreet(e.target.value)} disabled={company.loading} className={inputClass} />
                 </label>
                 <label className="space-y-2 text-xs font-bold uppercase tracking-wider text-slate-600">
-                  <span>Longitude</span>
-                  <input type="number" step="any" value={longitude} onChange={(e) => setLongitude(e.target.value ? Number(e.target.value) : '')} className={inputClass} placeholder="-46.63330" disabled={company.loading} />
+                  <span>Número</span>
+                  <input value={streetNumber} onChange={(e) => setStreetNumber(e.target.value)} disabled={company.loading} className={inputClass} />
                 </label>
                 <label className="space-y-2 text-xs font-bold uppercase tracking-wider text-slate-600">
-                  <span>Tolerância (metros)</span>
-                  <input type="number" value={radiusTolerance} onChange={(e) => setRadiusTolerance(Number(e.target.value))} className={inputClass} disabled={company.loading} />
+                  <span>Complemento</span>
+                  <input value={addressComplement} onChange={(e) => setAddressComplement(e.target.value)} disabled={company.loading} className={inputClass} />
+                </label>
+                <label className="space-y-2 text-xs font-bold uppercase tracking-wider text-slate-600">
+                  <span>Bairro</span>
+                  <input value={neighborhood} onChange={(e) => setNeighborhood(e.target.value)} disabled={company.loading} className={inputClass} />
+                </label>
+                <label className="space-y-2 text-xs font-bold uppercase tracking-wider text-slate-600">
+                  <span>Cidade</span>
+                  <input value={city} onChange={(e) => setCity(e.target.value)} disabled={company.loading} className={inputClass} />
+                </label>
+                <label className="space-y-2 text-xs font-bold uppercase tracking-wider text-slate-600">
+                  <span>Estado (UF)</span>
+                  <input value={state} onChange={(e) => setState(e.target.value)} disabled={company.loading} className={inputClass} />
                 </label>
               </div>
-            <label className="space-y-2 text-xs font-bold uppercase tracking-wider text-slate-600 sm:col-span-2">
+            </div>
+
+            {/* Representante Legal */}
+            <div className="sm:col-span-2 mt-4 pt-4 border-t border-slate-100">
+              <h4 className="text-sm font-black text-slate-900 mb-4">Representante Legal</h4>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="space-y-2 text-xs font-bold uppercase tracking-wider text-slate-600">
+                  <span>Nome completo</span>
+                  <input value={legalRepresentativeName} onChange={(e) => setLegalRepresentativeName(e.target.value)} disabled={company.loading} className={inputClass} />
+                </label>
+                <label className="space-y-2 text-xs font-bold uppercase tracking-wider text-slate-600">
+                  <span>CPF</span>
+                  <input value={legalRepresentativeCpf} onChange={(e) => setLegalRepresentativeCpf(e.target.value)} disabled={company.loading} className={inputClass} />
+                </label>
+                <label className="space-y-2 text-xs font-bold uppercase tracking-wider text-slate-600">
+                  <span>Cargo / Função</span>
+                  <input value={legalRepresentativeRole} onChange={(e) => setLegalRepresentativeRole(e.target.value)} disabled={company.loading} className={inputClass} />
+                </label>
+                <label className="space-y-2 text-xs font-bold uppercase tracking-wider text-slate-600">
+                  <span>E-mail</span>
+                  <input type="email" value={legalRepresentativeEmail} onChange={(e) => setLegalRepresentativeEmail(e.target.value)} disabled={company.loading} className={inputClass} />
+                </label>
+                <label className="space-y-2 text-xs font-bold uppercase tracking-wider text-slate-600">
+                  <span>Telefone</span>
+                  <input value={legalRepresentativePhone} onChange={(e) => setLegalRepresentativePhone(e.target.value)} disabled={company.loading} className={inputClass} />
+                </label>
+              </div>
+            </div>
+
+            <label className="space-y-2 text-xs font-bold uppercase tracking-wider text-slate-600 sm:col-span-2 mt-4 pt-4 border-t border-slate-100">
               <div className="flex items-center justify-between">
                 <span>Logo da Empresa (URL ou Upload)</span>
                 <div className="relative overflow-hidden rounded bg-teal-50 px-3 py-1 text-[10px] font-bold text-teal-700 hover:bg-teal-100 cursor-pointer">
@@ -397,27 +459,12 @@ function CompanySettings() {
                         setLogoUrl(result);
                       };
                       reader.readAsDataURL(file);
-                      e.target.value = ''; // Limpa para permitir selecionar o mesmo arquivo novamente
+                      e.target.value = '';
                     }}
                   />
                 </div>
               </div>
               <input value={removeLogo ? '' : logoUrl} onChange={(e) => { setRemoveLogo(false); setLogoUrl(e.target.value); }} placeholder="https://seudominio.com/logo.png ou faça o upload..." disabled={company.loading} className={inputClass} />
-              <span className="block text-[10px] font-semibold text-slate-400">Insira um link HTTPS ou faça upload do seu computador/celular. (A imagem será otimizada).</span>
-            </label>
-            <label className="space-y-2 text-xs font-bold uppercase tracking-wider text-slate-600">
-              <span>Cor principal</span>
-              <div className="flex gap-2">
-                <input type="color" value={primaryColor || '#0d9488'} onChange={(e) => setPrimaryColor(e.target.value)} className="h-11 w-11 cursor-pointer rounded-[10px] border border-slate-200 p-1" />
-                <input value={primaryColor} onChange={(e) => setPrimaryColor(e.target.value)} placeholder="#0d9488" disabled={company.loading} className={inputClass} />
-              </div>
-            </label>
-            <label className="space-y-2 text-xs font-bold uppercase tracking-wider text-slate-600">
-              <span>Tema</span>
-              <select value={theme} onChange={(e) => setTheme(e.target.value)} disabled={company.loading} className={inputClass}>
-                <option value="light">Claro</option>
-                <option value="dark">Escuro</option>
-              </select>
             </label>
             <div className="sm:col-span-2">
               <button

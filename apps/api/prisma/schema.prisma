@@ -251,15 +251,36 @@ enum ActivityEntityType {
 }
 
 model Company {
-  id                    String        @id @default(uuid()) @db.Uuid
-  name                  String
-  slug                  String?       @unique
-  legalName             String?
-  document              String?       @unique
-  logoUrl               String?       @db.Text
-  phone                 String?
-  email                 String?
-  address               String?
+  id        String  @id @default(uuid()) @db.Uuid
+  name      String
+  slug      String? @unique
+  legalName String?
+  document  String? @unique
+  logoUrl   String? @db.Text
+  phone     String?
+  email     String?
+  address   String? // Mantido para migração
+
+  // Dados Contratuais e Fiscais
+  stateRegistration     String?
+  municipalRegistration String?
+
+  // Endereço Estruturado
+  zipCode           String?
+  street            String?
+  streetNumber      String?
+  addressComplement String?
+  neighborhood      String?
+  city              String?
+  state             String?
+
+  // Representante Legal
+  legalRepresentativeName  String?
+  legalRepresentativeCpf   String?
+  legalRepresentativeRole  String?
+  legalRepresentativeEmail String?
+  legalRepresentativePhone String?
+
   latitude              Float?
   longitude             Float?
   radiusTolerance       Int?          @default(150)
@@ -318,12 +339,12 @@ model Company {
   overtimeRule      OvertimeRule?
   holidays          Holiday[]
   timeClosings      TimeClosing[]
-  platformPlan      PlatformPlan?      @relation(fields: [platformPlanId], references: [id])
-  platformInvoices    PlatformInvoice[]
-  platformContract    PlatformContract?
-  proposals           Proposal[]
-  financeConfig       CompanyFinanceConfig?
-  financeNotifLogs    FinanceNotificationLog[]
+  platformPlan      PlatformPlan?            @relation(fields: [platformPlanId], references: [id])
+  platformInvoices  PlatformInvoice[]
+  platformContract  PlatformContract?
+  proposals         Proposal[]
+  financeConfig     CompanyFinanceConfig?
+  financeNotifLogs  FinanceNotificationLog[]
 
   // Módulo Escala
   schedules          Schedule[]
@@ -1270,15 +1291,15 @@ model PlatformInvoice {
   updatedAt      DateTime      @updatedAt
 
   // Campos de nota fiscal (NFS-e via Asaas)
-  asaasInvoiceId         String?   @unique
-  invoiceNumber          String?
-  invoiceSeries          String?
-  invoiceValidationCode  String?
-  fiscalPdfUrl           String?
-  fiscalXmlUrl           String?
-  invoiceAuthorizedAt    DateTime?
-  invoiceCanceledAt      DateTime?
-  invoiceStatus          String?   // AUTHORIZED, CANCELED, ERROR
+  asaasInvoiceId        String?   @unique
+  invoiceNumber         String?
+  invoiceSeries         String?
+  invoiceValidationCode String?
+  fiscalPdfUrl          String?
+  fiscalXmlUrl          String?
+  invoiceAuthorizedAt   DateTime?
+  invoiceCanceledAt     DateTime?
+  invoiceStatus         String? // AUTHORIZED, CANCELED, ERROR
 
   company Company       @relation(fields: [companyId], references: [id])
   plan    PlatformPlan? @relation(fields: [planId], references: [id])
@@ -1300,10 +1321,10 @@ model CompanyFinanceConfig {
   whatsappNotificationsEnabled Boolean @default(false)
 
   // Quais eventos notificar
-  notifyChargeCreated    Boolean @default(true)
-  notifyPaymentConfirmed Boolean @default(true)
-  notifyPaymentOverdue   Boolean @default(true)
-  notifyPaymentCanceled  Boolean @default(true)
+  notifyChargeCreated     Boolean @default(true)
+  notifyPaymentConfirmed  Boolean @default(true)
+  notifyPaymentOverdue    Boolean @default(true)
+  notifyPaymentCanceled   Boolean @default(true)
   notifyInvoiceAuthorized Boolean @default(true)
 
   // Telefone financeiro (pode ser diferente do telefone da empresa)
@@ -1323,17 +1344,17 @@ model FinanceNotificationLog {
   paymentId String?
   invoiceId String?
   eventType String
-  channel   String   // INTERNAL, WHATSAPP, EMAIL
+  channel   String // INTERNAL, WHATSAPP, EMAIL
   recipient String?
-  status    String   // PENDING, SENT, FAILED, SKIPPED
+  status    String // PENDING, SENT, FAILED, SKIPPED
 
   providerId   String?
   errorMessage String?
 
-  idempotencyKey String   @unique
+  idempotencyKey String    @unique
   sentAt         DateTime?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
