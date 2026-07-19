@@ -44,7 +44,13 @@ type Opts = { method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE'; body?: unkno
 export async function request<T>(path: string, opts: Opts = {}): Promise<T> {
   const { method = 'GET', body, silent, timeoutMs } = opts;
   const headers: Record<string, string> = {};
-  if (body !== undefined) headers['Content-Type'] = 'application/json';
+  if (body !== undefined) {
+    if (typeof FormData !== 'undefined' && body instanceof FormData) {
+      // Deixa o browser setar o Content-Type com o boundary
+    } else {
+      headers['Content-Type'] = 'application/json';
+    }
+  }
   const token = getToken();
   if (token) headers['Authorization'] = `Bearer ${token}`;
 
@@ -56,7 +62,7 @@ export async function request<T>(path: string, opts: Opts = {}): Promise<T> {
     res = await fetch(`${API_URL}${path}`, {
       method,
       headers,
-      body: body !== undefined ? JSON.stringify(body) : undefined,
+      body: body !== undefined ? (typeof FormData !== 'undefined' && body instanceof FormData ? body : JSON.stringify(body)) : undefined,
       signal: controller?.signal,
     });
   } catch (err) {

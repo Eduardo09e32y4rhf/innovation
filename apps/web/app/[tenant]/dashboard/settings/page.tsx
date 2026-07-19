@@ -533,43 +533,24 @@ function ImportExportSection() {
     setImporting(true);
 
     try {
-      const text = await importFile.text();
-      const result = parseCSV(text);
-      
-      if (result.errors.length > 0) {
-        setImportStatus({ type: 'error', message: `Erro ao importar: ${result.errors.join(', ')}` });
-        setImporting(false);
-        return;
-      }
+      const formData = new FormData();
+      formData.append('file', importFile);
 
-      // Import employees one by one
-      let imported = 0;
-      let errors = 0;
-      for (const row of result.rows) {
-        try {
-          await api.employees.create({
-            name: row['Nome'] || row['name'] || '',
-            cpf: row['CPF'] || row['cpf'] || '',
-            email: row['Email'] || row['email'] || '',
-            position: row['Cargo'] || row['position'] || '',
-            department: row['Departamento'] || row['department'] || '',
-            admissionDate: row['Admissão'] || row['admissionDate'] || new Date().toISOString(),
-            registration: row['Matrícula'] || row['registration'] || undefined,
-            phone: row['Telefone'] || row['phone'] || undefined,
-          });
-          imported++;
-        } catch {
-          errors++;
-        }
+      const result = await api.request<{ message: string; imported: number; errors: string[] }>('/employees/import', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (result.errors && result.errors.length > 0) {
+        setImportStatus({ type: 'error', message: `Importação parcial/com erro. Verifique o console. ${result.imported} sucesso(s), ${result.errors.length} erro(s).` });
+        console.error('Erros de importação:', result.errors);
+      } else {
+        setImportStatus({ type: 'success', message: result.message });
       }
 
       employees.refetch();
-      setImportStatus({ 
-        type: 'success', 
-        message: `${imported} funcionário(s) importado(s)${errors > 0 ? `, ${errors} erro(s)` : ''}!` 
-      });
     } catch (err) {
-      setImportStatus({ type: 'error', message: 'Erro ao processar o arquivo. Verifique o formato CSV.' });
+      setImportStatus({ type: 'error', message: err instanceof Error ? err.message : 'Erro ao processar o arquivo. Verifique o formato (.xlsx).' });
     }
     setImporting(false);
     setImportFile(null);
@@ -586,7 +567,7 @@ function ImportExportSection() {
           </div>
           <div>
             <h3 className="text-sm font-black text-slate-950">Importar / Exportar dados</h3>
-            <p className="text-xs font-semibold text-slate-500">Exporte cadastros e pontos ou importe funcionários via CSV</p>
+            <p className="text-xs font-semibold text-slate-500">Exporte dados do sistema ou importe novos funcionários</p>
           </div>
         </div>
       </div>
@@ -604,7 +585,16 @@ function ImportExportSection() {
 
         {/* Import */}
         <div className="border-t border-slate-100 pt-6">
-          <p className="text-xs font-black uppercase tracking-wider text-slate-600 mb-3">Importar funcionários</p>
+          <div className="flex justify-between items-center mb-3">
+            <p className="text-xs font-black uppercase tracking-wider text-slate-600">Importar funcionários</p>
+            <a 
+              href={`${process.env.NEXT_PUBLIC_API_URL || '/api'}/employees/import/template`} 
+              className="text-xs font-bold text-teal-600 hover:text-teal-700 flex items-center gap-1"
+              download
+            >
+              <FileSpreadsheet size={14} /> Baixar Modelo XLSX
+            </a>
+          </div>
           
           {importStatus && (
             <div className={`mb-4 rounded-[10px] px-4 py-2.5 text-xs font-semibold flex items-center gap-2 ${
@@ -619,16 +609,13 @@ function ImportExportSection() {
 
           <div className="grid gap-4 sm:grid-cols-[1fr_auto]">
             <label className="space-y-2 text-xs font-bold uppercase tracking-wider text-slate-600">
-              <span>Arquivo CSV</span>
+              <span>Arquivo XLSX preenchido</span>
               <input 
                 type="file" 
-                accept=".csv,.xls,.xlsx" 
+                accept=".xlsx" 
                 onChange={(e) => setImportFile(e.target.files?.[0] || null)}
                 className="h-11 w-full rounded-[10px] border border-slate-200 bg-white px-4 text-sm text-slate-900 shadow-sm outline-none transition-all focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10 file:mr-3 file:rounded-[6px] file:border-0 file:bg-teal-50 file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-teal-700 hover:file:bg-teal-100"
               />
-              <span className="text-[10px] font-semibold text-slate-400">
-                Colunas esperadas: Nome, CPF, Email, Departamento, Cargo, Admissão, Matrícula, Telefone
-              </span>
             </label>
             <button 
               onClick={handleImport} 
@@ -724,55 +711,7 @@ function downloadCSV(data: unknown[], headers: string[], filename: string) {
   URL.revokeObjectURL(url);
 }
 
-function parseCSV(text: string): { rows: Record<string, string>[]; errors: string[] } {
-  const errors: string[] = [];
-  const lines = text.split('\n').filter(line => line.trim());
-  if (lines.length < 2) {
-    errors.push('Arquivo deve conter cabeçalho e pelo menos 1 linha de dados');
-    return { rows: [], errors };
-  }
 
-  const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
-  const rows: Record<string, string>[] = [];
-
-  for (let i = 1; i < lines.length; i++) {
-    const values = parseCSVLine(lines[i]);
-    const row: Record<string, string> = {};
-    headers.forEach((header, idx) => {
-      row[header] = values[idx]?.trim() || '';
-    });
-    if (row['Nome'] || row['name'] || row['CPF'] || row['cpf']) {
-      rows.push(row);
-    }
-  }
-
-  return { rows, errors };
-}
-
-function parseCSVLine(line: string): string[] {
-  const result: string[] = [];
-  let current = '';
-  let inQuotes = false;
-
-  for (let i = 0; i < line.length; i++) {
-    const char = line[i];
-    if (char === '"') {
-      if (inQuotes && line[i + 1] === '"') {
-        current += '"';
-        i++;
-      } else {
-        inQuotes = !inQuotes;
-      }
-    } else if (char === ',' && !inQuotes) {
-      result.push(current);
-      current = '';
-    } else {
-      current += char;
-    }
-  }
-  result.push(current);
-  return result.map(v => v.replace(/^"|"$/g, ''));
-}
 
 function formatCnpj(value: string) {
   const digits = value.replace(/\D/g, '').slice(0, 14);

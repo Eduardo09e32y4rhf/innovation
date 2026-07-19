@@ -4,6 +4,7 @@ import { NestFactory, Reflector } from '@nestjs/core';
 import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
 import fastifyCookie from '@fastify/cookie';
 import fastifyHelmet from '@fastify/helmet';
+import fastifyMultipart from '@fastify/multipart';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { NoCacheInterceptor } from './common/interceptors/no-cache.interceptor';
@@ -67,6 +68,11 @@ async function bootstrap() {
         : false,
   });
   await app.register(fastifyCookie);
+  await app.register(fastifyMultipart, {
+    limits: {
+      fileSize: 10 * 1024 * 1024, // 10MB
+    },
+  });
 
   app.enableCors({
     origin: allowedOrigins.length
