@@ -110,10 +110,13 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
       router.replace('/login');
     }
 
-    if (!loading && isAuthenticated && user && user.profile?.toUpperCase() !== 'DEV' && (user.companyStatus === 'SUSPENDED' || user.companyStatus === 'CANCELLED' || user.billingStatus === 'CANCELED')) {
-      const slug = (company as any)?.slug || company?.name?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || company?.id || 'company';
-      if (!window.location.pathname.includes('/fatura-pendente')) {
-        router.replace(`/${slug}/fatura-pendente`);
+    if (!loading && isAuthenticated && user && user.profile?.toUpperCase() !== 'DEV') {
+      const mustPay = user.companyStatus === 'SUSPENDED' || user.companyStatus === 'CANCELLED' || user.billingStatus === 'CANCELED' || user.billingStatus === 'PENDING_PAYMENT';
+      if (mustPay) {
+        const slug = (company as any)?.slug || company?.name?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || company?.id || 'company';
+        if (!window.location.pathname.includes('/fatura-pendente')) {
+          router.replace(`/${slug}/fatura-pendente`);
+        }
       }
     }
   }, [isAuthenticated, loading, router, user, company]);

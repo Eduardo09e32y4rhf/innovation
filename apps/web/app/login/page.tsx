@@ -33,8 +33,8 @@ export default function LoginPage() {
       const mustPay =
         user?.companyStatus === 'SUSPENDED' ||
         user?.companyStatus === 'CANCELLED' ||
-        user?.billingStatus === 'PAST_DUE' ||
-        user?.billingStatus === 'CANCELED';
+        user?.billingStatus === 'CANCELED' ||
+        user?.billingStatus === 'PENDING_PAYMENT';
       router.push(mustPay ? `/${slug}/fatura-pendente?autoCheckout=1` : `/${slug}/dashboard`);
     }
   }, [isAuthenticated, company, user, router]);

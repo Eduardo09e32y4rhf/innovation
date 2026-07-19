@@ -152,7 +152,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   useEffect(() => {
     if (!token || !user || token === LOCAL_SESSION_TOKEN) return;
-    const pendingBilling = user.companyStatus === 'SUSPENDED' || user.companyStatus === 'CANCELLED' || user.billingStatus === 'PAST_DUE' || user.billingStatus === 'CANCELED';
+    const pendingBilling = user.companyStatus === 'SUSPENDED' || user.companyStatus === 'CANCELLED' || user.billingStatus === 'CANCELED' || user.billingStatus === 'PENDING_PAYMENT';
     if (pendingBilling) return;
     api.users.ping().catch(() => {});
     const interval = setInterval(() => {

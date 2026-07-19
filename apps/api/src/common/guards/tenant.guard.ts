@@ -25,12 +25,24 @@ export class TenantGuard implements CanActivate {
     });
     if (!company) throw new UnauthorizedException('Company not found');
 
-    const blocked = company.status !== 'ACTIVE' || company.billingStatus === 'CANCELED';
+    // Bloqueia se a empresa estiver suspensa ou se a assinatura estiver cancelada/aguardando ativação inicial
+    const blocked = company.status !== 'ACTIVE' || ['CANCELED', 'PENDING_PAYMENT'].includes(company.billingStatus);
     if (!blocked) return true;
 
     const path = String(request.url || request.raw?.url || '');
-    const allowedWhileBlocked = path.startsWith('/finance/company') || path.startsWith('/auth/');
-    if (allowedWhileBlocked && user.role === 'ADMIN') return true;
+    const isAuthRoute = path.startsWith('/auth/');
+    const isFinanceRoute = path.startsWith('/finance/');
+
+    if (user.role === 'ADMIN') {
+      if (isAuthRoute) return true; // Pode sempre fazer logout ou login
+      if (company.billingStatus === 'CANCELED') {
+         // Cancelado: sem acesso financeiro (deveria ir pro suporte/saida), vamos permitir apenas auth por enquanto
+         if (isAuthRoute) return true;
+      } else {
+         // Suspensa ou aguardando pagamento: permite tela financeira para regularizar
+         if (isFinanceRoute) return true;
+      }
+    }
 
     throw new ForbiddenException({
       code: 'COMPANY_BILLING_BLOCKED',
