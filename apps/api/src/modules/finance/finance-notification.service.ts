@@ -199,17 +199,18 @@ export class FinanceNotificationService {
           data: {
             companyId: input.companyId,
             title,
-            body,
+            message: body,
             type: 'PLATFORM_NOTICE' as any,
             priority: input.type === 'PAYMENT_OVERDUE' ? 'HIGH' : 'NORMAL' as any,
             status: 'SENT' as any,
-            metadata: JSON.stringify({
+            source: 'FINANCE',
+            extraJson: {
               financeEventType: input.type,
               paymentId: input.paymentId,
               invoiceId: input.invoiceId,
               amount: input.amount,
-            }),
-            senderId: null,
+            },
+            createdBy: null,
             recipients: {
               create: admins.map(u => ({ userId: u.id, status: 'UNREAD' as any })),
             },
