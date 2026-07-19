@@ -31,8 +31,8 @@ export class AuthRepository {
   listPublicPlans() {
     return this.prisma.platformPlan.findMany({
       where: { isActive: true, isHidden: false },
-      orderBy: { price: 'asc' },
-      select: { id: true, name: true, description: true, price: true, cycle: true, maxUsers: true, maxEmployees: true, activeModules: true, isFree: true },
+      orderBy: { displayOrder: 'asc' },
+      select: { id: true, name: true, description: true, price: true, cycle: true, maxUsers: true, maxEmployees: true, activeModules: true, isFree: true, code: true, commitmentMonths: true, discountPercent: true, baseMonthlyPrice: true, userMonthlyPrice: true, asaasCycle: true, pricingVersion: true },
     });
   }
 

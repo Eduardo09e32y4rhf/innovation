@@ -43,6 +43,9 @@ export class PlatformPlansService {
     return {
       ...plan,
       price: this.moneyToNumber(plan.price),
+      discountPercent: this.moneyToNumber(plan.discountPercent),
+      baseMonthlyPrice: this.moneyToNumber(plan.baseMonthlyPrice),
+      userMonthlyPrice: this.moneyToNumber(plan.userMonthlyPrice),
     };
   }
   private normalizePlanPayload(data: any, creating: boolean) {
@@ -54,6 +57,11 @@ export class PlatformPlansService {
       }
       payload.price = price;
     }
+    if (payload.discountPercent !== undefined) payload.discountPercent = this.moneyToNumber(payload.discountPercent);
+    if (payload.baseMonthlyPrice !== undefined) payload.baseMonthlyPrice = this.moneyToNumber(payload.baseMonthlyPrice);
+    if (payload.userMonthlyPrice !== undefined) payload.userMonthlyPrice = this.moneyToNumber(payload.userMonthlyPrice);
+    if (payload.commitmentMonths !== undefined) payload.commitmentMonths = Number(payload.commitmentMonths) || 1;
+    
     if (payload.maxUsers !== undefined) payload.maxUsers = Math.max(1, Number(payload.maxUsers) || 1);
     if (payload.maxEmployees !== undefined) payload.maxEmployees = Math.max(1, Number(payload.maxEmployees) || 1);
     return payload;
