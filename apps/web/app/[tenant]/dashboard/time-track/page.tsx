@@ -465,7 +465,7 @@ export default function TimeTrackPage() {
             <div className="divide-y divide-zinc-100">
               {visible.map(emp=>{
                 const rows = byEmpMap[emp.id] ?? [];
-                const grid = buildGrid(month, emp, rows, company.data?.payrollStartDay || 1, holidays.data || [], teamSchedules.data?.withSchedule || []);
+                const grid = buildGrid(month, emp, rows, (company.data as any)?.payrollStartDay || 1, holidays.data || [], teamSchedules.data?.withSchedule || []);
                 const { worked, saldo } = getEffectiveStatsFromGrid(grid);
                 const faltas = rows.filter(isFalta).length;
                 return (
