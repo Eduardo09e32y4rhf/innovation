@@ -21,23 +21,18 @@ Abaixo estão as principais interfaces da plataforma, construídas com um design
 
 ### 📊 1. Painel Executivo (Dashboard)
 Visão consolidada da operação de RH em tempo real. Acompanhe métricas vitais como funcionários ativos, jornadas registradas no dia, saldo do banco de horas global, e alertas críticos (férias pendentes, alertas cadastrais e aniversariantes).
-![Painel Executivo](screenshots/01_dashboard.png)
 
 ### 👥 2. Cadastro da Equipe (Funcionários)
 Módulo centralizado para gestão do quadro de colaboradores. Listagem interativa com filtros avançados, exibição de status, departamento, cargo e nível de acesso ao sistema, permitindo ações rápidas como edição, desligamento e acesso rápido ao espelho de ponto.
-![Gestão de Funcionários](screenshots/02_employees.png)
 
 ### 🏖️ 3. Gestão de Férias
 Módulo completo para solicitação, aprovação e acompanhamento de férias dos colaboradores. Visualização em calendário, cálculo automático de saldo, regras de vencimento e integração com a folha de ponto.
-![Gestão de Férias](screenshots/03_vacations.png)
 
 ### ⏱️ 4. Folha de Ponto (Gestão de Jornada)
 Painel do gestor e do RH para acompanhamento do espelho de ponto de toda a equipe. Visão consolidada por colaborador mostrando as horas trabalhadas e saldos (positivos ou negativos) no mês selecionado, permitindo auditoria detalhada, aprovação em lote e exportação.
-![Folha de Ponto](screenshots/04_time-track.png)
 
 ### 📅 5. Gestão de RH (Agenda & Operacional)
 Módulo administrativo completo para gestão de compromissos, exames ocupacionais (ASO), notificações, regras de negócio da jornada e fechamento de folha. Possui visualização intuitiva em calendário (Agenda) e Kanban para facilitar o dia a dia da equipe de DP/RH.
-![Gestão de RH](screenshots/05_management.png)
 
 ---
 
