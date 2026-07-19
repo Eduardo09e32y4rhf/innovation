@@ -179,23 +179,23 @@ function DashboardContent() {
   return (
 <div className="mx-auto max-w-7xl space-y-4 px-3 py-4 sm:px-6 lg:px-8">
       {/* Premium Hero Section */}
-      <section className="mb-6 overflow-hidden rounded-3xl bg-black p-8 text-white shadow-sm sm:p-10">
-        <div className="flex flex-col gap-8 md:flex-row md:items-end md:justify-between">
-          <div className="flex flex-col gap-2">
-            <span className="text-xs font-bold uppercase tracking-widest text-[#8A05BE]">{presentation.eyebrow}</span>
-            <h2 className="text-3xl font-black tracking-tight sm:text-4xl">{presentation.title}</h2>
-            <p className="mt-2 text-sm font-medium text-white/70 max-w-xl">{presentation.description}</p>
+      <section className="mb-4 overflow-hidden rounded-xl bg-black p-5 text-white shadow-sm">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="flex flex-col gap-1">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-[#8A05BE]">{presentation.eyebrow}</span>
+            <h2 className="text-xl font-black tracking-tight">{presentation.title}</h2>
+            <p className="text-[11px] font-medium text-white/70 max-w-xl">{presentation.description}</p>
           </div>
           
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             {actionShortcuts.map((action, i) => {
               const Icon = action.icon;
               return (
-                <Link key={i} href={action.href} className="group relative flex flex-col items-center gap-2">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/10 text-white transition-all hover:scale-105 hover:bg-[#8A05BE]">
-                    <Icon size={20} strokeWidth={2.5} />
+                <Link key={i} href={action.href} className="group relative flex flex-col items-center gap-1">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/10 text-white transition-all hover:scale-105 hover:bg-[#8A05BE]">
+                    <Icon size={16} strokeWidth={2.5} />
                   </div>
-                  <span className="text-[10px] font-bold text-white/70 transition-colors group-hover:text-white">{action.label}</span>
+                  <span className="text-[9px] font-bold text-white/70 transition-colors group-hover:text-white">{action.label}</span>
                 </Link>
               );
             })}
@@ -205,14 +205,14 @@ function DashboardContent() {
 
       {/* Filters */}
       {!isFuncionario && !isCommercial && (
-        <section className="flex flex-col gap-4 rounded-2xl bg-white p-4 border border-slate-200 sm:flex-row sm:items-center">
-          <label className="flex flex-1 flex-col gap-1.5">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Mês de Referência</span>
-            <input type="month" value={dashMonth} onChange={(e) => setDashMonth(e.target.value)} className="form-control" />
+        <section className="flex flex-col gap-3 rounded-xl bg-white p-3 border border-slate-200 sm:flex-row sm:items-center mb-4">
+          <label className="flex flex-1 flex-col gap-1">
+            <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500">Mês de Referência</span>
+            <input type="month" value={dashMonth} onChange={(e) => setDashMonth(e.target.value)} className="form-control h-8 text-xs" />
           </label>
-          <label className="flex flex-1 flex-col gap-1.5">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Departamento</span>
-            <select value={dashDept} onChange={(e) => setDashDept(e.target.value)} className="form-control">
+          <label className="flex flex-1 flex-col gap-1">
+            <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500">Departamento</span>
+            <select value={dashDept} onChange={(e) => setDashDept(e.target.value)} className="form-control h-8 text-xs">
               <option value="">Todos os Departamentos</option>
               {departments.map((d) => <option key={d} value={d}>{d}</option>)}
             </select>
@@ -571,27 +571,23 @@ function MetricCard({ label, value, icon: Icon, detail, trend, trendColor = 'eme
   trend?: string; trendColor?: string; alert?: boolean; loading?: boolean;
 }) {
   return (
-    <div className="card-flat group relative p-5">
-      {alert && <div className="absolute right-3 top-3 h-2.5 w-2.5 animate-pulse rounded-full bg-[#8A05BE] shadow-[0_0_8px_rgba(138,5,190,0.6)]" />}
-      <div className="relative">
-        <div className="mb-4 flex items-start justify-between gap-3">
-          <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-slate-500">{label}</p>
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-50 text-slate-400 transition-colors duration-300 group-hover:bg-[#8A05BE]/10 group-hover:text-[#8A05BE]">
-            <Icon size={20} strokeWidth={2.5} />
-          </div>
-        </div>
-        <p className="text-3xl font-black tracking-tight text-black">
-          {loading && value === undefined ? '--' : value ?? '0'}
-        </p>
-        <div className="mt-2 flex items-center justify-between">
-          <p className="text-[11px] font-bold text-slate-400">{detail}</p>
-          {trend && (
-            <span className={`inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-black text-slate-700`}>
-              <ArrowUpRight size={12} strokeWidth={3} />
-              {trend}
-            </span>
-          )}
-        </div>
+    <div className="card-stat relative group">
+      {alert && <div className="absolute right-3 top-3 h-2 w-2 animate-pulse rounded-full bg-[#8A05BE]" />}
+      <div className="flex items-start justify-between">
+        <p className="card-stat-label">{label}</p>
+        <Icon size={14} className="text-slate-400 group-hover:text-[#8A05BE] transition-colors" />
+      </div>
+      <p className="card-stat-value mt-2">
+        {loading && value === undefined ? '--' : value ?? '0'}
+      </p>
+      <div className="mt-2 flex items-center justify-between">
+        <p className="card-stat-detail">{detail}</p>
+        {trend && (
+          <span className="inline-flex items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5 text-[9px] font-black text-slate-700">
+            <ArrowUpRight size={10} strokeWidth={3} />
+            {trend}
+          </span>
+        )}
       </div>
     </div>
   );

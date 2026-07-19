@@ -146,10 +146,22 @@ function buildGrid(month: string, emp: Employee, tracks: TimeTrack[], startDay: 
     let dayType = 'WORK';
     if (cd) {
       isRest = cd.dayType === 'FOLGA' || cd.dayType === 'FOLGA_DSR' || cd.dayType === 'FOLGA_BANCO';
+      if (cd.dayType === 'SEM_ESCALA') {
+        isRest = isRestDay(date, emp);
+      }
       if (cd.dayType === 'FERIADO' || cd.dayType === 'FERIADO_LOCAL') holidayName = holidayName || 'Feriado';
-      scheduled = cd.scheduled;
+      scheduled = isRest ? null : cd.scheduled;
       exception = cd.exception;
       dayType = cd.dayType;
+    }
+
+    if (!isRest && !scheduled) {
+      scheduled = {
+        entry: emp.standardEntry || '08:00',
+        lunchStart: emp.standardLunchStart || '12:00',
+        lunchReturn: emp.standardLunchReturn || '13:00',
+        exit: emp.standardExit || '18:00'
+      };
     }
 
     g.push({
@@ -249,6 +261,32 @@ function getEffectiveStats(rows: TimeTrack[]) {
   return { worked, saldo, extra, missing };
 }
 
+function getEffectiveStatsFromGrid(grid: any[]) {
+  let worked = 0;
+  let saldo = 0;
+  grid.forEach(g => {
+    if (g.isFuture || g.antesAdmissao || g.depoisDemissao) return;
+    if (g.track) {
+      worked += (g.track.totalWorked ?? 0);
+      saldo += (g.track.dailyBalance ?? 0);
+    } else if (!g.isRest) {
+      let expected = 480;
+      if (g.scheduled && g.scheduled.entry && g.scheduled.exit) {
+        const ent = new Date(`1970-01-01T${g.scheduled.entry}Z`);
+        const ext = new Date(`1970-01-01T${g.scheduled.exit}Z`);
+        expected = (ext.getTime() - ent.getTime()) / 60000;
+        if (g.scheduled.lunchStart && g.scheduled.lunchReturn) {
+          const lEnt = new Date(`1970-01-01T${g.scheduled.lunchStart}Z`);
+          const lExt = new Date(`1970-01-01T${g.scheduled.lunchReturn}Z`);
+          expected -= (lExt.getTime() - lEnt.getTime()) / 60000;
+        }
+      }
+      saldo -= expected;
+    }
+  });
+  return { worked, saldo };
+}
+
 export default function TimeTrackPage() {
   const params = useParams();
   const tenant = params?.tenant as string;
@@ -332,11 +370,11 @@ export default function TimeTrackPage() {
           <h2 className="page-title">{isFunc?'MEU PONTO':isGestor?'PONTO DA EQUIPE':'FOLHA DE PONTO'}</h2>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Link href={`/${tenant}/dashboard/escala`} className="btn-outline"><CalendarDays size={14}/> ESCALA</Link>
+          <Link href={`/${tenant}/dashboard/escala${empFilter ? `?employeeId=${empFilter}` : ''}`} className="btn-outline"><CalendarDays size={14}/> ESCALA</Link>
           <Link href={`/${tenant}/dashboard/time-track/clock-in`} className="btn-nubank"><Clock3 size={14}/> BATER PONTO</Link>
           {(canManage||isGestor) && <button onClick={() => downloadCollectiveSheet(month, visible, byEmpMap, company.data || null, holidays.data || [], teamSchedules.data?.withSchedule || [])} disabled={refreshing || visible.length === 0} className="btn-outline"><FileText size={14}/> FOLHAS DE PONTO</button>}
           {isFunc && <button onClick={() => downloadCollectiveSheet(month, visible, byEmpMap, company.data || null, holidays.data || [], teamSchedules.data?.withSchedule || [])} disabled={refreshing || visible.length === 0} className="btn-outline"><FileText size={14}/> MINHA FOLHA</button>}
-          {canManage && <button onClick={()=>setOpen(true)} disabled={refreshing} className="btn-nubank"><Edit3 size={14}/> LANÇAR PONTO</button>}
+          <button onClick={()=>setOpen(true)} disabled={refreshing} className="btn-nubank"><Edit3 size={14}/> LANÇAR PONTO</button>
         </div>
       </header>
 
@@ -410,9 +448,9 @@ export default function TimeTrackPage() {
        (empFilter || isFunc) && selected ? (
         <div>
           {tab === 'ponto' ? (
-            <MonthGrid employee={selected} tracks={(byEmpMap[selected.id] ?? [])} month={month} canManage={canManage} canApprove={canApprove} refreshing={refreshing} removeLoading={remove.loading} onEdit={setEditing} onDelete={onDelete} showActions company={company.data} />
+            <MonthGrid employee={selected} tracks={(byEmpMap[selected.id] ?? [])} month={month} canManage={canManage} canApprove={canApprove} refreshing={refreshing} removeLoading={remove.loading} onEdit={setEditing} onDelete={onDelete} onApprove={(id, app)=>approveMut.mutate({id, approved:app})} showActions company={company.data} />
           ) : (
-            <Ocorrencias employee={selected} tracks={(byEmpMap[selected.id] ?? [])} month={month} canManage={canManage} canApprove={canApprove} refreshing={refreshing} removeLoading={remove.loading} onEdit={setEditing} onDelete={onDelete} company={company.data} holidays={holidays.data as any[]} />
+            <Ocorrencias employee={selected} tracks={(byEmpMap[selected.id] ?? [])} month={month} canManage={canManage} canApprove={canApprove} refreshing={refreshing} removeLoading={remove.loading} onEdit={setEditing} onDelete={onDelete} onApprove={(id, app)=>approveMut.mutate({id, approved:app})} company={company.data} holidays={holidays.data as any[]} />
           )}
         </div>
       ) : visible.length===0 ? <p className="text-center text-sm text-slate-400 py-8">Nenhum colaborador encontrado.</p> :
@@ -427,7 +465,8 @@ export default function TimeTrackPage() {
             <div className="divide-y divide-zinc-100">
               {visible.map(emp=>{
                 const rows = byEmpMap[emp.id] ?? [];
-                const { worked, saldo } = getEffectiveStats(rows);
+                const grid = buildGrid(month, emp, rows, company.data?.payrollStartDay || 1, holidays.data || [], teamSchedules.data?.withSchedule || []);
+                const { worked, saldo } = getEffectiveStatsFromGrid(grid);
                 const faltas = rows.filter(isFalta).length;
                 return (
                   <div key={emp.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-4 py-3 hover:bg-zinc-50/50 transition-colors cursor-pointer" onClick={()=>router.push(`/${tenant}/dashboard/time-track?employeeId=${emp.id}`)}>
@@ -441,12 +480,19 @@ export default function TimeTrackPage() {
                         <p className="mt-1 text-[10px] font-semibold text-zinc-500">{emp.department || '-'} {faltas>0 && <span className="text-red-600 ml-2">{faltas} FALTA(S)</span>}</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <div className="flex gap-2 text-[10px] font-bold">
-                        <div className="rounded-md border border-zinc-200 px-2 py-1 bg-white text-zinc-700"><span className="block text-[8px] uppercase text-zinc-400">TRAB</span><span>{fmtWorked(worked)}</span></div>
-                        <div className={`rounded-md border px-2 py-1 ${saldo>=0?'badge-active':'badge-alert'}`}><span className="block text-[8px] uppercase opacity-60">SALDO</span><span className="font-black">{fmtBalance(saldo)}</span></div>
+                    <div className="flex items-center gap-5">
+                      <div className="flex items-center gap-4">
+                        <div className="flex flex-col items-end">
+                          <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-400">Trabalhado</span>
+                          <span className="font-mono text-sm font-black text-zinc-700">{fmtWorked(worked)}</span>
+                        </div>
+                        <div className="h-6 w-px bg-zinc-200"></div>
+                        <div className="flex flex-col items-end">
+                          <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-400">Saldo</span>
+                          <span className={`font-mono text-sm font-black ${saldo >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>{fmtBalance(saldo)}</span>
+                        </div>
                       </div>
-                      <button className="btn-action"><CalendarDays size={12}/> ABRIR</button>
+                      <button className="btn-action ml-1"><CalendarDays size={14}/> ABRIR</button>
                     </div>
                   </div>
                 );
@@ -735,10 +781,9 @@ function OcorrenciasList({ employees, byEmpMap, month, onSelect }: { employees: 
   );
 }
 
-function MonthGrid({ employee, tracks, month, canManage, canApprove, refreshing, removeLoading, onEdit, onDelete, showActions, company, teamSchedules = [] }: { employee: Employee; tracks: TimeTrack[]; month: string; canManage: boolean; canApprove: boolean; refreshing: boolean; removeLoading: boolean; onEdit: (r:TimeTrack)=>void; onDelete: (r:TimeTrack)=>void; showActions?: boolean; company?: any; teamSchedules?: any[] }) {
+function MonthGrid({ employee, tracks, month, canManage, canApprove, refreshing, removeLoading, onEdit, onDelete, onApprove, showActions, company, teamSchedules = [] }: { employee: Employee; tracks: TimeTrack[]; month: string; canManage: boolean; canApprove: boolean; refreshing: boolean; removeLoading: boolean; onEdit: (r:TimeTrack)=>void; onDelete: (r:TimeTrack)=>void; onApprove?: (id:string, approved:boolean)=>void; showActions?: boolean; company?: any; teamSchedules?: any[] }) {
   const grid = useMemo(()=> buildGrid(month, employee, tracks, company?.payrollStartDay || 1, [], teamSchedules), [month, employee, tracks, company, teamSchedules]);
-  const worked = sumMin(tracks,'totalWorked');
-  const saldo = sumMin(tracks,'dailyBalance');
+  const { worked, saldo } = useMemo(() => getEffectiveStatsFromGrid(grid), [grid]);
   const restDays = grid.filter(g=>g.isRest).length;
   const batidas = grid.filter(g=>g.track && !g.isRest).length;
   const pendentes = grid.filter(g=>!g.isRest && !g.isFuture && !g.track).length;
@@ -765,10 +810,15 @@ function MonthGrid({ employee, tracks, month, canManage, canApprove, refreshing,
               </div>
             </div>
           </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex gap-2 text-[10px] font-bold">
-              <div className="rounded-[6px] border border-slate-200 px-2 py-1"><span className="block text-[8px] uppercase text-slate-400">TRAB</span><span className="font-black">{fmtWorked(worked)}</span></div>
-              <div className={`rounded-[6px] border px-2 py-1 ${saldo>=0?'border-emerald-200 bg-emerald-50 text-emerald-700':'border-rose-200 bg-rose-50 text-rose-700'}`}><span className="block text-[8px] uppercase text-slate-400">SALDO</span><span className="font-black">{fmtBalance(saldo)}</span></div>
+          <div className="flex flex-wrap items-center gap-4 bg-white px-4 py-2 rounded-xl border border-zinc-200 shadow-sm">
+            <div className="flex flex-col items-end">
+              <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-400">Trabalhado</span>
+              <span className="font-mono text-sm font-black text-zinc-700">{fmtWorked(worked)}</span>
+            </div>
+            <div className="h-6 w-px bg-zinc-200"></div>
+            <div className="flex flex-col items-end">
+              <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-400">Saldo</span>
+              <span className={`font-mono text-sm font-black ${saldo >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>{fmtBalance(saldo)}</span>
             </div>
           </div>
         </div>
@@ -836,7 +886,7 @@ function MonthGrid({ employee, tracks, month, canManage, canApprove, refreshing,
                   <td className="px-3 text-center flex flex-col items-center gap-1 py-1">
                     <StatusBadge status={status}/>
                     {t?.observation && t.observation.toUpperCase() !== status.toUpperCase() && !t.observation.toUpperCase().includes(status.toUpperCase()) && !status.toUpperCase().includes(t.observation.toUpperCase()) && (
-                      <div className="text-[9px] font-medium text-amber-700 w-full text-center leading-tight whitespace-normal break-words" title={t.observation}>
+                      <div className="mt-0.5 rounded-[4px] bg-amber-50 px-1.5 py-0.5 text-[8px] font-black tracking-wider text-amber-700 border border-amber-200 shadow-sm max-w-[100px] truncate" title={t.observation}>
                         {t.observation.replace(/ajuste - /i, '')}
                       </div>
                     )}
@@ -844,10 +894,10 @@ function MonthGrid({ employee, tracks, month, canManage, canApprove, refreshing,
                   <td className="px-2">
                     <div className="flex justify-center gap-1.5 whitespace-nowrap">
                       {showActions && !day.isFuture && (
-                        <button onClick={()=>onEdit(t||{id:'',employeeId:employee.id,date:day.key,entry:null,lunchStart:null,lunchReturn:null,exit:null,totalWorked:null,dailyBalance:null} as unknown as TimeTrack)} disabled={refreshing||removeLoading} className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-[10px] font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors shadow-sm flex items-center gap-1.5"><Edit3 size={11}/>{t?'EDITAR':'SOLICITAR'}</button>
+                        <button onClick={()=>onEdit(t||{id:'',employeeId:employee.id,date:day.key,entry:null,lunchStart:null,lunchReturn:null,exit:null,totalWorked:null,dailyBalance:null} as unknown as TimeTrack)} disabled={refreshing||removeLoading} className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-[10px] font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors shadow-sm flex items-center gap-1.5"><Edit3 size={11}/>{!t ? 'LANÇAR' : (!canManage ? 'SOLICITAR AJUSTE' : 'EDITAR')}</button>
                       )}
                       {showActions && t && canApprove && t.manualStatus==='pending' && (
-                        <button onClick={()=>onEdit(t)} disabled={refreshing||removeLoading} className="crystal-button h-6 px-2 text-[9px] font-bold"><Check size={10}/>ACEITAR</button>
+                        <button onClick={()=>onApprove?.(t.id, true)} disabled={refreshing||removeLoading} className="crystal-button h-6 px-2 text-[9px] font-bold"><Check size={10}/>ACEITAR</button>
                       )}
                       {showActions && t && canManage && (
                         <button onClick={()=>onDelete(t)} disabled={refreshing||removeLoading} className="rounded-lg border border-red-100 bg-red-50/50 px-2 py-1 text-[10px] font-semibold text-red-600 hover:bg-red-50 hover:border-red-200 transition-colors shadow-sm flex items-center gap-1.5"><Trash2 size={11}/>EXCLUIR</button>
@@ -873,7 +923,7 @@ function MonthGrid({ employee, tracks, month, canManage, canApprove, refreshing,
   );
 }
 
-function Ocorrencias({ employee, tracks, month, canManage, canApprove, refreshing, removeLoading, onEdit, onDelete, company, holidays }: { employee: Employee; tracks: TimeTrack[]; month: string; canManage: boolean; canApprove: boolean; refreshing: boolean; removeLoading: boolean; onEdit: (r:TimeTrack)=>void; onDelete: (r:TimeTrack)=>void; company: any; holidays: any[]; }) {
+function Ocorrencias({ employee, tracks, month, canManage, canApprove, refreshing, removeLoading, onEdit, onDelete, onApprove, company, holidays }: { employee: Employee; tracks: TimeTrack[]; month: string; canManage: boolean; canApprove: boolean; refreshing: boolean; removeLoading: boolean; onEdit: (r:TimeTrack)=>void; onDelete: (r:TimeTrack)=>void; onApprove?: (id:string, approved:boolean)=>void; company: any; holidays: any[]; }) {
   const grid = useMemo(()=> buildGrid(month, employee, tracks, company?.payrollStartDay, holidays), [month, employee, tracks, company, holidays]);
   const ocorrencias = useMemo(()=>grid.filter(g=>{
     if (!g.track) return false;
@@ -912,7 +962,7 @@ function Ocorrencias({ employee, tracks, month, canManage, canApprove, refreshin
                     <td className="px-3 py-2">
                       <div className="flex gap-1">
                         <button onClick={()=>onEdit(t)} disabled={refreshing||removeLoading} className="btn-outline-premium h-6 px-2 text-[10px]"><Edit3 size={10}/>SOLICITAR</button>
-                        {canApprove && <button onClick={()=>onEdit(t)} disabled={refreshing||removeLoading} className="crystal-button h-6 px-2 text-[10px]"><Check size={10}/>ACEITAR</button>}
+                        {canApprove && <button onClick={()=>onApprove?.(t.id, true)} disabled={refreshing||removeLoading} className="crystal-button h-6 px-2 text-[10px]"><Check size={10}/>ACEITAR</button>}
                         {canManage && <button onClick={()=>onDelete(t)} disabled={refreshing||removeLoading} className="inline-flex h-6 items-center gap-1 rounded-[5px] bg-rose-500 px-2 text-[10px] font-black text-white"><Edit3 size={10}/></button>}
                       </div>
                     </td>
