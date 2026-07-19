@@ -20,24 +20,52 @@ Um sistema corporativo *premium* e completo para Gestão de Recursos Humanos, co
 Abaixo estão as principais interfaces da plataforma, construídas com um design moderno, limpo e responsivo:
 
 ### 📊 1. Painel Executivo (Dashboard)
-Visão consolidada da operação de RH em tempo real. Acompanhe métricas vitais como funcionários ativos, jornadas registradas no dia, saldo do banco de horas global, e alertas críticos (férias pendentes, alertas cadastrais e aniversariantes).
-![Painel Executivo](tests-e2e/screenshots/tabs/ADMIN-Dashboard.png)
+<p align="center">
+  <img src="tests-e2e/screenshots/tabs/ADMIN-Dashboard.png" alt="Painel Executivo" width="100%" style="border-radius: 8px; border: 1px solid #e5e7eb;">
+</p>
+<p align="justify">
+  <b>Visão consolidada da operação de RH em tempo real.</b> Acompanhe métricas vitais como funcionários ativos, jornadas registradas no dia, saldo do banco de horas global e alertas críticos (férias pendentes, alertas cadastrais e aniversariantes).
+</p>
+
+<hr>
 
 ### 👥 2. Cadastro da Equipe (Funcionários)
-Módulo centralizado para gestão do quadro de colaboradores. Listagem interativa com filtros avançados, exibição de status, departamento, cargo e nível de acesso ao sistema, permitindo ações rápidas como edição, desligamento e acesso rápido ao espelho de ponto.
-![Gestão de Funcionários](tests-e2e/screenshots/tabs/ADMIN-Funcionarios.png)
+<p align="center">
+  <img src="tests-e2e/screenshots/tabs/ADMIN-Funcionarios.png" alt="Gestão de Funcionários" width="100%" style="border-radius: 8px; border: 1px solid #e5e7eb;">
+</p>
+<p align="justify">
+  <b>Módulo centralizado para gestão do quadro de colaboradores.</b> Listagem interativa com filtros avançados, exibição de status, departamento, cargo e nível de acesso ao sistema, permitindo ações rápidas como edição, desligamento e acesso rápido ao espelho de ponto.
+</p>
+
+<hr>
 
 ### 🏖️ 3. Gestão de Férias
-Módulo completo para solicitação, aprovação e acompanhamento de férias dos colaboradores. Visualização em calendário, cálculo automático de saldo, regras de vencimento e integração com a folha de ponto.
-![Gestão de Férias](tests-e2e/screenshots/tabs/ADMIN-Ferias.png)
+<p align="center">
+  <img src="tests-e2e/screenshots/tabs/ADMIN-Ferias.png" alt="Gestão de Férias" width="100%" style="border-radius: 8px; border: 1px solid #e5e7eb;">
+</p>
+<p align="justify">
+  <b>Módulo completo para solicitação, aprovação e acompanhamento de férias.</b> Visualização em calendário, cálculo automático de saldo, regras de vencimento e integração fluida com a folha de ponto da equipe.
+</p>
+
+<hr>
 
 ### ⏱️ 4. Folha de Ponto (Gestão de Jornada)
-Painel do gestor e do RH para acompanhamento do espelho de ponto de toda a equipe. Visão consolidada por colaborador mostrando as horas trabalhadas e saldos (positivos ou negativos) no mês selecionado, permitindo auditoria detalhada, aprovação em lote e exportação.
-![Folha de Ponto](tests-e2e/screenshots/tabs/ADMIN-Ponto.png)
+<p align="center">
+  <img src="tests-e2e/screenshots/tabs/ADMIN-Ponto.png" alt="Folha de Ponto" width="100%" style="border-radius: 8px; border: 1px solid #e5e7eb;">
+</p>
+<p align="justify">
+  <b>Painel do gestor e do RH para acompanhamento do espelho de ponto.</b> Visão consolidada por colaborador mostrando as horas trabalhadas e saldos (positivos ou negativos) no mês selecionado, permitindo auditoria detalhada, aprovação em lote e exportação simplificada.
+</p>
+
+<hr>
 
 ### 📅 5. Gestão de RH (Agenda & Operacional)
-Módulo administrativo completo para gestão de compromissos, exames ocupacionais (ASO), notificações, regras de negócio da jornada e fechamento de folha. Possui visualização intuitiva em calendário (Agenda) e Kanban para facilitar o dia a dia da equipe de DP/RH.
-![Gestão de RH](tests-e2e/screenshots/tabs/ADMIN-Gestao.png)
+<p align="center">
+  <img src="tests-e2e/screenshots/tabs/ADMIN-Gestao.png" alt="Gestão de RH" width="100%" style="border-radius: 8px; border: 1px solid #e5e7eb;">
+</p>
+<p align="justify">
+  <b>Módulo administrativo para organização da rotina do departamento pessoal.</b> Gestão de compromissos, exames ocupacionais (ASO), notificações e regras de negócio da jornada. Possui visualização intuitiva em calendário (Agenda) e formato Kanban para facilitar o acompanhamento de pendências.
+</p>
 
 ---
 
