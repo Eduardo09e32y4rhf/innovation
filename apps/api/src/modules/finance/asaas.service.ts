@@ -99,8 +99,12 @@ export class AsaasService {
     }
   }
 
-  createCustomer(data: { name: string; cpfCnpj: string; email?: string; phone?: string }) {
+  createCustomer(data: { name: string; cpfCnpj: string; email?: string; phone?: string; mobilePhone?: string; externalReference?: string; notificationDisabled?: boolean }) {
     return this.request<{ id: string }>('/customers', { method: 'POST', body: JSON.stringify(data) });
+  }
+
+  updateCustomer(customerId: string, data: { notificationDisabled?: boolean }) {
+    return this.request<{ id: string }>(`/customers/${encodeURIComponent(customerId)}`, { method: 'POST', body: JSON.stringify(data) });
   }
 
   createSubscription(customerId: string, data: { value: number; nextDueDate: string; description: string; cycle?: string; billingType?: AllowedBillingType }) {

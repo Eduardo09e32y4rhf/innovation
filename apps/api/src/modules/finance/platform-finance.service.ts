@@ -44,7 +44,9 @@ export class PlatformFinanceService {
         name: company.legalName || company.name,
         cpfCnpj: company.document,
         email: admin.email,
-        phone: company.phone || undefined,
+        mobilePhone: company.phone || undefined,
+        externalReference: company.id,
+        notificationDisabled: true,
       });
       if (!customer.id) throw new BadRequestException('O Asaas nao retornou o identificador do cliente.');
       customerId = customer.id;
