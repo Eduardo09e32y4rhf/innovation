@@ -1,9 +1,10 @@
 import { Body, Controller, ForbiddenException, Headers, HttpCode, Logger, Post } from '@nestjs/common';
-import { InvoiceStatus } from '@prisma/client';
 import { SkipThrottle } from '@nestjs/throttler';
 import * as crypto from 'crypto';
 import { PrismaService } from '../../database/prisma.service';
 import { FinanceNotificationService, FinanceNotificationType } from './finance-notification.service';
+
+type InvoiceStatus = 'OPEN' | 'PAID' | 'OVERDUE' | 'CANCELED';
 
 // ─── DTOs do Webhook ──────────────────────────────────────────────────────────
 

@@ -212,7 +212,7 @@ export class FinanceNotificationService {
             },
             createdBy: null,
             recipients: {
-              create: admins.map(u => ({ userId: u.id, status: 'UNREAD' as any })),
+              create: admins.map((u: { id: string }) => ({ userId: u.id, status: 'UNREAD' as any })),
             },
           } as any,
         });
