@@ -112,24 +112,34 @@ export class AsaasWebhookController {
     }
 
     await this.syncProposal(company.id, event, payment);
-    const invoice = await this.upsertInvoice(company.id, status, event, payment);
+    const existingInvoice = await this.prisma.platformInvoice.findUnique({ where: { asaasPaymentId: payment.id } });
+    const invoiceData = {
+      companyId: company.id,
+      description: payment.description || 'Cobranca Asaas',
+      amount: payment.value,
+      dueDate: payment.dueDate ? new Date(payment.dueDate) : new Date(),
+      status,
+      billingType: payment.billingType || 'PIX',
+      invoiceUrl: payment.invoiceUrl,
+      paidAt: status === 'PAID' ? existingInvoice?.paidAt ?? new Date() : existingInvoice?.paidAt,
+      deletedAt: event === 'PAYMENT_DELETED' ? new Date() : null,
+    };
 
+    let companyData: any = {};
     if (status === 'PAID') {
-      await this.prisma.company.update({
-        where: { id: company.id },
-        data: { billingStatus: 'ACTIVE', status: 'ACTIVE', isActive: true, suspensionReason: null },
-      });
+      companyData = { billingStatus: 'ACTIVE', status: 'ACTIVE', isActive: true, suspensionReason: null };
     } else if (status === 'OVERDUE') {
-      await this.prisma.company.update({
-        where: { id: company.id },
-        data: { billingStatus: 'PAST_DUE' },
-      });
+      companyData = { billingStatus: 'PAST_DUE' };
     } else if (status === 'CANCELED') {
-      await this.prisma.company.update({
-        where: { id: company.id },
-        data: { billingStatus: 'PAST_DUE', status: 'SUSPENDED', isActive: false, suspensionReason: 'pagamento_cancelado_ou_estornado' },
-      });
+      companyData = { billingStatus: 'PAST_DUE', status: 'SUSPENDED', isActive: false, suspensionReason: 'pagamento_cancelado_ou_estornado' };
     }
+
+    const [invoice] = await this.prisma.$transaction([
+      existingInvoice
+        ? this.prisma.platformInvoice.update({ where: { id: existingInvoice.id }, data: invoiceData })
+        : this.prisma.platformInvoice.create({ data: { ...invoiceData, asaasPaymentId: payment.id } }),
+      ...(Object.keys(companyData).length > 0 ? [this.prisma.company.update({ where: { id: company.id }, data: companyData })] : []),
+    ]);
 
     // Notificação — falha nunca retorna erro ao Asaas
     const notifType = PAYMENT_EVENT_MAP[event];
@@ -291,23 +301,4 @@ export class AsaasWebhookController {
     ]);
   }
 
-  private async upsertInvoice(companyId: string, status: InvoiceStatus, event: string, payment: AsaasWebhookPayment) {
-    const existing = await this.prisma.platformInvoice.findUnique({ where: { asaasPaymentId: payment.id } });
-    const data = {
-      companyId,
-      description: payment.description || 'Cobranca Asaas',
-      amount: payment.value,
-      dueDate: payment.dueDate ? new Date(payment.dueDate) : new Date(),
-      status,
-      billingType: payment.billingType || 'PIX',
-      invoiceUrl: payment.invoiceUrl,
-      paidAt: status === 'PAID' ? existing?.paidAt ?? new Date() : existing?.paidAt,
-      deletedAt: event === 'PAYMENT_DELETED' ? new Date() : null,
-    };
-
-    if (existing) {
-      return this.prisma.platformInvoice.update({ where: { id: existing.id }, data });
-    }
-    return this.prisma.platformInvoice.create({ data: { ...data, asaasPaymentId: payment.id } });
-  }
 }
