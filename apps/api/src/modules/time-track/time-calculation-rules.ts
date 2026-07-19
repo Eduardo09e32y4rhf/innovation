@@ -116,7 +116,7 @@ export class TimeCalculationRulesService {
     const employeeDaily = this.durationStringToMinutes(employee?.dailyWorkload);
     let expectedMinutes = Number(rule?.dailyMinutes || employeeDaily || 480);
     if (isTwelveByThirtySix) expectedMinutes = Number(rule?.cycleWorkHours || 12) * 60;
-    if (result.isRest || holidayRequiresDoublePay) expectedMinutes = 0;
+    if (result.isRest || result.isHoliday) expectedMinutes = 0;
 
     const timestamps = [input.entryTime, input.lunchStartTime, input.lunchReturnTime, input.exitTime]
       .filter((value): value is Date => value instanceof Date && !Number.isNaN(value.getTime()))
@@ -139,7 +139,7 @@ export class TimeCalculationRulesService {
     else if (!result.isRest && !holidayRequiresDoublePay) result.punchStatus = 'ABSENT';
 
     if (!entryTime || !exitTime) {
-      if (result.isRest || holidayRequiresDoublePay || this.isFullDayAdjustment(input.manualReason)) return result;
+      if (result.isRest || result.isHoliday || this.isFullDayAdjustment(input.manualReason)) return result;
       result.incidentType = 'falta';
       result.absenceMinutes = expectedMinutes;
       result.dailyBalanceMinutes = -expectedMinutes;

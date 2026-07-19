@@ -114,7 +114,8 @@ export class TimeClosingService {
         
         scheduledMinutesInPeriod += expectedForDay;
 
-        if (restDays.includes(dayOfWeek) || holidayKeys.has(key)) paidRestDays++;
+        const mainDsrDay = restDays.includes(0) ? 0 : (restDays[0] ?? 0);
+        if (dayOfWeek === mainDsrDay || holidayKeys.has(key)) paidRestDays++;
         
         if (!isRest) {
           payableWorkdays++;
@@ -254,7 +255,7 @@ export class TimeClosingService {
       const updated = { ...closing, [dto.field]: value };
       const financial = this.payroll.calculate({
         salary: Number(updated.salaryBase),
-        weeklyMinutes: Number(updated.monthlyDivisor) * (60 / (52 / 12)),
+        weeklyMinutes: Number(updated.monthlyDivisor) * 12, // 220 divisor = 44h * 60m = 2640m
         isPartialMonth: false,
         scheduledMinutesInPeriod: 0,
         overtime50Minutes: Number(updated.overtime50) * 60,
@@ -442,11 +443,13 @@ export class TimeClosingService {
       doc.font('Helvetica').fontSize(9).fillColor('#334155');
 
       const row2Col = (labelA: string, valA: string, labelB: string, valB: string) => {
-        doc.font('Helvetica-Bold').fillColor('#475569').text(labelA, leftX, doc.y, { continued: true, width: 120 });
-        doc.font('Helvetica').fillColor('#0f172a').text(valA, { continued: false });
-        const yy = doc.y - doc.currentLineHeight();
-        doc.font('Helvetica-Bold').fillColor('#475569').text(labelB, rightX, yy, { continued: true, width: 120 });
-        doc.font('Helvetica').fillColor('#0f172a').text(valB);
+        const y = doc.y;
+        doc.font('Helvetica-Bold').fillColor('#475569').text(labelA, leftX, y, { width: 120 });
+        doc.font('Helvetica').fillColor('#0f172a').text(valA, leftX + 115, y, { width: 150 });
+        
+        doc.font('Helvetica-Bold').fillColor('#475569').text(labelB, rightX, y, { width: 120 });
+        doc.font('Helvetica').fillColor('#0f172a').text(valB, rightX + 115, y, { width: 150 });
+        doc.moveDown(0.2);
       };
 
       row2Col('Horas normais:', `${closing.normalHours?.toFixed(2) ?? '0.00'} h`, 'Faltas (min):', `${closing.absenceMinutes ?? 0} min`);

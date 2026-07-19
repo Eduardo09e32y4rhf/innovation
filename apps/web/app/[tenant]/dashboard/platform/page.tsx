@@ -524,7 +524,7 @@ function CompanyManageModal({ company, onClose, onSave, loading, error }: { comp
       { label: 'Max. Funcionários', value: String(maxEmployees) },
     ]);
     
-    const html = buildPdfShell({ title: 'Contrato de Prestação de Serviços', subtitle: 'Innovation.ia Plataforma' }, pdfCompanyData, section('1. O Objeto', objContent) + section('2. Condições Comerciais', condGrid) + section('3. Termos Gerais', termsContent) + signatureBlock());
+    const html = buildPdfShell({ title: 'Contrato de Prestação de Serviços', subtitle: 'Innovation.ia Plataforma' }, pdfCompanyData, section('1. O Objeto', objContent) + section('2. Condições Comerciais', condGrid) + section('3. Termos Gerais', termsContent) + signatureBlock(['Innovation RH System', company.name]));
     
     printPdf(html, 'contrato-' + company.id + '.pdf');
   };
