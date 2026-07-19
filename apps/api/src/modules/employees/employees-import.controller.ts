@@ -1,5 +1,6 @@
-import { Controller, Post, Get, UseGuards, Req, Res, UploadedFile, BadRequestException } from '@nestjs/common';
+import { Controller, Post, Get, UseGuards, Req, Res, BadRequestException } from '@nestjs/common';
 import { FastifyReply, FastifyRequest } from 'fastify';
+import type { FastifyMultipart } from '@fastify/multipart';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { EmployeesImportService } from './employees-import.service';
 import { ApiTags, ApiOperation, ApiConsumes, ApiBearerAuth } from '@nestjs/swagger';
@@ -24,7 +25,7 @@ export class EmployeesImportController {
   @Post()
   @ApiOperation({ summary: 'Importa funcionários via arquivo .xlsx' })
   @ApiConsumes('multipart/form-data')
-  async importEmployees(@Req() req: FastifyRequest) {
+  async importEmployees(@Req() req: FastifyRequest & FastifyMultipart) {
     if (!req.isMultipart()) {
       throw new BadRequestException('Requisição deve ser multipart/form-data');
     }
@@ -35,7 +36,6 @@ export class EmployeesImportController {
     }
 
     const buffer = await data.toBuffer();
-    // (req.user as any).companyId
     const companyId = (req as any).user?.companyId;
 
     if (!companyId) {
