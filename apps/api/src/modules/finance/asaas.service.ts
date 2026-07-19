@@ -144,4 +144,12 @@ export class AsaasService {
   getPaymentsBySubscription(subscriptionId: string) {
     return this.request<AsaasListResponse<AsaasPayment>>(`/payments?subscription=${encodeURIComponent(subscriptionId)}`);
   }
+
+  getSubscription(subscriptionId: string) {
+    return this.request<{ id: string; customer: string; nextDueDate: string; status: string; billingType: string }>(`/subscriptions/${encodeURIComponent(subscriptionId)}`);
+  }
+
+  deleteSubscription(subscriptionId: string) {
+    return this.request<{ deleted: boolean }>(`/subscriptions/${encodeURIComponent(subscriptionId)}`, { method: 'DELETE' });
+  }
 }

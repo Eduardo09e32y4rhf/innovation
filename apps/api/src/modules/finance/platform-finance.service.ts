@@ -164,9 +164,34 @@ export class PlatformFinanceService {
   async getCompanyBilling(companyId: string) {
     let company = await this.prisma.company.findUnique({
       where: { id: companyId },
-      select: { id: true, name: true, status: true, billingStatus: true, suspensionReason: true, asaasCustomerId: true, asaasSubscriptionId: true },
+      select: {
+        id: true,
+        status: true,
+        billingStatus: true,
+        asaasCustomerId: true,
+        asaasSubscriptionId: true,
+        platformPlan: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            price: true,
+            cycle: true,
+            maxUsers: true,
+            maxEmployees: true,
+            activeModules: true,
+          },
+        },
+        _count: {
+          select: {
+            users: true,
+            employees: true,
+          },
+        },
+      },
     });
     if (!company) throw new NotFoundException('Empresa nao encontrada.');
+
     let invoice = await this.prisma.platformInvoice.findFirst({
       where: { companyId, deletedAt: null, status: { in: ['OPEN', 'OVERDUE'] } },
       orderBy: { createdAt: 'desc' },
@@ -183,7 +208,9 @@ export class PlatformFinanceService {
             this.prisma.company.update({ where: { id: companyId }, data: { status: 'ACTIVE', isActive: true, billingStatus: 'ACTIVE', suspensionReason: null } }),
           ]);
           invoice = updatedInvoice;
-          company = updatedCompany;
+          // Não precisamos recarregar todos os includes da company aqui para o polling fallback
+          company.status = updatedCompany.status;
+          company.billingStatus = updatedCompany.billingStatus;
         } else if (remoteStatus && remoteStatus !== invoice.status) {
           invoice = await this.prisma.platformInvoice.update({ where: { id: invoice.id }, data: { status: remoteStatus } });
         }
@@ -191,7 +218,51 @@ export class PlatformFinanceService {
         this.logger.warn(`Falha no polling da cobranca ${invoice.asaasPaymentId}: ${String(error)}`);
       }
     }
-    return { company, invoice, active: company.status === 'ACTIVE' && company.billingStatus === 'ACTIVE' };
+
+    let subscriptionData = null;
+    if (company.asaasSubscriptionId && this.asaas.isConfigured()) {
+      try {
+        const asaasSub = await this.asaas.getSubscription(company.asaasSubscriptionId);
+        subscriptionData = {
+          id: asaasSub.id,
+          status: asaasSub.status,
+          nextDueDate: asaasSub.nextDueDate,
+          billingType: asaasSub.billingType,
+        };
+      } catch (err) {
+        this.logger.warn(`Falha ao buscar assinatura no Asaas: ${String(err)}`);
+      }
+    }
+
+    let currentInvoiceData = null;
+    if (invoice) {
+      currentInvoiceData = {
+        id: invoice.id,
+        status: invoice.status,
+        amount: Number(invoice.amount),
+        dueDate: invoice.dueDate,
+        invoiceUrl: invoice.invoiceUrl,
+        bankSlipUrl: invoice.invoiceUrl, // No sandbox/asaas bankSlipUrl geralmente está na mesma invoiceUrl do checkout
+        pixAvailable: invoice.billingType === 'PIX' || invoice.billingType === 'UNDEFINED',
+      };
+    }
+
+    return {
+      company: {
+        id: company.id,
+        status: company.status,
+        billingStatus: company.billingStatus,
+      },
+      plan: company.platformPlan,
+      subscription: subscriptionData,
+      currentInvoice: currentInvoiceData,
+      usage: {
+        users: company._count.users,
+        maxUsers: company.platformPlan?.maxUsers ?? 9999,
+        employees: company._count.employees,
+        maxEmployees: company.platformPlan?.maxEmployees ?? 9999,
+      },
+    };
   }
 
   async listCompanyInvoices(companyId: string) {
@@ -200,6 +271,89 @@ export class PlatformFinanceService {
       orderBy: [{ dueDate: 'desc' }, { createdAt: 'desc' }],
       take: 100,
     });
+  }
+
+  async changeCompanyPlan(companyId: string, newPlanId: string) {
+    const company = await this.prisma.company.findUnique({
+      where: { id: companyId },
+    });
+    if (!company) throw new NotFoundException('Empresa não encontrada.');
+
+    const newPlan = await this.prisma.platformPlan.findUnique({
+      where: { id: newPlanId },
+    });
+    if (!newPlan) throw new NotFoundException('Plano não encontrado.');
+    if (!newPlan.isActive) throw new BadRequestException('Este plano não está mais disponível.');
+
+    // Remove old subscription if exists
+    if (company.asaasSubscriptionId && this.asaas.isConfigured()) {
+      try {
+        await this.asaas.deleteSubscription(company.asaasSubscriptionId);
+      } catch (err) {
+        this.logger.warn(`Falha ao remover assinatura anterior: ${String(err)}`);
+      }
+    }
+
+    // Cancel OPEN invoices
+    const openInvoices = await this.prisma.platformInvoice.findMany({
+      where: { companyId, status: { in: ['OPEN', 'OVERDUE'] }, deletedAt: null },
+    });
+    for (const inv of openInvoices) {
+      if (inv.asaasPaymentId && this.asaas.isConfigured()) {
+        try {
+          await this.asaas.deleteCharge(inv.asaasPaymentId);
+        } catch (err) {
+          // ignore
+        }
+      }
+      await this.prisma.platformInvoice.update({
+        where: { id: inv.id },
+        data: { status: 'CANCELED', invoiceCanceledAt: new Date(), invoiceStatus: 'CANCELED' },
+      });
+    }
+
+    let customerId = company.asaasCustomerId;
+    if (!customerId && this.asaas.isConfigured()) {
+      const cust = await this.asaas.createCustomer({
+        name: company.name,
+        email: company.email ?? `financeiro+${company.id}@example.com`,
+        cpfCnpj: (company.document as string) ?? undefined,
+      });
+      customerId = cust.id;
+    }
+
+    let subscriptionId = null;
+    if (this.asaas.isConfigured() && customerId) {
+      const cycleMonths = newPlan.cycle === 'YEARLY' ? 12 : newPlan.cycle === 'QUARTERLY' ? 3 : 1;
+      const nextDueDate = new Date();
+      nextDueDate.setUTCMonth(nextDueDate.getUTCMonth() + cycleMonths);
+
+      try {
+        const subscription = await this.asaas.createSubscription(customerId, {
+          value: Number(newPlan.price),
+          nextDueDate: nextDueDate.toISOString().slice(0, 10),
+          description: `Renovacao - Plano ${newPlan.name}`,
+          cycle: ['MONTHLY', 'QUARTERLY', 'YEARLY'].includes(newPlan.cycle) ? newPlan.cycle as any : 'MONTHLY',
+        });
+        subscriptionId = subscription.id;
+      } catch (err) {
+        this.logger.error(`Falha ao criar nova assinatura: ${String(err)}`);
+      }
+    }
+
+    await this.prisma.company.update({
+      where: { id: companyId },
+      data: {
+        platformPlanId: newPlan.id,
+        asaasCustomerId: customerId,
+        asaasSubscriptionId: subscriptionId,
+      },
+    });
+
+    // Create a new invoice immediately
+    await this.ensureCompanyCheckout(companyId);
+
+    return { message: 'Plano alterado com sucesso' };
   }
 
   private async ensureSubscription(
