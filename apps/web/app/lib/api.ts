@@ -272,10 +272,26 @@ export interface DashboardInsights {
 export interface AppUser {
   id: string; name: string; email: string; role: UserRole;
   companyId: string; isActive?: boolean; createdAt?: string; customPermissions?: string[];
-  company?: { name: string };
+  lastActiveAt?: string | null;
+  forcePasswordChange?: boolean;
+  failedLoginAttempts?: number;
+  passwordChangedAt?: string | null;
+  employee?: {
+    id: string;
+    name: string;
+    registration?: string | null;
+    position?: string | null;
+    department?: string | null;
+    status?: string;
+  } | null;
+  company?: {
+    id?: string;
+    name: string;
+  };
 }
 export interface UsersUsage { used: number; max: number; }
-export interface CreateUserInput { name: string; email: string; password: string; role?: UserRole; customPermissions?: string[]; }
+export interface CreateUserInput { name: string; email: string; password?: string; role?: UserRole; customPermissions?: string[] | null; companyId?: string; }
+export interface UpdateUserInput extends Partial<CreateUserInput> { isActive?: boolean; }
 
 export interface WhatsappStatus {
   status: 'CONNECTED' | 'CONNECTING' | 'DISCONNECTED' | 'QR_CODE' | string;
@@ -535,7 +551,7 @@ export const api = {
     usage: () => request<UsersUsage>('/users/usage'),
     get: (id: string) => request<AppUser>(`/users/${id}`),
     create: (input: CreateUserInput) => request<AppUser>('/users', { method: 'POST', body: input }),
-    update: (id: string, input: Partial<CreateUserInput>) => request<AppUser>(`/users/${id}`, { method: 'PATCH', body: input }),
+    update: (id: string, input: UpdateUserInput) => request<AppUser>(`/users/${id}`, { method: 'PATCH', body: input }),
     delete: (id: string) => request<void>(`/users/${id}`, { method: 'DELETE' }),
     resetPassword: (id: string) => request<void>(`/users/${id}/reset-password`, { method: 'POST' }),
     ping: () => request<void>('/users/ping', { method: 'POST', silent: true }),
