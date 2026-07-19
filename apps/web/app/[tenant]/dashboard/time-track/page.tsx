@@ -15,12 +15,12 @@ import { formatMinutes } from '@/app/lib/format';
 import { normalizeDisplayName } from '@/app/lib/text';
 import { hasPermission } from '@/app/lib/permissions';
 import { buildPdfShell, section, infoGrid, pdfTable, signatureBlock, printPdf, type PdfCompanyInfo } from '@/app/lib/pdf-utils';
-import { saoPauloDateKey, saoPauloDayOfWeek } from '@/app/lib/date';
+import { saoPauloDateKey } from '@/app/lib/date';
 
 const WEEKDAYS = ['DOM','SEG','TER','QUA','QUI','SEX','SÁB'];
 
 const REASONS: { value: TimeTrackAdjustmentReason; label: string; fullDay?: boolean }[] = [
-  { value:'ajuste_erro_marcacao', label:'AJUSTE - ERRO MARCAÇÃO', fullDay:false },
+  { value:'ajuste_erro_marcacao', label:'AJUSTE - MARCAÇÃO INCOMPLETA', fullDay:false },
   { value:'ajuste_atestado_integral', label:'ATESTADO INTEGRAL', fullDay:true },
   { value:'ajuste_feriado', label:'FERIADO', fullDay:true },
   { value:'ajuste_abono_atestado_horas', label:'ABONO - ATESTADO DE HORAS', fullDay:true },
@@ -78,7 +78,7 @@ function defaultCycle(scale?: string | null) {
 }
 
 function isRestDay(date: Date, emp: Employee): boolean {
-  const wd = saoPauloDayOfWeek(date);
+  const wd = date.getUTCDay();
   if (emp.workScheduleRule?.restDaysOfWeek && emp.workScheduleRule.restDaysOfWeek.length > 0) {
     return emp.workScheduleRule.restDaysOfWeek.includes(wd);
   }
@@ -146,14 +146,26 @@ function buildGrid(month: string, emp: Employee, tracks: TimeTrack[], startDay: 
     let dayType = 'WORK';
     if (cd) {
       isRest = cd.dayType === 'FOLGA' || cd.dayType === 'FOLGA_DSR' || cd.dayType === 'FOLGA_BANCO';
+      if (cd.dayType === 'SEM_ESCALA') {
+        isRest = isRestDay(date, emp);
+      }
       if (cd.dayType === 'FERIADO' || cd.dayType === 'FERIADO_LOCAL') holidayName = holidayName || 'Feriado';
-      scheduled = cd.scheduled;
+      scheduled = isRest ? null : cd.scheduled;
       exception = cd.exception;
       dayType = cd.dayType;
     }
 
+    if (!isRest && !scheduled) {
+      scheduled = {
+        entry: emp.standardEntry || '08:00',
+        lunchStart: emp.standardLunchStart || '12:00',
+        lunchReturn: emp.standardLunchReturn || '13:00',
+        exit: emp.standardExit || '18:00'
+      };
+    }
+
     g.push({
-      date, key, day: date.getUTCDate(), wd: saoPauloDayOfWeek(date),
+      date, key, day: date.getUTCDate(), wd: date.getUTCDay(),
       isRest, isFuture: key>today, antesAdmissao: isAntesAdmissao(key,emp), depoisDemissao: isDepoisDemissao(key,emp),
       track: map.get(key), holidayName, scheduled, exception, dayType
     });
@@ -174,7 +186,7 @@ function dayStatus(row: TimeTrack, holidayName?: string) {
   if (r.includes('atestado integral')) return 'ATESTADO';
   if (r.includes('feriado')) return 'FERIADO';
   if (r.includes('folga dsr')) return 'FOLGA';
-  if (r === 'ajuste_erro_marcacao') return 'MARCAÇÃO INCOMPLETA';
+  if (r === 'ajuste_erro_marcacao') return 'PONTO INCOMPLETO';
   if (r === 'ajuste_abono_atraso') return 'ABONO DE ATRASO';
   if (r === 'ajuste_abono_banco_saida_antecipada') return 'ABONO SAÍDA';
   if (r === 'ajuste_abono_atestado_horas') return 'ATESTADO (HORAS)';
@@ -247,6 +259,32 @@ function getEffectiveStats(rows: TimeTrack[]) {
     missing += mis;
   }
   return { worked, saldo, extra, missing };
+}
+
+function getEffectiveStatsFromGrid(grid: any[]) {
+  let worked = 0;
+  let saldo = 0;
+  grid.forEach(g => {
+    if (g.isFuture || g.antesAdmissao || g.depoisDemissao) return;
+    if (g.track) {
+      worked += (g.track.totalWorked ?? 0);
+      saldo += (g.track.dailyBalance ?? 0);
+    } else if (!g.isRest) {
+      let expected = 480;
+      if (g.scheduled && g.scheduled.entry && g.scheduled.exit) {
+        const ent = new Date(`1970-01-01T${g.scheduled.entry}Z`);
+        const ext = new Date(`1970-01-01T${g.scheduled.exit}Z`);
+        expected = (ext.getTime() - ent.getTime()) / 60000;
+        if (g.scheduled.lunchStart && g.scheduled.lunchReturn) {
+          const lEnt = new Date(`1970-01-01T${g.scheduled.lunchStart}Z`);
+          const lExt = new Date(`1970-01-01T${g.scheduled.lunchReturn}Z`);
+          expected -= (lExt.getTime() - lEnt.getTime()) / 60000;
+        }
+      }
+      saldo -= expected;
+    }
+  });
+  return { worked, saldo };
 }
 
 export default function TimeTrackPage() {
@@ -325,18 +363,18 @@ export default function TimeTrackPage() {
   const refreshing = tracks.loading && !!tracks.data;
 
   return (
-    <div className="mx-auto max-w-7xl space-y-5 px-4 py-5 sm:px-6 lg:px-8">
-      <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+      <header className="page-header items-center">
         <div>
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-teal-600">CONTROLE DE PONTO</p>
-          <h2 className="text-2xl font-black text-slate-950">{isFunc?'MEU PONTO':isGestor?'PONTO DA EQUIPE':'FOLHA DE PONTO'}</h2>
+          <p className="page-label">CONTROLE DE PONTO</p>
+          <h2 className="page-title">{isFunc?'MEU PONTO':isGestor?'PONTO DA EQUIPE':'FOLHA DE PONTO'}</h2>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Link href={`/${tenant}/dashboard/escala`} className="btn-outline-premium inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black"><CalendarDays size={14}/> ESCALA</Link>
-          <Link href={`/${tenant}/dashboard/time-track/clock-in`} className="crystal-button inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black text-white"><Clock3 size={14}/> BATER PONTO</Link>
-          {(canManage||isGestor) && <button onClick={() => downloadCollectiveSheet(month, visible, byEmpMap, company.data || null, holidays.data || [], teamSchedules.data?.withSchedule || [])} disabled={refreshing || visible.length === 0} className="btn-outline-premium inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black"><FileText size={14}/> FOLHAS DE PONTO</button>}
-          {isFunc && <button onClick={() => downloadCollectiveSheet(month, visible, byEmpMap, company.data || null, holidays.data || [], teamSchedules.data?.withSchedule || [])} disabled={refreshing || visible.length === 0} className="btn-outline-premium inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black"><FileText size={14}/> MINHA FOLHA</button>}
-          {canManage && <button onClick={()=>setOpen(true)} disabled={refreshing} className="crystal-button inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black text-white"><Edit3 size={14}/> LANÇAR PONTO</button>}
+          <Link href={`/${tenant}/dashboard/escala${empFilter ? `?employeeId=${empFilter}` : ''}`} className="btn-outline"><CalendarDays size={14}/> ESCALA</Link>
+          <Link href={`/${tenant}/dashboard/time-track/clock-in`} className="btn-nubank"><Clock3 size={14}/> BATER PONTO</Link>
+          {(canManage||isGestor) && <button onClick={() => downloadCollectiveSheet(month, visible, byEmpMap, company.data || null, holidays.data || [], teamSchedules.data?.withSchedule || [])} disabled={refreshing || visible.length === 0} className="btn-outline"><FileText size={14}/> FOLHAS DE PONTO</button>}
+          {isFunc && <button onClick={() => downloadCollectiveSheet(month, visible, byEmpMap, company.data || null, holidays.data || [], teamSchedules.data?.withSchedule || [])} disabled={refreshing || visible.length === 0} className="btn-outline"><FileText size={14}/> MINHA FOLHA</button>}
+          <button onClick={()=>setOpen(true)} disabled={refreshing} className="btn-nubank"><Edit3 size={14}/> LANÇAR PONTO</button>
         </div>
       </header>
 
@@ -358,9 +396,9 @@ export default function TimeTrackPage() {
           </div>
           {approveMut.error && <p className="mb-3 rounded-[8px] border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">{approveMut.error}</p>}
           {batchApproveMut.error && <p className="mb-3 rounded-[8px] border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">{batchApproveMut.error}</p>}
-          <div className="space-y-2">{(pending.data ?? []).map(t=> (
-            <div key={t.id} className="flex items-center justify-between rounded-[8px] border border-amber-200 bg-white px-4 py-3">
-              <div className="flex items-center gap-3 text-xs">
+          <div className="space-y-3">{(pending.data ?? []).map(t=> (
+            <div key={t.id} className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-xl border border-amber-200 bg-white/80 p-4 shadow-sm backdrop-blur-sm transition-all hover:bg-white hover:shadow-md">
+              <div className="flex items-center gap-4 text-xs">
                   <input type="checkbox" className="h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-600" checked={selectedPending.includes(t.id)} onChange={e => {
                     if(e.target.checked) setSelectedPending(prev => [...prev, t.id]);
                     else setSelectedPending(prev => prev.filter(id => id !== t.id));
@@ -410,35 +448,51 @@ export default function TimeTrackPage() {
        (empFilter || isFunc) && selected ? (
         <div>
           {tab === 'ponto' ? (
-            <MonthGrid employee={selected} tracks={(byEmpMap[selected.id] ?? [])} month={month} canManage={canManage} canApprove={canApprove} refreshing={refreshing} removeLoading={remove.loading} onEdit={setEditing} onDelete={onDelete} showActions company={company.data} />
+            <MonthGrid employee={selected} tracks={(byEmpMap[selected.id] ?? [])} month={month} canManage={canManage} canApprove={canApprove} refreshing={refreshing} removeLoading={remove.loading} onEdit={setEditing} onDelete={onDelete} onApprove={(id, app)=>approveMut.mutate({id, approved:app})} showActions company={company.data} />
           ) : (
-            <Ocorrencias employee={selected} tracks={(byEmpMap[selected.id] ?? [])} month={month} canManage={canManage} canApprove={canApprove} refreshing={refreshing} removeLoading={remove.loading} onEdit={setEditing} onDelete={onDelete} company={company.data} holidays={holidays.data as any[]} />
+            <Ocorrencias employee={selected} tracks={(byEmpMap[selected.id] ?? [])} month={month} canManage={canManage} canApprove={canApprove} refreshing={refreshing} removeLoading={remove.loading} onEdit={setEditing} onDelete={onDelete} onApprove={(id, app)=>approveMut.mutate({id, approved:app})} company={company.data} holidays={holidays.data as any[]} />
           )}
         </div>
       ) : visible.length===0 ? <p className="text-center text-sm text-slate-400 py-8">Nenhum colaborador encontrado.</p> :
         tab === 'ponto' ? (
-          <section className="overflow-hidden rounded-[8px] border border-slate-200 bg-white shadow-[0_18px_45px_rgba(15,23,42,0.08)]">
-            <div className="border-b border-slate-800 bg-[#0d1117] px-5 py-4 text-white"><h3 className="text-sm font-black text-slate-950">COLABORADORES</h3><p className="mt-1 text-xs text-slate-500">Selecione para abrir a folha mensal.</p></div>
-            <div className="divide-y divide-slate-100">
+          <section className="content-section">
+            <div className="section-header">
+              <div>
+                <h3 className="section-title">COLABORADORES</h3>
+                <p className="mt-1 text-[11px] text-zinc-500 font-medium">Selecione para abrir a folha mensal.</p>
+              </div>
+            </div>
+            <div className="divide-y divide-zinc-100">
               {visible.map(emp=>{
                 const rows = byEmpMap[emp.id] ?? [];
-                const { worked, saldo } = getEffectiveStats(rows);
+                const grid = buildGrid(month, emp, rows, (company.data as any)?.payrollStartDay || 1, holidays.data || [], teamSchedules.data?.withSchedule || []);
+                const { worked, saldo } = getEffectiveStatsFromGrid(grid);
                 const faltas = rows.filter(isFalta).length;
                 return (
-                  <div key={emp.id} className="flex items-center justify-between px-5 py-4 hover:bg-slate-50">
+                  <div key={emp.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-4 py-3 hover:bg-zinc-50/50 transition-colors cursor-pointer" onClick={()=>router.push(`/${tenant}/dashboard/time-track?employeeId=${emp.id}`)}>
                     <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-gradient-to-br from-teal-500 to-cyan-600 text-sm font-black text-white">{normalizeDisplayName(emp.name).charAt(0).toUpperCase()}</div>
+                      <div className="avatar-initial">{normalizeDisplayName(emp.name).charAt(0).toUpperCase()}</div>
                       <div>
-                        <div className="flex flex-wrap items-center gap-2"><span className="rounded-full border border-white/15 bg-white/10 px-2 py-0.5 text-[10px] font-black text-white">{emp.registration || emp.id.slice(0,8).toUpperCase()}</span><p className="text-sm font-black text-slate-950">{normalizeDisplayName(emp.name)}</p></div>
-                        <p className="mt-1 text-[10px] font-semibold text-slate-500">{emp.department || '-'} {faltas>0 && <span className="text-rose-600 ml-2">{faltas} FALTA(S)</span>}</p>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="badge-inactive">{emp.registration || emp.id.slice(0,8).toUpperCase()}</span>
+                          <p className="text-sm font-bold text-zinc-900">{normalizeDisplayName(emp.name)}</p>
+                        </div>
+                        <p className="mt-1 text-[10px] font-semibold text-zinc-500">{emp.department || '-'} {faltas>0 && <span className="text-red-600 ml-2">{faltas} FALTA(S)</span>}</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <div className="flex gap-2 text-[10px] font-bold">
-                        <div className="rounded-[8px] border border-white/15 bg-white/10 px-3 py-2 text-white"><span className="block text-[8px] uppercase text-white/50">TRAB</span><span>{fmtWorked(worked)}</span></div>
-                        <div className={`rounded-[6px] border px-2 py-1 ${saldo>=0?'border-emerald-300/30 bg-emerald-400/10 text-emerald-200':'border-rose-300/30 bg-rose-400/10 text-rose-200'}`}><span className="block text-[8px] uppercase text-white/50">SALDO</span><span className="font-black">{fmtBalance(saldo)}</span></div>
+                    <div className="flex items-center gap-5">
+                      <div className="flex items-center gap-4">
+                        <div className="flex flex-col items-end">
+                          <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-400">Trabalhado</span>
+                          <span className="font-mono text-sm font-black text-zinc-700">{fmtWorked(worked)}</span>
+                        </div>
+                        <div className="h-6 w-px bg-zinc-200"></div>
+                        <div className="flex flex-col items-end">
+                          <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-400">Saldo</span>
+                          <span className={`font-mono text-sm font-black ${saldo >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>{fmtBalance(saldo)}</span>
+                        </div>
                       </div>
-                      <button onClick={()=>router.push(`/${tenant}/dashboard/time-track?employeeId=${emp.id}`)} className="btn-outline-premium inline-flex h-8 items-center gap-1.5 rounded-[6px] px-3 text-[10px] font-black"><CalendarDays size={12}/> ABRIR</button>
+                      <button className="btn-action ml-1"><CalendarDays size={14}/> ABRIR</button>
                     </div>
                   </div>
                 );
@@ -591,7 +645,7 @@ function downloadCollectiveSheet(month: string, visibleEmployees: Employee[], by
       const hasMissing = !t.entry || !t.exit;
       if (ocorrencia === 'NORMAL') {
         if (isFalta(t)) ocorrencia = 'FALTA NAO JUSTIFICADA';
-        else if (hasMissing) ocorrencia = 'FALTA DE MARCACAO';
+        else if (hasMissing) ocorrencia = 'PONTO INCOMPLETO';
         else ocorrencia = '';
       }
 
@@ -703,8 +757,8 @@ function OcorrenciasList({ employees, byEmpMap, month, onSelect }: { employees: 
   const withIssues = employees.filter(e => (byEmpMap[e.id] ?? []).some(t => isOcorrencia(t)));
   if (withIssues.length===0) return <p className="text-center text-sm font-semibold text-slate-400 py-8">Nenhuma ocorrencia no mes.</p>;
   return (
-    <section className="overflow-hidden rounded-[8px] border border-slate-200 bg-white shadow-[0_18px_45px_rgba(15,23,42,0.08)]">
-      <div className="border-b border-slate-800 bg-amber-50/50 px-5 py-4"><h3 className="text-sm font-black text-amber-900">OCORRENCIAS DO MES</h3><p className="mt-1 text-xs text-amber-700">Atrasos, faltas e saídas antecipadas.</p></div>
+    <section className="overflow-hidden rounded-[14px] border border-slate-200 bg-white">
+      <div className="border-b border-slate-100 bg-amber-50/50 px-5 py-4"><h3 className="text-sm font-black text-amber-900">OCORRENCIAS DO MES</h3><p className="mt-1 text-xs text-amber-700">Atrasos, faltas e saídas antecipadas.</p></div>
       <div className="divide-y divide-slate-100">
         {withIssues.map(e=> {
           const rows = byEmpMap[e.id] ?? [];
@@ -727,64 +781,68 @@ function OcorrenciasList({ employees, byEmpMap, month, onSelect }: { employees: 
   );
 }
 
-function MonthGrid({ employee, tracks, month, canManage, canApprove, refreshing, removeLoading, onEdit, onDelete, showActions, company, teamSchedules = [] }: { employee: Employee; tracks: TimeTrack[]; month: string; canManage: boolean; canApprove: boolean; refreshing: boolean; removeLoading: boolean; onEdit: (r:TimeTrack)=>void; onDelete: (r:TimeTrack)=>void; showActions?: boolean; company?: any; teamSchedules?: any[] }) {
+function MonthGrid({ employee, tracks, month, canManage, canApprove, refreshing, removeLoading, onEdit, onDelete, onApprove, showActions, company, teamSchedules = [] }: { employee: Employee; tracks: TimeTrack[]; month: string; canManage: boolean; canApprove: boolean; refreshing: boolean; removeLoading: boolean; onEdit: (r:TimeTrack)=>void; onDelete: (r:TimeTrack)=>void; onApprove?: (id:string, approved:boolean)=>void; showActions?: boolean; company?: any; teamSchedules?: any[] }) {
   const grid = useMemo(()=> buildGrid(month, employee, tracks, company?.payrollStartDay || 1, [], teamSchedules), [month, employee, tracks, company, teamSchedules]);
-  const worked = sumMin(tracks,'totalWorked');
-  const saldo = sumMin(tracks,'dailyBalance');
+  const { worked, saldo } = useMemo(() => getEffectiveStatsFromGrid(grid), [grid]);
   const restDays = grid.filter(g=>g.isRest).length;
   const batidas = grid.filter(g=>g.track && !g.isRest).length;
   const pendentes = grid.filter(g=>!g.isRest && !g.isFuture && !g.track).length;
 
   return (
-    <section className="overflow-hidden rounded-[8px] border border-slate-200 bg-white shadow-[0_18px_45px_rgba(15,23,42,0.08)]">
-      <div className="border-b border-slate-800 bg-[#0d1117] px-5 py-4 text-white">
+    <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm ring-1 ring-slate-900/5">
+      <div className="border-b border-slate-100 bg-slate-50/50 p-6 backdrop-blur-sm">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex items-center gap-3.5">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[8px] bg-white text-sm font-black text-slate-950 shadow-sm ring-1 ring-white/20">{normalizeDisplayName(employee.name).charAt(0).toUpperCase()}</div>
+          <div className="flex items-center gap-4">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-teal-500 to-emerald-600 text-lg font-black text-white shadow-md shadow-teal-500/20">{normalizeDisplayName(employee.name).charAt(0).toUpperCase()}</div>
             <div>
               <div className="flex flex-wrap items-center gap-2">
-                <span className="rounded-full border border-white/15 bg-white/10 px-2 py-0.5 text-[10px] font-black text-white">{employee.registration || employee.id.slice(0,8).toUpperCase()}</span>
-                <h3 className="text-sm font-black text-white">{normalizeDisplayName(employee.name)}</h3>
+                <span className="rounded-full border border-teal-200 bg-teal-50 px-2 py-0.5 text-[10px] font-black text-teal-700 shadow-sm">{employee.registration || employee.id.slice(0,8).toUpperCase()}</span>
+                <h3 className="text-base font-black text-slate-950">{normalizeDisplayName(employee.name)}</h3>
               </div>
-              <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] font-semibold text-slate-300">
-                <span>{employee.department||'-'}</span><span className="text-white/25">|</span>
-                <span>{employee.position||'-'}</span><span className="text-white/25">|</span>
+              <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] font-semibold text-slate-500">
+                <span>{employee.department||'-'}</span><span className="text-slate-300">|</span>
+                <span>{employee.position||'-'}</span><span className="text-slate-300">|</span>
                 {(() => {
                   const empSchedule = teamSchedules?.find(ts => ts.employee.id === employee.id);
                   const scaleName = empSchedule?.schedule ? `${empSchedule.schedule.name} (${empSchedule.schedule.scaleType})` : (employee.workScale || employee.customWorkScale || '6X1');
-                  return <span className="rounded-full border border-white/15 bg-white/10 px-1.5 py-0.5 text-[9px] text-white">ESCALA: {scaleName}</span>;
+                  return <span className="rounded-full border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[9px]">ESCALA: {scaleName}</span>;
                 })()}
               </div>
             </div>
           </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex gap-2 text-[10px] font-bold">
-              <div className="rounded-[8px] border border-white/15 bg-white/10 px-3 py-2 text-white"><span className="block text-[8px] uppercase text-white/50">TRAB</span><span className="font-black">{fmtWorked(worked)}</span></div>
-              <div className={`rounded-[6px] border px-2 py-1 ${saldo>=0?'border-emerald-300/30 bg-emerald-400/10 text-emerald-200':'border-rose-300/30 bg-rose-400/10 text-rose-200'}`}><span className="block text-[8px] uppercase text-white/50">SALDO</span><span className="font-black">{fmtBalance(saldo)}</span></div>
+          <div className="flex flex-wrap items-center gap-4 bg-white px-4 py-2 rounded-xl border border-zinc-200 shadow-sm">
+            <div className="flex flex-col items-end">
+              <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-400">Trabalhado</span>
+              <span className="font-mono text-sm font-black text-zinc-700">{fmtWorked(worked)}</span>
+            </div>
+            <div className="h-6 w-px bg-zinc-200"></div>
+            <div className="flex flex-col items-end">
+              <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-400">Saldo</span>
+              <span className={`font-mono text-sm font-black ${saldo >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>{fmtBalance(saldo)}</span>
             </div>
           </div>
         </div>
-        <div className="mt-3 flex flex-wrap gap-3 rounded-[8px] border border-white/10 bg-white/[0.04] px-3 py-2 text-[10px] font-semibold text-slate-200">
+        <div className="mt-3 flex flex-wrap gap-3 rounded-[8px] border border-slate-100 bg-slate-50/50 px-3 py-2 text-[10px] font-semibold text-slate-600">
           <span className="flex items-center gap-1.5"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400"/>{batidas} BATIDA(S)</span>
-          <span className="text-white/25">|</span>
+          <span className="text-slate-300">|</span>
           <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-sky-500"/>{restDays} FOLGA(S)</span>
-          {pendentes>0 && <><span className="text-white/25">|</span><span className="flex items-center gap-1 text-amber-200"><span className="h-1.5 w-1.5 rounded-full bg-amber-300"/>{pendentes} PENDENTE(S)</span></>}
+          {pendentes>0 && <><span className="text-slate-300">|</span><span className="flex items-center gap-1 text-amber-700"><span className="h-1.5 w-1.5 rounded-full bg-amber-500"/>{pendentes} PENDENTE(S)</span></>}
         </div>
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[1200px] border-separate border-spacing-0 text-left">
+        <table className="w-full min-w-[900px] border-separate border-spacing-0 text-left">
           <thead>
-            <tr className="bg-slate-950 text-[10px] font-black uppercase tracking-wider text-white">
-              <th className="px-4 py-3 w-[16%] border-b border-slate-800">DATA</th>
-              <th className="px-4 py-3 w-[9%] border-b border-slate-800 text-center">ENTRADA</th>
-              <th className="px-4 py-3 w-[11%] border-b border-slate-800 text-center">ALMOÇO</th>
-              <th className="px-4 py-3 w-[9%] border-b border-slate-800 text-center">SAÍDA</th>
-              <th className="px-4 py-3 w-[9%] border-b border-slate-800 text-center">TRAB</th>
-              <th className="px-4 py-3 w-[9%] border-b border-slate-800 text-center">SALDO</th>
-              <th className="px-4 py-3 w-[8%] border-b border-slate-800 text-center">ABONO</th>
-              <th className="px-4 py-3 w-[10%] border-b border-slate-800 text-center">STATUS</th>
-              <th className="px-4 py-3 w-[22%] border-b border-slate-800 text-center">AÇÕES</th>
+            <tr className="bg-slate-50/60 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+              <th className="px-4 py-3 w-[12%] border-b border-slate-100">DATA</th>
+              <th className="px-4 py-3 w-[9%] border-b border-slate-100 text-center">ENTRADA</th>
+              <th className="px-4 py-3 w-[11%] border-b border-slate-100 text-center">ALMOÇO</th>
+              <th className="px-4 py-3 w-[9%] border-b border-slate-100 text-center">SAÍDA</th>
+              <th className="px-4 py-3 w-[9%] border-b border-slate-100 text-center">TRAB</th>
+              <th className="px-4 py-3 w-[9%] border-b border-slate-100 text-center">SALDO</th>
+              <th className="px-4 py-3 w-[8%] border-b border-slate-100 text-center">ABONO</th>
+              <th className="px-4 py-3 w-[10%] border-b border-slate-100 text-center">STATUS</th>
+              <th className="px-4 py-3 w-[23%] border-b border-slate-100 text-center">AÇÕES</th>
             </tr>
           </thead>
           <tbody>
@@ -808,7 +866,7 @@ function MonthGrid({ employee, tracks, month, canManage, canApprove, refreshing,
               const isAtestado = ['ATESTADO','FERIADO','SUSPENSÃO','FOLGA','FOLGA EXTRA','FOLGA BANCO','FOLGA (DSR)','---'].includes(status);
 
               return (
-                <tr key={day.key} className={`h-11 border-t border-slate-100 text-[11px] font-semibold text-slate-700 transition-colors hover:bg-slate-50 ${bg}`}>
+                <tr key={day.key} className={`h-9 border-t border-slate-100 text-[11px] font-semibold text-slate-700 hover:bg-slate-50/70 ${bg}`}>
                   <td className="px-3 text-slate-500 text-[11px] font-bold">
     <div className="flex flex-col">
       <span>{fmtDateFull(day.key)}</span>
@@ -819,16 +877,16 @@ function MonthGrid({ employee, tracks, month, canManage, canApprove, refreshing,
       )}
     </div>
   </td>
-              <td className={`px-4 text-center font-mono text-[11px] font-medium ${isAtestado?'text-slate-300':t?.entry?'text-slate-950':'text-slate-300'}`}>{isAtestado?'---':t?.entry?fmtTime(t.entry):'--:--'}</td>
-              <td className={`px-4 text-center font-mono text-[11px] font-medium ${t?.lunchStart||t?.lunchReturn?'text-slate-950':'text-slate-300'}`}>{isAtestado?'---':t?.lunchStart?fmtLunch(t?.lunchStart,t?.lunchReturn):'--:--'}</td>
-              <td className={`px-4 text-center font-mono text-[11px] font-medium ${isAtestado?'text-slate-300':t?.exit?'text-slate-950':'text-slate-300'}`}>{isAtestado?'---':t?.exit?fmtTime(t.exit):'--:--'}</td>
+              <td className={`px-4 text-center font-mono text-[11px] font-medium ${isAtestado?'text-slate-300':t?.entry?'text-slate-900':day.scheduled?.entry?'text-slate-400':'text-slate-300'}`}>{isAtestado?'---':t?.entry?fmtTime(t.entry):(day.scheduled?.entry ? fmtTime(day.scheduled.entry) : '--:--')}</td>
+              <td className={`px-4 text-center font-mono text-[11px] font-medium ${t?.lunchStart||t?.lunchReturn?'text-slate-500':day.scheduled?.lunchStart?'text-slate-400':'text-slate-300'}`}>{isAtestado?'---':t?.lunchStart?fmtLunch(t?.lunchStart,t?.lunchReturn):(day.scheduled?.lunchStart ? fmtLunch(day.scheduled.lunchStart, day.scheduled.lunchReturn) : '--:--')}</td>
+              <td className={`px-4 text-center font-mono text-[11px] font-medium ${isAtestado?'text-slate-300':t?.exit?'text-slate-900':day.scheduled?.exit?'text-slate-400':'text-slate-300'}`}>{isAtestado?'---':t?.exit?fmtTime(t.exit):(day.scheduled?.exit ? fmtTime(day.scheduled.exit) : '--:--')}</td>
               <td className="px-4 text-center text-slate-500 text-[11px] font-medium">{isAtestado?'---':t?fmtWorked(t.totalWorked):'--:--'}</td>
               <td className={`px-4 text-center text-[11px] font-bold ${isAtestado?'text-slate-300':t&&(t.dailyBalance??0)<0?'text-rose-500':t?'text-emerald-500':'text-slate-300'}`}>{isAtestado?'---':t?fmtBalance(t.dailyBalance):'--:--'}</td>
                   <td className={`px-4 text-center text-[11px] ${isAtestado?'text-slate-300':'text-slate-400'}`}>{isAtestado?'---':'--:--'}</td>
                   <td className="px-3 text-center flex flex-col items-center gap-1 py-1">
                     <StatusBadge status={status}/>
                     {t?.observation && t.observation.toUpperCase() !== status.toUpperCase() && !t.observation.toUpperCase().includes(status.toUpperCase()) && !status.toUpperCase().includes(t.observation.toUpperCase()) && (
-                      <div className="text-[9px] font-medium text-amber-700 w-full text-center leading-tight whitespace-normal break-words" title={t.observation}>
+                      <div className="mt-0.5 rounded-[4px] bg-amber-50 px-1.5 py-0.5 text-[8px] font-black tracking-wider text-amber-700 border border-amber-200 shadow-sm max-w-[100px] truncate" title={t.observation}>
                         {t.observation.replace(/ajuste - /i, '')}
                       </div>
                     )}
@@ -836,10 +894,10 @@ function MonthGrid({ employee, tracks, month, canManage, canApprove, refreshing,
                   <td className="px-2">
                     <div className="flex justify-center gap-1.5 whitespace-nowrap">
                       {showActions && !day.isFuture && (
-                        <button onClick={()=>onEdit(t||{id:'',employeeId:employee.id,date:day.key,entry:null,lunchStart:null,lunchReturn:null,exit:null,totalWorked:null,dailyBalance:null} as unknown as TimeTrack)} disabled={refreshing||removeLoading} className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-[10px] font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors shadow-sm flex items-center gap-1.5"><Edit3 size={11}/>{t?'EDITAR':'SOLICITAR'}</button>
+                        <button onClick={()=>onEdit(t||{id:'',employeeId:employee.id,date:day.key,entry:null,lunchStart:null,lunchReturn:null,exit:null,totalWorked:null,dailyBalance:null} as unknown as TimeTrack)} disabled={refreshing||removeLoading} className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-[10px] font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors shadow-sm flex items-center gap-1.5"><Edit3 size={11}/>{!t ? 'LANÇAR' : (!canManage ? 'SOLICITAR AJUSTE' : 'EDITAR')}</button>
                       )}
                       {showActions && t && canApprove && t.manualStatus==='pending' && (
-                        <button onClick={()=>onEdit(t)} disabled={refreshing||removeLoading} className="crystal-button h-6 px-2 text-[9px] font-bold"><Check size={10}/>ACEITAR</button>
+                        <button onClick={()=>onApprove?.(t.id, true)} disabled={refreshing||removeLoading} className="crystal-button h-6 px-2 text-[9px] font-bold"><Check size={10}/>ACEITAR</button>
                       )}
                       {showActions && t && canManage && (
                         <button onClick={()=>onDelete(t)} disabled={refreshing||removeLoading} className="rounded-lg border border-red-100 bg-red-50/50 px-2 py-1 text-[10px] font-semibold text-red-600 hover:bg-red-50 hover:border-red-200 transition-colors shadow-sm flex items-center gap-1.5"><Trash2 size={11}/>EXCLUIR</button>
@@ -865,15 +923,15 @@ function MonthGrid({ employee, tracks, month, canManage, canApprove, refreshing,
   );
 }
 
-function Ocorrencias({ employee, tracks, month, canManage, canApprove, refreshing, removeLoading, onEdit, onDelete, company, holidays }: { employee: Employee; tracks: TimeTrack[]; month: string; canManage: boolean; canApprove: boolean; refreshing: boolean; removeLoading: boolean; onEdit: (r:TimeTrack)=>void; onDelete: (r:TimeTrack)=>void; company: any; holidays: any[]; }) {
+function Ocorrencias({ employee, tracks, month, canManage, canApprove, refreshing, removeLoading, onEdit, onDelete, onApprove, company, holidays }: { employee: Employee; tracks: TimeTrack[]; month: string; canManage: boolean; canApprove: boolean; refreshing: boolean; removeLoading: boolean; onEdit: (r:TimeTrack)=>void; onDelete: (r:TimeTrack)=>void; onApprove?: (id:string, approved:boolean)=>void; company: any; holidays: any[]; }) {
   const grid = useMemo(()=> buildGrid(month, employee, tracks, company?.payrollStartDay, holidays), [month, employee, tracks, company, holidays]);
   const ocorrencias = useMemo(()=>grid.filter(g=>{
     if (!g.track) return false;
     return isOcorrencia(g.track);
   }), [grid]);
   return (
-    <section className="overflow-hidden rounded-[8px] border border-slate-200 bg-white shadow-[0_18px_45px_rgba(15,23,42,0.08)]">
-      <div className="border-b border-slate-800 bg-amber-50/50 px-5 py-4">
+    <section className="overflow-hidden rounded-[14px] border border-slate-200 bg-white">
+      <div className="border-b border-slate-100 bg-amber-50/50 px-5 py-4">
         <div className="flex items-center gap-3">
           <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-black text-amber-800">{employee.registration || employee.id.slice(0,8)}</span>
           <h3 className="text-sm font-black text-amber-900">{normalizeDisplayName(employee.name)}</h3>
@@ -904,7 +962,7 @@ function Ocorrencias({ employee, tracks, month, canManage, canApprove, refreshin
                     <td className="px-3 py-2">
                       <div className="flex gap-1">
                         <button onClick={()=>onEdit(t)} disabled={refreshing||removeLoading} className="btn-outline-premium h-6 px-2 text-[10px]"><Edit3 size={10}/>SOLICITAR</button>
-                        {canApprove && <button onClick={()=>onEdit(t)} disabled={refreshing||removeLoading} className="crystal-button h-6 px-2 text-[10px]"><Check size={10}/>ACEITAR</button>}
+                        {canApprove && <button onClick={()=>onApprove?.(t.id, true)} disabled={refreshing||removeLoading} className="crystal-button h-6 px-2 text-[10px]"><Check size={10}/>ACEITAR</button>}
                         {canManage && <button onClick={()=>onDelete(t)} disabled={refreshing||removeLoading} className="inline-flex h-6 items-center gap-1 rounded-[5px] bg-rose-500 px-2 text-[10px] font-black text-white"><Edit3 size={10}/></button>}
                       </div>
                     </td>
@@ -935,7 +993,7 @@ function StatusBadge({ status }: { status: string }) {
     'FOLGA EXTRA':'bg-indigo-50 text-indigo-700 border-indigo-200',
     'FOLGA BANCO':'bg-cyan-50 text-cyan-700 border-cyan-200',
     'AJUSTE MANUAL':'bg-orange-50 text-orange-700 border-orange-200',
-    'MARCAÇÃO INCOMPLETA':'bg-amber-50 text-amber-700 border-amber-200',
+    'PONTO INCOMPLETO':'bg-amber-50 text-amber-700 border-amber-200',
     'ABONO DE ATRASO':'bg-indigo-50 text-indigo-700 border-indigo-200',
     'ABONO SAÍDA':'bg-indigo-50 text-indigo-700 border-indigo-200',
     'FALTA':'bg-rose-50 text-rose-700 border-rose-200',
@@ -1007,9 +1065,6 @@ function TimeTrackModal({ track, employees, onClose, onDone, defaultEmpId, canMa
       };
       for (const tId of targets) {
         if (!tId) continue;
-        const targetEmployee = employees.find((employee) => employee.id === tId);
-        const isBulkNormalPoint = reason === 'ajuste_erro_marcacao' && (empId === 'ALL' || datesToInsert.length > 1);
-        if (isBulkNormalPoint && targetEmployee && isRestDay(new Date(`${d}T00:00:00.000Z`), targetEmployee)) continue;
         promises.push(api.timeTrack.manual({ employeeId: tId, date: d, ...dayPayload }));
       }
     }

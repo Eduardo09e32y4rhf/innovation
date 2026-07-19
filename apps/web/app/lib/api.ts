@@ -44,7 +44,13 @@ type Opts = { method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE'; body?: unkno
 export async function request<T>(path: string, opts: Opts = {}): Promise<T> {
   const { method = 'GET', body, silent, timeoutMs, keepSessionOn401 } = opts;
   const headers: Record<string, string> = {};
-  if (body !== undefined) headers['Content-Type'] = 'application/json';
+  if (body !== undefined) {
+    if (typeof FormData !== 'undefined' && body instanceof FormData) {
+      // Deixa o browser setar o Content-Type com o boundary
+    } else {
+      headers['Content-Type'] = 'application/json';
+    }
+  }
   const token = getToken();
   if (token) headers['Authorization'] = `Bearer ${token}`;
 
@@ -56,7 +62,7 @@ export async function request<T>(path: string, opts: Opts = {}): Promise<T> {
     res = await fetch(`${API_URL}${path}`, {
       method,
       headers,
-      body: body !== undefined ? JSON.stringify(body) : undefined,
+      body: body !== undefined ? (typeof FormData !== 'undefined' && body instanceof FormData ? body : JSON.stringify(body)) : undefined,
       signal: controller?.signal,
     });
   } catch (err) {
@@ -159,6 +165,30 @@ export interface Employee {
   faceEnrollment?: { active: boolean; vectors?: number[] } | null;
   createdAt: string; updatedAt: string;
 }
+export interface PasswordResetEmployee {
+  id: string;
+  name: string;
+  registration?: string | null;
+  email?: string | null;
+  position?: string | null;
+  department?: string | null;
+  userId: string;
+  user: {
+    id: string;
+    role: UserRole;
+    isActive: boolean;
+  };
+}
+
+export interface EmployeePasswordResetResult {
+  reset: boolean;
+  forcePasswordChange: boolean;
+  employee: {
+    id: string;
+    name: string;
+    registration?: string | null;
+  };
+}
 
 export interface CreateEmployeeInput {
   name: string; cpf?: string; email?: string; phone?: string; birthDate?: string; registration?: string;
@@ -250,10 +280,26 @@ export interface DashboardInsights {
 export interface AppUser {
   id: string; name: string; email: string; role: UserRole;
   companyId: string; isActive?: boolean; createdAt?: string; customPermissions?: string[];
-  company?: { name: string };
+  lastActiveAt?: string | null;
+  forcePasswordChange?: boolean;
+  failedLoginAttempts?: number;
+  passwordChangedAt?: string | null;
+  employee?: {
+    id: string;
+    name: string;
+    registration?: string | null;
+    position?: string | null;
+    department?: string | null;
+    status?: string;
+  } | null;
+  company?: {
+    id?: string;
+    name: string;
+  };
 }
 export interface UsersUsage { used: number; max: number; }
-export interface CreateUserInput { name: string; email: string; password: string; role?: UserRole; customPermissions?: string[]; }
+export interface CreateUserInput { name: string; email: string; password?: string; role?: UserRole; customPermissions?: string[] | null; companyId?: string; }
+export interface UpdateUserInput extends Partial<CreateUserInput> { isActive?: boolean; }
 
 export interface WhatsappStatus {
   status: 'CONNECTED' | 'CONNECTING' | 'DISCONNECTED' | 'QR_CODE' | string;
@@ -275,6 +321,11 @@ export interface Company {
   phone?: string | null; email?: string | null; address?: string | null;
   cnpj?: string | null; street?: string | null; streetNumber?: string | null;
   neighborhood?: string | null; city?: string | null; state?: string | null; cep?: string | null;
+  zipCode?: string | null; addressComplement?: string | null;
+  stateRegistration?: string | null; municipalRegistration?: string | null;
+  legalRepresentativeName?: string | null; legalRepresentativeCpf?: string | null;
+  legalRepresentativeRole?: string | null; legalRepresentativeEmail?: string | null;
+  legalRepresentativePhone?: string | null;
   latitude?: number | null; longitude?: number | null; radiusTolerance?: number | null;
   primaryColor?: string | null; theme?: string | null;
   commercialOwnerId?: string | null; maxUsers: number; maxEmployees: number;
@@ -420,6 +471,21 @@ export const api = {
     resetPassword: (token: string, newPassword: string) => request<{ changed: boolean }>('/auth/password-reset/confirm', { method: 'POST', body: { token, newPassword } }),
     publicPlans: () => request<PublicPlatformPlan[]>('/auth/public-plans'),
     registerCompany: (data: any) => request<any>('/auth/register-company', { method: 'POST', body: data }),
+    searchEmployeesForPasswordReset: (search: string) =>
+      request<PasswordResetEmployee[]>(
+        `/auth/password-reset/employees${makeQuery({ search })}`,
+      ),
+    resetEmployeePassword: (employeeId: string, newPassword: string) =>
+      request<EmployeePasswordResetResult>(
+        '/auth/password-reset/employee',
+        {
+          method: 'POST',
+          body: {
+            employeeId,
+            newPassword,
+          },
+        },
+      ),
   },
 
   dashboard: {
@@ -498,7 +564,7 @@ export const api = {
     usage: () => request<UsersUsage>('/users/usage'),
     get: (id: string) => request<AppUser>(`/users/${id}`),
     create: (input: CreateUserInput) => request<AppUser>('/users', { method: 'POST', body: input }),
-    update: (id: string, input: Partial<CreateUserInput>) => request<AppUser>(`/users/${id}`, { method: 'PATCH', body: input }),
+    update: (id: string, input: UpdateUserInput) => request<AppUser>(`/users/${id}`, { method: 'PATCH', body: input }),
     delete: (id: string) => request<void>(`/users/${id}`, { method: 'DELETE' }),
     resetPassword: (id: string) => request<void>(`/users/${id}/reset-password`, { method: 'POST' }),
     ping: () => request<void>('/users/ping', { method: 'POST', silent: true }),

@@ -99,78 +99,56 @@ export default function EmployeesPage() {
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
-      {/* Premium Header */}
-      <section className="group relative overflow-hidden rounded-[24px] border border-slate-200/60 bg-gradient-to-br from-white via-slate-50/30 to-teal-50/20 p-6 shadow-[0_20px_70px_-15px_rgba(15,23,42,0.12)] transition-all duration-500 hover:shadow-[0_25px_80px_-15px_rgba(15,23,42,0.18)] sm:p-8">
-        <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-gradient-to-br from-teal-100/40 to-cyan-100/30 blur-3xl" />
-        <div className="absolute -bottom-16 -left-16 h-48 w-48 rounded-full bg-gradient-to-tr from-blue-100/30 to-teal-100/20 blur-2xl" />
-        
-        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-teal-200/60 bg-gradient-to-r from-teal-50 to-cyan-50 px-4 py-1.5 shadow-sm">
-              <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-teal-500" />
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-teal-700">Funcionários</p>
-            </div>
-            <h1 className="mt-3 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 bg-clip-text text-3xl font-black tracking-tight text-transparent lg:text-4xl">
-              {isGestor ? 'Minha equipe' : 'Cadastro da equipe'}
-            </h1>
-          </div>
-          {canEdit && (
-            <Link href={`/${tenant}/dashboard/employees/new`} className="crystal-button inline-flex h-11 items-center gap-2 rounded-[10px] bg-gradient-to-r from-teal-500 to-cyan-600 px-5 text-xs font-black text-white shadow-lg shadow-teal-500/25 transition-all hover:-translate-y-0.5 hover:shadow-xl hover:shadow-teal-500/30 active:translate-y-0">
-              <UserPlus size={15} strokeWidth={2.5} />
-              Novo funcionário
-            </Link>
-          )}
+      {/* Header */}
+      <section className="page-header">
+        <div>
+          <p className="page-label">Funcionários</p>
+          <h1 className="page-title">Cadastro da equipe</h1>
         </div>
+        {canEdit && (
+          <Link href={`/${tenant}/dashboard/employees/new`} className="btn-nubank">
+            <UserPlus size={15} strokeWidth={2.5} />
+            Novo funcionário
+          </Link>
+        )}
       </section>
 
       {/* Stats Cards */}
-      <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <div className="group relative overflow-hidden rounded-[12px] border border-emerald-200/60 bg-gradient-to-br from-emerald-50 to-white p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md">
+      <section className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="card-stat">
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-[11px] font-black uppercase tracking-wider text-emerald-700">Ativos</p>
-              <p className="mt-1 text-xl font-black text-slate-950">{activeCount}</p>
-            </div>
-            <div className="flex h-10 w-10 items-center justify-center rounded-[10px] bg-gradient-to-br from-emerald-500 to-teal-600 shadow-lg shadow-emerald-500/25">
-              <Users size={18} strokeWidth={2.5} className="text-white" />
-            </div>
+            <span className="card-stat-label">Ativos</span>
+            <Users size={16} className="text-zinc-400" strokeWidth={2.5} />
           </div>
+          <span className="card-stat-value">{activeCount}</span>
         </div>
-        <div className="group relative overflow-hidden rounded-[12px] border border-slate-200/60 bg-gradient-to-br from-slate-50 to-white p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md">
+        <div className="card-stat">
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-[11px] font-black uppercase tracking-wider text-slate-600">Inativos</p>
-              <p className="mt-1 text-xl font-black text-slate-950">{inactiveCount}</p>
-            </div>
-            <div className="flex h-10 w-10 items-center justify-center rounded-[10px] bg-gradient-to-br from-slate-400 to-slate-500 shadow-lg shadow-slate-500/25">
-              <Users size={18} strokeWidth={2.5} className="text-white" />
-            </div>
+            <span className="card-stat-label">Inativos</span>
+            <UserMinus size={16} className="text-zinc-400" strokeWidth={2.5} />
           </div>
+          <span className="card-stat-value">{inactiveCount}</span>
         </div>
-        <div className="group relative overflow-hidden rounded-[12px] border border-rose-200/60 bg-gradient-to-br from-rose-50 to-white p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md">
+        <div className="card-stat">
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-[11px] font-black uppercase tracking-wider text-rose-700">Desligados</p>
-              <p className="mt-1 text-xl font-black text-slate-950">{terminatedCount}</p>
-            </div>
-            <div className="flex h-10 w-10 items-center justify-center rounded-[10px] bg-gradient-to-br from-rose-500 to-pink-600 shadow-lg shadow-rose-500/25">
-              <XCircle size={18} strokeWidth={2.5} className="text-white" />
-            </div>
+            <span className="card-stat-label">Desligados</span>
+            <XCircle size={16} className="text-zinc-400" strokeWidth={2.5} />
           </div>
+          <span className="card-stat-value">{terminatedCount}</span>
         </div>
       </section>
 
       {/* Search */}
-      <section className="rounded-[12px] border border-slate-200/60 bg-white/80 p-4 shadow-sm backdrop-blur-sm">
-        <label className="space-y-2 text-xs font-bold uppercase tracking-wider text-slate-600">
+      <section className="card-flat p-4">
+        <label className="space-y-2 text-xs font-bold uppercase tracking-widest text-zinc-400">
           <span>Pesquisar por nome, CPF, matrícula, gestor ou departamento</span>
           <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} strokeWidth={2.5} />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={14} strokeWidth={2.5} />
             <input 
               value={search} 
               onChange={(event) => setSearch(event.target.value)} 
               placeholder="Digite para filtrar a equipe" 
-              className="h-10 w-full rounded-[8px] border border-slate-200 bg-white pl-9 pr-4 text-sm font-semibold text-slate-900 shadow-sm outline-none transition-all focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10" 
+              className="form-control pl-9" 
             />
           </div>
         </label>
@@ -190,81 +168,73 @@ export default function EmployeesPage() {
         <EmptyState message="Nenhum funcionário encontrado para a pesquisa." />
       ) : (
         <>
-          <section className="overflow-hidden rounded-[14px] border border-slate-200/60 bg-white shadow-[0_12px_40px_rgba(15,23,42,0.08)] transition-all duration-300 hover:shadow-[0_20px_50px_rgba(15,23,42,0.12)]">
+          <section className="data-table-wrap">
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[800px] text-left">
+              <table className="data-table min-w-[800px]">
                 <thead>
-                  <tr className="bg-gradient-to-r from-slate-100 to-slate-50 text-[10px] font-black uppercase tracking-[0.14em] text-slate-600">
-                    <th className="px-4 py-3">Funcionário</th>
-                    <th className="px-4 py-3">Matrícula</th>
-                    <th className="px-4 py-3">Gestor</th>
-                    <th className="px-4 py-3">Departamento</th>
-                    <th className="px-4 py-3">Cargo</th>
-                    <th className="px-4 py-3">Status</th>
-                    <th className="px-4 py-4">Acesso</th>
-                    {canEdit && <th className="px-4 py-3 text-right">Ações</th>}
+                  <tr>
+                    <th>Funcionário</th>
+                    <th>Matrícula</th>
+                    <th>Gestor</th>
+                    <th>Departamento</th>
+                    <th>Cargo</th>
+                    <th>Status</th>
+                    <th>Acesso</th>
+                    {canEdit && <th className="text-right">Ações</th>}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody>
                   {filteredEmployees.map((employee) => {
                     const managerName = employee.managerId ? managerById.get(employee.managerId) : '';
                     return (
-                      <tr key={employee.id} className="group transition-all duration-200 hover:bg-slate-50/40">
-                        <td className="px-4 py-3">
+                      <tr key={employee.id}>
+                        <td>
                           <div className="flex items-center gap-3">
-                            <div className="flex h-9 w-9 items-center justify-center rounded-[8px] bg-gradient-to-br from-teal-500 to-cyan-600 text-sm font-black text-white shadow-sm">
+                            <div className="avatar-initial">
                               {employee.name?.charAt(0).toUpperCase() || '?'}
                             </div>
-                            <p className="text-sm font-black text-slate-950">{normalizeDisplayName(employee.name)}</p>
+                            <p className="font-bold">{normalizeDisplayName(employee.name)}</p>
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-sm font-semibold text-slate-700">{employee.registration || '-'}</td>
-                        <td className="px-4 py-3 text-sm font-semibold text-slate-700">{managerName || '-'}</td>
-                        <td className="px-4 py-3">
-                          <span className="inline-flex rounded-[6px] border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-bold text-slate-700">
-                            {employee.department}
-                          </span>
+                        <td>{employee.registration || '-'}</td>
+                        <td>{managerName || '-'}</td>
+                        <td>
+                          <span className="badge-inactive">{employee.department}</span>
                         </td>
-                        <td className="px-4 py-3 text-sm font-semibold text-slate-700">{employee.position}</td>
-                        <td className="px-4 py-3"><StatusBadge status={employee.status} /></td>
-                        <td className="px-4 py-3"><AccessBadge employee={employee} /></td>
+                        <td>{employee.position}</td>
+                        <td><StatusBadge status={employee.status} /></td>
+                        <td><AccessBadge employee={employee} /></td>
                         {(canEdit || isGestor) && (
-                          <td className="px-4 py-3">
+                          <td>
                             <div className="flex justify-end flex-wrap gap-1.5">
                               {canDownloadSheet && canEdit && (
                                 <>
-                                  <button onClick={() => handleDownloadFicha(employee)} disabled={company.loading} className="btn-outline-premium inline-flex h-8 items-center gap-1.5 rounded-[6px] px-2.5 text-[11px] font-black disabled:opacity-50 transition-all hover:-translate-y-0.5">
-                                    <FileText size={12} strokeWidth={2.5} />
-                                    Ficha
+                                  <button onClick={() => handleDownloadFicha(employee)} disabled={company.loading} className="btn-action">
+                                    <FileText size={12} strokeWidth={2.5} /> Ficha
                                   </button>
-                                  <button onClick={() => handleDownloadSheet(employee)} disabled={downloadingId === employee.id || company.loading} className="btn-outline-premium inline-flex h-8 items-center gap-1.5 rounded-[6px] px-2.5 text-[11px] font-black disabled:opacity-50 transition-all hover:-translate-y-0.5">
-                                    <Download size={12} strokeWidth={2.5} />
-                                    Folha
+                                  <button onClick={() => handleDownloadSheet(employee)} disabled={downloadingId === employee.id || company.loading} className="btn-action">
+                                    <Download size={12} strokeWidth={2.5} /> Folha
                                   </button>
-                                  <button onClick={() => handleDownloadOcorrencias(employee)} disabled={downloadingId === employee.id || company.loading} className="btn-outline-premium inline-flex h-8 items-center gap-1.5 rounded-[6px] px-2.5 text-[11px] font-black disabled:opacity-50 transition-all hover:-translate-y-0.5">
-                                    <AlertTriangle size={12} strokeWidth={2.5} />
-                                    Ocorrências
+                                  <button onClick={() => handleDownloadOcorrencias(employee)} disabled={downloadingId === employee.id || company.loading} className="btn-action">
+                                    <AlertTriangle size={12} strokeWidth={2.5} /> Ocorrências
                                   </button>
                                 </>
                               )}
                               {(canEdit || isGestor) && (
-                                <button onClick={() => router.push(`/${tenant}/dashboard/time-track?employeeId=${employee.id}`)} className="btn-outline inline-flex h-8 items-center gap-1.5 rounded-[6px] px-2.5 text-[11px] font-black transition-all hover:-translate-y-0.5">
+                                <button onClick={() => router.push(`/${tenant}/dashboard/time-track?employeeId=${employee.id}`)} className="btn-action">
                                   Ponto
                                 </button>
                               )}
                               {canEdit && (
                                 <>
-                                  <Link href={`/${tenant}/dashboard/employees/new?id=${employee.id}`} className="btn-outline-premium inline-flex h-8 items-center gap-1.5 rounded-[6px] px-2.5 text-[11px] font-black transition-all hover:-translate-y-0.5">
-                                    <Edit3 size={12} strokeWidth={2.5} />
-                                    Editar
+                                  <Link href={`/${tenant}/dashboard/employees/new?id=${employee.id}`} className="btn-action">
+                                    <Edit3 size={12} strokeWidth={2.5} /> Editar
                                   </Link>
-                                  <button onClick={() => handleTerminate(employee)} disabled={employee.status === 'TERMINATED' || terminate.loading} className="inline-flex h-8 items-center gap-1.5 rounded-[6px] bg-gradient-to-r from-amber-500 to-orange-600 px-2.5 text-[11px] font-black text-white shadow-md shadow-amber-500/20 transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-amber-500/30 active:translate-y-0 disabled:opacity-50">
-                                    <UserMinus size={12} strokeWidth={2.5} />
-                                    Desligar
+                                  <button onClick={() => handleTerminate(employee)} disabled={employee.status === 'TERMINATED' || terminate.loading} className="btn-warn">
+                                    <UserMinus size={12} strokeWidth={2.5} /> Desligar
                                   </button>
-                                  <button onClick={() => handleDelete(employee)} disabled={remove.loading} className="inline-flex h-8 items-center gap-1.5 rounded-[6px] bg-gradient-to-r from-rose-500 to-pink-600 px-2.5 text-[11px] font-black text-white shadow-md shadow-rose-500/20 transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-rose-500/30 active:translate-y-0 disabled:opacity-50">
-                                    <Trash2 size={12} strokeWidth={2.5} />
-                                    Excluir
+                                  <button onClick={() => handleDelete(employee)} disabled={remove.loading} className="btn-danger">
+                                    <Trash2 size={12} strokeWidth={2.5} /> Excluir
                                   </button>
                                 </>
                               )}
@@ -288,21 +258,27 @@ export default function EmployeesPage() {
 
 function AccessBadge({ employee }: { employee: Employee }) {
   if (!employee.userId || !employee.user) return <span className="text-[11px] font-semibold text-slate-400">Sem acesso</span>;
-  if (!employee.user.isActive) return <span className="inline-flex rounded-[6px] border border-rose-200 bg-rose-50 px-2.5 py-1 text-[10px] font-black text-rose-700 shadow-sm">Bloqueado</span>;
-  if (employee.user.forcePasswordChange) return <span className="inline-flex rounded-[6px] border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] font-black text-amber-700 shadow-sm">Trocar senha</span>;
-  return <span className="inline-flex rounded-[6px] border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-black text-emerald-700 shadow-sm">Ativo</span>;
+  if (!employee.user.isActive) return <span className="badge-alert">Bloqueado</span>;
+  if (employee.user.forcePasswordChange) return <span className="badge-warn">Trocar senha</span>;
+  return <span className="badge-active">Ativo</span>;
 }
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
-    ACTIVE: 'border-emerald-200 bg-emerald-50 text-emerald-700',
-    INACTIVE: 'border-slate-200 bg-slate-100 text-slate-600',
-    SUSPENDED: 'border-amber-200 bg-amber-50 text-amber-700',
-    TERMINATED: 'border-rose-200 bg-rose-50 text-rose-700',
+    ACTIVE: 'badge-active',
+    INACTIVE: 'badge-inactive',
+    SUSPENDED: 'badge-warn',
+    TERMINATED: 'badge-alert',
+  };
+  const colorMap: Record<string, string> = {
+    ACTIVE: 'bg-emerald-500',
+    INACTIVE: 'bg-zinc-400',
+    SUSPENDED: 'bg-amber-500',
+    TERMINATED: 'bg-red-500',
   };
   return (
-    <span className={`inline-flex items-center rounded-[6px] border px-2.5 py-1 text-[10px] font-black shadow-sm ${map[status] ?? map.INACTIVE}`}>
-      <span className={`mr-1.5 h-1.5 w-1.5 rounded-full ${status === 'ACTIVE' ? 'bg-emerald-500' : status === 'INACTIVE' ? 'bg-slate-400' : status === 'SUSPENDED' ? 'bg-amber-500' : 'bg-rose-500'}`}></span>
+    <span className={map[status] ?? map.INACTIVE}>
+      <span className={`badge-dot ${colorMap[status] ?? colorMap.INACTIVE}`}></span>
       {EMPLOYEE_STATUS_LABEL[status] ?? status}
     </span>
   );
@@ -515,7 +491,7 @@ function downloadEmployeeSheet(employee: Employee, rows: TimeTrack[], month: str
     const balanceColor = balance < 0 ? '#e11d48' : balance > 0 ? '#059669' : '#64748b';
     const hasMissing = !t.entry || !t.exit;
     let ocorrencia = dayStatus(t);
-    if (ocorrencia === 'NORMAL') ocorrencia = hasMissing ? 'FALTA DE MARCAÇÃO' : '';
+    if (ocorrencia === 'NORMAL') ocorrencia = hasMissing ? 'PONTO INCOMPLETO' : '';
 
     const he = balance > 0 ? formatMinutes(balance) : '';
     const absent = balance < 0 ? formatMinutes(Math.abs(balance)) : '';
@@ -653,7 +629,7 @@ function downloadEmployeeOcorrenciasSheet(employee: Employee, rows: TimeTrack[],
       const balance = t.dailyBalance ?? 0;
       const hasMissing = !t.entry || !t.exit;
       let ocorrencia = dayStatus(t);
-      if (ocorrencia === 'NORMAL') ocorrencia = hasMissing ? 'FALTA DE MARCAÇÃO' : '';
+      if (ocorrencia === 'NORMAL') ocorrencia = hasMissing ? 'PONTO INCOMPLETO' : '';
       const he = balance > 0 ? formatMinutes(balance) : '';
       const absent = balance < 0 ? formatMinutes(Math.abs(balance)) : '';
       const jornada = formatMinutes(t.totalWorked ?? 0);

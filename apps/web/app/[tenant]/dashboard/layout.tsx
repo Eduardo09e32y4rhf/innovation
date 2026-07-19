@@ -13,14 +13,14 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (
     <ProtectedRoute>
       <PasswordChangeGate>
-        <div className="ops-dashboard flex min-h-[100dvh] w-full max-w-full flex-col overflow-x-hidden md:h-[100dvh] md:flex-row md:overflow-hidden">
+        <div className="app-shell">
           <DashboardSidebar />
-          <main className="flex min-w-0 flex-1 flex-col overflow-x-hidden md:overflow-y-auto">
+          <main className="min-w-0 flex-1">
             <DashboardTopbar />
             <PrivacyConsentGate>
             <PendingNotificationsGate>
             <ProposalGate>
-              <div className="min-w-0 flex-1 px-3 py-4 sm:px-5 sm:py-5 lg:px-8 lg:py-7">
+              <div className="mx-auto max-w-[1600px] p-4 sm:p-6 lg:p-8">
                 {children}
               </div>
             </ProposalGate>

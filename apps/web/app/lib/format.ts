@@ -29,13 +29,12 @@ export function formatCurrency(value?: string | number | null): string {
   return Number.isNaN(n) ? 'â€”' : n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 export function formatMinutes(minutes?: number | null): string {
-  if (minutes === null || minutes === undefined) return 'â€”';
+  if (minutes === null || minutes === undefined) return '—';
   const sign = minutes < 0 ? '-' : '+';
   const abs = Math.abs(minutes);
-  const h = Math.floor(abs / 60), m = abs % 60;
-  if (h === 0) return `${sign}${m}min`;
-  if (m === 0) return `${sign}${h}h`;
-  return `${sign}${h}h ${m}min`;
+  const h = Math.floor(abs / 60);
+  const m = abs % 60;
+  return `${sign}${String(h).padStart(2, '0')}h ${String(m).padStart(2, '0')}m`;
 }
 export const EMPLOYEE_STATUS_LABEL: Record<string, string> = {
   ACTIVE: 'Ativo', INACTIVE: 'Férias', SUSPENDED: 'Afastado', TERMINATED: 'Desligado',

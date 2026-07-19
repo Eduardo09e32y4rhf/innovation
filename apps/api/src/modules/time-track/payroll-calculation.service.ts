@@ -1,4 +1,4 @@
-﻿import { Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 
 export interface PayrollCalculationInput {
   salary: number;
@@ -14,6 +14,8 @@ export interface PayrollCalculationInput {
   overtime100Factor?: number;
   nightShiftPercent?: number;
   dsrEnabled?: boolean;
+  isPartialMonth?: boolean;
+  scheduledMinutesInPeriod?: number;
 }
 
 export interface PayrollCalculationResult {
@@ -42,13 +44,18 @@ export class PayrollCalculationService {
   static readonly VERSION = 'CLT_2026_1';
 
   calculate(input: PayrollCalculationInput): PayrollCalculationResult {
-    const salaryBase = this.money(Math.max(0, input.salary));
+    let salaryBase = this.money(Math.max(0, input.salary));
     const weeklyHours = Math.max(1, input.weeklyMinutes / 60);
     const monthlyDivisor = Math.max(1, Math.round(weeklyHours * 5));
     const hourlyRate = salaryBase / monthlyDivisor;
     const overtime50Factor = Math.max(1.5, input.overtime50Factor ?? 1.5);
     const overtime100Factor = Math.max(2, input.overtime100Factor ?? 2);
     const nightShiftPercent = Math.max(20, input.nightShiftPercent ?? 20) / 100;
+
+    const isPartialMonth = input.isPartialMonth === true;
+    if (isPartialMonth && (input.scheduledMinutesInPeriod ?? 0) > 0) {
+      salaryBase = this.money(hourlyRate * (input.scheduledMinutesInPeriod! / 60));
+    }
 
     const overtime50Value = this.money((input.overtime50Minutes / 60) * hourlyRate * overtime50Factor);
     const overtime100Value = this.money((input.overtime100Minutes / 60) * hourlyRate * overtime100Factor);
@@ -60,7 +67,11 @@ export class PayrollCalculationService {
       ? this.money((variablePay / payableWorkdays) * paidRestDays)
       : 0;
     const dsrHours = hourlyRate > 0 ? this.hours(dsrValue / hourlyRate) : 0;
+    
+    // In partial months, absences might have been correctly accounted for in the reduced salary base depending on interpretation.
+    // However, if we reduced the salary base based on scheduled hours of that short period, we should STILL deduct absences that happened in that period.
     const absenceDiscount = this.money((Math.max(0, input.absenceMinutes) / 60) * hourlyRate);
+    
     const grossPay = this.money(Math.max(0, salaryBase + variablePay + dsrValue - absenceDiscount));
     const inssDiscount = this.calculateInss(grossPay);
     const legalDeductions = inssDiscount + Math.max(0, input.dependents ?? 0) * 189.59;

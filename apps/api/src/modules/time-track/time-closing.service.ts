@@ -33,7 +33,7 @@ export class TimeClosingService {
         status: 'ACTIVE',
         ...(dto.employeeIds?.length ? { id: { in: dto.employeeIds } } : {}),
       },
-      include: { workScheduleRule: true },
+      include: { workScheduleRule: true, userSchedules: { include: { schedule: true }, orderBy: { startDate: 'desc' } } },
       orderBy: { name: 'asc' },
     });
     if (!employees.length) throw new BadRequestException('Nenhum funcionario ativo encontrado para o fechamento.');
@@ -93,6 +93,10 @@ export class TimeClosingService {
       let paidRestDays = 0;
       let missingAbsenceMinutes = 0;
       let missingAbsenceDays = 0;
+      let scheduledMinutesInPeriod = 0;
+
+      const today = new Date();
+      const todayKey = this.dateKey(today);
 
       for (const date of this.eachDate(periodStart, periodEnd)) {
         const key = this.dateKey(date);
@@ -100,11 +104,23 @@ export class TimeClosingService {
         const restDays = schedule?.schedule.restDays ?? employee.workScheduleRule?.restDaysOfWeek ?? [0, 6];
         const dayOfWeek = saoPauloDayOfWeek(date);
         const isRest = restDays.includes(dayOfWeek) || holidayKeys.has(key) || this.isOffCycle12x36(date, schedule?.schedule);
+        
+        let expectedForDay = this.expectedMinutes(employee, schedule?.schedule);
+        if (holidayKeys.has(key) || this.isOffCycle12x36(date, schedule?.schedule)) {
+          expectedForDay = 0;
+        } else if (restDays.includes(dayOfWeek)) {
+          expectedForDay = 0;
+        }
+        
+        scheduledMinutesInPeriod += expectedForDay;
+
         if (dayOfWeek === 0 || holidayKeys.has(key)) paidRestDays++;
+        
         if (!isRest) {
           payableWorkdays++;
-          if (!trackByDate.has(key) && !justifiedDates.has(key)) {
-            missingAbsenceMinutes += this.expectedMinutes(employee, schedule?.schedule);
+          // Only count absences for past or present days
+          if (date <= today && !trackByDate.has(key) && !justifiedDates.has(key)) {
+            missingAbsenceMinutes += expectedForDay;
             missingAbsenceDays++;
           }
         }
@@ -137,13 +153,19 @@ export class TimeClosingService {
         if (track.clockedInWithoutFacial) fallbackPunches++;
       }
 
-      const weeklyMinutes = employee.workScheduleRule?.weeklyMinutes
-        ?? this.weeklyMinutesFromSchedule(schedules[0]?.schedule)
-        ?? this.defaultWeeklyMinutes(employee.dailyWorkload);
+      const weeklyMinutes = this.weeklyMinutesFromSchedule(schedules[0]?.schedule)
+        ?? employee.workScheduleRule?.weeklyMinutes
+        ?? this.defaultWeeklyMinutes(employee.dailyWorkload, employee.workScale);
+      
+      const totalDaysInPeriod = Math.round((periodEnd.getTime() - periodStart.getTime()) / 86400000) + 1;
+      const isPartialMonth = totalDaysInPeriod < 28 || totalDaysInPeriod > 31;
+
       const dependents = Array.isArray(employee.dependents) ? employee.dependents.length : 0;
       const financial = this.payroll.calculate({
         salary: Number(employee.salary),
         weeklyMinutes,
+        isPartialMonth,
+        scheduledMinutesInPeriod,
         overtime50Minutes,
         overtime100Minutes,
         nightShiftMinutes,
@@ -233,6 +255,8 @@ export class TimeClosingService {
       const financial = this.payroll.calculate({
         salary: Number(updated.salaryBase),
         weeklyMinutes: Number(updated.monthlyDivisor) * 12,
+        isPartialMonth: false,
+        scheduledMinutesInPeriod: 0,
         overtime50Minutes: Number(updated.overtime50) * 60,
         overtime100Minutes: Number(updated.overtime100) * 60,
         nightShiftMinutes: Number(updated.nightShift) * 60,
@@ -299,6 +323,7 @@ export class TimeClosingService {
     doc.text(`Funcionario: ${closing.employee.name} | CPF: ${closing.employee.cpf || '-'}`);
     doc.text(`Periodo: ${this.formatDate(closing.periodStart)} a ${this.formatDate(closing.periodEnd)}`);
     doc.text(`Status: ${closing.status} | Regra: ${closing.calculationVersion}`);
+    doc.text(`Escala Vinculada: ${(closing as any).scaleTypeUsed ?? 'N/A'}`);
     doc.moveDown().fontSize(13).fillColor('#0f766e').text('Jornada consolidada');
     doc.fontSize(10).fillColor('#334155')
       .text(`Horas normais: ${closing.normalHours.toFixed(2)} h`)
@@ -315,7 +340,7 @@ export class TimeClosingService {
       .text(`Adicional noturno: ${this.currency(closing.nightShiftValue)}`)
       .text(`Reflexo DSR: ${this.currency(closing.dsrValue)}`)
       .text(`Desconto de jornada: -${this.currency(closing.absenceDiscount)}`)
-      .text(`Salario bruto: ${this.currency(closing.grossPay)}`)
+      .text(`Base de Calculo: ${this.currency(closing.grossPay)}`)
       .text(`INSS: -${this.currency(closing.inssDiscount)}`)
       .text(`IRRF: -${this.currency(closing.irrfDiscount)}`)
       .text(`FGTS patronal (nao descontado): ${this.currency(closing.fgtsAmount)}`);
@@ -372,8 +397,13 @@ export class TimeClosingService {
     return this.expectedMinutes({}, schedule) * Math.max(1, schedule.workDays?.length || 5);
   }
 
-  private defaultWeeklyMinutes(workload?: string | null): number {
-    return (this.workloadMinutes(workload) ?? 528) * 5;
+  private defaultWeeklyMinutes(workload?: string | null, workScale?: string | null): number {
+    const daily = this.workloadMinutes(workload) ?? 528;
+    let days = 5;
+    const scale = workScale?.toUpperCase();
+    if (scale === '6X1') days = 6;
+    else if (scale === '4X2') days = 4;
+    return daily * days;
   }
 
   private workloadMinutes(value?: string | null): number | null {

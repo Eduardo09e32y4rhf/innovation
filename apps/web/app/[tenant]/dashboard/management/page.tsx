@@ -251,18 +251,20 @@ function ManagementContent() {
 
   return (
     <div className="mx-auto max-w-7xl space-y-5 px-4 py-5 sm:px-6 lg:px-8">
-      <header>
-        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-teal-600">GESTÃO</p>
-        <h2 className="text-2xl font-black text-slate-950">Gestão de pessoas e jornada</h2>
-        <p className="mt-1 text-sm font-semibold text-slate-500">Controle compromissos, exames ocupacionais e pendências administrativas dos colaboradores.</p>
+      <header className="page-header items-center">
+        <div>
+          <p className="page-label">GESTÃO</p>
+          <h2 className="page-title">Gestão de pessoas e jornada</h2>
+          <p className="mt-1 text-[11px] font-medium text-zinc-500">Controle compromissos, exames ocupacionais e pendências administrativas dos colaboradores.</p>
+        </div>
       </header>
 
-      <div className="flex gap-1 rounded-[8px] bg-slate-100 p-1 flex-wrap">
-        <button onClick={() => navigate('agenda')} className={`rounded-[6px] px-4 py-2 text-xs font-black uppercase ${tab === 'agenda' ? 'bg-white shadow-sm text-teal-700' : 'text-slate-500'}`}>Agenda</button>
-        <button onClick={() => navigate('aso')} className={`rounded-[6px] px-4 py-2 text-xs font-black uppercase ${tab === 'aso' ? 'bg-white shadow-sm text-teal-700' : 'text-slate-500'}`}>ASO</button>
-        <button onClick={() => navigate('notifications')} className={`rounded-[6px] px-4 py-2 text-xs font-black uppercase ${tab === 'notifications' ? 'bg-white shadow-sm text-teal-700' : 'text-slate-500'}`}>Notificações</button>
-        <button onClick={() => navigate('rules')} className={`rounded-[6px] px-4 py-2 text-xs font-black uppercase ${tab === 'rules' ? 'bg-white shadow-sm text-teal-700' : 'text-slate-500'}`}>Regras</button>
-        <button onClick={() => navigate('closing')} className={`rounded-[6px] px-4 py-2 text-xs font-black uppercase ${tab === 'closing' ? 'bg-white shadow-sm text-teal-700' : 'text-slate-500'}`}>Fechamento</button>
+      <div className="tab-bar">
+        <button onClick={() => navigate('agenda')} className={tab === 'agenda' ? 'tab-item-active' : 'tab-item'}>Agenda</button>
+        <button onClick={() => navigate('aso')} className={tab === 'aso' ? 'tab-item-active' : 'tab-item'}>ASO</button>
+        <button onClick={() => navigate('notifications')} className={tab === 'notifications' ? 'tab-item-active' : 'tab-item'}>Notificações</button>
+        <button onClick={() => navigate('rules')} className={tab === 'rules' ? 'tab-item-active' : 'tab-item'}>Regras</button>
+        <button onClick={() => navigate('closing')} className={tab === 'closing' ? 'tab-item-active' : 'tab-item'}>Fechamento</button>
       </div>
 
       {tab === 'agenda' && (kanbanQuery.loading && !kanbanQuery.data ? <LoadingState label="Carregando..." /> :
@@ -1315,63 +1317,29 @@ function RuleForm({ rule, onSave, onClose, saving }: { rule: any | null; onSave:
 
 function ClosingTab({ canManage, company }: { canManage: boolean; company?: any }) {
   const now = new Date();
-  const pad = (v: number) => String(v).padStart(2, '0');
-  const defaultStartDay = Math.min(28, Math.max(1, Number((company as any)?.payrollStartDay || 1)));
-  const defaultStart = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(defaultStartDay)}`;
-  const defaultEndDate = new Date(`${defaultStart}T00:00:00`);
-  defaultEndDate.setDate(defaultEndDate.getDate() + 29);
-
-  const [periodStart, setPeriodStart] = useState(defaultStart);
-  const [periodEnd, setPeriodEnd] = useState(defaultEndDate.toISOString().slice(0, 10));
-  const [overtimeHandling, setOvertimeHandling] = useState<'PAYMENT' | 'BANK'>('PAYMENT');
+  const [month, setMonth] = useState(now.getMonth() + 1);
+  const [year, setYear] = useState(now.getFullYear());
   const [error, setError] = useState<string | null>(null);
   const listQuery = useQuery(() => api.timeClosing.list(), []);
   const refresh = () => listQuery.refetch();
-  const generateMut = useMutation((value: { periodStart: string; periodEnd: string; overtimeHandling: 'PAYMENT' | 'BANK' }) => api.timeClosing.generate(value), { onSuccess: refresh });
+  const generateMut = useMutation((value: { month: number; year: number }) => api.timeClosing.generate(value.month, value.year), { onSuccess: refresh });
   const reviewMut = useMutation((id: string) => api.timeClosing.submitReview(id), { onSuccess: refresh });
   const approveMut = useMutation((id: string) => api.timeClosing.approve(id), { onSuccess: refresh });
   const closeMut = useMutation((id: string) => api.timeClosing.close(id), { onSuccess: refresh });
   const reopenMut = useMutation((value: { id: string; reason: string }) => api.timeClosing.reopen(value.id, value.reason), { onSuccess: refresh });
   const deleteMut = useMutation((id: string) => api.timeClosing.delete(id), { onSuccess: refresh });
   const closings = (listQuery.data as any[] | undefined) ?? [];
-  const money = (value: unknown) => {
-    const n = Number(value || 0);
-    return Number.isFinite(n) ? n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : 'R$ 0,00';
-  };
-  const hours = (value: unknown) => `${Number(value || 0).toFixed(2)}h`;
+  const money = (value: unknown) => Number(value || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   const period = (item: any) => `${new Date(item.periodStart).toLocaleDateString('pt-BR', { timeZone: 'UTC' })} a ${new Date(item.periodEnd).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}`;
-  const labels: Record<string, string> = { DRAFT: 'Rascunho', IN_REVIEW: 'Em revisao', APPROVED: 'Aprovado', CLOSED: 'Fechado' };
-  const badge: Record<string, string> = {
-    DRAFT: 'border-slate-200 bg-slate-50 text-slate-700',
-    IN_REVIEW: 'border-sky-200 bg-sky-50 text-sky-700',
-    APPROVED: 'border-teal-200 bg-teal-50 text-teal-700',
-    CLOSED: 'border-emerald-200 bg-emerald-50 text-emerald-700',
-  };
+  const labels: Record<string, string> = { DRAFT: 'Rascunho', IN_REVIEW: 'Em revisão', APPROVED: 'Aprovado', CLOSED: 'Fechado' };
   const totals = closings.reduce((acc: any, item: any) => ({
-    salary: acc.salary + Number(item.salaryBase || 0),
-    overtime: acc.overtime + Number(item.overtime50Value || 0) + Number(item.overtime100Value || 0),
-    night: acc.night + Number(item.nightShiftValue || 0),
-    dsr: acc.dsr + Number(item.dsrValue || 0),
-    gross: acc.gross + Number(item.grossPay || 0),
-    journeyDiscount: acc.journeyDiscount + Number(item.absenceDiscount || 0),
-    inss: acc.inss + Number(item.inssDiscount || 0),
-    irrf: acc.irrf + Number(item.irrfDiscount || 0),
-    fgts: acc.fgts + Number(item.fgtsAmount || 0),
-    net: acc.net + Number(item.netPay || 0),
-  }), { salary: 0, overtime: 0, night: 0, dsr: 0, gross: 0, journeyDiscount: 0, inss: 0, irrf: 0, fgts: 0, net: 0 });
+    gross: acc.gross + Number(item.grossPay || 0), inss: acc.inss + Number(item.inssDiscount || 0),
+    irrf: acc.irrf + Number(item.irrfDiscount || 0), fgts: acc.fgts + Number(item.fgtsAmount || 0), net: acc.net + Number(item.netPay || 0),
+  }), { gross: 0, inss: 0, irrf: 0, fgts: 0, net: 0 });
 
   const generate = async () => {
     setError(null);
-    if (!periodStart || !periodEnd) return setError('Informe data inicial e final do ciclo.');
-    if (new Date(periodEnd) < new Date(periodStart)) return setError('Data final deve ser posterior a data inicial.');
-    try { await generateMut.mutate({ periodStart, periodEnd, overtimeHandling }); } catch (err: any) { setError(err?.message ?? 'Erro ao gerar fechamento'); }
-  };
-
-  const applyThirtyDayCycle = () => {
-    if (!periodStart) return;
-    const end = new Date(`${periodStart}T00:00:00`);
-    end.setDate(end.getDate() + 29);
-    setPeriodEnd(end.toISOString().slice(0, 10));
+    try { await generateMut.mutate({ month, year }); } catch (err: any) { setError(err?.message ?? 'Erro ao gerar fechamento'); }
   };
 
   const adjust = async (item: any) => {
@@ -1381,8 +1349,8 @@ function ClosingTab({ canManage, company }: { canManage: boolean; company?: any 
     const raw = prompt(`Novo valor para ${field}:`, String(item[field] || 0));
     if (raw === null) return;
     const value = Number(raw.replace(',', '.'));
-    if (!Number.isFinite(value) || value < 0) return alert('Informe um valor nao negativo.');
-    const reason = prompt('Justificativa obrigatoria:');
+    if (!Number.isFinite(value) || value < 0) return alert('Informe um valor não negativo.');
+    const reason = prompt('Justificativa obrigatória:');
     if (!reason?.trim()) return;
     try { await api.timeClosing.adjust(item.id, field, value, reason.trim()); await refresh(); } catch (err: any) { setError(err?.message ?? 'Erro ao ajustar'); }
   };
@@ -1391,26 +1359,19 @@ function ClosingTab({ canManage, company }: { canManage: boolean; company?: any 
     const item = await api.timeClosing.getById(summary.id);
     const { buildPdfShell, infoGrid, section, signatureBlock, printPdf } = require('@/app/lib/pdf-utils');
     const companyInfo = company ? { name: company.name, legalName: company.legalName, document: company.cnpj, logoUrl: company.logoUrl, phone: company.phone, email: company.email } : null;
-    const lateDiscount = (Number(item.lateMinutes || 0) / 60) * Number(item.hourlyRate || 0);
-    const earlyDiscount = (Number(item.earlyLeaveMinutes || 0) / 60) * Number(item.hourlyRate || 0);
-    const otherDiscount = Math.max(0, Number(item.absenceDiscount || 0) - lateDiscount - earlyDiscount);
-    const html = buildPdfShell({ title: 'Memoria de Calculo da Folha', subtitle: `${item.employee.name} | ${period(item)}` }, companyInfo, `
-      ${section('Ciclo e jornada', infoGrid([
-        { label: 'Periodo', value: period(item) }, { label: 'Salario base', value: money(item.salaryBase) },
-        { label: 'Divisor mensal', value: String(item.monthlyDivisor) }, { label: 'Valor hora', value: money(item.hourlyRate) },
-        { label: 'Horas normais', value: hours(item.normalHours) }, { label: 'HE 50%', value: hours(item.overtime50) },
-        { label: 'HE 100%', value: hours(item.overtime100) }, { label: 'Adicional noturno', value: hours(item.nightShift) },
-      ], 4))}
-      ${section('Proventos', infoGrid([
-        { label: 'Salario', value: money(item.salaryBase) }, { label: 'HE 50%', value: money(item.overtime50Value) },
-        { label: 'HE 100%', value: money(item.overtime100Value) }, { label: 'Adic. noturno', value: money(item.nightShiftValue) },
-        { label: 'DSR variaveis', value: money(item.dsrValue) }, { label: 'Bruto', value: money(item.grossPay) },
+    const html = buildPdfShell({ title: 'Memória de Cálculo da Folha', subtitle: `${item.employee.name} | ${period(item)}` }, companyInfo, `
+      ${section('Jornada', infoGrid([
+        { label: 'Normais', value: `${Number(item.normalHours).toFixed(2)}h` }, { label: 'Extras 50%', value: `${Number(item.overtime50).toFixed(2)}h` },
+        { label: 'Extras 100%', value: `${Number(item.overtime100).toFixed(2)}h` }, { label: 'Noturnas', value: `${Number(item.nightShift).toFixed(2)}h` },
+        { label: 'Atrasos', value: `${item.lateMinutes} min` }, { label: 'Saídas antecipadas', value: `${item.earlyLeaveMinutes} min` },
       ], 3))}
-      ${section('Descontos e encargos', infoGrid([
-        { label: 'Faltas/suspensoes', value: money(otherDiscount) }, { label: 'Atrasos', value: money(lateDiscount) },
-        { label: 'Saidas antecipadas', value: money(earlyDiscount) }, { label: 'INSS', value: money(item.inssDiscount) },
-        { label: 'IRRF', value: money(item.irrfDiscount) }, { label: 'FGTS patronal', value: money(item.fgtsAmount) },
-        { label: 'Liquido', value: money(item.netPay) },
+      ${section('Folha', infoGrid([
+        { label: 'Salário base', value: money(item.salaryBase) }, { label: `Valor hora / ${item.monthlyDivisor}`, value: money(item.hourlyRate) },
+        { label: 'Extras 50%', value: money(item.overtime50Value) }, { label: 'Extras 100%', value: money(item.overtime100Value) },
+        { label: 'Adicional noturno', value: money(item.nightShiftValue) }, { label: 'DSR', value: money(item.dsrValue) },
+        { label: 'Desconto jornada', value: `-${money(item.absenceDiscount)}` }, { label: 'INSS', value: `-${money(item.inssDiscount)}` },
+        { label: 'IRRF', value: `-${money(item.irrfDiscount)}` }, { label: 'FGTS patronal', value: money(item.fgtsAmount) },
+        { label: 'Base de Cálculo', value: money(item.grossPay) }, { label: 'Líquido', value: money(item.netPay) },
       ], 3))}
       ${signatureBlock(['RH / Empregador', 'Contabilidade', 'Colaborador'])}
     `);
@@ -1419,60 +1380,23 @@ function ClosingTab({ canManage, company }: { canManage: boolean; company?: any 
 
   if (listQuery.loading && !listQuery.data) return <LoadingState label="Carregando fechamentos..." />;
   if (listQuery.error && !listQuery.data) return <ErrorState message={listQuery.error} onRetry={refresh} />;
+  const months = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 
-  return <section className="space-y-5">
-    <div className="overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-sm">
-      <div className="bg-slate-950 px-6 py-6 text-white">
-        <p className="text-[10px] font-black uppercase tracking-[0.28em] text-teal-300">Fechamento da folha</p>
-        <div className="mt-2 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-          <div><h3 className="text-2xl font-black">Memoria de calculo salarial</h3><p className="mt-1 max-w-3xl text-sm text-slate-300">Ciclo, jornada, banco de horas, proventos, descontos legais e encargos patronais por colaborador.</p></div>
-          <button onClick={refresh} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/10 px-4 text-xs font-black text-white hover:bg-white/15"><RefreshCcw size={14}/> Atualizar</button>
-        </div>
-      </div>
-      <div className="grid gap-3 p-4 sm:grid-cols-2 xl:grid-cols-5">
-        {[
-          ['Salarios', totals.salary, 'Base contratual do periodo'], ['Variaveis', totals.overtime + totals.night + totals.dsr, 'HE + noturno + DSR'],
-          ['Descontos', totals.journeyDiscount + totals.inss + totals.irrf, 'Jornada + tributos'], ['FGTS', totals.fgts, 'Encargo patronal 8%'], ['Liquido', totals.net, 'Estimativa a pagar'],
-        ].map(([label, value, hint]) => <div key={String(label)} className="rounded-2xl border border-slate-200 bg-slate-50 p-4"><p className="text-[10px] font-black uppercase text-slate-500">{String(label)}</p><p className="mt-1 text-xl font-black text-slate-950">{money(value)}</p><p className="mt-1 text-[10px] font-semibold text-slate-400">{String(hint)}</p></div>)}
-      </div>
-    </div>
-
-    <div className="rounded-[22px] border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="grid gap-3 lg:grid-cols-[1fr_1fr_1.3fr_auto_auto] lg:items-end">
-        <label className="text-xs font-black uppercase tracking-wide text-slate-500">Inicio do ciclo<input type="date" value={periodStart} onChange={e => setPeriodStart(e.target.value)} className="mt-1 h-11 w-full rounded-xl border border-slate-200 px-3 text-sm font-bold outline-none focus:border-teal-500" /></label>
-        <label className="text-xs font-black uppercase tracking-wide text-slate-500">Fim do ciclo<input type="date" value={periodEnd} onChange={e => setPeriodEnd(e.target.value)} className="mt-1 h-11 w-full rounded-xl border border-slate-200 px-3 text-sm font-bold outline-none focus:border-teal-500" /></label>
-        <label className="text-xs font-black uppercase tracking-wide text-slate-500">Horas extras aprovadas<select value={overtimeHandling} onChange={e => setOvertimeHandling(e.target.value as 'PAYMENT' | 'BANK')} className="mt-1 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-bold outline-none focus:border-teal-500"><option value="PAYMENT">Pagar em folha</option><option value="BANK">Enviar para banco de horas</option></select></label>
-        <button onClick={applyThirtyDayCycle} className="h-11 rounded-xl border border-slate-200 px-4 text-xs font-black text-slate-700 hover:bg-slate-50">Ciclo 30 dias</button>
-        <button onClick={generate} disabled={!canManage || generateMut.loading} className="crystal-button h-11 rounded-xl px-5 text-xs font-black text-white disabled:opacity-50">{generateMut.loading ? 'Calculando...' : 'Adicionar / recalcular'}</button>
-      </div>
-      <p className="mt-3 text-xs text-slate-500">Use datas reais do ciclo da folha. Ex.: abre em 14/06 e fecha em 13/07, ou qualquer periodo definido pela empresa.</p>
-      {error && <p className="mt-3 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-bold text-rose-700">{error}</p>}
-    </div>
-
-    {closings.length === 0 ? <div className="rounded-[22px] border border-dashed border-slate-300 bg-white p-12 text-center"><FileCheck2 className="mx-auto text-teal-600"/><p className="mt-2 text-sm font-black">Nenhum fechamento calculado</p><p className="mt-1 text-xs text-slate-500">Informe o ciclo e clique em adicionar/recalcular.</p></div> : <div className="space-y-3">{closings.map((item:any) => {
-      const lateDiscount = (Number(item.lateMinutes || 0) / 60) * Number(item.hourlyRate || 0);
-      const earlyDiscount = (Number(item.earlyLeaveMinutes || 0) / 60) * Number(item.hourlyRate || 0);
-      const otherDiscount = Math.max(0, Number(item.absenceDiscount || 0) - lateDiscount - earlyDiscount);
-      return <article key={item.id} className="overflow-hidden rounded-[22px] border border-slate-200 bg-white shadow-sm">
-        <div className="grid gap-4 border-b border-slate-100 p-5 lg:grid-cols-[1.2fr_1fr_1fr_auto] lg:items-center">
-          <div><div className="flex flex-wrap items-center gap-2"><h4 className="text-base font-black text-slate-950">{item.employee?.name}</h4><span className={`rounded-full border px-2.5 py-1 text-[10px] font-black ${badge[item.status] || 'border-slate-200 bg-slate-50'}`}>{labels[item.status] || item.status}</span></div><p className="mt-1 text-xs font-semibold text-slate-500">{period(item)} | Base {money(item.salaryBase)} | Valor hora {money(item.hourlyRate)}</p></div>
-          <div className="rounded-2xl bg-slate-50 p-3"><p className="text-[10px] font-black uppercase text-slate-400">Jornada</p><p className="mt-1 text-xs font-bold text-slate-700">Normais {hours(item.normalHours)} | 50% {hours(item.overtime50)} | 100% {hours(item.overtime100)}</p><p className="mt-1 text-xs text-rose-600">Atrasos {item.lateMinutes || 0}min | Saidas {item.earlyLeaveMinutes || 0}min | Debitos {item.absenceMinutes || 0}min</p></div>
-          <div><p className="text-[10px] font-black uppercase text-slate-400">Liquido estimado</p><p className="text-2xl font-black text-teal-700">{money(item.netPay)}</p><p className="text-[10px] font-semibold text-slate-400">FGTS patronal {money(item.fgtsAmount)}</p></div>
-          <div className="flex flex-wrap justify-start gap-2 lg:justify-end"><button onClick={()=>printClosing(item)} className="btn-outline h-8 px-3 text-xs">PDF</button>{canManage && ['DRAFT','IN_REVIEW'].includes(item.status) && <button onClick={()=>adjust(item)} className="btn-outline h-8 px-3 text-xs">Editar</button>}{canManage && item.status==='DRAFT' && <button onClick={()=>reviewMut.mutate(item.id)} className="h-8 rounded-lg bg-sky-600 px-3 text-xs font-black text-white">Revisar</button>}{canManage && item.status==='IN_REVIEW' && <button onClick={()=>approveMut.mutate(item.id)} className="h-8 rounded-lg bg-teal-600 px-3 text-xs font-black text-white">Aprovar</button>}{canManage && item.status==='APPROVED' && <button onClick={()=>closeMut.mutate(item.id)} className="h-8 rounded-lg bg-slate-950 px-3 text-xs font-black text-white">Fechar</button>}{canManage && item.status==='CLOSED' && <button onClick={()=>{const reason=prompt('Motivo da reabertura:');if(reason?.trim())reopenMut.mutate({id:item.id,reason});}} className="h-8 rounded-lg bg-amber-500 px-3 text-xs font-black">Reabrir</button>}{canManage && item.status!=='CLOSED' && <button onClick={()=>window.confirm('Excluir este fechamento?')&&deleteMut.mutate(item.id)} className="h-8 rounded-lg bg-rose-600 px-3 text-xs font-black text-white">Excluir</button>}</div>
-        </div>
-        <div className="grid gap-4 p-5 xl:grid-cols-3">
-          <div className="rounded-2xl border border-emerald-100 bg-emerald-50/60 p-4"><p className="text-[10px] font-black uppercase text-emerald-700">Proventos</p><dl className="mt-3 space-y-2 text-xs"><Line label="Salario" value={money(item.salaryBase)} /><Line label="Hora extra 50%" value={money(item.overtime50Value)} /><Line label="Hora extra 100%" value={money(item.overtime100Value)} /><Line label="Adicional noturno" value={money(item.nightShiftValue)} /><Line label="DSR variaveis" value={money(item.dsrValue)} strong /></dl></div>
-          <div className="rounded-2xl border border-rose-100 bg-rose-50/60 p-4"><p className="text-[10px] font-black uppercase text-rose-700">Descontos</p><dl className="mt-3 space-y-2 text-xs"><Line label="Faltas/suspensoes" value={money(otherDiscount)} /><Line label="Atrasos" value={money(lateDiscount)} /><Line label="Saidas antecipadas" value={money(earlyDiscount)} /><Line label="INSS" value={money(item.inssDiscount)} /><Line label="IRRF" value={money(item.irrfDiscount)} strong /></dl></div>
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4"><p className="text-[10px] font-black uppercase text-slate-500">Resumo legal</p><dl className="mt-3 space-y-2 text-xs"><Line label="Bruto" value={money(item.grossPay)} /><Line label="Base INSS" value={money(item.inssBase)} /><Line label="Base IRRF" value={money(item.irrfBase)} /><Line label="Base FGTS" value={money(item.fgtsBase)} /><Line label="Liquido" value={money(item.netPay)} strong /></dl></div>
-        </div>
-      </article>;
-    })}</div>}
+  return <section className="space-y-4">
+    <div><h3 className="text-sm font-black text-slate-950">FECHAMENTO DA FOLHA</h3><p className="mt-1 text-xs text-slate-500">Jornada, proventos, tributos, encargos e líquido por colaborador.</p></div>
+    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">{[['Base',totals.gross],['INSS',totals.inss],['IRRF',totals.irrf],['FGTS patronal',totals.fgts],['Líquido',totals.net]].map(([label,value]) => <div key={String(label)} className="rounded-xl border border-slate-200 bg-white p-4"><p className="text-[9px] font-black uppercase text-slate-500">{String(label)}</p><p className="mt-1 text-base font-black">{money(value)}</p></div>)}</div>
+    <div className="rounded-xl border border-slate-200 bg-white p-5"><div className="flex flex-wrap items-end gap-3">
+      <label className="text-xs text-slate-600">MÊS<select value={month} onChange={e => setMonth(Number(e.target.value))} className="mt-1 block h-10 rounded-lg border border-slate-200 px-3">{months.map((name,index)=><option key={name} value={index+1}>{name}</option>)}</select></label>
+      <label className="text-xs text-slate-600">ANO<input type="number" value={year} onChange={e => setYear(Number(e.target.value))} className="mt-1 block h-10 w-28 rounded-lg border border-slate-200 px-3" /></label>
+      <button onClick={generate} disabled={!canManage || generateMut.loading} className="crystal-button h-10 rounded-lg px-4 text-xs font-black text-white disabled:opacity-50">{generateMut.loading ? 'CALCULANDO...' : 'ADICIONAR / RECALCULAR'}</button>
+    </div>{error && <p className="mt-3 text-xs font-bold text-rose-600">{error}</p>}</div>
+    {closings.length === 0 ? <div className="rounded-xl border border-dashed border-slate-300 p-10 text-center"><FileCheck2 className="mx-auto text-teal-600"/><p className="mt-2 text-sm font-black">Nenhum fechamento calculado</p></div> : <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white"><table className="w-full min-w-[1180px] text-left text-[10px]"><thead className="bg-slate-50 uppercase text-slate-500"><tr><th className="p-3">Colaborador</th><th className="p-3">Jornada</th><th className="p-3">Proventos</th><th className="p-3">Descontos</th><th className="p-3">FGTS</th><th className="p-3">Líquido</th><th className="p-3">Status</th><th className="p-3">Ações</th></tr></thead><tbody>{closings.map((item:any)=><tr key={item.id} className="border-t align-top"><td className="p-3"><b>{item.employee?.name}</b><p className="text-slate-500">{period(item)}</p><p>Base {money(item.salaryBase)}</p></td><td className="p-3"><p>50% {Number(item.overtime50).toFixed(2)}h</p><p>100% {Number(item.overtime100).toFixed(2)}h</p><p>Noturno {Number(item.nightShift).toFixed(2)}h</p><p className="text-rose-600">Débito {item.absenceMinutes} min</p></td><td className="p-3"><p>Extras {money(Number(item.overtime50Value)+Number(item.overtime100Value))}</p><p>Noturno {money(item.nightShiftValue)}</p><p>DSR {money(item.dsrValue)}</p><b>Base Cálc. {money(item.grossPay)}</b></td><td className="p-3 text-rose-700"><p>Jornada {money(item.absenceDiscount)}</p><p>INSS {money(item.inssDiscount)}</p><p>IRRF {money(item.irrfDiscount)}</p></td><td className="p-3"><b>{money(item.fgtsAmount)}</b><p className="text-slate-400">não descontado</p></td><td className="p-3 text-sm font-black text-teal-700">{money(item.netPay)}</td><td className="p-3"><span className="rounded border px-2 py-1 font-black">{labels[item.status] || item.status}</span></td><td className="p-3"><div className="flex max-w-56 flex-wrap gap-1">
+      <button onClick={()=>printClosing(item)} className="btn-outline h-7 px-2">PDF</button>{canManage && ['DRAFT','IN_REVIEW'].includes(item.status) && <button onClick={()=>adjust(item)} className="btn-outline h-7 px-2">Editar</button>}
+      {canManage && item.status==='DRAFT' && <button onClick={()=>reviewMut.mutate(item.id)} className="h-7 rounded bg-sky-600 px-2 text-white">Revisar</button>}{canManage && item.status==='IN_REVIEW' && <button onClick={()=>approveMut.mutate(item.id)} className="h-7 rounded bg-teal-600 px-2 text-white">Aprovar</button>}{canManage && item.status==='APPROVED' && <button onClick={()=>closeMut.mutate(item.id)} className="h-7 rounded bg-slate-900 px-2 text-white">Fechar</button>}{canManage && item.status==='CLOSED' && <button onClick={()=>{const reason=prompt('Motivo da reabertura:');if(reason?.trim())reopenMut.mutate({id:item.id,reason});}} className="h-7 rounded bg-amber-500 px-2">Reabrir</button>}{canManage && item.status!=='CLOSED' && <button onClick={()=>window.confirm('Excluir este fechamento?')&&deleteMut.mutate(item.id)} className="h-7 rounded bg-rose-600 px-2 text-white">Excluir</button>}
+    </div></td></tr>)}</tbody></table></div>}
   </section>;
 }
 
-function Line({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
-  return <div className={`flex items-center justify-between gap-3 ${strong ? 'border-t border-current/10 pt-2 font-black' : 'font-semibold'}`}><dt className="text-slate-500">{label}</dt><dd className="text-slate-950">{value}</dd></div>;
-}
 // MODAIS
 function EventModal({ event, employees, onClose, onSave, saving }: {
   event?: ManagementEvent; employees: Employee[]; onClose: () => void; onSave: (data: any) => void; saving: boolean;

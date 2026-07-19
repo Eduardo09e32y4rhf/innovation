@@ -179,59 +179,41 @@ function DashboardContent() {
   return (
 <div className="mx-auto max-w-7xl space-y-4 px-3 py-4 sm:px-6 lg:px-8">
       {/* Premium Hero Section */}
-      <section className="group relative overflow-hidden rounded-[24px] border border-black bg-black p-6 text-white shadow-[0_20px_70px_-20px_rgba(0,0,0,0.55)] sm:p-8">
-        <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full border border-white/10" />
-        <div className="absolute -bottom-16 -left-16 h-48 w-48 rounded-full border border-white/10" />
-        <div className="relative">
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-1.5">
-              <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-white" />
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/70">{presentation.eyebrow}</p>
-            </div>
+      <section className="mb-4 overflow-hidden rounded-xl bg-black p-5 text-white shadow-sm">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="flex flex-col gap-1">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-[#8A05BE]">{presentation.eyebrow}</span>
+            <h2 className="text-xl font-black tracking-tight">{presentation.title}</h2>
+            <p className="text-[11px] font-medium text-white/70 max-w-xl">{presentation.description}</p>
           </div>
-          <h1 className="mt-4 text-3xl font-black tracking-tight text-white lg:text-4xl">{presentation.title}</h1>
-          <p className="mt-2 text-sm font-semibold text-white/55">{presentation.description}</p>
+          
+          <div className="flex items-center gap-2">
+            {actionShortcuts.map((action, i) => {
+              const Icon = action.icon;
+              return (
+                <Link key={i} href={action.href} className="group relative flex flex-col items-center gap-1">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/10 text-white transition-all hover:scale-105 hover:bg-[#8A05BE]">
+                    <Icon size={16} strokeWidth={2.5} />
+                  </div>
+                  <span className="text-[9px] font-bold text-white/70 transition-colors group-hover:text-white">{action.label}</span>
+                </Link>
+              );
+            })}
+          </div>
         </div>
       </section>
 
-      {/* Action Shortcuts */}
-      {!isFuncionario && !isCommercial && (
-        <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {actionShortcuts.map((action) => {
-            const Icon = action.icon;
-            const colorMap: Record<string, string> = {
-              teal: 'from-teal-500 to-cyan-600 shadow-teal-500/25 hover:shadow-teal-500/30',
-              indigo: 'from-indigo-500 to-violet-600 shadow-indigo-500/25 hover:shadow-indigo-500/30',
-              emerald: 'from-emerald-500 to-teal-600 shadow-emerald-500/25 hover:shadow-emerald-500/30',
-              amber: 'from-amber-500 to-orange-600 shadow-amber-500/25 hover:shadow-amber-500/30',
-              slate: 'from-slate-950 to-black shadow-black/20 hover:shadow-black/30',
-            };
-            return action.onClick ? (
-              <button key={action.label} type="button" onClick={action.onClick} className={`flex items-center gap-3 rounded-[14px] bg-gradient-to-r ${colorMap[action.color]} p-4 text-xs font-black text-white shadow-lg transition-all duration-200 hover:shadow-xl active:scale-[0.98]`}>
-                <Icon size={18} strokeWidth={2.5} className="shrink-0" />
-                <span className="leading-tight">{action.label}</span>
-              </button>
-            ) : (
-              <Link key={action.label} href={action.href} className={`flex items-center gap-3 rounded-[14px] bg-gradient-to-r ${colorMap[action.color]} p-4 text-xs font-black text-white shadow-lg transition-all duration-200 hover:shadow-xl active:scale-[0.98]`}>
-                <Icon size={18} strokeWidth={2.5} className="shrink-0" />
-                <span className="leading-tight">{action.label}</span>
-              </Link>
-            );
-          })}
-        </section>
-      )}
-
       {/* Filters */}
       {!isFuncionario && !isCommercial && (
-        <section className="grid gap-4 rounded-[16px] border border-slate-200/60 bg-white/80 p-5 shadow-sm backdrop-blur-sm sm:grid-cols-2">
-          <label className="space-y-2 text-xs font-bold uppercase tracking-wider text-slate-600">
-            <span>Mês</span>
-            <input type="month" value={dashMonth} onChange={(e) => setDashMonth(e.target.value)} className="h-11 w-full rounded-[10px] border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-900 shadow-sm outline-none transition-all focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10" />
+        <section className="flex flex-col gap-3 rounded-xl bg-white p-3 border border-slate-200 sm:flex-row sm:items-center mb-4">
+          <label className="flex flex-1 flex-col gap-1">
+            <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500">Mês de Referência</span>
+            <input type="month" value={dashMonth} onChange={(e) => setDashMonth(e.target.value)} className="form-control h-8 text-xs" />
           </label>
-          <label className="space-y-2 text-xs font-bold uppercase tracking-wider text-slate-600">
-            <span>Departamento</span>
-            <select value={dashDept} onChange={(e) => setDashDept(e.target.value)} className="h-11 w-full rounded-[10px] border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-900 shadow-sm outline-none transition-all focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10">
-              <option value="">Todos</option>
+          <label className="flex flex-1 flex-col gap-1">
+            <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500">Departamento</span>
+            <select value={dashDept} onChange={(e) => setDashDept(e.target.value)} className="form-control h-8 text-xs">
+              <option value="">Todos os Departamentos</option>
               {departments.map((d) => <option key={d} value={d}>{d}</option>)}
             </select>
           </label>
@@ -286,79 +268,79 @@ function DashboardContent() {
           {!isFuncionario && (
             <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {/* Pendências */}
-              <div className="rounded-[16px] border border-amber-200/60 bg-gradient-to-br from-amber-50 to-white p-5 shadow-sm">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-xs font-black uppercase tracking-wider text-amber-800">Pendências</h3>
-                  <AlertCircle size={18} strokeWidth={2.5} className="text-amber-500" />
+              <div className="card-flat p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">Pendências</h3>
+                  <AlertCircle size={20} strokeWidth={2.5} className="text-[#8A05BE]" />
                 </div>
-                <div className="space-y-2.5">
+                <div className="space-y-2">
                   <PendencyItem label="Pontos manuais" count={pendingTimeTracks} href={`/${tenant}/dashboard/time-track`} />
                   <PendencyItem label="Férias" count={pendingVacations} href={`/${tenant}/dashboard/vacations`} />
                 </div>
               </div>
 
               {/* Cadastro */}
-              <div className="rounded-[16px] border border-rose-200/60 bg-gradient-to-br from-rose-50 to-white p-5 shadow-sm">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-xs font-black uppercase tracking-wider text-rose-800">Alertas cadastrais</h3>
-                  <UserX size={18} strokeWidth={2.5} className="text-rose-500" />
+              <div className="card-flat p-5">
+                <div className="mb-4 flex items-center justify-between">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">Alertas cadastrais</h3>
+                  <UserX size={20} strokeWidth={2.5} className="text-[#8A05BE]" />
                 </div>
-                <div className="space-y-2.5">
+                <div className="space-y-2">
                   <PendencyItem label="Sem gestor" count={employeesNoManager} href={`/${tenant}/dashboard/employees`} />
                   <PendencyItem label="Sem acesso" count={employeesNoAccess} href={`/${tenant}/dashboard/employees`} />
                   {alertItems.slice(0, 2).map((item) => (
-                    <div key={item.label} className="flex items-center justify-between rounded-[8px] bg-rose-50/50 px-3 py-2 text-xs">
-                      <span className="font-bold text-rose-700">{item.label}</span>
-                      <span className="text-[10px] font-semibold text-rose-500">{item.detail}</span>
+                    <div key={item.label} className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2 text-xs border border-slate-100">
+                      <span className="font-bold text-slate-700">{item.label}</span>
+                      <span className="text-[10px] font-bold text-[#8A05BE]">{item.detail}</span>
                     </div>
                   ))}
                 </div>
               </div>
 
               {/* Movimentações */}
-              <div className="rounded-[16px] border border-teal-200/60 bg-gradient-to-br from-teal-50 to-white p-5 shadow-sm">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-xs font-black uppercase tracking-wider text-teal-800">Movimentações do mês</h3>
-                  <UserPlus size={18} strokeWidth={2.5} className="text-teal-500" />
+              <div className="card-flat p-5">
+                <div className="mb-4 flex items-center justify-between">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">Movimentações</h3>
+                  <UserPlus size={20} strokeWidth={2.5} className="text-[#8A05BE]" />
                 </div>
-                <div className="space-y-2.5">
-                  <div className="flex items-center justify-between rounded-[8px] bg-teal-50/50 px-3 py-2.5">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2.5 border border-slate-100">
                     <div className="flex items-center gap-2">
-                      <div className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-500"><ArrowUpRight size={14} className="text-white" /></div>
+                      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-200"><ArrowUpRight size={14} className="text-black" strokeWidth={3} /></div>
                       <span className="text-xs font-bold text-slate-700">Admissões</span>
                     </div>
-                    <span className="text-sm font-black text-emerald-600">{admissionsThisMonth}</span>
+                    <span className="text-sm font-black text-black">{admissionsThisMonth}</span>
                   </div>
-                  <div className="flex items-center justify-between rounded-[8px] bg-teal-50/50 px-3 py-2.5">
+                  <div className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2.5 border border-slate-100">
                     <div className="flex items-center gap-2">
-                      <div className="flex h-7 w-7 items-center justify-center rounded-full bg-rose-500"><UserMinus size={14} className="text-white" /></div>
+                      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-200"><UserMinus size={14} className="text-black" strokeWidth={3} /></div>
                       <span className="text-xs font-bold text-slate-700">Desligamentos</span>
                     </div>
-                    <span className="text-sm font-black text-rose-600">{terminationsThisMonth}</span>
+                    <span className="text-sm font-black text-black">{terminationsThisMonth}</span>
                   </div>
                 </div>
               </div>
               
               {/* Datas Importantes */}
-              <div className="rounded-[16px] border border-fuchsia-200/60 bg-gradient-to-br from-fuchsia-50 to-white p-5 shadow-sm">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-xs font-black uppercase tracking-wider text-fuchsia-800">Datas Importantes</h3>
-                  <Cake size={18} strokeWidth={2.5} className="text-fuchsia-500" />
+              <div className="card-flat p-5">
+                <div className="mb-4 flex items-center justify-between">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">Datas Importantes</h3>
+                  <Cake size={20} strokeWidth={2.5} className="text-[#8A05BE]" />
                 </div>
-                <div className="space-y-2.5 max-h-[160px] overflow-y-auto pr-1">
+                <div className="max-h-[150px] space-y-2 overflow-y-auto pr-1">
                   {birthdays.length === 0 && workAnniversaries.length === 0 && (
-                    <p className="text-xs text-slate-500 text-center py-4 font-semibold">Nenhum evento neste mês.</p>
+                    <p className="py-4 text-center text-xs font-semibold text-slate-400">Nenhum evento neste mês.</p>
                   )}
                   {birthdays.map(emp => (
-                    <div key={`birth-${emp.id}`} className="flex items-center justify-between rounded-[8px] bg-fuchsia-50/50 px-3 py-2 text-xs">
-                      <span className="font-bold text-fuchsia-800 line-clamp-1">{emp.name}</span>
-                      <span className="text-[10px] font-black uppercase text-fuchsia-600 bg-fuchsia-100 px-2 py-0.5 rounded-full shrink-0">Aniversariantes</span>
+                    <div key={`birth-${emp.id}`} className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2 text-xs border border-slate-100">
+                      <span className="line-clamp-1 font-bold text-black">{emp.name}</span>
+                      <span className="shrink-0 rounded-md bg-[#8A05BE]/10 px-2 py-0.5 text-[10px] font-black uppercase text-[#8A05BE]">Niver</span>
                     </div>
                   ))}
                   {workAnniversaries.map(emp => (
-                    <div key={`work-${emp.id}`} className="flex items-center justify-between rounded-[8px] bg-indigo-50/50 px-3 py-2 text-xs">
-                      <span className="font-bold text-indigo-800 line-clamp-1">{emp.name}</span>
-                      <span className="text-[10px] font-black uppercase text-indigo-600 bg-indigo-100 px-2 py-0.5 rounded-full shrink-0">Tempo de casa</span>
+                    <div key={`work-${emp.id}`} className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2 text-xs border border-slate-100">
+                      <span className="line-clamp-1 font-bold text-black">{emp.name}</span>
+                      <span className="shrink-0 rounded-md bg-slate-200 px-2 py-0.5 text-[10px] font-black uppercase text-black">Tempo</span>
                     </div>
                   ))}
                 </div>
@@ -368,22 +350,22 @@ function DashboardContent() {
 
           {/* Notifications Widget */}
           {!isFuncionario && !isCommercial && notificationWidgetData && (
-            <section className="rounded-[16px] border border-slate-200/60 bg-white shadow-sm overflow-hidden">
-              <div className="border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white px-5 py-4">
+            <section className="card-flat overflow-hidden">
+              <div className="border-b border-slate-200 bg-white px-5 py-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Bell size={16} strokeWidth={2.5} className="text-teal-600" />
-                    <h3 className="text-sm font-black text-slate-950">Central de Notificações</h3>
+                    <Bell size={20} strokeWidth={2.5} className="text-black" />
+                    <h3 className="text-sm font-black text-black">Central de Notificações</h3>
                   </div>
                   {notificationWidgetData.unreadCount > 0 && (
-                    <span className="rounded-full bg-rose-500 px-2.5 py-0.5 text-[10px] font-black text-white">
+                    <span className="rounded-md bg-[#8A05BE]/10 px-2.5 py-0.5 text-[10px] font-black text-[#8A05BE]">
                       {notificationWidgetData.unreadCount} não lidas
                     </span>
                   )}
                 </div>
                 <p className="mt-1 text-xs text-slate-500">Avisos do sistema e comunicados do RH.</p>
               </div>
-              <div className="p-4">
+              <div className="p-4 bg-white">
                 {notificationWidgetData.notifications.length === 0 ? (
                   <p className="px-3 py-4 text-center text-xs text-slate-500">Nenhuma notificação no momento.</p>
                 ) : (
@@ -418,41 +400,41 @@ function DashboardContent() {
 
           {/* Time Rules Alerts */}
           {!isFuncionario && !isCommercial && (
-            <section className="rounded-[16px] border border-slate-200/60 bg-white shadow-sm overflow-hidden">
-              <div className="border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white px-5 py-4">
+            <section className="card-flat overflow-hidden">
+              <div className="border-b border-slate-200 bg-white px-5 py-4">
                 <div className="flex items-center gap-2">
-                  <Clock3 size={16} strokeWidth={2.5} className="text-teal-600" />
-                  <h3 className="text-sm font-black text-slate-950">Alertas de Ponto e Fechamento</h3>
+                  <Clock3 size={20} strokeWidth={2.5} className="text-black" />
+                  <h3 className="text-sm font-black text-black">Alertas de Ponto e Fechamento</h3>
                 </div>
                 <p className="mt-1 text-xs text-slate-500">Pendências de ocorrências e fechamento de folha.</p>
               </div>
-              <div className="p-4">
+              <div className="p-4 bg-white">
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                  <div className="rounded-[12px] border border-amber-200 bg-amber-50/60 p-4">
-                    <p className="text-[11px] font-black uppercase tracking-wider text-amber-700">Ocorrências pendentes</p>
-                    <p className="mt-1 text-xl font-black text-amber-900">{insightData?.alerts.pendingTimeTracks ?? 0}</p>
+                  <div className="rounded-xl border border-slate-100 bg-slate-50 p-4">
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Ocorrências pendentes</p>
+                    <p className="mt-1 text-xl font-black text-black">{insightData?.alerts.pendingTimeTracks ?? 0}</p>
                   </div>
-                  <div className="rounded-[12px] border border-blue-200 bg-blue-50/60 p-4">
-                    <p className="text-[11px] font-black uppercase tracking-wider text-blue-700">Folhas em ajuste</p>
-                    <p className="mt-1 text-xl font-black text-blue-900">{insightData?.alerts.employeesWithoutWorkScale ?? 0}</p>
+                  <div className="rounded-xl border border-slate-100 bg-slate-50 p-4">
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Folhas em ajuste</p>
+                    <p className="mt-1 text-xl font-black text-black">{insightData?.alerts.employeesWithoutWorkScale ?? 0}</p>
                   </div>
-                  <div className="rounded-[12px] border border-slate-200 bg-slate-50/60 p-4">
-                    <p className="text-[11px] font-black uppercase tracking-wider text-slate-700">Períodos abertos</p>
-                    <p className="mt-1 text-xl font-black text-slate-900">1</p>
+                  <div className="rounded-xl border border-slate-100 bg-slate-50 p-4">
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Períodos abertos</p>
+                    <p className="mt-1 text-xl font-black text-black">1</p>
                   </div>
                 </div>
                 <div className="mt-4 space-y-2">
-                  <Link href={`/${tenant}/dashboard/time-track/occurrences`} className="flex items-center justify-between rounded-[8px] border border-slate-100 bg-white px-4 py-3 text-xs transition-all hover:border-teal-200 hover:bg-teal-50/30">
+                  <Link href={`/${tenant}/dashboard/time-track/occurrences`} className="flex items-center justify-between rounded-xl border border-slate-100 bg-white px-4 py-3 text-xs transition-colors hover:border-[#8A05BE] hover:bg-[#8A05BE]/5">
                     <span className="font-bold text-slate-700">Ver todas as ocorrências</span>
-                    <span className="text-teal-700">â†’</span>
+                    <span className="text-[#8A05BE]">→</span>
                   </Link>
-                  <Link href={`/${tenant}/dashboard/time-track/closing`} className="flex items-center justify-between rounded-[8px] border border-slate-100 bg-white px-4 py-3 text-xs transition-all hover:border-teal-200 hover:bg-teal-50/30">
+                  <Link href={`/${tenant}/dashboard/time-track/closing`} className="flex items-center justify-between rounded-xl border border-slate-100 bg-white px-4 py-3 text-xs transition-colors hover:border-[#8A05BE] hover:bg-[#8A05BE]/5">
                     <span className="font-bold text-slate-700">Fechamento de período</span>
-                    <span className="text-teal-700">â†’</span>
+                    <span className="text-[#8A05BE]">→</span>
                   </Link>
-                  <Link href={`/${tenant}/dashboard/time-track/rules`} className="flex items-center justify-between rounded-[8px] border border-slate-100 bg-white px-4 py-3 text-xs transition-all hover:border-teal-200 hover:bg-teal-50/30">
+                  <Link href={`/${tenant}/dashboard/time-track/rules`} className="flex items-center justify-between rounded-xl border border-slate-100 bg-white px-4 py-3 text-xs transition-colors hover:border-[#8A05BE] hover:bg-[#8A05BE]/5">
                     <span className="font-bold text-slate-700">Regras de jornada</span>
-                    <span className="text-teal-700">â†’</span>
+                    <span className="text-[#8A05BE]">→</span>
                   </Link>
                 </div>
               </div>
@@ -461,40 +443,40 @@ function DashboardContent() {
 
           {/* RH Alerts Section */}
           {!isFuncionario && !isCommercial && (
-            <section className="rounded-[16px] border border-slate-200/60 bg-white shadow-sm overflow-hidden">
-              <div className="border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white px-5 py-4">
+            <section className="card-flat overflow-hidden">
+              <div className="border-b border-slate-200 bg-white px-5 py-4">
                 <div className="flex items-center gap-2">
-                  <Stethoscope size={16} strokeWidth={2.5} className="text-teal-600" />
-                  <h3 className="text-sm font-black text-slate-950">Alertas e Pendências do RH</h3>
+                  <Stethoscope size={20} strokeWidth={2.5} className="text-black" />
+                  <h3 className="text-sm font-black text-black">Alertas e Pendências do RH</h3>
                 </div>
               </div>
-              <div className="p-4">
+              <div className="p-4 bg-white">
                 {rhAlerts.loading && <p className="px-3 py-4 text-center text-xs text-slate-500">Carregando alertas...</p>}
                 {rhAlerts.error && <p className="px-3 py-4 text-center text-xs text-rose-600">{rhAlerts.error}</p>}
                 {!rhAlerts.loading && !rhAlerts.error && (
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                    <div className="rounded-[12px] border border-red-200 bg-red-50/60 p-4">
-                      <p className="text-[11px] font-black uppercase tracking-wider text-red-700">ASOs vencidos</p>
-                      <p className="mt-1 text-xl font-black text-red-900">{rhAlertData?.asoExpired ?? 0}</p>
+                    <div className="rounded-xl border border-slate-100 bg-slate-50 p-4">
+                      <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">ASOs vencidos</p>
+                      <p className="mt-1 text-xl font-black text-black">{rhAlertData?.asoExpired ?? 0}</p>
                     </div>
-                    <div className="rounded-[12px] border border-amber-200 bg-amber-50/60 p-4">
-                      <p className="text-[11px] font-black uppercase tracking-wider text-amber-700">ASOs próximos do vencimento</p>
-                      <p className="mt-1 text-xl font-black text-amber-900">{rhAlertData?.asoExpiringSoon ?? 0}</p>
+                    <div className="rounded-xl border border-slate-100 bg-slate-50 p-4">
+                      <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">ASOs próx. venc.</p>
+                      <p className="mt-1 text-xl font-black text-black">{rhAlertData?.asoExpiringSoon ?? 0}</p>
                     </div>
-                    <div className="rounded-[12px] border border-amber-200 bg-amber-50/60 p-4">
-                      <p className="text-[11px] font-black uppercase tracking-wider text-amber-700">Pendentes de ASO admissional</p>
-                      <p className="mt-1 text-xl font-black text-amber-900">{rhAlertData?.pendingAdmissionAso ?? 0}</p>
+                    <div className="rounded-xl border border-slate-100 bg-slate-50 p-4">
+                      <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Pend. de ASO admiss.</p>
+                      <p className="mt-1 text-xl font-black text-black">{rhAlertData?.pendingAdmissionAso ?? 0}</p>
                     </div>
-                    <div className="rounded-[12px] border border-red-200 bg-red-50/60 p-4">
-                      <p className="text-[11px] font-black uppercase tracking-wider text-red-700">Inaptos</p>
-                      <p className="mt-1 text-xl font-black text-red-900">{rhAlertData?.inaptoCount ?? 0}</p>
+                    <div className="rounded-xl border border-slate-100 bg-slate-50 p-4">
+                      <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Inaptos</p>
+                      <p className="mt-1 text-xl font-black text-black">{rhAlertData?.inaptoCount ?? 0}</p>
                     </div>
                   </div>
                 )}
                 {!rhAlerts.loading && !rhAlerts.error && rhAlertData?.items && rhAlertData.items.length > 0 && (
                   <div className="mt-4 space-y-2">
                     {rhAlertData.items.map((item: any) => (
-                      <Link key={item.type} href={item.target} className="flex items-center justify-between rounded-[8px] border border-slate-100 bg-white px-4 py-3 text-xs transition-all hover:border-teal-200 hover:bg-teal-50/30">
+                      <Link key={item.type} href={item.target} className="flex items-center justify-between rounded-xl border border-slate-100 bg-white px-4 py-3 text-xs transition-colors hover:border-[#8A05BE] hover:bg-[#8A05BE]/5">
                         <span className="font-bold text-slate-700">{item.employeeName}</span>
                         <span className="text-slate-500">{item.message}</span>
                       </Link>
@@ -589,27 +571,23 @@ function MetricCard({ label, value, icon: Icon, detail, trend, trendColor = 'eme
   trend?: string; trendColor?: string; alert?: boolean; loading?: boolean;
 }) {
   return (
-    <div className="group relative rounded-[18px] border border-slate-200/60 bg-gradient-to-br from-white to-slate-50/30 p-5 shadow-[0_8px_30px_rgba(15,23,42,0.08)] transition-shadow duration-300 hover:shadow-[0_12px_40px_rgba(15,23,42,0.12)]">
-      {alert && <div className="absolute right-3 top-3 h-2 w-2 animate-pulse rounded-full bg-amber-500" />}
-      <div className="relative">
-        <div className="mb-4 flex items-start justify-between gap-3">
-          <p className="text-[11px] font-black uppercase tracking-wider text-slate-500">{label}</p>
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-gradient-to-br from-teal-500 to-cyan-600 shadow-lg shadow-teal-500/25 transition-transform duration-300 group-hover:scale-110">
-            <Icon size={17} strokeWidth={2.5} className="text-white" />
-          </div>
-        </div>
-        <p className="text-2xl font-black tracking-tight text-slate-950">
-          {loading && value === undefined ? '--' : value ?? '0'}
-        </p>
-        <div className="mt-1.5 flex items-center justify-between">
-          <p className="text-[11px] font-bold text-slate-500">{detail}</p>
-          {trend && (
-            <span className={`inline-flex items-center gap-1 text-[10px] font-black text-${trendColor}-600`}>
-              <ArrowUpRight size={11} strokeWidth={3} />
-              {trend}
-            </span>
-          )}
-        </div>
+    <div className="card-stat relative group">
+      {alert && <div className="absolute right-3 top-3 h-2 w-2 animate-pulse rounded-full bg-[#8A05BE]" />}
+      <div className="flex items-start justify-between">
+        <p className="card-stat-label">{label}</p>
+        <Icon size={14} className="text-slate-400 group-hover:text-[#8A05BE] transition-colors" />
+      </div>
+      <p className="card-stat-value mt-2">
+        {loading && value === undefined ? '--' : value ?? '0'}
+      </p>
+      <div className="mt-2 flex items-center justify-between">
+        <p className="card-stat-detail">{detail}</p>
+        {trend && (
+          <span className="inline-flex items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5 text-[9px] font-black text-slate-700">
+            <ArrowUpRight size={10} strokeWidth={3} />
+            {trend}
+          </span>
+        )}
       </div>
     </div>
   );

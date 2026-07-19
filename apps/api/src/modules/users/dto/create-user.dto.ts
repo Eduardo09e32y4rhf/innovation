@@ -15,4 +15,8 @@ export class CreateUserDto {
   @IsOptional()
   @IsIn(['DEV', 'COMERCIAL', 'ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'])
   role?: 'DEV' | 'COMERCIAL' | 'ADMIN' | 'RH' | 'GESTOR' | 'FUNCIONARIO' | 'CONSULTA';
+
+  @IsOptional()
+  @IsString()
+  companyId?: string;
 }

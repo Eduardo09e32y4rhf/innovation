@@ -60,6 +60,7 @@
     "socket.io": "^4.8.1",
     "winston": "3.19.0",
     "winston-loki": "6.1.5",
+    "xlsx": "^0.18.5",
     "zod": "^4.4.3"
   },
   "devDependencies": {

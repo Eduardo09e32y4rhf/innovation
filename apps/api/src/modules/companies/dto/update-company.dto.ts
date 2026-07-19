@@ -67,4 +67,60 @@ export class UpdateCompanyDto {
   @Min(10)
   @Max(5000)
   radiusTolerance?: number;
+
+  @IsOptional()
+  @IsString()
+  stateRegistration?: string;
+
+  @IsOptional()
+  @IsString()
+  municipalRegistration?: string;
+
+  @IsOptional()
+  @IsString()
+  zipCode?: string;
+
+  @IsOptional()
+  @IsString()
+  street?: string;
+
+  @IsOptional()
+  @IsString()
+  streetNumber?: string;
+
+  @IsOptional()
+  @IsString()
+  addressComplement?: string;
+
+  @IsOptional()
+  @IsString()
+  neighborhood?: string;
+
+  @IsOptional()
+  @IsString()
+  city?: string;
+
+  @IsOptional()
+  @IsString()
+  state?: string;
+
+  @IsOptional()
+  @IsString()
+  legalRepresentativeName?: string;
+
+  @IsOptional()
+  @IsString()
+  legalRepresentativeCpf?: string;
+
+  @IsOptional()
+  @IsString()
+  legalRepresentativeRole?: string;
+
+  @IsOptional()
+  @IsString()
+  legalRepresentativeEmail?: string;
+
+  @IsOptional()
+  @IsString()
+  legalRepresentativePhone?: string;
 }

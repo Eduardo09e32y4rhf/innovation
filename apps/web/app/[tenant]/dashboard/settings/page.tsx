@@ -5,27 +5,82 @@ import { Image, Key, Save, X, Upload, Download, FileSpreadsheet, AlertTriangle, 
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useMutation, useQuery } from '@/app/hooks/use-data';
 import { api } from '@/app/lib/api';
+import { EmployeePasswordResetSection } from './_components/employee-password-reset-section';
+import { CompanyFinanceSection } from './_components/company-finance-section';
+import { PlatformPlansSection } from './_components/platform-plans-section';
 
 const SAFE_LOGO_URL = /^https:\/\/[^\s?#]+\.(png|jpe?g|webp)(\?[^\s#]*)?(#[^\s]*)?$/i;
 const MAX_LOGO_URL_LENGTH = 2048;
 const MIN_PASSWORD_LENGTH = 10;
 
-export default function SettingsPage() {
+export default function SettingsPage({ params }: { params: { tenant: string } }) {
   const { user, changePassword } = useAuth();
+  const tenant = params.tenant;
   const profile = user?.profile?.toUpperCase();
-  const canEditCompany = profile === 'DEV' || profile === 'ADMIN' || profile === 'RH';
+
+  const isEmployee =
+    profile === 'FUNCIONARIO' ||
+    profile === 'GESTOR' ||
+    profile === 'CONSULTA';
+
+  const isRh = profile === 'RH';
+
+  const isAdmin = profile === 'ADMIN';
+
+  const isDev = profile === 'DEV';
+
+  const canResetEmployees =
+    isRh ||
+    isAdmin ||
+    isDev;
+
+  const canManageCompanyFinance =
+    isAdmin ||
+    isDev;
+
+  const canManagePlatformPlans =
+    isDev;
+
+  const canEditCompany = isAdmin || isRh || isDev;
+
+  const pageTitle = isDev
+    ? 'Configurações da plataforma'
+    : isAdmin
+      ? 'Configurações da empresa'
+      : isRh
+        ? 'Configurações do RH'
+        : 'Minha conta';
 
   return (
     <div className="mx-auto max-w-5xl space-y-6 px-4 py-6 sm:px-6">
       <header className="flex flex-col gap-2">
-        <p className="text-[11px] font-black uppercase tracking-[0.2em] text-teal-600">Configurações</p>
-        <h2 className="text-2xl font-black text-slate-950">{canEditCompany ? 'Administração do sistema' : 'Minha conta'}</h2>
+        <p className="text-[11px] font-black uppercase tracking-[0.2em] text-violet-600">
+          Configurações
+        </p>
+
+        <h2 className="text-2xl font-black text-slate-950">
+          {pageTitle}
+        </h2>
+
+        <p className="text-sm font-medium text-slate-500">
+          Gerencie apenas as opções permitidas para o seu perfil.
+        </p>
       </header>
 
-      {/* Security & Password Section */}
       <PasswordChangeSection changePassword={changePassword} />
-      
-      {/* Company Settings */}
+
+      {canResetEmployees && (
+        <EmployeePasswordResetSection />
+      )}
+
+      {canManageCompanyFinance && (
+        <CompanyFinanceSection tenant={tenant} />
+      )}
+
+      {canManagePlatformPlans && (
+        <PlatformPlansSection tenant={tenant} />
+      )}
+
       {canEditCompany && (
         <>
           <CompanySettings />
@@ -173,12 +228,27 @@ function CompanySettings() {
   const [logoUrl, setLogoUrl] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
-  const [address, setAddress] = useState('');
-  const [primaryColor, setPrimaryColor] = useState('');
-  const [theme, setTheme] = useState('light');
-    const [latitude, setLatitude] = useState<number | ''>('');
-    const [longitude, setLongitude] = useState<number | ''>('');
-    const [radiusTolerance, setRadiusTolerance] = useState<number>(150);
+
+  // Endereço
+  const [zipCode, setZipCode] = useState('');
+  const [street, setStreet] = useState('');
+  const [streetNumber, setStreetNumber] = useState('');
+  const [addressComplement, setAddressComplement] = useState('');
+  const [neighborhood, setNeighborhood] = useState('');
+  const [city, setCity] = useState('');
+  const [state, setState] = useState('');
+
+  // Inscrições
+  const [stateRegistration, setStateRegistration] = useState('');
+  const [municipalRegistration, setMunicipalRegistration] = useState('');
+
+  // Representante
+  const [legalRepresentativeName, setLegalRepresentativeName] = useState('');
+  const [legalRepresentativeCpf, setLegalRepresentativeCpf] = useState('');
+  const [legalRepresentativeRole, setLegalRepresentativeRole] = useState('');
+  const [legalRepresentativeEmail, setLegalRepresentativeEmail] = useState('');
+  const [legalRepresentativePhone, setLegalRepresentativePhone] = useState('');
+
   const [removeLogo, setRemoveLogo] = useState(false);
 
   useEffect(() => {
@@ -189,12 +259,23 @@ function CompanySettings() {
       setLogoUrl(company.data.logoUrl ?? '');
       setPhone(company.data.phone ?? '');
       setEmail(company.data.email ?? '');
-      setAddress(company.data.address ?? '');
-      setPrimaryColor(company.data.primaryColor ?? '');
-      setTheme(company.data.theme ?? 'light');
-          setLatitude(company.data.latitude ?? '');
-          setLongitude(company.data.longitude ?? '');
-          setRadiusTolerance(company.data.radiusTolerance ?? 150);
+
+      setZipCode(company.data.zipCode ?? '');
+      setStreet(company.data.street ?? '');
+      setStreetNumber(company.data.streetNumber ?? '');
+      setAddressComplement(company.data.addressComplement ?? '');
+      setNeighborhood(company.data.neighborhood ?? '');
+      setCity(company.data.city ?? '');
+      setState(company.data.state ?? '');
+
+      setStateRegistration(company.data.stateRegistration ?? '');
+      setMunicipalRegistration(company.data.municipalRegistration ?? '');
+
+      setLegalRepresentativeName(company.data.legalRepresentativeName ?? '');
+      setLegalRepresentativeCpf(company.data.legalRepresentativeCpf ?? '');
+      setLegalRepresentativeRole(company.data.legalRepresentativeRole ?? '');
+      setLegalRepresentativeEmail(company.data.legalRepresentativeEmail ?? '');
+      setLegalRepresentativePhone(company.data.legalRepresentativePhone ?? '');
       setRemoveLogo(false);
     }
   }, [company.data]);
@@ -210,12 +291,23 @@ function CompanySettings() {
       logoUrl: removeLogo ? null : logoUrl.trim() || undefined,
       phone: phone.trim() || undefined,
       email: email.trim() || undefined,
-      address: address.trim() || undefined,
-      primaryColor: primaryColor.trim() || undefined,
-      theme: theme || undefined,
-      latitude: latitude === '' ? null : latitude,
-      longitude: longitude === '' ? null : longitude,
-      radiusTolerance: radiusTolerance,
+      
+      zipCode: zipCode.trim() || undefined,
+      street: street.trim() || undefined,
+      streetNumber: streetNumber.trim() || undefined,
+      addressComplement: addressComplement.trim() || undefined,
+      neighborhood: neighborhood.trim() || undefined,
+      city: city.trim() || undefined,
+      state: state.trim() || undefined,
+
+      stateRegistration: stateRegistration.trim() || undefined,
+      municipalRegistration: municipalRegistration.trim() || undefined,
+
+      legalRepresentativeName: legalRepresentativeName.trim() || undefined,
+      legalRepresentativeCpf: legalRepresentativeCpf.trim() || undefined,
+      legalRepresentativeRole: legalRepresentativeRole.trim() || undefined,
+      legalRepresentativeEmail: legalRepresentativeEmail.trim() || undefined,
+      legalRepresentativePhone: legalRepresentativePhone.trim() || undefined,
     }),
     { onSuccess: () => company.refetch() },
   );
@@ -230,8 +322,8 @@ function CompanySettings() {
             <Image size={16} className="text-white" />
           </div>
           <div>
-            <h3 className="text-sm font-black text-slate-950">Dados da empresa</h3>
-            <p className="text-xs font-semibold text-slate-500">Informações cadastrais, logo e identidade visual</p>
+            <h3 className="text-sm font-black text-slate-950">Dados cadastrais e contratuais</h3>
+            <p className="text-xs font-semibold text-slate-500">Informações jurídicas, contato, endereço e representante legal</p>
           </div>
         </div>
       </div>
@@ -277,53 +369,78 @@ function CompanySettings() {
               <span>E-mail da empresa</span>
               <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="contato@empresa.com" disabled={company.loading} className={inputClass} />
             </label>
-                          <label className="space-y-2 text-xs font-bold uppercase tracking-wider text-slate-600">
-                <span>Endereço</span>
-                <input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Rua, número, cidade - UF" disabled={company.loading} className={inputClass} />
-              </label>
-              
-              <div className="col-span-1 sm:col-span-2 grid grid-cols-1 gap-6 sm:grid-cols-3 rounded-[12px] border border-teal-100 bg-teal-50/30 p-4">
-                <div className="sm:col-span-3 flex items-center justify-between">
-                  <div>
-                    <h4 className="text-sm font-black text-slate-900">Geolocalização da Empresa</h4>
-                    <p className="text-xs text-slate-500">Usado para validar a localização dos funcionários ao bater ponto.</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (navigator.geolocation) {
-                        navigator.geolocation.getCurrentPosition(
-                          (pos) => {
-                            setLatitude(pos.coords.latitude);
-                            setLongitude(pos.coords.longitude);
-                          },
-                          (err) => alert('Erro ao pegar localização: ' + err.message),
-                          { enableHighAccuracy: true }
-                        );
-                      } else {
-                        alert('Geolocalização não suportada no navegador.');
-                      }
-                    }}
-                    className="flex items-center gap-2 rounded-lg bg-teal-600 px-3 py-2 text-xs font-bold text-white transition-colors hover:bg-teal-700"
-                  >
-                    <MapPin size={14} /> Pegar Atual
-                  </button>
-                </div>
-                
+            <label className="space-y-2 text-xs font-bold uppercase tracking-wider text-slate-600">
+              <span>Inscrição Estadual</span>
+              <input value={stateRegistration} onChange={(e) => setStateRegistration(e.target.value)} disabled={company.loading} className={inputClass} />
+            </label>
+            <label className="space-y-2 text-xs font-bold uppercase tracking-wider text-slate-600">
+              <span>Inscrição Municipal</span>
+              <input value={municipalRegistration} onChange={(e) => setMunicipalRegistration(e.target.value)} disabled={company.loading} className={inputClass} />
+            </label>
+
+            {/* Endereço */}
+            <div className="sm:col-span-2 mt-4 pt-4 border-t border-slate-100">
+              <h4 className="text-sm font-black text-slate-900 mb-4">Endereço Completo</h4>
+              <div className="grid gap-4 sm:grid-cols-2">
                 <label className="space-y-2 text-xs font-bold uppercase tracking-wider text-slate-600">
-                  <span>Latitude</span>
-                  <input type="number" step="any" value={latitude} onChange={(e) => setLatitude(e.target.value ? Number(e.target.value) : '')} className={inputClass} placeholder="-23.55052" disabled={company.loading} />
+                  <span>CEP</span>
+                  <input value={zipCode} onChange={(e) => setZipCode(e.target.value)} disabled={company.loading} className={inputClass} />
+                </label>
+                <label className="space-y-2 text-xs font-bold uppercase tracking-wider text-slate-600 sm:col-span-2">
+                  <span>Logradouro</span>
+                  <input value={street} onChange={(e) => setStreet(e.target.value)} disabled={company.loading} className={inputClass} />
                 </label>
                 <label className="space-y-2 text-xs font-bold uppercase tracking-wider text-slate-600">
-                  <span>Longitude</span>
-                  <input type="number" step="any" value={longitude} onChange={(e) => setLongitude(e.target.value ? Number(e.target.value) : '')} className={inputClass} placeholder="-46.63330" disabled={company.loading} />
+                  <span>Número</span>
+                  <input value={streetNumber} onChange={(e) => setStreetNumber(e.target.value)} disabled={company.loading} className={inputClass} />
                 </label>
                 <label className="space-y-2 text-xs font-bold uppercase tracking-wider text-slate-600">
-                  <span>Tolerância (metros)</span>
-                  <input type="number" value={radiusTolerance} onChange={(e) => setRadiusTolerance(Number(e.target.value))} className={inputClass} disabled={company.loading} />
+                  <span>Complemento</span>
+                  <input value={addressComplement} onChange={(e) => setAddressComplement(e.target.value)} disabled={company.loading} className={inputClass} />
+                </label>
+                <label className="space-y-2 text-xs font-bold uppercase tracking-wider text-slate-600">
+                  <span>Bairro</span>
+                  <input value={neighborhood} onChange={(e) => setNeighborhood(e.target.value)} disabled={company.loading} className={inputClass} />
+                </label>
+                <label className="space-y-2 text-xs font-bold uppercase tracking-wider text-slate-600">
+                  <span>Cidade</span>
+                  <input value={city} onChange={(e) => setCity(e.target.value)} disabled={company.loading} className={inputClass} />
+                </label>
+                <label className="space-y-2 text-xs font-bold uppercase tracking-wider text-slate-600">
+                  <span>Estado (UF)</span>
+                  <input value={state} onChange={(e) => setState(e.target.value)} disabled={company.loading} className={inputClass} />
                 </label>
               </div>
-            <label className="space-y-2 text-xs font-bold uppercase tracking-wider text-slate-600 sm:col-span-2">
+            </div>
+
+            {/* Representante Legal */}
+            <div className="sm:col-span-2 mt-4 pt-4 border-t border-slate-100">
+              <h4 className="text-sm font-black text-slate-900 mb-4">Representante Legal</h4>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="space-y-2 text-xs font-bold uppercase tracking-wider text-slate-600">
+                  <span>Nome completo</span>
+                  <input value={legalRepresentativeName} onChange={(e) => setLegalRepresentativeName(e.target.value)} disabled={company.loading} className={inputClass} />
+                </label>
+                <label className="space-y-2 text-xs font-bold uppercase tracking-wider text-slate-600">
+                  <span>CPF</span>
+                  <input value={legalRepresentativeCpf} onChange={(e) => setLegalRepresentativeCpf(e.target.value)} disabled={company.loading} className={inputClass} />
+                </label>
+                <label className="space-y-2 text-xs font-bold uppercase tracking-wider text-slate-600">
+                  <span>Cargo / Função</span>
+                  <input value={legalRepresentativeRole} onChange={(e) => setLegalRepresentativeRole(e.target.value)} disabled={company.loading} className={inputClass} />
+                </label>
+                <label className="space-y-2 text-xs font-bold uppercase tracking-wider text-slate-600">
+                  <span>E-mail</span>
+                  <input type="email" value={legalRepresentativeEmail} onChange={(e) => setLegalRepresentativeEmail(e.target.value)} disabled={company.loading} className={inputClass} />
+                </label>
+                <label className="space-y-2 text-xs font-bold uppercase tracking-wider text-slate-600">
+                  <span>Telefone</span>
+                  <input value={legalRepresentativePhone} onChange={(e) => setLegalRepresentativePhone(e.target.value)} disabled={company.loading} className={inputClass} />
+                </label>
+              </div>
+            </div>
+
+            <label className="space-y-2 text-xs font-bold uppercase tracking-wider text-slate-600 sm:col-span-2 mt-4 pt-4 border-t border-slate-100">
               <div className="flex items-center justify-between">
                 <span>Logo da Empresa (URL ou Upload)</span>
                 <div className="relative overflow-hidden rounded bg-teal-50 px-3 py-1 text-[10px] font-bold text-teal-700 hover:bg-teal-100 cursor-pointer">
@@ -342,27 +459,12 @@ function CompanySettings() {
                         setLogoUrl(result);
                       };
                       reader.readAsDataURL(file);
-                      e.target.value = ''; // Limpa para permitir selecionar o mesmo arquivo novamente
+                      e.target.value = '';
                     }}
                   />
                 </div>
               </div>
               <input value={removeLogo ? '' : logoUrl} onChange={(e) => { setRemoveLogo(false); setLogoUrl(e.target.value); }} placeholder="https://seudominio.com/logo.png ou faça o upload..." disabled={company.loading} className={inputClass} />
-              <span className="block text-[10px] font-semibold text-slate-400">Insira um link HTTPS ou faça upload do seu computador/celular. (A imagem será otimizada).</span>
-            </label>
-            <label className="space-y-2 text-xs font-bold uppercase tracking-wider text-slate-600">
-              <span>Cor principal</span>
-              <div className="flex gap-2">
-                <input type="color" value={primaryColor || '#0d9488'} onChange={(e) => setPrimaryColor(e.target.value)} className="h-11 w-11 cursor-pointer rounded-[10px] border border-slate-200 p-1" />
-                <input value={primaryColor} onChange={(e) => setPrimaryColor(e.target.value)} placeholder="#0d9488" disabled={company.loading} className={inputClass} />
-              </div>
-            </label>
-            <label className="space-y-2 text-xs font-bold uppercase tracking-wider text-slate-600">
-              <span>Tema</span>
-              <select value={theme} onChange={(e) => setTheme(e.target.value)} disabled={company.loading} className={inputClass}>
-                <option value="light">Claro</option>
-                <option value="dark">Escuro</option>
-              </select>
             </label>
             <div className="sm:col-span-2">
               <button
@@ -431,43 +533,24 @@ function ImportExportSection() {
     setImporting(true);
 
     try {
-      const text = await importFile.text();
-      const result = parseCSV(text);
-      
-      if (result.errors.length > 0) {
-        setImportStatus({ type: 'error', message: `Erro ao importar: ${result.errors.join(', ')}` });
-        setImporting(false);
-        return;
-      }
+      const formData = new FormData();
+      formData.append('file', importFile);
 
-      // Import employees one by one
-      let imported = 0;
-      let errors = 0;
-      for (const row of result.rows) {
-        try {
-          await api.employees.create({
-            name: row['Nome'] || row['name'] || '',
-            cpf: row['CPF'] || row['cpf'] || '',
-            email: row['Email'] || row['email'] || '',
-            position: row['Cargo'] || row['position'] || '',
-            department: row['Departamento'] || row['department'] || '',
-            admissionDate: row['Admissão'] || row['admissionDate'] || new Date().toISOString(),
-            registration: row['Matrícula'] || row['registration'] || undefined,
-            phone: row['Telefone'] || row['phone'] || undefined,
-          });
-          imported++;
-        } catch {
-          errors++;
-        }
+      const result = await api.request<{ message: string; imported: number; errors: string[] }>('/employees/import', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (result.errors && result.errors.length > 0) {
+        setImportStatus({ type: 'error', message: `Importação parcial/com erro. Verifique o console. ${result.imported} sucesso(s), ${result.errors.length} erro(s).` });
+        console.error('Erros de importação:', result.errors);
+      } else {
+        setImportStatus({ type: 'success', message: result.message });
       }
 
       employees.refetch();
-      setImportStatus({ 
-        type: 'success', 
-        message: `${imported} funcionário(s) importado(s)${errors > 0 ? `, ${errors} erro(s)` : ''}!` 
-      });
     } catch (err) {
-      setImportStatus({ type: 'error', message: 'Erro ao processar o arquivo. Verifique o formato CSV.' });
+      setImportStatus({ type: 'error', message: err instanceof Error ? err.message : 'Erro ao processar o arquivo. Verifique o formato (.xlsx).' });
     }
     setImporting(false);
     setImportFile(null);
@@ -484,7 +567,7 @@ function ImportExportSection() {
           </div>
           <div>
             <h3 className="text-sm font-black text-slate-950">Importar / Exportar dados</h3>
-            <p className="text-xs font-semibold text-slate-500">Exporte cadastros e pontos ou importe funcionários via CSV</p>
+            <p className="text-xs font-semibold text-slate-500">Exporte dados do sistema ou importe novos funcionários</p>
           </div>
         </div>
       </div>
@@ -502,7 +585,16 @@ function ImportExportSection() {
 
         {/* Import */}
         <div className="border-t border-slate-100 pt-6">
-          <p className="text-xs font-black uppercase tracking-wider text-slate-600 mb-3">Importar funcionários</p>
+          <div className="flex justify-between items-center mb-3">
+            <p className="text-xs font-black uppercase tracking-wider text-slate-600">Importar funcionários</p>
+            <a 
+              href={`${process.env.NEXT_PUBLIC_API_URL || '/api'}/employees/import/template`} 
+              className="text-xs font-bold text-teal-600 hover:text-teal-700 flex items-center gap-1"
+              download
+            >
+              <FileSpreadsheet size={14} /> Baixar Modelo XLSX
+            </a>
+          </div>
           
           {importStatus && (
             <div className={`mb-4 rounded-[10px] px-4 py-2.5 text-xs font-semibold flex items-center gap-2 ${
@@ -517,16 +609,13 @@ function ImportExportSection() {
 
           <div className="grid gap-4 sm:grid-cols-[1fr_auto]">
             <label className="space-y-2 text-xs font-bold uppercase tracking-wider text-slate-600">
-              <span>Arquivo CSV</span>
+              <span>Arquivo XLSX preenchido</span>
               <input 
                 type="file" 
-                accept=".csv,.xls,.xlsx" 
+                accept=".xlsx" 
                 onChange={(e) => setImportFile(e.target.files?.[0] || null)}
                 className="h-11 w-full rounded-[10px] border border-slate-200 bg-white px-4 text-sm text-slate-900 shadow-sm outline-none transition-all focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10 file:mr-3 file:rounded-[6px] file:border-0 file:bg-teal-50 file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-teal-700 hover:file:bg-teal-100"
               />
-              <span className="text-[10px] font-semibold text-slate-400">
-                Colunas esperadas: Nome, CPF, Email, Departamento, Cargo, Admissão, Matrícula, Telefone
-              </span>
             </label>
             <button 
               onClick={handleImport} 
@@ -622,55 +711,7 @@ function downloadCSV(data: unknown[], headers: string[], filename: string) {
   URL.revokeObjectURL(url);
 }
 
-function parseCSV(text: string): { rows: Record<string, string>[]; errors: string[] } {
-  const errors: string[] = [];
-  const lines = text.split('\n').filter(line => line.trim());
-  if (lines.length < 2) {
-    errors.push('Arquivo deve conter cabeçalho e pelo menos 1 linha de dados');
-    return { rows: [], errors };
-  }
 
-  const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
-  const rows: Record<string, string>[] = [];
-
-  for (let i = 1; i < lines.length; i++) {
-    const values = parseCSVLine(lines[i]);
-    const row: Record<string, string> = {};
-    headers.forEach((header, idx) => {
-      row[header] = values[idx]?.trim() || '';
-    });
-    if (row['Nome'] || row['name'] || row['CPF'] || row['cpf']) {
-      rows.push(row);
-    }
-  }
-
-  return { rows, errors };
-}
-
-function parseCSVLine(line: string): string[] {
-  const result: string[] = [];
-  let current = '';
-  let inQuotes = false;
-
-  for (let i = 0; i < line.length; i++) {
-    const char = line[i];
-    if (char === '"') {
-      if (inQuotes && line[i + 1] === '"') {
-        current += '"';
-        i++;
-      } else {
-        inQuotes = !inQuotes;
-      }
-    } else if (char === ',' && !inQuotes) {
-      result.push(current);
-      current = '';
-    } else {
-      current += char;
-    }
-  }
-  result.push(current);
-  return result.map(v => v.replace(/^"|"$/g, ''));
-}
 
 function formatCnpj(value: string) {
   const digits = value.replace(/\D/g, '').slice(0, 14);

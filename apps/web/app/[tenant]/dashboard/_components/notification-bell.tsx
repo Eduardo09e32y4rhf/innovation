@@ -67,13 +67,12 @@ export function NotificationBell() {
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="relative inline-flex h-10 w-10 items-center justify-center rounded-[8px] border border-slate-200 bg-white text-slate-700 transition-all hover:border-teal-500 hover:text-teal-700"
+        className="icon-button"
+        aria-label="Notificações"
       >
-        <Bell size={18} strokeWidth={2.5} />
+        ♢
         {unreadCount > 0 && (
-          <span className="absolute -right-1.5 -top-1.5 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-gradient-to-r from-rose-500 to-pink-600 px-1 text-[10px] font-black text-white shadow-md">
-            {unreadCount > 9 ? '9+' : unreadCount}
-          </span>
+          <i />
         )}
       </button>
 

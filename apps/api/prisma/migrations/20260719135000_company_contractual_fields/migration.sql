@@ -1,0 +1,15 @@
+-- AlterTable
+ALTER TABLE "Company" ADD COLUMN     "addressComplement" TEXT,
+ADD COLUMN     "city" TEXT,
+ADD COLUMN     "legalRepresentativeCpf" TEXT,
+ADD COLUMN     "legalRepresentativeEmail" TEXT,
+ADD COLUMN     "legalRepresentativeName" TEXT,
+ADD COLUMN     "legalRepresentativePhone" TEXT,
+ADD COLUMN     "legalRepresentativeRole" TEXT,
+ADD COLUMN     "municipalRegistration" TEXT,
+ADD COLUMN     "neighborhood" TEXT,
+ADD COLUMN     "state" TEXT,
+ADD COLUMN     "stateRegistration" TEXT,
+ADD COLUMN     "street" TEXT,
+ADD COLUMN     "streetNumber" TEXT,
+ADD COLUMN     "zipCode" TEXT;

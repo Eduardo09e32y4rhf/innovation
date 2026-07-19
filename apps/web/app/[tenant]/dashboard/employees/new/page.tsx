@@ -434,7 +434,7 @@ function EmployeeForm() {
   return (
     <div className="mx-auto max-w-5xl space-y-4">
       <header className="flex items-center gap-3">
-        <Link href={`/${tenant}/dashboard/employees`} className="btn-outline inline-flex h-8 w-8 items-center justify-center rounded-[6px]">
+        <Link href={`/${tenant}/dashboard/employees`} className="btn-icon rounded-[6px]">
           <ArrowLeft size={15} />
         </Link>
         <div>
@@ -448,7 +448,7 @@ function EmployeeForm() {
       )}
 
       <section className="ops-card rounded-[8px] border border-slate-200 bg-white p-4">
-        <div className="mb-4 flex gap-2 overflow-x-auto pb-1">
+        <div className="mb-4 flex flex-wrap gap-2 pb-1">
           {TABS.map((tab) => (
             <button
               key={tab}
@@ -641,7 +641,7 @@ function EmployeeForm() {
         )}
 
         <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-end">
-          <Link href={`/${tenant}/dashboard/employees`} className="btn-outline inline-flex h-9 items-center justify-center rounded-[6px] px-3 text-[11px] font-bold">Cancelar</Link>
+          <Link href={`/${tenant}/dashboard/employees`} className="btn-outline inline-flex h-9 items-center justify-center rounded-[6px] px-3 text-[11px] font-bold text-slate-600 hover:text-black">Cancelar</Link>
           <button
             type="button"
             onClick={handleSubmit}

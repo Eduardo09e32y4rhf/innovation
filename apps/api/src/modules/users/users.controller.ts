@@ -6,6 +6,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import type { JwtUser } from '../../common/types/auth.types';
 import { CreateUserDto } from './dto/create-user.dto';
+import { ResetUserPasswordDto } from './dto/reset-user-password.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UsersService } from './users.service';
 
@@ -20,32 +21,32 @@ export class UsersController {
     return this.service.ping(actor.sub);
   }
 
-  @Roles('ADMIN', 'RH')
+  @Roles('DEV', 'ADMIN', 'RH')
   @Get()
   list(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser) {
     return this.service.list(companyId, actor);
   }
 
   /** Retorna { used, max } - consumido pela tela de Usuarios para mostrar o limite. */
-  @Roles('ADMIN', 'RH')
+  @Roles('DEV', 'ADMIN', 'RH')
   @Get('usage')
   usage(@CurrentCompany() companyId: string) {
     return this.service.usage(companyId);
   }
 
-  @Roles('ADMIN', 'RH')
+  @Roles('DEV', 'ADMIN', 'RH')
   @Post()
   create(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Body() dto: CreateUserDto) {
     return this.service.create(companyId, actor, dto);
   }
 
-  @Roles('ADMIN', 'RH')
+  @Roles('DEV', 'ADMIN', 'RH')
   @Get(':id')
   get(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string) {
     return this.service.get(companyId, actor, id);
   }
 
-  @Roles('ADMIN', 'RH')
+  @Roles('DEV', 'ADMIN', 'RH')
   @Patch(':id')
   update(
     @CurrentCompany() companyId: string,
@@ -56,15 +57,20 @@ export class UsersController {
     return this.service.update(companyId, actor, id, dto);
   }
 
-  @Roles('ADMIN', 'RH')
+  @Roles('DEV', 'ADMIN', 'RH')
   @Delete(':id')
   delete(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string) {
     return this.service.delete(companyId, actor, id);
   }
 
-  @Roles('ADMIN', 'RH')
+  @Roles('DEV', 'ADMIN', 'RH')
   @Post(':id/reset-password')
-  resetPassword(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string) {
-    return this.service.resetPassword(companyId, actor, id);
+  resetPassword(
+    @CurrentCompany() companyId: string, 
+    @CurrentUser() actor: JwtUser, 
+    @Param('id') id: string,
+    @Body() dto: ResetUserPasswordDto,
+  ) {
+    return this.service.resetPassword(companyId, actor, id, dto);
   }
 }

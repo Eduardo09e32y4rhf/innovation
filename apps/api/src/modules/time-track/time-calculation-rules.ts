@@ -67,12 +67,37 @@ export class TimeCalculationRulesService {
       absenceMinutes: null,
     };
 
-    const workScale = String(rule?.workScale || employee?.workScale || '5x2').toLowerCase();
-    const dayOfWeek = this.localDayOfWeek(input.workDate);
-    const restDays = Array.isArray(rule?.restDaysOfWeek)
-      ? rule.restDaysOfWeek
-      : workScale === '6x1' ? [0] : [0, 6];
-    result.isRest = restDays.includes(dayOfWeek);
+    const workScale = String(rule?.workScale || employee?.workScale || '5X2').toUpperCase();
+    const dayOfWeek = input.workDate.getUTCDay();
+    let isRest = false;
+
+    if (workScale === '5X2') {
+      isRest = dayOfWeek === 0 || dayOfWeek === 6;
+    } else if (workScale === '6X1') {
+      isRest = dayOfWeek === 0;
+    } else {
+      let wDays = 0, rDays = 0;
+      if (workScale === '12X36') { wDays = 1; rDays = 1; }
+      else if (workScale === '4X2') { wDays = 4; rDays = 2; }
+      else if (workScale === 'OUTRO' && employee?.customWorkScale) {
+        const m = employee.customWorkScale.match(/(\d+)X(\d+)/i);
+        if (m) { wDays = parseInt(m[1], 10); rDays = parseInt(m[2], 10); }
+      }
+      if (wDays > 0 && rDays > 0 && employee?.admissionDate) {
+        const t0 = new Date(employee.admissionDate).getTime();
+        const tNow = new Date(Date.UTC(input.workDate.getUTCFullYear(), input.workDate.getUTCMonth(), input.workDate.getUTCDate())).getTime();
+        const diff = Math.floor((tNow - t0) / 86400000);
+        const cycle = wDays + rDays;
+        isRest = (diff % cycle) >= wDays || (diff % cycle) < 0;
+      } else {
+        isRest = dayOfWeek === 0;
+      }
+    }
+
+    if (Array.isArray(rule?.restDaysOfWeek) && rule.restDaysOfWeek.length > 0) {
+      isRest = rule.restDaysOfWeek.includes(dayOfWeek);
+    }
+    result.isRest = isRest;
 
     if (input.manualReason === 'ajuste_feriado') {
       result.isHoliday = true;
@@ -82,7 +107,7 @@ export class TimeCalculationRulesService {
       result.isRest = true;
     }
 
-    const isTwelveByThirtySix = workScale === '12x36';
+    const isTwelveByThirtySix = workScale === '12X36';
     const holidayRequiresDoublePay = result.isHoliday && !isTwelveByThirtySix && result.holidayHandling === 'PAID_100';
     if (result.isHoliday && result.holidayHandling === 'FOLGA') result.isRest = true;
 

@@ -15,10 +15,10 @@ export default function WhatsappPage() {
 
   return (
     <div className="mx-auto max-w-6xl space-y-5">
-      <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <header className="page-header items-center">
         <div>
-          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-teal-600">WhatsApp</p>
-          <h2 className="text-2xl font-black text-slate-950">Comunicacao WhatsApp</h2>
+          <p className="page-label">WHATSAPP</p>
+          <h2 className="page-title">Comunicação WhatsApp</h2>
         </div>
         <div className="flex items-center gap-3">
           <ConnectionPill status={status.data?.status} phone={status.data?.phone} />
@@ -26,7 +26,7 @@ export default function WhatsappPage() {
             <button 
               onClick={() => disconnect.mutate().catch(() => {})}
               disabled={disconnect.loading}
-              className="flex items-center gap-2 rounded-[8px] bg-rose-50 px-3 py-1.5 text-xs font-bold text-rose-600 hover:bg-rose-100 disabled:opacity-50"
+              className="btn-danger"
             >
               {disconnect.loading ? <Loader2 className="animate-spin" size={14} /> : <Power size={14} />}
               Desconectar
