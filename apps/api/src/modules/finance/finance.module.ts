@@ -7,6 +7,7 @@ import { CompanyBillingController } from './company-billing.controller';
 import { FinanceController } from './finance.controller';
 import { FinanceNotificationService } from './finance-notification.service';
 import { PlatformFinanceService } from './platform-finance.service';
+import { PricingService } from './pricing.service';
 import { QueueModule } from '../queue/queue.module';
 
 @Module({
@@ -19,6 +20,7 @@ import { QueueModule } from '../queue/queue.module';
     BillingCronService,
     PlatformFinanceService,
     FinanceNotificationService,
+    PricingService,
   ],
   controllers: [
     FinanceController,
