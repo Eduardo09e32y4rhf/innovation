@@ -32,6 +32,7 @@ enum PlanType {
 
 enum BillingStatus {
   TRIAL
+  PENDING_PAYMENT
   ACTIVE
   PAST_DUE
   CANCELED

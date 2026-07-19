@@ -136,11 +136,11 @@ export class PlatformFinanceService {
     // Garante que a assinatura foi criada em paralelo (para cobrar depois da avulsa)
     await this.createRecurringSubscription(company, customerId, amount).catch(() => {});
 
-    // Usa PAST_DUE como status pendente aqui, mas na proxima fase (Fase 5) vamos mudar para PENDING_PAYMENT
+    // Usa PENDING_PAYMENT como status pendente aqui, separando clientes novos de devedores antigos
     if (invoice?.status !== 'PAID') {
       await this.prisma.company.update({
         where: { id: company.id },
-        data: { status: 'SUSPENDED', isActive: false, billingStatus: 'PAST_DUE', suspensionReason: 'aguardando_pagamento' },
+        data: { status: 'SUSPENDED', isActive: false, billingStatus: 'PENDING_PAYMENT', suspensionReason: 'aguardando_primeiro_pagamento' },
       });
     }
 
