@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   AlertCircle,
   ArrowRight,
@@ -17,9 +17,14 @@ import {
   FileText,
 } from 'lucide-react';
 import { api, type PublicPlatformPlan } from '@/app/lib/api';
+import { PricingSection } from '../_components/pricing-section';
 
-export default function CadastroPage() {
+function CadastroForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  
+  const initialPlanId = searchParams.get('planId') || '';
+  const initialSeats = searchParams.get('seats') || '1';
   
   const [formData, setFormData] = useState({
     companyName: '',
@@ -28,26 +33,26 @@ export default function CadastroPage() {
     email: '',
     phone: '',
     password: '',
-    planId: '',
+    planId: initialPlanId,
   });
 
-  const [plans, setPlans] = useState<PublicPlatformPlan[]>([]);
-  const [plansLoading, setPlansLoading] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
 
   useEffect(() => {
-    api.auth.publicPlans()
-      .then((items) => {
-        setPlans(items);
-        const recommended = items.find((item) => !item.isFree) ?? items[0];
-        if (recommended) setFormData((current) => ({ ...current, planId: recommended.id }));
-      })
-      .catch(() => setPlans([]))
-      .finally(() => setPlansLoading(false));
-  }, []);
+    if (!formData.planId) {
+      api.auth.publicPlans()
+        .then((items) => {
+          const recommended = items.find((item) => !item.isFree) ?? items[0];
+          if (recommended && !formData.planId) {
+            setFormData((current) => ({ ...current, planId: recommended.id }));
+          }
+        })
+        .catch(() => {});
+    }
+  }, [formData.planId]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -66,12 +71,14 @@ export default function CadastroPage() {
     try {
       const response = await api.auth.registerCompany({
         companyName: formData.companyName,
-        document: formData.document.replace(/\D/g, ''), // Send only numbers
+        document: formData.document.replace(/\D/g, ''),
         name: formData.name,
         email: formData.email,
         phone: formData.phone.replace(/\D/g, ''),
         password: formData.password,
         planId: formData.planId || undefined,
+        // TODO: Passar seatQuantity para a API na próxima fase (Fase 4/6)
+        // seatQuantity: Number(initialSeats),
       });
 
       setSuccess(true);
@@ -93,32 +100,33 @@ export default function CadastroPage() {
 
   if (success) {
     return (
-      <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-950 font-sans selection:bg-teal-500/30">
-        <div className="relative z-10 w-full max-w-[440px] px-6 text-center animate-in fade-in zoom-in duration-700">
-          <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400">
-            <CheckCircle2 size={48} strokeWidth={2} />
-          </div>
-          <h1 className="text-3xl font-black text-white mb-2">Conta Criada!</h1>
-          <p className="text-slate-400">
-            Sua empresa foi cadastrada com sucesso.
-          </p>
-          <p className="mt-4 text-sm font-bold text-teal-400">Redirecionando para o pagamento da ativação...</p>
+      <div className="relative z-10 w-full max-w-[440px] px-6 text-center animate-in fade-in zoom-in duration-700 mx-auto">
+        <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400">
+          <CheckCircle2 size={48} strokeWidth={2} />
         </div>
-      </main>
+        <h1 className="text-3xl font-black text-white mb-2">Conta Criada!</h1>
+        <p className="text-slate-400">
+          Sua empresa foi cadastrada com sucesso.
+        </p>
+        <p className="mt-4 text-sm font-bold text-teal-400">Redirecionando para o pagamento da ativação...</p>
+      </div>
     );
   }
 
   return (
-    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-950 font-sans selection:bg-teal-500/30 py-12">
-      {/* Background Elements */}
-      <div className="absolute inset-0 z-0 pointer-events-none">
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:64px_64px]" />
-        <div className="absolute -top-[20%] left-1/2 h-[600px] w-[800px] -translate-x-1/2 rounded-[100%] bg-teal-500/10 blur-[120px]" />
-        <div className="absolute -bottom-[20%] left-0 h-[500px] w-full bg-slate-900/80 blur-[80px]" />
+    <div className="relative z-10 w-full max-w-[1200px] px-6 flex flex-col xl:flex-row gap-12 items-start justify-center mx-auto">
+      
+      {/* Left Column: Pricing Section */}
+      <div className="flex-1 w-full animate-in fade-in slide-in-from-left-8 duration-700">
+        <PricingSection 
+          selectedPlanId={formData.planId} 
+          initialSeats={Number(initialSeats) || 1}
+          onSelectPlan={(id) => setFormData(p => ({ ...p, planId: id }))} 
+        />
       </div>
 
-      <div className="relative z-10 w-full max-w-[500px] px-6">
-        {/* Header */}
+      {/* Right Column: Registration Form */}
+      <div className="w-full xl:w-[450px] shrink-0">
         <div className="mb-8 flex flex-col items-center justify-center text-center animate-in fade-in slide-in-from-bottom-4 duration-700">
           <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-teal-400 to-teal-600 text-white shadow-[0_0_40px_rgba(45,212,191,0.3)] ring-1 ring-white/10">
             <ShieldCheck size={28} strokeWidth={2.5} />
@@ -127,9 +135,7 @@ export default function CadastroPage() {
           <p className="mt-1 text-sm font-medium text-slate-400">Crie sua conta e comece agora (7 dias grátis)</p>
         </div>
 
-        {/* Card */}
         <div className="overflow-hidden rounded-[24px] border border-white/10 bg-slate-900/60 p-8 shadow-2xl backdrop-blur-xl animate-in fade-in slide-in-from-bottom-8 duration-700 delay-150 fill-mode-backwards">
-          
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             
             {error && (
@@ -139,14 +145,14 @@ export default function CadastroPage() {
               </div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="group relative col-span-1 md:col-span-2">
+            <div className="grid grid-cols-1 gap-4">
+              <div className="group relative">
                 <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-500 group-focus-within:text-teal-400">
                   <Building2 size={18} />
                 </div>
                 <input
                   type="text" required name="companyName" value={formData.companyName} onChange={handleChange}
-                  placeholder="Nome da Empresa (Razão Social ou Fantasia)"
+                  placeholder="Nome da Empresa"
                   className="h-12 w-full rounded-xl border border-white/10 bg-black/20 pl-11 pr-4 text-sm font-medium text-white placeholder-slate-600 outline-none focus:border-teal-500 focus:bg-black/40 focus:ring-1 focus:ring-teal-500"
                 />
               </div>
@@ -164,39 +170,6 @@ export default function CadastroPage() {
 
               <div className="group relative">
                 <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-500 group-focus-within:text-teal-400">
-                  <Phone size={18} />
-                </div>
-                <input
-                  type="text" required name="phone" value={formData.phone} onChange={handleChange}
-                  placeholder="Telefone / WhatsApp"
-                  className="h-12 w-full rounded-xl border border-white/10 bg-black/20 pl-11 pr-4 text-sm font-medium text-white placeholder-slate-600 outline-none focus:border-teal-500 focus:bg-black/40 focus:ring-1 focus:ring-teal-500"
-                />
-              </div>
-
-              <label className="col-span-1 md:col-span-2 space-y-2">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Plano</span>
-                <select
-                  name="planId"
-                  value={formData.planId}
-                  onChange={(event) => setFormData((current) => ({ ...current, planId: event.target.value }))}
-                  disabled={plansLoading}
-                  className="h-12 w-full rounded-xl border border-white/10 bg-slate-950 px-4 text-sm font-semibold text-white outline-none focus:border-teal-500"
-                >
-                  {plansLoading && <option value="">Carregando planos...</option>}
-                  {!plansLoading && plans.length === 0 && <option value="">Plano Base - R$ 49,90/mes</option>}
-                  {plans.map((plan) => (
-                    <option key={plan.id} value={plan.id}>
-                      {plan.name} - {plan.isFree ? 'Gratis' : Number(plan.price).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} / {plan.cycle === 'YEARLY' ? 'ano' : plan.cycle === 'QUARTERLY' ? 'trimestre' : 'mes'}
-                    </option>
-                  ))}
-                </select>
-                {formData.planId && plans.find((plan) => plan.id === formData.planId) && (
-                  <p className="text-xs text-slate-500">Ate {plans.find((plan) => plan.id === formData.planId)?.maxUsers} usuarios e {plans.find((plan) => plan.id === formData.planId)?.maxEmployees} colaboradores.</p>
-                )}
-              </label>
-
-              <div className="group relative col-span-1 md:col-span-2">
-                <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-500 group-focus-within:text-teal-400">
                   <User size={18} />
                 </div>
                 <input
@@ -206,7 +179,7 @@ export default function CadastroPage() {
                 />
               </div>
 
-              <div className="group relative col-span-1 md:col-span-2">
+              <div className="group relative">
                 <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-500 group-focus-within:text-teal-400">
                   <Mail size={18} />
                 </div>
@@ -216,8 +189,19 @@ export default function CadastroPage() {
                   className="h-12 w-full rounded-xl border border-white/10 bg-black/20 pl-11 pr-4 text-sm font-medium text-white placeholder-slate-600 outline-none focus:border-teal-500 focus:bg-black/40 focus:ring-1 focus:ring-teal-500"
                 />
               </div>
+              
+              <div className="group relative">
+                <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-500 group-focus-within:text-teal-400">
+                  <Phone size={18} />
+                </div>
+                <input
+                  type="text" required name="phone" value={formData.phone} onChange={handleChange}
+                  placeholder="WhatsApp"
+                  className="h-12 w-full rounded-xl border border-white/10 bg-black/20 pl-11 pr-4 text-sm font-medium text-white placeholder-slate-600 outline-none focus:border-teal-500 focus:bg-black/40 focus:ring-1 focus:ring-teal-500"
+                />
+              </div>
 
-              <div className="group relative col-span-1 md:col-span-2">
+              <div className="group relative">
                 <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-500 group-focus-within:text-teal-400">
                   <Lock size={18} />
                 </div>
@@ -256,6 +240,23 @@ export default function CadastroPage() {
           </form>
         </div>
       </div>
+    </div>
+  );
+}
+
+export default function CadastroPage() {
+  return (
+    <main className="relative flex min-h-screen items-center justify-center overflow-x-hidden bg-slate-950 font-sans selection:bg-teal-500/30 py-12 lg:py-24">
+      {/* Background Elements */}
+      <div className="absolute inset-0 z-0 pointer-events-none">
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:64px_64px]" />
+        <div className="absolute -top-[20%] left-1/2 h-[600px] w-[800px] -translate-x-1/2 rounded-[100%] bg-teal-500/10 blur-[120px]" />
+        <div className="absolute -bottom-[20%] left-0 h-[500px] w-full bg-slate-900/80 blur-[80px]" />
+      </div>
+
+      <Suspense fallback={<div className="text-white z-10">Carregando...</div>}>
+        <CadastroForm />
+      </Suspense>
     </main>
   );
 }

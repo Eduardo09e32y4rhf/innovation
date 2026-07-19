@@ -390,6 +390,13 @@ export interface UpdatePlatformInvoiceInput {
 export interface PublicPlatformPlan {
   id: string; name: string; description?: string | null; price: number | string; cycle: string;
   maxUsers: number; maxEmployees: number; activeModules: string[]; isFree: boolean;
+  code?: string;
+  commitmentMonths?: number;
+  discountPercent?: number;
+  baseMonthlyPrice?: number;
+  userMonthlyPrice?: number;
+  asaasCycle?: string;
+  pricingVersion?: string;
 }
 export interface CompanyBillingResult {
   company?: { id: string; name: string; status: CompanyStatus; billingStatus: 'TRIAL' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED'; suspensionReason?: string | null };

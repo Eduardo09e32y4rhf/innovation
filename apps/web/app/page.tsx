@@ -24,6 +24,7 @@ import {
   Star,
 } from 'lucide-react';
 import { Space_Grotesk } from 'next/font/google';
+import { PricingSection } from './_components/pricing-section';
 
 const display = Space_Grotesk({
   subsets: ['latin'],
@@ -382,6 +383,11 @@ export default function Home() {
               </article>
             ))}
           </div>
+        </section>
+
+        {/* ================= PRICING ================= */}
+        <section id="planos" className="mt-40 pt-10 border-t border-white/10">
+          <PricingSection />
         </section>
 
         {/* ================= FAQ ================= */}
