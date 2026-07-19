@@ -82,7 +82,7 @@ export async function request<T>(path: string, opts: Opts = {}): Promise<T> {
     throw new ApiError(401, 'Sessao expirada. Faca login novamente.');
   }
 
-  const text = await res.text();
+  const text = await res.clone().text();
   const data = text ? safeJson(text) : null;
 
   if (!res.ok) {
