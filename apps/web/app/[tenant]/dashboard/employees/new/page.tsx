@@ -434,7 +434,7 @@ function EmployeeForm() {
   return (
     <div className="mx-auto max-w-5xl space-y-4">
       <header className="flex items-center gap-3">
-        <Link href={`/${tenant}/dashboard/employees`} className="btn-outline inline-flex h-8 w-8 items-center justify-center rounded-[6px]">
+        <Link href={`/${tenant}/dashboard/employees`} className="btn-icon rounded-[6px]">
           <ArrowLeft size={15} />
         </Link>
         <div>
