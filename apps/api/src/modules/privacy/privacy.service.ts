@@ -44,23 +44,23 @@ export class PrivacyService {
       ...requestMeta,
     });
 
+    let employeeData = null;
     if (body?.faceDescriptor && Array.isArray(body.faceDescriptor)) {
-      const employee = await this.repository.getEmployeeId(user.sub);
-      if (employee) {
-        await this.repository.saveFaceEnrollment(user.companyId, employee.id, body.faceDescriptor);
+      const employeeIdObj = await this.repository.getEmployeeId(user.sub);
+      if (employeeIdObj) {
+        await this.repository.saveFaceEnrollment(user.companyId, employeeIdObj.id, body.faceDescriptor);
       } else {
         console.warn(`User ${user.sub} accepted terms with faceDescriptor, but has no employee record to bind to.`);
       }
     }
+    employeeData = await this.repository.getEmployeeData(user.sub);
 
     const crypto = require('crypto');
     
-    // Mock KMS or process.env for RSA Private Key
-    const privateKey = process.env.PRIVACY_RSA_PRIVATE_KEY || crypto.generateKeyPairSync('rsa', {
-      modulusLength: 2048,
-      publicKeyEncoding: { type: 'spki', format: 'pem' },
-      privateKeyEncoding: { type: 'pkcs8', format: 'pem' }
-    }).privateKey;
+    const privateKey = process.env.PRIVACY_RSA_PRIVATE_KEY;
+    if (!privateKey) {
+      throw new InternalServerErrorException('Configuração de segurança (PRIVACY_RSA_PRIVATE_KEY) ausente no ambiente.');
+    }
 
     const payloadToSign = JSON.stringify({
       companyId: user.companyId,
@@ -75,6 +75,7 @@ export class PrivacyService {
     sign.update(payloadToSign);
     sign.end();
     const signature = sign.sign(privateKey, 'base64');
+    const payloadHash = crypto.createHash('sha256').update(payloadToSign).digest('hex');
 
     await this.repository.createAuditLog({
       companyId: user.companyId,
@@ -87,7 +88,7 @@ export class PrivacyService {
         latitude: body?.latitude, 
         longitude: body?.longitude,
         signatureAlgorithm: 'RSA-SHA256',
-        payloadHash: crypto.createHash('sha256').update(payloadToSign).digest('hex'),
+        payloadHash: payloadHash,
         digitalSignature: signature,
       },
       ...requestMeta,
@@ -97,6 +98,10 @@ export class PrivacyService {
       userName,
       userEmail: user.email,
       companyName,
+      companyCnpj: userData?.company?.document,
+      cpf: employeeData?.cpf,
+      rg: employeeData?.rg,
+      position: employeeData?.position,
       termVersion: CURRENT_TERMS_VERSION,
       purpose: TERMS_PURPOSE,
       ipAddress: requestMeta.ipAddress,
@@ -104,6 +109,8 @@ export class PrivacyService {
       longitude: body?.longitude,
       address: body?.address,
       photoBase64: body?.photoBase64,
+      payloadHash,
+      digitalSignature: signature,
       date: new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }).replace(/\u202F/g, ' '),
     };
 
@@ -200,7 +207,7 @@ export class PrivacyService {
   public async generatePDFBase64(data: any): Promise<string> {
     return new Promise((resolve, reject) => {
       try {
-        const doc = new PDFDocument({ margin: 0, size: 'A4' });
+        const doc = new PDFDocument({ margin: 0, size: 'A4', bufferPages: true });
         const buffers: Buffer[] = [];
         doc.on('data', buffers.push.bind(buffers));
         doc.on('error', (err: any) => {
@@ -238,35 +245,51 @@ export class PrivacyService {
         const leftMargin = 50;
         const contentWidth = doc.page.width - 100;
 
+        const checkPageSpace = (needed: number) => {
+          if (cursorY + needed > doc.page.height - 50) {
+            doc.addPage();
+            cursorY = 50;
+          }
+        };
+
         const drawLabelValue = (label: string, value: string, x: number, y: number, w: number) => {
           doc.fontSize(9).font('Helvetica-Bold').fillColor(secondaryColor).text(label.toUpperCase(), x, y);
           doc.fontSize(11).font('Helvetica').fillColor('#0f172a').text(value, x, y + 12, { width: w });
         };
 
         const drawSectionTitle = (title: string, y: number) => {
-          doc.rect(leftMargin, y, contentWidth, 24).fill(lightGray);
-          doc.rect(leftMargin, y, 4, 24).fill(accentColor);
-          doc.fontSize(12).font('Helvetica-Bold').fillColor(primaryColor).text(title, leftMargin + 15, y + 6);
-          return y + 40;
+          checkPageSpace(50);
+          doc.rect(leftMargin, cursorY, contentWidth, 24).fill(lightGray);
+          doc.rect(leftMargin, cursorY, 4, 24).fill(accentColor);
+          doc.fontSize(12).font('Helvetica-Bold').fillColor(primaryColor).text(title, leftMargin + 15, cursorY + 6);
+          cursorY += 40;
         };
 
         // ==========================================
         // SEÇÃO: DADOS DO TITULAR E EMPRESA
         // ==========================================
-        cursorY = drawSectionTitle('DADOS DO TITULAR E CONTROLADORA', cursorY);
+        drawSectionTitle('DADOS DO TITULAR E CONTROLADORA', cursorY);
         
         drawLabelValue('Nome do Titular', data.userName, leftMargin, cursorY, 250);
         drawLabelValue('E-mail', data.userEmail, leftMargin + 260, cursorY, 200);
         cursorY += 40;
         
+        drawLabelValue('CPF', data.cpf || 'Não informado', leftMargin, cursorY, 120);
+        drawLabelValue('RG', data.rg || 'Não informado', leftMargin + 130, cursorY, 120);
+        drawLabelValue('Cargo', data.position || 'Não informado', leftMargin + 260, cursorY, 200);
+        cursorY += 40;
+        
         drawLabelValue('Empresa (Controladora)', data.companyName, leftMargin, cursorY, 250);
-        drawLabelValue('Operadora de Dados', 'Innovation System e consultoria', leftMargin + 260, cursorY, 200);
+        drawLabelValue('CNPJ', data.companyCnpj || 'Não informado', leftMargin + 260, cursorY, 200);
+        cursorY += 40;
+        
+        drawLabelValue('Operadora de Dados', 'Innovation System e consultoria', leftMargin, cursorY, 200);
         cursorY += 50;
 
         // ==========================================
         // SEÇÃO: DADOS TÉCNICOS DO ACEITE
         // ==========================================
-        cursorY = drawSectionTitle('DADOS TÉCNICOS DO ACEITE ELETRÔNICO', cursorY);
+        drawSectionTitle('DADOS TÉCNICOS DO ACEITE ELETRÔNICO', cursorY);
         
         drawLabelValue('Data e Hora do Registro', data.date, leftMargin, cursorY, 250);
         drawLabelValue('Endereço IP', data.ipAddress || 'Não identificado', leftMargin + 260, cursorY, 200);
@@ -276,44 +299,65 @@ export class PrivacyService {
         
         if (data.latitude && data.longitude) {
           drawLabelValue('Coordenadas (Lat/Lon)', `${data.latitude}, ${data.longitude}`, leftMargin + 260, cursorY, 200);
-          cursorY += 40;
         } else {
           drawLabelValue('Localização', 'Não capturada', leftMargin + 260, cursorY, 200);
-          cursorY += 40;
         }
+        cursorY += 40;
 
         if (data.address) {
+          doc.fontSize(11).font('Helvetica');
+          const addressHeight = doc.heightOfString(data.address, { width: contentWidth });
+          checkPageSpace(addressHeight + 30);
           drawLabelValue('Endereço Aproximado', data.address, leftMargin, cursorY, contentWidth);
-          cursorY += (doc.heightOfString(data.address, { width: contentWidth, font: 'Helvetica', size: 11 }) + 20);
+          cursorY += addressHeight + 20;
+        }
+
+        // ==========================================
+        // SEÇÃO: ASSINATURA DIGITAL
+        // ==========================================
+        drawSectionTitle('ASSINATURA DIGITAL AVANÇADA', cursorY);
+
+        if (data.digitalSignature) {
+          doc.fontSize(9).font('Helvetica-Bold').fillColor(secondaryColor).text('HASH DO DOCUMENTO (SHA-256)', leftMargin, cursorY);
+          doc.fontSize(8).font('Courier').fillColor('#0f172a').text(data.payloadHash || 'N/A', leftMargin, cursorY + 12, { width: contentWidth });
+          cursorY += 30;
+
+          doc.fontSize(9).font('Helvetica-Bold').fillColor(secondaryColor).text('ASSINATURA DIGITAL (RSA-SHA256)', leftMargin, cursorY);
+          doc.fontSize(7).font('Courier').fillColor('#0f172a').text(data.digitalSignature, leftMargin, cursorY + 12, { width: contentWidth });
+          const sigHeight = doc.heightOfString(data.digitalSignature, { width: contentWidth });
+          cursorY += sigHeight + 20;
+        } else {
+          doc.fontSize(10).font('Helvetica-Oblique').fillColor('#ef4444').text('Assinatura digital não disponível neste documento.', leftMargin, cursorY);
+          cursorY += 30;
         }
 
         // ==========================================
         // SEÇÃO: DECLARAÇÃO E FINALIDADE
         // ==========================================
-        cursorY = drawSectionTitle('TERMOS DA DECLARAÇÃO DE ACEITE', cursorY);
+        drawSectionTitle('TERMOS DA DECLARAÇÃO DE ACEITE', cursorY);
         
         const declaration = `Declaro que li, compreendi e aceito integralmente os Termos de Uso e a Política de Privacidade (incluindo cláusulas LGPD e ferramentas de IA da Innovation System). Estou ciente de que esta é uma assinatura eletrônica com validade legal e que descumprimentos das regras da empresa podem acarretar em medidas disciplinares como advertência e suspensão.\n\nFinalidade do Tratamento: ${data.purpose}`;
         
-        doc.rect(leftMargin, cursorY, contentWidth, doc.heightOfString(declaration, { width: contentWidth - 30, font: 'Helvetica', size: 10 }) + 30)
+        doc.fontSize(10).font('Helvetica');
+        const declarationHeight = doc.heightOfString(declaration, { width: contentWidth - 30, lineGap: 3 });
+        
+        checkPageSpace(declarationHeight + 50);
+
+        doc.rect(leftMargin, cursorY, contentWidth, declarationHeight + 30)
            .strokeColor(borderColor)
            .lineWidth(1)
            .stroke();
            
-        doc.fontSize(10).font('Helvetica').fillColor('#334155').text(declaration, leftMargin + 15, cursorY + 15, { width: contentWidth - 30, align: 'justify', lineGap: 3 });
+        doc.fillColor('#334155').text(declaration, leftMargin + 15, cursorY + 15, { width: contentWidth - 30, align: 'justify', lineGap: 3 });
         
-        cursorY += doc.heightOfString(declaration, { width: contentWidth - 30, font: 'Helvetica', size: 10 }) + 50;
+        cursorY += declarationHeight + 50;
 
         // ==========================================
         // SEÇÃO: BIOMETRIA FACIAL (SE HOUVER)
         // ==========================================
         if (data.photoBase64) {
-          // Checar se há espaço na página atual, senão quebrar página
-          if (cursorY + 180 > doc.page.height - 50) {
-            doc.addPage();
-            cursorY = 50;
-          }
-
-          cursorY = drawSectionTitle('EVIDÊNCIA BIOMÉTRICA FACIAL (FACE ID)', cursorY);
+          checkPageSpace(180);
+          drawSectionTitle('EVIDÊNCIA BIOMÉTRICA FACIAL (FACE ID)', cursorY);
           
           try {
             const base64Data = data.photoBase64.replace(/^data:image\/\w+;base64,/, '');

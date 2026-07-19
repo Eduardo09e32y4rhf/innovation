@@ -114,7 +114,7 @@ export class TimeClosingService {
         
         scheduledMinutesInPeriod += expectedForDay;
 
-        if (dayOfWeek === 0 || holidayKeys.has(key)) paidRestDays++;
+        if (restDays.includes(dayOfWeek) || holidayKeys.has(key)) paidRestDays++;
         
         if (!isRest) {
           payableWorkdays++;
@@ -254,7 +254,7 @@ export class TimeClosingService {
       const updated = { ...closing, [dto.field]: value };
       const financial = this.payroll.calculate({
         salary: Number(updated.salaryBase),
-        weeklyMinutes: Number(updated.monthlyDivisor) * 12,
+        weeklyMinutes: Number(updated.monthlyDivisor) * (60 / (52 / 12)),
         isPartialMonth: false,
         scheduledMinutesInPeriod: 0,
         overtime50Minutes: Number(updated.overtime50) * 60,
@@ -312,44 +312,201 @@ export class TimeClosingService {
 
   async streamPdf(companyId: string, id: string, res: any, actor?: JwtUser) {
     const closing = await this.getById(companyId, id, actor);
-    const PDFDocument = require('pdfkit');
-    const doc = new PDFDocument({ margin: 42, size: 'A4' });
-    res.header('Content-Type', 'application/pdf');
-    res.header('Content-Disposition', `attachment; filename=Fechamento_${this.safeFilename(closing.employee.name)}_${this.dateKey(closing.periodStart)}.pdf`);
-    doc.pipe(res.raw);
-    doc.fontSize(18).fillColor('#0f172a').text('MEMORIA DE CALCULO DA FOLHA', { align: 'center' });
-    doc.moveDown().fontSize(10).fillColor('#334155');
-    doc.text(`Empresa: ${closing.company?.name || 'Innovation RH'}`);
-    doc.text(`Funcionario: ${closing.employee.name} | CPF: ${closing.employee.cpf || '-'}`);
-    doc.text(`Periodo: ${this.formatDate(closing.periodStart)} a ${this.formatDate(closing.periodEnd)}`);
-    doc.text(`Status: ${closing.status} | Regra: ${closing.calculationVersion}`);
-    doc.text(`Escala Vinculada: ${(closing as any).scaleTypeUsed ?? 'N/A'}`);
-    doc.moveDown().fontSize(13).fillColor('#0f766e').text('Jornada consolidada');
-    doc.fontSize(10).fillColor('#334155')
-      .text(`Horas normais: ${closing.normalHours.toFixed(2)} h`)
-      .text(`Horas extras 50%: ${closing.overtime50.toFixed(2)} h`)
-      .text(`Horas extras 100%: ${closing.overtime100.toFixed(2)} h`)
-      .text(`Horas noturnas reduzidas: ${closing.nightShift.toFixed(2)} h`)
-      .text(`Atrasos: ${closing.lateMinutes} min | Saidas antecipadas: ${closing.earlyLeaveMinutes} min | Debitos: ${closing.absenceMinutes} min`);
-    doc.moveDown().fontSize(13).fillColor('#0f766e').text('Proventos e descontos');
-    doc.fontSize(10).fillColor('#334155')
-      .text(`Salario base: ${this.currency(closing.salaryBase)}`)
-      .text(`Valor hora (divisor ${closing.monthlyDivisor}): ${this.currency(closing.hourlyRate)}`)
-      .text(`Hora extra 50%: ${this.currency(closing.overtime50Value)}`)
-      .text(`Hora extra 100%: ${this.currency(closing.overtime100Value)}`)
-      .text(`Adicional noturno: ${this.currency(closing.nightShiftValue)}`)
-      .text(`Reflexo DSR: ${this.currency(closing.dsrValue)}`)
-      .text(`Desconto de jornada: -${this.currency(closing.absenceDiscount)}`)
-      .text(`Base de Calculo: ${this.currency(closing.grossPay)}`)
-      .text(`INSS: -${this.currency(closing.inssDiscount)}`)
-      .text(`IRRF: -${this.currency(closing.irrfDiscount)}`)
-      .text(`FGTS patronal (nao descontado): ${this.currency(closing.fgtsAmount)}`);
-    doc.moveDown().fontSize(15).fillColor('#0f172a').text(`Liquido estimado: ${this.currency(closing.netPay)}`, { align: 'right' });
-    doc.moveDown(2).fontSize(8).fillColor('#64748b').text('Memoria de calculo gerada com tabelas oficiais vigentes em 2026. Validar rubricas especificas, beneficios e convencao coletiva no eSocial/contabilidade.', { align: 'center' });
-    doc.end();
-  }
+    
+    // Fastify/Express compatibility
+    const isFastify = typeof res.raw !== 'undefined';
+    const stream = isFastify ? res.raw : res;
+    
+    if (isFastify) {
+      stream.setHeader('Content-Type', 'application/pdf');
+      stream.setHeader('Content-Disposition', `attachment; filename=Folha_Ponto_${this.safeFilename(closing.employee.name)}_${this.dateKey(closing.periodStart)}.pdf`);
+    } else {
+      res.header('Content-Type', 'application/pdf');
+      res.header('Content-Disposition', `attachment; filename=Folha_Ponto_${this.safeFilename(closing.employee.name)}_${this.dateKey(closing.periodStart)}.pdf`);
+    }
 
-  private async changeStatus(companyId: string, id: string, expected: TimeClosingStatus, next: TimeClosingStatus, extra: any = {}) {
+    import('pdfkit').then(PDFDocument => {
+      const doc = new PDFDocument.default({ margin: 40, size: 'A4', bufferPages: true });
+      doc.pipe(stream);
+
+      const emp = closing.employee;
+      const company = closing.company;
+      const W = 515; // largura útil
+
+      // ── CABEÇALHO ──────────────────────────────────────────────────────────────
+      doc.fontSize(14).fillColor('#0f172a').font('Helvetica-Bold')
+        .text('RELATÓRIO DE FECHAMENTO DE PONTO', { align: 'center' });
+      doc.fontSize(9).fillColor('#64748b').font('Helvetica')
+        .text(`Memória de cálculo gerada pelo Innovation RH System — CLT 2026`, { align: 'center' });
+      doc.moveDown(0.4);
+
+      doc.moveTo(40, doc.y).lineTo(555, doc.y).strokeColor('#e2e8f0').stroke();
+      doc.moveDown(0.4);
+
+      const leftX = 40;
+      const rightX = 300;
+      const yStart = doc.y;
+
+      doc.font('Helvetica-Bold').fontSize(9).fillColor('#0f172a')
+        .text('EMPRESA:', leftX, yStart);
+      doc.font('Helvetica').fillColor('#334155')
+        .text(company?.name || 'Innovation RH', leftX, doc.y)
+        .text(`CNPJ: ${company?.document || 'Não informado'}`, leftX, doc.y);
+
+      doc.font('Helvetica-Bold').fontSize(9).fillColor('#0f172a')
+        .text('FUNCIONÁRIO:', rightX, yStart);
+      
+      const formatCpf = (cpf?: string | null) => {
+        if (!cpf || cpf.length !== 11) return cpf || 'Não informado';
+        return `${cpf.slice(0,3)}.${cpf.slice(3,6)}.${cpf.slice(6,9)}-${cpf.slice(9,11)}`;
+      };
+      
+      doc.font('Helvetica').fillColor('#334155')
+        .text(emp.name, rightX, doc.y)
+        .text(`CPF: ${formatCpf(emp.cpf)}  |  Matrícula: ${emp.registration || 'N/A'}`, rightX, doc.y)
+        .text(`Cargo: ${emp.position || 'N/A'}  |  Depto: ${emp.department || 'N/A'}`, rightX, doc.y);
+
+      doc.moveDown(0.3);
+      doc.moveTo(40, doc.y).lineTo(555, doc.y).strokeColor('#e2e8f0').stroke();
+      doc.moveDown(0.4);
+
+      doc.font('Helvetica').fontSize(9).fillColor('#334155')
+        .text(`Período: ${this.formatDate(closing.periodStart)} a ${this.formatDate(closing.periodEnd)}   |   Status: ${closing.status}   |   Regra: ${closing.calculationVersion || 'CLT_2026_1'}   |   Dias úteis: ${closing.payableWorkdays ?? '-'}`, { align: 'left' });
+
+      doc.moveDown(0.6);
+
+      // ── TABELA DE REGISTROS DIÁRIOS ──────────────────────────────────────────
+      doc.font('Helvetica-Bold').fontSize(10).fillColor('#0f766e')
+        .text('REGISTROS DE PONTO POR DIA');
+      doc.moveDown(0.3);
+
+      const cols = { data: 40, entrada: 105, almSai: 160, almRet: 215, saida: 268, trab: 322, bal: 375, ocorrencia: 430 };
+      const rowH = 14;
+      let tableY = doc.y;
+
+      const drawTableHeader = () => {
+        doc.rect(40, tableY, W, rowH).fill('#f1f5f9');
+        doc.font('Helvetica-Bold').fontSize(7.5).fillColor('#475569');
+        doc.text('Data', cols.data, tableY + 3, { width: 60 });
+        doc.text('Entrada', cols.entrada, tableY + 3, { width: 50 });
+        doc.text('Alm.Saí', cols.almSai, tableY + 3, { width: 50 });
+        doc.text('Alm.Ret', cols.almRet, tableY + 3, { width: 50 });
+        doc.text('Saída', cols.saida, tableY + 3, { width: 50 });
+        doc.text('Trab.', cols.trab, tableY + 3, { width: 50 });
+        doc.text('Saldo', cols.bal, tableY + 3, { width: 50 });
+        doc.text('Ocorrência', cols.ocorrencia, tableY + 3, { width: 80 });
+        tableY += rowH;
+      };
+
+      drawTableHeader();
+
+      const fmt = (t: Date | null) => t ? new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' }).format(t) : '--:--';
+      const fmtMin = (m: number | null) => {
+        if (m === null || m === undefined) return '--';
+        const h = Math.floor(Math.abs(m) / 60);
+        const min = Math.abs(m) % 60;
+        return `${m < 0 ? '-' : ''}${h}:${String(min).padStart(2, '0')}`;
+      };
+      const ptDate = (d: Date) => new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', timeZone: 'UTC' }).format(d);
+
+      let rowIndex = 0;
+      for (const track of (closing.tracks || [])) {
+        const rowY = tableY;
+        if (rowIndex % 2 === 0) doc.rect(40, rowY, W, rowH).fill('#f8fafc');
+        doc.font('Helvetica').fontSize(7.5).fillColor('#1e293b');
+        doc.text(ptDate(track.date), cols.data, rowY + 3, { width: 60 });
+        doc.text(fmt(track.entry), cols.entrada, rowY + 3, { width: 50 });
+        doc.text(fmt(track.lunchStart), cols.almSai, rowY + 3, { width: 50 });
+        doc.text(fmt(track.lunchReturn), cols.almRet, rowY + 3, { width: 50 });
+        doc.text(fmt(track.exit), cols.saida, rowY + 3, { width: 50 });
+        doc.text(fmtMin(track.totalWorked), cols.trab, rowY + 3, { width: 50 });
+        const bal = track.dailyBalance ?? 0;
+        doc.fillColor(bal < 0 ? '#dc2626' : '#15803d').text(fmtMin(bal), cols.bal, rowY + 3, { width: 50 });
+        doc.fillColor('#475569').text(track.incidentType || 'normal', cols.ocorrencia, rowY + 3, { width: 80 });
+        tableY += rowH;
+        rowIndex++;
+
+        if (tableY > 750) {
+          doc.addPage();
+          tableY = 40;
+          drawTableHeader();
+        }
+      }
+
+      doc.moveDown(0.5).moveTo(40, doc.y).lineTo(555, doc.y).strokeColor('#cbd5e1').stroke();
+      doc.moveDown(0.5);
+
+      // ── TOTAIS DE JORNADA ──────────────────────────────────────────────────────
+      doc.font('Helvetica-Bold').fontSize(10).fillColor('#0f766e').text('TOTAIS DA JORNADA');
+      doc.moveDown(0.2);
+      doc.font('Helvetica').fontSize(9).fillColor('#334155');
+
+      const row2Col = (labelA: string, valA: string, labelB: string, valB: string) => {
+        doc.font('Helvetica-Bold').fillColor('#475569').text(labelA, leftX, doc.y, { continued: true, width: 120 });
+        doc.font('Helvetica').fillColor('#0f172a').text(valA, { continued: false });
+        const yy = doc.y - doc.currentLineHeight();
+        doc.font('Helvetica-Bold').fillColor('#475569').text(labelB, rightX, yy, { continued: true, width: 120 });
+        doc.font('Helvetica').fillColor('#0f172a').text(valB);
+      };
+
+      row2Col('Horas normais:', `${closing.normalHours?.toFixed(2) ?? '0.00'} h`, 'Faltas (min):', `${closing.absenceMinutes ?? 0} min`);
+      row2Col('Horas extras 50%:', `${closing.overtime50?.toFixed(2) ?? '0.00'} h`, 'Atrasos:', `${closing.lateMinutes ?? 0} min`);
+      row2Col('Horas extras 100%:', `${closing.overtime100?.toFixed(2) ?? '0.00'} h`, 'Saídas antecipadas:', `${closing.earlyLeaveMinutes ?? 0} min`);
+      row2Col('Adicional noturno:', `${closing.nightShift?.toFixed(2) ?? '0.00'} h`, 'Dias trabalhados:', `${closing.payableWorkdays ?? '-'}`);
+
+      doc.moveDown(0.5).moveTo(40, doc.y).lineTo(555, doc.y).strokeColor('#cbd5e1').stroke();
+      doc.moveDown(0.5);
+
+      // ── PROVENTOS E DESCONTOS ─────────────────────────────────────────────────
+      doc.font('Helvetica-Bold').fontSize(10).fillColor('#0f766e').text('PROVENTOS E DESCONTOS');
+      doc.moveDown(0.2);
+
+      row2Col('Salário base:', this.currency(closing.salaryBase), `Valor hora (÷${closing.monthlyDivisor}):`, this.currency(closing.hourlyRate));
+      row2Col('Hora extra 50%:', `+ ${this.currency(closing.overtime50Value)}`, 'Hora extra 100%:', `+ ${this.currency(closing.overtime100Value)}`);
+      row2Col('Adicional noturno:', `+ ${this.currency(closing.nightShiftValue)}`, 'Reflexo DSR:', `+ ${this.currency(closing.dsrValue)}`);
+      row2Col('Desconto de faltas:', `- ${this.currency(closing.absenceDiscount)}`, 'Base de cálculo:', this.currency(closing.grossPay));
+      row2Col('INSS:', `- ${this.currency(closing.inssDiscount)}`, 'IRRF:', `- ${this.currency(closing.irrfDiscount)}`);
+      row2Col('FGTS (patronal):', this.currency(closing.fgtsAmount), '', '');
+
+      doc.moveDown(0.5);
+      doc.rect(40, doc.y, W, 24).fill('#0f172a');
+      doc.font('Helvetica-Bold').fontSize(13).fillColor('#ffffff')
+        .text(`LÍQUIDO ESTIMADO: ${this.currency(closing.netPay)}`, 44, doc.y - 19, { align: 'right', width: W - 8 });
+      doc.moveDown(0.3);
+
+      // ── ASSINATURAS ───────────────────────────────────────────────────────────
+      doc.moveDown(2);
+      const sigY = doc.y;
+      const sig1X = 60;
+      const sig2X = 310;
+
+      doc.moveTo(sig1X, sigY).lineTo(sig1X + 180, sigY).strokeColor('#334155').stroke();
+      doc.font('Helvetica').fontSize(8).fillColor('#475569')
+        .text('Assinatura do Colaborador', sig1X, sigY + 3, { width: 180, align: 'center' })
+        .text(emp.name, sig1X, sigY + 14, { width: 180, align: 'center' })
+        .text(`CPF: ${formatCpf(emp.cpf)}`, sig1X, sigY + 24, { width: 180, align: 'center' });
+
+      doc.moveTo(sig2X, sigY).lineTo(sig2X + 180, sigY).strokeColor('#334155').stroke();
+      doc.font('Helvetica').fontSize(8).fillColor('#475569')
+        .text('Assinatura do Responsável RH/Gestor', sig2X, sigY + 3, { width: 180, align: 'center' })
+        .text('Data: ____/____/________', sig2X, sigY + 24, { width: 180, align: 'center' });
+
+      // ── RODAPÉ E NUMERAÇÃO ───────────────────────────────────────────────────
+      const pages = doc.bufferedPageRange();
+      for (let i = 0; i < pages.count; i++) {
+        doc.switchToPage(i);
+        doc.moveTo(40, 800).lineTo(555, 800).strokeColor('#e2e8f0').stroke();
+        doc.fontSize(7).fillColor('#94a3b8')
+          .text(
+            `Documento gerado em ${new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short', timeZone: 'America/Sao_Paulo' }).format(new Date())} | ` +
+            `ID: ${closing.id} | Memória de cálculo estimativa — validar folha oficial no eSocial. | Pág ${i + 1} de ${pages.count}`,
+            40, 805, { align: 'center', width: W }
+          );
+      }
+
+      doc.end();
+    });
+  }  private async changeStatus(companyId: string, id: string, expected: TimeClosingStatus, next: TimeClosingStatus, extra: any = {}) {
     const closing = await this.prisma.timeClosing.findFirst({ where: { id, companyId } });
     if (!closing || closing.status !== expected) throw new BadRequestException(`Transicao invalida: esperado ${expected}.`);
     return this.prisma.timeClosing.update({ where: { id }, data: { status: next, ...extra }, include: { employee: true } });
@@ -420,7 +577,7 @@ export class TimeClosingService {
   private isOffCycle12x36(date: Date, schedule?: any): boolean {
     if (schedule?.scaleType !== '12x36' || !schedule.cycleStartDate) return false;
     const days = Math.floor((date.getTime() - schedule.cycleStartDate.getTime()) / 86400000);
-    return Math.abs(days) % 2 === 1;
+    return ((days % 2) + 2) % 2 === 1;
   }
 
   private eachDate(start: Date, end: Date): Date[] {

@@ -10,9 +10,13 @@ interface MultipartFastifyRequest extends FastifyRequest {
   file: () => Promise<MultipartFile | undefined>;
 }
 
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
+
 @ApiTags('Employees Import')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('ADMIN', 'RH', 'DEV')
 @Controller('employees/import')
 export class EmployeesImportController {
   constructor(private readonly importService: EmployeesImportService) {}

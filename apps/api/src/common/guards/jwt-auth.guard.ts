@@ -2,32 +2,8 @@ import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../../database/prisma.service';
 
-const DEMO_TOKEN = 'demo-token-innovation-rh-connect-2026';
-const LOCAL_SESSION_TOKEN = 'innovation-rh-connect-local-session';
-const LOCAL_COMPANY_ID = '00000000-0000-0000-0000-000000000001';
-const PLATFORM_OWNER_EMAIL = 'eduardo998468@gmail.com';
 const SESSION_DENIED_MESSAGE = 'Nao foi possivel entrar';
 const PASSWORD_MAX_AGE_DAYS = 30;
-
-const DEMO_PAYLOAD = {
-  sub: '00000000-0000-0000-0000-000000000001',
-  email: 'admin@innovationrhconnect.com',
-  companyId: '00000000-0000-0000-0000-000000000001',
-  role: 'ADMIN',
-};
-const LOCAL_PAYLOAD = {
-  sub: LOCAL_COMPANY_ID,
-  email: 'local@innovationrhconnect.com',
-  companyId: LOCAL_COMPANY_ID,
-  role: 'ADMIN',
-};
-
-function isDemoEnabled() {
-  return process.env.NODE_ENV !== 'production' && process.env.ENABLE_DEMO_TOKEN === 'true' && Boolean(process.env.DEMO_TOKEN);
-}
-function isLocalEnabled() {
-  return process.env.NODE_ENV !== 'production' && process.env.ENABLE_LOCAL_SESSION === 'true';
-}
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
@@ -46,14 +22,6 @@ export class JwtAuthGuard implements CanActivate {
 
     if (!token) throw new UnauthorizedException('Token nao informado');
 
-    if (isDemoEnabled() && token === process.env.DEMO_TOKEN) {
-      request.user = DEMO_PAYLOAD;
-      return true;
-    }
-    if (isLocalEnabled() && token === LOCAL_SESSION_TOKEN) {
-      request.user = LOCAL_PAYLOAD;
-      return true;
-    }
 
     try {
       const payload = await this.jwtService.verifyAsync(token, { secret: process.env.JWT_SECRET });
@@ -63,7 +31,7 @@ export class JwtAuthGuard implements CanActivate {
       });
       if (!freshUser || !freshUser.isActive) throw new UnauthorizedException(SESSION_DENIED_MESSAGE);
 
-      const role = freshUser.email.toLowerCase() === PLATFORM_OWNER_EMAIL ? 'DEV' : freshUser.role;
+      const role = freshUser.role;
       const companyActive = freshUser.company && (freshUser.company.status ?? 'ACTIVE') === 'ACTIVE' && freshUser.company.billingStatus !== 'CANCELED';
       if (role !== 'DEV' && !companyActive) throw new UnauthorizedException(SESSION_DENIED_MESSAGE);
 

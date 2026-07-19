@@ -26,6 +26,12 @@ export class PrivacyRepository {
     });
   }
 
+  getEmployeeData(userId: string) {
+    return this.prisma.employee.findUnique({
+      where: { userId },
+    });
+  }
+
   saveFaceEnrollment(companyId: string, employeeId: string, descriptor: number[]) {
     return this.prisma.faceEnrollment.upsert({
       where: { employeeId },

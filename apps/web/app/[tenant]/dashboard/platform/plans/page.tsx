@@ -13,7 +13,6 @@ const MODULES: { id: string; label: string }[] = [
   { id: 'time-track', label: 'Controle de Ponto' },
   { id: 'vacations', label: 'Férias' },
   { id: 'management', label: 'Painel de Gestão' },
-  { id: 'whatsapp', label: 'Integração WhatsApp' },
 ];
 
 const CYCLE_LABEL: Record<string, string> = {

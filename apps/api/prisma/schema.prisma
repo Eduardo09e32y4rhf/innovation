@@ -301,7 +301,7 @@ model Company {
   isActive        Boolean @default(true)
   payrollStartDay Int     @default(1)
 
-  activeModules       String[] @default(["employees", "time-track", "vacations", "management", "whatsapp"])
+  activeModules       String[] @default(["employees", "time-track", "vacations", "management"])
   asaasCustomerId     String?
   asaasSubscriptionId String?
   internalNotes       String?  @db.Text

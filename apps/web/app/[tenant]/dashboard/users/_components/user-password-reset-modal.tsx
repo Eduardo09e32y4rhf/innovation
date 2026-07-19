@@ -6,12 +6,13 @@ import { toast } from 'sonner';
 import api from '@/app/lib/api';
 
 interface UserPasswordResetModalProps {
+  isOpen?: boolean;
   user: any;
   onClose: () => void;
-  onSuccess: () => void;
+  onSubmit: (newPassword: string) => Promise<void>;
 }
 
-export function UserPasswordResetModal({ user, onClose, onSuccess }: UserPasswordResetModalProps) {
+export function UserPasswordResetModal({ isOpen = true, user, onClose, onSubmit }: UserPasswordResetModalProps) {
   const [loading, setLoading] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -26,9 +27,8 @@ export function UserPasswordResetModal({ user, onClose, onSuccess }: UserPasswor
 
     setLoading(true);
     try {
-      await api.users.resetPassword(user.id, { newPassword });
-      toast.success(`Senha de ${user.name} redefinida. O usuário deverá trocar no próximo login.`);
-      onSuccess();
+      await onSubmit(newPassword);
+      onClose();
     } catch (error: any) {
       toast.error(error.message || 'Erro ao redefinir a senha.');
     } finally {
@@ -36,7 +36,7 @@ export function UserPasswordResetModal({ user, onClose, onSuccess }: UserPasswor
     }
   }
 
-  if (!user) return null;
+  if (!isOpen || !user) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-[2px]">

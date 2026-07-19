@@ -46,7 +46,7 @@ export class PayrollCalculationService {
   calculate(input: PayrollCalculationInput): PayrollCalculationResult {
     let salaryBase = this.money(Math.max(0, input.salary));
     const weeklyHours = Math.max(1, input.weeklyMinutes / 60);
-    const monthlyDivisor = Math.max(1, Math.round(weeklyHours * 5));
+    const monthlyDivisor = Math.max(1, Math.round(weeklyHours * (52 / 12)));
     const hourlyRate = salaryBase / monthlyDivisor;
     const overtime50Factor = Math.max(1.5, input.overtime50Factor ?? 1.5);
     const overtime100Factor = Math.max(2, input.overtime100Factor ?? 2);
@@ -105,10 +105,10 @@ export class PayrollCalculationService {
 
   calculateInss(base: number): number {
     const bands = [
-      { limit: 1621, rate: 0.075 },
-      { limit: 2902.84, rate: 0.09 },
-      { limit: 4354.27, rate: 0.12 },
-      { limit: 8475.55, rate: 0.14 },
+      { limit: 1412.00, rate: 0.075 },
+      { limit: 2666.68, rate: 0.09 },
+      { limit: 4000.03, rate: 0.12 },
+      { limit: 7786.02, rate: 0.14 },
     ];
     let previous = 0;
     let contribution = 0;

@@ -13,10 +13,13 @@ import { FinanceModule } from '../finance/finance.module';
 @Module({
   imports: [
     JwtModule.registerAsync({
-      useFactory: () => ({
-        secret: process.env.JWT_SECRET,
-        signOptions: { expiresIn: (process.env.JWT_EXPIRES_IN ?? '7d') as any },
-      }),
+      useFactory: () => {
+        if (!process.env.JWT_SECRET) throw new Error('JWT_SECRET must be defined');
+        return {
+          secret: process.env.JWT_SECRET,
+          signOptions: { expiresIn: (process.env.JWT_EXPIRES_IN ?? '7d') as any },
+        };
+      },
     }),
     NotificationsModule,
     FinanceModule,

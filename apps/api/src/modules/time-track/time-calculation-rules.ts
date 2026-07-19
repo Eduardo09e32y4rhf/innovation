@@ -68,7 +68,7 @@ export class TimeCalculationRulesService {
     };
 
     const workScale = String(rule?.workScale || employee?.workScale || '5X2').toUpperCase();
-    const dayOfWeek = input.workDate.getUTCDay();
+    const dayOfWeek = this.localDayOfWeek(input.workDate);
     let isRest = false;
 
     if (workScale === '5X2') {
@@ -88,7 +88,7 @@ export class TimeCalculationRulesService {
         const tNow = new Date(Date.UTC(input.workDate.getUTCFullYear(), input.workDate.getUTCMonth(), input.workDate.getUTCDate())).getTime();
         const diff = Math.floor((tNow - t0) / 86400000);
         const cycle = wDays + rDays;
-        isRest = (diff % cycle) >= wDays || (diff % cycle) < 0;
+        isRest = ((diff % cycle) + cycle) % cycle >= wDays;
       } else {
         isRest = dayOfWeek === 0;
       }
@@ -109,7 +109,9 @@ export class TimeCalculationRulesService {
 
     const isTwelveByThirtySix = workScale === '12X36';
     const holidayRequiresDoublePay = result.isHoliday && !isTwelveByThirtySix && result.holidayHandling === 'PAID_100';
-    if (result.isHoliday && result.holidayHandling === 'FOLGA') result.isRest = true;
+    if (result.isHoliday && result.holidayHandling === 'FOLGA') {
+      result.isRest = false;
+    }
 
     const employeeDaily = this.durationStringToMinutes(employee?.dailyWorkload);
     let expectedMinutes = Number(rule?.dailyMinutes || employeeDaily || 480);

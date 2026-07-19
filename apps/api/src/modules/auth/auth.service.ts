@@ -61,7 +61,7 @@ export class AuthService {
       platformPlanId: selectedPlan?.id,
       maxUsers: selectedPlan?.maxUsers ?? 6,
       maxEmployees: selectedPlan?.maxEmployees ?? 50,
-      activeModules: selectedPlan?.activeModules ?? ['employees', 'time-track', 'vacations', 'management', 'whatsapp'],
+      activeModules: selectedPlan?.activeModules ?? ['employees', 'time-track', 'vacations', 'management'],
       isFree: selectedPlan?.isFree ?? false,
     });
     const admin = company.users[0];
@@ -182,11 +182,7 @@ export class AuthService {
       console.error('Failed to notify privileged roles about reset code:', err);
     }
 
-    return {
-      requested: true,
-      // Temporarily log to console in non-production just in case a developer tests it
-      ...(process.env.NODE_ENV !== 'production' ? { demoCode: code } : {}),
-    };
+    return { requested: true };
   }
 
   async validateResetCode(dto: { email: string; code: string; cpfStart: string; registration: string }) {

@@ -1322,7 +1322,7 @@ function ClosingTab({ canManage, company }: { canManage: boolean; company?: any 
   const [error, setError] = useState<string | null>(null);
   const listQuery = useQuery(() => api.timeClosing.list(), []);
   const refresh = () => listQuery.refetch();
-  const generateMut = useMutation((value: { month: number; year: number }) => api.timeClosing.generate(value.month, value.year), { onSuccess: refresh });
+  const generateMut = useMutation((value: { month: number; year: number }) => api.timeClosing.generate(value), { onSuccess: refresh });
   const reviewMut = useMutation((id: string) => api.timeClosing.submitReview(id), { onSuccess: refresh });
   const approveMut = useMutation((id: string) => api.timeClosing.approve(id), { onSuccess: refresh });
   const closeMut = useMutation((id: string) => api.timeClosing.close(id), { onSuccess: refresh });

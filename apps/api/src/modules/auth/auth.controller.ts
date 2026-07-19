@@ -49,11 +49,13 @@ export class AuthController {
     return this.service.requestPasswordReset(dto, getRequestMeta(request));
   }
 
+  @Throttle({ default: { limit: 5, ttl: 300000 } })
   @Post('password-reset/validate-code')
   validateResetCode(@Body() dto: { email: string; code: string; cpfStart: string; registration: string }) {
     return this.service.validateResetCode(dto);
   }
 
+  @Throttle({ default: { limit: 5, ttl: 300000 } })
   @Post('password-reset/confirm')
   resetPassword(@Body() dto: ResetPasswordDto, @Req() request: any) {
     return this.service.resetPassword(dto, getRequestMeta(request));
