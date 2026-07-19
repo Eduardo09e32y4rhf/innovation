@@ -1,4 +1,12 @@
-import { ConflictException, Injectable, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  Logger,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { AuthRepository } from './auth.repository';
@@ -359,5 +367,151 @@ export class AuthService {
       user: payload,
       passwordChangeRequired,
     };
+  }
+  async searchEmployeesForPasswordReset(
+    actor: JwtUser,
+    search: string,
+  ) {
+    this.assertCanResetEmployeePassword(actor);
+
+    const normalizedSearch = search?.trim() ?? '';
+
+    if (normalizedSearch.length < 2) {
+      return [];
+    }
+
+    return this.repository.searchEmployeesForPasswordReset(
+      actor.companyId,
+      normalizedSearch,
+    );
+  }
+
+  async adminResetEmployeePassword(
+    actor: JwtUser,
+    employeeId: string,
+    newPassword: string,
+    requestMeta?: {
+      ipAddress?: string;
+      userAgent?: string;
+    },
+  ) {
+    this.assertCanResetEmployeePassword(actor);
+    this.assertStrongPassword(newPassword);
+
+    const employee =
+      await this.repository.findEmployeeUserForPasswordReset(
+        actor.companyId,
+        employeeId,
+      );
+
+    if (!employee || !employee.user) {
+      throw new NotFoundException(
+        'Funcionário com acesso ao sistema não encontrado.',
+      );
+    }
+
+    if (!employee.user.isActive) {
+      throw new BadRequestException(
+        'O acesso deste funcionário está desativado.',
+      );
+    }
+
+    /*
+     * RH não pode redefinir senha de ADMIN ou DEV.
+     * ADMIN pode redefinir funcionários e usuários de RH,
+     * mas não deve redefinir DEV.
+     */
+    if (
+      actor.role === 'RH' &&
+      ['ADMIN', 'DEV'].includes(employee.user.role)
+    ) {
+      throw new ForbiddenException(
+        'O RH não pode redefinir a senha de um administrador.',
+      );
+    }
+
+    if (employee.user.role === 'DEV') {
+      throw new ForbiddenException(
+        'A senha de um usuário DEV não pode ser redefinida por esta tela.',
+      );
+    }
+
+    if (employee.user.id === actor.sub) {
+      throw new BadRequestException(
+        'Para alterar a própria senha, utilize a opção Minha senha.',
+      );
+    }
+
+    const samePassword = await bcrypt.compare(
+      newPassword,
+      employee.user.passwordHash,
+    );
+
+    if (samePassword) {
+      throw new ConflictException(
+        'A nova senha precisa ser diferente da senha atual do funcionário.',
+      );
+    }
+
+    for (const previousHash of employee.user.previousPasswords ?? []) {
+      const alreadyUsed = await bcrypt.compare(
+        newPassword,
+        previousHash,
+      );
+
+      if (alreadyUsed) {
+        throw new ConflictException(
+          'Esta senha já foi utilizada anteriormente pelo funcionário.',
+        );
+      }
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 12);
+
+    const nextPreviousPasswords = [
+      employee.user.passwordHash,
+      ...(employee.user.previousPasswords ?? []),
+    ].slice(0, 10);
+
+    await this.repository.adminUpdatePassword(
+      employee.user.id,
+      passwordHash,
+      nextPreviousPasswords,
+    );
+
+    await this.repository.createAuditLog({
+      companyId: actor.companyId,
+      userId: actor.sub,
+      action: 'EMPLOYEE_PASSWORD_RESET_BY_ADMIN',
+      entity: 'User',
+      entityId: employee.user.id,
+      metadata: {
+        employeeId: employee.id,
+        employeeName: employee.name,
+        employeeRegistration: employee.registration,
+        actorRole: actor.role,
+        forcePasswordChange: true,
+      },
+      ipAddress: requestMeta?.ipAddress,
+      userAgent: requestMeta?.userAgent,
+    });
+
+    return {
+      reset: true,
+      forcePasswordChange: true,
+      employee: {
+        id: employee.id,
+        name: employee.name,
+        registration: employee.registration,
+      },
+    };
+  }
+
+  private assertCanResetEmployeePassword(actor: JwtUser) {
+    if (!['ADMIN', 'RH', 'DEV'].includes(actor.role)) {
+      throw new ForbiddenException(
+        'Você não possui permissão para redefinir senhas.',
+      );
+    }
   }
 }

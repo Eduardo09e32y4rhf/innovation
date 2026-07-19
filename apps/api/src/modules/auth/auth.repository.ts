@@ -137,6 +137,97 @@ export class AuthRepository {
       include: { employee: true, company: true },
     });
   }
+  searchEmployeesForPasswordReset(
+    companyId: string,
+    search: string,
+  ) {
+    const normalizedSearch = search.trim();
+
+    return this.prisma.employee.findMany({
+      where: {
+        companyId,
+        status: {
+          not: 'TERMINATED',
+        },
+        userId: {
+          not: null,
+        },
+        OR: [
+          {
+            name: {
+              contains: normalizedSearch,
+              mode: 'insensitive',
+            },
+          },
+          {
+            registration: {
+              contains: normalizedSearch,
+              mode: 'insensitive',
+            },
+          },
+        ],
+      },
+      take: 20,
+      orderBy: {
+        name: 'asc',
+      },
+      select: {
+        id: true,
+        name: true,
+        registration: true,
+        email: true,
+        position: true,
+        department: true,
+        userId: true,
+        user: {
+          select: {
+            id: true,
+            role: true,
+            isActive: true,
+          },
+        },
+      },
+    });
+  }
+
+  findEmployeeUserForPasswordReset(
+    companyId: string,
+    employeeId: string,
+  ) {
+    return this.prisma.employee.findFirst({
+      where: {
+        id: employeeId,
+        companyId,
+        userId: {
+          not: null,
+        },
+      },
+      include: {
+        user: true,
+      },
+    });
+  }
+
+  adminUpdatePassword(
+    userId: string,
+    passwordHash: string,
+    previousPasswords: string[],
+  ) {
+    return this.prisma.user.update({
+      where: {
+        id: userId,
+      },
+      data: {
+        passwordHash,
+        previousPasswords,
+        passwordChangedAt: new Date(),
+        forcePasswordChange: true,
+        failedLoginAttempts: 0,
+        resetPasswordCode: null,
+        resetPasswordExpires: null,
+      },
+    });
+  }
 
   createAuditLog(data: { companyId: string; userId?: string; action: string; entity: string; entityId?: string; metadata?: any; ipAddress?: string; userAgent?: string }) {
     return this.prisma.auditLog.create({ data });

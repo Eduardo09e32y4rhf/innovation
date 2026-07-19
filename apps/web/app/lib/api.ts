@@ -157,6 +157,30 @@ export interface Employee {
   faceEnrollment?: { active: boolean; vectors?: number[] } | null;
   createdAt: string; updatedAt: string;
 }
+export interface PasswordResetEmployee {
+  id: string;
+  name: string;
+  registration?: string | null;
+  email?: string | null;
+  position?: string | null;
+  department?: string | null;
+  userId: string;
+  user: {
+    id: string;
+    role: UserRole;
+    isActive: boolean;
+  };
+}
+
+export interface EmployeePasswordResetResult {
+  reset: boolean;
+  forcePasswordChange: boolean;
+  employee: {
+    id: string;
+    name: string;
+    registration?: string | null;
+  };
+}
 
 export interface CreateEmployeeInput {
   name: string; cpf?: string; email?: string; phone?: string; birthDate?: string; registration?: string;
@@ -418,6 +442,21 @@ export const api = {
     resetPassword: (token: string, newPassword: string) => request<{ changed: boolean }>('/auth/password-reset/confirm', { method: 'POST', body: { token, newPassword } }),
     publicPlans: () => request<PublicPlatformPlan[]>('/auth/public-plans'),
     registerCompany: (data: any) => request<any>('/auth/register-company', { method: 'POST', body: data }),
+    searchEmployeesForPasswordReset: (search: string) =>
+      request<PasswordResetEmployee[]>(
+        `/auth/password-reset/employees${makeQuery({ search })}`,
+      ),
+    resetEmployeePassword: (employeeId: string, newPassword: string) =>
+      request<EmployeePasswordResetResult>(
+        '/auth/password-reset/employee',
+        {
+          method: 'POST',
+          body: {
+            employeeId,
+            newPassword,
+          },
+        },
+      ),
   },
 
   dashboard: {

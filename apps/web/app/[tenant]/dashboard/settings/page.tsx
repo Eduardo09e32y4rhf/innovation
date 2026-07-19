@@ -5,15 +5,32 @@ import { Image, Key, Save, X, Upload, Download, FileSpreadsheet, AlertTriangle, 
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useMutation, useQuery } from '@/app/hooks/use-data';
 import { api } from '@/app/lib/api';
+import { EmployeePasswordResetSection } from './_components/employee-password-reset-section';
+import { CompanyFinanceSection } from './_components/company-finance-section';
 
 const SAFE_LOGO_URL = /^https:\/\/[^\s?#]+\.(png|jpe?g|webp)(\?[^\s#]*)?(#[^\s]*)?$/i;
 const MAX_LOGO_URL_LENGTH = 2048;
 const MIN_PASSWORD_LENGTH = 10;
 
-export default function SettingsPage() {
+export default function SettingsPage({ params }: { params: { tenant: string } }) {
   const { user, changePassword } = useAuth();
+  const tenant = params.tenant;
   const profile = user?.profile?.toUpperCase();
-  const canEditCompany = profile === 'DEV' || profile === 'ADMIN' || profile === 'RH';
+
+  const isEmployee =
+    profile === 'FUNCIONARIO' ||
+    profile === 'GESTOR' ||
+    profile === 'CONSULTA';
+
+  const isRh = profile === 'RH';
+
+  const isAdmin =
+    profile === 'ADMIN' ||
+    profile === 'DEV';
+
+  const canResetEmployees = isRh || isAdmin;
+  const canManageFinance = isAdmin;
+  const canEditCompany = isAdmin || isRh;
 
   return (
     <div className="mx-auto max-w-5xl space-y-6 px-4 py-6 sm:px-6">
@@ -22,10 +39,16 @@ export default function SettingsPage() {
         <h2 className="text-2xl font-black text-slate-950">{canEditCompany ? 'Administração do sistema' : 'Minha conta'}</h2>
       </header>
 
-      {/* Security & Password Section */}
       <PasswordChangeSection changePassword={changePassword} />
-      
-      {/* Company Settings */}
+
+      {canResetEmployees && (
+        <EmployeePasswordResetSection />
+      )}
+
+      {canManageFinance && (
+        <CompanyFinanceSection tenant={tenant} />
+      )}
+
       {canEditCompany && (
         <>
           <CompanySettings />

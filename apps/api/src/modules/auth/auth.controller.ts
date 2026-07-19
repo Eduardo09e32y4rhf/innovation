@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Post,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -9,6 +17,10 @@ import { LoginDto } from './dto/login.dto';
 import { RegisterCompanyDto } from './dto/register-company.dto';
 import { RequestPasswordResetDto } from './dto/request-password-reset.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { Roles } from '../../common/decorators/roles.decorator';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { AdminResetEmployeePasswordDto } from './dto/admin-reset-employee-password.dto';
+
 
 @Controller('auth')
 export class AuthController {
@@ -52,6 +64,35 @@ export class AuthController {
   changePassword(@CurrentUser() user: JwtUser, @Body() dto: ChangePasswordDto, @Req() request: any) {
     return this.service.changePassword(user, dto, getRequestMeta(request));
   }
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN', 'RH', 'DEV')
+  @Get('password-reset/employees')
+  searchEmployeesForPasswordReset(
+    @CurrentUser() user: JwtUser,
+    @Query('search') search = '',
+  ) {
+    return this.service.searchEmployeesForPasswordReset(
+      user,
+      search,
+    );
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN', 'RH', 'DEV')
+  @Post('password-reset/employee')
+  adminResetEmployeePassword(
+    @CurrentUser() user: JwtUser,
+    @Body() dto: AdminResetEmployeePasswordDto,
+    @Req() request: any,
+  ) {
+    return this.service.adminResetEmployeePassword(
+      user,
+      dto.employeeId,
+      dto.newPassword,
+      getRequestMeta(request),
+    );
+  }
+
   @UseGuards(JwtAuthGuard)
   @Get('me')
   me(@CurrentUser() user: JwtUser) {
