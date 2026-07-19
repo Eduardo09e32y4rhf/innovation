@@ -1,75 +1,234 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* ═══════════════════════════════════════════════════════════════
+   DESIGN TOKENS
+═══════════════════════════════════════════════════════════════ */
 @layer base {
   :root {
-    --background: #f8fafc; /* Tailwind slate-50 */
-    --foreground: #000000;
-    --brand: #8A05BE; /* Nubank Purple */
+    --background: #f4f4f5;
+    --foreground: #09090b;
+    --brand: #8A05BE;
+    --brand-hover: #72049e;
+    --border: #e4e4e7;
+    --muted: #71717a;
+    --danger: #e11d48;
+    --danger-hover: #be123c;
   }
-  
+
   html, body {
-    font-family: 'Inter', sans-serif;
+    font-family: 'Inter', system-ui, sans-serif;
     background-color: var(--background);
     color: var(--foreground);
     min-height: 100vh;
+    font-size: 13px;
+    -webkit-font-smoothing: antialiased;
   }
+
+  * { box-sizing: border-box; }
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   LAYOUT
+═══════════════════════════════════════════════════════════════ */
 @layer components {
-  /* =========================================
-     SHELL & LAYOUT
-  ========================================= */
   .app-shell {
-    @apply grid min-h-screen bg-slate-50;
-    grid-template-columns: 260px 1fr;
+    display: grid;
+    min-height: 100vh;
+    grid-template-columns: 240px 1fr;
+    background-color: var(--background);
   }
-  
+
   @media (max-width: 1024px) {
-    .app-shell {
-      grid-template-columns: 80px 1fr;
-    }
+    .app-shell { grid-template-columns: 68px 1fr; }
   }
 
   @media (max-width: 768px) {
-    .app-shell {
-      @apply flex flex-col;
-    }
+    .app-shell { display: flex; flex-direction: column; }
   }
 
-  /* =========================================
-     CARD SYSTEM (Flat & Clean)
-  ========================================= */
+  /* ═══════════════════════════════════════════════════════════
+     CARDS
+  ═══════════════════════════════════════════════════════════ */
   .card-flat {
-    @apply bg-white rounded-2xl border border-slate-200 transition-colors duration-200;
+    @apply bg-white rounded-xl border border-zinc-200 transition-colors duration-150;
   }
-  
-  .card-flat:hover {
-    @apply border-[#8A05BE];
+  .card-flat:hover { border-color: var(--brand); }
+
+  /* Card de estatística compacto */
+  .card-stat {
+    @apply bg-white rounded-xl border border-zinc-200 p-4 flex flex-col gap-1;
+  }
+  .card-stat-label {
+    @apply text-[10px] font-bold uppercase tracking-widest text-zinc-400;
+  }
+  .card-stat-value {
+    @apply text-2xl font-black text-zinc-900 leading-none;
+  }
+  .card-stat-detail {
+    @apply text-[11px] text-zinc-400 font-medium;
   }
 
-  /* =========================================
-     INPUTS & FORMS
-  ========================================= */
-  .form-control {
-    @apply w-full h-11 bg-white border border-slate-200 rounded-xl px-4 text-sm font-semibold text-black transition-all outline-none placeholder:text-slate-400 focus:border-[#8A05BE] focus:ring-1 focus:ring-[#8A05BE];
+  /* ═══════════════════════════════════════════════════════════
+     PAGE HEADER
+  ═══════════════════════════════════════════════════════════ */
+  .page-header {
+    @apply flex items-start justify-between gap-4 pb-5;
+  }
+  .page-title {
+    @apply text-xl font-black text-zinc-900 leading-tight tracking-tight;
+  }
+  .page-subtitle {
+    @apply text-xs text-zinc-400 font-medium mt-0.5;
+  }
+  .page-label {
+    @apply text-[10px] font-bold uppercase tracking-widest text-[#8A05BE] mb-1;
   }
 
-  /* =========================================
+  /* ═══════════════════════════════════════════════════════════
      BUTTONS
-  ========================================= */
+  ═══════════════════════════════════════════════════════════ */
+
+  /* CTA primário — Nubank Purple */
   .btn-nubank {
-    @apply inline-flex items-center justify-center gap-2 h-11 px-6 rounded-xl bg-[#8A05BE] text-white font-bold text-sm transition-all duration-200 active:scale-[0.98] hover:bg-[#72049e];
+    @apply inline-flex items-center justify-center gap-1.5 h-9 px-4 rounded-lg bg-[#8A05BE] text-white font-bold text-xs transition-colors duration-150 active:scale-[0.98] hover:bg-[#72049e] disabled:opacity-40 disabled:cursor-not-allowed;
   }
 
-  .btn-outline-nubank {
-    @apply inline-flex items-center justify-center gap-2 h-11 px-6 rounded-xl bg-white border border-[#8A05BE] text-[#8A05BE] font-bold text-sm transition-all duration-200 active:scale-[0.98] hover:bg-[#8A05BE]/5;
-  }
-  
+  /* Botão preto — ações neutras */
   .btn-black {
-    @apply inline-flex items-center justify-center gap-2 h-11 px-6 rounded-xl bg-black text-white font-bold text-sm transition-all duration-200 active:scale-[0.98] hover:bg-slate-900;
+    @apply inline-flex items-center justify-center gap-1.5 h-9 px-4 rounded-lg bg-zinc-900 text-white font-bold text-xs transition-colors duration-150 active:scale-[0.98] hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed;
   }
+
+  /* Botão outline */
+  .btn-outline {
+    @apply inline-flex items-center justify-center gap-1.5 h-9 px-4 rounded-lg bg-white border border-zinc-200 text-zinc-900 font-bold text-xs transition-colors duration-150 active:scale-[0.98] hover:border-zinc-400 hover:bg-zinc-50 disabled:opacity-40 disabled:cursor-not-allowed;
+  }
+
+  /* Alias — existia no código como btn-outline-nubank */
+  .btn-outline-nubank {
+    @apply inline-flex items-center justify-center gap-1.5 h-9 px-4 rounded-lg bg-white border border-[#8A05BE] text-[#8A05BE] font-bold text-xs transition-colors duration-150 active:scale-[0.98] hover:bg-[#8A05BE]/5 disabled:opacity-40 disabled:cursor-not-allowed;
+  }
+
+  /* Alias — estava indefinido, causava quebra visual */
+  .btn-outline-premium {
+    @apply inline-flex items-center justify-center gap-1.5 h-7 px-2.5 rounded-md bg-white border border-zinc-200 text-zinc-700 font-semibold text-[11px] transition-colors duration-150 hover:border-zinc-400 hover:bg-zinc-50 disabled:opacity-40 disabled:cursor-not-allowed;
+  }
+
+  /* Botão pequeno (tabela) — ação genérica */
+  .btn-action {
+    @apply inline-flex items-center justify-center gap-1.5 h-7 px-2.5 rounded-md bg-white border border-zinc-200 text-zinc-700 font-semibold text-[11px] transition-colors duration-150 hover:border-zinc-900 hover:text-zinc-900 disabled:opacity-40 disabled:cursor-not-allowed;
+  }
+
+  /* Botão pequeno — Desligar / ação destrutiva secundária */
+  .btn-warn {
+    @apply inline-flex items-center justify-center gap-1.5 h-7 px-2.5 rounded-md bg-zinc-900 text-white font-semibold text-[11px] transition-colors duration-150 hover:bg-zinc-700 disabled:opacity-40 disabled:cursor-not-allowed;
+  }
+
+  /* Botão pequeno — Excluir */
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-1.5 h-7 px-2.5 rounded-md bg-white border border-red-200 text-red-600 font-semibold text-[11px] transition-colors duration-150 hover:bg-red-600 hover:text-white hover:border-red-600 disabled:opacity-40 disabled:cursor-not-allowed;
+  }
+
+  /* Botão de ícone quadrado */
+  .btn-icon {
+    @apply inline-flex items-center justify-center w-8 h-8 rounded-lg bg-white border border-zinc-200 text-zinc-600 transition-colors duration-150 hover:border-zinc-400 hover:text-zinc-900 disabled:opacity-40;
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     INPUTS
+  ═══════════════════════════════════════════════════════════ */
+  .form-control {
+    @apply w-full h-9 bg-white border border-zinc-200 rounded-lg px-3 text-sm font-medium text-zinc-900 outline-none transition-all placeholder:text-zinc-400 focus:border-[#8A05BE] focus:ring-2 focus:ring-[#8A05BE]/10;
+  }
+
+  select.form-control {
+    @apply cursor-pointer;
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     AVATARES
+  ═══════════════════════════════════════════════════════════ */
+  .avatar-initial {
+    @apply flex items-center justify-center rounded-lg bg-zinc-900 text-white font-black text-xs leading-none select-none shrink-0;
+    width: 32px;
+    height: 32px;
+  }
+
+  .avatar-initial-lg {
+    @apply flex items-center justify-center rounded-xl bg-zinc-900 text-white font-black text-sm leading-none select-none shrink-0;
+    width: 40px;
+    height: 40px;
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     BADGES DE STATUS
+  ═══════════════════════════════════════════════════════════ */
+  .badge {
+    @apply inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide border;
+  }
+  .badge-active   { @apply badge bg-white border-zinc-200 text-zinc-700; }
+  .badge-inactive { @apply badge bg-zinc-50 border-zinc-200 text-zinc-500; }
+  .badge-alert    { @apply badge bg-white border-red-200 text-red-600; }
+  .badge-warn     { @apply badge bg-white border-amber-200 text-amber-600; }
+  .badge-brand    { @apply badge bg-[#8A05BE]/5 border-[#8A05BE]/20 text-[#8A05BE]; }
+  .badge-dot      { @apply w-1.5 h-1.5 rounded-full shrink-0; }
+
+  /* ═══════════════════════════════════════════════════════════
+     TABELAS
+  ═══════════════════════════════════════════════════════════ */
+  .data-table {
+    @apply w-full text-left text-xs;
+  }
+  .data-table thead tr {
+    @apply bg-zinc-900 text-white;
+  }
+  .data-table thead th {
+    @apply px-3 py-2.5 text-[10px] font-bold uppercase tracking-widest whitespace-nowrap;
+  }
+  .data-table tbody tr {
+    @apply border-t border-zinc-100 transition-colors hover:bg-zinc-50/60;
+  }
+  .data-table tbody td {
+    @apply px-3 py-2.5 text-xs text-zinc-700 font-medium;
+  }
+  .data-table-wrap {
+    @apply bg-white rounded-xl border border-zinc-200 overflow-hidden;
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     TABS (navegação interna de página)
+  ═══════════════════════════════════════════════════════════ */
+  .tab-bar {
+    @apply flex items-center border-b border-zinc-200 gap-0;
+  }
+  .tab-item {
+    @apply inline-flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold text-zinc-500 border-b-2 border-transparent transition-colors hover:text-zinc-900 cursor-pointer;
+  }
+  .tab-item-active {
+    @apply tab-item text-zinc-900 border-[#8A05BE];
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     SEÇÃO / BLOCO CONTENT
+  ═══════════════════════════════════════════════════════════ */
+  .content-section {
+    @apply bg-white rounded-xl border border-zinc-200;
+  }
+  .section-header {
+    @apply flex items-center justify-between gap-3 px-4 py-3 border-b border-zinc-100;
+  }
+  .section-title {
+    @apply text-xs font-black uppercase tracking-widest text-zinc-900;
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     LOADING / EMPTY / ERROR STATES
+  ═══════════════════════════════════════════════════════════ */
+  .state-box {
+    @apply flex flex-col items-center justify-center gap-2 py-12 text-center bg-white rounded-xl border border-zinc-200;
+  }
+  .state-text { @apply text-xs text-zinc-400 font-medium; }
 }

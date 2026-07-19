@@ -69,14 +69,14 @@ export default function UsersPage() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-5">
-      <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <header className="page-header items-center">
         <div>
-          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-teal-600">Usuários</p>
-          <h2 className="text-2xl font-black text-slate-950">Permissões de acesso</h2>
+          <p className="page-label">USUÁRIOS</p>
+          <h2 className="page-title">Permissões de acesso</h2>
           {usage.data && typeof usage.data.used === 'number' && (
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="mt-1 text-[11px] font-medium text-zinc-500">
               {usage.data.used} de {usage.data.max} usuários
-              {isFull && <span className="ml-1 font-bold text-amber-600">- limite atingido</span>}
+              {isFull && <span className="ml-1 font-bold text-red-600">- limite atingido</span>}
             </p>
           )}
         </div>
@@ -84,7 +84,7 @@ export default function UsersPage() {
           onClick={() => setOpen(true)}
           disabled={isFull}
           title={isFull ? 'Limite atingido - contate o suporte para ampliar' : undefined}
-          className="crystal-button inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black text-white disabled:opacity-50"
+          className="btn-nubank"
         >
           <UserPlus size={14} /> Novo usuário
         </button>

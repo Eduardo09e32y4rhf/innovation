@@ -368,21 +368,16 @@ export default function EscalaPage() {
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6 min-h-screen">
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 text-white shadow-lg shadow-slate-900/20">
-            <CalendarClock size={20} />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-slate-900">Escala</h1>
-            <p className="text-xs text-slate-500">Jornada programada · Ponto · Ocorrências</p>
-          </div>
+      <div className="page-header items-center">
+        <div>
+          <p className="page-label">ESCALA</p>
+          <h1 className="page-title">Jornada Programada</h1>
         </div>
-        <Link href={`/${tenant}/dashboard/time-track`} className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-xs font-black text-slate-800 shadow-sm hover:bg-slate-50"><Clock3 size={14} /> ABRIR PONTO</Link>
+        <Link href={`/${tenant}/dashboard/time-track`} className="btn-outline"><Clock3 size={14} /> ABRIR PONTO</Link>
       </div>
 
-      {/* Tab Nav — inline pills modernos */}
-      <div className="flex gap-1 rounded-2xl bg-slate-100 p-1.5 ring-1 ring-slate-200">
+      {/* Tab Nav */}
+      <div className="tab-bar">
         {([
           { key: 'minha',  label: 'Minha Jornada',  icon: <User size={14}/> },
           ...(canApprove ? [{ key: 'equipe', label: 'Escala de Equipe', icon: <Users size={14}/> }] : []),
@@ -391,11 +386,7 @@ export default function EscalaPage() {
           <button
             key={key}
             onClick={() => router.push(`?tab=${key}`)}
-            className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold transition-all duration-200 ${
-              tab === key
-                ? 'bg-white text-slate-900 shadow-sm ring-1 ring-slate-200'
-                : 'text-slate-500 hover:text-slate-700 hover:bg-white/60'
-            }`}
+            className={tab === key ? 'tab-item-active' : 'tab-item'}
           >
             {icon}<span className="hidden sm:inline">{label}</span>
           </button>

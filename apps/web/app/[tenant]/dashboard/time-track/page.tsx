@@ -326,22 +326,17 @@ export default function TimeTrackPage() {
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
-      <header className="flex flex-col gap-4 rounded-2xl bg-white/60 p-6 shadow-sm ring-1 ring-slate-900/5 backdrop-blur-xl sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-4">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-teal-500 to-emerald-600 shadow-lg shadow-teal-500/20">
-            <CalendarDays className="h-6 w-6 text-white" />
-          </div>
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-teal-600">CONTROLE DE PONTO</p>
-            <h2 className="text-2xl font-black text-slate-950">{isFunc?'MEU PONTO':isGestor?'PONTO DA EQUIPE':'FOLHA DE PONTO'}</h2>
-          </div>
+      <header className="page-header items-center">
+        <div>
+          <p className="page-label">CONTROLE DE PONTO</p>
+          <h2 className="page-title">{isFunc?'MEU PONTO':isGestor?'PONTO DA EQUIPE':'FOLHA DE PONTO'}</h2>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Link href={`/${tenant}/dashboard/escala`} className="btn-outline-premium inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black"><CalendarDays size={14}/> ESCALA</Link>
-          <Link href={`/${tenant}/dashboard/time-track/clock-in`} className="crystal-button inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black text-white"><Clock3 size={14}/> BATER PONTO</Link>
-          {(canManage||isGestor) && <button onClick={() => downloadCollectiveSheet(month, visible, byEmpMap, company.data || null, holidays.data || [], teamSchedules.data?.withSchedule || [])} disabled={refreshing || visible.length === 0} className="btn-outline-premium inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black"><FileText size={14}/> FOLHAS DE PONTO</button>}
-          {isFunc && <button onClick={() => downloadCollectiveSheet(month, visible, byEmpMap, company.data || null, holidays.data || [], teamSchedules.data?.withSchedule || [])} disabled={refreshing || visible.length === 0} className="btn-outline-premium inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black"><FileText size={14}/> MINHA FOLHA</button>}
-          {canManage && <button onClick={()=>setOpen(true)} disabled={refreshing} className="crystal-button inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black text-white"><Edit3 size={14}/> LANÇAR PONTO</button>}
+          <Link href={`/${tenant}/dashboard/escala`} className="btn-outline"><CalendarDays size={14}/> ESCALA</Link>
+          <Link href={`/${tenant}/dashboard/time-track/clock-in`} className="btn-nubank"><Clock3 size={14}/> BATER PONTO</Link>
+          {(canManage||isGestor) && <button onClick={() => downloadCollectiveSheet(month, visible, byEmpMap, company.data || null, holidays.data || [], teamSchedules.data?.withSchedule || [])} disabled={refreshing || visible.length === 0} className="btn-outline"><FileText size={14}/> FOLHAS DE PONTO</button>}
+          {isFunc && <button onClick={() => downloadCollectiveSheet(month, visible, byEmpMap, company.data || null, holidays.data || [], teamSchedules.data?.withSchedule || [])} disabled={refreshing || visible.length === 0} className="btn-outline"><FileText size={14}/> MINHA FOLHA</button>}
+          {canManage && <button onClick={()=>setOpen(true)} disabled={refreshing} className="btn-nubank"><Edit3 size={14}/> LANÇAR PONTO</button>}
         </div>
       </header>
 
@@ -422,31 +417,36 @@ export default function TimeTrackPage() {
         </div>
       ) : visible.length===0 ? <p className="text-center text-sm text-slate-400 py-8">Nenhum colaborador encontrado.</p> :
         tab === 'ponto' ? (
-          <section className="overflow-hidden rounded-[14px] border border-slate-200 bg-white">
-            <div className="border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white px-5 py-4"><h3 className="text-sm font-black text-slate-950">COLABORADORES</h3><p className="mt-1 text-xs text-slate-500">Selecione para abrir a folha mensal.</p></div>
-            <div className="divide-y divide-slate-100">
+          <section className="content-section">
+            <div className="section-header">
+              <div>
+                <h3 className="section-title">COLABORADORES</h3>
+                <p className="mt-1 text-[11px] text-zinc-500 font-medium">Selecione para abrir a folha mensal.</p>
+              </div>
+            </div>
+            <div className="divide-y divide-zinc-100">
               {visible.map(emp=>{
                 const rows = byEmpMap[emp.id] ?? [];
                 const { worked, saldo } = getEffectiveStats(rows);
                 const faltas = rows.filter(isFalta).length;
                 return (
-                  <div key={emp.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-6 py-4 hover:bg-slate-50/50 transition-colors">
-                    <div className="flex items-center gap-4">
-                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[12px] bg-gradient-to-br from-teal-500 to-emerald-600 text-sm font-black text-white shadow-md shadow-teal-500/20">{normalizeDisplayName(emp.name).charAt(0).toUpperCase()}</div>
+                  <div key={emp.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-4 py-3 hover:bg-zinc-50/50 transition-colors cursor-pointer" onClick={()=>router.push(`/${tenant}/dashboard/time-track?employeeId=${emp.id}`)}>
+                    <div className="flex items-center gap-3">
+                      <div className="avatar-initial">{normalizeDisplayName(emp.name).charAt(0).toUpperCase()}</div>
                       <div>
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className="rounded-full border border-teal-200 bg-teal-50 px-2 py-0.5 text-[10px] font-black text-teal-700">{emp.registration || emp.id.slice(0,8).toUpperCase()}</span>
-                          <p className="text-sm font-black text-slate-950">{normalizeDisplayName(emp.name)}</p>
+                          <span className="badge-inactive">{emp.registration || emp.id.slice(0,8).toUpperCase()}</span>
+                          <p className="text-sm font-bold text-zinc-900">{normalizeDisplayName(emp.name)}</p>
                         </div>
-                        <p className="mt-1 text-[10px] font-semibold text-slate-500">{emp.department || '-'} {faltas>0 && <span className="text-rose-600 ml-2">{faltas} FALTA(S)</span>}</p>
+                        <p className="mt-1 text-[10px] font-semibold text-zinc-500">{emp.department || '-'} {faltas>0 && <span className="text-red-600 ml-2">{faltas} FALTA(S)</span>}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
                       <div className="flex gap-2 text-[10px] font-bold">
-                        <div className="rounded-[6px] border border-slate-200 px-2 py-1"><span className="block text-[8px] uppercase text-slate-400">TRAB</span><span>{fmtWorked(worked)}</span></div>
-                        <div className={`rounded-[6px] border px-2 py-1 ${saldo>=0?'border-emerald-200 bg-emerald-50 text-emerald-700':'border-rose-200 bg-rose-50 text-rose-700'}`}><span className="block text-[8px] uppercase text-slate-400">SALDO</span><span className="font-black">{fmtBalance(saldo)}</span></div>
+                        <div className="rounded-md border border-zinc-200 px-2 py-1 bg-white text-zinc-700"><span className="block text-[8px] uppercase text-zinc-400">TRAB</span><span>{fmtWorked(worked)}</span></div>
+                        <div className={`rounded-md border px-2 py-1 ${saldo>=0?'badge-active':'badge-alert'}`}><span className="block text-[8px] uppercase opacity-60">SALDO</span><span className="font-black">{fmtBalance(saldo)}</span></div>
                       </div>
-                      <button onClick={()=>router.push(`/${tenant}/dashboard/time-track?employeeId=${emp.id}`)} className="btn-outline-premium inline-flex h-8 items-center gap-1.5 rounded-[6px] px-3 text-[10px] font-black"><CalendarDays size={12}/> ABRIR</button>
+                      <button className="btn-action"><CalendarDays size={12}/> ABRIR</button>
                     </div>
                   </div>
                 );

@@ -83,20 +83,22 @@ export default function PlatformPage() {
 
   return (
     <div className="mx-auto max-w-6xl space-y-5">
-      <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <header className="page-header items-center">
         <div>
-          <h2 className="text-2xl font-black text-slate-950">Gestão da Plataforma</h2>
-          <div className="mt-4 flex gap-4 border-b border-slate-200">
-            <Link href={`/${tenant}/dashboard/platform`} className="border-b-2 border-indigo-600 pb-2 text-sm font-bold text-indigo-600">Empresas</Link>
-            <Link href={`/${tenant}/dashboard/platform/plans`} className="pb-2 text-sm font-medium text-slate-500 hover:text-slate-800">Planos & Assinaturas</Link>
-            <Link href={`/${tenant}/dashboard/platform/finance`} className="pb-2 text-sm font-medium text-slate-500 hover:text-slate-800">Financeiro</Link>
-            <Link href={`/${tenant}/dashboard/platform/permissions`} className="pb-2 text-sm font-medium text-slate-500 hover:text-slate-800">Permissões Globais</Link>
-          </div>
+          <p className="page-label">PLATAFORMA</p>
+          <h2 className="page-title">Gestão da Plataforma</h2>
         </div>
-        <button onClick={() => setOpen(true)} className="crystal-button inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black text-white">
+        <button onClick={() => setOpen(true)} className="btn-nubank">
           <Plus size={14} /> Nova empresa
         </button>
       </header>
+      
+      <div className="tab-bar mb-6">
+        <Link href={`/${tenant}/dashboard/platform`} className="tab-item-active">Empresas</Link>
+        <Link href={`/${tenant}/dashboard/platform/plans`} className="tab-item">Planos & Assinaturas</Link>
+        <Link href={`/${tenant}/dashboard/platform/finance`} className="tab-item">Financeiro</Link>
+        <Link href={`/${tenant}/dashboard/platform/permissions`} className="tab-item">Permissões Globais</Link>
+      </div>
 
       <section className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-4">
         {[

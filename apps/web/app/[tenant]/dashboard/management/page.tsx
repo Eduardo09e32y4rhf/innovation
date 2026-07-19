@@ -251,18 +251,20 @@ function ManagementContent() {
 
   return (
     <div className="mx-auto max-w-7xl space-y-5 px-4 py-5 sm:px-6 lg:px-8">
-      <header>
-        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-teal-600">GESTÃO</p>
-        <h2 className="text-2xl font-black text-slate-950">Gestão de pessoas e jornada</h2>
-        <p className="mt-1 text-sm font-semibold text-slate-500">Controle compromissos, exames ocupacionais e pendências administrativas dos colaboradores.</p>
+      <header className="page-header items-center">
+        <div>
+          <p className="page-label">GESTÃO</p>
+          <h2 className="page-title">Gestão de pessoas e jornada</h2>
+          <p className="mt-1 text-[11px] font-medium text-zinc-500">Controle compromissos, exames ocupacionais e pendências administrativas dos colaboradores.</p>
+        </div>
       </header>
 
-      <div className="flex gap-1 rounded-[8px] bg-slate-100 p-1 flex-wrap">
-        <button onClick={() => navigate('agenda')} className={`rounded-[6px] px-4 py-2 text-xs font-black uppercase ${tab === 'agenda' ? 'bg-white shadow-sm text-teal-700' : 'text-slate-500'}`}>Agenda</button>
-        <button onClick={() => navigate('aso')} className={`rounded-[6px] px-4 py-2 text-xs font-black uppercase ${tab === 'aso' ? 'bg-white shadow-sm text-teal-700' : 'text-slate-500'}`}>ASO</button>
-        <button onClick={() => navigate('notifications')} className={`rounded-[6px] px-4 py-2 text-xs font-black uppercase ${tab === 'notifications' ? 'bg-white shadow-sm text-teal-700' : 'text-slate-500'}`}>Notificações</button>
-        <button onClick={() => navigate('rules')} className={`rounded-[6px] px-4 py-2 text-xs font-black uppercase ${tab === 'rules' ? 'bg-white shadow-sm text-teal-700' : 'text-slate-500'}`}>Regras</button>
-        <button onClick={() => navigate('closing')} className={`rounded-[6px] px-4 py-2 text-xs font-black uppercase ${tab === 'closing' ? 'bg-white shadow-sm text-teal-700' : 'text-slate-500'}`}>Fechamento</button>
+      <div className="tab-bar">
+        <button onClick={() => navigate('agenda')} className={tab === 'agenda' ? 'tab-item-active' : 'tab-item'}>Agenda</button>
+        <button onClick={() => navigate('aso')} className={tab === 'aso' ? 'tab-item-active' : 'tab-item'}>ASO</button>
+        <button onClick={() => navigate('notifications')} className={tab === 'notifications' ? 'tab-item-active' : 'tab-item'}>Notificações</button>
+        <button onClick={() => navigate('rules')} className={tab === 'rules' ? 'tab-item-active' : 'tab-item'}>Regras</button>
+        <button onClick={() => navigate('closing')} className={tab === 'closing' ? 'tab-item-active' : 'tab-item'}>Fechamento</button>
       </div>
 
       {tab === 'agenda' && (kanbanQuery.loading && !kanbanQuery.data ? <LoadingState label="Carregando..." /> :

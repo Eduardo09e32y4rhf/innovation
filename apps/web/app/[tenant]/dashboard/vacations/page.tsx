@@ -239,29 +239,15 @@ export default function VacationsPage() {
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
-      {/* Premium Header */}
-      <section className="group relative overflow-hidden rounded-[24px] border border-slate-200/60 bg-gradient-to-br from-white via-slate-50/30 to-teal-50/20 p-6 shadow-[0_20px_70px_-15px_rgba(15,23,42,0.12)] transition-all duration-500 hover:shadow-[0_25px_80px_-15px_rgba(15,23,42,0.18)] sm:p-8">
-        <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-gradient-to-br from-teal-100/40 to-cyan-100/30 blur-3xl" />
-        <div className="absolute -bottom-16 -left-16 h-48 w-48 rounded-full bg-gradient-to-tr from-blue-100/30 to-teal-100/20 blur-2xl" />
-        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-teal-200/60 bg-gradient-to-r from-teal-50 to-cyan-50 px-4 py-1.5 shadow-sm">
-              <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-teal-500" />
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-teal-700">Férias</p>
-            </div>
-            <h1 className="mt-3 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 bg-clip-text text-3xl font-black tracking-tight text-transparent lg:text-4xl">
-              {isGestor ? 'Férias da equipe' : 'Solicitações'}
-            </h1>
-          </div>
-          <button
-            onClick={() => setOpen(true)}
-            className="crystal-button inline-flex h-11 items-center gap-2 rounded-[10px] bg-gradient-to-r from-teal-500 to-cyan-600 px-5 text-xs font-black text-white shadow-lg shadow-teal-500/25 transition-all hover:-translate-y-0.5 hover:shadow-xl hover:shadow-teal-500/30 active:translate-y-0"
-          >
-            <Plus size={15} strokeWidth={2.5} />
-            Nova solicitação
-          </button>
+      <header className="page-header items-center">
+        <div>
+          <p className="page-label">FÉRIAS</p>
+          <h2 className="page-title">{isGestor ? 'Férias da equipe' : 'Solicitações'}</h2>
         </div>
-      </section>
+        <button onClick={() => setOpen(true)} className="btn-nubank">
+          <Plus size={14} /> Nova solicitação
+        </button>
+      </header>
 
       {/* Stats Cards */}
       <section className="grid grid-cols-1 gap-3 sm:grid-cols-4">
@@ -278,20 +264,13 @@ export default function VacationsPage() {
       {/* Tabs */}
       {!vacations.loading && !vacations.error && rows.length > 0 && (
         <div className="flex items-center justify-between">
-          <div className="flex gap-1 rounded-[10px] bg-slate-100 p-1">
-            <button onClick={() => setTab('active')} className={`rounded-[8px] px-4 py-2 text-xs font-black transition-all ${tab === 'active' ? 'bg-white shadow-sm text-teal-700' : 'text-slate-500 hover:text-slate-700'}`}>
-              Ativas ({activeRows.length})
-            </button>
-            <button onClick={() => setTab('rejected')} className={`rounded-[8px] px-4 py-2 text-xs font-black transition-all ${tab === 'rejected' ? 'bg-white shadow-sm text-teal-700' : 'text-slate-500 hover:text-slate-700'}`}>
-              Recusadas ({rejectedRows.length})
-            </button>
-            <button onClick={() => setTab('history')} className={`rounded-[8px] px-4 py-2 text-xs font-black transition-all ${tab === 'history' ? 'bg-white shadow-sm text-teal-700' : 'text-slate-500 hover:text-slate-700'}`}>
-              Histórico ({historyRows.length})
-            </button>
+          <div className="tab-bar">
+            <button onClick={() => setTab('active')} className={tab === 'active' ? 'tab-item-active' : 'tab-item'}>Ativas ({activeRows.length})</button>
+            <button onClick={() => setTab('rejected')} className={tab === 'rejected' ? 'tab-item-active' : 'tab-item'}>Recusadas ({rejectedRows.length})</button>
+            <button onClick={() => setTab('history')} className={tab === 'history' ? 'tab-item-active' : 'tab-item'}>Histórico ({historyRows.length})</button>
             {canApprove && (
-              <button onClick={() => setTab('alerts')} className={`rounded-[8px] px-4 py-2 text-xs font-black transition-all flex items-center gap-1.5 ${tab === 'alerts' ? 'bg-white shadow-sm text-amber-600' : 'text-amber-600/70 hover:text-amber-600'}`}>
-                <AlertTriangle size={13} strokeWidth={3} />
-                Avisos ({alertEmployees.length})
+              <button onClick={() => setTab('alerts')} className={tab === 'alerts' ? 'tab-item-active' : 'tab-item'}>
+                <AlertTriangle size={13} strokeWidth={3} /> Avisos ({alertEmployees.length})
               </button>
             )}
           </div>
