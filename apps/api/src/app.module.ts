@@ -56,7 +56,7 @@ import { redisStore } from 'cache-manager-ioredis-yet';
       load: [appConfig],
       validate: validateEnv,
     }),
-    ThrottlerModule.forRoot([{ ttl: 60000, limit: 20 }]),
+    ThrottlerModule.forRoot([{ ttl: 60000, limit: 300 }]),
     RedisModule,
     DatabaseModule,
     HealthModule,
