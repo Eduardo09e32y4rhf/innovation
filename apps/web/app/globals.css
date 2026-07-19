@@ -1,339 +1,116 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
-:root {
-  --black: #0b0b0c;
-  --black-2: #151517;
-  --white: #fff;
-  --bg: #f4f4f2;
-  --line: #e5e5e2;
-  --muted: #71717a;
-  --soft: #fafaf9;
-  --danger: #d92d20;
-  --amber: #b45309;
-  --radius: 18px;
-  --shadow: 0 12px 30px rgba(0,0,0,.055);
-}
-
-html, body {
-  height: 100%;
-  margin: 0;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  background: var(--bg);
-  color: #161616;
-}
-
-* {
-  box-sizing: border-box;
-}
-
-button, input, select, textarea {
-  font: inherit;
-}
+  :root {
+    --background: #f8fafc; /* slate-50 */
+    --foreground: #0f172a; /* slate-900 */
+    --brand: #0b0b0c;
+  }
+  
+  html, body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--background);
+    color: var(--foreground);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
 }
 
 @layer components {
+  /* =========================================
+     SHELL & LAYOUT
+  ========================================= */
   .app-shell {
-    display: grid;
-    grid-template-columns: 228px 1fr;
-    min-height: 100vh;
+    @apply grid min-h-screen bg-slate-50;
+    grid-template-columns: 260px 1fr;
   }
   
-  .sidebar {
-    position: sticky;
-    top: 0;
-    height: 100vh;
-    background: var(--black);
-    color: #fff;
-    padding: 18px 14px 14px;
-    display: flex;
-    flex-direction: column;
-  }
-  
-  .brand {
-    display: flex;
-    align-items: center;
-    gap: 11px;
-    padding: 4px 7px 20px;
-  }
-  
-  .brand-mark {
-    width: 38px;
-    height: 38px;
-    border-radius: 11px;
-    background: #fff;
-    color: #000;
-    display: grid;
-    place-items: center;
-    font-weight: 800;
-    font-size: 13px;
-  }
-  
-  .brand strong, .user-card strong {
-    display: block;
-    font-size: 13px;
-  }
-  
-  .brand span, .user-card span {
-    display: block;
-    color: #85858b;
-    font-size: 10px;
-    margin-top: 3px;
-  }
-  
-  .nav {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-  }
-  
-  .nav-item {
-    height: 40px;
-    border-radius: 11px;
-    display: flex;
-    align-items: center;
-    gap: 11px;
-    padding: 0 11px;
-    color: #a5a5aa;
-    text-decoration: none;
-    font-size: 12px;
-    font-weight: 600;
-    transition: .2s;
-  }
-  
-  .nav-item:hover {
-    background: #171719;
-    color: #fff;
-  }
-  
-  .nav-item.active {
-    background: #fff;
-    color: #0b0b0c;
-  }
-  
-  .nav-item .icon {
-    width: 18px;
-    text-align: center;
-    font-size: 15px;
-  }
-  
-  .nav-item b {
-    margin-left: auto;
-    background: #232326;
-    padding: 2px 6px;
-    border-radius: 20px;
-    color: #aaa;
-    font-size: 9px;
-  }
-  
-  .nav-item.active b {
-    background: #eee;
-    color: #111;
-  }
-  
-  .nav-item b.danger {
-    background: #2a1111;
-    color: #ff8e87;
-  }
-  
-  .sidebar-footer {
-    margin-top: auto;
-  }
-  
-  .user-card {
-    background: #151517;
-    border: 1px solid #242427;
-    border-radius: 14px;
-    padding: 10px;
-    display: flex;
-    align-items: center;
-    gap: 9px;
-  }
-  
-  .avatar {
-    width: 34px;
-    height: 34px;
-    border-radius: 50%;
-    display: grid;
-    place-items: center;
-    background: #fff;
-    color: #111;
-    font-size: 11px;
-    font-weight: 800;
-  }
-  
-  .user-card div:nth-child(2) {
-    min-width: 0;
-    flex: 1;
-  }
-  
-  .user-card button {
-    border: 0;
-    background: none;
-    color: #777;
-    cursor: pointer;
-  }
-  
-  .main {
-    min-width: 0;
-  }
-  
-  .topbar {
-    height: 76px;
-    background: rgba(255, 255, 255, .88);
-    backdrop-filter: blur(14px);
-    border-bottom: 1px solid var(--line);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 28px;
-    position: sticky;
-    top: 0;
-    z-index: 10;
-  }
-  
-  .eyebrow {
-    font-size: 9px;
-    text-transform: uppercase;
-    letter-spacing: .16em;
-    color: #8a8a91;
-    font-weight: 800;
-  }
-  
-  .topbar h1 {
-    font-size: 20px;
-    margin: 3px 0 0;
-    letter-spacing: -.03em;
-  }
-  
-  .top-actions {
-    display: flex;
-    align-items: center;
-    gap: 9px;
-  }
-  
-  .search {
-    height: 38px;
-    width: 230px;
-    border: 1px solid var(--line);
-    border-radius: 11px;
-    background: #f9f9f8;
-    display: flex;
-    align-items: center;
-    padding: 0 11px;
-    gap: 7px;
-  }
-  
-  .search input {
-    border: 0;
-    outline: 0;
-    background: transparent;
-    width: 100%;
-    font-size: 11px;
-  }
-  
-  .icon-button {
-    width: 38px;
-    height: 38px;
-    border: 1px solid var(--line);
-    background: #fff;
-    border-radius: 11px;
-    position: relative;
-    display: grid;
-    place-items: center;
-  }
-  
-  .icon-button i {
-    position: absolute;
-    width: 6px;
-    height: 6px;
-    background: #111;
-    border-radius: 50%;
-    right: 7px;
-    top: 7px;
-  }
-  
-  .primary-button {
-    height: 38px;
-    border: 0;
-    background: #111;
-    color: #fff;
-    border-radius: 11px;
-    padding: 0 15px;
-    font-size: 11px;
-    font-weight: 700;
+  @media (max-width: 1024px) {
+    .app-shell {
+      grid-template-columns: 80px 1fr;
+    }
   }
 
-  .content-area {
-    padding: 22px 28px 36px;
-    max-width: 1500px;
-    margin: auto;
+  @media (max-width: 768px) {
+    .app-shell {
+      @apply flex flex-col;
+    }
   }
 
+  /* =========================================
+     CARD SYSTEM
+  ========================================= */
+  .card-premium {
+    @apply bg-white rounded-[20px] border border-slate-200/60 shadow-[0_4px_24px_rgba(0,0,0,0.02)] transition-all duration-300;
+  }
+  
+  .card-premium:hover {
+    @apply shadow-[0_12px_40px_rgba(0,0,0,0.06)] -translate-y-[2px] border-slate-200;
+  }
+
+  /* =========================================
+     INPUTS & FORMS
+  ========================================= */
   .form-control {
-    height: 42px;
-    width: 100%;
-    border: 1px solid #dbe3ee;
-    border-radius: 12px;
-    background: #fff;
-    padding: 0 12px;
-    font-size: 14px;
-    font-weight: 700;
-    color: #0f172a;
-    outline: none;
-    transition: border-color 160ms ease, box-shadow 160ms ease;
+    @apply w-full h-11 bg-white border border-slate-200 rounded-[12px] px-4 text-sm font-semibold text-slate-900 transition-all outline-none placeholder:text-slate-400;
   }
 
   .form-control:focus {
-    border-color: #14b8a6;
-    box-shadow: 0 0 0 4px rgba(20, 184, 166, 0.12);
+    @apply border-teal-500 ring-4 ring-teal-500/10;
+  }
+
+  /* =========================================
+     BUTTONS
+  ========================================= */
+  .btn-premium {
+    @apply inline-flex items-center justify-center gap-2 h-11 px-6 rounded-[12px] bg-slate-900 text-white font-bold text-sm shadow-[0_8px_20px_rgba(15,23,42,0.15)] transition-all duration-200 active:scale-[0.98];
+  }
+
+  .btn-premium:hover {
+    @apply bg-slate-800 shadow-[0_12px_24px_rgba(15,23,42,0.25)];
   }
 
   .btn-outline-premium {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    border: 1px solid #dbe3ee;
-    border-radius: 12px;
-    background: #ffffff;
-    color: #334155;
-    font-weight: 900;
-    transition: all 160ms ease;
+    @apply inline-flex items-center justify-center gap-2 h-11 px-6 rounded-[12px] bg-white border border-slate-200 text-slate-700 font-bold text-sm shadow-sm transition-all duration-200 active:scale-[0.98];
   }
 
   .btn-outline-premium:hover {
-    border-color: #14b8a6;
-    background: linear-gradient(135deg, #f0fdfa, #f8fafc);
-    color: #0f766e;
-    box-shadow: 0 4px 12px rgba(20, 184, 166, 0.12);
-    transform: translateY(-1px);
+    @apply border-teal-200 bg-teal-50/50 text-teal-800 shadow-md;
   }
-
-  .btn-outline-premium:active {
-    transform: translateY(0);
+  
+  /* =========================================
+     TABLES
+  ========================================= */
+  .table-premium {
+    @apply w-full text-left text-sm;
   }
-}
-
-@media(max-width:1050px) {
-  .app-shell { grid-template-columns: 76px 1fr; }
-  .brand > div:last-child, .nav-item span:not(.icon), .nav-item b, .user-card > div:nth-child(2), .user-card button { display: none; }
-  .brand { padding-left: 5px; }
-  .sidebar { padding-inline: 11px; }
-  .nav-item { justify-content: center; padding: 0; }
-  .user-card { justify-content: center; padding: 9px; }
-}
-
-@media(max-width:680px) {
-  .app-shell { display: block; }
-  .sidebar { position: static; height: auto; flex-direction: row; align-items: center; padding: 10px; overflow: auto; }
-  .brand { padding: 0 12px 0 0; }
-  .nav { flex-direction: row; }
-  .nav-item { width: 40px; flex: 0 0 40px; }
-  .sidebar-footer { display: none; }
-  .topbar { height: auto; padding: 14px 16px; align-items: flex-start; }
-  .search { display: none; }
-  .content-area { padding: 14px; }
+  
+  .table-premium th {
+    @apply px-4 py-3 bg-slate-50 border-b border-slate-100 text-xs font-black text-slate-500 uppercase tracking-widest first:rounded-tl-[16px] last:rounded-tr-[16px];
+  }
+  
+  .table-premium td {
+    @apply px-4 py-4 border-b border-slate-100 text-slate-700 font-medium;
+  }
+  
+  .table-premium tr:hover td {
+    @apply bg-slate-50/50;
+  }
+  
+  /* =========================================
+     BADGES
+  ========================================= */
+  .badge {
+    @apply inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest;
+  }
+  
+  .badge-emerald { @apply bg-emerald-100 text-emerald-800; }
+  .badge-amber { @apply bg-amber-100 text-amber-800; }
+  .badge-rose { @apply bg-rose-100 text-rose-800; }
+  .badge-slate { @apply bg-slate-100 text-slate-700; }
+  .badge-teal { @apply bg-teal-100 text-teal-800; }
 }

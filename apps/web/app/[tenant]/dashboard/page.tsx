@@ -179,18 +179,18 @@ function DashboardContent() {
   return (
 <div className="mx-auto max-w-7xl space-y-4 px-3 py-4 sm:px-6 lg:px-8">
       {/* Premium Hero Section */}
-      <section className="group relative overflow-hidden rounded-[24px] border border-black bg-black p-6 text-white shadow-[0_20px_70px_-20px_rgba(0,0,0,0.55)] sm:p-8">
-        <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full border border-white/10" />
-        <div className="absolute -bottom-16 -left-16 h-48 w-48 rounded-full border border-white/10" />
+      <section className="relative overflow-hidden rounded-[24px] bg-gradient-to-br from-slate-900 via-slate-950 to-black p-6 text-white shadow-[0_20px_60px_-15px_rgba(0,0,0,0.6)] sm:p-8">
+        <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full border border-white/5 bg-white/5 blur-3xl" />
+        <div className="absolute -bottom-16 -left-16 h-48 w-48 rounded-full border border-white/5 bg-white/5 blur-3xl" />
         <div className="relative">
           <div className="flex flex-wrap items-center gap-3">
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-1.5">
-              <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-white" />
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/70">{presentation.eyebrow}</p>
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1 backdrop-blur-md">
+              <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-teal-400" />
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/80">{presentation.eyebrow}</p>
             </div>
           </div>
-          <h1 className="mt-4 text-3xl font-black tracking-tight text-white lg:text-4xl">{presentation.title}</h1>
-          <p className="mt-2 text-sm font-semibold text-white/55">{presentation.description}</p>
+          <h1 className="mt-5 text-3xl font-black tracking-tight text-white lg:text-4xl">{presentation.title}</h1>
+          <p className="mt-2 text-sm font-medium text-white/60">{presentation.description}</p>
         </div>
       </section>
 
@@ -199,22 +199,24 @@ function DashboardContent() {
         <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {actionShortcuts.map((action) => {
             const Icon = action.icon;
-            const colorMap: Record<string, string> = {
-              teal: 'from-teal-500 to-cyan-600 shadow-teal-500/25 hover:shadow-teal-500/30',
-              indigo: 'from-indigo-500 to-violet-600 shadow-indigo-500/25 hover:shadow-indigo-500/30',
-              emerald: 'from-emerald-500 to-teal-600 shadow-emerald-500/25 hover:shadow-emerald-500/30',
-              amber: 'from-amber-500 to-orange-600 shadow-amber-500/25 hover:shadow-amber-500/30',
-              slate: 'from-slate-950 to-black shadow-black/20 hover:shadow-black/30',
-            };
+            const buttonClasses = "group flex items-center gap-3 rounded-[16px] bg-white p-4 shadow-sm ring-1 ring-slate-200/60 transition-all duration-300 hover:-translate-y-1 hover:shadow-md hover:ring-slate-300 active:scale-95";
+            
+            const content = (
+              <>
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-slate-950 text-white transition-transform group-hover:scale-110 group-hover:bg-teal-600">
+                  <Icon size={18} strokeWidth={2.5} />
+                </div>
+                <span className="text-xs font-black tracking-wide text-slate-900">{action.label}</span>
+              </>
+            );
+
             return action.onClick ? (
-              <button key={action.label} type="button" onClick={action.onClick} className={`flex items-center gap-3 rounded-[14px] bg-gradient-to-r ${colorMap[action.color]} p-4 text-xs font-black text-white shadow-lg transition-all duration-200 hover:shadow-xl active:scale-[0.98]`}>
-                <Icon size={18} strokeWidth={2.5} className="shrink-0" />
-                <span className="leading-tight">{action.label}</span>
+              <button key={action.label} type="button" onClick={action.onClick} className={buttonClasses}>
+                {content}
               </button>
             ) : (
-              <Link key={action.label} href={action.href} className={`flex items-center gap-3 rounded-[14px] bg-gradient-to-r ${colorMap[action.color]} p-4 text-xs font-black text-white shadow-lg transition-all duration-200 hover:shadow-xl active:scale-[0.98]`}>
-                <Icon size={18} strokeWidth={2.5} className="shrink-0" />
-                <span className="leading-tight">{action.label}</span>
+              <Link key={action.label} href={action.href} className={buttonClasses}>
+                {content}
               </Link>
             );
           })}
@@ -223,15 +225,15 @@ function DashboardContent() {
 
       {/* Filters */}
       {!isFuncionario && !isCommercial && (
-        <section className="grid gap-4 rounded-[16px] border border-slate-200/60 bg-white/80 p-5 shadow-sm backdrop-blur-sm sm:grid-cols-2">
-          <label className="space-y-2 text-xs font-bold uppercase tracking-wider text-slate-600">
-            <span>Mês</span>
-            <input type="month" value={dashMonth} onChange={(e) => setDashMonth(e.target.value)} className="h-11 w-full rounded-[10px] border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-900 shadow-sm outline-none transition-all focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10" />
+        <section className="flex flex-col gap-4 rounded-[16px] bg-white p-4 shadow-sm ring-1 ring-slate-200/60 sm:flex-row sm:items-center">
+          <label className="flex flex-1 flex-col gap-1.5">
+            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Mês de Referência</span>
+            <input type="month" value={dashMonth} onChange={(e) => setDashMonth(e.target.value)} className="h-10 w-full rounded-[10px] border border-slate-200 bg-slate-50 px-3 text-sm font-bold text-slate-900 outline-none transition-all focus:border-teal-500 focus:bg-white focus:ring-4 focus:ring-teal-500/10" />
           </label>
-          <label className="space-y-2 text-xs font-bold uppercase tracking-wider text-slate-600">
-            <span>Departamento</span>
-            <select value={dashDept} onChange={(e) => setDashDept(e.target.value)} className="h-11 w-full rounded-[10px] border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-900 shadow-sm outline-none transition-all focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10">
-              <option value="">Todos</option>
+          <label className="flex flex-1 flex-col gap-1.5">
+            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Departamento</span>
+            <select value={dashDept} onChange={(e) => setDashDept(e.target.value)} className="h-10 w-full rounded-[10px] border border-slate-200 bg-slate-50 px-3 text-sm font-bold text-slate-900 outline-none transition-all focus:border-teal-500 focus:bg-white focus:ring-4 focus:ring-teal-500/10">
+              <option value="">Todos os Departamentos</option>
               {departments.map((d) => <option key={d} value={d}>{d}</option>)}
             </select>
           </label>
@@ -298,40 +300,48 @@ function DashboardContent() {
               </div>
 
               {/* Cadastro */}
-              <div className="rounded-[16px] border border-rose-200/60 bg-gradient-to-br from-rose-50 to-white p-5 shadow-sm">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-xs font-black uppercase tracking-wider text-rose-800">Alertas cadastrais</h3>
-                  <UserX size={18} strokeWidth={2.5} className="text-rose-500" />
+              <div className="card-premium p-5 ring-1 ring-inset ring-rose-500/10 hover:ring-rose-500/20">
+                <div className="mb-4 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-[8px] bg-rose-50 text-rose-500">
+                      <UserX size={16} strokeWidth={2.5} />
+                    </div>
+                    <h3 className="text-[11px] font-black uppercase tracking-[0.1em] text-slate-800">Alertas cadastrais</h3>
+                  </div>
                 </div>
-                <div className="space-y-2.5">
+                <div className="space-y-2">
                   <PendencyItem label="Sem gestor" count={employeesNoManager} href={`/${tenant}/dashboard/employees`} />
                   <PendencyItem label="Sem acesso" count={employeesNoAccess} href={`/${tenant}/dashboard/employees`} />
                   {alertItems.slice(0, 2).map((item) => (
-                    <div key={item.label} className="flex items-center justify-between rounded-[8px] bg-rose-50/50 px-3 py-2 text-xs">
-                      <span className="font-bold text-rose-700">{item.label}</span>
-                      <span className="text-[10px] font-semibold text-rose-500">{item.detail}</span>
+                    <div key={item.label} className="flex items-center justify-between rounded-[10px] bg-slate-50 px-3 py-2 text-xs ring-1 ring-slate-100">
+                      <span className="font-bold text-slate-700">{item.label}</span>
+                      <span className="text-[10px] font-bold text-rose-500">{item.detail}</span>
                     </div>
                   ))}
                 </div>
               </div>
 
               {/* Movimentações */}
-              <div className="rounded-[16px] border border-teal-200/60 bg-gradient-to-br from-teal-50 to-white p-5 shadow-sm">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-xs font-black uppercase tracking-wider text-teal-800">Movimentações do mês</h3>
-                  <UserPlus size={18} strokeWidth={2.5} className="text-teal-500" />
+              <div className="card-premium p-5 ring-1 ring-inset ring-teal-500/10 hover:ring-teal-500/20">
+                <div className="mb-4 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-[8px] bg-teal-50 text-teal-600">
+                      <UserPlus size={16} strokeWidth={2.5} />
+                    </div>
+                    <h3 className="text-[11px] font-black uppercase tracking-[0.1em] text-slate-800">Movimentações</h3>
+                  </div>
                 </div>
-                <div className="space-y-2.5">
-                  <div className="flex items-center justify-between rounded-[8px] bg-teal-50/50 px-3 py-2.5">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between rounded-[10px] bg-slate-50 px-3 py-2.5 ring-1 ring-slate-100">
                     <div className="flex items-center gap-2">
-                      <div className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-500"><ArrowUpRight size={14} className="text-white" /></div>
+                      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-100"><ArrowUpRight size={14} className="text-emerald-700" strokeWidth={3} /></div>
                       <span className="text-xs font-bold text-slate-700">Admissões</span>
                     </div>
                     <span className="text-sm font-black text-emerald-600">{admissionsThisMonth}</span>
                   </div>
-                  <div className="flex items-center justify-between rounded-[8px] bg-teal-50/50 px-3 py-2.5">
+                  <div className="flex items-center justify-between rounded-[10px] bg-slate-50 px-3 py-2.5 ring-1 ring-slate-100">
                     <div className="flex items-center gap-2">
-                      <div className="flex h-7 w-7 items-center justify-center rounded-full bg-rose-500"><UserMinus size={14} className="text-white" /></div>
+                      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-rose-100"><UserMinus size={14} className="text-rose-700" strokeWidth={3} /></div>
                       <span className="text-xs font-bold text-slate-700">Desligamentos</span>
                     </div>
                     <span className="text-sm font-black text-rose-600">{terminationsThisMonth}</span>
@@ -340,25 +350,29 @@ function DashboardContent() {
               </div>
               
               {/* Datas Importantes */}
-              <div className="rounded-[16px] border border-fuchsia-200/60 bg-gradient-to-br from-fuchsia-50 to-white p-5 shadow-sm">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-xs font-black uppercase tracking-wider text-fuchsia-800">Datas Importantes</h3>
-                  <Cake size={18} strokeWidth={2.5} className="text-fuchsia-500" />
+              <div className="card-premium p-5 ring-1 ring-inset ring-fuchsia-500/10 hover:ring-fuchsia-500/20">
+                <div className="mb-4 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-[8px] bg-fuchsia-50 text-fuchsia-600">
+                      <Cake size={16} strokeWidth={2.5} />
+                    </div>
+                    <h3 className="text-[11px] font-black uppercase tracking-[0.1em] text-slate-800">Datas Importantes</h3>
+                  </div>
                 </div>
-                <div className="space-y-2.5 max-h-[160px] overflow-y-auto pr-1">
+                <div className="max-h-[150px] space-y-2 overflow-y-auto pr-1">
                   {birthdays.length === 0 && workAnniversaries.length === 0 && (
-                    <p className="text-xs text-slate-500 text-center py-4 font-semibold">Nenhum evento neste mês.</p>
+                    <p className="py-4 text-center text-xs font-semibold text-slate-400">Nenhum evento neste mês.</p>
                   )}
                   {birthdays.map(emp => (
-                    <div key={`birth-${emp.id}`} className="flex items-center justify-between rounded-[8px] bg-fuchsia-50/50 px-3 py-2 text-xs">
-                      <span className="font-bold text-fuchsia-800 line-clamp-1">{emp.name}</span>
-                      <span className="text-[10px] font-black uppercase text-fuchsia-600 bg-fuchsia-100 px-2 py-0.5 rounded-full shrink-0">Aniversariantes</span>
+                    <div key={`birth-${emp.id}`} className="flex items-center justify-between rounded-[10px] bg-slate-50 px-3 py-2 text-xs ring-1 ring-slate-100">
+                      <span className="line-clamp-1 font-bold text-slate-800">{emp.name}</span>
+                      <span className="shrink-0 rounded-full bg-fuchsia-100 px-2 py-0.5 text-[10px] font-black uppercase text-fuchsia-700">Niver</span>
                     </div>
                   ))}
                   {workAnniversaries.map(emp => (
-                    <div key={`work-${emp.id}`} className="flex items-center justify-between rounded-[8px] bg-indigo-50/50 px-3 py-2 text-xs">
-                      <span className="font-bold text-indigo-800 line-clamp-1">{emp.name}</span>
-                      <span className="text-[10px] font-black uppercase text-indigo-600 bg-indigo-100 px-2 py-0.5 rounded-full shrink-0">Tempo de casa</span>
+                    <div key={`work-${emp.id}`} className="flex items-center justify-between rounded-[10px] bg-slate-50 px-3 py-2 text-xs ring-1 ring-slate-100">
+                      <span className="line-clamp-1 font-bold text-slate-800">{emp.name}</span>
+                      <span className="shrink-0 rounded-full bg-indigo-100 px-2 py-0.5 text-[10px] font-black uppercase text-indigo-700">Tempo de casa</span>
                     </div>
                   ))}
                 </div>
@@ -589,22 +603,22 @@ function MetricCard({ label, value, icon: Icon, detail, trend, trendColor = 'eme
   trend?: string; trendColor?: string; alert?: boolean; loading?: boolean;
 }) {
   return (
-    <div className="group relative rounded-[18px] border border-slate-200/60 bg-gradient-to-br from-white to-slate-50/30 p-5 shadow-[0_8px_30px_rgba(15,23,42,0.08)] transition-shadow duration-300 hover:shadow-[0_12px_40px_rgba(15,23,42,0.12)]">
-      {alert && <div className="absolute right-3 top-3 h-2 w-2 animate-pulse rounded-full bg-amber-500" />}
+    <div className="card-premium group relative p-5">
+      {alert && <div className="absolute right-3 top-3 h-2.5 w-2.5 animate-pulse rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.6)]" />}
       <div className="relative">
         <div className="mb-4 flex items-start justify-between gap-3">
-          <p className="text-[11px] font-black uppercase tracking-wider text-slate-500">{label}</p>
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-gradient-to-br from-teal-500 to-cyan-600 shadow-lg shadow-teal-500/25 transition-transform duration-300 group-hover:scale-110">
-            <Icon size={17} strokeWidth={2.5} className="text-white" />
+          <p className="text-[11px] font-black uppercase tracking-[0.15em] text-slate-500">{label}</p>
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-slate-50 text-slate-700 transition-transform duration-300 group-hover:scale-110 group-hover:bg-slate-900 group-hover:text-white">
+            <Icon size={18} strokeWidth={2.5} />
           </div>
         </div>
-        <p className="text-2xl font-black tracking-tight text-slate-950">
+        <p className="text-3xl font-black tracking-tight text-slate-900">
           {loading && value === undefined ? '--' : value ?? '0'}
         </p>
-        <div className="mt-1.5 flex items-center justify-between">
-          <p className="text-[11px] font-bold text-slate-500">{detail}</p>
+        <div className="mt-2 flex items-center justify-between">
+          <p className="text-[11px] font-bold text-slate-400">{detail}</p>
           {trend && (
-            <span className={`inline-flex items-center gap-1 text-[10px] font-black text-${trendColor}-600`}>
+            <span className={`inline-flex items-center gap-1 rounded-full bg-${trendColor}-100 px-2 py-0.5 text-[10px] font-black text-${trendColor}-700`}>
               <ArrowUpRight size={11} strokeWidth={3} />
               {trend}
             </span>
