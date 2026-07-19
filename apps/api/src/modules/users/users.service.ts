@@ -67,10 +67,7 @@ export class UsersService {
     if (!limits) {
       throw new NotFoundException('Empresa nao encontrada.');
     }
-    const maxUsers =
-      limits?.maxUsers ??
-      limits?.platformPlan?.maxUsers ??
-      9999;
+    const maxUsers = this.resolveMaxUsers(limits);
     if (count >= maxUsers) {
       throw new ForbiddenException(
         `Limite de ${maxUsers} usuarios atingido para esta empresa. Contate o suporte para ampliar o plano.`,
@@ -119,10 +116,10 @@ export class UsersService {
       throw new ConflictException('Nao e permitido resetar a propria senha por esta acao.');
     }
     
-    const newPassword = dto.newPassword ?? dto.password;
-    if (!newPassword) {
+    if (!dto.newPassword) {
       throw new BadRequestException('A nova senha nao foi fornecida');
     }
+    const newPassword = dto.newPassword;
 
     const isSamePassword = await bcrypt.compare(newPassword, user.passwordHash || '');
     if (isSamePassword) {
@@ -164,11 +161,18 @@ export class UsersService {
     ]);
     return {
       used: count,
-      max:
-        limits?.maxUsers ??
-        limits?.platformPlan?.maxUsers ??
-        9999,
+      max: this.resolveMaxUsers(limits),
     };
+  }
+
+  private resolveMaxUsers(
+    limits: { maxUsers?: number | null; platformPlan?: { maxUsers?: number | null } | null } | null,
+  ): number {
+    const companyLimit = Number(limits?.maxUsers);
+    if (Number.isFinite(companyLimit) && companyLimit > 0) return companyLimit;
+    const planLimit = Number(limits?.platformPlan?.maxUsers);
+    if (Number.isFinite(planLimit) && planLimit > 0) return planLimit;
+    return 1; // Sem plano = 1 usuário apenas
   }
 
   private assertRoleChangeAllowed(actor: JwtUser, nextRole?: string) {

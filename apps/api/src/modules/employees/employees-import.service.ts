@@ -11,13 +11,12 @@ export class EmployeesImportService {
 
   generateTemplate(): Buffer {
     const ws_name = 'Funcionários';
+    // Apenas cabeçalho — sem linhas de exemplo com dados fictícios
     const ws_data = [
       ['Nome Completo*', 'CPF*', 'E-mail', 'Departamento', 'Cargo', 'Matrícula', 'Data de Admissão (DD/MM/AAAA)', 'Telefone'],
-      ['João da Silva', '12345678900', 'joao@email.com', 'TI', 'Desenvolvedor', '001', '01/01/2026', '11999999999'],
     ];
     const ws = xlsx.utils.aoa_to_sheet(ws_data);
 
-    // Ajustar largura das colunas
     ws['!cols'] = [
       { wch: 30 }, // Nome
       { wch: 15 }, // CPF
@@ -31,7 +30,6 @@ export class EmployeesImportService {
 
     const wb = xlsx.utils.book_new();
     xlsx.utils.book_append_sheet(wb, ws, ws_name);
-
     return xlsx.write(wb, { type: 'buffer', bookType: 'xlsx' });
   }
 
@@ -56,10 +54,6 @@ export class EmployeesImportService {
 
     for (let i = 0; i < data.length; i++) {
       const row = data[i];
-      // Ignorar a linha de exemplo (se for exatamente igual ao exemplo gerado)
-      if (row['Nome Completo*'] === 'João da Silva' && row['CPF*'] === '12345678900') {
-        continue;
-      }
 
       const name = String(row['Nome Completo*'] || row['Nome'] || '').trim();
       let cpf = String(row['CPF*'] || row['CPF'] || '').replace(/[^\d]/g, '');
@@ -94,7 +88,6 @@ export class EmployeesImportService {
 
       try {
         await this.prisma.$transaction(async (tx: any) => {
-          // Check for existing employee in same company with same CPF
           const existing = await tx.employee.findFirst({
             where: { companyId, cpf },
           });
@@ -103,7 +96,6 @@ export class EmployeesImportService {
             throw new Error('CPF já cadastrado nesta empresa.');
           }
 
-          // Se tiver email, cria ou vincula o usuário
           let userId = null;
           if (email) {
             let user = await tx.user.findUnique({ where: { email } });
@@ -112,7 +104,7 @@ export class EmployeesImportService {
                 data: {
                   email,
                   name,
-                  password: randomUUID(), // Require password reset
+                  password: randomUUID(), // Exige troca de senha no primeiro acesso
                   profile: 'FUNCIONARIO',
                   companyId,
                 },

@@ -143,7 +143,8 @@ export class AuthService {
     const role = this.resolveRole(user.email, user.role);
     if (!this.canAccessCompany(user.company, role)) return { requested: true };
 
-    const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const { randomBytes } = await import('node:crypto');
+    const code = randomBytes(4).toString('hex').slice(0, 6).toUpperCase();
     const expires = new Date(Date.now() + 2 * 60 * 60 * 1000); // 2 hours
 
     await this.repository.setResetCode(user.id, code, expires);

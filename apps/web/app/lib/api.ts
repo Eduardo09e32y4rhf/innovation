@@ -566,7 +566,7 @@ export const api = {
     create: (input: CreateUserInput) => request<AppUser>('/users', { method: 'POST', body: input }),
     update: (id: string, input: UpdateUserInput) => request<AppUser>(`/users/${id}`, { method: 'PATCH', body: input }),
     delete: (id: string) => request<void>(`/users/${id}`, { method: 'DELETE' }),
-    resetPassword: (id: string) => request<void>(`/users/${id}/reset-password`, { method: 'POST' }),
+    resetPassword: (id: string, body: { newPassword: string }) => request<void>(`/users/${id}/reset-password`, { method: 'POST', body }),
     ping: () => request<void>('/users/ping', { method: 'POST', silent: true }),
   },
 
