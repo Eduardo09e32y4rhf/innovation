@@ -3,10 +3,22 @@ import * as bcrypt from 'bcryptjs';
 import type { JwtUser } from '../../common/types/auth.types';
 import { normalizeDisplayName } from '../../common/utils/text-normalization';
 import { CreateUserDto } from './dto/create-user.dto';
+import { ResetUserPasswordDto } from './dto/reset-user-password.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import type { UserRole } from '../../common/types/auth.types';
 import { UsersRepository } from './users.repository';
 
 const PLATFORM_OWNER_EMAIL = 'eduardo998468@gmail.com';
+
+const ROLE_MANAGEMENT: Record<string, string[]> = {
+  DEV: ['DEV', 'COMERCIAL', 'ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'],
+  COMERCIAL: [],
+  ADMIN: ['ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'],
+  RH: ['RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'],
+  GESTOR: [],
+  FUNCIONARIO: [],
+  CONSULTA: [],
+};
 
 @Injectable()
 export class UsersService {
@@ -28,6 +40,7 @@ export class UsersService {
     const user = actor.role === 'DEV'
       ? await this.repository.findById(id)
       : await this.repository.findById(id, companyId);
+    if (!user) throw new NotFoundException('Usuario nao encontrado');
     if (!this.canAccessUser(actor, user)) throw new NotFoundException('Usuario nao encontrado');
     return user;
   }
@@ -35,15 +48,29 @@ export class UsersService {
   async create(companyId: string, actor: JwtUser, dto: CreateUserDto) {
     this.assertRoleChangeAllowed(actor, dto.role);
 
+    const targetCompanyId = actor.role === 'DEV' ? dto.companyId : companyId;
+    if (actor.role === 'DEV' && !targetCompanyId) {
+      throw new ForbiddenException('DEV deve informar a empresa para criar um usuario.');
+    }
+    if (!targetCompanyId) {
+      throw new ForbiddenException('Empresa nao informada.');
+    }
+
     const email = dto.email.trim().toLowerCase();
     const existing = await this.repository.findByEmail(email);
     if (existing) throw new ConflictException('E-mail ja cadastrado');
 
     const [count, limits] = await Promise.all([
-      this.repository.countByCompany(companyId),
-      this.repository.getCompanyLimits(companyId),
+      this.repository.countByCompany(targetCompanyId),
+      this.repository.getCompanyLimits(targetCompanyId),
     ]);
-    const maxUsers = 9999;
+    if (!limits) {
+      throw new NotFoundException('Empresa nao encontrada.');
+    }
+    const maxUsers =
+      limits?.maxUsers ??
+      limits?.platformPlan?.maxUsers ??
+      9999;
     if (count >= maxUsers) {
       throw new ForbiddenException(
         `Limite de ${maxUsers} usuarios atingido para esta empresa. Contate o suporte para ampliar o plano.`,
@@ -51,7 +78,7 @@ export class UsersService {
     }
 
     return this.repository.create({
-      companyId,
+      companyId: targetCompanyId,
       name: normalizeDisplayName(dto.name),
       email,
       passwordHash: await bcrypt.hash(dto.password, 12),
@@ -61,7 +88,10 @@ export class UsersService {
 
   async update(companyId: string, actor: JwtUser, id: string, dto: UpdateUserDto) {
     this.assertRoleChangeAllowed(actor, dto.role);
-    await this.get(companyId, actor, id);
+    const user = await this.get(companyId, actor, id);
+    if (user.role && !this.canManageRole(actor.role, user.role)) {
+      throw new ForbiddenException('Voce nao tem permissao para editar este usuario.');
+    }
 
     const { password, name, email, ...rest } = dto;
     const data = {
@@ -77,10 +107,32 @@ export class UsersService {
     return this.get(companyId, actor, id);
   }
 
-  async resetPassword(companyId: string, actor: JwtUser, id: string) {
-    await this.get(companyId, actor, id);
-    const passwordHash = await bcrypt.hash('12345678', 12);
-    const data = { passwordHash, forcePasswordChange: true };
+  async resetPassword(companyId: string, actor: JwtUser, id: string, dto: ResetUserPasswordDto) {
+    const user = actor.role === 'DEV'
+      ? await this.repository.findByIdWithPassword(id)
+      : await this.repository.findByIdWithPassword(id, companyId);
+    if (!user) throw new NotFoundException('Usuario nao encontrado');
+    if (user.role && !this.canManageRole(actor.role, user.role)) {
+      throw new ForbiddenException('Voce nao tem permissao para resetar a senha deste usuario.');
+    }
+    if (actor.sub === id) {
+      throw new ConflictException('Nao e permitido resetar a propria senha por esta acao.');
+    }
+    
+    const isSamePassword = await bcrypt.compare(dto.newPassword, user.passwordHash || '');
+    if (isSamePassword) {
+      throw new ConflictException('A nova senha temporaria nao pode ser igual a senha atual.');
+    }
+
+    const passwordHash = await bcrypt.hash(dto.newPassword, 12);
+    const data = { 
+      passwordHash, 
+      forcePasswordChange: true,
+      failedLoginAttempts: 0,
+      passwordResetToken: null,
+      passwordResetExpires: null,
+      passwordChangedAt: new Date(),
+    };
     const result = actor.role === 'DEV'
       ? await this.repository.update(id, data)
       : await this.repository.update(id, data, companyId);
@@ -89,7 +141,10 @@ export class UsersService {
   }
 
   async delete(companyId: string, actor: JwtUser, id: string) {
-    await this.get(companyId, actor, id);
+    const user = await this.get(companyId, actor, id);
+    if (user.role && !this.canManageRole(actor.role, user.role)) {
+      throw new ForbiddenException('Voce nao tem permissao para deletar este usuario.');
+    }
     const result = actor.role === 'DEV'
       ? await this.repository.delete(id)
       : await this.repository.delete(id, companyId);
@@ -102,7 +157,13 @@ export class UsersService {
       this.repository.countByCompany(companyId),
       this.repository.getCompanyLimits(companyId),
     ]);
-    return { used: count, max: 9999 };
+    return {
+      used: count,
+      max:
+        limits?.maxUsers ??
+        limits?.platformPlan?.maxUsers ??
+        9999,
+    };
   }
 
   private assertRoleChangeAllowed(actor: JwtUser, nextRole?: string) {
@@ -130,6 +191,11 @@ export class UsersService {
   private filterRestrictedUsers(users: Array<{ role?: string }>, actor: JwtUser) {
     if (actor?.role === 'DEV') return users;
     return users.filter((user) => String(user.role || '').toUpperCase() !== 'DEV');
+  }
+
+  private canManageRole(actorRole?: string, targetRole?: string) {
+    if (!actorRole || !targetRole) return false;
+    return ROLE_MANAGEMENT[actorRole.toUpperCase()]?.includes(targetRole.toUpperCase()) ?? false;
   }
 }
 

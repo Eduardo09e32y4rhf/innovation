@@ -43,6 +43,13 @@ export class UsersRepository {
     });
   }
 
+  findByIdWithPassword(id: string, companyId?: string) {
+    return this.prisma.user.findFirst({ 
+      where: { id, ...(companyId ? { companyId } : {}) }, 
+      select: { ...safeUserSelect, passwordHash: true } 
+    });
+  }
+
   findByEmail(email: string) {
     return this.prisma.user.findUnique({ where: { email } });
   }
@@ -54,7 +61,15 @@ export class UsersRepository {
   getCompanyLimits(companyId: string) {
     return this.prisma.company.findUnique({
       where: { id: companyId },
-      select: { plan: true, status: true, billingStatus: true },
+      select: { 
+        plan: true, 
+        status: true, 
+        billingStatus: true,
+        maxUsers: true,
+        platformPlan: {
+          select: { maxUsers: true },
+        },
+      },
     });
   }
 
