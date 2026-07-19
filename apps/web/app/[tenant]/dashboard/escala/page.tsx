@@ -286,7 +286,7 @@ export default function EscalaPage() {
   const [schedules, setSchedules] = useState<any[]>([]);
   const [loading, setLoading]     = useState(false);
   const [selectedDay, setSelectedDay] = useState<CalendarDay | null>(null);
-  const targetEmployeeId = searchParams.get('emp') || '';
+  const targetEmployeeId = searchParams.get('employeeId') || searchParams.get('emp') || '';
   const setTargetEmployeeId = useCallback((id: string) => {
     const p = new URLSearchParams(searchParams.toString());
     if (id) p.set('emp', id); else p.delete('emp');

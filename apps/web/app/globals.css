@@ -97,6 +97,10 @@
     @apply inline-flex items-center justify-center gap-1.5 h-9 px-4 rounded-lg bg-[#8A05BE] text-white font-bold text-xs transition-colors duration-150 active:scale-[0.98] hover:bg-[#72049e] disabled:opacity-40 disabled:cursor-not-allowed;
   }
 
+  .crystal-button {
+    @apply inline-flex items-center justify-center gap-1.5 h-9 px-4 rounded-lg bg-gradient-to-r from-[#8A05BE] to-[#6c0494] text-white font-bold text-xs shadow-lg shadow-[#8A05BE]/20 border border-[#8A05BE]/20 transition-colors duration-150 active:scale-[0.98] hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed;
+  }
+
   /* Botão preto — ações neutras */
   .btn-black {
     @apply inline-flex items-center justify-center gap-1.5 h-9 px-4 rounded-lg bg-zinc-900 text-white font-bold text-xs transition-colors duration-150 active:scale-[0.98] hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed;
