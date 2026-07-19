@@ -108,16 +108,16 @@ export function DashboardSidebar() {
   }));
 
   return (
-    <aside className="sticky top-0 flex h-screen flex-col bg-slate-950 p-4 text-white">
+    <aside className="sticky top-0 flex h-screen flex-col bg-black p-5 text-white">
       <CompanyBrandCard name={company.data?.name} document={company.data?.document} logoUrl={company.data?.logoUrl} />
 
-      <nav className="mt-6 flex flex-1 flex-col gap-1 overflow-y-auto overflow-x-hidden pr-1">
+      <nav className="mt-8 flex flex-1 flex-col gap-2 overflow-y-auto overflow-x-hidden pr-1">
         {tenantNavItems.map((item) => (
           <NavItem key={item.href} item={item} active={isActive(pathname, item)} />
         ))}
       </nav>
 
-      <div className="mt-auto pt-4">
+      <div className="mt-auto pt-6">
         <UserIdentityCard name={user?.name} email={user?.email} profile={profile} />
       </div>
     </aside>
@@ -126,20 +126,20 @@ export function DashboardSidebar() {
 
 function CompanyBrandCard({ name, document, logoUrl }: { name?: string | null; document?: string | null; logoUrl?: string | null }) {
   return (
-    <div className="flex items-center gap-3 px-2">
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-white font-bold text-black shadow-sm">
+    <div className="flex items-center gap-3">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white font-bold text-black">
         {logoUrl ? (
-          <img src={logoUrl} alt="Logo da empresa" className="h-full w-full object-contain rounded-[12px]" />
+          <img src={logoUrl} alt="Logo da empresa" className="h-full w-full object-contain rounded-xl" />
         ) : (
           'IR'
         )}
       </div>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-[13px] font-bold leading-tight">
-          {normalizeDisplayName(name) || 'Innovation RH'}
+        <p className="truncate text-[15px] font-black leading-tight text-white">
+          {normalizeDisplayName(name) || 'Innovation'}
         </p>
-        <p className="truncate text-[10px] font-semibold text-white/50">
-          {document || 'Gestão de pessoas'}
+        <p className="truncate text-[11px] font-semibold text-white/50">
+          {document || 'Gestão de RH'}
         </p>
       </div>
     </div>
@@ -148,13 +148,13 @@ function CompanyBrandCard({ name, document, logoUrl }: { name?: string | null; d
 
 function UserIdentityCard({ name, email, profile }: { name?: string; email?: string; profile?: string }) {
   return (
-    <div className="flex items-center gap-3 rounded-[16px] bg-white/5 p-3 ring-1 ring-white/10 transition-colors hover:bg-white/10">
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-[11px] font-bold text-black">
+    <div className="flex items-center gap-3">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#8A05BE] text-[12px] font-bold text-white">
         {getInitials(name, email)}
       </div>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-[13px] font-bold leading-tight text-white">{normalizeDisplayName(name) || email || 'Usuário'}</p>
-        <p className="truncate text-[10px] font-semibold text-white/50">
+        <p className="truncate text-[14px] font-bold leading-tight text-white">{normalizeDisplayName(name) || email || 'Usuário'}</p>
+        <p className="truncate text-[11px] font-semibold text-white/50">
           {ROLE_LABEL[profile || ''] ?? profile ?? 'Perfil'}
         </p>
       </div>
@@ -178,16 +178,17 @@ function NavItem({ item, active }: { item: NavItemConfig; active: boolean }) {
     <div className="flex flex-col">
       <Link 
         href={item.href} 
-        className={`flex h-11 items-center gap-3 rounded-[12px] px-3 text-sm font-semibold transition-all duration-200 ${
-          active ? 'bg-white text-black shadow-sm' : 'text-white/60 hover:bg-white/10 hover:text-white'
+        className={`group relative flex h-11 items-center gap-3 rounded-xl px-3 text-sm font-bold transition-colors ${
+          active ? 'bg-[#8A05BE]/10 text-white' : 'text-white/60 hover:text-white'
         }`}
       >
-        <Icon size={18} strokeWidth={active ? 2.5 : 2} className="shrink-0" />
+        {active && <div className="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-md bg-[#8A05BE]" />}
+        <Icon size={20} strokeWidth={active ? 2.5 : 2} className={`shrink-0 ${active ? 'text-[#8A05BE]' : ''}`} />
         <span className="truncate">{item.label}</span>
       </Link>
       
       {active && visibleSubItems && visibleSubItems.length > 0 && (
-        <div className="ml-4 mt-1.5 hidden flex-col gap-1 md:flex">
+        <div className="ml-[42px] mt-1 flex flex-col gap-1.5 md:flex">
           {visibleSubItems.map(sub => {
             const currentTab = searchParams.get('tab') || 'minha';
             const subTab = sub.href.split('tab=')[1] || 'minha';
@@ -197,11 +198,10 @@ function NavItem({ item, active }: { item: NavItemConfig; active: boolean }) {
               <button 
                 key={sub.href} 
                 onClick={() => router.push(sub.href)} 
-                className={`flex w-full items-center gap-2 rounded-[10px] px-3 py-2 text-[11px] font-bold transition-all duration-200 ${
-                  isActiveSub ? 'bg-white/15 text-white ring-1 ring-white/20' : 'text-white/40 hover:bg-white/5 hover:text-white/80'
+                className={`flex w-full items-center text-[12px] font-semibold transition-colors ${
+                  isActiveSub ? 'text-[#8A05BE]' : 'text-white/50 hover:text-white/80'
                 }`}
               >
-                <div className={`h-1.5 w-1.5 shrink-0 rounded-full ${isActiveSub ? 'bg-white' : 'bg-transparent'}`} />
                 <span className="truncate">{sub.label}</span>
               </button>
             );
