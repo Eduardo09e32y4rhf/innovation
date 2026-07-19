@@ -1,5 +1,7 @@
 import { Body, Controller, ForbiddenException, Headers, HttpCode, Logger, Post } from '@nestjs/common';
-import { InvoiceStatus } from '@prisma/client';
+import { $Enums } from '@prisma/client';
+const InvoiceStatus = $Enums.InvoiceStatus;
+type InvoiceStatus = $Enums.InvoiceStatus;
 import { SkipThrottle } from '@nestjs/throttler';
 import * as crypto from 'crypto';
 import { PrismaService } from '../../database/prisma.service';

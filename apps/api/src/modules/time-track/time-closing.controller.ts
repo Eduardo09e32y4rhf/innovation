@@ -1,5 +1,7 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, Res, UseGuards } from '@nestjs/common';
-import { TimeClosingStatus } from '@prisma/client';
+import { $Enums } from '@prisma/client';
+const TimeClosingStatus = $Enums.TimeClosingStatus;
+type TimeClosingStatus = $Enums.TimeClosingStatus;
 import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';

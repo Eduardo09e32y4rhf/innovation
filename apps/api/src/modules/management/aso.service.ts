@@ -304,9 +304,9 @@ export class AsoService {
         orderBy: { dueDate: 'asc' },
       });
 
-      const expired = allRecords.filter(r => r.dueDate && new Date(r.dueDate) < today && !['CANCELLED'].includes(r.status));
+      const expired = allRecords.filter((r: any) => r.dueDate && new Date(r.dueDate) < today && !['CANCELLED'].includes(r.status));
       const expiringSoon = allRecords.filter(r => r.dueDate && new Date(r.dueDate) >= today && new Date(r.dueDate) <= in30Days);
-      const pending = allRecords.filter(r => r.status === 'PENDING');
+      const pending = allRecords.filter((r: any) => r.status === 'PENDING');
       const inapto = allRecords.filter(r => r.status === 'EXPIRED');
 
       const items: any[] = [];

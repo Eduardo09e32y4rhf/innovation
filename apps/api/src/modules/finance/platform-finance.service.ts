@@ -1,5 +1,7 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { InvoiceStatus, Prisma } from '@prisma/client';
+import {  Prisma , $Enums } from '@prisma/client';
+const InvoiceStatus = $Enums.InvoiceStatus;
+type InvoiceStatus = $Enums.InvoiceStatus;
 import { PrismaService } from '../../database/prisma.service';
 import { AsaasPayment, AsaasService } from './asaas.service';
 import { CreatePlatformInvoiceDto, ListPlatformInvoicesDto, UpdatePlatformInvoiceDto } from './dto/platform-finance.dto';
@@ -369,7 +371,7 @@ export class PlatformFinanceService {
     return invoice;
   }
 
-  private buildWhere(query: Pick<ListPlatformInvoicesDto, 'status' | 'search' | 'from' | 'to'>): Prisma.PlatformInvoiceWhereInput {
+  private buildWhere(query: Pick<ListPlatformInvoicesDto, 'status' | 'search' | 'from' | 'to'>): any {
     const dueDate = query.from || query.to
       ? {
           gte: query.from ? new Date(query.from) : undefined,

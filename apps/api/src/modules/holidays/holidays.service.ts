@@ -1,7 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import { RedisService } from '../../common/redis/redis.service';
-import { HolidayScope } from '@prisma/client';
+import { $Enums } from '@prisma/client';
+const HolidayScope = $Enums.HolidayScope;
+type HolidayScope = $Enums.HolidayScope;
 
 @Injectable()
 export class HolidaysService {
@@ -43,7 +45,7 @@ export class HolidaysService {
           }
         });
 
-        await tx.holiday.createMany({
+        await (tx as any).holiday.createMany({
           data: data.map((h: any) => ({
             date: new Date(h.date),
             name: h.name,

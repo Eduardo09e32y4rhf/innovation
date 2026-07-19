@@ -1,5 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { UserRole } from '@prisma/client';
+import { $Enums } from '@prisma/client';
+const UserRole = $Enums.UserRole;
+type UserRole = $Enums.UserRole;
 import { PrismaService } from '../../database/prisma.service';
 import type { JwtUser } from '../../common/types/auth.types';
 
@@ -43,7 +45,7 @@ export class NotificationsService {
         // Destinatários comuns veem apenas a si mesmos (privacidade)
         return {
           ...n,
-          recipients: n.recipients.filter(r => r.userId === actor.sub)
+          recipients: n.recipients.filter((r: any) => r.userId === actor.sub)
         };
       });
     } catch (err) {
@@ -145,7 +147,7 @@ export class NotificationsService {
           where: { companyId, role: { in: NOTIFICATION_PRIVILEGED_ROLES } },
           select: { id: true },
         });
-        targetUserIds = users.map(u => u.id);
+        targetUserIds = users.map((u: any) => u.id);
       } else if (targetType === 'EMPLOYEES') {
         // 'EMPLOYEES' entrega apenas para funcionários com perfil privilegiado
         const employees = await this.prisma.employee.findMany({
