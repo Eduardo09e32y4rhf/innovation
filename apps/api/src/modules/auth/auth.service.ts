@@ -416,23 +416,9 @@ export class AuthService {
       );
     }
 
-    /*
-     * RH não pode redefinir senha de ADMIN ou DEV.
-     * ADMIN pode redefinir funcionários e usuários de RH,
-     * mas não deve redefinir DEV.
-     */
-    if (
-      actor.role === 'RH' &&
-      ['ADMIN', 'DEV'].includes(employee.user.role)
-    ) {
+    if (!this.canResetTargetRole(actor.role, employee.user.role)) {
       throw new ForbiddenException(
-        'O RH não pode redefinir a senha de um administrador.',
-      );
-    }
-
-    if (employee.user.role === 'DEV') {
-      throw new ForbiddenException(
-        'A senha de um usuário DEV não pode ser redefinida por esta tela.',
+        'Você não possui permissão para redefinir a senha deste perfil.',
       );
     }
 
@@ -513,5 +499,40 @@ export class AuthService {
         'Você não possui permissão para redefinir senhas.',
       );
     }
+  }
+
+  private canResetTargetRole(
+    actorRole: UserRole,
+    targetRole: UserRole,
+  ) {
+    const allowedTargets: Record<UserRole, UserRole[]> = {
+      DEV: [
+        'COMERCIAL',
+        'ADMIN',
+        'RH',
+        'GESTOR',
+        'FUNCIONARIO',
+        'CONSULTA',
+      ],
+      ADMIN: [
+        'ADMIN',
+        'RH',
+        'GESTOR',
+        'FUNCIONARIO',
+        'CONSULTA',
+      ],
+      RH: [
+        'RH',
+        'GESTOR',
+        'FUNCIONARIO',
+        'CONSULTA',
+      ],
+      COMERCIAL: [],
+      GESTOR: [],
+      FUNCIONARIO: [],
+      CONSULTA: [],
+    };
+
+    return allowedTargets[actorRole]?.includes(targetRole) ?? false;
   }
 }

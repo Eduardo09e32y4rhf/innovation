@@ -7,6 +7,7 @@ import { useMutation, useQuery } from '@/app/hooks/use-data';
 import { api } from '@/app/lib/api';
 import { EmployeePasswordResetSection } from './_components/employee-password-reset-section';
 import { CompanyFinanceSection } from './_components/company-finance-section';
+import { PlatformPlansSection } from './_components/platform-plans-section';
 
 const SAFE_LOGO_URL = /^https:\/\/[^\s?#]+\.(png|jpe?g|webp)(\?[^\s#]*)?(#[^\s]*)?$/i;
 const MAX_LOGO_URL_LENGTH = 2048;
@@ -24,19 +25,46 @@ export default function SettingsPage({ params }: { params: { tenant: string } })
 
   const isRh = profile === 'RH';
 
-  const isAdmin =
-    profile === 'ADMIN' ||
-    profile === 'DEV';
+  const isAdmin = profile === 'ADMIN';
 
-  const canResetEmployees = isRh || isAdmin;
-  const canManageFinance = isAdmin;
-  const canEditCompany = isAdmin || isRh;
+  const isDev = profile === 'DEV';
+
+  const canResetEmployees =
+    isRh ||
+    isAdmin ||
+    isDev;
+
+  const canManageCompanyFinance =
+    isAdmin ||
+    isDev;
+
+  const canManagePlatformPlans =
+    isDev;
+
+  const canEditCompany = isAdmin || isRh || isDev;
+
+  const pageTitle = isDev
+    ? 'Configurações da plataforma'
+    : isAdmin
+      ? 'Configurações da empresa'
+      : isRh
+        ? 'Configurações do RH'
+        : 'Minha conta';
 
   return (
     <div className="mx-auto max-w-5xl space-y-6 px-4 py-6 sm:px-6">
       <header className="flex flex-col gap-2">
-        <p className="text-[11px] font-black uppercase tracking-[0.2em] text-teal-600">Configurações</p>
-        <h2 className="text-2xl font-black text-slate-950">{canEditCompany ? 'Administração do sistema' : 'Minha conta'}</h2>
+        <p className="text-[11px] font-black uppercase tracking-[0.2em] text-violet-600">
+          Configurações
+        </p>
+
+        <h2 className="text-2xl font-black text-slate-950">
+          {pageTitle}
+        </h2>
+
+        <p className="text-sm font-medium text-slate-500">
+          Gerencie apenas as opções permitidas para o seu perfil.
+        </p>
       </header>
 
       <PasswordChangeSection changePassword={changePassword} />
@@ -45,8 +73,12 @@ export default function SettingsPage({ params }: { params: { tenant: string } })
         <EmployeePasswordResetSection />
       )}
 
-      {canManageFinance && (
+      {canManageCompanyFinance && (
         <CompanyFinanceSection tenant={tenant} />
+      )}
+
+      {canManagePlatformPlans && (
+        <PlatformPlansSection tenant={tenant} />
       )}
 
       {canEditCompany && (
