@@ -7,7 +7,7 @@ export class PrivacyRepository {
 
   findActiveConsent(userId: string, termVersion: string) {
     return this.prisma.privacyConsent.findFirst({
-      where: { userId, revokedAt: null },
+      where: { userId, termVersion, revokedAt: null },
       orderBy: { acceptedAt: 'desc' },
     });
   }

@@ -97,11 +97,22 @@ export function PrivacyConsentGate({ children }: { children: React.ReactNode }) 
 
     async function loadStatus() {
       if (!token) return;
+
+      // Sessão local de dev — sempre libera acesso
       if (token === 'innovation-rh-connect-local-session') {
         setStatus({ required: false, accepted: true, termVersion: TERMS_VERSION, purpose: FALLBACK_PURPOSE });
         setLoading(false);
         return;
       }
+
+      // ✅ Se já aceitou neste navegador, libera imediatamente sem chamar a API
+      const localAccepted = localStorage.getItem(`privacy-consent:${TERMS_VERSION}`) === 'accepted';
+      if (localAccepted) {
+        if (active) setStatus({ required: false, accepted: true, termVersion: TERMS_VERSION, purpose: FALLBACK_PURPOSE });
+        if (active) setLoading(false);
+        return;
+      }
+
       setLoading(true);
       setError('');
       try {
@@ -111,15 +122,15 @@ export function PrivacyConsentGate({ children }: { children: React.ReactNode }) 
         if (!response.ok) throw new Error('status unavailable');
         const payload = await response.json();
         const data = payload.data ?? payload;
+        // Persiste no localStorage se o backend confirmou o aceite
         if (data.accepted) {
           localStorage.setItem(`privacy-consent:${data.termVersion || TERMS_VERSION}`, 'accepted');
         }
         if (active) setStatus(data);
       } catch {
-        const localAccepted = localStorage.getItem(`privacy-consent:${TERMS_VERSION}`) === 'accepted';
         if (active) {
-          setStatus({ required: !localAccepted, accepted: localAccepted, termVersion: TERMS_VERSION, purpose: FALLBACK_PURPOSE });
-          setError('Não foi possível sincronizar o aceite na API. O seu consentimento será armazenado neste navegador temporariamente.');
+          setStatus({ required: true, accepted: false, termVersion: TERMS_VERSION, purpose: FALLBACK_PURPOSE });
+          setError('Não foi possível sincronizar o aceite na API. Tente novamente ou contate o suporte.');
         }
       } finally {
         if (active) setLoading(false);
