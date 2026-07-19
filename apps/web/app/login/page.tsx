@@ -30,11 +30,13 @@ export default function LoginPage() {
   useEffect(() => {
     if (isAuthenticated && company) {
       const slug = (company as any).slug || company.name?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || company.id;
+      const isDev = user?.profile?.toUpperCase() === 'DEV' || user?.role?.toUpperCase() === 'DEV';
       const mustPay =
-        user?.companyStatus === 'SUSPENDED' ||
-        user?.companyStatus === 'CANCELLED' ||
-        user?.billingStatus === 'CANCELED' ||
-        user?.billingStatus === 'PENDING_PAYMENT';
+        !isDev &&
+        (user?.companyStatus === 'SUSPENDED' ||
+          user?.companyStatus === 'CANCELLED' ||
+          user?.billingStatus === 'CANCELED' ||
+          user?.billingStatus === 'PENDING_PAYMENT');
       router.push(mustPay ? `/${slug}/fatura-pendente?autoCheckout=1` : `/${slug}/dashboard`);
     }
   }, [isAuthenticated, company, user, router]);
