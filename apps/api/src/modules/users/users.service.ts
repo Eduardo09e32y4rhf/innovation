@@ -1,4 +1,4 @@
-import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import type { JwtUser } from '../../common/types/auth.types';
 import { normalizeDisplayName } from '../../common/utils/text-normalization';
@@ -119,14 +119,19 @@ export class UsersService {
       throw new ConflictException('Nao e permitido resetar a propria senha por esta acao.');
     }
     
-    const isSamePassword = await bcrypt.compare(dto.newPassword, user.passwordHash || '');
+    const newPassword = dto.newPassword ?? dto.password;
+    if (!newPassword) {
+      throw new BadRequestException('A nova senha nao foi fornecida');
+    }
+
+    const isSamePassword = await bcrypt.compare(newPassword, user.passwordHash || '');
     if (isSamePassword) {
       throw new ConflictException('A nova senha temporaria nao pode ser igual a senha atual.');
     }
 
-    const passwordHash = await bcrypt.hash(dto.newPassword, 12);
-    const data = { 
-      passwordHash, 
+    const passwordHash = await bcrypt.hash(newPassword, 12);
+    const data = {
+      passwordHash,
       forcePasswordChange: true,
       failedLoginAttempts: 0,
       passwordResetToken: null,
