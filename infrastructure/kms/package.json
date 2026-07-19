@@ -1,0 +1,13 @@
+{
+  "name": "innovation-kms",
+  "version": "1.0.0",
+  "description": "Sovereign Key Management Service",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0"
+  }
+}

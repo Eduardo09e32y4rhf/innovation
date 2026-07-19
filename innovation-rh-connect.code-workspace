@@ -1,0 +1,36 @@
+{
+  "folders": [
+    {
+      "name": "Root",
+      "path": "."
+    },
+    {
+      "name": "API",
+      "path": "apps/api"
+    },
+    {
+      "name": "Web",
+      "path": "apps/web"
+    },
+    {
+      "name": "Docs",
+      "path": "docs"
+    },
+    {
+      "name": "Infra",
+      "path": "infra"
+    },
+    {
+      "name": "Scripts",
+      "path": "scripts"
+    },
+    {
+      "name": "Storage",
+      "path": "storage"
+    }
+  ],
+  "settings": {
+    "explorer.compactFolders": false,
+    "workbench.iconTheme": "material-icon-theme"
+  }
+}
