@@ -108,7 +108,7 @@ export function DashboardSidebar() {
   }));
 
   return (
-    <aside className="sticky top-0 flex h-screen flex-col bg-[#0b0b0c] p-4 text-white">
+    <aside className="sticky top-0 flex h-screen flex-col bg-slate-950 p-4 text-white">
       <CompanyBrandCard name={company.data?.name} document={company.data?.document} logoUrl={company.data?.logoUrl} />
 
       <nav className="mt-6 flex flex-1 flex-col gap-1 overflow-y-auto overflow-x-hidden pr-1">

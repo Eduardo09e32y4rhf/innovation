@@ -15,7 +15,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       <PasswordChangeGate>
         <div className="app-shell">
           <DashboardSidebar />
-          <main className="main">
+          <main className="min-w-0 flex-1">
             <DashboardTopbar />
             <PrivacyConsentGate>
             <PendingNotificationsGate>
