@@ -831,10 +831,10 @@ function MonthGrid({ employee, tracks, month, canManage, canApprove, refreshing,
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[1200px] border-separate border-spacing-0 text-left">
+        <table className="w-full min-w-[900px] border-separate border-spacing-0 text-left">
           <thead>
             <tr className="bg-slate-50/60 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-              <th className="px-4 py-3 w-[16%] border-b border-slate-100">DATA</th>
+              <th className="px-4 py-3 w-[12%] border-b border-slate-100">DATA</th>
               <th className="px-4 py-3 w-[9%] border-b border-slate-100 text-center">ENTRADA</th>
               <th className="px-4 py-3 w-[11%] border-b border-slate-100 text-center">ALMOÇO</th>
               <th className="px-4 py-3 w-[9%] border-b border-slate-100 text-center">SAÍDA</th>
@@ -842,7 +842,7 @@ function MonthGrid({ employee, tracks, month, canManage, canApprove, refreshing,
               <th className="px-4 py-3 w-[9%] border-b border-slate-100 text-center">SALDO</th>
               <th className="px-4 py-3 w-[8%] border-b border-slate-100 text-center">ABONO</th>
               <th className="px-4 py-3 w-[10%] border-b border-slate-100 text-center">STATUS</th>
-              <th className="px-4 py-3 w-[22%] border-b border-slate-100 text-center">AÇÕES</th>
+              <th className="px-4 py-3 w-[23%] border-b border-slate-100 text-center">AÇÕES</th>
             </tr>
           </thead>
           <tbody>
