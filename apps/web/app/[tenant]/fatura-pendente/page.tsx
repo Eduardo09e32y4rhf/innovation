@@ -87,7 +87,7 @@ export default function FaturaPendentePage() {
   const invoiceLink = paymentLinkFrom(billing);
   const invoiceAmount = Number(invoice?.amount ?? 0);
   const safeAmount = Number.isFinite(invoiceAmount) ? invoiceAmount : 0;
-  const isAdmin = user?.profile?.toUpperCase() === 'ADMIN' || user?.role?.toUpperCase() === 'ADMIN';
+  const isAdmin = user?.profile?.toUpperCase() === 'ADMIN' || user?.role?.toUpperCase() === 'ADMIN' || user?.role?.toUpperCase() === 'DEV';
 
 
   if (loading || !user) return null;

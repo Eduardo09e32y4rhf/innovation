@@ -33,7 +33,7 @@ export class TenantGuard implements CanActivate {
     const isAuthRoute = path.startsWith('/auth/');
     const isFinanceRoute = path.startsWith('/finance/');
 
-    if (user.role === 'ADMIN') {
+    if (user.role === 'ADMIN' || user.role === 'DEV') {
       if (isAuthRoute) return true; // Pode sempre fazer logout ou login
       if (company.billingStatus === 'CANCELED') {
          // Cancelado: sem acesso financeiro (deveria ir pro suporte/saida), vamos permitir apenas auth por enquanto
