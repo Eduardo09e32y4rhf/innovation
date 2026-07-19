@@ -3,6 +3,9 @@ import { InvoiceStatus } from '@prisma/client';
 import { SkipThrottle } from '@nestjs/throttler';
 import * as crypto from 'crypto';
 import { PrismaService } from '../../database/prisma.service';
+import { FinanceNotificationService, FinanceNotificationType } from './finance-notification.service';
+
+// ─── DTOs do Webhook ──────────────────────────────────────────────────────────
 
 interface AsaasWebhookPayment {
   id: string;
@@ -16,36 +19,99 @@ interface AsaasWebhookPayment {
   invoiceUrl?: string;
 }
 
+interface AsaasWebhookInvoice {
+  id: string;
+  customer?: string;
+  payment?: string;
+  status?: string;
+  number?: string;
+  series?: string;
+  validationCode?: string;
+  value?: number;
+  effectiveDate?: string;
+  pdfUrl?: string;
+  xmlUrl?: string;
+  externalReference?: string;
+}
+
+interface AsaasWebhookPayload {
+  id?: string;
+  event?: string;
+  payment?: AsaasWebhookPayment;
+  invoice?: AsaasWebhookInvoice;
+}
+
+// ─── Mapeamento de eventos → tipos de notificação ────────────────────────────
+
+const PAYMENT_EVENT_MAP: Record<string, FinanceNotificationType | undefined> = {
+  PAYMENT_CREATED: 'CHARGE_CREATED',
+  PAYMENT_RESTORED: 'CHARGE_CREATED',
+  PAYMENT_CONFIRMED: 'PAYMENT_CONFIRMED',
+  PAYMENT_RECEIVED: 'PAYMENT_CONFIRMED',
+  PAYMENT_RECEIVED_IN_CASH: 'PAYMENT_CONFIRMED',
+  PAYMENT_OVERDUE: 'PAYMENT_OVERDUE',
+  PAYMENT_DELETED: 'PAYMENT_CANCELED',
+  PAYMENT_CHARGEBACK_REQUESTED: 'PAYMENT_CANCELED',
+  PAYMENT_REFUNDED: 'PAYMENT_REFUNDED',
+  PAYMENT_REFUND_IN_PROGRESS: 'PAYMENT_REFUNDED',
+};
+
+const INVOICE_EVENT_MAP: Record<string, FinanceNotificationType | undefined> = {
+  INVOICE_AUTHORIZED: 'INVOICE_AUTHORIZED',
+  INVOICE_CANCELED: 'INVOICE_CANCELED',
+};
+
+// ─── Controller ───────────────────────────────────────────────────────────────
+
 @SkipThrottle()
 @Controller('finance/webhook')
 export class AsaasWebhookController {
   private readonly logger = new Logger(AsaasWebhookController.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly financeNotificationService: FinanceNotificationService,
+  ) {}
 
   @Post('asaas')
   @HttpCode(200)
   async handleAsaasWebhook(
     @Headers('asaas-access-token') accessToken: string | undefined,
-    @Body() payload: { event?: string; payment?: AsaasWebhookPayment },
+    @Body() payload: AsaasWebhookPayload,
   ) {
     this.validateToken(accessToken);
     const event = payload?.event;
-    const payment = payload?.payment;
-    if (!event || !payment?.id) return { received: true };
+    if (!event) return { received: true };
 
-    this.logger.log(`Webhook Asaas: ${event} / ${payment.id}`);
+    this.logger.log(`Webhook Asaas: ${event}`);
+
+    // ── Eventos de pagamento ──
+    if (payload.payment?.id) {
+      await this.handlePaymentEvent(event, payload.payment);
+    }
+
+    // ── Eventos de nota fiscal ──
+    if (payload.invoice?.id) {
+      await this.handleInvoiceEvent(event, payload.invoice);
+    }
+
+    return { received: true };
+  }
+
+  // ─── Processamento de pagamento ──────────────────────────────────────────────
+
+  private async handlePaymentEvent(event: string, payment: AsaasWebhookPayment): Promise<void> {
     const status = this.statusFromEvent(event);
-    if (!status) return { received: true };
+    if (!status) return;
 
-    const company = await this.resolveCompany(payment);
+    const company = await this.resolveCompanyFromPayment(payment);
     if (!company) {
       this.logger.warn(`Pagamento ${payment.id} sem empresa vinculada.`);
-      return { received: true };
+      return;
     }
 
     await this.syncProposal(company.id, event, payment);
-    await this.upsertInvoice(company.id, status, event, payment);
+    const invoice = await this.upsertInvoice(company.id, status, event, payment);
 
     if (status === 'PAID') {
       await this.prisma.company.update({
@@ -53,7 +119,6 @@ export class AsaasWebhookController {
         data: { billingStatus: 'ACTIVE', status: 'ACTIVE', isActive: true, suspensionReason: null },
       });
     } else if (status === 'OVERDUE') {
-      // The daily billing job applies suspension only after the configured grace period.
       await this.prisma.company.update({
         where: { id: company.id },
         data: { billingStatus: 'PAST_DUE' },
@@ -65,8 +130,87 @@ export class AsaasWebhookController {
       });
     }
 
-    return { received: true };
+    // Notificação — falha nunca retorna erro ao Asaas
+    const notifType = PAYMENT_EVENT_MAP[event];
+    if (notifType) {
+      try {
+        await this.financeNotificationService.notify({
+          companyId: company.id,
+          paymentId: invoice?.id ?? payment.id,
+          type: notifType,
+          amount: payment.value,
+          dueDate: payment.dueDate ? new Date(payment.dueDate) : undefined,
+          paidAt: status === 'PAID' ? new Date() : undefined,
+          billingType: payment.billingType,
+          paymentUrl: payment.invoiceUrl,
+        });
+      } catch (err) {
+        this.logger.error(
+          `Falha ao processar notificação financeira ${event}/${payment.id}: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+    }
   }
+
+  // ─── Processamento de nota fiscal ────────────────────────────────────────────
+
+  private async handleInvoiceEvent(event: string, invoice: AsaasWebhookInvoice): Promise<void> {
+    const notifType = INVOICE_EVENT_MAP[event];
+
+    // Vincular ao PlatformInvoice pelo paymentId
+    let platformInvoice: { id: string; companyId: string; amount: any } | null = null;
+    if (invoice.payment) {
+      platformInvoice = await this.prisma.platformInvoice.findUnique({
+        where: { asaasPaymentId: invoice.payment },
+        select: { id: true, companyId: true, amount: true },
+      });
+    }
+
+    if (!platformInvoice) {
+      this.logger.warn(`Nota fiscal ${invoice.id} sem PlatformInvoice vinculada (payment: ${invoice.payment ?? 'N/A'})`);
+      return;
+    }
+
+    // Salvar dados da nota fiscal no PlatformInvoice
+    await this.prisma.platformInvoice.update({
+      where: { id: platformInvoice.id },
+      data: {
+        asaasInvoiceId: invoice.id,
+        invoiceNumber: invoice.number,
+        invoiceSeries: invoice.series,
+        invoiceValidationCode: invoice.validationCode,
+        fiscalPdfUrl: invoice.pdfUrl,
+        fiscalXmlUrl: invoice.xmlUrl,
+        invoiceStatus: invoice.status,
+        invoiceAuthorizedAt: event === 'INVOICE_AUTHORIZED' ? new Date() : undefined,
+        invoiceCanceledAt: event === 'INVOICE_CANCELED' ? new Date() : undefined,
+      },
+    });
+
+    this.logger.log(`Nota fiscal ${invoice.id} atualizada no PlatformInvoice ${platformInvoice.id}`);
+
+    // Notificação
+    if (notifType) {
+      try {
+        await this.financeNotificationService.notify({
+          companyId: platformInvoice.companyId,
+          paymentId: invoice.payment,
+          invoiceId: platformInvoice.id,
+          type: notifType,
+          amount: invoice.value ?? Number(platformInvoice.amount),
+          invoiceNumber: invoice.number,
+          fiscalPdfUrl: invoice.pdfUrl,
+          fiscalXmlUrl: invoice.xmlUrl,
+        });
+      } catch (err) {
+        this.logger.error(
+          `Falha ao processar notificação de NFS-e ${event}/${invoice.id}: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+    }
+  }
+
+  // ─── Helpers existentes preservados ──────────────────────────────────────────
 
   private validateToken(accessToken?: string) {
     const expected = process.env.ASAAS_WEBHOOK_TOKEN || process.env.ASAAS_WEBHOOK_SECRET;
@@ -96,7 +240,7 @@ export class AsaasWebhookController {
     return undefined;
   }
 
-  private async resolveCompany(payment: AsaasWebhookPayment) {
+  private async resolveCompanyFromPayment(payment: AsaasWebhookPayment) {
     const existingInvoice = await this.prisma.platformInvoice.findUnique({
       where: { asaasPaymentId: payment.id },
       select: { company: { select: { id: true } } },
@@ -154,16 +298,15 @@ export class AsaasWebhookController {
       amount: payment.value,
       dueDate: payment.dueDate ? new Date(payment.dueDate) : new Date(),
       status,
-      billingType: payment.billingType || 'UNDEFINED',
+      billingType: payment.billingType || 'PIX',
       invoiceUrl: payment.invoiceUrl,
       paidAt: status === 'PAID' ? existing?.paidAt ?? new Date() : existing?.paidAt,
       deletedAt: event === 'PAYMENT_DELETED' ? new Date() : null,
     };
 
     if (existing) {
-      await this.prisma.platformInvoice.update({ where: { id: existing.id }, data });
-      return;
+      return this.prisma.platformInvoice.update({ where: { id: existing.id }, data });
     }
-    await this.prisma.platformInvoice.create({ data: { ...data, asaasPaymentId: payment.id } });
+    return this.prisma.platformInvoice.create({ data: { ...data, asaasPaymentId: payment.id } });
   }
 }

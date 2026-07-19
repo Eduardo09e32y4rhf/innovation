@@ -319,9 +319,11 @@ model Company {
   holidays          Holiday[]
   timeClosings      TimeClosing[]
   platformPlan      PlatformPlan?      @relation(fields: [platformPlanId], references: [id])
-  platformInvoices  PlatformInvoice[]
-  platformContract  PlatformContract?
-  proposals         Proposal[]
+  platformInvoices    PlatformInvoice[]
+  platformContract    PlatformContract?
+  proposals           Proposal[]
+  financeConfig       CompanyFinanceConfig?
+  financeNotifLogs    FinanceNotificationLog[]
 
   // Módulo Escala
   schedules          Schedule[]
@@ -1267,11 +1269,77 @@ model PlatformInvoice {
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
+  // Campos de nota fiscal (NFS-e via Asaas)
+  asaasInvoiceId         String?   @unique
+  invoiceNumber          String?
+  invoiceSeries          String?
+  invoiceValidationCode  String?
+  fiscalPdfUrl           String?
+  fiscalXmlUrl           String?
+  invoiceAuthorizedAt    DateTime?
+  invoiceCanceledAt      DateTime?
+  invoiceStatus          String?   // AUTHORIZED, CANCELED, ERROR
+
   company Company       @relation(fields: [companyId], references: [id])
   plan    PlatformPlan? @relation(fields: [planId], references: [id])
 
   @@index([companyId, status, dueDate])
   @@index([deletedAt])
+  @@index([asaasInvoiceId])
+}
+
+/// Configurações de notificações financeiras por empresa
+model CompanyFinanceConfig {
+  id        String @id @default(uuid()) @db.Uuid
+  companyId String @unique @db.Uuid
+
+  // Habilitar/desabilitar canais
+  notificationsEnabled         Boolean @default(true)
+  internalNotificationsEnabled Boolean @default(true)
+  emailNotificationsEnabled    Boolean @default(true)
+  whatsappNotificationsEnabled Boolean @default(false)
+
+  // Quais eventos notificar
+  notifyChargeCreated    Boolean @default(true)
+  notifyPaymentConfirmed Boolean @default(true)
+  notifyPaymentOverdue   Boolean @default(true)
+  notifyPaymentCanceled  Boolean @default(true)
+  notifyInvoiceAuthorized Boolean @default(true)
+
+  // Telefone financeiro (pode ser diferente do telefone da empresa)
+  financialWhatsappPhone String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+}
+
+/// Log de notificações financeiras — controle de idempotência e histórico
+model FinanceNotificationLog {
+  id        String @id @default(cuid())
+  companyId String @db.Uuid
+
+  paymentId String?
+  invoiceId String?
+  eventType String
+  channel   String   // INTERNAL, WHATSAPP, EMAIL
+  recipient String?
+  status    String   // PENDING, SENT, FAILED, SKIPPED
+
+  providerId   String?
+  errorMessage String?
+
+  idempotencyKey String   @unique
+  sentAt         DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, createdAt])
+  @@index([paymentId])
+  @@index([invoiceId])
 }
 
 model PlatformContract {
