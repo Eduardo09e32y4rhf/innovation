@@ -99,15 +99,16 @@ export class PlatformService {
       adminPasswordHash: await bcrypt.hash(dto.adminPassword, 12),
       commercialOwnerId: actor.role === 'COMERCIAL' ? actor.sub : null,
       plan: isFree ? 'FREE' : 'PRO',
-      billingStatus: isFree ? 'ACTIVE' : 'PAST_DUE',
+      billingStatus: isFree ? 'ACTIVE' : 'TRIAL',
+      trialEndsAt: isFree ? undefined : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
       platformPlanId: selectedPlan?.id,
     });
 
     let paymentUrl: string | null = null;
     let billingSetupPending = false;
     try {
-      const checkout = await this.platformFinance.ensureCompanyCheckout(created.company.id);
-      paymentUrl = checkout.paymentUrl;
+      const checkout = await this.platformFinance.ensureCompanyOnboardingBilling(created.company.id);
+      paymentUrl = checkout.paymentUrl ?? null;
     } catch (error) {
       billingSetupPending = true;
     }

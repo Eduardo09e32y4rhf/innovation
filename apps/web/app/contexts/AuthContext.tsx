@@ -20,7 +20,7 @@ export interface User {
   companyId: string;
   customPermissions?: string[];
   companyStatus?: 'ACTIVE' | 'SUSPENDED' | 'CANCELLED';
-  billingStatus?: 'TRIAL' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED';
+  billingStatus?: 'TRIAL' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED' | 'PENDING_PAYMENT';
 }
 
 export interface Company {

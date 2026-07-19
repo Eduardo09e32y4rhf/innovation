@@ -332,7 +332,7 @@ export interface Company {
   isActive: boolean; status?: CompanyStatus; createdAt: string;
   subscriptionStartedAt?: string; suspensionReason?: string | null;
   plan?: 'FREE' | 'BASE' | 'PRO' | 'ENTERPRISE';
-  billingStatus?: 'TRIAL' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED';
+  billingStatus?: 'TRIAL' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED' | 'PENDING_PAYMENT';
   trialEndsAt?: string | null;
   activeModules?: string[];
   asaasCustomerId?: string | null;
@@ -347,7 +347,7 @@ export interface PlatformCompany {
   createdAt: string; updatedAt: string;
   usersCount: number; employeesCount: number;
   plan?: 'FREE' | 'BASE' | 'PRO' | 'ENTERPRISE';
-  billingStatus?: 'TRIAL' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED';
+  billingStatus?: 'TRIAL' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED' | 'PENDING_PAYMENT';
   trialEndsAt?: string | null;
   activeModules?: string[];
   internalNotes?: string | null;
@@ -397,9 +397,10 @@ export interface PublicPlatformPlan {
   userMonthlyPrice?: number;
   asaasCycle?: string;
   pricingVersion?: string;
+  isRecommended?: boolean;
 }
 export interface CompanyBillingResult {
-  company?: { id: string; name: string; status: CompanyStatus; billingStatus: 'TRIAL' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED'; suspensionReason?: string | null };
+  company?: { id: string; name: string; status: CompanyStatus; billingStatus: 'TRIAL' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED' | 'PENDING_PAYMENT'; suspensionReason?: string | null };
   invoice?: PlatformInvoice | null; active: boolean; paymentUrl?: string | null;
 }
 export interface PlatformStats { companies: number; users: number; employees: number; messages: number; activeCompanies: number; suspendedCompanies: number; pastDueCompanies: number; }
@@ -638,7 +639,7 @@ export const api = {
     getCompany: (id: string) => request<PlatformCompany>(`/platform/companies/${id}`),
     getCompanyAuditLogs: (id: string) => request<any[]>(`/platform/companies/${id}/audit-logs`),
     createCompany: (input: CreatePlatformCompanyInput) => request<PlatformCompany & { paymentUrl?: string | null; billingSetupPending?: boolean }>('/platform/companies', { method: 'POST', body: input }),
-    updateCompany: (id: string, input: Partial<Omit<CreatePlatformCompanyInput, 'adminName' | 'adminEmail' | 'adminPassword'>> & { isActive?: boolean; status?: CompanyStatus; suspensionReason?: string | null; plan?: string; platformPlanId?: string; billingStatus?: 'TRIAL' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED'; trialEndsAt?: string; activeModules?: string[]; asaasCustomerId?: string; asaasSubscriptionId?: string; internalNotes?: string }) =>
+    updateCompany: (id: string, input: Partial<Omit<CreatePlatformCompanyInput, 'adminName' | 'adminEmail' | 'adminPassword'>> & { isActive?: boolean; status?: CompanyStatus; suspensionReason?: string | null; plan?: string; platformPlanId?: string; billingStatus?: 'TRIAL' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED' | 'PENDING_PAYMENT'; trialEndsAt?: string; activeModules?: string[]; asaasCustomerId?: string; asaasSubscriptionId?: string; internalNotes?: string }) =>
       request<PlatformCompany>(`/platform/companies/${id}`, { method: 'PATCH', body: input }),
     deleteCompany: (id: string) => request<void>(`/platform/companies/${id}`, { method: 'DELETE' }),
     listPlans: () => request<any[]>('/platform/plans'),

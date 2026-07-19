@@ -66,7 +66,7 @@ export class AuthService {
     });
     const admin = company.users[0];
 
-    let checkout: { active: boolean; paymentUrl: string | null } = { active: Boolean(selectedPlan?.isFree), paymentUrl: null };
+    let checkout: { active: boolean; paymentUrl: string | null | undefined } = { active: Boolean(selectedPlan?.isFree), paymentUrl: null };
     let billingSetupPending = false;
     if (!selectedPlan?.isFree) {
       try {

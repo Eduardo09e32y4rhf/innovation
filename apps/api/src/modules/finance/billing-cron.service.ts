@@ -12,6 +12,37 @@ export class BillingCronService {
     private readonly financeNotificationService: FinanceNotificationService,
   ) {}
 
+  // ─── Expiração de Trial — 04:00 diariamente ────────────────────────
+  @Cron('0 4 * * *')
+  async checkExpiredTrials() {
+    this.logger.log('Iniciando rotina de verificação de trials expirados...');
+    try {
+      const today = new Date();
+      const expiredCompanies = await this.prisma.company.findMany({
+        where: {
+          billingStatus: 'TRIAL',
+          trialEndsAt: { lt: today },
+          isActive: true,
+        },
+      });
+
+      for (const company of expiredCompanies) {
+        this.logger.log(`Trial expirado para a empresa ${company.id}. Bloqueando acesso...`);
+        await this.prisma.company.update({
+          where: { id: company.id },
+          data: {
+            status: 'SUSPENDED',
+            billingStatus: 'PENDING_PAYMENT',
+            suspensionReason: 'Período de teste expirado',
+          },
+        });
+      }
+      this.logger.log(`Rotina de trial finalizada. Analisadas ${expiredCompanies.length} empresas.`);
+    } catch (error) {
+      this.logger.error('Erro ao rodar rotina de trials', error);
+    }
+  }
+
   // ─── Suspensão por inadimplência — 08:00 diariamente ────────────────────────
 
   @Cron('0 8 * * *')

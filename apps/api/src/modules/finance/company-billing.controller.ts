@@ -25,7 +25,7 @@ export class CompanyBillingController {
 
   @Post('checkout')
   checkout(@CurrentCompany() companyId: string) {
-    return this.service.ensureCompanyCheckout(companyId);
+    return this.service.ensureCompanyOnboardingBilling(companyId);
   }
 
   @Post('change-plan')

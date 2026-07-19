@@ -28,7 +28,7 @@ export class FinanceController {
 
   @Post('platform/companies/:companyId/checkout')
   companyCheckout(@Param('companyId') companyId: string) {
-    return this.service.ensureCompanyCheckout(companyId);
+    return this.service.ensureCompanyOnboardingBilling(companyId);
   }
 
   @Post('platform/invoices')

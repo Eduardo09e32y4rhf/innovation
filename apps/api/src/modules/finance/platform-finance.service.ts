@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, Logger, NotFoundException } from '@nes
 import { InvoiceStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 import { AsaasPayment, AsaasService } from './asaas.service';
+import { PricingService } from './pricing.service';
 import { CreatePlatformInvoiceDto, ListPlatformInvoicesDto, UpdatePlatformInvoiceDto } from './dto/platform-finance.dto';
 
 @Injectable()
@@ -11,6 +12,7 @@ export class PlatformFinanceService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly asaas: AsaasService,
+    private readonly pricingService: PricingService,
   ) {}
 
   async ensureAsaasCustomer(company: any, admin: any) {
@@ -102,14 +104,27 @@ export class PlatformFinanceService {
     });
     if (!company) throw new NotFoundException('Empresa nao encontrada.');
 
-    const amount = company.platformPlan ? Number(company.platformPlan.price) : Number(process.env.DEFAULT_SIGNUP_PRICE || 49.9);
-    if (company.platformPlan?.isFree || amount <= 0) {
-      await this.prisma.company.update({
-        where: { id: company.id },
-        data: { status: 'ACTIVE', isActive: true, billingStatus: 'ACTIVE', suspensionReason: null },
-      });
+    if (company.platformPlan?.isFree || company.billingStatus === 'TRIAL') {
+      if (company.platformPlan?.isFree) {
+        await this.prisma.company.update({
+          where: { id: company.id },
+          data: { status: 'ACTIVE', isActive: true, billingStatus: 'ACTIVE', suspensionReason: null },
+        });
+      }
       return { active: true, paymentUrl: null, invoice: null };
     }
+
+    const plan = company.platformPlan;
+    let amount = plan ? Number(plan.price) : Number(process.env.DEFAULT_SIGNUP_PRICE || 49.9);
+    if (plan && !plan.isFree) {
+      const pricing = this.pricingService.calculate(
+        (plan.commitmentMonths as any) || 1, 
+        company.maxUsers || 1
+      );
+      amount = pricing.total;
+    }
+
+    if (amount <= 0) return { active: true, paymentUrl: null, invoice: null };
     if (!this.asaas.isConfigured()) {
       throw new BadRequestException('A integracao Asaas nao esta configurada.');
     }
@@ -337,7 +352,7 @@ export class PlatformFinanceService {
     });
 
     // Create a new invoice immediately
-    await this.ensureCompanyCheckout(companyId);
+    await this.ensureCompanyOnboardingBilling(companyId);
 
     return { message: 'Plano alterado com sucesso' };
   }
