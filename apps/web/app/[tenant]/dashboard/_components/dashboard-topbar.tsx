@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useAuth } from '@/app/contexts/AuthContext';
 
 export function DashboardTopbar() {
-  const { user, signOut } = useAuth();
+  const { user, logout } = useAuth();
   const searchInputRef = useRef<HTMLInputElement>(null);
   
   return (
@@ -46,7 +46,7 @@ export function DashboardTopbar() {
         </button>
 
         <button 
-          onClick={signOut}
+          onClick={logout}
           className="flex h-11 items-center gap-2 rounded-xl bg-slate-50 px-4 text-sm font-bold text-slate-600 transition-colors hover:bg-slate-100 hover:text-black"
         >
           <LogOut size={18} strokeWidth={2.5} />
