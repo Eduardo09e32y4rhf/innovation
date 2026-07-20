@@ -7,28 +7,38 @@
     "dev": "npm run dev:web",
     "dev:web": "npm --prefix apps/web run dev",
     "dev:api": "npm --prefix apps/api run dev",
-    "dev:canvas": "powershell -ExecutionPolicy Bypass -File scripts/start_agent_canvas.ps1",
-    "dev:canvas:minimal": "powershell -ExecutionPolicy Bypass -File scripts/start_agent_canvas.ps1 -Minimal",
-    "dev:canvas:frontend": "powershell -ExecutionPolicy Bypass -File scripts/start_agent_canvas.ps1 -FrontendOnly",
-    "dev:canvas:backend": "powershell -ExecutionPolicy Bypass -File scripts/start_agent_canvas.ps1 -BackendOnly",
-    "build": "npm run typecheck && npm run build:api && npm run build:web",
+
+    "build": "npm run validate && npm run build:api && npm run build:web",
     "build:api": "npm --prefix apps/api run build",
     "build:web": "npm --prefix apps/web run build",
-    "build:canvas": "npm --prefix agent-canvas run build",
+
     "start:web": "npm --prefix apps/web run start",
     "start:api": "npm --prefix apps/api run start",
-    "typecheck": "npm run typecheck:root && npm run typecheck:web",
-    "typecheck:root": "node scripts/workspace-lint.cjs",
-    "typecheck:web": "npm --prefix apps/web run typecheck",
-    "db:generate": "npm --prefix apps/api run prisma:generate",
+
+    "prisma:format": "npx prisma format --schema apps/api/prisma/schema.prisma",
+    "prisma:validate": "npx prisma validate --schema apps/api/prisma/schema.prisma",
+    "prisma:generate": "npx prisma generate --schema apps/api/prisma/schema.prisma",
+
+    "db:generate": "npm run prisma:generate",
     "db:migrate": "npm --prefix apps/api run prisma:migrate",
     "db:deploy": "npm --prefix apps/api run prisma:deploy",
     "db:studio": "prisma studio --schema apps/api/prisma/schema.prisma",
     "db:seed": "npm --prefix apps/api run seed:mvp",
-    "test:mvp:api": "node scripts/mvp-api-smoke.cjs"
+    "seed:pricing": "npm --prefix apps/api run seed:pricing",
+
+    "lint:web": "npm --prefix apps/web run lint",
+    "typecheck:api": "npm --prefix apps/api run build",
+    "typecheck:web": "npm --prefix apps/web run typecheck",
+
+    "check:workspace": "node scripts/workspace-foundation-check.cjs",
+
+    "test:api": "npm --prefix apps/api test",
+    "test:e2e": "npm --prefix tests-e2e test",
+
+    "validate": "npm run check:workspace && npm run prisma:validate && npm run prisma:generate && npm run lint:web && npm run typecheck:api && npm run typecheck:web"
   },
   "author": "Innovation RH Connect Team",
-  "license": "MIT",
+  "license": "UNLICENSED",
   "devDependencies": {
     "typescript": "^5.8.3"
   },

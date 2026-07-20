@@ -40,7 +40,7 @@ export function CompanyManageModal({ company, onClose, onSave, loading, error }:
       city: '', state: '' 
     };
 
-    const objContent = '<p class="text-[11px] text-slate-700 text-justify mb-2">O presente contrato tem como objeto a licença de uso do software como serviço (SaaS) denominado "Innovation.ia", referente ao plano <strong>' + selectedPlan.name + '</strong>.<'+'/p>';
+    const objContent = '<p class="text-[11px] text-slate-700 text-justify mb-2">O presente contrato tem como objeto a licença de uso do software como serviço (SaaS) denominado "Innovation RH", referente ao plano <strong>' + selectedPlan.name + '</strong>.<'+'/'+'p>';
     const termsContent = '<p class="text-[11px] text-slate-700 text-justify mb-2">1. A CONTRATADA compromete-se a manter a plataforma acessível e funcional, ressalvadas as manutenções programadas.<'+'br><'+'br>2. Em caso de inadimplência (status: Inadimplente), o sistema suspenderá automaticamente o acesso aos módulos contratados, limitando o acesso a funções de administração até a regularização.<'+'br><'+'br>3. O suporte será prestado dentro do horário comercial e os SLAs obedecem a política de suporte estabelecida.<'+'/p>';
     const condGrid = infoGrid([
       { label: 'Plano', value: selectedPlan.name },
@@ -49,7 +49,7 @@ export function CompanyManageModal({ company, onClose, onSave, loading, error }:
       { label: 'Max. Funcionários', value: String(maxEmployees) },
     ]);
     
-    const html = buildPdfShell({ title: 'Contrato de Prestação de Serviços', subtitle: 'Innovation.ia Plataforma' }, pdfCompanyData, section('1. O Objeto', objContent) + section('2. Condições Comerciais', condGrid) + section('3. Termos Gerais', termsContent) + signatureBlock(['Innovation RH System', company.name]));
+    const html = buildPdfShell({ title: 'Contrato de Prestação de Serviços', subtitle: 'Innovation RH Plataforma' }, pdfCompanyData, section('1. O Objeto', objContent) + section('2. Condições Comerciais', condGrid) + section('3. Termos Gerais', termsContent) + signatureBlock(['Innovation RH System', company.name]));
     
     printPdf(html, 'contrato-' + company.id + '.pdf');
   };
