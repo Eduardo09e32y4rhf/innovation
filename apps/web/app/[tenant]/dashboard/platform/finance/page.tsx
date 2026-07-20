@@ -217,7 +217,7 @@ export default function FinancePage({ params: { tenant } }: { params: { tenant: 
           <select value={status} onChange={event => { setStatus(event.target.value as PlatformInvoiceStatus | ''); setPage(1); }} className="h-10 rounded-[8px] border border-slate-200 bg-white px-3 text-xs font-bold text-slate-600 outline-none"><option value="">Todos os status</option>{Object.entries(STATUS).map(([value, item]) => <option key={value} value={value}>{item.label}</option>)}</select>
           <input type="date" value={from} onChange={event => { setFrom(event.target.value); setPage(1); }} className="h-10 rounded-[8px] border border-slate-200 px-3 text-xs text-slate-600 outline-none" />
           <input type="date" value={to} onChange={event => { setTo(event.target.value); setPage(1); }} className="h-10 rounded-[8px] border border-slate-200 px-3 text-xs text-slate-600 outline-none" />
-          <button onClick={refresh} className="flex h-10 w-10 items-center justify-center rounded-[8px] border border-slate-200 text-slate-500 hover:bg-slate-50"><RefreshCw size={14} /></button>
+          <button onClick={refresh} aria-label="Atualizar lista" className="flex h-10 w-10 items-center justify-center rounded-[8px] border border-slate-200 text-slate-500 hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:outline-none"><RefreshCw size={14} aria-hidden="true" /></button>
         </div>
 
         {invoices.error ? <div className="p-6"><ErrorState message={invoices.error} onRetry={invoices.refetch} /></div> : invoices.loading ? <div className="p-10"><LoadingState label="Carregando financeiro..." /></div> : !invoices.data?.items.length ? <div className="p-10"><EmptyState message="Nenhuma fatura encontrada para estes filtros." /></div> : (
@@ -234,8 +234,8 @@ export default function FinancePage({ params: { tenant } }: { params: { tenant: 
                     <td className="px-4 py-4"><span className={`inline-flex rounded-full border px-2.5 py-1 text-[10px] font-black ${STATUS[invoice.status].className}`}>{STATUS[invoice.status].label}</span></td>
                     <td className="px-4 py-4">{invoice.asaasPaymentId ? <span className="inline-flex items-center gap-1 text-[10px] font-bold text-teal-700"><span className="h-1.5 w-1.5 rounded-full bg-teal-500" /> Asaas</span> : <span className="text-[10px] font-bold text-slate-400">Local</span>}</td>
                     <td className="px-5 py-4"><div className="flex justify-end gap-1">
-                      {invoice.invoiceUrl && <a href={invoice.invoiceUrl} target="_blank" rel="noreferrer" title="Abrir cobranca" className="rounded-[7px] p-2 text-slate-500 hover:bg-white hover:text-teal-700 hover:shadow-sm"><ExternalLink size={14} /></a>}
-                      {invoice.asaasPaymentId && <button disabled={workingId === invoice.id} onClick={() => sync(invoice)} title="Sincronizar" className="rounded-[7px] p-2 text-slate-500 hover:bg-white hover:text-teal-700 hover:shadow-sm disabled:opacity-40"><RefreshCw size={14} /></button>}
+                      {invoice.invoiceUrl && <a href={invoice.invoiceUrl} target="_blank" rel="noreferrer" title="Abrir cobranca" aria-label="Abrir cobranca em nova aba" className="rounded-[7px] p-2 text-slate-500 hover:bg-white hover:text-teal-700 hover:shadow-sm focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:outline-none"><ExternalLink size={14} aria-hidden="true" /></a>}
+                      {invoice.asaasPaymentId && <button disabled={workingId === invoice.id} onClick={() => sync(invoice)} title="Sincronizar" aria-label="Sincronizar fatura" className="rounded-[7px] p-2 text-slate-500 hover:bg-white hover:text-teal-700 hover:shadow-sm disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:outline-none"><RefreshCw size={14} aria-hidden="true" /></button>}
                     </div></td>
                   </tr>
                 ))}
