@@ -9,7 +9,7 @@ export class PlatformPlansService {
     const plans = await this.prisma.platformPlan.findMany({
       orderBy: { price: 'asc' },
     });
-    return plans.map((plan: any) => this.serializePlan(plan));
+    return plans.map(plan => this.serializePlan(plan));
   }
 
   async get(id: string) {

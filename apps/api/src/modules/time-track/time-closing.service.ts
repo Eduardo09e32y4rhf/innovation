@@ -1,7 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { $Enums } from '@prisma/client';
-type TimeClosingStatus = $Enums.TimeClosingStatus;
-const TimeClosingStatus = $Enums.TimeClosingStatus;
+import { TimeClosingStatus } from '@prisma/client';
 import type { JwtUser } from '../../common/types/auth.types';
 import { PrismaService } from '../../database/prisma.service';
 import { PayrollCalculationService } from './payroll-calculation.service';
