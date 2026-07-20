@@ -1,7 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import { RedisService } from '../../common/redis/redis.service';
-import { HolidayScope } from '@prisma/client';
+import { $Enums } from '@prisma/client';
+type HolidayScope = $Enums.HolidayScope;
+const HolidayScope = $Enums.HolidayScope;
 
 @Injectable()
 export class HolidaysService {

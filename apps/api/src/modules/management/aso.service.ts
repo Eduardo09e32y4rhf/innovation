@@ -304,10 +304,10 @@ export class AsoService {
         orderBy: { dueDate: 'asc' },
       });
 
-      const expired = allRecords.filter(r => r.dueDate && new Date(r.dueDate) < today && !['CANCELLED'].includes(r.status));
-      const expiringSoon = allRecords.filter(r => r.dueDate && new Date(r.dueDate) >= today && new Date(r.dueDate) <= in30Days);
-      const pending = allRecords.filter(r => r.status === 'PENDING');
-      const inapto = allRecords.filter(r => r.status === 'EXPIRED');
+      const expired = allRecords.filter((r: any) => r.dueDate && new Date(r.dueDate) < today && !['CANCELLED'].includes(r.status));
+      const expiringSoon = allRecords.filter((r: any) => r.dueDate && new Date(r.dueDate) >= today && new Date(r.dueDate) <= in30Days);
+      const pending = allRecords.filter((r: any) => r.status === 'PENDING');
+      const inapto = allRecords.filter((r: any) => r.status === 'EXPIRED');
 
       const items: any[] = [];
 
@@ -367,7 +367,7 @@ export class AsoService {
       return {
         asoExpired: expired.length,
         asoExpiringSoon: expiringSoon.length,
-        pendingAdmissionAso: pending.filter(r => r.asoType === 'ADMISSIONAL').length,
+        pendingAdmissionAso: pending.filter((r: any) => r.asoType === 'ADMISSIONAL').length,
         pendingTotal: pending.length,
         inaptoCount: inapto.length,
         items,

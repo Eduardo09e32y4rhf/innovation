@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { InvoiceStatus, Prisma } from '@prisma/client';
+import { Prisma, $Enums } from '@prisma/client';
+type InvoiceStatus = $Enums.InvoiceStatus;
 import { PrismaService } from '../../database/prisma.service';
 import { AsaasPayment, AsaasService } from './asaas.service';
 import { PricingService } from './pricing.service';
