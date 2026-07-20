@@ -40,13 +40,36 @@ export class DashboardRepository {
       this.prisma.employee.count({ where: { ...employeeWhere, admissionDate: { gte: startOfMonth, lt: endOfMonth } } }),
       this.prisma.employee.count({ where: { ...employeeWhere, terminationDate: { gte: startOfMonth, lt: endOfMonth } } }),
     ]) : [0, 0, 0, 0];
-    const birthdaysToday = employees.filter((employee: any) => employee.birthDate && employee.birthDate.getUTCMonth() + 1 === month && employee.birthDate.getUTCDate() === day).slice(0, 8);
-    const birthdaysThisMonth = employees.filter((employee: any) => employee.birthDate && employee.birthDate.getUTCMonth() + 1 === month).slice(0, 12);
-    const missingUser = employees.filter((employee: any) => employee.status === 'ACTIVE' && !employee.userId).length;
-    const missingManager = employees.filter((employee: any) => employee.status === 'ACTIVE' && !employee.managerId).length;
-    const missingCpf = employees.filter((employee: any) => !employee.cpf).length;
-    const missingWorkScale = employees.filter((employee: any) => employee.status === 'ACTIVE' && !employee.workScale).length;
-    const missingWorkload = employees.filter((employee: any) => employee.status === 'ACTIVE' && !employee.dailyWorkload).length;
+    // ⚡ Bolt Performance Optimization:
+    // Consolidated 7 multiple O(N) .filter() array passes into a single O(N) for...of loop
+    // to significantly reduce CPU cycles and prevent redundant memory allocations.
+    const birthdaysToday: any[] = [];
+    const birthdaysThisMonth: any[] = [];
+    let missingUser = 0;
+    let missingManager = 0;
+    let missingCpf = 0;
+    let missingWorkScale = 0;
+    let missingWorkload = 0;
+
+    for (const employee of employees) {
+      if (employee.birthDate && employee.birthDate.getUTCMonth() + 1 === month) {
+        if (birthdaysThisMonth.length < 12) {
+          birthdaysThisMonth.push(employee);
+        }
+        if (employee.birthDate.getUTCDate() === day && birthdaysToday.length < 8) {
+          birthdaysToday.push(employee);
+        }
+      }
+
+      if (!employee.cpf) missingCpf++;
+
+      if (employee.status === 'ACTIVE') {
+        if (!employee.userId) missingUser++;
+        if (!employee.managerId) missingManager++;
+        if (!employee.workScale) missingWorkScale++;
+        if (!employee.dailyWorkload) missingWorkload++;
+      }
+    }
     const company = await this.prisma.company.findUnique({ where: { id: companyId }, select: { name: true, document: true, logoUrl: true } });
     return {
       birthdaysToday: birthdaysToday.map((employee: any) => ({ id: employee.id, name: employee.name, birthDate: employee.birthDate })),

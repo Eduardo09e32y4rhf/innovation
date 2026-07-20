@@ -1,0 +1,3 @@
+## 2026-07-20 - Optimize Multiple Array Passes in Dashboard Aggregations
+**Learning:** Found multiple sequential `.filter()` and `.slice()` array traversals being used on the large `employees` collection in `dashboard.repository.ts` to compute metrics (birthdays, missing attributes, etc.), which is O(N * 7) and creates significant redundant memory allocations for intermediate arrays.
+**Action:** Consolidate multiple sequential `.filter()` and `.map()` calls on large collections into a single O(N) `for...of` loop to calculate all necessary aggregates simultaneously, significantly reducing CPU cycles and improving dashboard response times.
