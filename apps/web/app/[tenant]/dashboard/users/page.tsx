@@ -17,8 +17,6 @@ import { UserPasswordResetModal } from './_components/user-password-reset-modal'
 const ALL_ROLES: UserRole[] = ['DEV', 'COMERCIAL', 'ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'];
 const COMPANY_ROLES: UserRole[] = ['ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'];
 const RH_ROLES: UserRole[] = ['RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'];
-const PLATFORM_OWNER_EMAIL = 'eduardo998468@gmail.com';
-
 const ROLE_MANAGEMENT: Record<UserRole, UserRole[]> = {
   DEV: ['DEV', 'COMERCIAL', 'ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'],
   COMERCIAL: [],
@@ -28,6 +26,9 @@ const ROLE_MANAGEMENT: Record<UserRole, UserRole[]> = {
   FUNCIONARIO: [],
   CONSULTA: [],
 };
+
+// SEGURANÇA: e-mail do DEV proprietário — lido de variável de ambiente pública
+const PLATFORM_OWNER_EMAIL = (process.env.NEXT_PUBLIC_PLATFORM_OWNER_EMAIL ?? '').toLowerCase();
 
 function getAvailableRoles(currentRole?: string, email?: string): UserRole[] {
   if (currentRole === 'DEV' && email?.toLowerCase() === PLATFORM_OWNER_EMAIL) return ALL_ROLES;

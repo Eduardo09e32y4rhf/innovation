@@ -14,23 +14,36 @@ export function validateEnv(config: Record<string, unknown>) {
   }
 
   if (process.env.NODE_ENV === 'production') {
-    // if (!config.ALLOWED_ORIGINS) {
-    //   throw new Error('ALLOWED_ORIGINS is required in production.');
-    // }
-    // if (!config.ASAAS_WEBHOOK_SECRET) {
-    //   throw new Error('ASAAS_WEBHOOK_SECRET is required in production.');
-    // }
+    if (!config.ALLOWED_ORIGINS) {
+      throw new Error('ALLOWED_ORIGINS is required in production.');
+    }
+    if (!config.ASAAS_WEBHOOK_TOKEN && !config.ASAAS_WEBHOOK_SECRET) {
+      throw new Error('ASAAS_WEBHOOK_TOKEN is required in production.');
+    }
+    if (!config.PLATFORM_OWNER_EMAIL) {
+      throw new Error('PLATFORM_OWNER_EMAIL is required in production.');
+    }
 
     const jwtSecret = String(config.JWT_SECRET ?? '');
-    // if (jwtSecret.length < 32 || jwtSecret.startsWith('TROQUE_') || jwtSecret.includes('local-development')) {
-    //   throw new Error('JWT_SECRET must be a strong production secret with at least 32 characters.');
-    // }
+    if (
+      jwtSecret.length < 32 ||
+      jwtSecret.startsWith('TROQUE_') ||
+      jwtSecret.includes('local-development')
+    ) {
+      throw new Error('JWT_SECRET must be a strong production secret with at least 32 characters.');
+    }
 
     const databaseUrl = String(config.DATABASE_URL ?? '');
-    const isLocalDatabase = /@(localhost|127\.0\.0\.1|postgres|db|pgbouncer|innovation-postgres)(:|\/)/i.test(databaseUrl);
-    // if (databaseUrl.startsWith('postgres') && !isLocalDatabase && !/sslmode=(require|verify-ca|verify-full)/i.test(databaseUrl)) {
-    //   throw new Error('Production DATABASE_URL for remote PostgreSQL must require SSL. Add sslmode=require or stronger.');
-    // }
+    const isLocalDatabase = /@(localhost|127\.0\.0\.1|postgres|db|pgbouncer|innovation-postgres)(:|\/)/.test(databaseUrl);
+    if (
+      databaseUrl.startsWith('postgres') &&
+      !isLocalDatabase &&
+      !/sslmode=(require|verify-ca|verify-full)/i.test(databaseUrl)
+    ) {
+      throw new Error(
+        'Production DATABASE_URL for remote PostgreSQL must require SSL. Add sslmode=require or stronger.',
+      );
+    }
   }
 
   return config;

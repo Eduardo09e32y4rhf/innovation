@@ -8,7 +8,8 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import type { UserRole } from '../../common/types/auth.types';
 import { UsersRepository } from './users.repository';
 
-const PLATFORM_OWNER_EMAIL = 'eduardo998468@gmail.com';
+// SEGURANÇA: e-mail do DEV proprietário da plataforma — definido via variável de ambiente
+const PLATFORM_OWNER_EMAIL = (process.env.PLATFORM_OWNER_EMAIL ?? '').toLowerCase();
 
 const ROLE_MANAGEMENT: Record<string, string[]> = {
   DEV: ['DEV', 'COMERCIAL', 'ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'],

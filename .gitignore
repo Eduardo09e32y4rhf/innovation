@@ -179,3 +179,9 @@ yarn.lock
 
 # Local external Agent Canvas checkout; do not publish bundled repo/cache.
 agent-canvas/
+
+# Backups de banco — nunca commitar
+backup_*.sql
+*.dump
+*.backup
+backup_before_recovery.sql

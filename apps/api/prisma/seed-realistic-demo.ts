@@ -64,7 +64,11 @@ async function main() {
   console.log('🚀 Iniciando script de seed de dados reais (Demo Profissional)...');
 
   // 1. Proteger e garantir usuário MASTER
-  const masterEmail = 'eduardo998468@gmail.com';
+  // SEGURANÇA: e-mail do DEV deve ser definido via variável de ambiente DEV_EMAIL
+  const masterEmail = process.env.DEV_EMAIL;
+  if (!masterEmail) {
+    throw new Error('DEV_EMAIL não definido. Defina esta variável de ambiente antes de executar o seed.');
+  }
   console.log(`🛡️  Garantindo preservação do master: ${masterEmail}`);
 
   // 2. Limpeza Idempotente de antigos Demos (com cuidado para não apagar o master)
@@ -130,12 +134,16 @@ async function main() {
       data: { companyId: company.id }
     });
   } else if (!masterUser) {
+    const devPassword = process.env.DEV_SEED_PASSWORD;
+    if (!devPassword) {
+      throw new Error('DEV_SEED_PASSWORD não definido. Defina esta variável de ambiente antes de executar o seed.');
+    }
     await prisma.user.create({
       data: {
         email: masterEmail,
         name: 'Eduardo Dev',
         role: UserRole.DEV,
-        passwordHash: await bcrypt.hash('Innovation@123', 10),
+        passwordHash: await bcrypt.hash(devPassword, 10),
         companyId: company.id,
       }
     });
@@ -181,7 +189,11 @@ async function main() {
 
   // 5. Inserir Colaboradores e Usuários
   console.log('👥 Injetando 24 Colaboradores Profissionais e Usuários de Acesso...');
-  const defaultPassword = await bcrypt.hash('Innovation@123', 10);
+  const seedPassword = process.env.SEED_DEFAULT_PASSWORD;
+  if (!seedPassword) {
+    throw new Error('SEED_DEFAULT_PASSWORD não definido. Defina esta variável de ambiente antes de executar o seed.');
+  }
+  const defaultPassword = await bcrypt.hash(seedPassword, 10);
   
   const createdEmployees = [];
 

@@ -20,7 +20,8 @@ import type { JwtUser, UserRole } from '../../common/types/auth.types';
 import { NotificationsService } from '../notifications/notifications.service';
 import { PlatformFinanceService } from '../finance/platform-finance.service';
 
-const PLATFORM_OWNER_EMAIL = 'eduardo998468@gmail.com';
+// SEGURANÇA: e-mail do DEV proprietário da plataforma — definido via variável de ambiente
+const PLATFORM_OWNER_EMAIL = (process.env.PLATFORM_OWNER_EMAIL ?? '').toLowerCase();
 const LOGIN_DENIED_MESSAGE = 'Nao foi possivel entrar';
 const PASSWORD_MAX_AGE_DAYS = 30;
 const PASSWORD_RESET_PURPOSE = 'PASSWORD_RESET';

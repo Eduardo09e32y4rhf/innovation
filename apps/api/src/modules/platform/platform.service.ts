@@ -9,7 +9,8 @@ import { UpdatePlatformCompanyDto } from './dto/update-platform-company.dto';
 import { UpdatePlatformCompanyUserDto } from './dto/update-platform-company-user.dto';
 import { PlatformRepository } from './platform.repository';
 
-const PLATFORM_OWNER_EMAIL = 'eduardo998468@gmail.com';
+// SEGURANÇA: e-mail do DEV proprietário da plataforma — definido via variável de ambiente
+const PLATFORM_OWNER_EMAIL = (process.env.PLATFORM_OWNER_EMAIL ?? '').toLowerCase();
 const PROTECTED_PLATFORM_ROLES = ['DEV', 'COMERCIAL'];
 
 import { NotificationsService } from '../notifications/notifications.service';
