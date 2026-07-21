@@ -348,6 +348,7 @@ model Company {
   financeNotifLogs  FinanceNotificationLog[]
   subscription      CompanySubscription?
   couponRedemptions CouponRedemption[]
+  manualContracts   ManualContract[]
 
   // Módulo Escala
   schedules          Schedule[]
@@ -1285,7 +1286,8 @@ model PlatformPlan {
 
   companies Company[]
   invoices      PlatformInvoice[]
-  subscriptions CompanySubscription[]
+  subscriptions  CompanySubscription[]
+  manualContracts ManualContract[]
 }
 
 model PlatformInvoice {
@@ -1681,4 +1683,30 @@ model CouponRedemption {
 
   @@index([couponId])
   @@index([companyId])
+}
+
+
+model ManualContract {
+  id                     String   @id @default(uuid()) @db.Uuid
+  companyId              String   @db.Uuid
+  planId                 String?  @db.Uuid
+  seatQuantity           Int
+  agreedAmount           Decimal  @db.Decimal(10, 2)
+  startsAt               DateTime
+  endsAt                 DateTime?
+  paymentMethod          String
+  externalContractNumber String?
+  notes                  String   @db.Text
+  documentUrl            String?
+  status                 String   @default("ACTIVE")
+  createdBy              String   @db.Uuid
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  company Company       @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  plan    PlatformPlan? @relation(fields: [planId], references: [id], onDelete: SetNull)
+
+  @@index([companyId, status])
+  @@index([startsAt, endsAt])
+  @@index([createdBy])
 }
