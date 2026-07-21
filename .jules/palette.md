@@ -1,0 +1,3 @@
+## 2025-01-28 - Focus Styles & Accessibility for Password Toggles
+**Learning:** Icon-only password toggles within absolute positioned input containers often lack `aria-label`s, `aria-hidden` attributes on icons, and keyboard focus visibility (`focus-visible:ring-2`), leading to poor screen reader experiences and invisible focus navigation for keyboard users.
+**Action:** When auditing forms, ensure `aria-label` handles dynamic state ('Mostrar senha' vs 'Ocultar senha'), icons are decorative (`aria-hidden="true"`), and use `focus-visible:ring-inset` for interactive elements positioned inside container borders to avoid clipping.
