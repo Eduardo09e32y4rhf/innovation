@@ -1600,3 +1600,21 @@ model ScheduleSwapRequest {
   @@index([originalDate])
   @@map("schedule_swap_requests")
 }
+
+
+model AsaasWebhookEvent {
+  id           String   @id @default(cuid())
+  asaasEventId String   @unique
+  eventType    String
+  payload      Json
+  status       String   @default("PENDING")
+  attempts     Int      @default(0)
+  processedAt  DateTime?
+  errorMessage String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([status])
+  @@index([eventType])
+  @@index([createdAt])
+}
