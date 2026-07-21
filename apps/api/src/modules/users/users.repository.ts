@@ -61,7 +61,7 @@ export class UsersRepository {
   findByIdWithPassword(id: string, companyId?: string) {
     return this.prisma.user.findFirst({ 
       where: { id, ...(companyId ? { companyId } : {}) }, 
-      select: { ...safeUserSelect, passwordHash: true } 
+      select: { ...safeUserSelect, passwordHash: true, previousPasswords: true } 
     });
   }
 
@@ -70,7 +70,13 @@ export class UsersRepository {
   }
 
   countByCompany(companyId: string) {
-    return this.prisma.user.count({ where: { companyId } });
+    return this.prisma.user.count({
+      where: {
+        companyId,
+        isActive: true,
+        role: { in: ['ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'] },
+      },
+    });
   }
 
   getCompanyLimits(companyId: string) {
@@ -80,9 +86,8 @@ export class UsersRepository {
         plan: true, 
         status: true, 
         billingStatus: true,
-        maxUsers: true,
-        platformPlan: {
-          select: { maxUsers: true },
+        subscription: {
+          select: { seatQuantity: true },
         },
       },
     });
