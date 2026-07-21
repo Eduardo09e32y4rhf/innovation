@@ -100,8 +100,8 @@ export class PlatformService {
       adminPasswordHash: await bcrypt.hash(dto.adminPassword, 12),
       commercialOwnerId: actor.role === 'COMERCIAL' ? actor.sub : null,
       plan: isFree ? 'FREE' : 'PRO',
-      billingStatus: isFree ? 'ACTIVE' : 'TRIAL',
-      trialEndsAt: isFree ? undefined : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      billingStatus: isFree ? 'ACTIVE' : 'PENDING_PAYMENT',
+      trialEndsAt: undefined,
       platformPlanId: selectedPlan?.id,
     });
 
@@ -206,8 +206,9 @@ export class PlatformService {
     if (existing) throw new ConflictException('E-mail ja cadastrado');
 
     const count = await this.repository.countUsers(companyId);
-    if (count >= (company.plan === 'PRO' ? 9999 : company.plan === 'BASE' ? 20 : 6)) {
-      throw new ForbiddenException(`Limite de usuarios atingido para esta empresa.`);
+    const limit = company.subscription?.seatQuantity ?? 1;
+    if (count >= limit) {
+      throw new ForbiddenException({ code: 'SEAT_LIMIT_REACHED', message: 'A empresa utiliza todas as licencas contratadas.', used: count, limit });
     }
 
     return this.repository.createCompanyUser({
