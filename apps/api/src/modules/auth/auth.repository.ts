@@ -54,6 +54,84 @@ export class AuthRepository {
     });
   }
 
+  findCouponByCode(code: string) {
+    return this.prisma.promotionCoupon.findUnique({ where: { code: code.trim().toUpperCase() } });
+  }
+
+  createSubscription(data: {
+    companyId: string;
+    planId: string;
+    status: string;
+    seatQuantity: number;
+    pricingVersion?: string | null;
+    baseMonthlyPrice?: unknown;
+    userMonthlyPrice?: unknown;
+    discountPercent?: unknown;
+  }) {
+    return this.prisma.companySubscription.upsert({
+      where: { companyId: data.companyId },
+      create: data as any,
+      update: data as any,
+    });
+  }
+
+  redeemTrialCoupon(data: {
+    companyId: string;
+    couponId: string;
+    documentHash: string;
+    trialDays: number;
+    planId: string;
+    seatQuantity: number;
+    pricingVersion?: string | null;
+    baseMonthlyPrice?: unknown;
+    userMonthlyPrice?: unknown;
+    discountPercent?: unknown;
+  }) {
+    return this.prisma.$transaction(async (tx) => {
+      const now = new Date();
+      const coupon = await tx.promotionCoupon.findUnique({ where: { id: data.couponId } });
+      if (!coupon || !coupon.isActive || (coupon.startsAt && coupon.startsAt > now) || (coupon.expiresAt && coupon.expiresAt < now)) {
+        return { applied: false as const, reason: 'COUPON_INVALID' };
+      }
+      if (coupon.maxRedemptions !== null && coupon.redemptionCount >= coupon.maxRedemptions) {
+        return { applied: false as const, reason: 'COUPON_LIMIT_REACHED' };
+      }
+      const alreadyRedeemed = await tx.couponRedemption.findUnique({ where: { documentHash: data.documentHash } });
+      if (alreadyRedeemed) return { applied: false as const, reason: 'TRIAL_ALREADY_USED' };
+
+      const trialEndsAt = new Date(now);
+      trialEndsAt.setUTCDate(trialEndsAt.getUTCDate() + data.trialDays);
+
+      await tx.couponRedemption.create({
+        data: { couponId: coupon.id, companyId: data.companyId, documentHash: data.documentHash },
+      });
+      await tx.promotionCoupon.update({ where: { id: coupon.id }, data: { redemptionCount: { increment: 1 } } });
+      await tx.company.update({
+        where: { id: data.companyId },
+        data: { status: 'ACTIVE', isActive: true, billingStatus: 'TRIAL', trialEndsAt, suspensionReason: null },
+      });
+      await tx.companySubscription.create({
+        data: {
+          companyId: data.companyId,
+          planId: data.planId,
+          status: 'TRIAL',
+          seatQuantity: data.seatQuantity,
+          trialStartedAt: now,
+          trialEndsAt,
+          pricingVersion: data.pricingVersion,
+          baseMonthlyPrice: data.baseMonthlyPrice as any,
+          userMonthlyPrice: data.userMonthlyPrice as any,
+          discountPercent: data.discountPercent as any,
+        },
+      });
+      return { applied: true as const, trialEndsAt };
+    }, { isolationLevel: 'Serializable' });
+  }
+
+  deleteIncompleteCompany(id: string) {
+    return this.prisma.company.delete({ where: { id } });
+  }
+
   createCompanyWithAdmin(data: {
     companyName: string;
     document: string;
