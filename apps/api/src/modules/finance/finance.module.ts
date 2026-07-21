@@ -27,6 +27,6 @@ import { QueueModule } from '../queue/queue.module';
     CompanyBillingController,
     AsaasWebhookController,
   ],
-  exports: [AsaasService, PlatformFinanceService, FinanceNotificationService],
+  exports: [AsaasService, PlatformFinanceService, FinanceNotificationService, PricingService],
 })
 export class FinanceModule {}
