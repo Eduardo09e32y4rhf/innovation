@@ -18,6 +18,8 @@ import {
 } from 'lucide-react';
 import { api, type PublicPlatformPlan } from '@/app/lib/api';
 import { PricingSection } from '../_components/pricing-section';
+import { persistAuthSession } from '@/app/lib/auth-session';
+import type { Company, User } from '@/app/contexts/AuthContext';
 
 function CadastroForm() {
   const router = useRouter();
@@ -34,6 +36,8 @@ function CadastroForm() {
     phone: '',
     password: '',
     planId: initialPlanId,
+    seatQuantity: Number(initialSeats) || 1,
+    couponCode: '',
   });
 
   const [showPassword, setShowPassword] = useState(false);
@@ -76,20 +80,27 @@ function CadastroForm() {
         email: formData.email,
         phone: formData.phone.replace(/\D/g, ''),
         password: formData.password,
-        planId: formData.planId || undefined,
-        // TODO: Passar seatQuantity para a API na próxima fase (Fase 4/6)
-        // seatQuantity: Number(initialSeats),
+        planId: formData.planId,
+        seatQuantity: formData.seatQuantity,
+        couponCode: formData.couponCode || undefined,
       });
 
+      const sessionUser: User = {
+        id: response.user.sub,
+        name: response.user.name,
+        email: response.user.email,
+        profile: String(response.user.role).toLowerCase(),
+        role: response.user.role,
+        companyId: response.user.companyId,
+        companyStatus: response.user.companyStatus,
+        billingStatus: response.user.billingStatus,
+      };
+      const sessionCompany: Company = response.company;
+      persistAuthSession(response.access_token, sessionUser, sessionCompany, Boolean(response.passwordChangeRequired), false);
       setSuccess(true);
-      
-      setTimeout(() => {
-        if (response.paymentUrl) {
-          window.location.href = response.paymentUrl;
-        } else {
-          router.push('/login?cadastro=concluido');
-        }
-      }, 2000);
+
+      const tenant = response.company.slug || response.company.id;
+      router.replace(`/${tenant}/fatura-pendente?autoCheckout=1`);
       
     } catch (err: any) {
       setError(err instanceof Error ? err.message : 'Erro ao criar conta. Tente novamente.');
@@ -132,7 +143,7 @@ function CadastroForm() {
             <ShieldCheck size={28} strokeWidth={2.5} />
           </div>
           <h1 className="text-2xl font-black tracking-tight text-white">Innovation RH</h1>
-          <p className="mt-1 text-sm font-medium text-slate-400">Crie sua conta e comece agora (7 dias grátis)</p>
+          <p className="mt-1 text-sm font-medium text-slate-400">Crie sua empresa e escolha o plano ideal</p>
         </div>
 
         <div className="overflow-hidden rounded-[24px] border border-white/10 bg-slate-900/60 p-8 shadow-2xl backdrop-blur-xl animate-in fade-in slide-in-from-bottom-8 duration-700 delay-150 fill-mode-backwards">
@@ -198,6 +209,26 @@ function CadastroForm() {
                   type="text" required name="phone" value={formData.phone} onChange={handleChange}
                   placeholder="WhatsApp"
                   className="h-12 w-full rounded-xl border border-white/10 bg-black/20 pl-11 pr-4 text-sm font-medium text-white placeholder-slate-600 outline-none focus:border-teal-500 focus:bg-black/40 focus:ring-1 focus:ring-teal-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <input
+                  type="number"
+                  min={1}
+                  max={10000}
+                  required
+                  value={formData.seatQuantity}
+                  onChange={(event) => setFormData((previous) => ({ ...previous, seatQuantity: Number(event.target.value) || 1 }))}
+                  placeholder="Quantidade de usuários"
+                  className="h-12 w-full rounded-xl border border-white/10 bg-black/20 px-4 text-sm font-medium text-white outline-none focus:border-teal-500"
+                />
+                <input
+                  type="text"
+                  value={formData.couponCode}
+                  onChange={(event) => setFormData((previous) => ({ ...previous, couponCode: event.target.value.toUpperCase() }))}
+                  placeholder="Cupom promocional (opcional)"
+                  className="h-12 w-full rounded-xl border border-white/10 bg-black/20 px-4 text-sm font-medium text-white outline-none focus:border-teal-500"
                 />
               </div>
 
