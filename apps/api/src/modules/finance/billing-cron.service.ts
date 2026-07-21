@@ -43,6 +43,23 @@ export class BillingCronService {
     }
   }
 
+  @Cron('30 4 * * *')
+  async checkExpiredManualContracts() {
+    const now = new Date();
+    const expired = await this.prisma.manualContract.findMany({
+      where: { status: 'ACTIVE', endsAt: { lt: now } },
+      select: { id: true, companyId: true },
+    });
+    for (const contract of expired) {
+      await this.prisma.$transaction([
+        this.prisma.manualContract.update({ where: { id: contract.id }, data: { status: 'ENDED' } }),
+        this.prisma.companySubscription.updateMany({ where: { companyId: contract.companyId, status: 'MANUAL_CONTRACT' }, data: { status: 'ENDED' } }),
+        this.prisma.company.update({ where: { id: contract.companyId }, data: { status: 'SUSPENDED', isActive: false, billingStatus: 'PAST_DUE', suspensionReason: 'contrato_manual_expirado' } }),
+      ]);
+    }
+    if (expired.length) this.logger.log(`${expired.length} contrato(s) manual(is) encerrado(s).`);
+  }
+
   // ─── Suspensão por inadimplência — 08:00 diariamente ────────────────────────
 
   @Cron('0 8 * * *')
