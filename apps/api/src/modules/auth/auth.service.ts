@@ -44,11 +44,13 @@ export class AuthService {
   async registerCompany(dto: RegisterCompanyDto) {
     const email = dto.email.trim().toLowerCase();
     const document = dto.document.replace(/\D/g, '');
+    this.assertValidDocument(document);
+    this.assertStrongPassword(dto.password);
     const existing = await this.repository.findUserByEmail(email);
-    if (existing) throw new ConflictException('Este e-mail ja esta cadastrado. Entre na sua conta para continuar.');
+    if (existing) throw new ConflictException({ code: 'EMAIL_ALREADY_EXISTS', message: 'Este e-mail ja esta cadastrado. Entre na sua conta para continuar.' });
     const existingCompany = await this.repository.findCompanyByDocument(document);
     if (existingCompany) {
-      throw new ConflictException('Este CPF/CNPJ ja possui uma empresa cadastrada. Entre com o administrador existente.');
+      throw new ConflictException({ code: 'COMPANY_DOCUMENT_EXISTS', message: 'Este CPF/CNPJ ja possui uma empresa cadastrada. Entre com o administrador existente.' });
     }
 
     const selectedPlan = await this.repository.findPublicPlan(dto.planId);
@@ -344,6 +346,34 @@ export class AuthService {
     if (Number.isNaN(changedAt.getTime())) return true;
     const ageMs = Date.now() - changedAt.getTime();
     return ageMs >= PASSWORD_MAX_AGE_DAYS * 24 * 60 * 60 * 1000;
+  }
+
+  private assertValidDocument(document: string) {
+    const digits = document.split('').map(Number);
+    if (![11, 14].includes(digits.length) || /^(\d)\1+$/.test(document)) {
+      throw new BadRequestException({ code: 'INVALID_DOCUMENT', message: 'Informe um CPF ou CNPJ valido.' });
+    }
+    const validCpf = () => {
+      const calculate = (length: number) => {
+        let sum = 0;
+        for (let index = 0; index < length; index += 1) sum += digits[index] * (length + 1 - index);
+        const remainder = (sum * 10) % 11;
+        return remainder === 10 ? 0 : remainder;
+      };
+      return calculate(9) === digits[9] && calculate(10) === digits[10];
+    };
+    const validCnpj = () => {
+      const calculate = (length: number) => {
+        const weights = length === 12 ? [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2] : [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+        const sum = weights.reduce((total, weight, index) => total + digits[index] * weight, 0);
+        const remainder = sum % 11;
+        return remainder < 2 ? 0 : 11 - remainder;
+      };
+      return calculate(12) === digits[12] && calculate(13) === digits[13];
+    };
+    if ((digits.length === 11 && !validCpf()) || (digits.length === 14 && !validCnpj())) {
+      throw new BadRequestException({ code: 'INVALID_DOCUMENT', message: 'Informe um CPF ou CNPJ valido.' });
+    }
   }
 
   private assertStrongPassword(password: string) {
