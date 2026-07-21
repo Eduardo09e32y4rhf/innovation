@@ -1,17 +1,18 @@
-import { Controller, Post, Get, UseGuards, Req, Res, BadRequestException } from '@nestjs/common';
-import { FastifyReply, FastifyRequest } from 'fastify';
+import { BadRequestException, Body, Controller, Get, Post, Req, Res, UseGuards } from '@nestjs/common';
+import type { FastifyReply, FastifyRequest } from 'fastify';
 import type { MultipartFile } from '@fastify/multipart';
+import { ApiBearerAuth, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import type { JwtUser } from '../../common/types/auth.types';
 import { EmployeesImportService } from './employees-import.service';
-import { ApiTags, ApiOperation, ApiConsumes, ApiBearerAuth } from '@nestjs/swagger';
 
 interface MultipartFastifyRequest extends FastifyRequest {
   isMultipart: () => boolean;
   file: () => Promise<MultipartFile | undefined>;
 }
-
-import { RolesGuard } from '../../common/guards/roles.guard';
-import { Roles } from '../../common/decorators/roles.decorator';
 
 @ApiTags('Employees Import')
 @ApiBearerAuth()
@@ -22,35 +23,38 @@ export class EmployeesImportController {
   constructor(private readonly importService: EmployeesImportService) {}
 
   @Get('template')
-  @ApiOperation({ summary: 'Download do modelo de importação de funcionários (.xlsx)' })
-  async downloadTemplate(@Res() reply: FastifyReply) {
-    const buffer = this.importService.generateTemplate();
+  @ApiOperation({ summary: 'Download do modelo seguro de importação (.xlsx)' })
+  downloadTemplate(@Res() reply: FastifyReply) {
     reply
       .header('Content-Disposition', 'attachment; filename="modelo_importacao_funcionarios.xlsx"')
       .type('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-      .send(buffer);
+      .send(this.importService.generateTemplate());
   }
 
-  @Post()
-  @ApiOperation({ summary: 'Importa funcionários via arquivo .xlsx' })
+  @Post('validate')
   @ApiConsumes('multipart/form-data')
-  async importEmployees(@Req() req: MultipartFastifyRequest) {
-    if (!req.isMultipart()) {
-      throw new BadRequestException('Requisição deve ser multipart/form-data');
-    }
+  async validate(@Req() req: MultipartFastifyRequest) {
+    const { companyId } = this.getActor(req);
+    const file = await this.readFile(req);
+    return this.importService.validate(companyId, file);
+  }
 
-    const data = await req.file();
-    if (!data) {
-      throw new BadRequestException('Nenhum arquivo enviado');
-    }
+  @Post('confirm')
+  confirm(@Req() req: FastifyRequest, @CurrentUser() user: JwtUser, @Body() body: { importToken?: string }) {
+    if (!body.importToken) throw new BadRequestException('importToken é obrigatório.');
+    return this.importService.confirm(user.companyId, user.sub, body.importToken);
+  }
 
-    const buffer = await data.toBuffer();
-    const companyId = (req as any).user?.companyId;
+  private getActor(req: FastifyRequest): JwtUser {
+    const user = (req as any).user as JwtUser | undefined;
+    if (!user?.companyId) throw new BadRequestException('Empresa não identificada.');
+    return user;
+  }
 
-    if (!companyId) {
-      throw new BadRequestException('Empresa não identificada');
-    }
-
-    return this.importService.importEmployees(companyId, buffer);
+  private async readFile(req: MultipartFastifyRequest) {
+    if (!req.isMultipart()) throw new BadRequestException('Requisição deve ser multipart/form-data.');
+    const file = await req.file();
+    if (!file) throw new BadRequestException('Nenhum arquivo enviado.');
+    return { filename: file.filename, mimetype: file.mimetype, buffer: await file.toBuffer() };
   }
 }
