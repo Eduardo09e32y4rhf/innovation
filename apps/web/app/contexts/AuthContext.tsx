@@ -26,6 +26,10 @@ export interface User {
 export interface Company {
   id: string;
   name: string;
+  slug?: string;
+  status?: string;
+  billingStatus?: string;
+  isActive?: boolean;
 }
 
 interface AuthContextType {
@@ -219,7 +223,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
-        signal: AbortSignal.timeout(3000),
+        signal: AbortSignal.timeout(15000),
       });
 
       if (!response.ok) {
@@ -240,9 +244,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         companyStatus: authData.user.companyStatus,
         billingStatus: authData.user.billingStatus,
       };
-      const nextCompany: Company = {
+      const nextCompany: Company = authData.company ?? {
         id: authData.user.companyId,
-        name: 'Innovation RH System',
+        name: authData.user.companyId,
+        slug: authData.user.companyId,
       };
       const mustChangePassword = Boolean(authData.passwordChangeRequired);
       setToken(nextToken);
