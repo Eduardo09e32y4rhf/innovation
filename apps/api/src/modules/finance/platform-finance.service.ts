@@ -258,6 +258,10 @@ export class PlatformFinanceService {
     }
 
     return {
+      active: company.status === 'ACTIVE' && ['ACTIVE', 'TRIAL'].includes(company.billingStatus),
+      paymentUrl: currentInvoiceData?.invoiceUrl ?? null,
+      invoice: currentInvoiceData,
+      currentInvoice: currentInvoiceData,
       company: {
         id: company.id,
         status: company.status,
