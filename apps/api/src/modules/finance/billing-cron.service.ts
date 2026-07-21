@@ -32,8 +32,9 @@ export class BillingCronService {
           where: { id: company.id },
           data: {
             status: 'SUSPENDED',
-            billingStatus: 'PENDING_PAYMENT',
-            suspensionReason: 'Período de teste expirado',
+            billingStatus: 'PAST_DUE',
+            isActive: false,
+            suspensionReason: 'trial_expirado',
           },
         });
       }
@@ -96,7 +97,8 @@ export class BillingCronService {
             data: {
               status: 'SUSPENDED',
               billingStatus: 'PAST_DUE',
-              suspensionReason: 'Falta de pagamento (inadimplência)',
+              isActive: false,
+              suspensionReason: 'inadimplencia',
             },
           });
         }
