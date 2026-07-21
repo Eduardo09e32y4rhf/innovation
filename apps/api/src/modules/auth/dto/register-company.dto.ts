@@ -25,7 +25,10 @@ export class RegisterCompanyDto {
   email!: string;
 
   @IsString()
-  @MinLength(8)
+  @MinLength(10)
+  @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).+$/, {
+    message: 'A senha precisa conter letra maiuscula, minuscula, numero e simbolo.',
+  })
   password!: string;
 
   @IsUUID()
