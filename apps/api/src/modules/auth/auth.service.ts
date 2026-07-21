@@ -3,12 +3,14 @@ import {
   ConflictException,
   ForbiddenException,
   Injectable,
+  InternalServerErrorException,
   Logger,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
+import { createHmac } from 'node:crypto';
 import { AuthRepository } from './auth.repository';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { LoginDto } from './dto/login.dto';
@@ -19,6 +21,7 @@ import type { JwtUser, UserRole } from '../../common/types/auth.types';
 
 import { NotificationsService } from '../notifications/notifications.service';
 import { PlatformFinanceService } from '../finance/platform-finance.service';
+import { PricingService } from '../finance/pricing.service';
 
 // SEGURANÇA: e-mail do DEV proprietário da plataforma — definido via variável de ambiente
 const PLATFORM_OWNER_EMAIL = (process.env.PLATFORM_OWNER_EMAIL ?? '').toLowerCase();
@@ -35,10 +38,24 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly notificationsService: NotificationsService,
     private readonly platformFinance: PlatformFinanceService,
+    private readonly pricingService: PricingService,
   ) {}
 
   publicPlans() {
     return this.repository.listPublicPlans();
+  }
+
+  async quotePublicPlan(dto: { planId: string; seatQuantity: number; couponCode?: string }) {
+    const plan = await this.repository.findPublicPlan(dto.planId);
+    if (!plan) throw new NotFoundException('O plano selecionado nao esta mais disponivel.');
+    if (dto.seatQuantity > plan.maxUsers) throw new BadRequestException('Quantidade de usuarios acima do limite tecnico do plano.');
+    const quote = this.pricingService.calculate(plan.commitmentMonths as 1 | 3 | 6 | 12, dto.seatQuantity);
+    if (!dto.couponCode) return { ...quote, trialDays: 0, couponApplied: false };
+    const coupon = await this.repository.findCouponByCode(dto.couponCode);
+    const now = new Date();
+    const eligible = Boolean(coupon?.isActive && (!coupon.startsAt || coupon.startsAt <= now) && (!coupon.expiresAt || coupon.expiresAt >= now) && (coupon.maxRedemptions === null || coupon.redemptionCount < coupon.maxRedemptions));
+    if (!eligible || !coupon) throw new BadRequestException({ code: 'COUPON_INVALID', message: 'Cupom invalido, expirado ou indisponivel.' });
+    return { ...quote, trialDays: coupon.trialDays, couponApplied: true };
   }
 
   async registerCompany(dto: RegisterCompanyDto) {
@@ -58,6 +75,13 @@ export class AuthService {
     if (dto.seatQuantity > selectedPlan.maxUsers) {
       throw new BadRequestException(`O plano selecionado permite no maximo ${selectedPlan.maxUsers} usuarios.`);
     }
+    const coupon = dto.couponCode ? await this.repository.findCouponByCode(dto.couponCode) : null;
+    if (dto.couponCode) {
+      const now = new Date();
+      const eligible = Boolean(coupon?.isActive && (!coupon.startsAt || coupon.startsAt <= now) && (!coupon.expiresAt || coupon.expiresAt >= now) && (coupon.maxRedemptions === null || coupon.redemptionCount < coupon.maxRedemptions));
+      if (!eligible) throw new BadRequestException({ code: 'COUPON_INVALID', message: 'Cupom invalido, expirado ou indisponivel.' });
+    }
+
     const passwordHash = await bcrypt.hash(dto.password, 12);
     const company = await this.repository.createCompanyWithAdmin({
       ...dto,
@@ -71,10 +95,46 @@ export class AuthService {
       isFree: selectedPlan?.isFree ?? false,
     });
     const admin = company.users[0];
+    const subscriptionData = {
+      companyId: company.id,
+      planId: selectedPlan.id,
+      status: 'PENDING_PAYMENT',
+      seatQuantity: dto.seatQuantity,
+      pricingVersion: selectedPlan.pricingVersion,
+      baseMonthlyPrice: selectedPlan.baseMonthlyPrice,
+      userMonthlyPrice: selectedPlan.userMonthlyPrice,
+      discountPercent: selectedPlan.discountPercent,
+    };
+
+    let trial = false;
+    let trialEndsAt: Date | null = null;
+    try {
+      if (coupon) {
+        const secret = process.env.TRIAL_DOCUMENT_HASH_SECRET;
+        if (!secret) throw new InternalServerErrorException('TRIAL_DOCUMENT_HASH_SECRET precisa ser configurado.');
+        const documentHash = createHmac('sha256', secret).update(document).digest('hex');
+        const redemption = await this.repository.redeemTrialCoupon({
+          ...subscriptionData,
+          couponId: coupon.id,
+          documentHash,
+          trialDays: coupon.trialDays,
+        });
+        if (!redemption.applied) {
+          throw new ConflictException({ code: redemption.reason, message: redemption.reason === 'TRIAL_ALREADY_USED' ? 'Este documento ja utilizou um periodo de teste.' : 'Cupom indisponivel.' });
+        }
+        trial = true;
+        trialEndsAt = redemption.trialEndsAt;
+      } else {
+        await this.repository.createSubscription(subscriptionData);
+      }
+    } catch (error) {
+      await this.repository.deleteIncompleteCompany(company.id).catch(() => undefined);
+      throw error;
+    }
 
     let checkout: { active: boolean; paymentUrl: string | null | undefined } = { active: Boolean(selectedPlan?.isFree), paymentUrl: null };
     let billingSetupPending = false;
-    if (!selectedPlan?.isFree) {
+    if (!selectedPlan.isFree && !trial) {
       try {
         checkout = await this.platformFinance.ensureCompanyOnboardingBilling(company.id);
       } catch (error) {
@@ -96,6 +156,8 @@ export class AuthService {
       }, false)),
       paymentUrl: checkout.paymentUrl,
       billingSetupPending,
+      trial,
+      trialEndsAt,
     };
   }
 
