@@ -346,6 +346,8 @@ model Company {
   proposals         Proposal[]
   financeConfig     CompanyFinanceConfig?
   financeNotifLogs  FinanceNotificationLog[]
+  subscription      CompanySubscription?
+  couponRedemptions CouponRedemption[]
 
   // Módulo Escala
   schedules          Schedule[]
@@ -1282,7 +1284,8 @@ model PlatformPlan {
   updatedAt        DateTime     @updatedAt
 
   companies Company[]
-  invoices  PlatformInvoice[]
+  invoices      PlatformInvoice[]
+  subscriptions CompanySubscription[]
 }
 
 model PlatformInvoice {
@@ -1617,4 +1620,65 @@ model AsaasWebhookEvent {
   @@index([status])
   @@index([eventType])
   @@index([createdAt])
+}
+
+
+model CompanySubscription {
+  id                  String   @id @default(uuid()) @db.Uuid
+  companyId           String   @unique @db.Uuid
+  planId              String?  @db.Uuid
+  status              String
+  seatQuantity        Int      @default(1)
+  currentPeriodStart  DateTime?
+  currentPeriodEnd    DateTime?
+  nextDueDate         DateTime?
+  trialStartedAt      DateTime?
+  trialEndsAt         DateTime?
+  pricingVersion      String?
+  baseMonthlyPrice    Decimal? @db.Decimal(10, 2)
+  userMonthlyPrice    Decimal? @db.Decimal(10, 2)
+  discountPercent     Decimal? @db.Decimal(5, 2)
+  asaasCustomerId     String?
+  asaasSubscriptionId String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  company Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  plan    PlatformPlan? @relation(fields: [planId], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([nextDueDate])
+  @@index([trialEndsAt])
+}
+
+model PromotionCoupon {
+  id              String   @id @default(uuid()) @db.Uuid
+  code            String   @unique
+  description     String?
+  trialDays       Int      @default(30)
+  startsAt        DateTime?
+  expiresAt       DateTime?
+  maxRedemptions  Int?
+  redemptionCount Int      @default(0)
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  redemptions CouponRedemption[]
+
+  @@index([isActive, startsAt, expiresAt])
+}
+
+model CouponRedemption {
+  id           String   @id @default(uuid()) @db.Uuid
+  couponId     String   @db.Uuid
+  companyId    String?  @db.Uuid
+  documentHash String   @unique
+  redeemedAt   DateTime @default(now())
+
+  coupon  PromotionCoupon @relation(fields: [couponId], references: [id], onDelete: Restrict)
+  company Company?        @relation(fields: [companyId], references: [id], onDelete: SetNull)
+
+  @@index([couponId])
+  @@index([companyId])
 }
