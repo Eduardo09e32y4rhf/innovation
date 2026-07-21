@@ -20,6 +20,8 @@ export class PlatformRepository {
     const companies = await this.prisma.company.findMany({
       orderBy: { createdAt: 'desc' },
       include: {
+        subscription: true,
+        platformPlan: { select: { id: true, name: true, code: true } },
         _count: { select: { users: true, employees: true } },
       },
     });
@@ -42,6 +44,8 @@ export class PlatformRepository {
       asaasCustomerId: c.asaasCustomerId,
       asaasSubscriptionId: c.asaasSubscriptionId,
       internalNotes: c.internalNotes,
+      subscription: c.subscription,
+      platformPlan: c.platformPlan,
       createdAt: c.createdAt,
       usersCount: c._count.users,
       employeesCount: c._count.employees,
