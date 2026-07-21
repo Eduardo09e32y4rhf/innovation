@@ -89,7 +89,7 @@ export function DashboardSidebar({ open = false, onClose }: { open?: boolean; on
   const { user } = useAuth();
   const company = useQuery(() => api.companies.me(), []);
   const profile = user?.profile?.toUpperCase();
-  const activeModules = company.data?.activeModules || ['employees', 'time-track', 'vacations', 'management', 'whatsapp'];
+  const activeModules = company.data?.activeModules || ['employees', 'time-track', 'vacations', 'management'];
 
   const navItems = baseNavItems.filter((item) => {
     if (!canSeeItem(item, user)) return false;
