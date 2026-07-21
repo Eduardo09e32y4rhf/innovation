@@ -269,7 +269,6 @@ export class PlatformFinanceService {
       },
       plan: company.platformPlan,
       subscription: company.subscription ? { ...company.subscription, asaas: subscriptionData } : null,
-      currentInvoice: currentInvoiceData,
       usage: {
         users: company._count.users,
         maxUsers: company.subscription?.seatQuantity ?? 0,
