@@ -401,7 +401,13 @@ export interface PublicPlatformPlan {
 }
 export interface CompanyBillingResult {
   company?: { id: string; name: string; status: CompanyStatus; billingStatus: 'TRIAL' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED' | 'PENDING_PAYMENT'; suspensionReason?: string | null };
-  invoice?: PlatformInvoice | null; active: boolean; paymentUrl?: string | null;
+  invoice?: PlatformInvoice | null;
+  currentInvoice?: PlatformInvoice | null;
+  active: boolean;
+  paymentUrl?: string | null;
+  plan?: PublicPlatformPlan | null;
+  subscription?: { status: string; seatQuantity: number; trialEndsAt?: string | null } | null;
+  usage?: { users: number; maxUsers: number; employees: number; maxEmployees: number };
 }
 export interface PlatformStats { companies: number; users: number; employees: number; messages: number; activeCompanies: number; suspendedCompanies: number; pastDueCompanies: number; }
 export interface CreatePlatformCompanyInput {
