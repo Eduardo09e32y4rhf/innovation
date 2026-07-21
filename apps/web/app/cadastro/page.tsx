@@ -19,7 +19,7 @@ import {
 import { api, type PublicPlatformPlan } from '@/app/lib/api';
 import { PricingSection } from '../_components/pricing-section';
 import { persistAuthSession } from '@/app/lib/auth-session';
-import type { Company, User } from '@/app/contexts/AuthContext';
+import type { Company, User as AuthUser } from '@/app/contexts/AuthContext';
 
 function CadastroForm() {
   const router = useRouter();
@@ -85,7 +85,7 @@ function CadastroForm() {
         couponCode: formData.couponCode || undefined,
       });
 
-      const sessionUser: User = {
+      const sessionUser: AuthUser = {
         id: response.user.sub,
         name: response.user.name,
         email: response.user.email,
