@@ -32,7 +32,7 @@ export class EmployeesImportService {
   ) {}
 
   generateTemplate(): Buffer {
-    const sheet = xlsx.utils.aoa_to_sheet([HEADERS]);
+    const sheet = xlsx.utils.aoa_to_sheet([Array.from(HEADERS)]);
     sheet['!cols'] = [{ wch: 30 }, { wch: 15 }, { wch: 30 }, { wch: 22 }, { wch: 22 }, { wch: 20 }, { wch: 18 }, { wch: 18 }];
     const workbook = xlsx.utils.book_new();
     xlsx.utils.book_append_sheet(workbook, sheet, SHEET_NAME);
