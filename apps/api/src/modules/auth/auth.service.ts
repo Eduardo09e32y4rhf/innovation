@@ -52,7 +52,10 @@ export class AuthService {
     }
 
     const selectedPlan = await this.repository.findPublicPlan(dto.planId);
-    if (dto.planId && !selectedPlan) throw new NotFoundException('O plano selecionado nao esta mais disponivel.');
+    if (!selectedPlan) throw new NotFoundException('O plano selecionado nao esta mais disponivel.');
+    if (dto.seatQuantity > selectedPlan.maxUsers) {
+      throw new BadRequestException(`O plano selecionado permite no maximo ${selectedPlan.maxUsers} usuarios.`);
+    }
     const passwordHash = await bcrypt.hash(dto.password, 12);
     const company = await this.repository.createCompanyWithAdmin({
       ...dto,
@@ -60,8 +63,8 @@ export class AuthService {
       document,
       passwordHash,
       platformPlanId: selectedPlan?.id,
-      maxUsers: selectedPlan?.maxUsers ?? 6,
-      maxEmployees: selectedPlan?.maxEmployees ?? 50,
+      maxUsers: dto.seatQuantity,
+      maxEmployees: selectedPlan.maxEmployees ?? 50,
       activeModules: selectedPlan?.activeModules ?? ['employees', 'time-track', 'vacations', 'management'],
       isFree: selectedPlan?.isFree ?? false,
     });
@@ -359,10 +362,16 @@ export class AuthService {
   }
 
   private async buildAuthResponse(payload: JwtUser, passwordChangeRequired = false) {
-    // Uses expiresIn from auth.module.ts (JWT_EXPIRES_IN env var, defaulting to '60m')
+    const company = await this.repository.findCompanyAuthContext(payload.companyId);
+    if (!company) throw new UnauthorizedException('Company not found');
+
     return {
       access_token: await this.jwtService.signAsync(payload),
       user: payload,
+      company: {
+        ...company,
+        slug: company.slug || company.id,
+      },
       passwordChangeRequired,
     };
   }
