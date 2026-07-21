@@ -18,6 +18,13 @@ export class AuthRepository {
     return this.prisma.company.findUnique({ where: { document } });
   }
 
+  findCompanyAuthContext(id: string) {
+    return this.prisma.company.findUnique({
+      where: { id },
+      select: { id: true, name: true, slug: true, status: true, billingStatus: true, isActive: true },
+    });
+  }
+
   findPublicPlan(id?: string) {
     if (id) {
       return this.prisma.platformPlan.findFirst({ where: { id, isActive: true, isHidden: false } });
@@ -67,8 +74,8 @@ export class AuthRepository {
         phone: emptyToNull(data.phone),
         status: data.isFree ? 'ACTIVE' : 'SUSPENDED',
         isActive: data.isFree,
-        suspensionReason: data.isFree ? null : 'aguardando_pagamento',
-        billingStatus: data.isFree ? 'ACTIVE' : 'PAST_DUE',
+        suspensionReason: data.isFree ? null : 'aguardando_primeiro_pagamento',
+        billingStatus: data.isFree ? 'ACTIVE' : 'PENDING_PAYMENT',
         plan: data.isFree ? 'FREE' : 'PRO',
         trialEndsAt: null,
         platformPlanId: data.platformPlanId,
