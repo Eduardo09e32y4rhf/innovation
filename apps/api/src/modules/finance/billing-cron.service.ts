@@ -2,6 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../../database/prisma.service';
 import { FinanceNotificationService } from './finance-notification.service';
+import { AsaasService } from './asaas.service';
+import { PricingService } from './pricing.service';
 
 @Injectable()
 export class BillingCronService {
@@ -10,7 +12,55 @@ export class BillingCronService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly financeNotificationService: FinanceNotificationService,
+    private readonly asaas: AsaasService,
+    private readonly pricing: PricingService,
   ) {}
+
+  @Cron('0 2 * * *')
+  async applyScheduledSeatReductions() {
+    const now = new Date();
+    const subscriptions = await this.prisma.companySubscription.findMany({
+      where: {
+        pendingSeatQuantity: { not: null },
+        OR: [
+          { currentPeriodEnd: { lte: now } },
+          { currentPeriodEnd: null, nextDueDate: { lte: now } },
+        ],
+      },
+      include: {
+        plan: true,
+        company: { select: { asaasSubscriptionId: true } },
+      },
+    });
+
+    for (const subscription of subscriptions) {
+      const nextSeatQuantity = subscription.pendingSeatQuantity;
+      if (!nextSeatQuantity || !subscription.plan) continue;
+      try {
+        const quote = this.pricing.calculate(
+          subscription.plan.commitmentMonths as 1 | 3 | 6 | 12,
+          nextSeatQuantity,
+        );
+        const asaasSubscriptionId = subscription.asaasSubscriptionId || subscription.company.asaasSubscriptionId;
+        if (asaasSubscriptionId && this.asaas.isConfigured()) {
+          await this.asaas.updateSubscription(asaasSubscriptionId, { value: quote.total });
+        }
+        await this.prisma.companySubscription.update({
+          where: { id: subscription.id },
+          data: {
+            seatQuantity: nextSeatQuantity,
+            pendingSeatQuantity: null,
+            pricingVersion: subscription.plan.pricingVersion,
+            baseMonthlyPrice: subscription.plan.baseMonthlyPrice,
+            userMonthlyPrice: subscription.plan.userMonthlyPrice,
+            discountPercent: subscription.plan.discountPercent,
+          },
+        });
+      } catch (error) {
+        this.logger.error(`Falha ao aplicar redução de licenças da empresa ${subscription.companyId}: ${String(error)}`);
+      }
+    }
+  }
 
   // Gera uma proposta recuperável cinco dias antes do fim do trial.
   @Cron('30 3 * * *')
