@@ -81,13 +81,14 @@ export class PlatformFinanceService {
     
     // Assinatura comeca no proximo ciclo
     if (cycle === 'YEARLY') nextDueDate.setUTCFullYear(nextDueDate.getUTCFullYear() + 1);
+    else if (cycle === 'SEMIANNUALLY') nextDueDate.setUTCMonth(nextDueDate.getUTCMonth() + 6);
     else if (cycle === 'QUARTERLY') nextDueDate.setUTCMonth(nextDueDate.getUTCMonth() + 3);
     else nextDueDate.setUTCMonth(nextDueDate.getUTCMonth() + 1);
 
     const sub = await this.asaas.createSubscription(customerId, {
       value: amount,
       nextDueDate: nextDueDate.toISOString().slice(0, 10),
-      cycle: ['MONTHLY', 'QUARTERLY', 'YEARLY'].includes(cycle) ? cycle : 'MONTHLY',
+      cycle: ['MONTHLY', 'QUARTERLY', 'SEMIANNUALLY', 'YEARLY'].includes(cycle) ? cycle : 'MONTHLY',
       description: `${company.platformPlan?.name || 'Plano Innovation'} - mensalidade`,
     });
     
@@ -341,7 +342,7 @@ export class PlatformFinanceService {
 
     let subscriptionId = null;
     if (this.asaas.isConfigured() && customerId) {
-      const cycleMonths = newPlan.cycle === 'YEARLY' ? 12 : newPlan.cycle === 'QUARTERLY' ? 3 : 1;
+      const cycleMonths = newPlan.cycle === 'YEARLY' ? 12 : newPlan.cycle === 'SEMIANNUALLY' ? 6 : newPlan.cycle === 'QUARTERLY' ? 3 : 1;
       const nextDueDate = new Date();
       nextDueDate.setUTCMonth(nextDueDate.getUTCMonth() + cycleMonths);
 
@@ -350,7 +351,7 @@ export class PlatformFinanceService {
           value: Number(newPlan.price),
           nextDueDate: nextDueDate.toISOString().slice(0, 10),
           description: `Renovacao - Plano ${newPlan.name}`,
-          cycle: ['MONTHLY', 'QUARTERLY', 'YEARLY'].includes(newPlan.cycle) ? newPlan.cycle as any : 'MONTHLY',
+          cycle: ['MONTHLY', 'QUARTERLY', 'SEMIANNUALLY', 'YEARLY'].includes(newPlan.cycle) ? newPlan.cycle as any : 'MONTHLY',
         });
         subscriptionId = subscription.id;
       } catch (err) {
@@ -382,7 +383,7 @@ export class PlatformFinanceService {
     currentSubscriptionId?: string | null,
   ) {
     if (currentSubscriptionId) return currentSubscriptionId;
-    const cycleMonths = cycle === 'YEARLY' ? 12 : cycle === 'QUARTERLY' ? 3 : 1;
+    const cycleMonths = cycle === 'YEARLY' ? 12 : cycle === 'SEMIANNUALLY' ? 6 : cycle === 'QUARTERLY' ? 3 : 1;
     const nextDueDate = new Date();
     nextDueDate.setUTCMonth(nextDueDate.getUTCMonth() + cycleMonths);
     try {
