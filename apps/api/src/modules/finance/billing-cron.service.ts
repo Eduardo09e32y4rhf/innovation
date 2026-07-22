@@ -16,6 +16,33 @@ export class BillingCronService {
     private readonly pricing: PricingService,
   ) {}
 
+  @Cron('0 * * * *')
+  async auditOperationalConsistency() {
+    const [paidWithoutAccess, activeWithOverdue, subscriptionWithoutAsaas, failedWebhooks, failedWhatsapp] = await Promise.all([
+      this.prisma.platformInvoice.count({
+        where: { status: 'PAID', company: { OR: [{ status: { not: 'ACTIVE' } }, { isActive: false }] } },
+      }),
+      this.prisma.company.count({
+        where: { status: 'ACTIVE', platformInvoices: { some: { status: 'OVERDUE', deletedAt: null } } },
+      }),
+      this.prisma.companySubscription.count({
+        where: {
+          status: 'ACTIVE',
+          asaasSubscriptionId: null,
+          company: { asaasSubscriptionId: null },
+        },
+      }),
+      this.prisma.asaasWebhookEvent.count({ where: { status: 'FAILED' } }),
+      this.prisma.financeNotificationLog.count({ where: { channel: 'WHATSAPP', status: 'FAILED' } }),
+    ]);
+
+    const counters = { paidWithoutAccess, activeWithOverdue, subscriptionWithoutAsaas, failedWebhooks, failedWhatsapp };
+    this.logger.log(`CRON_HEARTBEAT billing_consistency ${JSON.stringify(counters)}`);
+    for (const [condition, count] of Object.entries(counters)) {
+      if (count > 0) this.logger.error(`OPERATIONAL_ALERT ${JSON.stringify({ condition, count })}`);
+    }
+  }
+
   @Cron('0 2 * * *')
   async applyScheduledSeatReductions() {
     const now = new Date();
