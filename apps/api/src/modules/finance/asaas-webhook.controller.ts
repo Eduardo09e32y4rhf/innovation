@@ -117,7 +117,7 @@ export class AsaasWebhookController {
         await this.handleInvoiceEvent(event, payload.invoice);
       }
 
-      const recognized = Boolean(this.statusFromEvent(event) || INVOICE_EVENT_MAP[event]);
+      const recognized = Boolean(this.statusFromEvent(event) || ['INVOICE_AUTHORIZED', 'INVOICE_CANCELED', 'INVOICE_ERROR'].includes(event));
       await this.prisma.asaasWebhookEvent.update({
         where: { id: storedEvent.id },
         data: {
@@ -286,7 +286,7 @@ export class AsaasWebhookController {
   private statusFromEvent(event: string): InvoiceStatus | undefined {
     if (['PAYMENT_RECEIVED', 'PAYMENT_CONFIRMED', 'PAYMENT_RECEIVED_IN_CASH'].includes(event)) return 'PAID';
     if (event === 'PAYMENT_OVERDUE') return 'OVERDUE';
-    if (['PAYMENT_DELETED', 'PAYMENT_REFUNDED', 'PAYMENT_REFUND_IN_PROGRESS', 'PAYMENT_CHARGEBACK_REQUESTED'].includes(event)) return 'CANCELED';
+    if (['PAYMENT_DELETED', 'PAYMENT_REFUNDED', 'PAYMENT_REFUND_IN_PROGRESS', 'PAYMENT_CHARGEBACK_REQUESTED', 'PAYMENT_CHARGEBACK_DISPUTE'].includes(event)) return 'CANCELED';
     if (['PAYMENT_CREATED', 'PAYMENT_UPDATED', 'PAYMENT_RESTORED'].includes(event)) return 'OPEN';
     return undefined;
   }
