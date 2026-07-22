@@ -1,0 +1,37 @@
+name: Browser E2E
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+concurrency:
+  group: e2e-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  public-flow:
+    name: Public flow and mobile smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            tests-e2e/package-lock.json
+      - name: Install application dependencies
+        run: npm ci
+      - name: Install E2E dependencies
+        run: npm --prefix tests-e2e ci
+      - name: Install Chromium
+        run: npm --prefix tests-e2e exec -- playwright install --with-deps chromium
+      - name: Run browser E2E
+        run: npm --prefix tests-e2e test

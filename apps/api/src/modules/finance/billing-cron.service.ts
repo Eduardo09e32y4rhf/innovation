@@ -2,6 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../../database/prisma.service';
 import { FinanceNotificationService } from './finance-notification.service';
+import { AsaasService } from './asaas.service';
+import { PricingService } from './pricing.service';
 
 @Injectable()
 export class BillingCronService {
@@ -10,7 +12,144 @@ export class BillingCronService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly financeNotificationService: FinanceNotificationService,
+    private readonly asaas: AsaasService,
+    private readonly pricing: PricingService,
   ) {}
+
+  @Cron('0 * * * *')
+  async auditOperationalConsistency() {
+    const [paidWithoutAccess, activeWithOverdue, subscriptionWithoutAsaas, failedWebhooks, failedWhatsapp] = await Promise.all([
+      this.prisma.platformInvoice.count({
+        where: { status: 'PAID', company: { OR: [{ status: { not: 'ACTIVE' } }, { isActive: false }] } },
+      }),
+      this.prisma.company.count({
+        where: { status: 'ACTIVE', platformInvoices: { some: { status: 'OVERDUE', deletedAt: null } } },
+      }),
+      this.prisma.companySubscription.count({
+        where: {
+          status: 'ACTIVE',
+          asaasSubscriptionId: null,
+          company: { asaasSubscriptionId: null },
+        },
+      }),
+      this.prisma.asaasWebhookEvent.count({ where: { status: 'FAILED' } }),
+      this.prisma.financeNotificationLog.count({ where: { channel: 'WHATSAPP', status: 'FAILED' } }),
+    ]);
+
+    const counters = { paidWithoutAccess, activeWithOverdue, subscriptionWithoutAsaas, failedWebhooks, failedWhatsapp };
+    this.logger.log(`CRON_HEARTBEAT billing_consistency ${JSON.stringify(counters)}`);
+    for (const [condition, count] of Object.entries(counters)) {
+      if (count > 0) this.logger.error(`OPERATIONAL_ALERT ${JSON.stringify({ condition, count })}`);
+    }
+  }
+
+  @Cron('0 2 * * *')
+  async applyScheduledSeatReductions() {
+    const now = new Date();
+    const subscriptions = await this.prisma.companySubscription.findMany({
+      where: {
+        pendingSeatQuantity: { not: null },
+        OR: [
+          { currentPeriodEnd: { lte: now } },
+          { currentPeriodEnd: null, nextDueDate: { lte: now } },
+        ],
+      },
+      include: {
+        plan: true,
+        company: { select: { asaasSubscriptionId: true } },
+      },
+    });
+
+    for (const subscription of subscriptions) {
+      const nextSeatQuantity = subscription.pendingSeatQuantity;
+      if (!nextSeatQuantity || !subscription.plan) continue;
+      try {
+        const quote = this.pricing.calculate(
+          subscription.plan.commitmentMonths as 1 | 3 | 6 | 12,
+          nextSeatQuantity,
+        );
+        const asaasSubscriptionId = subscription.asaasSubscriptionId || subscription.company.asaasSubscriptionId;
+        if (asaasSubscriptionId && this.asaas.isConfigured()) {
+          await this.asaas.updateSubscription(asaasSubscriptionId, { value: quote.total });
+        }
+        await this.prisma.companySubscription.update({
+          where: { id: subscription.id },
+          data: {
+            seatQuantity: nextSeatQuantity,
+            pendingSeatQuantity: null,
+            pricingVersion: subscription.plan.pricingVersion,
+            baseMonthlyPrice: subscription.plan.baseMonthlyPrice,
+            userMonthlyPrice: subscription.plan.userMonthlyPrice,
+            discountPercent: subscription.plan.discountPercent,
+          },
+        });
+      } catch (error) {
+        this.logger.error(`Falha ao aplicar redução de licenças da empresa ${subscription.companyId}: ${String(error)}`);
+      }
+    }
+  }
+
+  // Gera uma proposta recuperável cinco dias antes do fim do trial.
+  @Cron('30 3 * * *')
+  async createTrialConversionProposals() {
+    const now = new Date();
+    const windowStart = new Date(now.getTime() + 4.5 * 24 * 60 * 60 * 1000);
+    const windowEnd = new Date(now.getTime() + 5.5 * 24 * 60 * 60 * 1000);
+
+    const companies = await this.prisma.company.findMany({
+      where: {
+        billingStatus: 'TRIAL',
+        trialEndsAt: { gte: windowStart, lte: windowEnd },
+        isActive: true,
+      },
+      include: {
+        subscription: { include: { plan: true } },
+        users: {
+          where: { role: 'ADMIN', isActive: true },
+          select: { id: true },
+          take: 1,
+        },
+      },
+    });
+
+    for (const company of companies) {
+      const admin = company.users[0];
+      const plan = company.subscription?.plan;
+      if (!admin || !plan || !company.trialEndsAt) continue;
+
+      const proposalNumber = `TRIAL-${company.id.slice(0, 8)}-${company.trialEndsAt.toISOString().slice(0, 10).replace(/-/g, '')}`;
+      const exists = await this.prisma.proposal.findUnique({ where: { proposalNumber } });
+      if (exists) continue;
+
+      const proposal = await this.prisma.proposal.create({
+        data: {
+          companyId: company.id,
+          proposalNumber,
+          status: 'DRAFT',
+          title: 'Proposta automática de continuidade após o trial',
+          description: 'Proposta gerada automaticamente cinco dias antes do encerramento do período de avaliação.',
+          startDate: company.trialEndsAt,
+          planType: plan.code || plan.name,
+          monthlyPrice: Number(plan.baseMonthlyPrice) + Number(plan.userMonthlyPrice) * company.subscription!.seatQuantity,
+          usersLimit: company.subscription!.seatQuantity,
+          employeesLimit: plan.maxEmployees,
+          features: plan.activeModules,
+          createdBy: admin.id,
+        },
+      });
+
+      await this.prisma.proposalAuditLog.create({
+        data: {
+          proposalId: proposal.id,
+          action: 'TRIAL_DAY_25_PROPOSAL_CREATED',
+          actor: 'SYSTEM',
+          metadata: JSON.stringify({ trialEndsAt: company.trialEndsAt, companyId: company.id }),
+        },
+      });
+    }
+
+    if (companies.length) this.logger.log(`Rotina de conversão de trial analisou ${companies.length} empresa(s).`);
+  }
 
   // ─── Expiração de Trial — 04:00 diariamente ────────────────────────
   @Cron('0 4 * * *')

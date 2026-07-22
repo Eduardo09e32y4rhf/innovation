@@ -406,7 +406,7 @@ export interface CompanyBillingResult {
   active: boolean;
   paymentUrl?: string | null;
   plan?: PublicPlatformPlan | null;
-  subscription?: { status: string; seatQuantity: number; trialEndsAt?: string | null } | null;
+  subscription?: { status: string; seatQuantity: number; pendingSeatQuantity?: number | null; trialEndsAt?: string | null; currentPeriodEnd?: string | null; nextDueDate?: string | null } | null;
   usage?: { users: number; maxUsers: number; employees: number; maxEmployees: number };
 }
 export interface PlatformStats { companies: number; users: number; employees: number; messages: number; activeCompanies: number; suspendedCompanies: number; pastDueCompanies: number; }
@@ -679,6 +679,8 @@ export const api = {
     status: () => request<CompanyBillingResult>('/finance/company/status', { silent: true, keepSessionOn401: true, timeoutMs: 10000 }),
     invoices: () => request<PlatformInvoice[]>('/finance/company/invoices', { silent: true, keepSessionOn401: true }),
     checkout: () => request<CompanyBillingResult>('/finance/company/checkout', { method: 'POST', silent: true, keepSessionOn401: true, timeoutMs: 25000 }),
+    changeSeats: (seatQuantity: number) => request<{ changed: boolean; scheduled: boolean; seatQuantity: number; pendingSeatQuantity?: number | null; effectiveAt?: string | null }>('/finance/company/change-seats', { method: 'POST', body: { seatQuantity } }),
+    changePlan: (planId: string) => request<{ message: string }>('/finance/company/change-plan', { method: 'POST', body: { planId } }),
   },
   proposals: {
     list: () => request<any[]>('/proposals'),

@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [ main ]
 
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 env:
   NODE_VERSION: '20'
 
@@ -61,6 +65,9 @@ jobs:
 
     - name: Prisma Generate
       run: npm run prisma:generate
+
+    - name: Apply current Prisma schema to test database
+      run: npm --prefix apps/api exec -- prisma db push --schema apps/api/prisma/schema.prisma --skip-generate
 
     - name: Lint Web (Next.js)
       run: npm run lint:web

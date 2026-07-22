@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   AlertCircle,
@@ -219,8 +220,22 @@ export default function LoginPage() {
 
         </div>
 
-        {/* Footer info */}
-        <p className="mt-8 text-center text-xs font-medium text-slate-600 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300 fill-mode-backwards">
+        <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <Link
+            href="/cadastro"
+            className="flex min-h-11 items-center justify-center rounded-xl border border-teal-500/30 bg-teal-500/10 px-4 text-center text-xs font-bold text-teal-300 transition-colors hover:bg-teal-500/20"
+          >
+            Criar minha empresa
+          </Link>
+          <Link
+            href="/"
+            className="flex min-h-11 items-center justify-center rounded-xl border border-white/10 bg-white/5 px-4 text-center text-xs font-bold text-slate-300 transition-colors hover:bg-white/10 hover:text-white"
+          >
+            Voltar para o site
+          </Link>
+        </div>
+
+        <p className="mt-6 text-center text-xs font-medium text-slate-600 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300 fill-mode-backwards">
           Acesso restrito a colaboradores autorizados.<br />
           Protegido pelas diretrizes de privacidade e LGPD.
         </p>

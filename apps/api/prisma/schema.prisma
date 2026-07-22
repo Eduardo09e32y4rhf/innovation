@@ -1296,6 +1296,7 @@ model PlatformInvoice {
   planId         String?       @db.Uuid
   description    String?
   amount         Decimal       @db.Decimal(10, 2)
+  pricingSnapshot Json?
   dueDate        DateTime
   status         InvoiceStatus @default(OPEN)
   billingType    String        @default("UNDEFINED")
@@ -1631,6 +1632,7 @@ model CompanySubscription {
   planId              String?  @db.Uuid
   status              String
   seatQuantity        Int      @default(1)
+  pendingSeatQuantity Int?
   currentPeriodStart  DateTime?
   currentPeriodEnd    DateTime?
   nextDueDate         DateTime?

@@ -169,6 +169,13 @@ export class AsaasService {
     return this.request<{ id: string; customer: string; nextDueDate: string; status: string; billingType: string }>(`/subscriptions/${encodeURIComponent(subscriptionId)}`);
   }
 
+  updateSubscription(subscriptionId: string, data: { value?: number; nextDueDate?: string; cycle?: string }) {
+    return this.request<{ id: string }>(`/subscriptions/${encodeURIComponent(subscriptionId)}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
   deleteSubscription(subscriptionId: string) {
     return this.request<{ deleted: boolean }>(`/subscriptions/${encodeURIComponent(subscriptionId)}`, { method: 'DELETE' });
   }

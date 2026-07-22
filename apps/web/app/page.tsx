@@ -57,7 +57,7 @@ const pillars = [
 const faqs = [
   {
     q: 'O sistema tem validade jurídica?',
-    a: 'Sim. Nossa plataforma foi desenvolvida seguindo rigorosamente as exigências da Portaria 671 do Ministério do Trabalho e Previdência (MTP) e está totalmente adequada à LGPD.',
+    a: 'A plataforma oferece controles técnicos alinhados à Portaria 671 e à LGPD, como rastreabilidade e auditoria. A conformidade final depende da configuração, dos processos da empresa e de revisão jurídica aplicável ao seu caso.',
   },
   {
     q: 'Os funcionários precisam baixar algum aplicativo?',

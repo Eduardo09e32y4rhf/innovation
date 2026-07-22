@@ -60,6 +60,16 @@ export class PlatformFinanceService {
         planId: company.platformPlanId,
         description: payment.description || 'Mensalidade Innovation RH - avulsa',
         amount,
+        pricingSnapshot: {
+          source: 'AUTOMATIC',
+          pricingVersion: company.subscription?.pricingVersion ?? company.platformPlan?.pricingVersion ?? null,
+          seatQuantity: company.subscription?.seatQuantity ?? null,
+          baseMonthlyPrice: company.subscription?.baseMonthlyPrice ? Number(company.subscription.baseMonthlyPrice) : null,
+          userMonthlyPrice: company.subscription?.userMonthlyPrice ? Number(company.subscription.userMonthlyPrice) : null,
+          discountPercent: company.subscription?.discountPercent ? Number(company.subscription.discountPercent) : null,
+          commitmentMonths: company.platformPlan?.commitmentMonths ?? null,
+          total: amount,
+        },
         dueDate: new Date(payment.dueDate),
         status: (this.mapAsaasStatus(payment.status || 'PENDING') || 'OPEN') as InvoiceStatus,
         billingType: payment.billingType || 'UNDEFINED',
@@ -81,13 +91,14 @@ export class PlatformFinanceService {
     
     // Assinatura comeca no proximo ciclo
     if (cycle === 'YEARLY') nextDueDate.setUTCFullYear(nextDueDate.getUTCFullYear() + 1);
+    else if (cycle === 'SEMIANNUALLY') nextDueDate.setUTCMonth(nextDueDate.getUTCMonth() + 6);
     else if (cycle === 'QUARTERLY') nextDueDate.setUTCMonth(nextDueDate.getUTCMonth() + 3);
     else nextDueDate.setUTCMonth(nextDueDate.getUTCMonth() + 1);
 
     const sub = await this.asaas.createSubscription(customerId, {
       value: amount,
       nextDueDate: nextDueDate.toISOString().slice(0, 10),
-      cycle: ['MONTHLY', 'QUARTERLY', 'YEARLY'].includes(cycle) ? cycle : 'MONTHLY',
+      cycle: ['MONTHLY', 'QUARTERLY', 'SEMIANNUALLY', 'YEARLY'].includes(cycle) ? cycle : 'MONTHLY',
       description: `${company.platformPlan?.name || 'Plano Innovation'} - mensalidade`,
     });
     
@@ -278,12 +289,79 @@ export class PlatformFinanceService {
     };
   }
 
-  async listCompanyInvoices(companyId: string) {
+  async listCompanyInvoices(companyId: string, commercialOwnerId?: string) {
     return this.prisma.platformInvoice.findMany({
-      where: { companyId, deletedAt: null },
+      where: {
+        companyId,
+        deletedAt: null,
+        ...(commercialOwnerId ? { company: { commercialOwnerId } } : {}),
+      },
       orderBy: [{ dueDate: 'desc' }, { createdAt: 'desc' }],
       take: 100,
     });
+  }
+
+  async changeSeatQuantity(companyId: string, nextSeatQuantity: number) {
+    const subscription = await this.prisma.companySubscription.findUnique({
+      where: { companyId },
+      include: {
+        plan: true,
+        company: { select: { asaasSubscriptionId: true } },
+      },
+    });
+    if (!subscription?.plan) throw new NotFoundException('Assinatura ativa não encontrada.');
+
+    const usedSeats = await this.prisma.user.count({
+      where: {
+        companyId,
+        isActive: true,
+        role: { in: ['ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'] },
+      },
+    });
+    if (nextSeatQuantity < usedSeats) {
+      throw new BadRequestException(`A empresa possui ${usedSeats} usuário(s) ativo(s). Desative usuários antes de reduzir as licenças.`);
+    }
+
+    if (nextSeatQuantity === subscription.seatQuantity && !subscription.pendingSeatQuantity) {
+      return { changed: false, seatQuantity: subscription.seatQuantity, pendingSeatQuantity: null };
+    }
+
+    const commitmentMonths = subscription.plan.commitmentMonths as 1 | 3 | 6 | 12;
+    const quote = this.pricingService.calculate(commitmentMonths, nextSeatQuantity);
+
+    if (nextSeatQuantity < subscription.seatQuantity) {
+      const updated = await this.prisma.companySubscription.update({
+        where: { companyId },
+        data: { pendingSeatQuantity: nextSeatQuantity },
+      });
+      return {
+        changed: true,
+        scheduled: true,
+        seatQuantity: updated.seatQuantity,
+        pendingSeatQuantity: updated.pendingSeatQuantity,
+        effectiveAt: updated.currentPeriodEnd ?? updated.nextDueDate,
+        quote,
+      };
+    }
+
+    const asaasSubscriptionId = subscription.asaasSubscriptionId || subscription.company.asaasSubscriptionId;
+    if (asaasSubscriptionId && this.asaas.isConfigured()) {
+      await this.asaas.updateSubscription(asaasSubscriptionId, { value: quote.total });
+    }
+
+    const updated = await this.prisma.companySubscription.update({
+      where: { companyId },
+      data: {
+        seatQuantity: nextSeatQuantity,
+        pendingSeatQuantity: null,
+        pricingVersion: subscription.plan.pricingVersion,
+        baseMonthlyPrice: subscription.plan.baseMonthlyPrice,
+        userMonthlyPrice: subscription.plan.userMonthlyPrice,
+        discountPercent: subscription.plan.discountPercent,
+      },
+    });
+
+    return { changed: true, scheduled: false, seatQuantity: updated.seatQuantity, pendingSeatQuantity: null, quote };
   }
 
   async changeCompanyPlan(companyId: string, newPlanId: string) {
@@ -337,7 +415,7 @@ export class PlatformFinanceService {
 
     let subscriptionId = null;
     if (this.asaas.isConfigured() && customerId) {
-      const cycleMonths = newPlan.cycle === 'YEARLY' ? 12 : newPlan.cycle === 'QUARTERLY' ? 3 : 1;
+      const cycleMonths = newPlan.cycle === 'YEARLY' ? 12 : newPlan.cycle === 'SEMIANNUALLY' ? 6 : newPlan.cycle === 'QUARTERLY' ? 3 : 1;
       const nextDueDate = new Date();
       nextDueDate.setUTCMonth(nextDueDate.getUTCMonth() + cycleMonths);
 
@@ -346,7 +424,7 @@ export class PlatformFinanceService {
           value: Number(newPlan.price),
           nextDueDate: nextDueDate.toISOString().slice(0, 10),
           description: `Renovacao - Plano ${newPlan.name}`,
-          cycle: ['MONTHLY', 'QUARTERLY', 'YEARLY'].includes(newPlan.cycle) ? newPlan.cycle as any : 'MONTHLY',
+          cycle: ['MONTHLY', 'QUARTERLY', 'SEMIANNUALLY', 'YEARLY'].includes(newPlan.cycle) ? newPlan.cycle as any : 'MONTHLY',
         });
         subscriptionId = subscription.id;
       } catch (err) {
@@ -378,7 +456,7 @@ export class PlatformFinanceService {
     currentSubscriptionId?: string | null,
   ) {
     if (currentSubscriptionId) return currentSubscriptionId;
-    const cycleMonths = cycle === 'YEARLY' ? 12 : cycle === 'QUARTERLY' ? 3 : 1;
+    const cycleMonths = cycle === 'YEARLY' ? 12 : cycle === 'SEMIANNUALLY' ? 6 : cycle === 'QUARTERLY' ? 3 : 1;
     const nextDueDate = new Date();
     nextDueDate.setUTCMonth(nextDueDate.getUTCMonth() + cycleMonths);
     try {
@@ -398,8 +476,8 @@ export class PlatformFinanceService {
     }
   }
 
-  async summary(query: Pick<ListPlatformInvoicesDto, 'from' | 'to'>) {
-    const where = this.buildWhere(query);
+  async summary(query: Pick<ListPlatformInvoicesDto, 'from' | 'to'>, commercialOwnerId?: string) {
+    const where = this.buildWhere(query, commercialOwnerId);
     const invoices = await this.prisma.platformInvoice.findMany({
       where,
       select: { amount: true, status: true, dueDate: true, paidAt: true },
@@ -434,8 +512,8 @@ export class PlatformFinanceService {
     };
   }
 
-  async list(query: ListPlatformInvoicesDto) {
-    const where = this.buildWhere(query);
+  async list(query: ListPlatformInvoicesDto, commercialOwnerId?: string) {
+    const where = this.buildWhere(query, commercialOwnerId);
     const [items, total] = await this.prisma.$transaction([
       this.prisma.platformInvoice.findMany({
         where,
@@ -603,7 +681,10 @@ export class PlatformFinanceService {
     return invoice;
   }
 
-  private buildWhere(query: Pick<ListPlatformInvoicesDto, 'status' | 'search' | 'from' | 'to'>): Prisma.PlatformInvoiceWhereInput {
+  private buildWhere(
+    query: Pick<ListPlatformInvoicesDto, 'status' | 'search' | 'from' | 'to'>,
+    commercialOwnerId?: string,
+  ): Prisma.PlatformInvoiceWhereInput {
     const dueDate = query.from || query.to
       ? {
           gte: query.from ? new Date(query.from) : undefined,
@@ -614,13 +695,18 @@ export class PlatformFinanceService {
       deletedAt: null,
       status: query.status as InvoiceStatus | undefined,
       dueDate,
-      company: query.search
+      company: commercialOwnerId || query.search
         ? {
-            OR: [
-              { name: { contains: query.search, mode: 'insensitive' } },
-              { legalName: { contains: query.search, mode: 'insensitive' } },
-              { document: { contains: query.search } },
-            ],
+            ...(commercialOwnerId ? { commercialOwnerId } : {}),
+            ...(query.search
+              ? {
+                  OR: [
+                    { name: { contains: query.search, mode: 'insensitive' } },
+                    { legalName: { contains: query.search, mode: 'insensitive' } },
+                    { document: { contains: query.search } },
+                  ],
+                }
+              : {}),
           }
         : undefined,
     };
