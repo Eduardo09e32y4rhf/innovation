@@ -62,8 +62,8 @@ jobs:
     - name: Prisma Generate
       run: npm run prisma:generate
 
-    - name: Apply migrations to test database
-      run: npm run db:deploy
+    - name: Apply current Prisma schema to test database
+      run: npm --prefix apps/api exec -- prisma db push --schema prisma/schema.prisma --skip-generate
 
     - name: Lint Web (Next.js)
       run: npm run lint:web
