@@ -1,34 +1,58 @@
 # Estado auditado do plano de recuperação
 
 Branch de trabalho: `recovery/300-commits`  
-PR de validação: #448
+PR de validação: #448  
+Última revisão técnica: 21/07/2026
 
-## Concluído ou recuperado
+## Fechamento por bloco
 
-- arquitetura oficial e remoção do legado;
-- gates de CI para Prisma, lint, TypeScript, testes e builds;
-- contrato de autenticação com empresa real e tenant;
-- sessão normal em localStorage e Ghost Mode isolado por aba;
-- cadastro público com plano, licenças, validação de documento e senha forte;
-- cobrança inicial separada de renovação e tela interna de pagamento;
-- registro idempotente dos eventos Asaas;
-- precificação central em centavos;
-- assinatura com quantidade de licenças;
-- cupom de trial único por hash do documento;
-- hierarquia de usuários, senha forte e limite de licenças faturáveis;
-- drawer mobile do dashboard;
-- documentação inicial de segurança, Portaria 671 e LGPD.
+| Bloco | Estado | Evidência principal |
+| --- | --- | --- |
+| 00 — Segurança e recuperação | Código concluído; operação externa pendente | `SECURITY.md`, segredos fora do Git e documentação de recuperação. Backup/restauração, rotação de credenciais e proteção da `main` dependem do ambiente de produção. |
+| 01 — Arquitetura | Concluído | Legado removido e arquitetura oficial preservada. |
+| 02 — CI e builds | Concluído no código | CI valida workspace, Prisma, lint, TypeScript, testes e builds com PostgreSQL 16 e Redis. |
+| 03 — Autenticação e tenant | Concluído | Empresa real no login, sessão normal persistente, Ghost Mode isolado por aba e acesso suspenso tratado por perfil. |
+| 04 — Cadastro público | Concluído | Plano/licenças obrigatórios, validações fortes, sessão criada e pagamento interno com cotação do backend. |
+| 05 — Billing | Concluído no código | Cobrança inicial separada da recorrência, estado financeiro consistente, polling e expiração automática. |
+| 06 — Webhook Asaas | Concluído no núcleo crítico | Token seguro, registro idempotente, estados de processamento, retry de falhas e cobertura de pagamento, estorno, chargeback e NFS-e. A homologação real depende do sandbox Asaas. |
+| 07 — Planos e preços | Concluído | Preço centralizado em centavos, assinatura com licenças e testes determinísticos de cálculo. |
+| 08 — Cupom e trial | Concluído no código | Hash HMAC do documento, resgate transacional, unicidade e painel DEV para cupons. |
+| 09 — Contrato manual | Concluído | Cadastro, ativação, auditoria, assinatura manual e encerramento automático. |
+| 10 — WhatsApp global | Concluído no código | Sessão global da plataforma, fila com retry e log marcado como enviado somente após sucesso do provedor. Número e sessão reais dependem do ambiente. |
+| 11 — Importação Excel | Concluído | Template, validação, preview, token temporário, confirmação transacional e interface funcional. |
+| 12 — Empresa e geolocalização | Concluído | Campos estruturados e proteção contra alteração pública de coordenadas, tema e tolerância. |
+| 13 — Usuários e licenças | Concluído | Hierarquia, limite faturável, erro estruturado, histórico de senha e proteção contra autoexclusão. |
+| 14 — Módulos RH | Recuperado e integrado | Módulos existentes preservados; importação de funcionários corrigida. Homologação funcional completa requer base de staging. |
+| 15 — Mobile | Concluído no código | Drawer, overlay, fechamento na navegação e comportamento responsivo. Testes em aparelhos físicos são externos. |
+| 16 — Painel da plataforma | Concluído | Navegação DEV, empresas, assinaturas, financeiro, cupons, contratos, acessos, WhatsApp, auditoria, arquivamento sem perda de histórico e KPIs operacionais. |
+| 17 — Compliance | Documentação técnica concluída | Guias de Portaria 671 e LGPD sem alegação indevida de certificação. Validação jurídica formal permanece externa. |
 
-## Ainda exige validação operacional externa
+## Validações automatizadas
 
-- rotação das credenciais e proteção da branch principal;
-- backup e restauração do banco de produção;
-- aplicação das migrations em staging antes de produção;
-- webhooks e cobrança no sandbox Asaas;
-- WhatsApp global com número real;
-- revisão trabalhista e de privacidade;
-- testes visuais em dispositivos físicos.
+O workflow do PR executa:
 
-## Regra de fechamento
+- validação da fundação do workspace;
+- `prisma validate` e `prisma generate`;
+- lint do frontend;
+- typecheck da API e do frontend;
+- testes automatizados da API;
+- build da API e do frontend.
 
-Nenhum item externo deve ser marcado como concluído sem evidência do ambiente correspondente.
+O PR só deve ser integrado à `main` com todos esses gates verdes.
+
+## Ações que não podem ser concluídas apenas pelo repositório
+
+- criar, restaurar e comprovar backup do banco de produção;
+- rotacionar credenciais da VPS, banco, Redis, Asaas e WhatsApp;
+- configurar proteção obrigatória da branch `main`;
+- aplicar migrations primeiro em staging e depois em produção;
+- homologar cobrança e webhooks no sandbox Asaas;
+- conectar o número oficial do WhatsApp;
+- executar revisão jurídica trabalhista e de privacidade;
+- testar visualmente em dispositivos físicos.
+
+Nenhuma dessas ações é marcada como concluída sem evidência do ambiente correspondente.
+
+## Integridade do documento de origem
+
+A cópia de `plano_recuperacao.md` disponível no repositório está truncada no início do Bloco 17 e contém literalmente o marcador `<truncated 11439 bytes>`. Este fechamento cobre integralmente os Blocos 00–16 legíveis e o conteúdo recuperável do Bloco 17; qualquer requisito existente apenas na parte ausente precisa ser comparado com uma cópia íntegra antes do deploy definitivo.
