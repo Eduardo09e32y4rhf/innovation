@@ -68,7 +68,21 @@ export class PlatformService {
       companyId,
       ghostMode: true,
     };
-    return { token: this.jwtService.sign(payload) };
+    const access_token = this.jwtService.sign(payload);
+    return {
+      access_token,
+      token: access_token,
+      user: payload,
+      company: {
+        id: company.id,
+        name: company.name,
+        slug: company.slug || company.id,
+        status: company.status,
+        billingStatus: company.billingStatus,
+        isActive: company.isActive,
+      },
+      ghostMode: true,
+    };
   }
 
   async getCompany(id: string) {
