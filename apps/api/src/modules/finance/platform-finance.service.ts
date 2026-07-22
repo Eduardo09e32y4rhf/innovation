@@ -16,7 +16,7 @@ export class PlatformFinanceService {
   ) {}
 
   async ensureAsaasCustomer(company: any, admin: any) {
-    let customerId = company.asaasCustomerId;
+    let customerId = company.subscription?.asaasCustomerId || company.asaasCustomerId;
     if (!customerId) {
       const customer = await this.asaas.createCustomer({
         name: company.legalName || company.name,
@@ -28,7 +28,10 @@ export class PlatformFinanceService {
       });
       if (!customer.id) throw new BadRequestException('O Asaas nao retornou o identificador do cliente.');
       customerId = customer.id;
-      await this.prisma.company.update({ where: { id: company.id }, data: { asaasCustomerId: customerId } });
+      await this.prisma.$transaction([
+        this.prisma.company.update({ where: { id: company.id }, data: { asaasCustomerId: customerId } }),
+        this.prisma.companySubscription.updateMany({ where: { companyId: company.id }, data: { asaasCustomerId: customerId } }),
+      ]);
     }
     return customerId;
   }
@@ -70,7 +73,8 @@ export class PlatformFinanceService {
   }
 
   async createRecurringSubscription(company: any, customerId: string, amount: number) {
-    if (company.asaasSubscriptionId) return company.asaasSubscriptionId;
+    const existingSubscriptionId = company.subscription?.asaasSubscriptionId || company.asaasSubscriptionId;
+    if (existingSubscriptionId) return existingSubscriptionId;
     
     const cycle = company.platformPlan?.cycle || 'MONTHLY';
     const nextDueDate = new Date();
@@ -88,7 +92,10 @@ export class PlatformFinanceService {
     });
     
     if (sub.id) {
-      await this.prisma.company.update({ where: { id: company.id }, data: { asaasSubscriptionId: sub.id } });
+      await this.prisma.$transaction([
+        this.prisma.company.update({ where: { id: company.id }, data: { asaasSubscriptionId: sub.id } }),
+        this.prisma.companySubscription.updateMany({ where: { companyId: company.id }, data: { asaasSubscriptionId: sub.id } }),
+      ]);
       return sub.id;
     }
     return null;
@@ -99,6 +106,7 @@ export class PlatformFinanceService {
       where: { id: companyId },
       include: {
         platformPlan: true,
+        subscription: true,
         users: { where: { role: 'ADMIN', isActive: true }, orderBy: { createdAt: 'asc' }, take: 1 },
       },
     });
@@ -119,7 +127,7 @@ export class PlatformFinanceService {
     if (plan && !plan.isFree) {
       const pricing = this.pricingService.calculate(
         (plan.commitmentMonths as any) || 1, 
-        company.maxUsers || 1
+        company.subscription?.seatQuantity || 1
       );
       amount = pricing.total;
     }
@@ -171,6 +179,7 @@ export class PlatformFinanceService {
         billingStatus: true,
         asaasCustomerId: true,
         asaasSubscriptionId: true,
+        subscription: true,
         platformPlan: {
           select: {
             id: true,
@@ -249,17 +258,20 @@ export class PlatformFinanceService {
     }
 
     return {
+      active: company.status === 'ACTIVE' && ['ACTIVE', 'TRIAL'].includes(company.billingStatus),
+      paymentUrl: currentInvoiceData?.invoiceUrl ?? null,
+      invoice: currentInvoiceData,
+      currentInvoice: currentInvoiceData,
       company: {
         id: company.id,
         status: company.status,
         billingStatus: company.billingStatus,
       },
       plan: company.platformPlan,
-      subscription: subscriptionData,
-      currentInvoice: currentInvoiceData,
+      subscription: company.subscription ? { ...company.subscription, asaas: subscriptionData } : null,
       usage: {
         users: company._count.users,
-        maxUsers: company.platformPlan?.maxUsers ?? 9999,
+        maxUsers: company.subscription?.seatQuantity ?? 0,
         employees: company._count.employees,
         maxEmployees: company.platformPlan?.maxEmployees ?? 9999,
       },

@@ -1,4 +1,5 @@
-import { IsEmail, IsNotEmpty, IsOptional, IsString, IsUUID, Matches, MaxLength, MinLength } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsEmail, IsInt, IsNotEmpty, IsOptional, IsString, IsUUID, Matches, Max, MaxLength, Min, MinLength } from 'class-validator';
 
 export class RegisterCompanyDto {
   @IsString()
@@ -24,10 +25,23 @@ export class RegisterCompanyDto {
   email!: string;
 
   @IsString()
-  @MinLength(8)
+  @MinLength(10)
+  @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).+$/, {
+    message: 'A senha precisa conter letra maiuscula, minuscula, numero e simbolo.',
+  })
   password!: string;
 
-  @IsOptional()
   @IsUUID()
-  planId?: string;
+  planId!: string;
+
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(10_000)
+  seatQuantity!: number;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  couponCode?: string;
 }

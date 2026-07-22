@@ -20,6 +20,7 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { AdminResetEmployeePasswordDto } from './dto/admin-reset-employee-password.dto';
+import { PublicPlanQuoteDto } from './dto/public-plan-quote.dto';
 
 
 @Controller('auth')
@@ -29,6 +30,11 @@ export class AuthController {
   @Get('public-plans')
   publicPlans() {
     return this.service.publicPlans();
+  }
+
+  @Post('public-plans/quote')
+  quotePublicPlan(@Body() dto: PublicPlanQuoteDto) {
+    return this.service.quotePublicPlan(dto);
   }
 
   @Throttle({ default: { limit: 3, ttl: 1800000 } })

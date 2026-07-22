@@ -70,9 +70,12 @@ export class UsersService {
     }
     const maxUsers = this.resolveMaxUsers(limits);
     if (count >= maxUsers) {
-      throw new ForbiddenException(
-        `Limite de ${maxUsers} usuarios atingido para esta empresa. Contate o suporte para ampliar o plano.`,
-      );
+      throw new ForbiddenException({
+        code: 'SEAT_LIMIT_REACHED',
+        message: 'A empresa utiliza todas as licencas contratadas.',
+        used: count,
+        limit: maxUsers,
+      });
     }
 
     return this.repository.create({
@@ -127,13 +130,23 @@ export class UsersService {
       throw new ConflictException('A nova senha temporaria nao pode ser igual a senha atual.');
     }
 
+    this.assertStrongPassword(newPassword);
+    for (const previousHash of user.previousPasswords ?? []) {
+      if (await bcrypt.compare(newPassword, previousHash)) {
+        throw new ConflictException('Esta senha ja foi utilizada anteriormente.');
+      }
+    }
+
     const passwordHash = await bcrypt.hash(newPassword, 12);
     const data = {
       passwordHash,
+      previousPasswords: [user.passwordHash, ...(user.previousPasswords ?? [])].slice(0, 10),
       forcePasswordChange: true,
       failedLoginAttempts: 0,
       passwordResetToken: null,
       passwordResetExpires: null,
+      resetPasswordCode: null,
+      resetPasswordExpires: null,
       passwordChangedAt: new Date(),
     };
     const result = actor.role === 'DEV'
@@ -144,6 +157,7 @@ export class UsersService {
   }
 
   async delete(companyId: string, actor: JwtUser, id: string) {
+    if (actor.sub === id) throw new ForbiddenException('Nao e permitido excluir a propria conta.');
     const user = await this.get(companyId, actor, id);
     if (user.role && !this.canManageRole(actor.role, user.role)) {
       throw new ForbiddenException('Voce nao tem permissao para deletar este usuario.');
@@ -167,13 +181,16 @@ export class UsersService {
   }
 
   private resolveMaxUsers(
-    limits: { maxUsers?: number | null; platformPlan?: { maxUsers?: number | null } | null } | null,
+    limits: { subscription?: { seatQuantity?: number | null } | null } | null,
   ): number {
-    const companyLimit = Number(limits?.maxUsers);
-    if (Number.isFinite(companyLimit) && companyLimit > 0) return companyLimit;
-    const planLimit = Number(limits?.platformPlan?.maxUsers);
-    if (Number.isFinite(planLimit) && planLimit > 0) return planLimit;
-    return 1; // Sem plano = 1 usuário apenas
+    const contractedSeats = Number(limits?.subscription?.seatQuantity);
+    return Number.isFinite(contractedSeats) && contractedSeats > 0 ? contractedSeats : 1;
+  }
+
+  private assertStrongPassword(password: string) {
+    if (password.length < 10 || !/[a-z]/.test(password) || !/[A-Z]/.test(password) || !/\d/.test(password) || !/[^A-Za-z0-9]/.test(password)) {
+      throw new BadRequestException('A senha precisa ter no minimo 10 caracteres, letra maiuscula, minuscula, numero e simbolo.');
+    }
   }
 
   private assertRoleChangeAllowed(actor: JwtUser, nextRole?: string) {

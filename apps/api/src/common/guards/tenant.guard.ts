@@ -44,9 +44,16 @@ export class TenantGuard implements CanActivate {
       }
     }
 
+    if (!['ADMIN', 'DEV'].includes(user.role)) {
+      throw new ForbiddenException({
+        code: 'COMPANY_ACCESS_TEMPORARILY_UNAVAILABLE',
+        message: 'O acesso da sua empresa esta temporariamente indisponivel por uma pendencia na assinatura. A regularizacao esta disponivel ao administrador da empresa.',
+      });
+    }
+
     throw new ForbiddenException({
       code: 'COMPANY_BILLING_BLOCKED',
-      message: 'A empresa esta bloqueada. Regularize a assinatura para continuar.',
+      message: 'A assinatura da empresa precisa ser regularizada.',
     });
   }
 

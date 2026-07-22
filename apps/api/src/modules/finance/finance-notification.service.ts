@@ -250,11 +250,11 @@ export class FinanceNotificationService {
     // Buscar telefone financeiro ou telefone da empresa
     const company = await this.prisma.company.findUnique({
       where: { id: input.companyId },
-      select: { name: true, phone: true },
+      select: { name: true, phone: true, legalRepresentativePhone: true },
     });
     if (!company) return;
 
-    const rawPhone = config.financialWhatsappPhone || company.phone;
+    const rawPhone = config.financialWhatsappPhone || company.legalRepresentativePhone || company.phone;
     if (!rawPhone) {
       await this.logNotif(input, 'WHATSAPP', 'SKIPPED', undefined, 'Telefone não configurado');
       return;
@@ -269,7 +269,7 @@ export class FinanceNotificationService {
     const key = this.idempotencyKey(input, 'WHATSAPP');
     if (await this.alreadySent(key)) return;
 
-    await this.logNotif(input, 'WHATSAPP', 'PENDING', undefined, undefined, phone);
+    const pendingLog = await this.logNotif(input, 'WHATSAPP', 'PENDING', undefined, undefined, phone);
 
     try {
       const message = buildMessage(input.type, input, company.name);
@@ -281,8 +281,13 @@ export class FinanceNotificationService {
           recipientCompanyId: input.companyId,
           phone,
           message,
+          notificationLogId: pendingLog?.id,
+        }, {
+          attempts: 5,
+          backoff: { type: 'exponential', delay: 30_000 },
+          removeOnComplete: 100,
+          removeOnFail: 500,
         });
-        await this.logNotif(input, 'WHATSAPP', 'SENT', undefined, undefined, phone);
       } else if (this.messageSender) {
         await this.messageSender.sendWhatsapp(input.companyId, phone, message);
         await this.logNotif(input, 'WHATSAPP', 'SENT', undefined, undefined, phone);
@@ -349,10 +354,10 @@ export class FinanceNotificationService {
     providerId?: string,
     errorMessage?: string,
     recipient?: string,
-  ): Promise<void> {
+  ): Promise<{ id: string } | null> {
     const key = this.idempotencyKey(input, channel);
     try {
-      await this.prisma.financeNotificationLog.upsert({
+      return await this.prisma.financeNotificationLog.upsert({
         where: { idempotencyKey: key },
         create: {
           companyId: input.companyId,
@@ -377,6 +382,7 @@ export class FinanceNotificationService {
       });
     } catch (err) {
       this.logger.warn(`Falha ao salvar log de notificação [${key}]: ${String(err)}`);
+      return null;
     }
   }
 }

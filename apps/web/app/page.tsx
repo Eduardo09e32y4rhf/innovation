@@ -99,14 +99,15 @@ export default function Home() {
           <nav className="hidden items-center gap-10 text-xs font-bold uppercase tracking-wider text-slate-400 lg:flex">
             <a href="#beneficios" className="transition-colors hover:text-white">Benefícios</a>
             <a href="#solucao" className="transition-colors hover:text-white">A Solução</a>
+            <a href="#planos" className="transition-colors hover:text-white">Ver planos</a>
             <a href="#faq" className="transition-colors hover:text-white">Perguntas</a>
           </nav>
           <div className="flex items-center gap-4">
             <Link href="/login" className="hidden text-xs font-bold text-slate-300 hover:text-white sm:block transition-colors">
-              Área do Cliente
+              Acessar
             </Link>
             <Link href="/cadastro" className="inline-flex h-11 items-center justify-center rounded-full bg-white px-6 text-sm font-black text-slate-950 transition-all hover:scale-105 hover:shadow-[0_10px_40px_rgba(255,255,255,0.15)]">
-              Teste Grátis
+              Criar minha empresa
             </Link>
           </div>
         </header>
@@ -129,7 +130,7 @@ export default function Home() {
 
             <div className="mt-10 flex flex-col gap-4 sm:flex-row">
               <Link href="/cadastro" className="inline-flex h-14 items-center justify-center gap-2 rounded-full bg-gradient-to-r from-teal-400 to-cyan-500 px-8 text-sm font-black text-slate-950 shadow-[0_20px_50px_rgba(45,212,191,0.25)] transition-all hover:-translate-y-1 hover:shadow-[0_20px_50px_rgba(45,212,191,0.35)]">
-                Criar Conta Grátis
+                Criar minha empresa
                 <ArrowRight size={18} />
               </Link>
               <a href="#solucao" className="inline-flex h-14 items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 px-8 text-sm font-black text-white backdrop-blur-md transition-colors hover:bg-white/10">

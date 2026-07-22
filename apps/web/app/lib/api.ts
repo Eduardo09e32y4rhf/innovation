@@ -19,11 +19,13 @@ export const getImageUrl = (relativePath: string) => {
 export class ApiError extends Error {
   status: number;
   body: unknown;
-  constructor(status: number, message: string, body?: unknown) {
+  code?: string;
+  constructor(status: number, message: string, body?: unknown, code?: string) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
     this.body = body;
+    this.code = code;
   }
 }
 
@@ -94,10 +96,8 @@ export async function request<T>(path: string, opts: Opts = {}): Promise<T> {
           ? (data as any).message
           : null;
     const parsedMessage = Array.isArray(rawMessage) ? rawMessage.join(', ') : rawMessage ? String(rawMessage) : '';
-    const friendly = res.status === 403 || res.status === 409
-      ? 'Seu acesso foi alterado ou suspenso. Procure o administrador do sistema.'
-      : parsedMessage || `Erro ${res.status}`;
-    throw new ApiError(res.status, friendly, data);
+    const code = nested && typeof nested === 'object' && 'code' in nested ? String((nested as any).code) : undefined;
+    throw new ApiError(res.status, parsedMessage || `Erro ${res.status}`, data, code);
   }
 
   if (data && typeof data === 'object' && 'success' in data && 'data' in data) {
@@ -401,7 +401,13 @@ export interface PublicPlatformPlan {
 }
 export interface CompanyBillingResult {
   company?: { id: string; name: string; status: CompanyStatus; billingStatus: 'TRIAL' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED' | 'PENDING_PAYMENT'; suspensionReason?: string | null };
-  invoice?: PlatformInvoice | null; active: boolean; paymentUrl?: string | null;
+  invoice?: PlatformInvoice | null;
+  currentInvoice?: PlatformInvoice | null;
+  active: boolean;
+  paymentUrl?: string | null;
+  plan?: PublicPlatformPlan | null;
+  subscription?: { status: string; seatQuantity: number; trialEndsAt?: string | null } | null;
+  usage?: { users: number; maxUsers: number; employees: number; maxEmployees: number };
 }
 export interface PlatformStats { companies: number; users: number; employees: number; messages: number; activeCompanies: number; suspendedCompanies: number; pastDueCompanies: number; }
 export interface CreatePlatformCompanyInput {
@@ -478,6 +484,7 @@ export const api = {
     validateResetCode: (email: string, code: string, cpfStart: string, registration: string) => request<{ valid: boolean; resetToken: string }>('/auth/password-reset/validate-code', { method: 'POST', body: { email, code, cpfStart, registration } }),
     resetPassword: (token: string, newPassword: string) => request<{ changed: boolean }>('/auth/password-reset/confirm', { method: 'POST', body: { token, newPassword } }),
     publicPlans: () => request<PublicPlatformPlan[]>('/auth/public-plans'),
+    quotePublicPlan: (data: { planId: string; seatQuantity: number; couponCode?: string }) => request<{ total: number; monthlyEquivalent?: number; commitmentMonths: number; seatQuantity: number; couponApplied: boolean; trialDays: number }>('/auth/public-plans/quote', { method: 'POST', body: data }),
     registerCompany: (data: any) => request<any>('/auth/register-company', { method: 'POST', body: data }),
     searchEmployeesForPasswordReset: (search: string) =>
       request<PasswordResetEmployee[]>(
@@ -510,6 +517,12 @@ export const api = {
     update: (id: string, input: Partial<CreateEmployeeInput>) => request<Employee>(`/employees/${id}`, { method: 'PATCH', body: input }),
     terminate: (id: string) => request<Employee>(`/employees/${id}`, { method: 'DELETE' }),
     delete: (id: string) => request<void>(`/employees/${id}/permanent`, { method: 'DELETE' }),
+    validateImport: (file: File) => {
+      const form = new FormData();
+      form.append('file', file);
+      return request<{ valid: boolean; importToken: string | null; totalRows: number; validRows: number; invalidRows: number; preview: Array<Record<string, unknown>>; errors: Array<{ row: number; column: string; message: string }> }>('/employees/import/validate', { method: 'POST', body: form, timeoutMs: 30000 });
+    },
+    confirmImport: (importToken: string) => request<{ imported: number; errors: unknown[] }>('/employees/import/confirm', { method: 'POST', body: { importToken }, timeoutMs: 30000 }),
   },
 
   workScheduleRules: {

@@ -28,6 +28,8 @@ import { FinanceModule } from './modules/finance/finance.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { EscalaModule } from './modules/schedule/escala.module';
 import { TenantGuard } from './common/guards/tenant.guard';
+import { ManualContractsModule } from './modules/manual-contracts/manual-contracts.module';
+import { CouponsModule } from './modules/coupons/coupons.module';
 
 import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 
@@ -76,6 +78,8 @@ import { redisStore } from 'cache-manager-ioredis-yet';
     CryptoModule,
     FinanceModule,
     EscalaModule,
+    ManualContractsModule,
+    CouponsModule,
     ScheduleModule.forRoot(),
   ],
   providers: [

@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useRef, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { AlertTriangle, CreditCard, Loader2, LogOut, RefreshCw, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import api, { ApiError, type CompanyBillingResult } from '@/app/lib/api';
@@ -10,13 +10,15 @@ import { useAuth } from '@/app/contexts/AuthContext';
 
 export default function FaturaPendentePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const autoCheckoutStarted = useRef(false);
   const { user, company, logout, loading, isAuthenticated, refreshUser } = useAuth();
   const [billing, setBilling] = useState<CompanyBillingResult>();
   const [checking, setChecking] = useState(false);
   const [creating, setCreating] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const dashboardUrl = `/${company?.id || user?.companyId}/dashboard`;
+  const dashboardUrl = `/${company?.slug || company?.id || user?.companyId}/dashboard`;
 
   function paymentLinkFrom(result?: CompanyBillingResult) {
     return result?.paymentUrl || result?.invoice?.invoiceUrl || null;
@@ -83,7 +85,15 @@ export default function FaturaPendentePage() {
     return () => window.clearInterval(interval);
   }, [isAuthenticated, user?.id]);
 
-  const invoice = billing?.invoice;
+  useEffect(() => {
+    if (searchParams.get('autoCheckout') !== '1' || !billing || billing.active || paymentLinkFrom(billing) || autoCheckoutStarted.current) return;
+    const admin = user?.profile?.toUpperCase() === 'ADMIN' || user?.role?.toUpperCase() === 'ADMIN' || user?.role?.toUpperCase() === 'DEV';
+    if (!admin) return;
+    autoCheckoutStarted.current = true;
+    void generateCheckout();
+  }, [billing, searchParams, user?.profile, user?.role]);
+
+  const invoice = billing?.invoice || billing?.currentInvoice;
   const invoiceLink = paymentLinkFrom(billing);
   const invoiceAmount = Number(invoice?.amount ?? 0);
   const safeAmount = Number.isFinite(invoiceAmount) ? invoiceAmount : 0;

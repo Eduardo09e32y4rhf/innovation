@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "nest start --watch",
     "build": "tsc -p tsconfig.json",
+    "test": "node --test test/*.test.cjs",
     "start": "node dist/main.js",
     "prisma:generate": "prisma generate --schema prisma/schema.prisma",
     "prisma:migrate:dev": "prisma migrate dev --schema prisma/schema.prisma",
@@ -17,6 +18,7 @@
     "recalc:timetracks": "tsx scripts/recalc-timetracks.ts",
     "seed:admin": "node prisma/seed-admin.cjs",
     "seed:mvp": "node prisma/seed-admin.cjs",
+    "seed:pricing": "npx tsx prisma/seed-pricing.ts",
     "seed:realistic-demo": "npx tsx prisma/seed-realistic-demo.ts"
   },
   "dependencies": {

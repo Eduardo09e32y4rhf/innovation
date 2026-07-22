@@ -71,6 +71,8 @@ function chatTime(value: unknown) {
 
 @Injectable()
 export class CommunicationService implements OnModuleInit {
+  private readonly platformSessionKey = process.env.PLATFORM_WHATSAPP_SESSION_KEY || 'innovation-platform';
+
   constructor(
     private readonly repository: CommunicationRepository,
     private readonly provider: WhatsappProvider,
@@ -88,13 +90,13 @@ export class CommunicationService implements OnModuleInit {
     });
   }
 
-  connectWhatsapp(companyId: string) {
-    return this.provider.connect(companyId);
+  connectWhatsapp(_companyId: string) {
+    return this.provider.connect(this.platformSessionKey);
   }
 
   async getQrCode(companyId: string) {
     try {
-      const snapshot = this.provider.getSnapshot(companyId);
+      const snapshot = this.provider.getSnapshot(this.platformSessionKey);
       const instance = await this.getStoredWhatsapp(companyId);
       return {
         qrCode: snapshot.qrCode ?? instance?.qrCode ?? null,
@@ -109,7 +111,7 @@ export class CommunicationService implements OnModuleInit {
 
   async getWhatsappStatus(companyId: string) {
     try {
-      const snapshot = this.provider.getSnapshot(companyId);
+      const snapshot = this.provider.getSnapshot(this.platformSessionKey);
       const instance = await this.getStoredWhatsapp(companyId);
       const settings = this.safeSettings(companyId);
       const calendar = await this.safeCalendarStatus(companyId);
@@ -134,13 +136,13 @@ export class CommunicationService implements OnModuleInit {
     }
   }
 
-  disconnectWhatsapp(companyId: string) {
-    return this.provider.disconnect(companyId);
+  disconnectWhatsapp(_companyId: string) {
+    return this.provider.disconnect(this.platformSessionKey);
   }
 
   async listConversations(companyId: string) {
-    if (this.provider.isConnected(companyId)) {
-      const chats = await Promise.resolve().then(() => this.provider.getChats(companyId)).catch(() => []);
+    if (this.provider.isConnected(this.platformSessionKey)) {
+      const chats = await Promise.resolve().then(() => this.provider.getChats(this.platformSessionKey)).catch(() => []);
       return (Array.isArray(chats) ? chats : []).map((chat: any) => {
         const id = normalizeChatId(chat.id);
         return {
@@ -162,9 +164,9 @@ export class CommunicationService implements OnModuleInit {
   }
 
   async listChats(companyId: string) {
-    const isConnected = this.provider.isConnected(companyId);
+    const isConnected = this.provider.isConnected(this.platformSessionKey);
     const [sessionChats, storedConversations] = await Promise.all([
-      Promise.resolve().then(() => this.provider.getChats(companyId)).catch(() => []),
+      Promise.resolve().then(() => this.provider.getChats(this.platformSessionKey)).catch(() => []),
       // Always load DB conversations to show history even after restart
       this.repository.listConversations(companyId),
     ]);
@@ -226,7 +228,7 @@ export class CommunicationService implements OnModuleInit {
 
   async listChatMessages(companyId: string, chatId: string) {
     // First try in-memory session (most recent if connected)
-    const sessionMessages = await Promise.resolve().then(() => this.provider.getMessages(companyId, chatId)).catch(() => []);
+    const sessionMessages = await Promise.resolve().then(() => this.provider.getMessages(this.platformSessionKey, chatId)).catch(() => []);
     const safeSessionMessages = Array.isArray(sessionMessages) ? sessionMessages : [];
 
     // Always load DB messages (persisted across restarts)
@@ -288,7 +290,7 @@ export class CommunicationService implements OnModuleInit {
   }
 
   async sendMessage(companyId: string, dto: SendMessageDto) {
-    const sent = await this.provider.sendMessage(companyId, dto.phone, dto.body || '', dto.media);
+    const sent = await this.provider.sendMessage(this.platformSessionKey, dto.phone, dto.body || '', dto.media);
     let conversation: any;
     let message: any;
     try {

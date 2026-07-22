@@ -1,0 +1,19 @@
+'use client';
+
+import { FormEvent, useEffect, useState } from 'react';
+import { request } from '@/app/lib/api';
+
+export default function ContractsPage() {
+  const [items, setItems] = useState<any[]>([]);
+  const [companies, setCompanies] = useState<any[]>([]);
+  const [error, setError] = useState('');
+  const [form, setForm] = useState({ companyId: '', seatQuantity: 1, agreedAmount: '', startsAt: '', endsAt: '', paymentMethod: 'EXTERNAL', notes: '' });
+  const load = async () => { const [contracts, companyItems] = await Promise.all([request<any[]>('/manual-contracts'), request<any[]>('/platform/companies')]); setItems(contracts); setCompanies(companyItems); };
+  useEffect(() => { load().catch((e) => setError(e.message)); }, []);
+  async function submit(event: FormEvent) {
+    event.preventDefault(); setError('');
+    try { await request('/manual-contracts', { method: 'POST', body: { ...form, agreedAmount: Number(form.agreedAmount), startsAt: new Date(form.startsAt).toISOString(), endsAt: form.endsAt ? new Date(form.endsAt).toISOString() : undefined } }); await load(); }
+    catch (e) { setError(e instanceof Error ? e.message : 'Falha ao criar contrato.'); }
+  }
+  return <div className="space-y-5"><form onSubmit={submit} className="grid gap-3 rounded-2xl border bg-white p-5 md:grid-cols-2 xl:grid-cols-4"><select required value={form.companyId} onChange={(e) => setForm({ ...form, companyId: e.target.value })} className="h-11 rounded-xl border px-3"><option value="">Empresa</option>{companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select><input required type="number" min={1} value={form.seatQuantity} onChange={(e) => setForm({ ...form, seatQuantity: Number(e.target.value) })} className="h-11 rounded-xl border px-3" placeholder="Licenças" /><input required type="number" min="0.01" step="0.01" value={form.agreedAmount} onChange={(e) => setForm({ ...form, agreedAmount: e.target.value })} className="h-11 rounded-xl border px-3" placeholder="Valor acordado" /><select value={form.paymentMethod} onChange={(e) => setForm({ ...form, paymentMethod: e.target.value })} className="h-11 rounded-xl border px-3"><option value="ASAAS">Asaas</option><option value="BANK_TRANSFER">Transferência</option><option value="EXTERNAL">Externo</option></select><input required type="date" value={form.startsAt} onChange={(e) => setForm({ ...form, startsAt: e.target.value })} className="h-11 rounded-xl border px-3" /><input type="date" value={form.endsAt} onChange={(e) => setForm({ ...form, endsAt: e.target.value })} className="h-11 rounded-xl border px-3" /><input required value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} className="h-11 rounded-xl border px-3 xl:col-span-2" placeholder="Motivo e observações" /><button className="h-11 rounded-xl bg-violet-600 font-bold text-white">Criar contrato manual</button>{error && <p className="text-sm text-rose-600 md:col-span-2">{error}</p>}</form><div className="overflow-x-auto rounded-2xl border bg-white"><table className="min-w-[860px] w-full text-sm"><thead><tr className="border-b bg-slate-50 text-left"><th className="p-4">Empresa</th><th className="p-4">Valor</th><th className="p-4">Licenças</th><th className="p-4">Início</th><th className="p-4">Fim</th><th className="p-4">Pagamento</th><th className="p-4">Status</th></tr></thead><tbody>{items.map((item) => <tr key={item.id} className="border-b"><td className="p-4 font-bold">{item.company?.name}</td><td className="p-4">{Number(item.agreedAmount).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td><td className="p-4">{item.seatQuantity}</td><td className="p-4">{new Date(item.startsAt).toLocaleDateString('pt-BR')}</td><td className="p-4">{item.endsAt ? new Date(item.endsAt).toLocaleDateString('pt-BR') : 'Indeterminado'}</td><td className="p-4">{item.paymentMethod}</td><td className="p-4">{item.status}</td></tr>)}</tbody></table></div></div>;
+}

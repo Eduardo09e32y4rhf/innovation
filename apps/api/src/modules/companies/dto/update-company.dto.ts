@@ -1,4 +1,4 @@
-import { IsOptional, IsString, IsNumber, IsInt, Min, Max, MaxLength, MinLength, Validate, ValidatorConstraint, ValidatorConstraintInterface } from 'class-validator';
+import { IsOptional, IsString, MaxLength, MinLength, Validate, ValidatorConstraint, ValidatorConstraintInterface } from 'class-validator';
 
 @ValidatorConstraint({ name: 'safeLogoValue', async: false })
 export class SafeLogoConstraint implements ValidatorConstraintInterface {
@@ -42,31 +42,11 @@ export class UpdateCompanyDto {
   @IsString()
   email?: string;
 
-  @IsOptional()
-  @IsString()
-  address?: string;
 
-  @IsOptional()
-  @IsString()
-  primaryColor?: string;
 
-  @IsOptional()
-  @IsString()
-  theme?: string;
 
-  @IsOptional()
-  @IsNumber()
-  latitude?: number;
 
-  @IsOptional()
-  @IsNumber()
-  longitude?: number;
 
-  @IsOptional()
-  @IsInt()
-  @Min(10)
-  @Max(5000)
-  radiusTolerance?: number;
 
   @IsOptional()
   @IsString()

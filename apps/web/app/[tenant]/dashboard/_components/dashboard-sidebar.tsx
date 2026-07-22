@@ -82,14 +82,14 @@ function getInitials(name?: string, email?: string) {
   return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
 }
 
-export function DashboardSidebar() {
+export function DashboardSidebar({ open = false, onClose }: { open?: boolean; onClose?: () => void }) {
   const pathname = usePathname();
   const params = useParams();
   const tenant = params?.tenant as string;
   const { user } = useAuth();
   const company = useQuery(() => api.companies.me(), []);
   const profile = user?.profile?.toUpperCase();
-  const activeModules = company.data?.activeModules || ['employees', 'time-track', 'vacations', 'management', 'whatsapp'];
+  const activeModules = company.data?.activeModules || ['employees', 'time-track', 'vacations', 'management'];
 
   const navItems = baseNavItems.filter((item) => {
     if (!canSeeItem(item, user)) return false;
@@ -107,12 +107,12 @@ export function DashboardSidebar() {
   }));
 
   return (
-    <aside className="sticky top-0 flex h-screen flex-col bg-black p-5 text-white">
+    <aside className={`fixed inset-y-0 left-0 z-50 flex w-[min(86vw,260px)] flex-col bg-black p-5 text-white shadow-2xl transition-transform duration-200 lg:sticky lg:top-0 lg:z-30 lg:h-screen lg:w-60 lg:translate-x-0 lg:shadow-none ${open ? 'translate-x-0' : '-translate-x-full'}`}>
       <CompanyBrandCard name={company.data?.name} document={company.data?.document} logoUrl={company.data?.logoUrl} />
 
       <nav className="mt-8 flex flex-1 flex-col gap-2 overflow-y-auto overflow-x-hidden pr-1">
         {tenantNavItems.map((item) => (
-          <NavItem key={item.href} item={item} active={isActive(pathname, item)} />
+          <NavItem key={item.href} item={item} active={isActive(pathname, item)} onNavigate={onClose} />
         ))}
       </nav>
 
@@ -161,7 +161,7 @@ function UserIdentityCard({ name, email, profile }: { name?: string; email?: str
   );
 }
 
-function NavItem({ item, active }: { item: NavItemConfig; active: boolean }) {
+function NavItem({ item, active, onNavigate }: { item: NavItemConfig; active: boolean; onNavigate?: () => void }) {
   const Icon = item.icon;
   const { user } = useAuth();
   const profile = user?.profile?.toUpperCase();
@@ -176,7 +176,8 @@ function NavItem({ item, active }: { item: NavItemConfig; active: boolean }) {
   return (
     <div className="flex flex-col">
       <Link 
-        href={item.href} 
+        href={item.href}
+        onClick={onNavigate}
         className={`group relative flex h-11 items-center gap-3 rounded-xl px-3 text-sm font-bold transition-colors ${
           active ? 'bg-[#8A05BE]/10 text-white' : 'text-white/60 hover:text-white'
         }`}
@@ -196,7 +197,7 @@ function NavItem({ item, active }: { item: NavItemConfig; active: boolean }) {
             return (
               <button 
                 key={sub.href} 
-                onClick={() => router.push(sub.href)} 
+                onClick={() => { router.push(sub.href); onNavigate?.(); }} 
                 className={`flex w-full items-center text-[12px] font-semibold transition-colors ${
                   isActiveSub ? 'text-[#8A05BE]' : 'text-white/50 hover:text-white/80'
                 }`}

@@ -82,21 +82,61 @@ export class AsaasWebhookController {
   ) {
     this.validateToken(accessToken);
     const event = payload?.event;
-    if (!event) return { received: true };
+    if (!event) return { received: true, ignored: true };
 
-    this.logger.log(`Webhook Asaas: ${event}`);
+    const asaasEventId = payload.id || `${event}:${payload.payment?.id || payload.invoice?.id || 'unknown'}`;
+    let storedEvent = await this.prisma.asaasWebhookEvent.findUnique({ where: { asaasEventId } });
 
-    // ── Eventos de pagamento ──
-    if (payload.payment?.id) {
-      await this.handlePaymentEvent(event, payload.payment);
+    if (!storedEvent) {
+      try {
+        storedEvent = await this.prisma.asaasWebhookEvent.create({
+          data: { asaasEventId, eventType: event, payload: payload as any, status: 'PENDING' },
+        });
+      } catch {
+        storedEvent = await this.prisma.asaasWebhookEvent.findUnique({ where: { asaasEventId } });
+      }
     }
 
-    // ── Eventos de nota fiscal ──
-    if (payload.invoice?.id) {
-      await this.handleInvoiceEvent(event, payload.invoice);
+    if (!storedEvent || ['PROCESSING', 'PROCESSED', 'IGNORED'].includes(storedEvent.status)) {
+      return { received: true, duplicate: true };
     }
 
-    return { received: true };
+    await this.prisma.asaasWebhookEvent.update({
+      where: { id: storedEvent.id },
+      data: { status: 'PROCESSING', attempts: { increment: 1 }, errorMessage: null },
+    });
+
+    try {
+      this.logger.log(`Webhook Asaas: ${event} (${asaasEventId})`);
+
+      if (payload.payment?.id) {
+        await this.handlePaymentEvent(event, payload.payment);
+      }
+
+      if (payload.invoice?.id) {
+        await this.handleInvoiceEvent(event, payload.invoice);
+      }
+
+      const recognized = Boolean(this.statusFromEvent(event) || ['INVOICE_AUTHORIZED', 'INVOICE_CANCELED', 'INVOICE_ERROR'].includes(event));
+      await this.prisma.asaasWebhookEvent.update({
+        where: { id: storedEvent.id },
+        data: {
+          status: recognized ? 'PROCESSED' : 'IGNORED',
+          processedAt: new Date(),
+          errorMessage: null,
+        },
+      });
+      return { received: true, duplicate: false };
+    } catch (error) {
+      await this.prisma.asaasWebhookEvent.update({
+        where: { id: storedEvent.id },
+        data: {
+          status: 'FAILED',
+          errorMessage: error instanceof Error ? error.message.slice(0, 2000) : String(error).slice(0, 2000),
+        },
+      }).catch(() => undefined);
+      throw error;
+    }
   }
 
   // ─── Processamento de pagamento ──────────────────────────────────────────────
@@ -246,7 +286,7 @@ export class AsaasWebhookController {
   private statusFromEvent(event: string): InvoiceStatus | undefined {
     if (['PAYMENT_RECEIVED', 'PAYMENT_CONFIRMED', 'PAYMENT_RECEIVED_IN_CASH'].includes(event)) return 'PAID';
     if (event === 'PAYMENT_OVERDUE') return 'OVERDUE';
-    if (['PAYMENT_DELETED', 'PAYMENT_REFUNDED', 'PAYMENT_REFUND_IN_PROGRESS', 'PAYMENT_CHARGEBACK_REQUESTED'].includes(event)) return 'CANCELED';
+    if (['PAYMENT_DELETED', 'PAYMENT_REFUNDED', 'PAYMENT_REFUND_IN_PROGRESS', 'PAYMENT_CHARGEBACK_REQUESTED', 'PAYMENT_CHARGEBACK_DISPUTE'].includes(event)) return 'CANCELED';
     if (['PAYMENT_CREATED', 'PAYMENT_UPDATED', 'PAYMENT_RESTORED'].includes(event)) return 'OPEN';
     return undefined;
   }

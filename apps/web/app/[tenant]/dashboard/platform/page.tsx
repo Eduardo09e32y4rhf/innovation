@@ -71,7 +71,7 @@ export default function PlatformPage() {
 
   async function handleDelete(c: PlatformCompany) {
     if (!isSuperAdmin) return;
-    if (!window.confirm(`Excluir "${c.name}"? Remove TODOS os dados (usuarios, funcionarios, conversas). Irreversivel.`)) return;
+    if (!window.confirm(`Arquivar "${c.name}"? O acesso será bloqueado e o histórico será preservado.`)) return;
     await remove.mutate(c.id).catch(() => {});
   }
 

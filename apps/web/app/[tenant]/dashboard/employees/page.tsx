@@ -106,10 +106,15 @@ export default function EmployeesPage() {
           <h1 className="page-title">Cadastro da equipe</h1>
         </div>
         {canEdit && (
-          <Link href={`/${tenant}/dashboard/employees/new`} className="btn-nubank">
-            <UserPlus size={15} strokeWidth={2.5} />
-            Novo funcionário
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            <Link href={`/${tenant}/dashboard/employees/import`} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 text-sm font-bold text-slate-700">
+              <Download size={15} /> Importar XLSX
+            </Link>
+            <Link href={`/${tenant}/dashboard/employees/new`} className="btn-nubank">
+              <UserPlus size={15} strokeWidth={2.5} />
+              Novo funcionário
+            </Link>
+          </div>
         )}
       </section>
 

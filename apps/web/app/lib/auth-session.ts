@@ -15,6 +15,7 @@ export interface StoredAuthSession {
   user: string | null;       // JSON serializado internamente
   company: string | null;    // JSON serializado internamente
   passwordChangeRequired: string | null;
+  ghostMode: string | null;
 }
 
 export interface AuthScopeSnapshot {
@@ -31,6 +32,7 @@ const SESSION_KEYS = {
   user: 'auth.user',
   company: 'auth.company',
   passwordChangeRequired: 'auth.passwordChangeRequired',
+  ghostMode: 'auth.ghostMode',
 } as const;
 
 /**
@@ -122,19 +124,22 @@ function _purgeLocalStorage(): void {
  */
 export function readAuthSession(): StoredAuthSession {
   if (typeof window === 'undefined') {
-    return { token: null, user: null, company: null, passwordChangeRequired: null };
+    return { token: null, user: null, company: null, passwordChangeRequired: null, ghostMode: null };
   }
 
-  let current: StoredAuthSession = { token: null, user: null, company: null, passwordChangeRequired: null };
+  let current: StoredAuthSession = { token: null, user: null, company: null, passwordChangeRequired: null, ghostMode: null };
 
   try {
     const ss = window.sessionStorage;
     const ls = window.localStorage;
+    const useGhost = ss.getItem(SESSION_KEYS.ghostMode) === 'true';
+    const storage = useGhost ? ss : ls;
     current = {
-      token: ss.getItem(SESSION_KEYS.token) ?? ss.getItem('token') ?? ss.getItem('auth.token') ?? ls.getItem(SESSION_KEYS.token) ?? ls.getItem('token') ?? ls.getItem('auth.token'),
-      user: ss.getItem(SESSION_KEYS.user) ?? ss.getItem('user') ?? ss.getItem('auth.user') ?? ls.getItem(SESSION_KEYS.user) ?? ls.getItem('user') ?? ls.getItem('auth.user'),
-      company: ss.getItem(SESSION_KEYS.company) ?? ss.getItem('company') ?? ss.getItem('auth.company') ?? ls.getItem(SESSION_KEYS.company) ?? ls.getItem('company') ?? ls.getItem('auth.company'),
-      passwordChangeRequired: ss.getItem(SESSION_KEYS.passwordChangeRequired) ?? ss.getItem('passwordChangeRequired') ?? ss.getItem('auth.passwordChangeRequired') ?? ls.getItem(SESSION_KEYS.passwordChangeRequired) ?? ls.getItem('passwordChangeRequired') ?? ls.getItem('auth.passwordChangeRequired'),
+      token: storage.getItem(SESSION_KEYS.token),
+      user: storage.getItem(SESSION_KEYS.user),
+      company: storage.getItem(SESSION_KEYS.company),
+      passwordChangeRequired: storage.getItem(SESSION_KEYS.passwordChangeRequired),
+      ghostMode: useGhost ? 'true' : 'false',
     };
   } catch (e) {
     // Ignora SecurityError caso cookies/storage bloqueados
@@ -158,8 +163,7 @@ export function readParsedAuthSession(): {
   // Verifica se o token veio do sessionStorage ou localStorage
   let isIsolated = false;
   if (typeof window !== 'undefined') {
-    const ssToken = window.sessionStorage.getItem(SESSION_KEYS.token) ?? window.sessionStorage.getItem('token') ?? window.sessionStorage.getItem('auth.token');
-    isIsolated = Boolean(ssToken && raw.token === ssToken);
+    isIsolated = raw.ghostMode === 'true';
   }
 
   return {
@@ -188,6 +192,7 @@ export function persistAuthSession(
     user: JSON.stringify(user),
     company: JSON.stringify(company),
     passwordChangeRequired: String(passwordChangeRequired),
+    ghostMode: String(isolateTab),
   }, isolateTab);
 }
 

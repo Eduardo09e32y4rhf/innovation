@@ -20,6 +20,8 @@ export class PlatformRepository {
     const companies = await this.prisma.company.findMany({
       orderBy: { createdAt: 'desc' },
       include: {
+        subscription: true,
+        platformPlan: { select: { id: true, name: true, code: true } },
         _count: { select: { users: true, employees: true } },
       },
     });
@@ -42,6 +44,8 @@ export class PlatformRepository {
       asaasCustomerId: c.asaasCustomerId,
       asaasSubscriptionId: c.asaasSubscriptionId,
       internalNotes: c.internalNotes,
+      subscription: c.subscription,
+      platformPlan: c.platformPlan,
       createdAt: c.createdAt,
       usersCount: c._count.users,
       employeesCount: c._count.employees,
@@ -60,7 +64,7 @@ export class PlatformRepository {
   getCompany(id: string) {
     return this.prisma.company.findUnique({
       where: { id },
-      include: { _count: { select: { users: true, employees: true } } },
+      include: { subscription: true, _count: { select: { users: true, employees: true } } },
     });
   }
 
@@ -73,7 +77,7 @@ export class PlatformRepository {
   }
 
   countUsers(companyId: string) {
-    return this.prisma.user.count({ where: { companyId } });
+    return this.prisma.user.count({ where: { companyId, isActive: true, role: { in: ['ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'] } } });
   }
 
   listCompanyUsers(companyId: string) {
@@ -110,7 +114,7 @@ export class PlatformRepository {
     adminPasswordHash: string;
     commercialOwnerId?: string | null;
     plan?: 'FREE' | 'BASE' | 'PRO' | 'ENTERPRISE';
-    billingStatus?: 'TRIAL' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED';
+    billingStatus?: 'TRIAL' | 'PENDING_PAYMENT' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED';
     trialEndsAt?: Date;
     platformPlanId?: string;
   }) {
@@ -131,6 +135,16 @@ export class PlatformRepository {
           platformPlanId: params.platformPlanId ?? null,
         },
       });
+      if (params.platformPlanId) {
+        await tx.companySubscription.create({
+          data: {
+            companyId: company.id,
+            planId: params.platformPlanId,
+            status: params.billingStatus ?? 'PENDING_PAYMENT',
+            seatQuantity: params.maxUsers,
+          },
+        });
+      }
       const admin = await tx.user.create({
         data: {
           companyId: company.id,
@@ -152,7 +166,10 @@ export class PlatformRepository {
   }
 
   deleteCompany(id: string) {
-    return this.prisma.company.delete({ where: { id } });
+    return this.prisma.company.update({
+      where: { id },
+      data: { status: 'CANCELLED', isActive: false, billingStatus: 'CANCELED', suspensionReason: 'arquivada_pelo_dev' },
+    });
   }
 
   async globalStats() {
