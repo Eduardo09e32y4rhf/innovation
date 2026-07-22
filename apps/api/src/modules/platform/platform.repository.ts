@@ -166,7 +166,10 @@ export class PlatformRepository {
   }
 
   deleteCompany(id: string) {
-    return this.prisma.company.delete({ where: { id } });
+    return this.prisma.company.update({
+      where: { id },
+      data: { status: 'CANCELLED', isActive: false, billingStatus: 'CANCELED', suspensionReason: 'arquivada_pelo_dev' },
+    });
   }
 
   async globalStats() {
