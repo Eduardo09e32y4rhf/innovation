@@ -42,31 +42,11 @@ export class UpdateCompanyDto {
   @IsString()
   email?: string;
 
-  @IsOptional()
-  @IsString()
-  address?: string;
 
-  @IsOptional()
-  @IsString()
-  primaryColor?: string;
 
-  @IsOptional()
-  @IsString()
-  theme?: string;
 
-  @IsOptional()
-  @IsNumber()
-  latitude?: number;
 
-  @IsOptional()
-  @IsNumber()
-  longitude?: number;
 
-  @IsOptional()
-  @IsInt()
-  @Min(10)
-  @Max(5000)
-  radiusTolerance?: number;
 
   @IsOptional()
   @IsString()
