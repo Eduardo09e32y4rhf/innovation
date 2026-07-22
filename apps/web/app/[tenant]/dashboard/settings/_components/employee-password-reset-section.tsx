@@ -358,9 +358,10 @@ function PasswordField({
         <button
           type="button"
           onClick={onToggle}
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700"
+          className="absolute right-0 top-0 bottom-0 w-11 flex items-center justify-center text-slate-400 hover:text-slate-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-inset rounded-r-xl"
+          aria-label={show ? 'Ocultar senha' : 'Mostrar senha'}
         >
-          {show ? <EyeOff size={16} /> : <Eye size={16} />}
+          {show ? <EyeOff size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />}
         </button>
       </div>
     </label>

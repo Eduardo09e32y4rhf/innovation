@@ -65,9 +65,10 @@ export function UserPasswordResetModal({ isOpen = true, user, onClose, onSubmit 
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              className="absolute right-0 top-0 bottom-0 w-10 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-inset rounded-r-[10px]"
+              aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
             >
-              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              {showPassword ? <EyeOff size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />}
             </button>
           </div>
           {newPassword.length > 0 && newPassword.length < 10 && (
