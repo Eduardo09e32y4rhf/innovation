@@ -278,9 +278,13 @@ export class PlatformFinanceService {
     };
   }
 
-  async listCompanyInvoices(companyId: string) {
+  async listCompanyInvoices(companyId: string, commercialOwnerId?: string) {
     return this.prisma.platformInvoice.findMany({
-      where: { companyId, deletedAt: null },
+      where: {
+        companyId,
+        deletedAt: null,
+        ...(commercialOwnerId ? { company: { commercialOwnerId } } : {}),
+      },
       orderBy: [{ dueDate: 'desc' }, { createdAt: 'desc' }],
       take: 100,
     });
@@ -398,8 +402,8 @@ export class PlatformFinanceService {
     }
   }
 
-  async summary(query: Pick<ListPlatformInvoicesDto, 'from' | 'to'>) {
-    const where = this.buildWhere(query);
+  async summary(query: Pick<ListPlatformInvoicesDto, 'from' | 'to'>, commercialOwnerId?: string) {
+    const where = this.buildWhere(query, commercialOwnerId);
     const invoices = await this.prisma.platformInvoice.findMany({
       where,
       select: { amount: true, status: true, dueDate: true, paidAt: true },
@@ -434,8 +438,8 @@ export class PlatformFinanceService {
     };
   }
 
-  async list(query: ListPlatformInvoicesDto) {
-    const where = this.buildWhere(query);
+  async list(query: ListPlatformInvoicesDto, commercialOwnerId?: string) {
+    const where = this.buildWhere(query, commercialOwnerId);
     const [items, total] = await this.prisma.$transaction([
       this.prisma.platformInvoice.findMany({
         where,
@@ -603,7 +607,10 @@ export class PlatformFinanceService {
     return invoice;
   }
 
-  private buildWhere(query: Pick<ListPlatformInvoicesDto, 'status' | 'search' | 'from' | 'to'>): Prisma.PlatformInvoiceWhereInput {
+  private buildWhere(
+    query: Pick<ListPlatformInvoicesDto, 'status' | 'search' | 'from' | 'to'>,
+    commercialOwnerId?: string,
+  ): Prisma.PlatformInvoiceWhereInput {
     const dueDate = query.from || query.to
       ? {
           gte: query.from ? new Date(query.from) : undefined,
@@ -614,13 +621,18 @@ export class PlatformFinanceService {
       deletedAt: null,
       status: query.status as InvoiceStatus | undefined,
       dueDate,
-      company: query.search
+      company: commercialOwnerId || query.search
         ? {
-            OR: [
-              { name: { contains: query.search, mode: 'insensitive' } },
-              { legalName: { contains: query.search, mode: 'insensitive' } },
-              { document: { contains: query.search } },
-            ],
+            ...(commercialOwnerId ? { commercialOwnerId } : {}),
+            ...(query.search
+              ? {
+                  OR: [
+                    { name: { contains: query.search, mode: 'insensitive' } },
+                    { legalName: { contains: query.search, mode: 'insensitive' } },
+                    { document: { contains: query.search } },
+                  ],
+                }
+              : {}),
           }
         : undefined,
     };
