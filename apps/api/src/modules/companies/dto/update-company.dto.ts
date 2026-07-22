@@ -1,4 +1,4 @@
-import { IsOptional, IsString, IsNumber, IsInt, Min, Max, MaxLength, MinLength, Validate, ValidatorConstraint, ValidatorConstraintInterface } from 'class-validator';
+import { IsOptional, IsString, MaxLength, MinLength, Validate, ValidatorConstraint, ValidatorConstraintInterface } from 'class-validator';
 
 @ValidatorConstraint({ name: 'safeLogoValue', async: false })
 export class SafeLogoConstraint implements ValidatorConstraintInterface {
