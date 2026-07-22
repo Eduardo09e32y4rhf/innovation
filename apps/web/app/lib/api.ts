@@ -484,6 +484,7 @@ export const api = {
     validateResetCode: (email: string, code: string, cpfStart: string, registration: string) => request<{ valid: boolean; resetToken: string }>('/auth/password-reset/validate-code', { method: 'POST', body: { email, code, cpfStart, registration } }),
     resetPassword: (token: string, newPassword: string) => request<{ changed: boolean }>('/auth/password-reset/confirm', { method: 'POST', body: { token, newPassword } }),
     publicPlans: () => request<PublicPlatformPlan[]>('/auth/public-plans'),
+    quotePublicPlan: (data: { planId: string; seatQuantity: number; couponCode?: string }) => request<{ total: number; monthlyEquivalent?: number; commitmentMonths: number; seatQuantity: number; couponApplied: boolean; trialDays: number }>('/auth/public-plans/quote', { method: 'POST', body: data }),
     registerCompany: (data: any) => request<any>('/auth/register-company', { method: 'POST', body: data }),
     searchEmployeesForPasswordReset: (search: string) =>
       request<PasswordResetEmployee[]>(
