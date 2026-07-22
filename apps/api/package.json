@@ -18,6 +18,7 @@
     "recalc:timetracks": "tsx scripts/recalc-timetracks.ts",
     "seed:admin": "node prisma/seed-admin.cjs",
     "seed:mvp": "node prisma/seed-admin.cjs",
+    "seed:pricing": "npx tsx prisma/seed-pricing.ts",
     "seed:realistic-demo": "npx tsx prisma/seed-realistic-demo.ts"
   },
   "dependencies": {
