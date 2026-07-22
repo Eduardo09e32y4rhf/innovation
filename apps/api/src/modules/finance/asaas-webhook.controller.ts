@@ -68,7 +68,6 @@ export class AsaasWebhookController {
         'process',
         { eventId },
         {
-          jobId: eventId,
           attempts: 5,
           backoff: { type: 'exponential', delay: 10_000 },
           removeOnComplete: 500,
