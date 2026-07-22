@@ -5,10 +5,11 @@ import { api, type PublicPlatformPlan } from '@/app/lib/api';
 import { Check, Users, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 
-export function PricingSection({ onSelectPlan, selectedPlanId, initialSeats = 1 }: { onSelectPlan?: (id: string) => void, selectedPlanId?: string, initialSeats?: number }) {
+export function PricingSection({ onSelectPlan, onSeatQuantityChange, selectedPlanId, initialSeats = 1 }: { onSelectPlan?: (id: string) => void; onSeatQuantityChange?: (seats: number) => void; selectedPlanId?: string; initialSeats?: number }) {
   const [plans, setPlans] = useState<PublicPlatformPlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [seatQuantity, setSeatQuantity] = useState(initialSeats);
+  const [quotes, setQuotes] = useState<Record<string, { total: number; commitmentMonths: number }>>({});
 
   useEffect(() => {
     api.auth.publicPlans()
@@ -17,25 +18,21 @@ export function PricingSection({ onSelectPlan, selectedPlanId, initialSeats = 1 
       .finally(() => setLoading(false));
   }, []);
 
-  const calculatePrice = (plan: PublicPlatformPlan, seats: number) => {
-    if (plan.isFree || !plan.baseMonthlyPrice) return { total: 0, monthlyEquivalent: 0 };
-    
-    // Convert to cents to avoid floating point issues
-    const baseMonthlyCents = Math.round(plan.baseMonthlyPrice * 100);
-    const userMonthlyCents = Math.round((plan.userMonthlyPrice || 0) * 100);
-    const commitmentMonths = plan.commitmentMonths || 1;
-    const discountBps = Math.round((plan.discountPercent || 0) * 100);
-
-    const baseGrossCents = baseMonthlyCents * commitmentMonths;
-    const baseNetCents = Math.round(baseGrossCents * (10000 - discountBps) / 10000);
-    const seatAmountCents = userMonthlyCents * seats * commitmentMonths;
-    const totalCents = baseNetCents + seatAmountCents;
-
-    return {
-      total: totalCents / 100,
-      monthlyEquivalent: (totalCents / commitmentMonths) / 100
-    };
-  };
+  useEffect(() => {
+    if (!plans.length) return;
+    let active = true;
+    const timer = window.setTimeout(() => {
+      Promise.all(plans.map(async (plan) => {
+        const quote = await api.auth.quotePublicPlan({ planId: plan.id, seatQuantity });
+        return [plan.id, quote] as const;
+      })).then((entries) => {
+        if (active) setQuotes(Object.fromEntries(entries));
+      }).catch(() => {
+        if (active) setQuotes({});
+      });
+    }, 250);
+    return () => { active = false; window.clearTimeout(timer); };
+  }, [plans, seatQuantity]);
 
   const formatCurrency = (val: number) => val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
@@ -64,7 +61,7 @@ export function PricingSection({ onSelectPlan, selectedPlanId, initialSeats = 1 
             min="1" 
             max="1000" 
             value={seatQuantity} 
-            onChange={(e) => setSeatQuantity(Number(e.target.value))}
+            onChange={(e) => { const seats = Number(e.target.value); setSeatQuantity(seats); onSeatQuantityChange?.(seats); }}
             className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-teal-500"
           />
           <div className="flex justify-between text-xs text-slate-500 mt-2 font-medium">
@@ -79,7 +76,9 @@ export function PricingSection({ onSelectPlan, selectedPlanId, initialSeats = 1 
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
         {plans.map((plan) => {
-          const { total, monthlyEquivalent } = calculatePrice(plan, seatQuantity);
+          const quote = quotes[plan.id];
+          const total = quote?.total ?? 0;
+          const monthlyEquivalent = quote ? quote.total / quote.commitmentMonths : 0;
           const isSelected = selectedPlanId === plan.id;
           
           return (
@@ -134,10 +133,6 @@ export function PricingSection({ onSelectPlan, selectedPlanId, initialSeats = 1 
                   </li>
                   <li className="flex gap-3 text-sm text-slate-300">
                     <Check size={18} className="text-teal-500 shrink-0" />
-                    <span>Suporte via WhatsApp</span>
-                  </li>
-                  <li className="flex gap-3 text-sm text-slate-300">
-                    <Check size={18} className="text-teal-500 shrink-0" />
                     <span>Implantação guiada</span>
                   </li>
                 </ul>
@@ -156,7 +151,7 @@ export function PricingSection({ onSelectPlan, selectedPlanId, initialSeats = 1 
                   href={`/cadastro?planId=${plan.id}&seats=${seatQuantity}`}
                   className={`w-full h-12 rounded-xl font-bold flex items-center justify-center transition-all ${plan.isRecommended ? 'bg-teal-500 text-slate-950 hover:bg-teal-400' : 'bg-white/10 text-white hover:bg-white/20'}`}
                 >
-                  Começar Teste Grátis
+                  Criar minha empresa
                 </Link>
               )}
             </div>
