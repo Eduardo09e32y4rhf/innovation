@@ -53,6 +53,6 @@ O PR só deve ser integrado à `main` com todos esses gates verdes.
 
 Nenhuma dessas ações é marcada como concluída sem evidência do ambiente correspondente.
 
-## Integridade do documento de origem
+## Documento de origem
 
-A cópia de `plano_recuperacao.md` disponível no repositório está truncada no início do Bloco 17 e contém literalmente o marcador `<truncated 11439 bytes>`. Este fechamento cobre integralmente os Blocos 00–16 legíveis e o conteúdo recuperável do Bloco 17; qualquer requisito existente apenas na parte ausente precisa ser comparado com uma cópia íntegra antes do deploy definitivo.
+O arquivo operacional `plano_recuperacao.md` foi removido da árvore ativa após a conclusão. A versão utilizada permanece preservada no histórico do Git e na PR #448 para fins de auditoria.
