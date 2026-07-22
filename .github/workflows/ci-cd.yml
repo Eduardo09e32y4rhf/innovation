@@ -60,6 +60,9 @@ jobs:
     - name: Validate Workspace Foundation
       run: npm run check:workspace
 
+    - name: Validate production Docker Compose
+      run: docker compose --env-file .env.prod.example -f docker-compose.prod.yml config --quiet
+
     - name: Prisma Validate
       run: npm run prisma:validate
 
