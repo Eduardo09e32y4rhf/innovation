@@ -1,10 +1,11 @@
-# docker-compose de PRODUCAO
-# Sobe: PostgreSQL + API (NestJS) + Web (Next.js estatico)
-# Discovery-first: se 3000/3333 forem do Innovation antigo, pare/recrie e mantenha essas portas.
+# Docker Compose de produção.
+# Uso recomendado:
+#   cp .env.prod.example .env
+#   bash scripts/deploy-prod.sh
 #
-# Na VPS:
-#   cp .env.prod.example .env   # preencha com seus valores
-#   docker compose -f docker-compose.prod.yml up -d --build
+# PostgreSQL e Redis não são expostos publicamente. O PgBouncer foi removido
+# porque a API usa conexão direta com o PostgreSQL e o serviço antigo ocupava
+# desnecessariamente a porta 6432 da VPS.
 
 services:
   postgres:
@@ -25,23 +26,6 @@ services:
       timeout: 5s
       retries: 10
 
-  pgbouncer:
-    image: edoburu/pgbouncer:latest
-    restart: unless-stopped
-    environment:
-      DB_USER: ${POSTGRES_USER}
-      DB_PASSWORD: ${POSTGRES_PASSWORD}
-      DB_HOST: postgres
-      DB_NAME: ${POSTGRES_DB}
-      POOL_MODE: transaction
-      MAX_CLIENT_CONN: 1000
-      DEFAULT_POOL_SIZE: 20
-    ports:
-      - "127.0.0.1:6432:6432"
-    depends_on:
-      postgres:
-        condition: service_healthy
-
   redis:
     image: redis:7-alpine
     container_name: innovation-redis
@@ -58,12 +42,8 @@ services:
     build:
       context: .
       dockerfile: apps/api/Dockerfile
+    container_name: innovation-api
     restart: unless-stopped
-    deploy:
-      replicas: 1
-      update_config:
-        parallelism: 1
-        delay: 10s
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://localhost:3333/health', r => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"]
       interval: 15s
@@ -71,8 +51,8 @@ services:
       retries: 5
       start_period: 30s
     depends_on:
-      pgbouncer:
-        condition: service_started
+      postgres:
+        condition: service_healthy
       redis:
         condition: service_healthy
     environment:
@@ -86,21 +66,20 @@ services:
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
       APP_URL: ${APP_URL:-}
       NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-}
-      DEV_EMAIL: ${DEV_EMAIL}
-      DEV_PASSWORD: ${DEV_PASSWORD}
-      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      PLATFORM_OWNER_EMAIL: ${PLATFORM_OWNER_EMAIL}
+      DEV_EMAIL: ${DEV_EMAIL:-}
+      DEV_PASSWORD: ${DEV_PASSWORD:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
       PLATFORM_COMPANY_DOCUMENT: ${PLATFORM_COMPANY_DOCUMENT:-00000000000000}
       DEMO_COMPANY_DOCUMENT: ${DEMO_COMPANY_DOCUMENT:-00000000000191}
       WHATSAPP_SESSION_PATH: /data/whatsapp
       WHATSAPPMEDIA_PATH: /data/whatsapp-media
-      COMPREFACE_URL: ${COMPREFACE_URL}
-      COMPREFACE_API_KEY: ${COMPREFACE_API_KEY}
-      ASAAS_API_KEY: ${ASAAS_API_KEY}
+      COMPREFACE_URL: ${COMPREFACE_URL:-}
+      COMPREFACE_API_KEY: ${COMPREFACE_API_KEY:-}
+      ASAAS_API_KEY: ${ASAAS_API_KEY:-}
       ASAAS_API_URL: ${ASAAS_API_URL:-https://api.asaas.com/v3}
       ASAAS_WEBHOOK_TOKEN: ${ASAAS_WEBHOOK_TOKEN:-}
-      ASAAS_WEBHOOK_SECRET: ${ASAAS_WEBHOOK_SECRET}
-    # ports:
-    #   - "127.0.0.1:${API_HOST_PORT:-3333}:${API_PORT:-3333}"
+      ASAAS_WEBHOOK_SECRET: ${ASAAS_WEBHOOK_SECRET:-}
     volumes:
       - innovation_wa:/data
 
@@ -116,7 +95,8 @@ services:
     container_name: innovation-web
     restart: unless-stopped
     depends_on:
-      - api
+      api:
+        condition: service_healthy
     environment:
       NODE_OPTIONS: "--max-old-space-size=2048"
       PORT: 3000
@@ -138,13 +118,14 @@ services:
       - innovation_caddy_data:/data
       - innovation_caddy_config:/config
     depends_on:
-      - api
-      - web
+      api:
+        condition: service_healthy
+      web:
+        condition: service_started
 
 volumes:
   innovation_pgdata:
   innovation_wa:
   innovation_redisdata:
-  compreface_db_data:
   innovation_caddy_data:
   innovation_caddy_config:
