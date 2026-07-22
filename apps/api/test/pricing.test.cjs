@@ -31,3 +31,13 @@ test('rejeita quantidade de licenças inválida', () => {
   assert.throws(() => pricing.calculate(1, 0));
   assert.throws(() => pricing.calculate(1, 1.5));
 });
+
+
+test('valida CPF e CNPJ com dígitos verificadores', () => {
+  const { AuthService } = require('../dist/modules/auth/auth.service.js');
+  const auth = new AuthService({}, {}, {}, {}, {});
+  assert.doesNotThrow(() => auth.assertValidDocument('52998224725'));
+  assert.doesNotThrow(() => auth.assertValidDocument('11222333000181'));
+  assert.throws(() => auth.assertValidDocument('11111111111'));
+  assert.throws(() => auth.assertValidDocument('11222333000182'));
+});
