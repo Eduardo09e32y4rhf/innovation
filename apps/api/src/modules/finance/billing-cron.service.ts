@@ -12,6 +12,68 @@ export class BillingCronService {
     private readonly financeNotificationService: FinanceNotificationService,
   ) {}
 
+  // Gera uma proposta recuperável cinco dias antes do fim do trial.
+  @Cron('30 3 * * *')
+  async createTrialConversionProposals() {
+    const now = new Date();
+    const windowStart = new Date(now.getTime() + 4.5 * 24 * 60 * 60 * 1000);
+    const windowEnd = new Date(now.getTime() + 5.5 * 24 * 60 * 60 * 1000);
+
+    const companies = await this.prisma.company.findMany({
+      where: {
+        billingStatus: 'TRIAL',
+        trialEndsAt: { gte: windowStart, lte: windowEnd },
+        isActive: true,
+      },
+      include: {
+        subscription: { include: { plan: true } },
+        users: {
+          where: { role: 'ADMIN', isActive: true },
+          select: { id: true },
+          take: 1,
+        },
+      },
+    });
+
+    for (const company of companies) {
+      const admin = company.users[0];
+      const plan = company.subscription?.plan;
+      if (!admin || !plan || !company.trialEndsAt) continue;
+
+      const proposalNumber = `TRIAL-${company.id.slice(0, 8)}-${company.trialEndsAt.toISOString().slice(0, 10).replace(/-/g, '')}`;
+      const exists = await this.prisma.proposal.findUnique({ where: { proposalNumber } });
+      if (exists) continue;
+
+      const proposal = await this.prisma.proposal.create({
+        data: {
+          companyId: company.id,
+          proposalNumber,
+          status: 'DRAFT',
+          title: 'Proposta automática de continuidade após o trial',
+          description: 'Proposta gerada automaticamente cinco dias antes do encerramento do período de avaliação.',
+          startDate: company.trialEndsAt,
+          planType: plan.code || plan.name,
+          monthlyPrice: Number(plan.baseMonthlyPrice) + Number(plan.userMonthlyPrice) * company.subscription!.seatQuantity,
+          usersLimit: company.subscription!.seatQuantity,
+          employeesLimit: plan.maxEmployees,
+          features: plan.activeModules,
+          createdBy: admin.id,
+        },
+      });
+
+      await this.prisma.proposalAuditLog.create({
+        data: {
+          proposalId: proposal.id,
+          action: 'TRIAL_DAY_25_PROPOSAL_CREATED',
+          actor: 'SYSTEM',
+          metadata: JSON.stringify({ trialEndsAt: company.trialEndsAt, companyId: company.id }),
+        },
+      });
+    }
+
+    if (companies.length) this.logger.log(`Rotina de conversão de trial analisou ${companies.length} empresa(s).`);
+  }
+
   // ─── Expiração de Trial — 04:00 diariamente ────────────────────────
   @Cron('0 4 * * *')
   async checkExpiredTrials() {
