@@ -63,7 +63,7 @@ jobs:
       run: npm run prisma:generate
 
     - name: Apply current Prisma schema to test database
-      run: npm --prefix apps/api exec -- prisma db push --schema prisma/schema.prisma --skip-generate
+      run: npm --prefix apps/api exec -- prisma db push --schema apps/api/prisma/schema.prisma --skip-generate
 
     - name: Lint Web (Next.js)
       run: npm run lint:web
