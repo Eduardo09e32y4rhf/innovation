@@ -40,7 +40,7 @@
   "author": "Innovation RH Connect Team",
   "license": "UNLICENSED",
   "devDependencies": {
-    "typescript": "^5.8.3"
+    "typescript": "^7.0.2"
   },
   "workspaces": [
     "apps/web",
