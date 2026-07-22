@@ -98,7 +98,7 @@ export class AuthService {
     const subscriptionData = {
       companyId: company.id,
       planId: selectedPlan.id,
-      status: 'PENDING_PAYMENT',
+      status: selectedPlan.isFree ? 'ACTIVE' : 'PENDING_PAYMENT',
       seatQuantity: dto.seatQuantity,
       pricingVersion: selectedPlan.pricingVersion,
       baseMonthlyPrice: selectedPlan.baseMonthlyPrice,
