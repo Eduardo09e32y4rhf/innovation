@@ -53,28 +53,23 @@ function GhostInitPageContent() {
           throw new Error(errorMsg);
         }
 
-        const data = await res.json();
-        const ghostToken = data?.token;
+        const rawData = await res.json();
+        const data = rawData.data ?? rawData;
+        const ghostToken = data?.access_token || data?.token;
         if (!ghostToken) throw new Error('Falha ao gerar token de acesso.');
 
-        // 2. Valida o token gerado para pegar os dados do usuário e empresa
-        const responseMe = await fetch(`${getApiUrl()}/auth/me`, {
-          headers: { Authorization: `Bearer ${ghostToken}` },
-        });
-
-        if (!responseMe.ok) throw new Error('Falha ao validar token.');
-
-        const payload = await responseMe.json();
-        const freshUser = payload.data ?? payload;
-        
+        // 2. Usa o contexto real devolvido pelo backend
+        const freshUser = data.user;
         const nextUser = {
           id: freshUser.sub,
           name: freshUser.name || freshUser.email?.split('@')[0] || 'Usuário',
           email: freshUser.email,
           profile: String(freshUser.role || 'USER').toLowerCase(),
+          role: freshUser.role,
           companyId: freshUser.companyId,
+          ghostMode: true,
         };
-        const nextCompany = { id: freshUser.companyId, name: 'Empresa Acessada' };
+        const nextCompany = data.company;
 
         if (!active) return;
 
@@ -82,7 +77,7 @@ function GhostInitPageContent() {
         persistAuthSession(ghostToken, nextUser, nextCompany, false, true);
 
         // 4. Redireciona
-        router.replace(`/${freshUser.companyId}/dashboard`);
+        router.replace(`/${nextCompany.slug || nextCompany.id}/dashboard`);
       } catch (err: any) {
         if (active) setError(err.message || 'Erro ao iniciar Ghost Mode.');
       }
