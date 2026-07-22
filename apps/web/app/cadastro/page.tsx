@@ -132,7 +132,8 @@ function CadastroForm() {
         <PricingSection 
           selectedPlanId={formData.planId} 
           initialSeats={Number(initialSeats) || 1}
-          onSelectPlan={(id) => setFormData(p => ({ ...p, planId: id }))} 
+          onSelectPlan={(id) => setFormData(p => ({ ...p, planId: id }))}
+          onSeatQuantityChange={(seatQuantity) => setFormData((previous) => ({ ...previous, seatQuantity }))} 
         />
       </div>
 
