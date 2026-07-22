@@ -115,7 +115,7 @@ export function CompanyActionMenu({
                   disabled={loadingDelete}
                   className="flex w-full items-center gap-2 rounded-[6px] px-3 py-2 text-left text-[11px] font-semibold text-rose-600 hover:bg-rose-50"
                 >
-                  <Trash2 size={14} />
+                  <Archive size={14} />
                   Arquivar empresa
                 </button>
               </>
