@@ -1,78 +1,65 @@
-# Deploy - Innovation RH Connect
+# Deploy de produção — Innovation RH Connect
 
-Regra principal: primeiro descubra quem e dono das portas. Porta ocupada pelo Innovation antigo nao e conflito externo; nesse caso suba a nova versao no mesmo lugar e mantenha Nginx/API URL.
+## Pré-requisitos
 
-## Diagnostico obrigatorio na VPS
+1. Copie `.env.prod.example` para `.env`.
+2. Substitua todos os valores `TROQUE_*`.
+3. Faça backup do volume/banco antes de migrations ou mudanças estruturais.
+4. Não use `docker compose down -v`: o parâmetro `-v` remove os volumes de dados.
 
-```bash
-ss -tulpn | grep -E ':3000|:3333|:5000|:3001|:5432|:5433|:8080|:8000'
-docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Ports}}\t{{.Status}}"
-pm2 list
-```
+## Deploy recomendado
 
-## Producao atual
-
-A VPS publica o sistema por HTTPS no Nginx:
-
-```txt
-https://vps8369.panel.icontainer.net
-```
-
-O Nginx deve manter:
-
-```nginx
-location / {
-    proxy_pass http://127.0.0.1:8080;
-}
-
-location /api/ {
-    proxy_pass http://127.0.0.1:3333/;
-}
-```
-
-No `.env` de producao, mantenha a API relativa para evitar mixed content:
-
-```env
-API_PORT=3333
-API_HOST_PORT=3333
-WEB_PORT=3000
-WEB_HOST_PORT=8080
-NEXT_PUBLIC_API_URL=/api
-NEXT_PUBLIC_API_BASE_URL=/api
-NEXT_PUBLIC_API_BASE=/api
-ALLOWED_ORIGINS=https://vps8369.panel.icontainer.net
-```
-
-So use portas alternativas se ficar confirmado que as portas atuais pertencem a outro sistema que nao pode ser parado.
-
-## Docker incremental
-
-Nao use `down -v` e nao remova volumes. Para atualizar:
+Na raiz do repositório:
 
 ```bash
-cd /var/www/innovation.ia
-git pull origin feat/integracao-frontend
-docker compose -f docker-compose.prod.yml --env-file .env up -d --build
-sudo nginx -t
-sudo systemctl reload nginx
+git pull --ff-only origin main
+bash scripts/deploy-prod.sh
 ```
 
-## Smoke test MVP
+O script:
+
+- valida o Compose e as variáveis;
+- encerra apenas os containers/rede da versão anterior;
+- preserva todos os volumes;
+- remove serviços órfãos;
+- constrói e inicia a versão nova;
+- aguarda a API ficar saudável;
+- mostra automaticamente os logs se a API falhar.
+
+## Por que o PgBouncer foi removido
+
+A configuração anterior publicava `127.0.0.1:6432`, embora a API usasse conexão direta com `postgres:5432`. Isso criava um ponto de falha sem participar do tráfego da aplicação. O serviço foi removido do Compose de produção; PostgreSQL e Redis continuam acessíveis apenas pela rede Docker e pelas portas locais explicitamente configuradas.
+
+## Diagnóstico
 
 ```bash
-curl -i https://vps8369.panel.icontainer.net/api/health
-curl -I https://vps8369.panel.icontainer.net/login
-docker exec innovation-web sh -lc "grep -R '23.106.44.75:3333\|localhost:3333\|127.0.0.1:3333' /app/out || echo OK"
-API_BASE_URL=https://vps8369.panel.icontainer.net/api npm run test:mvp:api
+docker compose --env-file .env -f docker-compose.prod.yml ps
+docker compose --env-file .env -f docker-compose.prod.yml logs --tail=150 api
+docker compose --env-file .env -f docker-compose.prod.yml logs --tail=100 web
+docker inspect --format '{{.State.Health.Status}}' innovation-api
 ```
 
-## PM2
+Use comandos do Compose em vez de assumir nomes gerados como `innovation-api-1`. A configuração atual fixa os nomes `innovation-postgres`, `innovation-redis`, `innovation-api`, `innovation-web` e `innovation-caddy`.
 
-Use PM2 apenas se a versao atual estiver rodando por PM2:
+## Smoke test
+
+Substitua o domínio antes de executar:
 
 ```bash
-pm2 list
-pm2 restart innovation-api
-pm2 restart innovation-web
-pm2 logs --lines 100
+curl -fsS https://seu-dominio.com/api/health
+curl -fsSI https://seu-dominio.com/login
 ```
+
+## Erros conhecidos
+
+### `container name is already in use`
+
+Execute o script de deploy. Ele usa `down --remove-orphans` antes do `up`, sem apagar volumes.
+
+### `Bind for 127.0.0.1:6432 failed: port is already allocated`
+
+Atualize para a versão atual da `main`. O PgBouncer não utilizado e o bind da porta 6432 foram removidos.
+
+### API encerra durante `prisma migrate deploy`
+
+Não apague o banco. Consulte os logs da API e compare o estado de `_prisma_migrations`. O histórico antigo precisa de baseline formal para bancos criados do zero; faça isso primeiro em staging, com backup e procedimento documentado.
