@@ -60,6 +60,16 @@ export class PlatformFinanceService {
         planId: company.platformPlanId,
         description: payment.description || 'Mensalidade Innovation RH - avulsa',
         amount,
+        pricingSnapshot: {
+          source: 'AUTOMATIC',
+          pricingVersion: company.subscription?.pricingVersion ?? company.platformPlan?.pricingVersion ?? null,
+          seatQuantity: company.subscription?.seatQuantity ?? null,
+          baseMonthlyPrice: company.subscription?.baseMonthlyPrice ? Number(company.subscription.baseMonthlyPrice) : null,
+          userMonthlyPrice: company.subscription?.userMonthlyPrice ? Number(company.subscription.userMonthlyPrice) : null,
+          discountPercent: company.subscription?.discountPercent ? Number(company.subscription.discountPercent) : null,
+          commitmentMonths: company.platformPlan?.commitmentMonths ?? null,
+          total: amount,
+        },
         dueDate: new Date(payment.dueDate),
         status: (this.mapAsaasStatus(payment.status || 'PENDING') || 'OPEN') as InvoiceStatus,
         billingType: payment.billingType || 'UNDEFINED',
@@ -289,6 +299,69 @@ export class PlatformFinanceService {
       orderBy: [{ dueDate: 'desc' }, { createdAt: 'desc' }],
       take: 100,
     });
+  }
+
+  async changeSeatQuantity(companyId: string, nextSeatQuantity: number) {
+    const subscription = await this.prisma.companySubscription.findUnique({
+      where: { companyId },
+      include: {
+        plan: true,
+        company: { select: { asaasSubscriptionId: true } },
+      },
+    });
+    if (!subscription?.plan) throw new NotFoundException('Assinatura ativa não encontrada.');
+
+    const usedSeats = await this.prisma.user.count({
+      where: {
+        companyId,
+        isActive: true,
+        role: { in: ['ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'] },
+      },
+    });
+    if (nextSeatQuantity < usedSeats) {
+      throw new BadRequestException(`A empresa possui ${usedSeats} usuário(s) ativo(s). Desative usuários antes de reduzir as licenças.`);
+    }
+
+    if (nextSeatQuantity === subscription.seatQuantity && !subscription.pendingSeatQuantity) {
+      return { changed: false, seatQuantity: subscription.seatQuantity, pendingSeatQuantity: null };
+    }
+
+    const commitmentMonths = subscription.plan.commitmentMonths as 1 | 3 | 6 | 12;
+    const quote = this.pricingService.calculate(commitmentMonths, nextSeatQuantity);
+
+    if (nextSeatQuantity < subscription.seatQuantity) {
+      const updated = await this.prisma.companySubscription.update({
+        where: { companyId },
+        data: { pendingSeatQuantity: nextSeatQuantity },
+      });
+      return {
+        changed: true,
+        scheduled: true,
+        seatQuantity: updated.seatQuantity,
+        pendingSeatQuantity: updated.pendingSeatQuantity,
+        effectiveAt: updated.currentPeriodEnd ?? updated.nextDueDate,
+        quote,
+      };
+    }
+
+    const asaasSubscriptionId = subscription.asaasSubscriptionId || subscription.company.asaasSubscriptionId;
+    if (asaasSubscriptionId && this.asaas.isConfigured()) {
+      await this.asaas.updateSubscription(asaasSubscriptionId, { value: quote.total });
+    }
+
+    const updated = await this.prisma.companySubscription.update({
+      where: { companyId },
+      data: {
+        seatQuantity: nextSeatQuantity,
+        pendingSeatQuantity: null,
+        pricingVersion: subscription.plan.pricingVersion,
+        baseMonthlyPrice: subscription.plan.baseMonthlyPrice,
+        userMonthlyPrice: subscription.plan.userMonthlyPrice,
+        discountPercent: subscription.plan.discountPercent,
+      },
+    });
+
+    return { changed: true, scheduled: false, seatQuantity: updated.seatQuantity, pendingSeatQuantity: null, quote };
   }
 
   async changeCompanyPlan(companyId: string, newPlanId: string) {
