@@ -1,0 +1,3 @@
+## 2024-07-22 - Add ARIA Labels and Focus Rings to Password Toggles
+**Learning:** Icon-only buttons used for password visibility toggles were missing ARIA labels, making them inaccessible to screen readers. They also lacked explicit focus rings, hindering keyboard navigation visibility.
+**Action:** Always add `aria-label` to icon-only buttons and explicitly set `aria-hidden="true"` on the SVG icons within them to prevent redundant screen reader announcements. Add explicit `focus-visible` ring classes to interactive elements inside input wrappers for keyboard accessibility, ensuring `focus-visible:ring-inset` is used with a matching `border-radius` to prevent visual clipping.
