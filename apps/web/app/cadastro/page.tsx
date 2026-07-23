@@ -51,16 +51,19 @@ function CadastroForm() {
   useEffect(() => {
     api.auth.publicPlans()
       .then((items) => {
-        setPlans(items);
-        if (!formData.planId) {
-          const recommended = items.find((item) => !item.isFree) ?? items[0];
-          if (recommended) {
-            setFormData((current) => ({ ...current, planId: recommended.id }));
-          }
+        if (items && Array.isArray(items)) {
+          setPlans(items);
+          setFormData(current => {
+            if (!current.planId) {
+              const recommended = items.find((item) => !item.isFree) ?? items[0];
+              return { ...current, planId: recommended?.id || '' };
+            }
+            return current;
+          });
         }
       })
-      .catch(() => {});
-  }, [formData.planId]);
+      .catch(console.error);
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -314,17 +317,8 @@ function CadastroForm() {
 
 export default function CadastroPage() {
   return (
-    <main className="relative flex min-h-screen items-center justify-center overflow-x-hidden bg-slate-950 font-sans selection:bg-teal-500/30 py-12 lg:py-24">
-      {/* Background Elements */}
-      <div className="absolute inset-0 z-0 pointer-events-none">
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:64px_64px]" />
-        <div className="absolute -top-[20%] left-1/2 h-[600px] w-[800px] -translate-x-1/2 rounded-[100%] bg-teal-500/10 blur-[120px]" />
-        <div className="absolute -bottom-[20%] left-0 h-[500px] w-full bg-slate-900/80 blur-[80px]" />
-      </div>
-
-      <Suspense fallback={<div className="text-white z-10">Carregando...</div>}>
-        <CadastroForm />
-      </Suspense>
-    </main>
+    <Suspense fallback={<div className="flex min-h-screen items-center justify-center">Carregando...</div>}>
+      <CadastroForm />
+    </Suspense>
   );
 }
