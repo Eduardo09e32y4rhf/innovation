@@ -1,6 +1,8 @@
 'use client';
 
 import Link from 'next/link';
+import { AuthSplitLayout } from '@/app/components/auth-split-layout';
+import { AlertCircle, CheckCircle2, ArrowRight } from 'lucide-react';
 import { ArrowLeft, Lock, ShieldCheck, User, Hash, KeyRound } from 'lucide-react';
 import { FormEvent, Suspense, useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -88,100 +90,156 @@ function ResetPasswordForm() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[#eef1f5] px-5 py-10 font-sans">
-      <section className="w-full max-w-[440px] rounded-[18px] border border-slate-200 bg-white p-6 shadow-[0_20px_52px_rgba(15,23,42,0.12)]">
-        <Link href="/login" className="mb-6 inline-flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-slate-950">
-          <ArrowLeft size={14} /> Voltar ao login
-        </Link>
-        <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-[14px] bg-slate-950 text-white">
-          <ShieldCheck size={22} />
-        </div>
-        
-        <h1 className="text-2xl font-black text-slate-950">
-          {isStep2 ? 'Criar nova senha' : 'Validação de Segurança'}
-        </h1>
-        <p className="mt-2 text-sm font-semibold leading-6 text-slate-500">
-          {isStep2 
-            ? 'Use uma senha forte com letra maiúscula, minúscula, número e símbolo.' 
-            : 'Preencha os dados abaixo com o código fornecido pelo seu Gestor.'}
-        </p>
+    <AuthSplitLayout title={isStep2 ? 'Criar nova senha' : 'Validação de Segurança'} subtitle={isStep2 ? 'Use uma senha forte com letra maiúscula, minúscula, número e símbolo.' : 'Preencha os dados abaixo com o código fornecido pelo seu Gestor.'}>
+      {!isStep2 ? (
+        <form onSubmit={handleValidate} className="flex flex-col gap-4">
+          {error && (
+            <div className="flex items-center gap-3 rounded-xl border border-rose-500/30 bg-rose-50 px-4 py-3">
+              <AlertCircle size={18} className="text-rose-600 shrink-0" />
+              <p className="text-sm font-medium text-rose-800">{error}</p>
+            </div>
+          )}
+          {message && (
+            <div className="flex items-center gap-3 rounded-xl border border-teal-500/30 bg-teal-50 px-4 py-3">
+              <CheckCircle2 size={18} className="text-teal-600 shrink-0" />
+              <p className="text-sm font-medium text-teal-800">{message}</p>
+            </div>
+          )}
 
-        {!isStep2 ? (
-          <form onSubmit={handleValidate} className="mt-6 space-y-4">
-            <label className="block">
-              <span className="mb-1.5 block text-xs font-black uppercase tracking-[0.12em] text-slate-600">E-mail Corporativo</span>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required disabled={loading} className="h-12 w-full rounded-[14px] border border-slate-300 pl-10 pr-3 text-sm font-semibold outline-none focus:border-slate-950 focus:ring-4 focus:ring-slate-950/5" />
+          <div className="group relative">
+            <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400 transition-colors group-focus-within:text-brand-500">
+              <User size={18} />
+            </div>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              disabled={loading}
+              required
+              placeholder="E-mail Corporativo"
+              className="h-12 w-full rounded-[14px] border border-slate-200/80 bg-slate-50/50 pl-11 pr-4 text-sm font-medium text-slate-900 outline-none transition-all focus:border-brand-500 focus:bg-white focus:ring-4 focus:ring-brand-500/10 disabled:opacity-60"
+            />
+          </div>
+
+          <div className="group relative">
+            <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400 transition-colors group-focus-within:text-brand-500">
+              <KeyRound size={18} />
+            </div>
+            <input
+              type="text"
+              value={code}
+              onChange={(e) => setCode(e.target.value.toUpperCase())}
+              maxLength={6}
+              disabled={loading}
+              required
+              placeholder="Código do Gestor (6 dígitos)"
+              className="h-12 w-full rounded-[14px] border border-slate-200/80 bg-slate-50/50 pl-11 pr-4 text-sm font-medium text-slate-900 outline-none transition-all focus:border-brand-500 focus:bg-white focus:ring-4 focus:ring-brand-500/10 disabled:opacity-60"
+            />
+          </div>
+
+          <div className="flex gap-4">
+            <div className="group relative w-1/2">
+              <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400 transition-colors group-focus-within:text-brand-500">
+                <Hash size={18} />
               </div>
-            </label>
-
-            <label className="block">
-              <span className="mb-1.5 block text-xs font-black uppercase tracking-[0.12em] text-slate-600">Código do Gestor (6 dígitos)</span>
-              <div className="relative">
-                <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                <input type="text" value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} maxLength={6} required disabled={loading} className="h-12 w-full rounded-[14px] border border-slate-300 pl-10 pr-3 text-sm font-semibold outline-none focus:border-slate-950 focus:ring-4 focus:ring-slate-950/5" />
-              </div>
-            </label>
-
-            <div className="flex gap-4">
-              <label className="block w-1/2">
-                <span className="mb-1.5 block text-xs font-black uppercase tracking-[0.12em] text-slate-600">Início CPF (3 DÍGITOS)</span>
-                <div className="relative">
-                  <Hash className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                  <input type="text" value={cpfStart} onChange={(e) => setCpfStart(e.target.value.replace(/\D/g, ''))} maxLength={3} placeholder="Ex: 123" required disabled={loading} className="h-12 w-full rounded-[14px] border border-slate-300 pl-10 pr-3 text-sm font-semibold outline-none focus:border-slate-950 focus:ring-4 focus:ring-slate-950/5" />
-                </div>
-              </label>
-
-              <label className="block w-1/2">
-                <span className="mb-1.5 block text-xs font-black uppercase tracking-[0.12em] text-slate-600">Matrícula</span>
-                <div className="relative">
-                  <Hash className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                  <input type="text" value={registration} onChange={(e) => setRegistration(e.target.value)} required disabled={loading} className="h-12 w-full rounded-[14px] border border-slate-300 pl-10 pr-3 text-sm font-semibold outline-none focus:border-slate-950 focus:ring-4 focus:ring-slate-950/5" />
-                </div>
-              </label>
+              <input
+                type="text"
+                value={cpfStart}
+                onChange={(e) => setCpfStart(e.target.value.replace(/\D/g, ''))}
+                maxLength={3}
+                disabled={loading}
+                required
+                placeholder="Início CPF (3 dígitos)"
+                className="h-12 w-full rounded-[14px] border border-slate-200/80 bg-slate-50/50 pl-11 pr-4 text-sm font-medium text-slate-900 outline-none transition-all focus:border-brand-500 focus:bg-white focus:ring-4 focus:ring-brand-500/10 disabled:opacity-60"
+              />
             </div>
 
-            <button disabled={loading} className="mt-2 h-12 w-full rounded-[14px] bg-slate-950 text-sm font-black text-white disabled:opacity-60 transition-opacity">
-              {loading ? 'Validando...' : 'Validar Identidade'}
-            </button>
-          </form>
-        ) : (
-          <form onSubmit={handleReset} className="mt-6 space-y-4 animate-in fade-in slide-in-from-right-4 duration-500">
-            <label className="block">
-              <span className="mb-1.5 block text-xs font-black uppercase tracking-[0.12em] text-slate-600">Nova Senha</span>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required disabled={loading} className="h-12 w-full rounded-[14px] border border-slate-300 pl-10 pr-3 text-sm font-semibold outline-none focus:border-slate-950 focus:ring-4 focus:ring-slate-950/5" />
+            <div className="group relative w-1/2">
+              <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400 transition-colors group-focus-within:text-brand-500">
+                <Hash size={18} />
               </div>
-            </label>
-
-            <label className="block">
-              <span className="mb-1.5 block text-xs font-black uppercase tracking-[0.12em] text-slate-600">Confirmar Nova Senha</span>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                <input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} required disabled={loading} className="h-12 w-full rounded-[14px] border border-slate-300 pl-10 pr-3 text-sm font-semibold outline-none focus:border-slate-950 focus:ring-4 focus:ring-slate-950/5" />
-              </div>
-            </label>
-
-            <button disabled={loading} className="mt-2 h-12 w-full rounded-[14px] bg-slate-950 text-sm font-black text-white disabled:opacity-60 transition-opacity">
-              {loading ? 'Salvando...' : 'Redefinir e Entrar'}
-            </button>
-          </form>
-        )}
-
-        {error && (
-          <div className="mt-5 rounded-[12px] border border-rose-200 bg-rose-50 px-4 py-3 text-xs font-semibold text-rose-800 animate-in fade-in">
-            {error}
+              <input
+                type="text"
+                value={registration}
+                onChange={(e) => setRegistration(e.target.value)}
+                disabled={loading}
+                required
+                placeholder="Matrícula"
+                className="h-12 w-full rounded-[14px] border border-slate-200/80 bg-slate-50/50 pl-11 pr-4 text-sm font-medium text-slate-900 outline-none transition-all focus:border-brand-500 focus:bg-white focus:ring-4 focus:ring-brand-500/10 disabled:opacity-60"
+              />
+            </div>
           </div>
-        )}
-        
-        {message && (
-          <div className="mt-5 rounded-[12px] border border-teal-200 bg-teal-50 px-4 py-3 text-xs font-semibold text-teal-800 animate-in fade-in">
-            {message}
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="crystal-button group mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-[14px] text-sm font-black text-white shadow-lg shadow-brand-500/20 transition-all hover:scale-[1.02] hover:shadow-xl hover:shadow-brand-500/30 disabled:pointer-events-none disabled:opacity-70"
+          >
+            {loading ? 'Validando...' : 'Validar Identidade'}
+            {!loading && <ArrowRight size={18} className="transition-transform group-hover:translate-x-1" />}
+          </button>
+          
+          <p className="mt-4 text-center text-xs font-medium text-slate-500">
+            <Link href="/login" className="font-bold text-slate-500 hover:text-slate-700 flex items-center justify-center gap-1">
+              <ArrowLeft size={14} /> Voltar ao login
+            </Link>
+          </p>
+        </form>
+      ) : (
+        <form onSubmit={handleReset} className="flex flex-col gap-4 animate-in fade-in slide-in-from-right-4 duration-500">
+          {error && (
+            <div className="flex items-center gap-3 rounded-xl border border-rose-500/30 bg-rose-50 px-4 py-3">
+              <AlertCircle size={18} className="text-rose-600 shrink-0" />
+              <p className="text-sm font-medium text-rose-800">{error}</p>
+            </div>
+          )}
+          {message && (
+            <div className="flex items-center gap-3 rounded-xl border border-teal-500/30 bg-teal-50 px-4 py-3">
+              <CheckCircle2 size={18} className="text-teal-600 shrink-0" />
+              <p className="text-sm font-medium text-teal-800">{message}</p>
+            </div>
+          )}
+
+          <div className="group relative">
+            <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400 transition-colors group-focus-within:text-brand-500">
+              <Lock size={18} />
+            </div>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              disabled={loading}
+              required
+              placeholder="Nova senha"
+              className="h-12 w-full rounded-[14px] border border-slate-200/80 bg-slate-50/50 pl-11 pr-4 text-sm font-medium text-slate-900 outline-none transition-all focus:border-brand-500 focus:bg-white focus:ring-4 focus:ring-brand-500/10 disabled:opacity-60"
+            />
           </div>
-        )}
-      </section>
-    </main>
+
+          <div className="group relative">
+            <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400 transition-colors group-focus-within:text-brand-500">
+              <Lock size={18} />
+            </div>
+            <input
+              type="password"
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
+              disabled={loading}
+              required
+              placeholder="Confirmar nova senha"
+              className="h-12 w-full rounded-[14px] border border-slate-200/80 bg-slate-50/50 pl-11 pr-4 text-sm font-medium text-slate-900 outline-none transition-all focus:border-brand-500 focus:bg-white focus:ring-4 focus:ring-brand-500/10 disabled:opacity-60"
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="crystal-button group mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-[14px] text-sm font-black text-white shadow-lg shadow-brand-500/20 transition-all hover:scale-[1.02] hover:shadow-xl hover:shadow-brand-500/30 disabled:pointer-events-none disabled:opacity-70"
+          >
+            {loading ? 'Salvando...' : 'Salvar Nova Senha'}
+            {!loading && <ArrowRight size={18} className="transition-transform group-hover:translate-x-1" />}
+          </button>
+        </form>
+      )}
+    </AuthSplitLayout>
   );
 }

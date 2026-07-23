@@ -111,168 +111,172 @@ function CadastroForm() {
 
   if (success) {
     return (
-      <div className="relative z-10 w-full max-w-[440px] px-6 text-center animate-in fade-in zoom-in duration-700 mx-auto">
-        <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400">
-          <CheckCircle2 size={48} strokeWidth={2} />
+      <AuthSplitLayout>
+        <div className="text-center animate-in fade-in zoom-in duration-700">
+          <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
+            <CheckCircle2 size={48} strokeWidth={2} />
+          </div>
+          <h1 className="text-3xl font-black text-slate-900 mb-2">Conta Criada!</h1>
+          <p className="text-slate-500">
+            Sua empresa foi cadastrada com sucesso.
+          </p>
+          <p className="mt-4 text-sm font-bold text-brand-600">Redirecionando para o painel...</p>
         </div>
-        <h1 className="text-3xl font-black text-white mb-2">Conta Criada!</h1>
-        <p className="text-slate-400">
-          Sua empresa foi cadastrada com sucesso.
-        </p>
-        <p className="mt-4 text-sm font-bold text-teal-400">Redirecionando para o pagamento da ativação...</p>
-      </div>
+      </AuthSplitLayout>
     );
   }
 
   return (
-    <div className="relative z-10 w-full max-w-[1200px] px-6 flex flex-col xl:flex-row gap-12 items-start justify-center mx-auto">
-      
-      {/* Left Column: Pricing Section */}
-      <div className="flex-1 w-full animate-in fade-in slide-in-from-left-8 duration-700">
-        <PricingSection 
-          selectedPlanId={formData.planId} 
-          initialSeats={Number(initialSeats) || 1}
-          onSelectPlan={(id) => setFormData(p => ({ ...p, planId: id }))}
-          onSeatQuantityChange={(seatQuantity) => setFormData((previous) => ({ ...previous, seatQuantity }))} 
-        />
-      </div>
-
-      {/* Right Column: Registration Form */}
-      <div className="w-full xl:w-[450px] shrink-0">
-        <div className="mb-8 flex flex-col items-center justify-center text-center animate-in fade-in slide-in-from-bottom-4 duration-700">
-          <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-teal-400 to-teal-600 text-white shadow-[0_0_40px_rgba(45,212,191,0.3)] ring-1 ring-white/10">
-            <ShieldCheck size={28} strokeWidth={2.5} />
+    <AuthSplitLayout title="Crie sua conta" subtitle="E comece a usar a plataforma Innovation RH hoje mesmo.">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        {error && (
+          <div className="flex items-center gap-3 rounded-xl border border-rose-500/30 bg-rose-50 px-4 py-3">
+            <AlertCircle size={18} className="text-rose-600 shrink-0" />
+            <p className="text-sm font-medium text-rose-800">{error}</p>
           </div>
-          <h1 className="text-2xl font-black tracking-tight text-white">Innovation RH</h1>
-          <p className="mt-1 text-sm font-medium text-slate-400">Crie sua empresa e escolha o plano ideal</p>
+        )}
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="group relative">
+            <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400 transition-colors group-focus-within:text-brand-500">
+              <User size={18} />
+            </div>
+            <input
+              type="text"
+              name="name"
+              placeholder="Seu Nome Completo"
+              value={formData.name}
+              onChange={handleChange}
+              disabled={loading}
+              required
+              className="h-12 w-full rounded-[14px] border border-slate-200/80 bg-slate-50/50 pl-11 pr-4 text-sm font-medium text-slate-900 outline-none transition-all focus:border-brand-500 focus:bg-white focus:ring-4 focus:ring-brand-500/10 disabled:opacity-60"
+            />
+          </div>
+
+          <div className="group relative">
+            <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400 transition-colors group-focus-within:text-brand-500">
+              <Building2 size={18} />
+            </div>
+            <input
+              type="text"
+              name="companyName"
+              placeholder="Nome da Empresa"
+              value={formData.companyName}
+              onChange={handleChange}
+              disabled={loading}
+              required
+              className="h-12 w-full rounded-[14px] border border-slate-200/80 bg-slate-50/50 pl-11 pr-4 text-sm font-medium text-slate-900 outline-none transition-all focus:border-brand-500 focus:bg-white focus:ring-4 focus:ring-brand-500/10 disabled:opacity-60"
+            />
+          </div>
         </div>
 
-        <div className="overflow-hidden rounded-[24px] border border-white/10 bg-slate-900/60 p-8 shadow-2xl backdrop-blur-xl animate-in fade-in slide-in-from-bottom-8 duration-700 delay-150 fill-mode-backwards">
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-            
-            {error && (
-              <div className="flex items-center gap-3 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3">
-                <AlertCircle size={18} className="text-rose-400 shrink-0" />
-                <p className="text-sm font-medium text-rose-200">{error}</p>
-              </div>
-            )}
-
-            <div className="grid grid-cols-1 gap-4">
-              <div className="group relative">
-                <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-500 group-focus-within:text-teal-400">
-                  <Building2 size={18} />
-                </div>
-                <input
-                  type="text" required name="companyName" value={formData.companyName} onChange={handleChange}
-                  placeholder="Nome da Empresa"
-                  className="h-12 w-full rounded-xl border border-white/10 bg-black/20 pl-11 pr-4 text-sm font-medium text-white placeholder-slate-600 outline-none focus:border-teal-500 focus:bg-black/40 focus:ring-1 focus:ring-teal-500"
-                />
-              </div>
-
-              <div className="group relative">
-                <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-500 group-focus-within:text-teal-400">
-                  <FileText size={18} />
-                </div>
-                <input
-                  type="text" required name="document" value={formData.document} onChange={handleChange}
-                  placeholder="CNPJ ou CPF"
-                  className="h-12 w-full rounded-xl border border-white/10 bg-black/20 pl-11 pr-4 text-sm font-medium text-white placeholder-slate-600 outline-none focus:border-teal-500 focus:bg-black/40 focus:ring-1 focus:ring-teal-500"
-                />
-              </div>
-
-              <div className="group relative">
-                <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-500 group-focus-within:text-teal-400">
-                  <User size={18} />
-                </div>
-                <input
-                  type="text" required name="name" value={formData.name} onChange={handleChange}
-                  placeholder="Seu Nome (Administrador)"
-                  className="h-12 w-full rounded-xl border border-white/10 bg-black/20 pl-11 pr-4 text-sm font-medium text-white placeholder-slate-600 outline-none focus:border-teal-500 focus:bg-black/40 focus:ring-1 focus:ring-teal-500"
-                />
-              </div>
-
-              <div className="group relative">
-                <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-500 group-focus-within:text-teal-400">
-                  <Mail size={18} />
-                </div>
-                <input
-                  type="email" required name="email" value={formData.email} onChange={handleChange}
-                  placeholder="Seu melhor e-mail"
-                  className="h-12 w-full rounded-xl border border-white/10 bg-black/20 pl-11 pr-4 text-sm font-medium text-white placeholder-slate-600 outline-none focus:border-teal-500 focus:bg-black/40 focus:ring-1 focus:ring-teal-500"
-                />
-              </div>
-              
-              <div className="group relative">
-                <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-500 group-focus-within:text-teal-400">
-                  <Phone size={18} />
-                </div>
-                <input
-                  type="text" required name="phone" value={formData.phone} onChange={handleChange}
-                  placeholder="WhatsApp"
-                  className="h-12 w-full rounded-xl border border-white/10 bg-black/20 pl-11 pr-4 text-sm font-medium text-white placeholder-slate-600 outline-none focus:border-teal-500 focus:bg-black/40 focus:ring-1 focus:ring-teal-500"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <input
-                  type="number"
-                  min={1}
-                  max={10000}
-                  required
-                  value={formData.seatQuantity}
-                  onChange={(event) => setFormData((previous) => ({ ...previous, seatQuantity: Number(event.target.value) || 1 }))}
-                  placeholder="Quantidade de usuários"
-                  className="h-12 w-full rounded-xl border border-white/10 bg-black/20 px-4 text-sm font-medium text-white outline-none focus:border-teal-500"
-                />
-                <input
-                  type="text"
-                  value={formData.couponCode}
-                  onChange={(event) => setFormData((previous) => ({ ...previous, couponCode: event.target.value.toUpperCase() }))}
-                  placeholder="Cupom promocional (opcional)"
-                  className="h-12 w-full rounded-xl border border-white/10 bg-black/20 px-4 text-sm font-medium text-white outline-none focus:border-teal-500"
-                />
-              </div>
-
-              <div className="group relative">
-                <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-500 group-focus-within:text-teal-400">
-                  <Lock size={18} />
-                </div>
-                <input
-                  type={showPassword ? 'text' : 'password'} required name="password" value={formData.password} onChange={handleChange}
-                  placeholder="Crie uma senha forte"
-                  className="h-12 w-full rounded-xl border border-white/10 bg-black/20 pl-11 pr-11 text-sm font-medium text-white placeholder-slate-600 outline-none focus:border-teal-500 focus:bg-black/40 focus:ring-1 focus:ring-teal-500"
-                />
-                <button
-                  type="button" onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 flex items-center pr-4 text-slate-500 hover:text-white"
-                >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-              </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="group relative">
+            <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400 transition-colors group-focus-within:text-brand-500">
+              <FileText size={18} />
             </div>
+            <input
+              type="text"
+              name="document"
+              placeholder="CNPJ"
+              value={formData.document}
+              onChange={(e) => {
+                let v = e.target.value.replace(/\D/g, "");
+                if (v.length > 14) v = v.slice(0, 14);
+                if (v.length > 12) v = v.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2}).*/, "$1.$2.$3/$4-$5");
+                else if (v.length > 8) v = v.replace(/^(\d{2})(\d{3})(\d{3})(\d{1,4}).*/, "$1.$2.$3/$4");
+                else if (v.length > 5) v = v.replace(/^(\d{2})(\d{3})(\d{1,3}).*/, "$1.$2.$3");
+                else if (v.length > 2) v = v.replace(/^(\d{2})(\d{1,3}).*/, "$1.$2");
+                setFormData(p => ({...p, document: v}));
+              }}
+              disabled={loading}
+              required
+              className="h-12 w-full rounded-[14px] border border-slate-200/80 bg-slate-50/50 pl-11 pr-4 text-sm font-medium text-slate-900 outline-none transition-all focus:border-brand-500 focus:bg-white focus:ring-4 focus:ring-brand-500/10 disabled:opacity-60"
+            />
+          </div>
 
-            <div className="mt-4">
-              <button
-                type="submit" disabled={loading}
-                className="group relative flex h-12 w-full items-center justify-center overflow-hidden rounded-xl bg-teal-500 font-bold text-slate-950 transition-all hover:bg-teal-400 disabled:opacity-70"
-              >
-                <span className="relative z-10 flex items-center gap-2">
-                  {loading ? 'Criando conta...' : 'Concluir Cadastro'}
-                  {!loading && <ArrowRight size={18} className="transition-transform group-hover:translate-x-1" />}
-                </span>
-              </button>
-              <button
-                type="button"
-                onClick={() => router.push('/login')}
-                className="mt-4 w-full text-center text-xs font-semibold text-slate-400 hover:text-white transition-colors"
-              >
-                Já tem uma conta? Entre aqui
-              </button>
+          <div className="group relative">
+            <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400 transition-colors group-focus-within:text-brand-500">
+              <Phone size={18} />
             </div>
-          </form>
+            <input
+              type="text"
+              name="phone"
+              placeholder="Telefone / WhatsApp"
+              value={formData.phone}
+              onChange={(e) => {
+                let v = e.target.value.replace(/\D/g, "");
+                if (v.length > 11) v = v.slice(0, 11);
+                if (v.length > 10) v = v.replace(/^(\d{2})(\d{5})(\d{4}).*/, "($1) $2-$3");
+                else if (v.length > 6) v = v.replace(/^(\d{2})(\d{4})(\d{1,4}).*/, "($1) $2-$3");
+                else if (v.length > 2) v = v.replace(/^(\d{2})(\d{1,4}).*/, "($1) $2");
+                else if (v.length > 0) v = v.replace(/^(\d{1,2}).*/, "($1");
+                setFormData(p => ({...p, phone: v}));
+              }}
+              disabled={loading}
+              required
+              className="h-12 w-full rounded-[14px] border border-slate-200/80 bg-slate-50/50 pl-11 pr-4 text-sm font-medium text-slate-900 outline-none transition-all focus:border-brand-500 focus:bg-white focus:ring-4 focus:ring-brand-500/10 disabled:opacity-60"
+            />
+          </div>
         </div>
-      </div>
-    </div>
+
+        <div className="group relative">
+          <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400 transition-colors group-focus-within:text-brand-500">
+            <Mail size={18} />
+          </div>
+          <input
+            type="email"
+            name="email"
+            placeholder="Seu melhor e-mail"
+            value={formData.email}
+            onChange={handleChange}
+            disabled={loading}
+            required
+            className="h-12 w-full rounded-[14px] border border-slate-200/80 bg-slate-50/50 pl-11 pr-4 text-sm font-medium text-slate-900 outline-none transition-all focus:border-brand-500 focus:bg-white focus:ring-4 focus:ring-brand-500/10 disabled:opacity-60"
+          />
+        </div>
+
+        <div className="group relative">
+          <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400 transition-colors group-focus-within:text-brand-500">
+            <Lock size={18} />
+          </div>
+          <input
+            type={showPassword ? 'text' : 'password'}
+            name="password"
+            placeholder="Crie uma senha forte"
+            value={formData.password}
+            onChange={handleChange}
+            disabled={loading}
+            required
+            className="h-12 w-full rounded-[14px] border border-slate-200/80 bg-slate-50/50 pl-11 pr-12 text-sm font-medium text-slate-900 outline-none transition-all focus:border-brand-500 focus:bg-white focus:ring-4 focus:ring-brand-500/10 disabled:opacity-60"
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            tabIndex={-1}
+            className="absolute inset-y-0 right-0 flex items-center pr-4 text-slate-400 hover:text-slate-600"
+          >
+            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+          </button>
+        </div>
+
+        <button
+          type="submit"
+          disabled={loading || !formData.planId}
+          className="crystal-button group mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-[14px] text-sm font-black text-white shadow-lg shadow-brand-500/20 transition-all hover:scale-[1.02] hover:shadow-xl hover:shadow-brand-500/30 disabled:pointer-events-none disabled:opacity-70"
+        >
+          {loading ? 'Criando conta...' : 'Cadastrar Empresa'}
+          {!loading && <ArrowRight size={18} className="transition-transform group-hover:translate-x-1" />}
+        </button>
+
+        <p className="mt-4 text-center text-xs font-medium text-slate-500">
+          Já tem uma conta?{' '}
+          <Link href="/login" className="font-bold text-brand-600 hover:text-brand-700">
+            Fazer login
+          </Link>
+        </p>
+      </form>
+    </AuthSplitLayout>
   );
 }
 
