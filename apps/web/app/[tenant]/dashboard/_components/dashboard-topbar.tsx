@@ -10,27 +10,27 @@ export function DashboardTopbar({ onMenu }: { onMenu?: () => void }) {
   const tenant = company?.slug || company?.id || user?.companyId || 'empresa';
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-slate-200 bg-white px-4 sm:h-20 sm:px-8">
+    <header className="sticky top-0 z-30 flex h-14 items-center justify-between px-4 sm:px-8 bg-transparent pointer-events-none">
       <button
         type="button"
         aria-label="Abrir menu"
         onClick={onMenu}
-        className="flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 text-slate-600 lg:hidden"
+        className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white/80 backdrop-blur-md text-slate-600 lg:hidden pointer-events-auto shadow-sm"
       >
         <Menu size={22} />
       </button>
       <div className="hidden flex-1 lg:block" />
-      <div className="flex items-center gap-2 sm:gap-3">
+      <div className="flex items-center gap-2 sm:gap-3 pointer-events-auto py-2">
         <button
           aria-label="Notificações"
           onClick={() => router.push(`/${tenant}/dashboard/notifications`)}
-          className="flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 transition-colors hover:text-[#8A05BE]"
+          className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white/80 backdrop-blur-md text-slate-500 transition-colors hover:text-[#8A05BE] shadow-sm"
         >
           <Bell size={20} strokeWidth={2.5} />
         </button>
         <button
           onClick={() => { logout(); router.push('/login'); }}
-          className="flex h-11 items-center gap-2 rounded-xl bg-slate-50 px-3 text-sm font-bold text-slate-600 transition-colors hover:bg-slate-100 hover:text-black sm:px-4"
+          className="flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white/80 backdrop-blur-md px-3 text-sm font-bold text-slate-600 transition-colors hover:bg-white hover:text-black sm:px-4 shadow-sm"
         >
           <LogOut size={18} strokeWidth={2.5} />
           <span className="hidden sm:block">Sair</span>

@@ -48,7 +48,7 @@ export class TimeClosingController {
 
   @Get(':id/pdf')
   @Roles('ADMIN', 'RH', 'FUNCIONARIO')
-  getPdf(@Param('id') id: string) { return this.service.getPdf(id); }
+  getPdf(@Req() req: any, @Param('id') id: string) { return this.service.getPdf(req.user.companyId, id, req.user); }
 
   @Get(':id/pdf-stream')
   @Roles('ADMIN', 'RH', 'FUNCIONARIO')

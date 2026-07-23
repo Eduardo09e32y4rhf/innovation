@@ -46,7 +46,7 @@ export class PayrollCalculationService {
   calculate(input: PayrollCalculationInput): PayrollCalculationResult {
     let salaryBase = this.money(Math.max(0, input.salary));
     const weeklyHours = Math.max(1, input.weeklyMinutes / 60);
-    const monthlyDivisor = Math.max(1, Math.round(weeklyHours * (52 / 12)));
+    const monthlyDivisor = Math.max(1, weeklyHours * 5);
     const hourlyRate = salaryBase / monthlyDivisor;
     const overtime50Factor = Math.max(1.5, input.overtime50Factor ?? 1.5);
     const overtime100Factor = Math.max(2, input.overtime100Factor ?? 2);

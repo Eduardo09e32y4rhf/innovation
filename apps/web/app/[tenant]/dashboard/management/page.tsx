@@ -208,7 +208,7 @@ function ManagementContent() {
 
   // Notificações de PC para ASO
   useEffect(() => {
-    if (!canView || !asos.length || typeof window === 'undefined' || !('Notification' in window) || Notification.permission !== 'granted') return;
+    if (!canView || !asos.length || !employees.length || typeof window === 'undefined' || !('Notification' in window) || Notification.permission !== 'granted') return;
     
     const checkAsoAndNotify = () => {
       const notified = JSON.parse(sessionStorage.getItem('aso-notified') || '{}');
@@ -223,7 +223,11 @@ function ManagementContent() {
         if (aso.status === 'PENDENTE' || aso.status === 'PENDING') {
           const key = `aso-${aso.id}-pending`;
           if (!notified[key]) {
-            new Notification('ASO Pendente', { body: `ASO ${typeStr} pendente para ${empName}` });
+            const notif = new Notification('ASO Pendente', { 
+              body: `O ASO ${typeStr} de ${empName} está pendente.`,
+              icon: '/icon-192x192.png'
+            });
+            notif.onclick = () => { window.focus(); notif.close(); };
             notified[key] = true;
             changed = true;
           }
@@ -233,7 +237,11 @@ function ManagementContent() {
         if (aso.dueDate && aso.dueDate.slice(0, 10) < today && !['CANCELADO', 'CANCELLED'].includes(aso.status)) {
           const key = `aso-${aso.id}-expired`;
           if (!notified[key]) {
-            new Notification('ASO Vencido!', { body: `ASO ${typeStr} de ${empName} está vencido desde ${new Date(aso.dueDate).toLocaleDateString('pt-BR')}` });
+            const notif = new Notification('ASO Vencido!', { 
+              body: `O ASO ${typeStr} de ${empName} está vencido desde ${new Date(aso.dueDate).toLocaleDateString('pt-BR')}`,
+              icon: '/icon-192x192.png'
+            });
+            notif.onclick = () => { window.focus(); notif.close(); };
             notified[key] = true;
             changed = true;
           }

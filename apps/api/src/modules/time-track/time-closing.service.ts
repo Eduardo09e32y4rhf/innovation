@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { TimeClosingStatus } from '@prisma/client';
 import type { JwtUser } from '../../common/types/auth.types';
 import { PrismaService } from '../../database/prisma.service';
@@ -229,6 +229,17 @@ export class TimeClosingService {
       },
     });
     if (!closing) throw new NotFoundException('Fechamento nao encontrado.');
+
+    if (actor && (actor.role === 'FUNCIONARIO' || actor.role === 'USER')) {
+      const employee = await this.prisma.employee.findFirst({
+        where: { companyId, userId: actor.sub },
+        select: { id: true },
+      });
+      if (!employee || closing.employeeId !== employee.id) {
+        throw new ForbiddenException('Acesso negado ao fechamento de outro colaborador.');
+      }
+    }
+
     const tracks = await this.prisma.timeTrack.findMany({
       where: { companyId, employeeId: closing.employeeId, date: { gte: closing.periodStart, lte: closing.periodEnd } },
       orderBy: { date: 'asc' },
@@ -307,7 +318,8 @@ export class TimeClosingService {
     return { success: true };
   }
 
-  getPdf(id: string) {
+  async getPdf(companyId: string, id: string, actor?: JwtUser) {
+    await this.getById(companyId, id, actor);
     return { url: `/time-closing/${id}/pdf-stream` };
   }
 
