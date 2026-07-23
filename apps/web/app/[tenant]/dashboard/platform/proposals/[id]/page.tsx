@@ -55,7 +55,7 @@ export default function ProposalDetailsPage() {
         </div>
         
         {proposal.status === 'DRAFT' && (
-          <button className="flex items-center px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm disabled:opacity-50" onClick={handleSend} disabled={loading}>
+          <button className="flex items-center crystal-button px-5 py-2.5 rounded-xl text-sm font-bold bg-violet-600 text-white hover:bg-violet-700 shadow-md disabled:opacity-50 disabled:cursor-not-allowed transition-colors" onClick={handleSend} disabled={loading}>
             <Send className="w-4 h-4 mr-2" />
             {loading ? 'Enviando...' : 'Enviar para Cliente'}
           </button>
@@ -63,52 +63,52 @@ export default function ProposalDetailsPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-card text-card-foreground rounded-xl border shadow-sm">
+        <div className="rounded-2xl bg-white shadow-sm shadow-slate-900/5">
           <div className="p-6 pb-4">
-            <h3 className="text-lg font-semibold">Detalhes da Oferta</h3>
+            <h3 className="text-lg font-bold text-slate-900">Detalhes da Oferta</h3>
           </div>
           <div className="p-6 pt-0 space-y-4 text-sm">
-            <div className="flex justify-between border-b pb-2">
-              <span className="text-muted-foreground">Cliente:</span>
-              <span className="font-medium">{proposal.company?.name}</span>
+            <div className="flex justify-between border-b border-slate-100 pb-2">
+              <span className="text-slate-500">Cliente:</span>
+              <span className="font-medium text-slate-900">{proposal.company?.name}</span>
             </div>
-            <div className="flex justify-between border-b pb-2">
-              <span className="text-muted-foreground">Título:</span>
-              <span className="font-medium">{proposal.title}</span>
+            <div className="flex justify-between border-b border-slate-100 pb-2">
+              <span className="text-slate-500">Título:</span>
+              <span className="font-medium text-slate-900">{proposal.title}</span>
             </div>
-            <div className="flex justify-between border-b pb-2">
-              <span className="text-muted-foreground">Plano / Valor:</span>
-              <span className="font-medium">{proposal.planType} - R$ {proposal.monthlyPrice?.toFixed(2)}/mês</span>
+            <div className="flex justify-between border-b border-slate-100 pb-2">
+              <span className="text-slate-500">Plano / Valor:</span>
+              <span className="font-medium text-slate-900">{proposal.planType} - R$ {proposal.monthlyPrice?.toFixed(2)}/mês</span>
             </div>
-            <div className="flex justify-between border-b pb-2">
-              <span className="text-muted-foreground">Limites:</span>
-              <span className="font-medium">{proposal.usersLimit} usuários / {proposal.employeesLimit} func.</span>
+            <div className="flex justify-between border-b border-slate-100 pb-2">
+              <span className="text-slate-500">Limites:</span>
+              <span className="font-medium text-slate-900">{proposal.usersLimit} usuários / {proposal.employeesLimit} func.</span>
             </div>
           </div>
         </div>
 
-        <div className="bg-card text-card-foreground rounded-xl border shadow-sm">
+        <div className="rounded-2xl bg-white shadow-sm shadow-slate-900/5">
           <div className="p-6 pb-4">
-            <h3 className="text-lg font-semibold">Status da Assinatura</h3>
+            <h3 className="text-lg font-bold text-slate-900">Status da Assinatura</h3>
           </div>
           <div className="p-6 pt-0 space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <FileText className={`w-5 h-5 ${proposal.termsAccepted ? 'text-green-500' : 'text-muted-foreground'}`} />
-                <span>Termos Aceitos?</span>
+                <FileText className={`w-5 h-5 ${proposal.termsAccepted ? 'text-emerald-500' : 'text-slate-400'}`} />
+                <span className="text-sm font-medium text-slate-700">Termos Aceitos?</span>
               </div>
-              <span className="font-medium">{proposal.termsAccepted ? 'Sim' : 'Não'}</span>
+              <span className="font-bold text-slate-900">{proposal.termsAccepted ? 'Sim' : 'Não'}</span>
             </div>
             {proposal.termsAccepted && (
-              <div className="text-sm space-y-1 bg-muted p-3 rounded">
-                <p><strong>Assinado por:</strong> {proposal.signedByName} ({proposal.signedByEmail})</p>
-                <p><strong>Data:</strong> {new Date(proposal.signedAt).toLocaleString()}</p>
+              <div className="text-sm space-y-1 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                <p className="text-slate-600"><strong className="text-slate-900">Assinado por:</strong> {proposal.signedByName} ({proposal.signedByEmail})</p>
+                <p className="text-slate-600"><strong className="text-slate-900">Data:</strong> {new Date(proposal.signedAt).toLocaleString()}</p>
               </div>
             )}
 
             {proposal.asaasPaymentLink && (
-              <div className="pt-4 mt-4 border-t">
-                <a href={proposal.asaasPaymentLink} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center w-full px-4 py-2 border rounded-md text-sm hover:bg-muted">
+              <div className="pt-4 mt-4 border-t border-slate-100">
+                <a href={proposal.asaasPaymentLink} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center w-full px-4 py-2 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors">
                   <ExternalLink className="w-4 h-4 mr-2" />
                   Abrir Link de Pagamento (Asaas)
                 </a>

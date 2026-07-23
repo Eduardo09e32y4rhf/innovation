@@ -68,13 +68,13 @@ export default function NewProposalPage() {
         <h1 className="text-2xl font-bold">Criar Nova Proposta</h1>
       </div>
 
-      <div className="bg-card text-card-foreground rounded-xl border shadow-sm">
+      <div className="bg-white rounded-2xl shadow-sm shadow-slate-900/5">
         <form onSubmit={handleSubmit}>
-          <div className="p-6 space-y-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Empresa Cliente</label>
+          <div className="p-6 space-y-5">
+            <div>
+              <label className="text-xs font-semibold text-slate-600 mb-1.5 block">Empresa Cliente</label>
               <select 
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex h-10 w-full rounded-[8px] border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
                 value={formData.companyId}
                 onChange={e => setFormData({ ...formData, companyId: e.target.value })}
                 required
@@ -86,27 +86,27 @@ export default function NewProposalPage() {
               </select>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Título da Proposta</label>
-                <input className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" required value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              <div>
+                <label className="text-xs font-semibold text-slate-600 mb-1.5 block">Título da Proposta</label>
+                <input className="flex h-10 w-full rounded-[8px] border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100" required value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} />
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Data de Início</label>
-                <input className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" type="date" required value={formData.startDate} onChange={e => setFormData({...formData, startDate: e.target.value})} />
+              <div>
+                <label className="text-xs font-semibold text-slate-600 mb-1.5 block">Data de Início</label>
+                <input className="flex h-10 w-full rounded-[8px] border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100" type="date" required value={formData.startDate} onChange={e => setFormData({...formData, startDate: e.target.value})} />
               </div>
             </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Descrição Opcional</label>
-              <input className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} />
+            <div>
+              <label className="text-xs font-semibold text-slate-600 mb-1.5 block">Descrição Opcional</label>
+              <input className="flex h-10 w-full rounded-[8px] border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Plano / SKU</label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              <div>
+                <label className="text-xs font-semibold text-slate-600 mb-1.5 block">Plano / SKU</label>
                 <select 
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  className="flex h-10 w-full rounded-[8px] border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
                   value={formData.planType}
                   onChange={e => setFormData({ ...formData, planType: e.target.value })}
                 >
@@ -115,25 +115,25 @@ export default function NewProposalPage() {
                   <option value="ENTERPRISE">Enterprise</option>
                 </select>
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Valor Mensal (R$)</label>
-                <input className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" type="number" step="0.01" required value={formData.monthlyPrice} onChange={e => setFormData({...formData, monthlyPrice: parseFloat(e.target.value)})} />
+              <div>
+                <label className="text-xs font-semibold text-slate-600 mb-1.5 block">Valor Mensal (R$)</label>
+                <input className="flex h-10 w-full rounded-[8px] border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100" type="number" step="0.01" required value={formData.monthlyPrice} onChange={e => setFormData({...formData, monthlyPrice: parseFloat(e.target.value)})} />
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Limite de Usuários Admin</label>
-                <input className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" type="number" required value={formData.usersLimit} onChange={e => setFormData({...formData, usersLimit: parseInt(e.target.value)})} />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              <div>
+                <label className="text-xs font-semibold text-slate-600 mb-1.5 block">Limite de Usuários Admin</label>
+                <input className="flex h-10 w-full rounded-[8px] border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100" type="number" required value={formData.usersLimit} onChange={e => setFormData({...formData, usersLimit: parseInt(e.target.value)})} />
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Limite de Colaboradores</label>
-                <input className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" type="number" required value={formData.employeesLimit} onChange={e => setFormData({...formData, employeesLimit: parseInt(e.target.value)})} />
+              <div>
+                <label className="text-xs font-semibold text-slate-600 mb-1.5 block">Limite de Colaboradores</label>
+                <input className="flex h-10 w-full rounded-[8px] border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100" type="number" required value={formData.employeesLimit} onChange={e => setFormData({...formData, employeesLimit: parseInt(e.target.value)})} />
               </div>
             </div>
           </div>
-          <div className="flex items-center justify-end p-6 pt-0">
-            <button className="px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm disabled:opacity-50" type="submit" disabled={loading}>
+          <div className="flex items-center justify-end p-6 border-t border-slate-100">
+            <button className="crystal-button px-5 py-2.5 rounded-xl text-sm font-bold bg-violet-600 text-white hover:bg-violet-700 shadow-md disabled:opacity-50 disabled:cursor-not-allowed" type="submit" disabled={loading}>
               {loading ? 'Salvando...' : 'Criar Proposta'}
             </button>
           </div>
