@@ -41,6 +41,7 @@ function CadastroForm() {
     seatQuantity: Number(initialSeats) || 1,
     couponCode: '',
   });
+  const [plans, setPlans] = useState<PublicPlatformPlan[]>([]);
 
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -48,16 +49,17 @@ function CadastroForm() {
   const [success, setSuccess] = useState(false);
 
   useEffect(() => {
-    if (!formData.planId) {
-      api.auth.publicPlans()
-        .then((items) => {
+    api.auth.publicPlans()
+      .then((items) => {
+        setPlans(items);
+        if (!formData.planId) {
           const recommended = items.find((item) => !item.isFree) ?? items[0];
-          if (recommended && !formData.planId) {
+          if (recommended) {
             setFormData((current) => ({ ...current, planId: recommended.id }));
           }
-        })
-        .catch(() => {});
-    }
+        }
+      })
+      .catch(() => {});
   }, [formData.planId]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -260,6 +262,34 @@ function CadastroForm() {
           >
             {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
           </button>
+        </div>
+
+        <div className="flex flex-col gap-3 mt-4 mb-2">
+          <label className="text-sm font-bold text-slate-900">Escolha o Plano</label>
+          <div className="grid grid-cols-1 gap-3">
+            {plans.map(plan => (
+              <label key={plan.id} className={`relative flex cursor-pointer rounded-[14px] border p-4 transition-all ${formData.planId === plan.id ? 'border-brand-500 bg-brand-50/30 ring-1 ring-brand-500' : 'border-slate-200 bg-slate-50/30 hover:border-brand-300'}`}>
+                <input 
+                  type="radio" 
+                  name="planId" 
+                  value={plan.id}
+                  checked={formData.planId === plan.id}
+                  onChange={(e) => setFormData(p => ({...p, planId: e.target.value}))}
+                  className="sr-only"
+                />
+                <div className="flex flex-col w-full">
+                  <div className="flex items-center justify-between w-full">
+                    <span className={`font-black ${formData.planId === plan.id ? 'text-brand-700' : 'text-slate-900'}`}>{plan.name}</span>
+                    {plan.isRecommended && <span className="text-[10px] uppercase font-black tracking-wider text-brand-600 bg-brand-100 px-2 py-0.5 rounded-full">Recomendado</span>}
+                  </div>
+                  <span className="text-xs font-medium text-slate-500 mt-1">{plan.description}</span>
+                  {plan.cycle !== 'CUSTOM' && (
+                    <span className="text-sm font-black text-slate-900 mt-2">{Number(plan.price).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} <span className="text-[10px] text-slate-500 font-medium">/{plan.cycle === 'YEARLY' ? 'ano' : 'mês'}</span></span>
+                  )}
+                </div>
+              </label>
+            ))}
+          </div>
         </div>
 
         <button
