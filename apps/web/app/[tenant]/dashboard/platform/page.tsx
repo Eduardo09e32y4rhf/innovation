@@ -86,7 +86,7 @@ export default function PlatformPage() {
   }, [companies.data, search]);
 
   return (
-    <div className="mx-auto max-w-6xl space-y-5">
+    <div className="mx-auto w-full space-y-5">
       <header className="page-header items-center">
         <div>
           <p className="page-label">PLATAFORMA</p>

@@ -193,7 +193,7 @@ export default function UsersPage() {
   };
 
   return (
-    <div className="mx-auto max-w-6xl space-y-5">
+    <div className="mx-auto w-full space-y-5">
       <header className="page-header items-center">
         <div>
           <p className="text-[11px] font-black uppercase tracking-[0.2em] text-teal-600">

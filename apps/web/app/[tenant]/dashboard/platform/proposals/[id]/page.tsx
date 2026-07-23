@@ -44,7 +44,7 @@ export default function ProposalDetailsPage() {
   if (!proposal) return <div className="p-8">Carregando...</div>;
 
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-6">
+    <div className="p-6 w-full mx-auto space-y-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-4">
           <button className="p-2 hover:bg-muted rounded-md" onClick={() => router.push(`/${tenant}/dashboard/platform/proposals`)}>

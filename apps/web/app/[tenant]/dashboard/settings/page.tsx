@@ -52,7 +52,7 @@ export default function SettingsPage({ params }: { params: { tenant: string } })
         : 'Minha conta';
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6 px-4 py-6 sm:px-6">
+    <div className="mx-auto w-full space-y-6 px-4 py-6 sm:px-6">
       <header className="flex flex-col gap-2">
         <p className="text-[11px] font-black uppercase tracking-[0.2em] text-violet-600">
           Configurações

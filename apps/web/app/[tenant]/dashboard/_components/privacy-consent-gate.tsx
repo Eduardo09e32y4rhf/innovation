@@ -230,7 +230,7 @@ export function PrivacyConsentGate({ children }: { children: React.ReactNode }) 
 
   return (
     <div className="fixed inset-0 z-[120] flex items-center justify-center overflow-y-auto bg-slate-900/90 px-3 py-4 backdrop-blur-md sm:px-5">
-      <section className="flex max-h-[calc(100vh-32px)] w-full max-w-4xl flex-col overflow-hidden rounded-[20px] border border-slate-200 bg-white shadow-[0_24px_50px_rgba(0,0,0,0.3)]">
+      <section className="flex max-h-[calc(100vh-32px)] w-full w-full flex-col overflow-hidden rounded-[20px] border border-slate-200 bg-white shadow-[0_24px_50px_rgba(0,0,0,0.3)]">
         <header className="border-b border-slate-100 bg-slate-50 p-5 sm:p-7">
           <div className="flex items-start gap-4">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] bg-teal-600 text-white shadow-lg shadow-teal-600/30">

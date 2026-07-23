@@ -40,7 +40,7 @@ export default function EmployeesImportPage() {
     finally { setBusy(false); }
   }
 
-  return <div className="mx-auto max-w-5xl space-y-5">
+  return <div className="mx-auto w-full space-y-5">
     <div><p className="text-xs font-black uppercase tracking-widest text-violet-600">Funcionários</p><h1 className="text-2xl font-black">Importação segura por Excel</h1><p className="mt-1 text-sm text-slate-500">Use somente o modelo .xlsx, com até 2 MB e 2.000 linhas.</p></div>
     <div className="grid gap-4 md:grid-cols-2">
       <button onClick={downloadTemplate} className="flex min-h-28 items-center gap-4 rounded-2xl border bg-white p-5 text-left"><Download className="text-violet-600" /><span><strong className="block">Baixar modelo</strong><small className="text-slate-500">Cabeçalhos e aba no formato correto</small></span></button>

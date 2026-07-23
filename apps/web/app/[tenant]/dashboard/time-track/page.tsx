@@ -363,7 +363,7 @@ export default function TimeTrackPage() {
   const refreshing = tracks.loading && !!tracks.data;
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+    <div className="mx-auto w-full space-y-6 px-4 py-6 sm:px-6 lg:px-8">
       <header className="page-header items-center">
         <div>
           <p className="page-label">CONTROLE DE PONTO</p>

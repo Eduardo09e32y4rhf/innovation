@@ -38,7 +38,7 @@ export default function GlobalPermissionsPage({ params: { tenant } }: { params: 
   }
 
   return (
-    <div className="mx-auto max-w-4xl space-y-5">
+    <div className="mx-auto w-full space-y-5">
       <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-2xl font-black text-slate-950">Gestão da Plataforma</h2>

@@ -147,7 +147,7 @@ export default function FinancePage({ params: { tenant } }: { params: { tenant: 
   const chartMax = Math.max(1, ...chartData.flatMap(item => [item.billed, item.received]));
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6 pb-10">
+    <div className="mx-auto w-full space-y-6 pb-10">
       <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <p className="text-[10px] font-black uppercase tracking-[0.2em] text-teal-600">Controle da operacao</p>

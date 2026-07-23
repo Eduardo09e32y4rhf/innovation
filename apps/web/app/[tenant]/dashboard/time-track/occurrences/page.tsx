@@ -69,7 +69,7 @@ export default function TimeOccurrencesPage() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl space-y-5 px-4 py-6 sm:px-6 lg:px-8">
+    <div className="mx-auto w-full space-y-5 px-4 py-6 sm:px-6 lg:px-8">
       <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-[10px] font-black uppercase tracking-[0.2em] text-teal-600">PONTO</p>

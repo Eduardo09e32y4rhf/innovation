@@ -44,7 +44,7 @@ export function PendingNotificationsGate({ children }: { children: ReactNode }) 
     <>
       {children}
       <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-900/95 p-4 sm:p-8 backdrop-blur-md overflow-y-auto">
-        <div className="w-full max-w-4xl bg-white shadow-2xl my-auto p-8 sm:p-16 text-slate-900 border-t-8 border-slate-900 animate-in fade-in zoom-in-95 duration-300">
+        <div className="w-full w-full bg-white shadow-2xl my-auto p-8 sm:p-16 text-slate-900 border-t-8 border-slate-900 animate-in fade-in zoom-in-95 duration-300">
           
           {/* Document Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b-2 border-slate-900 pb-6 mb-8 gap-4">

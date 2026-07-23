@@ -258,7 +258,7 @@ function ManagementContent() {
   }, [asos, employees, canView]);
 
   return (
-    <div className="mx-auto max-w-7xl space-y-5 px-4 py-5 sm:px-6 lg:px-8">
+    <div className="mx-auto w-full space-y-5 px-4 py-5 sm:px-6 lg:px-8">
       <header className="page-header items-center">
         <div>
           <p className="page-label">GESTÃO</p>

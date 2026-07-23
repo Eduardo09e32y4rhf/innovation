@@ -188,7 +188,7 @@ const EMPTY: EmployeeFormState = {
 
 export default function NewEmployeePage() {
   return (
-    <Suspense fallback={<div className="mx-auto max-w-4xl py-16 text-center text-sm text-slate-500">Carregando...</div>}>
+    <Suspense fallback={<div className="mx-auto w-full py-16 text-center text-sm text-slate-500">Carregando...</div>}>
       <EmployeeForm />
     </Suspense>
   );
@@ -428,11 +428,11 @@ function EmployeeForm() {
   }
 
   if (loadingEmployee) {
-    return <div className="mx-auto max-w-4xl py-16 text-center text-sm text-slate-500">Carregando funcionário...</div>;
+    return <div className="mx-auto w-full py-16 text-center text-sm text-slate-500">Carregando funcionário...</div>;
   }
 
   return (
-    <div className="mx-auto max-w-5xl space-y-4">
+    <div className="mx-auto w-full space-y-4">
       <header className="flex items-center gap-3">
         <Link href={`/${tenant}/dashboard/employees`} className="btn-icon rounded-[6px]">
           <ArrowLeft size={15} />

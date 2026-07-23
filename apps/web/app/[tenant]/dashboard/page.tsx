@@ -177,7 +177,7 @@ function DashboardContent() {
   }
 
   return (
-<div className="mx-auto max-w-7xl space-y-4 px-3 py-4 sm:px-6 lg:px-8">
+<div className="mx-auto w-full space-y-4 px-3 py-4 sm:px-6 lg:px-8">
       {/* Premium Hero Section */}
       <section className="mb-4 overflow-hidden rounded-xl bg-black p-5 text-white shadow-sm">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">

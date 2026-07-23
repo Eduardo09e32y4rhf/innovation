@@ -120,7 +120,7 @@ export default function CompanyDetailPage({ params }: { params: { tenant: string
   }
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6 pb-12">
+    <div className="mx-auto w-full space-y-6 pb-12">
       <header className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <Link href={`/${params.tenant}/dashboard/platform`} className="mb-4 inline-flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-slate-900"><ArrowLeft size={14} /> Voltar para empresas</Link>

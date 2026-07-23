@@ -48,7 +48,7 @@ export function EmployeeDashboard({ tenant, userName, summary, insights, tracks,
   const recentTracks = [...monthTracks].reverse().slice(0, 5);
 
   return (
-    <div className="mx-auto max-w-7xl space-y-5 px-3 py-4 sm:px-6 lg:px-8">
+    <div className="mx-auto w-full space-y-5 px-3 py-4 sm:px-6 lg:px-8">
       <section className="relative overflow-hidden rounded-[26px] bg-[#0b0b0c] px-6 py-7 text-white sm:px-8 sm:py-9">
         <div className="absolute inset-0 opacity-[0.08] [background-image:radial-gradient(circle_at_1px_1px,#fff_1px,transparent_0)] [background-size:22px_22px]" />
         <div className="absolute -right-20 -top-24 h-64 w-64 rounded-full border border-white/10" />
