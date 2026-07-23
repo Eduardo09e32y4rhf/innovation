@@ -16,6 +16,8 @@ import {
   User,
   FileText,
 } from 'lucide-react';
+import Link from 'next/link';
+import { AuthSplitLayout } from '@/app/components/auth-split-layout';
 import { api, type PublicPlatformPlan } from '@/app/lib/api';
 import { PricingSection } from '../_components/pricing-section';
 import { persistAuthSession } from '@/app/lib/auth-session';
