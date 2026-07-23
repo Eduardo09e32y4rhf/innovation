@@ -1328,14 +1328,36 @@ function ClosingTab({ canManage, company }: { canManage: boolean; company?: any 
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [year, setYear] = useState(now.getFullYear());
   const [error, setError] = useState<string | null>(null);
+  
+  // Modals state
+  const [editModal, setEditModal] = useState<{ open: boolean; item?: any }>({ open: false });
+  const [reopenModal, setReopenModal] = useState<{ open: boolean; item?: any }>({ open: false });
+  const [savingId, setSavingId] = useState<string | null>(null);
+
   const listQuery = useQuery(() => api.timeClosing.list(), []);
   const refresh = () => listQuery.refetch();
   const generateMut = useMutation((value: { month: number; year: number }) => api.timeClosing.generate(value), { onSuccess: refresh });
   const reviewMut = useMutation((id: string) => api.timeClosing.submitReview(id), { onSuccess: refresh });
   const approveMut = useMutation((id: string) => api.timeClosing.approve(id), { onSuccess: refresh });
   const closeMut = useMutation((id: string) => api.timeClosing.close(id), { onSuccess: refresh });
-  const reopenMut = useMutation((value: { id: string; reason: string }) => api.timeClosing.reopen(value.id, value.reason), { onSuccess: refresh });
   const deleteMut = useMutation((id: string) => api.timeClosing.delete(id), { onSuccess: refresh });
+  
+  const handleAdjust = async (field: string, value: number, reason: string) => {
+    if (!editModal.item) return;
+    setSavingId('adjust');
+    try { await api.timeClosing.adjust(editModal.item.id, field, value, reason); await refresh(); setEditModal({ open: false }); } 
+    catch (err: any) { setError(err?.message ?? 'Erro ao ajustar'); } 
+    finally { setSavingId(null); }
+  };
+
+  const handleReopen = async (reason: string) => {
+    if (!reopenModal.item) return;
+    setSavingId('reopen');
+    try { await api.timeClosing.reopen(reopenModal.item.id, reason); await refresh(); setReopenModal({ open: false }); } 
+    catch (err: any) { setError(err?.message ?? 'Erro ao reabrir'); } 
+    finally { setSavingId(null); }
+  };
+
   const closings = (listQuery.data as any[] | undefined) ?? [];
   const money = (value: unknown) => Number(value || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   const period = (item: any) => `${new Date(item.periodStart).toLocaleDateString('pt-BR', { timeZone: 'UTC' })} a ${new Date(item.periodEnd).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}`;
@@ -1348,19 +1370,6 @@ function ClosingTab({ canManage, company }: { canManage: boolean; company?: any 
   const generate = async () => {
     setError(null);
     try { await generateMut.mutate({ month, year }); } catch (err: any) { setError(err?.message ?? 'Erro ao gerar fechamento'); }
-  };
-
-  const adjust = async (item: any) => {
-    const allowed = ['salaryBase', 'overtime50', 'overtime100', 'nightShift', 'absenceMinutes', 'lateMinutes', 'earlyLeaveMinutes'];
-    const field = prompt(`Campo para editar:\n${allowed.join(', ')}`);
-    if (!field || !allowed.includes(field)) return;
-    const raw = prompt(`Novo valor para ${field}:`, String(item[field] || 0));
-    if (raw === null) return;
-    const value = Number(raw.replace(',', '.'));
-    if (!Number.isFinite(value) || value < 0) return alert('Informe um valor não negativo.');
-    const reason = prompt('Justificativa obrigatória:');
-    if (!reason?.trim()) return;
-    try { await api.timeClosing.adjust(item.id, field, value, reason.trim()); await refresh(); } catch (err: any) { setError(err?.message ?? 'Erro ao ajustar'); }
   };
 
   const printClosing = async (summary: any) => {
@@ -1391,19 +1400,110 @@ function ClosingTab({ canManage, company }: { canManage: boolean; company?: any 
   const months = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 
   return <section className="space-y-4">
+    {editModal.open && editModal.item && <EditClosingModal item={editModal.item} onClose={() => setEditModal({ open: false })} onSave={handleAdjust} saving={savingId === 'adjust'} />}
+    {reopenModal.open && reopenModal.item && <ReopenClosingModal onClose={() => setReopenModal({ open: false })} onSave={handleReopen} saving={savingId === 'reopen'} />}
+    
     <div><h3 className="text-sm font-black text-slate-950">FECHAMENTO DA FOLHA</h3><p className="mt-1 text-xs text-slate-500">Jornada, proventos, tributos, encargos e líquido por colaborador.</p></div>
-    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">{[['Base',totals.gross],['INSS',totals.inss],['IRRF',totals.irrf],['FGTS patronal',totals.fgts],['Líquido',totals.net]].map(([label,value]) => <div key={String(label)} className="rounded-xl border border-slate-200 bg-white p-4"><p className="text-[9px] font-black uppercase text-slate-500">{String(label)}</p><p className="mt-1 text-base font-black">{money(value)}</p></div>)}</div>
-    <div className="rounded-xl border border-slate-200 bg-white p-5"><div className="flex flex-wrap items-end gap-3">
-      <label className="text-xs text-slate-600">MÊS<select value={month} onChange={e => setMonth(Number(e.target.value))} className="mt-1 block h-10 rounded-lg border border-slate-200 px-3">{months.map((name,index)=><option key={name} value={index+1}>{name}</option>)}</select></label>
-      <label className="text-xs text-slate-600">ANO<input type="number" value={year} onChange={e => setYear(Number(e.target.value))} className="mt-1 block h-10 w-28 rounded-lg border border-slate-200 px-3" /></label>
-      <button onClick={generate} disabled={!canManage || generateMut.loading} className="crystal-button h-10 rounded-lg px-4 text-xs font-black text-white disabled:opacity-50">{generateMut.loading ? 'CALCULANDO...' : 'ADICIONAR / RECALCULAR'}</button>
+    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">{[['Base',totals.gross],['INSS',totals.inss],['IRRF',totals.irrf],['FGTS patronal',totals.fgts],['Líquido',totals.net]].map(([label,value]) => <div key={String(label)} className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm"><p className="text-[10px] font-black uppercase text-slate-400">{String(label)}</p><p className="mt-1 text-base font-black text-slate-800">{money(value)}</p></div>)}</div>
+    <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm"><div className="flex flex-wrap items-end gap-3">
+      <label className="text-[10px] font-black text-slate-400">MÊS<select value={month} onChange={e => setMonth(Number(e.target.value))} className="mt-1 block h-10 rounded-xl border border-slate-200 px-3 outline-none focus:border-brand-500">{months.map((name,index)=><option key={name} value={index+1}>{name}</option>)}</select></label>
+      <label className="text-[10px] font-black text-slate-400">ANO<input type="number" value={year} onChange={e => setYear(Number(e.target.value))} className="mt-1 block h-10 w-28 rounded-xl border border-slate-200 px-3 outline-none focus:border-brand-500" /></label>
+      <button onClick={generate} disabled={!canManage || generateMut.loading} className="crystal-button h-10 rounded-xl px-5 text-xs font-black text-white disabled:opacity-50">{generateMut.loading ? 'CALCULANDO...' : 'ADICIONAR / RECALCULAR'}</button>
     </div>{error && <p className="mt-3 text-xs font-bold text-rose-600">{error}</p>}</div>
-    {closings.length === 0 ? <div className="rounded-xl border border-dashed border-slate-300 p-10 text-center"><FileCheck2 className="mx-auto text-teal-600"/><p className="mt-2 text-sm font-black">Nenhum fechamento calculado</p></div> : <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white"><table className="w-full min-w-[1180px] text-left text-[10px]"><thead className="bg-slate-50 uppercase text-slate-500"><tr><th className="p-3">Colaborador</th><th className="p-3">Jornada</th><th className="p-3">Proventos</th><th className="p-3">Descontos</th><th className="p-3">FGTS</th><th className="p-3">Líquido</th><th className="p-3">Status</th><th className="p-3">Ações</th></tr></thead><tbody>{closings.map((item:any)=><tr key={item.id} className="border-t align-top"><td className="p-3"><b>{item.employee?.name}</b><p className="text-slate-500">{period(item)}</p><p>Base {money(item.salaryBase)}</p></td><td className="p-3"><p>50% {Number(item.overtime50).toFixed(2)}h</p><p>100% {Number(item.overtime100).toFixed(2)}h</p><p>Noturno {Number(item.nightShift).toFixed(2)}h</p><p className="text-rose-600">Débito {item.absenceMinutes} min</p></td><td className="p-3"><p>Extras {money(Number(item.overtime50Value)+Number(item.overtime100Value))}</p><p>Noturno {money(item.nightShiftValue)}</p><p>DSR {money(item.dsrValue)}</p><b>Base Cálc. {money(item.grossPay)}</b></td><td className="p-3 text-rose-700"><p>Jornada {money(item.absenceDiscount)}</p><p>INSS {money(item.inssDiscount)}</p><p>IRRF {money(item.irrfDiscount)}</p></td><td className="p-3"><b>{money(item.fgtsAmount)}</b><p className="text-slate-400">não descontado</p></td><td className="p-3 text-sm font-black text-teal-700">{money(item.netPay)}</td><td className="p-3"><span className="rounded border px-2 py-1 font-black">{labels[item.status] || item.status}</span></td><td className="p-3"><div className="flex max-w-56 flex-wrap gap-1">
-      <button onClick={()=>printClosing(item)} className="btn-outline h-7 px-2">PDF</button>{canManage && ['DRAFT','IN_REVIEW'].includes(item.status) && <button onClick={()=>adjust(item)} className="btn-outline h-7 px-2">Editar</button>}
-      {canManage && item.status==='DRAFT' && <button onClick={()=>reviewMut.mutate(item.id)} className="h-7 rounded bg-sky-600 px-2 text-white">Revisar</button>}{canManage && item.status==='IN_REVIEW' && <button onClick={()=>approveMut.mutate(item.id)} className="h-7 rounded bg-teal-600 px-2 text-white">Aprovar</button>}{canManage && item.status==='APPROVED' && <button onClick={()=>closeMut.mutate(item.id)} className="h-7 rounded bg-slate-900 px-2 text-white">Fechar</button>}{canManage && item.status==='CLOSED' && <button onClick={()=>{const reason=prompt('Motivo da reabertura:');if(reason?.trim())reopenMut.mutate({id:item.id,reason});}} className="h-7 rounded bg-amber-500 px-2">Reabrir</button>}{canManage && item.status!=='CLOSED' && <button onClick={()=>window.confirm('Excluir este fechamento?')&&deleteMut.mutate(item.id)} className="h-7 rounded bg-rose-600 px-2 text-white">Excluir</button>}
+    {closings.length === 0 ? <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-12 text-center"><FileCheck2 size={32} className="mx-auto text-slate-300"/><p className="mt-3 text-sm font-black text-slate-500">Nenhum fechamento calculado</p></div> : <div className="overflow-x-auto rounded-2xl border border-slate-100 bg-white shadow-sm"><table className="w-full min-w-[1200px] text-left text-xs"><thead className="bg-slate-50/80 uppercase text-slate-400 border-b border-slate-100"><tr><th className="p-4 font-black">Colaborador</th><th className="p-4 font-black">Jornada</th><th className="p-4 font-black">Proventos</th><th className="p-4 font-black">Descontos</th><th className="p-4 font-black">FGTS</th><th className="p-4 font-black">Líquido</th><th className="p-4 font-black">Status</th><th className="p-4 font-black text-right">Ações</th></tr></thead><tbody className="divide-y divide-slate-50">{closings.map((item:any)=><tr key={item.id} className="align-top hover:bg-slate-50/50 transition-colors"><td className="p-4"><p className="font-black text-slate-800">{item.employee?.name}</p><p className="text-[10px] text-slate-500 mt-0.5">{period(item)}</p><p className="text-[10px] text-slate-500">Base {money(item.salaryBase)}</p></td><td className="p-4 space-y-0.5 text-slate-600"><p>50% <span className="font-bold">{Number(item.overtime50).toFixed(2)}h</span></p><p>100% <span className="font-bold">{Number(item.overtime100).toFixed(2)}h</span></p><p>Noturno <span className="font-bold">{Number(item.nightShift).toFixed(2)}h</span></p><p className="text-rose-500">Débito <span className="font-bold">{item.absenceMinutes} min</span></p></td><td className="p-4 space-y-0.5 text-slate-600"><p>Extras {money(Number(item.overtime50Value)+Number(item.overtime100Value))}</p><p>Noturno {money(item.nightShiftValue)}</p><p>DSR {money(item.dsrValue)}</p><p className="text-slate-900 mt-1">Base Cálc. <span className="font-black">{money(item.grossPay)}</span></p></td><td className="p-4 space-y-0.5 text-rose-600"><p>Jornada {money(item.absenceDiscount)}</p><p>INSS {money(item.inssDiscount)}</p><p>IRRF {money(item.irrfDiscount)}</p></td><td className="p-4"><p className="font-black text-slate-800">{money(item.fgtsAmount)}</p><p className="text-[10px] text-slate-400">não descontado</p></td><td className="p-4"><p className="text-base font-black text-emerald-600">{money(item.netPay)}</p></td><td className="p-4"><span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-black uppercase ${item.status==='CLOSED'?'bg-slate-100 text-slate-600':item.status==='APPROVED'?'bg-teal-50 text-teal-700':item.status==='IN_REVIEW'?'bg-sky-50 text-sky-700':'bg-amber-50 text-amber-700'}`}>{labels[item.status] || item.status}</span></td><td className="p-4"><div className="flex flex-wrap justify-end gap-1.5 w-full">
+      <button onClick={()=>printClosing(item)} className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[10px] font-bold text-slate-600 shadow-sm transition-colors hover:bg-slate-50"><FileText size={14}/> PDF</button>
+      {canManage && ['DRAFT','IN_REVIEW'].includes(item.status) && <button onClick={() => setEditModal({ open: true, item })} className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[10px] font-bold text-slate-600 shadow-sm transition-colors hover:bg-slate-50"><MessageSquare size={14}/> Editar</button>}
+      {canManage && item.status==='DRAFT' && <button onClick={()=>reviewMut.mutate(item.id)} className="flex items-center gap-1.5 rounded-lg bg-sky-600 px-3 py-1.5 text-[10px] font-black text-white shadow-sm transition-colors hover:bg-sky-700"><Send size={14}/> Revisar</button>}
+      {canManage && item.status==='IN_REVIEW' && <button onClick={()=>approveMut.mutate(item.id)} className="flex items-center gap-1.5 rounded-lg bg-teal-600 px-3 py-1.5 text-[10px] font-black text-white shadow-sm transition-colors hover:bg-teal-700"><Check size={14}/> Aprovar</button>}
+      {canManage && item.status==='APPROVED' && <button onClick={()=>closeMut.mutate(item.id)} className="flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 text-[10px] font-black text-white shadow-sm transition-colors hover:bg-black"><Zap size={14}/> Fechar</button>}
+      {canManage && item.status==='CLOSED' && <button onClick={() => setReopenModal({ open: true, item })} className="flex items-center gap-1.5 rounded-lg bg-amber-500 px-3 py-1.5 text-[10px] font-black text-white shadow-sm transition-colors hover:bg-amber-600"><RefreshCcw size={14}/> Reabrir</button>}
+      {canManage && item.status!=='CLOSED' && <button onClick={()=>window.confirm('Excluir este fechamento?')&&deleteMut.mutate(item.id)} className="flex items-center gap-1.5 rounded-lg bg-rose-500 px-3 py-1.5 text-[10px] font-black text-white shadow-sm transition-colors hover:bg-rose-600"><XCircle size={14}/> Excluir</button>}
     </div></td></tr>)}</tbody></table></div>}
   </section>;
 }
+
+
+// ─── MODAL DE EDIÇÃO DE FECHAMENTO ─────────────────────────────────────────────
+function EditClosingModal({ item, onClose, onSave, saving }: {
+  item: any; onClose: () => void; onSave: (field: string, value: number, reason: string) => void; saving: boolean;
+}) {
+  const [field, setField] = useState('salaryBase');
+  const [value, setValue] = useState(String(item[field] || 0));
+  const [reason, setReason] = useState('');
+  
+  useEffect(() => { setValue(String(item[field] || 0)); }, [field, item]);
+
+  const fields = [
+    { id: 'salaryBase', label: 'Salário Base (R$)' },
+    { id: 'overtime50', label: 'Horas Extras 50% (h)' },
+    { id: 'overtime100', label: 'Horas Extras 100% (h)' },
+    { id: 'nightShift', label: 'Adicional Noturno (h)' },
+    { id: 'absenceMinutes', label: 'Faltas / Atrasos (min)' },
+    { id: 'lateMinutes', label: 'Atrasos Ponto (min)' },
+    { id: 'earlyLeaveMinutes', label: 'Saídas Antecipadas (min)' },
+  ];
+
+  const handleSubmit = (e: any) => {
+    e.preventDefault();
+    const num = Number(value.replace(',', '.'));
+    if (!Number.isFinite(num) || num < 0) return alert('Valor inválido');
+    if (!reason.trim()) return alert('Justificativa obrigatória');
+    onSave(field, num, reason.trim());
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+          <h3 className="text-lg font-black text-slate-900">Ajuste Manual da Folha</h3>
+          <button onClick={onClose} disabled={saving} className="rounded-full p-2 hover:bg-slate-100"><X size={18}/></button>
+        </div>
+        <form onSubmit={handleSubmit} className="mt-4 space-y-4">
+          <p className="text-sm text-slate-500">Colaborador: <b className="text-black">{item.employee?.name}</b></p>
+          <label className="block text-xs font-black text-slate-600">
+            CAMPO PARA AJUSTE
+            <select value={field} onChange={e => setField(e.target.value)} disabled={saving} className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 p-2 text-sm outline-none focus:border-brand-500">
+              {fields.map(f => <option key={f.id} value={f.id}>{f.label}</option>)}
+            </select>
+          </label>
+          <label className="block text-xs font-black text-slate-600">
+            NOVO VALOR
+            <input type="text" value={value} onChange={e => setValue(e.target.value)} disabled={saving} required className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 p-2 text-sm outline-none focus:border-brand-500" />
+          </label>
+          <label className="block text-xs font-black text-slate-600">
+            JUSTIFICATIVA OBRIGATÓRIA
+            <input type="text" value={reason} onChange={e => setReason(e.target.value)} disabled={saving} required placeholder="Ex: Acordo coletivo, Erro de batida..." className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 p-2 text-sm outline-none focus:border-brand-500" />
+          </label>
+          <div className="mt-6 flex justify-end gap-3">
+            <button type="button" onClick={onClose} disabled={saving} className="rounded-lg px-4 py-2 text-sm font-bold text-slate-500 hover:bg-slate-100">Cancelar</button>
+            <button type="submit" disabled={saving} className="crystal-button rounded-lg px-5 py-2 text-sm font-black text-white">{saving ? 'Salvando...' : 'Aplicar Ajuste'}</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ─── REOPEN MODAL ─────────────────────────────────────────────
+function ReopenClosingModal({ onClose, onSave, saving }: { onClose: () => void; onSave: (reason: string) => void; saving: boolean; }) {
+  const [reason, setReason] = useState('');
+  const handleSubmit = (e: any) => { e.preventDefault(); if (!reason.trim()) return alert('Obrigatório'); onSave(reason.trim()); };
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl">
+        <h3 className="text-lg font-black text-slate-900">Motivo da reabertura</h3>
+        <form onSubmit={handleSubmit} className="mt-4 space-y-4">
+          <input type="text" autoFocus value={reason} onChange={e => setReason(e.target.value)} disabled={saving} required placeholder="Justificativa..." className="w-full rounded-lg border border-slate-200 bg-slate-50 p-2 text-sm outline-none focus:border-brand-500" />
+          <div className="flex justify-end gap-3">
+            <button type="button" onClick={onClose} disabled={saving} className="rounded-lg px-4 py-2 text-sm font-bold text-slate-500 hover:bg-slate-100">Cancelar</button>
+            <button type="submit" disabled={saving} className="rounded-lg bg-amber-500 px-5 py-2 text-sm font-black text-white hover:bg-amber-600">{saving ? 'Salvando...' : 'Confirmar'}</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 
 // MODAIS
 function EventModal({ event, employees, onClose, onSave, saving }: {
