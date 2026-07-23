@@ -109,7 +109,7 @@ export default function PlatformPage() {
       ) : (companies.data ?? []).length === 0 ? (
         <EmptyState message="Nenhuma empresa cadastrada. Clique em Nova empresa." />
       ) : (
-        <section className="ops-card overflow-hidden rounded-[8px] border border-slate-200 bg-white">
+        <section className="overflow-hidden rounded-2xl bg-white shadow-sm shadow-slate-900/5">
           <div className="border-b border-slate-100 p-4">
             <div className="relative max-w-md">
               <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
@@ -127,7 +127,7 @@ export default function PlatformPage() {
           <div className="overflow-x-auto p-0">
             <table className="w-full min-w-[980px] text-left">
               <thead>
-                <tr className="bg-slate-50 text-[11px] font-medium text-slate-500">
+                <tr className="border-b border-slate-100 text-[11px] font-medium text-slate-500">
                   <th className="p-3 pl-5">Empresa</th>
                   <th className="p-3">CNPJ</th>
                   <th className="p-3">Usuários</th>
