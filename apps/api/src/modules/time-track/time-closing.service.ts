@@ -230,7 +230,7 @@ export class TimeClosingService {
     });
     if (!closing) throw new NotFoundException('Fechamento nao encontrado.');
 
-    if (actor && (actor.role === 'FUNCIONARIO' || actor.role === 'USER')) {
+    if (actor && (actor.role === 'FUNCIONARIO')) {
       const employee = await this.prisma.employee.findFirst({
         where: { companyId, userId: actor.sub },
         select: { id: true },
