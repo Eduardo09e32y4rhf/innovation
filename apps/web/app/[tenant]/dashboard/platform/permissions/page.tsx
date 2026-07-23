@@ -39,24 +39,16 @@ export default function GlobalPermissionsPage({ params: { tenant } }: { params: 
 
   return (
     <div className="mx-auto w-full space-y-5">
-      <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h2 className="text-2xl font-black text-slate-950">Gestão da Plataforma</h2>
-          <div className="mt-4 flex gap-4 border-b border-slate-200">
-            <Link href={`/${tenant}/dashboard/platform`} className="pb-2 text-sm font-medium text-slate-500 hover:text-slate-800">Empresas</Link>
-            <Link href={`/${tenant}/dashboard/platform/plans`} className="pb-2 text-sm font-medium text-slate-500 hover:text-slate-800">Planos & Assinaturas</Link>
-            <Link href={`/${tenant}/dashboard/platform/finance`} className="pb-2 text-sm font-medium text-slate-500 hover:text-slate-800">Financeiro</Link>
-            <Link href={`/${tenant}/dashboard/platform/permissions`} className="border-b-2 border-indigo-600 pb-2 text-sm font-bold text-indigo-600">Permissões Globais</Link>
-          </div>
-        </div>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-lg font-bold text-slate-900">Permissões Globais</h2>
         <button 
           onClick={() => save.mutate(activePermissions)}
           disabled={save.loading || localPermissions === null}
-          className="crystal-button inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black text-white disabled:opacity-50"
+          className="crystal-button inline-flex h-10 items-center gap-2 rounded-xl px-4 text-xs font-black text-white shadow-md disabled:opacity-50"
         >
           <Save size={14} /> Salvar Alterações
         </button>
-      </header>
+      </div>
 
       {permissionsData.error ? (
         <ErrorState message={permissionsData.error} onRetry={permissionsData.refetch} />

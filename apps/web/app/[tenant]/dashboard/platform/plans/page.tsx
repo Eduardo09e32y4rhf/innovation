@@ -392,24 +392,15 @@ export default function PlansPage({ params: { tenant } }: { params: { tenant: st
 
   return (
     <div className="mx-auto w-full space-y-6">
-      {/* Header */}
-      <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h2 className="text-2xl font-black text-slate-950">Gestão da Plataforma</h2>
-          <div className="mt-4 flex gap-4 border-b border-slate-200">
-            <Link href={`/${tenant}/dashboard/platform`} className="pb-2 text-sm font-medium text-slate-500 hover:text-slate-800">Empresas</Link>
-            <Link href={`/${tenant}/dashboard/platform/plans`} className="border-b-2 border-indigo-600 pb-2 text-sm font-bold text-indigo-600">Planos & Assinaturas</Link>
-            <Link href={`/${tenant}/dashboard/platform/finance`} className="pb-2 text-sm font-medium text-slate-500 hover:text-slate-800">Financeiro</Link>
-            <Link href={`/${tenant}/dashboard/platform/permissions`} className="pb-2 text-sm font-medium text-slate-500 hover:text-slate-800">Permissões Globais</Link>
-          </div>
-        </div>
+      <div className="flex items-center justify-between mb-2">
+        <h2 className="text-lg font-bold text-slate-900">Gestão de Planos</h2>
         <button
           onClick={() => setIsCreating(true)}
-          className="crystal-button inline-flex h-10 items-center gap-2 rounded-[8px] px-4 text-xs font-black text-white"
+          className="crystal-button inline-flex h-10 items-center gap-2 rounded-xl px-4 text-xs font-black text-white shadow-md"
         >
           <Plus size={14} /> Novo Plano
         </button>
-      </header>
+      </div>
 
       {/* Stats bar */}
       {!plansData.loading && allPlans.length > 0 && (

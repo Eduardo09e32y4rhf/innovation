@@ -87,21 +87,11 @@ export default function PlatformPage() {
 
   return (
     <div className="mx-auto w-full space-y-5">
-      <header className="page-header items-center">
-        <div>
-          <p className="page-label">PLATAFORMA</p>
-          <h2 className="page-title">Gestão da Plataforma</h2>
-        </div>
+      <div className="flex items-center justify-between mb-2">
+        <h2 className="text-lg font-bold text-slate-900">Visão Geral e Empresas</h2>
         <button onClick={() => setOpen(true)} className="btn-nubank">
           <Plus size={14} /> Nova empresa
         </button>
-      </header>
-      
-      <div className="tab-bar mb-6">
-        <Link href={`/${tenant}/dashboard/platform`} className="tab-item-active">Empresas</Link>
-        <Link href={`/${tenant}/dashboard/platform/plans`} className="tab-item">Planos & Assinaturas</Link>
-        <Link href={`/${tenant}/dashboard/platform/finance`} className="tab-item">Financeiro</Link>
-        <Link href={`/${tenant}/dashboard/platform/permissions`} className="tab-item">Permissões Globais</Link>
       </div>
 
       <PlatformStats />
