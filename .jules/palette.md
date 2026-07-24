@@ -1,0 +1,3 @@
+## 2024-07-24 - Accessible Password Visibility Toggles
+**Learning:** Absolutely positioned interactive elements within inputs (like password toggles) lose their visual focus boundaries if they don't match the container's border radius and use inset rings. Furthermore, they are often mistakenly removed from tab order (`tabIndex={-1}`) breaking keyboard accessibility.
+**Action:** When adding focus rings to input adornments, use `focus-visible:ring-inset` and match the parent's `rounded-[size]`. Always ensure they are in the tab order and have an `aria-label` with `aria-hidden="true"` on the decorative icon.
