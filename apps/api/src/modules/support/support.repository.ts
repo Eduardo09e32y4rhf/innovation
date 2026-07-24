@@ -2,6 +2,13 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import { SupportTicket, SupportTicketMessage, SupportTicketEvent, Prisma, SupportAttachment } from '@prisma/client';
 
+export const SAFE_USER_SELECT = {
+  id: true,
+  name: true,
+  email: true,
+  role: true,
+};
+
 @Injectable()
 export class SupportRepository {
   constructor(private prisma: PrismaService) {}
@@ -9,32 +16,133 @@ export class SupportRepository {
   async createTicket(data: Prisma.SupportTicketUncheckedCreateInput) {
     return this.prisma.supportTicket.create({
       data,
-      include: {
-        company: true,
-        createdBy: true,
-        affectedUser: true,
-        affectedEmployee: true,
-        assignedTo: true,
+      select: {
+        id: true,
+        ticketNumber: true,
+        companyId: true,
+        createdByUserId: true,
+        affectedUserId: true,
+        affectedEmployeeId: true,
+        assignedToUserId: true,
+        category: true,
+        status: true,
+        priority: true,
+        title: true,
+        description: true,
+        firstResponseDueAt: true,
+        resolutionDueAt: true,
+        firstRespondedAt: true,
+        resolvedAt: true,
+        slaBreached: true,
+        createdAt: true,
+        updatedAt: true,
+        createdBy: { select: SAFE_USER_SELECT },
+        affectedUser: { select: SAFE_USER_SELECT },
+        assignedTo: { select: SAFE_USER_SELECT },
+        company: { select: { id: true, name: true, document: true } },
       }
     });
   }
 
-  async findTicketById(id: string) {
-    return this.prisma.supportTicket.findUnique({
-      where: { id },
-      include: {
-        company: true,
-        createdBy: true,
-        affectedUser: true,
-        affectedEmployee: true,
-        assignedTo: true,
+  async findClientTicketById(id: string, companyId: string) {
+    return this.prisma.supportTicket.findFirst({
+      where: { id, companyId },
+      select: {
+        id: true,
+        ticketNumber: true,
+        companyId: true,
+        category: true,
+        status: true,
+        priority: true,
+        title: true,
+        description: true,
+        firstResponseDueAt: true,
+        resolutionDueAt: true,
+        firstRespondedAt: true,
+        resolvedAt: true,
+        slaBreached: true,
+        createdAt: true,
+        updatedAt: true,
+        createdBy: { select: SAFE_USER_SELECT },
+        affectedUser: { select: SAFE_USER_SELECT },
+        assignedTo: { select: SAFE_USER_SELECT },
         messages: {
-          include: { author: true, attachments: true },
+          where: { visibility: 'PUBLIC' },
+          select: {
+            id: true,
+            ticketId: true,
+            authorUserId: true,
+            message: true,
+            visibility: true,
+            createdAt: true,
+            author: { select: SAFE_USER_SELECT },
+            attachments: true,
+          },
           orderBy: { createdAt: 'asc' }
         },
         attachments: true,
         events: {
-          include: { actor: true },
+          select: {
+            id: true,
+            ticketId: true,
+            eventType: true,
+            createdAt: true,
+            actor: { select: SAFE_USER_SELECT },
+          },
+          orderBy: { createdAt: 'desc' }
+        }
+      }
+    });
+  }
+
+  async findPlatformTicketById(id: string) {
+    return this.prisma.supportTicket.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        ticketNumber: true,
+        companyId: true,
+        createdByUserId: true,
+        affectedUserId: true,
+        assignedToUserId: true,
+        category: true,
+        status: true,
+        priority: true,
+        title: true,
+        description: true,
+        firstResponseDueAt: true,
+        resolutionDueAt: true,
+        firstRespondedAt: true,
+        resolvedAt: true,
+        slaBreached: true,
+        createdAt: true,
+        updatedAt: true,
+        createdBy: { select: SAFE_USER_SELECT },
+        affectedUser: { select: SAFE_USER_SELECT },
+        assignedTo: { select: SAFE_USER_SELECT },
+        company: { select: { id: true, name: true, document: true } },
+        messages: {
+          select: {
+            id: true,
+            ticketId: true,
+            authorUserId: true,
+            message: true,
+            visibility: true,
+            createdAt: true,
+            author: { select: SAFE_USER_SELECT },
+            attachments: true,
+          },
+          orderBy: { createdAt: 'asc' }
+        },
+        attachments: true,
+        events: {
+          select: {
+            id: true,
+            ticketId: true,
+            eventType: true,
+            createdAt: true,
+            actor: { select: SAFE_USER_SELECT },
+          },
           orderBy: { createdAt: 'desc' }
         }
       }
@@ -45,11 +153,28 @@ export class SupportRepository {
     return this.prisma.supportTicket.findMany({
       where,
       orderBy,
-      include: {
-        company: true,
-        createdBy: true,
-        affectedUser: true,
-        assignedTo: true,
+      select: {
+        id: true,
+        ticketNumber: true,
+        companyId: true,
+        createdByUserId: true,
+        affectedUserId: true,
+        assignedToUserId: true,
+        category: true,
+        status: true,
+        priority: true,
+        title: true,
+        firstResponseDueAt: true,
+        resolutionDueAt: true,
+        firstRespondedAt: true,
+        resolvedAt: true,
+        slaBreached: true,
+        createdAt: true,
+        updatedAt: true,
+        createdBy: { select: SAFE_USER_SELECT },
+        affectedUser: { select: SAFE_USER_SELECT },
+        assignedTo: { select: SAFE_USER_SELECT },
+        company: { select: { id: true, name: true, document: true } },
       }
     });
   }
@@ -64,7 +189,15 @@ export class SupportRepository {
   async createMessage(data: Prisma.SupportTicketMessageUncheckedCreateInput) {
     return this.prisma.supportTicketMessage.create({
       data,
-      include: { author: true }
+      select: {
+        id: true,
+        ticketId: true,
+        authorUserId: true,
+        message: true,
+        visibility: true,
+        createdAt: true,
+        author: { select: SAFE_USER_SELECT }
+      }
     });
   }
 

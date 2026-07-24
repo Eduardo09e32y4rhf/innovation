@@ -12,6 +12,7 @@ export const PLATFORM_NAV_GROUPS: PlatformNavGroup[] = [
     label: 'Operações',
     items: [
       { label: 'Empresas', href: '/companies' },
+      { label: 'Suporte DEV', href: '/support' },
       { label: 'Acessos', href: '/access' },
       { label: 'Auditoria', href: '/audit' },
     ],

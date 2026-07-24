@@ -46,8 +46,8 @@ export class PlatformSupportController {
   @Patch('tickets/:id/assign')
   async assignTicket(@Req() req: any, @Param('id') id: string, @Body('userId') userId: string) {
     this.authService.assertCanManageTicket(req.user);
-    const ticket = await this.repository.updateTicket(id, { assignedTo: { connect: { id: userId || req.user.id } } });
-    await this.repository.createEvent({ ticketId: id, actorUserId: req.user.id, eventType: 'ASSIGNED', newValue: { userId: userId || req.user.id } });
+    const ticket = await this.repository.updateTicket(id, { assignedTo: { connect: { id: userId || req.user.sub } } });
+    await this.repository.createEvent({ ticketId: id, actorUserId: req.user.sub, eventType: 'ASSIGNED', newValue: { userId: userId || req.user.sub } });
     return ticket;
   }
 
@@ -55,7 +55,7 @@ export class PlatformSupportController {
   async updatePriority(@Req() req: any, @Param('id') id: string, @Body('priority') priority: SupportTicketPriority) {
     this.authService.assertCanManageTicket(req.user);
     const ticket = await this.repository.updateTicket(id, { priority });
-    await this.repository.createEvent({ ticketId: id, actorUserId: req.user.id, eventType: 'PRIORITY_CHANGED', newValue: { priority } });
+    await this.repository.createEvent({ ticketId: id, actorUserId: req.user.sub, eventType: 'PRIORITY_CHANGED', newValue: { priority } });
     return ticket;
   }
 
@@ -63,7 +63,7 @@ export class PlatformSupportController {
   async updateStatus(@Req() req: any, @Param('id') id: string, @Body('status') status: SupportTicketStatus) {
     this.authService.assertCanManageTicket(req.user);
     const ticket = await this.repository.updateTicket(id, { status });
-    await this.repository.createEvent({ ticketId: id, actorUserId: req.user.id, eventType: 'STATUS_CHANGED', newValue: { status } });
+    await this.repository.createEvent({ ticketId: id, actorUserId: req.user.sub, eventType: 'STATUS_CHANGED', newValue: { status } });
     return ticket;
   }
 
@@ -81,7 +81,7 @@ export class PlatformSupportController {
   async resolveTicket(@Req() req: any, @Param('id') id: string) {
     this.authService.assertCanManageTicket(req.user);
     const ticket = await this.repository.updateTicket(id, { status: 'RESOLVED', resolvedAt: new Date() });
-    await this.repository.createEvent({ ticketId: id, actorUserId: req.user.id, eventType: 'TICKET_RESOLVED' });
+    await this.repository.createEvent({ ticketId: id, actorUserId: req.user.sub, eventType: 'TICKET_RESOLVED' });
     return ticket;
   }
 

@@ -13,7 +13,7 @@ export class SupportAuthorizationService {
 
     if (actor.role === 'GESTOR') {
       const actorEmployee = await this.prisma.employee.findFirst({
-        where: { userId: actor.id, companyId: actor.companyId }
+        where: { userId: actor.sub, companyId: actor.companyId }
       });
       if (!actorEmployee) {
         throw new ForbiddenException('Seu usuário não está vinculado a um cadastro de funcionário. Solicite ao RH a correção do vínculo.');
@@ -27,7 +27,7 @@ export class SupportAuthorizationService {
         if (targetEmployee) targetEmployeeId = targetEmployee.id;
       }
 
-      if (affectedUserId === actor.id) return true; // Para si mesmo
+      if (affectedUserId === actor.sub) return true; // Para si mesmo
       if (affectedEmployeeId === actorEmployee.id) return true; // Para si mesmo via employee
 
       if (targetEmployeeId) {
@@ -70,7 +70,7 @@ export class SupportAuthorizationService {
     
     if (actor.role === 'GESTOR') {
       const actorEmployee = await this.prisma.employee.findFirst({
-        where: { userId: actor.id, companyId: actor.companyId }
+        where: { userId: actor.sub, companyId: actor.companyId }
       });
       
       const teamIds = [];
@@ -85,8 +85,8 @@ export class SupportAuthorizationService {
       return {
         ...baseWhere,
         OR: [
-          { createdByUserId: actor.id },
-          { affectedUserId: actor.id },
+          { createdByUserId: actor.sub },
+          { affectedUserId: actor.sub },
           teamIds.length > 0 ? { affectedEmployeeId: { in: teamIds } } : undefined
         ].filter(Boolean)
       };
@@ -94,13 +94,13 @@ export class SupportAuthorizationService {
     
     if (actor.role === 'FUNCIONARIO' || actor.role === 'CONSULTA') {
       const actorEmployee = await this.prisma.employee.findFirst({
-        where: { userId: actor.id, companyId: actor.companyId },
+        where: { userId: actor.sub, companyId: actor.companyId },
         select: { id: true }
       });
       return {
         ...baseWhere,
         OR: [
-          { affectedUserId: actor.id },
+          { affectedUserId: actor.sub },
           actorEmployee ? { affectedEmployeeId: actorEmployee.id } : undefined
         ].filter(Boolean)
       };
@@ -116,9 +116,9 @@ export class SupportAuthorizationService {
     if (actor.role === 'ADMIN' || actor.role === 'RH') return true;
     
     if (actor.role === 'GESTOR') {
-      if (ticket.createdByUserId === actor.id || ticket.affectedUserId === actor.id) return true;
+      if (ticket.createdByUserId === actor.sub || ticket.affectedUserId === actor.sub) return true;
       if (ticket.affectedEmployeeId) {
-        const actorEmployee = await this.prisma.employee.findFirst({ where: { userId: actor.id, companyId: actor.companyId } });
+        const actorEmployee = await this.prisma.employee.findFirst({ where: { userId: actor.sub, companyId: actor.companyId } });
         if (actorEmployee) {
           const isDirectReport = await this.prisma.employee.findFirst({
             where: { id: ticket.affectedEmployeeId, managerId: actorEmployee.id }
@@ -129,9 +129,9 @@ export class SupportAuthorizationService {
     }
     
     if (actor.role === 'FUNCIONARIO' || actor.role === 'CONSULTA') {
-      if (ticket.affectedUserId === actor.id) return true;
+      if (ticket.affectedUserId === actor.sub) return true;
       if (ticket.affectedEmployeeId) {
-        const actorEmployee = await this.prisma.employee.findFirst({ where: { userId: actor.id, companyId: actor.companyId } });
+        const actorEmployee = await this.prisma.employee.findFirst({ where: { userId: actor.sub, companyId: actor.companyId } });
         if (actorEmployee && actorEmployee.id === ticket.affectedEmployeeId) return true;
       }
     }

@@ -3,6 +3,7 @@ import { SupportRepository } from './support.repository';
 import { SupportAuthorizationService } from './support-authorization.service';
 import { SupportSlaService } from './support-sla.service';
 import { SupportTicketPriority } from '@prisma/client';
+import type { JwtUser } from '../../common/types/auth.types';
 
 @Injectable()
 export class SupportService {
@@ -12,13 +13,12 @@ export class SupportService {
     private readonly slaService: SupportSlaService,
   ) {}
 
-  async createTicket(actor: any, data: any) {
+  async createTicket(actor: JwtUser, data: any) {
     await this.authService.assertCanCreateTicket(actor, data.affectedUserId, data.affectedEmployeeId);
 
     const year = new Date().getFullYear();
     const ticketNumber = await this.repository.generateTicketNumber(year);
     
-    // Auto calculate initial priority based on Impact if not explicitly handled (for now defaults to NORMAL, unless set)
     let initialPriority: SupportTicketPriority = SupportTicketPriority.NORMAL;
     if (data.impact?.includes('toda empresa') || data.impact?.includes('perda de dados') || data.category === 'SECURITY') {
       initialPriority = SupportTicketPriority.CRITICAL;
@@ -34,7 +34,7 @@ export class SupportService {
       ...data,
       ticketNumber,
       companyId: actor.companyId,
-      createdByUserId: actor.id,
+      createdByUserId: actor.sub,
       priority: initialPriority,
       firstResponseDueAt,
       resolutionDueAt,
@@ -43,26 +43,30 @@ export class SupportService {
 
     await this.repository.createEvent({
       ticketId: ticket.id,
-      actorUserId: actor.id,
+      actorUserId: actor.sub,
       eventType: 'TICKET_CREATED',
     });
 
     return ticket;
   }
 
-  async listTickets(actor: any) {
+  async listTickets(actor: JwtUser) {
     const where = await this.authService.buildTicketListWhere(actor);
     return this.repository.findTickets(where);
   }
 
-  async getTicket(actor: any, id: string) {
-    const ticket = await this.repository.findTicketById(id);
+  async getTicket(actor: JwtUser, id: string) {
+    const isPlatformUser = actor.role === 'DEV' || actor.role === 'COMERCIAL';
+    const ticket = isPlatformUser 
+      ? await this.repository.findPlatformTicketById(id)
+      : await this.repository.findClientTicketById(id, actor.companyId);
+
     if (!ticket) throw new NotFoundException('Chamado não encontrado.');
     await this.authService.assertCanViewTicket(actor, ticket);
     return ticket;
   }
 
-  async addMessage(actor: any, id: string, message: string, visibility: 'PUBLIC' | 'INTERNAL' = 'PUBLIC') {
+  async addMessage(actor: JwtUser, id: string, message: string, visibility: 'PUBLIC' | 'INTERNAL' = 'PUBLIC') {
     const ticket = await this.getTicket(actor, id);
     if (visibility === 'INTERNAL') {
       this.authService.assertCanCreateInternalNote(actor);
@@ -72,7 +76,7 @@ export class SupportService {
 
     const msg = await this.repository.createMessage({
       ticketId: id,
-      authorUserId: actor.id,
+      authorUserId: actor.sub,
       message,
       visibility,
       authorName: actor.name,
@@ -81,11 +85,10 @@ export class SupportService {
 
     await this.repository.createEvent({
       ticketId: id,
-      actorUserId: actor.id,
+      actorUserId: actor.sub,
       eventType: visibility === 'PUBLIC' ? 'PUBLIC_REPLY' : 'INTERNAL_NOTE',
     });
 
-    // Update ticket status or last reply times
     const updateData: any = {};
     if (visibility === 'PUBLIC') {
       if (actor.role === 'DEV') {
@@ -104,7 +107,7 @@ export class SupportService {
     return msg;
   }
 
-  async closeTicket(actor: any, id: string) {
+  async closeTicket(actor: JwtUser, id: string) {
     const ticket = await this.getTicket(actor, id);
     await this.authService.assertCanCloseTicket(actor, ticket);
 
@@ -115,14 +118,14 @@ export class SupportService {
 
     await this.repository.createEvent({
       ticketId: id,
-      actorUserId: actor.id,
+      actorUserId: actor.sub,
       eventType: 'TICKET_CLOSED',
     });
   }
 
-  async reopenTicket(actor: any, id: string) {
+  async reopenTicket(actor: JwtUser, id: string) {
     const ticket = await this.getTicket(actor, id);
-    await this.authService.assertCanCloseTicket(actor, ticket); // reusing same permission logic for now
+    await this.authService.assertCanCloseTicket(actor, ticket);
 
     await this.repository.updateTicket(id, {
       status: 'IN_PROGRESS',
@@ -132,7 +135,7 @@ export class SupportService {
 
     await this.repository.createEvent({
       ticketId: id,
-      actorUserId: actor.id,
+      actorUserId: actor.sub,
       eventType: 'TICKET_REOPENED',
     });
   }

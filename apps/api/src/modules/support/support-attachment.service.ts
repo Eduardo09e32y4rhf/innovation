@@ -50,7 +50,7 @@ export class SupportAttachmentService {
     const attachment = await this.repository.createAttachment({
       ticketId,
       messageId,
-      uploadedByUserId: actor.id,
+      uploadedByUserId: actor.sub,
       originalName: file.originalname,
       storageKey,
       attachmentType: extension.match(/(jpg|jpeg|png|gif|webp)/i) ? 'IMAGE' : (extension.match(/(mp4|webm)/i) ? 'VIDEO' : 'DOCUMENT'),
