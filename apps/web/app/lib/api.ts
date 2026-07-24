@@ -299,7 +299,7 @@ export interface AppUser {
 }
 export interface UsersUsage { used: number; max: number; }
 export interface CreateUserInput { name: string; email: string; password?: string; role?: UserRole; customPermissions?: string[] | null; companyId?: string; }
-export interface UpdateUserInput extends Partial<CreateUserInput> { isActive?: boolean; }
+export interface UpdateUserInput extends Partial<CreateUserInput> { isActive?: boolean; forcePasswordChange?: boolean; }
 
 export interface WhatsappStatus {
   status: 'CONNECTED' | 'CONNECTING' | 'DISCONNECTED' | 'QR_CODE' | string;
