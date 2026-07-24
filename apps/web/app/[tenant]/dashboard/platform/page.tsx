@@ -1,225 +1,140 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import Link from 'next/link';
-import { Plus, Search } from 'lucide-react';
-import { EmptyState, ErrorState, LoadingState } from '@/app/components/data-states';
-import { useAuth } from '@/app/contexts/AuthContext';
-import { useMutation, useQuery } from '@/app/hooks/use-data';
-import { api, type PlatformCompany } from '@/app/lib/api';
-import { formatDate } from '@/app/lib/format';
-import { normalizeDisplayName } from '@/app/lib/text';
+import { TrendingUp, Users, AlertCircle, CheckCircle2, DollarSign, Activity, FileText } from 'lucide-react';
 
-import { NewCompanyModal } from './_components/new-company-modal';
-import { CompanyUsersModal } from './_components/company-users-modal';
-import { CompanyManageModal } from './_components/company-manage-modal';
-import { PlatformStats } from './_components/platform-stats';
-import { CompanyActionMenu } from './_components/company-action-menu';
-
-export default function PlatformPage() {
-  const { user } = useAuth();
-  const tenant = user?.companyId || 'empresa';
-  const currentRole = user?.profile?.toUpperCase();
-  const isSuperAdmin = currentRole === 'DEV';
-  
-  const stats = useQuery(() => api.platform.stats(), []);
-  const companies = useQuery(() => api.platform.listCompanies(), []);
-  
-  const [open, setOpen] = useState(false);
-  const [usersCompany, setUsersCompany] = useState<PlatformCompany | null>(null);
-  const [licenseCompany, setLicenseCompany] = useState<PlatformCompany | null>(null);
-  const [search, setSearch] = useState('');
-
-  const toggleActive = useMutation(
-    ({ id, status, suspensionReason }: { id: string; status: 'ACTIVE' | 'SUSPENDED' | 'CANCELLED'; suspensionReason?: string | null }) =>
-      api.platform.updateCompany(id, { status, suspensionReason }),
-    { onSuccess: () => { companies.refetch(); stats.refetch(); } },
-  );
-
-  const remove = useMutation((id: string) => api.platform.deleteCompany(id), {
-    onSuccess: () => { companies.refetch(); stats.refetch(); },
-  });
-
-  const updateLicense = useMutation(
-    ({ id, ...payload }: any) =>
-      api.platform.updateCompany(id, payload),
-    { onSuccess: () => { companies.refetch(); stats.refetch(); setLicenseCompany(null); } },
-  );
-
-  function canManageCompanyUsers(c: PlatformCompany) {
-    if (isSuperAdmin) return true;
-    return currentRole === 'COMERCIAL' && c.commercialOwnerId === user?.id;
-  }
-
-  function canManageLicenses(c: PlatformCompany) {
-    if (isSuperAdmin) return true;
-    return currentRole === 'COMERCIAL' && c.commercialOwnerId === user?.id;
-  }
-
-  async function handleToggle(c: PlatformCompany) {
-    if (!isSuperAdmin) return;
-    const currentStatus = c.status ?? (c.isActive ? 'ACTIVE' : 'SUSPENDED');
-    if (currentStatus !== 'ACTIVE') {
-      await toggleActive.mutate({ id: c.id, status: 'ACTIVE', suspensionReason: null }).catch(() => {});
-      return;
-    }
-    const reason = window.prompt('Motivo: inadimplencia ou solicitacao_voluntaria?', 'inadimplencia');
-    if (reason === null) return;
-    const normalized = reason.trim() === 'solicitacao_voluntaria' ? 'solicitacao_voluntaria' : reason.trim() === 'nao informado' ? 'nao informado' : 'inadimplencia';
-    await toggleActive.mutate({ id: c.id, status: 'SUSPENDED', suspensionReason: normalized }).catch(() => {});
-  }
-
-  async function handleDelete(c: PlatformCompany) {
-    if (!isSuperAdmin) return;
-    if (!window.confirm(`Arquivar "${c.name}"? O acesso será bloqueado e o histórico será preservado.`)) return;
-    await remove.mutate(c.id).catch(() => {});
-  }
-
-  const filteredCompanies = useMemo(() => {
-    if (!companies.data) return [];
-    const term = search.toLowerCase();
-    return companies.data.filter(c => 
-      c.name.toLowerCase().includes(term) || 
-      (c.document && c.document.includes(term)) ||
-      (c.id && c.id.includes(term))
-    );
-  }, [companies.data, search]);
+export default function PlatformDashboardPage() {
+  const badgeColors: any = {
+    emerald: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+    amber: 'border-amber-200 bg-amber-50 text-amber-700',
+    rose: 'border-rose-200 bg-rose-50 text-rose-700',
+  };
 
   return (
-    <div className="mx-auto w-full space-y-5">
-      <div className="flex items-center justify-between mb-2">
-        <h2 className="text-lg font-bold text-slate-900">Visão Geral e Empresas</h2>
-        <button onClick={() => setOpen(true)} className="btn-nubank">
-          <Plus size={14} /> Nova empresa
-        </button>
+    <div className="mx-auto w-full space-y-6">
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h2 className="text-xl font-bold text-slate-900">Central de Operações</h2>
+          <p className="text-sm text-slate-500">Visão consolidada da plataforma</p>
+        </div>
       </div>
 
-      <PlatformStats />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card title="Recebido no mês" value="R$ 142.050,00" icon={<DollarSign size={20} className="text-emerald-600" />} trend="+12.5%" />
+        <Card title="MRR (Receita Recorrente)" value="R$ 84.300,00" icon={<TrendingUp size={20} className="text-blue-600" />} trend="+5.2%" />
+        <Card title="Empresas Ativas" value="1.248" icon={<Users size={20} className="text-indigo-600" />} trend="+24 esta semana" />
+        <Card title="Inadimplência" value="2.4%" icon={<AlertCircle size={20} className="text-rose-600" />} trend="-0.5%" trendDown />
+      </div>
 
-      {(toggleActive.error || remove.error) && (
-        <p className="rounded-[8px] border border-rose-200 bg-rose-50 px-4 py-2 text-xs text-rose-700">
-          {toggleActive.error || remove.error}
-        </p>
-      )}
-
-      {companies.loading ? (
-        <LoadingState label="Carregando empresas..." />
-      ) : companies.error ? (
-        <ErrorState message={companies.error} onRetry={companies.refetch} />
-      ) : (companies.data ?? []).length === 0 ? (
-        <EmptyState message="Nenhuma empresa cadastrada. Clique em Nova empresa." />
-      ) : (
-        <section className="overflow-hidden rounded-2xl bg-white shadow-sm shadow-slate-900/5">
-          <div className="border-b border-slate-100 p-4">
-            <div className="relative max-w-md">
-              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                <Search size={14} className="text-slate-400" />
-              </div>
-              <input
-                type="text"
-                placeholder="Buscar por nome ou CNPJ..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="h-9 w-full rounded-[6px] border border-slate-200 pl-9 pr-3 text-sm outline-none focus:border-teal-500"
-              />
-            </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="mb-4 flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-slate-900 flex items-center gap-2"><Activity size={16} /> Volume Transacional</h3>
           </div>
-          <div className="overflow-x-auto p-0 min-h-[400px]">
-            <table className="w-full min-w-[980px] text-left">
-              <thead>
-                <tr className="border-b border-slate-100 text-[11px] font-medium text-slate-500">
-                  <th className="p-3 pl-5">Empresa</th>
-                  <th className="p-3">CNPJ</th>
-                  <th className="p-3">Usuários</th>
-                  <th className="p-3">Funcionários</th>
-                  <th className="p-3">Plano</th>
-                  <th className="p-3">Financeiro</th>
-                  <th className="p-3">Status</th>
-                  <th className="p-3 pr-5 text-right">Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredCompanies.map((c) => {
-                  const status = c.status ?? (c.isActive ? 'ACTIVE' : 'SUSPENDED');
-                  return (
-                    <tr key={c.id} className="border-t border-slate-100 text-xs text-slate-700 hover:bg-slate-50/50 transition-colors">
-                      <td className="p-3 pl-5 font-medium text-slate-950">
-                        <div className="flex flex-col">
-                          <span>{normalizeDisplayName(c.name)}</span>
-                          <span className="text-[10px] font-normal text-slate-400">Criada em {formatDate(c.createdAt)}</span>
-                        </div>
-                      </td>
-                      <td className="p-3">{c.document || '-'}</td>
-                      <td className="p-3">{c.usersCount} / {c.maxUsers}</td>
-                      <td className="p-3">{c.employeesCount} / {c.maxEmployees}</td>
-                      <td className="p-3">
-                        <span className="inline-flex rounded border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-bold text-slate-700">{c.plan ?? 'FREE'}</span>
-                      </td>
-                      <td className="p-3">
-                        <span className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-bold ${c.billingStatus === 'ACTIVE' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : c.billingStatus === 'TRIAL' ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-rose-200 bg-rose-50 text-rose-700'}`}>
-                          {c.billingStatus ?? 'TRIAL'}
-                        </span>
-                      </td>
-                      <td className="p-3">
-                        <div className="space-y-1">
-                          <span className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-bold ${status === 'ACTIVE' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : status === 'CANCELLED' ? 'border-rose-200 bg-rose-50 text-rose-700' : 'border-slate-200 bg-slate-100 text-slate-500'}`}>
-                            {status === 'ACTIVE' ? 'Ativa' : status === 'CANCELLED' ? 'Cancelada' : 'Suspensa'}
-                          </span>
-                          {status !== 'ACTIVE' && c.suspensionReason && <p className="max-w-[150px] truncate text-[9px] text-slate-400">{c.suspensionReason}</p>}
-                        </div>
-                      </td>
-                      <td className="p-3 pr-5 text-right">
-                        <div className="flex justify-end">
-                          <CompanyActionMenu 
-                            company={c}
-                            tenant={tenant}
-                            isSuperAdmin={isSuperAdmin}
-                            canManageUsers={canManageCompanyUsers(c)}
-                            canManageLicenses={canManageLicenses(c)}
-                            status={status}
-                            onManageUsers={() => setUsersCompany(c)}
-                            onManageLicense={() => setLicenseCompany(c)}
-                            onToggleStatus={() => handleToggle(c)}
-                            onDelete={() => handleDelete(c)}
-                            loadingToggle={toggleActive.loading}
-                            loadingDelete={remove.loading}
-                          />
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-                {filteredCompanies.length === 0 && (
-                  <tr>
-                    <td colSpan={8} className="p-8 text-center text-sm text-slate-500">
-                      Nenhuma empresa encontrada com o termo "{search}".
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+          <div className="h-56 w-full rounded-xl bg-slate-50 border border-slate-100 flex items-end justify-between p-4 px-6 gap-2">
+            {[40, 60, 45, 80, 55, 90, 75].map((h, i) => (
+              <div key={i} className="w-full bg-blue-100 rounded-t-md relative group hover:bg-blue-200 transition-colors" style={{ height: `${h}%` }}>
+                 <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">
+                    {h * 123} tx
+                 </div>
+              </div>
+            ))}
+          </div>
+          <div className="flex justify-between mt-2 text-[10px] text-slate-400 px-2 uppercase font-medium tracking-wider">
+            <span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sab</span><span>Dom</span>
           </div>
         </section>
-      )}
 
-      {open && (
-        <NewCompanyModal onClose={() => setOpen(false)} onDone={() => { setOpen(false); companies.refetch(); stats.refetch(); }} />
-      )}
-      {usersCompany && (
-        <CompanyUsersModal company={usersCompany} onClose={() => setUsersCompany(null)} />
-      )}
-      {licenseCompany && (
-        <CompanyManageModal
-          company={licenseCompany}
-          onClose={() => setLicenseCompany(null)}
-          onSave={(data) => {
-            const { plan: selectedPlanId, name, document: cnpj, ...rest } = data;
-            updateLicense.mutate({ id: licenseCompany.id, name, document: cnpj, platformPlanId: selectedPlanId, ...rest }).catch(() => {});
-          }}
-          loading={updateLicense.loading}
-          error={updateLicense.error}
-        />
-      )}
+        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm flex flex-col">
+          <div className="mb-4 flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-slate-900 flex items-center gap-2"><CheckCircle2 size={16} /> Status dos Serviços (Core)</h3>
+          </div>
+          <div className="space-y-4 flex-1 mt-2">
+            <StatusRow label="API Principal" status="Operacional" color="emerald" />
+            <StatusRow label="Emissão de Notas (NF-e)" status="Lentidão" color="amber" />
+            <StatusRow label="Processamento de Pix" status="Operacional" color="emerald" />
+            <StatusRow label="WhatsApp (Mensageria)" status="Operacional" color="emerald" />
+            <StatusRow label="Relatórios Financeiros" status="Manutenção" color="rose" />
+          </div>
+        </section>
+      </div>
+      
+      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm mt-6">
+        <div className="mb-4 flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-slate-900 flex items-center gap-2"><FileText size={16} /> Últimas Operações Relevantes</h3>
+          <button className="text-xs text-blue-600 font-medium hover:underline">Ver todas</button>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left">
+            <thead>
+              <tr className="border-b border-slate-100 text-[11px] font-medium text-slate-500 uppercase tracking-wider bg-white">
+                <th className="p-3 pl-0">Data/Hora</th>
+                <th className="p-3">Operação</th>
+                <th className="p-3">Empresa</th>
+                <th className="p-3 text-right">Valor</th>
+                <th className="p-3 pr-0 text-right">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[
+                { time: 'Hoje, 14:32', op: 'Pagamento Pix Recebido', company: 'Tech Corp SA', val: 'R$ 2.450,00', status: 'Concluído', color: 'emerald' },
+                { time: 'Hoje, 11:15', op: 'Assinatura Renovada (PRO)', company: 'Gama Services', val: 'R$ 890,00', status: 'Concluído', color: 'emerald' },
+                { time: 'Ontem, 16:45', op: 'Estorno Solicitado', company: 'Lojas Delta', val: '- R$ 450,00', status: 'Em Análise', color: 'amber' },
+                { time: 'Ontem, 09:10', op: 'Pagamento Boleto Atrasado', company: 'Alpha LLC', val: 'R$ 1.200,00', status: 'Pendente', color: 'rose' },
+              ].map((row, i) => (
+                <tr key={i} className="border-b border-slate-50 last:border-0 text-sm text-slate-700">
+                  <td className="p-3 pl-0 text-slate-400 text-xs">{row.time}</td>
+                  <td className="p-3 font-medium text-slate-900">{row.op}</td>
+                  <td className="p-3 text-slate-600">{row.company}</td>
+                  <td className="p-3 text-right font-medium">{row.val}</td>
+                  <td className="p-3 pr-0 text-right">
+                    <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-bold ${badgeColors[row.color]}`}>
+                      {row.status}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function Card({ title, value, icon, trend, trendDown = false }: any) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition-shadow">
+      <div className="flex items-start justify-between">
+        <div>
+          <p className="text-xs font-medium text-slate-500 mb-1">{title}</p>
+          <h4 className="text-2xl font-bold text-slate-900">{value}</h4>
+        </div>
+        <div className="rounded-xl bg-slate-50 p-2 border border-slate-100">
+          {icon}
+        </div>
+      </div>
+      <div className="mt-4 flex items-center">
+        <span className={`text-xs font-bold ${trendDown ? 'text-rose-600' : 'text-emerald-600'}`}>
+          {trend}
+        </span>
+        <span className="text-xs text-slate-400 ml-1.5">vs mês anterior</span>
+      </div>
+    </div>
+  );
+}
+
+function StatusRow({ label, status, color }: any) {
+  const badgeColors: any = {
+    emerald: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+    amber: 'border-amber-200 bg-amber-50 text-amber-700',
+    rose: 'border-rose-200 bg-rose-50 text-rose-700',
+  };
+  return (
+    <div className="flex items-center justify-between py-2 border-b border-slate-50 last:border-0">
+      <span className="text-sm font-medium text-slate-700">{label}</span>
+      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold border ${badgeColors[color]}`}>
+        {status}
+      </span>
     </div>
   );
 }

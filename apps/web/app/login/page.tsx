@@ -194,6 +194,19 @@ export default function LoginPage() {
             </Link>
           </p>
         )}
+
+        <div className="mt-4 flex flex-col items-center gap-2 border-t border-slate-100 pt-4">
+          <p className="text-center text-[11px] font-medium text-slate-500">
+            Encontrou alguma dificuldade?
+          </p>
+          <Link
+            href="/suporte"
+            className="flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-brand-600 transition-colors"
+          >
+            <AlertCircle size={14} />
+            Reportar problema
+          </Link>
+        </div>
       </form>
     </AuthSplitLayout>
   );

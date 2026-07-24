@@ -5,21 +5,22 @@ export const PLATFORM_NAV_GROUPS: PlatformNavGroup[] = [
   {
     key: 'overview',
     label: 'Visão Geral',
-    items: [{ label: 'Visão Geral', href: '' }],
+    items: [{ label: 'Central', href: '' }],
   },
   {
-    key: 'companies',
-    label: 'Empresas',
+    key: 'operations',
+    label: 'Operações',
     items: [
       { label: 'Empresas', href: '/companies' },
-      { label: 'WhatsApp', href: '/whatsapp' },
+      { label: 'Acessos', href: '/access' },
+      { label: 'Auditoria', href: '/audit' },
     ],
   },
   {
     key: 'finance',
     label: 'Financeiro',
     items: [
-      { label: 'Financeiro', href: '/finance' },
+      { label: 'Faturamento', href: '/finance' },
       { label: 'Propostas', href: '/proposals' },
       { label: 'Contratos', href: '/contracts' },
       { label: 'Assinaturas', href: '/subscriptions' },
@@ -27,18 +28,23 @@ export const PLATFORM_NAV_GROUPS: PlatformNavGroup[] = [
   },
   {
     key: 'products',
-    label: 'Produtos & Segurança',
+    label: 'Produtos',
     items: [
       { label: 'Planos', href: '/plans' },
-      { label: 'Cupons e testes', href: '/coupons' },
-      { label: 'Acessos', href: '/access' },
-      { label: 'Auditoria', href: '/audit' },
+      { label: 'Cupons', href: '/coupons' },
+    ],
+  },
+  {
+    key: 'communication',
+    label: 'Comunicação',
+    items: [
+      { label: 'WhatsApp', href: '/whatsapp' },
     ],
   },
 ];
 
-// Regra herdada do layout.tsx antigo: usuários COMERCIAL só enxergam Visão Geral, Empresas e Propostas.
-const COMERCIAL_ALLOWED_LABELS = new Set(['Visão Geral', 'Empresas', 'Propostas']);
+// Regra herdada do layout.tsx antigo: usuários COMERCIAL só enxergam Central, Empresas e Propostas.
+const COMERCIAL_ALLOWED_LABELS = new Set(['Central', 'Empresas', 'Propostas']);
 
 export function getPlatformNavGroups(role: string): PlatformNavGroup[] {
   if (role === 'DEV') return PLATFORM_NAV_GROUPS;

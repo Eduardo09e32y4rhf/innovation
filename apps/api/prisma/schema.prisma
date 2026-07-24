@@ -356,6 +356,8 @@ model Company {
   scheduleExceptions ScheduleException[]
   swapRequests       ScheduleSwapRequest[]
 
+  supportTickets SupportTicket[]
+
   @@index([commercialOwnerId])
 }
 
@@ -395,6 +397,13 @@ model User {
   activityHistories      ActivityHistory[]
   overtimeApprovals      TimeTrack[]             @relation("OvertimeApprovals")
   createdProposals       Proposal[]
+
+  supportTicketsCreated      SupportTicket[]        @relation("SupportTicketCreator")
+  supportTicketsAffected     SupportTicket[]        @relation("SupportTicketAffectedUser")
+  supportTicketsAssigned     SupportTicket[]        @relation("SupportTicketAssignee")
+  supportTicketMessages      SupportTicketMessage[]
+  supportAttachmentsUploaded SupportAttachment[]
+  supportTicketEvents        SupportTicketEvent[]
 
   @@index([companyId])
 }
@@ -500,6 +509,8 @@ model Employee {
   userSchedules      UserSchedule[]
   scheduleExceptions ScheduleException[]
   swapRequests       ScheduleSwapRequest[]
+
+  supportTicketsAffected SupportTicket[]
 
   @@index([companyId])
   @@index([cpf])
@@ -1284,28 +1295,28 @@ model PlatformPlan {
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
 
-  companies Company[]
-  invoices      PlatformInvoice[]
-  subscriptions  CompanySubscription[]
+  companies       Company[]
+  invoices        PlatformInvoice[]
+  subscriptions   CompanySubscription[]
   manualContracts ManualContract[]
 }
 
 model PlatformInvoice {
-  id             String        @id @default(uuid()) @db.Uuid
-  companyId      String        @db.Uuid
-  planId         String?       @db.Uuid
-  description    String?
-  amount         Decimal       @db.Decimal(10, 2)
+  id              String        @id @default(uuid()) @db.Uuid
+  companyId       String        @db.Uuid
+  planId          String?       @db.Uuid
+  description     String?
+  amount          Decimal       @db.Decimal(10, 2)
   pricingSnapshot Json?
-  dueDate        DateTime
-  status         InvoiceStatus @default(OPEN)
-  billingType    String        @default("UNDEFINED")
-  asaasPaymentId String?       @unique
-  invoiceUrl     String?
-  paidAt         DateTime?
-  deletedAt      DateTime?
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  dueDate         DateTime
+  status          InvoiceStatus @default(OPEN)
+  billingType     String        @default("UNDEFINED")
+  asaasPaymentId  String?       @unique
+  invoiceUrl      String?
+  paidAt          DateTime?
+  deletedAt       DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
 
   // Campos de nota fiscal (NFS-e via Asaas)
   asaasInvoiceId        String?   @unique
@@ -1607,31 +1618,29 @@ model ScheduleSwapRequest {
   @@map("schedule_swap_requests")
 }
 
-
 model AsaasWebhookEvent {
-  id           String   @id @default(cuid())
-  asaasEventId String   @unique
+  id           String    @id @default(cuid())
+  asaasEventId String    @unique
   eventType    String
   payload      Json
-  status       String   @default("PENDING")
-  attempts     Int      @default(0)
+  status       String    @default("PENDING")
+  attempts     Int       @default(0)
   processedAt  DateTime?
   errorMessage String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   @@index([status])
   @@index([eventType])
   @@index([createdAt])
 }
 
-
 model CompanySubscription {
-  id                  String   @id @default(uuid()) @db.Uuid
-  companyId           String   @unique @db.Uuid
-  planId              String?  @db.Uuid
+  id                  String    @id @default(uuid()) @db.Uuid
+  companyId           String    @unique @db.Uuid
+  planId              String?   @db.Uuid
   status              String
-  seatQuantity        Int      @default(1)
+  seatQuantity        Int       @default(1)
   pendingSeatQuantity Int?
   currentPeriodStart  DateTime?
   currentPeriodEnd    DateTime?
@@ -1639,13 +1648,13 @@ model CompanySubscription {
   trialStartedAt      DateTime?
   trialEndsAt         DateTime?
   pricingVersion      String?
-  baseMonthlyPrice    Decimal? @db.Decimal(10, 2)
-  userMonthlyPrice    Decimal? @db.Decimal(10, 2)
-  discountPercent     Decimal? @db.Decimal(5, 2)
+  baseMonthlyPrice    Decimal?  @db.Decimal(10, 2)
+  userMonthlyPrice    Decimal?  @db.Decimal(10, 2)
+  discountPercent     Decimal?  @db.Decimal(5, 2)
   asaasCustomerId     String?
   asaasSubscriptionId String?
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
 
   company Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
   plan    PlatformPlan? @relation(fields: [planId], references: [id], onDelete: SetNull)
@@ -1656,17 +1665,17 @@ model CompanySubscription {
 }
 
 model PromotionCoupon {
-  id              String   @id @default(uuid()) @db.Uuid
-  code            String   @unique
+  id              String    @id @default(uuid()) @db.Uuid
+  code            String    @unique
   description     String?
-  trialDays       Int      @default(30)
+  trialDays       Int       @default(30)
   startsAt        DateTime?
   expiresAt       DateTime?
   maxRedemptions  Int?
-  redemptionCount Int      @default(0)
-  isActive        Boolean  @default(true)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  redemptionCount Int       @default(0)
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   redemptions CouponRedemption[]
 
@@ -1687,23 +1696,22 @@ model CouponRedemption {
   @@index([companyId])
 }
 
-
 model ManualContract {
-  id                     String   @id @default(uuid()) @db.Uuid
-  companyId              String   @db.Uuid
-  planId                 String?  @db.Uuid
+  id                     String    @id @default(uuid()) @db.Uuid
+  companyId              String    @db.Uuid
+  planId                 String?   @db.Uuid
   seatQuantity           Int
-  agreedAmount           Decimal  @db.Decimal(10, 2)
+  agreedAmount           Decimal   @db.Decimal(10, 2)
   startsAt               DateTime
   endsAt                 DateTime?
   paymentMethod          String
   externalContractNumber String?
-  notes                  String   @db.Text
+  notes                  String    @db.Text
   documentUrl            String?
-  status                 String   @default("ACTIVE")
-  createdBy              String   @db.Uuid
-  createdAt              DateTime @default(now())
-  updatedAt              DateTime @updatedAt
+  status                 String    @default("ACTIVE")
+  createdBy              String    @db.Uuid
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
 
   company Company       @relation(fields: [companyId], references: [id], onDelete: Restrict)
   plan    PlatformPlan? @relation(fields: [planId], references: [id], onDelete: SetNull)
@@ -1711,4 +1719,224 @@ model ManualContract {
   @@index([companyId, status])
   @@index([startsAt, endsAt])
   @@index([createdBy])
+}
+
+// ----------------------------------------------------------------------------
+// SUPPORT MODULE
+// ----------------------------------------------------------------------------
+
+enum SupportTicketSource {
+  AUTHENTICATED
+  LOGIN_PUBLIC
+  PASSWORD_RESET
+  SYSTEM
+}
+
+enum SupportTicketCategory {
+  BUG
+  CORRECTION
+  ADJUSTMENT
+  MAINTENANCE
+  FEATURE_REQUEST
+  PASSWORD_RESET
+  ACCESS
+  BILLING
+  PERFORMANCE
+  SECURITY
+  INTEGRATION
+  OTHER
+}
+
+enum SupportTicketStatus {
+  NEW
+  TRIAGE
+  IN_PROGRESS
+  WAITING_CUSTOMER
+  WAITING_DEPLOY
+  RESOLVED
+  CLOSED
+  DUPLICATE
+  CANCELLED
+}
+
+enum SupportTicketPriority {
+  LOW
+  NORMAL
+  HIGH
+  CRITICAL
+}
+
+enum SupportMessageVisibility {
+  PUBLIC
+  INTERNAL
+}
+
+enum SupportAttachmentStatus {
+  QUARANTINED
+  SCANNING
+  CLEAN
+  REJECTED
+  DELETED
+}
+
+enum SupportAttachmentType {
+  IMAGE
+  VIDEO
+  DOCUMENT
+}
+
+model SupportTicket {
+  id           String @id @default(uuid()) @db.Uuid
+  ticketNumber String @unique
+
+  companyId          String? @db.Uuid
+  createdByUserId    String? @db.Uuid
+  affectedUserId     String? @db.Uuid
+  affectedEmployeeId String? @db.Uuid
+  assignedToUserId   String? @db.Uuid
+  duplicateOfId      String? @db.Uuid
+
+  requesterName  String?
+  requesterEmail String
+  requesterPhone String?
+
+  source   SupportTicketSource
+  category SupportTicketCategory
+  status   SupportTicketStatus   @default(NEW)
+  priority SupportTicketPriority @default(NORMAL)
+
+  title             String
+  description       String  @db.Text
+  affectedArea      String?
+  impact            String?
+  reproductionSteps String? @db.Text
+  expectedResult    String? @db.Text
+  actualResult      String? @db.Text
+
+  pageUrl         String?
+  tenantSlug      String?
+  browser         String?
+  operatingSystem String?
+  viewport        String?
+  userAgent       String?
+  appVersion      String?
+  requestId       String?
+
+  ipHash String?
+
+  firstResponseDueAt DateTime?
+  resolutionDueAt    DateTime?
+  firstRespondedAt   DateTime?
+  resolvedAt         DateTime?
+  closedAt           DateTime?
+
+  slaPausedAt      DateTime?
+  slaPausedMinutes Int       @default(0)
+  slaBreached      Boolean   @default(false)
+
+  lastCustomerReplyAt DateTime?
+  lastDevReplyAt      DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  company          Company?        @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  createdBy        User?           @relation("SupportTicketCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  affectedUser     User?           @relation("SupportTicketAffectedUser", fields: [affectedUserId], references: [id], onDelete: SetNull)
+  affectedEmployee Employee?       @relation(fields: [affectedEmployeeId], references: [id], onDelete: SetNull)
+  assignedTo       User?           @relation("SupportTicketAssignee", fields: [assignedToUserId], references: [id], onDelete: SetNull)
+  duplicateOf      SupportTicket?  @relation("SupportTicketDuplicate", fields: [duplicateOfId], references: [id], onDelete: SetNull)
+  duplicates       SupportTicket[] @relation("SupportTicketDuplicate")
+
+  messages    SupportTicketMessage[]
+  attachments SupportAttachment[]
+  events      SupportTicketEvent[]
+
+  @@index([companyId, status])
+  @@index([createdByUserId])
+  @@index([affectedUserId])
+  @@index([affectedEmployeeId])
+  @@index([assignedToUserId, status])
+  @@index([priority, status])
+  @@index([firstResponseDueAt])
+  @@index([resolutionDueAt])
+  @@index([createdAt])
+}
+
+model SupportTicketMessage {
+  id           String  @id @default(uuid()) @db.Uuid
+  ticketId     String  @db.Uuid
+  authorUserId String? @db.Uuid
+
+  authorName  String?
+  authorEmail String?
+  visibility  SupportMessageVisibility @default(PUBLIC)
+  message     String                   @db.Text
+
+  editedAt    DateTime?
+  moderatedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  ticket      SupportTicket       @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  author      User?               @relation(fields: [authorUserId], references: [id], onDelete: SetNull)
+  attachments SupportAttachment[]
+
+  @@index([ticketId, createdAt])
+}
+
+model SupportAttachment {
+  id               String  @id @default(uuid()) @db.Uuid
+  ticketId         String  @db.Uuid
+  messageId        String? @db.Uuid
+  uploadedByUserId String? @db.Uuid
+
+  originalName   String
+  storageKey     String                @unique
+  attachmentType SupportAttachmentType
+
+  declaredMimeType String
+  detectedMimeType String?
+  sizeBytes        BigInt
+  sha256           String
+
+  status          SupportAttachmentStatus @default(QUARANTINED)
+  scanProvider    String?
+  scanResult      String?
+  rejectionReason String?
+
+  createdAt DateTime  @default(now())
+  scannedAt DateTime?
+  deletedAt DateTime?
+
+  ticket     SupportTicket         @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  message    SupportTicketMessage? @relation(fields: [messageId], references: [id], onDelete: SetNull)
+  uploadedBy User?                 @relation(fields: [uploadedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([ticketId])
+  @@index([sha256])
+  @@index([status])
+}
+
+model SupportTicketEvent {
+  id          String  @id @default(uuid()) @db.Uuid
+  ticketId    String  @db.Uuid
+  actorUserId String? @db.Uuid
+
+  eventType     String
+  previousValue Json?
+  newValue      Json?
+  metadata      Json?
+
+  createdAt DateTime @default(now())
+
+  ticket SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  actor  User?         @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([ticketId, createdAt])
+}
+
+model SupportTicketCounter {
+  year       Int      @id
+  lastNumber Int      @default(0)
+  updatedAt  DateTime @updatedAt
 }

@@ -37,6 +37,8 @@ import { MetricsInterceptor } from './common/interceptors/metrics.interceptor';
 import { CacheModule } from '@nestjs/cache-manager';
 import { redisStore } from 'cache-manager-ioredis-yet';
 
+import { SupportModule } from './modules/support/support.module';
+
 @Module({
   imports: [
     PrometheusModule.register(),
@@ -80,6 +82,7 @@ import { redisStore } from 'cache-manager-ioredis-yet';
     EscalaModule,
     ManualContractsModule,
     CouponsModule,
+    SupportModule,
     ScheduleModule.forRoot(),
   ],
   providers: [
