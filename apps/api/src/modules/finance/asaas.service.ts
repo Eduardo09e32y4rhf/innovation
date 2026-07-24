@@ -95,7 +95,7 @@ export class AsaasService {
     } catch (error) {
       if (error instanceof ServiceUnavailableException) throw error;
       this.logger.error(`Falha ao se comunicar com o Asaas: ${String(error)}`);
-      throw new ServiceUnavailableException('Nao foi possivel comunicar com o Asaas. Tente novamente.');
+      throw new ServiceUnavailableException('Não foi possível comunicar com o Asaas. Tente novamente.');
     }
   }
 

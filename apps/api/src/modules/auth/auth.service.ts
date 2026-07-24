@@ -25,7 +25,7 @@ import { PricingService } from '../finance/pricing.service';
 
 // SEGURANÇA: e-mail do DEV proprietário da plataforma — definido via variável de ambiente
 const PLATFORM_OWNER_EMAIL = (process.env.PLATFORM_OWNER_EMAIL ?? '').toLowerCase();
-const LOGIN_DENIED_MESSAGE = 'Nao foi possivel entrar';
+const LOGIN_DENIED_MESSAGE = 'Não foi possível entrar';
 const PASSWORD_MAX_AGE_DAYS = 30;
 const PASSWORD_RESET_PURPOSE = 'PASSWORD_RESET';
 

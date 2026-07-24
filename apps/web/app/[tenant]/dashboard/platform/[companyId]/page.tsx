@@ -82,7 +82,7 @@ export default function CompanyDetailPage({ params }: { params: { tenant: string
         toast.success('Plano gratuito ativado.');
       }
     } catch (error) {
-      toast.error(error instanceof ApiError ? error.message : 'Nao foi possivel gerar o checkout.');
+      toast.error(error instanceof ApiError ? error.message : 'Não foi possível gerar o checkout.');
     } finally {
       setCreatingCheckout(false);
     }
@@ -107,7 +107,7 @@ export default function CompanyDetailPage({ params }: { params: { tenant: string
       setInvoiceForm({ amount: '', description: '', dueDate: '' });
       invoices.refetch();
     } catch (error) {
-      toast.error(error instanceof ApiError ? error.message : 'Nao foi possivel gerar a cobrança manual.');
+      toast.error(error instanceof ApiError ? error.message : 'Não foi possível gerar a cobrança manual.');
     } finally {
       setCreatingManualInvoice(false);
     }
@@ -158,7 +158,7 @@ export default function CompanyDetailPage({ params }: { params: { tenant: string
       {tab === 'general' && (
         <section className="grid gap-5 lg:grid-cols-2">
           <div className="rounded-[14px] border border-slate-200 bg-white p-5 shadow-sm"><h2 className="text-sm font-black text-slate-900">Dados da empresa</h2><dl className="mt-5 grid grid-cols-2 gap-4 text-xs"><Info label="Nome" value={item.name} /><Info label="Documento" value={item.document || '-'} /><Info label="Criada em" value={date(item.createdAt)} /><Info label="Plano" value={item.plan || 'FREE'} /><Info label="Status financeiro" value={item.billingStatus || 'TRIAL'} /><Info label="Motivo bloqueio" value={item.suspensionReason || '-'} /></dl></div>
-          <div className="rounded-[14px] border border-slate-200 bg-slate-950 p-5 text-white shadow-sm"><h2 className="text-sm font-black">Integracao Asaas</h2><dl className="mt-5 space-y-4 text-xs"><InfoDark label="Customer ID" value={item.asaasCustomerId || 'Ainda nao criado'} /><InfoDark label="Subscription ID" value={item.asaasSubscriptionId || 'Ainda nao criada'} /></dl><p className="mt-5 text-xs leading-relaxed text-slate-400">O pagamento confirmado ativa a empresa. Faturas recorrentes vencidas entram em carencia e depois suspendem o acesso automaticamente.</p></div>
+          <div className="rounded-[14px] border border-slate-200 bg-slate-950 p-5 text-white shadow-sm"><h2 className="text-sm font-black">Integração Asaas</h2><dl className="mt-5 space-y-4 text-xs"><InfoDark label="Customer ID" value={item.asaasCustomerId || 'Ainda não criado'} /><InfoDark label="Subscription ID" value={item.asaasSubscriptionId || 'Ainda não criada'} /></dl><p className="mt-5 text-xs leading-relaxed text-slate-400">O pagamento confirmado ativa a empresa. Faturas recorrentes vencidas entram em carência e depois suspendem o acesso automaticamente.</p></div>
         </section>
       )}
 

@@ -99,7 +99,7 @@ export default function FinancePage({ params: { tenant } }: { params: { tenant: 
       toast.success('Status sincronizado com o Asaas.');
       refresh();
     } catch (error) {
-      toast.error(error instanceof ApiError ? error.message : 'Nao foi possivel sincronizar.');
+      toast.error(error instanceof ApiError ? error.message : 'Não foi possível sincronizar.');
     } finally {
       setWorkingId(undefined);
     }
@@ -138,7 +138,7 @@ export default function FinancePage({ params: { tenant } }: { params: { tenant: 
       );
       printPdf(html, `financeiro-${new Date().toISOString().slice(0, 10)}.pdf`);
     } catch {
-      toast.error('Nao foi possivel exportar o PDF.');
+      toast.error('Não foi possível exportar o PDF.');
     }
   }
 

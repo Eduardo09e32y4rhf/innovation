@@ -65,7 +65,7 @@ export default function CompaniesPage() {
     }
     const reason = window.prompt('Motivo: inadimplencia ou solicitacao_voluntaria?', 'inadimplencia');
     if (reason === null) return;
-    const normalized = reason.trim() === 'solicitacao_voluntaria' ? 'solicitacao_voluntaria' : reason.trim() === 'nao informado' ? 'nao informado' : 'inadimplencia';
+    const normalized = reason.trim() === 'solicitacao_voluntaria' ? 'solicitacao_voluntaria' : reason.trim() === 'não informado' ? 'não informado' : 'inadimplencia';
     await toggleActive.mutate({ id: c.id, status: 'SUSPENDED', suspensionReason: normalized }).catch(() => {});
   }
 

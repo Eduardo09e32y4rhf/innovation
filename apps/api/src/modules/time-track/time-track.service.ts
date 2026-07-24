@@ -152,7 +152,7 @@ export class TimeTrackService {
       ? await this.ensureCanAccessEmployee(companyId, actor, dto.employeeId)
       : await this.repository.findEmployeeByUserId(companyId, actor.sub, actor.email);
     
-    if (!employee) throw new ForbiddenException('Seu usuario ainda nao esta vinculado a um funcionario ativo. Procure o RH.');
+    if (!employee) throw new ForbiddenException('Seu usuário ainda não está vinculado a um funcionário ativo. Procure o RH.');
     if (employee.userId && employee.userId !== actor.sub) throw new ForbiddenException('Este funcionario ja esta vinculado a outro usuario. Procure o RH.');
     if (!employee.userId) await this.repository.updateEmployeeUserLink(companyId, employee.id, actor.sub);
     if (employee.status !== 'ACTIVE') throw new ForbiddenException('Funcionario desligado ou inativo nao pode bater ponto.');

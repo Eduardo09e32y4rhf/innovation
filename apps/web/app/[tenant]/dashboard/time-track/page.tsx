@@ -571,7 +571,7 @@ function downloadCollectiveSheet(month: string, visibleEmployees: Employee[], by
         isFaltaDay = isFalta(t);
         let ocorrencia = dayStatus(t, g.holidayName);
         if (ocorrencia === 'NORMAL') {
-          if (isFaltaDay) ocorrencia = 'FALTA NAO JUSTIFICADA';
+          if (isFaltaDay) ocorrencia = 'FALTA NÃO JUSTIFICADA';
         }
         if (isFaltaDay && !t.entry && !t.exit) {
           let expected = 480;
@@ -619,11 +619,11 @@ function downloadCollectiveSheet(month: string, visibleEmployees: Employee[], by
       { label: 'CPF', value: employee.cpf || '-' },
       { label: 'Cargo', value: employee.position || '-' },
       { label: 'Departamento', value: employee.department || '-' },
-      { label: 'Admissao', value: employee.admissionDate ? employee.admissionDate.slice(0,10).split('-').reverse().join('/') : '-' },
-      { label: 'Periodo', value: subtitle },
+      { label: 'Admissão', value: employee.admissionDate ? employee.admissionDate.slice(0,10).split('-').reverse().join('/') : '-' },
+      { label: 'Período', value: subtitle },
     ];
 
-    const tableHeaders = ['Data', 'Dia', '1a E.', '1a S.', '2a E.', '2a S.', 'Abono', 'H.E.', 'Absent.', 'Jornada', 'Ad. Not.', 'Observacao'];
+    const tableHeaders = ['Data', 'Dia', '1a E.', '1a S.', '2a E.', '2a S.', 'Abono', 'H.E.', 'Absent.', 'Jornada', 'Ad. Not.', 'Observação'];
     const tableRows = grid.map((g) => {
       const wd = WEEKDAYS[g.wd];
       const dateStr = String(g.day).padStart(2,'0') + '/' + month.split('-')[1] + '/' + month.split('-')[0];
@@ -632,24 +632,24 @@ function downloadCollectiveSheet(month: string, visibleEmployees: Employee[], by
         return `<tr><td style="padding:2px 4px;font-size:7px;color:#cbd5e1;">${dateStr}</td><td style="padding:2px 4px;font-size:7px;color:#cbd5e1;">${wd}</td><td colspan="10" style="padding:2px 4px;font-size:7px;color:#cbd5e1;text-align:center;">-</td></tr>`;
       }
       if (g.antesAdmissao || g.depoisDemissao) {
-        return `<tr><td style="padding:2px 4px;font-size:7px;color:#94a3b8;">${dateStr}</td><td style="padding:2px 4px;font-size:7px;color:#94a3b8;">${wd}</td><td colspan="10" style="padding:2px 4px;font-size:7px;color:#94a3b8;text-align:center;">${g.antesAdmissao ? 'ANTES DA ADMISSAO' : 'APOS DEMISSAO'}</td></tr>`;
+        return `<tr><td style="padding:2px 4px;font-size:7px;color:#94a3b8;">${dateStr}</td><td style="padding:2px 4px;font-size:7px;color:#94a3b8;">${wd}</td><td colspan="10" style="padding:2px 4px;font-size:7px;color:#94a3b8;text-align:center;">${g.antesAdmissao ? 'ANTES DA ADMISSÃO' : 'APÓS DEMISSÃO'}</td></tr>`;
       }
 
       const t = g.track;
       if (!t) {
         if (g.isRest) return `<tr><td style="padding:2px 4px;font-size:7px;color:#64748b;">${dateStr}</td><td style="padding:2px 4px;font-size:7px;color:#64748b;">${wd}</td><td colspan="10" style="padding:2px 4px;font-size:7px;color:#64748b;text-align:center;font-weight:700;">DSR / FOLGA</td></tr>`;
-        return `<tr><td style="padding:2px 4px;font-size:7px;color:#e11d48;font-weight:600;">${dateStr}</td><td style="padding:2px 4px;font-size:7px;color:#e11d48;font-weight:600;">${wd}</td><td colspan="10" style="padding:2px 4px;font-size:7px;color:#e11d48;text-align:center;font-weight:700;">FALTA NAO JUSTIFICADA</td></tr>`;
+        return `<tr><td style="padding:2px 4px;font-size:7px;color:#e11d48;font-weight:600;">${dateStr}</td><td style="padding:2px 4px;font-size:7px;color:#e11d48;font-weight:600;">${wd}</td><td colspan="10" style="padding:2px 4px;font-size:7px;color:#e11d48;text-align:center;font-weight:700;">FALTA NÃO JUSTIFICADA</td></tr>`;
       }
 
       let ocorrencia = dayStatus(t, g.holidayName);
       const hasMissing = !t.entry || !t.exit;
       if (ocorrencia === 'NORMAL') {
-        if (isFalta(t)) ocorrencia = 'FALTA NAO JUSTIFICADA';
+        if (isFalta(t)) ocorrencia = 'FALTA NÃO JUSTIFICADA';
         else if (hasMissing) ocorrencia = 'PONTO INCOMPLETO';
         else ocorrencia = '';
       }
 
-      const isIntegral = ['ATESTADO','FERIADO','SUSPENSÃO','FOLGA','FOLGA EXTRA','FOLGA BANCO','FOLGA (DSR)','FALTA NAO JUSTIFICADA'].includes(ocorrencia.toUpperCase());
+      const isIntegral = ['ATESTADO','FERIADO','SUSPENSÃO','FOLGA','FOLGA EXTRA','FOLGA BANCO','FOLGA (DSR)','FALTA NÃO JUSTIFICADA'].includes(ocorrencia.toUpperCase());
       if (isIntegral && !t.entry && !t.exit) {
         const color = (ocorrencia.toUpperCase().includes('ATESTADO') || ocorrencia.toUpperCase().includes('SUSPENS') || ocorrencia.toUpperCase().includes('FALTA')) ? '#e11d48' : '#64748b';
         return `<tr><td style="padding:2px 4px;font-size:7px;color:${color};font-weight:600;">${dateStr}</td><td style="padding:2px 4px;font-size:7px;color:${color};font-weight:600;">${wd}</td><td colspan="10" style="padding:2px 4px;font-size:7px;color:${color};text-align:center;font-weight:700;">${escapeHtml(ocorrencia.toUpperCase())}</td></tr>`;

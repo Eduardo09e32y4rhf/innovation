@@ -35,10 +35,10 @@ export default function FaturaPendentePage() {
         await refreshUser();
         window.location.assign(dashboardUrl);
       } else if (manual) {
-        toast.info('Pagamento ainda nao confirmado pelo Asaas. Tente novamente em alguns segundos.');
+        toast.info('Pagamento ainda não confirmado pelo Asaas. Tente novamente em alguns segundos.');
       }
     } catch (error) {
-      const message = error instanceof ApiError ? error.message : 'Nao foi possivel verificar o pagamento.';
+      const message = error instanceof ApiError ? error.message : 'Não foi possível verificar o pagamento.';
       setErrorMessage(message);
       if (error instanceof ApiError && error.status === 401) router.replace('/login');
       else if (manual) toast.error(message);
@@ -62,10 +62,10 @@ export default function FaturaPendentePage() {
         await refreshUser();
         window.location.assign(dashboardUrl);
       } else {
-        setErrorMessage('O checkout foi solicitado, mas o Asaas nao retornou link de pagamento. Verifique os logs da API.');
+        setErrorMessage('O checkout foi solicitado, mas o Asaas não retornou link de pagamento. Verifique os logs da API.');
       }
     } catch (error) {
-      const message = error instanceof ApiError ? error.message : 'Nao foi possivel gerar a cobranca.';
+      const message = error instanceof ApiError ? error.message : 'Não foi possível gerar a cobrança.';
       setErrorMessage(message);
       toast.error(message);
     } finally {

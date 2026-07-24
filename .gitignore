@@ -26,6 +26,7 @@ horizon-synergy-temp/
 logs/
 tmp/
 temp/
+scratch/
 
 # Frontend (Node/Next)
 node_modules/

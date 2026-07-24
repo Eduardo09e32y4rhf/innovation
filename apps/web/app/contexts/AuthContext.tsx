@@ -44,6 +44,9 @@ interface AuthContextType {
   logout: () => void;
   refreshUser: () => Promise<void>;
   isAuthenticated: boolean;
+  isDev: boolean;
+  isComercial: boolean;
+  isPlatformUser: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -286,6 +289,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setError(null);
   };
 
+  const userRole = (user?.role || user?.profile || '').toUpperCase();
+  const isDev = userRole === 'DEV';
+  const isComercial = userRole === 'COMERCIAL';
+  const isPlatformUser = isDev || isComercial;
+
   const value: AuthContextType = {
     user,
     company,
@@ -298,6 +306,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     logout,
     refreshUser,
     isAuthenticated: !!token && !!user,
+    isDev,
+    isComercial,
+    isPlatformUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

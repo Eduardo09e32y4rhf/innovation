@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Image, Key, Save, X, Upload, Download, FileSpreadsheet, AlertTriangle, CheckCircle, Shield, Lock, History, Eye, EyeOff, MapPin } from 'lucide-react';
+import { Image as ImageIcon, Key, Save, X, Upload, Download, FileSpreadsheet, AlertTriangle, CheckCircle, Shield, Lock, History, Eye, EyeOff, MapPin } from 'lucide-react';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useMutation, useQuery } from '@/app/hooks/use-data';
 import { api } from '@/app/lib/api';
@@ -319,7 +319,7 @@ function CompanySettings() {
       <div className="border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white px-6 py-5">
         <div className="flex items-center gap-2">
           <div className="flex h-9 w-9 items-center justify-center rounded-[8px] bg-gradient-to-br from-teal-500 to-cyan-600 shadow-md">
-            <Image size={16} className="text-white" />
+            <ImageIcon size={16} className="text-white" />
           </div>
           <div>
             <h3 className="text-sm font-black text-slate-950">Dados cadastrais e contratuais</h3>
@@ -338,7 +338,7 @@ function CompanySettings() {
               {previewLogo ? (
                 <img src={previewLogo} alt="Logo da empresa" className="h-full w-full object-contain p-3" />
               ) : (
-                <Image size={36} className="text-slate-300" />
+                <ImageIcon size={36} className="text-slate-300" />
               )}
             </div>
             {company.data?.logoUrl && !removeLogo && (

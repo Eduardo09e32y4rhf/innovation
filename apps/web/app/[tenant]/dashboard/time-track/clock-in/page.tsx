@@ -27,7 +27,7 @@ function useGeolocation() {
 
   useEffect(() => {
     if (!navigator.geolocation) {
-      setError('Geolocalizacao nao suportada pelo navegador');
+      setError('Geolocalização não suportada pelo navegador');
       setLoading(false);
       return;
     }
@@ -172,7 +172,7 @@ export default function ClockInPage() {
 
   const punch = useMutation(
     async (params: { type: PunchType; manual?: boolean; imageBase64?: string; faceDescriptor?: number[]; skipEnroll?: boolean }) => {
-      if (!myEmployee) throw new Error('Seu usuario ainda nao esta vinculado a um funcionario ativo. Procure o RH.');
+      if (!myEmployee) throw new Error('Seu usuário ainda não está vinculado a um funcionário ativo. Procure o RH.');
       const input: Parameters<typeof api.timeTrack.register>[0] = {
         ...(geo.position ? { latitude: geo.position.lat, longitude: geo.position.lng } : {}),
       };

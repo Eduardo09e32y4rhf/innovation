@@ -26,7 +26,7 @@ export class PlatformFinanceService {
         externalReference: company.id,
         notificationDisabled: true,
       });
-      if (!customer.id) throw new BadRequestException('O Asaas nao retornou o identificador do cliente.');
+      if (!customer.id) throw new BadRequestException('O Asaas não retornou o identificador do cliente.');
       customerId = customer.id;
       await this.prisma.$transaction([
         this.prisma.company.update({ where: { id: company.id }, data: { asaasCustomerId: customerId } }),
@@ -50,7 +50,7 @@ export class PlatformFinanceService {
     });
     
     if (!payment.id || !payment.invoiceUrl) {
-      throw new BadRequestException('O Asaas nao retornou o link da cobranca.');
+      throw new BadRequestException('O Asaas não retornou o link da cobranca.');
     }
 
     const invoice = await this.prisma.platformInvoice.upsert({

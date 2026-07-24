@@ -14,7 +14,7 @@ export class UpdatePlatformCompanyDto {
   status?: 'ACTIVE' | 'SUSPENDED' | 'CANCELLED';
 
   @IsOptional()
-  @IsIn(['inadimplencia', 'solicitacao_voluntaria', 'nao informado'])
+  @IsIn(['inadimplencia', 'solicitacao_voluntaria', 'não informado'])
   suspensionReason?: string | null;
 
   @IsOptional()

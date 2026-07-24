@@ -150,7 +150,7 @@ export class ProposalsService {
         process.env.ALLOW_MOCK_PAYMENTS === 'true';
       if (!allowMockPayment) {
         throw new ServiceUnavailableException(
-          'O Asaas nao retornou uma cobranca valida. Tente novamente antes de liberar o acesso.',
+          'O Asaas não retornou uma cobranca valida. Tente novamente antes de liberar o acesso.',
         );
       }
       asaasPaymentLink = asaasSubscriptionId

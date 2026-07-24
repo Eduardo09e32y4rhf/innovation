@@ -2,7 +2,7 @@ import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../../database/prisma.service';
 
-const SESSION_DENIED_MESSAGE = 'Nao foi possivel entrar';
+const SESSION_DENIED_MESSAGE = 'Não foi possível entrar';
 const PASSWORD_MAX_AGE_DAYS = 30;
 
 @Injectable()
@@ -20,7 +20,7 @@ export class JwtAuthGuard implements CanActivate {
     const isPasswordChangeRoute = path.includes('change-password');
     const isMeRoute = path.endsWith('/me') || path === 'me';
 
-    if (!token) throw new UnauthorizedException('Token nao informado');
+    if (!token) throw new UnauthorizedException('Token não informado');
 
 
     try {
