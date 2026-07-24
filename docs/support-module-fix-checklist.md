@@ -1,27 +1,27 @@
 # Checklist de Correção — Módulo de Suporte
 
-- [ ] Item 1: Corrigir o uso de `actor.id` / `req.user.id` para `actor.sub` / `req.user.sub` em todo o módulo de Suporte.
-- [ ] Item 2: Tipar explicitamente todos os parâmetros `actor` como `JwtUser` nos controllers e services.
-- [ ] Item 3: Substituir `include` por `select` explícito em `User` (`SAFE_USER_SELECT`) para evitar vazamento de hashes de senha.
-- [ ] Item 4: Separar no repositório `findClientTicketById` (exclui mensagens `INTERNAL`) de `findPlatformTicketById`.
-- [ ] Item 5: Adicionar validação com `class-validator` nos DTOs de criação, mensagem, status, prioridade e atribuição de chamados.
-- [ ] Item 6: Garantir que o `ValidationPipe` global use `whitelist: true` e `forbidNonWhitelisted: true`.
-- [ ] Item 7: Gerar e aplicar a migration Prisma para os modelos do Suporte em ambiente local.
-- [ ] Item 8: Garantir presença dos índices por `companyId`, `status`, `createdAt` e `priority` nas novas tabelas.
-- [ ] Item 9: Alinhar rotas do frontend com o backend (GET/POST `/support/tickets`, `/platform/support/tickets`).
-- [ ] Item 10: Padronizar contrato de dados (trocar `subject` por `title`, `OPEN`/`MEDIUM` por enums reais do backend).
-- [ ] Item 11: Remover fallbacks e strings fictícias da Central de Operações da Plataforma (ex: "R$ 142.050,00", "1.248 empresas").
-- [ ] Item 12: Exibir estados reais de erro (`ErrorState`) ou R$ 0,00 quando métricas não estiverem disponíveis.
-- [ ] Item 13: Ocultar o botão "Novo Chamado" para o perfil FUNCIONÁRIO.
-- [ ] Item 14: Normalizar checagem de perfil com `String(user?.role || user?.profile || '').toUpperCase()`.
-- [ ] Item 15: Adicionar item "Suporte" na sidebar do cliente e na navegação da Plataforma DEV.
-- [ ] Item 16: Conectar o link "Reportar problema" da tela de login ao fluxo real do módulo de Suporte.
-- [ ] Item 17: Estabilizar a função `logout` no `AuthContext` com `useCallback` para impedir o loop de logout na tela de login.
-- [ ] Item 18: Implementar streaming para upload de anexos sem carregar arquivos de até 100MB inteiros na memória.
-- [ ] Item 19: Garantir a criação recursiva do diretório `/data/attachments/<ticketId>/` antes da gravação de anexos.
-- [ ] Item 20: Implementar validação de arquivos por magic bytes (`file-type`) e bloquear extensões executáveis.
-- [ ] Item 21: Configurar container ClamAV no `docker-compose.yml` sem exposição pública da porta 3310.
-- [ ] Item 22: Implementar o cálculo real de SLA considerando horário comercial (08h-18h), fins de semana e feriados nacionais.
-- [ ] Item 23: Pausar contagem de SLA quando o chamado estiver em `WAITING_CUSTOMER`.
-- [ ] Item 24: Implementar notificações in-app/e-mail e exportação CSV/XLSX no módulo de Suporte.
-- [ ] Item 25: Implementar suíte de testes E2E validando o isolamento multi-tenant entre empresas e ocultação de mensagens internas.
+- [x] Item 1: Corrigir o uso de `actor.id` / `req.user.id` para `actor.sub` / `req.user.sub` em todo o módulo de Suporte.
+- [x] Item 2: Tipar explicitamente todos os parâmetros `actor` como `JwtUser` nos controllers e services.
+- [x] Item 3: Substituir `include` por `select` explícito em `User` (`SAFE_USER_SELECT`) para evitar vazamento de hashes de senha.
+- [x] Item 4: Separar no repositório `findClientTicketById` (exclui mensagens `INTERNAL`) de `findPlatformTicketById`.
+- [x] Item 5: Adicionar validação com `class-validator` nos DTOs de criação, mensagem, status, prioridade e atribuição de chamados.
+- [x] Item 6: Garantir que o `ValidationPipe` global use `whitelist: true` e `forbidNonWhitelisted: true`.
+- [x] Item 7: Gerar e aplicar a migration Prisma para os modelos do Suporte em ambiente local.
+- [x] Item 8: Garantir presença dos índices por `companyId`, `status`, `createdAt` e `priority` nas novas tabelas.
+- [x] Item 9: Alinhar rotas do frontend com o backend (GET/POST `/support/tickets`, `/platform/support/tickets`).
+- [x] Item 10: Padronizar contrato de dados (trocar `subject` por `title`, `OPEN`/`MEDIUM` por enums reais do backend).
+- [x] Item 11: Remover fallbacks e strings fictícias da Central de Operações da Plataforma (ex: "R$ 142.050,00", "1.248 empresas").
+- [x] Item 12: Exibir estados reais de erro (`ErrorState`) ou R$ 0,00 quando métricas não estiverem disponíveis.
+- [x] Item 13: Ocultar o botão "Novo Chamado" para o perfil FUNCIONÁRIO.
+- [x] Item 14: Normalizar checagem de perfil com `String(user?.role || user?.profile || '').toUpperCase()`.
+- [x] Item 15: Adicionar item "Suporte" na sidebar do cliente e na navegação da Plataforma DEV.
+- [x] Item 16: Conectar o link "Reportar problema" da tela de login ao fluxo real do módulo de Suporte.
+- [x] Item 17: Estabilizar a função `logout` no `AuthContext` com `useCallback` para impedir o loop de logout na tela de login.
+- [x] Item 18: Implementar streaming para upload de anexos sem carregar arquivos de até 100MB inteiros na memória.
+- [x] Item 19: Garantir a criação recursiva do diretório `/data/attachments/<ticketId>/` antes da gravação de anexos.
+- [x] Item 20: Implementar validação de arquivos por magic bytes (`file-type`) e bloquear extensões executáveis.
+- [x] Item 21: Configurar container ClamAV no `docker-compose.yml` sem exposição pública da porta 3310.
+- [x] Item 22: Implementar o cálculo real de SLA considerando horário comercial (08h-18h), fins de semana e feriados nacionais.
+- [x] Item 23: Pausar contagem de SLA quando o chamado estiver em `WAITING_CUSTOMER`.
+- [x] Item 24: Implementar notificações in-app/e-mail e exportação CSV/XLSX no módulo de Suporte.
+- [x] Item 25: Implementar suíte de testes E2E validando o isolamento multi-tenant entre empresas e ocultação de mensagens internas.
