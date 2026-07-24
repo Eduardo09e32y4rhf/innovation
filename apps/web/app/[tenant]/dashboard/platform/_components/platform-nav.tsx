@@ -65,7 +65,7 @@ export function PlatformNav({ base, groups }: { base: string; groups: PlatformNa
               {isGroupActive && <span className="absolute inset-x-4 -bottom-px h-0.5 rounded-full bg-violet-600" />}
             </button>
             {isOpen && (
-              <div className="absolute left-0 top-full z-20 mt-1 w-56 rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg shadow-slate-900/10">
+              <div className="absolute left-0 top-full z-[100] mt-1 w-56 rounded-xl border border-slate-200 bg-white p-1.5 shadow-2xl">
                 {group.items.map((item) => {
                   const itemActive = isItemActive(item.href);
                   return (

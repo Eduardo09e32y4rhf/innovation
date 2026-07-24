@@ -57,7 +57,7 @@ export function CompanyActionMenu({
       </button>
 
       {open && (
-        <div className="absolute right-0 z-50 mt-1 w-48 origin-top-right rounded-[10px] border border-slate-200 bg-white p-1 shadow-lg ring-1 ring-black ring-opacity-5">
+        <div className="absolute right-0 z-[100] mt-1 w-48 origin-top-right rounded-[10px] border border-slate-200 bg-white p-1 shadow-2xl ring-1 ring-black ring-opacity-5">
           <div className="flex flex-col">
             <Link 
               href={`/${tenant}/dashboard/platform/${company.id}`} 

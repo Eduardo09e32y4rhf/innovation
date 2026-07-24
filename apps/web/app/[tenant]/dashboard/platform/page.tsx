@@ -41,8 +41,8 @@ export default function PlatformPage() {
   });
 
   const updateLicense = useMutation(
-    (data: any) =>
-      api.platform.updateCompany(data.id, data),
+    ({ id, ...payload }: any) =>
+      api.platform.updateCompany(id, payload),
     { onSuccess: () => { companies.refetch(); stats.refetch(); setLicenseCompany(null); } },
   );
 
@@ -124,7 +124,7 @@ export default function PlatformPage() {
               />
             </div>
           </div>
-          <div className="overflow-x-auto p-0">
+          <div className="overflow-x-auto p-0 min-h-[400px]">
             <table className="w-full min-w-[980px] text-left">
               <thead>
                 <tr className="border-b border-slate-100 text-[11px] font-medium text-slate-500">
