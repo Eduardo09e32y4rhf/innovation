@@ -284,10 +284,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (!token || !company || token === LOCAL_SESSION_TOKEN) return;
     await refreshStoredUser(token, company);
   };
-  const logout = () => {
+  const logout = React.useCallback(() => {
     clearStoredSession();
     setError(null);
-  };
+  }, []);
 
   const userRole = (user?.role || user?.profile || '').toUpperCase();
   const isDev = userRole === 'DEV';

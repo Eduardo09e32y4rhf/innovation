@@ -59,8 +59,8 @@ export default function UsersPage() {
   });
 
   const resetPassword = useMutation(({ id, newPassword }: { id: string; newPassword: string }) =>
-    api.auth.resetEmployeePassword(id, newPassword), { // wait, I should use api.users.resetPassword
-  }); // I will fix the API call later, using fetch directly if needed, or api.users.update
+    api.users.update(id, { password: newPassword, forcePasswordChange: true })
+  );
 
   // States
   const [filters, setFilters] = useState<UserFilterState>({
@@ -145,7 +145,8 @@ export default function UsersPage() {
   };
 
   const handleHistory = (user: AppUser) => {
-    alert('Histórico será implementado na próxima fase.');
+    setSelectedUser(user);
+    setDrawerOpen(true);
   };
 
   const handleDelete = async (user: AppUser) => {

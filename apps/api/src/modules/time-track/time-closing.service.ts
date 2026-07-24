@@ -30,7 +30,11 @@ export class TimeClosingService {
     const employees = await this.prisma.employee.findMany({
       where: {
         companyId,
-        status: 'ACTIVE',
+        admissionDate: { lte: periodEnd },
+        OR: [
+          { terminationDate: null },
+          { terminationDate: { gte: periodStart } },
+        ],
         ...(dto.employeeIds?.length ? { id: { in: dto.employeeIds } } : {}),
       },
       include: { workScheduleRule: true, userSchedules: { include: { schedule: true }, orderBy: { startDate: 'desc' } } },

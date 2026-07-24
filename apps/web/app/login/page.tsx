@@ -31,10 +31,12 @@ export default function LoginPage() {
   const [didSubmit, setDidSubmit] = useState(false);
 
   useEffect(() => {
-    // A pedido do cliente: se atualizar a página de login, NUNCA entrar automaticamente.
-    // Forçamos o logout para limpar a sessão em cache se ele caiu aqui intencionalmente.
-    logout();
-  }, [logout]);
+    // Se o usuário navegou até /login manualmente sem ter submetido o formulário, limpamos sessões antigas
+    if (!didSubmit && isAuthenticated) {
+      logout();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     // Só redirecionamos se o usuário tiver preenchido o form e clicado em "Acessar Plataforma"

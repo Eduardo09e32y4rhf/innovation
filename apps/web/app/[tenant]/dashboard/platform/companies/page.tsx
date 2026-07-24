@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { Plus, Search } from 'lucide-react';
 import { EmptyState, ErrorState, LoadingState } from '@/app/components/data-states';
@@ -17,8 +18,9 @@ import { PlatformStats } from '../_components/platform-stats';
 import { CompanyActionMenu } from '../_components/company-action-menu';
 
 export default function CompaniesPage() {
+  const params = useParams();
   const { user } = useAuth();
-  const tenant = user?.companyId || 'empresa';
+  const tenant = String(params?.tenant || user?.companyId || 'empresa');
   const currentRole = user?.profile?.toUpperCase();
   const isSuperAdmin = currentRole === 'DEV';
   
