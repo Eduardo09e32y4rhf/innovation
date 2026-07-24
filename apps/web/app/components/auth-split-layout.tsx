@@ -1,4 +1,5 @@
 import React from 'react';
+import Image from 'next/image';
 
 export function AuthSplitLayout({ children, title, subtitle }: { children: React.ReactNode, title?: string, subtitle?: string }) {
   return (
@@ -8,9 +9,12 @@ export function AuthSplitLayout({ children, title, subtitle }: { children: React
       <div className="relative hidden md:flex md:w-[50%] lg:w-[60%] items-center justify-center bg-black overflow-hidden">
         {/* A imagem com fundo preto se funde perfeitamente com o bg-black da div */}
         <div className="relative z-10 flex h-full w-full items-center justify-center p-12">
-          <img 
+          <Image 
             src="/innovation-logo-dark.png" 
             alt="Innovation Logo" 
+            width={800}
+            height={800}
+            priority
             className="w-full max-w-[600px] object-contain drop-shadow-2xl animate-in fade-in zoom-in-95 duration-1000"
           />
         </div>
@@ -23,8 +27,8 @@ export function AuthSplitLayout({ children, title, subtitle }: { children: React
           
           {/* Logo no Mobile (Só aparece em telas pequenas) */}
           <div className="mb-10 flex justify-center md:hidden">
-            <div className="rounded-[20px] bg-black p-6 shadow-2xl ring-1 ring-black/5">
-               <img src="/innovation-logo-dark.png" alt="Innovation" className="h-10 w-auto object-contain" />
+            <div className="rounded-[20px] bg-black p-6 shadow-2xl ring-1 ring-black/5 relative w-24 h-24">
+               <Image src="/innovation-logo-dark.png" alt="Innovation" fill priority className="object-contain p-4" />
             </div>
           </div>
 

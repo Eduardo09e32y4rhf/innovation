@@ -19,7 +19,7 @@ import { api } from '@/app/lib/api';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login, loading, error, isAuthenticated, company, user } = useAuth();
+  const { login, logout, loading, error, isAuthenticated, company, user } = useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -28,9 +28,17 @@ export default function LoginPage() {
   const [forgotPassword, setForgotPassword] = useState(false);
   const [forgotSuccess, setForgotSuccess] = useState('');
   const [resetToken, setResetToken] = useState('');
+  const [didSubmit, setDidSubmit] = useState(false);
 
   useEffect(() => {
-    if (isAuthenticated && company) {
+    // A pedido do cliente: se atualizar a página de login, NUNCA entrar automaticamente.
+    // Forçamos o logout para limpar a sessão em cache se ele caiu aqui intencionalmente.
+    logout();
+  }, [logout]);
+
+  useEffect(() => {
+    // Só redirecionamos se o usuário tiver preenchido o form e clicado em "Acessar Plataforma"
+    if (didSubmit && isAuthenticated && company) {
       const slug = (company as any).slug || company.name?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || company.id;
       const isDev = user?.profile?.toUpperCase() === 'DEV' || user?.role?.toUpperCase() === 'DEV';
       const mustPay =
@@ -41,7 +49,7 @@ export default function LoginPage() {
           user?.billingStatus === 'PENDING_PAYMENT');
       router.push(mustPay ? `/${slug}/fatura-pendente?autoCheckout=1` : `/${slug}/dashboard`);
     }
-  }, [isAuthenticated, company, user, router]);
+  }, [didSubmit, isAuthenticated, company, user, router]);
 
   const handleLogin = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -73,9 +81,11 @@ export default function LoginPage() {
     }
 
     try {
+      setDidSubmit(true);
       await login(email.trim(), password);
       // O useEffect lidará com o redirecionamento assim que isAuthenticated for true
     } catch (err) {
+      setDidSubmit(false);
       setLocalError(err instanceof Error ? err.message : 'Não foi possível entrar agora. Tente novamente.');
     }
   };
