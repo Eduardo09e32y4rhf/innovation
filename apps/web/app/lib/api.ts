@@ -751,6 +751,10 @@ export const api = {
     reply: (id: string, data: any) => request<any>(`/platform/support/${id}/reply`, { method: 'POST', body: data }),
     updateStatus: (id: string, status: string) => request<any>(`/platform/support/${id}/status`, { method: 'PATCH', body: { status } }),
   },
+
+  publicSupport: {
+    createTicket: (data: any) => request<{ success: boolean; message: string; ticketNumber: string }>('/support/public/tickets', { method: 'POST', body: data }),
+  },
 };
 
 export default api;
