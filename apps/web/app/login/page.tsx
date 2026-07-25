@@ -13,6 +13,8 @@ import {
   Lock,
   Mail,
   ShieldCheck,
+  X,
+  ExternalLink,
 } from 'lucide-react';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { api } from '@/app/lib/api';
@@ -29,6 +31,7 @@ export default function LoginPage() {
   const [forgotSuccess, setForgotSuccess] = useState('');
   const [resetToken, setResetToken] = useState('');
   const [didSubmit, setDidSubmit] = useState(false);
+  const [showHelpMenu, setShowHelpMenu] = useState(false);
 
   useEffect(() => {
     // Se o usuário navegou até /login manualmente sem ter submetido o formulário, limpamos sessões antigas
@@ -197,17 +200,78 @@ export default function LoginPage() {
           </p>
         )}
 
-        <div className="mt-4 flex flex-col items-center gap-2 border-t border-slate-100 pt-4">
-          <p className="text-center text-[11px] font-medium text-slate-500">
-            Encontrou alguma dificuldade?
-          </p>
-          <Link
-            href="/suporte"
-            className="flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-brand-600 transition-colors"
-          >
-            <AlertCircle size={14} />
-            Reportar problema
-          </Link>
+        <div className="mt-6 flex flex-col items-center border-t border-slate-100 pt-4">
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setShowHelpMenu(!showHelpMenu)}
+              className="flex items-center gap-2 rounded-full bg-slate-100 px-3.5 py-1.5 text-xs font-bold text-slate-600 transition-all hover:bg-brand-50 hover:text-brand-600 shadow-sm"
+              title="Reportar problema"
+            >
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-brand-600 text-white font-black text-[11px]">!</span>
+              <span>Reportar problema</span>
+            </button>
+
+            {showHelpMenu && (
+              <div className="absolute bottom-11 left-1/2 -translate-x-1/2 w-64 rounded-2xl border border-slate-200 bg-white p-2 shadow-2xl z-50 animate-in fade-in zoom-in duration-200">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-2 mb-1 px-2">
+                  <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400">Como podemos ajudar?</span>
+                  <button
+                    type="button"
+                    onClick={() => setShowHelpMenu(false)}
+                    className="text-slate-400 hover:text-slate-600"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => { setShowHelpMenu(false); router.push('/suporte?category=LOGIN_ISSUE&subject=Não%20consigo%20entrar'); }}
+                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+                >
+                  <AlertCircle size={15} className="text-amber-500 shrink-0" />
+                  <span>Não consigo entrar</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => { setShowHelpMenu(false); setForgotPassword(true); setLocalError(''); setForgotSuccess(''); }}
+                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+                >
+                  <Lock size={15} className="text-brand-500 shrink-0" />
+                  <span>Esqueci minha senha</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => { setShowHelpMenu(false); router.push('/suporte?category=BUG&subject=Erro%20na%20página'); }}
+                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+                >
+                  <AlertCircle size={15} className="text-rose-500 shrink-0" />
+                  <span>Erro na página</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => { setShowHelpMenu(false); router.push('/suporte?category=PERFORMANCE&subject=Sistema%20indisponível'); }}
+                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+                >
+                  <ShieldCheck size={15} className="text-purple-500 shrink-0" />
+                  <span>Sistema indisponível</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => { setShowHelpMenu(false); router.push('/suporte?category=OTHER&subject=Outro%20problema'); }}
+                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+                >
+                  <ExternalLink size={15} className="text-teal-500 shrink-0" />
+                  <span>Outro problema</span>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </form>
     </AuthSplitLayout>

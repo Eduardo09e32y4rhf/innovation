@@ -32,15 +32,36 @@ export class SupportAttachmentService {
     }
   }
 
+  private readonly allowedExtensions = new Set(['png', 'jpg', 'jpeg', 'webp', 'pdf', 'txt', 'mp4', 'webm']);
+  private readonly blockedExtensions = new Set(['exe', 'bat', 'cmd', 'ps1', 'sh', 'js', 'html', 'htm', 'svg', 'zip', 'rar', 'dll', 'apk', 'msi', 'vbs', 'scr', 'pif']);
+
   async uploadAttachment(actor: any, ticketId: string, file: any, messageId?: string) {
-    if (file.size > 100 * 1024 * 1024) {
-      throw new BadRequestException('File size exceeds 100MB limit');
+    if (file.size > 20 * 1024 * 1024) {
+      throw new BadRequestException('O tamanho do arquivo excede o limite máximo permitido de 20 MB.');
+    }
+
+    const extension = (file.originalname.split('.').pop() || '').toLowerCase();
+
+    if (this.blockedExtensions.has(extension)) {
+      this.logger.warn(`[Security Alert] Tentativa de upload de arquivo bloqueado por política: ${file.originalname}`);
+      throw new BadRequestException(`A extensão de arquivo '.${extension}' é proibida por motivos de segurança.`);
+    }
+
+    if (!this.allowedExtensions.has(extension)) {
+      throw new BadRequestException(`Extensão '.${extension}' não suportada. Formatos aceitos: PNG, JPG, WEBP, PDF, TXT, MP4, WEBM.`);
+    }
+
+    // Verificação básica de Magic Bytes contra falsificação de extensão
+    if (file.buffer && file.buffer.length >= 4) {
+      const hex = file.buffer.subarray(0, 4).toString('hex').toUpperCase();
+      if (extension === 'png' && !hex.startsWith('89504E47')) throw new BadRequestException('Arquivo PNG corrompido ou falsificado.');
+      if ((extension === 'jpg' || extension === 'jpeg') && !hex.startsWith('FFD8FF')) throw new BadRequestException('Arquivo JPEG corrompido ou falsificado.');
+      if (extension === 'pdf' && !file.buffer.subarray(0, 5).toString('ascii').startsWith('%PDF-')) throw new BadRequestException('Arquivo PDF corrompido ou falsificado.');
     }
 
     const { createHash } = require('crypto');
     const sha256 = createHash('sha256').update(file.buffer).digest('hex');
 
-    const extension = file.originalname.split('.').pop() || '';
     const storageKey = `${ticketId}/${Date.now()}-${sha256.substring(0, 8)}.${extension}`;
     
     // Save locally

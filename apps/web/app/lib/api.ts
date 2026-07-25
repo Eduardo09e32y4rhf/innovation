@@ -738,18 +738,23 @@ export const api = {
   },
   
   support: {
-    list: (status?: string) => request<any[]>(`/support${status ? `?status=${status}` : ''}`),
-    get: (id: string) => request<any>(`/support/${id}`),
-    create: (data: any) => request<any>('/support', { method: 'POST', body: data }),
-    reply: (id: string, data: any) => request<any>(`/support/${id}/reply`, { method: 'POST', body: data }),
-    updateStatus: (id: string, status: string) => request<any>(`/support/${id}/status`, { method: 'PATCH', body: { status } }),
+    list: (status?: string) => request<any[]>(`/support/tickets${status ? `?status=${status}` : ''}`),
+    get: (id: string) => request<any>(`/support/tickets/${id}`),
+    create: (data: any) => request<any>('/support/tickets', { method: 'POST', body: data }),
+    reply: (id: string, data: any) => request<any>(`/support/tickets/${id}/messages`, { method: 'POST', body: data }),
+    close: (id: string) => request<any>(`/support/tickets/${id}/close`, { method: 'POST' }),
+    reopen: (id: string) => request<any>(`/support/tickets/${id}/reopen`, { method: 'POST' }),
   },
 
   platformSupport: {
-    list: (params?: any) => request<any[]>(`/platform/support${makeQuery(params || {})}`),
-    get: (id: string) => request<any>(`/platform/support/${id}`),
-    reply: (id: string, data: any) => request<any>(`/platform/support/${id}/reply`, { method: 'POST', body: data }),
-    updateStatus: (id: string, status: string) => request<any>(`/platform/support/${id}/status`, { method: 'PATCH', body: { status } }),
+    list: (params?: any) => request<any[]>(`/platform/support/tickets${makeQuery(params || {})}`),
+    get: (id: string) => request<any>(`/platform/support/tickets/${id}`),
+    reply: (id: string, data: any) => request<any>(`/platform/support/tickets/${id}/messages`, { method: 'POST', body: data }),
+    internalNote: (id: string, data: any) => request<any>(`/platform/support/tickets/${id}/internal-notes`, { method: 'POST', body: data }),
+    updateStatus: (id: string, status: string) => request<any>(`/platform/support/tickets/${id}/status`, { method: 'PATCH', body: { status } }),
+    updatePriority: (id: string, priority: string) => request<any>(`/platform/support/tickets/${id}/priority`, { method: 'PATCH', body: { priority } }),
+    assign: (id: string, userId?: string) => request<any>(`/platform/support/tickets/${id}/assign`, { method: 'PATCH', body: { userId } }),
+    resolve: (id: string) => request<any>(`/platform/support/tickets/${id}/resolve`, { method: 'POST' }),
   },
 
   publicSupport: {

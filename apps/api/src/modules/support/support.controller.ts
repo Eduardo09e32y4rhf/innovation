@@ -37,7 +37,7 @@ export class SupportController {
 
   @Post('tickets/:id/messages')
   async addMessage(@Req() req: any, @Param('id') id: string, @Body() data: AddSupportMessageDto) {
-    return this.supportService.addMessage(req.user, id, data.message, 'PUBLIC');
+    return this.supportService.addMessage(req.user, id, data.message, data.visibility || 'PUBLIC');
   }
 
   @Post('tickets/:id/close')
