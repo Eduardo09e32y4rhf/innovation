@@ -7,40 +7,50 @@
     "dev": "npm run dev:web",
     "dev:web": "npm --prefix apps/web run dev",
     "dev:api": "npm --prefix apps/api run dev",
-
     "build": "npm run validate && npm run build:api && npm run build:web",
     "build:api": "npm --prefix apps/api run build",
     "build:web": "npm --prefix apps/web run build",
-
     "start:web": "npm --prefix apps/web run start",
     "start:api": "npm --prefix apps/api run start",
-
     "prisma:format": "npm --prefix apps/api exec -- prisma format --schema apps/api/prisma/schema.prisma",
     "prisma:validate": "npm --prefix apps/api exec -- prisma validate --schema apps/api/prisma/schema.prisma",
     "prisma:generate": "npm --prefix apps/api exec -- prisma generate --schema apps/api/prisma/schema.prisma",
-
     "db:generate": "npm run prisma:generate",
     "db:migrate": "npm --prefix apps/api run prisma:migrate",
     "db:deploy": "npm --prefix apps/api run prisma:deploy",
     "db:studio": "prisma studio --schema apps/api/prisma/schema.prisma",
     "db:seed": "npm --prefix apps/api run seed:mvp",
     "seed:pricing": "npm --prefix apps/api run seed:pricing",
-
     "lint:web": "npm --prefix apps/web run lint",
     "typecheck:api": "npm --prefix apps/api run build",
     "typecheck:web": "npm --prefix apps/web run typecheck",
-
     "check:workspace": "node scripts/workspace-foundation-check.cjs",
-
     "test:api": "npm --prefix apps/api test",
     "test:e2e": "npm --prefix tests-e2e test",
-
-    "validate": "npm run check:workspace && npm run prisma:validate && npm run prisma:generate && npm run lint:web && npm run typecheck:api && npm run typecheck:web"
+    "test:unit": "vitest run --config vitest.config.ts",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
+    "test:contract": "vitest run --config vitest.config.ts tests/contract",
+    "test:security": "vitest run --config vitest.config.ts tests/security",
+    "test:coverage": "vitest run --coverage --config vitest.config.ts",
+    "test:all": "npm run test:unit && npm run test:integration && npm run test:contract && npm run test:security && npm run test:e2e",
+    "test:db:setup": "npx tsx scripts/test/setup-database.ts",
+    "test:db:reset": "npx tsx scripts/test/reset-database.ts",
+    "test:db:seed": "npx tsx scripts/test/seed-test-data.ts",
+    "validate": "npm run check:workspace && npm run prisma:validate && npm run prisma:generate && npm run lint:web && npm run typecheck:api && npm run typecheck:web",
+    "quality:gate": "npm run validate && npm run test:all && npm run build"
   },
   "author": "Innovation RH Connect Team",
   "license": "UNLICENSED",
   "devDependencies": {
-    "typescript": "^5.8.3"
+    "@nestjs/testing": "11.1.28",
+    "@swc/core": "1.15.46",
+    "@types/supertest": "7.2.1",
+    "@vitest/coverage-v8": "4.1.10",
+    "dotenv": "17.4.2",
+    "supertest": "7.2.2",
+    "typescript": "^5.8.3",
+    "unplugin-swc": "1.5.9",
+    "vitest": "4.1.10"
   },
   "workspaces": [
     "apps/web",
