@@ -7,26 +7,34 @@
     "dev": "npm run dev:web",
     "dev:web": "npm --prefix apps/web run dev",
     "dev:api": "npm --prefix apps/api run dev",
+
     "build": "npm run validate && npm run build:api && npm run build:web",
     "build:api": "npm --prefix apps/api run build",
     "build:web": "npm --prefix apps/web run build",
+
     "start:web": "npm --prefix apps/web run start",
     "start:api": "npm --prefix apps/api run start",
+
     "prisma:format": "npm --prefix apps/api exec -- prisma format --schema apps/api/prisma/schema.prisma",
     "prisma:validate": "npm --prefix apps/api exec -- prisma validate --schema apps/api/prisma/schema.prisma",
     "prisma:generate": "npm --prefix apps/api exec -- prisma generate --schema apps/api/prisma/schema.prisma",
+
     "db:generate": "npm run prisma:generate",
     "db:migrate": "npm --prefix apps/api run prisma:migrate",
     "db:deploy": "npm --prefix apps/api run prisma:deploy",
     "db:studio": "prisma studio --schema apps/api/prisma/schema.prisma",
     "db:seed": "npm --prefix apps/api run seed:mvp",
     "seed:pricing": "npm --prefix apps/api run seed:pricing",
+
     "lint:web": "npm --prefix apps/web run lint",
     "typecheck:api": "npm --prefix apps/api run build",
     "typecheck:web": "npm --prefix apps/web run typecheck",
+
     "check:workspace": "node scripts/workspace-foundation-check.cjs",
+
     "test:api": "npm --prefix apps/api test",
     "test:e2e": "npm --prefix tests-e2e test",
+
     "validate": "npm run check:workspace && npm run prisma:validate && npm run prisma:generate && npm run lint:web && npm run typecheck:api && npm run typecheck:web"
   },
   "author": "Innovation RH Connect Team",
@@ -43,7 +51,6 @@
     "@fastify/static": "10.1.0",
     "@nestjs/common": "11.1.28",
     "@nestjs/core": "11.1.28",
-    "clamscan": "2.4.0",
     "class-transformer": "0.5.1",
     "class-validator": "0.14.1",
     "reflect-metadata": "0.2.2",
