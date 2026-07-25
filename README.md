@@ -6,12 +6,13 @@ Um sistema corporativo *premium* e completo para Gestão de Recursos Humanos, co
 
 ---
 
-## 🆕 Últimas Atualizações (v1.1.0)
+## 🆕 Últimas Atualizações (V. 25-07-2026 - 1.0.5.9 | Commit: 24e8c5ee)
 
-- **Importação de Funcionários Avançada:** Corrigido fluxo completo de importação de funcionários via planilhas Excel (`.xlsx`) com suporte robusto a uploads.
-- **Integração Completa Asaas:** Ajustes finos no redirecionamento do checkout, setup da empresa e prevenção anti-bloqueio (Rate Limit).
-- **Recuperação e Reset de Senhas:** Fluxo de redefinição e recuperação de senhas 100% estabilizado e seguro.
-- **Novas Demonstrações (UI):** Documentação (este README) atualizada com as imagens reais das interfaces atuais do sistema.
+- **Módulo de Suporte & SLA Scheduler:** Integração do módulo completo de atendimento e suporte técnico com agendador automático de SLAs e tabelas (`SupportTicket`, mensagens e anexos) sincronizadas no banco de dados.
+- **Correção Crítica de Autenticação (P0):** Resolução definitiva do loop de deslogamento instantâneo após login no painel, implementando memoização de sessão (`useCallback`) e sanitização de dependências na tela de login.
+- **Limpeza Geral do Repositório (Git):** Remoção de 17 branches de testes/bots obsoletas e fechamento de PRs pendentes, consolidando 100% da operação e do código de produção em uma única branch estável (`main`).
+- **Recuperação de Banco de Dados e VPS:** Resolução de travamentos do Prisma ORM em produção (`P3009`), padronização das migrations aplicadas no PostgreSQL e otimização do Docker Compose.
+- **Importação e Finanças:** Integração Asaas estabilizada com prevenção anti-bloqueio (Rate Limit) e importação avançada de colaboradores via planilhas Excel (`.xlsx`).
 
 ---
 
