@@ -6,7 +6,7 @@ Um sistema corporativo *premium* e completo para Gestão de Recursos Humanos, co
 
 ---
 
-## 🆕 Últimas Atualizações (V. 25-07-2026 - 1.1.0.0 | Commit: 3418d555)
+## 🆕 Últimas Atualizações (V. 25-07-2026 - 1.1.0.0 | Commit: 57d69470)
 
 - **Refatoração Completa do Console Operacional (SaaS Backoffice / Internet Banking):** Transformação visual da aba Plataforma corporativa para estética bancária de alta precisão com faixa financeira (Recebido, Faturado, MRR Estimado, Inadimplência) e bloco canônico de atenção operacional (`Requer sua atenção imediata`).
 - **Navegação Canônica Consolidada (7 Grupos):** Reestruturação da navegação corporativa em 7 grupos canônicos (`Visão Geral`, `Clientes`, `Financeiro`, `Comercial`, `Operações`, `Inteligência`, `Configurações`) com segregação e obfuscação automática de dados sensíveis para perfil `COMERCIAL`.
