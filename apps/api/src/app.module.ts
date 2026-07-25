@@ -38,6 +38,7 @@ import { CacheModule } from '@nestjs/cache-manager';
 import { redisStore } from 'cache-manager-ioredis-yet';
 
 import { SupportModule } from './modules/support/support.module';
+import { AiModule } from './modules/ai/ai.module';
 
 @Module({
   imports: [
@@ -83,6 +84,7 @@ import { SupportModule } from './modules/support/support.module';
     ManualContractsModule,
     CouponsModule,
     SupportModule,
+    AiModule,
     ScheduleModule.forRoot(),
   ],
   providers: [
