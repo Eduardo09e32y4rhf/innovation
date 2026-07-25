@@ -34,17 +34,45 @@ describe('Asaas Webhook (e2e)', () => {
       }
     };
     
-    const signature = crypto
-      .createHmac('sha256', process.env.ASAAS_WEBHOOK_TOKEN!)
-      .update(JSON.stringify(payload))
-      .digest('hex');
-
     return request(app.getHttpServer())
       .post('/finance/webhook/asaas')
-      .set('asaas-signature', signature)
+      .set('asaas-access-token', process.env.ASAAS_WEBHOOK_TOKEN!)
       .send(payload)
       .expect(200)
-      .expect({ received: true });
+      .expect((res) => {
+        expect(res.body.received).toBe(true);
+        expect(res.body.queued).toBe(true);
+      });
+  });
+
+  it('/finance/webhook/asaas (POST) - Idempotency (Duplicate webhook)', async () => {
+    const payload = {
+      event: 'PAYMENT_RECEIVED',
+      id: 'evt_idempotency_123',
+      payment: {
+        id: 'pay_123',
+        customer: 'cus_123',
+        value: 100.0,
+      }
+    };
+    
+    // First call
+    await request(app.getHttpServer())
+      .post('/finance/webhook/asaas')
+      .set('asaas-access-token', process.env.ASAAS_WEBHOOK_TOKEN!)
+      .send(payload)
+      .expect(200);
+
+    // Second call (Duplicate)
+    return request(app.getHttpServer())
+      .post('/finance/webhook/asaas')
+      .set('asaas-access-token', process.env.ASAAS_WEBHOOK_TOKEN!)
+      .send(payload)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.received).toBe(true);
+        expect(res.body.duplicate).toBe(true); // Should recognize it's a duplicate
+      });
   });
 
   it('/finance/webhook/asaas (POST) - PAYMENT_OVERDUE', async () => {
@@ -57,17 +85,14 @@ describe('Asaas Webhook (e2e)', () => {
       }
     };
     
-    const signature = crypto
-      .createHmac('sha256', process.env.ASAAS_WEBHOOK_TOKEN!)
-      .update(JSON.stringify(payload))
-      .digest('hex');
-
     return request(app.getHttpServer())
       .post('/finance/webhook/asaas')
-      .set('asaas-signature', signature)
+      .set('asaas-access-token', process.env.ASAAS_WEBHOOK_TOKEN!)
       .send(payload)
       .expect(200)
-      .expect({ received: true });
+      .expect((res) => {
+        expect(res.body.received).toBe(true);
+      });
   });
 
   it('/finance/webhook/asaas (POST) - Invalid Signature', async () => {
@@ -75,7 +100,7 @@ describe('Asaas Webhook (e2e)', () => {
     
     return request(app.getHttpServer())
       .post('/finance/webhook/asaas')
-      .set('asaas-signature', 'invalid-signature')
+      .set('asaas-access-token', 'invalid-token')
       .send(payload)
       .expect(403);
   });

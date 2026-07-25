@@ -25,6 +25,11 @@ export class CreatePublicSupportTicketDto {
   @IsOptional()
   @IsString()
   pageUrl?: string;
+
+  // Honeypot field - bots costumam preencher todos os campos de um form
+  @IsOptional()
+  @IsString()
+  website?: string;
 }
 
 export { CreatePublicSupportTicketDto as CreatepublicsupportticketDto };

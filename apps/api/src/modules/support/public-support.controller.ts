@@ -1,8 +1,10 @@
 import { Controller, Post, Body, Req } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { SupportRepository } from './support.repository';
 import { SupportSlaService } from './support-sla.service';
 import { PrismaService } from '../../database/prisma.service';
 import { CreatePublicSupportTicketDto } from './dto/create-public-support-ticket.dto';
+import { RequestPasswordResetDto } from './dto/request-password-reset.dto';
 
 @Controller('support/public')
 export class PublicSupportController {
@@ -12,8 +14,14 @@ export class PublicSupportController {
     private readonly prisma: PrismaService
   ) {}
 
+  @Throttle({ default: { limit: 5, ttl: 60000 } }) // 5 requests per minute
   @Post('tickets')
   async createTicket(@Body() data: CreatePublicSupportTicketDto, @Req() req: any) {
+    // Se o honeypot for preenchido, rejeita silenciosamente (simula sucesso para enganar o bot)
+    if (data.website) {
+      return { success: true, message: 'Sua solicitação foi registrada. O suporte analisará o caso.', ticketNumber: 'BOT-' + Date.now() };
+    }
+
     const year = new Date().getFullYear();
     const ticketNumber = await this.repository.generateTicketNumber(year);
     const { firstResponseDueAt, resolutionDueAt } = this.slaService.calculateDueDates('NORMAL');
@@ -59,8 +67,14 @@ export class PublicSupportController {
     };
   }
 
+  @Throttle({ default: { limit: 5, ttl: 60000 } }) // 5 requests per minute
   @Post('password-reset')
-  async requestPasswordReset(@Body() data: any, @Req() req: any) {
+  async requestPasswordReset(@Body() data: RequestPasswordResetDto, @Req() req: any) {
+    // Se o honeypot for preenchido, rejeita silenciosamente (simula sucesso)
+    if (data.website) {
+      return { success: true, message: 'Sua solicitação foi registrada. O suporte analisará o caso.', ticketNumber: 'BOT-' + Date.now() };
+    }
+
     const year = new Date().getFullYear();
     const ticketNumber = await this.repository.generateTicketNumber(year);
     const { firstResponseDueAt, resolutionDueAt } = this.slaService.calculateDueDates('HIGH');
@@ -83,7 +97,7 @@ export class PublicSupportController {
       priority: 'HIGH',
       title: 'Solicitação de redefinição de senha',
       description: 'O usuário solicitou redefinição de senha na tela de login.',
-      requesterEmail: data.email,
+      requesterEmail: data.email?.toLowerCase()?.trim(),
       affectedUserId,
       companyId,
       firstResponseDueAt,

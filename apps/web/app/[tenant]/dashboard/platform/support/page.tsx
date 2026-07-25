@@ -60,9 +60,16 @@ interface PlatformTicket {
 
 type TriageTab = 'all' | 'unassigned' | 'critical' | 'sla_at_risk' | 'reopened' | 'waiting_customer' | 'waiting_deploy';
 
+import { useSearchParams } from 'next/navigation';
+
 export default function PlatformSupportPage() {
   const { user, isDev } = useAuth();
+  const role = user?.profile?.toUpperCase();
+  const canAccess = isDev || role === 'COMERCIAL';
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const filterCompanyId = searchParams?.get('companyId');
+
   const [tickets, setTickets] = useState<PlatformTicket[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -77,18 +84,18 @@ export default function PlatformSupportPage() {
   const [updatingStatus, setUpdatingStatus] = useState(false);
 
   useEffect(() => {
-    if (user && !isDev) {
+    if (user && !canAccess) {
       router.push('/dashboard');
       return;
     }
     loadTickets();
-  }, [user, isDev, router]);
+  }, [user, canAccess, router, filterCompanyId]);
 
   const loadTickets = async () => {
-    if (!isDev) return;
+    if (!canAccess) return;
     setLoading(true);
     try {
-      const data = await api.platformSupport.list();
+      const data = await api.platformSupport.list(filterCompanyId ? { companyId: filterCompanyId } : undefined);
       setTickets(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Failed to load platform tickets', error);
@@ -505,72 +512,74 @@ export default function PlatformSupportPage() {
               </div>
 
               {/* Caixa de Resposta */}
-              <div className="p-4 bg-white border-t border-slate-200 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setIsInternalNote(false)}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                        !isInternalNote 
-                          ? 'bg-purple-600 text-white shadow-sm' 
-                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                      }`}
-                    >
-                      <MessageSquare size={14} /> Resposta Pública para o Cliente
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setIsInternalNote(true)}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              {isDev && (
+                <div className="p-4 bg-white border-t border-slate-200 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setIsInternalNote(false)}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                          !isInternalNote 
+                            ? 'bg-purple-600 text-white shadow-sm' 
+                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                        }`}
+                      >
+                        <MessageSquare size={14} /> Resposta Pública para o Cliente
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setIsInternalNote(true)}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                          isInternalNote 
+                            ? 'bg-amber-500 text-white shadow-sm' 
+                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                        }`}
+                      >
+                        <Lock size={14} /> Anotação Interna DEV
+                      </button>
+                    </div>
+                    {isInternalNote && (
+                      <span className="text-[11px] font-bold text-amber-700 italic">
+                        ⚠️ O cliente não será notificado nem verá esta mensagem.
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="relative">
+                    <textarea
+                      rows={3}
+                      placeholder={isInternalNote ? "Digite uma anotação técnica interna para a equipe DEV..." : "Digite a resposta oficial que será enviada por e-mail e exibida ao cliente..."}
+                      value={replyText}
+                      onChange={(e) => setReplyText(e.target.value)}
+                      className={`w-full rounded-xl border p-3 text-sm font-medium outline-none transition-all ${
                         isInternalNote 
-                          ? 'bg-amber-500 text-white shadow-sm' 
-                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                          ? 'border-amber-300 bg-amber-50/50 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 text-amber-950' 
+                          : 'border-slate-200 bg-white focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 text-slate-900'
+                      }`}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between pt-1">
+                    <span className="text-[11px] text-slate-400 font-medium">
+                      Dica: Respostas públicas enviam e-mail automático.
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleSendReply}
+                      disabled={sendingReply || !replyText.trim()}
+                      className={`flex items-center gap-2 rounded-xl px-5 py-2.5 text-xs font-black text-white shadow-md transition-all disabled:opacity-50 ${
+                        isInternalNote 
+                          ? 'bg-amber-600 hover:bg-amber-700 shadow-amber-600/20' 
+                          : 'bg-purple-600 hover:bg-purple-700 shadow-purple-600/20'
                       }`}
                     >
-                      <Lock size={14} /> Anotação Interna DEV
+                      <Send size={14} />
+                      {sendingReply ? 'Enviando...' : isInternalNote ? 'Salvar Nota Interna' : 'Enviar Resposta Pública'}
                     </button>
                   </div>
-                  {isInternalNote && (
-                    <span className="text-[11px] font-bold text-amber-700 italic">
-                      ⚠️ O cliente não será notificado nem verá esta mensagem.
-                    </span>
-                  )}
                 </div>
-
-                <div className="relative">
-                  <textarea
-                    rows={3}
-                    placeholder={isInternalNote ? "Digite uma anotação técnica interna para a equipe DEV..." : "Digite a resposta oficial que será enviada por e-mail e exibida ao cliente..."}
-                    value={replyText}
-                    onChange={(e) => setReplyText(e.target.value)}
-                    className={`w-full rounded-xl border p-3 text-sm font-medium outline-none transition-all ${
-                      isInternalNote 
-                        ? 'border-amber-300 bg-amber-50/50 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 text-amber-950' 
-                        : 'border-slate-200 bg-white focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 text-slate-900'
-                    }`}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] text-slate-400">
-                    Pressione Enviar para registrar no histórico oficial.
-                  </span>
-                  <button
-                    type="button"
-                    onClick={handleSendReply}
-                    disabled={sendingReply || !replyText.trim()}
-                    className={`flex items-center gap-2 rounded-xl px-5 py-2.5 text-xs font-black text-white shadow-md transition-all disabled:opacity-50 ${
-                      isInternalNote 
-                        ? 'bg-amber-600 hover:bg-amber-700 shadow-amber-600/20' 
-                        : 'bg-purple-600 hover:bg-purple-700 shadow-purple-600/20'
-                    }`}
-                  >
-                    <Send size={14} />
-                    {sendingReply ? 'Enviando...' : isInternalNote ? 'Salvar Nota Interna' : 'Enviar Resposta Pública'}
-                  </button>
-                </div>
-              </div>
+              )}
             </div>
 
             {/* PAINEL DIREITO: CONTEXTO, SLA E AÇÕES RÁPIDAS */}

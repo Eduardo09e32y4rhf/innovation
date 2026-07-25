@@ -216,6 +216,17 @@ export class SupportRepository {
     });
   }
 
+  async getAttachmentById(id: string) {
+    return this.prisma.supportAttachment.findUnique({ where: { id } });
+  }
+
+  async listAttachmentsByTicket(ticketId: string) {
+    return this.prisma.supportAttachment.findMany({
+      where: { ticketId, status: { not: 'REJECTED' } },
+      orderBy: { createdAt: 'asc' },
+    });
+  }
+
   async generateTicketNumber(year: number): Promise<string> {
     const counter = await this.prisma.$transaction(async (tx) => {
       const existing = await tx.supportTicketCounter.findUnique({ where: { year } });

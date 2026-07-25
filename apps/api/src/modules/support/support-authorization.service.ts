@@ -165,6 +165,11 @@ export class SupportAuthorizationService {
     return true;
   }
 
+  assertCanViewPlatformSupport(actor: any) {
+    if (actor.role !== 'DEV' && actor.role !== 'COMERCIAL') throw new ForbiddenException('Acesso negado: Apenas DEV ou COMERCIAL pode visualizar chamados da plataforma.');
+    return true;
+  }
+
   assertCanCreateInternalNote(actor: any) {
     if (actor.role !== 'DEV') throw new ForbiddenException('Apenas DEV pode criar notas internas.');
     return true;

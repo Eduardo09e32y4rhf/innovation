@@ -83,8 +83,8 @@ export default function PlatformDashboardPage() {
     CANCELED: 'Cancelado',
   };
 
-  // Cálculo aproximado de MRR com base no faturamento ou assinaturas
-  const mrrEstimated = (summary?.totals?.received || 0) * 0.9 + (summary?.totals?.billed || 0) * 0.1;
+  // MRR real calculado com base nas assinaturas e planos ativos (Fase 6 - D-07)
+  const mrrReal = summary?.mrr ?? 0;
 
   return (
     <div className="mx-auto w-full space-y-8 animate-in fade-in duration-500">
@@ -220,10 +220,10 @@ export default function PlatformDashboardPage() {
           highlightColor="emerald"
         />
         <Card 
-          title="MRR Estimado (Recorrente)" 
-          value={formatCurrency(mrrEstimated)} 
+          title="MRR (Assinaturas Ativas)" 
+          value={formatCurrency(mrrReal)} 
           icon={<TrendingUp size={22} className="text-violet-600" />} 
-          trend="Baseado em assinaturas ativas" 
+          trend="Cálculo real de assinaturas" 
           highlightColor="violet"
         />
         <Card 

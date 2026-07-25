@@ -168,7 +168,11 @@ export class PlatformFinanceService {
     }
 
     // Garante que a assinatura foi criada em paralelo (para cobrar depois da avulsa)
-    await this.createRecurringSubscription(company, customerId, amount).catch(() => {});
+    try {
+      await this.createRecurringSubscription(company, customerId, amount);
+    } catch (err) {
+      this.logger.error(`Falha ao criar assinatura recorrente no Asaas: ${String(err)}`);
+    }
 
     // Usa PENDING_PAYMENT como status pendente aqui, separando clientes novos de devedores antigos
     if (invoice?.status !== 'PAID') {
@@ -504,13 +508,51 @@ export class PlatformFinanceService {
       monthly.set(month, bucket);
     }
 
+    const activeSubscriptions = await this.prisma.companySubscription.findMany({
+      where: {
+        status: 'ACTIVE',
+        company: commercialOwnerId ? { commercialOwnerId } : undefined,
+      },
+      include: { plan: true },
+    });
+
+    let mrr = 0;
+    for (const sub of activeSubscriptions) {
+      const base = Number(sub.baseMonthlyPrice ?? sub.plan?.baseMonthlyPrice ?? sub.plan?.price ?? 0);
+      const userPrice = Number(sub.userMonthlyPrice ?? sub.plan?.userMonthlyPrice ?? 0);
+      const seats = sub.seatQuantity ?? 1;
+      mrr += base + (userPrice * seats);
+    }
+
+    const activeCompaniesWithoutSub = await this.prisma.company.findMany({
+      where: {
+        status: 'ACTIVE',
+        plan: { not: 'FREE' },
+        subscription: null,
+        ...(commercialOwnerId ? { commercialOwnerId } : {}),
+      },
+      include: { platformPlan: true },
+    });
+
+    for (const comp of activeCompaniesWithoutSub) {
+      if (comp.platformPlan) {
+        const base = Number(comp.platformPlan.baseMonthlyPrice ?? comp.platformPlan.price ?? 0);
+        const userPrice = Number(comp.platformPlan.userMonthlyPrice ?? 0);
+        mrr += base + userPrice;
+      } else {
+        mrr += 249.99; // fallback para plano pago sem PlatformPlan
+      }
+    }
+
     return {
       totals,
+      mrr: Number(mrr.toFixed(2)),
       count: invoices.length,
       conversionRate: totals.billed > 0 ? Number(((totals.received / totals.billed) * 100).toFixed(1)) : 0,
       monthly: [...monthly.values()].sort((a, b) => a.month.localeCompare(b.month)).slice(-12),
     };
   }
+
 
   async list(query: ListPlatformInvoicesDto, commercialOwnerId?: string) {
     const where = this.buildWhere(query, commercialOwnerId);

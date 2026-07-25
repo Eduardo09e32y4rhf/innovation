@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import Link from 'next/link';
 import { AuthSplitLayout } from '@/app/components/auth-split-layout';
@@ -12,6 +12,7 @@ export default function ForgotPasswordPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [resetToken, setResetToken] = useState('');
+  const [website, setWebsite] = useState('');
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -19,11 +20,11 @@ export default function ForgotPasswordPage() {
     setMessage('');
     setResetToken('');
     try {
-      const result = await api.auth.requestPasswordReset(email.trim());
-      setMessage('Se o e-mail estiver cadastrado e ativo, enviaremos as instru??es de redefini??o.');
+      const result = await api.auth.requestPasswordReset(email.trim(), website);
+      setMessage('Se o e-mail estiver cadastrado e ativo, enviaremos as instruções de redefinição.');
       if (result.demoCode) setResetToken(result.demoCode);
     } catch {
-      setMessage('Se o e-mail estiver cadastrado e ativo, enviaremos as instru??es de redefini??o.');
+      setMessage('Se o e-mail estiver cadastrado e ativo, enviaremos as instruções de redefinição.');
     } finally {
       setLoading(false);
     }
@@ -39,6 +40,12 @@ export default function ForgotPasswordPage() {
             <p className="text-sm font-medium text-teal-800">{message}</p>
           </div>
         )}
+
+        {/* Honeypot */}
+        <div aria-hidden="true" className="hidden opacity-0 absolute -z-50 select-none pointer-events-none">
+          <label htmlFor="website">Website</label>
+          <input type="text" id="website" name="website" value={website} onChange={e => setWebsite(e.target.value)} tabIndex={-1} autoComplete="off" />
+        </div>
 
         <div className="group relative">
           <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400 transition-colors group-focus-within:text-brand-500">

@@ -16,6 +16,7 @@ export default function SuportePage() {
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [website, setWebsite] = useState('');
   const [successTicket, setSuccessTicket] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -36,6 +37,7 @@ export default function SuportePage() {
         subject: subject.trim(),
         description: description.trim(),
         pageUrl: typeof window !== 'undefined' ? window.location.origin : '',
+        website,
       });
 
       if (res?.success) {
@@ -132,6 +134,12 @@ export default function SuportePage() {
                 <span>{error}</span>
               </div>
             )}
+
+            {/* Honeypot */}
+            <div aria-hidden="true" className="hidden opacity-0 absolute -z-50 select-none pointer-events-none">
+              <label htmlFor="website">Website</label>
+              <input type="text" id="website" name="website" value={website} onChange={e => setWebsite(e.target.value)} tabIndex={-1} autoComplete="off" />
+            </div>
 
             <div className="grid gap-6 sm:grid-cols-2">
               <div>

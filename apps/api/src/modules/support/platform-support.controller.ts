@@ -17,7 +17,7 @@ export class PlatformSupportController {
 
   @Get('stats')
   async getStats(@Req() req: any) {
-    this.authService.assertCanManageTicket(req.user);
+    this.authService.assertCanViewPlatformSupport(req.user);
     const tickets = await this.supportService.listTickets(req.user);
     return {
       new: tickets.filter(t => t.status === 'NEW').length,
@@ -34,13 +34,13 @@ export class PlatformSupportController {
 
   @Get('tickets')
   async listTickets(@Req() req: any, @Query() query: ListSupportTicketsQueryDto) {
-    this.authService.assertCanManageTicket(req.user);
+    this.authService.assertCanViewPlatformSupport(req.user);
     return this.supportService.listTickets(req.user, query);
   }
 
   @Get('tickets/:id')
   async getTicket(@Req() req: any, @Param('id') id: string) {
-    this.authService.assertCanManageTicket(req.user);
+    this.authService.assertCanViewPlatformSupport(req.user);
     return this.supportService.getTicket(req.user, id);
   }
 

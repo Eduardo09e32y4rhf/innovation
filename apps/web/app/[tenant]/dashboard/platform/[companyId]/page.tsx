@@ -69,6 +69,8 @@ export default function CompanyDetailPage({ params }: { params: { tenant: string
   const users = useQuery(() => api.platform.listCompanyUsers(params.companyId), [params.companyId]);
   const invoices = useQuery(() => api.platform.finance.listCompany(params.companyId), [params.companyId]);
   const logs = useQuery(() => api.platform.getCompanyAuditLogs(params.companyId), [params.companyId]);
+  const contracts = useQuery(() => api.platform.listManualContracts({ companyId: params.companyId }), [params.companyId]);
+  const tickets = useQuery(() => api.platformSupport.list({ companyId: params.companyId }), [params.companyId]);
 
   if (role !== 'DEV' && role !== 'COMERCIAL') {
     return <div className="flex h-[50vh] items-center justify-center text-sm font-bold text-slate-500">Acesso restrito a Plataforma.</div>;
@@ -142,10 +144,12 @@ export default function CompanyDetailPage({ params }: { params: { tenant: string
           </div>
           <p className="mt-2 text-sm text-slate-500">{item.document || 'Sem documento'} · Plano {item.plan || 'FREE'}</p>
         </div>
-        <div className="flex items-center gap-3">
-          <button onClick={() => setIsInvoiceModalOpen(true)} className="inline-flex h-10 items-center justify-center gap-2 rounded-[8px] bg-white border border-slate-200 px-4 text-xs font-black text-slate-700 hover:bg-slate-50 transition"><Plus size={14} /> Nova Cobrança Manual</button>
-          <button onClick={checkout} disabled={creatingCheckout} className="crystal-button inline-flex h-10 items-center justify-center gap-2 rounded-[8px] px-4 text-xs font-black text-white disabled:opacity-60">{creatingCheckout ? <Loader2 size={14} className="animate-spin" /> : <CreditCard size={14} />} Gerar checkout auto</button>
-        </div>
+        {role === 'DEV' && (
+          <div className="flex items-center gap-3">
+            <button onClick={() => setIsInvoiceModalOpen(true)} className="inline-flex h-10 items-center justify-center gap-2 rounded-[8px] bg-white border border-slate-200 px-4 text-xs font-black text-slate-700 hover:bg-slate-50 transition"><Plus size={14} /> Nova Cobrança Manual</button>
+            <button onClick={checkout} disabled={creatingCheckout} className="crystal-button inline-flex h-10 items-center justify-center gap-2 rounded-[8px] px-4 text-xs font-black text-white disabled:opacity-60">{creatingCheckout ? <Loader2 size={14} className="animate-spin" /> : <CreditCard size={14} />} Gerar checkout auto</button>
+          </div>
+        )}
       </header>
 
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -217,24 +221,22 @@ export default function CompanyDetailPage({ params }: { params: { tenant: string
       )}
 
       {tab === 'documents' && (
-        <section className="rounded-[14px] border border-slate-200 bg-white p-8 text-center shadow-sm">
-          <FolderOpen size={36} className="mx-auto text-slate-300 mb-3" />
-          <h3 className="text-sm font-black text-slate-800">Repositório Documental do Cliente</h3>
-          <p className="text-xs text-slate-500 max-w-md mx-auto mt-1">Contratos assinados, propostas comerciais e termos de adesão vinculados a esta empresa.</p>
-          <div className="mt-6 flex justify-center">
-            <Link href={`/${params.tenant}/dashboard/platform/contracts`} className="crystal-button rounded-xl px-4 py-2 text-xs font-black text-white">Ir para Contratos Digitais</Link>
+        <section className="overflow-hidden rounded-[14px] border border-slate-200 bg-white shadow-sm">
+          <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+            <h3 className="text-sm font-black text-slate-800">Contratos da Empresa</h3>
+            <Link href={`/${params.tenant}/dashboard/platform/contracts?companyId=${params.companyId}`} className="crystal-button rounded-xl px-4 py-2 text-xs font-black text-white">Gerenciar Contratos</Link>
           </div>
+          {contracts.loading ? <div className="p-8"><LoadingState label="Carregando contratos..." /></div> : contracts.error ? <div className="p-8"><ErrorState message={contracts.error} onRetry={contracts.refetch} /></div> : !contracts.data?.length ? <div className="p-10 text-center text-sm text-slate-400">Nenhum contrato manual registrado para esta empresa.</div> : <div className="overflow-x-auto"><table className="w-full min-w-[640px] text-left text-xs"><thead className="bg-slate-50 text-[10px] font-black uppercase text-slate-400"><tr><th className="px-5 py-3">Valor</th><th className="px-5 py-3">Licenças</th><th className="px-5 py-3">Início</th><th className="px-5 py-3">Fim</th><th className="px-5 py-3">Pagamento</th><th className="px-5 py-3">Status</th></tr></thead><tbody className="divide-y divide-slate-100">{contracts.data.map((c: any) => <tr key={c.id}><td className="px-5 py-4 font-black">{money(c.agreedAmount)}</td><td className="px-5 py-4 font-bold text-slate-700">{c.seatQuantity}</td><td className="px-5 py-4">{date(c.startsAt)}</td><td className="px-5 py-4">{c.endsAt ? date(c.endsAt) : 'Indeterminado'}</td><td className="px-5 py-4">{c.paymentMethod}</td><td className="px-5 py-4"><span className="rounded-full border border-sky-200 bg-sky-50 px-2 py-1 text-[10px] font-black text-sky-700">{c.status}</span></td></tr>)}</tbody></table></div>}
         </section>
       )}
 
       {tab === 'support' && (
-        <section className="rounded-[14px] border border-slate-200 bg-white p-8 text-center shadow-sm">
-          <HelpCircle size={36} className="mx-auto text-indigo-300 mb-3" />
-          <h3 className="text-sm font-black text-slate-800">Histórico de Atendimentos & Tickets</h3>
-          <p className="text-xs text-slate-500 max-w-md mx-auto mt-1">Acompanhe os chamados abertos por usuários desta empresa na central de suporte DEV.</p>
-          <div className="mt-6 flex justify-center">
-            <Link href={`/${params.tenant}/dashboard/platform/support`} className="rounded-xl bg-indigo-600 hover:bg-indigo-700 px-4 py-2 text-xs font-black text-white transition">Acessar Painel DEV de Suporte</Link>
+        <section className="overflow-hidden rounded-[14px] border border-slate-200 bg-white shadow-sm">
+          <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+            <h3 className="text-sm font-black text-slate-800">Tickets de Suporte da Empresa</h3>
+            <Link href={`/${params.tenant}/dashboard/platform/support?companyId=${params.companyId}`} className="rounded-xl bg-indigo-600 hover:bg-indigo-700 px-4 py-2 text-xs font-black text-white transition">Painel Completo de Suporte</Link>
           </div>
+          {tickets.loading ? <div className="p-8"><LoadingState label="Carregando chamados..." /></div> : tickets.error ? <div className="p-8"><ErrorState message={tickets.error} onRetry={tickets.refetch} /></div> : !tickets.data?.length ? <div className="p-10 text-center text-sm text-slate-400">Nenhum chamado aberto para esta empresa.</div> : <div className="overflow-x-auto"><table className="w-full min-w-[640px] text-left text-xs"><thead className="bg-slate-50 text-[10px] font-black uppercase text-slate-400"><tr><th className="px-5 py-3">Ticket</th><th className="px-5 py-3">Assunto</th><th className="px-5 py-3">Prioridade</th><th className="px-5 py-3">Status</th><th className="px-5 py-3">Criado em</th></tr></thead><tbody className="divide-y divide-slate-100">{tickets.data.map((t: any) => <tr key={t.id}><td className="px-5 py-4 font-bold text-indigo-600">#{t.ticketNumber}</td><td className="px-5 py-4 font-bold text-slate-800">{t.subject}</td><td className="px-5 py-4"><span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] font-black text-slate-700">{t.priority}</span></td><td className="px-5 py-4"><span className="rounded-full border border-indigo-200 bg-indigo-50 px-2 py-1 text-[10px] font-black text-indigo-700">{t.status}</span></td><td className="px-5 py-4">{date(t.createdAt)}</td></tr>)}</tbody></table></div>}
         </section>
       )}
 
