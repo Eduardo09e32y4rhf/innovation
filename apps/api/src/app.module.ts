@@ -30,6 +30,7 @@ import { EscalaModule } from './modules/schedule/escala.module';
 import { TenantGuard } from './common/guards/tenant.guard';
 import { ManualContractsModule } from './modules/manual-contracts/manual-contracts.module';
 import { CouponsModule } from './modules/coupons/coupons.module';
+import { DocumentsModule } from './modules/documents/documents.module';
 
 import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 
@@ -85,6 +86,7 @@ import { AiModule } from './modules/ai/ai.module';
     CouponsModule,
     SupportModule,
     AiModule,
+    DocumentsModule,
     ScheduleModule.forRoot(),
   ],
   providers: [

@@ -356,7 +356,8 @@ model Company {
   scheduleExceptions ScheduleException[]
   swapRequests       ScheduleSwapRequest[]
 
-  supportTickets SupportTicket[]
+  supportTickets     SupportTicket[]
+  generatedDocuments GeneratedDocument[]
 
   @@index([commercialOwnerId])
 }
@@ -404,6 +405,7 @@ model User {
   supportTicketMessages      SupportTicketMessage[]
   supportAttachmentsUploaded SupportAttachment[]
   supportTicketEvents        SupportTicketEvent[]
+  generatedDocuments         GeneratedDocument[]
 
   @@index([companyId])
 }
@@ -1957,4 +1959,33 @@ model AiUsageLog {
   @@index([tenantId, createdAt])
   @@index([tenantId, feature])
   @@map("ai_usage_logs")
+}
+
+enum GeneratedDocumentType {
+  REPORT
+  CONTRACT
+  PAYSLIP
+  OTHER
+}
+
+model GeneratedDocument {
+  id         String                @id @default(uuid()) @db.Uuid
+  companyId  String                @db.Uuid
+  type       GeneratedDocumentType
+  title      String
+  
+  storageKey String                @unique
+  sha256     String
+  sizeBytes  Int
+  
+  metadata   Json?                 @db.JsonB
+  
+  createdBy  String?               @db.Uuid
+  createdAt  DateTime              @default(now())
+
+  company    Company               @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  author     User?                 @relation(fields: [createdBy], references: [id], onDelete: SetNull)
+
+  @@index([companyId, type])
+  @@index([createdAt])
 }
