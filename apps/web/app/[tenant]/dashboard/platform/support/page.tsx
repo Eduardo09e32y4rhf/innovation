@@ -92,61 +92,7 @@ export default function PlatformSupportPage() {
       setTickets(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Failed to load platform tickets', error);
-      // Dados de demonstração visuais se API não estiver acessível
-      setTickets([
-        {
-          id: 'tkt-1',
-          ticketNumber: 'SUP-2026-0001',
-          subject: 'Erro na emissão em lote de holerites para filial SP',
-          title: 'Erro na emissão em lote de holerites para filial SP',
-          description: 'Ao tentar processar a folha de pagamento da unidade de São Paulo, o sistema exibe erro de tempo de limite (timeout) após processar cerca de 150 colaboradores.',
-          status: 'OPEN',
-          priority: 'CRITICAL',
-          createdAt: new Date(Date.now() - 3600000 * 3).toISOString(),
-          updatedAt: new Date(Date.now() - 3600000).toISOString(),
-          resolutionDueAt: new Date(Date.now() + 3600000).toISOString(),
-          slaBreached: false,
-          company: { id: 'c1', name: 'Acme Consultoria RH', document: '12.345.678/0001-90' },
-          createdBy: { id: 'u1', name: 'Carla Dias (RH)', email: 'carla@acme.com', role: 'RH' },
-          messages: [
-            { id: 'm1', ticketId: 'tkt-1', authorUserId: 'u1', message: 'Por favor verifiquem, precisamos liberar os holerites hoje até as 17h!', visibility: 'PUBLIC', createdAt: new Date(Date.now() - 3600000 * 2).toISOString(), author: { name: 'Carla Dias (RH)' } },
-            { id: 'm2', ticketId: 'tkt-1', authorUserId: 'dev-1', message: 'Investigando o log do worker de PDF. Parece gargalo de memória na fila Redis.', visibility: 'INTERNAL', createdAt: new Date(Date.now() - 3600000 * 1.5).toISOString(), author: { name: 'Engenharia DEV' } }
-          ]
-        },
-        {
-          id: 'tkt-2',
-          ticketNumber: 'SUP-2026-0002',
-          subject: 'Ajuste na regra de banco de horas - DSR em feriados regionais',
-          title: 'Ajuste na regra de banco de horas - DSR em feriados regionais',
-          description: 'Gostaríamos de alterar a regra de cálculo do DSR para considerar feriados municipais como 100% no banco de horas automaticamente.',
-          status: 'WAITING_CUSTOMER',
-          priority: 'NORMAL',
-          createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-          updatedAt: new Date(Date.now() - 3600000 * 5).toISOString(),
-          resolutionDueAt: new Date(Date.now() + 86400000).toISOString(),
-          assignedTo: { id: 'dev-1', name: 'Eduardo (DEV)' },
-          company: { id: 'c2', name: 'TechSolutions Brasil', document: '98.765.432/0001-10' },
-          createdBy: { id: 'u2', name: 'Marcos Gestor', email: 'marcos@techsolutions.com', role: 'GESTOR' },
-          messages: [
-            { id: 'm3', ticketId: 'tkt-2', authorUserId: 'dev-1', message: 'Enviamos o modelo de configuração de feriados municipais para validação do RH. Aguardando de acordo.', visibility: 'PUBLIC', createdAt: new Date(Date.now() - 3600000 * 5).toISOString(), author: { name: 'Eduardo (DEV)' } }
-          ]
-        },
-        {
-          id: 'tkt-3',
-          ticketNumber: 'SUP-2026-0003',
-          subject: 'Instabilidade momentânea ao gerar relatório CSV da RAIS',
-          title: 'Instabilidade momentânea ao gerar relatório CSV da RAIS',
-          description: 'O download do relatório CSV trava em 99%.',
-          status: 'NEW',
-          priority: 'HIGH',
-          createdAt: new Date(Date.now() - 3600000 * 5).toISOString(),
-          updatedAt: new Date(Date.now() - 3600000 * 5).toISOString(),
-          resolutionDueAt: new Date(Date.now() - 1800000).toISOString(),
-          slaBreached: true,
-          company: { id: 'c3', name: 'Indústrias Metalmecânicas S/A', document: '45.123.890/0001-55' },
-          createdBy: { id: 'u3', name: 'Ana Coordenadora', email: 'ana@metal.com', role: 'ADMIN' }
-        }
-      ]);
+      setTickets([]);
     } finally {
       setLoading(false);
     }
