@@ -6,7 +6,7 @@ Um sistema corporativo *premium* e completo para Gestão de Recursos Humanos, co
 
 ---
 
-## 🆕 Últimas Atualizações (V. 25-07-2026 - 1.0.5.9 | Commit: 34c45fe7)
+## 🆕 Últimas Atualizações (V. 25-07-2026 - 1.0.5.9 | Commit: a93d7e40)
 
 - **Módulo de Suporte & SLA Scheduler:** Integração do módulo completo de atendimento e suporte técnico com agendador automático de SLAs e tabelas (`SupportTicket`, mensagens e anexos) sincronizadas no banco de dados.
 - **Correção Crítica de Autenticação (P0):** Resolução definitiva do loop de deslogamento instantâneo após login no painel, implementando memoização de sessão (`useCallback`) e sanitização de dependências na tela de login.
