@@ -1,9 +1,10 @@
-import { Controller, Get, Post, Body, Patch, Param, UseGuards, Req } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Query, UseGuards, Req } from '@nestjs/common';
 import { SupportService } from './support.service';
 import { SupportRepository } from './support.repository';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { SupportAuthorizationService } from './support-authorization.service';
 import { SupportTicketPriority, SupportTicketStatus } from '@prisma/client';
+import { ListSupportTicketsQueryDto } from './dto/list-support-tickets-query.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('platform/support')
@@ -32,9 +33,9 @@ export class PlatformSupportController {
   }
 
   @Get('tickets')
-  async listTickets(@Req() req: any) {
+  async listTickets(@Req() req: any, @Query() query: ListSupportTicketsQueryDto) {
     this.authService.assertCanManageTicket(req.user);
-    return this.supportService.listTickets(req.user);
+    return this.supportService.listTickets(req.user, query);
   }
 
   @Get('tickets/:id')

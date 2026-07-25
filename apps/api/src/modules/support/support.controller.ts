@@ -1,8 +1,9 @@
-import { Controller, Get, Post, Body, Param, UseGuards, Req } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Query, UseGuards, Req } from '@nestjs/common';
 import { SupportService } from './support.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CreateSupportTicketDto } from './dto/create-support-ticket.dto';
 import { AddSupportMessageDto } from './dto/add-support-message.dto';
+import { ListSupportTicketsQueryDto } from './dto/list-support-tickets-query.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('support')
@@ -21,8 +22,8 @@ export class SupportController {
   }
 
   @Get('tickets')
-  async listTickets(@Req() req: any) {
-    return this.supportService.listTickets(req.user);
+  async listTickets(@Req() req: any, @Query() query: ListSupportTicketsQueryDto) {
+    return this.supportService.listTickets(req.user, query);
   }
 
   @Get('tickets/:id')

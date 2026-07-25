@@ -11,7 +11,7 @@ const display = Space_Grotesk({ subsets: ['latin'], weight: ['500', '700'] });
 export default function SuportePage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [category, setCategory] = useState('LOGIN_ISSUE');
+  const [category, setCategory] = useState('ACCESS');
   const [subject, setSubject] = useState('');
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
@@ -54,7 +54,7 @@ export default function SuportePage() {
   const handleReset = () => {
     setName('');
     setEmail('');
-    setCategory('LOGIN_ISSUE');
+    setCategory('ACCESS');
     setSubject('');
     setDescription('');
     setSuccessTicket(null);
@@ -173,9 +173,9 @@ export default function SuportePage() {
                   onChange={(e) => setCategory(e.target.value)}
                   className="w-full bg-black/40 border border-white/15 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition-all"
                 >
-                  <option value="LOGIN_ISSUE" className="bg-[#0a1526]">🔐 Problema no Login ou Senha</option>
-                  <option value="SYSTEM_BUG" className="bg-[#0a1526]">🐞 Erro Técnico ou Instabilidade</option>
-                  <option value="FINANCIAL" className="bg-[#0a1526]">💳 Faturamento, Assinatura ou Plano</option>
+                  <option value="ACCESS" className="bg-[#0a1526]">🔐 Problema no Login ou Senha</option>
+                  <option value="BUG" className="bg-[#0a1526]">🐞 Erro Técnico ou Instabilidade</option>
+                  <option value="BILLING" className="bg-[#0a1526]">💳 Faturamento, Assinatura ou Plano</option>
                   <option value="OTHER" className="bg-[#0a1526]">💬 Outras Dúvidas ou Solicitações</option>
                 </select>
               </div>

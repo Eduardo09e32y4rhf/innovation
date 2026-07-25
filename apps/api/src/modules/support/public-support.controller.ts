@@ -2,6 +2,7 @@ import { Controller, Post, Body, Req } from '@nestjs/common';
 import { SupportRepository } from './support.repository';
 import { SupportSlaService } from './support-sla.service';
 import { PrismaService } from '../../database/prisma.service';
+import { CreatePublicSupportTicketDto } from './dto/create-public-support-ticket.dto';
 
 @Controller('support/public')
 export class PublicSupportController {
@@ -12,7 +13,7 @@ export class PublicSupportController {
   ) {}
 
   @Post('tickets')
-  async createTicket(@Body() data: any, @Req() req: any) {
+  async createTicket(@Body() data: CreatePublicSupportTicketDto, @Req() req: any) {
     const year = new Date().getFullYear();
     const ticketNumber = await this.repository.generateTicketNumber(year);
     const { firstResponseDueAt, resolutionDueAt } = this.slaService.calculateDueDates('NORMAL');

@@ -738,7 +738,11 @@ export const api = {
   },
   
   support: {
-    list: (status?: string) => request<any[]>(`/support/tickets${status ? `?status=${status}` : ''}`),
+    stats: () => request<{ open: number; resolved: number; closed: number }>('/support/stats'),
+    list: (params?: any) => {
+      const query = typeof params === 'string' ? { status: params } : (params || {});
+      return request<any[]>(`/support/tickets${makeQuery(query)}`);
+    },
     get: (id: string) => request<any>(`/support/tickets/${id}`),
     create: (data: any) => request<any>('/support/tickets', { method: 'POST', body: data }),
     reply: (id: string, data: any) => request<any>(`/support/tickets/${id}/messages`, { method: 'POST', body: data }),
@@ -747,6 +751,7 @@ export const api = {
   },
 
   platformSupport: {
+    stats: () => request<any>('/platform/support/stats'),
     list: (params?: any) => request<any[]>(`/platform/support/tickets${makeQuery(params || {})}`),
     get: (id: string) => request<any>(`/platform/support/tickets/${id}`),
     reply: (id: string, data: any) => request<any>(`/platform/support/tickets/${id}/messages`, { method: 'POST', body: data }),
@@ -759,6 +764,7 @@ export const api = {
 
   publicSupport: {
     createTicket: (data: any) => request<{ success: boolean; message: string; ticketNumber: string }>('/support/public/tickets', { method: 'POST', body: data }),
+    passwordReset: (data: any) => request<{ success: boolean; message: string; ticketNumber: string }>('/support/public/password-reset', { method: 'POST', body: data }),
   },
 };
 

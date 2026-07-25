@@ -31,6 +31,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './apps/api/src'),
+      '@prisma/client': path.resolve(__dirname, './apps/api/node_modules/@prisma/client'),
     },
   },
 });
