@@ -1940,3 +1940,21 @@ model SupportTicketCounter {
   lastNumber Int      @default(0)
   updatedAt  DateTime @updatedAt
 }
+
+model AiUsageLog {
+  id               String   @id @default(cuid())
+  tenantId         String
+  actorId          String?
+  model            String
+  feature          String
+  promptTokens     Int
+  completionTokens Int
+  totalTokens      Int
+  estimatedCostUsd Float    @default(0)
+  source           String   @default("OPENAI")
+  createdAt        DateTime @default(now())
+
+  @@index([tenantId, createdAt])
+  @@index([tenantId, feature])
+  @@map("ai_usage_logs")
+}

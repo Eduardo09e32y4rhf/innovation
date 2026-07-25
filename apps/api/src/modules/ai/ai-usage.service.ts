@@ -1,44 +1,88 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { PrismaService } from '../../database/prisma.service';
 
 export interface UsageRecord {
   tenantId: string;
   actorId?: string;
+  model?: string;
+  feature?: string;
   promptTokens: number;
   completionTokens: number;
   totalTokens: number;
+  estimatedCostUsd?: number;
+  source?: string;
   timestamp: Date;
 }
 
 @Injectable()
 export class AiUsageService {
   private readonly logger = new Logger(AiUsageService.name);
-  private usageRecords: UsageRecord[] = [];
   private monthlyBudgetTokens: number;
 
-  constructor(private readonly configService: ConfigService) {
-    // Orçamento padrão mensal de tokens (ex: 500.000 tokens por mês por tenant)
-    this.monthlyBudgetTokens = parseInt(this.configService.get<string>('OPENAI_MONTHLY_BUDGET') || '500000', 10);
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly prisma: PrismaService,
+  ) {
+    // Orçamento padrão mensal de tokens (ex: 500.000 tokens por mês)
+    this.monthlyBudgetTokens = parseInt(
+      this.configService.get<string>('OPENAI_MONTHLY_BUDGET') || '500000',
+      10,
+    );
   }
 
   /**
-   * Registra o consumo de tokens e verifica se o orçamento do mês foi ultrapassado.
+   * Registra o consumo de tokens no banco de dados (tabela ai_usage_logs).
+   * Verifica se o orçamento mensal do tenant foi ultrapassado.
+   *
+   * @returns true se dentro do orçamento, false se estourou
    */
-  public recordUsage(tenantId: string, promptTokens: number, completionTokens: number, actorId?: string): boolean {
+  public async recordUsage(
+    tenantId: string,
+    promptTokens: number,
+    completionTokens: number,
+    options: {
+      actorId?: string;
+      model?: string;
+      feature?: string;
+      estimatedCostUsd?: number;
+      source?: string;
+    } = {},
+  ): Promise<boolean> {
     const totalTokens = promptTokens + completionTokens;
-
-    this.usageRecords.push({
-      tenantId: tenantId || 'GLOBAL',
+    const {
       actorId,
-      promptTokens,
-      completionTokens,
-      totalTokens,
-      timestamp: new Date(),
-    });
+      model = 'gpt-4o-mini',
+      feature = 'unknown',
+      estimatedCostUsd = 0,
+      source = 'OPENAI',
+    } = options;
 
-    const currentMonthUsage = this.getMonthlyUsage(tenantId);
+    try {
+      await this.prisma.aiUsageLog.create({
+        data: {
+          tenantId: tenantId || 'GLOBAL',
+          actorId,
+          model,
+          feature,
+          promptTokens,
+          completionTokens,
+          totalTokens,
+          estimatedCostUsd,
+          source,
+        },
+      });
+    } catch (err) {
+      // Não bloquear a chamada de IA por falha de log — apenas registrar
+      this.logger.error(`[AI Usage] Falha ao persistir log de uso para tenant ${tenantId}`, err);
+    }
+
+    const currentMonthUsage = await this.getMonthlyUsage(tenantId);
     if (currentMonthUsage > this.monthlyBudgetTokens) {
-      this.logger.warn(`[AI Budget Exceeded] Tenant ${tenantId} ultrapassou o orçamento mensal (${currentMonthUsage} / ${this.monthlyBudgetTokens} tokens).`);
+      this.logger.warn(
+        `[AI Budget Exceeded] Tenant ${tenantId} ultrapassou o orçamento mensal ` +
+          `(${currentMonthUsage} / ${this.monthlyBudgetTokens} tokens).`,
+      );
       return false; // Orçamento estourado
     }
 
@@ -47,37 +91,46 @@ export class AiUsageService {
 
   /**
    * Retorna o total de tokens consumidos no mês corrente para um tenant ou global.
+   * Lê direto do banco — não usa cache em memória.
    */
-  public getMonthlyUsage(tenantId?: string): number {
+  public async getMonthlyUsage(tenantId?: string): Promise<number> {
     const now = new Date();
-    const currentMonth = now.getMonth();
-    const currentYear = now.getFullYear();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
 
-    return this.usageRecords
-      .filter((r) => {
-        const isSameMonth = r.timestamp.getMonth() === currentMonth && r.timestamp.getFullYear() === currentYear;
-        if (!tenantId) return isSameMonth;
-        return isSameMonth && (r.tenantId === tenantId || r.tenantId === 'GLOBAL');
-      })
-      .reduce((acc, curr) => acc + curr.totalTokens, 0);
+    const where: Record<string, unknown> = {
+      createdAt: { gte: startOfMonth, lte: endOfMonth },
+    };
+
+    if (tenantId) {
+      where.tenantId = { in: [tenantId, 'GLOBAL'] };
+    }
+
+    const result = await this.prisma.aiUsageLog.aggregate({
+      where,
+      _sum: { totalTokens: true },
+    });
+
+    return result._sum.totalTokens ?? 0;
   }
 
   /**
    * Verifica se o tenant está liberado para consumir a API da OpenAI.
    */
-  public isBudgetAvailable(tenantId?: string): boolean {
-    return this.getMonthlyUsage(tenantId) < this.monthlyBudgetTokens;
+  public async isBudgetAvailable(tenantId?: string): Promise<boolean> {
+    const used = await this.getMonthlyUsage(tenantId);
+    return used < this.monthlyBudgetTokens;
   }
 
   /**
    * Retorna estatísticas gerais de uso para exibição no console de operações.
    */
-  public getUsageSummary() {
+  public async getUsageSummary(tenantId?: string) {
+    const currentMonthConsumed = await this.getMonthlyUsage(tenantId);
     return {
       monthlyBudgetTokens: this.monthlyBudgetTokens,
-      currentMonthConsumed: this.getMonthlyUsage(),
-      remainingBudget: Math.max(0, this.monthlyBudgetTokens - this.getMonthlyUsage()),
-      totalRequestsRecorded: this.usageRecords.length,
+      currentMonthConsumed,
+      remainingBudget: Math.max(0, this.monthlyBudgetTokens - currentMonthConsumed),
     };
   }
 }

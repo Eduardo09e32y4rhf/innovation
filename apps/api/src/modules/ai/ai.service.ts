@@ -124,7 +124,7 @@ export class AiService {
           tenantId,
           response.usage.prompt_tokens || 0,
           response.usage.completion_tokens || 0,
-          options?.actorId,
+          { actorId: options?.actorId },
         );
       }
 
