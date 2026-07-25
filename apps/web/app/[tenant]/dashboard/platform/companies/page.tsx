@@ -12,8 +12,6 @@ import { formatDate } from '@/app/lib/format';
 import { normalizeDisplayName } from '@/app/lib/text';
 
 import { NewCompanyModal } from '../_components/new-company-modal';
-import { CompanyUsersModal } from '../_components/company-users-modal';
-import { CompanyManageModal } from '../_components/company-manage-modal';
 import { PlatformStats } from '../_components/platform-stats';
 import { CompanyActionMenu } from '../_components/company-action-menu';
 
@@ -28,8 +26,6 @@ export default function CompaniesPage() {
   const companies = useQuery(() => api.platform.listCompanies(), []);
   
   const [open, setOpen] = useState(false);
-  const [usersCompany, setUsersCompany] = useState<PlatformCompany | null>(null);
-  const [licenseCompany, setLicenseCompany] = useState<PlatformCompany | null>(null);
   const [search, setSearch] = useState('');
 
   const toggleActive = useMutation(
@@ -42,11 +38,6 @@ export default function CompaniesPage() {
     onSuccess: () => { companies.refetch(); stats.refetch(); },
   });
 
-  const updateLicense = useMutation(
-    ({ id, ...payload }: any) =>
-      api.platform.updateCompany(id, payload),
-    { onSuccess: () => { companies.refetch(); stats.refetch(); setLicenseCompany(null); } },
-  );
 
   function canManageCompanyUsers(c: PlatformCompany) {
     if (isSuperAdmin) return true;
@@ -182,8 +173,6 @@ export default function CompaniesPage() {
                             canManageUsers={canManageCompanyUsers(c)}
                             canManageLicenses={canManageLicenses(c)}
                             status={status}
-                            onManageUsers={() => setUsersCompany(c)}
-                            onManageLicense={() => setLicenseCompany(c)}
                             onToggleStatus={() => handleToggle(c)}
                             onDelete={() => handleDelete(c)}
                             loadingToggle={toggleActive.loading}
@@ -209,21 +198,6 @@ export default function CompaniesPage() {
 
       {open && (
         <NewCompanyModal onClose={() => setOpen(false)} onDone={() => { setOpen(false); companies.refetch(); stats.refetch(); }} />
-      )}
-      {usersCompany && (
-        <CompanyUsersModal company={usersCompany} onClose={() => setUsersCompany(null)} />
-      )}
-      {licenseCompany && (
-        <CompanyManageModal
-          company={licenseCompany}
-          onClose={() => setLicenseCompany(null)}
-          onSave={(data) => {
-            const { plan: selectedPlanId, name, document: cnpj, ...rest } = data;
-            updateLicense.mutate({ id: licenseCompany.id, name, document: cnpj, platformPlanId: selectedPlanId, ...rest }).catch(() => {});
-          }}
-          loading={updateLicense.loading}
-          error={updateLicense.error}
-        />
       )}
     </div>
   );

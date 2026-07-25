@@ -12,8 +12,6 @@ interface CompanyActionMenuProps {
   canManageUsers: boolean;
   canManageLicenses: boolean;
   status: string;
-  onManageUsers: () => void;
-  onManageLicense: () => void;
   onToggleStatus: () => void;
   onDelete: () => void;
   loadingToggle: boolean;
@@ -27,8 +25,6 @@ export function CompanyActionMenu({
   canManageUsers,
   canManageLicenses,
   status,
-  onManageUsers,
-  onManageLicense,
   onToggleStatus,
   onDelete,
   loadingToggle,
@@ -60,32 +56,34 @@ export function CompanyActionMenu({
         <div className="absolute right-0 z-[100] mt-1 w-48 origin-top-right rounded-[10px] border border-slate-200 bg-white p-1 shadow-2xl ring-1 ring-black ring-opacity-5">
           <div className="flex flex-col">
             <Link 
-              href={`/${tenant}/dashboard/platform/${company.id}`} 
+              href={`/${tenant}/dashboard/platform/${company.id}?tab=general`} 
               className="flex items-center gap-2 rounded-[6px] px-3 py-2 text-[11px] font-semibold text-slate-700 hover:bg-slate-50"
               onClick={() => setOpen(false)}
             >
               <FileText size={14} className="text-slate-400" />
-              Detalhes
+              Detalhes & Resumo
             </Link>
 
             {canManageUsers && (
-              <button 
-                onClick={() => { setOpen(false); onManageUsers(); }} 
+              <Link 
+                href={`/${tenant}/dashboard/platform/${company.id}?tab=users`} 
+                onClick={() => setOpen(false)} 
                 className="flex w-full items-center gap-2 rounded-[6px] px-3 py-2 text-left text-[11px] font-semibold text-slate-700 hover:bg-slate-50"
               >
                 <Users size={14} className="text-slate-400" />
-                Usuários
-              </button>
+                Usuários da Empresa
+              </Link>
             )}
 
             {canManageLicenses && (
-              <button 
-                onClick={() => { setOpen(false); onManageLicense(); }} 
+              <Link 
+                href={`/${tenant}/dashboard/platform/${company.id}?tab=subscription`} 
+                onClick={() => setOpen(false)} 
                 className="flex w-full items-center gap-2 rounded-[6px] px-3 py-2 text-left text-[11px] font-semibold text-slate-700 hover:bg-slate-50"
               >
                 <Settings size={14} className="text-slate-400" />
-                Gerenciar Licença
-              </button>
+                Assinatura & Plano
+              </Link>
             )}
 
             {isSuperAdmin && (

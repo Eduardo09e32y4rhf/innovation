@@ -5,46 +5,68 @@ export const PLATFORM_NAV_GROUPS: PlatformNavGroup[] = [
   {
     key: 'overview',
     label: 'Visão Geral',
-    items: [{ label: 'Central', href: '' }],
+    items: [{ label: 'Console Operacional', href: '' }],
   },
   {
-    key: 'operations',
-    label: 'Operações',
+    key: 'clients',
+    label: 'Clientes',
     items: [
-      { label: 'Empresas', href: '/companies' },
-      { label: 'Acessos', href: '/access' },
-      { label: 'Auditoria', href: '/audit' },
+      { label: 'Empresas Clientes', href: '/companies' },
+      { label: 'Acessos DEV', href: '/access' },
     ],
   },
   {
     key: 'finance',
     label: 'Financeiro',
     items: [
-      { label: 'Faturamento', href: '/finance' },
-      { label: 'Propostas', href: '/proposals' },
-      { label: 'Contratos', href: '/contracts' },
-      { label: 'Assinaturas', href: '/subscriptions' },
+      { label: 'Faturamento & Cobranças', href: '/finance' },
+      { label: 'Assinaturas Asaas', href: '/subscriptions' },
     ],
   },
   {
-    key: 'products',
-    label: 'Produtos',
+    key: 'commercial',
+    label: 'Comercial',
     items: [
-      { label: 'Planos', href: '/plans' },
-      { label: 'Cupons', href: '/coupons' },
+      { label: 'Propostas Comerciais', href: '/proposals' },
+      { label: 'Contratos Digitais', href: '/contracts' },
+      { label: 'Planos & Preços', href: '/plans' },
+      { label: 'Cupons de Desconto', href: '/coupons' },
     ],
   },
   {
-    key: 'communication',
-    label: 'Comunicação',
+    key: 'operations',
+    label: 'Operações',
     items: [
-      { label: 'WhatsApp', href: '/whatsapp' },
+      { label: 'Central de Suporte DEV', href: '/support' },
+      { label: 'Log de Auditoria', href: '/audit' },
+    ],
+  },
+  {
+    key: 'intelligence',
+    label: 'Inteligência',
+    items: [
+      { label: 'Análise de Risco IA', href: '/intelligence' },
+    ],
+  },
+  {
+    key: 'settings',
+    label: 'Configurações',
+    items: [
+      { label: 'Comunicação WhatsApp', href: '/whatsapp' },
+      { label: 'Permissões Globais', href: '/permissions' },
     ],
   },
 ];
 
-// Regra herdada do layout.tsx antigo: usuários COMERCIAL só enxergam Central, Empresas e Propostas.
-const COMERCIAL_ALLOWED_LABELS = new Set(['Central', 'Empresas', 'Propostas']);
+// Usuários COMERCIAL enxergam apenas Visão Geral, Empresas, Financeiro (escopado) e Comercial.
+const COMERCIAL_ALLOWED_LABELS = new Set([
+  'Console Operacional', 
+  'Empresas Clientes', 
+  'Faturamento & Cobranças', 
+  'Propostas Comerciais', 
+  'Contratos Digitais', 
+  'Planos & Preços'
+]);
 
 export function getPlatformNavGroups(role: string): PlatformNavGroup[] {
   if (role === 'DEV') return PLATFORM_NAV_GROUPS;

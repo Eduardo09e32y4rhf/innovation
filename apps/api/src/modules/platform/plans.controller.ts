@@ -16,6 +16,7 @@ export class PlatformPlansController {
   }
 
   @Post()
+  @Roles('DEV')
   create(@Body() body: any) {
     return this.service.create(body);
   }
@@ -26,18 +27,21 @@ export class PlatformPlansController {
   }
 
   @Patch(':id')
+  @Roles('DEV')
   update(@Param('id') id: string, @Body() body: any) {
     return this.service.update(id, body);
   }
 
   /** Soft-delete: desativa o plano (não remove do banco) */
   @Delete(':id')
+  @Roles('DEV')
   deactivate(@Param('id') id: string) {
     return this.service.deactivate(id);
   }
 
   /** Hard-delete: remove permanentemente (só funciona se o plano já estiver inativo) */
   @Delete(':id/permanent')
+  @Roles('DEV')
   deletePermanent(@Param('id') id: string) {
     return this.service.deletePermanent(id);
   }

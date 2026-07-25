@@ -16,8 +16,13 @@ const safeUserSelect = {
 export class PlatformRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async listCompanies() {
+  async listCompanies(actor?: any) {
+    const where: any = {};
+    if (actor && actor.role === 'COMERCIAL') {
+      where.commercialOwnerId = actor.sub;
+    }
     const companies = await this.prisma.company.findMany({
+      where,
       orderBy: { createdAt: 'desc' },
       include: {
         subscription: true,
@@ -172,15 +177,19 @@ export class PlatformRepository {
     });
   }
 
-  async globalStats() {
+  async globalStats(actor?: any) {
+    const whereCompany: any = {};
+    if (actor && actor.role === 'COMERCIAL') {
+      whereCompany.commercialOwnerId = actor.sub;
+    }
     const [companies, users, employees, messages, activeCompanies, suspendedCompanies, pastDueCompanies] = await Promise.all([
-      this.prisma.company.count(),
-      this.prisma.user.count(),
-      this.prisma.employee.count(),
+      this.prisma.company.count({ where: whereCompany }),
+      this.prisma.user.count({ where: actor?.role === 'COMERCIAL' ? { company: whereCompany } : undefined }),
+      this.prisma.employee.count({ where: actor?.role === 'COMERCIAL' ? { company: whereCompany } : undefined }),
       this.prisma.message.count(),
-      this.prisma.company.count({ where: { status: 'ACTIVE' } }),
-      this.prisma.company.count({ where: { status: 'SUSPENDED' } }),
-      this.prisma.company.count({ where: { billingStatus: 'PAST_DUE' } }),
+      this.prisma.company.count({ where: { ...whereCompany, status: 'ACTIVE' } }),
+      this.prisma.company.count({ where: { ...whereCompany, status: 'SUSPENDED' } }),
+      this.prisma.company.count({ where: { ...whereCompany, billingStatus: 'PAST_DUE' } }),
     ]);
     return { companies, users, employees, messages, activeCompanies, suspendedCompanies, pastDueCompanies };
   }

@@ -17,13 +17,13 @@ export class PlatformController {
   constructor(private readonly service: PlatformService) {}
 
   @Get('stats')
-  stats() {
-    return this.service.stats();
+  stats(@CurrentUser() actor: JwtUser) {
+    return this.service.stats(actor);
   }
 
   @Get('companies')
-  listCompanies() {
-    return this.service.listCompanies();
+  listCompanies(@CurrentUser() actor: JwtUser) {
+    return this.service.listCompanies(actor);
   }
 
   @Get('online-users')
@@ -74,13 +74,13 @@ export class PlatformController {
   }
 
   @Get('companies/:id/audit-logs')
-  companyAuditLogs(@Param('id') id: string) {
-    return this.service.companyAuditLogs(id);
+  companyAuditLogs(@CurrentUser() actor: JwtUser, @Param('id') id: string) {
+    return this.service.companyAuditLogs(id, actor);
   }
 
   @Get('companies/:id')
-  getCompany(@Param('id') id: string) {
-    return this.service.getCompany(id);
+  getCompany(@CurrentUser() actor: JwtUser, @Param('id') id: string) {
+    return this.service.getCompany(id, actor);
   }
 
   @Post('companies')

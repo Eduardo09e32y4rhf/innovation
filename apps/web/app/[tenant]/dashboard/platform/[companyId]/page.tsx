@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import {
   Activity,
   ArrowLeft,
@@ -17,6 +18,9 @@ import {
   ShieldAlert,
   Users,
   X,
+  Settings,
+  FolderOpen,
+  HelpCircle,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { ErrorState, LoadingState } from '@/app/components/data-states';
@@ -47,8 +51,15 @@ function date(value?: string | null) {
 
 export default function CompanyDetailPage({ params }: { params: { tenant: string; companyId: string } }) {
   const { user } = useAuth();
+  const searchParams = useSearchParams();
+  const initialTab = (searchParams?.get('tab') as any) || 'general';
   const role = user?.profile?.toUpperCase();
-  const [tab, setTab] = useState<'general' | 'users' | 'finance' | 'logs'>('general');
+  const [tab, setTab] = useState<'general' | 'subscription' | 'finance' | 'users' | 'documents' | 'support' | 'logs'>(initialTab);
+  
+  useEffect(() => {
+    const paramTab = searchParams?.get('tab') as any;
+    if (paramTab) setTab(paramTab);
+  }, [searchParams]);
   const [creatingCheckout, setCreatingCheckout] = useState(false);
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
   const [invoiceForm, setInvoiceForm] = useState({ amount: '', description: '', dueDate: '' });
@@ -148,17 +159,82 @@ export default function CompanyDetailPage({ params }: { params: { tenant: string
 
       <nav className="flex gap-5 overflow-x-auto border-b border-slate-200">
         {[
-          ['general', 'Visao geral', Building2],
-          ['users', 'Usuarios', Users],
+          ['general', 'Resumo', Building2],
+          ['subscription', 'Assinatura', Settings],
           ['finance', 'Financeiro', CreditCard],
-          ['logs', 'Historico', Activity],
-        ].map(([id, label, Icon]: any) => <button key={id} onClick={() => setTab(id)} className={`inline-flex items-center gap-2 whitespace-nowrap border-b-2 px-1 py-3 text-xs font-black ${tab === id ? 'border-teal-600 text-slate-950' : 'border-transparent text-slate-400 hover:text-slate-700'}`}><Icon size={14} /> {label}</button>)}
+          ['users', 'Usuários', Users],
+          ['documents', 'Documentos', FolderOpen],
+          ['support', 'Chamados', HelpCircle],
+          ['logs', 'Auditoria', Activity],
+        ].map(([id, label, Icon]: any) => <button key={id} onClick={() => setTab(id)} className={`inline-flex items-center gap-2 whitespace-nowrap border-b-2 px-1 py-3 text-xs font-black transition-all ${tab === id ? 'border-violet-600 text-slate-950 font-extrabold' : 'border-transparent text-slate-400 hover:text-slate-700'}`}><Icon size={14} className={tab === id ? 'text-violet-600' : ''} /> {label}</button>)}
       </nav>
 
       {tab === 'general' && (
         <section className="grid gap-5 lg:grid-cols-2">
           <div className="rounded-[14px] border border-slate-200 bg-white p-5 shadow-sm"><h2 className="text-sm font-black text-slate-900">Dados da empresa</h2><dl className="mt-5 grid grid-cols-2 gap-4 text-xs"><Info label="Nome" value={item.name} /><Info label="Documento" value={item.document || '-'} /><Info label="Criada em" value={date(item.createdAt)} /><Info label="Plano" value={item.plan || 'FREE'} /><Info label="Status financeiro" value={item.billingStatus || 'TRIAL'} /><Info label="Motivo bloqueio" value={item.suspensionReason || '-'} /></dl></div>
-          <div className="rounded-[14px] border border-slate-200 bg-slate-950 p-5 text-white shadow-sm"><h2 className="text-sm font-black">Integração Asaas</h2><dl className="mt-5 space-y-4 text-xs"><InfoDark label="Customer ID" value={item.asaasCustomerId || 'Ainda não criado'} /><InfoDark label="Subscription ID" value={item.asaasSubscriptionId || 'Ainda não criada'} /></dl><p className="mt-5 text-xs leading-relaxed text-slate-400">O pagamento confirmado ativa a empresa. Faturas recorrentes vencidas entram em carência e depois suspendem o acesso automaticamente.</p></div>
+          <div className="rounded-[14px] border border-slate-200 bg-slate-950 p-5 text-white shadow-sm">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-black">Integração Asaas (Somente Leitura)</h2>
+              <span className="text-[9px] font-bold uppercase tracking-wider bg-teal-500/20 text-teal-300 px-2 py-0.5 rounded border border-teal-500/30">Gateway Gerenciado</span>
+            </div>
+            <dl className="mt-5 space-y-4 text-xs"><InfoDark label="Customer ID (Imutável no console)" value={item.asaasCustomerId || 'Ainda não vinculado'} /><InfoDark label="Subscription ID (Imutável no console)" value={item.asaasSubscriptionId || 'Ainda não gerada'} /></dl>
+            <p className="mt-5 text-xs leading-relaxed text-slate-400">Os identificadores financeiros do Asaas são vinculados estritamente via webhook e API pelo servidor. Operações manuais na UI são bloqueadas para garantir consistência financeira e auditoria.</p>
+          </div>
+        </section>
+      )}
+
+      {tab === 'subscription' && (
+        <section className="rounded-[14px] border border-slate-200 bg-white p-6 shadow-sm space-y-6">
+          <div className="border-b border-slate-100 pb-4">
+            <h3 className="text-base font-black text-slate-900">Gestão de Licenciamento & Assinatura</h3>
+            <p className="text-xs text-slate-500 mt-1">Controle de planos, limites de usuários e módulos ativos.</p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
+              <span className="text-xs font-bold text-slate-400 block mb-1">Plano Atual</span>
+              <span className="text-lg font-black text-violet-700">{item.plan || 'FREE'}</span>
+            </div>
+            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
+              <span className="text-xs font-bold text-slate-400 block mb-1">Limite de Usuários</span>
+              <span className="text-lg font-black text-slate-900">{item.maxUsers || 5}</span>
+            </div>
+            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
+              <span className="text-xs font-bold text-slate-400 block mb-1">Limite de Funcionários</span>
+              <span className="text-lg font-black text-slate-900">{item.maxEmployees || 50}</span>
+            </div>
+          </div>
+          {role === 'DEV' ? (
+            <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800 flex items-center justify-between">
+              <span>Como <b>DEV</b>, você pode alterar os limites de licenciamento via API ou em Configurações de Plano.</span>
+              <Link href={`/${params.tenant}/dashboard/platform/plans`} className="font-bold underline hover:text-amber-950">Ver Planos e Preços</Link>
+            </div>
+          ) : (
+            <div className="p-4 rounded-xl bg-slate-100 text-xs text-slate-600 font-medium">
+              Alterações de plano e limites financeiros são restritas ao perfil de Engenharia/DEV.
+            </div>
+          )}
+        </section>
+      )}
+
+      {tab === 'documents' && (
+        <section className="rounded-[14px] border border-slate-200 bg-white p-8 text-center shadow-sm">
+          <FolderOpen size={36} className="mx-auto text-slate-300 mb-3" />
+          <h3 className="text-sm font-black text-slate-800">Repositório Documental do Cliente</h3>
+          <p className="text-xs text-slate-500 max-w-md mx-auto mt-1">Contratos assinados, propostas comerciais e termos de adesão vinculados a esta empresa.</p>
+          <div className="mt-6 flex justify-center">
+            <Link href={`/${params.tenant}/dashboard/platform/contracts`} className="crystal-button rounded-xl px-4 py-2 text-xs font-black text-white">Ir para Contratos Digitais</Link>
+          </div>
+        </section>
+      )}
+
+      {tab === 'support' && (
+        <section className="rounded-[14px] border border-slate-200 bg-white p-8 text-center shadow-sm">
+          <HelpCircle size={36} className="mx-auto text-indigo-300 mb-3" />
+          <h3 className="text-sm font-black text-slate-800">Histórico de Atendimentos & Tickets</h3>
+          <p className="text-xs text-slate-500 max-w-md mx-auto mt-1">Acompanhe os chamados abertos por usuários desta empresa na central de suporte DEV.</p>
+          <div className="mt-6 flex justify-center">
+            <Link href={`/${params.tenant}/dashboard/platform/support`} className="rounded-xl bg-indigo-600 hover:bg-indigo-700 px-4 py-2 text-xs font-black text-white transition">Acessar Painel DEV de Suporte</Link>
+          </div>
         </section>
       )}
 

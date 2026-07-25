@@ -25,8 +25,17 @@ export class PlatformService {
     private readonly platformFinance: PlatformFinanceService,
   ) {}
 
-  listCompanies() {
-    return this.repository.listCompanies();
+  async listCompanies(actor?: JwtUser) {
+    const companies = await this.repository.listCompanies(actor);
+    if (actor && actor.role !== 'DEV') {
+      return companies.map(c => ({
+        ...c,
+        internalNotes: undefined,
+        asaasCustomerId: c.asaasCustomerId ? '••••••••' : null,
+        asaasSubscriptionId: c.asaasSubscriptionId ? '••••••••' : null,
+      }));
+    }
+    return companies;
   }
 
   getOnlineUsers() {
@@ -85,14 +94,23 @@ export class PlatformService {
     };
   }
 
-  async getCompany(id: string) {
+  async getCompany(id: string, actor?: JwtUser) {
     const company = await this.repository.getCompany(id);
     if (!company) throw new NotFoundException('Empresa nao encontrada');
-    return { ...company, usersCount: company._count.users, employeesCount: company._count.employees };
+    if (actor && actor.role === 'COMERCIAL' && company.commercialOwnerId !== actor.sub) {
+      throw new ForbiddenException('Acesso negado: esta empresa nao esta vinculada a sua carteira comercial.');
+    }
+    const result: any = { ...company, usersCount: company._count.users, employeesCount: company._count.employees };
+    if (actor && actor.role !== 'DEV') {
+      result.internalNotes = undefined;
+      result.asaasCustomerId = result.asaasCustomerId ? '••••••••' : null;
+      result.asaasSubscriptionId = result.asaasSubscriptionId ? '••••••••' : null;
+    }
+    return result;
   }
 
-  async companyAuditLogs(id: string) {
-    await this.getCompany(id);
+  async companyAuditLogs(id: string, actor?: JwtUser) {
+    await this.getCompany(id, actor);
     return this.repository.listCompanyAuditLogs(id);
   }
 
@@ -137,6 +155,9 @@ export class PlatformService {
     const company = await this.getCompany(id);
     if (actor.role === 'COMERCIAL' && company.commercialOwnerId !== actor.sub) {
       throw new ForbiddenException('Comercial so pode alterar empresas sob sua responsabilidade.');
+    }
+    if (actor.role === 'COMERCIAL' && (dto.plan || dto.billingStatus || dto.status || dto.trialEndsAt)) {
+      throw new ForbiddenException('Apenas DEV pode alterar planos, status de cobranca ou suspensao.');
     }
     const status = dto.status;
     const { name, document, plan, billingStatus, trialEndsAt, activeModules, ...rest } = dto;
@@ -262,8 +283,8 @@ export class PlatformService {
     return { deleted: true };
   }
 
-  stats() {
-    return this.repository.globalStats();
+  stats(actor?: JwtUser) {
+    return this.repository.globalStats(actor);
   }
 
   private async assertCanManageCompanyUsers(actor: JwtUser, companyId: string) {

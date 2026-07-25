@@ -6,13 +6,13 @@ Um sistema corporativo *premium* e completo para Gestão de Recursos Humanos, co
 
 ---
 
-## 🆕 Últimas Atualizações (V. 25-07-2026 - 1.0.5.9 | Commit: a93d7e40)
+## 🆕 Últimas Atualizações (V. 25-07-2026 - 1.1.0.0 | Commit: 3418d555)
 
-- **Módulo de Suporte & SLA Scheduler:** Integração do módulo completo de atendimento e suporte técnico com agendador automático de SLAs e tabelas (`SupportTicket`, mensagens e anexos) sincronizadas no banco de dados.
-- **Correção Crítica de Autenticação (P0):** Resolução definitiva do loop de deslogamento instantâneo após login no painel, implementando memoização de sessão (`useCallback`) e sanitização de dependências na tela de login.
-- **Limpeza Geral do Repositório (Git):** Remoção de 17 branches de testes/bots obsoletas e fechamento de PRs pendentes, consolidando 100% da operação e do código de produção em uma única branch estável (`main`).
-- **Recuperação de Banco de Dados e VPS:** Resolução de travamentos do Prisma ORM em produção (`P3009`), padronização das migrations aplicadas no PostgreSQL e otimização do Docker Compose.
-- **Importação e Finanças:** Integração Asaas estabilizada com prevenção anti-bloqueio (Rate Limit) e importação avançada de colaboradores via planilhas Excel (`.xlsx`).
+- **Refatoração Completa do Console Operacional (SaaS Backoffice / Internet Banking):** Transformação visual da aba Plataforma corporativa para estética bancária de alta precisão com faixa financeira (Recebido, Faturado, MRR Estimado, Inadimplência) e bloco canônico de atenção operacional (`Requer sua atenção imediata`).
+- **Navegação Canônica Consolidada (7 Grupos):** Reestruturação da navegação corporativa em 7 grupos canônicos (`Visão Geral`, `Clientes`, `Financeiro`, `Comercial`, `Operações`, `Inteligência`, `Configurações`) com segregação e obfuscação automática de dados sensíveis para perfil `COMERCIAL`.
+- **Tela Única de Empresa (7 Abas):** Consolidação do gerenciamento de tenants em tela canônica exclusiva (`/platform/[companyId]`) com 7 abas (`Resumo`, `Assinatura`, `Financeiro`, `Usuários`, `Documentos`, `Chamados`, `Auditoria`), eliminação de modais flutuantes redundantes e proteção dos identificadores financeiros Asaas como estritamente somente leitura.
+- **Central de Suporte Cliente & DEV (Fases 2 e 5):** Implementação de segregação estrita de visibilidade na Central de Suporte do Cliente (`/dashboard/support`) para ADMIN, RH, GESTOR e FUNCIONARIO, criação do Painel DEV de Suporte (`/platform/support`), e agendador automático de SLAs (`SupportSlaScheduler`).
+- **Endurecimento de Segurança Backend (@Roles DEV):** Restrição de mutações em planos de assinatura, cobranças, faturas e limites de licenciamento exclusivamente à engenharia/DEV, isolando carteiras comerciais por escopo no banco de dados.
 
 ---
 
