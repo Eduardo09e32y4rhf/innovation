@@ -370,7 +370,7 @@ export interface PlatformInvoice {
 }
 export interface PlatformFinanceSummary {
   totals: { billed: number; received: number; open: number; overdue: number; canceled: number };
-  count: number; conversionRate: number;
+  count: number; conversionRate: number; mrr: number;
   monthly: Array<{ month: string; billed: number; received: number }>;
 }
 export interface PlatformInvoiceList {
