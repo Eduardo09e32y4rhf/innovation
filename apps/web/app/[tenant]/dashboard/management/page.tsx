@@ -43,15 +43,15 @@ const ASO_TYPES: { value: string; label: string }[] = [
   { value: 'ADMISSIONAL', label: 'Admissional' },
   { value: 'DEMISSIONAL', label: 'Demissional' },
   { value: 'PERIODICO', label: 'Periódico / Rotina' },
-  { value: 'RETORNO_TRABALHO', label: 'Retorno ao trabalho' },
-  { value: 'MUDANCA_FUNCAO', label: 'Mudança de função' },
-  { value: 'OUTROS', label: 'Outros' },
+  { value: 'RETORNO_AO_TRABALHO', label: 'Retorno ao trabalho' },
+  { value: 'MUDANCA_DE_FUNCAO', label: 'Mudança de função' },
+  { value: 'COMPLEMENTAR', label: 'Complementar' },
 ];
 
 const ASO_STATUSES: { value: string; label: string }[] = [
   { value: 'PENDING', label: 'Pendente' },
   { value: 'SCHEDULED', label: 'Agendado' },
-  { value: 'COMPLETED', label: 'Concluído / Apto' },
+  { value: 'COMPLETED', label: 'Concluído' },
   { value: 'CANCELLED', label: 'Cancelado' },
   { value: 'EXPIRED', label: 'Vencido' },
   { value: 'WAITING_DOCUMENT', label: 'Aguardando doc' },
@@ -645,7 +645,7 @@ function AsoTab({ records, employees, company, canManage, onOpenForm, onSave, on
                       <div className="flex justify-center gap-1">
                         <button onClick={() => handleGenerateAsoPdf(r)} className="btn-outline-premium h-7 px-2 text-[10px] font-bold">Imprimir PDF</button>
                         <button onClick={() => onOpenForm(r)} disabled={saving} className="btn-outline-premium h-7 px-2 text-[10px] font-bold">Editar</button>
-                        {canManage && <button onClick={() => onSave({ status: 'CANCELADO' }, r.id)} disabled={saving} className="inline-flex h-7 items-center rounded-[5px] bg-gradient-to-r from-amber-500 to-orange-600 px-2 text-[10px] font-black text-white"><XCircle size={12}/></button>}
+                        {canManage && <button onClick={() => onSave({ status: 'CANCELLED' }, r.id)} disabled={saving} className="inline-flex h-7 items-center rounded-[5px] bg-gradient-to-r from-amber-500 to-orange-600 px-2 text-[10px] font-black text-white"><XCircle size={12}/></button>}
                         {canManage && <button onClick={() => { if (window.confirm('Excluir?')) onDelete(r.id); }} disabled={saving} className="inline-flex h-7 items-center rounded-[5px] bg-gradient-to-r from-rose-500 to-pink-600 px-2 text-[10px] font-black text-white">X</button>}
                       </div>
                     </td>
@@ -1577,10 +1577,11 @@ function EventModal({ event, employees, onClose, onSave, saving }: {
 function AsoModal({ record, employees, asos, company, onClose, onSave, saving }: {
   record?: EmployeeAsoRecord; employees: Employee[]; asos: EmployeeAsoRecord[]; company: any; onClose: () => void; onSave: (data: any) => void; saving: boolean;
 }) {
-  const init = record ?? { employeeId: '', asoType: 'PERIODICO', status: 'PENDENTE', examDate: '', dueDate: '', clinicName: '', doctorName: '', observation: '' };
+  const init = record ?? { employeeId: '', asoType: 'PERIODICO', status: 'PENDENTE', result: null, examDate: '', dueDate: '', clinicName: '', doctorName: '', observation: '' };
   const [employeeId, setEmployeeId] = useState(init.employeeId ?? '');
   const [asoType, setAsoType] = useState(init.asoType as string);
   const [status, setStatus] = useState(init.status as string);
+  const [result, setResult] = useState<'APTO' | 'INAPTO' | ''>(init.result ?? '');
   const [examDate, setExamDate] = useState(init.examDate?.slice(0, 16) ?? '');
   const [dueDate, setDueDate] = useState(init.dueDate?.slice(0, 10) ?? '');
   
@@ -1648,13 +1649,14 @@ function AsoModal({ record, employees, asos, company, onClose, onSave, saving }:
     }, company);
   };
 
-  const ok = !!employeeId;
+  const ok = !!employeeId && (status !== 'COMPLETED' || !!result);
   const save = () => {
     if (!ok) return;
     onSave({
       employeeId,
       asoType,
       status,
+      result: status === 'COMPLETED' ? result : null,
       examDate: examDate ? new Date(examDate).toISOString() : null,
       dueDate: dueDate || null,
       clinicName: clinicName.trim() || null,
@@ -1713,6 +1715,25 @@ function AsoModal({ record, employees, asos, company, onClose, onSave, saving }:
                     </select>
                   </label>
                 </div>
+                {status === 'COMPLETED' && (
+                  <label className="block rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+                    <span className="mb-1 block text-xs font-black text-emerald-900">Resultado do exame *</span>
+                    <select
+                      value={result}
+                      onChange={e => setResult(e.target.value as 'APTO' | 'INAPTO' | '')}
+                      className="h-11 w-full rounded-xl border border-emerald-200 bg-white px-3 text-sm font-semibold text-slate-800 outline-none focus:border-emerald-500"
+                    >
+                      <option value="">Selecione o resultado...</option>
+                      <option value="APTO">Apto para a função</option>
+                      <option value="INAPTO">Inapto para a função</option>
+                    </select>
+                    {asoType === 'ADMISSIONAL' && (
+                      <p className="mt-2 text-[11px] font-semibold text-emerald-800">
+                        Apenas o resultado Apto ativa automaticamente um colaborador em admissão.
+                      </p>
+                    )}
+                  </label>
+                )}
                 <div className="grid grid-cols-2 gap-3">
                   <label className="block">
                     <span className="mb-1 block text-xs font-bold text-slate-600">Data e Hora do Exame</span>

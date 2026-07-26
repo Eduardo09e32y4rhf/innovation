@@ -18,6 +18,7 @@ import {
   MessageCircle,
   Orbit,
   LifeBuoy,
+  Briefcase,
   type LucideIcon,
 } from 'lucide-react';
 import { useAuth } from '@/app/contexts/AuthContext';
@@ -98,6 +99,15 @@ export function DashboardSidebar({ open = false, onClose }: { open?: boolean; on
     if (item.moduleKey && !activeModules.includes(item.moduleKey)) return false;
     return true;
   });
+
+  if (['DEV', 'ADMIN', 'RH', 'GESTOR'].includes(profile || '')) {
+    navItems.push({
+      icon: Briefcase,
+      label: 'Vagas',
+      href: '/dashboard/jobs',
+      match: '/dashboard/jobs',
+    });
+  }
 
   if (profile === 'DEV' || profile === 'COMERCIAL') navItems.push(devNavItem);
 

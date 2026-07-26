@@ -144,6 +144,11 @@ export class EmployeesService {
   private async syncPanelAccess(companyId: string, employee: any, dto: CreateEmployeeDto | UpdateEmployeeDto) {
     if (dto.accessEnabled === undefined) return;
 
+    if (employee.status === 'ONBOARDING') {
+      if (employee.userId) await this.repository.updateUser(companyId, employee.userId, { isActive: false });
+      return;
+    }
+
     if (dto.accessEnabled !== 'YES') {
       if (employee.userId) await this.repository.updateUser(companyId, employee.userId, { isActive: false });
       return;

@@ -37,6 +37,7 @@ export function formatMinutes(minutes?: number | null): string {
   return `${sign}${String(h).padStart(2, '0')}h ${String(m).padStart(2, '0')}m`;
 }
 export const EMPLOYEE_STATUS_LABEL: Record<string, string> = {
+  ONBOARDING: 'Em admissão',
   ACTIVE: 'Ativo', INACTIVE: 'Férias', SUSPENDED: 'Afastado', TERMINATED: 'Desligado',
 };
 export const VACATION_STATUS_LABEL: Record<string, string> = {

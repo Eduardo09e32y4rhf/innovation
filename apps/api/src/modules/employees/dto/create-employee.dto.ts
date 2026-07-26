@@ -1,7 +1,7 @@
 import { Type } from 'class-transformer';
 import { IsArray, IsBoolean, IsDateString, IsEmail, IsIn, IsNumber, IsOptional, IsString, IsUUID, Matches } from 'class-validator';
 
-const EMPLOYEE_STATUSES = ['ACTIVE', 'INACTIVE', 'SUSPENDED', 'TERMINATED'] as const;
+const EMPLOYEE_STATUSES = ['ACTIVE', 'ONBOARDING', 'INACTIVE', 'SUSPENDED', 'TERMINATED'] as const;
 const CONTRACT_TYPES = ['CLT', 'PJ', 'ESTAGIO', 'TEMPORARIO', 'JOVEM_APRENDIZ', 'TERCEIRIZADO'] as const;
 const WORK_SCALES = ['5X2', '6X1', '12X36', '4X2', 'OUTRO'] as const;
 const DAILY_WORKLOADS = ['08:00', '07:20', '06:00', '12:00', 'OUTRO'] as const;

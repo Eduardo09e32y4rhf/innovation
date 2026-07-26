@@ -144,7 +144,7 @@ function makeQuery(input: object) {
 }
 // Types
 
-export type EmployeeStatus = 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' | 'TERMINATED';
+export type EmployeeStatus = 'ACTIVE' | 'ONBOARDING' | 'INACTIVE' | 'SUSPENDED' | 'TERMINATED';
 export type VacationStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED' | 'COMPLETED';
 export type UserRole = 'DEV' | 'COMERCIAL' | 'ADMIN' | 'RH' | 'GESTOR' | 'FUNCIONARIO' | 'CONSULTA';
 export type PunchType = 'ENTRY' | 'LUNCH_START' | 'LUNCH_RETURN' | 'EXIT';
@@ -483,7 +483,7 @@ export type AsoStatus = 'PENDENTE' | 'AGENDADO' | 'REALIZADO' | 'APTO' | 'INAPTO
 export interface EmployeeAsoRecord {
   id: string; companyId: string; employeeId: string;
   asoType: string; examDate?: string | null; dueDate?: string | null;
-  status: string; clinicName?: string | null; doctorName?: string | null;
+  status: string; result?: 'APTO' | 'INAPTO' | null; clinicName?: string | null; doctorName?: string | null;
   documentUrl?: string | null; documentNumber?: string | null;
   observation?: string | null;
   createdBy?: string | null; createdAt: string; updatedAt: string;
@@ -497,7 +497,7 @@ export interface AsoClinicPreset {
   createdAt: string; updatedAt: string;
 }
 export interface CreateAsoInput {
-  employeeId: string; asoType: string; status?: string;
+  employeeId: string; asoType: string; status?: string; result?: 'APTO' | 'INAPTO' | null;
   examDate?: string; dueDate?: string;
   clinicName?: string; doctorName?: string; documentUrl?: string;
   observation?: string;
@@ -506,7 +506,7 @@ export interface CreateAsoInput {
 }
 export interface UpdateAsoInput {
   asoType?: string; examDate?: string; dueDate?: string;
-  status?: string; clinicName?: string; doctorName?: string;
+  status?: string; result?: 'APTO' | 'INAPTO' | null; clinicName?: string; doctorName?: string;
   documentUrl?: string; observation?: string;
   saveClinicPreset?: boolean; clinicCep?: string; clinicAddress?: string;
   clinicCity?: string; clinicState?: string; clinicPhone?: string;

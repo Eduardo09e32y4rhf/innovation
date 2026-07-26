@@ -102,6 +102,7 @@ enum FinancialTransactionStatus {
 
 enum EmployeeStatus {
   ACTIVE
+  ONBOARDING
   INACTIVE
   SUSPENDED
   TERMINATED
@@ -236,6 +237,11 @@ enum AsoStatus {
   CANCELLED
   WAITING_DOCUMENT
   WAITING_ADDITIONAL_EXAM
+}
+
+enum AsoResult {
+  APTO
+  INAPTO
 }
 
 enum AttachmentOwnerType {
@@ -412,9 +418,10 @@ model User {
 }
 
 model Employee {
-  id        String  @id @default(uuid()) @db.Uuid
-  companyId String  @db.Uuid
-  userId    String? @unique @db.Uuid
+  id                String  @id @default(uuid()) @db.Uuid
+  companyId         String  @db.Uuid
+  userId            String? @unique @db.Uuid
+  originCandidateId String? @unique @db.Uuid
 
   name String
 
@@ -495,6 +502,7 @@ model Employee {
 
   company                Company                 @relation(fields: [companyId], references: [id], onDelete: Cascade)
   user                   User?                   @relation(fields: [userId], references: [id], onDelete: SetNull)
+  originCandidate        Candidate?              @relation("CandidateAdmission", fields: [originCandidateId], references: [id], onDelete: SetNull)
   timeTracks             TimeTrack[]
   workScheduleRule       WorkScheduleRule?       @relation(fields: [workScheduleRuleId], references: [id], onDelete: SetNull)
   vacations              Vacation[]
@@ -712,6 +720,7 @@ model EmployeeAsoRecord {
   examDate           DateTime?
   dueDate            DateTime?
   status             AsoStatus @default(PENDING)
+  result             AsoResult?
   clinicName         String?
   doctorName         String?
   documentNumber     String?
@@ -1037,6 +1046,9 @@ model Candidate {
   linkedinUrl   String?
   coverLetter   String?
   resumeUrl     String?
+  resumeName    String?
+  resumeType    String?
+  resumeSize    Int?
   aiScore       Int?
   aiSummary     String?
   aiNotes       String?
@@ -1049,6 +1061,7 @@ model Candidate {
   company      Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
   contact      Contact?      @relation(fields: [contactId], references: [id])
   applications Application[]
+  admittedEmployee Employee? @relation("CandidateAdmission")
 
   @@index([companyId])
   @@index([companyId, email])

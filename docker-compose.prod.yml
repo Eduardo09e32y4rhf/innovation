@@ -74,6 +74,8 @@ services:
       DEMO_COMPANY_DOCUMENT: ${DEMO_COMPANY_DOCUMENT:-00000000000191}
       WHATSAPP_SESSION_PATH: /data/whatsapp
       WHATSAPPMEDIA_PATH: /data/whatsapp-media
+      SUPPORT_ATTACHMENTS_PATH: /data/attachments
+      RECRUITMENT_RESUMES_PATH: /data/attachments/recruitment
       COMPREFACE_URL: ${COMPREFACE_URL:-}
       COMPREFACE_API_KEY: ${COMPREFACE_API_KEY:-}
       ASAAS_API_KEY: ${ASAAS_API_KEY:-}

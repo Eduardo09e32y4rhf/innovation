@@ -40,6 +40,7 @@ import { redisStore } from 'cache-manager-ioredis-yet';
 
 import { SupportModule } from './modules/support/support.module';
 import { AiModule } from './modules/ai/ai.module';
+import { JobsModule } from './modules/jobs/jobs.module';
 
 @Module({
   imports: [
@@ -86,6 +87,7 @@ import { AiModule } from './modules/ai/ai.module';
     CouponsModule,
     SupportModule,
     AiModule,
+    JobsModule,
     DocumentsModule,
     ScheduleModule.forRoot(),
   ],

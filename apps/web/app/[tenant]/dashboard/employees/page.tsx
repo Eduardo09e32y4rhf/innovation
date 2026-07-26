@@ -50,7 +50,8 @@ export default function EmployeesPage() {
   }, [employees, managerById, search]);
 
   const activeCount = employees.filter(e => e.status === 'ACTIVE').length;
-  const inactiveCount = employees.filter(e => e.status === 'INACTIVE').length;
+  const onboardingCount = employees.filter(e => e.status === 'ONBOARDING').length;
+  const inactiveCount = employees.filter(e => e.status === 'INACTIVE').length + onboardingCount;
   const terminatedCount = employees.filter(e => e.status === 'TERMINATED').length;
 
   async function handleTerminate(employee: Employee) {
@@ -271,12 +272,14 @@ function AccessBadge({ employee }: { employee: Employee }) {
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
     ACTIVE: 'badge-active',
+    ONBOARDING: 'badge-warn',
     INACTIVE: 'badge-inactive',
     SUSPENDED: 'badge-warn',
     TERMINATED: 'badge-alert',
   };
   const colorMap: Record<string, string> = {
     ACTIVE: 'bg-emerald-500',
+    ONBOARDING: 'bg-amber-500',
     INACTIVE: 'bg-zinc-400',
     SUSPENDED: 'bg-amber-500',
     TERMINATED: 'bg-red-500',

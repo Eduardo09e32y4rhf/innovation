@@ -58,8 +58,8 @@ export class AsoController {
   }
 
   @Patch(':id')
-  update(@CurrentCompany() companyId: string, @CurrentUser() _actor: JwtUser, @Param('id') id: string, @Body() body: any) {
-    return this.svc.update(companyId, id, body);
+  update(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string, @Body() body: any) {
+    return this.svc.update(companyId, id, actor.sub, body);
   }
 
   @Delete(':id')

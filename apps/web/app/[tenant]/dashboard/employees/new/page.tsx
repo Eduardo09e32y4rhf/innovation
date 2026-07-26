@@ -10,6 +10,7 @@ import { normalizeDisplayName, maskCPF, maskCNPJ, maskCEP } from '@/app/lib/text
 
 const STATUS_OPTIONS: { value: EmployeeStatus; label: string }[] = [
   { value: 'ACTIVE', label: 'Ativo' },
+  { value: 'ONBOARDING', label: 'Em admissão' },
   { value: 'INACTIVE', label: 'Férias' },
   { value: 'SUSPENDED', label: 'Afastado' },
   { value: 'TERMINATED', label: 'Desligado' },
@@ -445,6 +446,15 @@ function EmployeeForm() {
 
       {save.error && (
         <p className="rounded-[8px] border border-rose-200 bg-rose-50 px-4 py-2 text-xs text-rose-700">{save.error}</p>
+      )}
+
+      {form.status === 'ONBOARDING' && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+          <p className="text-xs font-black text-amber-950">Colaborador em admissão</p>
+          <p className="mt-1 text-[11px] font-semibold leading-5 text-amber-800">
+            Complete CPF, RG, PIS, departamento, salário e jornada. A ativação e o acesso ao sistema serão liberados somente após o ASO admissional concluído com resultado Apto.
+          </p>
+        </div>
       )}
 
       <section className="ops-card rounded-[8px] border border-slate-200 bg-white p-4">

@@ -1,5 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../../database/prisma.service';
+
+const DEFAULT_PANEL_PASSWORD = process.env.DEFAULT_EMPLOYEE_PASSWORD ?? 'Innovation@123';
 
 @Injectable()
 export class AsoService {
@@ -112,29 +115,44 @@ export class AsoService {
 
   async create(companyId: string, userId: string | undefined, data: any) {
     try {
+      const employee = await this.prisma.employee.findFirst({
+        where: { companyId, id: data.employeeId },
+        select: { id: true },
+      });
+      if (!employee) throw new NotFoundException('Funcionário não encontrado.');
+      const status = this.normalizeStatus(data.status);
+      const result = this.normalizeResult(data.result);
+      this.validateCompletion(status, result);
       // Se exame foi feito e não há vencimento, calcula 12 meses
       let dueDate = data.dueDate ? new Date(data.dueDate) : undefined;
-      if (!dueDate && data.examDate && (data.status === 'COMPLETED' || data.status === 'APTO')) {
+      if (!dueDate && data.examDate && status === 'COMPLETED') {
         const exam = new Date(data.examDate);
         dueDate = new Date(exam);
         dueDate.setFullYear(dueDate.getFullYear() + 1);
       }
 
-      const record = await this.prisma.employeeAsoRecord.create({
-        data: {
-          companyId,
-          createdBy: userId,
-          employeeId: data.employeeId,
-          asoType: data.asoType ?? 'ADMISSIONAL',
-          status: data.status === 'PENDENTE' ? 'PENDING' : data.status ?? 'PENDING',
-          examDate: data.examDate ? new Date(data.examDate) : undefined,
-          dueDate,
-          clinicName: data.clinicName,
-          doctorName: data.doctorName,
-          documentNumber: data.documentNumber,
-          observation: data.notes ?? data.observation,
-        },
-        include: { employee: { select: { id: true, name: true } } },
+      const record = await this.prisma.$transaction(async (tx) => {
+        const created = await tx.employeeAsoRecord.create({
+          data: {
+            companyId,
+            createdBy: userId,
+            employeeId: data.employeeId,
+            asoType: data.asoType ?? 'ADMISSIONAL',
+            status,
+            result,
+            examDate: data.examDate ? new Date(data.examDate) : undefined,
+            dueDate,
+            clinicName: data.clinicName,
+            doctorName: data.doctorName,
+            documentNumber: data.documentNumber,
+            observation: data.notes ?? data.observation,
+            completedBy: status === 'COMPLETED' ? userId : undefined,
+            completedAt: status === 'COMPLETED' ? new Date() : undefined,
+          },
+          include: { employee: { select: { id: true, name: true } } },
+        });
+        await this.activateOnboardingEmployee(tx, companyId, created.employeeId, created.asoType, status, result);
+        return created;
       });
 
       // Dispara notificação quando ASO é criado como pendente
@@ -171,37 +189,53 @@ export class AsoService {
 
       return record;
     } catch (err) {
-      this.safeLog('create fallback', err);
-      return { ok: false };
+      this.safeLog('create', err);
+      throw err;
     }
   }
 
-  async update(companyId: string, id: string, data: any) {
+  async update(companyId: string, id: string, userId: string | undefined, data: any) {
     try {
+      const current = await this.prisma.employeeAsoRecord.findFirst({ where: { companyId, id } });
+      if (!current) throw new NotFoundException('ASO não encontrado.');
+      const status = data.status ? this.normalizeStatus(data.status) : current.status;
+      const result = data.result !== undefined ? this.normalizeResult(data.result) : current.result;
+      this.validateCompletion(status, result);
       // Automação 12 meses a partir da data do exame
       let dueDate = data.dueDate ? new Date(data.dueDate) : undefined;
-      if (!dueDate && (data.status === 'COMPLETED' || data.status === 'APTO')) {
+      if (!dueDate && status === 'COMPLETED') {
         const base = data.examDate ? new Date(data.examDate) : new Date();
         dueDate = new Date(base);
         dueDate.setFullYear(dueDate.getFullYear() + 1);
       }
 
-      const record = await this.prisma.employeeAsoRecord.update({
-        where: { id },
-        data: {
-          ...data,
-          status: data.status === 'PENDENTE' ? 'PENDING' : data.status,
-          examDate: data.examDate ? new Date(data.examDate) : undefined,
-          dueDate,
-          // Campos extras do preset não são campos do modelo
-          saveClinicPreset: undefined,
-          clinicCep: undefined,
-          clinicAddress: undefined,
-          clinicCity: undefined,
-          clinicState: undefined,
-          clinicPhone: undefined,
-        },
-        include: { employee: { select: { id: true, name: true } } },
+      const record = await this.prisma.$transaction(async (tx) => {
+        const {
+          saveClinicPreset: _saveClinicPreset,
+          clinicCep: _clinicCep,
+          clinicAddress: _clinicAddress,
+          clinicCity: _clinicCity,
+          clinicState: _clinicState,
+          clinicPhone: _clinicPhone,
+          employeeId: _employeeId,
+          ...editable
+        } = data;
+        const updated = await tx.employeeAsoRecord.update({
+          where: { id },
+          data: {
+            ...editable,
+            status,
+            result,
+            updatedBy: userId,
+            completedBy: status === 'COMPLETED' ? userId : null,
+            completedAt: status === 'COMPLETED' ? current.completedAt || new Date() : null,
+            examDate: data.examDate ? new Date(data.examDate) : undefined,
+            dueDate,
+          },
+          include: { employee: { select: { id: true, name: true } } },
+        });
+        await this.activateOnboardingEmployee(tx, companyId, updated.employeeId, updated.asoType, status, result);
+        return updated;
       });
 
       // Salva preset de clínica se solicitado
@@ -219,17 +253,85 @@ export class AsoService {
 
       return record;
     } catch (err) {
-      this.safeLog('update fallback', err);
-      return { ok: false };
+      this.safeLog('update', err);
+      throw err;
     }
   }
 
-  async delete(companyId: string, id: string) {
-    try {
-      await this.prisma.employeeAsoRecord.delete({ where: { id } });
-    } catch (err) {
-      this.safeLog('delete fallback', err);
+  private normalizeStatus(value?: string) {
+    if (!value || value === 'PENDENTE') return 'PENDING' as const;
+    if (value === 'CANCELADO') return 'CANCELLED' as const;
+    if (value === 'APTO') return 'COMPLETED' as const;
+    const allowed = [
+      'PENDING', 'SCHEDULED', 'COMPLETED', 'NEAR_EXPIRATION', 'EXPIRED',
+      'CANCELLED', 'WAITING_DOCUMENT', 'WAITING_ADDITIONAL_EXAM',
+    ];
+    if (!allowed.includes(value)) throw new BadRequestException('Status de ASO inválido.');
+    return value as any;
+  }
+
+  private normalizeResult(value?: string | null) {
+    if (value === null || value === undefined || value === '') return null;
+    const normalized = String(value).toUpperCase();
+    if (!['APTO', 'INAPTO'].includes(normalized)) {
+      throw new BadRequestException('Resultado do ASO deve ser APTO ou INAPTO.');
     }
+    return normalized as 'APTO' | 'INAPTO';
+  }
+
+  private validateCompletion(status: string, result: string | null) {
+    if (status === 'COMPLETED' && !result) {
+      throw new BadRequestException('Informe se o resultado do ASO foi APTO ou INAPTO.');
+    }
+  }
+
+  private async activateOnboardingEmployee(tx: any, companyId: string, employeeId: string, asoType: string, status: string, result: string | null) {
+    if (asoType !== 'ADMISSIONAL' || status !== 'COMPLETED' || result !== 'APTO') return;
+    const transition = await tx.employee.updateMany({
+      where: { companyId, id: employeeId, status: 'ONBOARDING' },
+      data: { status: 'ACTIVE' },
+    });
+    if (!transition.count) return;
+
+    const employee = await tx.employee.findFirst({ where: { companyId, id: employeeId } });
+    if (employee?.email && !employee.userId) {
+      const email = employee.email.trim().toLowerCase();
+      const existingUser = await tx.user.findUnique({ where: { email } });
+      if (!existingUser) {
+        const user = await tx.user.create({
+          data: {
+            companyId,
+            name: employee.name,
+            email,
+            role: 'FUNCIONARIO',
+            passwordHash: await bcrypt.hash(DEFAULT_PANEL_PASSWORD, 12),
+            forcePasswordChange: true,
+            isActive: true,
+          },
+        });
+        await tx.employee.update({ where: { id: employeeId }, data: { userId: user.id } });
+      } else if (existingUser.companyId === companyId) {
+        await tx.user.update({ where: { id: existingUser.id }, data: { isActive: true } });
+        await tx.employee.update({ where: { id: employeeId }, data: { userId: existingUser.id } });
+      }
+    }
+
+    await tx.notification.create({
+      data: {
+        companyId,
+        title: `Admissão concluída: ${employee?.name ?? 'Colaborador'}`,
+        message: 'ASO admissional concluído com resultado Apto. O colaborador foi ativado e está liberado para os módulos operacionais.',
+        type: 'RH_NOTICE',
+        status: 'SENT',
+        targetType: 'ALL',
+      },
+    });
+  }
+
+  async delete(companyId: string, id: string) {
+    const record = await this.prisma.employeeAsoRecord.findFirst({ where: { companyId, id }, select: { id: true } });
+    if (!record) throw new NotFoundException('ASO não encontrado.');
+    await this.prisma.employeeAsoRecord.delete({ where: { id: record.id } });
     return { ok: true };
   }
 
