@@ -119,13 +119,13 @@ export class SupportAttachmentService {
     // Autorização
     if (actor.role === 'ADMIN' || actor.role === 'RH') {
       // Check if ticket belongs to same company
-      const ticket = await this.repository.findTicketById(attachment.ticketId);
+      const ticket = await this.repository.findPlatformTicketById(attachment.ticketId);
       if (ticket && ticket.companyId !== actor.companyId) {
         throw new BadRequestException('Acesso negado a este anexo.');
       }
     } else if (actor.role === 'GESTOR' || actor.role === 'FUNCIONARIO') {
-      const ticket = await this.repository.findTicketById(attachment.ticketId);
-      if (ticket && ticket.affectedUserId !== actor.sub && ticket.requesterEmail !== actor.email) {
+      const ticket = await this.repository.findPlatformTicketById(attachment.ticketId);
+      if (ticket && ticket.affectedUserId !== actor.sub) {
         throw new BadRequestException('Acesso negado a este anexo.');
       }
     }
