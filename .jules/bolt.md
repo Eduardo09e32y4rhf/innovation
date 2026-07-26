@@ -1,0 +1,3 @@
+## 2024-07-26 - Optimized Dashboard Repository Insights
+**Learning:** Found an N+1 and memory intensive issue in the dashboard repository where a `findMany` query loaded all employees for a company just to perform simple filtering operations on the application layer. The query selected many unnecessary fields for employees not filtered in. The in-memory filtering operations performed (e.g. `birthdaysToday`, `birthdaysThisMonth`, `missingUser`) could be easily solved with aggregate/count queries directly on the database.
+**Action:** Replace `findMany` fetching all records with targeted count/aggregate queries.

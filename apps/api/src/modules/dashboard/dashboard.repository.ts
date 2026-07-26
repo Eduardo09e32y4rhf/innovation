@@ -27,26 +27,36 @@ export class DashboardRepository {
 
   private async buildInsights(employeeWhere: any, companyId: string) {
     const { startOfMonth, endOfMonth, month, day } = this.monthRange();
-    const employees = await this.prisma.employee.findMany({
+    // Fetch birthdays today
+    const employeesForBirthdays = await this.prisma.employee.findMany({
       where: employeeWhere,
-      select: { id: true, name: true, birthDate: true, admissionDate: true, terminationDate: true, status: true, userId: true, managerId: true, cpf: true, workScale: true, dailyWorkload: true },
+      select: { id: true, name: true, birthDate: true },
       orderBy: { name: 'asc' },
     });
-    const employeeIds = employees.map((employee: any) => employee.id);
-    const scopedTrackWhere = { employeeId: { in: employeeIds } };
-    const [pendingTimeTracks, pendingVacations, admissionsThisMonth, terminationsThisMonth] = employeeIds.length ? await Promise.all([
-      this.prisma.timeTrack.count({ where: { ...scopedTrackWhere, manualStatus: 'pending' } }),
-      this.prisma.vacation.count({ where: { employeeId: { in: employeeIds }, status: 'PENDING' } }),
+    const birthdaysToday = employeesForBirthdays.filter((employee: any) => employee.birthDate && employee.birthDate.getUTCMonth() + 1 === month && employee.birthDate.getUTCDate() === day).slice(0, 8);
+    const birthdaysThisMonth = employeesForBirthdays.filter((employee: any) => employee.birthDate && employee.birthDate.getUTCMonth() + 1 === month).slice(0, 12);
+
+    const [
+      pendingTimeTracks,
+      pendingVacations,
+      admissionsThisMonth,
+      terminationsThisMonth,
+      missingUser,
+      missingManager,
+      missingCpf,
+      missingWorkScale,
+      missingWorkload
+    ] = await Promise.all([
+      this.prisma.timeTrack.count({ where: { employee: employeeWhere, manualStatus: 'pending' } }),
+      this.prisma.vacation.count({ where: { employee: employeeWhere, status: 'PENDING' } }),
       this.prisma.employee.count({ where: { ...employeeWhere, admissionDate: { gte: startOfMonth, lt: endOfMonth } } }),
       this.prisma.employee.count({ where: { ...employeeWhere, terminationDate: { gte: startOfMonth, lt: endOfMonth } } }),
-    ]) : [0, 0, 0, 0];
-    const birthdaysToday = employees.filter((employee: any) => employee.birthDate && employee.birthDate.getUTCMonth() + 1 === month && employee.birthDate.getUTCDate() === day).slice(0, 8);
-    const birthdaysThisMonth = employees.filter((employee: any) => employee.birthDate && employee.birthDate.getUTCMonth() + 1 === month).slice(0, 12);
-    const missingUser = employees.filter((employee: any) => employee.status === 'ACTIVE' && !employee.userId).length;
-    const missingManager = employees.filter((employee: any) => employee.status === 'ACTIVE' && !employee.managerId).length;
-    const missingCpf = employees.filter((employee: any) => !employee.cpf).length;
-    const missingWorkScale = employees.filter((employee: any) => employee.status === 'ACTIVE' && !employee.workScale).length;
-    const missingWorkload = employees.filter((employee: any) => employee.status === 'ACTIVE' && !employee.dailyWorkload).length;
+      this.prisma.employee.count({ where: { ...employeeWhere, status: 'ACTIVE', userId: null } }),
+      this.prisma.employee.count({ where: { ...employeeWhere, status: 'ACTIVE', managerId: null } }),
+      this.prisma.employee.count({ where: { ...employeeWhere, cpf: null } }),
+      this.prisma.employee.count({ where: { ...employeeWhere, status: 'ACTIVE', workScale: null } }),
+      this.prisma.employee.count({ where: { ...employeeWhere, status: 'ACTIVE', dailyWorkload: null } }),
+    ]);
     const company = await this.prisma.company.findUnique({ where: { id: companyId }, select: { name: true, document: true, logoUrl: true } });
     return {
       birthdaysToday: birthdaysToday.map((employee: any) => ({ id: employee.id, name: employee.name, birthDate: employee.birthDate })),
