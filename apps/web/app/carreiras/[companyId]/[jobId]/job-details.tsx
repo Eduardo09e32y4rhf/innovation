@@ -343,6 +343,75 @@ export function JobDetails({ companyId, jobId }: JobDetailsProps) {
             </div>
           )}
 
+          {/* Gamified Process Section - Gupy Style */}
+          <div className="border-t border-slate-100 p-6 sm:p-9 bg-gradient-to-b from-white to-slate-50/50">
+            <div className="flex items-center gap-3 mb-6">
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-500/10 text-teal-700 font-black">
+                🚀
+              </span>
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-teal-700">
+                  Transparência Innovation RH
+                </p>
+                <h3 className="text-lg font-black tracking-tight text-slate-950">
+                  Conheça as etapas deste processo seletivo
+                </h3>
+              </div>
+            </div>
+
+            <div className="relative border-l-2 border-teal-200 ml-4 pl-6 space-y-6 my-4">
+              <div className="relative group">
+                <span className="absolute -left-[31px] top-0 flex h-6 w-6 items-center justify-center rounded-full bg-teal-600 text-white font-black text-xs ring-4 ring-white shadow-sm">
+                  1
+                </span>
+                <h4 className="text-sm font-black text-slate-900">Inscrição & Triagem Inteligente (IA)</h4>
+                <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                  Sua candidatura é recebida em tempo real e nossa IA analisa a compatibilidade do seu currículo com os requisitos da vaga sem vieses inconscientes.
+                </p>
+              </div>
+
+              <div className="relative group">
+                <span className="absolute -left-[31px] top-0 flex h-6 w-6 items-center justify-center rounded-full bg-cyan-600 text-white font-black text-xs ring-4 ring-white shadow-sm">
+                  2
+                </span>
+                <h4 className="text-sm font-black text-slate-900">Avaliação por Gente & Gestão (RH)</h4>
+                <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                  O time de RH avalia sua trajetória profissional, carta de apresentação e alinhamento de valores com a cultura da empresa.
+                </p>
+              </div>
+
+              <div className="relative group">
+                <span className="absolute -left-[31px] top-0 flex h-6 w-6 items-center justify-center rounded-full bg-indigo-600 text-white font-black text-xs ring-4 ring-white shadow-sm">
+                  3
+                </span>
+                <h4 className="text-sm font-black text-slate-900">Entrevista ou Desafio Prático</h4>
+                <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                  Bate-papo online ou teste técnico para aprofundar nos seus conhecimentos e compartilhar detalhes sobre os objetivos da área.
+                </p>
+              </div>
+
+              <div className="relative group">
+                <span className="absolute -left-[31px] top-0 flex h-6 w-6 items-center justify-center rounded-full bg-purple-600 text-white font-black text-xs ring-4 ring-white shadow-sm">
+                  4
+                </span>
+                <h4 className="text-sm font-black text-slate-900">Entrevista Final com Gestores</h4>
+                <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                  Encontro decisivo com a liderança para tirar dúvidas estratégicas e alinhar expectativas sobre o dia a dia na equipe.
+                </p>
+              </div>
+
+              <div className="relative group">
+                <span className="absolute -left-[31px] top-0 flex h-6 w-6 items-center justify-center rounded-full bg-emerald-600 text-white font-black text-xs ring-4 ring-white shadow-sm">
+                  5
+                </span>
+                <h4 className="text-sm font-black text-emerald-700">Aprovação & Onboarding Digital</h4>
+                <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                  Envio de proposta oficial, emissão automática de exame admissional (ASO) pela plataforma e integração digital 100% sem papel!
+                </p>
+              </div>
+            </div>
+          </div>
+
           <div className="border-t border-slate-100 p-6 sm:p-9">
             <div className="flex gap-3 rounded-2xl border border-teal-100 bg-teal-50/60 p-4">
               <BadgeCheck size={20} className="mt-0.5 shrink-0 text-teal-700" aria-hidden="true" />
@@ -369,21 +438,60 @@ export function JobDetails({ companyId, jobId }: JobDetailsProps) {
             </div>
 
             {successMessage ? (
-              <div className="p-6 text-center" role="status" aria-live="polite">
-                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
-                  <CheckCircle2 size={32} aria-hidden="true" />
+              <div className="p-6 text-left" role="status" aria-live="polite">
+                <div className="rounded-2xl bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border border-emerald-500/30 p-5 text-center mb-6">
+                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-500 text-white shadow-lg shadow-emerald-500/30 mb-3">
+                    <CheckCircle2 size={30} aria-hidden="true" />
+                  </div>
+                  <h3 className="text-base font-black text-slate-950">
+                    Candidatura Enviada com Sucesso! 🎉
+                  </h3>
+                  <p className="mt-1 text-xs text-slate-600 font-medium">
+                    {successMessage}
+                  </p>
                 </div>
-                <h3 className="mt-5 text-lg font-black text-slate-950">
-                  Candidatura recebida
-                </h3>
-                <p className="mt-2 text-sm leading-6 text-slate-500">{successMessage}</p>
-                <Link
-                  href={`/carreiras/${encodeURIComponent(companyId)}`}
-                  className="mt-6 inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 text-xs font-black text-slate-700 hover:bg-slate-50"
-                >
-                  <ArrowLeft size={14} aria-hidden="true" />
-                  Ver outras vagas
-                </Link>
+
+                <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200 mb-6">
+                  <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 mb-3 flex items-center justify-between">
+                    <span>Status da sua inscrição</span>
+                    <span className="text-teal-600 font-black animate-pulse">● Ativo</span>
+                  </p>
+                  
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2.5 text-xs font-bold text-slate-900 bg-white p-2.5 rounded-xl border border-teal-200 shadow-sm">
+                      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-teal-500 text-white text-[10px]">✓</span>
+                      <span>Fase 1: Triagem com IA em Andamento</span>
+                    </div>
+                    <div className="flex items-center gap-2.5 text-xs font-semibold text-slate-400 p-2 opacity-60">
+                      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-200 text-slate-500 text-[10px]">2</span>
+                      <span>Fase 2: Avaliação por Gente & Gestão</span>
+                    </div>
+                    <div className="flex items-center gap-2.5 text-xs font-semibold text-slate-400 p-2 opacity-60">
+                      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-200 text-slate-500 text-[10px]">3</span>
+                      <span>Fase 3: Entrevistas & Alinhamento</span>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 pt-3 border-t border-slate-200/80 text-[11px] text-slate-500 font-medium leading-relaxed">
+                    💡 <strong>Dica Innovation:</strong> Avisaremos sobre cada avanço diretamente no seu e-mail e WhatsApp cadastrados.
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <Link
+                    href="/carreiras"
+                    className="w-full inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 text-xs font-black text-white hover:bg-slate-800 shadow-md transition"
+                  >
+                    🚀 Acompanhar Portal de Vagas
+                  </Link>
+                  <Link
+                    href={`/carreiras/${encodeURIComponent(companyId)}`}
+                    className="w-full inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 text-xs font-black text-slate-700 hover:bg-slate-50 transition"
+                  >
+                    <ArrowLeft size={14} aria-hidden="true" />
+                    Ver outras vagas desta empresa
+                  </Link>
+                </div>
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4 p-6" noValidate>

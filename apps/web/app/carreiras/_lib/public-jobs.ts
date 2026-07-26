@@ -189,6 +189,29 @@ async function fetchPublic(path: string, init?: RequestInit): Promise<unknown> {
   return unwrap(body);
 }
 
+export type GlobalCareersResult = {
+  companies: PublicCompany[];
+  jobs: PublicJob[];
+};
+
+export async function getAllPublicJobs(): Promise<GlobalCareersResult> {
+  const payload = await fetchPublic('/public/jobs');
+  const record = asRecord(payload);
+
+  const rawCompanies = Array.isArray(record?.companies) ? record.companies : [];
+  const companies = rawCompanies
+    .map((c: any) => normalizeCompany(c, c?.id || 'empresa'))
+    .filter((c) => Boolean(c.name && c.id));
+
+  const rawJobs = Array.isArray(record?.jobs) ? record.jobs : [];
+  const jobs = rawJobs
+    .map((j: any) => normalizeJob(j, j?.companyId || j?.company?.id || ''))
+    .filter((j): j is PublicJob => Boolean(j && j.id && j.title))
+    .filter((j) => j.status === 'OPEN');
+
+  return { companies, jobs };
+}
+
 export async function getPublicJobs(companyId: string): Promise<PublicJobsResult> {
   const payload = await fetchPublic(`/public/jobs/company/${encodeURIComponent(companyId)}`);
   const record = asRecord(payload);
@@ -236,9 +259,15 @@ export async function applyToPublicJob(
   formData.append('name', input.name.trim());
   formData.append('email', input.email.trim().toLowerCase());
   formData.append('phone', input.phone.replace(/\D/g, ''));
-  formData.append('linkedinUrl', input.linkedinUrl?.trim() ?? '');
-  formData.append('coverLetter', input.coverLetter?.trim() ?? '');
-  formData.append('website', input.website ?? '');
+  if (input.linkedinUrl?.trim()) {
+    formData.append('linkedinUrl', input.linkedinUrl.trim());
+  }
+  if (input.coverLetter?.trim()) {
+    formData.append('coverLetter', input.coverLetter.trim());
+  }
+  if (input.website?.trim()) {
+    formData.append('website', input.website.trim());
+  }
   formData.append('resume', input.resume, input.resume.name);
 
   const payload = await fetchPublic(`/public/jobs/${encodeURIComponent(jobId)}/apply`, {

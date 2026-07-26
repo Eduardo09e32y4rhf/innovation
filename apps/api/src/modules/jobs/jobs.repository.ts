@@ -113,6 +113,40 @@ export class JobsRepository {
     });
   }
 
+  async allPublicJobs() {
+    const jobs = await this.prisma.job.findMany({
+      where: {
+        status: 'OPEN',
+        company: {
+          isActive: true,
+          status: 'ACTIVE',
+          billingStatus: { notIn: ['CANCELED', 'PENDING_PAYMENT'] },
+        },
+      },
+      select: {
+        id: true, title: true, description: true, location: true, employmentType: true,
+        salaryRange: true, benefits: true, createdAt: true, updatedAt: true,
+        companyId: true,
+        company: {
+          select: { id: true, name: true, slug: true, logoUrl: true, primaryColor: true, city: true, state: true },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const companies = await this.prisma.company.findMany({
+      where: {
+        isActive: true,
+        status: 'ACTIVE',
+        billingStatus: { notIn: ['CANCELED', 'PENDING_PAYMENT'] },
+      },
+      select: { id: true, name: true, slug: true, logoUrl: true, primaryColor: true, city: true, state: true },
+      orderBy: { name: 'asc' },
+    });
+
+    return { jobs, companies };
+  }
+
   async apply(companyId: string, jobId: string, data: any, resume: {
     key: string; name: string; type: string; size: number;
   }) {

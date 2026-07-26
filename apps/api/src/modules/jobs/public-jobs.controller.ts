@@ -6,6 +6,11 @@ import { JobsService } from './jobs.service';
 export class PublicJobsController {
   constructor(private readonly service: JobsService) {}
 
+  @Get()
+  listAll() {
+    return this.service.allPublicJobs();
+  }
+
   @Get('company/:companyKey')
   list(@Param('companyKey') companyKey: string) {
     return this.service.publicJobs(companyKey);

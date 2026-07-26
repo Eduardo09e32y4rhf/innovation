@@ -14,7 +14,7 @@ export class ApplyJobDto {
   phone!: string;
 
   @IsOptional()
-  @IsUrl({ require_protocol: true })
+  @IsString()
   @MaxLength(500)
   linkedinUrl?: string;
 

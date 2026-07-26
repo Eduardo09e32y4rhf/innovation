@@ -103,10 +103,17 @@ export class JobsService {
     return { company, job: { ...details, company } };
   }
 
+  async allPublicJobs() {
+    return this.repository.allPublicJobs();
+  }
+
   async apply(jobId: string, raw: Record<string, unknown>, file?: {
     buffer: Buffer; filename: string; mimetype?: string;
   }) {
-    const dto = plainToInstance(ApplyJobDto, raw);
+    const cleanedRaw = Object.fromEntries(
+      Object.entries(raw || {}).map(([k, v]) => [k, typeof v === 'string' && v.trim() === '' ? undefined : v])
+    );
+    const dto = plainToInstance(ApplyJobDto, cleanedRaw);
     const errors = await validate(dto, { whitelist: true, forbidNonWhitelisted: true });
     if (errors.length) throw new BadRequestException('Revise os dados da candidatura.');
     if (dto.website) return { received: true };
