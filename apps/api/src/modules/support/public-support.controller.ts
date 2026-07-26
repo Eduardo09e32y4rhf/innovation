@@ -4,7 +4,7 @@ import { SupportRepository } from './support.repository';
 import { SupportSlaService } from './support-sla.service';
 import { PrismaService } from '../../database/prisma.service';
 import { CreatePublicSupportTicketDto } from './dto/create-public-support-ticket.dto';
-import { RequestPasswordResetDto } from './dto/request-password-reset.dto';
+import { RequestPasswordResetDto } from '../auth/dto/request-password-reset.dto';
 
 @Controller('support/public')
 export class PublicSupportController {
