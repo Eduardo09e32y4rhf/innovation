@@ -90,15 +90,22 @@ export default function ContractsPage({ params: { tenant } }: { params: { tenant
     setLoading(true);
     setError('');
     try {
-      const [contractItems, companyItems, planItems] = await Promise.all([
+      const [contractsRes, companiesRes, plansRes] = await Promise.allSettled([
         api.manualContracts.list(companyFilter ? { companyId: companyFilter } : undefined),
         api.platform.listCompanies(),
         api.platform.listPlans(),
       ]);
-      setContracts(contractItems);
-      setCompanies(companyItems);
-      setPlans(planItems);
-      if (companyFilter && !form.companyId) setForm((current) => ({ ...current, companyId: companyFilter }));
+      if (contractsRes.status === 'fulfilled' && Array.isArray(contractsRes.value)) setContracts(contractsRes.value);
+      if (companiesRes.status === 'fulfilled' && Array.isArray(companiesRes.value)) setCompanies(companiesRes.value);
+      if (plansRes.status === 'fulfilled' && Array.isArray(plansRes.value)) setPlans(plansRes.value);
+
+      if (companyFilter && !form.companyId && companiesRes.status === 'fulfilled') {
+        setForm((current) => ({ ...current, companyId: companyFilter }));
+      }
+
+      if (contractsRes.status === 'rejected' && companiesRes.status === 'rejected') {
+        throw new Error('Servidor sob alta demanda ou reiniciando. Aguarde alguns segundos e clique em Atualizar.');
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Nao foi possivel carregar os contratos.');
     } finally {
