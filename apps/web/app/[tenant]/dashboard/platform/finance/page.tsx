@@ -23,7 +23,7 @@ import { toast } from 'sonner';
 import { buildPdfShell, escapeHtml, infoGrid, pdfTable, printPdf, section } from '@/app/lib/pdf-utils';
 import { EmptyState, ErrorState, LoadingState } from '@/app/components/data-states';
 import { useQuery } from '@/app/hooks/use-data';
-import { useAuth } from '@/app/hooks/use-auth';
+import { useAuth } from '@/app/contexts/AuthContext';
 import api, {
   ApiError,
   PlatformBillingType,

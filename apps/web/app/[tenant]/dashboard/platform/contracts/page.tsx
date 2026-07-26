@@ -3,7 +3,7 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { request } from '@/app/lib/api';
-import { useAuth } from '@/app/hooks/use-auth';
+import { useAuth } from '@/app/contexts/AuthContext';
 
 export default function ContractsPage() {
   const { user } = useAuth();
