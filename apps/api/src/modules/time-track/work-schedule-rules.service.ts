@@ -45,6 +45,8 @@ export class WorkScheduleRulesService {
     if (actor.role !== 'ADMIN' && actor.role !== 'RH' && actor.role !== 'DEV') {
       throw new ForbiddenException('Only ADMIN/RH can update rules');
     }
+    const rule = await this.prisma.workScheduleRule.findFirst({ where: { id, companyId } });
+    if (!rule) throw new NotFoundException('Rule not found');
     return this.prisma.workScheduleRule.update({ where: { id }, data });
   }
 
@@ -52,9 +54,9 @@ export class WorkScheduleRulesService {
     if (actor.role !== 'ADMIN' && actor.role !== 'RH' && actor.role !== 'DEV') {
       throw new ForbiddenException('Only ADMIN/RH can delete rules');
     }
-    try {
-      await this.prisma.workScheduleRule.delete({ where: { id } });
-    } catch {}
+    const rule = await this.prisma.workScheduleRule.findFirst({ where: { id, companyId } });
+    if (!rule) throw new NotFoundException('Rule not found');
+    await this.prisma.workScheduleRule.delete({ where: { id } });
     return { ok: true };
   }
 }

@@ -1,9 +1,9 @@
 import { IsIn, IsNotEmpty, IsOptional, IsString, IsUUID, Length } from 'class-validator';
 
 export class CreateSupportTicketDto {
-  @IsIn(['DOUBT', 'LOGIN_ISSUE', 'SYSTEM_BUG', 'FINANCIAL', 'OTHER', 'FEATURE_REQUEST', 'PASSWORD_RESET', 'SECURITY'], { message: 'Categoria inválida' })
+  @IsIn(['BUG', 'CORRECTION', 'ADJUSTMENT', 'MAINTENANCE', 'FEATURE_REQUEST', 'PASSWORD_RESET', 'ACCESS', 'BILLING', 'PERFORMANCE', 'SECURITY', 'INTEGRATION', 'OTHER'], { message: 'Categoria inválida' })
   @IsNotEmpty({ message: 'Categoria é obrigatória' })
-  category: 'DOUBT' | 'LOGIN_ISSUE' | 'SYSTEM_BUG' | 'FINANCIAL' | 'OTHER' | 'FEATURE_REQUEST' | 'PASSWORD_RESET' | 'SECURITY';
+  category: 'BUG' | 'CORRECTION' | 'ADJUSTMENT' | 'MAINTENANCE' | 'FEATURE_REQUEST' | 'PASSWORD_RESET' | 'ACCESS' | 'BILLING' | 'PERFORMANCE' | 'SECURITY' | 'INTEGRATION' | 'OTHER';
 
   @IsString()
   @IsNotEmpty({ message: 'Título é obrigatório' })

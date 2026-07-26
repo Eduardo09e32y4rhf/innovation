@@ -757,10 +757,7 @@ export const api = {
   
   support: {
     stats: () => request<{ open: number; resolved: number; closed: number }>('/support/stats'),
-    list: (params?: any) => {
-      const query = typeof params === 'string' ? { status: params } : (params || {});
-      return request<any[]>(`/support/tickets${makeQuery(query)}`);
-    },
+    list: (status?: string) => request<any[]>(`/support/tickets${status ? `?status=${status}` : ''}`),
     get: (id: string) => request<any>(`/support/tickets/${id}`),
     create: (data: any) => request<any>('/support/tickets', { method: 'POST', body: data }),
     reply: (id: string, data: any) => request<any>(`/support/tickets/${id}/messages`, { method: 'POST', body: data }),
