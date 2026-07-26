@@ -32,7 +32,7 @@ export function PlatformNav({ base, groups }: { base: string; groups: PlatformNa
   }
 
   return (
-    <nav ref={containerRef} className="relative flex items-center gap-1 border-b border-slate-200" aria-label="Navegação da plataforma">
+    <nav ref={containerRef} className="relative flex max-w-full items-center gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-white p-1 shadow-sm" aria-label="Navegacao da plataforma">
       {groups.map((group) => {
         const isGroupActive = activeGroup?.key === group.key;
 
@@ -42,10 +42,9 @@ export function PlatformNav({ base, groups }: { base: string; groups: PlatformNa
             <Link
               key={group.key}
               href={`${base}${item.href}`}
-              className={`relative px-4 py-3 text-sm font-semibold transition-colors ${isGroupActive ? 'text-violet-700' : 'text-slate-500 hover:text-slate-900'}`}
+              className={`relative whitespace-nowrap rounded-lg px-3 py-2.5 text-xs font-bold transition-colors ${isGroupActive ? 'bg-violet-50 text-violet-700' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-950'}`}
             >
               {group.label}
-              {isGroupActive && <span className="absolute inset-x-4 -bottom-px h-0.5 rounded-full bg-violet-600" />}
             </Link>
           );
         }
@@ -56,13 +55,12 @@ export function PlatformNav({ base, groups }: { base: string; groups: PlatformNa
             <button
               type="button"
               onClick={() => setOpenKey(isOpen ? null : group.key)}
-              className={`relative flex items-center gap-1 px-4 py-3 text-sm font-semibold transition-colors ${isGroupActive ? 'text-violet-700' : 'text-slate-500 hover:text-slate-900'}`}
+              className={`relative flex items-center gap-1 whitespace-nowrap rounded-lg px-3 py-2.5 text-xs font-bold transition-colors ${isGroupActive ? 'bg-violet-50 text-violet-700' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-950'}`}
               aria-expanded={isOpen}
               aria-haspopup="true"
             >
               {group.label}
               <ChevronDown size={14} className={`transition-transform ${isOpen ? 'rotate-180' : ''}`} />
-              {isGroupActive && <span className="absolute inset-x-4 -bottom-px h-0.5 rounded-full bg-violet-600" />}
             </button>
             {isOpen && (
               <div className="absolute left-0 top-full z-[100] mt-1 w-56 rounded-xl border border-slate-200 bg-white p-1.5 shadow-2xl">

@@ -372,6 +372,8 @@ export interface PlatformFinanceSummary {
   totals: { billed: number; received: number; open: number; overdue: number; canceled: number };
   count: number; conversionRate: number;
   monthly: Array<{ month: string; billed: number; received: number }>;
+  mrr: number;
+  activeSubscriptions: number;
 }
 export interface PlatformInvoiceList {
   items: PlatformInvoice[];

@@ -24,8 +24,9 @@ export default function PlatformLayout({ children }: { children: ReactNode }) {
   const showBreadcrumb = !!activeGroup && !!activeItem && activeGroup.items.length > 1;
 
   return (
-    <section className="min-w-0 space-y-5">
-      <div>
+    <section className="min-w-0 space-y-4">
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+        <div>
         <p className="text-xs font-black uppercase tracking-[0.18em] text-violet-600">Administração</p>
         <h1 className="text-2xl font-black text-slate-950">Plataforma Innovation RH</h1>
         {showBreadcrumb && (
@@ -33,6 +34,8 @@ export default function PlatformLayout({ children }: { children: ReactNode }) {
             {activeGroup!.label} <span className="mx-1.5 text-slate-300">/</span> {activeItem!.label}
           </p>
         )}
+        </div>
+        <p className="max-w-sm text-right text-xs font-medium text-slate-500">Um console unico para empresas, vendas, contratos e cobrancas.</p>
       </div>
       <PlatformNav base={base} groups={groups} />
       {children}
