@@ -100,6 +100,12 @@ export class PlatformController {
     return this.service.deleteCompany(id);
   }
 
+  @Delete('companies/:id/purge')
+  purgeCompany(@CurrentUser() actor: JwtUser, @Param('id') id: string) {
+    this.assertDev(actor);
+    return this.service.purgeCompany(id);
+  }
+
   private assertDev(actor: JwtUser) {
     if (actor.role !== 'DEV') {
       throw new ForbiddenException('Apenas Super Admin pode suspender, ativar ou excluir empresas.');

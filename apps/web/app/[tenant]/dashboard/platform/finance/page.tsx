@@ -249,6 +249,36 @@ export default function FinancePage({ params: { tenant } }: { params: { tenant: 
     }
   }
 
+  async function exportCsv() {
+    try {
+      const result = await api.platform.finance.list({ limit: 500, status, search: deferredSearch, from, to });
+      const rows = result.items.map((item) => [
+        `"${item.company.name}"`,
+        `"${item.company.document || '-'}"`,
+        `"${item.description || 'Mensalidade'}"`,
+        `"${Number(item.amount).toFixed(2)}"`,
+        `"${date(item.dueDate)}"`,
+        `"${STATUS[item.status]?.label ?? item.status}"`,
+        `"${BILLING_LABEL[item.billingType] ?? item.billingType}"`,
+        `"${item.asaasPaymentId ? 'Asaas' : 'Local'}"`,
+      ].join(','));
+      const header = '"Empresa","Documento","Cobrança","Valor R$","Vencimento","Status","Forma","Integração"\n';
+      const csv = '\uFEFF' + header + rows.join('\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `extrato-bancario-${new Date().toISOString().slice(0, 10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.setTimeout(() => URL.revokeObjectURL(url), 5000);
+      toast.success('Extrato bancário (CSV/Excel) gerado com sucesso!');
+    } catch {
+      toast.error('Não foi possível gerar o extrato bancário.');
+    }
+  }
+
   const totals = summary.data?.totals;
   const chartData = summary.data?.monthly.map((item) => ({ ...item, label: monthLabel(item.month) })) ?? [];
   const chartMax = Math.max(1, ...chartData.flatMap((item) => [item.billed, item.received]));
@@ -268,12 +298,15 @@ export default function FinancePage({ params: { tenant } }: { params: { tenant: 
         </div>
         <div className="flex flex-wrap gap-2">
           {canManage && (
-            <button onClick={startCreate} className="inline-flex h-10 items-center gap-2 rounded-[8px] bg-teal-600 px-4 text-xs font-black text-white hover:bg-teal-700">
+            <button onClick={startCreate} className="inline-flex h-10 items-center gap-2 rounded-[8px] bg-teal-600 px-4 text-xs font-black text-white hover:bg-teal-700 shadow-sm">
               <Plus size={14} /> Nova cobrança
             </button>
           )}
-          <button onClick={exportPdf} className="inline-flex h-10 items-center gap-2 rounded-[8px] border border-slate-200 bg-white px-4 text-xs font-bold text-slate-700 hover:bg-slate-50">
-            <ArrowDownToLine size={14} /> Exportar
+          <button onClick={exportPdf} className="inline-flex h-10 items-center gap-2 rounded-[8px] border border-slate-200 bg-white px-3.5 text-xs font-bold text-slate-700 hover:bg-slate-50 shadow-sm">
+            <ArrowDownToLine size={14} className="text-slate-500" /> Exportar PDF/HTML
+          </button>
+          <button onClick={exportCsv} className="inline-flex h-10 items-center gap-2 rounded-[8px] border border-emerald-200 bg-emerald-50 px-3.5 text-xs font-bold text-emerald-800 hover:bg-emerald-100 shadow-sm">
+            <ArrowDownToLine size={14} className="text-emerald-600" /> Extrato Bancário (CSV)
           </button>
         </div>
       </header>

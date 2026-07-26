@@ -693,6 +693,7 @@ export const api = {
     updateCompany: (id: string, input: Partial<Omit<CreatePlatformCompanyInput, 'adminName' | 'adminEmail' | 'adminPassword'>> & { isActive?: boolean; status?: CompanyStatus; suspensionReason?: string | null; plan?: string; platformPlanId?: string; billingStatus?: 'TRIAL' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED' | 'PENDING_PAYMENT'; trialEndsAt?: string; activeModules?: string[]; asaasCustomerId?: string; asaasSubscriptionId?: string; internalNotes?: string }) =>
       request<PlatformCompany>(`/platform/companies/${id}`, { method: 'PATCH', body: input }),
     deleteCompany: (id: string) => request<void>(`/platform/companies/${id}`, { method: 'DELETE' }),
+    purgeCompany: (id: string) => request<void>(`/platform/companies/${id}/purge`, { method: 'DELETE' }),
     listPlans: () => request<any[]>('/platform/plans'),
     listManualContracts: (query?: any) => request<any[]>(`/manual-contracts${makeQuery(query || {})}`),
     listCompanyUsers: (companyId: string) => request<AppUser[]>(`/platform/company-users/${companyId}`),

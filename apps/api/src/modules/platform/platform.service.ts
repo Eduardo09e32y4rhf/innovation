@@ -206,6 +206,11 @@ export class PlatformService {
     return { success: true };
   }
 
+  async purgeCompany(id: string) {
+    await this.repository.purgeCompany(id);
+    return { success: true };
+  }
+
   async lookupCnpj(cnpj: string) {
     const cleanCnpj = cnpj.replace(/\D/g, '');
     if (cleanCnpj.length !== 14) {

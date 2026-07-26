@@ -173,9 +173,9 @@ export function signatureBlock(lines: string[]) {
 }
 
 export function printPdf(html: string, title: string) {
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
   try {
-    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
     const popup = window.open(url, '_blank', 'noopener,noreferrer');
 
     if (popup) {
@@ -196,30 +196,18 @@ export function printPdf(html: string, title: string) {
       }
       return;
     }
-
-    throw new Error('Popup blocked');
   } catch (err) {
-    console.error('Error generating PDF:', err);
+    console.warn('Popup blocked, falling back to direct download:', err);
   }
 
-  const iframe = document.createElement('iframe');
-  iframe.style.position = 'fixed';
-  iframe.style.right = '0';
-  iframe.style.bottom = '0';
-  iframe.style.width = '0';
-  iframe.style.height = '0';
-  iframe.style.border = '0';
-  iframe.title = title;
-  iframe.srcdoc = html;
-  document.body.appendChild(iframe);
-  iframe.onload = () => {
-    try {
-      iframe.contentWindow?.focus();
-      iframe.contentWindow?.print();
-    } finally {
-      window.setTimeout(() => iframe.remove(), 1000);
-    }
-  };
+  // Fallback direct download if popup is blocked
+  const link = document.createElement('a');
+  link.href = url;
+  link.setAttribute('download', title.endsWith('.html') || title.endsWith('.pdf') ? title.replace(/\.pdf$/, '.html') : `${title}.html`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  window.setTimeout(() => URL.revokeObjectURL(url), 5000);
 }
 export function escapeHtml(value: unknown) {
   return String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&', '<': '<', '>': '>', '"': '"', "'": '&#039;' }[char] ?? char));

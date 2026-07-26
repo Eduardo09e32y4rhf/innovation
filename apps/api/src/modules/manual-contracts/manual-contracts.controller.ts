@@ -18,20 +18,20 @@ export class ManualContractsController {
   list(@Query('companyId') companyId?: string) { return this.service.list(companyId); }
 
   @Post()
-  @Roles('DEV')
+  @Roles('DEV', 'COMERCIAL')
   create(@CurrentUser() actor: JwtUser, @Body() dto: CreateManualContractDto) {
-    return this.service.create(dto, actor.sub);
+    return this.service.create(dto, actor.sub || (actor as any).id);
   }
 
   @Patch(':id')
-  @Roles('DEV')
+  @Roles('DEV', 'COMERCIAL')
   update(@CurrentUser() actor: JwtUser, @Param('id') id: string, @Body() dto: UpdateManualContractDto) {
-    return this.service.update(id, dto, actor.sub);
+    return this.service.update(id, dto, actor.sub || (actor as any).id);
   }
 
   @Delete(':id')
-  @Roles('DEV')
+  @Roles('DEV', 'COMERCIAL')
   remove(@CurrentUser() actor: JwtUser, @Param('id') id: string) {
-    return this.service.delete(id, actor.sub);
+    return this.service.delete(id, actor.sub || (actor as any).id);
   }
 }

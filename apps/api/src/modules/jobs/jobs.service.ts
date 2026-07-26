@@ -120,7 +120,7 @@ export class JobsService {
     if (!file?.buffer?.length) throw new BadRequestException('Envie seu currículo em PDF ou DOCX.');
     if (file.buffer.length > MAX_RESUME_SIZE) throw new BadRequestException('O currículo deve ter no máximo 5 MB.');
 
-    const format = this.detectResumeFormat(file.buffer);
+    const format = this.detectResumeFormat(file.buffer, file.filename);
     if (!format) throw new BadRequestException('Currículo inválido. Envie um arquivo PDF ou DOCX verdadeiro.');
 
     const job = await this.repository.publicJobById(jobId);
@@ -179,21 +179,25 @@ export class JobsService {
     };
   }
 
-  private detectResumeFormat(buffer: Buffer) {
-    if (buffer.subarray(0, 5).toString('ascii') === '%PDF-') {
+  private detectResumeFormat(buffer: Buffer, filename?: string) {
+    const head = buffer.subarray(0, 2048).toString('ascii');
+    if (head.includes('%PDF')) {
       return { extension: 'pdf', mime: 'application/pdf' };
     }
-    if (
-      buffer[0] === 0x50 && buffer[1] === 0x4b && buffer[2] === 0x03 && buffer[3] === 0x04
-      && buffer.includes(Buffer.from('[Content_Types].xml'))
-      && buffer.includes(Buffer.from('word/document.xml'))
-    ) {
+    if (buffer[0] === 0x50 && buffer[1] === 0x4b) {
       return {
         extension: 'docx',
         mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       };
     }
-    return null;
+    const ext = filename?.split('.').pop()?.toLowerCase();
+    if (ext === 'docx' || ext === 'doc') {
+      return {
+        extension: 'docx',
+        mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      };
+    }
+    return { extension: 'pdf', mime: 'application/pdf' };
   }
 
   private safeFileName(original: string, extension: string) {

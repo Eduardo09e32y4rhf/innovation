@@ -207,12 +207,28 @@ export class PlatformFinanceService {
         users: { where: { role: 'ADMIN', isActive: true }, orderBy: { createdAt: 'asc' }, take: 1 },
       },
     });
-    if (!company || !this.asaas.isConfigured() || !company.document || !company.users[0]) return { configured: false, created: false };
-    const customerId = await this.ensureAsaasCustomer(company, company.users[0]);
+    if (!company) return { configured: false, created: false };
     const plan = company.platformPlan;
     const quote = plan ? this.pricingService.calculate((plan.commitmentMonths as any) || 1, company.subscription?.seatQuantity || 1) : null;
-    const amount = quote?.total ?? Number(plan?.price ?? 0);
+    const amount = quote?.total ?? Number(plan?.price ?? 249.90);
     if (amount <= 0) return { configured: true, created: false };
+
+    if (!this.asaas.isConfigured() || !company.document || !company.users[0]) {
+      await this.prisma.platformInvoice.create({
+        data: {
+          companyId,
+          planId: plan?.id,
+          description: `Mensalidade Contrato Digital - ${company.name}`,
+          amount,
+          dueDate: nextDueDate,
+          billingType: 'PIX',
+          status: 'OPEN',
+        },
+      });
+      return { configured: false, created: true, local: true };
+    }
+
+    const customerId = await this.ensureAsaasCustomer(company, company.users[0]);
     const subscriptionId = await this.createRecurringSubscription(company, customerId, amount, nextDueDate);
     return { configured: true, created: Boolean(subscriptionId), subscriptionId };
   }
@@ -580,12 +596,24 @@ export class PlatformFinanceService {
       }
     }
 
+    const manualContracts = await this.prisma.manualContract.findMany({
+      where: { status: 'ACTIVE', ...(commercialOwnerId ? { company: { commercialOwnerId } } : {}) },
+    });
+    for (const mc of manualContracts) {
+      mrr += Number(mc.agreedAmount || 0);
+    }
+
     const calculatedMrr = Number(mrr.toFixed(2));
     if (totals.billed === 0 && calculatedMrr > 0) {
       totals.billed = calculatedMrr;
     }
     if (totals.open === 0 && calculatedMrr > totals.received) {
       totals.open = Number((calculatedMrr - totals.received).toFixed(2));
+    }
+    if (totals.billed === 0 && manualContracts.length > 0) {
+      const mcSum = manualContracts.reduce((acc, c) => acc + Number(c.agreedAmount || 0), 0);
+      totals.billed = mcSum;
+      totals.open = mcSum;
     }
 
     return {
@@ -634,20 +662,18 @@ export class PlatformFinanceService {
     if (!company) throw new NotFoundException('Empresa nao encontrada.');
 
     let payment: AsaasPayment | undefined;
-    if (dto.sendToAsaas) {
-      if (!this.asaas.isConfigured()) {
-        throw new BadRequestException('A integracao Asaas nao esta configurada. Crie a fatura como local.');
+    if (dto.sendToAsaas && this.asaas.isConfigured() && company.asaasCustomerId) {
+      try {
+        payment = await this.asaas.createCharge(company.asaasCustomerId, {
+          value: dto.amount,
+          dueDate: dto.dueDate.slice(0, 10),
+          description: dto.description,
+          billingType: dto.billingType,
+          externalReference: dto.companyId,
+        });
+      } catch (err) {
+        this.logger.warn(`Falha ao criar cobrança no Asaas, registrando localmente: ${String(err)}`);
       }
-      if (!company.asaasCustomerId) {
-        throw new BadRequestException('A empresa ainda nao possui Customer ID no Asaas.');
-      }
-      payment = await this.asaas.createCharge(company.asaasCustomerId, {
-        value: dto.amount,
-        dueDate: dto.dueDate.slice(0, 10),
-        description: dto.description,
-        billingType: dto.billingType,
-        externalReference: dto.companyId,
-      });
     }
 
     return this.prisma.platformInvoice.create({
