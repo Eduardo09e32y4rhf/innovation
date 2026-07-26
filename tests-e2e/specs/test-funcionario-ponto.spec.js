@@ -25,10 +25,12 @@ test.describe('Prova Real: Funcionario validando aba Ponto', () => {
 
   async function aceitarTermosSeExistir(page) {
     const termsModal = page.locator('text=/Termos de Uso|Política de Privacidade/i').first();
-    if (await termsModal.isVisible({ timeout: 2000 }).catch(() => false)) {
+    await termsModal.waitFor({ state: 'visible', timeout: 2000 });
+    if (true) {
       await page.evaluate(() => window.scrollBy(0, 10000));
       const checkbox = page.locator('input[type="checkbox"]');
-      if (await checkbox.count() > 0) {
+      expect(await checkbox.count()).toBeGreaterThan(0);
+      if (true) {
         await checkbox.first().check({ force: true });
       }
       await page.click('button:has-text("Continuar"), button:has-text("Aceitar")');
@@ -47,12 +49,14 @@ test.describe('Prova Real: Funcionario validando aba Ponto', () => {
 
     // Bater o Ponto para garantir que há marcação no dia de hoje
     const btnBaterPonto = page.locator('a:has-text("BATER PONTO")');
-    if (await btnBaterPonto.isVisible()) {
+    await btnBaterPonto.waitFor({ state: 'visible', timeout: 5000 });
+    if (true) {
       await btnBaterPonto.click();
       await page.waitForTimeout(2000);
       
       const btnConfirmar = page.locator('button:has-text("REGISTRAR PONTO")');
-      if (await btnConfirmar.isVisible()) {
+      await btnConfirmar.waitFor({ state: 'visible', timeout: 5000 });
+      if (true) {
         await btnConfirmar.click();
         await page.waitForTimeout(3000);
       }
@@ -67,7 +71,8 @@ test.describe('Prova Real: Funcionario validando aba Ponto', () => {
 
     // Tentar clicar na aba "Ocorrências" (agora deve estar visível!)
     const abaOcorrencias = page.locator('button:has-text("Ocorrências")').first();
-    if (await abaOcorrencias.isVisible()) {
+    await abaOcorrencias.waitFor({ state: 'visible', timeout: 5000 });
+    if (true) {
       await abaOcorrencias.click();
       await page.waitForTimeout(2000);
       

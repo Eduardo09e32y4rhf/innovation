@@ -28,10 +28,12 @@ test.describe('Cenário E2E: Venda Real (Prosolution Cliente Teste)', () => {
 
   async function aceitarTermosSeExistir(page) {
     const termsModal = page.locator('text=/Termos de Uso|Política de Privacidade/i').first();
-    if (await termsModal.isVisible({ timeout: 3000 }).catch(() => false)) {
+    await termsModal.waitFor({ state: 'visible', timeout: 3000 });
+    if (true) {
       await page.evaluate(() => window.scrollBy(0, 10000));
       const checkbox = page.locator('input[type="checkbox"]');
-      if (await checkbox.count() > 0) {
+      expect(await checkbox.count()).toBeGreaterThan(0);
+      if (true) {
         await checkbox.first().check({ force: true });
       }
       await page.click('button:has-text("Continuar"), button:has-text("Aceitar")');
@@ -56,7 +58,8 @@ test.describe('Cenário E2E: Venda Real (Prosolution Cliente Teste)', () => {
 
     // Criar Empresa
     const btnNovaEmpresa = page.locator('button:has-text("Nova Empresa")');
-    if (await btnNovaEmpresa.isVisible()) {
+    await btnNovaEmpresa.waitFor({ state: 'visible', timeout: 5000 });
+    if (true) {
       await btnNovaEmpresa.click();
       await page.fill('input[name="name"]', 'Prosolution Cliente Teste');
       await page.fill('input[name="document"]', '10.222.220/0002-33');
@@ -91,11 +94,12 @@ test.describe('Cenário E2E: Venda Real (Prosolution Cliente Teste)', () => {
     await page.waitForTimeout(2000);
     
     const btnNovo = page.locator('button:has-text("Novo")').first();
-    if (await btnNovo.isVisible()) {
+    await btnNovo.waitFor({ state: 'visible', timeout: 5000 });
+    if (true) {
       await btnNovo.click();
       await page.fill('input[name="name"]', 'RH Prosolution');
       await page.fill('input[type="email"]', 'rh.cliente@email.com');
-      await page.selectOption('select', { label: 'Recursos Humanos' }).catch(() => {});
+      await page.selectOption('select', { label: 'Recursos Humanos' });
       await page.click('button:has-text("Salvar")');
       await page.waitForTimeout(1500);
     }
@@ -116,7 +120,8 @@ test.describe('Cenário E2E: Venda Real (Prosolution Cliente Teste)', () => {
     
     // We assume the user clicks "Novo"
     const btnNovo = page.locator('button:has-text("Novo"), a[href="/dashboard/employees/new"]').first();
-    if (await btnNovo.isVisible()) {
+    await btnNovo.waitFor({ state: 'visible', timeout: 5000 });
+    if (true) {
       await btnNovo.click();
       await page.fill('input[name="name"]', 'Gestor Cliente');
       await page.fill('input[name="email"]', 'gestor.cliente@email.com');
@@ -128,7 +133,7 @@ test.describe('Cenário E2E: Venda Real (Prosolution Cliente Teste)', () => {
     // Navigates to a specific employee and adds ASO
     await page.goto('/dashboard/management');
     await page.waitForTimeout(1000);
-    await page.click('button:has-text("ASO")').catch(() => {});
+    await page.click('button:has-text("ASO")');
     await page.screenshot({ path: path.join(screenshotDir, '08-rh-aso.png') });
 
     // Ponto
@@ -148,19 +153,19 @@ test.describe('Cenário E2E: Venda Real (Prosolution Cliente Teste)', () => {
     // Bater o próprio ponto
     await page.goto('/dashboard/time-track');
     await page.waitForTimeout(1000);
-    await page.click('button:has-text("Bater Ponto")').catch(() => {});
+    await page.click('button:has-text("Bater Ponto")');
     await page.screenshot({ path: path.join(screenshotDir, '11-gestor-bater-ponto.png') });
 
     // Férias
     await page.goto('/dashboard/vacations');
     await page.waitForTimeout(1000);
-    await page.click('button:has-text("Nova")').catch(() => {});
+    await page.click('button:has-text("Nova")');
     await page.screenshot({ path: path.join(screenshotDir, '12-gestor-solicita-ferias.png') });
 
     // Alterar Senha
     await page.goto('/dashboard/settings');
     await page.waitForTimeout(1000);
-    await page.fill('input[placeholder="Nova senha"]', STRONG_PASSWORD).catch(() => {});
+    await page.fill('input[placeholder="Nova senha"]', STRONG_PASSWORD);
     await page.screenshot({ path: path.join(screenshotDir, '13-gestor-altera-senha.png') });
   });
 
@@ -173,7 +178,7 @@ test.describe('Cenário E2E: Venda Real (Prosolution Cliente Teste)', () => {
     await page.screenshot({ path: path.join(screenshotDir, '14-func-dashboard.png') });
 
     // Bater Ponto
-    await page.click('button:has-text("Bater Ponto")').catch(() => {});
+    await page.click('button:has-text("Bater Ponto")');
     await page.screenshot({ path: path.join(screenshotDir, '15-func-ponto.png') });
 
     // Férias (valida PENDENTE)

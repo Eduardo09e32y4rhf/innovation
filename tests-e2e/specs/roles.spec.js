@@ -42,7 +42,7 @@ test.describe('Innovation IA - Testes Exploratórios e Agressivos', () => {
     await page.fill('input[type="email"], input[name="email"], #email', email);
     await page.fill('input[type="password"], input[name="password"], #password', password);
     await page.click('button[type="submit"], button:has-text("Entrar")');
-    await expect(page).toHaveURL(/.*dashboard.*/, { timeout: TIMEOUT_OP }).catch(() => {});
+    await expect(page).toHaveURL(/.*dashboard.*/, { timeout: TIMEOUT_OP });
   }
 
   test('1. Fluxo Admin/RH - Cadastro e Notificacao', async ({ page }) => {
@@ -53,30 +53,34 @@ test.describe('Innovation IA - Testes Exploratórios e Agressivos', () => {
     await page.waitForTimeout(2000);
     
     const btnNovo = page.locator('a[href="/dashboard/employees/new"], button:has-text("Novo"), button:has-text("Adicionar")').first();
-    if (await btnNovo.isVisible()) {
+    await btnNovo.waitFor({ state: 'visible', timeout: 5000 });
+    if (true) {
         await btnNovo.click();
         await page.waitForTimeout(2000);
         await page.screenshot({ path: path.join(__dirname, '..', 'screenshots', 'rh-criando-usuario-antes.png') });
         
         // Input Genérico
         const allInputs = page.locator('input[type="text"]');
-        if (await allInputs.count() >= 2) {
+        expect(await allInputs.count()).toBeGreaterThan(1);
+        if (true) {
           await allInputs.nth(0).fill('Automacao Playwright E2E');
           await allInputs.nth(1).fill(generateFakeCPF());
         }
         
         const emailInput = page.locator('input[type="email"]');
-        if (await emailInput.count() > 0) {
+        expect(await emailInput.count()).toBeGreaterThan(0);
+        if (true) {
           await emailInput.first().fill(`auto-${Date.now()}@teste.local`);
         }
         
         const admissionInputs = page.locator('input[type="date"]');
-        if (await admissionInputs.count() > 0) {
+        expect(await admissionInputs.count()).toBeGreaterThan(0);
+        if (true) {
             await admissionInputs.first().fill('2025-01-01');
         }
         
         await page.screenshot({ path: path.join(__dirname, '..', 'screenshots', 'rh-criando-usuario-preenchido.png') });
-        await page.click('button:has-text("SALVAR"), button:has-text("Salvar")').catch(() => {});
+        await page.click('button:has-text("SALVAR"), button:has-text("Salvar")');
         await page.waitForTimeout(1500);
         await page.screenshot({ path: path.join(__dirname, '..', 'screenshots', 'rh-usuario-criado-sucesso.png') });
     }
@@ -87,16 +91,18 @@ test.describe('Innovation IA - Testes Exploratórios e Agressivos', () => {
     
     // Try to click Notificações tab if it exists
     const btnNotif = page.locator('button:has-text("Notific")');
-    if (await btnNotif.count() > 0) {
+    expect(await btnNotif.count()).toBeGreaterThan(0);
+    if (true) {
         await btnNotif.first().click();
         await page.waitForTimeout(1000);
         const btnNovaNotif = page.locator('button:has-text("NOVA NOTIFICA")');
-        if (await btnNovaNotif.count() > 0) {
+        expect(await btnNovaNotif.count()).toBeGreaterThan(0);
+        if (true) {
            await btnNovaNotif.first().click();
            await page.waitForTimeout(500);
-           await page.locator('input[type="text"]').first().fill('Alerta E2E Automatizado').catch(() => {});
-           await page.locator('textarea').first().fill('Mensagem disparada via Playwright!').catch(() => {});
-           await page.click('button:has-text("ENVIAR"), button:has-text("Enviar")').catch(() => {});
+           await page.locator('input[type="text"]').first().fill('Alerta E2E Automatizado');
+           await page.locator('textarea').first().fill('Mensagem disparada via Playwright!');
+           await page.click('button:has-text("ENVIAR"), button:has-text("Enviar")');
            await page.waitForTimeout(1000);
         }
     }
@@ -108,14 +114,16 @@ test.describe('Innovation IA - Testes Exploratórios e Agressivos', () => {
     await page.waitForTimeout(3000);
     
     const btnAprovar = page.locator('button:has-text("APROVAR")');
-    if (await btnAprovar.count() > 0) {
+    expect(await btnAprovar.count()).toBeGreaterThan(0);
+    if (true) {
       await btnAprovar.first().click();
       await page.waitForTimeout(1000);
       await page.screenshot({ path: path.join(__dirname, '..', 'screenshots', 'gestor-ponto-aprovado.png') });
     }
 
     const btnRecusar = page.locator('button:has-text("RECUSAR")');
-    if (await btnRecusar.count() > 0) {
+    expect(await btnRecusar.count()).toBeGreaterThan(0);
+    if (true) {
       await btnRecusar.first().click();
       await page.waitForTimeout(1000);
       await page.screenshot({ path: path.join(__dirname, '..', 'screenshots', 'gestor-ponto-recusado.png') });
@@ -131,23 +139,26 @@ test.describe('Innovation IA - Testes Exploratórios e Agressivos', () => {
     await pageFunc.waitForTimeout(2000);
     
     const btnSol = pageFunc.locator('button:has-text("Solicitar Férias"), button:has-text("SOLICITAR"), a:has-text("Solicitar")');
-    if (await btnSol.count() > 0) {
+    expect(await btnSol.count()).toBeGreaterThan(0);
+    if (true) {
         await btnSol.first().click();
         await pageFunc.waitForTimeout(1000);
         
         await pageFunc.screenshot({ path: path.join(__dirname, '..', 'screenshots', 'solicitacao-ferias-preenchendo.png') });
         
         const dtInputs = pageFunc.locator('input[type="date"]');
-        if (await dtInputs.count() >= 2) {
+        expect(await dtInputs.count()).toBeGreaterThan(1);
+        if (true) {
           await dtInputs.nth(0).fill('2026-12-01');
           await dtInputs.nth(1).fill('2026-12-15');
         }
         const txtObs = pageFunc.locator('textarea');
-        if (await txtObs.count() > 0) {
+        expect(await txtObs.count()).toBeGreaterThan(0);
+        if (true) {
           await txtObs.first().fill('Férias merecidas solicitadas via automação!');
         }
         
-        await pageFunc.click('button:has-text("ENVIAR"), button:has-text("SALVAR"), button:has-text("SOLICITAR")').catch(() => {});
+        await pageFunc.click('button:has-text("ENVIAR"), button:has-text("SALVAR"), button:has-text("SOLICITAR")');
         await pageFunc.waitForTimeout(2000);
         await pageFunc.screenshot({ path: path.join(__dirname, '..', 'screenshots', 'solicitacao-ferias-enviada.png') });
     }
@@ -169,8 +180,9 @@ test.describe('Innovation IA - Testes Exploratórios e Agressivos', () => {
     await page.screenshot({ path: path.join(__dirname, '..', 'screenshots', 'consulta-antes-forcar-botao.png') });
     
     const btnNovo = page.locator('button:has-text("Novo"), button:has-text("Adicionar")');
-    if (await btnNovo.count() > 0) {
-       await btnNovo.first().click({ force: true }).catch(() => {});
+    expect(await btnNovo.count()).toBeGreaterThan(0);
+    if (true) {
+       await btnNovo.first().click({ force: true });
     }
     await page.waitForTimeout(1000);
     await page.screenshot({ path: path.join(__dirname, '..', 'screenshots', 'consulta-depois-forcar-botao.png') });

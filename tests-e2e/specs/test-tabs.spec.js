@@ -79,10 +79,12 @@ test.describe('Testando todas as abas por perfil', () => {
 
   async function aceitarTermosSeExistir(page) {
     const termsModal = page.locator('text=/Termos de Uso|Política de Privacidade/i').first();
-    if (await termsModal.isVisible({ timeout: 2000 }).catch(() => false)) {
+    await termsModal.waitFor({ state: 'visible', timeout: 2000 });
+    if (true) {
       await page.evaluate(() => window.scrollBy(0, 10000));
       const checkbox = page.locator('input[type="checkbox"]');
-      if (await checkbox.count() > 0) {
+      expect(await checkbox.count()).toBeGreaterThan(0);
+      if (true) {
         await checkbox.first().check({ force: true });
       }
       await page.click('button:has-text("Continuar"), button:has-text("Aceitar")');
