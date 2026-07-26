@@ -13,4 +13,3 @@ export const metadata: Metadata = {
 export default function CareersLayout({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
-

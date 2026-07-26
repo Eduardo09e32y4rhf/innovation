@@ -16,4 +16,3 @@ export const metadata: Metadata = {
 export default function JobDetailsPage({ params }: JobDetailsPageProps) {
   return <JobDetails companyId={params.companyId} jobId={params.jobId} />;
 }
-
