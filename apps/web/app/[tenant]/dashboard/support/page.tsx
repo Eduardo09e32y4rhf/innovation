@@ -186,7 +186,7 @@ export default function SupportPage() {
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-2xl font-black tracking-tight text-slate-900 flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-brand-600 text-white shadow-lg shadow-brand-500/20">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-violet-600 text-white shadow-lg shadow-violet-500/20">
               <LifeBuoy size={24} />
             </div>
             Central de Suporte ao Cliente
@@ -203,13 +203,13 @@ export default function SupportPage() {
             onClick={loadTickets}
             className="flex items-center gap-2 rounded-xl bg-white px-3.5 py-2.5 text-xs font-bold text-slate-700 border border-slate-200 hover:bg-slate-50 transition-all shadow-sm"
           >
-            <RefreshCw size={14} className={loading ? 'animate-spin text-brand-600' : 'text-slate-400'} />
+            <RefreshCw size={14} className={loading ? 'animate-spin text-violet-600' : 'text-slate-400'} />
             Atualizar
           </button>
           {!isFuncionario && (
             <button 
               onClick={() => setShowModal(true)}
-              className="flex items-center justify-center gap-2 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-brand-500/30 transition-all hover:bg-brand-700 hover:scale-105 active:scale-95"
+              className="flex items-center justify-center gap-2 rounded-xl bg-violet-600 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-violet-500/30 transition-all hover:bg-violet-700 hover:scale-105 active:scale-95"
             >
               <Plus size={18} />
               Abrir Novo Chamado
@@ -227,7 +227,7 @@ export default function SupportPage() {
             placeholder="Buscar por código ou assunto..." 
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm font-medium outline-none transition-all focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10"
+            className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm font-medium outline-none transition-all focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10"
           />
         </div>
         
@@ -239,7 +239,7 @@ export default function SupportPage() {
           <select 
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="rounded-xl border border-slate-200 bg-white py-2.5 px-4 text-sm font-medium outline-none transition-all focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10"
+            className="rounded-xl border border-slate-200 bg-white py-2.5 px-4 text-sm font-medium outline-none transition-all focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10"
           >
             <option value="">Todos os chamados</option>
             <option value="NEW">Novos</option>
@@ -280,7 +280,7 @@ export default function SupportPage() {
                     )}
                   </div>
                   
-                  <h3 className="text-base font-bold text-slate-900 group-hover:text-brand-600 transition-colors">
+                  <h3 className="text-base font-bold text-slate-900 group-hover:text-violet-600 transition-colors">
                     {ticket.title || ticket.subject}
                   </h3>
 
@@ -295,9 +295,9 @@ export default function SupportPage() {
                   <span className="text-xs font-medium text-slate-400">
                     Última atividade: {new Date(ticket.updatedAt).toLocaleDateString('pt-BR')}
                   </span>
-                  <div className="flex items-center gap-1 text-xs font-bold text-brand-600 group-hover:translate-x-1 transition-all">
+                  <div className="flex items-center gap-1 text-xs font-bold text-violet-600 group-hover:translate-x-1 transition-all">
                     <span>Ver conversa</span>
-                    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-50 text-brand-600">
+                    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-violet-50 text-violet-600">
                       <ChevronRight size={16} />
                     </div>
                   </div>
@@ -371,7 +371,7 @@ export default function SupportPage() {
 
                 {loadingDetail ? (
                   <div className="flex h-32 items-center justify-center">
-                    <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-200 border-t-brand-600"></div>
+                    <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-200 border-t-violet-600"></div>
                   </div>
                 ) : !selectedTicket.messages || selectedTicket.messages.length === 0 ? (
                   <div className="text-center py-8 text-xs font-medium text-slate-400 italic bg-slate-50 rounded-2xl border border-dashed border-slate-200">
@@ -387,13 +387,13 @@ export default function SupportPage() {
                           key={msg.id} 
                           className={`p-4 rounded-2xl border transition-all ${
                             isMe 
-                              ? 'bg-brand-50/70 border-brand-200/80 ml-8' 
+                              ? 'bg-violet-50/70 border-violet-200/80 ml-8'
                               : 'bg-white border-slate-200 shadow-sm mr-8'
                           }`}
                         >
                           <div className="flex items-center justify-between gap-2 mb-2">
                             <div className="flex items-center gap-2">
-                              <span className={`h-2 w-2 rounded-full ${isMe ? 'bg-brand-600' : 'bg-slate-700'}`} />
+                              <span className={`h-2 w-2 rounded-full ${isMe ? 'bg-violet-600' : 'bg-slate-700'}`} />
                               <span className="text-xs font-black text-slate-900">
                                 {msg.author?.name || (isMe ? 'Você' : 'Suporte Técnico Innovation')}
                               </span>
@@ -423,7 +423,7 @@ export default function SupportPage() {
                   placeholder="Escreva sua mensagem aqui..."
                   value={replyText}
                   onChange={(e) => setReplyText(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 p-3 text-sm font-medium outline-none transition-all focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10"
+                  className="w-full rounded-xl border border-slate-200 p-3 text-sm font-medium outline-none transition-all focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10"
                 />
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] text-slate-400">
@@ -433,7 +433,7 @@ export default function SupportPage() {
                     type="button"
                     onClick={handleSendReply}
                     disabled={sendingReply || !replyText.trim()}
-                    className="flex items-center gap-2 rounded-xl bg-brand-600 px-5 py-2.5 text-xs font-black text-white shadow-lg shadow-brand-500/20 transition-all hover:bg-brand-700 disabled:opacity-50"
+                    className="flex items-center gap-2 rounded-xl bg-violet-600 px-5 py-2.5 text-xs font-black text-white shadow-lg shadow-violet-500/20 transition-all hover:bg-violet-700 disabled:opacity-50"
                   >
                     <Send size={14} />
                     {sendingReply ? 'Enviando...' : 'Enviar Resposta'}
@@ -473,7 +473,7 @@ export default function SupportPage() {
                 <select 
                   value={newCategory} 
                   onChange={(e) => setNewCategory(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 p-3 text-sm font-medium outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 bg-white"
+                  className="w-full rounded-xl border border-slate-200 p-3 text-sm font-medium outline-none focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 bg-white"
                 >
                   <option value="OTHER">Dúvida sobre uso ou funcionalidade</option>
                   <option value="BUG">Problema técnico ou erro no sistema</option>
@@ -491,7 +491,7 @@ export default function SupportPage() {
                   placeholder="Ex: Erro ao emitir espelho de ponto da filial SP"
                   value={newTitle}
                   onChange={(e) => setNewTitle(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 p-3 text-sm font-medium outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10"
+                  className="w-full rounded-xl border border-slate-200 p-3 text-sm font-medium outline-none focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10"
                 />
               </div>
 
@@ -503,7 +503,7 @@ export default function SupportPage() {
                   placeholder="Explique o que aconteceu, passo a passo para reproduzir o problema, ou a dúvida específica..."
                   value={newDescription}
                   onChange={(e) => setNewDescription(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 p-3 text-sm font-medium outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10"
+                  className="w-full rounded-xl border border-slate-200 p-3 text-sm font-medium outline-none focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10"
                 />
               </div>
 
@@ -518,7 +518,7 @@ export default function SupportPage() {
                 <button 
                   type="submit" 
                   disabled={creating}
-                  className="rounded-xl bg-brand-600 px-6 py-2.5 text-xs font-black text-white hover:bg-brand-700 shadow-lg shadow-brand-500/30 transition-all disabled:opacity-50"
+                  className="rounded-xl bg-violet-600 px-6 py-2.5 text-xs font-black text-white hover:bg-violet-700 shadow-lg shadow-violet-500/30 transition-all disabled:opacity-50"
                 >
                   {creating ? 'Registrando...' : 'Criar Chamado'}
                 </button>
