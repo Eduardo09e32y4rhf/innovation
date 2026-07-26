@@ -379,6 +379,19 @@ export interface PlatformInvoiceList {
   items: PlatformInvoice[];
   pagination: { page: number; limit: number; total: number; pages: number };
 }
+export interface AsaasWebhookEvent {
+  id: string;
+  asaasEventId: string;
+  eventType: string;
+  status: 'PENDING' | 'PROCESSING' | 'PROCESSED' | 'FAILED' | 'IGNORED' | string;
+  attempts: number;
+  errorMessage?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  processedAt?: string | null;
+  company?: { id: string; name: string } | null;
+  paymentId?: string | null;
+}
 export interface PlatformInvoiceQuery {
   page?: number; limit?: number; status?: PlatformInvoiceStatus | ''; search?: string; from?: string; to?: string;
 }
@@ -673,6 +686,8 @@ export const api = {
       create: (input: CreatePlatformInvoiceInput) => request<PlatformInvoice>('/finance/platform/invoices', { method: 'POST', body: input }),
       update: (id: string, input: UpdatePlatformInvoiceInput) => request<PlatformInvoice>(`/finance/platform/invoices/${id}`, { method: 'PATCH', body: input }),
       sync: (id: string) => request<PlatformInvoice>(`/finance/platform/invoices/${id}/sync`, { method: 'POST' }),
+      webhookEvents: (query: { companyId?: string; limit?: number } = {}) => request<AsaasWebhookEvent[]>(`/finance/platform/webhook-events${makeQuery(query)}`),
+      retryWebhookEvent: (id: string) => request<{ queued: boolean; id: string }>(`/finance/platform/webhook-events/${id}/retry`, { method: 'POST' }),
       delete: (id: string) => request<{ id: string }>(`/finance/platform/invoices/${id}`, { method: 'DELETE' }),
     },
   },

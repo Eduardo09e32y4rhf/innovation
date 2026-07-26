@@ -70,8 +70,8 @@ export function CompanyManageModal({ company, onClose, onSave, loading, error }:
   const valid = name.trim().length > 0 && maxUsers >= 1 && maxUsers >= company.usersCount && maxEmployees >= 1 && maxEmployees >= company.employeesCount;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4">
-      <div className="w-full max-w-2xl rounded-[12px] border border-slate-200 bg-white p-0 shadow-xl flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-50 flex items-stretch justify-end bg-slate-950/40">
+      <div className="flex h-full w-full max-w-2xl flex-col border-l border-slate-200 bg-white p-0 shadow-2xl">
         
         {/* HEADER */}
         <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
