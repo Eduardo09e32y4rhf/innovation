@@ -14,29 +14,53 @@ const DISCOUNT_BPS: Record<CommitmentMonths, number> = {
 
 @Injectable()
 export class PricingService {
-  calculate(commitmentMonths: CommitmentMonths, seatQuantity: number) {
-    if (!Number.isInteger(seatQuantity) || seatQuantity < 1) {
+  calculate(
+    commitmentMonths: any = 1,
+    seatQuantity: number = 1,
+    customPricing?: {
+      baseMonthlyPrice?: number | string | any;
+      userMonthlyPrice?: number | string | any;
+      price?: number | string | any;
+    }
+  ) {
+    if (!Number.isFinite(seatQuantity) || seatQuantity < 1 || !Number.isInteger(seatQuantity)) {
       throw new BadRequestException('A quantidade de usuários deve ser maior que zero.');
     }
 
-    const discountBps = DISCOUNT_BPS[commitmentMonths];
-
-    if (discountBps === undefined) {
-      throw new BadRequestException('Período de contratação inválido.');
+    let normalizedMonths: CommitmentMonths = 1;
+    if (commitmentMonths !== null && commitmentMonths !== undefined && commitmentMonths !== 0 && commitmentMonths !== '') {
+      if (![1, 3, 6, 12].includes(Number(commitmentMonths))) {
+        throw new BadRequestException('Período de contratação inválido.');
+      }
+      normalizedMonths = Number(commitmentMonths) as CommitmentMonths;
     }
 
-    const baseGrossCents = BASE_MONTHLY_CENTS * commitmentMonths;
+    const discountBps = DISCOUNT_BPS[normalizedMonths] ?? 0;
+
+    let baseMonthlyCents = BASE_MONTHLY_CENTS;
+    if (customPricing) {
+      const p = Number(customPricing.baseMonthlyPrice || customPricing.price || 0);
+      if (p > 0 && !isNaN(p)) baseMonthlyCents = Math.round(p * 100);
+    }
+
+    let userMonthlyCents = USER_MONTHLY_CENTS;
+    if (customPricing) {
+      const u = Number(customPricing.userMonthlyPrice || 0);
+      if (u > 0 && !isNaN(u)) userMonthlyCents = Math.round(u * 100);
+    }
+
+    const baseGrossCents = baseMonthlyCents * normalizedMonths;
     const baseNetCents = Math.round(baseGrossCents * (10_000 - discountBps) / 10_000);
     const baseDiscountCents = baseGrossCents - baseNetCents;
-    const seatAmountCents = USER_MONTHLY_CENTS * seatQuantity * commitmentMonths;
+    const seatAmountCents = userMonthlyCents * seatQuantity * normalizedMonths;
     const totalCents = baseNetCents + seatAmountCents;
 
     return {
-      commitmentMonths,
+      commitmentMonths: normalizedMonths,
       seatQuantity,
 
-      baseMonthlyCents: BASE_MONTHLY_CENTS,
-      userMonthlyCents: USER_MONTHLY_CENTS,
+      baseMonthlyCents,
+      userMonthlyCents,
 
       discountBps,
       discountPercent: discountBps / 100,

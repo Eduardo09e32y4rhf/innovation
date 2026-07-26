@@ -179,21 +179,12 @@ export class PlatformRepository {
 
   async purgeCompany(id: string) {
     return this.prisma.$transaction(async (tx) => {
-      await tx.userSession.deleteMany({ where: { user: { companyId: id } } }).catch(() => {});
-      await tx.user.deleteMany({ where: { companyId: id } }).catch(() => {});
       await tx.companySubscription.deleteMany({ where: { companyId: id } }).catch(() => {});
       await tx.manualContract.deleteMany({ where: { companyId: id } }).catch(() => {});
       await tx.platformInvoice.deleteMany({ where: { companyId: id } }).catch(() => {});
       await tx.supportTicket.deleteMany({ where: { companyId: id } }).catch(() => {});
       await tx.auditLog.deleteMany({ where: { companyId: id } }).catch(() => {});
-      await tx.publicJobApplication.deleteMany({ where: { companyId: id } }).catch(() => {});
-      await tx.publicJob.deleteMany({ where: { companyId: id } }).catch(() => {});
-      await tx.employee.deleteMany({ where: { companyId: id } }).catch(() => {});
-      await tx.department.deleteMany({ where: { companyId: id } }).catch(() => {});
-      await tx.position.deleteMany({ where: { companyId: id } }).catch(() => {});
-      await tx.timeRecord.deleteMany({ where: { companyId: id } }).catch(() => {});
-      await tx.payroll.deleteMany({ where: { companyId: id } }).catch(() => {});
-      await tx.vacation.deleteMany({ where: { companyId: id } }).catch(() => {});
+      await tx.user.deleteMany({ where: { companyId: id } }).catch(() => {});
       return tx.company.delete({ where: { id } });
     });
   }

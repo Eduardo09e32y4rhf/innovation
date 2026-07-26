@@ -48,8 +48,11 @@ export class AuthService {
   async quotePublicPlan(dto: { planId: string; seatQuantity: number; couponCode?: string }) {
     const plan = await this.repository.findPublicPlan(dto.planId);
     if (!plan) throw new NotFoundException('O plano selecionado nao esta mais disponivel.');
-    if (dto.seatQuantity > plan.maxUsers) throw new BadRequestException('Quantidade de usuarios acima do limite tecnico do plano.');
-    const quote = this.pricingService.calculate(plan.commitmentMonths as 1 | 3 | 6 | 12, dto.seatQuantity);
+    const quote = this.pricingService.calculate(plan.commitmentMonths as 1 | 3 | 6 | 12, dto.seatQuantity, {
+      baseMonthlyPrice: plan.baseMonthlyPrice ? Number(plan.baseMonthlyPrice) : undefined,
+      userMonthlyPrice: plan.userMonthlyPrice ? Number(plan.userMonthlyPrice) : undefined,
+      price: plan.price ? Number(plan.price) : undefined,
+    });
     if (!dto.couponCode) return { ...quote, trialDays: 0, couponApplied: false };
     const coupon = await this.repository.findCouponByCode(dto.couponCode);
     const now = new Date();
