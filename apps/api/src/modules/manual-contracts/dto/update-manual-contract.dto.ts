@@ -10,6 +10,6 @@ export class UpdateManualContractDto {
   @IsOptional() @IsIn(['ASAAS', 'BANK_TRANSFER', 'EXTERNAL']) paymentMethod?: 'ASAAS' | 'BANK_TRANSFER' | 'EXTERNAL';
   @IsOptional() @IsString() externalContractNumber?: string;
   @IsOptional() @IsString() notes?: string;
-  @IsOptional() @IsUrl({ require_protocol: true }) documentUrl?: string;
+  @IsOptional() @IsString() documentUrl?: string;
   @IsOptional() @IsIn(['ACTIVE', 'ENDED', 'CANCELED']) status?: 'ACTIVE' | 'ENDED' | 'CANCELED';
 }

@@ -28,17 +28,19 @@ export class ManualContractsRepository {
   createWithActivation(data: any, actorId: string) {
     return this.prisma.$transaction(async (tx) => {
       const contract = await tx.manualContract.create({ data: { ...data, createdBy: actorId } });
-      await tx.companySubscription.upsert({
-        where: { companyId: data.companyId },
-        create: { companyId: data.companyId, planId: data.planId, status: 'MANUAL_CONTRACT', seatQuantity: data.seatQuantity },
-        update: { planId: data.planId, status: 'MANUAL_CONTRACT', seatQuantity: data.seatQuantity },
-      });
-      await tx.company.update({
-        where: { id: data.companyId },
-        data: { status: 'ACTIVE', isActive: true, billingStatus: 'ACTIVE', suspensionReason: null, platformPlanId: data.planId, maxUsers: data.seatQuantity },
-      });
+      if (contract.status === 'ACTIVE' || !contract.status) {
+        await tx.companySubscription.upsert({
+          where: { companyId: data.companyId },
+          create: { companyId: data.companyId, planId: data.planId, status: 'MANUAL_CONTRACT', seatQuantity: data.seatQuantity },
+          update: { planId: data.planId, status: 'MANUAL_CONTRACT', seatQuantity: data.seatQuantity },
+        });
+        await tx.company.update({
+          where: { id: data.companyId },
+          data: { status: 'ACTIVE', isActive: true, billingStatus: 'ACTIVE', suspensionReason: null, platformPlanId: data.planId, maxUsers: data.seatQuantity },
+        });
+      }
       await tx.auditLog.create({
-        data: { companyId: data.companyId, userId: actorId, action: 'MANUAL_CONTRACT_CREATED', entity: 'ManualContract', entityId: contract.id, metadata: { notes: data.notes, agreedAmount: data.agreedAmount, seatQuantity: data.seatQuantity } },
+        data: { companyId: data.companyId, userId: actorId, action: 'MANUAL_CONTRACT_CREATED', entity: 'ManualContract', entityId: contract.id, metadata: { notes: data.notes, agreedAmount: data.agreedAmount, seatQuantity: data.seatQuantity, status: contract.status } },
       });
       return contract;
     });

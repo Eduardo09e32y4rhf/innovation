@@ -39,6 +39,10 @@ export class CreateManualContractDto {
   notes!: string;
 
   @IsOptional()
-  @IsUrl({ require_protocol: true })
+  @IsString()
   documentUrl?: string;
+
+  @IsOptional()
+  @IsIn(['ACTIVE', 'ENDED', 'CANCELED'])
+  status?: 'ACTIVE' | 'ENDED' | 'CANCELED';
 }
