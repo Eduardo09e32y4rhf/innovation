@@ -1,0 +1,1 @@
+ALTER TYPE "SupportTicketStatus" ADD VALUE IF NOT EXISTS 'REOPENED';

@@ -51,7 +51,7 @@ export class SupportService {
       metadata: { source: 'WEB_APP', category: data.category }
     });
 
-    return ticket;
+    return this.serializeTicket(ticket);
   }
 
   async listTickets(actor: JwtUser, query?: ListSupportTicketsQueryDto) {
@@ -165,5 +165,20 @@ export class SupportService {
       actorUserId: actor.sub,
       eventType: 'TICKET_REOPENED',
     });
+  }
+
+  private serializeTicket(ticket: any) {
+    const serializeAttachment = (attachment: any) => ({
+      ...attachment,
+      sizeBytes: Number(attachment.sizeBytes ?? 0),
+    });
+    return {
+      ...ticket,
+      attachments: (ticket.attachments ?? []).map(serializeAttachment),
+      messages: (ticket.messages ?? []).map((message: any) => ({
+        ...message,
+        attachments: (message.attachments ?? []).map(serializeAttachment),
+      })),
+    };
   }
 }

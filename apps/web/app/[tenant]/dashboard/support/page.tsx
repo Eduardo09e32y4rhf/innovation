@@ -16,9 +16,15 @@ import {
   X,
   Send,
   RefreshCw,
-  Lock
+  Lock,
+  Paperclip,
+  Download,
+  Upload,
+  UserRound,
+  Building2
 } from 'lucide-react';
 import { ErrorState, LoadingState, EmptyState } from '@/app/components/data-states';
+import PlatformSupportPage from '../platform/support/page';
 
 interface SupportMessage {
   id: string;
@@ -42,10 +48,19 @@ interface Ticket {
   updatedAt: string;
   createdBy?: { name: string };
   affectedUser?: { name: string };
+  assignedTo?: { name: string };
+  company?: { name: string; document?: string };
+  category?: string;
+  attachments?: Array<{
+    id: string;
+    originalName: string;
+    sizeBytes: number;
+    status: 'QUARANTINED' | 'CLEAN' | 'REJECTED';
+  }>;
   messages?: SupportMessage[];
 }
 
-export default function SupportPage() {
+function CustomerSupportPage() {
   const { user } = useAuth();
   const role = String(user?.role || user?.profile || '').toUpperCase();
   const isFuncionario = role === 'FUNCIONARIO';
@@ -62,6 +77,7 @@ export default function SupportPage() {
   const [newTitle, setNewTitle] = useState('');
   const [newDescription, setNewDescription] = useState('');
   const [newCategory, setNewCategory] = useState('OTHER');
+  const [newFiles, setNewFiles] = useState<File[]>([]);
   const [creating, setCreating] = useState(false);
 
   // Drawer de Detalhes e Conversa
@@ -93,14 +109,18 @@ export default function SupportPage() {
     if (!newTitle.trim() || !newDescription.trim()) return;
     setCreating(true);
     try {
-      await api.support.create({
+      const ticket = await api.support.create({
         category: newCategory as any,
         title: newTitle.trim(),
         description: newDescription.trim()
       });
+      for (const file of newFiles) {
+        await api.support.uploadAttachment(ticket.id, file);
+      }
       setShowModal(false);
       setNewTitle('');
       setNewDescription('');
+      setNewFiles([]);
       loadTickets();
     } catch (err: any) {
       alert(err?.message || 'Erro ao criar o chamado.');
@@ -151,6 +171,15 @@ export default function SupportPage() {
       loadTickets();
     } catch (err: any) {
       alert(err?.message || 'Erro ao fechar chamado.');
+    }
+  };
+
+  const handleDownloadAttachment = async (attachmentId: string) => {
+    if (!selectedTicket) return;
+    try {
+      await api.support.downloadAttachment(selectedTicket.id, attachmentId);
+    } catch (err: any) {
+      alert(err?.message || 'Erro ao baixar anexo.');
     }
   };
 
@@ -355,6 +384,22 @@ export default function SupportPage() {
 
             {/* Descrição e Histórico de Mensagens */}
             <div className="flex-1 p-4 md:p-6 overflow-y-auto space-y-4">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="rounded-xl border border-slate-200 bg-white p-3">
+                  <p className="flex items-center gap-2 text-[10px] font-black uppercase tracking-wider text-slate-400">
+                    <UserRound size={13} /> Aberto por
+                  </p>
+                  <p className="mt-2 text-sm font-black text-slate-900">{selectedTicket.createdBy?.name || 'Usuario nao identificado'}</p>
+                  {selectedTicket.affectedUser?.name && <p className="mt-1 text-xs text-slate-500">Usuario afetado: {selectedTicket.affectedUser.name}</p>}
+                </div>
+                <div className="rounded-xl border border-slate-200 bg-white p-3">
+                  <p className="flex items-center gap-2 text-[10px] font-black uppercase tracking-wider text-slate-400">
+                    <Building2 size={13} /> Empresa e atendimento
+                  </p>
+                  <p className="mt-2 text-sm font-black text-slate-900">{selectedTicket.company?.name || 'Empresa nao informada'}</p>
+                  <p className="mt-1 text-xs text-slate-500">Responsavel: {selectedTicket.assignedTo?.name || 'Aguardando atribuicao'}</p>
+                </div>
+              </div>
               <div className="p-4 rounded-2xl bg-slate-100/80 border border-slate-200/60 mb-6">
                 <span className="text-[11px] font-black uppercase tracking-wider text-slate-500 block mb-1">
                   Descrição Inicial do Problema
@@ -362,6 +407,35 @@ export default function SupportPage() {
                 <p className="text-sm text-slate-800 leading-relaxed whitespace-pre-line font-sans">
                   {selectedTicket.description || 'Sem descrição detalhada fornecida no momento da abertura.'}
                 </p>
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                <p className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-slate-500">
+                  <Paperclip size={14} /> Prints e anexos
+                </p>
+                {selectedTicket.attachments?.length ? (
+                  <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                    {selectedTicket.attachments.map((attachment) => (
+                      <button
+                        key={attachment.id}
+                        type="button"
+                        onClick={() => void handleDownloadAttachment(attachment.id)}
+                        disabled={attachment.status === 'REJECTED'}
+                        className="flex items-center justify-between gap-2 rounded-lg border border-slate-200 bg-slate-50 p-3 text-left hover:border-violet-300 hover:bg-violet-50 disabled:opacity-50"
+                      >
+                        <span className="min-w-0">
+                          <span className="block truncate text-xs font-bold text-slate-800">{attachment.originalName}</span>
+                          <span className="mt-1 block text-[10px] text-slate-500">
+                            {(Number(attachment.sizeBytes || 0) / 1024).toFixed(1)} KB · {attachment.status === 'CLEAN' ? 'Verificado' : attachment.status === 'QUARANTINED' ? 'Em verificacao' : 'Bloqueado'}
+                          </span>
+                        </span>
+                        <Download size={14} className="shrink-0 text-violet-600" />
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="mt-3 rounded-lg border border-dashed border-slate-200 p-3 text-center text-xs text-slate-400">Nenhum print anexado.</p>
+                )}
               </div>
 
               <div className="space-y-4">
@@ -507,6 +581,22 @@ export default function SupportPage() {
                 />
               </div>
 
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">Prints ou documentos</label>
+                <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-violet-300 bg-violet-50 p-4 text-xs font-black text-violet-700 hover:bg-violet-100">
+                  <Upload size={16} />
+                  {newFiles.length ? `${newFiles.length} arquivo(s) selecionado(s)` : 'Selecionar ate 5 arquivos'}
+                  <input
+                    type="file"
+                    multiple
+                    accept=".png,.jpg,.jpeg,.webp,.pdf,.txt,.mp4,.webm"
+                    className="sr-only"
+                    onChange={(event) => setNewFiles(Array.from(event.target.files ?? []).slice(0, 5))}
+                  />
+                </label>
+                <p className="mt-1.5 text-[10px] text-slate-400">Limite de 20 MB por arquivo. Formatos executaveis sao bloqueados.</p>
+              </div>
+
               <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
                 <button 
                   type="button" 
@@ -529,4 +619,10 @@ export default function SupportPage() {
       )}
     </div>
   );
+}
+
+export default function SupportPage() {
+  const { user } = useAuth();
+  const role = String(user?.role || user?.profile || '').toUpperCase();
+  return role === 'DEV' ? <PlatformSupportPage /> : <CustomerSupportPage />;
 }

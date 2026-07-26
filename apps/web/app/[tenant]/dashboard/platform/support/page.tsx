@@ -13,18 +13,32 @@ import {
   CheckCircle2,
   ChevronRight,
   Clock,
+  Download,
   Filter,
   Headset,
   Lock,
   MessageSquare,
+  Paperclip,
   RefreshCw,
+  RotateCcw,
   Search,
   Send,
   ShieldAlert,
   UserCheck,
   Users,
+  Upload,
   X,
 } from 'lucide-react';
+
+interface SupportAttachment {
+  id: string;
+  originalName: string;
+  attachmentType: 'IMAGE' | 'VIDEO' | 'DOCUMENT';
+  declaredMimeType?: string;
+  sizeBytes: number;
+  status: 'QUARANTINED' | 'CLEAN' | 'REJECTED';
+  createdAt: string;
+}
 
 interface SupportMessage {
   id: string;
@@ -55,9 +69,27 @@ interface PlatformTicket {
   employee?: { name: string };
   company?: { name: string; id: string; document?: string };
   messages?: SupportMessage[];
+  attachments?: SupportAttachment[];
 }
 
 type TriageTab = 'all' | 'unassigned' | 'critical' | 'sla_at_risk' | 'reopened' | 'waiting_customer' | 'waiting_deploy';
+
+const WORKFLOW_STATUSES = [
+  { value: 'NEW', label: 'Novo' },
+  { value: 'TRIAGE', label: 'Em triagem' },
+  { value: 'IN_PROGRESS', label: 'Em atendimento' },
+  { value: 'WAITING_CUSTOMER', label: 'Aguardando cliente' },
+  { value: 'WAITING_DEPLOY', label: 'Aguardando deploy' },
+  { value: 'RESOLVED', label: 'Resolvido' },
+  { value: 'CLOSED', label: 'Fechado' },
+  { value: 'REOPENED', label: 'Reaberto' },
+] as const;
+
+function formatFileSize(value: number) {
+  if (value < 1024) return `${value} B`;
+  if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`;
+  return `${(value / 1024 / 1024).toFixed(1)} MB`;
+}
 
 export default function PlatformSupportPage() {
   const { user, isDev } = useAuth();
@@ -74,6 +106,7 @@ export default function PlatformSupportPage() {
   const [isInternalNote, setIsInternalNote] = useState(false);
   const [sendingReply, setSendingReply] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [uploadingAttachment, setUploadingAttachment] = useState(false);
 
   const loadTickets = useCallback(async () => {
     if (!isDev) return;
@@ -184,6 +217,31 @@ export default function PlatformSupportPage() {
       alert(err?.message || 'Erro ao resolver chamado.');
     } finally {
       setUpdatingStatus(false);
+    }
+  };
+
+  const handleUploadAttachments = async (files: FileList | null) => {
+    if (!selectedTicket || !files?.length) return;
+    setUploadingAttachment(true);
+    try {
+      for (const file of Array.from(files).slice(0, 5)) {
+        await api.support.uploadAttachment(selectedTicket.id, file);
+      }
+      const updated = await api.platformSupport.get(selectedTicket.id);
+      if (updated) setSelectedTicket(updated);
+    } catch (err: any) {
+      alert(err?.message || 'Erro ao enviar anexo.');
+    } finally {
+      setUploadingAttachment(false);
+    }
+  };
+
+  const handleDownloadAttachment = async (attachment: SupportAttachment) => {
+    if (!selectedTicket) return;
+    try {
+      await api.support.downloadAttachment(selectedTicket.id, attachment.id);
+    } catch (err: any) {
+      alert(err?.message || 'Erro ao baixar anexo.');
     }
   };
 
@@ -496,6 +554,53 @@ export default function PlatformSupportPage() {
                 <p className="mt-3 whitespace-pre-line rounded-xl border border-slate-200/60 bg-slate-50 p-3.5 text-sm leading-relaxed text-slate-700">
                   {selectedTicket.description || 'Sem descricao detalhada fornecida.'}
                 </p>
+                <div className="mt-4 rounded-xl border border-slate-200 bg-white p-3.5">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-slate-600">
+                        <Paperclip size={14} /> Prints e anexos
+                      </p>
+                      <p className="mt-1 text-[11px] text-slate-400">PNG, JPG, WEBP, PDF, TXT ou video. Maximo de 20 MB por arquivo.</p>
+                    </div>
+                    <label className={`inline-flex cursor-pointer items-center gap-2 rounded-lg border border-purple-200 bg-purple-50 px-3 py-2 text-xs font-black text-purple-700 hover:bg-purple-100 ${uploadingAttachment ? 'pointer-events-none opacity-60' : ''}`}>
+                      <Upload size={14} />
+                      {uploadingAttachment ? 'Enviando...' : 'Adicionar arquivos'}
+                      <input
+                        type="file"
+                        multiple
+                        accept=".png,.jpg,.jpeg,.webp,.pdf,.txt,.mp4,.webm"
+                        className="sr-only"
+                        onChange={(event) => {
+                          void handleUploadAttachments(event.target.files);
+                          event.currentTarget.value = '';
+                        }}
+                      />
+                    </label>
+                  </div>
+                  {selectedTicket.attachments?.length ? (
+                    <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                      {selectedTicket.attachments.map((attachment) => (
+                        <button
+                          key={attachment.id}
+                          type="button"
+                          onClick={() => void handleDownloadAttachment(attachment)}
+                          disabled={attachment.status === 'REJECTED'}
+                          className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-left hover:border-purple-300 hover:bg-purple-50 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <span className="min-w-0">
+                            <span className="block truncate text-xs font-bold text-slate-800">{attachment.originalName}</span>
+                            <span className="mt-1 block text-[10px] text-slate-500">
+                              {formatFileSize(Number(attachment.sizeBytes || 0))} · {attachment.status === 'CLEAN' ? 'Verificado' : attachment.status === 'QUARANTINED' ? 'Em verificacao' : 'Bloqueado'}
+                            </span>
+                          </span>
+                          <Download size={15} className="shrink-0 text-purple-600" />
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="mt-3 rounded-lg border border-dashed border-slate-200 p-3 text-center text-xs text-slate-400">Nenhum print ou documento anexado.</p>
+                  )}
+                </div>
               </div>
 
               <div className="flex-1 space-y-4 overflow-y-auto p-4 md:p-6">
@@ -642,33 +747,38 @@ export default function PlatformSupportPage() {
                       </div>
                     )}
 
-                    <div className="grid grid-cols-2 gap-2 pt-1">
+                    <label className="block pt-1 text-[11px] font-black uppercase tracking-wider text-slate-500">
+                      Etapa atual
+                      <select
+                        value={selectedTicket.status}
+                        onChange={(event) => void handleUpdateStatus(event.target.value)}
+                        disabled={updatingStatus}
+                        className="mt-1.5 h-10 w-full rounded-xl border border-slate-300 bg-white px-3 text-xs font-bold text-slate-800 outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 disabled:opacity-60"
+                      >
+                        {WORKFLOW_STATUSES.map((status) => (
+                          <option key={status.value} value={status.value}>{status.label}</option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <div className="grid grid-cols-2 gap-2">
                       <button
                         type="button"
-                        onClick={() => handleUpdateStatus('IN_PROGRESS')}
-                        disabled={updatingStatus || selectedTicket.status === 'IN_PROGRESS'}
-                        className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-800 transition-all hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+                        onClick={handleResolveTicket}
+                        disabled={updatingStatus || selectedTicket.status === 'RESOLVED' || selectedTicket.status === 'CLOSED'}
+                        className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 px-3 py-2.5 text-xs font-black text-white hover:bg-emerald-700 disabled:opacity-50"
                       >
-                        <Clock size={13} /> Em atendimento
+                        <CheckCircle2 size={14} /> Resolver
                       </button>
                       <button
                         type="button"
-                        onClick={() => handleUpdateStatus('WAITING_CUSTOMER')}
-                        disabled={updatingStatus || selectedTicket.status === 'WAITING_CUSTOMER'}
-                        className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-800 transition-all hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+                        onClick={() => void handleUpdateStatus('REOPENED')}
+                        disabled={updatingStatus || !['RESOLVED', 'CLOSED'].includes(selectedTicket.status)}
+                        className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-xs font-black text-rose-700 hover:bg-rose-100 disabled:opacity-50"
                       >
-                        <Clock size={13} /> Aguard. cliente
+                        <RotateCcw size={14} /> Reabrir
                       </button>
                     </div>
-
-                    <button
-                      type="button"
-                      onClick={handleResolveTicket}
-                      disabled={updatingStatus || selectedTicket.status === 'RESOLVED' || selectedTicket.status === 'CLOSED'}
-                      className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-black text-white shadow-md shadow-emerald-600/20 transition-all hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      <CheckCircle2 size={15} /> Concluir e resolver chamado
-                    </button>
                   </div>
                 </div>
 

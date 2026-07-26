@@ -5,6 +5,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { SupportAuthorizationService } from './support-authorization.service';
 import { SupportTicketPriority, SupportTicketStatus } from '@prisma/client';
 import { ListSupportTicketsQueryDto } from './dto/list-support-tickets-query.dto';
+import { UpdateSupportStatusDto } from './dto/update-support-status.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('platform/support')
@@ -61,9 +62,17 @@ export class PlatformSupportController {
   }
 
   @Patch('tickets/:id/status')
-  async updateStatus(@Req() req: any, @Param('id') id: string, @Body('status') status: SupportTicketStatus) {
+  async updateStatus(@Req() req: any, @Param('id') id: string, @Body() body: UpdateSupportStatusDto) {
     this.authService.assertCanManageTicket(req.user);
-    const ticket = await this.repository.updateTicket(id, { status });
+    const status = body.status as SupportTicketStatus;
+    const lifecycle: any = { status };
+    if (status === 'RESOLVED') lifecycle.resolvedAt = new Date();
+    if (status === 'CLOSED') lifecycle.closedAt = new Date();
+    if (status === 'REOPENED') {
+      lifecycle.resolvedAt = null;
+      lifecycle.closedAt = null;
+    }
+    const ticket = await this.repository.updateTicket(id, lifecycle);
     await this.repository.createEvent({ ticketId: id, actorUserId: req.user.sub, eventType: 'STATUS_CHANGED', newValue: { status } });
     return ticket;
   }

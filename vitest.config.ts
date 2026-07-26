@@ -10,6 +10,7 @@ export default defineConfig({
       'tests/unit/**/*.spec.ts',
       'tests/contract/**/*.spec.ts',
       'tests/security/**/*.spec.ts',
+      'apps/api/tests/unit/**/*.spec.ts',
       'apps/api/src/**/*.spec.ts'
     ],
     exclude: ['node_modules', 'dist', 'tests/integration', 'tests-e2e'],

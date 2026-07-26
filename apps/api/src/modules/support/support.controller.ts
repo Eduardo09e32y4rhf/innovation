@@ -73,10 +73,11 @@ export class SupportController {
   @Get('tickets/:id/attachments/:attachmentId/download')
   async downloadAttachment(
     @Req() req: any,
+    @Param('id') id: string,
     @Param('attachmentId') attachmentId: string,
     @Res() res: Response
   ) {
-    const { stream, mimetype, filename, size } = await this.attachmentService.downloadAttachment(req.user, attachmentId);
+    const { stream, mimetype, filename, size } = await this.attachmentService.downloadAttachment(req.user, id, attachmentId);
     
     res.set({
       'Content-Type': mimetype || 'application/octet-stream',

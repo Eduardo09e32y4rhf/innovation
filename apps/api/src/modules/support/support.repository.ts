@@ -51,6 +51,10 @@ export class SupportRepository {
         id: true,
         ticketNumber: true,
         companyId: true,
+        createdByUserId: true,
+        affectedUserId: true,
+        affectedEmployeeId: true,
+        assignedToUserId: true,
         category: true,
         status: true,
         priority: true,
@@ -66,6 +70,7 @@ export class SupportRepository {
         createdBy: { select: SAFE_USER_SELECT },
         affectedUser: { select: SAFE_USER_SELECT },
         assignedTo: { select: SAFE_USER_SELECT },
+        company: { select: { id: true, name: true, document: true } },
         messages: {
           where: { visibility: 'PUBLIC' },
           select: {
@@ -104,6 +109,7 @@ export class SupportRepository {
         companyId: true,
         createdByUserId: true,
         affectedUserId: true,
+        affectedEmployeeId: true,
         assignedToUserId: true,
         category: true,
         status: true,

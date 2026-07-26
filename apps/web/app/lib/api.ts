@@ -107,6 +107,29 @@ export async function request<T>(path: string, opts: Opts = {}): Promise<T> {
   return data as T;
 }
 
+async function downloadRequest(path: string): Promise<void> {
+  const headers: Record<string, string> = {};
+  const token = getToken();
+  if (token) headers.Authorization = `Bearer ${token}`;
+  const response = await fetch(`${API_URL}${path}`, { headers });
+  if (!response.ok) {
+    const data = safeJson(await response.text());
+    const message = data && typeof data === 'object' && 'message' in data ? String((data as any).message) : `Erro ${response.status}`;
+    throw new ApiError(response.status, message, data);
+  }
+  const disposition = response.headers.get('content-disposition') || '';
+  const encodedName = disposition.match(/filename="([^"]+)"/i)?.[1];
+  const filename = encodedName ? decodeURIComponent(encodedName) : 'anexo';
+  const url = URL.createObjectURL(await response.blob());
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
+}
+
 function safeJson(text: string): unknown {
   try { return JSON.parse(text); } catch { return text; }
 }
@@ -763,6 +786,13 @@ export const api = {
     reply: (id: string, data: any) => request<any>(`/support/tickets/${id}/messages`, { method: 'POST', body: data }),
     close: (id: string) => request<any>(`/support/tickets/${id}/close`, { method: 'POST' }),
     reopen: (id: string) => request<any>(`/support/tickets/${id}/reopen`, { method: 'POST' }),
+    uploadAttachment: (id: string, file: File) => {
+      const body = new FormData();
+      body.append('file', file);
+      return request<any>(`/support/tickets/${id}/attachments`, { method: 'POST', body, timeoutMs: 120000 });
+    },
+    downloadAttachment: (ticketId: string, attachmentId: string) =>
+      downloadRequest(`/support/tickets/${ticketId}/attachments/${attachmentId}/download`),
   },
 
   platformSupport: {

@@ -1,6 +1,7 @@
 import { Injectable, Logger, BadRequestException, Inject } from '@nestjs/common';
 import { SupportStorageService } from './support-storage.service';
 import { SupportRepository } from './support.repository';
+import { SupportAuthorizationService } from './support-authorization.service';
 // @ts-ignore
 import NodeClam from 'clamscan';
 
@@ -11,7 +12,8 @@ export class SupportAttachmentService {
 
   constructor(
     private readonly repository: SupportRepository,
-    @Inject(SupportStorageService) private readonly storageService: SupportStorageService
+    @Inject(SupportStorageService) private readonly storageService: SupportStorageService,
+    private readonly authorizationService: SupportAuthorizationService,
   ) {
     this.initClamAV();
   }
@@ -36,6 +38,12 @@ export class SupportAttachmentService {
   private readonly blockedExtensions = new Set(['exe', 'bat', 'cmd', 'ps1', 'sh', 'js', 'html', 'htm', 'svg', 'zip', 'rar', 'dll', 'apk', 'msi', 'vbs', 'scr', 'pif']);
 
   async uploadAttachment(actor: any, ticketId: string, file: any, messageId?: string) {
+    const ticket = await this.repository.findPlatformTicketById(ticketId);
+    if (!ticket) {
+      throw new BadRequestException('Chamado nao encontrado.');
+    }
+    await this.authorizationService.assertCanUploadAttachment(actor, ticket);
+
     if (file.size > 20 * 1024 * 1024) {
       throw new BadRequestException('O tamanho do arquivo excede o limite máximo permitido de 20 MB.');
     }
@@ -106,9 +114,9 @@ export class SupportAttachmentService {
     }
   }
 
-  async downloadAttachment(actor: any, attachmentId: string) {
+  async downloadAttachment(actor: any, ticketId: string, attachmentId: string) {
     const attachment = await this.repository.getAttachmentById(attachmentId);
-    if (!attachment) {
+    if (!attachment || attachment.ticketId !== ticketId) {
       throw new BadRequestException('Anexo não encontrado.');
     }
 
@@ -117,19 +125,9 @@ export class SupportAttachmentService {
     }
 
     // Autorização
-    if (actor.role === 'ADMIN' || actor.role === 'RH') {
-      // Check if ticket belongs to same company
-      const ticket = await this.repository.findPlatformTicketById(attachment.ticketId);
-      if (ticket && ticket.companyId !== actor.companyId) {
-        throw new BadRequestException('Acesso negado a este anexo.');
-      }
-    } else if (actor.role === 'GESTOR' || actor.role === 'FUNCIONARIO') {
-      const ticket = await this.repository.findPlatformTicketById(attachment.ticketId);
-      if (ticket && ticket.affectedUserId !== actor.sub) {
-        throw new BadRequestException('Acesso negado a este anexo.');
-      }
-    }
-    // DEV e SUPORTE podem ver tudo
+    const ticket = await this.repository.findPlatformTicketById(ticketId);
+    if (!ticket) throw new BadRequestException('Chamado nao encontrado.');
+    await this.authorizationService.assertCanViewTicket(actor, ticket);
 
     const stream = await this.storageService.getFileStream(attachment.storageKey);
     return { stream, mimetype: attachment.declaredMimeType, filename: attachment.originalName, size: Number(attachment.sizeBytes) };
