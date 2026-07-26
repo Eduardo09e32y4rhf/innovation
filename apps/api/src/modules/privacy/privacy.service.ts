@@ -57,10 +57,12 @@ export class PrivacyService {
 
     const crypto = require('crypto');
     
-    const privateKey = process.env.PRIVACY_RSA_PRIVATE_KEY;
-    if (!privateKey) {
-      throw new InternalServerErrorException('Configuração de segurança (PRIVACY_RSA_PRIVATE_KEY) ausente no ambiente.');
-    }
+    const privateKey = process.env.PRIVACY_RSA_PRIVATE_KEY
+      ? process.env.PRIVACY_RSA_PRIVATE_KEY.replace(/\\n/g, '\n')
+      : null;
+
+    let signature: string | null = null;
+    let payloadHash: string | null = null;
 
     const payloadToSign = JSON.stringify({
       companyId: user.companyId,
@@ -71,11 +73,21 @@ export class PrivacyService {
       acceptedAt: consent.acceptedAt.toISOString(),
     });
 
-    const sign = crypto.createSign('SHA256');
-    sign.update(payloadToSign);
-    sign.end();
-    const signature = sign.sign(privateKey, 'base64');
-    const payloadHash = crypto.createHash('sha256').update(payloadToSign).digest('hex');
+    payloadHash = crypto.createHash('sha256').update(payloadToSign).digest('hex');
+
+    if (privateKey) {
+      try {
+        const sign = crypto.createSign('SHA256');
+        sign.update(payloadToSign);
+        sign.end();
+        signature = sign.sign(privateKey, 'base64');
+      } catch (e) {
+        // Chave inválida — aceita sem assinatura digital e loga o aviso
+        console.warn('[PrivacyService] RSA signing failed, proceeding without signature:', (e as Error).message);
+      }
+    } else {
+      console.warn('[PrivacyService] PRIVACY_RSA_PRIVATE_KEY not set — terms accepted without digital signature.');
+    }
 
     await this.repository.createAuditLog({
       companyId: user.companyId,
@@ -87,9 +99,9 @@ export class PrivacyService {
         termVersion: CURRENT_TERMS_VERSION, 
         latitude: body?.latitude, 
         longitude: body?.longitude,
-        signatureAlgorithm: 'RSA-SHA256',
+        signatureAlgorithm: signature ? 'RSA-SHA256' : 'none',
         payloadHash: payloadHash,
-        digitalSignature: signature,
+        ...(signature ? { digitalSignature: signature } : {}),
       },
       ...requestMeta,
     });
