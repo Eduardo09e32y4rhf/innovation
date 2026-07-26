@@ -63,4 +63,23 @@ describe('PayrollCalculationService - tabelas 2026', () => {
     expect(result.overtime100Value).toBe(20);
     expect(result.nightShiftValue).toBe(2);
   });
+
+  it('deduz corretamente os descontos de atrasos e saidas antecipadas do salario bruto', () => {
+    const result = service.calculate({
+      salary: 4400, // 220h => R$ 20/h
+      weeklyMinutes: 2640,
+      overtime50Minutes: 0,
+      overtime100Minutes: 0,
+      nightShiftMinutes: 0,
+      absenceMinutes: 0,
+      lateMinutes: 60, // 1h atraso => R$ 20 desconto
+      earlyLeaveMinutes: 120, // 2h saida antecipada => R$ 40 desconto
+      payableWorkdays: 22,
+      paidRestDays: 8,
+    });
+    expect(result.hourlyRate).toBe(20);
+    expect(result.lateDiscount).toBe(20);
+    expect(result.earlyLeaveDiscount).toBe(40);
+    expect(result.grossPay).toBe(4340); // 4400 - 60
+  });
 });

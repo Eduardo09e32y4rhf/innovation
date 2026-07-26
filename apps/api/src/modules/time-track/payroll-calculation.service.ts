@@ -7,6 +7,8 @@ export interface PayrollCalculationInput {
   overtime100Minutes: number;
   nightShiftMinutes: number;
   absenceMinutes: number;
+  lateMinutes?: number;
+  earlyLeaveMinutes?: number;
   payableWorkdays: number;
   paidRestDays: number;
   dependents?: number;
@@ -28,6 +30,8 @@ export interface PayrollCalculationResult {
   dsrHours: number;
   dsrValue: number;
   absenceDiscount: number;
+  lateDiscount: number;
+  earlyLeaveDiscount: number;
   grossPay: number;
   inssBase: number;
   inssDiscount: number;
@@ -71,8 +75,11 @@ export class PayrollCalculationService {
     // In partial months, absences might have been correctly accounted for in the reduced salary base depending on interpretation.
     // However, if we reduced the salary base based on scheduled hours of that short period, we should STILL deduct absences that happened in that period.
     const absenceDiscount = this.money((Math.max(0, input.absenceMinutes) / 60) * hourlyRate);
+    const lateDiscount = this.money((Math.max(0, input.lateMinutes ?? 0) / 60) * hourlyRate);
+    const earlyLeaveDiscount = this.money((Math.max(0, input.earlyLeaveMinutes ?? 0) / 60) * hourlyRate);
+    const totalJornadaDeduction = absenceDiscount + lateDiscount + earlyLeaveDiscount;
     
-    const grossPay = this.money(Math.max(0, salaryBase + variablePay + dsrValue - absenceDiscount));
+    const grossPay = this.money(Math.max(0, salaryBase + variablePay + dsrValue - totalJornadaDeduction));
     const inssDiscount = this.calculateInss(grossPay);
     const legalDeductions = inssDiscount + Math.max(0, input.dependents ?? 0) * 189.59;
     const irrfDeduction = Math.max(607.2, legalDeductions);
@@ -91,6 +98,8 @@ export class PayrollCalculationService {
       dsrHours,
       dsrValue,
       absenceDiscount,
+      lateDiscount,
+      earlyLeaveDiscount,
       grossPay,
       inssBase: grossPay,
       inssDiscount,

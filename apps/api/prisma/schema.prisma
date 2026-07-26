@@ -1228,6 +1228,8 @@ model TimeClosing {
   lateMinutes        Int    @default(0)
   earlyLeaveMinutes  Int    @default(0)
   absenceDiscount    Float  @default(0)
+  lateDiscount       Float  @default(0)
+  earlyLeaveDiscount Float  @default(0)
   grossPay           Float  @default(0)
   inssBase           Float  @default(0)
   inssDiscount       Float  @default(0)
