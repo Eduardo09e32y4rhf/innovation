@@ -77,14 +77,15 @@ async function main() {
   });
 
   const adminPassword = requiredEnv('ADMIN_PASSWORD') || randomLocalPassword();
+  const adminHash = await bcrypt.hash(adminPassword, 12);
   await prisma.user.upsert({
     where: { email: 'admin@innovation.local' },
-    update: {},
+    update: { passwordHash: adminHash, isActive: true },
     create: {
       companyId: demoCompany.id,
       name: 'Admin Demo',
       email: 'admin@innovation.local',
-      passwordHash: await bcrypt.hash(adminPassword, 12),
+      passwordHash: adminHash,
       role: 'ADMIN',
     },
   });
