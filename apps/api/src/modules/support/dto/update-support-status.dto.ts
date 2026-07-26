@@ -1,8 +1,7 @@
-import { IsEnum, IsNotEmpty } from 'class-validator';
-import { SupportTicketStatus } from '@prisma/client';
+import { IsIn, IsNotEmpty } from 'class-validator';
 
 export class UpdateSupportStatusDto {
-  @IsEnum(SupportTicketStatus, { message: 'Status do chamado inválido' })
+  @IsIn(['NEW', 'TRIAGE', 'IN_PROGRESS', 'WAITING_CUSTOMER', 'WAITING_DEPLOY', 'RESOLVED', 'CLOSED', 'OPEN', 'REOPENED'], { message: 'Status do chamado inválido' })
   @IsNotEmpty({ message: 'Status é obrigatório' })
-  status: SupportTicketStatus;
+  status: 'NEW' | 'TRIAGE' | 'IN_PROGRESS' | 'WAITING_CUSTOMER' | 'WAITING_DEPLOY' | 'RESOLVED' | 'CLOSED' | 'OPEN' | 'REOPENED';
 }

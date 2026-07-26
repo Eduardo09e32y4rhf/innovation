@@ -478,10 +478,25 @@ export class PlatformFinanceService {
 
   async summary(query: Pick<ListPlatformInvoicesDto, 'from' | 'to'>, commercialOwnerId?: string) {
     const where = this.buildWhere(query, commercialOwnerId);
-    const invoices = await this.prisma.platformInvoice.findMany({
-      where,
-      select: { amount: true, status: true, dueDate: true, paidAt: true },
-    });
+    const [invoices, subscriptions] = await Promise.all([
+      this.prisma.platformInvoice.findMany({
+        where,
+        select: { amount: true, status: true, dueDate: true, paidAt: true },
+      }),
+      this.prisma.companySubscription.findMany({
+        where: {
+          status: 'ACTIVE',
+          company: {
+            status: 'ACTIVE',
+          },
+        },
+        include: {
+          plan: {
+            select: { baseMonthlyPrice: true, userMonthlyPrice: true, discountPercent: true },
+          },
+        },
+      }),
+    ]);
 
     const totals = { billed: 0, received: 0, open: 0, overdue: 0, canceled: 0 };
     const monthly = new Map<string, { month: string; billed: number; received: number }>();
@@ -504,11 +519,22 @@ export class PlatformFinanceService {
       monthly.set(month, bucket);
     }
 
+    const mrr = subscriptions.reduce((acc, subscription) => {
+      const baseMonthly = Number(subscription.baseMonthlyPrice ?? subscription.plan?.baseMonthlyPrice ?? 0);
+      const userMonthly = Number(subscription.userMonthlyPrice ?? subscription.plan?.userMonthlyPrice ?? 0);
+      const discountPercent = Number(subscription.discountPercent ?? subscription.plan?.discountPercent ?? 0);
+      const gross = baseMonthly + userMonthly * (subscription.seatQuantity || 0);
+      const net = gross * (1 - discountPercent / 100);
+      return acc + net;
+    }, 0);
+
     return {
       totals,
       count: invoices.length,
       conversionRate: totals.billed > 0 ? Number(((totals.received / totals.billed) * 100).toFixed(1)) : 0,
       monthly: [...monthly.values()].sort((a, b) => a.month.localeCompare(b.month)).slice(-12),
+      mrr: Number(mrr.toFixed(2)),
+      activeSubscriptions: subscriptions.length,
     };
   }
 

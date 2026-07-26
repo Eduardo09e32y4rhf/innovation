@@ -67,6 +67,14 @@ test.describe('Testando todas as abas por perfil', () => {
 
   const TIMEOUT = 10000;
 
+  async function isVisible(locator, timeout = 2000) {
+    try {
+      return await locator.first().isVisible({ timeout });
+    } catch {
+      return false;
+    }
+  }
+
   async function performLogin(page, email, password) {
     await page.goto('/login');
     await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
@@ -79,10 +87,10 @@ test.describe('Testando todas as abas por perfil', () => {
 
   async function aceitarTermosSeExistir(page) {
     const termsModal = page.locator('text=/Termos de Uso|Política de Privacidade/i').first();
-    if (await termsModal.isVisible({ timeout: 2000 }).catch(() => false)) {
+    if (await isVisible(page.locator('text=/Termos de Uso|Política de Privacidade/i'))) {
       await page.evaluate(() => window.scrollBy(0, 10000));
       const checkbox = page.locator('input[type="checkbox"]');
-      if (await checkbox.count() > 0) {
+      if (await isVisible(checkbox)) {
         await checkbox.first().check({ force: true });
       }
       await page.click('button:has-text("Continuar"), button:has-text("Aceitar")');
@@ -94,9 +102,11 @@ test.describe('Testando todas as abas por perfil', () => {
     test(`Validando abas do perfil ${profile.name}`, async ({ page }) => {
       // Admin might be Admin123! or Teste@123. Let's try both if admin
       if (profile.name === 'ADMIN') {
-        await performLogin(page, profile.email, profile.password).catch(async () => {
+        try {
+          await performLogin(page, profile.email, profile.password);
+        } catch {
           await performLogin(page, 'admin@innovation.local', 'Admin123!');
-        });
+        }
       } else {
         await performLogin(page, profile.email, profile.password);
       }

@@ -2,6 +2,14 @@ const { test, expect } = require('@playwright/test');
 const fs = require('fs');
 const path = require('path');
 
+async function isVisible(locator, timeout = 2000) {
+  try {
+    return await locator.first().isVisible({ timeout });
+  } catch {
+    return false;
+  }
+}
+
 test.describe('Innovation IA - Testes de Invasão e Segurança', () => {
 
   test.beforeAll(() => {
@@ -31,7 +39,7 @@ test.describe('Innovation IA - Testes de Invasão e Segurança', () => {
     await page.click('button[type="submit"]');
     
     const alerta = page.locator('text=/Não foi possível|inválido|Incorret/i');
-    await expect(alerta.first()).toBeVisible({ timeout: 10000 }).catch(() => {});
+    await expect(alerta.first()).toBeVisible({ timeout: 10000 });
     await page.screenshot({ path: path.join(__dirname, '..', 'screenshots', 'sql-injection-barrado.png') });
 
     // Reload page to reset state completely for XSS test
@@ -42,7 +50,7 @@ test.describe('Innovation IA - Testes de Invasão e Segurança', () => {
     await page.fill('input[type="password"]', "Teste@123");
     await page.click('button[type="submit"]');
     
-    await expect(alerta.first()).toBeVisible({ timeout: 10000 }).catch(() => {});
+    await expect(alerta.first()).toBeVisible({ timeout: 10000 });
     await page.screenshot({ path: path.join(__dirname, '..', 'screenshots', 'xss-injection-barrado.png') });
   });
 
@@ -55,7 +63,7 @@ test.describe('Innovation IA - Testes de Invasão e Segurança', () => {
     
     // Clica no link de esqueci a senha
     const btnEsqueci = page.locator('button:has-text("Esqueci"), a:has-text("Esqueci")');
-    if (await btnEsqueci.count() > 0) {
+    if (await isVisible(btnEsqueci)) {
       await btnEsqueci.first().click();
       await page.waitForTimeout(1000);
       
@@ -63,7 +71,7 @@ test.describe('Innovation IA - Testes de Invasão e Segurança', () => {
       await page.click('button:has-text("Simular Envio")');
       
       const alertaSucesso = page.locator('text=/Token de|sucesso|enviado/i');
-      await expect(alertaSucesso.first()).toBeVisible({ timeout: 10000 }).catch(() => {});
+      await expect(alertaSucesso.first()).toBeVisible({ timeout: 10000 });
       await page.screenshot({ path: path.join(__dirname, '..', 'screenshots', 'esqueci-senha-sucesso.png') });
     }
   });
@@ -76,7 +84,7 @@ test.describe('Innovation IA - Testes de Invasão e Segurança', () => {
     await page.click('button[type="submit"]');
     
     // Esperamos o modal dos termos carregar
-    await expect(page.locator('text=/Termos de Uso|Política de Privacidade/i').first()).toBeVisible({ timeout: 15000 }).catch(() => {});
+    await expect(page.locator('text=/Termos de Uso|Política de Privacidade/i').first()).toBeVisible({ timeout: 15000 });
     await page.waitForTimeout(1000);
     await page.screenshot({ path: path.join(__dirname, '..', 'screenshots', 'tela-termos-de-uso.png') });
     
@@ -84,7 +92,7 @@ test.describe('Innovation IA - Testes de Invasão e Segurança', () => {
     await page.goto('/dashboard/employees');
     
     // O modal deve CONTINUAR sendo renderizado
-    await expect(page.locator('text=/Termos de Uso|Política de Privacidade/i').first()).toBeVisible({ timeout: 15000 }).catch(() => {});
+    await expect(page.locator('text=/Termos de Uso|Política de Privacidade/i').first()).toBeVisible({ timeout: 15000 });
     await page.waitForTimeout(1000);
     await page.screenshot({ path: path.join(__dirname, '..', 'screenshots', 'tentativa-burlar-termos-barrada.png') });
   });

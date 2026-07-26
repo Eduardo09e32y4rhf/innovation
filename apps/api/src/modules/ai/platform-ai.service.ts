@@ -6,12 +6,20 @@ export interface CompanySummaryResult {
   summaryText: string;
   keyHighlights: string[];
   statusClassification: 'NORMAL' | 'ATTENTION' | 'CRITICAL';
+  source?: 'AI' | 'DETERMINISTIC_FALLBACK';
 }
 
 export interface RiskAnalysisResult {
   riskLevel: 'LOW' | 'MEDIUM' | 'HIGH';
   reasons: string[];
   recommendations: string[];
+  source?: 'AI' | 'DETERMINISTIC_FALLBACK';
+}
+
+export interface PlatformAssistantResult {
+  answer: string;
+  isReadOnlyVerified: boolean;
+  source?: 'AI' | 'DETERMINISTIC_FALLBACK';
 }
 
 @Injectable()
@@ -33,10 +41,9 @@ export class PlatformAiService {
   ): Promise<CompanySummaryResult> {
     const tenantId = company.id || 'GLOBAL';
 
-    // Fallback determinístico (cálculo puramente matemático e verificável no backend)
     const fallbackText = `A empresa ${company.name || 'Cliente'} está ${company.status === 'ACTIVE' ? 'ativa' : 'suspensa/inativa'}, utilizando ${stats.activeUsers} de ${stats.maxUsers || 'ilimitadas'} licenças. Possui ${stats.overdueInvoices} cobrança(s) vencida(s) e ${stats.openTickets} chamado(s) aberto(s).`;
     const fallbackStatus = stats.overdueInvoices > 0 || stats.openTickets >= 3 ? 'CRITICAL' : (stats.activeUsers >= (stats.maxUsers || 999) * 0.9 ? 'ATTENTION' : 'NORMAL');
-    
+
     const fallback: CompanySummaryResult = {
       summaryText: fallbackText,
       keyHighlights: [
@@ -45,6 +52,7 @@ export class PlatformAiService {
         `Chamados pendentes: ${stats.openTickets}`,
       ],
       statusClassification: fallbackStatus,
+      source: 'DETERMINISTIC_FALLBACK',
     };
 
     const schema = {
@@ -69,7 +77,8 @@ export class PlatformAiService {
       { tenantId, actorId, fallbackData: fallback },
     );
 
-    return result || fallback;
+    const resolved = result || fallback;
+    return { ...resolved, source: result ? 'AI' : 'DETERMINISTIC_FALLBACK' };
   }
 
   /**
@@ -87,7 +96,6 @@ export class PlatformAiService {
     const criticalTickets = tickets.filter((t) => t.priority === 'CRITICAL' && t.status !== 'RESOLVED' && t.status !== 'CLOSED').length;
     const webhookFailures = company.metadata?.webhookFailures || 0;
 
-    // Regra determinística de risco
     let calculatedRisk: 'LOW' | 'MEDIUM' | 'HIGH' = 'LOW';
     const reasons: string[] = [];
     const recommendations: string[] = [];
@@ -116,6 +124,7 @@ export class PlatformAiService {
       riskLevel: calculatedRisk,
       reasons,
       recommendations,
+      source: 'DETERMINISTIC_FALLBACK',
     };
 
     const schema = {
@@ -140,7 +149,8 @@ export class PlatformAiService {
       { tenantId, actorId, fallbackData: fallback },
     );
 
-    return result || fallback;
+    const resolved = result || fallback;
+    return { ...resolved, source: result ? 'AI' : 'DETERMINISTIC_FALLBACK' };
   }
 
   /**
@@ -150,11 +160,10 @@ export class PlatformAiService {
     question: string,
     fleetContextSummary: string,
     actorId?: string,
-  ): Promise<{ answer: string; isReadOnlyVerified: boolean }> {
-    // Validação de Guardrail: impedir comandos mutacionais no chat do assistente
+  ): Promise<PlatformAssistantResult> {
     const safety = this.guardrails.checkInputSafety(question);
     if (!safety.allowed) {
-      return { answer: `Ação bloqueada: ${safety.reason}`, isReadOnlyVerified: true };
+      return { answer: `Ação bloqueada: ${safety.reason}`, isReadOnlyVerified: true, source: 'DETERMINISTIC_FALLBACK' };
     }
 
     const systemPrompt = `Você é o Assistente Virtual do Console Operacional SaaS Innovation RH Connect.
@@ -185,6 +194,7 @@ Se perguntarem algo fora do contexto, informe que só pode analisar os dados ope
     return {
       answer: result?.answer || 'Assistente indisponível no momento.',
       isReadOnlyVerified: true,
+      source: result ? 'AI' : 'DETERMINISTIC_FALLBACK',
     };
   }
 }

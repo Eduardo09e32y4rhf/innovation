@@ -82,44 +82,7 @@ export default function SupportPage() {
       setTickets(Array.isArray(data) ? data : []);
     } catch (err: any) {
       setError(err?.message || 'Não foi possível carregar os chamados de suporte.');
-      // Dados demonstrativos se offline / sem backend rodando
-      setTickets([
-        {
-          id: 'tkt-c1',
-          ticketNumber: 'SUP-2026-0001',
-          title: 'Dúvida na configuração da escala de 12x36',
-          subject: 'Dúvida na configuração da escala de 12x36',
-          description: 'Gostaríamos de saber como configurar o adicional noturno automático na escala 12x36.',
-          status: 'WAITING_CUSTOMER',
-          priority: 'NORMAL',
-          createdAt: new Date(Date.now() - 86400000).toISOString(),
-          updatedAt: new Date(Date.now() - 3600000).toISOString(),
-          createdBy: { name: user?.name || 'Você' },
-          messages: [
-            {
-              id: 'm-c1',
-              ticketId: 'tkt-c1',
-              authorUserId: 'dev-1',
-              message: 'Olá! Para a escala 12x36, basta acessar Configurações -> Escalas e marcar a caixa "Considerar prorrogação noturna após às 05h". Ficou alguma dúvida?',
-              visibility: 'PUBLIC',
-              createdAt: new Date(Date.now() - 3600000).toISOString(),
-              author: { name: 'Suporte Técnico Innovation' }
-            }
-          ]
-        },
-        {
-          id: 'tkt-c2',
-          ticketNumber: 'SUP-2026-0002',
-          title: 'Solicitação de novo layout no espelho de ponto',
-          subject: 'Solicitação de novo layout no espelho de ponto',
-          description: 'Gostaríamos que o logotipo da empresa saísse centralizado no relatório de espelho em PDF.',
-          status: 'IN_PROGRESS',
-          priority: 'LOW',
-          createdAt: new Date(Date.now() - 172800000).toISOString(),
-          updatedAt: new Date(Date.now() - 43200000).toISOString(),
-          createdBy: { name: user?.name || 'Você' }
-        }
-      ]);
+      setTickets([]);
     } finally {
       setLoading(false);
     }

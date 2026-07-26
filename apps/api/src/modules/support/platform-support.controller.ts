@@ -1,9 +1,10 @@
-import { Controller, Get, Post, Body, Patch, Param, UseGuards, Req } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, UseGuards, Req, Res, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { SupportService } from './support.service';
 import { SupportRepository } from './support.repository';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { SupportAuthorizationService } from './support-authorization.service';
-import { SupportTicketPriority, SupportTicketStatus } from '@prisma/client';
+import { SupportAttachmentService } from './support-attachment.service';
+import { SupportStorageService } from './support-storage.service';
 
 @UseGuards(JwtAuthGuard)
 @Controller('platform/support')
@@ -11,7 +12,9 @@ export class PlatformSupportController {
   constructor(
     private readonly supportService: SupportService,
     private readonly repository: SupportRepository,
-    private readonly authService: SupportAuthorizationService
+    private readonly authService: SupportAuthorizationService,
+    private readonly attachmentService: SupportAttachmentService,
+    private readonly storageService: SupportStorageService,
   ) {}
 
   @Get('stats')
@@ -52,7 +55,7 @@ export class PlatformSupportController {
   }
 
   @Patch('tickets/:id/priority')
-  async updatePriority(@Req() req: any, @Param('id') id: string, @Body('priority') priority: SupportTicketPriority) {
+  async updatePriority(@Req() req: any, @Param('id') id: string, @Body('priority') priority: 'LOW' | 'NORMAL' | 'MEDIUM' | 'HIGH' | 'CRITICAL') {
     this.authService.assertCanManageTicket(req.user);
     const ticket = await this.repository.updateTicket(id, { priority });
     await this.repository.createEvent({ ticketId: id, actorUserId: req.user.sub, eventType: 'PRIORITY_CHANGED', newValue: { priority } });
@@ -60,7 +63,7 @@ export class PlatformSupportController {
   }
 
   @Patch('tickets/:id/status')
-  async updateStatus(@Req() req: any, @Param('id') id: string, @Body('status') status: SupportTicketStatus) {
+  async updateStatus(@Req() req: any, @Param('id') id: string, @Body('status') status: 'NEW' | 'TRIAGE' | 'IN_PROGRESS' | 'WAITING_CUSTOMER' | 'WAITING_DEPLOY' | 'RESOLVED' | 'CLOSED' | 'OPEN' | 'REOPENED') {
     this.authService.assertCanManageTicket(req.user);
     const ticket = await this.repository.updateTicket(id, { status });
     await this.repository.createEvent({ ticketId: id, actorUserId: req.user.sub, eventType: 'STATUS_CHANGED', newValue: { status } });
@@ -75,6 +78,46 @@ export class PlatformSupportController {
   @Post('tickets/:id/internal-notes')
   async addInternalNote(@Req() req: any, @Param('id') id: string, @Body() data: any) {
     return this.supportService.addMessage(req.user, id, data.message, 'INTERNAL');
+  }
+
+  @Post('tickets/:id/attachments')
+  async uploadAttachment(@Req() req: any, @Param('id') id: string, @Body('messageId') messageId?: string) {
+    this.authService.assertCanManageTicket(req.user);
+    const ticket = await this.supportService.getTicket(req.user, id);
+    await this.authService.assertCanUploadAttachment(req.user, ticket);
+
+    const file = await req.file?.();
+    if (!file) {
+      throw new BadRequestException('Envie um arquivo válido no campo file.');
+    }
+
+    const buffer = await file.toBuffer();
+    return this.attachmentService.uploadAttachment(req.user, id, {
+      originalname: file.filename,
+      mimetype: file.mimetype,
+      size: buffer.length,
+      buffer,
+    }, messageId);
+  }
+
+  @Get('tickets/:id/attachments/:attachmentId')
+  async downloadAttachment(@Req() req: any, @Param('id') id: string, @Param('attachmentId') attachmentId: string, @Res({ passthrough: true }) reply: any) {
+    this.authService.assertCanManageTicket(req.user);
+    const ticket = await this.supportService.getTicket(req.user, id);
+    await this.authService.assertCanViewTicket(req.user, ticket);
+
+    const attachment = await this.attachmentService.getAttachmentById(attachmentId);
+    if (attachment.ticketId !== id) {
+      throw new ForbiddenException('O anexo não pertence a este chamado.');
+    }
+    if (attachment.status !== 'CLEAN') {
+      throw new ForbiddenException('O anexo ainda está em quarentena.');
+    }
+
+    const stream = await this.storageService.getFileStream(attachment.storageKey);
+    reply.header('Content-Type', attachment.detectedMimeType || attachment.declaredMimeType || 'application/octet-stream');
+    reply.header('Content-Disposition', `attachment; filename="${attachment.originalName.replace(/"/g, '')}"`);
+    return stream;
   }
 
   @Post('tickets/:id/resolve')

@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
+import { createHash } from 'crypto';
 
 @Injectable()
 export class PrivacyRepository {
@@ -71,11 +72,47 @@ export class PrivacyRepository {
     });
   }
 
-  updatePdfBase64(id: string, pdfBase64: string) {
-    return this.prisma.privacyConsent.update({
+  async updatePdfBase64(id: string, pdfBase64: string) {
+    const consent = await this.prisma.privacyConsent.update({
       where: { id },
       data: { pdfBase64 },
     });
+
+    const sha256 = createHash('sha256').update(Buffer.from(pdfBase64, 'base64')).digest('hex');
+    await this.prisma.generatedDocument.upsert({
+      where: { sha256 },
+      update: {
+        companyId: consent.companyId,
+        userId: consent.userId,
+        createdByUserId: consent.userId,
+        title: `Termo de Uso e Privacidade v${consent.termVersion}`,
+        pdfBase64,
+        metadata: {
+          termVersion: consent.termVersion,
+          purpose: consent.purpose,
+          acceptedAt: consent.acceptedAt.toISOString(),
+        },
+      },
+      create: {
+        companyId: consent.companyId,
+        userId: consent.userId,
+        createdByUserId: consent.userId,
+        documentType: 'PRIVACY_CONSENT',
+        sourceEntity: 'PrivacyConsent',
+        sourceEntityId: consent.id,
+        title: `Termo de Uso e Privacidade v${consent.termVersion}`,
+        mimeType: 'application/pdf',
+        sha256,
+        pdfBase64,
+        metadata: {
+          termVersion: consent.termVersion,
+          purpose: consent.purpose,
+          acceptedAt: consent.acceptedAt.toISOString(),
+        },
+      },
+    });
+
+    return consent;
   }
 
   createAuditLog(data: {

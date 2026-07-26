@@ -85,7 +85,7 @@ export class AiService {
     }
 
     // 2. Verificação de Orçamento Mensal
-    if (!this.usageService.isBudgetAvailable(tenantId)) {
+    if (!(await this.usageService.isBudgetAvailable(tenantId))) {
       this.logger.warn(`Orçamento mensal de IA excedido para tenant ${tenantId}. Retornando fallback determinístico.`);
       return fallback;
     }
@@ -120,11 +120,14 @@ export class AiService {
 
       const choice = response.choices[0];
       if (response.usage) {
-        this.usageService.recordUsage(
+        await this.usageService.recordUsage(
           tenantId,
           response.usage.prompt_tokens || 0,
           response.usage.completion_tokens || 0,
           options?.actorId,
+          model,
+          'OPENAI',
+          schemaName,
         );
       }
 

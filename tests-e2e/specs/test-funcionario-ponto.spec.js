@@ -13,6 +13,14 @@ test.describe('Prova Real: Funcionario validando aba Ponto', () => {
 
   const TIMEOUT = 10000;
 
+  async function isVisible(locator, timeout = 2000) {
+    try {
+      return await locator.first().isVisible({ timeout });
+    } catch {
+      return false;
+    }
+  }
+
   async function performLogin(page, email, password) {
     await page.goto('/login');
     await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
@@ -25,10 +33,10 @@ test.describe('Prova Real: Funcionario validando aba Ponto', () => {
 
   async function aceitarTermosSeExistir(page) {
     const termsModal = page.locator('text=/Termos de Uso|Política de Privacidade/i').first();
-    if (await termsModal.isVisible({ timeout: 2000 }).catch(() => false)) {
+    if (await isVisible(page.locator('text=/Termos de Uso|Política de Privacidade/i'))) {
       await page.evaluate(() => window.scrollBy(0, 10000));
       const checkbox = page.locator('input[type="checkbox"]');
-      if (await checkbox.count() > 0) {
+      if (await isVisible(checkbox)) {
         await checkbox.first().check({ force: true });
       }
       await page.click('button:has-text("Continuar"), button:has-text("Aceitar")');

@@ -209,6 +209,59 @@ export class SupportRepository {
     return this.prisma.supportAttachment.create({ data });
   }
 
+  async findAttachmentById(id: string) {
+    return this.prisma.supportAttachment.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        ticketId: true,
+        messageId: true,
+        uploadedByUserId: true,
+        originalName: true,
+        storageKey: true,
+        attachmentType: true,
+        declaredMimeType: true,
+        detectedMimeType: true,
+        sizeBytes: true,
+        sha256: true,
+        status: true,
+        scanProvider: true,
+        scanResult: true,
+        rejectionReason: true,
+        createdAt: true,
+        scannedAt: true,
+        deletedAt: true,
+      },
+    });
+  }
+
+  async findAttachmentsByTicketId(ticketId: string) {
+    return this.prisma.supportAttachment.findMany({
+      where: { ticketId, deletedAt: null },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        ticketId: true,
+        messageId: true,
+        uploadedByUserId: true,
+        originalName: true,
+        storageKey: true,
+        attachmentType: true,
+        declaredMimeType: true,
+        detectedMimeType: true,
+        sizeBytes: true,
+        sha256: true,
+        status: true,
+        scanProvider: true,
+        scanResult: true,
+        rejectionReason: true,
+        createdAt: true,
+        scannedAt: true,
+        deletedAt: true,
+      },
+    });
+  }
+
   async updateAttachmentStatus(storageKey: string, status: any, scanResult?: string) {
     return this.prisma.supportAttachment.update({
       where: { storageKey },

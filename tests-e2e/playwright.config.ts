@@ -7,7 +7,7 @@ export default defineConfig({
   retries: 1,
   reporter: [['list']],
   use: {
-    baseURL: 'http://127.0.0.1:3000',
+    baseURL: process.env.E2E_BASE_URL || 'http://127.0.0.1:3000',
     trace: 'retain-on-failure',
   },
   projects: [
@@ -16,7 +16,7 @@ export default defineConfig({
   ],
   webServer: {
     command: 'npm --prefix ../apps/web run dev',
-    url: 'http://127.0.0.1:3000',
+    url: process.env.E2E_BASE_URL || 'http://127.0.0.1:3000',
     reuseExistingServer: false,
     timeout: 120_000,
     env: {

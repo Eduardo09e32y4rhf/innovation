@@ -1,5 +1,6 @@
 import { SupportAuthorizationService } from './support-authorization.service';
 import { ForbiddenException } from '@nestjs/common';
+import { vi } from 'vitest';
 
 describe('SupportAuthorizationService (Multi-Tenant & Security Tests)', () => {
   let authService: SupportAuthorizationService;
@@ -8,7 +9,7 @@ describe('SupportAuthorizationService (Multi-Tenant & Security Tests)', () => {
   beforeEach(() => {
     mockPrisma = {
       user: {
-        findMany: jest.fn().mockResolvedValue([]),
+        findMany: vi.fn().mockResolvedValue([]),
       },
     };
     authService = new SupportAuthorizationService(mockPrisma);

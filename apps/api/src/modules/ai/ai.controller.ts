@@ -23,7 +23,7 @@ export class AiController {
   @Get('usage')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('DEV')
-  getUsageStats() {
+  async getUsageStats() {
     return this.usageService.getUsageSummary();
   }
 

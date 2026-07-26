@@ -3,11 +3,11 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { api } from '@/app/lib/api';
-import { 
-  Headset, 
-  Search, 
-  Clock, 
-  CheckCircle2, 
+import {
+  Headset,
+  Search,
+  Clock,
+  CheckCircle2,
   AlertCircle,
   ChevronRight,
   Filter,
@@ -65,9 +65,10 @@ export default function PlatformSupportPage() {
   const router = useRouter();
   const [tickets, setTickets] = useState<PlatformTicket[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState<TriageTab>('all');
-  
+
   // Detalhe do chamado selecionado
   const [selectedTicket, setSelectedTicket] = useState<PlatformTicket | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
@@ -87,66 +88,14 @@ export default function PlatformSupportPage() {
   const loadTickets = async () => {
     if (!isDev) return;
     setLoading(true);
+    setError(null);
     try {
       const data = await api.platformSupport.list();
       setTickets(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Failed to load platform tickets', error);
-      // Dados de demonstração visuais se API não estiver acessível
-      setTickets([
-        {
-          id: 'tkt-1',
-          ticketNumber: 'SUP-2026-0001',
-          subject: 'Erro na emissão em lote de holerites para filial SP',
-          title: 'Erro na emissão em lote de holerites para filial SP',
-          description: 'Ao tentar processar a folha de pagamento da unidade de São Paulo, o sistema exibe erro de tempo de limite (timeout) após processar cerca de 150 colaboradores.',
-          status: 'OPEN',
-          priority: 'CRITICAL',
-          createdAt: new Date(Date.now() - 3600000 * 3).toISOString(),
-          updatedAt: new Date(Date.now() - 3600000).toISOString(),
-          resolutionDueAt: new Date(Date.now() + 3600000).toISOString(),
-          slaBreached: false,
-          company: { id: 'c1', name: 'Acme Consultoria RH', document: '12.345.678/0001-90' },
-          createdBy: { id: 'u1', name: 'Carla Dias (RH)', email: 'carla@acme.com', role: 'RH' },
-          messages: [
-            { id: 'm1', ticketId: 'tkt-1', authorUserId: 'u1', message: 'Por favor verifiquem, precisamos liberar os holerites hoje até as 17h!', visibility: 'PUBLIC', createdAt: new Date(Date.now() - 3600000 * 2).toISOString(), author: { name: 'Carla Dias (RH)' } },
-            { id: 'm2', ticketId: 'tkt-1', authorUserId: 'dev-1', message: 'Investigando o log do worker de PDF. Parece gargalo de memória na fila Redis.', visibility: 'INTERNAL', createdAt: new Date(Date.now() - 3600000 * 1.5).toISOString(), author: { name: 'Engenharia DEV' } }
-          ]
-        },
-        {
-          id: 'tkt-2',
-          ticketNumber: 'SUP-2026-0002',
-          subject: 'Ajuste na regra de banco de horas - DSR em feriados regionais',
-          title: 'Ajuste na regra de banco de horas - DSR em feriados regionais',
-          description: 'Gostaríamos de alterar a regra de cálculo do DSR para considerar feriados municipais como 100% no banco de horas automaticamente.',
-          status: 'WAITING_CUSTOMER',
-          priority: 'NORMAL',
-          createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-          updatedAt: new Date(Date.now() - 3600000 * 5).toISOString(),
-          resolutionDueAt: new Date(Date.now() + 86400000).toISOString(),
-          assignedTo: { id: 'dev-1', name: 'Eduardo (DEV)' },
-          company: { id: 'c2', name: 'TechSolutions Brasil', document: '98.765.432/0001-10' },
-          createdBy: { id: 'u2', name: 'Marcos Gestor', email: 'marcos@techsolutions.com', role: 'GESTOR' },
-          messages: [
-            { id: 'm3', ticketId: 'tkt-2', authorUserId: 'dev-1', message: 'Enviamos o modelo de configuração de feriados municipais para validação do RH. Aguardando de acordo.', visibility: 'PUBLIC', createdAt: new Date(Date.now() - 3600000 * 5).toISOString(), author: { name: 'Eduardo (DEV)' } }
-          ]
-        },
-        {
-          id: 'tkt-3',
-          ticketNumber: 'SUP-2026-0003',
-          subject: 'Instabilidade momentânea ao gerar relatório CSV da RAIS',
-          title: 'Instabilidade momentânea ao gerar relatório CSV da RAIS',
-          description: 'O download do relatório CSV trava em 99%.',
-          status: 'NEW',
-          priority: 'HIGH',
-          createdAt: new Date(Date.now() - 3600000 * 5).toISOString(),
-          updatedAt: new Date(Date.now() - 3600000 * 5).toISOString(),
-          resolutionDueAt: new Date(Date.now() - 1800000).toISOString(),
-          slaBreached: true,
-          company: { id: 'c3', name: 'Indústrias Metalmecânicas S/A', document: '45.123.890/0001-55' },
-          createdBy: { id: 'u3', name: 'Ana Coordenadora', email: 'ana@metal.com', role: 'ADMIN' }
-        }
-      ]);
+      setError((error as any)?.message || 'NÃ£o foi possÃ­vel carregar os chamados da plataforma.');
+      setTickets([]);
     } finally {
       setLoading(false);
     }
@@ -277,8 +226,8 @@ export default function PlatformSupportPage() {
 
   // Filtragem por aba e busca
   const filteredTickets = tickets.filter(t => {
-    const matchesSearch = 
-      (t.subject || t.title || '').toLowerCase().includes(search.toLowerCase()) || 
+    const matchesSearch =
+      (t.subject || t.title || '').toLowerCase().includes(search.toLowerCase()) ||
       (t.ticketNumber || t.id || '').toLowerCase().includes(search.toLowerCase()) ||
       (t.company?.name && t.company.name.toLowerCase().includes(search.toLowerCase()));
     if (!matchesSearch) return false;
@@ -298,8 +247,8 @@ export default function PlatformSupportPage() {
 
   return (
     <div className="flex h-full flex-col gap-6 p-6 md:p-8 max-w-7xl mx-auto w-full animate-in fade-in slide-in-from-bottom-4 duration-500">
-      
-      {/* Cabeçalho */}
+
+      {/* CabeÃƒÂ§alho */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-2xl font-black tracking-tight text-slate-900 flex items-center gap-3">
@@ -312,7 +261,7 @@ export default function PlatformSupportPage() {
             Triagem, controle de SLA e atendimento corporativo a todas as empresas da plataforma.
           </p>
         </div>
-        
+
         <div className="flex items-center gap-3">
           <button
             onClick={loadTickets}
@@ -332,8 +281,8 @@ export default function PlatformSupportPage() {
       <div className="flex items-center gap-1.5 overflow-x-auto pb-2 border-b border-slate-200 no-scrollbar">
         {[
           { id: 'all', label: 'Todos os chamados', count: tickets.length },
-          { id: 'unassigned', label: 'Sem responsável', count: tickets.filter(t => !t.assignedToUserId && !t.assignedTo).length },
-          { id: 'critical', label: 'Críticos / Altos', count: tickets.filter(t => t.priority === 'CRITICAL' || t.priority === 'HIGH').length, highlight: 'rose' },
+          { id: 'unassigned', label: 'Sem responsÃƒÂ¡vel', count: tickets.filter(t => !t.assignedToUserId && !t.assignedTo).length },
+          { id: 'critical', label: 'CrÃƒÂ­ticos / Altos', count: tickets.filter(t => t.priority === 'CRITICAL' || t.priority === 'HIGH').length, highlight: 'rose' },
           { id: 'sla_at_risk', label: 'SLA em risco / vencido', count: tickets.filter(t => t.slaBreached || (t.resolutionDueAt && new Date(t.resolutionDueAt).getTime() < Date.now() + 7200000)).length, highlight: 'amber' },
           { id: 'reopened', label: 'Reabertos / Abertos', count: tickets.filter(t => t.status === 'REOPENED' || t.status === 'OPEN').length },
           { id: 'waiting_customer', label: 'Aguardando cliente', count: tickets.filter(t => t.status === 'WAITING_CUSTOMER').length },
@@ -345,17 +294,17 @@ export default function PlatformSupportPage() {
               key={tab.id}
               onClick={() => setActiveTab(tab.id as TriageTab)}
               className={`flex items-center gap-2 whitespace-nowrap rounded-xl px-3.5 py-2 text-xs font-bold transition-all ${
-                isActive 
-                  ? 'bg-slate-900 text-white shadow-md' 
+                isActive
+                  ? 'bg-slate-900 text-white shadow-md'
                   : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200/60'
               }`}
             >
               <span>{tab.label}</span>
               <span className={`rounded-full px-2 py-0.5 text-[10px] font-black ${
-                isActive 
-                  ? 'bg-white/20 text-white' 
-                  : tab.highlight === 'rose' ? 'bg-rose-100 text-rose-700' 
-                  : tab.highlight === 'amber' ? 'bg-amber-100 text-amber-700' 
+                isActive
+                  ? 'bg-white/20 text-white'
+                  : tab.highlight === 'rose' ? 'bg-rose-100 text-rose-700'
+                  : tab.highlight === 'amber' ? 'bg-amber-100 text-amber-700'
                   : 'bg-slate-100 text-slate-700'
               }`}>
                 {tab.count}
@@ -369,9 +318,9 @@ export default function PlatformSupportPage() {
       <div className="flex items-center justify-between gap-4">
         <div className="relative w-full max-w-md">
           <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input 
-            type="text" 
-            placeholder="Buscar por número do chamado, assunto ou empresa..." 
+          <input
+            type="text"
+            placeholder="Buscar por nÃƒÂºmero do chamado, assunto ou empresa..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm font-medium outline-none transition-all focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10"
@@ -388,6 +337,12 @@ export default function PlatformSupportPage() {
           <div className="flex h-64 items-center justify-center">
             <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-purple-600"></div>
           </div>
+        ) : error ? (
+          <div className="flex h-64 flex-col items-center justify-center gap-3 text-slate-400 p-6">
+            <Headset size={48} className="text-slate-200" />
+            <p className="text-sm font-medium text-center">{error}</p>
+            <button onClick={loadTickets} className="rounded-xl bg-slate-900 px-4 py-2 text-xs font-bold text-white">Tentar novamente</button>
+          </div>
         ) : filteredTickets.length === 0 ? (
           <div className="flex h-64 flex-col items-center justify-center gap-3 text-slate-400">
             <Headset size={48} className="text-slate-200" />
@@ -398,8 +353,8 @@ export default function PlatformSupportPage() {
             {filteredTickets.map(ticket => {
               const lastMsg = ticket.messages && ticket.messages.length > 0 ? ticket.messages[ticket.messages.length - 1] : null;
               return (
-                <div 
-                  key={ticket.id} 
+                <div
+                  key={ticket.id}
                   onClick={() => handleSelectTicket(ticket)}
                   className="group flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 md:p-5 transition-colors hover:bg-slate-50/80 cursor-pointer"
                 >
@@ -411,7 +366,7 @@ export default function PlatformSupportPage() {
                       {getStatusBadge(ticket.status)}
                       {ticket.priority === 'CRITICAL' && (
                         <span className="flex items-center gap-1 rounded-md bg-rose-600 px-2 py-0.5 text-[11px] font-black text-white uppercase tracking-wider animate-pulse">
-                          <ShieldAlert size={12} /> Crítico 24/7
+                          <ShieldAlert size={12} /> CrÃƒÂ­tico 24/7
                         </span>
                       )}
                       {ticket.priority === 'HIGH' && (
@@ -423,9 +378,9 @@ export default function PlatformSupportPage() {
                     </div>
 
                     <h3 className="text-base font-bold text-slate-900 group-hover:text-purple-600 transition-colors line-clamp-1">
-                      {ticket.subject || ticket.title || 'Chamado sem título'}
+                      {ticket.subject || ticket.title || 'Chamado sem tÃƒÂ­tulo'}
                     </h3>
-                    
+
                     {lastMsg && (
                       <p className="text-xs text-slate-500 line-clamp-1 italic bg-slate-50 p-2 rounded-lg border border-slate-100">
                         <span className="font-bold text-slate-700">{lastMsg.author?.name || 'Autor'}:</span> &ldquo;{lastMsg.message}&rdquo;
@@ -447,16 +402,16 @@ export default function PlatformSupportPage() {
                       )}
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center justify-between md:flex-col md:items-end gap-3 shrink-0">
                     <div className="flex flex-col items-end gap-1">
                       <span className="text-[11px] font-medium text-slate-400 flex items-center gap-1">
-                        <Calendar size={12} /> {new Date(ticket.createdAt).toLocaleDateString('pt-BR')} às {new Date(ticket.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                        <Calendar size={12} /> {new Date(ticket.createdAt).toLocaleDateString('pt-BR')} ÃƒÂ s {new Date(ticket.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                       </span>
                       <div className="flex items-center gap-1.5 mt-1">
                         <UserCheck size={14} className={ticket.assignedTo || ticket.assignedToUserId ? 'text-emerald-600' : 'text-slate-300'} />
                         <span className={`text-xs font-bold ${ticket.assignedTo || ticket.assignedToUserId ? 'text-slate-800' : 'text-slate-400 italic'}`}>
-                          {ticket.assignedTo?.name || 'Sem responsável'}
+                          {ticket.assignedTo?.name || 'Sem responsÃƒÂ¡vel'}
                         </span>
                       </div>
                     </div>
@@ -475,10 +430,10 @@ export default function PlatformSupportPage() {
       {selectedTicket && (
         <div className="fixed inset-0 z-50 flex justify-end bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="w-full max-w-5xl bg-white h-full shadow-2xl flex flex-col md:flex-row overflow-hidden animate-in slide-in-from-right duration-300">
-            
-            {/* PAINEL ESQUERDO: MENSAGENS E HISTÓRICO */}
+
+            {/* PAINEL ESQUERDO: MENSAGENS E HISTÃƒâ€œRICO */}
             <div className="flex-1 flex flex-col h-full border-r border-slate-200/80 bg-slate-50/50">
-              
+
               {/* Topo do Detalhe */}
               <div className="flex items-center justify-between p-4 md:p-6 bg-white border-b border-slate-200">
                 <div className="flex items-center gap-3">
@@ -488,7 +443,7 @@ export default function PlatformSupportPage() {
                   {getStatusBadge(selectedTicket.status)}
                   {formatSlaRemaining(selectedTicket)}
                 </div>
-                <button 
+                <button
                   onClick={() => setSelectedTicket(null)}
                   className="rounded-full p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
                 >
@@ -496,13 +451,13 @@ export default function PlatformSupportPage() {
                 </button>
               </div>
 
-              {/* Título e Descrição Inicial */}
+              {/* TÃƒÂ­tulo e DescriÃƒÂ§ÃƒÂ£o Inicial */}
               <div className="p-4 md:p-6 bg-white border-b border-slate-100 shadow-sm">
                 <h2 className="text-lg font-black text-slate-900">
                   {selectedTicket.subject || selectedTicket.title}
                 </h2>
                 <p className="mt-2 text-sm text-slate-700 leading-relaxed whitespace-pre-line bg-slate-50 p-3.5 rounded-xl border border-slate-200/60 font-sans">
-                  {selectedTicket.description || 'Sem descrição detalhada fornecida.'}
+                  {selectedTicket.description || 'Sem descriÃƒÂ§ÃƒÂ£o detalhada fornecida.'}
                 </p>
               </div>
 
@@ -514,17 +469,17 @@ export default function PlatformSupportPage() {
                   </div>
                 ) : !selectedTicket.messages || selectedTicket.messages.length === 0 ? (
                   <div className="text-center py-8 text-xs font-medium text-slate-400 italic">
-                    Nenhuma resposta registrada neste chamado até o momento.
+                    Nenhuma resposta registrada neste chamado atÃƒÂ© o momento.
                   </div>
                 ) : (
                   selectedTicket.messages.map(msg => {
                     const isNote = msg.visibility === 'INTERNAL' || msg.visibility === 'INTERNAL_NOTE';
                     return (
-                      <div 
-                        key={msg.id} 
+                      <div
+                        key={msg.id}
                         className={`p-4 rounded-2xl border transition-all ${
-                          isNote 
-                            ? 'bg-amber-50/90 border-amber-300/80 shadow-sm ml-6' 
+                          isNote
+                            ? 'bg-amber-50/90 border-amber-300/80 shadow-sm ml-6'
                             : 'bg-white border-slate-200 shadow-sm mr-6'
                         }`}
                       >
@@ -541,12 +496,12 @@ export default function PlatformSupportPage() {
                             )}
                             {!isNote && (
                               <span className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600 uppercase">
-                                <MessageSquare size={10} /> Resposta Pública
+                                <MessageSquare size={10} /> Resposta PÃƒÂºblica
                               </span>
                             )}
                           </div>
                           <span className="text-[11px] font-medium text-slate-400">
-                            {new Date(msg.createdAt).toLocaleDateString('pt-BR')} às {new Date(msg.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                            {new Date(msg.createdAt).toLocaleDateString('pt-BR')} ÃƒÂ s {new Date(msg.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                           </span>
                         </div>
                         <p className={`text-sm leading-relaxed whitespace-pre-line ${isNote ? 'text-amber-950 font-medium' : 'text-slate-700'}`}>
@@ -566,28 +521,28 @@ export default function PlatformSupportPage() {
                       type="button"
                       onClick={() => setIsInternalNote(false)}
                       className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                        !isInternalNote 
-                          ? 'bg-purple-600 text-white shadow-sm' 
+                        !isInternalNote
+                          ? 'bg-purple-600 text-white shadow-sm'
                           : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                       }`}
                     >
-                      <MessageSquare size={14} /> Resposta Pública para o Cliente
+                      <MessageSquare size={14} /> Resposta PÃƒÂºblica para o Cliente
                     </button>
                     <button
                       type="button"
                       onClick={() => setIsInternalNote(true)}
                       className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                        isInternalNote 
-                          ? 'bg-amber-500 text-white shadow-sm' 
+                        isInternalNote
+                          ? 'bg-amber-500 text-white shadow-sm'
                           : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                       }`}
                     >
-                      <Lock size={14} /> Anotação Interna DEV
+                      <Lock size={14} /> AnotaÃƒÂ§ÃƒÂ£o Interna DEV
                     </button>
                   </div>
                   {isInternalNote && (
                     <span className="text-[11px] font-bold text-amber-700 italic">
-                      ⚠️ O cliente não será notificado nem verá esta mensagem.
+                      Ã¢Å¡Â Ã¯Â¸Â O cliente nÃƒÂ£o serÃƒÂ¡ notificado nem verÃƒÂ¡ esta mensagem.
                     </span>
                   )}
                 </div>
@@ -595,12 +550,12 @@ export default function PlatformSupportPage() {
                 <div className="relative">
                   <textarea
                     rows={3}
-                    placeholder={isInternalNote ? "Digite uma anotação técnica interna para a equipe DEV..." : "Digite a resposta oficial que será enviada por e-mail e exibida ao cliente..."}
+                    placeholder={isInternalNote ? "Digite uma anotaÃƒÂ§ÃƒÂ£o tÃƒÂ©cnica interna para a equipe DEV..." : "Digite a resposta oficial que serÃƒÂ¡ enviada por e-mail e exibida ao cliente..."}
                     value={replyText}
                     onChange={(e) => setReplyText(e.target.value)}
                     className={`w-full rounded-xl border p-3 text-sm font-medium outline-none transition-all ${
-                      isInternalNote 
-                        ? 'border-amber-300 bg-amber-50/50 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 text-amber-950' 
+                      isInternalNote
+                        ? 'border-amber-300 bg-amber-50/50 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 text-amber-950'
                         : 'border-slate-200 bg-white focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 text-slate-900'
                     }`}
                   />
@@ -608,34 +563,34 @@ export default function PlatformSupportPage() {
 
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] text-slate-400">
-                    Pressione Enviar para registrar no histórico oficial.
+                    Pressione Enviar para registrar no histÃƒÂ³rico oficial.
                   </span>
                   <button
                     type="button"
                     onClick={handleSendReply}
                     disabled={sendingReply || !replyText.trim()}
                     className={`flex items-center gap-2 rounded-xl px-5 py-2.5 text-xs font-black text-white shadow-md transition-all disabled:opacity-50 ${
-                      isInternalNote 
-                        ? 'bg-amber-600 hover:bg-amber-700 shadow-amber-600/20' 
+                      isInternalNote
+                        ? 'bg-amber-600 hover:bg-amber-700 shadow-amber-600/20'
                         : 'bg-purple-600 hover:bg-purple-700 shadow-purple-600/20'
                     }`}
                   >
                     <Send size={14} />
-                    {sendingReply ? 'Enviando...' : isInternalNote ? 'Salvar Nota Interna' : 'Enviar Resposta Pública'}
+                    {sendingReply ? 'Enviando...' : isInternalNote ? 'Salvar Nota Interna' : 'Enviar Resposta PÃƒÂºblica'}
                   </button>
                 </div>
               </div>
             </div>
 
-            {/* PAINEL DIREITO: CONTEXTO, SLA E AÇÕES RÁPIDAS */}
+            {/* PAINEL DIREITO: CONTEXTO, SLA E AÃƒâ€¡Ãƒâ€¢ES RÃƒÂPIDAS */}
             <div className="w-full md:w-80 bg-white p-6 flex flex-col justify-between overflow-y-auto space-y-6">
-              
+
               <div className="space-y-6">
                 <div>
                   <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-400 mb-3">
-                    Ações de Operação (DEV)
+                    AÃƒÂ§ÃƒÂµes de OperaÃƒÂ§ÃƒÂ£o (DEV)
                   </h3>
-                  
+
                   <div className="space-y-2.5">
                     {(!selectedTicket.assignedToUserId && !selectedTicket.assignedTo) ? (
                       <button
@@ -647,9 +602,9 @@ export default function PlatformSupportPage() {
                       </button>
                     ) : (
                       <div className="rounded-xl bg-emerald-50 border border-emerald-200/60 p-3 text-center">
-                        <span className="text-[11px] font-bold text-emerald-800 block">Responsável Atribuído:</span>
+                        <span className="text-[11px] font-bold text-emerald-800 block">ResponsÃƒÂ¡vel AtribuÃƒÂ­do:</span>
                         <span className="text-xs font-black text-emerald-950 mt-0.5 block">
-                          {selectedTicket.assignedTo?.name || 'Equipe Técnica'}
+                          {selectedTicket.assignedTo?.name || 'Equipe TÃƒÂ©cnica'}
                         </span>
                       </div>
                     )}
@@ -688,8 +643,8 @@ export default function PlatformSupportPage() {
                   <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-400 mb-3 flex items-center justify-between">
                     <span>Empresa / Cliente</span>
                     {selectedTicket.company?.id && (
-                      <Link 
-                        href={`/dashboard/platform/companies/${selectedTicket.company.id}`} 
+                      <Link
+                        href={`/dashboard/platform/companies/${selectedTicket.company.id}`}
                         className="text-purple-600 hover:text-purple-700 inline-flex items-center gap-0.5 text-[11px] font-bold"
                       >
                         Abrir <ArrowUpRight size={12} />
@@ -704,7 +659,7 @@ export default function PlatformSupportPage() {
                       )}
                     </div>
                   ) : (
-                    <p className="text-xs font-medium text-slate-400 italic">Empresa não vinculada</p>
+                    <p className="text-xs font-medium text-slate-400 italic">Empresa nÃƒÂ£o vinculada</p>
                   )}
                 </div>
 
@@ -726,7 +681,7 @@ export default function PlatformSupportPage() {
                       )}
                     </div>
                   ) : (
-                    <p className="text-xs font-medium text-slate-400 italic">Usuário não identificado</p>
+                    <p className="text-xs font-medium text-slate-400 italic">UsuÃƒÂ¡rio nÃƒÂ£o identificado</p>
                   )}
                 </div>
 
@@ -737,18 +692,18 @@ export default function PlatformSupportPage() {
                   </h3>
                   <div className="space-y-2 text-xs">
                     <div className="flex justify-between p-2 rounded bg-slate-50">
-                      <span className="text-slate-500 font-medium">1ª Resposta:</span>
+                      <span className="text-slate-500 font-medium">1Ã‚Âª Resposta:</span>
                       <span className="font-bold text-slate-700">
-                        {selectedTicket.firstResponseDueAt 
-                          ? new Date(selectedTicket.firstResponseDueAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) 
-                          : 'Concluído / N/A'}
+                        {selectedTicket.firstResponseDueAt
+                          ? new Date(selectedTicket.firstResponseDueAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+                          : 'ConcluÃƒÂ­do / N/A'}
                       </span>
                     </div>
                     <div className="flex justify-between p-2 rounded bg-slate-50">
-                      <span className="text-slate-500 font-medium">Resolução Final:</span>
+                      <span className="text-slate-500 font-medium">ResoluÃƒÂ§ÃƒÂ£o Final:</span>
                       <span className="font-bold text-slate-700">
-                        {selectedTicket.resolutionDueAt 
-                          ? new Date(selectedTicket.resolutionDueAt).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) 
+                        {selectedTicket.resolutionDueAt
+                          ? new Date(selectedTicket.resolutionDueAt).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
                           : 'N/A'}
                       </span>
                     </div>
@@ -758,7 +713,7 @@ export default function PlatformSupportPage() {
               </div>
 
               <div className="pt-4 border-t border-slate-100 text-[11px] text-slate-400 text-center">
-                Innovation RH Connect — SLA Monitor
+                Innovation RH Connect Ã¢â‚¬â€ SLA Monitor
               </div>
             </div>
 

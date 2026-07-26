@@ -6,22 +6,26 @@ export interface TicketClassificationResult {
   category: string;
   suggestedPriority: 'LOW' | 'NORMAL' | 'HIGH' | 'CRITICAL';
   summary: string;
+  source?: 'AI' | 'DETERMINISTIC_FALLBACK';
 }
 
 export interface TicketSummaryResult {
   summary: string;
   keyPoints: string[];
   pendingActionFrom: 'DEV' | 'CUSTOMER' | 'NONE';
+  source?: 'AI' | 'DETERMINISTIC_FALLBACK';
 }
 
 export interface SuggestedReplyResult {
   suggestedReply: string;
   isReadyToSend: boolean; // Sempre FALSE por política de segurança (requer aprovação do atendente DEV)
+  source?: 'AI' | 'DETERMINISTIC_FALLBACK';
 }
 
 export interface RootCauseDraftResult {
   rootCauseDraft: string;
   preventionTips: string[];
+  source?: 'AI' | 'DETERMINISTIC_FALLBACK';
 }
 
 @Injectable()
@@ -68,7 +72,8 @@ export class SupportAiService {
       { fallbackData: fallback },
     );
 
-    return result || fallback;
+    const resolved = result || fallback;
+    return { ...resolved, source: result ? 'AI' : 'DETERMINISTIC_FALLBACK' };
   }
 
   /**
@@ -107,7 +112,8 @@ export class SupportAiService {
       { fallbackData: fallback },
     );
 
-    return result || fallback;
+    const resolved = result || fallback;
+    return { ...resolved, source: result ? 'AI' : 'DETERMINISTIC_FALLBACK' };
   }
 
   /**
@@ -145,7 +151,8 @@ export class SupportAiService {
       result.isReadyToSend = false; // Garante programaticamente que a resposta nunca sai marcada como envio automático
     }
 
-    return result || fallback;
+    const resolved = result || fallback;
+    return { ...resolved, source: result ? 'AI' : 'DETERMINISTIC_FALLBACK' };
   }
 
   /**
@@ -178,6 +185,7 @@ export class SupportAiService {
       { fallbackData: fallback },
     );
 
-    return result || fallback;
+    const resolved = result || fallback;
+    return { ...resolved, source: result ? 'AI' : 'DETERMINISTIC_FALLBACK' };
   }
 }

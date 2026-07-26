@@ -15,6 +15,14 @@ test.describe('Cenário E2E: Venda Real (Prosolution Cliente Teste)', () => {
   const PASSWORD = 'Teste@123';
   const STRONG_PASSWORD = 'SenhaForte123!';
 
+  async function isVisible(locator, timeout = 2000) {
+    try {
+      return await locator.first().isVisible({ timeout });
+    } catch {
+      return false;
+    }
+  }
+
   async function performLogin(page, email, password = PASSWORD) {
     await page.goto('/login');
     await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
@@ -28,10 +36,10 @@ test.describe('Cenário E2E: Venda Real (Prosolution Cliente Teste)', () => {
 
   async function aceitarTermosSeExistir(page) {
     const termsModal = page.locator('text=/Termos de Uso|Política de Privacidade/i').first();
-    if (await termsModal.isVisible({ timeout: 3000 }).catch(() => false)) {
+    if (await isVisible(page.locator('text=/Termos de Uso|Política de Privacidade/i'))) {
       await page.evaluate(() => window.scrollBy(0, 10000));
       const checkbox = page.locator('input[type="checkbox"]');
-      if (await checkbox.count() > 0) {
+      if (await isVisible(checkbox)) {
         await checkbox.first().check({ force: true });
       }
       await page.click('button:has-text("Continuar"), button:has-text("Aceitar")');
@@ -43,9 +51,11 @@ test.describe('Cenário E2E: Venda Real (Prosolution Cliente Teste)', () => {
     // 1. Login como DEV (assuming dev@innovation.local is the dev account or admin@innovation.local)
     // We will use the platform owner email (from previous files: eduardo998468@gmail.com or admin@innovation.local)
     // Actually, let's use the known Dev email. If unknown, we'll try eduardo998468@gmail.com
-    await performLogin(page, 'eduardo998468@gmail.com', '575031eb86').catch(async () => {
-       await performLogin(page, 'admin@innovation.local', 'Admin123!');
-    });
+    try {
+      await performLogin(page, 'eduardo998468@gmail.com', '575031eb86');
+    } catch {
+      await performLogin(page, 'admin@innovation.local', 'Admin123!');
+    }
 
     await aceitarTermosSeExistir(page);
 
@@ -74,9 +84,11 @@ test.describe('Cenário E2E: Venda Real (Prosolution Cliente Teste)', () => {
   test('Ato 2: Parametrização pelo Administrador', async ({ page }) => {
     // Loga como dono (assume created by DEV)
     // For testing, we use a mock admin account if not created.
-    await performLogin(page, 'dono.cliente@email.com', PASSWORD).catch(async () => {
-       await performLogin(page, 'admin.teste@innovation.local', 'Teste@123');
-    });
+    try {
+      await performLogin(page, 'dono.cliente@email.com', PASSWORD);
+    } catch {
+      await performLogin(page, 'admin.teste@innovation.local', 'Teste@123');
+    }
 
     await aceitarTermosSeExistir(page);
     await page.screenshot({ path: path.join(screenshotDir, '03-admin-dashboard.png') });
@@ -95,7 +107,7 @@ test.describe('Cenário E2E: Venda Real (Prosolution Cliente Teste)', () => {
       await btnNovo.click();
       await page.fill('input[name="name"]', 'RH Prosolution');
       await page.fill('input[type="email"]', 'rh.cliente@email.com');
-      await page.selectOption('select', { label: 'Recursos Humanos' }).catch(() => {});
+      await page.selectOption('select', { label: 'Recursos Humanos' });
       await page.click('button:has-text("Salvar")');
       await page.waitForTimeout(1500);
     }
@@ -103,9 +115,11 @@ test.describe('Cenário E2E: Venda Real (Prosolution Cliente Teste)', () => {
   });
 
   test('Ato 3: Carga Operacional pelo RH', async ({ page }) => {
-    await performLogin(page, 'rh.cliente@email.com', PASSWORD).catch(async () => {
-       await performLogin(page, 'rh.teste@innovation.local', 'Teste@123');
-    });
+    try {
+      await performLogin(page, 'rh.cliente@email.com', PASSWORD);
+    } catch {
+      await performLogin(page, 'rh.teste@innovation.local', 'Teste@123');
+    }
     
     await aceitarTermosSeExistir(page);
     await page.screenshot({ path: path.join(screenshotDir, '06-rh-dashboard.png') });
@@ -128,7 +142,7 @@ test.describe('Cenário E2E: Venda Real (Prosolution Cliente Teste)', () => {
     // Navigates to a specific employee and adds ASO
     await page.goto('/dashboard/management');
     await page.waitForTimeout(1000);
-    await page.click('button:has-text("ASO")').catch(() => {});
+    await page.click('button:has-text("ASO")');
     await page.screenshot({ path: path.join(screenshotDir, '08-rh-aso.png') });
 
     // Ponto
@@ -138,9 +152,11 @@ test.describe('Cenário E2E: Venda Real (Prosolution Cliente Teste)', () => {
   });
 
   test('Ato 4: Liderança em Ação pelo Gestor', async ({ page }) => {
-    await performLogin(page, 'gestor.cliente@email.com', PASSWORD).catch(async () => {
-       await performLogin(page, 'gestor.teste@innovation.local', 'Teste@123');
-    });
+    try {
+      await performLogin(page, 'gestor.cliente@email.com', PASSWORD);
+    } catch {
+      await performLogin(page, 'gestor.teste@innovation.local', 'Teste@123');
+    }
     
     await aceitarTermosSeExistir(page);
     await page.screenshot({ path: path.join(screenshotDir, '10-gestor-dashboard.png') });
@@ -148,32 +164,34 @@ test.describe('Cenário E2E: Venda Real (Prosolution Cliente Teste)', () => {
     // Bater o próprio ponto
     await page.goto('/dashboard/time-track');
     await page.waitForTimeout(1000);
-    await page.click('button:has-text("Bater Ponto")').catch(() => {});
+    await page.click('button:has-text("Bater Ponto")');
     await page.screenshot({ path: path.join(screenshotDir, '11-gestor-bater-ponto.png') });
 
     // Férias
     await page.goto('/dashboard/vacations');
     await page.waitForTimeout(1000);
-    await page.click('button:has-text("Nova")').catch(() => {});
+    await page.click('button:has-text("Nova")');
     await page.screenshot({ path: path.join(screenshotDir, '12-gestor-solicita-ferias.png') });
 
     // Alterar Senha
     await page.goto('/dashboard/settings');
     await page.waitForTimeout(1000);
-    await page.fill('input[placeholder="Nova senha"]', STRONG_PASSWORD).catch(() => {});
+    await page.fill('input[placeholder="Nova senha"]', STRONG_PASSWORD);
     await page.screenshot({ path: path.join(screenshotDir, '13-gestor-altera-senha.png') });
   });
 
   test('Ato 5: A Ponta Final pelo Funcionário', async ({ page }) => {
-    await performLogin(page, 'func1@email.com', PASSWORD).catch(async () => {
-       await performLogin(page, 'funcionario.teste@innovation.local', 'Teste@123');
-    });
+    try {
+      await performLogin(page, 'func1@email.com', PASSWORD);
+    } catch {
+      await performLogin(page, 'funcionario.teste@innovation.local', 'Teste@123');
+    }
     
     await aceitarTermosSeExistir(page);
     await page.screenshot({ path: path.join(screenshotDir, '14-func-dashboard.png') });
 
     // Bater Ponto
-    await page.click('button:has-text("Bater Ponto")').catch(() => {});
+    await page.click('button:has-text("Bater Ponto")');
     await page.screenshot({ path: path.join(screenshotDir, '15-func-ponto.png') });
 
     // Férias (valida PENDENTE)

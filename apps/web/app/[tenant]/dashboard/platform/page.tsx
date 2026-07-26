@@ -1,20 +1,18 @@
 'use client';
 
 import React from 'react';
-import { 
-  TrendingUp, 
-  Users, 
-  AlertCircle, 
-  CheckCircle2, 
-  DollarSign, 
-  Activity, 
-  FileText, 
-  AlertTriangle, 
-  ShieldAlert, 
-  Clock, 
-  ChevronRight, 
-  Building2, 
-  CreditCard 
+import {
+  TrendingUp,
+  Users,
+  AlertCircle,
+  CheckCircle2,
+  DollarSign,
+  Activity,
+  FileText,
+  AlertTriangle,
+  ChevronRight,
+  Building2,
+  CreditCard
 } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
@@ -31,7 +29,6 @@ export default function PlatformDashboardPage() {
   const summaryQuery = useQuery(() => api.platform.finance.summary(), []);
   const invoicesQuery = useQuery(() => api.platform.finance.list({ limit: 5 }), []);
   const companiesQuery = useQuery(() => api.platform.listCompanies(), []);
-  const supportQuery = useQuery(() => api.support.list('NEW'), []);
 
   if (statsQuery.loading || summaryQuery.loading || companiesQuery.loading) {
     return <LoadingState label="Carregando console operacional corporativo..." />;
@@ -39,15 +36,14 @@ export default function PlatformDashboardPage() {
 
   if (statsQuery.error || summaryQuery.error) {
     return (
-      <ErrorState 
-        message={statsQuery.error || summaryQuery.error || 'Não foi possível carregar os dados da plataforma.'} 
-        onRetry={() => { 
-          statsQuery.refetch(); 
-          summaryQuery.refetch(); 
+      <ErrorState
+        message={statsQuery.error || summaryQuery.error || 'NÃƒÆ’Ã‚Â£o foi possÃƒÆ’Ã‚Â­vel carregar os dados da plataforma.'}
+        onRetry={() => {
+          statsQuery.refetch();
+          summaryQuery.refetch();
           invoicesQuery.refetch();
           companiesQuery.refetch();
-          supportQuery.refetch(); 
-        }} 
+        }}
       />
     );
   }
@@ -56,12 +52,10 @@ export default function PlatformDashboardPage() {
   const summary = summaryQuery.data;
   const invoices = invoicesQuery.data?.items || [];
   const companies = Array.isArray(companiesQuery.data) ? companiesQuery.data : [];
-  const tickets = Array.isArray(supportQuery.data) ? supportQuery.data : [];
 
-  // Itens que requerem atenção
+  // Itens que requerem atenÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o
   const overdueCompanies = companies.filter((c: any) => c.billingStatus === 'PAST_DUE' || c.status === 'SUSPENDED');
   const missingAsaasCompanies = companies.filter((c: any) => !c.asaasCustomerId && c.plan !== 'FREE' && c.billingStatus !== 'FREE');
-  const urgentTickets = tickets.filter((t: any) => t.priority === 'CRITICAL' || t.priority === 'HIGH' || t.status === 'NEW' || t.status === 'TRIAGE');
 
   const badgeColors: Record<string, string> = {
     emerald: 'border-emerald-200 bg-emerald-50 text-emerald-700',
@@ -77,23 +71,21 @@ export default function PlatformDashboardPage() {
   };
 
   const statusText: Record<string, string> = {
-    PAID: 'Concluído',
+    PAID: 'ConcluÃƒÆ’Ã‚Â­do',
     OPEN: 'Pendente',
     OVERDUE: 'Atrasado',
     CANCELED: 'Cancelado',
   };
 
-  // Cálculo aproximado de MRR com base no faturamento ou assinaturas
-  const mrrEstimated = (summary?.totals?.received || 0) * 0.9 + (summary?.totals?.billed || 0) * 0.1;
-
+  const mrrReal = summary?.mrr ?? 0;
   return (
     <div className="mx-auto w-full space-y-8 animate-in fade-in duration-500">
-      
+
       {/* Top Banner Operacional tipo Internet Banking */}
       <div className="rounded-3xl bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 p-6 md:p-8 text-white shadow-xl relative overflow-hidden">
         <div className="absolute -right-10 -bottom-10 h-64 w-64 rounded-full bg-violet-600/10 blur-3xl pointer-events-none" />
         <div className="absolute left-1/3 -top-10 h-48 w-48 rounded-full bg-blue-500/10 blur-2xl pointer-events-none" />
-        
+
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
             <div className="flex items-center gap-2 mb-2">
@@ -106,7 +98,7 @@ export default function PlatformDashboardPage() {
               Painel de Controlo & Tesouraria
             </h2>
             <p className="mt-1 text-sm text-slate-300 max-w-xl font-medium">
-              Gestão centralizada de tenants, liquidez financeira, conciliação de cobranças e monitoramento de SLAs técnicos.
+              GestÃƒÆ’Ã‚Â£o centralizada de tenants, liquidez financeira, conciliaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o de cobranÃƒÆ’Ã‚Â§as e monitoramento de SLAs tÃƒÆ’Ã‚Â©cnicos.
             </p>
           </div>
 
@@ -123,14 +115,14 @@ export default function PlatformDashboardPage() {
               className="flex items-center gap-2 rounded-2xl bg-violet-600 hover:bg-violet-500 px-5 py-3 text-xs font-black text-white transition-all shadow-lg shadow-violet-600/30 hover:scale-105 active:scale-95"
             >
               <CreditCard size={16} />
-              Emitir Cobrança
+              Emitir CobranÃƒÆ’Ã‚Â§a
             </Link>
           </div>
         </div>
       </div>
 
-      {/* BLOCO: REQUER SUA ATENÇÃO (Crítico para Operações) */}
-      {(overdueCompanies.length > 0 || missingAsaasCompanies.length > 0 || urgentTickets.length > 0) && (
+      {/* BLOCO: REQUER SUA ATENÃƒÆ’Ã¢â‚¬Â¡ÃƒÆ’Ã†â€™O (CrÃƒÆ’Ã‚Â­tico para OperaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Âµes) */}
+      {(overdueCompanies.length > 0 || missingAsaasCompanies.length > 0) && (
         <div className="rounded-2xl border-2 border-amber-300/80 bg-gradient-to-r from-amber-50/80 via-orange-50/50 to-amber-50/80 p-5 md:p-6 shadow-md">
           <div className="flex items-center gap-3 mb-4">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500 text-white shadow-md shadow-amber-500/20">
@@ -138,23 +130,23 @@ export default function PlatformDashboardPage() {
             </div>
             <div>
               <h3 className="text-base font-black text-amber-950 uppercase tracking-wide">
-                Requer Sua Atenção Imediata
+                Requer Sua AtenÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o Imediata
               </h3>
               <p className="text-xs font-semibold text-amber-800">
-                Ações preventivas e pendências operacionais detectadas pelo sistema de monitoramento:
+                AÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Âµes preventivas e pendÃƒÆ’Ã‚Âªncias operacionais detectadas pelo sistema de monitoramento:
               </p>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {overdueCompanies.length > 0 && (
-              <Link 
+              <Link
                 href={`/${tenant}/dashboard/platform/companies`}
                 className="flex items-center justify-between p-4 rounded-xl bg-white/90 border border-amber-200 shadow-sm hover:border-amber-400 hover:bg-white transition-all group"
               >
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded-lg bg-rose-100 text-rose-700">
-                    <ShieldAlert size={18} />
+                    <AlertTriangle size={18} />
                   </div>
                   <div>
                     <span className="text-xs font-black text-slate-900 block">
@@ -168,7 +160,7 @@ export default function PlatformDashboardPage() {
             )}
 
             {missingAsaasCompanies.length > 0 && (
-              <Link 
+              <Link
                 href={`/${tenant}/dashboard/platform/companies`}
                 className="flex items-center justify-between p-4 rounded-xl bg-white/90 border border-amber-200 shadow-sm hover:border-amber-400 hover:bg-white transition-all group"
               >
@@ -180,27 +172,7 @@ export default function PlatformDashboardPage() {
                     <span className="text-xs font-black text-slate-900 block">
                       {missingAsaasCompanies.length} {missingAsaasCompanies.length === 1 ? 'Empresa sem Asaas ID' : 'Empresas sem Asaas ID'}
                     </span>
-                    <span className="text-[11px] text-slate-500">Necessário vincular cliente</span>
-                  </div>
-                </div>
-                <ChevronRight size={16} className="text-slate-400 group-hover:translate-x-1 group-hover:text-amber-600 transition-all" />
-              </Link>
-            )}
-
-            {urgentTickets.length > 0 && (
-              <Link 
-                href={`/${tenant}/dashboard/platform/support`}
-                className="flex items-center justify-between p-4 rounded-xl bg-white/90 border border-amber-200 shadow-sm hover:border-amber-400 hover:bg-white transition-all group"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-indigo-100 text-indigo-700">
-                    <Clock size={18} />
-                  </div>
-                  <div>
-                    <span className="text-xs font-black text-slate-900 block">
-                      {urgentTickets.length} {urgentTickets.length === 1 ? 'Chamado de Suporte' : 'Chamados na Fila DEV'}
-                    </span>
-                    <span className="text-[11px] text-slate-500">Triagem pendente ou urgente</span>
+                    <span className="text-[11px] text-slate-500">NecessÃƒÆ’Ã‚Â¡rio vincular cliente</span>
                   </div>
                 </div>
                 <ChevronRight size={16} className="text-slate-400 group-hover:translate-x-1 group-hover:text-amber-600 transition-all" />
@@ -212,48 +184,48 @@ export default function PlatformDashboardPage() {
 
       {/* Faixa de Indicadores Financeiros e Operacionais */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        <Card 
-          title="Recebido no mês (Liquidez)" 
-          value={formatCurrency(summary?.totals?.received ?? 0)} 
-          icon={<DollarSign size={22} className="text-emerald-600" />} 
-          trend={`${summary?.conversionRate ?? 0}% taxa de conversão`} 
+        <Card
+          title="Recebido no mes (Liquidez)"
+          value={formatCurrency(summary?.totals?.received ?? 0)}
+          icon={<DollarSign size={22} className="text-emerald-600" />}
+          trend={`${summary?.conversionRate ?? 0}% taxa de conversÃƒÆ’Ã‚Â£o`}
           highlightColor="emerald"
         />
-        <Card 
-          title="MRR Estimado (Recorrente)" 
-          value={formatCurrency(mrrEstimated)} 
-          icon={<TrendingUp size={22} className="text-violet-600" />} 
-          trend="Baseado em assinaturas ativas" 
+        <Card
+          title="MRR Real (Recorrente)"
+          value={formatCurrency(mrrReal)}
+          icon={<TrendingUp size={22} className="text-violet-600" />}
+          trend={`${summary?.activeSubscriptions ?? 0} assinaturas ativas`}
           highlightColor="violet"
         />
-        <Card 
-          title="Faturamento Bruto Emitido" 
-          value={formatCurrency(summary?.totals?.billed ?? 0)} 
-          icon={<Activity size={22} className="text-blue-600" />} 
-          trend={`${summary?.count ?? 0} faturas registradas`} 
+        <Card
+          title="Faturamento Bruto Emitido"
+          value={formatCurrency(summary?.totals?.billed ?? 0)}
+          icon={<Activity size={22} className="text-blue-600" />}
+          trend={`${summary?.count ?? 0} faturas registradas`}
           highlightColor="blue"
         />
-        <Card 
-          title="Inadimplência / Em Aberto" 
-          value={formatCurrency(summary?.totals?.overdue ?? 0)} 
-          icon={<AlertCircle size={22} className="text-rose-600" />} 
-          trend={`${formatCurrency(summary?.totals?.open ?? 0)} pendente`} 
-          trendDown 
+        <Card
+          title="InadimplÃƒÆ’Ã‚Âªncia / Em Aberto"
+          value={formatCurrency(summary?.totals?.overdue ?? 0)}
+          icon={<AlertCircle size={22} className="text-rose-600" />}
+          trend={`${formatCurrency(summary?.totals?.open ?? 0)} pendente`}
+          trendDown
           highlightColor="rose"
         />
       </div>
 
-      {/* Gráficos e Status Core */}
+      {/* GrÃƒÆ’Ã‚Â¡ficos e Status Core */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
+
         <section className="lg:col-span-2 rounded-3xl border border-slate-200/80 bg-white p-6 shadow-sm flex flex-col">
           <div className="mb-6 flex items-center justify-between border-b border-slate-100 pb-4">
             <div>
               <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
-                <Activity size={18} className="text-violet-600" /> 
-                Evolução do Faturamento Mensal
+                <Activity size={18} className="text-violet-600" />
+                EvoluÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o do Faturamento Mensal
               </h3>
-              <p className="text-xs text-slate-500 mt-0.5">Histórico consolidado das emissões e cobranças Asaas</p>
+              <p className="text-xs text-slate-500 mt-0.5">HistÃƒÆ’Ã‚Â³rico consolidado das emissÃƒÆ’Ã‚Âµes e cobranÃƒÆ’Ã‚Â§as Asaas</p>
             </div>
             <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
               Sincronizado
@@ -280,7 +252,7 @@ export default function PlatformDashboardPage() {
           ) : (
             <div className="h-64 flex flex-col items-center justify-center text-xs text-slate-400 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
               <Activity size={32} className="text-slate-300 mb-2" />
-              <span>Sem dados históricos de faturamento disponíveis para exibição</span>
+              <span>Sem dados histÃƒÆ’Ã‚Â³ricos de faturamento disponÃƒÆ’Ã‚Â­veis para exibiÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o</span>
             </div>
           )}
         </section>
@@ -289,8 +261,8 @@ export default function PlatformDashboardPage() {
           <div className="mb-6 flex items-center justify-between border-b border-slate-100 pb-4">
             <div>
               <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
-                <CheckCircle2 size={18} className="text-emerald-600" /> 
-                Saúde dos Serviços (Core)
+                <CheckCircle2 size={18} className="text-emerald-600" />
+                SaÃƒÆ’Ã‚Âºde dos ServiÃƒÆ’Ã‚Â§os (Core)
               </h3>
               <p className="text-xs text-slate-500 mt-0.5">Infraestrutura em tempo real</p>
             </div>
@@ -300,22 +272,22 @@ export default function PlatformDashboardPage() {
             <StatusRow label="Banco de Dados (PostgreSQL)" status="Operacional" color="emerald" />
             <StatusRow label="Gateway Financeiro Asaas" status="Operacional" color="emerald" />
             <StatusRow label="Motor IA (OpenAI GPT-4o)" status="Operacional" color="emerald" />
-            <StatusRow label="Segurança Anexos (SHA-256)" status="Operacional" color="emerald" />
+            <StatusRow label="SeguranÃƒÆ’Ã‚Â§a Anexos (SHA-256)" status="Operacional" color="emerald" />
             <StatusRow label="Fila Redis & SLA Cron" status="Operacional" color="emerald" />
           </div>
         </section>
 
       </div>
-      
-      {/* Últimas Faturas Registradas */}
+
+      {/* ÃƒÆ’Ã…Â¡ltimas Faturas Registradas */}
       <section className="rounded-3xl border border-slate-200/80 bg-white p-6 shadow-sm">
         <div className="mb-6 flex items-center justify-between border-b border-slate-100 pb-4">
           <div>
             <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
-              <FileText size={18} className="text-indigo-600" /> 
-              Fluxo de Caixa & Últimas Faturas Registradas
+              <FileText size={18} className="text-indigo-600" />
+              Fluxo de Caixa & ÃƒÆ’Ã…Â¡ltimas Faturas Registradas
             </h3>
-            <p className="text-xs text-slate-500 mt-0.5">Movimentações recentes de assinaturas na plataforma</p>
+            <p className="text-xs text-slate-500 mt-0.5">MovimentaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Âµes recentes de assinaturas na plataforma</p>
           </div>
           <Link
             href={`/${tenant}/dashboard/platform/finance`}
@@ -335,7 +307,7 @@ export default function PlatformDashboardPage() {
                 <tr className="border-b border-slate-100 text-[11px] font-black text-slate-400 uppercase tracking-wider bg-slate-50/50">
                   <th className="p-3 pl-4">Vencimento</th>
                   <th className="p-3">Empresa Cliente</th>
-                  <th className="p-3">Descrição da Cobrança</th>
+                  <th className="p-3">DescriÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o da CobranÃƒÆ’Ã‚Â§a</th>
                   <th className="p-3 text-right">Valor Bruto</th>
                   <th className="p-3 pr-4 text-right">Status do Pagamento</th>
                 </tr>

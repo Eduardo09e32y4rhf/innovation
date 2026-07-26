@@ -760,6 +760,20 @@ export const api = {
   publicSupport: {
     createTicket: (data: any) => request<{ success: boolean; message: string; ticketNumber: string }>('/support/public/tickets', { method: 'POST', body: data }),
   },
+
+  ai: {
+    usage: () => request<any>('/ai/usage'),
+    platform: {
+      companySummary: (id: string) => request<any>(`/ai/platform/company/${id}/summary`, { method: 'POST' }),
+      companyRisk: (id: string) => request<any>(`/ai/platform/company/${id}/risk`, { method: 'POST' }),
+      assistant: (question: string) => request<any>('/ai/platform/assistant', { method: 'POST', body: { question } }),
+    },
+    support: {
+      classify: (title: string, description?: string) => request<any>('/ai/support/classify', { method: 'POST', body: { title, description } }),
+      summarizeTicket: (id: string) => request<any>(`/ai/support/ticket/${id}/summarize`, { method: 'POST' }),
+      suggestReply: (id: string) => request<any>(`/ai/support/ticket/${id}/suggest-reply`, { method: 'POST' }),
+    },
+  },
 };
 
 export default api;
