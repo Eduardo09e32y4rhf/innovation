@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { X, Shield, KeyRound, Link as LinkIcon, User } from 'lucide-react';
 import { ROLE_LABEL } from '@/app/lib/format';
 import { PERMISSIONS_LABELS, getDefaultPermissions } from '@/app/lib/permissions';
@@ -45,6 +45,17 @@ export function UserDrawer({
   const [customPerms, setCustomPerms] = useState<string[]>(
     user?.customPermissions ?? getDefaultPermissions(user?.role ?? 'FUNCIONARIO')
   );
+
+  useEffect(() => {
+    if (!user) return;
+    setActiveTab('geral');
+    setIsSaving(false);
+    setName(user.name ?? '');
+    setEmail(user.email ?? '');
+    setRole(user.role ?? 'FUNCIONARIO');
+    setIsCustomPerms(!!user.customPermissions?.length);
+    setCustomPerms(user.customPermissions ?? getDefaultPermissions(user.role ?? 'FUNCIONARIO'));
+  }, [user]);
 
   if (!isOpen || !user) return null;
 

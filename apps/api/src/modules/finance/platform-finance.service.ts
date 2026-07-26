@@ -584,6 +584,7 @@ export class PlatformFinanceService {
       totals,
       mrr: Number(mrr.toFixed(2)),
       count: invoices.length,
+      activeSubscriptions: activeSubscriptions.length,
       conversionRate: totals.billed > 0 ? Number(((totals.received / totals.billed) * 100).toFixed(1)) : 0,
       monthly: [...monthly.values()].sort((a, b) => a.month.localeCompare(b.month)).slice(-12),
     };
@@ -646,7 +647,7 @@ export class PlatformFinanceService {
         companyId: dto.companyId,
         planId: dto.planId,
         description: dto.description,
-        amount: dto.amount,
+        amount: Number(dto.amount),
         dueDate: new Date(dto.dueDate),
         billingType: dto.billingType,
         status: this.mapAsaasStatus(payment?.status) ?? 'OPEN',
@@ -679,7 +680,7 @@ export class PlatformFinanceService {
       where: { id },
       data: {
         description: dto.description,
-        amount: dto.amount,
+        amount: dto.amount !== undefined ? Number(dto.amount) : undefined,
         dueDate: dto.dueDate ? new Date(dto.dueDate) : undefined,
         billingType: dto.billingType,
         status: dto.status,

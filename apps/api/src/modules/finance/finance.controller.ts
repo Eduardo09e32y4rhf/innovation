@@ -111,6 +111,12 @@ export class FinanceController {
     return this.service.remove(id);
   }
 
+  @Post('platform/invoices/:id/refund')
+  @Roles('DEV')
+  refund(@Param('id') id: string) {
+    return this.service.requestRefund(id);
+  }
+
   @Post('charge/:companyId')
   @Roles('DEV')
   createCompanyCharge(

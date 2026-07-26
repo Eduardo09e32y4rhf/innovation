@@ -60,4 +60,25 @@ export class ManualContractsRepository {
       return contract;
     });
   }
+
+  delete(id: string, actorId: string) {
+    return this.prisma.$transaction(async (tx) => {
+      const contract = await tx.manualContract.delete({ where: { id } });
+      await tx.auditLog.create({
+        data: {
+          companyId: contract.companyId,
+          userId: actorId,
+          action: 'MANUAL_CONTRACT_DELETED',
+          entity: 'ManualContract',
+          entityId: contract.id,
+          metadata: {
+            status: contract.status,
+            agreedAmount: contract.agreedAmount,
+            seatQuantity: contract.seatQuantity,
+          },
+        },
+      });
+      return contract;
+    });
+  }
 }

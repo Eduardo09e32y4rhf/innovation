@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -27,5 +27,11 @@ export class ManualContractsController {
   @Roles('DEV')
   update(@CurrentUser() actor: JwtUser, @Param('id') id: string, @Body() dto: UpdateManualContractDto) {
     return this.service.update(id, dto, actor.sub);
+  }
+
+  @Delete(':id')
+  @Roles('DEV')
+  remove(@CurrentUser() actor: JwtUser, @Param('id') id: string) {
+    return this.service.delete(id, actor.sub);
   }
 }

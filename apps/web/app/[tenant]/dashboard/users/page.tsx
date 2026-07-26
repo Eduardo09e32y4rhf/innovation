@@ -183,13 +183,15 @@ export default function UsersPage() {
 
   const handleSaveGeneral = async (data: Partial<AppUser>) => {
     if (!selectedUser) return;
-    await api.users.update(selectedUser.id, data);
+    const updated = await api.users.update(selectedUser.id, data);
+    setSelectedUser(updated);
     users.refetch();
   };
 
   const handleSavePermissions = async (customPermissions: string[] | null) => {
     if (!selectedUser) return;
-    await api.users.update(selectedUser.id, { customPermissions: customPermissions ?? undefined });
+    const updated = await api.users.update(selectedUser.id, { customPermissions });
+    setSelectedUser(updated);
     users.refetch();
   };
 
