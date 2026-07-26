@@ -4,6 +4,7 @@ import { PrismaService } from '../../database/prisma.service';
 import { FinanceNotificationService } from './finance-notification.service';
 import { AsaasService } from './asaas.service';
 import { PricingService } from './pricing.service';
+import { PlatformFinanceService } from './platform-finance.service';
 
 @Injectable()
 export class BillingCronService {
@@ -14,7 +15,47 @@ export class BillingCronService {
     private readonly financeNotificationService: FinanceNotificationService,
     private readonly asaas: AsaasService,
     private readonly pricing: PricingService,
+    private readonly platformFinance: PlatformFinanceService,
   ) {}
+
+  @Cron('*/30 * * * *')
+  async repairAsaasAssociations() {
+    if (!this.asaas.isConfigured()) return;
+    const subscriptions = await this.prisma.companySubscription.findMany({
+      where: {
+        asaasSubscriptionId: null,
+        status: { in: ['TRIAL', 'MANUAL_CONTRACT'] },
+        company: { isActive: true, platformPlanId: { not: null } },
+      },
+      select: {
+        companyId: true,
+        status: true,
+        trialEndsAt: true,
+        company: {
+          select: {
+            createdAt: true,
+            manualContracts: { where: { status: 'ACTIVE' }, orderBy: { startsAt: 'desc' }, take: 1, select: { startsAt: true } },
+          },
+        },
+      },
+      take: 100,
+    });
+
+    for (const subscription of subscriptions) {
+      try {
+        if (subscription.status === 'TRIAL') {
+          await this.platformFinance.ensureCompanyOnboardingBilling(subscription.companyId);
+        } else {
+          const nextDueDate = new Date(subscription.company.manualContracts[0]?.startsAt ?? subscription.company.createdAt);
+          nextDueDate.setUTCMonth(nextDueDate.getUTCMonth() + 1);
+          await this.platformFinance.ensureManualContractBilling(subscription.companyId, nextDueDate);
+        }
+      } catch (error) {
+        this.logger.warn(`Falha ao reconciliar Asaas da empresa ${subscription.companyId}: ${String(error)}`);
+      }
+    }
+    if (subscriptions.length) this.logger.log(`Reconciliação Asaas verificou ${subscriptions.length} empresa(s).`);
+  }
 
   @Cron('0 * * * *')
   async auditOperationalConsistency() {

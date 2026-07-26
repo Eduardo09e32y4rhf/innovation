@@ -19,6 +19,7 @@ export default function FaturaPendentePage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const dashboardUrl = `/${company?.slug || company?.id || user?.companyId}/dashboard`;
+  const isAdmin = user?.profile?.toUpperCase() === 'ADMIN' || user?.role?.toUpperCase() === 'ADMIN' || user?.role?.toUpperCase() === 'DEV';
 
   function paymentLinkFrom(result?: CompanyBillingResult) {
     return result?.paymentUrl || result?.invoice?.invoiceUrl || null;
@@ -79,11 +80,11 @@ export default function FaturaPendentePage() {
   }, [loading, isAuthenticated, user, router]);
 
   useEffect(() => {
-    if (!isAuthenticated || !user) return;
+    if (!isAuthenticated || !user || !isAdmin) return;
     void loadStatus(false);
     const interval = window.setInterval(() => loadStatus(false), 30000);
     return () => window.clearInterval(interval);
-  }, [isAuthenticated, user?.id]);
+  }, [isAuthenticated, user?.id, isAdmin]);
 
   useEffect(() => {
     if (searchParams.get('autoCheckout') !== '1' || !billing || billing.active || paymentLinkFrom(billing) || autoCheckoutStarted.current) return;
@@ -97,9 +98,6 @@ export default function FaturaPendentePage() {
   const invoiceLink = paymentLinkFrom(billing);
   const invoiceAmount = Number(invoice?.amount ?? 0);
   const safeAmount = Number.isFinite(invoiceAmount) ? invoiceAmount : 0;
-  const isAdmin = user?.profile?.toUpperCase() === 'ADMIN' || user?.role?.toUpperCase() === 'ADMIN' || user?.role?.toUpperCase() === 'DEV';
-
-
   if (loading || !user) return null;
 
   return (
@@ -110,9 +108,9 @@ export default function FaturaPendentePage() {
           {checking || creating ? <Loader2 size={42} className="animate-spin" /> : <AlertTriangle size={44} />}
         </div>
         <p className="text-[10px] font-black uppercase tracking-[0.2em] text-teal-400">Innovation RH</p>
-        <h1 className="mt-2 text-2xl font-black text-white">Regularize para liberar o acesso</h1>
+        <h1 className="mt-2 text-2xl font-black text-white">{isAdmin ? 'Regularize para liberar o acesso' : 'Acesso temporariamente bloqueado'}</h1>
         <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-slate-400">
-          A empresa esta aguardando a confirmacao da assinatura. Assim que o Asaas confirmar o pagamento, o acesso sera liberado automaticamente.
+          {isAdmin ? 'A empresa esta aguardando a confirmacao da assinatura. Assim que o Asaas confirmar o pagamento, o acesso sera liberado automaticamente.' : 'A assinatura da empresa esta em atraso. Procure o administrador ou o RH para regularizar o pagamento.'}
         </p>
 
         {isAdmin ? (

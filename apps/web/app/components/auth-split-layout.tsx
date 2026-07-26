@@ -3,7 +3,7 @@ import Image from 'next/image';
 
 export function AuthSplitLayout({ children, title, subtitle }: { children: React.ReactNode, title?: string, subtitle?: string }) {
   return (
-    <div className="flex h-[100dvh] w-full bg-white font-sans selection:bg-brand-500/30 overflow-hidden">
+    <div className="flex min-h-[100dvh] w-full bg-white font-sans selection:bg-brand-500/30 md:h-[100dvh]">
       
       {/* Lado Esquerdo - Imagem (Oculto no mobile) 60% */}
       <div className="relative hidden md:flex md:w-[50%] lg:w-[60%] items-center justify-center bg-black overflow-hidden">
@@ -21,7 +21,7 @@ export function AuthSplitLayout({ children, title, subtitle }: { children: React
       </div>
       
       {/* Lado Direito - Formulário 40% */}
-      <div className="relative flex w-full flex-col justify-center px-6 py-12 md:w-[50%] lg:w-[40%] sm:px-12 xl:px-16 bg-white border-l border-slate-100 shadow-[-20px_0_40px_rgba(0,0,0,0.02)] overflow-y-auto">
+      <div className="relative flex min-h-[100dvh] w-full flex-col justify-center px-6 py-10 sm:px-12 md:h-[100dvh] md:min-h-0 md:w-[50%] lg:w-[40%] xl:px-16 bg-white border-l border-slate-100 shadow-[-20px_0_40px_rgba(0,0,0,0.02)] overflow-y-auto">
         
         <div className="relative z-10 mx-auto w-full max-w-[420px] animate-in slide-in-from-bottom-8 fade-in duration-700">
           

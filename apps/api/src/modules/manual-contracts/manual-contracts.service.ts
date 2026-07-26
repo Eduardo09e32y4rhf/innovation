@@ -2,10 +2,14 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { CreateManualContractDto } from './dto/create-manual-contract.dto';
 import { UpdateManualContractDto } from './dto/update-manual-contract.dto';
 import { ManualContractsRepository } from './manual-contracts.repository';
+import { PlatformFinanceService } from '../finance/platform-finance.service';
 
 @Injectable()
 export class ManualContractsService {
-  constructor(private readonly repository: ManualContractsRepository) {}
+  constructor(
+    private readonly repository: ManualContractsRepository,
+    private readonly finance: PlatformFinanceService,
+  ) {}
 
   list(companyId?: string) {
     return this.repository.list(companyId);
@@ -18,7 +22,16 @@ export class ManualContractsService {
     const startsAt = new Date(dto.startsAt);
     const endsAt = dto.endsAt ? new Date(dto.endsAt) : null;
     if (endsAt && endsAt <= startsAt) throw new BadRequestException('O fim da vigência deve ser posterior ao início.');
-    return this.repository.createWithActivation({ ...dto, startsAt, endsAt }, actorId);
+    const contract = await this.repository.createWithActivation({ ...dto, startsAt, endsAt }, actorId);
+    let billingSetupPending = false;
+    try {
+      const nextDueDate = new Date(startsAt);
+      nextDueDate.setUTCMonth(nextDueDate.getUTCMonth() + 1);
+      await this.finance.ensureManualContractBilling(dto.companyId, nextDueDate);
+    } catch {
+      billingSetupPending = true;
+    }
+    return { ...contract, billingSetupPending };
   }
 
   async update(id: string, dto: UpdateManualContractDto, actorId: string) {

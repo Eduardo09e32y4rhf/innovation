@@ -103,7 +103,7 @@ export default function Home() {
             <a href="#faq" className="transition-colors hover:text-white">Perguntas</a>
           </nav>
           <div className="flex items-center gap-4">
-            <Link href="/login" className="hidden text-xs font-bold text-slate-300 hover:text-white sm:block transition-colors">
+            <Link href="/login" className="text-xs font-bold text-slate-300 hover:text-white transition-colors">
               Acessar
             </Link>
             <Link href="/cadastro" className="inline-flex h-11 items-center justify-center rounded-full bg-white px-6 text-sm font-black text-slate-950 transition-all hover:scale-105 hover:shadow-[0_10px_40px_rgba(255,255,255,0.15)]">

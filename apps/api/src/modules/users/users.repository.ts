@@ -74,7 +74,7 @@ export class UsersRepository {
       where: {
         companyId,
         isActive: true,
-        role: { in: ['ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'] },
+        role: { in: ['RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'] },
       },
     });
   }
