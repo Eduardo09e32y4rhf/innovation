@@ -69,11 +69,23 @@ export class VacationsRepository {
     return this.prisma.vacation.updateMany({ where: { id, employee: { companyId } }, data });
   }
 
-  listTimeTracksInPeriod(employeeId: string, start: Date, end: Date) {
+  listTimeTracksInPeriod(companyId: string, employeeId: string, start: Date, end: Date) {
     return this.prisma.timeTrack.findMany({
-      where: { employeeId, date: { gte: start, lt: end } },
+      where: { companyId, employeeId, date: { gte: start, lt: end } },
       select: { date: true, entry: true, manualStatus: true },
       orderBy: { date: 'asc' },
+    });
+  }
+
+  findOverlapping(companyId: string, employeeId: string, startDate: Date, endDate: Date) {
+    return this.prisma.vacation.findFirst({
+      where: {
+        employeeId,
+        employee: { companyId },
+        status: { in: ['PENDING', 'APPROVED', 'COMPLETED'] },
+        startDate: { lte: endDate },
+        endDate: { gte: startDate },
+      },
     });
   }
 }

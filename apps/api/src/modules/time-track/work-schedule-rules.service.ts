@@ -7,25 +7,16 @@ export class WorkScheduleRulesService {
   constructor(private readonly prisma: PrismaService) {}
 
   async list(companyId: string, actor: JwtUser) {
-    try {
-      return await this.prisma.workScheduleRule.findMany({
-        where: { companyId },
-        orderBy: { createdAt: 'desc' },
-      });
-    } catch (err) {
-      console.error('[WorkScheduleRulesService] list fallback', err);
-      return [];
-    }
+    return this.prisma.workScheduleRule.findMany({
+      where: { companyId },
+      orderBy: { createdAt: 'desc' },
+    });
   }
 
   async findActive(companyId: string) {
-    try {
-      return await this.prisma.workScheduleRule.findFirst({
-        where: { companyId, status: 'ACTIVE' },
-      });
-    } catch {
-      return null;
-    }
+    return this.prisma.workScheduleRule.findFirst({
+      where: { companyId, status: 'ACTIVE' },
+    });
   }
 
   async getById(companyId: string, id: string) {

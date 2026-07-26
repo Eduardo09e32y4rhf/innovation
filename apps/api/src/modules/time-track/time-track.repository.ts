@@ -122,6 +122,7 @@ overtimePaymentMinutes: true,
 
     const tracks = await this.prisma.timeTrack.findMany({
       where: {
+        companyId,
         employeeId: { in: ids },
         ...(start && end ? { date: { gte: start, lt: end } } : {}),
         ...extraWhere,
@@ -155,6 +156,7 @@ overtimePaymentMinutes: true,
     if (!employee) return [];
     const tracks = await this.prisma.timeTrack.findMany({
       where: {
+        employee: { companyId },
         employeeId,
         ...(start && end ? { date: { gte: start, lt: end } } : {}),
       },
@@ -168,7 +170,7 @@ overtimePaymentMinutes: true,
     return this.findEmployeeSummary(companyId, employeeId).then((employee) => {
       if (!employee) return [];
       return this.prisma.timeTrack.findMany({
-        where: { employeeId, date: { gte: start, lt: end } },
+        where: { employee: { companyId }, employeeId, date: { gte: start, lt: end } },
         orderBy: { date: 'asc' },
         skip,
         take,
@@ -181,7 +183,7 @@ overtimePaymentMinutes: true,
     return this.findEmployeeSummary(companyId, employeeId).then((employee) => {
       if (!employee) return 0;
       return this.prisma.timeTrack.count({
-        where: { employeeId, date: { gte: start, lt: end } },
+        where: { employee: { companyId }, employeeId, date: { gte: start, lt: end } },
       });
     });
   }
@@ -211,6 +213,7 @@ overtimePaymentMinutes: true,
     const employeeMap = new Map<string, EmployeeSummary>(employees.map((employee) => [employee.id, employee]));
     const tracks = await this.prisma.timeTrack.findMany({
       where: {
+        companyId,
         employeeId: { in: employeeIds },
         ...(start && end ? { date: { gte: start, lt: end } } : {}),
       },
@@ -267,9 +270,9 @@ overtimePaymentMinutes: true,
     });
   }
 
-  findByEmployeeDate(employeeId: string, date: Date) {
-    return this.prisma.timeTrack.findUnique({
-      where: { employeeId_date: { employeeId, date } },
+  findByEmployeeDate(companyId: string, employeeId: string, date: Date) {
+    return this.prisma.timeTrack.findFirst({
+      where: { companyId, employeeId, date },
       select: this.trackSelect,
     });
   }
@@ -299,7 +302,7 @@ overtimePaymentMinutes: true,
     const employeeIds = [...employees.keys()];
     if (employeeIds.length === 0) return [];
     const tracks = await this.prisma.timeTrack.findMany({
-      where: { employeeId: { in: employeeIds }, manualStatus: 'pending' },
+      where: { companyId, employeeId: { in: employeeIds }, manualStatus: 'pending' },
       select: this.trackSelect,
       orderBy: { createdAt: 'desc' },
     });
@@ -332,7 +335,7 @@ overtimePaymentMinutes: true,
 
     const employeeMap = new Map<string, EmployeeSummary>(employees.map((employee) => [employee.id, employee]));
     const tracks = await this.prisma.timeTrack.findMany({
-      where: { employeeId: { in: employeeIds }, manualStatus: 'pending' },
+      where: { companyId, employeeId: { in: employeeIds }, manualStatus: 'pending' },
       select: this.trackSelect,
       orderBy: { createdAt: 'desc' },
     });
