@@ -95,7 +95,7 @@ export class TimeTrackService {
       if (dto.entry) {
          const previousDate = new Date(date);
          previousDate.setDate(previousDate.getDate() - 1);
-         const previousTrack = await this.repository.findByEmployeeDate(employee.id, previousDate);
+         const previousTrack = await this.repository.findByEmployeeDate(companyId, employee.id, previousDate);
          
          if (previousTrack && previousTrack.exit) {
             const entryTime = this.tzService.parseFromBRT(dto.entry);
@@ -177,21 +177,21 @@ export class TimeTrackService {
     }
 
     const dateStr = targetDate.toISOString().slice(0, 10);
-    const lockKey = `punch-lock:${employee.id}:${dateStr}`;
+    const lockKey = `punch-lock:${companyId}:${employee.id}:${dateStr}`;
     const acquired = await this.redis.acquireLock(lockKey, this.PUNCH_LOCK_TTL);
     if (!acquired) throw new BadRequestException('Batida de ponto ja esta sendo processada. Tente novamente em instantes.');
 
     try {
       let type: any = dto.type;
       if (!isManual) {
-        type = await this.resolveNextPunchType(employee.id, targetDate);
+        type = await this.resolveNextPunchType(companyId, employee.id, targetDate);
         if (!type) throw new BadRequestException('Todas as marcacoes de hoje ja foram registradas.');
       } else {
         if (!type) throw new BadRequestException('Informe qual marcacao sera ajustada.');
       }
       const field = this.typeToField(type!);
 
-      const currentTrack = await this.repository.findByEmployeeDate(employee.id, targetDate);
+      const currentTrack = await this.repository.findByEmployeeDate(companyId, employee.id, targetDate);
 
       const { employeeForCalculation, rule, holiday } = await this.resolveCalculationContext(companyId, employee, targetDate);
 
@@ -719,8 +719,8 @@ export class TimeTrackService {
     throw new NotFoundException('Employee not found');
   }
 
-  private async resolveNextPunchType(employeeId: string, date: Date): Promise<NonNullable<RegisterTimeDto['type']> | null> {
-    const current = await this.repository.findByEmployeeDate(employeeId, date);
+  private async resolveNextPunchType(companyId: string, employeeId: string, date: Date): Promise<NonNullable<RegisterTimeDto['type']> | null> {
+    const current = await this.repository.findByEmployeeDate(companyId, employeeId, date);
     if (!current?.entry) return 'ENTRY';
     if (!current.lunchStart) return 'LUNCH_START';
     if (!current.lunchReturn) return 'LUNCH_RETURN';

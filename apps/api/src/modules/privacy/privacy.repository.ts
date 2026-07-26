@@ -1,9 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
+import { createHash } from 'crypto';
+import { SupportStorageService } from '../support/support-storage.service';
 
 @Injectable()
 export class PrivacyRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, private readonly storageService: SupportStorageService) {}
 
   findActiveConsent(userId: string, termVersion: string) {
     return this.prisma.privacyConsent.findFirst({
@@ -71,11 +73,35 @@ export class PrivacyRepository {
     });
   }
 
-  updatePdfBase64(id: string, pdfBase64: string) {
-    return this.prisma.privacyConsent.update({
+  async updatePdfBase64(id: string, pdfBase64: string) {
+    const consent = await this.prisma.privacyConsent.update({
       where: { id },
       data: { pdfBase64 },
     });
+
+    const sha256 = createHash('sha256').update(Buffer.from(pdfBase64, 'base64')).digest('hex');
+    const storageKey = `docs/${consent.companyId}/privacy-${consent.id}-${sha256.slice(0, 8)}.pdf`;
+    await this.storageService.saveFile(storageKey, Buffer.from(pdfBase64, 'base64'));
+    const metadata = { termVersion: consent.termVersion, purpose: consent.purpose, acceptedAt: consent.acceptedAt.toISOString() };
+    const existing = await this.prisma.generatedDocument.findFirst({ where: { sha256 } });
+    if (existing) {
+      await this.prisma.generatedDocument.update({ where: { id: existing.id }, data: { title: `Termo de Uso e Privacidade v${consent.termVersion}`, metadata } });
+    } else {
+      await this.prisma.generatedDocument.create({
+        data: {
+          companyId: consent.companyId,
+          type: 'OTHER',
+          title: `Termo de Uso e Privacidade v${consent.termVersion}`,
+          storageKey,
+          sha256,
+          sizeBytes: Buffer.from(pdfBase64, 'base64').length,
+          metadata,
+          createdBy: consent.userId,
+        },
+      });
+    }
+
+    return consent;
   }
 
   createAuditLog(data: {

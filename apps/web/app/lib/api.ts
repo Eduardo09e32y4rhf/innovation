@@ -372,10 +372,25 @@ export interface PlatformFinanceSummary {
   totals: { billed: number; received: number; open: number; overdue: number; canceled: number };
   count: number; conversionRate: number; mrr: number;
   monthly: Array<{ month: string; billed: number; received: number }>;
+  mrr: number;
+  activeSubscriptions: number;
 }
 export interface PlatformInvoiceList {
   items: PlatformInvoice[];
   pagination: { page: number; limit: number; total: number; pages: number };
+}
+export interface AsaasWebhookEvent {
+  id: string;
+  asaasEventId: string;
+  eventType: string;
+  status: 'PENDING' | 'PROCESSING' | 'PROCESSED' | 'FAILED' | 'IGNORED' | string;
+  attempts: number;
+  errorMessage?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  processedAt?: string | null;
+  company?: { id: string; name: string } | null;
+  paymentId?: string | null;
 }
 export interface PlatformInvoiceQuery {
   page?: number; limit?: number; status?: PlatformInvoiceStatus | ''; search?: string; from?: string; to?: string;
@@ -672,6 +687,8 @@ export const api = {
       create: (input: CreatePlatformInvoiceInput) => request<PlatformInvoice>('/finance/platform/invoices', { method: 'POST', body: input }),
       update: (id: string, input: UpdatePlatformInvoiceInput) => request<PlatformInvoice>(`/finance/platform/invoices/${id}`, { method: 'PATCH', body: input }),
       sync: (id: string) => request<PlatformInvoice>(`/finance/platform/invoices/${id}/sync`, { method: 'POST' }),
+      webhookEvents: (query: { companyId?: string; limit?: number } = {}) => request<AsaasWebhookEvent[]>(`/finance/platform/webhook-events${makeQuery(query)}`),
+      retryWebhookEvent: (id: string) => request<{ queued: boolean; id: string }>(`/finance/platform/webhook-events/${id}/retry`, { method: 'POST' }),
       delete: (id: string) => request<{ id: string }>(`/finance/platform/invoices/${id}`, { method: 'DELETE' }),
     },
   },
@@ -740,10 +757,7 @@ export const api = {
   
   support: {
     stats: () => request<{ open: number; resolved: number; closed: number }>('/support/stats'),
-    list: (params?: any) => {
-      const query = typeof params === 'string' ? { status: params } : (params || {});
-      return request<any[]>(`/support/tickets${makeQuery(query)}`);
-    },
+    list: (status?: string) => request<any[]>(`/support/tickets${status ? `?status=${status}` : ''}`),
     get: (id: string) => request<any>(`/support/tickets/${id}`),
     create: (data: any) => request<any>('/support/tickets', { method: 'POST', body: data }),
     reply: (id: string, data: any) => request<any>(`/support/tickets/${id}/messages`, { method: 'POST', body: data }),
@@ -766,6 +780,20 @@ export const api = {
   publicSupport: {
     createTicket: (data: any) => request<{ success: boolean; message: string; ticketNumber: string }>('/support/public/tickets', { method: 'POST', body: data }),
     passwordReset: (data: any) => request<{ success: boolean; message: string; ticketNumber: string }>('/support/public/password-reset', { method: 'POST', body: data }),
+  },
+
+  ai: {
+    usage: () => request<any>('/ai/usage'),
+    platform: {
+      companySummary: (id: string) => request<any>(`/ai/platform/company/${id}/summary`, { method: 'POST' }),
+      companyRisk: (id: string) => request<any>(`/ai/platform/company/${id}/risk`, { method: 'POST' }),
+      assistant: (question: string) => request<any>('/ai/platform/assistant', { method: 'POST', body: { question } }),
+    },
+    support: {
+      classify: (title: string, description?: string) => request<any>('/ai/support/classify', { method: 'POST', body: { title, description } }),
+      summarizeTicket: (id: string) => request<any>(`/ai/support/ticket/${id}/summarize`, { method: 'POST' }),
+      suggestReply: (id: string) => request<any>(`/ai/support/ticket/${id}/suggest-reply`, { method: 'POST' }),
+    },
   },
 };
 

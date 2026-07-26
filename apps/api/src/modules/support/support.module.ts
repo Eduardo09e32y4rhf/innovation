@@ -8,6 +8,7 @@ import { SupportAuthorizationService } from './support-authorization.service';
 import { SupportSlaService } from './support-sla.service';
 import { SupportSlaScheduler } from './support-sla.scheduler';
 import { SupportAttachmentService } from './support-attachment.service';
+import { SupportFileValidationService } from './support-file-validation.service';
 import { LocalSupportStorageService } from './local-support-storage.service';
 import { SupportStorageService } from './support-storage.service';
 
@@ -20,6 +21,7 @@ import { SupportStorageService } from './support-storage.service';
     SupportSlaService,
     SupportSlaScheduler,
     SupportAttachmentService,
+    SupportFileValidationService,
     LocalSupportStorageService,
     { provide: SupportStorageService, useClass: LocalSupportStorageService }
   ],

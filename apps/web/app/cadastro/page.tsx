@@ -107,7 +107,7 @@ function CadastroForm() {
       setSuccess(true);
 
       const tenant = response.company.slug || response.company.id;
-      router.replace(`/${tenant}/fatura-pendente?autoCheckout=1`);
+      router.replace(response.trial ? `/${tenant}/dashboard` : `/${tenant}/fatura-pendente?autoCheckout=1`);
       
     } catch (err: any) {
       setError(err instanceof Error ? err.message : 'Erro ao criar conta. Tente novamente.');

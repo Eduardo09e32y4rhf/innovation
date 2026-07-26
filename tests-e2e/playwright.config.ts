@@ -16,7 +16,7 @@ export default defineConfig({
   ],
   webServer: {
     command: 'npm --prefix ../apps/web run dev',
-    url: 'http://127.0.0.1:3000',
+    url: process.env.E2E_BASE_URL || 'http://127.0.0.1:3000',
     reuseExistingServer: false,
     timeout: 120_000,
     env: {

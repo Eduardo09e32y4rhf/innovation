@@ -112,7 +112,8 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
 
     if (!loading && isAuthenticated && user && user.profile?.toUpperCase() !== 'DEV' && user.role?.toUpperCase() !== 'DEV') {
       const mustPay = user.companyStatus === 'SUSPENDED' || user.companyStatus === 'CANCELLED' || user.billingStatus === 'CANCELED' || user.billingStatus === 'PENDING_PAYMENT';
-      if (mustPay) {
+      const isAdmin = user.profile?.toUpperCase() === 'ADMIN' || user.role?.toUpperCase() === 'ADMIN';
+      if (mustPay && !isAdmin) {
         const slug = company?.slug || company?.id || user.companyId;
         if (!window.location.pathname.includes('/fatura-pendente')) {
           router.replace(`/${slug}/fatura-pendente`);

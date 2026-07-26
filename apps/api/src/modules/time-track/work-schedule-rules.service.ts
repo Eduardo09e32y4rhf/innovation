@@ -7,25 +7,16 @@ export class WorkScheduleRulesService {
   constructor(private readonly prisma: PrismaService) {}
 
   async list(companyId: string, actor: JwtUser) {
-    try {
-      return await this.prisma.workScheduleRule.findMany({
-        where: { companyId },
-        orderBy: { createdAt: 'desc' },
-      });
-    } catch (err) {
-      console.error('[WorkScheduleRulesService] list fallback', err);
-      return [];
-    }
+    return this.prisma.workScheduleRule.findMany({
+      where: { companyId },
+      orderBy: { createdAt: 'desc' },
+    });
   }
 
   async findActive(companyId: string) {
-    try {
-      return await this.prisma.workScheduleRule.findFirst({
-        where: { companyId, status: 'ACTIVE' },
-      });
-    } catch {
-      return null;
-    }
+    return this.prisma.workScheduleRule.findFirst({
+      where: { companyId, status: 'ACTIVE' },
+    });
   }
 
   async getById(companyId: string, id: string) {
@@ -45,6 +36,8 @@ export class WorkScheduleRulesService {
     if (actor.role !== 'ADMIN' && actor.role !== 'RH' && actor.role !== 'DEV') {
       throw new ForbiddenException('Only ADMIN/RH can update rules');
     }
+    const rule = await this.prisma.workScheduleRule.findFirst({ where: { id, companyId } });
+    if (!rule) throw new NotFoundException('Rule not found');
     return this.prisma.workScheduleRule.update({ where: { id }, data });
   }
 
@@ -52,9 +45,9 @@ export class WorkScheduleRulesService {
     if (actor.role !== 'ADMIN' && actor.role !== 'RH' && actor.role !== 'DEV') {
       throw new ForbiddenException('Only ADMIN/RH can delete rules');
     }
-    try {
-      await this.prisma.workScheduleRule.delete({ where: { id } });
-    } catch {}
+    const rule = await this.prisma.workScheduleRule.findFirst({ where: { id, companyId } });
+    if (!rule) throw new NotFoundException('Rule not found');
+    await this.prisma.workScheduleRule.delete({ where: { id } });
     return { ok: true };
   }
 }

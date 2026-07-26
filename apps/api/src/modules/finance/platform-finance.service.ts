@@ -82,18 +82,20 @@ export class PlatformFinanceService {
     return { paymentUrl: payment.invoiceUrl, invoice };
   }
 
-  async createRecurringSubscription(company: any, customerId: string, amount: number) {
+  async createRecurringSubscription(company: any, customerId: string, amount: number, requestedNextDueDate?: Date | null) {
     const existingSubscriptionId = company.subscription?.asaasSubscriptionId || company.asaasSubscriptionId;
     if (existingSubscriptionId) return existingSubscriptionId;
     
     const cycle = company.platformPlan?.cycle || 'MONTHLY';
-    const nextDueDate = new Date();
+    const nextDueDate = requestedNextDueDate ? new Date(requestedNextDueDate) : new Date();
     
-    // Assinatura comeca no proximo ciclo
-    if (cycle === 'YEARLY') nextDueDate.setUTCFullYear(nextDueDate.getUTCFullYear() + 1);
-    else if (cycle === 'SEMIANNUALLY') nextDueDate.setUTCMonth(nextDueDate.getUTCMonth() + 6);
-    else if (cycle === 'QUARTERLY') nextDueDate.setUTCMonth(nextDueDate.getUTCMonth() + 3);
-    else nextDueDate.setUTCMonth(nextDueDate.getUTCMonth() + 1);
+    // Trials e contratos bonus informam a data exata; cadastros normais iniciam no proximo ciclo.
+    if (!requestedNextDueDate) {
+      if (cycle === 'YEARLY') nextDueDate.setUTCFullYear(nextDueDate.getUTCFullYear() + 1);
+      else if (cycle === 'SEMIANNUALLY') nextDueDate.setUTCMonth(nextDueDate.getUTCMonth() + 6);
+      else if (cycle === 'QUARTERLY') nextDueDate.setUTCMonth(nextDueDate.getUTCMonth() + 3);
+      else nextDueDate.setUTCMonth(nextDueDate.getUTCMonth() + 1);
+    }
 
     const sub = await this.asaas.createSubscription(customerId, {
       value: amount,
@@ -105,7 +107,7 @@ export class PlatformFinanceService {
     if (sub.id) {
       await this.prisma.$transaction([
         this.prisma.company.update({ where: { id: company.id }, data: { asaasSubscriptionId: sub.id } }),
-        this.prisma.companySubscription.updateMany({ where: { companyId: company.id }, data: { asaasSubscriptionId: sub.id } }),
+        this.prisma.companySubscription.updateMany({ where: { companyId: company.id }, data: { asaasSubscriptionId: sub.id, nextDueDate } }),
       ]);
       return sub.id;
     }
@@ -123,14 +125,25 @@ export class PlatformFinanceService {
     });
     if (!company) throw new NotFoundException('Empresa nao encontrada.');
 
-    if (company.platformPlan?.isFree || company.billingStatus === 'TRIAL') {
-      if (company.platformPlan?.isFree) {
-        await this.prisma.company.update({
-          where: { id: company.id },
-          data: { status: 'ACTIVE', isActive: true, billingStatus: 'ACTIVE', suspensionReason: null },
-        });
-      }
+    if (company.platformPlan?.isFree) {
+      await this.prisma.company.update({
+        where: { id: company.id },
+        data: { status: 'ACTIVE', isActive: true, billingStatus: 'ACTIVE', suspensionReason: null },
+      });
       return { active: true, paymentUrl: null, invoice: null };
+    }
+
+    if (company.billingStatus === 'TRIAL') {
+      if (!this.asaas.isConfigured()) return { active: true, paymentUrl: null, invoice: null, trialEndsAt: company.trialEndsAt };
+      if (!company.document) throw new BadRequestException('CPF ou CNPJ da empresa e obrigatorio para cobrar.');
+      const admin = company.users[0];
+      if (!admin) throw new BadRequestException('A empresa nao possui administrador ativo.');
+      const customerId = await this.ensureAsaasCustomer(company, admin);
+      const plan = company.platformPlan;
+      const pricing = plan ? this.pricingService.calculate((plan.commitmentMonths as any) || 1, company.subscription?.seatQuantity || 1) : null;
+      const amount = pricing?.total ?? Number(plan?.price ?? 0);
+      if (amount > 0) await this.createRecurringSubscription(company, customerId, amount, company.trialEndsAt);
+      return { active: true, paymentUrl: null, invoice: null, trialEndsAt: company.trialEndsAt };
     }
 
     const plan = company.platformPlan;
@@ -185,6 +198,25 @@ export class PlatformFinanceService {
     return { active: invoice?.status === 'PAID', paymentUrl, invoice };
   }
 
+  async ensureManualContractBilling(companyId: string, nextDueDate: Date) {
+    const company = await this.prisma.company.findUnique({
+      where: { id: companyId },
+      include: {
+        platformPlan: true,
+        subscription: true,
+        users: { where: { role: 'ADMIN', isActive: true }, orderBy: { createdAt: 'asc' }, take: 1 },
+      },
+    });
+    if (!company || !this.asaas.isConfigured() || !company.document || !company.users[0]) return { configured: false, created: false };
+    const customerId = await this.ensureAsaasCustomer(company, company.users[0]);
+    const plan = company.platformPlan;
+    const quote = plan ? this.pricingService.calculate((plan.commitmentMonths as any) || 1, company.subscription?.seatQuantity || 1) : null;
+    const amount = quote?.total ?? Number(plan?.price ?? 0);
+    if (amount <= 0) return { configured: true, created: false };
+    const subscriptionId = await this.createRecurringSubscription(company, customerId, amount, nextDueDate);
+    return { configured: true, created: Boolean(subscriptionId), subscriptionId };
+  }
+
   async getCompanyBilling(companyId: string) {
     let company = await this.prisma.company.findUnique({
       where: { id: companyId },
@@ -216,6 +248,10 @@ export class PlatformFinanceService {
       },
     });
     if (!company) throw new NotFoundException('Empresa nao encontrada.');
+
+    const billableUserCount = await this.prisma.user.count({
+      where: { companyId, isActive: true, role: { in: ['RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'] } },
+    });
 
     let invoice = await this.prisma.platformInvoice.findFirst({
       where: { companyId, deletedAt: null, status: { in: ['OPEN', 'OVERDUE'] } },
@@ -285,7 +321,7 @@ export class PlatformFinanceService {
       plan: company.platformPlan,
       subscription: company.subscription ? { ...company.subscription, asaas: subscriptionData } : null,
       usage: {
-        users: company._count.users,
+        users: billableUserCount,
         maxUsers: company.subscription?.seatQuantity ?? 0,
         employees: company._count.employees,
         maxEmployees: company.platformPlan?.maxEmployees ?? 9999,
@@ -319,7 +355,7 @@ export class PlatformFinanceService {
       where: {
         companyId,
         isActive: true,
-        role: { in: ['ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'] },
+        role: { in: ['RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'] },
       },
     });
     if (nextSeatQuantity < usedSeats) {

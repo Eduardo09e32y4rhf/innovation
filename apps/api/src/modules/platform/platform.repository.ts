@@ -82,7 +82,7 @@ export class PlatformRepository {
   }
 
   countUsers(companyId: string) {
-    return this.prisma.user.count({ where: { companyId, isActive: true, role: { in: ['ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'] } } });
+    return this.prisma.user.count({ where: { companyId, isActive: true, role: { in: ['RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'] } } });
   }
 
   listCompanyUsers(companyId: string) {

@@ -1,10 +1,9 @@
-import { IsEnum, IsNotEmpty, IsOptional, IsString, IsUUID, Length } from 'class-validator';
-import { SupportTicketCategory } from '@prisma/client';
+import { IsIn, IsNotEmpty, IsOptional, IsString, IsUUID, Length } from 'class-validator';
 
 export class CreateSupportTicketDto {
-  @IsEnum(SupportTicketCategory, { message: 'Categoria inválida' })
+  @IsIn(['BUG', 'CORRECTION', 'ADJUSTMENT', 'MAINTENANCE', 'FEATURE_REQUEST', 'PASSWORD_RESET', 'ACCESS', 'BILLING', 'PERFORMANCE', 'SECURITY', 'INTEGRATION', 'OTHER'], { message: 'Categoria inválida' })
   @IsNotEmpty({ message: 'Categoria é obrigatória' })
-  category: SupportTicketCategory;
+  category: 'BUG' | 'CORRECTION' | 'ADJUSTMENT' | 'MAINTENANCE' | 'FEATURE_REQUEST' | 'PASSWORD_RESET' | 'ACCESS' | 'BILLING' | 'PERFORMANCE' | 'SECURITY' | 'INTEGRATION' | 'OTHER';
 
   @IsString()
   @IsNotEmpty({ message: 'Título é obrigatório' })

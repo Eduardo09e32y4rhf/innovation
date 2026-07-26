@@ -53,14 +53,34 @@ export class VacationsService {
 
     const startDate = new Date(dto.startDate);
     const endDate = new Date(dto.endDate);
+    if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+      throw new BadRequestException('Informe datas de ferias validas.');
+    }
     if (endDate < startDate) throw new BadRequestException('End date must be after start date');
 
+    const requestedDays = Math.floor((endDate.getTime() - startDate.getTime()) / 86400000) + 1;
+    if (requestedDays < 1 || requestedDays > 30) {
+      throw new BadRequestException('O periodo de ferias deve ter entre 1 e 30 dias corridos.');
+    }
+    if (dto.daysUsed > requestedDays || dto.daysUsed > 30) {
+      throw new BadRequestException('Os dias utilizados nao podem exceder o periodo informado nem 30 dias.');
+    }
+    if (await this.repository.findOverlapping(companyId, dto.employeeId, startDate, endDate)) {
+      throw new BadRequestException('Ja existe uma solicitacao de ferias aprovada ou pendente neste periodo.');
+    }
+
     // REGRA: Calcular faltas injustificadas do período aquisitivo
-    const acquisitionYear = parseInt(dto.acquisitionPeriod.split('/')[0], 10);
+    if (!/^\d{4}\/\d{4}$/.test(dto.acquisitionPeriod)) {
+      throw new BadRequestException('Periodo aquisitivo invalido. Use YYYY/YYYY.');
+    }
+    const [acquisitionYear, endingYear] = dto.acquisitionPeriod.split('/').map(Number);
+    if (endingYear !== acquisitionYear + 1) {
+      throw new BadRequestException('O periodo aquisitivo deve conter anos consecutivos.');
+    }
     const periodStart = new Date(acquisitionYear, 0, 1);
     const periodEnd = new Date(acquisitionYear + 1, 0, 1);
 
-    const allTracks = await this.repository.listTimeTracksInPeriod(dto.employeeId, periodStart, periodEnd);
+    const allTracks = await this.repository.listTimeTracksInPeriod(companyId, dto.employeeId, periodStart, periodEnd);
 
     const unjustifiedAbsences = this.countUnjustifiedAbsences(
       allTracks,
@@ -143,7 +163,10 @@ export class VacationsService {
     // Mapa de datas com ponto
     const trackDates = new Set<string>();
     for (const track of tracks) {
-      trackDates.add(toDateOnlyStr(track.date));
+      // An empty adjustment/absence record is not proof that the employee worked.
+      if (track.entry && track.manualStatus !== 'rejected' && track.manualStatus !== 'revoked') {
+        trackDates.add(toDateOnlyStr(track.date));
+      }
     }
 
     // Dias da semana de folga — usa utilitário compartilhado (case-insensitive)

@@ -16,6 +16,10 @@ export class CouponsRepository {
     return this.prisma.promotionCoupon.findUnique({ where: { code } });
   }
 
+  findById(id: string) {
+    return this.prisma.promotionCoupon.findUnique({ where: { id } });
+  }
+
   create(data: any) {
     return this.prisma.promotionCoupon.create({ data });
   }

@@ -137,19 +137,23 @@ export class NotificationsService {
     try {
       const { title, message, priority, type, targetType, targetIds, expiresAt, requiresReadConfirmation, requiresAcceptance, allowsRefusal, attachmentsJson, extraJson } = body;
 
+      if (!title?.trim() || !message?.trim()) throw new Error('Título e mensagem são obrigatórios');
+      const allowedTypes = ['SIMPLE_NOTICE', 'PROMOTION_NOTICE', 'WARNING_NOTICE', 'SUSPENSION_NOTICE'];
+      if (!allowedTypes.includes(type)) throw new Error('Tipo de notificação inválido');
+
       let targetUserIds: string[] = [];
 
       if (targetType === 'ALL') {
         // 'ALL' entrega apenas para perfis privilegiados — nunca para FUNCIONARIO ou CONSULTA
         const users = await this.prisma.user.findMany({
-          where: { companyId, role: { in: NOTIFICATION_PRIVILEGED_ROLES } },
+          where: { companyId, isActive: true },
           select: { id: true },
         });
         targetUserIds = users.map(u => u.id);
       } else if (targetType === 'EMPLOYEES') {
         // 'EMPLOYEES' entrega apenas para funcionários com perfil privilegiado
         const employees = await this.prisma.employee.findMany({
-          where: { companyId, status: 'ACTIVE', user: { role: { in: NOTIFICATION_PRIVILEGED_ROLES } } },
+          where: { companyId, status: 'ACTIVE', userId: { not: null } },
           select: { userId: true },
         });
         targetUserIds = employees.map(e => e.userId).filter(Boolean) as string[];
@@ -165,13 +169,26 @@ export class NotificationsService {
           targetUserIds = users.map(u => u.id);
         }
       } else if (targetType === 'SPECIFIC' && targetIds) {
-        targetUserIds = targetIds;
+        const users = await this.prisma.user.findMany({
+          where: { companyId, id: { in: targetIds }, isActive: true },
+          select: { id: true },
+        });
+        targetUserIds = users.map(user => user.id);
       }
+
+      if (!targetUserIds.length) throw new Error('Nenhum destinatário ativo foi encontrado');
+
+      const employeesByUserId = await this.prisma.employee.findMany({
+        where: { companyId, userId: { in: targetUserIds } },
+        select: { id: true, userId: true },
+      });
+      const employeeIdByUserId = new Map(employeesByUserId.map(employee => [employee.userId, employee.id]));
 
       const notification = await this.prisma.notification.create({
         data: {
           companyId,
           type: type || 'SIMPLE_NOTICE',
+          targetType: targetType === 'EMPLOYEES' ? 'EMPLOYEE' : targetType === 'SPECIFIC' ? 'USER' : targetType === 'ROLE' ? 'ROLE' : 'ALL',
           title,
           message,
           priority: priority || 'NORMAL',
@@ -189,6 +206,7 @@ export class NotificationsService {
           recipients: {
             create: targetUserIds.map(userId => ({
               userId,
+              employeeId: employeeIdByUserId.get(userId),
               status: (requiresAcceptance || requiresReadConfirmation) ? 'PENDING_RESPONSE' : 'UNREAD',
             })),
           },

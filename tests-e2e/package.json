@@ -3,8 +3,9 @@
   "version": "1.0.0",
   "description": "E2E automated tests for Innovation RH Connect",
   "scripts": {
-    "test": "playwright test",
-    "test:headed": "playwright test --headed"
+    "test": "playwright test --config playwright.config.ts",
+    "test:legacy": "playwright test --config playwright.config.js",
+    "test:headed": "playwright test --headed --config playwright.config.ts"
   },
   "devDependencies": {
     "@playwright/test": "^1.41.2"

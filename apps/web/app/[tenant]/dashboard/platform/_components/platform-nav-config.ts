@@ -37,7 +37,6 @@ export const PLATFORM_NAV_GROUPS: PlatformNavGroup[] = [
     key: 'operations',
     label: 'Operações',
     items: [
-      { label: 'Central de Suporte DEV', href: '/support' },
       { label: 'Log de Auditoria', href: '/audit' },
     ],
   },

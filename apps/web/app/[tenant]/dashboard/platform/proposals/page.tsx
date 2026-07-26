@@ -3,10 +3,13 @@
 import { useEffect, useState } from 'react';
 import { api } from '@/app/lib/api';
 import { useRouter, useParams } from 'next/navigation';
-import { Eye, Plus } from 'lucide-react';
+import Link from 'next/link';
+import { Eye, Plus, RefreshCw } from 'lucide-react';
 
 export default function ProposalsPage() {
   const [proposals, setProposals] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const router = useRouter();
   const params = useParams();
   const tenant = params.tenant as string;
@@ -16,25 +19,34 @@ export default function ProposalsPage() {
   }, []);
 
   const loadProposals = async () => {
+    setLoading(true);
+    setError('');
     try {
       const data = await api.proposals.list();
       setProposals(data);
     } catch (err) {
-      console.error(err);
+      setError(err instanceof Error ? err.message : 'Nao foi possivel carregar as propostas.');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Propostas Comerciais</h1>
-        <button className="flex items-center crystal-button px-4 py-2 rounded-xl text-sm font-bold bg-violet-600 text-white hover:bg-violet-700 shadow-md transition-colors" onClick={() => router.push(`/${tenant}/dashboard/platform/proposals/new`)}>
+    <div className="mx-auto w-full space-y-5">
+      <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+        <div><h1 className="text-lg font-black text-slate-950">Propostas comerciais</h1><p className="mt-1 text-xs text-slate-500">Crie, acompanhe e envie propostas para as empresas clientes.</p></div>
+        <div className="flex items-center gap-2">
+        <button type="button" className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 px-3 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-60" onClick={loadProposals} disabled={loading}><RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Atualizar</button>
+        <Link href={`/${tenant}/dashboard/platform/proposals/new`} className="inline-flex h-10 items-center rounded-xl bg-violet-600 px-4 text-sm font-black text-white shadow-sm hover:bg-violet-700">
           <Plus className="w-4 h-4 mr-2" />
           Nova Proposta
-        </button>
+        </Link>
+        </div>
       </div>
 
-      <div className="overflow-hidden rounded-2xl bg-white shadow-sm shadow-slate-900/5">
+      {error && <div className="flex items-center justify-between rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs font-semibold text-rose-700"><span>{error}</span><button type="button" onClick={loadProposals} className="font-black underline">Tentar novamente</button></div>}
+
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div className="p-0 overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-slate-50 border-b border-slate-100 text-slate-500 font-semibold">
@@ -48,7 +60,7 @@ export default function ProposalsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {proposals.map((p) => (
+              {loading ? <tr><td colSpan={6} className="p-10 text-center text-sm text-slate-500">Carregando propostas...</td></tr> : proposals.map((p) => (
                 <tr key={p.id} className="hover:bg-slate-50/80 transition-colors">
                   <td className="px-6 py-4 font-medium text-slate-900">{p.proposalNumber}</td>
                   <td className="px-6 py-4 text-slate-600">{p.company?.name || 'N/A'}</td>
@@ -64,9 +76,10 @@ export default function ProposalsPage() {
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <button className="p-2 text-slate-400 hover:text-violet-600 hover:bg-violet-50 rounded-xl transition-colors" onClick={() => router.push(`/${tenant}/dashboard/platform/proposals/${p.id}`)}>
+                    <Link href={`/${tenant}/dashboard/platform/proposals/${p.id}`} className="inline-flex items-center gap-1 rounded-lg px-2.5 py-2 text-xs font-bold text-violet-700 hover:bg-violet-50">
                       <Eye className="w-4 h-4" />
-                    </button>
+                      Abrir
+                    </Link>
                   </td>
                 </tr>
               ))}

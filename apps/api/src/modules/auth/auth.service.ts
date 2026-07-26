@@ -134,7 +134,7 @@ export class AuthService {
 
     let checkout: { active: boolean; paymentUrl: string | null | undefined } = { active: Boolean(selectedPlan?.isFree), paymentUrl: null };
     let billingSetupPending = false;
-    if (!selectedPlan.isFree && !trial) {
+    if (!selectedPlan.isFree) {
       try {
         checkout = await this.platformFinance.ensureCompanyOnboardingBilling(company.id);
       } catch (error) {
@@ -450,6 +450,7 @@ export class AuthService {
   private canAccessCompany(company: { status?: string; billingStatus?: string } | null | undefined, role: UserRole) {
     if (role === 'DEV') return true;
     if (role === 'ADMIN') return Boolean(company && company.billingStatus !== 'CANCELED');
+    if (company?.billingStatus === 'PAST_DUE' || company?.billingStatus === 'PENDING_PAYMENT') return true;
     return Boolean(company && (company.status ?? 'ACTIVE') === 'ACTIVE' && company.billingStatus !== 'CANCELED');
   }
 

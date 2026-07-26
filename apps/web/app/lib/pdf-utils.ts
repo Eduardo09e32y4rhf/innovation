@@ -173,32 +173,35 @@ export function signatureBlock(lines: string[]) {
 }
 
 export function printPdf(html: string, title: string) {
-  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  try {
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const popup = window.open(url, '_blank', 'noopener,noreferrer');
 
-  if (isMobile) {
-    try {
-      const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const newWindow = window.open(url, '_blank');
-      
-      if (!newWindow) {
-        window.alert('Pop-up bloqueado. Por favor, permita pop-ups para visualizar o PDF.');
-        return;
-      }
-      
-      newWindow.onload = () => {
-        newWindow.print();
-        // Give time for the print dialog before revoking
-        setTimeout(() => URL.revokeObjectURL(url), 10000);
+    if (popup) {
+      const revoke = () => window.setTimeout(() => URL.revokeObjectURL(url), 10000);
+      const runPrint = () => {
+        try {
+          popup.focus();
+          popup.print();
+        } finally {
+          revoke();
+        }
       };
+
+      if (popup.document.readyState === 'complete') {
+        runPrint();
+      } else {
+        popup.addEventListener('load', runPrint, { once: true });
+      }
       return;
-    } catch (err) {
-      console.error('Error generating PDF on mobile:', err);
-      // Fallback for extremely strict mobile browsers
     }
+
+    throw new Error('Popup blocked');
+  } catch (err) {
+    console.error('Error generating PDF:', err);
   }
 
-  // Desktop flow
   const iframe = document.createElement('iframe');
   iframe.style.position = 'fixed';
   iframe.style.right = '0';
@@ -207,23 +210,17 @@ export function printPdf(html: string, title: string) {
   iframe.style.height = '0';
   iframe.style.border = '0';
   iframe.title = title;
+  iframe.srcdoc = html;
   document.body.appendChild(iframe);
-  const doc = iframe.contentWindow?.document;
-  if (!doc) {
-    iframe.remove();
-    window.alert('Não foi possível gerar o PDF. Verifique se o navegador bloqueou pop-ups.');
-    return;
-  }
-  doc.open();
-  doc.write(html);
-  doc.close();
   iframe.onload = () => {
-    iframe.contentWindow?.focus();
-    iframe.contentWindow?.print();
-    window.setTimeout(() => iframe.remove(), 1000);
+    try {
+      iframe.contentWindow?.focus();
+      iframe.contentWindow?.print();
+    } finally {
+      window.setTimeout(() => iframe.remove(), 1000);
+    }
   };
 }
-
 export function escapeHtml(value: unknown) {
   return String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&', '<': '<', '>': '>', '"': '"', "'": '&#039;' }[char] ?? char));
 }

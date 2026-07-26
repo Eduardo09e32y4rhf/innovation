@@ -1,8 +1,7 @@
-import { IsEnum, IsNotEmpty } from 'class-validator';
-import { SupportTicketPriority } from '@prisma/client';
+import { IsIn, IsNotEmpty } from 'class-validator';
 
 export class UpdateSupportPriorityDto {
-  @IsEnum(SupportTicketPriority, { message: 'Prioridade do chamado inválida' })
+  @IsIn(['LOW', 'NORMAL', 'MEDIUM', 'HIGH', 'CRITICAL'], { message: 'Prioridade do chamado inválida' })
   @IsNotEmpty({ message: 'Prioridade é obrigatória' })
-  priority: SupportTicketPriority;
+  priority: 'LOW' | 'NORMAL' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 }

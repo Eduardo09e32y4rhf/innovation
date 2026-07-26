@@ -1,4 +1,4 @@
-import { IsEnum, IsNotEmpty, IsOptional, IsString, Length } from 'class-validator';
+import { IsIn, IsNotEmpty, IsOptional, IsString, Length } from 'class-validator';
 
 export class AddSupportMessageDto {
   @IsString()
@@ -7,6 +7,6 @@ export class AddSupportMessageDto {
   message: string;
 
   @IsOptional()
-  @IsEnum(['PUBLIC', 'INTERNAL'], { message: 'Visibilidade inválida' })
+  @IsIn(['PUBLIC', 'INTERNAL'], { message: 'Visibilidade inválida' })
   visibility?: 'PUBLIC' | 'INTERNAL';
 }

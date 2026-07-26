@@ -117,6 +117,7 @@ enum VacationStatus {
 
 enum NotificationType {
   SIMPLE_NOTICE
+  PROMOTION_NOTICE
   RH_NOTICE
   VACATION_NOTICE
   WARNING_NOTICE

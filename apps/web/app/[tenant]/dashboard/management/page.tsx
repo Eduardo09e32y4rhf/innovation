@@ -9,7 +9,7 @@ import { useQuery, useMutation } from '@/app/hooks/use-data';
 import { api, type Employee, type ManagementEvent, type EmployeeAsoRecord } from '@/app/lib/api';
 import { normalizeDisplayName } from '@/app/lib/text';
 
-type ManagementTab = 'agenda' | 'aso' | 'notifications' | 'rules' | 'closing';
+type ManagementTab = 'agenda' | 'aso' | 'notifications' | 'payroll';
 type Tab = ManagementTab;
 type EventType = 'REUNIAO' | 'CHAMADA' | 'TAREFA_INTERNA' | 'PRAZO_ADMINISTRATIVO' | 'RETORNO_COLABORADOR' | 'DOCUMENTO_PENDENTE' | 'OUTROS';
 type EventStatus = 'PENDENTE' | 'EM_ANDAMENTO' | 'CONCLUIDO' | 'CANCELADO';
@@ -128,8 +128,9 @@ function ManagementContent() {
 
   const router = useRouter();
   const searchParams = useSearchParams();
-  const current = searchParams.get('tab') as ManagementTab | null;
-  const [tab, setTab] = useState<Tab>(current && ['agenda','aso','notifications','rules','closing'].includes(current) ? current : 'agenda');
+  const current = searchParams.get('tab');
+  const normalizedTab: Tab = current === 'rules' || current === 'closing' ? 'payroll' : current as Tab;
+  const [tab, setTab] = useState<Tab>(normalizedTab && ['agenda','aso','notifications','payroll'].includes(normalizedTab) ? normalizedTab : 'agenda');
 
   function navigate(next: ManagementTab) {
     router.push(`/${tenant}/dashboard/management?tab=` + next);
@@ -271,8 +272,7 @@ function ManagementContent() {
         <button onClick={() => navigate('agenda')} className={tab === 'agenda' ? 'tab-item-active' : 'tab-item'}>Agenda</button>
         <button onClick={() => navigate('aso')} className={tab === 'aso' ? 'tab-item-active' : 'tab-item'}>ASO</button>
         <button onClick={() => navigate('notifications')} className={tab === 'notifications' ? 'tab-item-active' : 'tab-item'}>Notificações</button>
-        <button onClick={() => navigate('rules')} className={tab === 'rules' ? 'tab-item-active' : 'tab-item'}>Regras</button>
-        <button onClick={() => navigate('closing')} className={tab === 'closing' ? 'tab-item-active' : 'tab-item'}>Fechamento</button>
+        {canManage && <button onClick={() => navigate('payroll')} className={tab === 'payroll' ? 'tab-item-active' : 'tab-item'}>Jornada e fechamento</button>}
       </div>
 
       {tab === 'agenda' && (kanbanQuery.loading && !kanbanQuery.data ? <LoadingState label="Carregando..." /> :
@@ -300,8 +300,7 @@ function ManagementContent() {
         />)}
 
       {tab === 'notifications' && <NotificationsTab canManage={canManage} company={company} employees={employees} />}
-      {tab === 'rules' && <RulesTab canManage={canManage} />}
-      {tab === 'closing' && <ClosingTab canManage={canManage} company={company} />}
+      {tab === 'payroll' && canManage && <div className="space-y-8"><RulesTab canManage={canManage} /><ClosingTab canManage={canManage} company={company} /></div>}
 
       {eventForm.open && <EventModal
         event={eventForm.edit}
@@ -760,6 +759,7 @@ function NotificationsTab({ canManage, company, employees: propEmployees }: { ca
         <select value={filterType} onChange={e => setFilterType(e.target.value)} className="h-9 rounded-[6px] border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 outline-none focus:border-teal-500">
           <option value="">TODOS TIPOS</option>
           <option value="SIMPLE_NOTICE">Comunicado</option>
+          <option value="PROMOTION_NOTICE">Promoção</option>
           <option value="WARNING_NOTICE">Advertência</option>
           <option value="SUSPENSION_NOTICE">Suspensão</option>
           <option value="SYSTEM">Sistema</option>
@@ -930,9 +930,9 @@ function CreateNotificationForm({ onCreated, employees, company }: { onCreated: 
       targetRole: targetType === 'ROLE' ? targetRole : undefined,
       targetIds,
       extraJson,
-      requiresReadConfirmation: type === 'SIMPLE_NOTICE' ? requiresReadConfirmation : true,
+      requiresReadConfirmation: type === 'WARNING_NOTICE' || type === 'SUSPENSION_NOTICE' ? true : requiresReadConfirmation,
       requiresAcceptance: type === 'SUSPENSION_NOTICE' || type === 'WARNING_NOTICE' ? true : requiresAcceptance,
-      allowsRefusal: type === 'SIMPLE_NOTICE' ? allowsRefusal : false,
+      allowsRefusal: type === 'WARNING_NOTICE' || type === 'SUSPENSION_NOTICE' ? false : allowsRefusal,
     }).catch(() => {});
   };
   
@@ -986,6 +986,7 @@ function CreateNotificationForm({ onCreated, employees, company }: { onCreated: 
           <span>TIPO</span>
           <select value={type} onChange={e => setType(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500">
             <option value="SIMPLE_NOTICE">Comunicado</option>
+            <option value="PROMOTION_NOTICE">Promoção</option>
             <option value="WARNING_NOTICE">Advertência</option>
             <option value="SUSPENSION_NOTICE">Suspensão</option>
           </select>
@@ -1067,7 +1068,7 @@ function CreateNotificationForm({ onCreated, employees, company }: { onCreated: 
         )}
 
         <label className="sm:col-span-2 space-y-1 text-xs font-medium text-slate-600">
-          <span>{type === 'WARNING_NOTICE' || type === 'SUSPENSION_NOTICE' ? 'DESCREVA OS DETALHES DA INFRAÇÃO (APARECERÁ NO PDF E NO APP)' : 'MENSAGEM'}</span>
+          <span>{type === 'WARNING_NOTICE' || type === 'SUSPENSION_NOTICE' ? 'DESCREVA OS DETALHES DA INFRAÇÃO (APARECERÁ NO PDF E NO APP)' : type === 'PROMOTION_NOTICE' ? 'MENSAGEM DA PROMOÇÃO' : 'MENSAGEM'}</span>
           <textarea value={message} onChange={e => setMessage(e.target.value)} rows={4} className="w-full rounded-[8px] border border-slate-200 px-3 py-2 text-sm outline-none focus:border-teal-500" placeholder="Conteúdo..." />
         </label>
         {(type === 'SIMPLE_NOTICE') && (
@@ -1089,7 +1090,7 @@ function CreateNotificationForm({ onCreated, employees, company }: { onCreated: 
       </div>
       <div className="mt-5 flex justify-end gap-2">
         <button onClick={handleSubmit} disabled={!title.trim() || createMut.loading} className="crystal-button h-10 rounded-[8px] px-4 text-xs font-black text-white disabled:opacity-60">
-          {createMut.loading ? 'ENVIANDO...' : (type === 'WARNING_NOTICE' ? 'GERAR ADVERTÊNCIA' : type === 'SUSPENSION_NOTICE' ? 'GERAR SUSPENSÃO' : 'ENVIAR COMUNICADO')}
+          {createMut.loading ? 'ENVIANDO...' : (type === 'WARNING_NOTICE' ? 'GERAR ADVERTÊNCIA' : type === 'SUSPENSION_NOTICE' ? 'GERAR SUSPENSÃO' : type === 'PROMOTION_NOTICE' ? 'ENVIAR PROMOÇÃO' : 'ENVIAR COMUNICADO')}
         </button>
       </div>
       {createMut.error && <p className="mt-2 text-xs text-red-600">{createMut.error}</p>}
@@ -1172,14 +1173,14 @@ function RulesTab({ canManage }: { canManage: boolean }) {
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {rules.map((r: any) => (
-            <div key={r.id} className={`rounded-[12px] border p-4 shadow-sm ${r.isActive !== false ? 'border-slate-200 bg-white' : 'border-slate-200 bg-slate-50/60'}`}>
+            <div key={r.id} className={`rounded-[12px] border p-4 shadow-sm ${r.status === 'ACTIVE' ? 'border-slate-200 bg-white' : 'border-slate-200 bg-slate-50/60'}`}>
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <p className="text-sm font-black text-slate-950">{r.name ?? 'Regra sem nome'}</p>
                   {r.description && <p className="mt-0.5 text-[11px] text-slate-500">{r.description}</p>}
                 </div>
-                <span className={`inline-flex rounded-[5px] border px-1.5 py-0.5 text-[9px] font-black ${r.isActive !== false ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-600 border-slate-200'}`}>
-                  {r.isActive !== false ? 'ATIVA' : 'INATIVA'}
+                <span className={`inline-flex rounded-[5px] border px-1.5 py-0.5 text-[9px] font-black ${r.status === 'ACTIVE' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-600 border-slate-200'}`}>
+                  {r.status === 'ACTIVE' ? 'ATIVA' : 'INATIVA'}
                 </span>
               </div>
               <div className="mt-3 space-y-1 text-[11px] font-semibold text-slate-600">
@@ -1192,7 +1193,7 @@ function RulesTab({ canManage }: { canManage: boolean }) {
               <div className="mt-4 flex gap-2">
                 <button onClick={() => openEdit(r)} className="btn-outline-premium h-7 px-2 text-[10px] font-bold">Editar</button>
                 {canManage && (
-                  r.isActive !== false
+                  r.status === 'ACTIVE'
                     ? <button onClick={() => archiveMut.mutate(r.id).catch(() => {})} className="inline-flex h-7 items-center rounded-[5px] bg-gradient-to-r from-amber-500 to-orange-600 px-2 text-[10px] font-black text-white">Inativar</button>
                     : <button onClick={() => activateMut.mutate(r.id).catch(() => {})} className="inline-flex h-7 items-center rounded-[5px] bg-gradient-to-r from-emerald-500 to-teal-600 px-2 text-[10px] font-black text-white">Ativar</button>
                 )}

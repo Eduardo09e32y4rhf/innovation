@@ -2,30 +2,31 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getQueueToken } from '@nestjs/bull';
 import { FinanceNotificationService } from './finance-notification.service';
 import { PrismaService } from '../../database/prisma.service';
+import { vi } from 'vitest';
 
 // ─── Mocks ────────────────────────────────────────────────────────────────────
 
 const mockPrisma = {
   companyFinanceConfig: {
-    findUnique: jest.fn(),
+    findUnique: vi.fn(),
   },
   company: {
-    findUnique: jest.fn(),
+    findUnique: vi.fn(),
   },
   user: {
-    findMany: jest.fn(),
+    findMany: vi.fn(),
   },
   notification: {
-    create: jest.fn(),
+    create: vi.fn(),
   },
   financeNotificationLog: {
-    findUnique: jest.fn(),
-    upsert: jest.fn(),
+    findUnique: vi.fn(),
+    upsert: vi.fn(),
   },
 };
 
 const mockWhatsappQueue = {
-  add: jest.fn(),
+  add: vi.fn(),
 };
 
 function buildInput(overrides = {}) {
@@ -62,7 +63,7 @@ function defaultConfig(overrides = {}) {
 let service: FinanceNotificationService;
 
 beforeEach(async () => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
   process.env.FINANCE_WHATSAPP_NOTIFICATIONS_ENABLED = 'false';
 
   const module: TestingModule = await Test.createTestingModule({

@@ -1,12 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { SupportTicketPriority } from '@prisma/client';
 
 @Injectable()
 export class SupportSlaService {
   /**
    * Horário comercial: 08:00 às 18:00 (10h úteis por dia), Segunda a Sexta.
    */
-  calculateDueDates(priority: SupportTicketPriority, createdAt: Date = new Date()): { firstResponseDueAt: Date; resolutionDueAt: Date } {
+  calculateDueDates(priority: 'LOW' | 'NORMAL' | 'HIGH' | 'CRITICAL', createdAt: Date = new Date()): { firstResponseDueAt: Date; resolutionDueAt: Date } {
     const firstResponseDueAt = new Date(createdAt);
     const resolutionDueAt = new Date(createdAt);
 

@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import { FileText, Key, MoreVertical, Power, Settings, Archive, Users } from 'lucide-react';
+import { FileText, MoreVertical, Power, Settings, Archive, Users, ExternalLink } from 'lucide-react';
 import { type PlatformCompany } from '@/app/lib/api';
 
 interface CompanyActionMenuProps {
@@ -91,12 +91,11 @@ export function CompanyActionMenu({
                 <div className="my-1 border-t border-slate-100"></div>
                 <Link 
                   href={`/auth/ghost-init?companyId=${company.id}`} 
-                  target="_blank" 
                   onClick={() => setOpen(false)}
-                  className="flex items-center gap-2 rounded-[6px] px-3 py-2 text-[11px] font-bold text-[#0030B9] hover:bg-blue-50"
+                  className="flex items-center gap-2 rounded-[6px] px-3 py-2 text-[11px] font-bold text-blue-700 hover:bg-blue-50"
                 >
-                  <Key size={14} />
-                  Acessar (Ghost)
+                  <ExternalLink size={14} />
+                  Acessar como cliente
                 </Link>
                 
                 <button 
