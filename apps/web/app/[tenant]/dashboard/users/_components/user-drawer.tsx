@@ -48,7 +48,6 @@ export function UserDrawer({
 
   useEffect(() => {
     if (!user) return;
-    setActiveTab('geral');
     setIsSaving(false);
     setName(user.name ?? '');
     setEmail(user.email ?? '');
@@ -57,18 +56,36 @@ export function UserDrawer({
     setCustomPerms(user.customPermissions ?? getDefaultPermissions(user.role ?? 'FUNCIONARIO'));
   }, [user]);
 
+  useEffect(() => {
+    if (isOpen) {
+      setActiveTab('geral');
+    }
+  }, [isOpen]);
+
   if (!isOpen || !user) return null;
 
   const handleSaveGeneral = async () => {
     setIsSaving(true);
-    await onSaveGeneral({ name, email, role }).catch(() => {});
-    setIsSaving(false);
+    try {
+      await onSaveGeneral({ name, email, role });
+      alert('Dados do usuário salvos com sucesso!');
+    } catch (e: any) {
+      alert(e?.message || 'Erro ao salvar alterações do usuário.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleSavePerms = async () => {
     setIsSaving(true);
-    await onSavePermissions(isCustomPerms ? customPerms : null).catch(() => {});
-    setIsSaving(false);
+    try {
+      await onSavePermissions(isCustomPerms ? customPerms : null);
+      alert('Permissões do usuário salvas com sucesso!');
+    } catch (e: any) {
+      alert(e?.message || 'Erro ao salvar permissões do usuário.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const togglePermission = (key: string) => {

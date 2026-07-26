@@ -3,19 +3,6 @@ export type PlatformNavGroup = { key: string; label: string; items: PlatformNavI
 
 export const PLATFORM_NAV_GROUPS: PlatformNavGroup[] = [
   {
-    key: 'overview',
-    label: 'Visão Geral',
-    items: [{ label: 'Console Operacional', href: '' }],
-  },
-  {
-    key: 'clients',
-    label: 'Clientes',
-    items: [
-      { label: 'Empresas Clientes', href: '/companies' },
-      { label: 'Acessos DEV', href: '/access' },
-    ],
-  },
-  {
     key: 'finance',
     label: 'Financeiro',
     items: [
@@ -24,51 +11,41 @@ export const PLATFORM_NAV_GROUPS: PlatformNavGroup[] = [
     ],
   },
   {
-    key: 'commercial',
-    label: 'Comercial',
+    key: 'contracts',
+    label: 'Contratos',
     items: [
-      { label: 'Propostas Comerciais', href: '/proposals' },
       { label: 'Contratos Digitais', href: '/contracts' },
-      { label: 'Planos & Preços', href: '/plans' },
-      { label: 'Cupons de Desconto', href: '/coupons' },
-    ],
-  },
-  {
-    key: 'operations',
-    label: 'Operações',
-    items: [
-      { label: 'Log de Auditoria', href: '/audit' },
-    ],
-  },
-  {
-    key: 'intelligence',
-    label: 'Inteligência',
-    items: [
-      { label: 'Análise de Risco IA', href: '/intelligence' },
+      { label: 'Propostas Comerciais', href: '/proposals' },
     ],
   },
   {
     key: 'settings',
-    label: 'Configurações',
+    label: 'Configuração',
     items: [
-      { label: 'Comunicação WhatsApp', href: '/whatsapp' },
+      { label: 'Empresas Clientes', href: '/companies' },
+      { label: 'Planos & Preços', href: '/plans' },
+      { label: 'Acessos & Perfis DEV', href: '/access' },
       { label: 'Permissões Globais', href: '/permissions' },
+      { label: 'Cupons de Desconto', href: '/coupons' },
+      { label: 'WhatsApp', href: '/whatsapp' },
+      { label: 'Log de Auditoria', href: '/audit' },
+      { label: 'Análise de Risco IA', href: '/intelligence' },
     ],
   },
 ];
 
-// Usuários COMERCIAL enxergam apenas Visão Geral, Empresas, Financeiro (escopado) e Comercial.
 const COMERCIAL_ALLOWED_LABELS = new Set([
-  'Console Operacional', 
-  'Empresas Clientes', 
-  'Faturamento & Cobranças', 
-  'Propostas Comerciais', 
-  'Contratos Digitais', 
-  'Planos & Preços'
+  'Faturamento & Cobranças',
+  'Assinaturas Asaas',
+  'Contratos Digitais',
+  'Propostas Comerciais',
+  'Empresas Clientes',
+  'Planos & Preços',
+  'Cupons de Desconto',
 ]);
 
 export function getPlatformNavGroups(role: string): PlatformNavGroup[] {
-  if (role === 'DEV') return PLATFORM_NAV_GROUPS;
+  if (role === 'DEV' || role === 'ADMIN') return PLATFORM_NAV_GROUPS;
   return PLATFORM_NAV_GROUPS
     .map((group) => ({
       ...group,
@@ -85,5 +62,8 @@ export function resolvePlatformActive(base: string, pathname: string, groups: Pl
       if (isActive) return { group, item };
     }
   }
-  return { group: null as PlatformNavGroup | null, item: null as PlatformNavItem | null };
+  // Se não encontrar (ex: na raiz /dashboard/platform), seleciona o primeiro grupo por padrão
+  const defaultGroup = groups[0] ?? null;
+  const defaultItem = defaultGroup?.items[0] ?? null;
+  return { group: defaultGroup, item: defaultItem };
 }

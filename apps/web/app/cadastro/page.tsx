@@ -23,6 +23,26 @@ import { PricingSection } from '../_components/pricing-section';
 import { persistAuthSession } from '@/app/lib/auth-session';
 import type { Company, User as AuthUser } from '@/app/contexts/AuthContext';
 
+function parseMoney(val: any): number {
+  if (val === null || val === undefined || val === '') return 0;
+  if (typeof val === 'number') return Number.isFinite(val) ? val : 0;
+  const raw = String(val).trim();
+  if (raw === 'NaN' || raw === 'null' || raw === 'undefined') return 0;
+  const normalized = raw.includes(',')
+    ? raw.replace(/\./g, '').replace(',', '.')
+    : raw.replace(/,/g, '');
+  const n = Number(normalized);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function getPlanDisplayPrice(plan: PublicPlatformPlan): number {
+  const p = parseMoney(plan.price);
+  if (p > 0) return p;
+  const b = parseMoney(plan.baseMonthlyPrice);
+  if (b > 0) return b;
+  return 0;
+}
+
 function CadastroForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -287,7 +307,7 @@ function CadastroForm() {
                   </div>
                   <span className="text-xs font-medium text-slate-500 mt-1">{plan.description}</span>
                   {plan.cycle !== 'CUSTOM' && (
-                    <span className="text-sm font-black text-slate-900 mt-2">{Number(plan.price).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} <span className="text-[10px] text-slate-500 font-medium">/{plan.cycle === 'YEARLY' ? 'ano' : 'mês'}</span></span>
+                    <span className="text-sm font-black text-slate-900 mt-2">{getPlanDisplayPrice(plan).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} <span className="text-[10px] text-slate-500 font-medium">/{plan.cycle === 'YEARLY' ? 'ano' : 'mês'}</span></span>
                   )}
                 </div>
               </label>

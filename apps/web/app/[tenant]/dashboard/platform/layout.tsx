@@ -12,7 +12,7 @@ export default function PlatformLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const tenant = String(params?.tenant || '');
   const role = String(user?.role || user?.profile || '').toUpperCase();
-  const allowed = role === 'DEV' || role === 'COMERCIAL';
+  const allowed = role === 'DEV' || role === 'COMERCIAL' || role === 'ADMIN';
 
   if (!allowed) {
     return <div className="rounded-2xl border border-rose-200 bg-rose-50 p-6 text-sm font-semibold text-rose-700">Acesso restrito à administração da plataforma.</div>;

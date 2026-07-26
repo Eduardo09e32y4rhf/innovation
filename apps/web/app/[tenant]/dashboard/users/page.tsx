@@ -155,10 +155,16 @@ export default function UsersPage() {
   };
 
   const handleCreateSubmit = async (data: any) => {
-    const { password, ...rest } = data;
-    await api.users.create({ ...rest, password });
-    users.refetch();
-    usage.refetch();
+    try {
+      const { password, ...rest } = data;
+      await api.users.create({ ...rest, password });
+      alert('Usuário criado com sucesso!');
+      users.refetch();
+      usage.refetch();
+    } catch (e: any) {
+      alert(e?.message || 'Erro ao criar usuário.');
+      throw e;
+    }
   };
 
   const handleResetSubmit = async (newPassword: string) => {

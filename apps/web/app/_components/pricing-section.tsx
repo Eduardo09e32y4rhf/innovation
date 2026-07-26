@@ -34,6 +34,18 @@ export function PricingSection({ onSelectPlan, onSeatQuantityChange, selectedPla
     return () => { active = false; window.clearTimeout(timer); };
   }, [plans, seatQuantity]);
 
+  function parseMoney(val: any): number {
+    if (val === null || val === undefined || val === '') return 0;
+    if (typeof val === 'number') return Number.isFinite(val) ? val : 0;
+    const raw = String(val).trim();
+    if (raw === 'NaN' || raw === 'null' || raw === 'undefined') return 0;
+    const normalized = raw.includes(',')
+      ? raw.replace(/\./g, '').replace(',', '.')
+      : raw.replace(/,/g, '');
+    const n = Number(normalized);
+    return Number.isFinite(n) ? n : 0;
+  }
+
   const formatCurrency = (val: number) => val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
   if (loading) {
@@ -76,9 +88,10 @@ export function PricingSection({ onSelectPlan, onSeatQuantityChange, selectedPla
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
         {plans.map((plan) => {
+          const fallbackPrice = parseMoney(plan.price) || parseMoney(plan.baseMonthlyPrice) || 0;
           const quote = quotes[plan.id];
-          const total = quote?.total ?? 0;
-          const monthlyEquivalent = quote ? quote.total / quote.commitmentMonths : 0;
+          const total = quote?.total ?? (fallbackPrice * (plan.commitmentMonths || 1));
+          const monthlyEquivalent = quote ? quote.total / quote.commitmentMonths : fallbackPrice;
           const isSelected = selectedPlanId === plan.id;
           
           return (

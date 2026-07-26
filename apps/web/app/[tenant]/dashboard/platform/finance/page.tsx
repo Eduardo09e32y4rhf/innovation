@@ -87,7 +87,8 @@ function toIsoDate(value: string) {
 
 export default function FinancePage({ params: { tenant } }: { params: { tenant: string } }) {
   const { user } = useAuth();
-  const role = user?.profile?.toUpperCase();
+  const role = String(user?.role || user?.profile || '').toUpperCase();
+  const canManage = role === 'DEV' || role === 'COMERCIAL' || role === 'ADMIN';
   const [search, setSearch] = useState('');
   const deferredSearch = useDeferredValue(search);
   const [status, setStatus] = useState<PlatformInvoiceStatus | ''>('');
@@ -264,15 +265,9 @@ export default function FinancePage({ params: { tenant } }: { params: { tenant: 
           <p className="text-[10px] font-black uppercase tracking-[0.2em] text-teal-600">Controle da operacao</p>
           <h2 className="mt-1 text-2xl font-black text-slate-950">Gestao da Plataforma</h2>
           <p className="mt-2 max-w-2xl text-sm text-slate-500">Cobranças, reembolsos e sincronização Asaas em um painel único e prático.</p>
-          <div className="mt-4 flex max-w-full gap-4 overflow-x-auto border-b border-slate-200 whitespace-nowrap">
-            <Link href={`/${tenant}/dashboard/platform`} className="pb-2 text-sm font-medium text-slate-500 hover:text-slate-800">Visão Geral</Link>
-            <Link href={`/${tenant}/dashboard/platform/finance`} className="border-b-2 border-teal-600 pb-2 text-sm font-black text-slate-950">Financeiro</Link>
-            <Link href={`/${tenant}/dashboard/platform/contracts`} className="pb-2 text-sm font-medium text-slate-500 hover:text-slate-800">Contratos</Link>
-            <Link href={`/${tenant}/dashboard/platform/permissions`} className="pb-2 text-sm font-medium text-slate-500 hover:text-slate-800">Configuração</Link>
-          </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          {role === 'DEV' && (
+          {canManage && (
             <button onClick={startCreate} className="inline-flex h-10 items-center gap-2 rounded-[8px] bg-teal-600 px-4 text-xs font-black text-white hover:bg-teal-700">
               <Plus size={14} /> Nova cobrança
             </button>
@@ -285,8 +280,9 @@ export default function FinancePage({ params: { tenant } }: { params: { tenant: 
 
       {companies.loading || summary.loading ? <LoadingState label="Carregando financeiro..." /> : null}
 
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         {[
+          { label: 'MRR Contratado', value: summary.data?.mrr, icon: TrendingUp, tone: 'bg-violet-950 text-white' },
           { label: 'Faturado', value: totals?.billed, icon: WalletCards, tone: 'bg-slate-950 text-white' },
           { label: 'Recebido', value: totals?.received, icon: CheckCircle2, tone: 'bg-emerald-600 text-white' },
           { label: 'A receber', value: totals?.open, icon: Banknote, tone: 'bg-white text-slate-950' },
@@ -429,25 +425,25 @@ export default function FinancePage({ params: { tenant } }: { params: { tenant: 
                             </a>
                           </>
                         )}
-                        {role === 'DEV' && (
+                        {canManage && (
                           <>
                             <button type="button" onClick={() => startEdit(invoice)} className="rounded-[7px] p-2 text-slate-500 hover:bg-white hover:text-violet-700 hover:shadow-sm" title="Editar">
                               <Edit2 size={14} />
                             </button>
-                            {(invoice.status === 'OPEN' || invoice.status === 'OVERDUE') && (
-                              <button type="button" onClick={() => removeInvoice(invoice)} disabled={workingId === invoice.id} className="rounded-[7px] p-2 text-slate-500 hover:bg-white hover:text-rose-700 hover:shadow-sm disabled:opacity-40" title="Cancelar">
+                            {invoice.status !== 'CANCELED' && (
+                              <button type="button" onClick={() => removeInvoice(invoice)} disabled={workingId === invoice.id} className="rounded-[7px] p-2 text-slate-500 hover:bg-white hover:text-rose-700 hover:shadow-sm disabled:opacity-40" title="Cancelar / Excluir">
                                 <Trash2 size={14} />
                               </button>
                             )}
-                            {invoice.status === 'PAID' && invoice.asaasPaymentId && (
-                              <button type="button" onClick={() => refundInvoice(invoice)} disabled={workingId === invoice.id} className="rounded-[7px] p-2 text-slate-500 hover:bg-white hover:text-amber-700 hover:shadow-sm disabled:opacity-40" title="Reembolsar">
+                            {invoice.status === 'PAID' && (
+                              <button type="button" onClick={() => refundInvoice(invoice)} disabled={workingId === invoice.id} className="rounded-[7px] p-2 text-slate-500 hover:bg-white hover:text-amber-700 hover:shadow-sm disabled:opacity-40" title="Reembolsar (Estorno 7 dias)">
                                 {workingId === invoice.id ? <Loader2 size={14} className="animate-spin" /> : <Banknote size={14} />}
                               </button>
                             )}
                           </>
                         )}
-                        {invoice.asaasPaymentId && role === 'DEV' && (
-                          <button type="button" disabled={workingId === invoice.id} onClick={() => sync(invoice)} title="Sincronizar" className="rounded-[7px] p-2 text-slate-500 hover:bg-white hover:text-teal-700 hover:shadow-sm disabled:opacity-40">
+                        {invoice.asaasPaymentId && canManage && (
+                          <button type="button" disabled={workingId === invoice.id} onClick={() => sync(invoice)} title="Sincronizar Asaas" className="rounded-[7px] p-2 text-slate-500 hover:bg-white hover:text-teal-700 hover:shadow-sm disabled:opacity-40">
                             {workingId === invoice.id ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
                           </button>
                         )}

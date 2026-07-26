@@ -1,30 +1,19 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ChevronDown } from 'lucide-react';
+import { WalletCards, FileText, Settings, Sparkles } from 'lucide-react';
 import { resolvePlatformActive, type PlatformNavGroup } from './platform-nav-config';
+
+const GROUP_ICONS: Record<string, any> = {
+  finance: WalletCards,
+  contracts: FileText,
+  settings: Settings,
+};
 
 export function PlatformNav({ base, groups }: { base: string; groups: PlatformNavGroup[] }) {
   const pathname = usePathname();
-  const [openKey, setOpenKey] = useState<string | null>(null);
-  const containerRef = useRef<HTMLElement>(null);
   const { group: activeGroup } = resolvePlatformActive(base, pathname, groups);
-
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-        setOpenKey(null);
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  useEffect(() => {
-    setOpenKey(null);
-  }, [pathname]);
 
   function isItemActive(href: string) {
     const full = `${base}${href}`;
@@ -32,56 +21,52 @@ export function PlatformNav({ base, groups }: { base: string; groups: PlatformNa
   }
 
   return (
-    <nav ref={containerRef} className="relative flex max-w-full items-center gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-white p-1 shadow-sm" aria-label="Navegacao da plataforma">
-      {groups.map((group) => {
-        const isGroupActive = activeGroup?.key === group.key;
+    <div className="space-y-4">
+      {/* Abas Principais (Sem Dropdowns!) */}
+      <nav className="flex max-w-full items-center gap-2 overflow-x-auto rounded-[16px] border border-slate-200/80 bg-white p-1.5 shadow-sm">
+        {groups.map((group) => {
+          const isGroupActive = activeGroup?.key === group.key;
+          const Icon = GROUP_ICONS[group.key] || Sparkles;
+          const firstHref = group.items[0]?.href ?? '';
 
-        if (group.items.length === 1) {
-          const item = group.items[0];
           return (
             <Link
               key={group.key}
-              href={`${base}${item.href}`}
-              className={`relative whitespace-nowrap rounded-lg px-3 py-2.5 text-xs font-bold transition-colors ${isGroupActive ? 'bg-violet-50 text-violet-700' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-950'}`}
+              href={`${base}${firstHref}`}
+              className={`flex items-center gap-2.5 whitespace-nowrap rounded-[12px] px-5 py-3 text-sm font-black transition-all ${
+                isGroupActive
+                  ? 'bg-slate-950 text-white shadow-md shadow-slate-950/10'
+                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-950'
+              }`}
             >
+              <Icon size={16} className={isGroupActive ? 'text-teal-400' : 'text-slate-400'} />
               {group.label}
             </Link>
           );
-        }
+        })}
+      </nav>
 
-        const isOpen = openKey === group.key;
-        return (
-          <div key={group.key} className="relative">
-            <button
-              type="button"
-              onClick={() => setOpenKey(isOpen ? null : group.key)}
-              className={`relative flex items-center gap-1 whitespace-nowrap rounded-lg px-3 py-2.5 text-xs font-bold transition-colors ${isGroupActive ? 'bg-violet-50 text-violet-700' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-950'}`}
-              aria-expanded={isOpen}
-              aria-haspopup="true"
-            >
-              {group.label}
-              <ChevronDown size={14} className={`transition-transform ${isOpen ? 'rotate-180' : ''}`} />
-            </button>
-            {isOpen && (
-              <div className="absolute left-0 top-full z-[100] mt-1 w-56 rounded-xl border border-slate-200 bg-white p-1.5 shadow-2xl">
-                {group.items.map((item) => {
-                  const itemActive = isItemActive(item.href);
-                  return (
-                    <Link
-                      key={item.label}
-                      href={`${base}${item.href}`}
-                      onClick={() => setOpenKey(null)}
-                      className={`block rounded-lg px-3 py-2 text-sm font-medium transition-colors ${itemActive ? 'bg-violet-50 text-violet-700' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}`}
-                    >
-                      {item.label}
-                    </Link>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        );
-      })}
-    </nav>
+      {/* Sub-navegação em Pílulas Horizontais (Simples e Direta) */}
+      {activeGroup && activeGroup.items.length > 1 && (
+        <div className="flex max-w-full flex-wrap items-center gap-1.5 rounded-[14px] border border-slate-200/60 bg-slate-50/70 p-1.5">
+          {activeGroup.items.map((item) => {
+            const active = isItemActive(item.href);
+            return (
+              <Link
+                key={item.label}
+                href={`${base}${item.href}`}
+                className={`rounded-[10px] px-3.5 py-2 text-xs font-bold transition-all ${
+                  active
+                    ? 'bg-teal-600 text-white shadow-sm'
+                    : 'bg-white/80 text-slate-600 hover:bg-white hover:text-slate-950 hover:shadow-xs border border-slate-200/60'
+                }`}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 }
