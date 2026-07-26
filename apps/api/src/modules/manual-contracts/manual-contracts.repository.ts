@@ -5,8 +5,9 @@ import { PrismaService } from '../../database/prisma.service';
 export class ManualContractsRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  list() {
+  list(companyId?: string) {
     return this.prisma.manualContract.findMany({
+      where: companyId ? { companyId } : undefined,
       include: { company: { select: { id: true, name: true, document: true } }, plan: { select: { id: true, name: true } } },
       orderBy: { createdAt: 'desc' },
     });

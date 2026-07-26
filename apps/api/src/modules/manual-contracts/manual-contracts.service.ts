@@ -7,8 +7,8 @@ import { ManualContractsRepository } from './manual-contracts.repository';
 export class ManualContractsService {
   constructor(private readonly repository: ManualContractsRepository) {}
 
-  list() {
-    return this.repository.list();
+  list(companyId?: string) {
+    return this.repository.list(companyId);
   }
 
   async create(dto: CreateManualContractDto, actorId: string) {

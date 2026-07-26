@@ -328,8 +328,6 @@ model Company {
   asoRecords       EmployeeAsoRecord[]
   asoClinicPresets AsoClinicPreset[]
   notifications    Notification[]
-  aiUsageLogs      AiUsageLog[]
-  generatedDocuments GeneratedDocument[]
 
   workScheduleRules WorkScheduleRule[]
   faceEnrollments   FaceEnrollment[]
@@ -358,7 +356,8 @@ model Company {
   scheduleExceptions ScheduleException[]
   swapRequests       ScheduleSwapRequest[]
 
-  supportTickets SupportTicket[]
+  supportTickets     SupportTicket[]
+  generatedDocuments GeneratedDocument[]
 
   @@index([commercialOwnerId])
 }
@@ -406,9 +405,7 @@ model User {
   supportTicketMessages      SupportTicketMessage[]
   supportAttachmentsUploaded SupportAttachment[]
   supportTicketEvents        SupportTicketEvent[]
-  aiUsageLogs                AiUsageLog[]
   generatedDocuments         GeneratedDocument[]
-  generatedDocumentsCreated  GeneratedDocument[]    @relation("GeneratedDocumentCreatedBy")
 
   @@index([companyId])
 }
@@ -915,52 +912,6 @@ model PrivacyConsent {
   @@unique([userId, termVersion])
   @@index([companyId])
   @@index([userId])
-}
-
-model AiUsageLog {
-  id               String   @id @default(uuid()) @db.Uuid
-  tenantId         String
-  companyId        String?  @db.Uuid
-  actorId          String?  @db.Uuid
-  model            String?
-  source           String?
-  requestType      String?
-  promptTokens     Int
-  completionTokens Int
-  totalTokens      Int
-  estimatedCost    Decimal? @db.Decimal(12, 6)
-  createdAt        DateTime @default(now())
-
-  company Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
-  actor   User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
-
-  @@index([tenantId, createdAt])
-  @@index([companyId, createdAt])
-  @@index([actorId])
-}
-
-model GeneratedDocument {
-  id              String   @id @default(uuid()) @db.Uuid
-  companyId       String?  @db.Uuid
-  userId          String?  @db.Uuid
-  createdByUserId String?  @db.Uuid
-  documentType    String
-  sourceEntity    String
-  sourceEntityId  String?
-  title           String
-  mimeType        String
-  sha256          String   @unique
-  pdfBase64       String   @db.Text
-  metadata        Json?
-  createdAt       DateTime @default(now())
-
-  company   Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
-  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-  createdBy User?    @relation("GeneratedDocumentCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
-
-  @@index([companyId, createdAt])
-  @@index([userId, createdAt])
-  @@index([sourceEntity, sourceEntityId])
 }
 
 model AuditLog {
@@ -1990,4 +1941,51 @@ model SupportTicketCounter {
   year       Int      @id
   lastNumber Int      @default(0)
   updatedAt  DateTime @updatedAt
+}
+
+model AiUsageLog {
+  id               String   @id @default(cuid())
+  tenantId         String
+  actorId          String?
+  model            String
+  feature          String
+  promptTokens     Int
+  completionTokens Int
+  totalTokens      Int
+  estimatedCostUsd Float    @default(0)
+  source           String   @default("OPENAI")
+  createdAt        DateTime @default(now())
+
+  @@index([tenantId, createdAt])
+  @@index([tenantId, feature])
+  @@map("ai_usage_logs")
+}
+
+enum GeneratedDocumentType {
+  REPORT
+  CONTRACT
+  PAYSLIP
+  OTHER
+}
+
+model GeneratedDocument {
+  id         String                @id @default(uuid()) @db.Uuid
+  companyId  String                @db.Uuid
+  type       GeneratedDocumentType
+  title      String
+  
+  storageKey String                @unique
+  sha256     String
+  sizeBytes  Int
+  
+  metadata   Json?                 @db.JsonB
+  
+  createdBy  String?               @db.Uuid
+  createdAt  DateTime              @default(now())
+
+  company    Company               @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  author     User?                 @relation(fields: [createdBy], references: [id], onDelete: SetNull)
+
+  @@index([companyId, type])
+  @@index([createdAt])
 }

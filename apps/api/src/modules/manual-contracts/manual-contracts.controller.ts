@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -9,20 +9,22 @@ import { UpdateManualContractDto } from './dto/update-manual-contract.dto';
 import { ManualContractsService } from './manual-contracts.service';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('DEV')
+@Roles('DEV', 'COMERCIAL')
 @Controller('manual-contracts')
 export class ManualContractsController {
   constructor(private readonly service: ManualContractsService) {}
 
   @Get()
-  list() { return this.service.list(); }
+  list(@Query('companyId') companyId?: string) { return this.service.list(companyId); }
 
   @Post()
+  @Roles('DEV')
   create(@CurrentUser() actor: JwtUser, @Body() dto: CreateManualContractDto) {
     return this.service.create(dto, actor.sub);
   }
 
   @Patch(':id')
+  @Roles('DEV')
   update(@CurrentUser() actor: JwtUser, @Param('id') id: string, @Body() dto: UpdateManualContractDto) {
     return this.service.update(id, dto, actor.sub);
   }

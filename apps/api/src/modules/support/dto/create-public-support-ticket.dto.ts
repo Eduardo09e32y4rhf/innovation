@@ -1,39 +1,35 @@
-import { Transform } from 'class-transformer';
-import { IsEmail, IsNotEmpty, IsOptional, IsString, Length, MaxLength } from 'class-validator';
+import { IsEnum, IsNotEmpty, IsOptional, IsString, IsEmail } from 'class-validator';
+import { SupportTicketCategory } from '@prisma/client';
 
 export class CreatePublicSupportTicketDto {
   @IsString()
-  @IsNotEmpty()
-  @MaxLength(120)
-  name!: string;
+  @IsNotEmpty({ message: 'Nome é obrigatório' })
+  name: string;
 
-  @Transform(({ value }) => typeof value === 'string' ? value.trim().toLowerCase() : value)
-  @IsEmail()
-  @IsNotEmpty()
-  email!: string;
+  @IsEmail({}, { message: 'E-mail inválido' })
+  @IsNotEmpty({ message: 'E-mail é obrigatório' })
+  email: string;
 
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(120)
-  subject!: string;
+  @IsOptional()
+  @IsEnum(SupportTicketCategory, { message: 'Categoria inválida' })
+  category?: SupportTicketCategory;
 
   @IsString()
-  @IsNotEmpty()
-  @Length(10, 10000)
-  description!: string;
+  @IsNotEmpty({ message: 'Assunto é obrigatório' })
+  subject: string;
+
+  @IsString()
+  @IsNotEmpty({ message: 'Descrição é obrigatória' })
+  description: string;
 
   @IsOptional()
   @IsString()
-  @MaxLength(500)
   pageUrl?: string;
 
+  // Honeypot field - bots costumam preencher todos os campos de um form
   @IsOptional()
   @IsString()
-  @MaxLength(64)
-  category?: string;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(1)
-  honeypot?: string;
+  website?: string;
 }
+
+export { CreatePublicSupportTicketDto as CreatepublicsupportticketDto };

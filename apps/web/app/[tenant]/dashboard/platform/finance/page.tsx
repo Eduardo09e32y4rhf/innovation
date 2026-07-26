@@ -23,6 +23,7 @@ import { toast } from 'sonner';
 import { buildPdfShell, escapeHtml, infoGrid, pdfTable, printPdf, section } from '@/app/lib/pdf-utils';
 import { EmptyState, ErrorState, LoadingState } from '@/app/components/data-states';
 import { useQuery } from '@/app/hooks/use-data';
+import { useAuth } from '@/app/contexts/AuthContext';
 import api, {
   ApiError,
   PlatformBillingType,
@@ -72,6 +73,8 @@ function monthLabel(value: string) {
 // InvoiceModal component removed because finance is now automated via Asaas
 
 export default function FinancePage({ params: { tenant } }: { params: { tenant: string } }) {
+  const { user } = useAuth();
+  const role = user?.profile?.toUpperCase();
   const [search, setSearch] = useState('');
   const deferredSearch = useDeferredValue(search);
   const [status, setStatus] = useState<PlatformInvoiceStatus | ''>('');
@@ -235,7 +238,7 @@ export default function FinancePage({ params: { tenant } }: { params: { tenant: 
                     <td className="px-4 py-4">{invoice.asaasPaymentId ? <span className="inline-flex items-center gap-1 text-[10px] font-bold text-teal-700"><span className="h-1.5 w-1.5 rounded-full bg-teal-500" /> Asaas</span> : <span className="text-[10px] font-bold text-slate-400">Local</span>}</td>
                     <td className="px-5 py-4"><div className="flex justify-end gap-1">
                       {invoice.invoiceUrl && <a href={invoice.invoiceUrl} target="_blank" rel="noreferrer" title="Abrir cobranca" className="rounded-[7px] p-2 text-slate-500 hover:bg-white hover:text-teal-700 hover:shadow-sm"><ExternalLink size={14} /></a>}
-                      {invoice.asaasPaymentId && <button disabled={workingId === invoice.id} onClick={() => sync(invoice)} title="Sincronizar" className="rounded-[7px] p-2 text-slate-500 hover:bg-white hover:text-teal-700 hover:shadow-sm disabled:opacity-40"><RefreshCw size={14} /></button>}
+                      {invoice.asaasPaymentId && role === 'DEV' && <button disabled={workingId === invoice.id} onClick={() => sync(invoice)} title="Sincronizar" className="rounded-[7px] p-2 text-slate-500 hover:bg-white hover:text-teal-700 hover:shadow-sm disabled:opacity-40"><RefreshCw size={14} /></button>}
                     </div></td>
                   </tr>
                 ))}

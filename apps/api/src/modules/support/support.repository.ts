@@ -235,6 +235,13 @@ export class SupportRepository {
     });
   }
 
+  async findTicketById(id: string) {
+    return this.prisma.supportTicket.findUnique({
+      where: { id },
+      select: { companyId: true, affectedUserId: true, requesterEmail: true },
+    });
+  }
+
   async findAttachmentsByTicketId(ticketId: string) {
     return this.prisma.supportAttachment.findMany({
       where: { ticketId, deletedAt: null },
@@ -266,6 +273,17 @@ export class SupportRepository {
     return this.prisma.supportAttachment.update({
       where: { storageKey },
       data: { status, scanResult, scannedAt: new Date() }
+    });
+  }
+
+  async getAttachmentById(id: string) {
+    return this.prisma.supportAttachment.findUnique({ where: { id } });
+  }
+
+  async listAttachmentsByTicket(ticketId: string) {
+    return this.prisma.supportAttachment.findMany({
+      where: { ticketId, status: { not: 'REJECTED' } },
+      orderBy: { createdAt: 'asc' },
     });
   }
 

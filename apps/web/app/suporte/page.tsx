@@ -11,11 +11,12 @@ const display = Space_Grotesk({ subsets: ['latin'], weight: ['500', '700'] });
 export default function SuportePage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [category, setCategory] = useState('LOGIN_ISSUE');
+  const [category, setCategory] = useState('ACCESS');
   const [subject, setSubject] = useState('');
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [website, setWebsite] = useState('');
   const [successTicket, setSuccessTicket] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -36,6 +37,7 @@ export default function SuportePage() {
         subject: subject.trim(),
         description: description.trim(),
         pageUrl: typeof window !== 'undefined' ? window.location.origin : '',
+        website,
       });
 
       if (res?.success) {
@@ -54,7 +56,7 @@ export default function SuportePage() {
   const handleReset = () => {
     setName('');
     setEmail('');
-    setCategory('LOGIN_ISSUE');
+    setCategory('ACCESS');
     setSubject('');
     setDescription('');
     setSuccessTicket(null);
@@ -133,6 +135,12 @@ export default function SuportePage() {
               </div>
             )}
 
+            {/* Honeypot */}
+            <div aria-hidden="true" className="hidden opacity-0 absolute -z-50 select-none pointer-events-none">
+              <label htmlFor="website">Website</label>
+              <input type="text" id="website" name="website" value={website} onChange={e => setWebsite(e.target.value)} tabIndex={-1} autoComplete="off" />
+            </div>
+
             <div className="grid gap-6 sm:grid-cols-2">
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">
@@ -173,9 +181,9 @@ export default function SuportePage() {
                   onChange={(e) => setCategory(e.target.value)}
                   className="w-full bg-black/40 border border-white/15 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition-all"
                 >
-                  <option value="LOGIN_ISSUE" className="bg-[#0a1526]">🔐 Problema no Login ou Senha</option>
-                  <option value="SYSTEM_BUG" className="bg-[#0a1526]">🐞 Erro Técnico ou Instabilidade</option>
-                  <option value="FINANCIAL" className="bg-[#0a1526]">💳 Faturamento, Assinatura ou Plano</option>
+                  <option value="ACCESS" className="bg-[#0a1526]">🔐 Problema no Login ou Senha</option>
+                  <option value="BUG" className="bg-[#0a1526]">🐞 Erro Técnico ou Instabilidade</option>
+                  <option value="BILLING" className="bg-[#0a1526]">💳 Faturamento, Assinatura ou Plano</option>
                   <option value="OTHER" className="bg-[#0a1526]">💬 Outras Dúvidas ou Solicitações</option>
                 </select>
               </div>

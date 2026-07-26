@@ -1,10 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import { createHash } from 'crypto';
+import { SupportStorageService } from '../support/support-storage.service';
 
 @Injectable()
 export class PrivacyRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, private readonly storageService: SupportStorageService) {}
 
   findActiveConsent(userId: string, termVersion: string) {
     return this.prisma.privacyConsent.findFirst({
@@ -79,38 +80,26 @@ export class PrivacyRepository {
     });
 
     const sha256 = createHash('sha256').update(Buffer.from(pdfBase64, 'base64')).digest('hex');
-    await this.prisma.generatedDocument.upsert({
-      where: { sha256 },
-      update: {
-        companyId: consent.companyId,
-        userId: consent.userId,
-        createdByUserId: consent.userId,
-        title: `Termo de Uso e Privacidade v${consent.termVersion}`,
-        pdfBase64,
-        metadata: {
-          termVersion: consent.termVersion,
-          purpose: consent.purpose,
-          acceptedAt: consent.acceptedAt.toISOString(),
+    const storageKey = `docs/${consent.companyId}/privacy-${consent.id}-${sha256.slice(0, 8)}.pdf`;
+    await this.storageService.saveFile(storageKey, Buffer.from(pdfBase64, 'base64'));
+    const metadata = { termVersion: consent.termVersion, purpose: consent.purpose, acceptedAt: consent.acceptedAt.toISOString() };
+    const existing = await this.prisma.generatedDocument.findFirst({ where: { sha256 } });
+    if (existing) {
+      await this.prisma.generatedDocument.update({ where: { id: existing.id }, data: { title: `Termo de Uso e Privacidade v${consent.termVersion}`, metadata } });
+    } else {
+      await this.prisma.generatedDocument.create({
+        data: {
+          companyId: consent.companyId,
+          type: 'OTHER',
+          title: `Termo de Uso e Privacidade v${consent.termVersion}`,
+          storageKey,
+          sha256,
+          sizeBytes: Buffer.from(pdfBase64, 'base64').length,
+          metadata,
+          createdBy: consent.userId,
         },
-      },
-      create: {
-        companyId: consent.companyId,
-        userId: consent.userId,
-        createdByUserId: consent.userId,
-        documentType: 'PRIVACY_CONSENT',
-        sourceEntity: 'PrivacyConsent',
-        sourceEntityId: consent.id,
-        title: `Termo de Uso e Privacidade v${consent.termVersion}`,
-        mimeType: 'application/pdf',
-        sha256,
-        pdfBase64,
-        metadata: {
-          termVersion: consent.termVersion,
-          purpose: consent.purpose,
-          acceptedAt: consent.acceptedAt.toISOString(),
-        },
-      },
-    });
+      });
+    }
 
     return consent;
   }

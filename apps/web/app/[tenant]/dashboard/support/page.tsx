@@ -61,7 +61,7 @@ export default function SupportPage() {
   const [showModal, setShowModal] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [newDescription, setNewDescription] = useState('');
-  const [newCategory, setNewCategory] = useState('DOUBT');
+  const [newCategory, setNewCategory] = useState('OTHER');
   const [creating, setCreating] = useState(false);
 
   // Drawer de Detalhes e Conversa
@@ -475,8 +475,8 @@ export default function SupportPage() {
                   onChange={(e) => setNewCategory(e.target.value)}
                   className="w-full rounded-xl border border-slate-200 p-3 text-sm font-medium outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 bg-white"
                 >
-                  <option value="DOUBT">Dúvida sobre uso ou funcionalidade</option>
-                  <option value="INCIDENT">Problema técnico ou erro no sistema</option>
+                  <option value="OTHER">Dúvida sobre uso ou funcionalidade</option>
+                  <option value="BUG">Problema técnico ou erro no sistema</option>
                   <option value="BILLING">Faturamento, plano ou financeiro</option>
                   <option value="FEATURE_REQUEST">Sugestão de nova melhoria ou recurso</option>
                   <option value="SECURITY">Acesso, permissões ou segurança</option>

@@ -25,6 +25,6 @@ import { SupportStorageService } from './support-storage.service';
     LocalSupportStorageService,
     { provide: SupportStorageService, useClass: LocalSupportStorageService }
   ],
-  exports: [SupportService]
+  exports: [SupportService, SupportStorageService]
 })
 export class SupportModule {}

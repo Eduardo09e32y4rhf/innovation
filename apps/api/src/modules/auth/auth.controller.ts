@@ -52,6 +52,9 @@ export class AuthController {
   @Throttle({ default: { limit: 5, ttl: 1800000 } })
   @Post('password-reset/request')
   requestPasswordReset(@Body() dto: RequestPasswordResetDto, @Req() request: any) {
+    if (dto.website) {
+      return { requested: true, message: 'Operação recebida' }; // Silently reject bots
+    }
     return this.service.requestPasswordReset(dto, getRequestMeta(request));
   }
 

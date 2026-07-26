@@ -495,7 +495,7 @@ export const api = {
   request,
 
   auth: {
-    requestPasswordReset: (email: string) => request<{ requested: boolean; demoCode?: string }>('/auth/password-reset/request', { method: 'POST', body: { email } }),
+    requestPasswordReset: (email: string, website?: string) => request<{ requested: boolean; demoCode?: string }>('/auth/password-reset/request', { method: 'POST', body: { email, website } }),
     validateResetCode: (email: string, code: string, cpfStart: string, registration: string) => request<{ valid: boolean; resetToken: string }>('/auth/password-reset/validate-code', { method: 'POST', body: { email, code, cpfStart, registration } }),
     resetPassword: (token: string, newPassword: string) => request<{ changed: boolean }>('/auth/password-reset/confirm', { method: 'POST', body: { token, newPassword } }),
     publicPlans: () => request<PublicPlatformPlan[]>('/auth/public-plans'),
@@ -671,6 +671,7 @@ export const api = {
       request<PlatformCompany>(`/platform/companies/${id}`, { method: 'PATCH', body: input }),
     deleteCompany: (id: string) => request<void>(`/platform/companies/${id}`, { method: 'DELETE' }),
     listPlans: () => request<any[]>('/platform/plans'),
+    listManualContracts: (query?: any) => request<any[]>(`/manual-contracts${makeQuery(query || {})}`),
     listCompanyUsers: (companyId: string) => request<AppUser[]>(`/platform/company-users/${companyId}`),
     createCompanyUser: (companyId: string, input: CreatePlatformCompanyUserInput) => request<AppUser>(`/platform/company-users/${companyId}`, { method: 'POST', body: input }),
     updateCompanyUser: (companyId: string, userId: string, input: UpdatePlatformCompanyUserInput) => request<AppUser>(`/platform/company-users/${companyId}/${userId}`, { method: 'PATCH', body: input }),
@@ -755,7 +756,11 @@ export const api = {
   },
   
   support: {
-    list: (status?: string) => request<any[]>(`/support/tickets${status ? `?status=${status}` : ''}`),
+    stats: () => request<{ open: number; resolved: number; closed: number }>('/support/stats'),
+    list: (params?: any) => {
+      const query = typeof params === 'string' ? { status: params } : (params || {});
+      return request<any[]>(`/support/tickets${makeQuery(query)}`);
+    },
     get: (id: string) => request<any>(`/support/tickets/${id}`),
     create: (data: any) => request<any>('/support/tickets', { method: 'POST', body: data }),
     reply: (id: string, data: any) => request<any>(`/support/tickets/${id}/messages`, { method: 'POST', body: data }),
@@ -764,6 +769,7 @@ export const api = {
   },
 
   platformSupport: {
+    stats: () => request<any>('/platform/support/stats'),
     list: (params?: any) => request<any[]>(`/platform/support/tickets${makeQuery(params || {})}`),
     get: (id: string) => request<any>(`/platform/support/tickets/${id}`),
     reply: (id: string, data: any) => request<any>(`/platform/support/tickets/${id}/messages`, { method: 'POST', body: data }),
@@ -776,6 +782,7 @@ export const api = {
 
   publicSupport: {
     createTicket: (data: any) => request<{ success: boolean; message: string; ticketNumber: string }>('/support/public/tickets', { method: 'POST', body: data }),
+    passwordReset: (data: any) => request<{ success: boolean; message: string; ticketNumber: string }>('/support/public/password-reset', { method: 'POST', body: data }),
   },
 
   ai: {

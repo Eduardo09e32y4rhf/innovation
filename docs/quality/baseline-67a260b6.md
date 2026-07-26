@@ -1,77 +1,148 @@
-# 🩺 Diagnóstico Baseline Pré-Hardening — Commit `67a260b6`
-
-Data de Registro: **25/07/2026**
-Branch de Trabalho: `release/1.1.1-quality-hardening`
-Tag de Congelamento: `pre-quality-hardening-67a260b6`
-
-Este documento registra o estado exato da base de código do **Innovation RH Connect** antes do início das 10 fases do **Plano Mestre de Endurecimento de Qualidade e Testes Confiáveis**.
+# Baseline Diagnóstico — pre-quality-hardening-67a260b6
+**Branch:** `release/1.1.1-quality-hardening`
+**Tag de Congelamento:** `pre-quality-hardening-67a260b6`
+**Data:** 2026-07-25
+**Commit HEAD:** `67a260b6` — docs: atualizar readme com hash e versão V. 25-07-2026 - 1.1.0.0
 
 ---
 
-## 🛠️ 1. Comandos Executados & Resultados
+## 1. Comandos Executados
 
-| Comando | Resultado | Observações / Avisos |
-| :--- | :--- | :--- |
-| `npm ci` | 🟢 **Concluído** | 1010 pacotes instalados. Alertas de auditoria para dependências indiretas e 24 vulnerabilidades high a serem revisadas nas próximas fases. |
-| `npm run check:workspace` | 🟢 **Concluído** | `[workspace-check] OK — estrutura base do workspace verificada.` |
-| `npm run prisma:validate` | 🟢 **Concluído** | Schema canônico `apps/api/prisma/schema.prisma` 100% válido. |
-| `npm run prisma:generate` | 🟢 **Concluído** | Prisma Client v6.19.3 gerado corretamente em `node_modules/@prisma/client`. |
-| `npm run lint:web` | 🟡 **Com Avisos** | 0 erros impeditivos de ESLint/Next.js. Alertas de `react-hooks/exhaustive-deps` (dependências em hooks) e `no-img-element` (`<img>` no lugar de `<Image />`). |
-| `npm run typecheck:api` | 🟢 **Concluído** | Compilação TypeScript do NestJS sem erros (`tsc -p tsconfig.json`). |
-| `npm run typecheck:web` | 🟢 **Concluído** | Verificação de tipos do Next.js sem erros (`tsc --noEmit`). |
-| `npm run test:api` | 🟢 **Concluído (1.65s)** | Executou **apenas** 4 testes unitários legados (`test/*.test.cjs`). |
-| `npm run build:api` | 🟢 **Concluído** | Build de produção gerado na pasta `dist/` sem falhas. |
-| `npm run build:web` | 🟢 **Concluído** | Bundle Next.js de produção gerado. Aviso sobre extração estática do `@vladmandic/face-api`. |
-
----
-
-## 🧪 2. Testes Realmente Executados vs. Ignorados
-
-### ✅ Testes Realmente Executados (`npm run test:api`)
-Atualmente, o comando oficial `test:api` roda o runner nativo do Node apenas nos 4 arquivos legados em `test/*.test.cjs`:
-1. `calcula preços oficiais para dez usuários`
-2. `desconto incide somente sobre a base`
-3. `rejeita quantidade de licenças inválida`
-4. `valida CPF e CNPJ com dígitos verificadores`
-
-### ❌ Testes Ignorados e Ocultos da CI Oficial
-- **Testes em `src/` (Vitest/Jest/Supertest):** Novos testes ou arquivos `.spec.ts` criados junto aos módulos NestJS (como autorização de suporte e segurança de anexos) **não participam** do comando oficial atual.
-- **Suíte E2E (`tests-e2e/`):** Não é executada na CI padrão. Além disso, testes E2E contêm verificações permissivas como `.catch(() => {})` e `.count() > 0`, capazes de mascarar falhas graves de regressão e aprovar cenários quebrados.
+```bash
+npm ci
+npm run check:workspace
+npm run prisma:validate
+npm run prisma:generate
+npm run lint:web
+npm run typecheck:api
+npm run typecheck:web
+npm run test:api
+npm run build:api
+npm run build:web
+```
 
 ---
 
-## 📊 3. Cobertura Atual de Testes
+## 2. Resultados por Comando
 
-- **Geral da Base de Código:** **< 5%**
-- **Módulos Críticos (Financeiro, Suporte, IA, Segurança, Documentos):** **~0% (Cobertura Automatizada Real em Regressão)**
-- **Nota:** Os únicos fluxos devidamente cobertos no pipeline atual são cálculos de precificação na landing page e algoritmos puramente matemáticos de validação de CPF/CNPJ.
+### `npm ci`
+- **Status:** OK
+- **Pacotes instalados:** 1010 pacotes, 1013 auditados
+- **Vulnerabilidades:** 28 (4 moderadas, 24 altas)
+
+### `npm run check:workspace`
+- **Status:** OK — estrutura base do workspace verificada
+
+### `npm run prisma:validate`
+- **Status:** OK — schema válido
+- **Nota:** Prisma 6.19.3 instalado; major upgrade 7.9.0 disponível
+
+### `npm run prisma:generate`
+- **Status:** OK — Prisma Client gerado
+
+### `npm run lint:web`
+- **Status:** OK com 22 warnings (0 erros bloqueadores)
+- **Arquivos afetados:** 12 arquivos
+- **Regras:** `react-hooks/exhaustive-deps` (16 ocorrências), `@next/next/no-img-element` (6 ocorrências)
+
+### `npm run typecheck:api`
+- **Status:** OK — 0 erros de tipagem
+
+### `npm run typecheck:web`
+- **Status:** OK — 0 erros de tipagem
+
+### `npm run test:api`
+- **Status:** OK
+- **Motor:** Node.js `--test` nativo (NÃO usa Vitest ou Jest)
+- **Arquivos executados:** `apps/api/test/*.test.cjs` apenas
+- **Testes aprovados:** 4
+- **Testes reprovados:** 0
+- **Testes ignorados / fora da suíte:** Todos os arquivos em `src/` nunca executam
+
+| Teste | Duração |
+|---|---|
+| calcula preços oficiais para dez usuários | 1.9ms |
+| desconto incide somente sobre a base | 0.35ms |
+| rejeita quantidade de licenças inválida | 1.24ms |
+| valida CPF e CNPJ com dígitos verificadores | 529ms |
+
+### `npm run build:api`
+- **Status:** OK — 0 erros
+
+### `npm run build:web`
+- **Status:** OK com warnings não-bloqueadores
+- **Warnings:** `Failed to patch lockfile` (ENOWORKSPACES — swc); `face-api.esm.js` Critical dependency
+- **Rotas compiladas:** 44 rotas
 
 ---
 
-## 🚨 4. Rotas Quebradas & Divergências de Contrato (Frontend vs. Backend)
+## 3. Rotas de Produção (Build)
 
-1. **Módulo de Suporte (Cliente):** O arquivo `apps/web/app/lib/api.ts` faz chamadas para rotas genéricas (`/support`), enquanto o NestJS expõe rotas especializadas como `/support/tickets`. Há divergência na estrutura de parâmetros de consulta, enums de status (`DOUBT` hardcoded no frontend vs. categorias do backend) e paginação.
-2. **Painel DEV Suporte (`/platform/support`):** Falta de contrato rigoroso para alteração simultânea de responsável, prioridade e status; o frontend envia payloads que não correspondem estritamente aos DTOs esperados pela API NestJS.
-3. **Anexos e Documentos:** Endpoints para envio e download de anexos em tickets não possuem suíte de contrato para validar streaming, inspeção de magic bytes e quarentena de antivírus.
+**Dinâmicas (Server-Rendered):**
+- `/[tenant]/dashboard` e sub-rotas
+- `/[tenant]/dashboard/platform` e todas as sub-rotas da plataforma
+- `/[tenant]/dashboard/support`
+- `/[tenant]/dashboard/time-track`
 
----
-
-## 🎭 5. Funcionalidades com Dados Fictícios (Fake / Demo Data)
-
-1. **Páginas de Suporte (`apps/web/app/[tenant]/dashboard/support/page.tsx` e `platform/support/page.tsx`):** Ao falhar a comunicação com a API ou retornar 404/500, o frontend captura o erro com um `try/catch` e injeta chamados demonstrativos no estado local (ex: *"Acme Consultoria"*, *"TechSolutions Brasil"*, *"Stark Industries"*).
-2. **Dashboard Operacional e MRR:** Estimativas que utilizam médias teóricas ou dados simulados em substituição ao cálculo relacional real das assinaturas no banco de dados.
-
----
-
-## ⚠️ 6. Riscos de Deploy (Sem o Hardening)
-
-1. **Vazamento de Dados Multi-Tenant:** Sem testes automatizados vermelhos para validar blindagem por `companyId` e `commercialOwnerId`, modificações em rotas podem permitir que usuários de uma empresa visualizem chamados ou notas internas (`INTERNAL_NOTE`) de outra.
-2. **Falsos Positivos de Qualidade:** O uso de `.catch(() => {})` e mocks visuais permite que a aplicação seja implantada com endpoints indisponíveis ou quebrados, pois a tela "finje" funcionar com dados fictícios.
-3. **Descontrole Financeiro e de IA:** A ausência de testes determinísticos para retentativas de webhooks do Asaas e para persistência de consumo na tabela `AiUsageLog` representa risco de divergência de faturamento e explosão de custos na API da OpenAI.
-4. **Segurança no Upload de Arquivos:** Sem verificação automatizada de magic bytes e quarentena, o upload público de anexos está suscetível ao envio de arquivos maliciosos disfarçados com extensões `.pdf` ou `.png`.
+**Estubs (173 B — Páginas vazias):**
+- `/[tenant]/dashboard/chat`
+- `/[tenant]/dashboard/colaboradores`
+- `/[tenant]/dashboard/finance`
+- `/[tenant]/dashboard/jobs`
+- `/[tenant]/dashboard/media`
+- `/[tenant]/dashboard/notifications`
+- `/[tenant]/dashboard/ponto`
+- `/[tenant]/dashboard/rh`
 
 ---
 
-## 🎯 Conclusão da Fase 0
+## 4. Débitos Técnicos Identificados
 
-O estado baseline está registrado e congelado na tag `pre-quality-hardening-67a260b6`. A partir de agora, avançamos para a **Fase 1**, criando a fundação de testes isolados (`docker-compose.test.yml`, `Vitest`, `Playwright`) para aplicarmos TDD real e eliminarmos todos os riscos acima identificados.
+| # | Severidade | Área | Descrição |
+|---|---|---|---|
+| D-01 | CRITICO | Testes | Apenas 4 testes reais. Zero cobertura de autorização, SLA, financeiro, IA, E2E |
+| D-02 | CRITICO | Testes | Suíte usa Node `--test` nativo. Testes em `src/` nunca executam |
+| D-03 | CRITICO | Segurança | 28 vulnerabilidades npm (24 altas, 4 moderadas) sem triagem |
+| D-04 | CRITICO | Suporte | Páginas usam dados demonstrativos fictícios quando API falha |
+| D-05 | CRITICO | Contrato | Frontend usa URLs de suporte divergentes do backend NestJS |
+| D-06 | CRITICO | IA | Consumo de tokens não persistido (somente em memória) |
+| D-07 | CRITICO | Financeiro | MRR calculado por estimativa, não por soma real de assinaturas |
+| D-08 | ALTO | Lint | 22 warnings de `react-hooks/exhaustive-deps` causando re-renders |
+| D-09 | ALTO | Build | `face-api.esm.js` com `require()` não estático |
+| D-10 | ALTO | Imagem | 6 ocorrências de `<img>` sem `next/image` (LCP degradado) |
+| D-11 | ALTO | E2E | `baseURL` do Playwright aponta para VPS de producao |
+| D-12 | ALTO | E2E | `.catch(() => {})` mascara falhas nos testes E2E |
+| D-13 | ALTO | CI | CI usa `prisma db push` em vez de `prisma migrate deploy` |
+| D-14 | MEDIO | Rotas | 8 rotas dinâmicas com 173 B (páginas vazias sem implementação) |
+| D-15 | MEDIO | Attachments | Controller de suporte sem endpoints de upload/download conectados |
+| D-16 | MEDIO | PDFs | Geração não unificada no backend |
+| D-17 | MEDIO | Formulários | Endpoints públicos sem DTO forte, rate limit ou honeypot |
+
+---
+
+## 5. Cobertura Atual
+
+| Módulo | Unitário | Integração | Contrato | Segurança | E2E |
+|---|---|---|---|---|---|
+| Preços / Licenças | 4 testes | 0 | 0 | 0 | 0 |
+| Suporte | 0 | 0 | 0 | 0 | 0 |
+| Plataforma | 0 | 0 | 0 | 0 | 0 |
+| Financeiro / MRR | 0 | 0 | 0 | 0 | 0 |
+| IA / Guardrails | 0 | 0 | 0 | 0 | 0 |
+| Documentos / PDF | 0 | 0 | 0 | 0 | 0 |
+| Autorização / RBAC | 0 | 0 | 0 | 0 | 0 |
+| **GERAL** | **~5%** | **0%** | **0%** | **0%** | **0%** |
+
+---
+
+## 6. Riscos de Deploy
+
+- BLOQUEADOR: Dados fictícios vazam para producao quando API falha
+- BLOQUEADOR: Sem validação real das regras de acesso por perfil
+- BLOQUEADOR: Consumo de tokens de IA nao rastreado
+- ALTO: 28 vulnerabilidades npm nao triadas
+- ALTO: E2E apontando para VPS de producao
+
+---
+
+*Gerado em: 2026-07-25 | Versao: pre-quality-hardening-67a260b6*

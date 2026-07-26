@@ -1,0 +1,124 @@
+name: CI / CD - Quality Gate
+
+on:
+  push:
+    branches: [ main, release/* ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  lint-and-typecheck:
+    name: Lint & Typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run lint:web
+      - run: npm run typecheck:api
+      - run: npm run typecheck:web
+
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run test:unit
+      - run: npm run test:coverage
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: root
+          POSTGRES_PASSWORD: rootpassword
+          POSTGRES_DB: innovation_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run db:migrate
+        env:
+          DATABASE_URL: postgresql://root:rootpassword@localhost:5432/innovation_test?schema=public
+      - run: npm run test:integration
+        env:
+          DATABASE_URL: postgresql://root:rootpassword@localhost:5432/innovation_test?schema=public
+          REDIS_URL: redis://localhost:6379
+
+  e2e-tests:
+    name: E2E Playwright Tests
+    runs-on: ubuntu-latest
+    needs: [unit-tests, integration-tests]
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: root
+          POSTGRES_PASSWORD: rootpassword
+          POSTGRES_DB: innovation_e2e
+        ports:
+          - 5432:5432
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      - run: npm ci
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps
+      - name: Start Database & API & Web
+        run: |
+          npm run db:migrate
+          npm run test:db:seed
+          npm run build
+          npm run start:api &
+          npm run start:web &
+        env:
+          DATABASE_URL: postgresql://root:rootpassword@localhost:5432/innovation_e2e?schema=public
+          REDIS_URL: redis://localhost:6379
+      - name: Wait for services
+        run: npx wait-on http://127.0.0.1:3999/health http://127.0.0.1:3000
+      - name: Run Playwright
+        run: npm run test:e2e
+        env:
+          E2E_BASE_URL: http://127.0.0.1:3000
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: tests-e2e/playwright-report/
+          retention-days: 30

@@ -2,7 +2,9 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { SupportRepository } from './support.repository';
 import { SupportAuthorizationService } from './support-authorization.service';
 import { SupportSlaService } from './support-sla.service';
+import { SupportTicketPriority } from '@prisma/client';
 import type { JwtUser } from '../../common/types/auth.types';
+import { ListSupportTicketsQueryDto } from './dto/list-support-tickets-query.dto';
 
 @Injectable()
 export class SupportService {
@@ -18,13 +20,15 @@ export class SupportService {
     const year = new Date().getFullYear();
     const ticketNumber = await this.repository.generateTicketNumber(year);
     
-    let initialPriority: 'LOW' | 'NORMAL' | 'HIGH' | 'CRITICAL' = 'NORMAL';
-    if (data.impact?.includes('toda empresa') || data.impact?.includes('perda de dados') || data.category === 'SECURITY') {
-      initialPriority = 'CRITICAL';
+    let initialPriority: SupportTicketPriority = SupportTicketPriority.NORMAL;
+    if (data.priority) {
+      initialPriority = data.priority;
+    } else if (data.impact?.includes('toda empresa') || data.impact?.includes('perda de dados') || data.category === 'SECURITY') {
+      initialPriority = SupportTicketPriority.CRITICAL;
     } else if (data.impact?.includes('Alguns usuários')) {
-      initialPriority = 'HIGH';
+      initialPriority = SupportTicketPriority.HIGH;
     } else if (data.category === 'FEATURE_REQUEST') {
-      initialPriority = 'LOW';
+      initialPriority = SupportTicketPriority.LOW;
     }
 
     const { firstResponseDueAt, resolutionDueAt } = this.slaService.calculateDueDates(initialPriority);
@@ -44,13 +48,37 @@ export class SupportService {
       ticketId: ticket.id,
       actorUserId: actor.sub,
       eventType: 'TICKET_CREATED',
+      metadata: { source: 'WEB_APP', category: data.category }
     });
 
     return ticket;
   }
 
-  async listTickets(actor: JwtUser) {
-    const where = await this.authService.buildTicketListWhere(actor);
+  async listTickets(actor: JwtUser, query?: ListSupportTicketsQueryDto) {
+    const baseWhere = await this.authService.buildTicketListWhere(actor);
+    const where: any = { ...baseWhere };
+
+    if (query?.status) where.status = query.status;
+    if (query?.priority) where.priority = query.priority;
+    if (query?.category) where.category = query.category;
+    if (query?.companyId) where.companyId = query.companyId;
+    if (query?.search) {
+      const searchConditions = [
+        { title: { contains: query.search, mode: 'insensitive' } },
+        { description: { contains: query.search, mode: 'insensitive' } },
+        { ticketNumber: { contains: query.search, mode: 'insensitive' } },
+      ];
+      if (where.OR) {
+        where.AND = [
+          { OR: where.OR },
+          { OR: searchConditions },
+        ];
+        delete where.OR;
+      } else {
+        where.OR = searchConditions;
+      }
+    }
+
     return this.repository.findTickets(where);
   }
 

@@ -1,10 +1,10 @@
-import { Controller, Get, Post, Body, Patch, Param, UseGuards, Req, Res, BadRequestException, ForbiddenException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Query, UseGuards, Req } from '@nestjs/common';
 import { SupportService } from './support.service';
 import { SupportRepository } from './support.repository';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { SupportAuthorizationService } from './support-authorization.service';
-import { SupportAttachmentService } from './support-attachment.service';
-import { SupportStorageService } from './support-storage.service';
+import { SupportTicketPriority, SupportTicketStatus } from '@prisma/client';
+import { ListSupportTicketsQueryDto } from './dto/list-support-tickets-query.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('platform/support')
@@ -12,14 +12,12 @@ export class PlatformSupportController {
   constructor(
     private readonly supportService: SupportService,
     private readonly repository: SupportRepository,
-    private readonly authService: SupportAuthorizationService,
-    private readonly attachmentService: SupportAttachmentService,
-    private readonly storageService: SupportStorageService,
+    private readonly authService: SupportAuthorizationService
   ) {}
 
   @Get('stats')
   async getStats(@Req() req: any) {
-    this.authService.assertCanManageTicket(req.user);
+    this.authService.assertCanViewPlatformSupport(req.user);
     const tickets = await this.supportService.listTickets(req.user);
     return {
       new: tickets.filter(t => t.status === 'NEW').length,
@@ -35,14 +33,14 @@ export class PlatformSupportController {
   }
 
   @Get('tickets')
-  async listTickets(@Req() req: any) {
-    this.authService.assertCanManageTicket(req.user);
-    return this.supportService.listTickets(req.user);
+  async listTickets(@Req() req: any, @Query() query: ListSupportTicketsQueryDto) {
+    this.authService.assertCanViewPlatformSupport(req.user);
+    return this.supportService.listTickets(req.user, query);
   }
 
   @Get('tickets/:id')
   async getTicket(@Req() req: any, @Param('id') id: string) {
-    this.authService.assertCanManageTicket(req.user);
+    this.authService.assertCanViewPlatformSupport(req.user);
     return this.supportService.getTicket(req.user, id);
   }
 
@@ -55,7 +53,7 @@ export class PlatformSupportController {
   }
 
   @Patch('tickets/:id/priority')
-  async updatePriority(@Req() req: any, @Param('id') id: string, @Body('priority') priority: 'LOW' | 'NORMAL' | 'MEDIUM' | 'HIGH' | 'CRITICAL') {
+  async updatePriority(@Req() req: any, @Param('id') id: string, @Body('priority') priority: SupportTicketPriority) {
     this.authService.assertCanManageTicket(req.user);
     const ticket = await this.repository.updateTicket(id, { priority });
     await this.repository.createEvent({ ticketId: id, actorUserId: req.user.sub, eventType: 'PRIORITY_CHANGED', newValue: { priority } });
@@ -63,7 +61,7 @@ export class PlatformSupportController {
   }
 
   @Patch('tickets/:id/status')
-  async updateStatus(@Req() req: any, @Param('id') id: string, @Body('status') status: 'NEW' | 'TRIAGE' | 'IN_PROGRESS' | 'WAITING_CUSTOMER' | 'WAITING_DEPLOY' | 'RESOLVED' | 'CLOSED' | 'OPEN' | 'REOPENED') {
+  async updateStatus(@Req() req: any, @Param('id') id: string, @Body('status') status: SupportTicketStatus) {
     this.authService.assertCanManageTicket(req.user);
     const ticket = await this.repository.updateTicket(id, { status });
     await this.repository.createEvent({ ticketId: id, actorUserId: req.user.sub, eventType: 'STATUS_CHANGED', newValue: { status } });
@@ -78,46 +76,6 @@ export class PlatformSupportController {
   @Post('tickets/:id/internal-notes')
   async addInternalNote(@Req() req: any, @Param('id') id: string, @Body() data: any) {
     return this.supportService.addMessage(req.user, id, data.message, 'INTERNAL');
-  }
-
-  @Post('tickets/:id/attachments')
-  async uploadAttachment(@Req() req: any, @Param('id') id: string, @Body('messageId') messageId?: string) {
-    this.authService.assertCanManageTicket(req.user);
-    const ticket = await this.supportService.getTicket(req.user, id);
-    await this.authService.assertCanUploadAttachment(req.user, ticket);
-
-    const file = await req.file?.();
-    if (!file) {
-      throw new BadRequestException('Envie um arquivo válido no campo file.');
-    }
-
-    const buffer = await file.toBuffer();
-    return this.attachmentService.uploadAttachment(req.user, id, {
-      originalname: file.filename,
-      mimetype: file.mimetype,
-      size: buffer.length,
-      buffer,
-    }, messageId);
-  }
-
-  @Get('tickets/:id/attachments/:attachmentId')
-  async downloadAttachment(@Req() req: any, @Param('id') id: string, @Param('attachmentId') attachmentId: string, @Res({ passthrough: true }) reply: any) {
-    this.authService.assertCanManageTicket(req.user);
-    const ticket = await this.supportService.getTicket(req.user, id);
-    await this.authService.assertCanViewTicket(req.user, ticket);
-
-    const attachment = await this.attachmentService.getAttachmentById(attachmentId);
-    if (attachment.ticketId !== id) {
-      throw new ForbiddenException('O anexo não pertence a este chamado.');
-    }
-    if (attachment.status !== 'CLEAN') {
-      throw new ForbiddenException('O anexo ainda está em quarentena.');
-    }
-
-    const stream = await this.storageService.getFileStream(attachment.storageKey);
-    reply.header('Content-Type', attachment.detectedMimeType || attachment.declaredMimeType || 'application/octet-stream');
-    reply.header('Content-Disposition', `attachment; filename="${attachment.originalName.replace(/"/g, '')}"`);
-    return stream;
   }
 
   @Post('tickets/:id/resolve')
