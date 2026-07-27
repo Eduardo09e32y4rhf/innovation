@@ -99,9 +99,18 @@ export class TimeClosingService {
       schedulesByEmployee.set(id, []);
     }
 
-    for (const track of allTracks) tracksByEmployee.get(track.employeeId)?.push(track);
-    for (const occ of allOccurrences) occurrencesByEmployee.get(occ.employeeId)?.push(occ);
-    for (const sched of allSchedules) schedulesByEmployee.get(sched.employeeId)?.push(sched);
+    for (const track of allTracks) {
+      const arr = tracksByEmployee.get(track.employeeId);
+      if (arr) arr.push(track);
+    }
+    for (const occ of allOccurrences) {
+      const arr = occurrencesByEmployee.get(occ.employeeId);
+      if (arr) arr.push(occ);
+    }
+    for (const sched of allSchedules) {
+      const arr = schedulesByEmployee.get(sched.employeeId);
+      if (arr) arr.push(sched);
+    }
 
     for (const employee of employees) {
       const tracks = tracksByEmployee.get(employee.id) || [];

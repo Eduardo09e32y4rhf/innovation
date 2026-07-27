@@ -1,7 +1,5 @@
 import { IsEnum, IsNotEmpty, IsOptional, IsString, IsEmail } from 'class-validator';
 import { $Enums } from '@prisma/client';
-const SupportTicketCategory = $Enums.SupportTicketCategory;
-type SupportTicketCategory = $Enums.SupportTicketCategory;
 
 export class CreatePublicSupportTicketDto {
   @IsString()
@@ -13,8 +11,8 @@ export class CreatePublicSupportTicketDto {
   email: string;
 
   @IsOptional()
-  @IsEnum(SupportTicketCategory, { message: 'Categoria inválida' })
-  category?: SupportTicketCategory;
+  @IsEnum($Enums.SupportTicketCategory, { message: 'Categoria inválida' })
+  category?: $Enums.SupportTicketCategory;
 
   @IsString()
   @IsNotEmpty({ message: 'Assunto é obrigatório' })
