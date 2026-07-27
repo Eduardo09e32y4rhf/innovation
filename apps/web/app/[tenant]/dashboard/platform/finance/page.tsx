@@ -216,11 +216,11 @@ export default function FinancePage({ params: { tenant } }: { params: { tenant: 
     try {
       const result = await api.platform.finance.list({ limit: 500, status, search: deferredSearch, from, to });
       const rows = result.items.map((item) => [
-        item.company.name,
-        item.company.document || '-',
+        item.company?.name || 'Empresa',
+        item.company?.document || '-',
         item.description || 'Mensalidade',
         money(item.amount),
-        date(item.dueDate),
+        item.dueDate ? date(item.dueDate) : '-',
         STATUS[item.status]?.label ?? item.status,
         BILLING_LABEL[item.billingType] ?? item.billingType,
         item.asaasPaymentId ? 'Asaas' : 'Local',
@@ -253,11 +253,11 @@ export default function FinancePage({ params: { tenant } }: { params: { tenant: 
     try {
       const result = await api.platform.finance.list({ limit: 500, status, search: deferredSearch, from, to });
       const rows = result.items.map((item) => [
-        `"${item.company.name}"`,
-        `"${item.company.document || '-'}"`,
+        `"${item.company?.name || 'Empresa'}"`,
+        `"${item.company?.document || '-'}"`,
         `"${item.description || 'Mensalidade'}"`,
         `"${Number(item.amount).toFixed(2)}"`,
-        `"${date(item.dueDate)}"`,
+        `"${item.dueDate ? date(item.dueDate) : '-'}"`,
         `"${STATUS[item.status]?.label ?? item.status}"`,
         `"${BILLING_LABEL[item.billingType] ?? item.billingType}"`,
         `"${item.asaasPaymentId ? 'Asaas' : 'Local'}"`,
@@ -469,7 +469,7 @@ export default function FinancePage({ params: { tenant } }: { params: { tenant: 
                               </button>
                             )}
                             {invoice.status === 'PAID' && (
-                              <button type="button" onClick={() => refundInvoice(invoice)} disabled={workingId === invoice.id} className="rounded-[7px] p-2 text-slate-500 hover:bg-white hover:text-amber-700 hover:shadow-sm disabled:opacity-40" title="Reembolsar (Estorno 7 dias)">
+                              <button type="button" onClick={() => refund(invoice)} disabled={workingId === invoice.id} className="rounded-[7px] p-2 text-slate-500 hover:bg-white hover:text-amber-700 hover:shadow-sm disabled:opacity-40" title="Reembolsar (Estorno 7 dias)">
                                 {workingId === invoice.id ? <Loader2 size={14} className="animate-spin" /> : <Banknote size={14} />}
                               </button>
                             )}

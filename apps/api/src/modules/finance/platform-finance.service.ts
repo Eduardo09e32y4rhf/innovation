@@ -644,7 +644,7 @@ export class PlatformFinanceService {
     ]);
 
     return {
-      items,
+      items: items.map(item => ({ ...item, amount: Number(item.amount) })),
       pagination: {
         page: query.page,
         limit: query.limit,
