@@ -4,7 +4,6 @@ import { FormEvent, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import {
-  ArrowDownToLine,
   CheckCircle2,
   Edit2,
   FileSignature,
@@ -12,10 +11,8 @@ import {
   Plus,
   RefreshCw,
   Trash2,
-  X,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { buildPdfShell, escapeHtml, infoGrid, printPdf, section } from '@/app/lib/pdf-utils';
 import { EmptyState, ErrorState, LoadingState } from '@/app/components/data-states';
 import api, { ApiError, type PlatformCompany, type PublicPlatformPlan } from '@/app/lib/api';
 
@@ -119,7 +116,6 @@ export default function ContractsPage({ params: { tenant } }: { params: { tenant
   }, [companyFilter]);
 
   const companyById = useMemo(() => new Map(companies.map((company) => [company.id, company])), [companies]);
-  const planById = useMemo(() => new Map(plans.map((plan) => [plan.id, plan])), [plans]);
 
   function startCreate() {
     setEditingId(null);
@@ -198,24 +194,9 @@ export default function ContractsPage({ params: { tenant } }: { params: { tenant
   }
 
   function exportPdf(item: ManualContract) {
-    const company = companyById.get(item.companyId) || item.company || { name: 'Empresa', document: '-' };
-    const plan = item.plan?.name || planById.get(item.planId || '')?.name || 'Plano manual';
-    const html = buildPdfShell(
-      { title: 'Contrato Manual', subtitle: `${company.name} · ${plan}` },
-      { name: company.name, document: company.document || '-' },
-      `
-        ${section('Resumo', infoGrid([
-          { label: 'Plano', value: plan },
-          { label: 'Valor', value: money(item.agreedAmount) },
-          { label: 'Licenças', value: String(item.seatQuantity) },
-          { label: 'Início', value: date(item.startsAt) },
-          { label: 'Fim', value: item.endsAt ? date(item.endsAt) : 'Indeterminado' },
-          { label: 'Pagamento', value: item.paymentMethod },
-        ], 3))}
-        ${section('Observações', `<p style="font-size:10px;line-height:1.7;color:#334155;">${escapeHtml(item.notes || 'Sem observações.')}</p>`)}
-      `,
-    );
-    printPdf(html, `contrato-${item.id}.pdf`);
+    void api.manualContracts.downloadPdf(item.id)
+      .then(() => toast.success('PDF do contrato gerado.'))
+      .catch((err) => toast.error(err instanceof Error ? err.message : 'Não foi possível gerar o PDF do contrato.'));
   }
 
   const filteredContracts = companyFilter ? contracts.filter((item) => item.companyId === companyFilter) : contracts;

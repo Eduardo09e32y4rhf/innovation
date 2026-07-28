@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Res, UseGuards } from '@nestjs/common';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -16,6 +16,11 @@ export class ManualContractsController {
 
   @Get()
   list(@Query('companyId') companyId?: string) { return this.service.list(companyId); }
+
+  @Get(':id/pdf')
+  async pdf(@CurrentUser() actor: JwtUser, @Param('id') id: string, @Res() res: any) {
+    return this.service.streamPdf(id, actor.sub || (actor as any).id, res);
+  }
 
   @Post()
   @Roles('DEV', 'COMERCIAL')

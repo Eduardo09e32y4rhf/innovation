@@ -8,7 +8,6 @@ import {
   CalendarDays,
   CheckCircle2,
   Copy,
-  CreditCard,
   Edit2,
   ExternalLink,
   Loader2,
@@ -22,7 +21,6 @@ import {
   X,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { buildPdfShell, escapeHtml, infoGrid, pdfTable, printPdf, section } from '@/app/lib/pdf-utils';
 import { EmptyState, ErrorState, LoadingState } from '@/app/components/data-states';
 import { useQuery } from '@/app/hooks/use-data';
 import { useAuth } from '@/app/contexts/AuthContext';
@@ -214,38 +212,10 @@ export default function FinancePage({ params: { tenant } }: { params: { tenant: 
 
   async function exportPdf() {
     try {
-      const result = await api.platform.finance.list({ limit: 500, status, search: deferredSearch, from, to });
-      const rows = result.items.map((item) => [
-        item.company?.name || 'Empresa',
-        item.company?.document || '-',
-        item.description || 'Mensalidade',
-        money(item.amount),
-        item.dueDate ? date(item.dueDate) : '-',
-        STATUS[item.status]?.label ?? item.status,
-        BILLING_LABEL[item.billingType] ?? item.billingType,
-        item.asaasPaymentId ? 'Asaas' : 'Local',
-      ].map((cell) => `<td style="padding:3px 4px;font-size:7px;color:#334155;">${escapeHtml(cell)}</td>`).join(''));
-      const filterLabel = [from ? `De ${date(from)}` : null, to ? `ate ${date(to)}` : null, status ? STATUS[status].label : null]
-        .filter(Boolean)
-        .join(' | ') || 'Todos os registros';
-      const html = buildPdfShell(
-        { title: 'Relatorio Financeiro da Plataforma', subtitle: filterLabel, landscape: true },
-        { name: 'Innovation RH System', document: 'Plataforma SaaS' },
-        `
-          ${section('Resumo', infoGrid([
-            { label: 'Faturado', value: money(summary.data?.totals.billed ?? 0) },
-            { label: 'Recebido', value: money(summary.data?.totals.received ?? 0) },
-            { label: 'A receber', value: money(summary.data?.totals.open ?? 0) },
-            { label: 'Em atraso', value: money(summary.data?.totals.overdue ?? 0) },
-          ], 4))}
-          ${section('Faturas', rows.length
-            ? pdfTable(['Empresa', 'Documento', 'Cobranca', 'Valor', 'Vencimento', 'Status', 'Forma', 'Integracao'], rows, { compact: true, border: true })
-            : `<p style="font-size:10px;color:#64748b;">${escapeHtml('Nenhuma fatura encontrada para estes filtros.')}</p>`, { noBg: true })}
-        `,
-      );
-      printPdf(html, `financeiro-${new Date().toISOString().slice(0, 10)}.pdf`);
+      await api.platform.finance.downloadStatementPdf({ status, search: deferredSearch, from, to });
+      toast.success('Extrato financeiro gerado.');
     } catch {
-      toast.error('Não foi possível exportar o PDF.');
+      toast.error('Não foi possível gerar o extrato financeiro.');
     }
   }
 

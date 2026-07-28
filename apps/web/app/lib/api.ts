@@ -715,6 +715,8 @@ export const api = {
       webhookEvents: (query: { companyId?: string; limit?: number } = {}) => request<AsaasWebhookEvent[]>(`/finance/platform/webhook-events${makeQuery(query)}`),
       retryWebhookEvent: (id: string) => request<{ queued: boolean; id: string }>(`/finance/platform/webhook-events/${id}/retry`, { method: 'POST' }),
       delete: (id: string) => request<{ id: string }>(`/finance/platform/invoices/${id}`, { method: 'DELETE' }),
+      downloadStatementPdf: (query: Pick<PlatformInvoiceQuery, 'status' | 'search' | 'from' | 'to'> = {}) =>
+        downloadRequest(`/finance/platform/statements/pdf${makeQuery(query)}`),
     },
   },
 
@@ -723,6 +725,7 @@ export const api = {
     create: (input: any) => request<any>('/manual-contracts', { method: 'POST', body: input }),
     update: (id: string, input: any) => request<any>(`/manual-contracts/${id}`, { method: 'PATCH', body: input }),
     delete: (id: string) => request<any>(`/manual-contracts/${id}`, { method: 'DELETE' }),
+    downloadPdf: (id: string) => downloadRequest(`/manual-contracts/${id}/pdf`),
   },
 
   companyBilling: {

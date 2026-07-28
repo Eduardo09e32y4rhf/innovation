@@ -14,7 +14,10 @@ export class ManualContractsRepository {
   }
 
   findById(id: string) {
-    return this.prisma.manualContract.findUnique({ where: { id } });
+    return this.prisma.manualContract.findUnique({
+      where: { id },
+      include: { company: { select: { id: true, name: true, document: true } }, plan: { select: { id: true, name: true } } },
+    });
   }
 
   findCompany(id: string) {

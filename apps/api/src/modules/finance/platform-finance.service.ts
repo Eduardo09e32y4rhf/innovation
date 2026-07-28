@@ -626,6 +626,114 @@ export class PlatformFinanceService {
     };
   }
 
+  async statementPdf(query: ListPlatformInvoicesDto, commercialOwnerId: string | undefined, actor: any, res: any) {
+    const pdfQuery = { ...query, page: 1, limit: 500 };
+    const [summary, page] = await Promise.all([
+      this.summary(pdfQuery, commercialOwnerId),
+      this.list(pdfQuery, commercialOwnerId),
+    ]);
+
+    const isFastify = typeof res.raw !== 'undefined';
+    const stream = isFastify ? res.raw : res;
+    const fileName = `extrato-financeiro-${new Date().toISOString().slice(0, 10)}.pdf`;
+
+    if (isFastify) {
+      stream.setHeader('Content-Type', 'application/pdf');
+      stream.setHeader('Content-Disposition', `attachment; filename=${fileName}`);
+    } else {
+      res.header('Content-Type', 'application/pdf');
+      res.header('Content-Disposition', `attachment; filename=${fileName}`);
+    }
+
+    const pdfkit = await import('pdfkit');
+    const doc = new pdfkit.default({ margin: 38, size: 'A4', bufferPages: true });
+    doc.pipe(stream);
+
+    const title = 'Extrato Financeiro da Plataforma';
+    const subtitleParts = [
+      query.from ? `De ${new Intl.DateTimeFormat('pt-BR', { timeZone: 'UTC' }).format(new Date(query.from))}` : null,
+      query.to ? `Até ${new Intl.DateTimeFormat('pt-BR', { timeZone: 'UTC' }).format(new Date(query.to))}` : null,
+      query.status ? `Status ${query.status}` : null,
+      actor?.name ? `Solicitado por ${actor.name}` : null,
+    ].filter(Boolean);
+
+    const money = (value: number | string | null | undefined) => Number(value ?? 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    const date = (value?: Date | string | null) => value ? new Intl.DateTimeFormat('pt-BR', { timeZone: 'UTC' }).format(new Date(value)) : '-';
+
+    doc.font('Helvetica-Bold').fontSize(15).fillColor('#0f172a').text(title, { align: 'center' });
+    doc.moveDown(0.25);
+    doc.font('Helvetica').fontSize(9).fillColor('#64748b').text(subtitleParts.join(' • ') || 'Todos os registros selecionados', { align: 'center' });
+    doc.moveDown(0.8);
+
+    doc.roundedRect(38, doc.y, 519, 78, 12).fillAndStroke('#f8fafc', '#e2e8f0');
+    doc.fillColor('#0f172a').font('Helvetica-Bold').fontSize(10).text('Resumo', 54, doc.y + 12);
+    const top = doc.y + 18;
+    const boxes = [
+      { label: 'Faturado', value: money(summary.totals.billed) },
+      { label: 'Recebido', value: money(summary.totals.received) },
+      { label: 'Em aberto', value: money(summary.totals.open) },
+      { label: 'Em atraso', value: money(summary.totals.overdue) },
+    ];
+    boxes.forEach((box, index) => {
+      const x = 54 + (index * 125);
+      doc.font('Helvetica').fontSize(8).fillColor('#64748b').text(box.label, x, top + 8);
+      doc.font('Helvetica-Bold').fontSize(11).fillColor('#0f172a').text(box.value, x, top + 23);
+    });
+
+    doc.y = 152;
+    doc.font('Helvetica-Bold').fontSize(10).fillColor('#0f172a').text('Faturas', 38, doc.y);
+    doc.moveDown(0.5);
+
+    const headerY = doc.y;
+    const columns = [
+      { key: 'empresa', label: 'Empresa', width: 126 },
+      { key: 'cobranca', label: 'Cobrança', width: 114 },
+      { key: 'vencimento', label: 'Vencimento', width: 74 },
+      { key: 'valor', label: 'Valor', width: 74 },
+      { key: 'status', label: 'Status', width: 64 },
+      { key: 'integracao', label: 'Integração', width: 63 },
+    ];
+    let x = 38;
+    doc.roundedRect(38, headerY - 4, 519, 18, 5).fill('#f1f5f9');
+    doc.fillColor('#475569').font('Helvetica-Bold').fontSize(8);
+    columns.forEach((column) => {
+      doc.text(column.label, x + 3, headerY, { width: column.width - 6 });
+      x += column.width;
+    });
+    doc.moveDown(1);
+
+    const invoices = page.items.slice(0, 80);
+    if (!invoices.length) {
+      doc.font('Helvetica').fontSize(9).fillColor('#64748b').text('Nenhuma fatura encontrada para este filtro.', 38, doc.y + 10);
+    } else {
+      invoices.forEach((invoice) => {
+        const rowY = doc.y + 3;
+        const status = String(invoice.status || '').toUpperCase();
+        const statusColor = status === 'PAID' ? '#047857' : status === 'OVERDUE' ? '#be123c' : status === 'CANCELED' ? '#475569' : '#0369a1';
+        const bg = rowY + 16;
+        doc.roundedRect(38, rowY - 2, 519, 18, 4).strokeColor('#e2e8f0').stroke();
+        doc.fillColor('#0f172a').font('Helvetica').fontSize(7.5);
+        doc.text(invoice.company?.name || 'Empresa', 41, rowY, { width: 120 });
+        doc.text(invoice.description || 'Mensalidade', 167, rowY, { width: 108 });
+        doc.text(date(invoice.dueDate), 281, rowY, { width: 68 });
+        doc.text(money(invoice.amount), 355, rowY, { width: 68 });
+        doc.fillColor(statusColor).font('Helvetica-Bold').text(status || 'OPEN', 429, rowY, { width: 56 });
+        doc.fillColor('#0f766e').font('Helvetica-Bold').text(invoice.asaasPaymentId ? 'Asaas' : 'Local', 493, rowY, { width: 56 });
+        doc.y = bg;
+        if (doc.y > 720) {
+          doc.addPage();
+          doc.y = 48;
+        }
+      });
+    }
+
+    doc.moveDown(1);
+    doc.font('Helvetica').fontSize(8).fillColor('#64748b')
+      .text(`Gerado em ${new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date())}`, { align: 'right' });
+
+    doc.end();
+  }
+
 
   async list(query: ListPlatformInvoicesDto, commercialOwnerId?: string) {
     const where = this.buildWhere(query, commercialOwnerId);

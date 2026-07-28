@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Res, UseGuards, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bull';
 import type { Queue } from 'bull';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -23,6 +23,11 @@ export class FinanceController {
   @Get('platform/summary')
   summary(@CurrentUser() actor: JwtUser, @Query() query: ListPlatformInvoicesDto) {
     return this.service.summary(query, actor.role === 'COMERCIAL' ? actor.sub : undefined);
+  }
+
+  @Get('platform/statements/pdf')
+  async statementPdf(@CurrentUser() actor: JwtUser, @Query() query: ListPlatformInvoicesDto, @Res() res: any) {
+    return this.service.statementPdf(query, actor.role === 'COMERCIAL' ? actor.sub : undefined, actor, res);
   }
 
   @Get('platform/invoices')
