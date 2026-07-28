@@ -12,6 +12,7 @@ import { formatDate } from '@/app/lib/format';
 import { normalizeDisplayName } from '@/app/lib/text';
 
 import { NewCompanyModal } from '../_components/new-company-modal';
+import { CompanyEditModal } from '../_components/company-edit-modal';
 import { PlatformStats } from '../_components/platform-stats';
 import { CompanyActionMenu } from '../_components/company-action-menu';
 
@@ -24,9 +25,11 @@ export default function CompaniesPage() {
   
   const stats = useQuery(() => api.platform.stats(), []);
   const companies = useQuery(() => api.platform.listCompanies(), []);
+  const plans = useQuery(() => api.platform.listPlans(), []);
   
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
+  const [editingCompany, setEditingCompany] = useState<PlatformCompany | null>(null);
 
   const toggleActive = useMutation(
     ({ id, status, suspensionReason }: { id: string; status: 'ACTIVE' | 'SUSPENDED' | 'CANCELLED'; suspensionReason?: string | null }) =>
@@ -183,6 +186,7 @@ export default function CompaniesPage() {
                             canManageUsers={canManageCompanyUsers(c)}
                             canManageLicenses={canManageLicenses(c)}
                             status={status}
+                            onEdit={() => setEditingCompany(c)}
                             onToggleStatus={() => handleToggle(c)}
                             onDelete={() => handleDelete(c)}
                             onPurge={() => handlePurge(c)}
@@ -210,6 +214,18 @@ export default function CompaniesPage() {
 
       {open && (
         <NewCompanyModal onClose={() => setOpen(false)} onDone={() => { setOpen(false); companies.refetch(); stats.refetch(); }} />
+      )}
+      {editingCompany && (
+        <CompanyEditModal
+          company={editingCompany}
+          onClose={() => setEditingCompany(null)}
+          onDone={() => {
+            setEditingCompany(null);
+            companies.refetch();
+            stats.refetch();
+            plans.refetch();
+          }}
+        />
       )}
     </div>
   );

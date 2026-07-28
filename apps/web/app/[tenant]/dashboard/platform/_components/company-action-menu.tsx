@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import { FileText, MoreVertical, Power, Settings, Archive, Trash2, Users, ExternalLink } from 'lucide-react';
+import { Edit2, FileText, MoreVertical, Power, Settings, Archive, Trash2, Users, ExternalLink } from 'lucide-react';
 import { type PlatformCompany } from '@/app/lib/api';
 
 interface CompanyActionMenuProps {
@@ -12,6 +12,7 @@ interface CompanyActionMenuProps {
   canManageUsers: boolean;
   canManageLicenses: boolean;
   status: string;
+  onEdit: () => void;
   onToggleStatus: () => void;
   onDelete: () => void;
   onPurge?: () => void;
@@ -27,6 +28,7 @@ export function CompanyActionMenu({
   canManageUsers,
   canManageLicenses,
   status,
+  onEdit,
   onToggleStatus,
   onDelete,
   onPurge,
@@ -67,6 +69,15 @@ export function CompanyActionMenu({
               <FileText size={14} className="text-slate-400" />
               Detalhes & Resumo
             </Link>
+
+            <button
+              type="button"
+              onClick={() => { setOpen(false); onEdit(); }}
+              className="flex w-full items-center gap-2 rounded-[6px] px-3 py-2 text-left text-[11px] font-semibold text-slate-700 hover:bg-slate-50"
+            >
+              <Edit2 size={14} className="text-slate-400" />
+              Editar empresa
+            </button>
 
             {canManageUsers && (
               <Link 
