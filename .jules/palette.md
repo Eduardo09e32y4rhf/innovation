@@ -1,0 +1,4 @@
+
+## 2026-07-28 - Password Visibility Accessibility Pattern
+**Learning:** The application extensively uses icon-only buttons for password visibility toggles (`Eye`/`EyeOff` icons). These buttons lacked `aria-label` attributes and the decorative icons were not hidden from screen readers. Additionally, they often explicitly skipped tab focus (`tabIndex={-1}`) or lacked focus rings, making keyboard navigation difficult and confusing for screen reader users. When using `focus-visible:ring-2` on absolutely positioned elements inside input containers, `focus-visible:ring-inset` and matching border radiuses are required to prevent clipping.
+**Action:** When implementing or reviewing password inputs, ensure the toggle button is keyboard accessible (no `tabIndex={-1}`), has a clear `aria-label` (e.g., 'Mostrar senha'), hides the SVG icons using `aria-hidden="true"`, and includes appropriate focus-visible styles that match the container bounds.
