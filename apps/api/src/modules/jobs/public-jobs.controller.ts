@@ -8,7 +8,7 @@ export class PublicJobsController {
 
   @Get()
   listAll() {
-    return this.service.allPublicJobs();
+    return this.service.publicJobsCatalog();
   }
 
   @Get('company/:companyKey')

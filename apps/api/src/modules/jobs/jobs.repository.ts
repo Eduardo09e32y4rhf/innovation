@@ -79,7 +79,7 @@ export class JobsRepository {
           ...(isUuid ? [{ id: companyKey }] : []),
         ],
       },
-      select: { id: true, name: true, slug: true, logoUrl: true, primaryColor: true, city: true, state: true },
+      select: { id: true, name: true, slug: true, logoUrl: true, primaryColor: true, city: true, state: true, description: true },
     });
   }
 
@@ -88,7 +88,40 @@ export class JobsRepository {
       where: { companyId, status: 'OPEN' },
       select: {
         id: true, title: true, description: true, location: true, employmentType: true,
-        salaryRange: true, benefits: true, createdAt: true, updatedAt: true,
+        salaryRange: true, benefits: true, department: true, workMode: true, createdAt: true, updatedAt: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  publicJobsCatalog() {
+    return this.prisma.job.findMany({
+      where: { status: 'OPEN', company: { isActive: true, status: 'ACTIVE', billingStatus: { notIn: ['CANCELED', 'PENDING_PAYMENT'] } } },
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        location: true,
+        employmentType: true,
+        salaryRange: true,
+        benefits: true,
+        department: true,
+        workMode: true,
+        createdAt: true,
+        updatedAt: true,
+        companyId: true,
+        company: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            logoUrl: true,
+            primaryColor: true,
+            city: true,
+            state: true,
+            description: true,
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -99,7 +132,7 @@ export class JobsRepository {
       where: { companyId, id: jobId, status: 'OPEN' },
       select: {
         id: true, title: true, description: true, location: true, employmentType: true,
-        salaryRange: true, benefits: true, createdAt: true, updatedAt: true,
+        salaryRange: true, benefits: true, department: true, workMode: true, createdAt: true, updatedAt: true,
       },
     });
   }

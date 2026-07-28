@@ -1,4 +1,4 @@
-﻿import { IsEmail, IsIn, IsNotEmpty, IsOptional, IsString, MinLength } from 'class-validator';
+import { IsArray, IsEmail, IsIn, IsNotEmpty, IsOptional, IsString, MinLength } from 'class-validator';
 
 export class CreatePlatformCompanyUserDto {
   @IsString()
@@ -15,4 +15,9 @@ export class CreatePlatformCompanyUserDto {
   @IsOptional()
   @IsIn(['ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO'])
   role?: 'ADMIN' | 'RH' | 'GESTOR' | 'FUNCIONARIO';
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  customPermissions?: string[] | null;
 }

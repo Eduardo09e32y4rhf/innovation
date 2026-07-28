@@ -5,6 +5,7 @@ export const ACCEPTED_RESUME_EXTENSIONS = ['pdf', 'docx'] as const;
 export type PublicCompany = {
   id: string;
   name: string;
+  slug?: string | null;
   logoUrl?: string | null;
   primaryColor?: string | null;
   description?: string | null;
@@ -82,6 +83,7 @@ function normalizeCompany(value: unknown, fallbackId: string): PublicCompany {
   return {
     id: optionalString(record.id) ?? fallbackId,
     name,
+    slug: optionalString(record.slug),
     logoUrl: optionalString(record.logoUrl),
     primaryColor: optionalString(record.primaryColor),
     description: optionalString(record.description),
@@ -237,6 +239,53 @@ export async function getPublicJobs(companyId: string): Promise<PublicJobsResult
     company: normalizeCompany(companySource, companyId),
     jobs,
   };
+}
+
+export async function getPublicJobsCatalog(): Promise<{ jobs: PublicJob[] }> {
+  const payload = await fetchPublic('/public/jobs');
+  const record = asRecord(payload);
+  const rawJobs = Array.isArray(payload)
+    ? payload
+    : Array.isArray(record?.jobs)
+      ? record.jobs
+      : Array.isArray(record?.items)
+        ? record.items
+        : [];
+
+  return {
+    jobs: rawJobs
+      .map((job) => normalizeJob(job, optionalString(asRecord(job)?.companyId) ?? 'catalog'))
+      .filter((job): job is PublicJob => Boolean(job))
+      .filter((job) => job.status === 'OPEN'),
+  };
+}
+
+export async function getAllPublicJobs(): Promise<{ companies: PublicCompany[]; jobs: PublicJob[] }> {
+  const payload = await fetchPublic('/public/jobs');
+  const record = asRecord(payload);
+  const rawJobs = Array.isArray(payload)
+    ? payload
+    : Array.isArray(record?.jobs)
+      ? record.jobs
+      : Array.isArray(record?.items)
+        ? record.items
+        : [];
+
+  const jobs = rawJobs
+    .map((job) => normalizeJob(job, optionalString(asRecord(job)?.companyId) ?? 'catalog'))
+    .filter((job): job is PublicJob => Boolean(job))
+    .filter((job) => job.status === 'OPEN');
+
+  const companies = Array.from(
+    new Map(
+      jobs
+        .map((job) => job.company)
+        .filter((company): company is PublicCompany => Boolean(company))
+        .map((company) => [company.id, company] as const),
+    ).values(),
+  );
+
+  return { companies, jobs };
 }
 
 export async function getPublicJob(companyId: string, jobId: string): Promise<PublicJob> {

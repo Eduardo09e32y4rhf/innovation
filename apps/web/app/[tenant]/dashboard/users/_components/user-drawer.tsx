@@ -15,7 +15,7 @@ interface UserDrawerProps {
   onSavePermissions: (customPermissions: string[] | null) => Promise<void>;
   onResetPassword: () => void;
   onToggleBlock: () => void;
-  // TODO: Vínculo actions
+  // TODO: Vinculo actions
 }
 
 type TabType = 'geral' | 'permissoes' | 'seguranca' | 'vinculo';
@@ -34,13 +34,12 @@ export function UserDrawer({
 }: UserDrawerProps) {
   const [activeTab, setActiveTab] = useState<TabType>('geral');
   const [isSaving, setIsSaving] = useState(false);
+  const [feedback, setFeedback] = useState<string | null>(null);
 
-  // States for Geral
   const [name, setName] = useState(user?.name ?? '');
   const [email, setEmail] = useState(user?.email ?? '');
   const [role, setRole] = useState<UserRole>(user?.role ?? 'FUNCIONARIO');
 
-  // States for Permissões
   const [isCustomPerms, setIsCustomPerms] = useState(!!user?.customPermissions?.length);
   const [customPerms, setCustomPerms] = useState<string[]>(
     user?.customPermissions ?? getDefaultPermissions(user?.role ?? 'FUNCIONARIO')
@@ -49,6 +48,7 @@ export function UserDrawer({
   useEffect(() => {
     if (!user) return;
     setIsSaving(false);
+    setFeedback(null);
     setName(user.name ?? '');
     setEmail(user.email ?? '');
     setRole(user.role ?? 'FUNCIONARIO');
@@ -66,11 +66,12 @@ export function UserDrawer({
 
   const handleSaveGeneral = async () => {
     setIsSaving(true);
+    setFeedback(null);
     try {
       await onSaveGeneral({ name, email, role });
-      alert('Dados do usuário salvos com sucesso!');
-    } catch (e: any) {
-      alert(e?.message || 'Erro ao salvar alterações do usuário.');
+      setFeedback('Alteracoes gerais salvas com sucesso.');
+    } catch (error) {
+      setFeedback(error instanceof Error ? error.message : 'Nao foi possivel salvar as alteracoes.');
     } finally {
       setIsSaving(false);
     }
@@ -78,11 +79,12 @@ export function UserDrawer({
 
   const handleSavePerms = async () => {
     setIsSaving(true);
+    setFeedback(null);
     try {
       await onSavePermissions(isCustomPerms ? customPerms : null);
-      alert('Permissões do usuário salvas com sucesso!');
-    } catch (e: any) {
-      alert(e?.message || 'Erro ao salvar permissões do usuário.');
+      setFeedback('Permissoes salvas com sucesso.');
+    } catch (error) {
+      setFeedback(error instanceof Error ? error.message : 'Nao foi possivel salvar as permissoes.');
     } finally {
       setIsSaving(false);
     }
@@ -97,9 +99,9 @@ export function UserDrawer({
 
   const tabs = [
     { id: 'geral', label: 'Geral', icon: User },
-    { id: 'permissoes', label: 'Permissões', icon: Shield },
-    { id: 'seguranca', label: 'Segurança', icon: KeyRound },
-    { id: 'vinculo', label: 'Vínculo', icon: LinkIcon },
+    { id: 'permissoes', label: 'Permissoes', icon: Shield },
+    { id: 'seguranca', label: 'Seguranca', icon: KeyRound },
+    { id: 'vinculo', label: 'Vinculo', icon: LinkIcon },
   ] as const;
 
   return (
@@ -110,7 +112,7 @@ export function UserDrawer({
         <header className="sticky top-0 z-10 border-b border-slate-100 bg-white px-6 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-lg font-black text-slate-900">Detalhes do usuário</h3>
+              <h3 className="text-lg font-black text-slate-900">Detalhes do usuario</h3>
               <p className="text-xs font-medium text-slate-500">{user.name}</p>
             </div>
             <button
@@ -125,7 +127,10 @@ export function UserDrawer({
             {tabs.map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id as TabType)}
+                onClick={() => {
+                  setActiveTab(tab.id as TabType);
+                  setFeedback(null);
+                }}
                 className={`flex items-center gap-2 border-b-2 pb-3 text-xs font-bold transition-colors ${
                   activeTab === tab.id
                     ? 'border-teal-600 text-teal-700'
@@ -184,7 +189,7 @@ export function UserDrawer({
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="mb-1 block text-xs font-bold text-slate-700">Último acesso</label>
+                  <label className="mb-1 block text-xs font-bold text-slate-700">Ultimo acesso</label>
                   <input
                     type="text"
                     value={user.lastActiveAt ? new Date(user.lastActiveAt).toLocaleString('pt-BR') : 'Nunca acessou'}
@@ -204,12 +209,17 @@ export function UserDrawer({
               </div>
 
               <div className="pt-4">
+                {feedback && (
+                  <p className="mb-3 rounded-[8px] border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium text-slate-700">
+                    {feedback}
+                  </p>
+                )}
                 <button
                   onClick={handleSaveGeneral}
                   disabled={isSaving}
                   className="crystal-button w-full"
                 >
-                  {isSaving ? 'Salvando...' : 'Salvar alterações'}
+                  {isSaving ? 'Salvando...' : 'Salvar alteracoes'}
                 </button>
               </div>
             </div>
@@ -220,10 +230,10 @@ export function UserDrawer({
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-sm font-bold text-slate-900">
-                    Permissões do perfil {ROLE_LABEL[user.role] ?? user.role}
+                    Permissoes do perfil {ROLE_LABEL[user.role] ?? user.role}
                   </p>
                   <p className="text-xs text-slate-500">
-                    Ao personalizar, as permissões padrão deixam de ser aplicadas.
+                    Ao personalizar, as permissoes padrao deixam de ser aplicadas.
                   </p>
                 </div>
                 <div className="flex shrink-0 items-center gap-4 text-xs font-bold">
@@ -237,7 +247,7 @@ export function UserDrawer({
                       }}
                       className="accent-teal-600"
                     />
-                    Padrão
+                    Padrao
                   </label>
                   <label className="flex cursor-pointer items-center gap-2">
                     <input
@@ -274,6 +284,11 @@ export function UserDrawer({
               </div>
 
               <div className="flex items-center justify-between pt-4">
+                {feedback && (
+                  <p className="mr-3 rounded-[8px] border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium text-slate-700">
+                    {feedback}
+                  </p>
+                )}
                 {isCustomPerms && (
                   <button
                     onClick={() => {
@@ -282,7 +297,7 @@ export function UserDrawer({
                     }}
                     className="text-xs font-bold text-teal-600 hover:underline"
                   >
-                    Restaurar padrão do perfil
+                    Restaurar padrao do perfil
                   </button>
                 )}
                 <button
@@ -290,7 +305,7 @@ export function UserDrawer({
                   disabled={isSaving}
                   className="crystal-button ml-auto px-6"
                 >
-                  {isSaving ? 'Salvando...' : 'Salvar permissões'}
+                  {isSaving ? 'Salvando...' : 'Salvar permissoes'}
                 </button>
               </div>
             </div>
@@ -307,17 +322,17 @@ export function UserDrawer({
                     </p>
                   </div>
                   <div>
-                    <p className="font-medium text-slate-500">Último acesso</p>
+                    <p className="font-medium text-slate-500">Ultimo acesso</p>
                     <p className="font-bold text-slate-900">
                       {user.lastActiveAt ? new Date(user.lastActiveAt).toLocaleString('pt-BR') : 'Nunca'}
                     </p>
                   </div>
                   <div>
-                    <p className="font-medium text-slate-500">Tentativas inválidas</p>
+                    <p className="font-medium text-slate-500">Tentativas invalidas</p>
                     <p className="font-bold text-rose-600">{user.failedLoginAttempts ?? 0}</p>
                   </div>
                   <div>
-                    <p className="font-medium text-slate-500">Última troca de senha</p>
+                    <p className="font-medium text-slate-500">Ultima troca de senha</p>
                     <p className="font-bold text-slate-900">
                       {user.passwordChangedAt
                         ? new Date(user.passwordChangedAt).toLocaleString('pt-BR')
@@ -327,7 +342,7 @@ export function UserDrawer({
                   <div>
                     <p className="font-medium text-slate-500">Troca pendente</p>
                     <p className="font-bold text-amber-600">
-                      {user.forcePasswordChange ? 'Sim (obrigatória no login)' : 'Não'}
+                      {user.forcePasswordChange ? 'Sim (obrigatoria no login)' : 'Nao'}
                     </p>
                   </div>
                 </div>
@@ -338,7 +353,7 @@ export function UserDrawer({
                   onClick={onResetPassword}
                   className="btn-outline flex items-center justify-center gap-2"
                 >
-                  <KeyRound size={14} /> Redefinir senha com senha temporária
+                  <KeyRound size={14} /> Redefinir senha com senha temporaria
                 </button>
                 <button
                   onClick={onToggleBlock}
@@ -363,7 +378,7 @@ export function UserDrawer({
                     <div>
                       <p className="font-bold text-slate-900">{user.employee.name}</p>
                       <p className="text-xs font-medium text-slate-500">
-                        {user.employee.registration ? `Matrícula ${user.employee.registration}` : 'Sem matrícula'}
+                        {user.employee.registration ? `Matricula ${user.employee.registration}` : 'Sem matricula'}
                       </p>
                     </div>
                   </div>
@@ -381,10 +396,10 @@ export function UserDrawer({
               ) : (
                 <div className="rounded-[12px] border border-slate-200 bg-slate-50 p-6 text-center">
                   <p className="text-sm font-medium text-slate-600">
-                    Este usuário não está vinculado a um funcionário.
+                    Este usuario nao esta vinculado a um funcionario.
                   </p>
                   <p className="mt-1 text-xs text-slate-400">
-                    O vínculo é necessário para acessar Ponto, Férias e Escala.
+                    O vinculo e necessario para acessar Ponto, Ferias e Escala.
                   </p>
                 </div>
               )}
@@ -393,15 +408,15 @@ export function UserDrawer({
                 {user.employee ? (
                   <>
                     <button className="btn-outline flex items-center justify-center gap-2 text-teal-600">
-                      Abrir cadastro do funcionário
+                      Abrir cadastro do funcionario
                     </button>
                     <button className="btn-outline flex items-center justify-center gap-2 text-rose-600">
-                      Remover vínculo
+                      Remover vinculo
                     </button>
                   </>
                 ) : (
                   <button className="crystal-button flex items-center justify-center gap-2">
-                    Vincular a um funcionário
+                    Vincular a um funcionario
                   </button>
                 )}
               </div>

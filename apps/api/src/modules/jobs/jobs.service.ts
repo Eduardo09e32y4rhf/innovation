@@ -88,6 +88,10 @@ export class JobsService {
     return { company, jobs: await this.repository.publicJobs(company.id) };
   }
 
+  async publicJobsCatalog() {
+    return { jobs: await this.repository.publicJobsCatalog() };
+  }
+
   async publicJob(companyKey: string, jobId: string) {
     const company = await this.repository.publicCompany(companyKey);
     if (!company) throw new NotFoundException('Empresa não encontrada.');

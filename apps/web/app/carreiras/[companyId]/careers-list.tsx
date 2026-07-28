@@ -176,7 +176,7 @@ export function CareersList({ companyId }: CareersListProps) {
         <div className="absolute inset-0 opacity-40 [background-image:radial-gradient(circle_at_15%_10%,var(--career-accent),transparent_32%),radial-gradient(circle_at_85%_80%,#0f766e,transparent_25%)]" />
         <div className="absolute inset-0 opacity-[0.06] [background-image:linear-gradient(rgba(255,255,255,.8)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.8)_1px,transparent_1px)] [background-size:44px_44px]" />
 
-        <div className="relative mx-auto max-w-6xl px-5 pb-16 pt-6 sm:px-8 sm:pb-24 sm:pt-8">
+        <div className="relative mx-auto max-w-7xl px-5 pb-16 pt-6 sm:px-8 sm:pb-24 sm:pt-8">
           <header className="flex items-center justify-between">
             <CareersBrand company={company} companyId={companyId} />
             <span className="hidden rounded-full border border-white/15 bg-white/5 px-4 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-slate-300 sm:inline-flex">
@@ -200,7 +200,7 @@ export function CareersList({ companyId }: CareersListProps) {
         </div>
       </section>
 
-      <section className="relative mx-auto -mt-8 max-w-6xl px-5 pb-20 sm:-mt-10 sm:px-8">
+      <section className="relative mx-auto -mt-8 max-w-7xl px-5 pb-20 sm:-mt-10 sm:px-8">
         <div className="rounded-2xl border border-slate-200/80 bg-white p-3 shadow-[0_22px_70px_-30px_rgba(15,23,42,0.4)] sm:p-4">
           <div className="grid gap-3 lg:grid-cols-[1fr_220px_210px]">
             <label className="relative block">
@@ -299,7 +299,7 @@ export function CareersList({ companyId }: CareersListProps) {
               </button>
             </div>
           ) : filteredJobs.length ? (
-            <div className="grid gap-3">
+            <div className="grid gap-4 lg:grid-cols-2">
               {filteredJobs.map((job) => (
                 <JobCard key={job.id} job={job} companyId={companyId} />
               ))}

@@ -257,6 +257,7 @@ export class PlatformService {
       email,
       passwordHash: await bcrypt.hash(dto.password, 12),
       role: dto.role ?? 'FUNCIONARIO',
+      ...(dto.customPermissions !== undefined ? { customPermissions: dto.customPermissions } : {}),
     });
   }
 

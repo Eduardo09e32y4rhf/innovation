@@ -295,6 +295,11 @@ export default function FinancePage({ params: { tenant } }: { params: { tenant: 
           <p className="text-[10px] font-black uppercase tracking-[0.2em] text-teal-600">Controle da operacao</p>
           <h2 className="mt-1 text-2xl font-black text-slate-950">Gestao da Plataforma</h2>
           <p className="mt-2 max-w-2xl text-sm text-slate-500">Cobranças, reembolsos e sincronização Asaas em um painel único e prático.</p>
+          <div className="mt-4 flex max-w-full gap-3 overflow-x-auto whitespace-nowrap">
+            <Link href={`/${tenant}/dashboard/platform/finance`} className="rounded-full border border-teal-200 bg-teal-50 px-3 py-2 text-sm font-black text-teal-700">Financeiro</Link>
+            <Link href={`/${tenant}/dashboard/platform/contracts`} className="rounded-full border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-500 hover:border-slate-300 hover:text-slate-800">Contratos</Link>
+            <Link href={`/${tenant}/dashboard/platform/configuration`} className="rounded-full border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-500 hover:border-slate-300 hover:text-slate-800">Configuracao</Link>
+          </div>
         </div>
         <div className="flex flex-wrap gap-2">
           {canManage && (
@@ -469,7 +474,7 @@ export default function FinancePage({ params: { tenant } }: { params: { tenant: 
                               </button>
                             )}
                             {invoice.status === 'PAID' && (
-                              <button type="button" onClick={() => refund(invoice)} disabled={workingId === invoice.id} className="rounded-[7px] p-2 text-slate-500 hover:bg-white hover:text-amber-700 hover:shadow-sm disabled:opacity-40" title="Reembolsar (Estorno 7 dias)">
+                              <button type="button" onClick={() => refundInvoice(invoice)} disabled={workingId === invoice.id} className="rounded-[7px] p-2 text-slate-500 hover:bg-white hover:text-amber-700 hover:shadow-sm disabled:opacity-40" title="Reembolsar (Estorno 7 dias)">
                                 {workingId === invoice.id ? <Loader2 size={14} className="animate-spin" /> : <Banknote size={14} />}
                               </button>
                             )}
