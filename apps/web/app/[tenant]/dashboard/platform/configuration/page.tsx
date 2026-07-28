@@ -16,10 +16,15 @@ export default function PlatformConfigurationPage({ params: { tenant } }: { para
   const { user } = useAuth();
   const isDev = String(user?.role || user?.profile || '').toUpperCase() === 'DEV';
 
+  const coreCards: ConfigCard[] = [
+    { title: 'Financeiro', description: 'Gerar cobranças, revisar extratos, reembolsos e eventos Asaas.', href: `/${tenant}/dashboard/platform/finance`, icon: CreditCard, tone: 'bg-violet-50 text-violet-700' },
+    { title: 'Contratos', description: 'Criar, editar, excluir e emitir PDF dos contratos da plataforma.', href: `/${tenant}/dashboard/platform/contracts`, icon: FileText, tone: 'bg-sky-50 text-sky-700' },
+    { title: 'Permissoes globais', description: 'Controlar o que cada perfil pode fazer e salvar por rascunho.', href: `/${tenant}/dashboard/platform/permissions`, icon: ShieldCheck, tone: 'bg-emerald-50 text-emerald-700' },
+  ];
+
   const cards: ConfigCard[] = [
     { title: 'Empresas', description: 'Editar dados, status e acesso das empresas clientes.', href: `/${tenant}/dashboard/platform/companies`, icon: Building2, tone: 'bg-violet-50 text-violet-700' },
     { title: 'Planos e precos', description: 'Ajustar limites, valores e configuracoes dos planos.', href: `/${tenant}/dashboard/platform/plans`, icon: CreditCard, tone: 'bg-sky-50 text-sky-700' },
-    { title: 'Permissoes globais', description: 'Controlar o que cada perfil pode fazer na plataforma.', href: `/${tenant}/dashboard/platform/permissions`, icon: ShieldCheck, tone: 'bg-emerald-50 text-emerald-700' },
     { title: 'Acessos DEV', description: 'Listar acessos online e facilitar o suporte tecnico.', href: `/${tenant}/dashboard/platform/access`, icon: Users, tone: 'bg-amber-50 text-amber-700' },
     { title: 'Cupons', description: 'Criar, editar e revisar campanhas promocionais.', href: `/${tenant}/dashboard/platform/coupons`, icon: FileText, tone: 'bg-rose-50 text-rose-700' },
     { title: 'Assinaturas', description: 'Validar o vinculo das empresas com o Asaas.', href: `/${tenant}/dashboard/platform/subscriptions`, icon: ArchiveRestore, tone: 'bg-teal-50 text-teal-700' },
@@ -36,11 +41,26 @@ export default function PlatformConfigurationPage({ params: { tenant } }: { para
             <h2 className="mt-1 text-2xl font-black text-slate-950">Central de configuracoes da plataforma</h2>
             <p className="mt-2 max-w-2xl text-sm text-slate-500">Tudo o que hoje esta espalhado fica reunido aqui: empresas, planos, acessos, permissoes e rotinas administrativas.</p>
           </div>
-          <Link href={`/${tenant}/dashboard/platform/companies`} className="inline-flex h-10 items-center gap-2 rounded-xl bg-slate-950 px-4 text-xs font-black text-white hover:bg-slate-800">
-            Abrir empresas <ArrowRight size={14} />
+          <Link href={`/${tenant}/dashboard/platform/finance`} className="inline-flex h-10 items-center gap-2 rounded-xl bg-slate-950 px-4 text-xs font-black text-white hover:bg-slate-800">
+            Abrir financeiro <ArrowRight size={14} />
           </Link>
         </div>
       </header>
+
+      <section className="grid gap-4 md:grid-cols-3">
+        {coreCards.map((card) => (
+          <Link key={card.href} href={card.href} className="group rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-violet-300 hover:shadow-md">
+            <div className="flex items-start justify-between gap-4">
+              <span className={`rounded-2xl p-3 ${card.tone}`}>
+                <card.icon size={20} />
+              </span>
+              <ArrowRight size={15} className="mt-1 text-slate-300 transition group-hover:translate-x-1 group-hover:text-violet-600" />
+            </div>
+            <h3 className="mt-5 text-base font-black text-slate-950">{card.title}</h3>
+            <p className="mt-1 text-sm leading-6 text-slate-500">{card.description}</p>
+          </Link>
+        ))}
+      </section>
 
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {[

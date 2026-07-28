@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useDeferredValue, useMemo, useState } from 'react';
 import {
   ArrowDownToLine,
+  AlertTriangle,
   Banknote,
   CalendarDays,
   CheckCircle2,
@@ -26,6 +27,7 @@ import { useQuery } from '@/app/hooks/use-data';
 import { useAuth } from '@/app/contexts/AuthContext';
 import api, {
   ApiError,
+  type AsaasWebhookEvent,
   PlatformBillingType,
   PlatformCompany,
   PlatformInvoice,
@@ -104,11 +106,14 @@ export default function FinancePage({ params: { tenant } }: { params: { tenant: 
     () => api.platform.finance.list({ page, limit: 20, status, search: deferredSearch, from, to }),
     [page, status, deferredSearch, from, to],
   );
+  const webhookEvents = useQuery(() => api.platform.finance.webhookEvents({ limit: 12 }), []);
   const companies = useQuery(() => api.platform.listCompanies(), []);
+  const [retryingWebhookId, setRetryingWebhookId] = useState<string | null>(null);
 
   function refresh() {
     invoices.refetch();
     summary.refetch();
+    webhookEvents.refetch();
     companies.refetch();
   }
 
@@ -219,6 +224,19 @@ export default function FinancePage({ params: { tenant } }: { params: { tenant: 
     }
   }
 
+  async function retryWebhook(event: AsaasWebhookEvent) {
+    setRetryingWebhookId(event.id);
+    try {
+      await api.platform.finance.retryWebhookEvent(event.id);
+      toast.success('Evento reenviado para o processamento.');
+      refresh();
+    } catch (error) {
+      toast.error(error instanceof ApiError ? error.message : 'Nao foi possivel reenviar o evento.');
+    } finally {
+      setRetryingWebhookId(null);
+    }
+  }
+
   async function exportCsv() {
     try {
       const result = await api.platform.finance.list({ limit: 500, status, search: deferredSearch, from, to });
@@ -253,6 +271,11 @@ export default function FinancePage({ params: { tenant } }: { params: { tenant: 
   const chartData = summary.data?.monthly.map((item) => ({ ...item, label: monthLabel(item.month) })) ?? [];
   const chartMax = Math.max(1, ...chartData.flatMap((item) => [item.billed, item.received]));
   const recentInvoices = invoices.data?.items ?? [];
+  const recentWebhookEvents = webhookEvents.data ?? [];
+  const webhookCounts = recentWebhookEvents.reduce((acc, item) => {
+    acc[item.status] = (acc[item.status] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
 
   if (invoices.error) {
     return <div className="mx-auto w-full py-6"><ErrorState message={invoices.error} onRetry={invoices.refetch} /></div>;
@@ -348,6 +371,113 @@ export default function FinancePage({ params: { tenant } }: { params: { tenant: 
             ) : (
               <div className="flex h-full items-center justify-center text-xs text-slate-400">Sem dados para o grafico.</div>
             )}
+          </div>
+        </div>
+      </section>
+
+      <section className="grid gap-4 xl:grid-cols-[1fr_1.2fr]">
+        <div className="rounded-[14px] border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Asaas & Webhooks</p>
+              <h3 className="mt-1 text-lg font-black text-slate-950">Eventos de integração</h3>
+            </div>
+            <button onClick={() => webhookEvents.refetch()} className="inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-50">
+              <RefreshCw size={14} className={webhookEvents.loading ? 'animate-spin' : ''} />
+              Atualizar
+            </button>
+          </div>
+          <div className="mt-4 grid gap-3 sm:grid-cols-3">
+            {[
+              { label: 'Pendentes', value: webhookCounts.PENDING || 0 },
+              { label: 'Falhas', value: webhookCounts.FAILED || 0 },
+              { label: 'Processados', value: webhookCounts.PROCESSED || 0 },
+            ].map((item) => (
+              <article key={item.label} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">{item.label}</p>
+                <p className="mt-2 text-2xl font-black text-slate-950">{item.value}</p>
+              </article>
+            ))}
+          </div>
+          <div className="mt-4 space-y-3">
+            {webhookEvents.loading ? (
+              <LoadingState label="Carregando eventos do Asaas..." />
+            ) : webhookEvents.error ? (
+              <ErrorState message={webhookEvents.error} onRetry={webhookEvents.refetch} />
+            ) : recentWebhookEvents.length === 0 ? (
+              <EmptyState message="Nenhum webhook encontrado." />
+            ) : (
+              recentWebhookEvents.map((event) => {
+                const isRetryable = event.status === 'FAILED' || event.status === 'PENDING';
+                const statusClass =
+                  event.status === 'PROCESSED' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' :
+                  event.status === 'FAILED' ? 'border-rose-200 bg-rose-50 text-rose-700' :
+                  event.status === 'PROCESSING' ? 'border-amber-200 bg-amber-50 text-amber-700' :
+                  event.status === 'IGNORED' ? 'border-slate-200 bg-slate-100 text-slate-500' :
+                  'border-sky-200 bg-sky-50 text-sky-700';
+
+                return (
+                  <article key={event.id} className="rounded-2xl border border-slate-200 p-4 shadow-sm">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-black text-slate-950">{event.eventType}</p>
+                        <p className="mt-1 text-[10px] text-slate-500">
+                          {event.company?.name || 'Sem empresa vinculada'} {event.paymentId ? `• Pagamento ${event.paymentId}` : ''}
+                        </p>
+                      </div>
+                      <span className={`rounded-full border px-2 py-1 text-[10px] font-black ${statusClass}`}>{event.status}</span>
+                    </div>
+                    <div className="mt-3 flex flex-wrap items-center gap-2 text-[10px] font-bold text-slate-500">
+                      <span>{event.attempts} tentativa(s)</span>
+                      <span>•</span>
+                      <span>{new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(event.createdAt))}</span>
+                      {event.errorMessage && (
+                        <>
+                          <span>•</span>
+                          <span className="inline-flex items-center gap-1 text-rose-600"><AlertTriangle size={12} /> {event.errorMessage}</span>
+                        </>
+                      )}
+                    </div>
+                    {isRetryable && (
+                      <div className="mt-3 flex justify-end">
+                        <button
+                          type="button"
+                          onClick={() => retryWebhook(event)}
+                          disabled={retryingWebhookId === event.id}
+                          className="inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                        >
+                          {retryingWebhookId === event.id ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+                          Reprocessar
+                        </button>
+                      </div>
+                    )}
+                  </article>
+                );
+              })
+            )}
+          </div>
+        </div>
+
+        <div className="rounded-[14px] border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Fluxo financeiro</p>
+              <h3 className="mt-1 text-lg font-black text-slate-950">Acoes mais usadas</h3>
+            </div>
+          </div>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            {[
+              { title: 'Copiar link', description: 'Copie o checkout da fatura e abra em nova aba.', icon: Copy },
+              { title: 'Sincronizar', description: 'Puxe o status real do Asaas para a fatura.', icon: RefreshCw },
+              { title: 'Reembolsar', description: 'Estorno em até 7 dias com efeito imediato.', icon: Banknote },
+              { title: 'Cancelar', description: 'Cancele cobranças locais e remotas com confirmação.', icon: Trash2 },
+            ].map((item) => (
+              <article key={item.title} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <item.icon size={16} className="text-teal-600" />
+                <h4 className="mt-3 text-sm font-black text-slate-950">{item.title}</h4>
+                <p className="mt-1 text-xs leading-5 text-slate-500">{item.description}</p>
+              </article>
+            ))}
           </div>
         </div>
       </section>
