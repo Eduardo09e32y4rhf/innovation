@@ -398,6 +398,29 @@ export interface PlatformFinanceSummary {
   mrr: number;
   activeSubscriptions: number;
 }
+export interface PlatformBillingAuditLog {
+  id: string;
+  companyId: string;
+  action: string;
+  entity: string;
+  entityId?: string | null;
+  metadata?: Record<string, unknown> | null;
+  ipAddress?: string | null;
+  userAgent?: string | null;
+  createdAt: string;
+  company?: {
+    id: string;
+    name: string;
+    document?: string | null;
+    plan?: string | null;
+    status?: CompanyStatus;
+    billingStatus?: 'TRIAL' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED' | 'PENDING_PAYMENT';
+    asaasCustomerId?: string | null;
+    asaasSubscriptionId?: string | null;
+    subscriptionStartedAt?: string | null;
+  } | null;
+  user?: { id: string; name: string; email: string; role?: UserRole } | null;
+}
 export interface PlatformInvoiceList {
   items: PlatformInvoice[];
   pagination: { page: number; limit: number; total: number; pages: number };
@@ -714,6 +737,7 @@ export const api = {
       refund: (id: string) => request<PlatformInvoice>(`/finance/platform/invoices/${id}/refund`, { method: 'POST' }),
       webhookEvents: (query: { companyId?: string; limit?: number } = {}) => request<AsaasWebhookEvent[]>(`/finance/platform/webhook-events${makeQuery(query)}`),
       retryWebhookEvent: (id: string) => request<{ queued: boolean; id: string }>(`/finance/platform/webhook-events/${id}/retry`, { method: 'POST' }),
+      billingAuditLogs: (query: { companyId?: string; limit?: number } = {}) => request<PlatformBillingAuditLog[]>(`/finance/platform/audit-logs${makeQuery(query)}`),
       delete: (id: string) => request<{ id: string }>(`/finance/platform/invoices/${id}`, { method: 'DELETE' }),
       downloadStatementPdf: (query: Pick<PlatformInvoiceQuery, 'status' | 'search' | 'from' | 'to'> = {}) =>
         downloadRequest(`/finance/platform/statements/pdf${makeQuery(query)}`),

@@ -374,7 +374,10 @@ export default function PlansPage({ params: { tenant } }: { params: { tenant: st
   const allPlans = plansData.data ?? [];
   const activePlans = allPlans.filter(p => p.isActive !== false);
   const inactivePlans = allPlans.filter(p => p.isActive === false);
+  const freePlans = allPlans.filter(p => p.isFree);
+  const hiddenPlans = allPlans.filter(p => p.isHidden);
   const visiblePlans = showInactive ? allPlans : activePlans;
+  const activeBaseMonthly = activePlans.reduce((acc, plan) => acc + parseMoney(plan.baseMonthlyPrice ?? plan.price), 0);
 
   function handleDeactivate(plan: any) {
     if (!window.confirm(`Desativar o plano "${plan.name}"?\nEmpresas vinculadas não serão afetadas.`)) return;
@@ -392,15 +395,67 @@ export default function PlansPage({ params: { tenant } }: { params: { tenant: st
 
   return (
     <div className="mx-auto w-full space-y-6">
-      <div className="flex items-center justify-between mb-2">
-        <h2 className="text-lg font-bold text-slate-900">Gestão de Planos</h2>
-        <button
-          onClick={() => setIsCreating(true)}
-          className="crystal-button inline-flex h-10 items-center gap-2 rounded-xl px-4 text-xs font-black text-white shadow-md"
-        >
-          <Plus size={14} /> Novo Plano
-        </button>
-      </div>
+      <header className="rounded-[16px] border border-slate-200 bg-slate-950 px-5 py-5 text-white shadow-2xl shadow-slate-950/15">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-teal-300">Planos e precificacao</p>
+            <h2 className="mt-1 text-2xl font-black tracking-tight">Planos organizados para crescer com a empresa</h2>
+            <p className="mt-2 max-w-3xl text-sm text-slate-300">
+              Cada plano tem valor base, valor por usuario adicional, limite de colaboradores e opcao de ficar oculto no console.
+            </p>
+          </div>
+          <button
+            onClick={() => setIsCreating(true)}
+            className="inline-flex h-10 items-center gap-2 rounded-xl bg-violet-600 px-4 text-xs font-black text-white shadow-md hover:bg-violet-500"
+          >
+            <Plus size={14} /> Novo Plano
+          </button>
+        </div>
+      </header>
+
+      {!plansData.loading && allPlans.length > 0 && (
+        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {[
+            { label: 'Ativos', value: activePlans.length },
+            { label: 'Gratuitos', value: freePlans.length },
+            { label: 'Ocultos', value: hiddenPlans.length },
+            { label: 'Base mensal ativa', value: `R$ ${formatBRL(activeBaseMonthly)}` },
+          ].map((stat) => (
+            <article key={stat.label} className="rounded-[14px] border border-slate-200 bg-white p-4 shadow-sm">
+              <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">{stat.label}</p>
+              <p className="mt-2 text-xl font-black tracking-tight text-slate-950">{stat.value}</p>
+            </article>
+          ))}
+        </section>
+      )}
+
+      <section className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
+        <div className="rounded-[16px] border border-slate-200 bg-white p-5 shadow-sm">
+          <h3 className="text-sm font-black text-slate-950">Como a precificacao funciona</h3>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            {[
+              { title: 'Valor base', text: 'Cada plano nasce com um valor base mensal.' },
+              { title: 'Adicional por usuario', text: 'O valor sobe conforme a quantidade de usuarios cobraveis.' },
+              { title: 'Commitment', text: 'Prazo maior pode alterar o desconto aplicado no calculo.' },
+              { title: 'Gratuito / oculto', text: 'Planos internos podem existir sem aparecer como oferta publica.' },
+            ].map((item) => (
+              <div key={item.title} className="rounded-[14px] border border-slate-200 bg-slate-50 p-4">
+                <p className="text-xs font-black text-slate-900">{item.title}</p>
+                <p className="mt-1 text-xs leading-5 text-slate-500">{item.text}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="rounded-[16px] border border-violet-200 bg-violet-50/70 p-5 shadow-sm">
+          <h3 className="text-sm font-black text-slate-950">Checklist do plano</h3>
+          <ul className="mt-4 space-y-2 text-xs text-slate-600">
+            <li className="flex items-start gap-2"><Check size={14} className="mt-0.5 text-violet-600" />Valor base salvo no banco</li>
+            <li className="flex items-start gap-2"><Check size={14} className="mt-0.5 text-violet-600" />Usuarios e colaboradores limitados</li>
+            <li className="flex items-start gap-2"><Check size={14} className="mt-0.5 text-violet-600" />Plano ativo, inativo ou oculto</li>
+            <li className="flex items-start gap-2"><Check size={14} className="mt-0.5 text-violet-600" />Ajuste automatico nas cobrancas futuras</li>
+          </ul>
+        </div>
+      </section>
 
       {/* Stats bar */}
       {!plansData.loading && allPlans.length > 0 && (

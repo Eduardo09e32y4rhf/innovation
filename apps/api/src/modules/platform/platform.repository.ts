@@ -66,6 +66,21 @@ export class PlatformRepository {
     });
   }
 
+  listBillingAuditLogs(options?: { companyId?: string; limit?: number }) {
+    return this.prisma.auditLog.findMany({
+      where: {
+        ...(options?.companyId ? { companyId: options.companyId } : {}),
+        entity: { in: ['Company', 'Billing', 'Subscription'] },
+      },
+      include: {
+        company: { select: { id: true, name: true, document: true, status: true, billingStatus: true, plan: true } },
+        user: { select: { id: true, name: true, email: true, role: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: Math.min(Math.max(options?.limit ?? 80, 1), 200),
+    });
+  }
+
   getCompany(id: string) {
     return this.prisma.company.findUnique({
       where: { id },
@@ -229,19 +244,28 @@ export class PlatformRepository {
   createAuditLog(data: {
     companyId: string;
     action: string;
-    actor: string;
+    actor?: string;
+    entity?: string;
+    entityId?: string;
+    userId?: string | null;
     metadata?: any;
+    ipAddress?: string | null;
+    userAgent?: string | null;
   }) {
     return this.prisma.auditLog.create({
       data: {
         companyId: data.companyId,
+        userId: data.userId ?? null,
         action: data.action,
-        entity: 'Platform',
+        entity: data.entity ?? 'Platform',
+        entityId: data.entityId ?? null,
         metadata: {
+          ...(data.metadata ?? {}),
           actorEmail: data.actor,
-          ...data.metadata
-        }
-      }
+        },
+        ipAddress: data.ipAddress ?? null,
+        userAgent: data.userAgent ?? null,
+      },
     });
   }
 }

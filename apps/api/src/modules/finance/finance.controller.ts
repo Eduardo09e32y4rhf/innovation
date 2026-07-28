@@ -42,8 +42,8 @@ export class FinanceController {
 
   @Post('platform/companies/:companyId/checkout')
   @Roles('DEV')
-  companyCheckout(@Param('companyId') companyId: string) {
-    return this.service.ensureCompanyOnboardingBilling(companyId);
+  companyCheckout(@Param('companyId') companyId: string, @CurrentUser() actor: JwtUser) {
+    return this.service.ensureCompanyOnboardingBilling(companyId, actor);
   }
 
   @Post('platform/invoices')
@@ -60,8 +60,24 @@ export class FinanceController {
 
   @Post('platform/invoices/:id/sync')
   @Roles('DEV')
-  sync(@Param('id') id: string) {
-    return this.service.sync(id);
+  sync(@Param('id') id: string, @CurrentUser() actor: JwtUser) {
+    return this.service.sync(id, actor);
+  }
+
+  @Get('platform/audit-logs')
+  async auditLogs(@Query('companyId') companyId?: string, @Query('limit') limit?: string) {
+    return this.prisma.auditLog.findMany({
+      where: {
+        ...(companyId ? { companyId } : {}),
+        entity: { in: ['Company', 'Billing', 'Subscription'] },
+      },
+      include: {
+        company: { select: { id: true, name: true, document: true, plan: true, billingStatus: true, status: true, asaasCustomerId: true, asaasSubscriptionId: true, subscriptionStartedAt: true } },
+        user: { select: { id: true, name: true, email: true, role: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: Math.min(Math.max(Number(limit) || 60, 1), 200),
+    });
   }
 
   @Get('platform/webhook-events')
@@ -112,14 +128,14 @@ export class FinanceController {
 
   @Delete('platform/invoices/:id')
   @Roles('DEV')
-  remove(@Param('id') id: string) {
-    return this.service.remove(id);
+  remove(@Param('id') id: string, @CurrentUser() actor: JwtUser) {
+    return this.service.remove(id, actor);
   }
 
   @Post('platform/invoices/:id/refund')
   @Roles('DEV')
-  refund(@Param('id') id: string) {
-    return this.service.requestRefund(id);
+  refund(@Param('id') id: string, @CurrentUser() actor: JwtUser) {
+    return this.service.requestRefund(id, undefined, actor);
   }
 
   @Post('charge/:companyId')

@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InvoiceStatus, Prisma } from '@prisma/client';
+import type { JwtUser } from '../../common/types/auth.types';
 import { PrismaService } from '../../database/prisma.service';
 import { AsaasPayment, AsaasService } from './asaas.service';
 import { PricingService } from './pricing.service';
@@ -14,6 +15,22 @@ export class PlatformFinanceService {
     private readonly asaas: AsaasService,
     private readonly pricingService: PricingService,
   ) {}
+
+  private audit(companyId: string, action: string, metadata: Record<string, unknown>, actor?: JwtUser, entity = 'Billing', entityId?: string) {
+    return this.prisma.auditLog.create({
+      data: {
+        companyId,
+        action,
+        entity,
+        entityId: entityId ?? null,
+        userId: actor?.sub ?? null,
+        metadata: {
+          ...metadata,
+          actorEmail: actor?.email ?? 'system',
+        },
+      },
+    });
+  }
 
   async ensureAsaasCustomer(company: any, admin: any) {
     let customerId = company.subscription?.asaasCustomerId || company.asaasCustomerId;
@@ -32,6 +49,7 @@ export class PlatformFinanceService {
         this.prisma.company.update({ where: { id: company.id }, data: { asaasCustomerId: customerId } }),
         this.prisma.companySubscription.updateMany({ where: { companyId: company.id }, data: { asaasCustomerId: customerId } }),
       ]);
+      await this.audit(company.id, 'ASAAS_CUSTOMER_CREATED', { customerId, adminEmail: admin.email }, undefined, 'Subscription', customerId);
     }
     return customerId;
   }
@@ -79,6 +97,14 @@ export class PlatformFinanceService {
       update: { invoiceUrl: payment.invoiceUrl, status: (this.mapAsaasStatus(payment.status || 'PENDING') || 'OPEN') as InvoiceStatus, deletedAt: null },
     });
 
+    await this.audit(company.id, 'INITIAL_CHARGE_CREATED', {
+      amount,
+      customerId,
+      paymentId: payment.id,
+      dueDate: payment.dueDate,
+      invoiceId: invoice.id,
+    }, undefined, 'Billing', invoice.id);
+
     return { paymentUrl: payment.invoiceUrl, invoice };
   }
 
@@ -109,15 +135,28 @@ export class PlatformFinanceService {
         this.prisma.company.update({ where: { id: company.id }, data: { asaasSubscriptionId: sub.id } }),
         this.prisma.companySubscription.updateMany({ where: { companyId: company.id }, data: { asaasSubscriptionId: sub.id, nextDueDate } }),
       ]);
+      await this.audit(company.id, 'RECURRING_SUBSCRIPTION_CREATED', {
+        amount,
+        customerId,
+        subscriptionId: sub.id,
+        nextDueDate: nextDueDate.toISOString(),
+        cycle,
+      }, undefined, 'Subscription', sub.id);
       return sub.id;
     }
     return null;
   }
 
-  async ensureCompanyOnboardingBilling(companyId: string) {
+  async ensureCompanyOnboardingBilling(companyId: string, actor?: JwtUser) {
     const company = await this.prisma.company.findUnique({
       where: { id: companyId },
-      include: {
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        document: true,
+        billingStatus: true,
+        trialEndsAt: true,
         platformPlan: true,
         subscription: true,
         users: { where: { role: 'ADMIN', isActive: true }, orderBy: { createdAt: 'asc' }, take: 1 },
@@ -130,11 +169,22 @@ export class PlatformFinanceService {
         where: { id: company.id },
         data: { status: 'ACTIVE', isActive: true, billingStatus: 'ACTIVE', suspensionReason: null },
       });
+      await this.audit(company.id, 'ONBOARDING_FREE_ACTIVATED', {
+        planId: company.platformPlan?.id ?? null,
+        planName: company.platformPlan?.name ?? null,
+      }, actor, 'Company', company.id);
       return { active: true, paymentUrl: null, invoice: null };
     }
 
     if (company.billingStatus === 'TRIAL') {
-      if (!this.asaas.isConfigured()) return { active: true, paymentUrl: null, invoice: null, trialEndsAt: company.trialEndsAt };
+      if (!this.asaas.isConfigured()) {
+        await this.audit(company.id, 'ONBOARDING_TRIAL_READY', {
+          trialEndsAt: company.trialEndsAt ?? null,
+          reason: 'asaas_not_configured',
+          planId: company.platformPlan?.id ?? null,
+        }, actor, 'Company', company.id);
+        return { active: true, paymentUrl: null, invoice: null, trialEndsAt: company.trialEndsAt };
+      }
       if (!company.document) throw new BadRequestException('CPF ou CNPJ da empresa e obrigatorio para cobrar.');
       const admin = company.users[0];
       if (!admin) throw new BadRequestException('A empresa nao possui administrador ativo.');
@@ -142,7 +192,13 @@ export class PlatformFinanceService {
       const plan = company.platformPlan;
       const pricing = plan ? this.pricingService.calculate((plan.commitmentMonths as any) || 1, company.subscription?.seatQuantity || 1) : null;
       const amount = pricing?.total ?? Number(plan?.price ?? 0);
-      if (amount > 0) await this.createRecurringSubscription(company, customerId, amount, company.trialEndsAt);
+      const subscriptionId = amount > 0 ? await this.createRecurringSubscription(company, customerId, amount, company.trialEndsAt) : null;
+      await this.audit(company.id, 'ONBOARDING_TRIAL_SUBSCRIPTION_SCHEDULED', {
+        amount,
+        trialEndsAt: company.trialEndsAt ?? null,
+        planId: plan?.id ?? null,
+        subscriptionId,
+      }, actor, 'Subscription', subscriptionId ?? undefined);
       return { active: true, paymentUrl: null, invoice: null, trialEndsAt: company.trialEndsAt };
     }
 
@@ -195,6 +251,14 @@ export class PlatformFinanceService {
       });
     }
 
+    await this.audit(company.id, 'ONBOARDING_PAYMENT_READY', {
+      amount,
+      paymentUrlCreated: Boolean(paymentUrl),
+      invoiceId: invoice?.id ?? null,
+      invoiceStatus: invoice?.status ?? null,
+      planId: plan?.id ?? null,
+    }, actor, 'Billing', invoice?.id ?? undefined);
+
     return { active: invoice?.status === 'PAID', paymentUrl, invoice };
   }
 
@@ -230,6 +294,14 @@ export class PlatformFinanceService {
 
     const customerId = await this.ensureAsaasCustomer(company, company.users[0]);
     const subscriptionId = await this.createRecurringSubscription(company, customerId, amount, nextDueDate);
+    if (subscriptionId) {
+      await this.audit(company.id, 'MANUAL_CONTRACT_BILLING_SYNCED', {
+        amount,
+        nextDueDate: nextDueDate.toISOString(),
+        subscriptionId,
+        localFallback: false,
+      }, undefined, 'Subscription', subscriptionId);
+    }
     return { configured: true, created: Boolean(subscriptionId), subscriptionId };
   }
 
@@ -357,7 +429,7 @@ export class PlatformFinanceService {
     });
   }
 
-  async changeSeatQuantity(companyId: string, nextSeatQuantity: number) {
+  async changeSeatQuantity(companyId: string, nextSeatQuantity: number, actor?: JwtUser) {
     const subscription = await this.prisma.companySubscription.findUnique({
       where: { companyId },
       include: {
@@ -390,6 +462,13 @@ export class PlatformFinanceService {
         where: { companyId },
         data: { pendingSeatQuantity: nextSeatQuantity },
       });
+      await this.audit(companyId, 'SEATS_REDUCTION_SCHEDULED', {
+        currentSeatQuantity: subscription.seatQuantity,
+        nextSeatQuantity,
+        usedSeats,
+        effectiveAt: updated.currentPeriodEnd ?? updated.nextDueDate ?? null,
+        quote,
+      }, actor, 'Subscription', subscription.id);
       return {
         changed: true,
         scheduled: true,
@@ -417,12 +496,30 @@ export class PlatformFinanceService {
       },
     });
 
+    await this.audit(companyId, 'SEATS_QUANTITY_CHANGED', {
+      currentSeatQuantity: subscription.seatQuantity,
+      nextSeatQuantity,
+      usedSeats,
+      quote,
+      subscriptionId: updated.id,
+      asaasSubscriptionId,
+    }, actor, 'Subscription', updated.id);
+
     return { changed: true, scheduled: false, seatQuantity: updated.seatQuantity, pendingSeatQuantity: null, quote };
   }
 
-  async changeCompanyPlan(companyId: string, newPlanId: string) {
+  async changeCompanyPlan(companyId: string, newPlanId: string, actor?: JwtUser) {
     const company = await this.prisma.company.findUnique({
       where: { id: companyId },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        document: true,
+        platformPlanId: true,
+        asaasCustomerId: true,
+        asaasSubscriptionId: true,
+      },
     });
     if (!company) throw new NotFoundException('Empresa não encontrada.');
 
@@ -498,7 +595,14 @@ export class PlatformFinanceService {
     });
 
     // Create a new invoice immediately
-    await this.ensureCompanyOnboardingBilling(companyId);
+    await this.ensureCompanyOnboardingBilling(companyId, actor);
+    await this.audit(companyId, 'PLAN_CHANGED', {
+      previousPlanId: company.platformPlanId ?? null,
+      nextPlanId: newPlan.id,
+      nextPlanName: newPlan.name,
+      subscriptionId,
+      customerId,
+    }, actor, 'Company', companyId);
 
     return { message: 'Plano alterado com sucesso' };
   }
@@ -832,12 +936,12 @@ export class PlatformFinanceService {
     });
   }
 
-  async sync(id: string) {
+  async sync(id: string, actor?: JwtUser) {
     const invoice = await this.findActive(id);
     if (!invoice.asaasPaymentId) throw new BadRequestException('Esta fatura e somente local.');
     const payment = await this.asaas.getCharge(invoice.asaasPaymentId);
     const status = this.mapAsaasStatus(payment.status) ?? invoice.status;
-    return this.prisma.platformInvoice.update({
+    const updated = await this.prisma.platformInvoice.update({
       where: { id },
       data: {
         status,
@@ -846,9 +950,16 @@ export class PlatformFinanceService {
       },
       include: { company: { select: { id: true, name: true } }, plan: { select: { id: true, name: true } } },
     });
+    await this.audit(invoice.companyId, 'INVOICE_SYNCED', {
+      invoiceId: invoice.id,
+      previousStatus: invoice.status,
+      nextStatus: updated.status,
+      asaasPaymentId: invoice.asaasPaymentId,
+    }, actor, 'Billing', invoice.id);
+    return updated;
   }
 
-  async remove(id: string) {
+  async remove(id: string, actor?: JwtUser) {
     const invoice = await this.findActive(id);
     if (invoice.asaasPaymentId && invoice.status !== 'PAID' && invoice.status !== 'CANCELED') {
       try {
@@ -862,10 +973,15 @@ export class PlatformFinanceService {
       data: { status: 'CANCELED', deletedAt: new Date() },
     });
     this.logger.log(`Fatura ${id} cancelada e removida da listagem.`);
+    await this.audit(invoice.companyId, 'INVOICE_CANCELED', {
+      invoiceId: invoice.id,
+      previousStatus: invoice.status,
+      asaasPaymentId: invoice.asaasPaymentId ?? null,
+    }, actor, 'Billing', invoice.id);
     return { id };
   }
 
-  async requestRefund(id: string, companyId?: string) {
+  async requestRefund(id: string, companyId?: string, actor?: JwtUser) {
     const invoice = await this.prisma.platformInvoice.findFirst({
       where: { id, companyId, deletedAt: null },
     });
@@ -901,6 +1017,13 @@ export class PlatformFinanceService {
         data: { status: 'ACTIVE', isActive: true, billingStatus: 'CANCELED', suspensionReason: 'cancelamento_aviso_30_dias' },
       });
     }
+
+    await this.audit(invoice.companyId, 'INVOICE_REFUND_REQUESTED', {
+      invoiceId: invoice.id,
+      paidAt: paidAt.toISOString(),
+      daysSincePayment: Number(daysSincePayment.toFixed(1)),
+      refundedWithinWindow: daysSincePayment <= 7,
+    }, actor, 'Billing', invoice.id);
 
     return updated;
   }

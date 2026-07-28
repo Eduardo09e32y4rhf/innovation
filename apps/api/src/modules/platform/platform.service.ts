@@ -140,11 +140,53 @@ export class PlatformService {
     let paymentUrl: string | null = null;
     let billingSetupPending = false;
     try {
-      const checkout = await this.platformFinance.ensureCompanyOnboardingBilling(created.company.id);
+      const checkout = await this.platformFinance.ensureCompanyOnboardingBilling(created.company.id, actor);
       paymentUrl = checkout.paymentUrl ?? null;
+      await this.repository.createAuditLog({
+        companyId: created.company.id,
+        action: checkout.paymentUrl ? 'BILLING_ONBOARDING_PAYMENT_CREATED' : 'BILLING_ONBOARDING_READY',
+        entity: 'Company',
+        entityId: created.company.id,
+        actor: actor.email,
+        userId: actor.sub,
+        metadata: {
+          planId: created.company.platformPlanId ?? null,
+          billingStatus: created.company.billingStatus,
+          paymentUrlCreated: Boolean(checkout.paymentUrl),
+          trialEndsAt: created.company.trialEndsAt ?? null,
+        },
+      });
     } catch (error) {
       billingSetupPending = true;
+      await this.repository.createAuditLog({
+        companyId: created.company.id,
+        action: 'BILLING_ONBOARDING_PENDING',
+        entity: 'Company',
+        entityId: created.company.id,
+        actor: actor.email,
+        userId: actor.sub,
+        metadata: {
+          planId: created.company.platformPlanId ?? null,
+          error: error instanceof Error ? error.message : String(error),
+        },
+      });
     }
+    await this.repository.createAuditLog({
+      companyId: created.company.id,
+      action: 'COMPANY_CREATED',
+      entity: 'Company',
+      entityId: created.company.id,
+      actor: actor.email,
+      userId: actor.sub,
+      metadata: {
+        name: created.company.name,
+        plan: created.company.plan,
+        billingStatus: created.company.billingStatus,
+        maxUsers: created.company.maxUsers,
+        maxEmployees: created.company.maxEmployees,
+        commercialOwnerId: created.company.commercialOwnerId ?? null,
+      },
+    });
     return { ...created.company, adminId: created.adminId, paymentUrl, billingSetupPending };
   }
 
@@ -198,11 +240,56 @@ export class PlatformService {
       }).catch(err => console.error('[PlatformService] Error sending suspension notice:', err));
     }
 
-    return this.repository.updateCompany(id, data);
+    const updated = await this.repository.updateCompany(id, data);
+    await this.repository.createAuditLog({
+      companyId: id,
+      action: 'COMPANY_UPDATED',
+      entity: 'Company',
+      entityId: id,
+      actor: actor.email,
+      userId: actor.sub,
+      metadata: {
+        changedFields: Object.keys(data),
+        previous: {
+          name: company.name,
+          document: company.document,
+          plan: company.plan,
+          billingStatus: company.billingStatus,
+          status: company.status,
+          trialEndsAt: company.trialEndsAt ?? null,
+          activeModules: company.activeModules ?? [],
+        },
+        next: {
+          name: updated.name,
+          document: updated.document,
+          plan: updated.plan,
+          billingStatus: updated.billingStatus,
+          status: updated.status,
+          trialEndsAt: updated.trialEndsAt ?? null,
+          activeModules: updated.activeModules ?? [],
+        },
+      },
+    });
+    return updated;
   }
 
   async deleteCompany(id: string) {
+    const company = await this.getCompany(id);
     await this.repository.deleteCompany(id);
+    if (company) {
+      await this.repository.createAuditLog({
+        companyId: id,
+        action: 'COMPANY_ARCHIVED',
+        entity: 'Company',
+        entityId: id,
+        metadata: {
+          name: company.name,
+          status: company.status,
+          billingStatus: company.billingStatus,
+          reason: company.suspensionReason ?? 'arquivada_pelo_dev',
+        },
+      });
+    }
     return { success: true };
   }
 
