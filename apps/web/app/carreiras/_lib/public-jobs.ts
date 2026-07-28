@@ -196,24 +196,6 @@ export type GlobalCareersResult = {
   jobs: PublicJob[];
 };
 
-export async function getAllPublicJobs(): Promise<GlobalCareersResult> {
-  const payload = await fetchPublic('/public/jobs');
-  const record = asRecord(payload);
-
-  const rawCompanies = Array.isArray(record?.companies) ? record.companies : [];
-  const companies = rawCompanies
-    .map((c: any) => normalizeCompany(c, c?.id || 'empresa'))
-    .filter((c) => Boolean(c.name && c.id));
-
-  const rawJobs = Array.isArray(record?.jobs) ? record.jobs : [];
-  const jobs = rawJobs
-    .map((j: any) => normalizeJob(j, j?.companyId || j?.company?.id || ''))
-    .filter((j): j is PublicJob => Boolean(j && j.id && j.title))
-    .filter((j) => j.status === 'OPEN');
-
-  return { companies, jobs };
-}
-
 export async function getPublicJobs(companyId: string): Promise<PublicJobsResult> {
   const payload = await fetchPublic(`/public/jobs/company/${encodeURIComponent(companyId)}`);
   const record = asRecord(payload);
