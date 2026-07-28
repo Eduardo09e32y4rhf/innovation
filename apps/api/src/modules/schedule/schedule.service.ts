@@ -169,6 +169,116 @@ export class ScheduleService {
 
   // ─── Calendário mensal ────────────────────────────────────────────────────
 
+  private buildCalendarDays(
+    startDate: Date,
+    endDate: Date,
+    userSchedules: any[],
+    exceptions: any[],
+    holidays: any[],
+    timeTracks: any[]
+  ) {
+    const days: any[] = [];
+    const cursor = new Date(startDate);
+    while (cursor < endDate) {
+      const dateStr = toSaoPauloDateKey(cursor);
+      const dow = saoPauloDayOfWeek(cursor); // 0=dom, 6=sab
+      const userSchedule = userSchedules.find((item) =>
+        item.startDate <= cursor && (!item.endDate || item.endDate >= cursor)
+      );
+      const exception = exceptions.find(
+        (e: any) => toSaoPauloDateKey(e.date) === dateStr,
+      );
+      const holiday = holidays.find(
+        (h: any) => toSaoPauloDateKey(h.date as Date) === dateStr,
+      );
+      const timeTrack = timeTracks.find(
+        (t: any) => toSaoPauloDateKey(t.date as Date) === dateStr,
+      );
+
+      let dayType: string = 'WORK';
+      let entry = userSchedule?.entryTimeOverride ?? userSchedule?.schedule?.entryTime;
+      let lunchStart = userSchedule?.lunchStartTimeOverride ?? userSchedule?.schedule?.lunchStartTime;
+      let lunchReturn = userSchedule?.lunchReturnTimeOverride ?? userSchedule?.schedule?.lunchReturnTime;
+      let exit = userSchedule?.exitTimeOverride ?? userSchedule?.schedule?.exitTime;
+
+      if (exception) {
+        dayType = exception.exceptionType;
+        if (exception.exceptionType === 'COMPENSACAO') {
+          entry = exception.altEntryTime ?? entry;
+          exit = exception.altExitTime ?? exit;
+        } else {
+          entry = null;
+          exit = null;
+          lunchStart = null;
+          lunchReturn = null;
+        }
+      } else if (holiday) {
+        dayType = 'FERIADO';
+        entry = null;
+        exit = null;
+        lunchStart = null;
+        lunchReturn = null;
+      } else if (
+        userSchedule &&
+        userSchedule.schedule?.restDays.includes(dow)
+      ) {
+        dayType = 'FOLGA';
+        entry = null;
+        exit = null;
+        lunchStart = null;
+        lunchReturn = null;
+      } else if (!userSchedule) {
+        dayType = 'SEM_ESCALA';
+      }
+
+      days.push({
+        date: dateStr,
+        dayOfWeek: dow,
+        dayType,
+        scheduled: { entry, lunchStart, lunchReturn, exit },
+        actual: timeTrack
+          ? {
+              // ── Batidas de ponto ──────────────────────────────────────────
+              entry: timeTrack.entry,
+              lunchStart: timeTrack.lunchStart,
+              lunchReturn: timeTrack.lunchReturn,
+              exit: timeTrack.exit,
+              // ── Totais calculados ─────────────────────────────────────────
+              totalWorked: timeTrack.totalWorked,
+              dailyBalance: timeTrack.dailyBalance,
+              // ── Ocorrências e incidentes ──────────────────────────────────
+              incidentType: timeTrack.incidentType,
+              lateMinutes: timeTrack.lateMinutes,
+              earlyLeaveMinutes: timeTrack.earlyLeaveMinutes,
+              absenceMinutes: timeTrack.absenceMinutes,
+              // ── Hora Extra ────────────────────────────────────────────────
+              overtime50Minutes: timeTrack.overtime50Minutes,
+              overtime100Minutes: timeTrack.overtime100Minutes,
+              nightShiftMinutes: timeTrack.nightShiftMinutes,
+              overtimeApprovalStatus: timeTrack.overtimeApprovalStatus,
+              overtimeExceedsLimit: timeTrack.overtimeExceedsLimit,
+              overtimeHandling: timeTrack.overtimeHandling,
+              overtimeBankMinutes: timeTrack.overtimeBankMinutes,
+              overtimePaymentMinutes: timeTrack.overtimePaymentMinutes,
+              // ── Ajuste manual ─────────────────────────────────────────────
+              observation: timeTrack.observation,
+              manualReason: timeTrack.manualReason,
+              manualStatus: timeTrack.manualStatus,
+              // ── Localização ───────────────────────────────────────────────
+              latitude: timeTrack.latitude,
+              longitude: timeTrack.longitude,
+              clockedInWithoutFacial: timeTrack.clockedInWithoutFacial ?? false,
+            }
+          : null,
+        exception: exception ?? null,
+        holiday: holiday ? { name: (holiday as any).name, date: dateStr } : null,
+      });
+
+      cursor.setUTCDate(cursor.getUTCDate() + 1);
+    }
+    return days;
+  }
+
   async getCalendar(companyId: string, actor: JwtUser, employeeId: string, month: string) {
     // Verifica acesso
     const employee = await this.prisma.employee.findFirst({
@@ -402,9 +512,55 @@ export class ScheduleService {
       select: { id: true, name: true, department: true, position: true, registration: true },
     });
 
-    const calendars = await Promise.all(employeeIds.map((employeeId) =>
-      this.getCalendar(companyId, actor, employeeId, month)
-    ));
+    const [employeesData, allExceptions, allHolidays, allTimeTracks] = await Promise.all([
+      this.prisma.employee.findMany({ where: { companyId, id: { in: employeeIds } } }),
+      this.prisma.scheduleException.findMany({
+        where: { companyId, employeeId: { in: employeeIds }, date: { gte: startDate, lt: endDate } },
+      }),
+      this.prisma.holiday.findMany({
+        where: { companyId, date: { gte: startDate, lt: endDate } },
+      }),
+      this.prisma.timeTrack.findMany({
+        where: { companyId, employeeId: { in: employeeIds }, date: { gte: startDate, lt: endDate } },
+      })
+    ]);
+
+    const employeesMap = new Map(employeesData.map((e: any) => [e.id, e]));
+    const exceptionsByEmployee = new Map<string, any[]>();
+    const timeTracksByEmployee = new Map<string, any[]>();
+    const userSchedulesByEmployee = new Map<string, any[]>();
+
+    for (const ex of allExceptions) {
+      if (!exceptionsByEmployee.has(ex.employeeId)) exceptionsByEmployee.set(ex.employeeId, []);
+      exceptionsByEmployee.get(ex.employeeId)!.push(ex);
+    }
+    for (const tt of allTimeTracks) {
+      if (!timeTracksByEmployee.has(tt.employeeId)) timeTracksByEmployee.set(tt.employeeId, []);
+      timeTracksByEmployee.get(tt.employeeId)!.push(tt);
+    }
+    // userSchedules is already fetched correctly in getTeamSchedule, we just group it here
+    for (const us of userSchedules) {
+      if (!userSchedulesByEmployee.has(us.employeeId)) userSchedulesByEmployee.set(us.employeeId, []);
+      userSchedulesByEmployee.get(us.employeeId)!.push(us);
+    }
+
+    const calendars = employeeIds.map(employeeId => {
+      const employee = employeesMap.get(employeeId);
+      const empSchedules = userSchedulesByEmployee.get(employeeId) || [];
+      const empExceptions = exceptionsByEmployee.get(employeeId) || [];
+      const empTimeTracks = timeTracksByEmployee.get(employeeId) || [];
+
+      const days = this.buildCalendarDays(
+        startDate, endDate, empSchedules, empExceptions, allHolidays, empTimeTracks
+      );
+
+      return {
+        employee: employee ? { id: employee.id, name: employee.name } : { id: employeeId, name: 'Desconhecido' },
+        schedule: empSchedules[0]?.schedule ?? null,
+        month,
+        days,
+      };
+    });
     const calendarByEmployee = new Map(calendars.map((calendar) => [calendar.employee.id, calendar]));
     const withSchedule = uniqueUserSchedules.map((assignment: any) => ({
       ...assignment,
