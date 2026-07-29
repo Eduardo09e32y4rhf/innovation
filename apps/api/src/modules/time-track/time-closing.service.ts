@@ -66,28 +66,46 @@ export class TimeClosingService {
       where: { OR: [{ companyId }, { companyId: null }], date: { gte: periodStart, lte: periodEnd } },
     });
     const holidayKeys = new Set(holidays.map((holiday) => this.dateKey(holiday.date)));
+
+    const employeeIds = employees.map(e => e.id);
+    const [allTracks, allOccurrences, allSchedules] = await Promise.all([
+      this.prisma.timeTrack.findMany({
+        where: { companyId, employeeId: { in: employeeIds }, date: { gte: periodStart, lte: periodEnd } },
+        orderBy: { date: 'asc' },
+      }),
+      this.prisma.timeOccurrence.findMany({
+        where: { companyId, employeeId: { in: employeeIds }, date: { gte: periodStart, lte: periodEnd }, status: 'APPROVED' },
+      }),
+      this.prisma.userSchedule.findMany({
+        where: {
+          companyId,
+          employeeId: { in: employeeIds },
+          startDate: { lte: periodEnd },
+          OR: [{ endDate: null }, { endDate: { gte: periodStart } }],
+        },
+        include: { schedule: true },
+        orderBy: { startDate: 'desc' },
+      }),
+    ]);
+
+    const tracksByEmployeeId = new Map<string, typeof allTracks>();
+    const occurrencesByEmployeeId = new Map<string, typeof allOccurrences>();
+    const schedulesByEmployeeId = new Map<string, typeof allSchedules>();
+    for (const id of employeeIds) {
+      tracksByEmployeeId.set(id, []);
+      occurrencesByEmployeeId.set(id, []);
+      schedulesByEmployeeId.set(id, []);
+    }
+    for (const track of allTracks) tracksByEmployeeId.get(track.employeeId)?.push(track);
+    for (const occurrence of allOccurrences) occurrencesByEmployeeId.get(occurrence.employeeId)?.push(occurrence);
+    for (const schedule of allSchedules) schedulesByEmployeeId.get(schedule.employeeId)?.push(schedule);
+
     const results = [];
 
     for (const employee of employees) {
-      const [tracks, occurrences, schedules] = await Promise.all([
-        this.prisma.timeTrack.findMany({
-          where: { companyId, employeeId: employee.id, date: { gte: periodStart, lte: periodEnd } },
-          orderBy: { date: 'asc' },
-        }),
-        this.prisma.timeOccurrence.findMany({
-          where: { companyId, employeeId: employee.id, date: { gte: periodStart, lte: periodEnd }, status: 'APPROVED' },
-        }),
-        this.prisma.userSchedule.findMany({
-          where: {
-            companyId,
-            employeeId: employee.id,
-            startDate: { lte: periodEnd },
-            OR: [{ endDate: null }, { endDate: { gte: periodStart } }],
-          },
-          include: { schedule: true },
-          orderBy: { startDate: 'desc' },
-        }),
-      ]);
+      const tracks = tracksByEmployeeId.get(employee.id) || [];
+      const occurrences = occurrencesByEmployeeId.get(employee.id) || [];
+      const schedules = schedulesByEmployeeId.get(employee.id) || [];
 
       const trackByDate = new Map(tracks.map((track) => [this.dateKey(track.date), track]));
       const justifiedDates = new Set(occurrences
