@@ -17,9 +17,13 @@ import {
   ReceiptText,
   Users,
   AlertTriangle,
+  FileText,
+  X,
 } from 'lucide-react';
 import { EmptyState, LoadingState } from '@/app/components/data-states';
+import { useAuth } from '@/app/contexts/AuthContext';
 import { api, type PlatformBillingAuditLog, type PlatformCompany, type PlatformFinanceSummary, type PublicPlatformPlan } from '@/app/lib/api';
+import { toast } from 'sonner';
 
 type SubscriptionCompany = PlatformCompany & {
   subscription?: {
@@ -121,6 +125,7 @@ function planPricing(plan?: PublicPlatformPlan | null, seats = 0) {
 }
 
 export default function SubscriptionsPage({ params: { tenant } }: { params: { tenant: string } }) {
+  const { user } = useAuth();
   const [companies, setCompanies] = useState<SubscriptionCompany[]>([]);
   const [plans, setPlans] = useState<PublicPlatformPlan[]>([]);
   const [summary, setSummary] = useState<PlatformFinanceSummary | null>(null);
@@ -129,6 +134,8 @@ export default function SubscriptionsPage({ params: { tenant } }: { params: { te
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<(typeof STATUS_FILTERS)[number]['value']>('ALL');
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null);
+  const [workingCheckoutId, setWorkingCheckoutId] = useState<string | null>(null);
 
   async function load() {
     setLoading(true);
@@ -193,6 +200,25 @@ export default function SubscriptionsPage({ params: { tenant } }: { params: { te
   }, [companies]);
 
   const recentAudit = useMemo(() => auditLogs.slice(0, 12), [auditLogs]);
+  const selectedCompany = useMemo(
+    () => filteredCompanies.find((company) => company.id === selectedCompanyId) || null,
+    [filteredCompanies, selectedCompanyId],
+  );
+  const canRunCheckout = String(user?.role || user?.profile || '').toUpperCase() === 'DEV';
+
+  async function runCheckout(company: SubscriptionCompany) {
+    if (!window.confirm(`Gerar ou atualizar a cobranca de onboarding para ${company.name}?`)) return;
+    setWorkingCheckoutId(company.id);
+    try {
+      await api.platform.finance.checkoutCompany(company.id);
+      toast.success('Cobrança de onboarding gerada.');
+      await load();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Nao foi possivel gerar a cobranca.');
+    } finally {
+      setWorkingCheckoutId(null);
+    }
+  }
 
   return (
     <div className="mx-auto w-full space-y-6 pb-10">
@@ -394,6 +420,14 @@ export default function SubscriptionsPage({ params: { tenant } }: { params: { te
                         </td>
                         <td className="px-5 py-4 align-top">
                           <div className="flex justify-end gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setSelectedCompanyId(company.id)}
+                              className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border border-slate-200 px-3 text-[10px] font-bold text-slate-600 shadow-sm hover:bg-white hover:text-slate-900"
+                            >
+                              <FileText size={12} />
+                              Detalhes
+                            </button>
                             {company.asaasCustomerId ? (
                               <a
                                 href={`https://www.asaas.com/customer/view/${company.asaasCustomerId}`}
@@ -515,6 +549,99 @@ export default function SubscriptionsPage({ params: { tenant } }: { params: { te
           </section>
         </aside>
       </section>
+
+      {selectedCompany && (
+        <div className="fixed inset-0 z-50 flex items-center justify-end bg-slate-950/50 p-4">
+          <div className="flex h-full w-full max-w-2xl flex-col overflow-hidden rounded-[24px] bg-white shadow-2xl">
+            <header className="flex items-start justify-between gap-4 border-b border-slate-100 px-6 py-5">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-violet-600">Detalhe da assinatura</p>
+                <h3 className="mt-1 text-lg font-black text-slate-950">{selectedCompany.name}</h3>
+                <p className="mt-1 text-xs text-slate-500">
+                  {selectedCompany.document || 'Sem CNPJ'} • {lifecycleLabel(selectedCompany)}
+                </p>
+              </div>
+              <button type="button" onClick={() => setSelectedCompanyId(null)} className="rounded-full p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700">
+                <X size={18} />
+                <span className="sr-only">Fechar</span>
+              </button>
+            </header>
+
+            <div className="grid gap-4 overflow-y-auto p-6">
+              <div className="grid gap-3 sm:grid-cols-2">
+                {[
+                  ['Plano', planById.get(selectedCompany.platformPlanId || '')?.name || selectedCompany.plan || 'Sem plano'],
+                  ['Status financeiro', selectedCompany.billingStatus || selectedCompany.subscription?.status || 'TRIAL'],
+                  ['Assentos cobrados', String(selectedCompany.subscription?.seatQuantity ?? selectedCompany.usersCount ?? 0)],
+                  ['Próximo vencimento', plainDate(selectedCompany.subscription?.nextDueDate || selectedCompany.trialEndsAt || selectedCompany.subscription?.currentPeriodEnd)],
+                  ['Cliente Asaas', selectedCompany.asaasCustomerId || '-'],
+                  ['Assinatura Asaas', selectedCompany.asaasSubscriptionId || '-'],
+                ].map(([label, value]) => (
+                  <article key={label} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <p className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">{label}</p>
+                    <p className="mt-2 text-sm font-bold text-slate-900">{value}</p>
+                  </article>
+                ))}
+              </div>
+
+              <article className="rounded-2xl border border-slate-200 p-4">
+                <p className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">Precificação estimada</p>
+                {(() => {
+                  const plan = planById.get(selectedCompany.platformPlanId || '');
+                  const pricing = planPricing(plan, selectedCompany.subscription?.seatQuantity ?? selectedCompany.usersCount ?? 0);
+                  return (
+                    <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                      <div className="rounded-xl border border-slate-200 bg-white p-3">
+                        <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Base</p>
+                        <p className="mt-1 text-sm font-black text-slate-950">{pricing ? money(pricing.base) : '—'}</p>
+                      </div>
+                      <div className="rounded-xl border border-slate-200 bg-white p-3">
+                        <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Adicional</p>
+                        <p className="mt-1 text-sm font-black text-slate-950">{pricing ? money(pricing.user) : '—'}</p>
+                      </div>
+                      <div className="rounded-xl border border-slate-200 bg-white p-3">
+                        <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Total</p>
+                        <p className="mt-1 text-sm font-black text-slate-950">{pricing ? money(pricing.total) : '—'}</p>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </article>
+
+              <article className="rounded-2xl border border-slate-200 p-4">
+                <p className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">Ações</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Link
+                    href={`/${tenant}/dashboard/platform/finance?search=${encodeURIComponent(selectedCompany.name)}`}
+                    className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50"
+                  >
+                    <ReceiptText size={14} />
+                    Ver financeiro
+                  </Link>
+                  <Link
+                    href={`/${tenant}/dashboard/platform/companies?search=${encodeURIComponent(selectedCompany.name)}`}
+                    className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50"
+                  >
+                    <Building2 size={14} />
+                    Abrir empresa
+                  </Link>
+                  {canRunCheckout && (
+                    <button
+                      type="button"
+                      onClick={() => runCheckout(selectedCompany)}
+                      disabled={workingCheckoutId === selectedCompany.id}
+                      className="inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-3 py-2 text-xs font-bold text-violet-700 hover:bg-violet-100 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <CreditCard size={14} />
+                      {workingCheckoutId === selectedCompany.id ? 'Gerando...' : 'Gerar cobrança'}
+                    </button>
+                  )}
+                </div>
+              </article>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
