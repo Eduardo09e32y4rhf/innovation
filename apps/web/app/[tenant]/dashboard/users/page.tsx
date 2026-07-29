@@ -166,9 +166,16 @@ export default function UsersPage() {
 
   const handleResetSubmit = async (newPassword: string) => {
     if (!selectedUser) return;
-    await api.users.resetPassword(selectedUser.id, { newPassword });
-    alert('Senha temporária definida com sucesso!');
-    users.refetch();
+    try {
+      await api.users.resetPassword(selectedUser.id, { newPassword });
+      const updatedUser = await api.users.get(selectedUser.id);
+      setSelectedUser(updatedUser);
+      alert('Senha temporária definida com sucesso!');
+      users.refetch();
+    } catch (error: any) {
+      alert(error?.message || 'Não foi possível redefinir a senha.');
+      throw error;
+    }
   };
 
   const handleSaveGeneral = async (data: Partial<AppUser>) => {

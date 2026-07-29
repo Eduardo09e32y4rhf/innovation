@@ -1,9 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { X, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
-import api from '@/app/lib/api';
 
 interface UserPasswordResetModalProps {
   isOpen?: boolean;
@@ -17,6 +16,14 @@ export function UserPasswordResetModal({ isOpen = true, user, onClose, onSubmit 
   const [newPassword, setNewPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
+  useEffect(() => {
+    if (!isOpen || !user) {
+      setNewPassword('');
+      setShowPassword(false);
+      setLoading(false);
+    }
+  }, [isOpen, user]);
+
   async function handleReset() {
     if (!user || !newPassword) return;
 
@@ -28,7 +35,6 @@ export function UserPasswordResetModal({ isOpen = true, user, onClose, onSubmit 
     setLoading(true);
     try {
       await onSubmit(newPassword);
-      onClose();
     } catch (error: any) {
       toast.error(error.message || 'Erro ao redefinir a senha.');
     } finally {

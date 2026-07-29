@@ -144,8 +144,6 @@ export class UsersService {
       previousPasswords: [user.passwordHash, ...(user.previousPasswords ?? [])].slice(0, 10),
       forcePasswordChange: true,
       failedLoginAttempts: 0,
-      passwordResetToken: null,
-      passwordResetExpires: null,
       resetPasswordCode: null,
       resetPasswordExpires: null,
       passwordChangedAt: new Date(),
