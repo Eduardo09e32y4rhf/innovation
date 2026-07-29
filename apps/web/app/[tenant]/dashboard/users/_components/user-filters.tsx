@@ -1,6 +1,6 @@
 import { Search, Building2, Shield, Activity, Link as LinkIcon, X } from 'lucide-react';
 import { ROLE_LABEL } from '@/app/lib/format';
-import type { UserRole } from '@/app/lib/api';
+import type { PlatformCompany, UserRole } from '@/app/lib/api';
 
 export interface UserFilterState {
   search: string;
@@ -13,7 +13,7 @@ export interface UserFilterState {
 interface UserFiltersProps {
   filters: UserFilterState;
   onChange: (filters: UserFilterState) => void;
-  uniqueCompanies: string[];
+  companies: PlatformCompany[];
   showCompanyFilter: boolean;
   availableRoles: UserRole[];
 }
@@ -21,7 +21,7 @@ interface UserFiltersProps {
 export function UserFilters({
   filters,
   onChange,
-  uniqueCompanies,
+  companies,
   showCompanyFilter,
   availableRoles,
 }: UserFiltersProps) {
@@ -56,7 +56,7 @@ export function UserFilters({
           />
         </div>
 
-        {showCompanyFilter && uniqueCompanies.length > 0 && (
+        {showCompanyFilter && companies.length > 0 && (
           <div className="relative sm:w-56">
             <Building2 size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <select
@@ -65,9 +65,9 @@ export function UserFilters({
               className="form-control pl-10"
             >
               <option value="">Todas as empresas</option>
-              {uniqueCompanies.map((c) => (
-                <option key={c} value={c}>
-                  {c}
+              {companies.map((company) => (
+                <option key={company.id} value={company.id}>
+                  {company.name}
                 </option>
               ))}
             </select>

@@ -48,6 +48,7 @@ export default function UsersPage() {
   
   const users = useQuery(() => api.users.list(), []);
   const usage = useQuery(() => api.users.usage(), []);
+  const companies = useQuery(() => api.platform.listCompanies(), [], { enabled: currentRole === 'DEV' });
 
   const remove = useMutation((id: string) => api.users.delete(id), {
     onSuccess: () => { users.refetch(); usage.refetch(); },
@@ -57,10 +58,6 @@ export default function UsersPage() {
     api.users.update(id, { isActive }), {
     onSuccess: () => { users.refetch(); },
   });
-
-  const resetPassword = useMutation(({ id, newPassword }: { id: string; newPassword: string }) =>
-    api.users.update(id, { password: newPassword, forcePasswordChange: true })
-  );
 
   // States
   const [filters, setFilters] = useState<UserFilterState>({
@@ -78,9 +75,9 @@ export default function UsersPage() {
 
   // Data
   const rows = users.data ?? [];
-  const uniqueCompanies = currentRole === 'DEV' 
-    ? Array.from(new Set(rows.map(u => u.company?.name).filter(Boolean) as string[])).sort()
-    : [];
+  const companyOptions = currentRole === 'DEV' ? (companies.data ?? []) : [];
+  const showCompanyFilter = currentRole === 'DEV' && companyOptions.length > 1;
+  const showCompanyColumn = currentRole === 'DEV' && companyOptions.length > 1;
 
   const filteredRows = rows.filter(u => {
     if (filters.search) {
@@ -88,7 +85,7 @@ export default function UsersPage() {
       if (!u.name.toLowerCase().includes(q) && !u.email.toLowerCase().includes(q)) return false;
     }
     if (filters.role && u.role !== filters.role) return false;
-    if (filters.company && u.company?.name !== filters.company) return false;
+    if (filters.company && u.companyId !== filters.company) return false;
     if (filters.status) {
       if (filters.status === 'ativos' && u.isActive === false) return false;
       if (filters.status === 'bloqueados' && u.isActive !== false) return false;
@@ -169,20 +166,7 @@ export default function UsersPage() {
 
   const handleResetSubmit = async (newPassword: string) => {
     if (!selectedUser) return;
-    const { readAuthSession } = require('@/app/lib/auth-session');
-    const token = readAuthSession().token;
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || '/api'}/users/${selectedUser.id}/reset-password`, {
-      method: 'POST',
-      headers: { 
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json' 
-      },
-      body: JSON.stringify({ newPassword }),
-    });
-    if (!res.ok) {
-      const data = await res.json();
-      throw new Error(data.message || 'Erro ao redefinir a senha');
-    }
+    await api.users.resetPassword(selectedUser.id, { newPassword });
     alert('Senha temporária definida com sucesso!');
     users.refetch();
   };
@@ -235,8 +219,8 @@ export default function UsersPage() {
             <UserFilters
               filters={filters}
               onChange={setFilters}
-              uniqueCompanies={uniqueCompanies}
-              showCompanyFilter={currentRole === 'DEV'}
+              companies={companyOptions}
+              showCompanyFilter={showCompanyFilter}
               availableRoles={availableRoles}
             />
           </div>
@@ -247,6 +231,7 @@ export default function UsersPage() {
             <UsersTable
               rows={filteredRows}
               currentRole={currentRole}
+              showCompanyColumn={showCompanyColumn}
               canManageRow={canManageRow}
               onEdit={handleEdit}
               onResetPassword={handleResetPassword}
@@ -259,14 +244,14 @@ export default function UsersPage() {
         </>
       )}
 
-      <UserCreateModal
-        isOpen={createOpen}
-        onClose={() => setCreateOpen(false)}
-        availableRoles={availableRoles}
-        currentRole={currentRole}
-        uniqueCompanies={uniqueCompanies}
-        onSubmit={handleCreateSubmit}
-      />
+        <UserCreateModal
+          isOpen={createOpen}
+          onClose={() => setCreateOpen(false)}
+          availableRoles={availableRoles}
+          currentRole={currentRole}
+          companies={companyOptions}
+          onSubmit={handleCreateSubmit}
+        />
 
       <UserPasswordResetModal
         isOpen={resetModalOpen}

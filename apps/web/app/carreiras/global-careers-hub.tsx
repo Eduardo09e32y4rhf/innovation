@@ -147,7 +147,7 @@ export function GlobalCareersHub() {
           Construa o Futuro nas Melhores Empresas
         </div>
         <h1 className="text-4xl font-black tracking-tight text-white sm:text-6xl lg:text-7xl max-w-5xl mx-auto leading-[1.08]">
-          Seu próximo grande desafio pode começar <span className="bg-gradient-to-r from-teal-400 via-cyan-400 to-emerald-400 bg-clip-text text-transparent">aqui.</span>
+          Seu próximo grande desafio pode começar <span className="bg-gradient-to-r from-teal-300 via-cyan-300 to-slate-100 bg-clip-text text-transparent">aqui.</span>
         </h1>
         <p className="mt-6 text-base text-slate-400 sm:text-xl max-w-3xl mx-auto font-medium leading-relaxed">
           Conectamos talentos excepcionais a empresas verificadas em todo o país. Processos seletivos transparentes, triagem inteligente com IA e admissão 100% digital sem papelada.
@@ -156,37 +156,37 @@ export function GlobalCareersHub() {
         {/* Gamified Process Banner Preview */}
         <div className="mt-12 grid grid-cols-2 sm:grid-cols-5 gap-3 max-w-5xl mx-auto bg-slate-900/60 border border-white/10 rounded-2xl p-4 backdrop-blur-xl text-left">
           <div className="flex items-center gap-3 p-2">
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-teal-500/20 text-teal-400 font-black text-sm">1</span>
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-800 text-teal-300 font-black text-sm">1</span>
             <div>
               <p className="text-[11px] font-bold text-white leading-tight">Inscrição & Triagem</p>
               <p className="text-[10px] text-slate-400">Análise inteligente IA</p>
             </div>
           </div>
           <div className="flex items-center gap-3 p-2">
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-cyan-500/20 text-cyan-400 font-black text-sm">2</span>
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-800 text-cyan-300 font-black text-sm">2</span>
             <div>
               <p className="text-[11px] font-bold text-white leading-tight">Avaliação RH</p>
               <p className="text-[10px] text-slate-400">Perfil & Cultura</p>
             </div>
           </div>
           <div className="flex items-center gap-3 p-2">
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-500/20 text-indigo-400 font-black text-sm">3</span>
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-800 text-sky-300 font-black text-sm">3</span>
             <div>
               <p className="text-[11px] font-bold text-white leading-tight">Entrevista / Teste</p>
               <p className="text-[10px] text-slate-400">Desafio prático</p>
             </div>
           </div>
           <div className="flex items-center gap-3 p-2">
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-purple-500/20 text-purple-400 font-black text-sm">4</span>
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-800 text-violet-300 font-black text-sm">4</span>
             <div>
               <p className="text-[11px] font-bold text-white leading-tight">Papo com Gestor</p>
               <p className="text-[10px] text-slate-400">Alinhamento final</p>
             </div>
           </div>
           <div className="col-span-2 sm:col-span-1 flex items-center gap-3 p-2 border-t sm:border-t-0 border-white/10 pt-3 sm:pt-2">
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-500/20 text-emerald-400 font-black text-sm">5</span>
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-800 text-emerald-300 font-black text-sm">5</span>
             <div>
-              <p className="text-[11px] font-bold text-emerald-400 leading-tight">Aprovação & ASO</p>
+              <p className="text-[11px] font-bold text-teal-300 leading-tight">Aprovação & ASO</p>
               <p className="text-[10px] text-slate-400">Admissão digital</p>
             </div>
           </div>
@@ -253,8 +253,8 @@ export function GlobalCareersHub() {
                 onClick={() => setSelectedCompanyId('ALL')}
                 className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-bold transition-all ${
                   selectedCompanyId === 'ALL'
-                    ? 'bg-gradient-to-r from-teal-500 to-cyan-500 text-slate-950 shadow-[0_0_15px_rgba(45,212,191,0.3)]'
-                    : 'bg-white/[0.05] text-slate-300 hover:bg-white/[0.1] border border-white/5'
+                    ? 'bg-white text-slate-950 shadow-[0_0_15px_rgba(15,23,42,0.15)]'
+                    : 'bg-slate-900/70 text-slate-300 hover:bg-slate-800 border border-white/10'
                 }`}
               >
                 Todas ({jobs.length})
@@ -268,14 +268,14 @@ export function GlobalCareersHub() {
                     onClick={() => setSelectedCompanyId(isSelected ? 'ALL' : comp.id)}
                     className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-bold transition-all flex items-center gap-2 ${
                       isSelected
-                        ? 'bg-gradient-to-r from-teal-500 to-cyan-500 text-slate-950 shadow-[0_0_15px_rgba(45,212,191,0.3)]'
-                        : 'bg-white/[0.05] text-slate-300 hover:bg-white/[0.1] border border-white/5'
+                        ? 'bg-white text-slate-950 shadow-[0_0_15px_rgba(15,23,42,0.15)]'
+                        : 'bg-slate-900/70 text-slate-300 hover:bg-slate-800 border border-white/10'
                     }`}
                   >
                     {comp.logoUrl ? (
-                      <img src={comp.logoUrl} alt={comp.name} className="h-4 w-4 rounded-full object-cover bg-white" />
+                      <img src={comp.logoUrl} alt={comp.name} className="h-5 w-5 rounded-full object-contain bg-slate-950 p-0.5 ring-1 ring-white/10" />
                     ) : (
-                      <span className="h-4 w-4 rounded-full bg-teal-500/20 text-teal-400 text-[10px] flex items-center justify-center font-black">
+                      <span className="h-4 w-4 rounded-full bg-slate-800 text-teal-300 text-[10px] flex items-center justify-center font-black">
                         {comp.name.charAt(0)}
                       </span>
                     )}
@@ -331,7 +331,7 @@ export function GlobalCareersHub() {
                       <div
                         key={comp.id}
                         onClick={() => setSelectedCompanyId(comp.id)}
-                        className="group relative cursor-pointer rounded-3xl border border-white/10 bg-white/[0.02] p-6 transition-all duration-300 hover:border-teal-500/50 hover:bg-white/[0.05] hover:shadow-[0_10px_30px_rgba(45,212,191,0.1)] flex flex-col justify-between"
+                        className="group relative cursor-pointer rounded-3xl border border-white/10 bg-white/[0.03] p-6 transition-all duration-300 hover:border-teal-500/50 hover:bg-white/[0.05] hover:shadow-[0_10px_30px_rgba(45,212,191,0.1)] flex flex-col justify-between"
                       >
                         <div>
                           <div className="flex items-center justify-between mb-4">
@@ -340,7 +340,7 @@ export function GlobalCareersHub() {
                                 <img
                                   src={comp.logoUrl}
                                   alt={comp.name}
-                                  className="h-12 w-12 rounded-2xl object-cover bg-white p-1 border border-white/10 shadow-md"
+                                  className="h-14 w-14 rounded-2xl object-contain bg-slate-950 p-2 border border-white/10 shadow-md"
                                 />
                               ) : (
                                 <div
@@ -402,7 +402,7 @@ export function GlobalCareersHub() {
               </div>
 
               {filteredJobs.length === 0 ? (
-                <div className="rounded-3xl border border-white/10 bg-white/[0.02] p-12 text-center max-w-lg mx-auto">
+                <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-12 text-center max-w-lg mx-auto">
                   <Briefcase size={48} className="mx-auto text-slate-600 mb-4" />
                   <h3 className="text-lg font-black text-white">Nenhuma vaga encontrada</h3>
                   <p className="text-sm text-slate-400 mt-2">
@@ -443,11 +443,11 @@ export function GlobalCareersHub() {
                                 <img
                                   src={comp.logoUrl}
                                   alt={comp.name}
-                                  className="h-8 w-8 rounded-xl object-cover bg-white p-0.5"
+                                  className="h-9 w-9 rounded-xl object-contain bg-slate-950 p-1"
                                 />
                               ) : (
                                 <div
-                                  className="flex h-8 w-8 items-center justify-center rounded-xl bg-teal-500/20 text-teal-300 font-black text-xs"
+                                  className="flex h-8 w-8 items-center justify-center rounded-xl bg-slate-800 text-teal-300 font-black text-xs"
                                 >
                                   {comp.name.charAt(0)}
                                 </div>

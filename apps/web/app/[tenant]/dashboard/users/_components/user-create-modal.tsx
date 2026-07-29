@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import { X } from 'lucide-react';
 import { ROLE_LABEL } from '@/app/lib/format';
-import type { UserRole } from '@/app/lib/api';
+import type { PlatformCompany, UserRole } from '@/app/lib/api';
 
 interface UserCreateModalProps {
   isOpen: boolean;
   onClose: () => void;
   availableRoles: UserRole[];
   currentRole?: string;
-  uniqueCompanies: string[];
+  companies: PlatformCompany[];
   onSubmit: (data: any) => Promise<void>;
 }
 
@@ -17,7 +17,7 @@ export function UserCreateModal({
   onClose,
   availableRoles,
   currentRole,
-  uniqueCompanies,
+  companies,
   onSubmit,
 }: UserCreateModalProps) {
   const [companyId, setCompanyId] = useState('');
@@ -29,13 +29,16 @@ export function UserCreateModal({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  const shouldShowCompanySelect = currentRole === 'DEV' && companies.length > 1;
+  const defaultCompanyId = currentRole === 'DEV' && companies.length === 1 ? companies[0]?.id ?? '' : '';
+
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    if (currentRole === 'DEV' && !companyId) {
+    if (shouldShowCompanySelect && !companyId) {
       setError('Por favor, selecione a empresa.');
       return;
     }
@@ -68,7 +71,8 @@ export function UserCreateModal({
 
     setLoading(true);
     try {
-      await onSubmit({ companyId, name, email, role, password });
+      const resolvedCompanyId = shouldShowCompanySelect ? companyId : defaultCompanyId;
+      await onSubmit({ companyId: resolvedCompanyId, name, email, role, password });
       setCompanyId('');
       setName('');
       setEmail('');
@@ -101,7 +105,7 @@ export function UserCreateModal({
 
         <form onSubmit={handleSubmit} className="p-5">
           <div className="space-y-4">
-            {currentRole === 'DEV' && (
+            {shouldShowCompanySelect && (
               <div>
                 <label className="mb-1 block text-xs font-bold text-slate-700">Empresa (Obrigatório)</label>
                 <select
@@ -111,13 +115,16 @@ export function UserCreateModal({
                   required
                 >
                   <option value="">Selecione a empresa...</option>
-                  {uniqueCompanies.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
+                  {companies.map((company) => (
+                    <option key={company.id} value={company.id}>
+                      {company.name}
                     </option>
                   ))}
                 </select>
               </div>
+            )}
+            {!shouldShowCompanySelect && defaultCompanyId && (
+              <input type="hidden" value={defaultCompanyId} readOnly />
             )}
 
             <div>

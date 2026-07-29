@@ -331,7 +331,7 @@ export function JobDetails({ companyId, jobId }: JobDetailsProps) {
                         key={benefit}
                         className="flex items-start gap-2.5 text-sm font-semibold text-slate-700"
                       >
-                        <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-teal-100 text-teal-700">
+                        <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-700">
                           <Check size={12} strokeWidth={3} aria-hidden="true" />
                         </span>
                         {benefit}
@@ -346,11 +346,11 @@ export function JobDetails({ companyId, jobId }: JobDetailsProps) {
           {/* Gamified Process Section - Gupy Style */}
           <div className="border-t border-slate-100 p-6 sm:p-9 bg-gradient-to-b from-white to-slate-50/50">
             <div className="flex items-center gap-3 mb-6">
-              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-500/10 text-teal-700 font-black">
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-900 font-black">
                 🚀
               </span>
               <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-teal-700">
+                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-700">
                   Transparência Innovation RH
                 </p>
                 <h3 className="text-lg font-black tracking-tight text-slate-950">
@@ -361,7 +361,7 @@ export function JobDetails({ companyId, jobId }: JobDetailsProps) {
 
             <div className="relative border-l-2 border-teal-200 ml-4 pl-6 space-y-6 my-4">
               <div className="relative group">
-                <span className="absolute -left-[31px] top-0 flex h-6 w-6 items-center justify-center rounded-full bg-teal-600 text-white font-black text-xs ring-4 ring-white shadow-sm">
+                <span className="absolute -left-[31px] top-0 flex h-6 w-6 items-center justify-center rounded-full bg-slate-900 text-teal-300 font-black text-xs ring-4 ring-white shadow-sm">
                   1
                 </span>
                 <h4 className="text-sm font-black text-slate-900">Inscrição & Triagem Inteligente (IA)</h4>
@@ -371,7 +371,7 @@ export function JobDetails({ companyId, jobId }: JobDetailsProps) {
               </div>
 
               <div className="relative group">
-                <span className="absolute -left-[31px] top-0 flex h-6 w-6 items-center justify-center rounded-full bg-cyan-600 text-white font-black text-xs ring-4 ring-white shadow-sm">
+                <span className="absolute -left-[31px] top-0 flex h-6 w-6 items-center justify-center rounded-full bg-slate-900 text-cyan-300 font-black text-xs ring-4 ring-white shadow-sm">
                   2
                 </span>
                 <h4 className="text-sm font-black text-slate-900">Avaliação por Gente & Gestão (RH)</h4>
@@ -381,7 +381,7 @@ export function JobDetails({ companyId, jobId }: JobDetailsProps) {
               </div>
 
               <div className="relative group">
-                <span className="absolute -left-[31px] top-0 flex h-6 w-6 items-center justify-center rounded-full bg-indigo-600 text-white font-black text-xs ring-4 ring-white shadow-sm">
+                <span className="absolute -left-[31px] top-0 flex h-6 w-6 items-center justify-center rounded-full bg-slate-900 text-sky-300 font-black text-xs ring-4 ring-white shadow-sm">
                   3
                 </span>
                 <h4 className="text-sm font-black text-slate-900">Entrevista ou Desafio Prático</h4>
@@ -391,7 +391,7 @@ export function JobDetails({ companyId, jobId }: JobDetailsProps) {
               </div>
 
               <div className="relative group">
-                <span className="absolute -left-[31px] top-0 flex h-6 w-6 items-center justify-center rounded-full bg-purple-600 text-white font-black text-xs ring-4 ring-white shadow-sm">
+                <span className="absolute -left-[31px] top-0 flex h-6 w-6 items-center justify-center rounded-full bg-slate-900 text-violet-300 font-black text-xs ring-4 ring-white shadow-sm">
                   4
                 </span>
                 <h4 className="text-sm font-black text-slate-900">Entrevista Final com Gestores</h4>
@@ -401,10 +401,10 @@ export function JobDetails({ companyId, jobId }: JobDetailsProps) {
               </div>
 
               <div className="relative group">
-                <span className="absolute -left-[31px] top-0 flex h-6 w-6 items-center justify-center rounded-full bg-emerald-600 text-white font-black text-xs ring-4 ring-white shadow-sm">
+                <span className="absolute -left-[31px] top-0 flex h-6 w-6 items-center justify-center rounded-full bg-slate-900 text-emerald-300 font-black text-xs ring-4 ring-white shadow-sm">
                   5
                 </span>
-                <h4 className="text-sm font-black text-emerald-700">Aprovação & Onboarding Digital</h4>
+                <h4 className="text-sm font-black text-slate-700">Aprovação & Onboarding Digital</h4>
                 <p className="text-xs text-slate-500 mt-1 leading-relaxed">
                   Envio de proposta oficial, emissão automática de exame admissional (ASO) pela plataforma e integração digital 100% sem papel!
                 </p>
@@ -413,8 +413,8 @@ export function JobDetails({ companyId, jobId }: JobDetailsProps) {
           </div>
 
           <div className="border-t border-slate-100 p-6 sm:p-9">
-            <div className="flex gap-3 rounded-2xl border border-teal-100 bg-teal-50/60 p-4">
-              <BadgeCheck size={20} className="mt-0.5 shrink-0 text-teal-700" aria-hidden="true" />
+            <div className="flex gap-3 rounded-2xl border border-teal-100 bg-slate-50 p-4">
+              <BadgeCheck size={20} className="mt-0.5 shrink-0 text-slate-700" aria-hidden="true" />
               <p className="text-xs leading-5 text-teal-900">
                 A candidatura é gratuita. A empresa não solicita pagamentos ou dados bancários
                 durante esta etapa do processo seletivo.
@@ -617,14 +617,14 @@ export function JobDetails({ companyId, jobId }: JobDetailsProps) {
                   />
                   {resume ? (
                     <div className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3">
-                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-emerald-700">
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-slate-700">
                         <Paperclip size={17} aria-hidden="true" />
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-xs font-black text-emerald-950">
                           {resume.name}
                         </span>
-                        <span className="text-[10px] font-semibold text-emerald-700">
+                        <span className="text-[10px] font-semibold text-slate-700">
                           {formatFileSize(resume.size)}
                         </span>
                       </span>

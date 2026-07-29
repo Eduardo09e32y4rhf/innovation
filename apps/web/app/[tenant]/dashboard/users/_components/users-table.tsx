@@ -6,6 +6,7 @@ import type { AppUser } from '@/app/lib/api';
 interface UsersTableProps {
   rows: AppUser[];
   currentRole?: string;
+  showCompanyColumn?: boolean;
   canManageRow: (currentRole?: string, targetRole?: string) => boolean;
   onEdit: (user: AppUser) => void;
   onResetPassword: (user: AppUser) => void;
@@ -55,6 +56,7 @@ function formatLastActive(dateString?: string | null) {
 export function UsersTable({
   rows,
   currentRole,
+  showCompanyColumn = false,
   canManageRow,
   onEdit,
   onResetPassword,
@@ -66,11 +68,11 @@ export function UsersTable({
   return (
     <div className="ops-card overflow-hidden rounded-[14px] border border-slate-200 bg-white">
       <div className="overflow-x-auto p-5">
-        <table className="w-full min-w-[760px] text-left">
+        <table className="w-full text-left">
           <thead>
             <tr className="border-b border-slate-100 text-[11px] font-medium text-slate-500">
               <th className="pb-3 pr-4 font-semibold uppercase tracking-wider">Usuário</th>
-              {currentRole === 'DEV' && (
+              {showCompanyColumn && (
                 <th className="pb-3 pr-4 font-semibold uppercase tracking-wider">Empresa</th>
               )}
               <th className="pb-3 pr-4 font-semibold uppercase tracking-wider">Perfil</th>
@@ -125,7 +127,7 @@ export function UsersTable({
                     </div>
                   </td>
 
-                  {currentRole === 'DEV' && (
+                  {showCompanyColumn && (
                     <td className="py-3 pr-4 font-medium text-slate-700">
                       {user.company?.name ?? '-'}
                     </td>

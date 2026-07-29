@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { useDeferredValue, useMemo, useState } from 'react';
 import {
   ArrowDownToLine,
@@ -107,14 +106,13 @@ export default function FinancePage({ params: { tenant } }: { params: { tenant: 
     [page, status, deferredSearch, from, to],
   );
   const webhookEvents = useQuery(() => api.platform.finance.webhookEvents({ limit: 12 }), []);
-  const companies = useQuery(() => api.platform.listCompanies(), []);
+  const companies = useQuery(() => api.platform.listCompanies(), [], { enabled: showModal || Boolean(editingInvoice) });
   const [retryingWebhookId, setRetryingWebhookId] = useState<string | null>(null);
 
   function refresh() {
     invoices.refetch();
     summary.refetch();
     webhookEvents.refetch();
-    companies.refetch();
   }
 
   const companyById = useMemo(() => {
@@ -288,11 +286,6 @@ export default function FinancePage({ params: { tenant } }: { params: { tenant: 
           <p className="text-[10px] font-black uppercase tracking-[0.2em] text-teal-600">Controle da operacao</p>
           <h2 className="mt-1 text-2xl font-black text-slate-950">Gestao da Plataforma</h2>
           <p className="mt-2 max-w-2xl text-sm text-slate-500">Cobranças, reembolsos e sincronização Asaas em um painel único e prático.</p>
-          <div className="mt-4 flex max-w-full gap-3 overflow-x-auto whitespace-nowrap">
-            <Link href={`/${tenant}/dashboard/platform/finance`} className="rounded-full border border-teal-200 bg-teal-50 px-3 py-2 text-sm font-black text-teal-700">Financeiro</Link>
-            <Link href={`/${tenant}/dashboard/platform/contracts`} className="rounded-full border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-500 hover:border-slate-300 hover:text-slate-800">Contratos</Link>
-            <Link href={`/${tenant}/dashboard/platform/configuration`} className="rounded-full border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-500 hover:border-slate-300 hover:text-slate-800">Configuracao</Link>
-          </div>
         </div>
         <div className="flex flex-wrap gap-2">
           {canManage && (
@@ -458,28 +451,6 @@ export default function FinancePage({ params: { tenant } }: { params: { tenant: 
           </div>
         </div>
 
-        <div className="rounded-[14px] border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Fluxo financeiro</p>
-              <h3 className="mt-1 text-lg font-black text-slate-950">Acoes mais usadas</h3>
-            </div>
-          </div>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            {[
-              { title: 'Copiar link', description: 'Copie o checkout da fatura e abra em nova aba.', icon: Copy },
-              { title: 'Sincronizar', description: 'Puxe o status real do Asaas para a fatura.', icon: RefreshCw },
-              { title: 'Reembolsar', description: 'Estorno em até 7 dias com efeito imediato.', icon: Banknote },
-              { title: 'Cancelar', description: 'Cancele cobranças locais e remotas com confirmação.', icon: Trash2 },
-            ].map((item) => (
-              <article key={item.title} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                <item.icon size={16} className="text-teal-600" />
-                <h4 className="mt-3 text-sm font-black text-slate-950">{item.title}</h4>
-                <p className="mt-1 text-xs leading-5 text-slate-500">{item.description}</p>
-              </article>
-            ))}
-          </div>
-        </div>
       </section>
 
       <section className="overflow-hidden rounded-[14px] border border-slate-200 bg-white shadow-sm">
