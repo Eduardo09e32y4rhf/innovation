@@ -76,6 +76,10 @@ function date(value: string) {
   return new Intl.DateTimeFormat('pt-BR', { timeZone: 'UTC' }).format(new Date(value));
 }
 
+function dateTime(value?: string | null) {
+  return value ? new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value)) : '-';
+}
+
 function monthLabel(value: string) {
   const [year, month] = value.split('-');
   return new Intl.DateTimeFormat('pt-BR', { month: 'short' }).format(new Date(Number(year), Number(month) - 1, 1)).replace('.', '');
@@ -281,6 +285,29 @@ export default function FinancePage({ params: { tenant } }: { params: { tenant: 
   const recentInvoices = invoices.data?.items ?? [];
   const recentWebhookEvents = webhookEvents.data ?? [];
   const recentBillingLogs = billingAuditLogs.data ?? [];
+  const operationalSnapshot = useMemo(() => {
+    const asaasInvoices = recentInvoices.filter((item) => Boolean(item.asaasPaymentId));
+    const localInvoices = recentInvoices.filter((item) => !item.asaasPaymentId);
+    const paidInvoices = recentInvoices.filter((item) => item.status === 'PAID');
+    const overdueInvoices = recentInvoices.filter((item) => item.status === 'OVERDUE');
+    const openInvoices = recentInvoices.filter((item) => item.status === 'OPEN');
+    const failedWebhooks = recentWebhookEvents.filter((event) => event.status === 'FAILED').length;
+    const pendingWebhooks = recentWebhookEvents.filter((event) => event.status === 'PENDING' || event.status === 'PROCESSING').length;
+    const latestWebhook = recentWebhookEvents[0] ?? null;
+    const latestAudit = recentBillingLogs[0] ?? null;
+
+    return {
+      asaasInvoices,
+      localInvoices,
+      paidInvoices,
+      overdueInvoices,
+      openInvoices,
+      failedWebhooks,
+      pendingWebhooks,
+      latestWebhook,
+      latestAudit,
+    };
+  }, [recentInvoices, recentWebhookEvents, recentBillingLogs]);
   const webhookCounts = recentWebhookEvents.reduce((acc, item) => {
     acc[item.status] = (acc[item.status] || 0) + 1;
     return acc;
@@ -375,6 +402,92 @@ export default function FinancePage({ params: { tenant } }: { params: { tenant: 
             ) : (
               <div className="flex h-full items-center justify-center text-xs text-slate-400">Sem dados para o grafico.</div>
             )}
+          </div>
+        </div>
+      </section>
+
+      <section className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
+        <div className="rounded-[14px] border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Operacao financeira</p>
+              <h3 className="mt-1 text-lg font-black text-slate-950">Saude da cobranca e integracao</h3>
+            </div>
+            <span className="rounded-full border border-teal-200 bg-teal-50 px-2 py-1 text-[10px] font-black text-teal-700">
+              Extrato backend
+            </span>
+          </div>
+
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {[
+              { label: 'Asaas', value: operationalSnapshot.asaasInvoices.length, tone: 'bg-teal-50 text-teal-700' },
+              { label: 'Locais', value: operationalSnapshot.localInvoices.length, tone: 'bg-slate-50 text-slate-700' },
+              { label: 'Pagas', value: operationalSnapshot.paidInvoices.length, tone: 'bg-emerald-50 text-emerald-700' },
+              { label: 'Em aberto', value: operationalSnapshot.openInvoices.length + operationalSnapshot.overdueInvoices.length, tone: 'bg-sky-50 text-sky-700' },
+            ].map((item) => (
+              <article key={item.label} className="rounded-2xl border border-slate-200 p-4">
+                <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">{item.label}</p>
+                <p className={`mt-2 text-2xl font-black ${item.tone}`}>{item.value}</p>
+              </article>
+            ))}
+          </div>
+
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <article className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Ultimo webhook</p>
+              <p className="mt-2 text-sm font-black text-slate-950">{operationalSnapshot.latestWebhook?.eventType || 'Sem evento recente'}</p>
+              <p className="mt-1 text-xs text-slate-500">
+                {operationalSnapshot.latestWebhook ? dateTime(operationalSnapshot.latestWebhook.createdAt) : 'Aguardando sincronizacao'}
+              </p>
+              {operationalSnapshot.latestWebhook && (
+                <span className="mt-3 inline-flex rounded-full border border-slate-200 bg-white px-2 py-1 text-[10px] font-black text-slate-600">
+                  {operationalSnapshot.latestWebhook.status}
+                </span>
+              )}
+            </article>
+            <article className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Ultima auditoria</p>
+              <p className="mt-2 text-sm font-black text-slate-950">{operationalSnapshot.latestAudit?.action?.replaceAll('_', ' ') || 'Sem auditoria recente'}</p>
+              <p className="mt-1 text-xs text-slate-500">
+                {operationalSnapshot.latestAudit ? dateTime(operationalSnapshot.latestAudit.createdAt) : 'Sem alteracao registrada'}
+              </p>
+              {operationalSnapshot.latestAudit?.user?.name && (
+                <p className="mt-3 text-[10px] font-bold uppercase tracking-wide text-slate-400">
+                  {operationalSnapshot.latestAudit.user.name}
+                </p>
+              )}
+            </article>
+          </div>
+        </div>
+
+        <div className="rounded-[14px] border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Conciliacao rapida</p>
+              <h3 className="mt-1 text-lg font-black text-slate-950">Leitura operacional da pagina</h3>
+            </div>
+            <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] font-black text-slate-600">
+              {operationalSnapshot.failedWebhooks} falha(s)
+            </span>
+          </div>
+
+          <div className="mt-4 space-y-3">
+            {[
+              { label: 'Cobranças enviadas ao Asaas', value: operationalSnapshot.asaasInvoices.length, note: 'Possuem id remoto ou checkout vinculado.' },
+              { label: 'Cobranças locais', value: operationalSnapshot.localInvoices.length, note: 'Ainda não exigem sincronização externa.' },
+              { label: 'Cobranças em revisão', value: operationalSnapshot.pendingWebhooks, note: 'Webhooks pendentes ou em processamento.' },
+              { label: 'Cobranças em atraso', value: operationalSnapshot.overdueInvoices.length, note: 'Exigem atenção da operação.' },
+            ].map((item) => (
+              <article key={item.label} className="rounded-2xl border border-slate-200 p-4">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-black text-slate-900">{item.label}</p>
+                    <p className="mt-1 text-xs text-slate-500">{item.note}</p>
+                  </div>
+                  <p className="text-2xl font-black text-slate-950">{item.value}</p>
+                </div>
+              </article>
+            ))}
           </div>
         </div>
       </section>
@@ -742,6 +855,14 @@ export default function FinancePage({ params: { tenant } }: { params: { tenant: 
                   <div>
                     <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Valor</p>
                     <p className="mt-1 text-sm font-bold text-slate-900">{money(selectedInvoice.amount)}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Criado em</p>
+                    <p className="mt-1 text-sm font-bold text-slate-900">{dateTime(selectedInvoice.createdAt)}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Atualizado em</p>
+                    <p className="mt-1 text-sm font-bold text-slate-900">{dateTime(selectedInvoice.updatedAt)}</p>
                   </div>
                 </div>
               </article>
