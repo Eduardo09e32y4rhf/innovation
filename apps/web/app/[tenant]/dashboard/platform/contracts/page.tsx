@@ -7,10 +7,12 @@ import {
   CheckCircle2,
   Edit2,
   FileSignature,
+  History,
   Loader2,
   Plus,
   RefreshCw,
   Trash2,
+  X,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { EmptyState, ErrorState, LoadingState } from '@/app/components/data-states';
@@ -31,7 +33,11 @@ type ManualContract = {
   notes?: string | null;
   documentUrl?: string | null;
   status: 'ACTIVE' | 'ENDED' | 'CANCELED';
+  createdAt?: string;
+  updatedAt?: string;
 };
+
+type ContractStatusFilter = 'ALL' | 'ACTIVE' | 'ENDED' | 'CANCELED';
 
 const EMPTY_FORM = {
   companyId: '',
@@ -45,6 +51,24 @@ const EMPTY_FORM = {
   notes: '',
   documentUrl: '',
   status: 'ACTIVE' as 'ACTIVE' | 'ENDED' | 'CANCELED',
+};
+
+const STATUS_LABELS: Record<ManualContract['status'], string> = {
+  ACTIVE: 'Ativo',
+  ENDED: 'Encerrado',
+  CANCELED: 'Cancelado',
+};
+
+const STATUS_TONES: Record<ManualContract['status'], string> = {
+  ACTIVE: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+  ENDED: 'border-slate-200 bg-slate-100 text-slate-600',
+  CANCELED: 'border-rose-200 bg-rose-50 text-rose-700',
+};
+
+const PAYMENT_LABELS: Record<string, string> = {
+  ASAAS: 'Asaas',
+  BANK_TRANSFER: 'Transferência',
+  EXTERNAL: 'Externo',
 };
 
 function parseMoney(value: number | string | null | undefined) {
@@ -73,6 +97,7 @@ function safeIsoDate(value?: string | null) {
 export default function ContractsPage({ params: { tenant } }: { params: { tenant: string } }) {
   const searchParams = useSearchParams();
   const companyFilter = searchParams?.get('companyId') || '';
+  const [statusFilter, setStatusFilter] = useState<ContractStatusFilter>('ALL');
   const [contracts, setContracts] = useState<ManualContract[]>([]);
   const [companies, setCompanies] = useState<PlatformCompany[]>([]);
   const [plans, setPlans] = useState<PublicPlatformPlan[]>([]);
@@ -82,6 +107,7 @@ export default function ContractsPage({ params: { tenant } }: { params: { tenant
   const [error, setError] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [workingId, setWorkingId] = useState<string | null>(null);
+  const [selectedContract, setSelectedContract] = useState<ManualContract | null>(null);
 
   async function load() {
     setLoading(true);
@@ -92,6 +118,7 @@ export default function ContractsPage({ params: { tenant } }: { params: { tenant
         api.platform.listCompanies(),
         api.platform.listPlans(),
       ]);
+
       if (contractsRes.status === 'fulfilled' && Array.isArray(contractsRes.value)) setContracts(contractsRes.value);
       if (companiesRes.status === 'fulfilled' && Array.isArray(companiesRes.value)) setCompanies(companiesRes.value);
       if (plansRes.status === 'fulfilled' && Array.isArray(plansRes.value)) setPlans(plansRes.value);
@@ -116,9 +143,23 @@ export default function ContractsPage({ params: { tenant } }: { params: { tenant
   }, [companyFilter]);
 
   const companyById = useMemo(() => new Map(companies.map((company) => [company.id, company])), [companies]);
+  const filteredContracts = useMemo(() => {
+    return contracts.filter((item) => {
+      if (companyFilter && item.companyId !== companyFilter) return false;
+      if (statusFilter !== 'ALL' && item.status !== statusFilter) return false;
+      return true;
+    });
+  }, [contracts, companyFilter, statusFilter]);
+  const summary = useMemo(() => ({
+    active: contracts.filter((item) => item.status === 'ACTIVE').length,
+    ended: contracts.filter((item) => item.status === 'ENDED').length,
+    canceled: contracts.filter((item) => item.status === 'CANCELED').length,
+    totalValue: contracts.reduce((acc, item) => acc + parseMoney(item.agreedAmount), 0),
+  }), [contracts]);
 
   function startCreate() {
     setEditingId(null);
+    setSelectedContract(null);
     setForm({
       ...EMPTY_FORM,
       companyId: companyFilter || '',
@@ -128,6 +169,7 @@ export default function ContractsPage({ params: { tenant } }: { params: { tenant
 
   function startEdit(item: ManualContract) {
     setEditingId(item.id);
+    setSelectedContract(null);
     setForm({
       companyId: item.companyId,
       planId: item.planId || '',
@@ -199,8 +241,6 @@ export default function ContractsPage({ params: { tenant } }: { params: { tenant
       .catch((err) => toast.error(err instanceof Error ? err.message : 'Não foi possível gerar o PDF do contrato.'));
   }
 
-  const filteredContracts = companyFilter ? contracts.filter((item) => item.companyId === companyFilter) : contracts;
-
   return (
     <div className="mx-auto w-full space-y-5 pb-10">
       <header className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
@@ -208,7 +248,7 @@ export default function ContractsPage({ params: { tenant } }: { params: { tenant
           <div className="rounded-xl bg-violet-50 p-2.5 text-violet-700"><FileSignature size={19} /></div>
           <div>
             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-violet-600">Plataforma</p>
-            <h2 className="text-lg font-black text-slate-950">Contratos digitais</h2>
+            <h2 className="text-lg font-black text-slate-950">Gestão de contratos</h2>
             <p className="mt-1 text-xs text-slate-500">Crie, edite, exclua e gere PDF dos contratos manuais da plataforma.</p>
           </div>
         </div>
@@ -224,6 +264,20 @@ export default function ContractsPage({ params: { tenant } }: { params: { tenant
           </button>
         </div>
       </header>
+
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {[
+          { label: 'Ativos', value: summary.active, tone: 'bg-emerald-50 text-emerald-700' },
+          { label: 'Encerrados', value: summary.ended, tone: 'bg-slate-50 text-slate-700' },
+          { label: 'Cancelados', value: summary.canceled, tone: 'bg-rose-50 text-rose-700' },
+          { label: 'Receita contratada', value: money(summary.totalValue), tone: 'bg-violet-50 text-violet-700' },
+        ].map((card) => (
+          <article key={card.label} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">{card.label}</p>
+            <p className={`mt-2 text-2xl font-black ${card.tone}`}>{card.value}</p>
+          </article>
+        ))}
+      </section>
 
       <form onSubmit={submit} className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -301,9 +355,27 @@ export default function ContractsPage({ params: { tenant } }: { params: { tenant
       </form>
 
       <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="border-b border-slate-100 px-5 py-4">
-          <h3 className="text-sm font-black text-slate-900">Contratos cadastrados</h3>
-          <p className="mt-1 text-xs text-slate-500">{filteredContracts.length} contrato(s) encontrado(s).</p>
+        <div className="flex flex-col gap-3 border-b border-slate-100 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <h3 className="text-sm font-black text-slate-900">Contratos cadastrados</h3>
+            <p className="mt-1 text-xs text-slate-500">{filteredContracts.length} contrato(s) encontrado(s).</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {(['ALL', 'ACTIVE', 'ENDED', 'CANCELED'] as const).map((item) => (
+              <button
+                key={item}
+                type="button"
+                onClick={() => setStatusFilter(item)}
+                className={`rounded-full border px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] ${
+                  statusFilter === item
+                    ? 'border-violet-300 bg-violet-50 text-violet-700'
+                    : 'border-slate-200 bg-white text-slate-500 hover:bg-slate-50'
+                }`}
+              >
+                {item === 'ALL' ? 'Todos' : item}
+              </button>
+            ))}
+          </div>
         </div>
         {loading ? (
           <p className="p-8 text-center text-sm text-slate-500">Carregando contratos...</p>
@@ -328,18 +400,26 @@ export default function ContractsPage({ params: { tenant } }: { params: { tenant
               <tbody>
                 {filteredContracts.map((item) => (
                   <tr key={item.id} className="border-b border-slate-100 last:border-0">
-                    <td className="p-4 font-bold text-slate-900">{item.company?.name || 'Empresa'}</td>
+                    <td className="p-4 font-bold text-slate-900">
+                      <div className="flex flex-col">
+                        <span>{item.company?.name || 'Empresa'}</span>
+                        <span className="mt-1 text-[10px] font-medium text-slate-400">{item.company?.document || '-'}</span>
+                      </div>
+                    </td>
                     <td className="p-4 text-slate-700">{item.plan?.name || '-'}</td>
                     <td className="p-4 font-bold text-slate-800">{money(item.agreedAmount)}</td>
                     <td className="p-4 text-slate-600">{item.seatQuantity}</td>
                     <td className="p-4 text-slate-600">{date(item.startsAt)}</td>
                     <td className="p-4 text-slate-600">{item.endsAt ? date(item.endsAt) : 'Indeterminado'}</td>
-                    <td className="p-4 text-slate-600">{item.paymentMethod}</td>
+                    <td className="p-4 text-slate-600">{PAYMENT_LABELS[item.paymentMethod] || item.paymentMethod}</td>
                     <td className="p-4">
-                      <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-1 font-bold text-emerald-700">{item.status}</span>
+                      <span className={`rounded-full border px-2 py-1 font-bold ${STATUS_TONES[item.status]}`}>{STATUS_LABELS[item.status]}</span>
                     </td>
                     <td className="p-4">
                       <div className="flex justify-end gap-2">
+                        <button type="button" onClick={() => setSelectedContract(item)} className="rounded-lg border px-3 py-2 font-bold hover:bg-slate-50">
+                          <History size={14} className="inline" /> Detalhes
+                        </button>
                         <button type="button" onClick={() => exportPdf(item)} className="rounded-lg border px-3 py-2 font-bold hover:bg-slate-50">
                           PDF
                         </button>
@@ -358,6 +438,88 @@ export default function ContractsPage({ params: { tenant } }: { params: { tenant
           </div>
         )}
       </section>
+
+      {selectedContract && (
+        <div className="fixed inset-0 z-50 flex items-center justify-end bg-slate-950/50 p-4">
+          <div className="flex h-full w-full max-w-2xl flex-col overflow-hidden rounded-[24px] bg-white shadow-2xl">
+            <header className="flex items-start justify-between gap-4 border-b border-slate-100 px-6 py-5">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-violet-600">Detalhe do contrato</p>
+                <h3 className="mt-1 text-lg font-black text-slate-950">{selectedContract.company?.name || 'Empresa'}</h3>
+                <p className="mt-1 text-xs text-slate-500">
+                  {money(selectedContract.agreedAmount)} • {STATUS_LABELS[selectedContract.status]} • {PAYMENT_LABELS[selectedContract.paymentMethod] || selectedContract.paymentMethod}
+                </p>
+              </div>
+              <button type="button" onClick={() => setSelectedContract(null)} className="rounded-full p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700">
+                <X size={18} />
+              </button>
+            </header>
+
+            <div className="grid gap-4 overflow-y-auto p-6">
+              <div className="grid gap-3 sm:grid-cols-2">
+                {[
+                  ['Empresa', selectedContract.company?.name || '-'],
+                  ['Documento', selectedContract.company?.document || '-'],
+                  ['Plano', selectedContract.plan?.name || '-'],
+                  ['Licenças', String(selectedContract.seatQuantity)],
+                  ['Início', date(selectedContract.startsAt)],
+                  ['Fim', selectedContract.endsAt ? date(selectedContract.endsAt) : 'Indeterminado'],
+                  ['Número externo', selectedContract.externalContractNumber || '-'],
+                  ['Documento', selectedContract.documentUrl ? 'Vinculado' : 'Não informado'],
+                ].map(([label, value]) => (
+                  <article key={`${label}-${value}`} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <p className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">{label}</p>
+                    <p className="mt-2 text-sm font-bold text-slate-900">{value}</p>
+                  </article>
+                ))}
+              </div>
+
+              <article className="rounded-2xl border border-slate-200 p-4">
+                <p className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">Observações</p>
+                <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-700">{selectedContract.notes || 'Sem observações.'}</p>
+              </article>
+
+              <article className="rounded-2xl border border-slate-200 p-4">
+                <p className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">Ações</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      startEdit(selectedContract);
+                      setSelectedContract(null);
+                    }}
+                    className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50"
+                  >
+                    <Edit2 size={14} />
+                    Editar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      exportPdf(selectedContract);
+                      setSelectedContract(null);
+                    }}
+                    className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50"
+                  >
+                    <FileSignature size={14} />
+                    Gerar PDF
+                  </button>
+                  {selectedContract.documentUrl && (
+                    <a
+                      href={selectedContract.documentUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-3 py-2 text-xs font-bold text-violet-700 hover:bg-violet-100"
+                    >
+                      Abrir documento
+                    </a>
+                  )}
+                </div>
+              </article>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
