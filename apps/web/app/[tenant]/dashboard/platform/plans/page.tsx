@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { Plus, Edit3, Trash2, X, RotateCcw, Check, Users, Briefcase, Layers, Eye, EyeOff, Gift } from 'lucide-react';
+import { Plus, Edit3, Trash2, X, RotateCcw, Check, Users, Briefcase, Layers, Eye, EyeOff, Gift, Search, ShieldCheck, Building2, DollarSign } from 'lucide-react';
 import { ErrorState, LoadingState, EmptyState } from '@/app/components/data-states';
 import { useMutation, useQuery } from '@/app/hooks/use-data';
 import { request } from '@/app/lib/api';
@@ -35,6 +35,10 @@ function parseMoney(val: any): number {
 
 function formatBRL(val: any): string {
   return parseMoney(val).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function normalizeText(value: string) {
+  return value.toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '');
 }
 
 // ─── MODAL ───────────────────────────────────────────────────────────────────
@@ -355,6 +359,7 @@ export default function PlansPage({ params: { tenant } }: { params: { tenant: st
   const [editing, setEditing] = useState<any | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [showInactive, setShowInactive] = useState(false);
+  const [search, setSearch] = useState('');
 
   const deactivate = useMutation(
     (id: string) => request(`/platform/plans/${id}`, { method: 'DELETE' }),
@@ -376,8 +381,20 @@ export default function PlansPage({ params: { tenant } }: { params: { tenant: st
   const inactivePlans = allPlans.filter(p => p.isActive === false);
   const freePlans = allPlans.filter(p => p.isFree);
   const hiddenPlans = allPlans.filter(p => p.isHidden);
-  const visiblePlans = showInactive ? allPlans : activePlans;
+  const visiblePlans = useMemo(() => {
+    const base = showInactive ? allPlans : activePlans;
+    const term = normalizeText(search.trim());
+    if (!term) return base;
+    return base.filter((plan) => {
+      const moduleNames = (plan.activeModules as string[] | undefined ?? []).map((id) => MODULES.find((m) => m.id === id)?.label ?? id).join(' ');
+      return normalizeText(plan.name).includes(term)
+        || normalizeText(plan.description || '').includes(term)
+        || normalizeText(moduleNames).includes(term)
+        || normalizeText(String(plan.price ?? '')).includes(term);
+    });
+  }, [activePlans, allPlans, search, showInactive]);
   const activeBaseMonthly = activePlans.reduce((acc, plan) => acc + parseMoney(plan.baseMonthlyPrice ?? plan.price), 0);
+  const visiblePlanCount = visiblePlans.length;
 
   function handleDeactivate(plan: any) {
     if (!window.confirm(`Desativar o plano "${plan.name}"?\nEmpresas vinculadas não serão afetadas.`)) return;
@@ -404,12 +421,21 @@ export default function PlansPage({ params: { tenant } }: { params: { tenant: st
               Cada plano tem valor base, valor por usuario adicional, limite de colaboradores e opcao de ficar oculto no console.
             </p>
           </div>
-          <button
-            onClick={() => setIsCreating(true)}
-            className="inline-flex h-10 items-center gap-2 rounded-xl bg-violet-600 px-4 text-xs font-black text-white shadow-md hover:bg-violet-500"
-          >
-            <Plus size={14} /> Novo Plano
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <Link
+              href={`/${tenant}/dashboard/platform/subscriptions`}
+              className="inline-flex h-10 items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 text-xs font-bold text-white shadow-sm hover:bg-white/10"
+            >
+              <ShieldCheck size={14} />
+              Ver assinaturas
+            </Link>
+            <button
+              onClick={() => setIsCreating(true)}
+              className="inline-flex h-10 items-center gap-2 rounded-xl bg-violet-600 px-4 text-xs font-black text-white shadow-md hover:bg-violet-500"
+            >
+              <Plus size={14} /> Novo Plano
+            </button>
+          </div>
         </div>
       </header>
 
@@ -431,13 +457,28 @@ export default function PlansPage({ params: { tenant } }: { params: { tenant: st
 
       <section className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
         <div className="rounded-[16px] border border-slate-200 bg-white p-5 shadow-sm">
-          <h3 className="text-sm font-black text-slate-950">Como a precificacao funciona</h3>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h3 className="text-sm font-black text-slate-950">Como a precificacao funciona</h3>
+              <p className="mt-1 text-xs text-slate-500">A leitura abaixo vale para a operacao, nao para alterar a regra do backend.</p>
+            </div>
+            <label className="flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs font-semibold text-slate-600">
+              <Search size={14} className="text-slate-400" />
+              <input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Buscar plano..."
+                className="w-44 bg-transparent outline-none placeholder:text-slate-400"
+              />
+            </label>
+          </div>
+
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             {[
               { title: 'Valor base', text: 'Cada plano nasce com um valor base mensal.' },
               { title: 'Adicional por usuario', text: 'O valor sobe conforme a quantidade de usuarios cobraveis.' },
-              { title: 'Commitment', text: 'Prazo maior pode alterar o desconto aplicado no calculo.' },
               { title: 'Gratuito / oculto', text: 'Planos internos podem existir sem aparecer como oferta publica.' },
+              { title: 'Vinculo com assinatura', text: 'O ajuste reflete nas cobrancas futuras sem recriar a regra.' },
             ].map((item) => (
               <div key={item.title} className="rounded-[14px] border border-slate-200 bg-slate-50 p-4">
                 <p className="text-xs font-black text-slate-900">{item.title}</p>
@@ -453,6 +494,7 @@ export default function PlansPage({ params: { tenant } }: { params: { tenant: st
             <li className="flex items-start gap-2"><Check size={14} className="mt-0.5 text-violet-600" />Usuarios e colaboradores limitados</li>
             <li className="flex items-start gap-2"><Check size={14} className="mt-0.5 text-violet-600" />Plano ativo, inativo ou oculto</li>
             <li className="flex items-start gap-2"><Check size={14} className="mt-0.5 text-violet-600" />Ajuste automatico nas cobrancas futuras</li>
+            <li className="flex items-start gap-2"><Check size={14} className="mt-0.5 text-violet-600" />Plano nao pode ficar pago com valor zero sem alerta</li>
           </ul>
         </div>
       </section>
@@ -462,6 +504,10 @@ export default function PlansPage({ params: { tenant } }: { params: { tenant: st
         <div className="flex items-center gap-6 rounded-[10px] border border-slate-100 bg-white px-5 py-3">
           <div className="text-xs text-slate-500">
             <span className="font-black text-slate-950">{activePlans.length}</span> planos ativos
+          </div>
+          <div className="h-4 w-px bg-slate-200" />
+          <div className="text-xs text-slate-500">
+            <span className="font-black text-slate-950">{visiblePlanCount}</span> visiveis
           </div>
           {inactivePlans.length > 0 && (
             <>
