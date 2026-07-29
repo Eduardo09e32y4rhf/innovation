@@ -10,6 +10,7 @@ import {
   Copy,
   Edit2,
   ExternalLink,
+  History,
   Loader2,
   MoreHorizontal,
   Plus,
@@ -106,13 +107,16 @@ export default function FinancePage({ params: { tenant } }: { params: { tenant: 
     [page, status, deferredSearch, from, to],
   );
   const webhookEvents = useQuery(() => api.platform.finance.webhookEvents({ limit: 12 }), []);
+  const billingAuditLogs = useQuery(() => api.platform.finance.billingAuditLogs({ limit: 12 }), []);
   const companies = useQuery(() => api.platform.listCompanies(), [], { enabled: showModal || Boolean(editingInvoice) });
   const [retryingWebhookId, setRetryingWebhookId] = useState<string | null>(null);
+  const [selectedInvoice, setSelectedInvoice] = useState<PlatformInvoice | null>(null);
 
   function refresh() {
     invoices.refetch();
     summary.refetch();
     webhookEvents.refetch();
+    billingAuditLogs.refetch();
   }
 
   const companyById = useMemo(() => {
@@ -173,28 +177,32 @@ export default function FinancePage({ params: { tenant } }: { params: { tenant: 
   }
 
   async function removeInvoice(invoice: PlatformInvoice) {
-    if (!window.confirm(`Cancelar a cobrança ${invoice.description || 'selecionada'}?`)) return;
+    if (!window.confirm(`Cancelar a cobrança ${invoice.description || 'selecionada'}?`)) return false;
     setWorkingId(invoice.id);
     try {
       await api.platform.finance.delete(invoice.id);
       toast.success('Cobrança cancelada.');
       refresh();
+      return true;
     } catch (error) {
       toast.error(error instanceof ApiError ? error.message : 'Não foi possível cancelar.');
+      return false;
     } finally {
       setWorkingId(undefined);
     }
   }
 
   async function refundInvoice(invoice: PlatformInvoice) {
-    if (!window.confirm(`Solicitar reembolso de ${money(invoice.amount)}?`)) return;
+    if (!window.confirm(`Solicitar reembolso de ${money(invoice.amount)}?`)) return false;
     setWorkingId(invoice.id);
     try {
       await api.platform.finance.refund(invoice.id);
       toast.success('Reembolso solicitado com sucesso.');
       refresh();
+      return true;
     } catch (error) {
       toast.error(error instanceof ApiError ? error.message : 'Não foi possível estornar a cobrança.');
+      return false;
     } finally {
       setWorkingId(undefined);
     }
@@ -206,8 +214,10 @@ export default function FinancePage({ params: { tenant } }: { params: { tenant: 
       await api.platform.finance.sync(invoice.id);
       toast.success('Status sincronizado com o Asaas.');
       refresh();
+      return true;
     } catch (error) {
       toast.error(error instanceof ApiError ? error.message : 'Não foi possível sincronizar.');
+      return false;
     } finally {
       setWorkingId(undefined);
     }
@@ -270,6 +280,7 @@ export default function FinancePage({ params: { tenant } }: { params: { tenant: 
   const chartMax = Math.max(1, ...chartData.flatMap((item) => [item.billed, item.received]));
   const recentInvoices = invoices.data?.items ?? [];
   const recentWebhookEvents = webhookEvents.data ?? [];
+  const recentBillingLogs = billingAuditLogs.data ?? [];
   const webhookCounts = recentWebhookEvents.reduce((acc, item) => {
     acc[item.status] = (acc[item.status] || 0) + 1;
     return acc;
@@ -368,7 +379,7 @@ export default function FinancePage({ params: { tenant } }: { params: { tenant: 
         </div>
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-[1fr_1.2fr]">
+      <section className="grid gap-4 xl:grid-cols-[1fr_0.95fr]">
         <div className="rounded-[14px] border border-slate-200 bg-white p-5 shadow-sm">
           <div className="flex items-center justify-between gap-4">
             <div>
@@ -447,10 +458,55 @@ export default function FinancePage({ params: { tenant } }: { params: { tenant: 
                   </article>
                 );
               })
-            )}
+              )}
           </div>
         </div>
 
+        <div className="rounded-[14px] border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Financeiro & Auditoria</p>
+              <h3 className="mt-1 text-lg font-black text-slate-950">Histórico recente</h3>
+            </div>
+            <button onClick={() => billingAuditLogs.refetch()} className="inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-50">
+              <RefreshCw size={14} className={billingAuditLogs.loading ? 'animate-spin' : ''} />
+              Atualizar
+            </button>
+          </div>
+          <div className="mt-4 space-y-3">
+            {billingAuditLogs.loading ? (
+              <LoadingState label="Carregando auditoria financeira..." />
+            ) : billingAuditLogs.error ? (
+              <ErrorState message={billingAuditLogs.error} onRetry={billingAuditLogs.refetch} />
+            ) : recentBillingLogs.length === 0 ? (
+              <EmptyState message="Nenhum evento financeiro auditado." />
+            ) : (
+              recentBillingLogs.map((entry) => (
+                <article key={entry.id} className="rounded-2xl border border-slate-200 p-4 shadow-sm">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-black text-slate-950">{String(entry.action || '').replaceAll('_', ' ')}</p>
+                      <p className="mt-1 text-[10px] text-slate-500">
+                        {entry.company?.name || 'Sem empresa vinculada'}
+                        {entry.user?.name ? ` • ${entry.user.name}` : ''}
+                      </p>
+                    </div>
+                    <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] font-black text-slate-500">
+                      {new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(entry.createdAt))}
+                    </span>
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2 text-[10px] font-bold text-slate-500">
+                    <span className="rounded-full border border-slate-200 bg-white px-2 py-1">{entry.entity}</span>
+                    {entry.entityId && <span className="rounded-full border border-slate-200 bg-white px-2 py-1">{entry.entityId.slice(0, 8)}...</span>}
+                    {entry.metadata && Object.keys(entry.metadata).length > 0 && (
+                      <span className="rounded-full border border-slate-200 bg-white px-2 py-1">Metadados</span>
+                    )}
+                  </div>
+                </article>
+              ))
+            )}
+          </div>
+        </div>
       </section>
 
       <section className="overflow-hidden rounded-[14px] border border-slate-200 bg-white shadow-sm">
@@ -524,6 +580,14 @@ export default function FinancePage({ params: { tenant } }: { params: { tenant: 
                     </td>
                     <td className="px-5 py-4">
                       <div className="flex justify-end gap-1">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedInvoice(invoice)}
+                          className="rounded-[7px] p-2 text-slate-500 hover:bg-white hover:text-slate-900 hover:shadow-sm"
+                          title="Ver detalhes"
+                        >
+                          <History size={14} />
+                        </button>
                         {invoice.invoiceUrl && (
                           <>
                             <button type="button" onClick={() => navigator.clipboard.writeText(invoice.invoiceUrl || '').then(() => toast.success('Link copiado.'))} className="rounded-[7px] p-2 text-slate-500 hover:bg-white hover:text-teal-700 hover:shadow-sm" title="Copiar link">
@@ -565,17 +629,126 @@ export default function FinancePage({ params: { tenant } }: { params: { tenant: 
           </div>
         )}
 
-        {invoices.data && invoices.data.pagination.total > 0 && (
-          <div className="flex items-center justify-between border-t border-slate-100 px-5 py-3 text-xs text-slate-500">
-            <span>{invoices.data.pagination.total} faturas</span>
-            <div className="flex items-center gap-2">
-              <button disabled={page <= 1} onClick={() => setPage((current) => current - 1)} className="rounded border border-slate-200 px-3 py-1.5 font-bold disabled:opacity-40">Anterior</button>
+      {invoices.data && invoices.data.pagination.total > 0 && (
+        <div className="flex items-center justify-between border-t border-slate-100 px-5 py-3 text-xs text-slate-500">
+          <span>{invoices.data.pagination.total} faturas</span>
+          <div className="flex items-center gap-2">
+            <button disabled={page <= 1} onClick={() => setPage((current) => current - 1)} className="rounded border border-slate-200 px-3 py-1.5 font-bold disabled:opacity-40">Anterior</button>
               <span className="font-bold text-slate-700">{page} / {invoices.data.pagination.pages}</span>
               <button disabled={page >= invoices.data.pagination.pages} onClick={() => setPage((current) => current + 1)} className="rounded border border-slate-200 px-3 py-1.5 font-bold disabled:opacity-40">Proxima</button>
+          </div>
+        </div>
+      )}
+    </section>
+
+      {selectedInvoice && (
+        <div className="fixed inset-0 z-50 flex items-center justify-end bg-slate-950/50 p-4">
+          <div className="flex h-full w-full max-w-2xl flex-col overflow-hidden rounded-[24px] bg-white shadow-2xl">
+            <header className="flex items-start justify-between gap-4 border-b border-slate-100 px-6 py-5">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-teal-600">Detalhe da cobrança</p>
+                <h3 className="mt-1 text-lg font-black text-slate-950">{selectedInvoice.company?.name || 'Empresa'}</h3>
+                <p className="mt-1 text-xs text-slate-500">{selectedInvoice.description || 'Mensalidade'} • {money(selectedInvoice.amount)}</p>
+              </div>
+              <button type="button" onClick={() => setSelectedInvoice(null)} className="rounded-full p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700">
+                <X size={18} />
+              </button>
+            </header>
+
+            <div className="grid gap-4 overflow-y-auto p-6">
+              <div className="grid gap-3 sm:grid-cols-2">
+                {[
+                  ['Status', STATUS[selectedInvoice.status]?.label ?? selectedInvoice.status],
+                  ['Forma', BILLING_LABEL[selectedInvoice.billingType] ?? selectedInvoice.billingType],
+                  ['Vencimento', date(selectedInvoice.dueDate)],
+                  ['Integração', selectedInvoice.asaasPaymentId ? 'Asaas' : 'Local'],
+                ].map(([label, value]) => (
+                  <article key={label} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <p className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">{label}</p>
+                    <p className="mt-2 text-sm font-bold text-slate-900">{value}</p>
+                  </article>
+                ))}
+              </div>
+
+              <article className="rounded-2xl border border-slate-200 p-4">
+                <p className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">Ações</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      startEdit(selectedInvoice);
+                      setSelectedInvoice(null);
+                    }}
+                    className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50"
+                  >
+                    <Edit2 size={14} />
+                    Editar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (await refundInvoice(selectedInvoice)) {
+                        setSelectedInvoice(null);
+                      }
+                    }}
+                    disabled={selectedInvoice.status !== 'PAID'}
+                    className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <Banknote size={14} />
+                    Reembolsar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (await sync(selectedInvoice)) {
+                        setSelectedInvoice(null);
+                      }
+                    }}
+                    disabled={!selectedInvoice.asaasPaymentId}
+                    className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <RefreshCw size={14} />
+                    Sincronizar
+                  </button>
+                  {selectedInvoice.invoiceUrl && (
+                    <a
+                      href={selectedInvoice.invoiceUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-2 rounded-xl border border-teal-200 bg-teal-50 px-3 py-2 text-xs font-bold text-teal-700 hover:bg-teal-100"
+                    >
+                      <ExternalLink size={14} />
+                      Abrir cobrança
+                    </a>
+                  )}
+                </div>
+              </article>
+
+              <article className="rounded-2xl border border-slate-200 p-4">
+                <p className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">Dados operacionais</p>
+                <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Empresa</p>
+                    <p className="mt-1 text-sm font-bold text-slate-900">{selectedInvoice.company?.name || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Documento</p>
+                    <p className="mt-1 text-sm font-bold text-slate-900">{selectedInvoice.company?.document || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">ID Asaas</p>
+                    <p className="mt-1 text-sm font-bold text-slate-900">{selectedInvoice.asaasPaymentId || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Valor</p>
+                    <p className="mt-1 text-sm font-bold text-slate-900">{money(selectedInvoice.amount)}</p>
+                  </div>
+                </div>
+              </article>
             </div>
           </div>
-        )}
-      </section>
+        </div>
+      )}
 
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4">
