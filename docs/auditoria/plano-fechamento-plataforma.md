@@ -1,77 +1,141 @@
 # Plano de Fechamento da Plataforma
 
-Baseline atual validado: `52d6183d`
+Baseline inicial da auditoria: `52d6183d`  
+Baseline operacional mais recente validado: `256d47eb`
 
-Este plano adapta o fechamento ao estado atual do codigo. O objetivo e transformar a aba Plataforma em um console simples, confiavel e auditavel.
+Este plano acompanha o estado real do codigo e nao apenas a intencao documental. O objetivo e transformar a aba **Plataforma** em um console simples, confiavel e auditavel, sem botões decorativos ou indicadores aproximados.
+
+## Status atual
+
+| Bloco | Estado |
+| --- | --- |
+| Financeiro | Em andamento, com primeira tranche entregue |
+| Contratos | Pendente de fechamento funcional |
+| Configuracao | Pendente de fechamento funcional |
+| Experiencia da plataforma | Parcialmente simplificada |
+
+## O que ja foi entregue
+
+- Reset de senha de usuarios corrigido e validado.
+- Financeiro da Plataforma ganhou:
+  - histórico recente de auditoria;
+  - painel lateral de detalhes por fatura;
+  - ação de ver detalhes na tabela;
+  - contexto operacional mais claro antes de editar, cancelar ou sincronizar.
+- Builds de API e frontend passaram na base atual.
 
 ## Fase 1 - Congelar e estabilizar
 
-1. Fixar o baseline atual.
-2. Evitar novas telas enquanto existirem fluxos quebrados.
-3. Validar que builds e migrações seguem verdes.
-4. Registrar o inventario funcional da Plataforma.
+1. Fixar a base atual como referencia de trabalho.
+2. Evitar novas telas antes de fechar os fluxos quebrados.
+3. Validar que builds, migrações e deploy seguem verdes.
+4. Manter o inventario funcional da Plataforma atualizado.
 
-Entregavel:
+### Entregaveis
+
 - backlog consolidado;
 - mapa de botoes e acoes;
-- matriz de risco por pagina.
+- matriz de risco por pagina;
+- lista de lacunas por API e por tela.
 
 ## Fase 2 - Fechar Financeiro
 
-Prioridade:
-1. valor faturado, recebido, aberto e em atraso;
-2. criacao, edicao, cancelamento e sincronizacao de faturas;
-3. reembolso e estorno;
-4. conciliacao com Asaas;
-5. PDF de extrato backend-only;
-6. auditoria e historico.
+### Escopo
 
-Critério de saida:
-- nenhum numero critico pode ser aproximado;
+1. Valor faturado, recebido, aberto e em atraso.
+2. Criacao, edicao, cancelamento e sincronizacao de faturas.
+3. Reembolso e estorno.
+4. Conciliacao com Asaas.
+5. PDF de extrato backend-only.
+6. Auditoria e historico operacional.
+
+### O que ja existe
+
+- resumo financeiro funcional;
+- listagem com filtros;
+- webhook events;
+- retry de webhook;
+- detalhe por fatura;
+- auditoria recente.
+
+### O que ainda falta fechar
+
+- remover qualquer leitura aproximada como verdade oficial;
+- ligar PDF de extrato a snapshot imutavel e rastreavel;
+- deixar claro o fluxo de reembolso e cancelamento;
+- fechar a conciliacao como visao operacional e nao apenas tabela;
+- padronizar estados de erro, parcial e sincronizado.
+
+### Criterio de saida
+
+- nenhum numero critico pode ser aproximado sem identificacao;
 - todo PDF precisa vir do backend;
-- cada acao sensivel precisa deixar trilha.
+- cada acao sensivel precisa deixar trilha;
+- a operacao precisa ser reproduzivel na VPS e no GitHub.
 
 ## Fase 3 - Fechar Contratos
 
-Prioridade:
-1. rascunho e revisao;
-2. ativacao e vinculo financeiro;
-3. PDF contratual;
-4. aditivos e revisoes;
-5. encerramento e renovacao;
-6. historico e auditoria.
+### Escopo
 
-Critério de saida:
+1. Rascunho e revisao.
+2. Ativacao e vinculo financeiro.
+3. PDF contratual.
+4. Aditivos e revisoes.
+5. Encerramento e renovacao.
+6. Historico e auditoria.
+
+### O que ainda falta fechar
+
+- tornar a tela um fluxo de contrato mais claro;
+- separar visualmente rascunho, ativo, encerrado e cancelado;
+- impedir edicao silenciosa de contrato ativo;
+- deixar as acoes de linha mais explicitas;
+- ligar contrato e cobranca de forma mais didatica para operacao.
+
+### Criterio de saida
+
 - contrato ativo nao pode ser alterado silenciosamente;
 - revisao deve gerar nova versao;
-- acao de linha precisa ser real.
+- a acao de linha precisa ser real;
+- PDF e vigencia precisam refletir o mesmo estado.
 
 ## Fase 4 - Fechar Configuracao
 
-Prioridade:
-1. separar configuracoes de negocio, permissao e integracao;
-2. salvar perfis e acessos de fato;
-3. testar conexoes externas;
-4. esconder segredos;
-5. auditar antes/depois.
+### Escopo
 
-Critério de saida:
+1. Separar configuracoes de negocio, permissao e integracao.
+2. Salvar perfis e acessos de fato.
+3. Testar conexoes externas.
+4. Esconder segredos.
+5. Auditar antes/depois.
+
+### O que ainda falta fechar
+
+- tornar a pagina menos redundante;
+- separar o que e financeiro do que e configuracao;
+- tornar permissao global mais clara para o usuario;
+- deixar mais legivel o impacto das alteracoes;
+- manter integracoes e segredos fora de telas desnecessarias.
+
+### Criterio de saida
+
 - nenhuma configuracao sensivel pode ficar solta em tela unica;
 - a alteracao precisa refletir no backend;
-- o usuario precisa entender o impacto antes de salvar.
+- o usuario precisa entender o impacto antes de salvar;
+- auditoria precisa mostrar antes e depois.
 
-## Fase 5 - Organizar a experiencia da plataforma
+## Fase 5 - Organizar a experiencia da Plataforma
 
-1. reduzir redundancia visual.
-2. agrupar a navegacao em tres blocos:
+1. Reduzir redundancia visual.
+2. Agrupar a navegacao em tres blocos:
    - Financeiro
    - Contratos
    - Configuracao
-3. remover botoes decorativos.
-4. padronizar nomes, estados e feedback.
-5. tornar as mensagens mais objetivas.
+3. Remover botoes decorativos.
+4. Padronizar nomes, estados e feedback.
+5. Tornar mensagens mais objetivas.
 
-## Fase 6 - Fechar o que depende da plataforma
+## Fase 6 - Fechar o que depende da Plataforma
 
 Somente depois dos tres blocos principais:
 - dashboard da plataforma;
@@ -103,5 +167,5 @@ A Plataforma so esta fechada quando:
 - cada dado importante vem do backend;
 - cada mudanca sensivel gera auditoria;
 - nada critico depende de estimativa local;
-- a experiencia no celular nao quebra.
-
+- a experiencia no celular nao quebra;
+- a publicacao na VPS reproduz o mesmo estado do GitHub.
