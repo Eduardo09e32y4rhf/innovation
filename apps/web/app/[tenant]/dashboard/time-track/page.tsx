@@ -23,7 +23,7 @@ const REASONS: { value: TimeTrackAdjustmentReason; label: string; fullDay?: bool
   { value:'ajuste_erro_marcacao', label:'AJUSTE - MARCAÇÃO INCOMPLETA', fullDay:false },
   { value:'ajuste_atestado_integral', label:'ATESTADO INTEGRAL', fullDay:true },
   { value:'ajuste_feriado', label:'FERIADO', fullDay:true },
-  { value:'ajuste_abono_atestado_horas', label:'ABONO - ATESTADO DE HORAS', fullDay:true },
+  { value:'ajuste_abono_atestado_horas', label:'ABONO - ATESTADO DE HORAS', fullDay:false },
   { value:'ajuste_folga_dsr', label:'FOLGA', fullDay:true },
   { value:'ajuste_abono_folga', label:'ABONO - FOLGA (BANCO)', fullDay:true },
   { value:'ajuste_abono_banco_saida_antecipada', label:'ABONO - BANCO SAÍDA ANTECIPADA', fullDay:true },

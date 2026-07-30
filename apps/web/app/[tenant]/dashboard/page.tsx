@@ -53,8 +53,8 @@ function DashboardContent() {
   const departments = useMemo(() => [...new Set((employees.data ?? []).map((e) => e.department).filter(Boolean))].sort(), [employees.data]);
 
   const summaryData = summary.data;
-  const timeTrackData = timeTracks.data ?? [];
-  const vacationData = vacations.data ?? [];
+  const timeTrackData = useMemo(() => timeTracks.data ?? [], [timeTracks.data]);
+  const vacationData = useMemo(() => vacations.data ?? [], [vacations.data]);
   const insightData = insights.data;
   const alertItems = insightData ? buildAlertItems(insightData.alerts) : [];
   const rhAlertData = rhAlerts.data;
@@ -177,7 +177,7 @@ function DashboardContent() {
   }
 
   return (
-<div className="mx-auto w-full space-y-4 px-3 py-4 sm:px-6 lg:px-8">
+<div className="mx-auto w-full space-y-4 overflow-x-hidden px-3 py-4 sm:px-6 lg:px-8">
       {/* Premium Hero Section */}
       <section className="mb-4 overflow-hidden rounded-xl bg-black p-5 text-white shadow-sm">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">

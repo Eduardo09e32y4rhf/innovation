@@ -31,9 +31,9 @@ interface EligibilityInfo {
   // Período Concessivo: quanto falta para 1a e 11 meses (prazo fatal)
   concessivePeriodMonths: number;  // Total de meses desde admissão
   concessiveDeadlineText: string;  // Quanto tempo falta para o prazo fatal
-  isConcessiveUrgent: boolean;     // Está no 11º mês concessivo (obrigatório tirar)
+  isConcessiveUrgent: boolean;     // Janela de alerta no fim do prazo concessivo
   isConcessiveWarning: boolean;    // Passou de 9m20d no período concessivo (alerta RH)
-  mustTakeAll: boolean;            // Obrigado a tirar todos os dias de uma vez
+  mustTakeAll: boolean;            // Regra operacional antiga removida
   canSellDays: boolean;            // Pode vender até 10 dias (Abono Pecuniário)
   canFraction: boolean;            // Pode fracionar em parcelas
   isCritical: boolean;             // Passou de 10 meses no período concessivo
@@ -65,7 +65,7 @@ function calcEligibility(admissionDateStr: string): EligibilityInfo | null {
     const isEligible = totalMonths >= 12;
 
     // Período Concessivo: começa quando o funcionário completa 12 meses
-    // Prazo fatal: 1 ano e 11 meses de casa (11º mês do período concessivo)
+    // Prazo concessivo máximo: 12 meses apos o periodo aquisitivo
     const concessiveMonths = isEligible ? totalMonths - 12 : 0; // meses dentro do período concessivo
     
     // Calcular o prazo fatal: 23 meses desde admissão (1a11m)
@@ -77,20 +77,19 @@ function calcEligibility(admissionDateStr: string): EligibilityInfo | null {
       ? 'PRAZO ESGOTADO!' 
       : `${Math.floor(daysToFatal / 30)} mes(es) e ${daysToFatal % 30} dia(s) para o vencimento`;
 
-    // Regras da CLT:
-    // - concessiveMonths >= 11: 11º mês concessivo = URGENTE, obrigado a tirar tudo
-    // - concessiveMonths >= 10: Alerta crítico para RH
-    // - concessiveMonths >= 9 e 20 dias: Alerta para RH (conforme solicitado)
+    // Regras operacionais:
+    // - concessiveMonths >= 11: alerta de prazo
+    // - concessiveMonths >= 10: alerta critico para RH
+    // - concessiveMonths >= 9 e 20 dias: alerta para RH
     const nowDayOfMonth = now.getDate();
     const isConcessiveUrgent  = isEligible && concessiveMonths >= 11; // 1a e 11m
     const isCritical          = isEligible && concessiveMonths >= 10; // 1a e 10m
     const isConcessiveWarning = isEligible && (concessiveMonths >= 9 && (concessiveMonths > 9 || nowDayOfMonth >= 20));
 
-    // Antes do 11º mês: pode fracionar e pode vender dias
-    // No 11º mês: proibido fracionar, proibido vender, obrigado a tirar os 30 dias
-    const mustTakeAll = isConcessiveUrgent;
-    const canSellDays = isEligible && !mustTakeAll;
-    const canFraction = isEligible && !mustTakeAll;
+    // Mantem as opcoes legais ativas; o alerta nao bloqueia fracionamento.
+    const mustTakeAll = false;
+    const canSellDays = isEligible;
+    const canFraction = isEligible;
 
     return {
       monthsSinceAdmission: totalMonths,
@@ -328,7 +327,7 @@ export default function VacationsPage() {
                             {isUrgent && (
                               <p className="text-[10px] font-bold text-rose-600 flex items-center gap-1 mt-0.5">
                                 <AlertTriangle size={10} strokeWidth={2.5} />
-                                URGENTE — 11º mês: obrigatório tirar as férias já!
+                                URGENTE — prazo concessivo em fase final
                               </p>
                             )}
                             {!isUrgent && isCritical && (
@@ -740,7 +739,7 @@ function NewVacationModal({
                     eligibility.isConcessiveUrgent ? 'text-rose-800' : eligibility.isCritical ? 'text-orange-800' : 'text-emerald-800'
                   }`}>
                     {eligibility.isConcessiveUrgent
-                      ? '⚠️ URGENTE — 11º mês concessivo: obrigatório tirar todos os dias!'
+                      ? '⚠️ URGENTE — prazo concessivo em fase final'
                       : eligibility.isCritical
                       ? 'Alerta: 10º mês — notificação obrigatória emitida ao RH'
                       : 'Elegível para férias'}
@@ -756,7 +755,7 @@ function NewVacationModal({
                     </p>
                   )}
                   {eligibility.mustTakeAll && (
-                    <p className="mt-1 text-[11px] font-black text-rose-800">Não é possível fracionar nem vender dias neste estágio.</p>
+                    <p className="mt-1 text-[11px] font-black text-rose-800">O prazo está no fim, mas o fracionamento continua sujeito à aprovação do RH.</p>
                   )}
                 </div>
               </div>
@@ -855,7 +854,7 @@ function NewVacationModal({
             <p className="mt-1 text-lg font-black text-teal-700">{days} {days === 1 ? 'dia' : 'dias'}</p>
           </div>
 
-          {/* Abono Pecuniário: só antes do 11º mês concessivo */}
+          {/* Abono Pecuniário: segue a regra legal e depende da elegibilidade */}
           {eligibility?.canSellDays && days > 0 && (
             <label className="flex items-center gap-3 rounded-[10px] border border-indigo-200 bg-indigo-50 px-4 py-3 cursor-pointer">
               <input

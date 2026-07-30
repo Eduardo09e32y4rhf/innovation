@@ -57,6 +57,12 @@ export function UserDrawer({
   }, [user]);
 
   useEffect(() => {
+    if (!isCustomPerms) {
+      setCustomPerms(getDefaultPermissions(role));
+    }
+  }, [isCustomPerms, role]);
+
+  useEffect(() => {
     if (isOpen) {
       setActiveTab('geral');
     }
@@ -68,7 +74,12 @@ export function UserDrawer({
     setIsSaving(true);
     setFeedback(null);
     try {
-      await onSaveGeneral({ name, email, role });
+      await onSaveGeneral({
+        name,
+        email,
+        role,
+        customPermissions: isCustomPerms ? customPerms : null,
+      });
       setFeedback('Alteracoes gerais salvas com sucesso.');
     } catch (error) {
       setFeedback(error instanceof Error ? error.message : 'Nao foi possivel salvar as alteracoes.');
@@ -215,6 +226,7 @@ export function UserDrawer({
                   </p>
                 )}
                 <button
+                  type="button"
                   onClick={handleSaveGeneral}
                   disabled={isSaving}
                   className="crystal-button w-full"

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { UserPlus } from 'lucide-react';
+import { toast } from 'sonner';
 import { EmptyState, ErrorState, LoadingState } from '@/app/components/data-states';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useMutation, useQuery } from '@/app/hooks/use-data';
@@ -112,7 +113,12 @@ export default function UsersPage() {
 
   const handleToggleBlock = async (user: AppUser) => {
     if (!window.confirm(`Tem certeza que deseja ${user.isActive === false ? 'desbloquear' : 'bloquear'} o acesso de ${user.name}?`)) return;
-    await toggleStatus.mutate({ id: user.id, isActive: user.isActive === false }).catch((e) => alert(e.message));
+    try {
+      await toggleStatus.mutate({ id: user.id, isActive: user.isActive === false });
+      toast.success(user.isActive === false ? 'Acesso desbloqueado.' : 'Acesso bloqueado.');
+    } catch (e: any) {
+      toast.error(e?.message || 'Nao foi possivel atualizar o acesso.');
+    }
   };
 
   const handleDownloadTerm = async (user: AppUser) => {
@@ -137,7 +143,7 @@ export default function UsersPage() {
         window.URL.revokeObjectURL(url);
       }, 1000);
     } catch (e) {
-      alert('Erro ao baixar o PDF. Pode não ter sido assinado ainda.');
+      toast.error('Erro ao baixar o PDF. Pode nao ter sido assinado ainda.');
     }
   };
 
@@ -148,18 +154,23 @@ export default function UsersPage() {
 
   const handleDelete = async (user: AppUser) => {
     if (!window.confirm(`Tem certeza que deseja excluir DEFINITIVAMENTE o acesso de ${user.name}?`)) return;
-    await remove.mutate(user.id).catch((e) => alert(e.message));
+    try {
+      await remove.mutate(user.id);
+      toast.success('Acesso excluido.');
+    } catch (e: any) {
+      toast.error(e?.message || 'Nao foi possivel excluir o acesso.');
+    }
   };
 
   const handleCreateSubmit = async (data: any) => {
     try {
       const { password, ...rest } = data;
       await api.users.create({ ...rest, password });
-      alert('Usuário criado com sucesso!');
+      toast.success('Usuario criado com sucesso!');
       users.refetch();
       usage.refetch();
     } catch (e: any) {
-      alert(e?.message || 'Erro ao criar usuário.');
+      toast.error(e?.message || 'Erro ao criar usuario.');
       throw e;
     }
   };
@@ -170,10 +181,10 @@ export default function UsersPage() {
       await api.users.resetPassword(selectedUser.id, { newPassword });
       const updatedUser = await api.users.get(selectedUser.id);
       setSelectedUser(updatedUser);
-      alert('Senha temporária definida com sucesso!');
+      toast.success('Senha temporaria definida com sucesso!');
       users.refetch();
     } catch (error: any) {
-      alert(error?.message || 'Não foi possível redefinir a senha.');
+      toast.error(error?.message || 'Nao foi possivel redefinir a senha.');
       throw error;
     }
   };
@@ -193,7 +204,7 @@ export default function UsersPage() {
   };
 
   return (
-    <div className="mx-auto w-full space-y-5">
+    <div className="mx-auto w-full space-y-5 overflow-x-hidden">
       <header className="page-header items-center">
         <div>
           <p className="text-[11px] font-black uppercase tracking-[0.2em] text-teal-600">

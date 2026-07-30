@@ -59,4 +59,38 @@ describe('VacationsService', () => {
     })).rejects.toBeInstanceOf(BadRequestException);
     expect(repository.create).not.toHaveBeenCalled();
   });
+
+  it('mantem os dias solicitados e grava o ciclo aquisitivo calculado pela admissao', async () => {
+    const periodStart = new Date('2025-01-15T00:00:00.000Z');
+    const periodEnd = new Date('2026-01-14T00:00:00.000Z');
+    const tracks: Array<{ date: Date; entry: Date; manualStatus: string }> = [];
+    for (const cursor = new Date(periodStart); cursor <= periodEnd; cursor.setUTCDate(cursor.getUTCDate() + 1)) {
+      const day = cursor.getUTCDay();
+      if (day === 0 || day === 6) continue;
+      tracks.push({
+        date: new Date(cursor),
+        entry: new Date(`${cursor.toISOString().slice(0, 10)}T08:00:00.000Z`),
+        manualStatus: 'approved',
+      });
+    }
+
+    const { service, repository } = makeService({
+      listTimeTracksInPeriod: vi.fn().mockResolvedValue(tracks),
+    });
+
+    await service.create('company-1', actor, {
+      employeeId: 'employee-1',
+      acquisitionPeriod: '2025/2026',
+      startDate: '2026-07-01',
+      endDate: '2026-07-10',
+      daysUsed: 10,
+      observation: 'Férias anuais',
+    });
+
+    expect(repository.create).toHaveBeenCalledWith(expect.objectContaining({
+      employeeId: 'employee-1',
+      acquisitionPeriod: '2025-01-15/2026-01-14',
+      daysUsed: 10,
+    }));
+  });
 });

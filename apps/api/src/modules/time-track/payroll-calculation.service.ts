@@ -114,10 +114,10 @@ export class PayrollCalculationService {
 
   calculateInss(base: number): number {
     const bands = [
-      { limit: 1412.00, rate: 0.075 },
-      { limit: 2666.68, rate: 0.09 },
-      { limit: 4000.03, rate: 0.12 },
-      { limit: 7786.02, rate: 0.14 },
+      { limit: 1621.00, rate: 0.075 },
+      { limit: 2902.84, rate: 0.09 },
+      { limit: 4354.27, rate: 0.12 },
+      { limit: 8475.55, rate: 0.14 },
     ];
     let previous = 0;
     let contribution = 0;

@@ -150,7 +150,7 @@ export class TimeClosingService {
         overtime50Minutes += Math.round((track.overtime50Minutes || 0) * paymentRatio);
         overtime100Minutes += Math.round((track.overtime100Minutes || 0) * paymentRatio);
         nightShiftMinutes += track.nightShiftMinutes || 0;
-        absenceMinutes += Math.max(0, track.absenceMinutes || (track.dailyBalance && track.dailyBalance < 0 ? Math.abs(track.dailyBalance) : 0));
+        absenceMinutes += Math.max(0, track.absenceMinutes || 0);
         lateMinutes += track.lateMinutes || 0;
         earlyLeaveMinutes += track.earlyLeaveMinutes || 0;
         if (track.incidentType === 'falta') absenceDays++;

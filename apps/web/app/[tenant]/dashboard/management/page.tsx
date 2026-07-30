@@ -156,10 +156,13 @@ function ManagementContent() {
   }, { onSuccess: () => { setAsoForm({ open: false }); asoQuery.refetch(); } });
   const deleteAsoMut = useMutation((id: string) => api.management.aso.delete(id), { onSuccess: () => asoQuery.refetch() });
 
-  const columns = (kanbanQuery.data as any) ?? { OVERDUE: [], TODAY: [], THIS_WEEK: [], UPCOMING: [], COMPLETED: [] };
+  const columns = useMemo(
+    () => (kanbanQuery.data as any) ?? { OVERDUE: [], TODAY: [], THIS_WEEK: [], UPCOMING: [], COMPLETED: [] },
+    [kanbanQuery.data],
+  );
   const asos = useMemo(() => (asoQuery.data as EmployeeAsoRecord[] | undefined) ?? [], [asoQuery.data]);
   const employees = useMemo(() => (employeesQuery.data as Employee[] | undefined) ?? [], [employeesQuery.data]);
-  const company = companyQuery.data ?? null;
+  const company = useMemo(() => companyQuery.data ?? null, [companyQuery.data]);
 
   // Notificações de PC para Agenda (15m, 5m, 0, -5m)
   useEffect(() => {
@@ -176,7 +179,7 @@ function ManagementContent() {
     const pendingEvents = events.filter((e: any) => e.status === 'PENDENTE' && e.startDateTime);
     
     const checkAndNotify = () => {
-      const notified = JSON.parse(sessionStorage.getItem('agenda-notified') || '{}');
+      const notified = JSON.parse(window.localStorage.getItem('agenda-notified') || '{}');
       const now = new Date().getTime();
       let changed = false;
       
@@ -199,7 +202,7 @@ function ManagementContent() {
         else if (diffMinutes <= -5 && diffMinutes > -6) notify('late', 'Compromisso atrasado', evt.title);
       });
       
-      if (changed) sessionStorage.setItem('agenda-notified', JSON.stringify(notified));
+      if (changed) window.localStorage.setItem('agenda-notified', JSON.stringify(notified));
     };
 
     const interval = setInterval(checkAndNotify, 60000);
@@ -212,7 +215,7 @@ function ManagementContent() {
     if (!canView || !asos.length || !employees.length || typeof window === 'undefined' || !('Notification' in window) || Notification.permission !== 'granted') return;
     
     const checkAsoAndNotify = () => {
-      const notified = JSON.parse(sessionStorage.getItem('aso-notified') || '{}');
+      const notified = JSON.parse(window.localStorage.getItem('aso-notified') || '{}');
       let changed = false;
       const today = new Date().toISOString().slice(0, 10);
       
@@ -249,7 +252,7 @@ function ManagementContent() {
         }
       });
       
-      if (changed) sessionStorage.setItem('aso-notified', JSON.stringify(notified));
+      if (changed) window.localStorage.setItem('aso-notified', JSON.stringify(notified));
     };
 
     // Check once on load and every 1h
@@ -273,6 +276,29 @@ function ManagementContent() {
         <button onClick={() => navigate('aso')} className={tab === 'aso' ? 'tab-item-active' : 'tab-item'}>ASO</button>
         <button onClick={() => navigate('notifications')} className={tab === 'notifications' ? 'tab-item-active' : 'tab-item'}>Notificações</button>
         {canManage && <button onClick={() => navigate('payroll')} className={tab === 'payroll' ? 'tab-item-active' : 'tab-item'}>Jornada e fechamento</button>}
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="rounded-[12px] border border-slate-200 bg-white p-4 shadow-sm">
+          <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">Agenda em aberto</p>
+          <p className="mt-1 text-2xl font-black text-slate-950">
+            {(columns.OVERDUE?.length || 0) + (columns.TODAY?.length || 0) + (columns.THIS_WEEK?.length || 0) + (columns.UPCOMING?.length || 0)}
+          </p>
+        </div>
+        <div className="rounded-[12px] border border-slate-200 bg-white p-4 shadow-sm">
+          <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">Compromissos concluídos</p>
+          <p className="mt-1 text-2xl font-black text-slate-950">{columns.COMPLETED?.length || 0}</p>
+        </div>
+        <div className="rounded-[12px] border border-slate-200 bg-white p-4 shadow-sm">
+          <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">ASOs vencidos</p>
+          <p className="mt-1 text-2xl font-black text-slate-950">
+            {asos.filter((aso) => aso.status === 'EXPIRED' || (aso.dueDate && new Date(aso.dueDate) < new Date() && aso.status !== 'COMPLETED' && aso.status !== 'CANCELLED')).length}
+          </p>
+        </div>
+        <div className="rounded-[12px] border border-slate-200 bg-white p-4 shadow-sm">
+          <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">ASOs pendentes</p>
+          <p className="mt-1 text-2xl font-black text-slate-950">{asos.filter((aso) => aso.status === 'PENDING').length}</p>
+        </div>
       </div>
 
       {tab === 'agenda' && (kanbanQuery.loading && !kanbanQuery.data ? <LoadingState label="Carregando..." /> :
@@ -670,7 +696,7 @@ function NotificationsTab({ canManage, company, employees: propEmployees }: { ca
   const respondMut = useMutation(({ id, action, reason }: { id: string; action: 'ACKNOWLEDGE' | 'ACCEPT' | 'REFUSE'; reason?: string }) =>
     api.notifications.respond(id, action, reason), { onSuccess: () => listQuery.refetch() });
 
-  const notifications = (listQuery.data as any[] | undefined) ?? [];
+  const notifications = useMemo(() => (listQuery.data as any[] | undefined) ?? [], [listQuery.data]);
   const employees = (empQuery.data as Employee[] | undefined) ?? [];
 
   const filtered = useMemo(() => notifications.filter(n => {

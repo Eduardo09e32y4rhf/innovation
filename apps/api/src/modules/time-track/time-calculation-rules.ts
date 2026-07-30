@@ -205,7 +205,8 @@ export class TimeCalculationRulesService {
 
     const scheduleDebt = result.lateMinutes + result.earlyLeaveMinutes;
     const netDebt = Math.max(0, -balance);
-    result.absenceMinutes = Math.max(scheduleDebt, netDebt) || null;
+    const residualAbsence = Math.max(0, netDebt - scheduleDebt);
+    result.absenceMinutes = residualAbsence || null;
 
     if (result.overtime50Minutes > 0) this.applyOvertimeLimit(result, rule);
 

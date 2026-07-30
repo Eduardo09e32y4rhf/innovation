@@ -102,7 +102,7 @@ export class ScheduleService {
     return this.prisma.$transaction(async (tx) => {
       const employees = await tx.employee.findMany({
         where: { companyId, id: { in: employeeIds } },
-        select: { id: true },
+        select: { id: true, name: true },
       });
       if (employees.length !== employeeIds.length) {
         throw new BadRequestException('Um ou mais funcionarios nao pertencem a esta empresa.');
@@ -124,6 +124,30 @@ export class ScheduleService {
         },
         data: { endDate: previousEndDate },
       });
+
+      const rangeEnd = endDate ?? new Date('9999-12-31T23:59:59.999Z');
+      const overlappingSchedules = await tx.userSchedule.findMany({
+        where: {
+          companyId,
+          employeeId: { in: employeeIds },
+          startDate: { lt: rangeEnd },
+          OR: [
+            { endDate: null },
+            { endDate: { gte: startDate } },
+          ],
+        },
+        include: {
+          employee: { select: { id: true, name: true } },
+          schedule: { select: { id: true, name: true } },
+        },
+      });
+      if (overlappingSchedules.length) {
+        const names = Array.from(new Set(overlappingSchedules.map((item) => item.employee?.name).filter(Boolean))).slice(0, 5);
+        throw new BadRequestException(
+          `Ja existe vigencia de escala sobreposta para ${names.join(', ') || 'um ou mais funcionarios'}. ` +
+          'Encerre a vigencia anterior antes de criar a nova atribuicao.',
+        );
+      }
 
       // Cria a nova atribuição para cada funcionário
       const dataToInsert = employeeIds.map(empId => ({

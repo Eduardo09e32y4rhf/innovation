@@ -4,7 +4,7 @@ describe('PayrollCalculationService - tabelas 2026', () => {
   const service = new PayrollCalculationService();
 
   it('calcula INSS progressivo de R$ 5.000,00', () => {
-    expect(service.calculateInss(5000)).toBe(518.82);
+    expect(service.calculateInss(5000)).toBe(501.51);
   });
 
   it('zera IRRF para rendimento tributavel de R$ 5.000,00 pela reducao de 2026', () => {
@@ -18,10 +18,10 @@ describe('PayrollCalculationService - tabelas 2026', () => {
       payableWorkdays: 22,
       paidRestDays: 9,
     });
-    expect(result.inssDiscount).toBe(518.82);
+    expect(result.inssDiscount).toBe(501.51);
     expect(result.irrfDiscount).toBe(0);
     expect(result.fgtsAmount).toBe(400);
-    expect(result.netPay).toBe(4481.18);
+    expect(result.netPay).toBe(4498.49);
   });
 
   it('usa divisor 200 para jornada semanal de 40h e soma verbas sem duplicar salario', () => {

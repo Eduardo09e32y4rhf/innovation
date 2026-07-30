@@ -73,7 +73,7 @@ describe('TimeCalculationRulesService - jornada CLT', () => {
     expect(result.totalWorkedMinutes).toBe(540);
     expect(result.lateMinutes).toBe(60);
     expect(result.overtime50Minutes).toBe(120);
-    expect(result.absenceMinutes).toBe(60);
+    expect(result.absenceMinutes).toBeNull();
     expect(result.dailyBalanceMinutes).toBe(60);
     expect(result.incidentType).toBe('atraso');
   });
@@ -89,9 +89,21 @@ describe('TimeCalculationRulesService - jornada CLT', () => {
     expect(result.totalWorkedMinutes).toBe(480);
     expect(result.earlyLeaveMinutes).toBe(60);
     expect(result.overtime50Minutes).toBe(60);
-    expect(result.absenceMinutes).toBe(60);
+    expect(result.absenceMinutes).toBeNull();
     expect(result.dailyBalanceMinutes).toBe(0);
     expect(result.incidentType).toBe('saida_antecipada');
+  });
+
+  it('registra ausencia total sem duplicar atraso ou saida antecipada', () => {
+    const result = service.calculateTotals({
+      workDate: at('2026-07-15', '00:00'),
+    }, employee, rule, null);
+    expect(result.punchStatus).toBe('ABSENT');
+    expect(result.absenceMinutes).toBe(480);
+    expect(result.lateMinutes).toBe(0);
+    expect(result.earlyLeaveMinutes).toBe(0);
+    expect(result.dailyBalanceMinutes).toBe(-480);
+    expect(result.incidentType).toBe('falta');
   });
 
   it('classifica todo trabalho em descanso nao compensado como 100%', () => {
