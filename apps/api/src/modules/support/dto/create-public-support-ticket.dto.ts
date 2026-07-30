@@ -1,5 +1,7 @@
 import { IsEnum, IsNotEmpty, IsOptional, IsString, IsEmail } from 'class-validator';
-import { SupportTicketCategory } from '@prisma/client';
+import { $Enums } from '@prisma/client';
+type SupportTicketCategory = $Enums.SupportTicketCategory;
+const SupportTicketCategory = $Enums.SupportTicketCategory;
 
 export class CreatePublicSupportTicketDto {
   @IsString()

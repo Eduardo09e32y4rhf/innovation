@@ -1,5 +1,11 @@
 import { IsOptional, IsString, IsEnum } from 'class-validator';
-import { SupportTicketStatus, SupportTicketPriority, SupportTicketCategory } from '@prisma/client';
+import { $Enums } from '@prisma/client';
+type SupportTicketStatus = $Enums.SupportTicketStatus;
+const SupportTicketStatus = $Enums.SupportTicketStatus;
+type SupportTicketPriority = $Enums.SupportTicketPriority;
+const SupportTicketPriority = $Enums.SupportTicketPriority;
+type SupportTicketCategory = $Enums.SupportTicketCategory;
+const SupportTicketCategory = $Enums.SupportTicketCategory;
 
 export class ListSupportTicketsQueryDto {
   @IsOptional()

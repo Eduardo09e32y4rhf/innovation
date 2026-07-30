@@ -3,7 +3,11 @@ import { SupportService } from './support.service';
 import { SupportRepository } from './support.repository';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { SupportAuthorizationService } from './support-authorization.service';
-import { SupportTicketPriority, SupportTicketStatus } from '@prisma/client';
+import { $Enums } from '@prisma/client';
+type SupportTicketPriority = $Enums.SupportTicketPriority;
+const SupportTicketPriority = $Enums.SupportTicketPriority;
+type SupportTicketStatus = $Enums.SupportTicketStatus;
+const SupportTicketStatus = $Enums.SupportTicketStatus;
 import { ListSupportTicketsQueryDto } from './dto/list-support-tickets-query.dto';
 import { UpdateSupportStatusDto } from './dto/update-support-status.dto';
 
