@@ -11,7 +11,7 @@ test('landing oferece entrada e cadastro sem promessa jurídica absoluta', async
 test('login permite voltar ao site ou criar a empresa', async ({ page }) => {
   await page.goto('/login');
   await expect(page.getByRole('heading', { name: 'Entrar na Plataforma' })).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Criar minha empresa' })).toHaveAttribute('href', '/cadastro');
+  await expect(page.getByRole('link', { name: 'Criar agora' })).toHaveAttribute('href', '/cadastro');
   await expect(page.getByRole('link', { name: 'Voltar para o site' })).toHaveAttribute('href', '/');
 });
 
