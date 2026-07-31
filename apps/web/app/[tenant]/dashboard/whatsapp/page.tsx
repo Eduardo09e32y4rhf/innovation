@@ -368,7 +368,7 @@ function ChatThread({ chat, onBack, className }: { chat: Chat | null; onBack: ()
     <div className={className || "flex min-h-0 flex-1 flex-col relative"}>
       {/* WhatsApp Web Style Chat Header */}
       <div className="flex h-[59px] shrink-0 items-center gap-3 bg-[#f0f2f5] px-4">
-        <button aria-label="Voltar" onClick={onBack} className="md:hidden flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[#54656f] hover:bg-black/5">
+        <button onClick={onBack} className="md:hidden flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[#54656f] hover:bg-black/5">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
         </button>
         <div className="flex h-[40px] w-[40px] shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#dfe5e7] text-white">
@@ -447,10 +447,10 @@ function ChatThread({ chat, onBack, className }: { chat: Chat | null; onBack: ()
 
       <div className="flex shrink-0 items-center gap-3 bg-[#f0f2f5] px-4 py-2 min-h-[62px]">
         <input type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden" />
-        <button aria-label="Emoji" className="text-[#54656f] hover:text-[#111b21] transition">
+        <button className="text-[#54656f] hover:text-[#111b21] transition">
           <svg viewBox="0 0 24 24" width="24" height="24" className=""><path fill="currentColor" d="M12 20.664a9.163 9.163 0 0 1-6.521-2.702.977.977 0 0 1 1.381-1.381 7.269 7.269 0 0 0 10.024.244.977.977 0 0 1 1.313 1.445A9.192 9.192 0 0 1 12 20.664zm7.965-6.112a.977.977 0 0 1-.944-1.229 7.26 7.26 0 0 0-4.8-8.804.977.977 0 0 1 .594-1.86 9.212 9.212 0 0 1 6.092 11.169.976.976 0 0 1-.942.724zm-16.025-.39a.977.977 0 0 1-.953-.769 9.21 9.21 0 0 1 6.626-10.86.977.977 0 1 1 .507 1.886 7.259 7.259 0 0 0-5.225 8.563.978.978 0 0 1-.955 1.18z"></path></svg>
         </button>
-        <button aria-label="Anexar arquivo" onClick={() => fileInputRef.current?.click()} className="text-[#54656f] hover:text-[#111b21] transition" title="Anexar">
+        <button onClick={() => fileInputRef.current?.click()} className="text-[#54656f] hover:text-[#111b21] transition" title="Anexar">
           <svg viewBox="0 0 24 24" width="24" height="24" className=""><path fill="currentColor" d="M11.999 14.942c2.001 0 3.531-1.53 3.531-3.531V4.35c0-2.001-1.53-3.531-3.531-3.531S8.469 2.35 8.469 4.35v7.061c0 2.001 1.53 3.531 3.531 3.531zM8.95 14.66c.655.625 1.547 1.015 2.529 1.082V20h1.04v-4.258c.982-.067 1.874-.457 2.529-1.082a.983.983 0 0 1 1.353 1.425c-.947.904-2.247 1.468-3.665 1.564V22h-1.47v-4.351c-1.418-.096-2.718-.66-3.665-1.564a.983.983 0 1 1 1.353-1.425z"></path></svg>
         </button>
         
@@ -464,7 +464,7 @@ function ChatThread({ chat, onBack, className }: { chat: Chat | null; onBack: ()
                   {attachment.file.name}
                 </div>
               )}
-              <button aria-label="Remover anexo" onClick={() => setAttachment(null)} className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-rose-100 hover:text-rose-600">
+              <button onClick={() => setAttachment(null)} className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-rose-100 hover:text-rose-600">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
               </button>
             </div>

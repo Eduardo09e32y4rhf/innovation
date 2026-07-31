@@ -1,18 +1,18 @@
-import { IsOptional, IsString, IsEnum } from 'class-validator';
-import { SupportTicketStatus, SupportTicketPriority, SupportTicketCategory } from '@prisma/client';
+import { IsOptional, IsString, IsIn } from 'class-validator';
+
 
 export class ListSupportTicketsQueryDto {
   @IsOptional()
-  @IsEnum(SupportTicketStatus)
-  status?: SupportTicketStatus;
+  @IsIn(['NEW', 'TRIAGE', 'IN_PROGRESS', 'WAITING_CUSTOMER', 'WAITING_DEPLOY', 'RESOLVED', 'CLOSED'])
+  status?: 'NEW' | 'TRIAGE' | 'IN_PROGRESS' | 'WAITING_CUSTOMER' | 'WAITING_DEPLOY' | 'RESOLVED' | 'CLOSED';
 
   @IsOptional()
-  @IsEnum(SupportTicketPriority)
-  priority?: SupportTicketPriority;
+  @IsIn(['LOW', 'NORMAL', 'HIGH', 'CRITICAL'])
+  priority?: 'LOW' | 'NORMAL' | 'HIGH' | 'CRITICAL';
 
   @IsOptional()
-  @IsEnum(SupportTicketCategory)
-  category?: SupportTicketCategory;
+  @IsIn(['BUG', 'CORRECTION', 'ADJUSTMENT', 'MAINTENANCE', 'FEATURE_REQUEST', 'PASSWORD_RESET', 'ACCESS', 'BILLING', 'PERFORMANCE', 'SECURITY', 'INTEGRATION', 'OTHER'])
+  category?: 'BUG' | 'CORRECTION' | 'ADJUSTMENT' | 'MAINTENANCE' | 'FEATURE_REQUEST' | 'PASSWORD_RESET' | 'ACCESS' | 'BILLING' | 'PERFORMANCE' | 'SECURITY' | 'INTEGRATION' | 'OTHER';
 
   @IsOptional()
   @IsString()
