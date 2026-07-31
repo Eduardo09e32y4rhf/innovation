@@ -43,7 +43,7 @@ Fechar os fluxos reais do sistema, removendo:
 
 ### Fechamento operacional ainda pendente
 
-- [ ] 30/07/2026 - Publicar as alteracoes locais em `main`.
+- [x] 31/07/2026 - Publicar as alteracoes locais em `main` (commit `8bdcd47a` enviado para `origin/main`).
 - [ ] 30/07/2026 - Aplicar as duas migrations na VPS e executar o deploy.
 - [ ] 30/07/2026 - Executar smoke manual de login, candidatura, PDFs e fluxos principais na VPS.
 - [ ] 30/07/2026 - Validar backup e rollback antes de declarar producao fechada.
