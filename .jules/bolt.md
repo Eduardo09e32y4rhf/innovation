@@ -1,0 +1,3 @@
+## 2024-05-18 - Replacing iterative N+1 queries with bulk Prisma queries in loops
+**Learning:** In backend loops, iterating over elements and performing \`findMany\` operations iteratively is a classic N+1 query issue that dramatically slows down data aggregation and PDF generation operations, especially for large numbers of records.
+**Action:** When extracting queries to resolve N+1 bottlenecks, extract all identifiers (e.g. \`employeeIds = employees.map(e => e.id)\`), execute a single bulk \`findMany\` query using the Prisma \`in\` operator (e.g. \`{ in: employeeIds }\`), and group the results into in-memory \`Map\` objects before iterating through the main loop to preserve O(1) loop lookups without affecting logical outcomes.
