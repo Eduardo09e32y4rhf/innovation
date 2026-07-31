@@ -27,7 +27,7 @@ export class RateLimitGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const options = this.reflector.get<RateLimitOptions>(RATE_LIMIT_KEY, context.getHandler());
-    if (!options) return true; // no rate limit configured for this route
+    if (!options) return true;
 
     const request = context.switchToHttp().getRequest();
     const key = this.buildKey(request, options);
@@ -41,7 +41,7 @@ export class RateLimitGuard implements CanActivate {
       throw new HttpException(
         {
           statusCode: HttpStatus.TOO_MANY_REQUESTS,
-          message: 'Muitas requisições. Tente novamente em instantes.',
+          message: 'Muitas tentativas. Tente novamente em 1 minuto.',
           error: 'Too Many Requests',
           retryAfter: options.window,
         },
@@ -54,9 +54,36 @@ export class RateLimitGuard implements CanActivate {
 
   private buildKey(request: any, options: RateLimitOptions): string {
     const prefix = options.prefix || 'ratelimit';
-    const userId = request.user?.sub || 'anon';
+    const userId = request.user?.sub || this.extractLoginIdentity(request) || 'anon';
     const route = request.route?.path || 'unknown';
-    const ip = request.ip || request.connection?.remoteAddress || 'unknown';
+    const ip = this.extractRequestIp(request);
     return `ratelimit:${prefix}:${userId}:${route}:${ip}`;
+  }
+
+  private extractLoginIdentity(request: any): string | null {
+    const body = request.body ?? {};
+    const email = String(body.email ?? body.username ?? '').trim().toLowerCase();
+    if (email) return `email:${email}`;
+
+    const document = String(body.document ?? body.cpf ?? '').replace(/\D/g, '');
+    if (document) return `document:${document}`;
+
+    return null;
+  }
+
+  private extractRequestIp(request: any): string {
+    const forwardedFor = request.headers?.['x-forwarded-for'];
+    const realIp = request.headers?.['x-real-ip'];
+    const cfIp = request.headers?.['cf-connecting-ip'];
+    return (
+      cfIp ||
+      realIp ||
+      (Array.isArray(forwardedFor)
+        ? forwardedFor[0]
+        : forwardedFor?.split(',')[0]?.trim()) ||
+      request.ip ||
+      request.connection?.remoteAddress ||
+      'unknown'
+    );
   }
 }
