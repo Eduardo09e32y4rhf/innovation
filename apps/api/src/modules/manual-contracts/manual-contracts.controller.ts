@@ -6,6 +6,7 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import type { JwtUser } from '../../common/types/auth.types';
 import { CreateManualContractDto } from './dto/create-manual-contract.dto';
 import { UpdateManualContractDto } from './dto/update-manual-contract.dto';
+import { TransitionManualContractDto } from './dto/transition-manual-contract.dto';
 import { ManualContractsService } from './manual-contracts.service';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -17,9 +18,24 @@ export class ManualContractsController {
   @Get()
   list(@Query('companyId') companyId?: string) { return this.service.list(companyId); }
 
+  @Get(':id/history')
+  history(@Param('id') id: string) {
+    return this.service.history(id);
+  }
+
+  @Get(':id/transitions')
+  transitions(@Param('id') id: string) {
+    return this.service.availableTransitions(id);
+  }
+
   @Get(':id/pdf')
   async pdf(@CurrentUser() actor: JwtUser, @Param('id') id: string, @Res() res: any) {
     return this.service.streamPdf(id, actor.sub || (actor as any).id, res);
+  }
+
+  @Get(':id')
+  get(@Param('id') id: string) {
+    return this.service.get(id);
   }
 
   @Post()
@@ -32,6 +48,12 @@ export class ManualContractsController {
   @Roles('DEV', 'COMERCIAL')
   update(@CurrentUser() actor: JwtUser, @Param('id') id: string, @Body() dto: UpdateManualContractDto) {
     return this.service.update(id, dto, actor.sub || (actor as any).id);
+  }
+
+  @Patch(':id/status')
+  @Roles('DEV', 'COMERCIAL')
+  transition(@CurrentUser() actor: JwtUser, @Param('id') id: string, @Body() dto: TransitionManualContractDto) {
+    return this.service.transition(id, dto, actor.sub || (actor as any).id);
   }
 
   @Delete(':id')

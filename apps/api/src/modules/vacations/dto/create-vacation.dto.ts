@@ -1,4 +1,4 @@
-import { IsDateString, IsInt, IsNotEmpty, IsOptional, IsString, IsUUID, Min } from 'class-validator';
+import { IsDateString, IsInt, IsNotEmpty, IsOptional, IsString, IsUUID, Max, Min } from 'class-validator';
 
 export class CreateVacationDto {
   @IsUUID()
@@ -17,6 +17,12 @@ export class CreateVacationDto {
   @IsInt()
   @Min(1)
   daysUsed!: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(10)
+  soldDays?: number;
 
   @IsOptional()
   @IsString()

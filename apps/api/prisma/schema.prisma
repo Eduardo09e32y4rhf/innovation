@@ -116,6 +116,37 @@ enum VacationStatus {
   COMPLETED
 }
 
+enum VacationEntitlementStatus {
+  OPEN
+  EXHAUSTED
+  EXPIRED
+  CANCELLED
+}
+
+enum VacationPaymentStatus {
+  PENDING
+  PAID
+  CANCELLED
+}
+
+enum MedicalCertificateType {
+  FULL_DAY
+  HOURS
+  DAYS
+}
+
+enum MedicalCertificateStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum PayrollTaxType {
+  INSS
+  IRRF
+}
+
 enum NotificationType {
   SIMPLE_NOTICE
   PROMOTION_NOTICE
@@ -336,26 +367,27 @@ model Company {
   asoClinicPresets AsoClinicPreset[]
   notifications    Notification[]
 
-  workScheduleRules WorkScheduleRule[]
-  faceEnrollments   FaceEnrollment[]
-  timeOccurrences   TimeOccurrence[]
-  commitments       Commitment[]
-  attachments       Attachment[]
-  activityHistories ActivityHistory[]
-  overtimeBanks     OvertimeBank[]
-  timeTracks        TimeTrack[]
-  overtimeRule      OvertimeRule?
-  holidays          Holiday[]
-  timeClosings      TimeClosing[]
-  platformPlan      PlatformPlan?            @relation(fields: [platformPlanId], references: [id])
-  platformInvoices  PlatformInvoice[]
-  platformContract  PlatformContract?
-  proposals         Proposal[]
-  financeConfig     CompanyFinanceConfig?
-  financeNotifLogs  FinanceNotificationLog[]
-  subscription      CompanySubscription?
-  couponRedemptions CouponRedemption[]
-  manualContracts   ManualContract[]
+  workScheduleRules   WorkScheduleRule[]
+  faceEnrollments     FaceEnrollment[]
+  timeOccurrences     TimeOccurrence[]
+  commitments         Commitment[]
+  attachments         Attachment[]
+  activityHistories   ActivityHistory[]
+  overtimeBanks       OvertimeBank[]
+  timeTracks          TimeTrack[]
+  overtimeRule        OvertimeRule?
+  holidays            Holiday[]
+  timeClosings        TimeClosing[]
+  medicalCertificates MedicalCertificate[]
+  platformPlan        PlatformPlan?            @relation(fields: [platformPlanId], references: [id])
+  platformInvoices    PlatformInvoice[]
+  platformContract    PlatformContract?
+  proposals           Proposal[]
+  financeConfig       CompanyFinanceConfig?
+  financeNotifLogs    FinanceNotificationLog[]
+  subscription        CompanySubscription?
+  couponRedemptions   CouponRedemption[]
+  manualContracts     ManualContract[]
 
   // Módulo Escala
   schedules          Schedule[]
@@ -511,10 +543,12 @@ model Employee {
   timeOccurrences        TimeOccurrence[]
   notificationRecipients NotificationRecipient[]
 
-  commitments    Commitment[]
-  overtimeBank   OvertimeBank?
-  faceEnrollment FaceEnrollment?
-  timeClosings   TimeClosing[]
+  commitments          Commitment[]
+  overtimeBank         OvertimeBank?
+  faceEnrollment       FaceEnrollment?
+  timeClosings         TimeClosing[]
+  vacationEntitlements VacationEntitlement[]
+  medicalCertificates  MedicalCertificate[]
 
   // Módulo Escala
   userSchedules      UserSchedule[]
@@ -672,18 +706,132 @@ model TimeOccurrence {
 model Vacation {
   id                String         @id @default(uuid()) @db.Uuid
   employeeId        String         @db.Uuid
+  entitlementId     String?        @db.Uuid
   acquisitionPeriod String
   startDate         DateTime
   endDate           DateTime
   daysUsed          Int
+  soldDays          Int            @default(0)
+  paymentDueDate    DateTime?
+  paidAt            DateTime?
   status            VacationStatus @default(PENDING)
   observation       String?
   createdAt         DateTime       @default(now())
   updatedAt         DateTime       @updatedAt
 
-  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  employee    Employee             @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  entitlement VacationEntitlement? @relation(fields: [entitlementId], references: [id], onDelete: Restrict)
+  payments    VacationPayment[]
+  auditLogs   VacationAuditLog[]
 
   @@index([employeeId])
+  @@index([entitlementId])
+}
+
+model VacationEntitlement {
+  id                  String                    @id @default(uuid()) @db.Uuid
+  employeeId          String                    @db.Uuid
+  acquisitionStart    DateTime                  @db.Date
+  acquisitionEnd      DateTime                  @db.Date
+  concessionStart     DateTime                  @db.Date
+  concessionEnd       DateTime                  @db.Date
+  originalDays        Int                       @default(30)
+  entitledDays        Int
+  reservedDays        Int                       @default(0)
+  usedDays            Int                       @default(0)
+  soldDays            Int                       @default(0)
+  unjustifiedAbsences Int                       @default(0)
+  ruleVersion         String                    @default("CLT_VACATION_2026_1")
+  status              VacationEntitlementStatus @default(OPEN)
+  createdAt           DateTime                  @default(now())
+  updatedAt           DateTime                  @updatedAt
+
+  employee  Employee           @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  vacations Vacation[]
+  auditLogs VacationAuditLog[]
+
+  @@unique([employeeId, acquisitionStart, acquisitionEnd])
+  @@index([employeeId, status, concessionEnd])
+}
+
+model VacationPayment {
+  id              String                @id @default(uuid()) @db.Uuid
+  vacationId      String                @db.Uuid
+  amount          Decimal               @db.Decimal(14, 2)
+  dueDate         DateTime              @db.Date
+  paidAt          DateTime?
+  status          VacationPaymentStatus @default(PENDING)
+  paymentMethod   String?
+  reference       String?
+  createdByUserId String?               @db.Uuid
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+
+  vacation Vacation @relation(fields: [vacationId], references: [id], onDelete: Cascade)
+
+  @@index([vacationId, status])
+  @@index([dueDate, status])
+}
+
+model VacationAuditLog {
+  id            String   @id @default(uuid()) @db.Uuid
+  vacationId    String?  @db.Uuid
+  entitlementId String?  @db.Uuid
+  action        String
+  before        Json?
+  after         Json?
+  reason        String?
+  actorUserId   String?  @db.Uuid
+  createdAt     DateTime @default(now())
+
+  vacation    Vacation?            @relation(fields: [vacationId], references: [id], onDelete: Cascade)
+  entitlement VacationEntitlement? @relation(fields: [entitlementId], references: [id], onDelete: Cascade)
+
+  @@index([vacationId, createdAt])
+  @@index([entitlementId, createdAt])
+}
+
+model MedicalCertificate {
+  id                 String                   @id @default(uuid()) @db.Uuid
+  companyId          String                   @db.Uuid
+  employeeId         String                   @db.Uuid
+  certificateType    MedicalCertificateType
+  startAt            DateTime
+  endAt              DateTime
+  coveredMinutes     Int
+  issueDate          DateTime                 @db.Date
+  issuerName         String?
+  issuerRegistration String?
+  documentId         String?
+  status             MedicalCertificateStatus @default(PENDING)
+  rejectionReason    String?
+  createdByUserId    String?                  @db.Uuid
+  reviewedByUserId   String?                  @db.Uuid
+  reviewedAt         DateTime?
+  createdAt          DateTime                 @default(now())
+  updatedAt          DateTime                 @updatedAt
+
+  company  Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, employeeId, startAt])
+  @@index([companyId, status])
+}
+
+model PayrollTaxTable {
+  id            String         @id @default(uuid()) @db.Uuid
+  taxType       PayrollTaxType
+  version       String
+  effectiveFrom DateTime       @db.Date
+  effectiveTo   DateTime?      @db.Date
+  brackets      Json
+  parameters    Json?
+  active        Boolean        @default(true)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@unique([taxType, version])
+  @@index([taxType, active, effectiveFrom, effectiveTo])
 }
 
 model ManagementEvent {
@@ -713,27 +861,27 @@ model ManagementEvent {
 }
 
 model EmployeeAsoRecord {
-  id                 String    @id @default(uuid()) @db.Uuid
-  companyId          String    @db.Uuid
-  employeeId         String    @db.Uuid
+  id                 String     @id @default(uuid()) @db.Uuid
+  companyId          String     @db.Uuid
+  employeeId         String     @db.Uuid
   asoType            AsoType
   examDate           DateTime?
   dueDate            DateTime?
-  status             AsoStatus @default(PENDING)
+  status             AsoStatus  @default(PENDING)
   result             AsoResult?
   clinicName         String?
   doctorName         String?
   documentNumber     String?
   observation        String?
   attachmentId       String?
-  createdBy          String?   @db.Uuid
-  updatedBy          String?   @db.Uuid
-  completedBy        String?   @db.Uuid
+  createdBy          String?    @db.Uuid
+  updatedBy          String?    @db.Uuid
+  completedBy        String?    @db.Uuid
   completedAt        DateTime?
   cancelledAt        DateTime?
   cancellationReason String?
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
 
   company         Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
   employee        Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
@@ -1058,23 +1206,34 @@ model Candidate {
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
 
-  company      Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  contact      Contact?      @relation(fields: [contactId], references: [id])
-  applications Application[]
-  admittedEmployee Employee? @relation("CandidateAdmission")
+  company          Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  contact          Contact?      @relation(fields: [contactId], references: [id])
+  applications     Application[]
+  admittedEmployee Employee?     @relation("CandidateAdmission")
 
   @@index([companyId])
   @@index([companyId, email])
 }
 
 model Application {
-  id          String            @id @default(uuid()) @db.Uuid
-  companyId   String            @db.Uuid
-  candidateId String            @db.Uuid
-  jobId       String            @db.Uuid
-  status      ApplicationStatus @default(APPLIED)
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
+  id           String            @id @default(uuid()) @db.Uuid
+  companyId    String            @db.Uuid
+  candidateId  String            @db.Uuid
+  jobId        String            @db.Uuid
+  status       ApplicationStatus @default(APPLIED)
+  source       String?           @default("CAREERS_PORTAL")
+  linkedinUrl  String?
+  coverLetter  String?
+  resumeUrl    String?
+  resumeName   String?
+  resumeType   String?
+  resumeSize   Int?
+  aiScore      Int?
+  aiSummary    String?
+  consentGiven Boolean           @default(false)
+  consentAt    DateTime?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
 
   company   Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
   candidate Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
@@ -1239,6 +1398,7 @@ model TimeClosing {
   fgtsAmount         Float  @default(0)
   netPay             Float  @default(0)
   calculationVersion String @default("CLT_2026_1")
+  taxTableSnapshot   Json?
 
   closedAt     DateTime?
   closedBy     String?
@@ -1986,22 +2146,22 @@ enum GeneratedDocumentType {
 }
 
 model GeneratedDocument {
-  id         String                @id @default(uuid()) @db.Uuid
-  companyId  String                @db.Uuid
-  type       GeneratedDocumentType
-  title      String
-  
-  storageKey String                @unique
+  id        String                @id @default(uuid()) @db.Uuid
+  companyId String                @db.Uuid
+  type      GeneratedDocumentType
+  title     String
+
+  storageKey String @unique
   sha256     String
   sizeBytes  Int
-  
-  metadata   Json?                 @db.JsonB
-  
-  createdBy  String?               @db.Uuid
-  createdAt  DateTime              @default(now())
 
-  company    Company               @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  author     User?                 @relation(fields: [createdBy], references: [id], onDelete: SetNull)
+  metadata Json? @db.JsonB
+
+  createdBy String?  @db.Uuid
+  createdAt DateTime @default(now())
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  author  User?   @relation(fields: [createdBy], references: [id], onDelete: SetNull)
 
   @@index([companyId, type])
   @@index([createdAt])

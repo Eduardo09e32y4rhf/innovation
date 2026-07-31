@@ -512,6 +512,32 @@ export interface EmployeeAsoRecord {
   createdBy?: string | null; createdAt: string; updatedAt: string;
   employee?: { id: string; name: string; cpf?: string | null; role?: string | null; admissionDate?: string | null; department?: string | null } | null;
 }
+export interface EmployeeDeletionImpact {
+  timeTracks: number;
+  vacations: number;
+  asoRecords: number;
+  timeOccurrences: number;
+  timeClosings: number;
+  userSchedules: number;
+  scheduleExceptions: number;
+  supportTicketsAffected: number;
+  total: number;
+}
+export interface EmployeeDeleteResult {
+  deleted: boolean;
+  archived: boolean;
+  employeeId: string;
+  message: string;
+  deletionImpact: EmployeeDeletionImpact;
+}
+export interface EmployeeDossier {
+  employee: Employee;
+  asoRecords: EmployeeAsoRecord[];
+  vacations: Vacation[];
+  recentTimeTracks: TimeTrack[];
+  occurrences: any[];
+  deletionImpact: EmployeeDeletionImpact;
+}
 export interface AsoClinicPreset {
   id: string; companyId: string;
   name: string; cep?: string | null; address?: string | null;
@@ -574,10 +600,11 @@ export const api = {
     list: () => request<Employee[]>('/employees'),
     swapCandidates: () => request<any[]>('/employees/swap-candidates'),
     get: (id: string) => request<Employee>(`/employees/${id}`),
+    dossier: (id: string) => request<EmployeeDossier>(`/employees/${id}/dossier`),
     create: (input: CreateEmployeeInput) => request<Employee>('/employees', { method: 'POST', body: input }),
     update: (id: string, input: Partial<CreateEmployeeInput>) => request<Employee>(`/employees/${id}`, { method: 'PATCH', body: input }),
     terminate: (id: string) => request<Employee>(`/employees/${id}`, { method: 'DELETE' }),
-    delete: (id: string) => request<void>(`/employees/${id}/permanent`, { method: 'DELETE' }),
+    delete: (id: string) => request<EmployeeDeleteResult>(`/employees/${id}/permanent`, { method: 'DELETE' }),
     validateImport: (file: File) => {
       const form = new FormData();
       form.append('file', file);
@@ -599,6 +626,11 @@ export const api = {
     list: () => request<any[]>('/time-closing'),
     getById: (id: string) => request<any>(`/time-closing/${id}`),
     generate: (input: { month?: number; year?: number; periodStart?: string; periodEnd?: string; employeeIds?: string[]; overtimeHandling?: 'PAYMENT' | 'BANK' }) => request<any[]>('/time-closing/generate', { method: 'POST', body: input }),
+    downloadCollectivePdf: (month: string, employeeIds: string[] = []) =>
+      downloadRequest(`/time-closing/collective/pdf${makeQuery({
+        month,
+        employeeIds: employeeIds.length ? employeeIds.join(',') : undefined,
+      })}`),
     adjust: (id: string, field: string, newValue: number, reason: string) => request<any>(`/time-closing/${id}/adjust`, { method: 'PATCH', body: { field, newValue: String(newValue), reason } }),
     submitReview: (id: string) => request<any>(`/time-closing/${id}/submit-review`, { method: 'POST' }),
     approve: (id: string) => request<any>(`/time-closing/${id}/approve`, { method: 'POST' }),
@@ -648,7 +680,7 @@ export const api = {
     create: (input: CreateUserInput) => request<AppUser>('/users', { method: 'POST', body: input }),
     update: (id: string, input: UpdateUserInput) => request<AppUser>(`/users/${id}`, { method: 'PATCH', body: input }),
     delete: (id: string) => request<void>(`/users/${id}`, { method: 'DELETE' }),
-    resetPassword: (id: string, body: { newPassword: string }) => request<void>(`/users/${id}/reset-password`, { method: 'POST', body }),
+    resetPassword: (id: string, body: { newPassword: string }) => request<AppUser>(`/users/${id}/reset-password`, { method: 'POST', body }),
     ping: () => request<void>('/users/ping', { method: 'POST', silent: true }),
   },
 

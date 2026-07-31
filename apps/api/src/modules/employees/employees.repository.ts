@@ -100,6 +100,147 @@ export class EmployeesRepository {
     return this.prisma.user.updateMany({ where: { companyId, id }, data });
   }
 
+  async getDeletionImpact(companyId: string, id: string) {
+    const [timeTracks, vacations, asoRecords, timeOccurrences, timeClosings, userSchedules, scheduleExceptions, supportTicketsAffected] =
+      await Promise.all([
+        this.prisma.timeTrack.count({ where: { companyId, employeeId: id } }),
+        this.prisma.vacation.count({ where: { employeeId: id, employee: { companyId } } }),
+        this.prisma.employeeAsoRecord.count({ where: { companyId, employeeId: id } }),
+        this.prisma.timeOccurrence.count({ where: { companyId, employeeId: id } }),
+        this.prisma.timeClosing.count({ where: { companyId, employeeId: id } }),
+        this.prisma.userSchedule.count({ where: { companyId, employeeId: id } }),
+        this.prisma.scheduleException.count({ where: { companyId, employeeId: id } }),
+        this.prisma.supportTicket.count({ where: { companyId, affectedEmployeeId: id } }),
+      ]);
+
+    return {
+      timeTracks,
+      vacations,
+      asoRecords,
+      timeOccurrences,
+      timeClosings,
+      userSchedules,
+      scheduleExceptions,
+      supportTicketsAffected,
+      total:
+        timeTracks +
+        vacations +
+        asoRecords +
+        timeOccurrences +
+        timeClosings +
+        userSchedules +
+        scheduleExceptions +
+        supportTicketsAffected,
+    };
+  }
+
+  async getDossier(companyId: string, id: string) {
+    const employee = await this.findById(companyId, id);
+    if (!employee) return null;
+
+    const [asoRecords, vacations, recentTimeTracks, occurrences, deletionImpact] = await Promise.all([
+      this.prisma.employeeAsoRecord.findMany({
+        where: { companyId, employeeId: id },
+        orderBy: [{ examDate: 'desc' }, { createdAt: 'desc' }],
+        take: 12,
+      }),
+      this.prisma.vacation.findMany({
+        where: { employeeId: id, employee: { companyId } },
+        orderBy: [{ startDate: 'desc' }],
+        take: 12,
+      }),
+      this.prisma.timeTrack.findMany({
+        where: { companyId, employeeId: id },
+        orderBy: [{ date: 'desc' }],
+        take: 15,
+      }),
+      this.prisma.timeOccurrence.findMany({
+        where: { companyId, employeeId: id },
+        orderBy: [{ createdAt: 'desc' }],
+        take: 12,
+      }),
+      this.getDeletionImpact(companyId, id),
+    ]);
+
+    return {
+      employee,
+      asoRecords,
+      vacations,
+      recentTimeTracks,
+      occurrences,
+      deletionImpact,
+    };
+  }
+
+  async getOfficialDocumentData(companyId: string, id: string, period?: { start: Date; end: Date }) {
+    const employee = await this.prisma.employee.findFirst({
+      where: { companyId, id },
+      include: {
+        user: { select: { id: true, role: true, isActive: true } },
+      },
+    });
+    if (!employee) return null;
+
+    const [company, manager, timeTracks, occurrences, closing] = await Promise.all([
+      this.prisma.company.findUnique({
+        where: { id: companyId },
+        select: {
+          id: true,
+          name: true,
+          legalName: true,
+          document: true,
+          phone: true,
+          email: true,
+          street: true,
+          streetNumber: true,
+          neighborhood: true,
+          city: true,
+          state: true,
+          zipCode: true,
+        },
+      }),
+      employee.managerId
+        ? this.prisma.employee.findFirst({
+            where: { companyId, id: employee.managerId },
+            select: { id: true, name: true },
+          })
+        : null,
+      period
+        ? this.prisma.timeTrack.findMany({
+            where: {
+              companyId,
+              employeeId: id,
+              date: { gte: period.start, lte: period.end },
+            },
+            orderBy: { date: 'asc' },
+          })
+        : [],
+      period
+        ? this.prisma.timeOccurrence.findMany({
+            where: {
+              companyId,
+              employeeId: id,
+              date: { gte: period.start, lte: period.end },
+            },
+            orderBy: [{ date: 'asc' }, { createdAt: 'asc' }],
+          })
+        : [],
+      period
+        ? this.prisma.timeClosing.findFirst({
+            where: {
+              companyId,
+              employeeId: id,
+              periodStart: { lte: period.end },
+              periodEnd: { gte: period.start },
+            },
+            orderBy: { updatedAt: 'desc' },
+          })
+        : null,
+    ]);
+
+    return { company, employee, manager, timeTracks, occurrences, closing };
+  }
+
   delete(companyId: string, id: string) {
     return this.prisma.employee.deleteMany({ where: { companyId, id } });
   }

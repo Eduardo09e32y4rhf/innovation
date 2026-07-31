@@ -8,6 +8,7 @@ import { useAuth } from '@/app/contexts/AuthContext';
 import { useQuery, useMutation } from '@/app/hooks/use-data';
 import { api, type Employee, type ManagementEvent, type EmployeeAsoRecord } from '@/app/lib/api';
 import { normalizeDisplayName } from '@/app/lib/text';
+import { managementDocumentsApi } from './management-documents-api';
 
 type ManagementTab = 'agenda' | 'aso' | 'notifications' | 'payroll';
 type Tab = ManagementTab;
@@ -143,7 +144,6 @@ function ManagementContent() {
   const kanbanQuery = useQuery(() => api.management.events.kanban(), [], { enabled: canView });
   const asoQuery = useQuery(() => api.management.aso.list(), [], { enabled: canView });
   const employeesQuery = useQuery(() => api.employees.list(), [], { enabled: canView });
-  const companyQuery = useQuery(() => api.companies.me(), [], { enabled: canView });
 
   const eventsMut = useMutation((input: { id?: string; data: any }) => {
     if (input.id) return api.management.events.update(input.id, input.data);
@@ -162,7 +162,6 @@ function ManagementContent() {
   );
   const asos = useMemo(() => (asoQuery.data as EmployeeAsoRecord[] | undefined) ?? [], [asoQuery.data]);
   const employees = useMemo(() => (employeesQuery.data as Employee[] | undefined) ?? [], [employeesQuery.data]);
-  const company = useMemo(() => companyQuery.data ?? null, [companyQuery.data]);
 
   // Notificações de PC para Agenda (15m, 5m, 0, -5m)
   useEffect(() => {
@@ -317,7 +316,6 @@ function ManagementContent() {
         <AsoTab
           records={asos}
           employees={employees}
-          company={company}
           canManage={canManage}
           onOpenForm={(edit) => setAsoForm({ open: true, edit })}
           onSave={(data, id) => asoMut.mutate({ id, data }).catch(() => {})}
@@ -325,8 +323,8 @@ function ManagementContent() {
           saving={asoMut.loading}
         />)}
 
-      {tab === 'notifications' && <NotificationsTab canManage={canManage} company={company} employees={employees} />}
-      {tab === 'payroll' && canManage && <div className="space-y-8"><RulesTab canManage={canManage} /><ClosingTab canManage={canManage} company={company} /></div>}
+      {tab === 'notifications' && <NotificationsTab canManage={canManage} />}
+      {tab === 'payroll' && canManage && <div className="space-y-8"><RulesTab canManage={canManage} /><ClosingTab canManage={canManage} /></div>}
 
       {eventForm.open && <EventModal
         event={eventForm.edit}
@@ -339,7 +337,6 @@ function ManagementContent() {
         record={asoForm.edit}
         employees={employees}
         asos={asos}
-        company={company}
         onClose={() => setAsoForm({ open: false })}
         onSave={(data) => asoMut.mutate({ id: asoForm.edit?.id, data }).catch(() => {})}
         saving={asoMut.loading}
@@ -493,61 +490,15 @@ function AgendaKanban({ columns, employees, canManage, onOpenForm, onSave, onDel
 // ─── ASO ───────────────────────────────────────────────────────────────────────
 
 
-function printAsoPdf(emp: any, r: any, company: any) {
-  const { buildPdfShell, infoGrid, section, signatureBlock, printPdf } = require('@/app/lib/pdf-utils');
-  const docTitle = 'Encaminhamento para Exame Médico (ASO)';
-  const asoType = r.asoType || 'ADMISSIONAL';
-  const subtitle = asoType.replace(/_/g, ' ');
-  
-  const text = `<p style="font-size:11px;color:#334155;text-align:justify;line-height:1.6;">Encaminhamos o(a) colaborador(a) abaixo qualificado(a) para a realização de <strong>Exame Médico Ocupacional (${subtitle})</strong>, conforme previsto na NR-7.</p>
-  <p style="font-size:11px;color:#334155;text-align:justify;line-height:1.6;">Por favor, realizem a avaliação clínica e os exames complementares (se aplicáveis) e emitam o respectivo Atestado de Saúde Ocupacional (ASO).</p>`;
-
-  const companyInfo = company ? {
-    name: company.name,
-    legalName: company.legalName,
-    document: company.document || company.cnpj,
-    logoUrl: company.logoUrl,
-    phone: company.phone,
-    email: company.email,
-    address: [company.street, company.streetNumber, company.city, company.state].filter(Boolean).join(', '),
-  } : null;
-
-  const html = buildPdfShell({ title: docTitle, subtitle: emp.name }, companyInfo, `
-    ${section('Dados do Empregador (Empresa)', infoGrid([
-      { label: 'Razão Social', value: company?.legalName || company?.name || '---' },
-      { label: 'CNPJ', value: company?.document || company?.cnpj || '---' },
-      { label: 'Endereço', value: [company?.street, company?.streetNumber, company?.city, company?.state].filter(Boolean).join(', ') || '---' },
-    ], 1))}
-    ${section('Qualificação do Colaborador', infoGrid([
-      { label: 'Nome Completo', value: emp.name },
-      { label: 'CPF', value: emp.cpf },
-      { label: 'Data Nasc.', value: emp.birthDate ? new Date(emp.birthDate).toLocaleDateString('pt-BR') : '---' },
-      { label: 'Cargo', value: emp.position },
-      { label: 'Setor/Depto', value: emp.department },
-    ], 3))}
-    ${section('Dados do Encaminhamento', `
-      ${infoGrid([
-        { label: 'Tipo de Exame', value: subtitle },
-        { label: 'Clínica Agendada', value: r.clinicName || 'À definir' },
-        { label: 'Endereço da Clínica', value: (r.clinicAddress || r.observation) || 'Não informado' },
-        { label: 'Data Prevista', value: r.examDate ? new Date(r.examDate).toLocaleDateString('pt-BR') : 'Não agendado' },
-      ], 2)}
-    `)}
-    ${section('Mensagem', text)}
-    ${signatureBlock(['Autorização RH / Empregador', 'Recebimento pela Clínica', 'Assinatura do Funcionário'])}
-  `);
-  
-  printPdf(html, `encaminhamento-aso-${emp.id}.pdf`);
-}
-
-function AsoTab({ records, employees, company, canManage, onOpenForm, onSave, onDelete, saving }: {
-  records: EmployeeAsoRecord[]; employees: Employee[]; company: any; canManage: boolean;
+function AsoTab({ records, employees, canManage, onOpenForm, onSave, onDelete, saving }: {
+  records: EmployeeAsoRecord[]; employees: Employee[]; canManage: boolean;
   onOpenForm: (edit?: EmployeeAsoRecord) => void; onSave: (data: any, id?: string) => void;
   onDelete: (id: string) => void; saving: boolean;
 }) {
   const [filterType, setFilterType] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [filterEmp, setFilterEmp] = useState('');
+  const [pdfId, setPdfId] = useState<string | null>(null);
   const filtered = useMemo(() => records.filter(r => {
     if (filterType && r.asoType !== filterType) return false;
     if (filterStatus && r.status !== filterStatus) return false;
@@ -565,10 +516,15 @@ function AsoTab({ records, employees, company, canManage, onOpenForm, onSave, on
   const agendadosCount = records.filter(r => r.status === 'SCHEDULED').length;
   const pendentesCount = records.filter(r => r.status === 'PENDING').length;
 
-  const handleGenerateAsoPdf = (r: EmployeeAsoRecord) => {
-    const emp = employees.find(e => e.id === r.employeeId);
-    if (!emp) return;
-    printAsoPdf(emp, r, company);
+  const handleGenerateAsoPdf = async (r: EmployeeAsoRecord) => {
+    setPdfId(r.id);
+    try {
+      await managementDocumentsApi.asoReferral(r.id);
+    } catch (error: any) {
+      window.alert(error?.message ?? 'Não foi possível gerar o encaminhamento.');
+    } finally {
+      setPdfId(null);
+    }
   };
 
   return (
@@ -669,7 +625,7 @@ function AsoTab({ records, employees, company, canManage, onOpenForm, onSave, on
                     <td className="px-3 py-2 text-slate-600">{r.clinicName ?? '---'}</td>
                     <td className="px-3 py-2">
                       <div className="flex justify-center gap-1">
-                        <button onClick={() => handleGenerateAsoPdf(r)} className="btn-outline-premium h-7 px-2 text-[10px] font-bold">Imprimir PDF</button>
+                        <button onClick={() => handleGenerateAsoPdf(r)} disabled={pdfId === r.id} className="btn-outline-premium h-7 px-2 text-[10px] font-bold disabled:opacity-60">{pdfId === r.id ? 'Gerando...' : 'Baixar PDF'}</button>
                         <button onClick={() => onOpenForm(r)} disabled={saving} className="btn-outline-premium h-7 px-2 text-[10px] font-bold">Editar</button>
                         {canManage && <button onClick={() => onSave({ status: 'CANCELLED' }, r.id)} disabled={saving} className="inline-flex h-7 items-center rounded-[5px] bg-gradient-to-r from-amber-500 to-orange-600 px-2 text-[10px] font-black text-white"><XCircle size={12}/></button>}
                         {canManage && <button onClick={() => { if (window.confirm('Excluir?')) onDelete(r.id); }} disabled={saving} className="inline-flex h-7 items-center rounded-[5px] bg-gradient-to-r from-rose-500 to-pink-600 px-2 text-[10px] font-black text-white">X</button>}
@@ -687,9 +643,10 @@ function AsoTab({ records, employees, company, canManage, onOpenForm, onSave, on
 
 // ─── NOTIFICAÇÕES ─────────────────────────────────────────────────────────────
 
-function NotificationsTab({ canManage, company, employees: propEmployees }: { canManage: boolean; company?: any; employees?: any[] }) {
+function NotificationsTab({ canManage }: { canManage: boolean }) {
   const [filterStatus, setFilterStatus] = useState('');
   const [filterType, setFilterType] = useState('');
+  const [pdfId, setPdfId] = useState<string | null>(null);
 
   const listQuery = useQuery(() => api.notifications.list(), []);
   const empQuery = useQuery(() => api.employees.list(), []);
@@ -711,59 +668,15 @@ function NotificationsTab({ canManage, company, employees: propEmployees }: { ca
   const [showForm, setShowForm] = useState(false);
   const canNotify = canManage;
 
-  const handleGenerateTermoPdf = (n: any) => {
-    const { buildPdfShell, infoGrid, section, signatureBlock, printPdf } = require('@/app/lib/pdf-utils');
-    const emp = employees.find(e => e.id === n.recipients?.[0]?.employeeId);
-    if (!emp) return alert('Funcionário não encontrado');
-    
-    const isSuspension = n.type === 'SUSPENSION_NOTICE';
-    const docTitle = isSuspension ? 'TERMO DE SUSPENSÃO DISCIPLINAR' : 'TERMO DE ADVERTÊNCIA DISCIPLINAR';
-    
-    const text = `<p style="font-size:11px;color:#334155;text-align:justify;line-height:1.6;">
-      Pelo presente termo, comunicamos ao funcionário <strong>${emp.name}</strong>, que está sendo aplicada a penalidade de 
-      <strong>${isSuspension ? 'SUSPENSÃO' : 'ADVERTÊNCIA'} DISCIPLINAR</strong>, 
-      com fulcro no Artigo 482 da CLT (Consolidação das Leis do Trabalho), 
-      devido ao fato descrito a seguir:
-    </p>
-    <div style="background:#f8fafc;border:1px solid #e2e8f0;padding:12px;margin:10px 0;font-size:11px;color:#1e293b;">
-      <strong>Motivo / Fato ocorrido:</strong><br/>
-      ${n.message}
-    </div>
-    <p style="font-size:11px;color:#334155;text-align:justify;line-height:1.6;">
-      Ressaltamos que a reiteração desta ou de outras faltas graves poderá acarretar 
-      consequências mais severas, incluindo a rescisão do contrato de trabalho por justa causa, 
-      nos termos da legislação vigente.
-    </p>
-    <p style="font-size:11px;color:#334155;text-align:justify;line-height:1.6;">
-      Solicitamos que observe as normas e regulamentos internos da empresa para que não 
-      ocorra reincidência.
-    </p>`;
-
-    const companyInfo = company ? {
-      name: company.name,
-      legalName: company.legalName,
-      document: company.cnpj,
-      logoUrl: company.logoUrl,
-      phone: company.phone,
-      email: company.email,
-      address: [company.street, company.streetNumber, company.city, company.state].filter(Boolean).join(', '),
-    } : null;
-
-    const html = buildPdfShell({ title: docTitle, subtitle: emp.name }, companyInfo, `
-      ${section('Qualificação do Colaborador', infoGrid([
-        { label: 'Nome', value: emp.name },
-        { label: 'CPF', value: emp.cpf },
-        { label: 'Cargo', value: emp.position },
-        { label: 'Setor', value: emp.department },
-      ], 2))}
-      ${section('Fundamentação e Fato', text)}
-      <div style="margin-top:30px;font-size:10px;color:#64748b;text-align:center;">
-        Ciente em: _____/_____/_________
-      </div>
-      ${signatureBlock(['Assinatura do Empregador / RH', 'Assinatura do Empregado'])}
-    `);
-    
-    printPdf(html, `termo-${emp.id}.pdf`);
+  const handleGenerateTermoPdf = async (notificationId: string) => {
+    setPdfId(notificationId);
+    try {
+      await managementDocumentsApi.notificationLegalNotice(notificationId);
+    } catch (error: any) {
+      window.alert(error?.message ?? 'Não foi possível gerar o termo disciplinar.');
+    } finally {
+      setPdfId(null);
+    }
   };
 
   if (listQuery.loading && !listQuery.data) return <LoadingState label="Carregando notificações..." />;
@@ -779,7 +692,7 @@ function NotificationsTab({ canManage, company, employees: propEmployees }: { ca
         {canNotify && <button onClick={() => setShowForm(!showForm)} className="btn-outline inline-flex h-9 items-center gap-2 rounded-[8px] px-4 text-[11px] font-black">{showForm ? 'FECHAR' : '+ NOVA NOTIFICAÇÃO'}</button>}
       </div>
 
-      {showForm && <CreateNotificationForm employees={employees} company={company} onCreated={() => { listQuery.refetch(); setShowForm(false); }} />}
+      {showForm && <CreateNotificationForm employees={employees} onCreated={() => { listQuery.refetch(); setShowForm(false); }} />}
 
       <div className="flex flex-wrap gap-2">
         <select value={filterType} onChange={e => setFilterType(e.target.value)} className="h-9 rounded-[6px] border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 outline-none focus:border-teal-500">
@@ -823,7 +736,7 @@ function NotificationsTab({ canManage, company, employees: propEmployees }: { ca
                       <span className="text-[10px] text-slate-400">{fmtDateTime(n.createdAt)}</span>
                     </div>
                     {canManage && (n.type === 'WARNING_NOTICE' || n.type === 'SUSPENSION_NOTICE') && (
-                      <button onClick={() => handleGenerateTermoPdf(n)} className="btn-outline-premium h-7 px-3 text-[9px] font-black uppercase">Gerar PDF Legal</button>
+                      <button onClick={() => handleGenerateTermoPdf(n.id)} disabled={pdfId === n.id} className="btn-outline-premium h-7 px-3 text-[9px] font-black uppercase disabled:opacity-60">{pdfId === n.id ? 'Gerando...' : 'Baixar PDF Legal'}</button>
                     )}
                   </div>
                   <p className="mt-2 text-sm font-black text-slate-950">{n.title}</p>
@@ -911,7 +824,7 @@ function NotificationsTab({ canManage, company, employees: propEmployees }: { ca
   );
 }
 
-function CreateNotificationForm({ onCreated, employees, company }: { onCreated: () => void, employees: Employee[], company?: any }) {
+function CreateNotificationForm({ onCreated, employees }: { onCreated: () => void, employees: Employee[] }) {
   const [title, setTitle] = useState('');
   const [message, setMessage] = useState('');
   const [type, setType] = useState('SIMPLE_NOTICE');
@@ -924,6 +837,7 @@ function CreateNotificationForm({ onCreated, employees, company }: { onCreated: 
   const [legalReason, setLegalReason] = useState('');
   const [occurrenceDate, setOccurrenceDate] = useState('');
   const [suspensionDays, setSuspensionDays] = useState(1);
+  const [printing, setPrinting] = useState(false);
   
   const [requiresReadConfirmation, setRequiresReadConfirmation] = useState(false);
   const [requiresAcceptance, setRequiresAcceptance] = useState(false);
@@ -962,42 +876,29 @@ function CreateNotificationForm({ onCreated, employees, company }: { onCreated: 
     }).catch(() => {});
   };
   
-  const handlePrintLegalNotice = () => {
+  const handlePrintLegalNotice = async () => {
     if (targetType !== 'SPECIFIC' || !targetEmployeeId) return alert('Selecione um funcionário específico para gerar o documento.');
-    const emp = employees.find(e => e.id === targetEmployeeId);
-    if (!emp) return;
-    
-    const docTitle = type === 'WARNING_NOTICE' ? 'Aviso de Advertência Escrita' : 'Aviso de Suspensão Disciplinar';
-    let text = `<p style="font-size:11px;color:#334155;text-align:justify;line-height:1.6;">Pelo presente documento, aplicamos-lhe a pena de <strong>${docTitle.toUpperCase()}</strong>, em virtude da seguinte ocorrência disciplinar verificada no dia <strong>${occurrenceDate ? new Date(occurrenceDate).toLocaleDateString('pt-BR') : '____/____/______'}</strong>:</p>
-    <p style="font-size:11px;color:#0f172a;text-align:justify;line-height:1.6;font-weight:700;margin:16px 0;">Motivo / Embargo Legal: ${legalReason}</p>
-    <p style="font-size:11px;color:#334155;text-align:justify;line-height:1.6;">Detalhes da Infração:<br/>${message.replace(/\n/g, '<br/>')}</p>`;
-    
-    if (type === 'SUSPENSION_NOTICE') {
-      text += `<p style="font-size:11px;color:#e11d48;text-align:justify;line-height:1.6;font-weight:700;margin:16px 0;">Por consequência, o(a) Sr(a). fica suspenso(a) de suas atividades por ${suspensionDays} dia(s), com desconto em folha de pagamento.</p>`;
+    if (type !== 'WARNING_NOTICE' && type !== 'SUSPENSION_NOTICE') {
+      return alert('Selecione advertência ou suspensão para gerar o documento legal.');
     }
-    
-    text += `<p style="font-size:11px;color:#334155;text-align:justify;line-height:1.6;margin-top:24px;">Esclarecemos que a reincidência em condutas semelhantes poderá resultar em rescisão do contrato de trabalho por justa causa, nos termos do art. 482 da CLT. Solicitamos sua assinatura confirmando o recebimento.</p>`;
-    
-    const companyInfo2 = company ? {
-      name: company.name,
-      legalName: company.legalName,
-      document: company.cnpj,
-      logoUrl: company.logoUrl,
-      phone: company.phone,
-      email: company.email,
-      address: [company.street, company.streetNumber, company.city, company.state].filter(Boolean).join(', '),
-    } : null;
-    const { buildPdfShell, infoGrid, section, signatureBlock, printPdf } = require('@/app/lib/pdf-utils');
-    const html = buildPdfShell({ title: docTitle, subtitle: emp.name }, companyInfo2, `
-      ${section('Qualificação do Colaborador', infoGrid([
-        { label: 'Nome', value: emp.name },
-        { label: 'CPF', value: emp.cpf },
-        { label: 'Cargo', value: emp.position },
-      ], 3))}
-      ${section('Teor da Sanção Disciplinar', text)}
-      ${signatureBlock(['Assinatura do Empregado', 'Empregador / RH', 'Testemunha 1 (Opcional)', 'Testemunha 2 (Opcional)'])}
-    `);
-    printPdf(html, `${type === 'WARNING_NOTICE' ? 'advertencia' : 'suspensao'}-${emp.id}.pdf`);
+    if (!message.trim()) return alert('Descreva os detalhes da ocorrência.');
+
+    setPrinting(true);
+    try {
+      await managementDocumentsApi.legalNoticePreview({
+        employeeId: targetEmployeeId,
+        type,
+        title: title.trim() || undefined,
+        message: message.trim(),
+        legalReason: legalReason.trim() || undefined,
+        occurrenceDate: occurrenceDate || undefined,
+        suspensionDays: type === 'SUSPENSION_NOTICE' ? suspensionDays : undefined,
+      });
+    } catch (error: any) {
+      window.alert(error?.message ?? 'Não foi possível gerar o documento disciplinar.');
+    } finally {
+      setPrinting(false);
+    }
   };
 
   return (
@@ -1085,9 +986,9 @@ function CreateNotificationForm({ onCreated, employees, company }: { onCreated: 
               </label>
             )}
             <div className="sm:col-span-2 mt-2">
-              <button type="button" onClick={handlePrintLegalNotice} className="btn-outline-premium h-9 px-4 text-xs font-black inline-flex gap-2 items-center">
+              <button type="button" onClick={handlePrintLegalNotice} disabled={printing} className="btn-outline-premium h-9 px-4 text-xs font-black inline-flex gap-2 items-center disabled:opacity-60">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-                GERAR PDF DA PENALIDADE (IMPRESSÃO)
+                {printing ? 'GERANDO PDF...' : 'BAIXAR PDF DA PENALIDADE'}
               </button>
             </div>
           </div>
@@ -1350,7 +1251,7 @@ function RuleForm({ rule, onSave, onClose, saving }: { rule: any | null; onSave:
 
 // ─── FECHAMENTO ────────────────────────────────────────────────────────────────
 
-function ClosingTab({ canManage, company }: { canManage: boolean; company?: any }) {
+function ClosingTab({ canManage }: { canManage: boolean }) {
   const now = new Date();
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [year, setYear] = useState(now.getFullYear());
@@ -1360,6 +1261,7 @@ function ClosingTab({ canManage, company }: { canManage: boolean; company?: any 
   const [editModal, setEditModal] = useState<{ open: boolean; item?: any }>({ open: false });
   const [reopenModal, setReopenModal] = useState<{ open: boolean; item?: any }>({ open: false });
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [pdfId, setPdfId] = useState<string | null>(null);
 
   const listQuery = useQuery(() => api.timeClosing.list(), []);
   const refresh = () => listQuery.refetch();
@@ -1400,27 +1302,15 @@ function ClosingTab({ canManage, company }: { canManage: boolean; company?: any 
   };
 
   const printClosing = async (summary: any) => {
-    const item = await api.timeClosing.getById(summary.id);
-    const { buildPdfShell, infoGrid, section, signatureBlock, printPdf } = require('@/app/lib/pdf-utils');
-    const companyInfo = company ? { name: company.name, legalName: company.legalName, document: company.cnpj, logoUrl: company.logoUrl, phone: company.phone, email: company.email } : null;
-    const html = buildPdfShell({ title: 'Memória de Cálculo da Folha', subtitle: `${item.employee.name} | ${period(item)}` }, companyInfo, `
-      ${section('Jornada', infoGrid([
-        { label: 'Normais', value: `${Number(item.normalHours).toFixed(2)}h` }, { label: 'Extras 50%', value: `${Number(item.overtime50).toFixed(2)}h` },
-        { label: 'Extras 100%', value: `${Number(item.overtime100).toFixed(2)}h` }, { label: 'Noturnas', value: `${Number(item.nightShift).toFixed(2)}h` },
-        { label: 'Atrasos', value: `${item.lateMinutes} min` }, { label: 'Saídas antecipadas', value: `${item.earlyLeaveMinutes} min` },
-      ], 3))}
-      ${section('Folha', infoGrid([
-        { label: 'Salário base', value: money(item.salaryBase) }, { label: `Valor hora / ${item.monthlyDivisor}`, value: money(item.hourlyRate) },
-        { label: 'Extras 50%', value: money(item.overtime50Value) }, { label: 'Extras 100%', value: money(item.overtime100Value) },
-        { label: 'Adicional noturno', value: money(item.nightShiftValue) }, { label: 'DSR', value: money(item.dsrValue) },
-        { label: 'Desconto faltas', value: `-${money(item.absenceDiscount)}` },
-        { label: 'Desconto atrasos', value: `-${money(item.lateDiscount || 0)}` }, { label: 'Desconto saída ant.', value: `-${money(item.earlyLeaveDiscount || 0)}` },
-        { label: 'INSS', value: `-${money(item.inssDiscount)}` }, { label: 'IRRF', value: `-${money(item.irrfDiscount)}` },
-        { label: 'FGTS patronal', value: money(item.fgtsAmount) }, { label: 'Base de Cálculo', value: money(item.grossPay) }, { label: 'Líquido', value: money(item.netPay) },
-      ], 3))}
-      ${signatureBlock(['RH / Empregador', 'Contabilidade', 'Colaborador'])}
-    `);
-    printPdf(html, `fechamento-${item.employee.name}-${item.periodStart.slice(0, 7)}.pdf`);
+    setPdfId(summary.id);
+    setError(null);
+    try {
+      await managementDocumentsApi.closing(summary.id);
+    } catch (error: any) {
+      setError(error?.message ?? 'Não foi possível gerar o PDF do fechamento.');
+    } finally {
+      setPdfId(null);
+    }
   };
 
   if (listQuery.loading && !listQuery.data) return <LoadingState label="Carregando fechamentos..." />;
@@ -1439,7 +1329,7 @@ function ClosingTab({ canManage, company }: { canManage: boolean; company?: any 
       <button onClick={generate} disabled={!canManage || generateMut.loading} className="crystal-button h-10 rounded-xl px-5 text-xs font-black text-white disabled:opacity-50">{generateMut.loading ? 'CALCULANDO...' : 'ADICIONAR / RECALCULAR'}</button>
     </div>{error && <p className="mt-3 text-xs font-bold text-rose-600">{error}</p>}</div>
     {closings.length === 0 ? <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-12 text-center"><FileCheck2 size={32} className="mx-auto text-slate-300"/><p className="mt-3 text-sm font-black text-slate-500">Nenhum fechamento calculado</p></div> : <div className="overflow-x-auto rounded-2xl border border-slate-100 bg-white shadow-sm"><table className="w-full min-w-[1200px] text-left text-xs"><thead className="bg-slate-50/80 uppercase text-slate-400 border-b border-slate-100"><tr><th className="p-4 font-black">Colaborador</th><th className="p-4 font-black">Jornada</th><th className="p-4 font-black">Proventos</th><th className="p-4 font-black">Descontos</th><th className="p-4 font-black">FGTS</th><th className="p-4 font-black">Líquido</th><th className="p-4 font-black">Status</th><th className="p-4 font-black text-right">Ações</th></tr></thead><tbody className="divide-y divide-slate-50">{closings.map((item:any)=><tr key={item.id} className="align-top hover:bg-slate-50/50 transition-colors"><td className="p-4"><p className="font-black text-slate-800">{item.employee?.name}</p><p className="text-[10px] text-slate-500 mt-0.5">{period(item)}</p><p className="text-[10px] text-slate-500">Base {money(item.salaryBase)}</p></td><td className="p-4 space-y-0.5 text-slate-600"><p>50% <span className="font-bold">{Number(item.overtime50).toFixed(2)}h</span></p><p>100% <span className="font-bold">{Number(item.overtime100).toFixed(2)}h</span></p><p>Noturno <span className="font-bold">{Number(item.nightShift).toFixed(2)}h</span></p><p className="text-rose-500">Faltas <span className="font-bold">{item.absenceMinutes} min</span></p>{(item.lateMinutes || 0) > 0 && <p className="text-amber-600 font-medium">Atrasos <span className="font-bold">{item.lateMinutes} min</span></p>}{(item.earlyLeaveMinutes || 0) > 0 && <p className="text-amber-600 font-medium">Saída Ant. <span className="font-bold">{item.earlyLeaveMinutes} min</span></p>}</td><td className="p-4 space-y-0.5 text-slate-600"><p>Extras {money(Number(item.overtime50Value)+Number(item.overtime100Value))}</p><p>Noturno {money(item.nightShiftValue)}</p><p>DSR {money(item.dsrValue)}</p><p className="text-slate-900 mt-1">Base Cálc. <span className="font-black">{money(item.grossPay)}</span></p></td><td className="p-4 space-y-0.5 text-rose-600"><p>Faltas {money(item.absenceDiscount)}</p>{(item.lateDiscount || 0) > 0 && <p>Atrasos {money(item.lateDiscount)}</p>}{(item.earlyLeaveDiscount || 0) > 0 && <p>Saída Ant. {money(item.earlyLeaveDiscount)}</p>}<p>INSS {money(item.inssDiscount)}</p><p>IRRF {money(item.irrfDiscount)}</p></td><td className="p-4"><p className="font-black text-slate-800">{money(item.fgtsAmount)}</p><p className="text-[10px] text-slate-400">não descontado</p></td><td className="p-4"><p className="text-base font-black text-emerald-600">{money(item.netPay)}</p></td><td className="p-4"><span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-black uppercase ${item.status==='CLOSED'?'bg-slate-100 text-slate-600':item.status==='APPROVED'?'bg-teal-50 text-teal-700':item.status==='IN_REVIEW'?'bg-sky-50 text-sky-700':'bg-amber-50 text-amber-700'}`}>{labels[item.status] || item.status}</span></td><td className="p-4"><div className="flex flex-wrap justify-end gap-1.5 w-full">
-      <button onClick={()=>printClosing(item)} className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[10px] font-bold text-slate-600 shadow-sm transition-colors hover:bg-slate-50"><FileText size={14}/> PDF</button>
+      <button onClick={()=>printClosing(item)} disabled={pdfId === item.id} className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[10px] font-bold text-slate-600 shadow-sm transition-colors hover:bg-slate-50 disabled:opacity-60"><FileText size={14}/> {pdfId === item.id ? 'Gerando...' : 'PDF'}</button>
       {canManage && ['DRAFT','IN_REVIEW'].includes(item.status) && <button onClick={() => setEditModal({ open: true, item })} className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[10px] font-bold text-slate-600 shadow-sm transition-colors hover:bg-slate-50"><MessageSquare size={14}/> Editar</button>}
       {canManage && item.status==='DRAFT' && <button onClick={()=>reviewMut.mutate(item.id)} className="flex items-center gap-1.5 rounded-lg bg-sky-600 px-3 py-1.5 text-[10px] font-black text-white shadow-sm transition-colors hover:bg-sky-700"><Send size={14}/> Revisar</button>}
       {canManage && item.status==='IN_REVIEW' && <button onClick={()=>approveMut.mutate(item.id)} className="flex items-center gap-1.5 rounded-lg bg-teal-600 px-3 py-1.5 text-[10px] font-black text-white shadow-sm transition-colors hover:bg-teal-700"><Check size={14}/> Aprovar</button>}
@@ -1601,8 +1491,8 @@ function EventModal({ event, employees, onClose, onSave, saving }: {
   );
 }
 
-function AsoModal({ record, employees, asos, company, onClose, onSave, saving }: {
-  record?: EmployeeAsoRecord; employees: Employee[]; asos: EmployeeAsoRecord[]; company: any; onClose: () => void; onSave: (data: any) => void; saving: boolean;
+function AsoModal({ record, employees, asos, onClose, onSave, saving }: {
+  record?: EmployeeAsoRecord; employees: Employee[]; asos: EmployeeAsoRecord[]; onClose: () => void; onSave: (data: any) => void; saving: boolean;
 }) {
   const init = record ?? { employeeId: '', asoType: 'PERIODICO', status: 'PENDENTE', result: null, examDate: '', dueDate: '', clinicName: '', doctorName: '', observation: '' };
   const [employeeId, setEmployeeId] = useState(init.employeeId ?? '');
@@ -1622,6 +1512,7 @@ function AsoModal({ record, employees, asos, company, onClose, onSave, saving }:
   const [clinicPhone, setClinicPhone] = useState('');
   const [savePreset, setSavePreset] = useState(false);
   const [observation, setObservation] = useState(init.observation ?? '');
+  const [printing, setPrinting] = useState(false);
 
   // Presets from API
   const { data: presets } = useQuery(() => api.management.aso.clinicPresets.list(), []);
@@ -1664,16 +1555,27 @@ function AsoModal({ record, employees, asos, company, onClose, onSave, saving }:
     setSavePreset(false);
   };
 
-  const handlePrint = () => {
-    const emp = employees.find(e => e.id === employeeId);
-    if (!emp) return window.alert('Selecione um funcionário antes de imprimir.');
-    printAsoPdf(emp, {
-      asoType,
-      clinicName,
-      clinicAddress,
-      examDate,
-      observation
-    }, company);
+  const handlePrint = async () => {
+    if (!employeeId) return window.alert('Selecione um funcionário antes de gerar o encaminhamento.');
+    setPrinting(true);
+    try {
+      if (record?.id) {
+        await managementDocumentsApi.asoReferral(record.id);
+      } else {
+        await managementDocumentsApi.asoReferralPreview({
+          employeeId,
+          asoType,
+          clinicName: clinicName.trim() || undefined,
+          clinicAddress: clinicAddress.trim() || undefined,
+          examDate: examDate ? new Date(examDate).toISOString() : undefined,
+          observation: observation.trim() || undefined,
+        });
+      }
+    } catch (error: any) {
+      window.alert(error?.message ?? 'Não foi possível gerar o encaminhamento.');
+    } finally {
+      setPrinting(false);
+    }
   };
 
   const ok = !!employeeId && (status !== 'COMPLETED' || !!result);
@@ -1837,10 +1739,10 @@ function AsoModal({ record, employees, asos, company, onClose, onSave, saving }:
         <div className="mt-8 flex flex-col-reverse justify-between gap-4 sm:flex-row sm:items-center">
           <button 
             onClick={handlePrint} 
-            disabled={!employeeId} 
+            disabled={!employeeId || printing}
             className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 h-12 text-sm font-black text-slate-700 shadow-sm transition-all hover:bg-slate-50 hover:text-teal-600 hover:border-teal-200 disabled:opacity-50 disabled:hover:bg-white"
           >
-            <FileText size={18} strokeWidth={2.5}/> GERAR ENCAMINHAMENTO (PDF)
+            <FileText size={18} strokeWidth={2.5}/> {printing ? 'GERANDO PDF...' : 'BAIXAR ENCAMINHAMENTO (PDF)'}
           </button>
           
           <div className="flex gap-3">

@@ -1,8 +1,6 @@
 import Link from 'next/link';
 import { ArrowLeft, Shield } from 'lucide-react';
-import { Space_Grotesk } from 'next/font/google';
-
-const display = Space_Grotesk({ subsets: ['latin'], weight: ['500', '700'] });
+const display = { className: 'font-display' };
 
 export default function PrivacidadePage() {
   return (

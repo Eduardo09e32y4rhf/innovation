@@ -54,6 +54,14 @@ export class EmployeesService {
     return employee;
   }
 
+  async dossier(companyId: string, actor: JwtUser, id: string) {
+    const employee = await this.repository.findById(companyId, id);
+    if (!this.canAccessEmployee(actor, employee)) throw new NotFoundException('Employee not found');
+    const dossier = await this.repository.getDossier(companyId, id);
+    if (!dossier) throw new NotFoundException('Employee not found');
+    return dossier;
+  }
+
   async create(companyId: string, dto: CreateEmployeeDto) {
     if (dto.cpf) {
       const existing = await this.repository.findByCpf(dto.cpf);
@@ -118,10 +126,46 @@ export class EmployeesService {
   }
 
   async delete(companyId: string, actor: JwtUser, id: string) {
-    await this.get(companyId, actor, id);
+    const employee = await this.get(companyId, actor, id);
+    const deletionImpact = await this.repository.getDeletionImpact(companyId, id);
+
+    if (deletionImpact.total > 0) {
+      await this.repository.update(companyId, id, {
+        status: 'TERMINATED',
+        terminationDate: employee?.terminationDate ? undefined : this.todayInSaoPaulo(),
+        observations: this.appendArchiveNote(employee?.observations, actor),
+      });
+      if (employee?.userId) {
+        await this.repository.updateUser(companyId, employee.userId, {
+          isActive: false,
+          forcePasswordChange: true,
+        });
+      }
+      return {
+        deleted: false,
+        archived: true,
+        employeeId: id,
+        message: 'Funcionario com historico foi arquivado com seguranca para preservar trilha operacional.',
+        deletionImpact,
+      };
+    }
+
+    if (employee?.userId) {
+      await this.repository.updateUser(companyId, employee.userId, {
+        isActive: false,
+        forcePasswordChange: true,
+      });
+    }
+
     const result = await this.repository.delete(companyId, id);
     if (!result.count) throw new NotFoundException('Employee not found');
-    return { deleted: true };
+    return {
+      deleted: true,
+      archived: false,
+      employeeId: id,
+      message: 'Funcionario removido definitivamente porque nao possuia historico vinculado.',
+      deletionImpact,
+    };
   }
 
   private async ensureAdmissionAsoApto(companyId: string, dto: CreateEmployeeDto | UpdateEmployeeDto, currentEmployeeId?: string) {
@@ -284,6 +328,12 @@ export class EmployeesService {
     const value = (type: string) => parts.find((part) => part.type === type)?.value;
     return new Date(`${value('year')}-${value('month')}-${value('day')}T00:00:00.000Z`);
   }
+
+  private appendArchiveNote(observations: string | null | undefined, actor: JwtUser) {
+    const note = `[${new Date().toISOString()}] Cadastro arquivado pelo usuario ${actor.email || actor.sub} para preservar historico do colaborador.`;
+    return observations?.trim() ? `${observations}\n${note}` : note;
+  }
+
   private emptyToUndefined(value?: string | null) {
     return value?.trim() || undefined;
   }

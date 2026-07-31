@@ -5,10 +5,17 @@ import { UpdateVacationStatusDto } from './dto/update-vacation-status.dto';
 import { VacationsRepository } from './vacations.repository';
 import { getDaysOffByScale } from '../../common/utils/work-schedule.utils';
 import { toDateOnlyStr } from '../../common/utils/date.utils';
+import { CreateMedicalCertificateDto } from './dto/create-medical-certificate.dto';
+import { RecordVacationPaymentDto } from './dto/record-vacation-payment.dto';
+import { UpdateMedicalCertificateStatusDto } from './dto/update-medical-certificate-status.dto';
+import { VacationReceiptService } from './vacation-receipt.service';
 
 @Injectable()
 export class VacationsService {
-  constructor(private readonly repository: VacationsRepository) {}
+  constructor(
+    private readonly repository: VacationsRepository,
+    private readonly receiptService?: VacationReceiptService,
+  ) {}
 
   async list(companyId: string, actor: JwtUser) {
     if (actor.role === 'ADMIN' || actor.role === 'RH' || actor.role === 'DEV' || actor.role === 'CONSULTA') {
@@ -23,6 +30,11 @@ export class VacationsService {
   async listByEmployee(companyId: string, actor: JwtUser, employeeId: string) {
     await this.ensureCanAccessEmployee(companyId, actor, employeeId);
     return this.repository.listByEmployee(companyId, employeeId);
+  }
+
+  async listEntitlements(companyId: string, actor: JwtUser, employeeId: string) {
+    await this.ensureCanAccessEmployee(companyId, actor, employeeId);
+    return this.repository.listEntitlements(companyId, employeeId);
   }
 
   async create(companyId: string, actor: JwtUser, dto: CreateVacationDto) {
@@ -90,23 +102,67 @@ export class VacationsService {
         'Regularize a situacao antes de solicitar.',
       );
     }
-    if (dto.daysUsed > entitledDays) {
+    const soldDays = dto.soldDays ?? 0;
+    if (soldDays > Math.floor(entitledDays / 3)) {
+      throw new BadRequestException(`O abono pecuniario nao pode exceder ${Math.floor(entitledDays / 3)} dia(s) neste ciclo.`);
+    }
+    if (dto.daysUsed + soldDays > entitledDays) {
       throw new BadRequestException(
         `Colaborador possui ${unjustifiedAbsences} faltas injustificadas no periodo aquisitivo. ` +
         `Pela CLT, o direito disponivel e de ${entitledDays} dia(s) neste ciclo.`,
       );
     }
 
-    return this.repository.create({
-      employeeId: dto.employeeId,
-      acquisitionPeriod: vacationWindow.label,
-      startDate,
-      endDate,
-      daysUsed: dto.daysUsed,
-      observation: dto.observation
-        ? `${dto.observation} | Faltas injustificadas no periodo aquisitivo: ${unjustifiedAbsences} (direito CLT: ${entitledDays} dia(s))`
-        : `Faltas injustificadas no periodo aquisitivo: ${unjustifiedAbsences} (direito CLT: ${entitledDays} dia(s))`,
-    });
+    const currentEntitlement = await this.repository.findEntitlement(
+      companyId,
+      dto.employeeId,
+      periodStart,
+      periodEnd,
+    );
+    if ((currentEntitlement?.vacations.length ?? 0) >= 3) {
+      throw new BadRequestException('O periodo aquisitivo ja possui o limite de tres fracionamentos.');
+    }
+    if (dto.daysUsed < 5) {
+      throw new BadRequestException('Cada periodo fracionado de ferias deve possuir pelo menos 5 dias corridos.');
+    }
+    const periods = [...(currentEntitlement?.vacations ?? []), { daysUsed: dto.daysUsed }];
+    if (periods.length === 3 && !periods.some((period) => period.daysUsed >= 14)) {
+      throw new BadRequestException('Ao concluir o fracionamento, pelo menos um periodo deve possuir 14 dias corridos.');
+    }
+
+    const paymentDueDate = new Date(startDate);
+    paymentDueDate.setUTCDate(paymentDueDate.getUTCDate() - 2);
+    const observation = dto.observation
+      ? `${dto.observation} | Faltas injustificadas no periodo aquisitivo: ${unjustifiedAbsences} (direito CLT: ${entitledDays} dia(s))`
+      : `Faltas injustificadas no periodo aquisitivo: ${unjustifiedAbsences} (direito CLT: ${entitledDays} dia(s))`;
+    try {
+      return await this.repository.reserveAndCreate({
+        employeeId: dto.employeeId,
+        acquisitionPeriod: vacationWindow.label,
+        startDate,
+        endDate,
+        daysUsed: dto.daysUsed,
+        soldDays,
+        paymentDueDate,
+        observation,
+        actorUserId: actor.sub,
+        entitlement: {
+          acquisitionStart: periodStart,
+          acquisitionEnd: periodEnd,
+          concessionStart: vacationWindow.concessionStart,
+          concessionEnd: vacationWindow.concessionEnd,
+          entitledDays,
+          unjustifiedAbsences,
+        },
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '';
+      if (message.startsWith('VACATION_BALANCE:')) {
+        const available = message.split(':')[1];
+        throw new BadRequestException(`Saldo insuficiente neste periodo aquisitivo. Disponivel: ${available} dia(s).`);
+      }
+      throw error;
+    }
   }
 
   async updateStatus(companyId: string, actor: JwtUser, id: string, dto: UpdateVacationStatusDto) {
@@ -116,13 +172,134 @@ export class VacationsService {
 
     const vacation = await this.repository.findById(companyId, id);
     if (!vacation) throw new NotFoundException('Vacation request not found');
+    const allowedTransitions: Record<string, string[]> = {
+      PENDING: ['APPROVED', 'REJECTED', 'CANCELLED'],
+      APPROVED: ['COMPLETED', 'CANCELLED'],
+      REJECTED: [],
+      CANCELLED: [],
+      COMPLETED: [],
+    };
+    if (
+      vacation.status !== dto.status
+      && !(allowedTransitions[vacation.status] ?? []).includes(dto.status)
+    ) {
+      throw new BadRequestException(
+        `Transicao de ferias invalida: ${vacation.status} para ${dto.status}.`,
+      );
+    }
 
-    const result = await this.repository.updateStatus(companyId, id, {
-      status: dto.status,
-      observation: dto.observation,
+    const result = await this.repository.updateStatusWithLedger(
+      companyId,
+      id,
+      dto.status,
+      dto.observation,
+      actor.sub,
+    );
+    if (!result) throw new NotFoundException('Vacation request not found');
+    return result;
+  }
+
+  async recordPayment(
+    companyId: string,
+    actor: JwtUser,
+    vacationId: string,
+    dto: RecordVacationPaymentDto,
+  ) {
+    if (actor.role !== 'ADMIN' && actor.role !== 'RH' && actor.role !== 'DEV') {
+      throw new ForbiddenException('Apenas RH pode registrar pagamento de ferias.');
+    }
+    const vacation = await this.repository.findById(companyId, vacationId);
+    if (!vacation) throw new NotFoundException('Vacation request not found');
+    const dueDate = new Date(dto.dueDate);
+    const paidAt = dto.paidAt ? new Date(dto.paidAt) : undefined;
+    const status = dto.status ?? (paidAt ? 'PAID' : 'PENDING');
+    if (status === 'PAID' && !paidAt) {
+      throw new BadRequestException('Informe a data do pagamento para marcar como pago.');
+    }
+    const payment = await this.repository.recordPayment(companyId, vacationId, {
+      amount: dto.amount,
+      dueDate,
+      paidAt,
+      status,
+      paymentMethod: dto.paymentMethod,
+      reference: dto.reference,
+      actorUserId: actor.sub,
     });
-    if (!result.count) throw new NotFoundException('Vacation request not found');
-    return this.repository.findById(companyId, id);
+    if (!payment) throw new NotFoundException('Vacation request not found');
+    return payment;
+  }
+
+  async generateReceiptPdf(companyId: string, actor: JwtUser, id: string) {
+    const vacation = await this.repository.findById(companyId, id);
+    if (!vacation) throw new NotFoundException('Solicitacao de ferias nao encontrada.');
+    await this.ensureCanAccessEmployee(companyId, actor, vacation.employeeId);
+    if (!this.receiptService) throw new BadRequestException('Servico de recibo de ferias indisponivel.');
+    return this.receiptService.generate(companyId, actor, vacation);
+  }
+
+  async listMedicalCertificates(companyId: string, actor: JwtUser, employeeId?: string) {
+    if (employeeId) {
+      await this.ensureCanAccessEmployee(companyId, actor, employeeId);
+      return this.repository.listMedicalCertificates(companyId, employeeId);
+    }
+    if (actor.role !== 'ADMIN' && actor.role !== 'RH' && actor.role !== 'DEV') {
+      const employee = await this.repository.findEmployeeByUserId(companyId, actor.sub, actor.email);
+      if (!employee) throw new ForbiddenException('Permissao insuficiente');
+      return this.repository.listMedicalCertificates(companyId, employee.id);
+    }
+    return this.repository.listMedicalCertificates(companyId);
+  }
+
+  async createMedicalCertificate(companyId: string, actor: JwtUser, dto: CreateMedicalCertificateDto) {
+    await this.ensureCanAccessEmployee(companyId, actor, dto.employeeId);
+    const startAt = new Date(dto.startAt);
+    const endAt = new Date(dto.endAt);
+    if (endAt <= startAt) throw new BadRequestException('O fim da cobertura deve ser posterior ao inicio.');
+    if (!dto.documentId?.trim()) throw new BadRequestException('O documento do atestado e obrigatorio.');
+    const durationMinutes = Math.ceil((endAt.getTime() - startAt.getTime()) / 60000);
+    if (dto.coveredMinutes > durationMinutes) {
+      throw new BadRequestException('Os minutos cobertos nao podem exceder o periodo informado.');
+    }
+    if (dto.certificateType === 'HOURS' && toDateOnlyStr(startAt) !== toDateOnlyStr(endAt)) {
+      throw new BadRequestException('Atestado por horas deve iniciar e terminar no mesmo dia.');
+    }
+    return this.repository.createMedicalCertificate({
+      companyId,
+      employeeId: dto.employeeId,
+      certificateType: dto.certificateType,
+      startAt,
+      endAt,
+      coveredMinutes: dto.coveredMinutes,
+      issueDate: new Date(dto.issueDate),
+      issuerName: dto.issuerName,
+      issuerRegistration: dto.issuerRegistration,
+      documentId: dto.documentId.trim(),
+      createdByUserId: actor.sub,
+    });
+  }
+
+  async updateMedicalCertificateStatus(
+    companyId: string,
+    actor: JwtUser,
+    id: string,
+    dto: UpdateMedicalCertificateStatusDto,
+  ) {
+    if (actor.role !== 'ADMIN' && actor.role !== 'RH' && actor.role !== 'DEV') {
+      throw new ForbiddenException('Apenas RH pode revisar atestados.');
+    }
+    const certificate = await this.repository.findMedicalCertificate(companyId, id);
+    if (!certificate) throw new NotFoundException('Atestado nao encontrado.');
+    if (dto.status === 'REJECTED' && !dto.reason?.trim()) {
+      throw new BadRequestException('Informe o motivo da rejeicao.');
+    }
+    const result = await this.repository.updateMedicalCertificateStatus(companyId, id, {
+      status: dto.status,
+      rejectionReason: dto.reason?.trim(),
+      reviewedByUserId: actor.sub,
+      reviewedAt: new Date(),
+    });
+    if (!result.count) throw new NotFoundException('Atestado nao encontrado.');
+    return this.repository.findMedicalCertificate(companyId, id);
   }
 
   private monthDiff(start: Date, end: Date): number {
@@ -156,10 +333,13 @@ export class VacationsService {
 
     const concessionEnd = new Date(periodEnd);
     concessionEnd.setFullYear(concessionEnd.getFullYear() + 1);
+    const concessionStart = new Date(periodEnd);
+    concessionStart.setDate(concessionStart.getDate() + 1);
 
     return {
       periodStart,
       periodEnd,
+      concessionStart,
       concessionEnd,
       label: `${periodStart.toISOString().slice(0, 10)}/${periodEnd.toISOString().slice(0, 10)}`,
     };

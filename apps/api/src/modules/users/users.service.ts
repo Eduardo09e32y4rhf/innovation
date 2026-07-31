@@ -152,7 +152,7 @@ export class UsersService {
       ? await this.repository.update(id, data)
       : await this.repository.update(id, data, companyId);
     if (!result.count) throw new NotFoundException('Usuario nao encontrado');
-    return { reset: true };
+    return this.get(companyId, actor, id);
   }
 
   async delete(companyId: string, actor: JwtUser, id: string) {

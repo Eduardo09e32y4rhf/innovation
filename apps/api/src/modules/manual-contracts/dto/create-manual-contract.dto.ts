@@ -1,5 +1,6 @@
 import { Type } from 'class-transformer';
-import { IsDateString, IsIn, IsInt, IsNotEmpty, IsNumber, IsOptional, IsString, IsUrl, IsUUID, Max, Min } from 'class-validator';
+import { IsDateString, IsIn, IsInt, IsNotEmpty, IsNumber, IsOptional, IsString, IsUUID, Max, Min } from 'class-validator';
+import { MANUAL_CONTRACT_STATUSES, ManualContractStatus } from '../manual-contract-status';
 
 export class CreateManualContractDto {
   @IsUUID()
@@ -43,6 +44,6 @@ export class CreateManualContractDto {
   documentUrl?: string;
 
   @IsOptional()
-  @IsIn(['ACTIVE', 'ENDED', 'CANCELED'])
-  status?: 'ACTIVE' | 'ENDED' | 'CANCELED';
+  @IsIn(MANUAL_CONTRACT_STATUSES)
+  status?: ManualContractStatus;
 }

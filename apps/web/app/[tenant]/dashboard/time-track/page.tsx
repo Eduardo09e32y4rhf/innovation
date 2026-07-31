@@ -14,7 +14,6 @@ import { api, type Employee, type TimeTrack, type TimeTrackAdjustmentReason } fr
 import { formatMinutes } from '@/app/lib/format';
 import { normalizeDisplayName } from '@/app/lib/text';
 import { hasPermission } from '@/app/lib/permissions';
-import { buildPdfShell, section, infoGrid, pdfTable, signatureBlock, printPdf, type PdfCompanyInfo } from '@/app/lib/pdf-utils';
 import { saoPauloDateKey } from '@/app/lib/date';
 
 const WEEKDAYS = ['DOM','SEG','TER','QUA','QUI','SEX','SÁB'];
@@ -312,6 +311,8 @@ export default function TimeTrackPage() {
   const [deptFilter, setDeptFilter] = useState('');
   const [tab, setTab] = useState<'ponto'|'ocorrencias'>('ponto');
   const [selectedPending, setSelectedPending] = useState<string[]>([]);
+  const [downloadingCollectivePdf, setDownloadingCollectivePdf] = useState(false);
+  const [collectivePdfError, setCollectivePdfError] = useState('');
 
   useEffect(() => {
     const q = searchParams.get('employeeId');
@@ -359,6 +360,18 @@ export default function TimeTrackPage() {
     await remove.mutate(r.id).catch(()=>{});
   };
 
+  const downloadCollectivePdf = async () => {
+    setCollectivePdfError('');
+    setDownloadingCollectivePdf(true);
+    try {
+      await api.timeClosing.downloadCollectivePdf(month, visible.map((employee) => employee.id));
+    } catch (error) {
+      setCollectivePdfError(error instanceof Error ? error.message : 'Nao foi possivel gerar a folha coletiva.');
+    } finally {
+      setDownloadingCollectivePdf(false);
+    }
+  };
+
   const initialLoading = tracks.loading && !tracks.data;
   const refreshing = tracks.loading && !!tracks.data;
 
@@ -372,11 +385,20 @@ export default function TimeTrackPage() {
         <div className="flex flex-wrap gap-2">
           <Link href={`/${tenant}/dashboard/escala${empFilter ? `?employeeId=${empFilter}` : ''}`} className="btn-outline"><CalendarDays size={14}/> ESCALA</Link>
           <Link href={`/${tenant}/dashboard/time-track/clock-in`} className="btn-nubank"><Clock3 size={14}/> BATER PONTO</Link>
-          {(canManage||isGestor) && <button onClick={() => downloadCollectiveSheet(month, visible, byEmpMap, company.data || null, holidays.data || [], teamSchedules.data?.withSchedule || [])} disabled={refreshing || visible.length === 0} className="btn-outline"><FileText size={14}/> FOLHAS DE PONTO</button>}
-          {isFunc && <button onClick={() => downloadCollectiveSheet(month, visible, byEmpMap, company.data || null, holidays.data || [], teamSchedules.data?.withSchedule || [])} disabled={refreshing || visible.length === 0} className="btn-outline"><FileText size={14}/> MINHA FOLHA</button>}
+          {(canManage||isGestor) && <button onClick={downloadCollectivePdf} disabled={refreshing || downloadingCollectivePdf || visible.length === 0} className="btn-outline"><FileText size={14}/> {downloadingCollectivePdf ? 'GERANDO...' : 'FOLHAS DE PONTO'}</button>}
+          {isFunc && <button onClick={downloadCollectivePdf} disabled={refreshing || downloadingCollectivePdf || visible.length === 0} className="btn-outline"><FileText size={14}/> {downloadingCollectivePdf ? 'GERANDO...' : 'MINHA FOLHA'}</button>}
           <button onClick={()=>setOpen(true)} disabled={refreshing} className="btn-nubank"><Edit3 size={14}/> LANÇAR PONTO</button>
         </div>
       </header>
+
+      {collectivePdfError && (
+        <div className="flex items-center justify-between gap-3 rounded-[10px] border border-rose-200 bg-rose-50 px-4 py-3 text-xs font-semibold text-rose-700">
+          <span>{collectivePdfError}</span>
+          <button type="button" onClick={() => setCollectivePdfError('')} className="shrink-0 text-rose-500 hover:text-rose-800" aria-label="Fechar aviso">
+            <X size={14}/>
+          </button>
+        </div>
+      )}
 
       {canApprove && (pending.data ?? []).length > 0 && (
         <section className="rounded-[12px] border border-amber-200 bg-amber-50 p-4">
@@ -517,240 +539,6 @@ function monthLabelFn(month: string) {
   const date = new Date(year, monthNumber - 1, 1);
   const label = date.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
   return label.charAt(0).toUpperCase() + label.slice(1);
-}
-
-function escapeHtml(value: unknown) {
-  return String(value ?? '').replace(/[&<>"]/g, (char) => ({ '&': '&', '<': '<', '>': '>', '"': '"' })[char] ?? char);
-}
-
-function downloadCollectiveSheet(month: string, visibleEmployees: Employee[], byEmpMap: Record<string, TimeTrack[]>, companyData: any, holidaysData: any[], teamSchedules: any[] = []) {
-  const subtitle = monthLabelFn(month);
-  
-  const blocks = visibleEmployees.map((employee, index) => {
-    const rows = byEmpMap[employee.id] || [];
-    const grid = buildGrid(month, employee, rows, companyData?.payrollStartDay || 1, holidaysData, teamSchedules);
-
-    const validTracks = grid.map(g => g.track).filter(Boolean) as TimeTrack[];
-    
-    let pdfWorked = 0;
-    let pdfSaldo = 0;
-    let pdfExtra = 0;
-    let pdfMissing = 0;
-    
-    let faltasCount = 0;
-    let dsrLost = 0;
-    let currentWeekFaltas = 0;
-
-    grid.forEach(g => {
-      if (g.isFuture || g.antesAdmissao || g.depoisDemissao) return;
-      if (g.wd === 1) currentWeekFaltas = 0;
-      
-      const t = g.track;
-      let isFaltaDay = false;
-      
-      if (!t) {
-        if (!g.isRest) {
-          isFaltaDay = true;
-          let expected = 480;
-          if (g.scheduled && g.scheduled.entry && g.scheduled.exit) {
-            const ent = new Date(`1970-01-01T${g.scheduled.entry}Z`);
-            const ext = new Date(`1970-01-01T${g.scheduled.exit}Z`);
-            expected = (ext.getTime() - ent.getTime()) / 60000;
-            if (g.scheduled.lunchStart && g.scheduled.lunchReturn) {
-              const ls = new Date(`1970-01-01T${g.scheduled.lunchStart}Z`);
-              const lr = new Date(`1970-01-01T${g.scheduled.lunchReturn}Z`);
-              expected -= (lr.getTime() - ls.getTime()) / 60000;
-            } else {
-              expected -= 60;
-            }
-          }
-          pdfSaldo -= expected;
-          pdfMissing += expected;
-        }
-      } else {
-        isFaltaDay = isFalta(t);
-        let ocorrencia = dayStatus(t, g.holidayName);
-        if (ocorrencia === 'NORMAL') {
-          if (isFaltaDay) ocorrencia = 'FALTA NÃO JUSTIFICADA';
-        }
-        if (isFaltaDay && !t.entry && !t.exit) {
-          let expected = 480;
-          if (g.scheduled && g.scheduled.entry && g.scheduled.exit) {
-            const ent = new Date(`1970-01-01T${g.scheduled.entry}Z`);
-            const ext = new Date(`1970-01-01T${g.scheduled.exit}Z`);
-            expected = (ext.getTime() - ent.getTime()) / 60000;
-            if (g.scheduled.lunchStart && g.scheduled.lunchReturn) {
-              const ls = new Date(`1970-01-01T${g.scheduled.lunchStart}Z`);
-              const lr = new Date(`1970-01-01T${g.scheduled.lunchReturn}Z`);
-              expected -= (lr.getTime() - ls.getTime()) / 60000;
-            } else {
-              expected -= 60;
-            }
-          }
-          pdfSaldo -= expected;
-          pdfMissing += expected;
-        } else {
-          const balance = t.dailyBalance ?? 0;
-          const heMinutes = Math.max(balance, 0);
-          const absentMinutes = Math.abs(Math.min(balance, 0));
-          const jornadaMinutes = t.totalWorked ?? 0;
-
-          pdfWorked += jornadaMinutes;
-          pdfSaldo += balance;
-          pdfExtra += heMinutes;
-          pdfMissing += absentMinutes;
-        }
-      }
-
-      if (isFaltaDay) {
-        faltasCount++;
-        if (g.wd !== 0) currentWeekFaltas++;
-      }
-      if (g.wd === 0 && currentWeekFaltas > 0) {
-        dsrLost++;
-      }
-    });
-
-    const totalFaltas = faltasCount + dsrLost;
-
-    const employeeInfo = [
-      { label: 'Nome', value: normalizeDisplayName(employee.name) },
-      { label: 'Matrícula', value: employee.registration || '-' },
-      { label: 'CPF', value: employee.cpf || '-' },
-      { label: 'Cargo', value: employee.position || '-' },
-      { label: 'Departamento', value: employee.department || '-' },
-      { label: 'Admissão', value: employee.admissionDate ? employee.admissionDate.slice(0,10).split('-').reverse().join('/') : '-' },
-      { label: 'Período', value: subtitle },
-    ];
-
-    const tableHeaders = ['Data', 'Dia', '1a E.', '1a S.', '2a E.', '2a S.', 'Abono', 'H.E.', 'Absent.', 'Jornada', 'Ad. Not.', 'Observação'];
-    const tableRows = grid.map((g) => {
-      const wd = WEEKDAYS[g.wd];
-      const dateStr = String(g.day).padStart(2,'0') + '/' + month.split('-')[1] + '/' + month.split('-')[0];
-
-      if (g.isFuture) {
-        return `<tr><td style="padding:2px 4px;font-size:7px;color:#cbd5e1;">${dateStr}</td><td style="padding:2px 4px;font-size:7px;color:#cbd5e1;">${wd}</td><td colspan="10" style="padding:2px 4px;font-size:7px;color:#cbd5e1;text-align:center;">-</td></tr>`;
-      }
-      if (g.antesAdmissao || g.depoisDemissao) {
-        return `<tr><td style="padding:2px 4px;font-size:7px;color:#94a3b8;">${dateStr}</td><td style="padding:2px 4px;font-size:7px;color:#94a3b8;">${wd}</td><td colspan="10" style="padding:2px 4px;font-size:7px;color:#94a3b8;text-align:center;">${g.antesAdmissao ? 'ANTES DA ADMISSÃO' : 'APÓS DEMISSÃO'}</td></tr>`;
-      }
-
-      const t = g.track;
-      if (!t) {
-        if (g.isRest) return `<tr><td style="padding:2px 4px;font-size:7px;color:#64748b;">${dateStr}</td><td style="padding:2px 4px;font-size:7px;color:#64748b;">${wd}</td><td colspan="10" style="padding:2px 4px;font-size:7px;color:#64748b;text-align:center;font-weight:700;">DSR / FOLGA</td></tr>`;
-        return `<tr><td style="padding:2px 4px;font-size:7px;color:#e11d48;font-weight:600;">${dateStr}</td><td style="padding:2px 4px;font-size:7px;color:#e11d48;font-weight:600;">${wd}</td><td colspan="10" style="padding:2px 4px;font-size:7px;color:#e11d48;text-align:center;font-weight:700;">FALTA NÃO JUSTIFICADA</td></tr>`;
-      }
-
-      let ocorrencia = dayStatus(t, g.holidayName);
-      const hasMissing = !t.entry || !t.exit;
-      if (ocorrencia === 'NORMAL') {
-        if (isFalta(t)) ocorrencia = 'FALTA NÃO JUSTIFICADA';
-        else if (hasMissing) ocorrencia = 'PONTO INCOMPLETO';
-        else ocorrencia = '';
-      }
-
-      const isIntegral = ['ATESTADO','FERIADO','SUSPENSÃO','FOLGA','FOLGA EXTRA','FOLGA BANCO','FOLGA (DSR)','FALTA NÃO JUSTIFICADA'].includes(ocorrencia.toUpperCase());
-      if (isIntegral && !t.entry && !t.exit) {
-        const color = (ocorrencia.toUpperCase().includes('ATESTADO') || ocorrencia.toUpperCase().includes('SUSPENS') || ocorrencia.toUpperCase().includes('FALTA')) ? '#e11d48' : '#64748b';
-        return `<tr><td style="padding:2px 4px;font-size:7px;color:${color};font-weight:600;">${dateStr}</td><td style="padding:2px 4px;font-size:7px;color:${color};font-weight:600;">${wd}</td><td colspan="10" style="padding:2px 4px;font-size:7px;color:${color};text-align:center;font-weight:700;">${escapeHtml(ocorrencia.toUpperCase())}</td></tr>`;
-      }
-
-      const balance = t.dailyBalance ?? 0;
-      const he = (balance != null && balance > 0) ? formatMinutes(balance) : '';
-      const absent = (balance != null && balance < 0) ? formatMinutes(Math.abs(balance)) : '';
-      const jornada = t.totalWorked == null ? '' : formatMinutes(t.totalWorked);
-      
-      return `<tr>
-        <td style="padding:2px 4px;font-size:7px;font-weight:600;color:#0f172a;">${dateStr}</td>
-        <td style="padding:2px 4px;font-size:7px;color:#334155;">${wd}</td>
-        <td style="padding:2px 4px;font-size:7px;color:#334155;text-align:center;">${escapeHtml(fmtTime(t.entry))}</td>
-        <td style="padding:2px 4px;font-size:7px;color:#94a3b8;text-align:center;">${t.lunchStart ? escapeHtml(fmtTime(t.lunchStart)) : '--:--'}</td>
-        <td style="padding:2px 4px;font-size:7px;color:#94a3b8;text-align:center;">${t.lunchReturn ? escapeHtml(fmtTime(t.lunchReturn)) : '--:--'}</td>
-        <td style="padding:2px 4px;font-size:7px;color:#334155;text-align:center;">${escapeHtml(fmtTime(t.exit))}</td>
-        <td style="padding:2px 4px;font-size:7px;color:#334155;text-align:center;"></td>
-        <td style="padding:2px 4px;font-size:7px;color:#059669;text-align:center;font-weight:600;">${escapeHtml(he)}</td>
-        <td style="padding:2px 4px;font-size:7px;color:#e11d48;text-align:center;font-weight:600;">${escapeHtml(absent)}</td>
-        <td style="padding:2px 4px;font-size:7px;font-weight:700;color:#0f172a;text-align:center;">${escapeHtml(jornada)}</td>
-        <td style="padding:2px 4px;font-size:7px;color:#334155;text-align:center;"></td>
-        <td style="padding:2px 4px;font-size:6px;color:#64748b;">${escapeHtml(ocorrencia)}</td>
-      </tr>`;
-    });
-
-    const empHtml = `
-      ${section('Dados do Colaborador', infoGrid(employeeInfo, 4))}
-      ${section('Registros de Ponto Diario', pdfTable(tableHeaders, tableRows, { compact: true, border: true }), { avoidBreak: false, noBg: true })}
-      ${section('Resumo do Periodo', `
-        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;">
-          <div style="background:#f0fdfa;border:1px solid #ccfbf1;border-radius:8px;padding:12px;text-align:center;">
-            <div style="font-size:8px;font-weight:800;text-transform:uppercase;color:#0f766e;letter-spacing:0.05em;">Dias Trabalhados</div>
-            <div style="font-size:16px;font-weight:900;color:#0f172a;margin-top:4px;">${validTracks.filter(t => t.incidentType !== 'falta' && (t.totalWorked || 0) > 0).length}</div>
-          </div>
-          <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px;text-align:center;">
-            <div style="font-size:8px;font-weight:800;text-transform:uppercase;color:#e11d48;letter-spacing:0.05em;">Faltas Integrais</div>
-            <div style="font-size:16px;font-weight:900;color:#e11d48;margin-top:4px;">${faltasCount}</div>
-            ${dsrLost > 0 ? `<div style="font-size:8px;font-weight:700;color:#9f1239;margin-top:2px;">(+${dsrLost} DSR)</div>` : ''}
-          </div>
-          <div style="background:#f0fdfa;border:1px solid #ccfbf1;border-radius:8px;padding:12px;text-align:center;">
-            <div style="font-size:8px;font-weight:800;text-transform:uppercase;color:#0f766e;letter-spacing:0.05em;">Total Horas</div>
-            <div style="font-size:16px;font-weight:900;color:#0f172a;margin-top:4px;">${escapeHtml(formatMinutes(pdfWorked))}</div>
-          </div>
-          <div style="background:#f0fdfa;border:1px solid #ccfbf1;border-radius:8px;padding:12px;text-align:center;">
-            <div style="font-size:8px;font-weight:800;text-transform:uppercase;color:#0f766e;letter-spacing:0.05em;">Horas Extras</div>
-            <div style="font-size:16px;font-weight:900;color:#059669;margin-top:4px;">${escapeHtml(formatMinutes(pdfExtra))}</div>
-          </div>
-          <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px;text-align:center;">
-            <div style="font-size:8px;font-weight:800;text-transform:uppercase;color:#e11d48;letter-spacing:0.05em;">Horas Atraso</div>
-            <div style="font-size:16px;font-weight:900;color:#e11d48;margin-top:4px;">${escapeHtml(formatMinutes(pdfMissing))}</div>
-          </div>
-        </div>
-        <div style="margin-top:16px;background:#f8fafc;padding:16px;border-radius:8px;font-size:12px;color:#334155;font-weight:700;text-align:center;border:1px solid #e2e8f0;">
-          SALDO DO BANCO DE HORAS NESTE MES: <span style="font-weight:900;color:${pdfSaldo < 0 ? '#e11d48' : pdfSaldo > 0 ? '#059669' : '#64748b'};">
-            ${escapeHtml(formatMinutes(pdfSaldo))}
-          </span>
-        </div>
-      `)}
-      ${(() => {
-        const empSchedule = teamSchedules.find(ts => ts.employee?.id === employee.id || ts.employeeId === employee.id);
-        const schedRule = empSchedule?.schedule || empSchedule?.workScheduleRule;
-        let schHtml = `<td style="padding:2px 4px;font-size:7px;color:#334155;text-align:center;" colspan="4">--:--</td>`;
-        if (schedRule) {
-          schHtml = `
-            <td style="padding:2px 4px;font-size:7px;color:#334155;text-align:center;">${escapeHtml(schedRule.entryTime || '--:--')}</td>
-            <td style="padding:2px 4px;font-size:7px;color:#334155;text-align:center;">${escapeHtml(schedRule.lunchStartTime || '--:--')}</td>
-            <td style="padding:2px 4px;font-size:7px;color:#334155;text-align:center;">${escapeHtml(schedRule.lunchReturnTime || '--:--')}</td>
-            <td style="padding:2px 4px;font-size:7px;color:#334155;text-align:center;">${escapeHtml(schedRule.exitTime || '--:--')}</td>
-          `;
-        }
-        return section('Horários', pdfTable(
-          ['Data Base', 'Entrada', 'Saída Almoço', 'Retorno Almoço', 'Saída', 'Turno / Carga Horária'],
-          [
-            `<tr>
-              <td style="padding:2px 4px;font-size:7px;color:#334155;text-align:center;">01/${month.split('-')[1]}/${month.split('-')[0]}</td>
-              ${schHtml}
-              <td style="padding:2px 4px;font-size:7px;color:#0f172a;text-align:center;">${escapeHtml(employee.workScale || 'Não definida')} - ${escapeHtml(employee.dailyWorkload || '')}</td>
-            </tr>`
-          ],
-          { compact: true, border: true }
-        ), { avoidBreak: true });
-      })()}
-      ${signatureBlock(['Assinatura do Colaborador', 'Assinatura do RH / Responsavel'])}
-    `;
-
-    return empHtml + (index < visibleEmployees.length - 1 ? '<div style="page-break-after: always;"></div>' : '');
-  }).join('');
-
-  const pdfCompanyData: PdfCompanyInfo | null = companyData ? {
-    name: companyData.name,
-    legalName: companyData.legalName,
-    document: companyData.cnpj,
-    logoUrl: companyData.logoUrl,
-    phone: companyData.phone,
-    email: companyData.email,
-    address: [companyData.street, companyData.streetNumber, companyData.neighborhood, companyData.city, companyData.state, companyData.cep].filter(Boolean).map(String).join(', ') || undefined
-  } : null;
-
-  const html = buildPdfShell({ title: 'FOLHA DE PONTO', subtitle, landscape: false }, pdfCompanyData, blocks);
-  printPdf(html, `folha-coletiva-${month}.pdf`);
 }
 
 function OcorrenciasList({ employees, byEmpMap, month, onSelect }: { employees: Employee[]; byEmpMap: Record<string,TimeTrack[]>; month: string; onSelect: (id:string)=>void }) {

@@ -178,6 +178,7 @@ export function JobDetails({ companyId, jobId }: JobDetailsProps) {
         phone: form.phone,
         linkedinUrl: form.linkedinUrl,
         coverLetter: form.coverLetter,
+        consent: form.consent,
         website: form.website,
         resume,
       });

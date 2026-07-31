@@ -2,15 +2,15 @@
 
 import Link from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
-import { Download, Edit3, FileText, Search, Trash2, UserMinus, UserPlus, Users, Filter, XCircle, AlertTriangle } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { Download, Edit3, FileText, Search, Trash2, UserMinus, UserPlus, Users, XCircle, AlertTriangle, FolderOpen, ShieldCheck, HeartPulse, Clock3, CalendarDays, X } from 'lucide-react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { EmptyState, ErrorState, LoadingState } from '@/app/components/data-states';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useMutation, useQuery } from '@/app/hooks/use-data';
-import { api, type Company, type Employee, type TimeTrack } from '@/app/lib/api';
+import { API_URL, api, type Employee, type EmployeeDossier } from '@/app/lib/api';
+import { readAuthSession } from '@/app/lib/auth-session';
 import { EMPLOYEE_STATUS_LABEL, formatDate, formatMinutes, formatTime } from '@/app/lib/format';
 import { normalizeDisplayName } from '@/app/lib/text';
-import { buildPdfShell, section, infoGrid, pdfTable, signatureBlock, printPdf, type PdfCompanyInfo } from '@/app/lib/pdf-utils';
 
 const collator = new Intl.Collator('pt-BR', { sensitivity: 'base', numeric: true });
 
@@ -25,11 +25,12 @@ export default function EmployeesPage() {
   const canDownloadSheet = profile === 'RH';
   const isGestor = profile === 'GESTOR';
   const { data, loading, error, refetch } = useQuery(() => api.employees.list(), []);
-  const company = useQuery(() => api.companies.me(), []);
   const [search, setSearch] = useState('');
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
   const terminate = useMutation((id: string) => api.employees.terminate(id), { onSuccess: () => refetch() });
   const remove = useMutation((id: string) => api.employees.delete(id), { onSuccess: () => refetch() });
+  const dossierQuery = useQuery(() => api.employees.dossier(selectedEmployeeId ?? ''), [selectedEmployeeId], { enabled: !!selectedEmployeeId });
 
   const employees = data ?? [];
   const managerById = useMemo(() => new Map(employees.map((employee) => [employee.id, normalizeDisplayName(employee.name)])), [employees]);
@@ -68,16 +69,36 @@ export default function EmployeesPage() {
     await remove.mutate(employee.id).catch(() => {});
   }
 
-  function handleDownloadFicha(employee: Employee) {
-    downloadEmployeeRecord(employee, company.data ?? null, managerById.get(employee.managerId ?? '') ?? '');
+  async function handleSafeDelete(employee: Employee) {
+    const expected = normalizeDisplayName(employee.name);
+    const typed = window.prompt(`Arquivar ou excluir ${expected}? Digite o nome do funcionario para confirmar.`);
+    if (typed !== expected) return;
+    const result = await remove.mutate(employee.id).catch(() => null);
+    if (result?.archived) {
+      window.alert('Funcionario arquivado com seguranca. O historico foi preservado e o acesso foi bloqueado.');
+      return;
+    }
+    if (result?.deleted) {
+      window.alert('Funcionario removido definitivamente porque nao possuia historico vinculado.');
+    }
+  }
+
+  async function handleDownloadFicha(employee: Employee) {
+    setDownloadingId(employee.id);
+    try {
+      await downloadEmployeePdf(employee, 'record');
+    } catch (downloadError) {
+      window.alert(downloadError instanceof Error ? downloadError.message : 'Nao foi possivel baixar a ficha do funcionario.');
+    } finally {
+      setDownloadingId(null);
+    }
   }
 
   async function handleDownloadSheet(employee: Employee) {
     const month = currentMonth();
     setDownloadingId(employee.id);
     try {
-      const rows = await api.timeTrack.listEmployeeMonth(employee.id, month);
-      downloadEmployeeSheet(employee, rows, month, company.data ?? null, managerById.get(employee.managerId ?? '') ?? '');
+      await downloadEmployeePdf(employee, 'point-sheet', month);
     } catch {
       window.alert('Não foi possível baixar a folha deste funcionário.');
     } finally {
@@ -89,8 +110,7 @@ export default function EmployeesPage() {
     const month = currentMonth();
     setDownloadingId(employee.id);
     try {
-      const rows = await api.timeTrack.listEmployeeMonth(employee.id, month);
-      downloadEmployeeOcorrenciasSheet(employee, rows, month, company.data ?? null, managerById.get(employee.managerId ?? '') ?? '');
+      await downloadEmployeePdf(employee, 'occurrences', month);
     } catch {
       window.alert('Não foi possível baixar a ficha de ocorrências deste funcionário.');
     } finally {
@@ -215,13 +235,13 @@ export default function EmployeesPage() {
                             <div className="flex justify-end flex-wrap gap-1.5">
                               {canDownloadSheet && canEdit && (
                                 <>
-                                  <button onClick={() => handleDownloadFicha(employee)} disabled={company.loading} className="btn-action">
+                                  <button onClick={() => handleDownloadFicha(employee)} disabled={downloadingId === employee.id} className="btn-action">
                                     <FileText size={12} strokeWidth={2.5} /> Ficha
                                   </button>
-                                  <button onClick={() => handleDownloadSheet(employee)} disabled={downloadingId === employee.id || company.loading} className="btn-action">
+                                  <button onClick={() => handleDownloadSheet(employee)} disabled={downloadingId === employee.id} className="btn-action">
                                     <Download size={12} strokeWidth={2.5} /> Folha
                                   </button>
-                                  <button onClick={() => handleDownloadOcorrencias(employee)} disabled={downloadingId === employee.id || company.loading} className="btn-action">
+                                  <button onClick={() => handleDownloadOcorrencias(employee)} disabled={downloadingId === employee.id} className="btn-action">
                                     <AlertTriangle size={12} strokeWidth={2.5} /> Ocorrências
                                   </button>
                                 </>
@@ -231,6 +251,9 @@ export default function EmployeesPage() {
                                   Ponto
                                 </button>
                               )}
+                              <button onClick={() => setSelectedEmployeeId(employee.id)} className="btn-action">
+                                <FolderOpen size={12} strokeWidth={2.5} /> Dossie
+                              </button>
                               {canEdit && (
                                 <>
                                   <Link href={`/${tenant}/dashboard/employees/new?id=${employee.id}`} className="btn-action">
@@ -239,7 +262,7 @@ export default function EmployeesPage() {
                                   <button onClick={() => handleTerminate(employee)} disabled={employee.status === 'TERMINATED' || terminate.loading} className="btn-warn">
                                     <UserMinus size={12} strokeWidth={2.5} /> Desligar
                                   </button>
-                                  <button onClick={() => handleDelete(employee)} disabled={remove.loading} className="btn-danger">
+                                  <button onClick={() => handleSafeDelete(employee)} disabled={remove.loading} className="btn-danger">
                                     <Trash2 size={12} strokeWidth={2.5} /> Excluir
                                   </button>
                                 </>
@@ -256,6 +279,13 @@ export default function EmployeesPage() {
           </section>
           
           <EmployeeAsoSection employees={filteredEmployees} />
+          <EmployeeDossierDrawer
+            employeeId={selectedEmployeeId}
+            dossier={dossierQuery.data as EmployeeDossier | undefined}
+            loading={dossierQuery.loading}
+            error={dossierQuery.error}
+            onClose={() => setSelectedEmployeeId(null)}
+          />
         </>
       )}
     </div>
@@ -355,6 +385,185 @@ function EmployeeAsoSection({ employees }: { employees: Employee[] }) {
   );
 }
 
+function EmployeeDossierDrawer({
+  employeeId,
+  dossier,
+  loading,
+  error,
+  onClose,
+}: {
+  employeeId: string | null;
+  dossier?: EmployeeDossier;
+  loading: boolean;
+  error?: string | null;
+  onClose: () => void;
+}) {
+  if (!employeeId) return null;
+
+  const employee = dossier?.employee;
+  const asoRecords = dossier?.asoRecords ?? [];
+  const vacations = dossier?.vacations ?? [];
+  const recentTimeTracks = dossier?.recentTimeTracks ?? [];
+  const occurrences = dossier?.occurrences ?? [];
+  const impact = dossier?.deletionImpact;
+
+  return (
+    <div className="fixed inset-0 z-[70] flex justify-end bg-slate-950/35 backdrop-blur-[1px]">
+      <div className="h-full w-full max-w-[720px] overflow-y-auto border-l border-slate-200 bg-white shadow-2xl">
+        <div className="sticky top-0 z-10 border-b border-slate-200 bg-white/95 px-5 py-4 backdrop-blur">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-[11px] font-black uppercase tracking-[0.24em] text-teal-600">Dossie do colaborador</p>
+              <h3 className="text-xl font-black text-slate-950">{employee ? normalizeDisplayName(employee.name) : 'Carregando...'}</h3>
+              <p className="text-xs text-slate-500">ASO, historico recente, ferias e impacto de arquivamento em um unico painel.</p>
+            </div>
+            <button onClick={onClose} className="rounded-xl border border-slate-200 p-2 text-slate-500 transition hover:bg-slate-50 hover:text-slate-700">
+              <X size={16} />
+            </button>
+          </div>
+        </div>
+
+        <div className="space-y-6 px-5 py-5">
+          {loading && <LoadingState label="Carregando dossie do funcionario..." />}
+          {!loading && error && <ErrorState message={error} onRetry={() => window.location.reload()} />}
+
+          {!loading && !error && employee && (
+            <>
+              <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                <DossierStat icon={<ShieldCheck size={16} />} label="Status" value={EMPLOYEE_STATUS_LABEL[employee.status] ?? employee.status} />
+                <DossierStat icon={<HeartPulse size={16} />} label="ASOs" value={String(asoRecords.length)} />
+                <DossierStat icon={<CalendarDays size={16} />} label="Ferias" value={String(vacations.length)} />
+                <DossierStat icon={<Clock3 size={16} />} label="Ocorrencias" value={String(occurrences.length)} />
+              </section>
+
+              <section className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <div className="mb-3 flex items-center justify-between">
+                  <h4 className="text-sm font-black text-slate-950">Resumo 360</h4>
+                  <span className="text-[11px] font-semibold text-slate-500">Acesso: {employee.user?.isActive ? 'Liberado' : 'Bloqueado'}</span>
+                </div>
+                <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
+                  <InfoLine label="CPF" value={maskCpf(employee.cpf)} />
+                  <InfoLine label="E-mail" value={maskEmail(employee.email)} />
+                  <InfoLine label="Telefone" value={maskPhone(employee.phone)} />
+                  <InfoLine label="Matricula" value={employee.registration || '-'} />
+                  <InfoLine label="Cargo" value={employee.position || '-'} />
+                  <InfoLine label="Departamento" value={employee.department || '-'} />
+                  <InfoLine label="Admissao" value={formatDate(employee.admissionDate)} />
+                  <InfoLine label="Desligamento" value={formatDate(employee.terminationDate)} />
+                </div>
+              </section>
+
+              <section className="rounded-2xl border border-slate-200 bg-white p-4">
+                <h4 className="mb-3 text-sm font-black text-slate-950">Saude ocupacional e ASO</h4>
+                {asoRecords.length === 0 ? (
+                  <p className="text-xs text-slate-500">Nenhum ASO registrado para este colaborador.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {asoRecords.slice(0, 6).map((record) => {
+                      const alert = getAsoAlert(record.status, record.dueDate);
+                      return (
+                        <div key={record.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 px-3 py-2">
+                          <div>
+                            <p className="text-sm font-bold text-slate-900">{record.asoType}</p>
+                            <p className="text-xs text-slate-500">
+                              Exame: {fmtDate(record.examDate)} • Vencimento: {fmtDate(record.dueDate)} • Clinica: {record.clinicName || 'Nao informada'}
+                            </p>
+                          </div>
+                          <span className={`inline-flex rounded-[6px] border px-2 py-1 text-[10px] font-black ${alert.cls}`}>{alert.label}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </section>
+
+              <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                  <h4 className="mb-3 text-sm font-black text-slate-950">Ferias recentes</h4>
+                  {vacations.length === 0 ? (
+                    <p className="text-xs text-slate-500">Nenhuma solicitacao de ferias encontrada.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {vacations.slice(0, 5).map((vacation: any) => (
+                        <div key={vacation.id} className="rounded-xl border border-slate-200 px-3 py-2">
+                          <p className="text-sm font-bold text-slate-900">
+                            {formatDate(vacation.startDate)} ate {formatDate(vacation.endDate)}
+                          </p>
+                          <p className="text-xs text-slate-500">Status: {vacation.status} • Dias: {vacation.days ?? '-'}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                  <h4 className="mb-3 text-sm font-black text-slate-950">Batidas e ocorrencias recentes</h4>
+                  <div className="space-y-2">
+                    {recentTimeTracks.slice(0, 5).map((row) => (
+                      <div key={row.id} className="rounded-xl border border-slate-200 px-3 py-2">
+                        <p className="text-sm font-bold text-slate-900">{formatDate(row.date)}</p>
+                        <p className="text-xs text-slate-500">
+                          Entrada {formatTime(row.entry)} • Saida {formatTime(row.exit)} • Saldo {formatMinutes(row.dailyBalance ?? 0)}
+                        </p>
+                      </div>
+                    ))}
+                    {recentTimeTracks.length === 0 && <p className="text-xs text-slate-500">Sem batidas recentes para exibir.</p>}
+                  </div>
+                </div>
+              </section>
+
+              <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                <h4 className="mb-2 text-sm font-black text-amber-950">Politica de exclusao segura</h4>
+                <p className="text-xs text-amber-900">
+                  Quando existe historico vinculado, a remocao definitiva e bloqueada e o cadastro e arquivado para preservar rastreabilidade legal e operacional.
+                </p>
+                {impact && (
+                  <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-amber-950 sm:grid-cols-4">
+                    <InfoChip label="Ponto" value={String(impact.timeTracks)} />
+                    <InfoChip label="Ferias" value={String(impact.vacations)} />
+                    <InfoChip label="ASO" value={String(impact.asoRecords)} />
+                    <InfoChip label="Ocorrencias" value={String(impact.timeOccurrences)} />
+                  </div>
+                )}
+              </section>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DossierStat({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-4">
+      <div className="mb-2 flex items-center justify-between text-slate-500">
+        <span className="text-xs font-black uppercase tracking-[0.18em]">{label}</span>
+        {icon}
+      </div>
+      <div className="text-xl font-black text-slate-950">{value}</div>
+    </div>
+  );
+}
+
+function InfoLine({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white px-3 py-2">
+      <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">{label}</p>
+      <p className="mt-1 text-sm font-semibold text-slate-900">{value || '-'}</p>
+    </div>
+  );
+}
+
+function InfoChip({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl border border-amber-200 bg-white px-3 py-2">
+      <p className="text-[10px] font-black uppercase tracking-[0.16em] text-amber-700">{label}</p>
+      <p className="mt-1 text-sm font-black text-amber-950">{value}</p>
+    </div>
+  );
+}
+
 function fmtDate(v?: string | null) {
   if (!v) return '---';
   const d = new Date(v);
@@ -362,14 +571,68 @@ function fmtDate(v?: string | null) {
   return d.toLocaleDateString('pt-BR');
 }
 
+function maskCpf(value?: string | null) {
+  const digits = (value ?? '').replace(/\D/g, '');
+  if (!digits) return '-';
+  if (digits.length < 11) return value ?? '-';
+  return `${digits.slice(0, 3)}.***.***-${digits.slice(-2)}`;
+}
+
+function maskEmail(value?: string | null) {
+  if (!value) return '-';
+  const [name, domain] = value.split('@');
+  if (!domain) return value;
+  const visible = name.slice(0, 2);
+  return `${visible}${'*'.repeat(Math.max(name.length - 2, 2))}@${domain}`;
+}
+
+function maskPhone(value?: string | null) {
+  const digits = (value ?? '').replace(/\D/g, '');
+  if (!digits) return '-';
+  if (digits.length < 4) return value ?? '-';
+  return `(**) *****-${digits.slice(-4)}`;
+}
+
 function currentMonth() {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 }
 
-function displayLunch(row: TimeTrack) {
-  if (!row.lunchStart && !row.lunchReturn) return '-';
-  return `${formatTime(row.lunchStart)} - ${formatTime(row.lunchReturn)}`;
+async function downloadEmployeePdf(
+  employee: Employee,
+  document: 'point-sheet' | 'occurrences' | 'record',
+  month?: string,
+) {
+  const token = readAuthSession().token;
+  if (!token) throw new Error('Sessao expirada. Faca login novamente.');
+
+  const query = month ? `?month=${encodeURIComponent(month)}` : '';
+  const response = await fetch(`${API_URL}/employees/${employee.id}/documents/${document}.pdf${query}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (!response.ok) {
+    const payload = await response.json().catch(() => null);
+    const message =
+      payload && typeof payload === 'object' && 'message' in payload
+        ? String(payload.message)
+        : 'Nao foi possivel gerar o documento oficial.';
+    throw new Error(message);
+  }
+
+  const blob = await response.blob();
+  const objectUrl = URL.createObjectURL(blob);
+  const disposition = response.headers.get('content-disposition') ?? '';
+  const encodedFilename = disposition.match(/filename="([^"]+)"/)?.[1];
+  const filename = encodedFilename
+    ? decodeURIComponent(encodedFilename)
+    : `${document}-${normalizeDisplayName(employee.name)}.pdf`;
+
+  const anchor = window.document.createElement('a');
+  anchor.href = objectUrl;
+  anchor.download = filename;
+  anchor.click();
+  URL.revokeObjectURL(objectUrl);
 }
 
 function getAsoAlert(status: string, expirationDate?: string | null): { label: string; cls: string } {
@@ -383,463 +646,6 @@ function getAsoAlert(status: string, expirationDate?: string | null): { label: s
 }
 
 // ─── DOWNLOAD FUNCTIONS ──────────────────────────────────────────────────────
-
-function daysInMonth(y: number, m: number) { return new Date(Date.UTC(y,m+1,0)).getUTCDate(); }
-function isCycle(date: Date, emp: Employee, work: number, off: number) {
-  const adm = emp.admissionDate ? new Date(emp.admissionDate) : new Date('2020-01-01');
-  const a = Date.UTC(adm.getUTCFullYear(), adm.getUTCMonth(), adm.getUTCDate());
-  const b = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
-  const diff = Math.floor((b-a)/864e5);
-  if (diff<0) return false;
-  return (diff%(work+off)) >= work;
-}
-function isRestDay(date: Date, emp: Employee): boolean {
-  const wd = date.getUTCDay();
-  const s = emp.workScale; const c = emp.customWorkScale;
-  if (s==='5X2') return wd===0||wd===6;
-  if (s==='6X1') return wd===0;
-  if (s==='4X2') return isCycle(date,emp,4,2);
-  if (s==='12X36') return isCycle(date,emp,1,1);
-  if (s==='OUTRO' && c) {
-    const m = c.match(/(\d+)X(\d+)/i);
-    if (m) return isCycle(date,emp,parseInt(m[1],10),parseInt(m[2],10));
-  }
-  return wd===0;
-}
-function isAntesAdmissao(key: string, emp: Employee): boolean {
-  if (!emp.admissionDate) return false;
-  return key < emp.admissionDate.slice(0,10);
-}
-function toDateKey(v?: string | null) { return v ? v.slice(0,10) : ''; }
-
-function buildGrid(month: string, emp: Employee, tracks: TimeTrack[]) {
-  const [y,m] = month.split('-').map(Number); if (!y||!m) return [];
-  const total = daysInMonth(y,m-1);
-  const today = new Date().toISOString().slice(0,10);
-  const map = new Map<string, TimeTrack>();
-  for (const t of tracks) map.set(toDateKey(t.date), t);
-  const g: any[] = [];
-  for (let d=1; d<=total; d++) {
-    const date = new Date(Date.UTC(y,m-1,d));
-    const key = date.toISOString().slice(0,10);
-    g.push({date,key,day:d,wd:date.getUTCDay(),isRest: isRestDay(date,emp),isFuture: key>today,antesAdmissao: isAntesAdmissao(key,emp), track: map.get(key)});
-  }
-  return g;
-}
-
-function isFalta(row: TimeTrack) {
-  if (row.entry || row.exit) return false;
-  const o = (row.observation ?? '').toLowerCase();
-  return !o.includes('atestado') && !o.includes('feriado') && !o.includes('folga') && !o.includes('suspensao') && !o.includes('suspensão');
-}
-
-function dayStatus(row: TimeTrack) {
-  if (row.manualStatus==='revoked') return 'REVOGADO';
-  const o = (row.observation ?? '').toLowerCase();
-  if (o.includes('atestado integral')) return 'ATESTADO';
-  if (o.includes('atestado') && o.includes('horas')) return 'ATESTADO (HORAS)';
-  if (o.includes('suspensao') || o.includes('suspensão')) return 'SUSPENSÃO';
-  if (o.includes('feriado')) return 'FERIADO';
-  if (o.includes('folga extra')) return 'FOLGA EXTRA';
-  if (o.includes('folga banco')) return 'FOLGA BANCO';
-  if (o.includes('folga')) return 'FOLGA';
-  const r = (row.manualReason ?? '').toLowerCase();
-  if (r.includes('atestado integral')) return 'ATESTADO';
-  if (r.includes('feriado')) return 'FERIADO';
-  if (r.includes('folga dsr')) return 'FOLGA';
-  if (row.manualStatus==='pending') return 'PENDENTE';
-  if (row.manualStatus==='rejected') return 'REJEITADO';
-  if (row.manualReason || o.includes('ajuste')) return 'AJUSTE MANUAL';
-  if (!row.entry && !row.exit) return 'FALTA';
-  return 'NORMAL';
-}
-
-function downloadEmployeeSheet(employee: Employee, rows: TimeTrack[], month: string, company: Company | null, managerName: string) {
-  const monthLabelText = monthLabelFn(month);
-  const grid = buildGrid(month, employee, rows);
-  
-  const validTracks = grid.map(g => g.track).filter(Boolean) as TimeTrack[];
-  const totalWorked = validTracks.reduce((t, r) => t + (r.totalWorked ?? 0), 0);
-  const totalBalance = validTracks.reduce((t, r) => t + (r.dailyBalance ?? 0), 0);
-  const positiveBalance = validTracks.reduce((t, r) => t + Math.max(r.dailyBalance ?? 0, 0), 0);
-  const negativeBalance = validTracks.reduce((t, r) => t + Math.abs(Math.min(r.dailyBalance ?? 0, 0)), 0);
-  const faltasCount = grid.filter(g => g.track && isFalta(g.track)).length;
-
-  const employeeInfo = [
-    { label: 'Nome', value: normalizeDisplayName(employee.name) },
-    { label: 'Matrícula', value: employee.registration || '-' },
-    { label: 'CPF', value: employee.cpf || '-' },
-    { label: 'Cargo', value: employee.position || '-' },
-    { label: 'Departamento', value: employee.department || '-' },
-    { label: 'Gestor', value: managerName || '-' },
-    { label: 'Admissão', value: formatDate(employee.admissionDate) },
-    { label: 'Período', value: monthLabelText },
-  ];
-
-  const tableHeaders = ['Data', 'Dia', '1a E.', '1a S.', '2a E.', '2a S.', 'Abono', 'H.E.', 'Absent.', 'Jornada', 'Ad. Not.', 'Observacao'];
-  const tableRows = grid.map((g) => {
-    const WEEKDAYS = ['DOM','SEG','TER','QUA','QUI','SEX','SÁB'];
-    const wd = WEEKDAYS[g.wd];
-    const dateStr = String(g.day).padStart(2,'0') + '/' + month.split('-')[1] + '/' + month.split('-')[0];
-
-    if (g.isFuture) {
-      return `<tr><td style="padding:2px 4px;font-size:7px;color:#cbd5e1;">${dateStr}</td><td style="padding:2px 4px;font-size:7px;color:#cbd5e1;">${wd}</td><td colspan="10" style="padding:2px 4px;font-size:7px;color:#cbd5e1;text-align:center;">-</td></tr>`;
-    }
-    if (g.antesAdmissao) {
-      return `<tr><td style="padding:2px 4px;font-size:7px;color:#94a3b8;">${dateStr}</td><td style="padding:2px 4px;font-size:7px;color:#94a3b8;">${wd}</td><td colspan="10" style="padding:2px 4px;font-size:7px;color:#94a3b8;text-align:center;">ANTES DA ADMISSÃO</td></tr>`;
-    }
-
-    const t = g.track;
-    if (!t) {
-      if (g.isRest) return `<tr><td style="padding:2px 4px;font-size:7px;color:#64748b;">${dateStr}</td><td style="padding:2px 4px;font-size:7px;color:#64748b;">${wd}</td><td colspan="10" style="padding:2px 4px;font-size:7px;color:#64748b;text-align:center;font-weight:700;">DSR / FOLGA</td></tr>`;
-      return `<tr><td style="padding:2px 4px;font-size:7px;color:#e11d48;font-weight:600;">${dateStr}</td><td style="padding:2px 4px;font-size:7px;color:#e11d48;font-weight:600;">${wd}</td><td colspan="10" style="padding:2px 4px;font-size:7px;color:#e11d48;text-align:center;font-weight:700;">FALTA NÃO JUSTIFICADA</td></tr>`;
-    }
-
-    const balance = t.dailyBalance ?? 0;
-    const balanceColor = balance < 0 ? '#e11d48' : balance > 0 ? '#059669' : '#64748b';
-    const hasMissing = !t.entry || !t.exit;
-    let ocorrencia = dayStatus(t);
-    if (ocorrencia === 'NORMAL') ocorrencia = hasMissing ? 'PONTO INCOMPLETO' : '';
-
-    const he = balance > 0 ? formatMinutes(balance) : '';
-    const absent = balance < 0 ? formatMinutes(Math.abs(balance)) : '';
-    const jornada = formatMinutes(t.totalWorked ?? 0);
-    
-    return `<tr>
-      <td style="padding:2px 4px;font-size:7px;font-weight:600;color:#0f172a;">${dateStr}</td>
-      <td style="padding:2px 4px;font-size:7px;color:#334155;">${wd}</td>
-      <td style="padding:2px 4px;font-size:7px;color:#334155;text-align:center;">${escapeHtml(formatTime(t.entry))}</td>
-      <td style="padding:2px 4px;font-size:7px;color:#94a3b8;text-align:center;">--:--</td>
-      <td style="padding:2px 4px;font-size:7px;color:#94a3b8;text-align:center;">--:--</td>
-      <td style="padding:2px 4px;font-size:7px;color:#334155;text-align:center;">${escapeHtml(formatTime(t.exit))}</td>
-      <td style="padding:2px 4px;font-size:7px;color:#334155;text-align:center;"></td>
-      <td style="padding:2px 4px;font-size:7px;color:#059669;text-align:center;font-weight:600;">${escapeHtml(he)}</td>
-      <td style="padding:2px 4px;font-size:7px;color:#e11d48;text-align:center;font-weight:600;">${escapeHtml(absent)}</td>
-      <td style="padding:2px 4px;font-size:7px;font-weight:700;color:#0f172a;text-align:center;">${escapeHtml(jornada)}</td>
-      <td style="padding:2px 4px;font-size:7px;color:#334155;text-align:center;"></td>
-      <td style="padding:2px 4px;font-size:6px;color:#64748b;">${escapeHtml(ocorrencia)}</td>
-    </tr>`;
-  });
-
-  const companyData: PdfCompanyInfo | null = company ? {
-    name: company.name,
-    legalName: company.legalName,
-    document: company.cnpj,
-    logoUrl: company.logoUrl,
-    phone: company.phone,
-    email: company.email,
-    address: [company.street, company.streetNumber, company.neighborhood, company.city, company.state, company.cep].filter(Boolean).map(String).join(', ') || undefined
-  } : null;
-
-  const html = buildPdfShell({ title: 'Espelho de Ponto Oficial', subtitle: `${monthLabelText} — ${normalizeDisplayName(employee.name)}`, landscape: false }, companyData, `
-    ${section('Dados do Colaborador', infoGrid(employeeInfo, 4))}
-
-    ${section('Registros de Ponto Diário', pdfTable(tableHeaders, tableRows, { compact: true, border: true }), { avoidBreak: false, noBg: true })}
-
-    ${section('Resumo do Período', `
-      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;">
-        <div style="background:#f0fdfa;border:1px solid #ccfbf1;border-radius:8px;padding:12px;text-align:center;">
-          <div style="font-size:8px;font-weight:800;text-transform:uppercase;color:#0f766e;letter-spacing:0.05em;">Dias Trabalhados</div>
-          <div style="font-size:16px;font-weight:900;color:#0f172a;margin-top:4px;">${validTracks.length}</div>
-        </div>
-        <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px;text-align:center;">
-          <div style="font-size:8px;font-weight:800;text-transform:uppercase;color:#e11d48;letter-spacing:0.05em;">Faltas Integrais</div>
-          <div style="font-size:16px;font-weight:900;color:#e11d48;margin-top:4px;">${faltasCount}</div>
-        </div>
-        <div style="background:#f0fdfa;border:1px solid #ccfbf1;border-radius:8px;padding:12px;text-align:center;">
-          <div style="font-size:8px;font-weight:800;text-transform:uppercase;color:#0f766e;letter-spacing:0.05em;">Total Horas</div>
-          <div style="font-size:16px;font-weight:900;color:#0f172a;margin-top:4px;">${escapeHtml(formatMinutes(totalWorked))}</div>
-        </div>
-        <div style="background:#f0fdfa;border:1px solid #ccfbf1;border-radius:8px;padding:12px;text-align:center;">
-          <div style="font-size:8px;font-weight:800;text-transform:uppercase;color:#0f766e;letter-spacing:0.05em;">Horas Extras</div>
-          <div style="font-size:16px;font-weight:900;color:#059669;margin-top:4px;">${escapeHtml(formatMinutes(positiveBalance))}</div>
-        </div>
-        <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px;text-align:center;">
-          <div style="font-size:8px;font-weight:800;text-transform:uppercase;color:#e11d48;letter-spacing:0.05em;">Horas Atraso</div>
-          <div style="font-size:16px;font-weight:900;color:#e11d48;margin-top:4px;">${escapeHtml(formatMinutes(negativeBalance))}</div>
-        </div>
-      </div>
-      <div style="margin-top:16px;background:#f8fafc;padding:16px;border-radius:8px;font-size:12px;color:#334155;font-weight:700;text-align:center;border:1px solid #e2e8f0;">
-        SALDO DO BANCO DE HORAS NESTE MÊS: <span style="font-weight:900;color:${totalBalance < 0 ? '#e11d48' : totalBalance > 0 ? '#059669' : '#64748b'};">
-          ${escapeHtml(formatMinutes(totalBalance))}
-        </span>
-      </div>
-    `)}
-
-    ${section('Horários', pdfTable(
-      ['Data Base', 'Entrada', 'Saída Almoço', 'Retorno Almoço', 'Saída', 'Turno / Carga Horária'],
-      [
-        `<tr>
-          <td style="padding:2px 4px;font-size:7px;color:#334155;text-align:center;">01/${month.split('-')[1]}/${month.split('-')[0]}</td>
-          <td style="padding:2px 4px;font-size:7px;color:#334155;text-align:center;">--:--</td>
-          <td style="padding:2px 4px;font-size:7px;color:#334155;text-align:center;">--:--</td>
-          <td style="padding:2px 4px;font-size:7px;color:#334155;text-align:center;">--:--</td>
-          <td style="padding:2px 4px;font-size:7px;color:#334155;text-align:center;">--:--</td>
-          <td style="padding:2px 4px;font-size:7px;color:#0f172a;text-align:center;">${escapeHtml(employee.workScale || 'Não definida')} - ${escapeHtml(employee.dailyWorkload || '')}</td>
-        </tr>`
-      ],
-      { compact: true, border: true }
-    ), { avoidBreak: true })}
-
-    ${signatureBlock(['Assinatura do Colaborador', 'Assinatura do RH / Responsável'])}
-  `);
-
-  printPdf(html, `folha-ponto-${slugify(employee.name)}-${month}.pdf`);
-}
-
-function downloadEmployeeOcorrenciasSheet(employee: Employee, rows: TimeTrack[], month: string, company: Company | null, managerName: string) {
-  const monthLabelText = monthLabelFn(month);
-  const grid = buildGrid(month, employee, rows);
-  
-  const occurrenceGrid = grid.filter(g => {
-    if (g.isFuture || g.antesAdmissao) return false;
-    if (!g.track) {
-      return !g.isRest; // Falta Não Justificada is an occurrence
-    }
-    const t = g.track;
-    const hasMissing = !t.entry || !t.exit;
-    const status = dayStatus(t);
-    const balance = t.dailyBalance ?? 0;
-    return status !== 'NORMAL' || hasMissing || balance !== 0;
-  });
-  
-  const fullMonthGrid = grid;
-  const fullValidTracks = fullMonthGrid.map(g => g.track).filter(Boolean) as TimeTrack[];
-  const totalWorked = fullValidTracks.reduce((t, r) => t + (r.totalWorked ?? 0), 0);
-  const totalBalance = fullValidTracks.reduce((t, r) => t + (r.dailyBalance ?? 0), 0);
-  const positiveBalance = fullValidTracks.reduce((t, r) => t + Math.max(r.dailyBalance ?? 0, 0), 0);
-  const negativeBalance = fullValidTracks.reduce((t, r) => t + Math.abs(Math.min(r.dailyBalance ?? 0, 0)), 0);
-  const faltasCount = fullMonthGrid.filter(g => g.track && isFalta(g.track)).length;
-  
-  const employeeInfo = [
-    { label: 'Nome', value: normalizeDisplayName(employee.name) },
-    { label: 'Matrícula', value: employee.registration || '-' },
-    { label: 'CPF', value: employee.cpf || '-' },
-    { label: 'Cargo', value: employee.position || '-' },
-    { label: 'Departamento', value: employee.department || '-' },
-    { label: 'Gestor', value: managerName || '-' },
-    { label: 'Admissão', value: formatDate(employee.admissionDate) },
-    { label: 'Período', value: monthLabelText },
-  ];
-
-  const tableHeaders = ['Data', 'Dia', '1a E.', '1a S.', '2a E.', '2a S.', 'Abono', 'H.E.', 'Absent.', 'Jornada', 'Ad. Not.', 'Observacao'];
-  
-  let tableRows: string[];
-  const WEEKDAYS = ['DOM','SEG','TER','QUA','QUI','SEX','SÁB'];
-  if (occurrenceGrid.length === 0) {
-    tableRows = [`<tr><td colspan="12" style="padding:12px;text-align:center;font-size:9px;color:#64748b;font-weight:600;">Nenhuma ocorrência registrada neste período.</td></tr>`];
-  } else {
-    tableRows = occurrenceGrid.map((g) => {
-      const wd = WEEKDAYS[g.wd];
-      const dateStr = `${String(g.day).padStart(2,'0')}/${month.split('-')[1]}/${month.split('-')[0]}`;
-      const t = g.track;
-      if (!t) return `<tr><td style="padding:2px 4px;font-size:7px;color:#e11d48;font-weight:600;">${dateStr}</td><td style="padding:2px 4px;font-size:7px;color:#e11d48;">${wd}</td><td colspan="10" style="padding:2px 4px;font-size:7px;color:#e11d48;text-align:center;font-weight:700;">FALTA NÃO JUSTIFICADA</td></tr>`;
-      const balance = t.dailyBalance ?? 0;
-      const hasMissing = !t.entry || !t.exit;
-      let ocorrencia = dayStatus(t);
-      if (ocorrencia === 'NORMAL') ocorrencia = hasMissing ? 'PONTO INCOMPLETO' : '';
-      const he = balance > 0 ? formatMinutes(balance) : '';
-      const absent = balance < 0 ? formatMinutes(Math.abs(balance)) : '';
-      const jornada = formatMinutes(t.totalWorked ?? 0);
-      return `<tr>
-        <td style="padding:2px 4px;font-size:7px;font-weight:600;color:#0f172a;">${dateStr}</td>
-        <td style="padding:2px 4px;font-size:7px;color:#334155;">${wd}</td>
-        <td style="padding:2px 4px;font-size:7px;color:#334155;text-align:center;">${escapeHtml(formatTime(t.entry))}</td>
-        <td style="padding:2px 4px;font-size:7px;color:#94a3b8;text-align:center;">--:--</td>
-        <td style="padding:2px 4px;font-size:7px;color:#94a3b8;text-align:center;">--:--</td>
-        <td style="padding:2px 4px;font-size:7px;color:#334155;text-align:center;">${escapeHtml(formatTime(t.exit))}</td>
-        <td style="padding:2px 4px;font-size:7px;color:#334155;text-align:center;"></td>
-        <td style="padding:2px 4px;font-size:7px;color:#059669;text-align:center;font-weight:600;">${escapeHtml(he)}</td>
-        <td style="padding:2px 4px;font-size:7px;color:#e11d48;text-align:center;font-weight:600;">${escapeHtml(absent)}</td>
-        <td style="padding:2px 4px;font-size:7px;font-weight:700;color:#0f172a;text-align:center;">${escapeHtml(jornada)}</td>
-        <td style="padding:2px 4px;font-size:7px;color:#334155;text-align:center;"></td>
-        <td style="padding:2px 4px;font-size:6px;color:#64748b;">${escapeHtml(ocorrencia)}</td>
-      </tr>`;
-    });
-  }
-
-  const companyData: PdfCompanyInfo | null = company ? {
-    name: company.name,
-    legalName: company.legalName,
-    document: company.cnpj,
-    logoUrl: company.logoUrl,
-    phone: company.phone,
-    email: company.email,
-    address: [company.street, company.streetNumber, company.neighborhood, company.city, company.state, company.cep].filter(Boolean).map(String).join(', ') || undefined
-  } : null;
-
-  const html = buildPdfShell({ title: 'Ficha de Ocorrências de Ponto', subtitle: `${monthLabelText} — ${normalizeDisplayName(employee.name)}`, landscape: false }, companyData, `
-    ${section('Dados do Colaborador', infoGrid(employeeInfo, 4))}
-
-    ${section('Divergências e Ocorrências no Período', pdfTable(tableHeaders, tableRows, { compact: true, border: true }), { avoidBreak: false, noBg: true })}
-
-    ${section('Resumo do Período', `
-      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;">
-        <div style="background:#f0fdfa;border:1px solid #ccfbf1;border-radius:8px;padding:12px;text-align:center;">
-          <div style="font-size:8px;font-weight:800;text-transform:uppercase;color:#0f766e;letter-spacing:0.05em;">Dias Trabalhados</div>
-          <div style="font-size:16px;font-weight:900;color:#0f172a;margin-top:4px;">${fullValidTracks.length}</div>
-        </div>
-        <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px;text-align:center;">
-          <div style="font-size:8px;font-weight:800;text-transform:uppercase;color:#e11d48;letter-spacing:0.05em;">Faltas Integrais</div>
-          <div style="font-size:16px;font-weight:900;color:#e11d48;margin-top:4px;">${faltasCount}</div>
-        </div>
-        <div style="background:#f0fdfa;border:1px solid #ccfbf1;border-radius:8px;padding:12px;text-align:center;">
-          <div style="font-size:8px;font-weight:800;text-transform:uppercase;color:#0f766e;letter-spacing:0.05em;">Total Horas</div>
-          <div style="font-size:16px;font-weight:900;color:#0f172a;margin-top:4px;">${escapeHtml(formatMinutes(totalWorked))}</div>
-        </div>
-        <div style="background:#f0fdfa;border:1px solid #ccfbf1;border-radius:8px;padding:12px;text-align:center;">
-          <div style="font-size:8px;font-weight:800;text-transform:uppercase;color:#0f766e;letter-spacing:0.05em;">Horas Extras</div>
-          <div style="font-size:16px;font-weight:900;color:#059669;margin-top:4px;">${escapeHtml(formatMinutes(positiveBalance))}</div>
-        </div>
-        <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px;text-align:center;">
-          <div style="font-size:8px;font-weight:800;text-transform:uppercase;color:#e11d48;letter-spacing:0.05em;">Horas Atraso</div>
-          <div style="font-size:16px;font-weight:900;color:#e11d48;margin-top:4px;">${escapeHtml(formatMinutes(negativeBalance))}</div>
-        </div>
-      </div>
-      <div style="margin-top:16px;background:#f8fafc;padding:16px;border-radius:8px;font-size:12px;color:#334155;font-weight:700;text-align:center;border:1px solid #e2e8f0;">
-        SALDO DO BANCO DE HORAS NESTE MÊS: <span style="font-weight:900;color:${totalBalance < 0 ? '#e11d48' : totalBalance > 0 ? '#059669' : '#64748b'};">
-          ${escapeHtml(formatMinutes(totalBalance))}
-        </span>
-      </div>
-    `)}
-
-    ${signatureBlock(['Assinatura do Colaborador', 'Assinatura do RH / Responsável'])}
-  `);
-
-  printPdf(html, `ficha-ocorrencias-${slugify(employee.name)}-${month}.pdf`);
-}
-
-function downloadEmployeeRecord(employee: Employee, company: Company | null, managerName: string) {
-  const title = 'Ficha de Registro de Empregado';
-
-  const personalInfo = [
-    { label: 'Nome Completo', value: normalizeDisplayName(employee.name) },
-    { label: 'Data de Nascimento', value: formatDate(employee.birthDate) },
-    { label: 'CPF', value: employee.cpf || '-' },
-    { label: 'Gênero', value: employee.gender || '-' },
-    { label: 'Estado Civil', value: employee.maritalStatus || '-' },
-    { label: 'E-mail', value: employee.email || '-' },
-    { label: 'Telefone', value: employee.phone || '-' },
-    { label: 'Telefone 2', value: employee.secondaryPhone || '-' },
-    { label: 'Naturalidade', value: employee.birthplace || '-' },
-    { label: 'Nacionalidade', value: employee.nationality || '-' },
-    { label: 'Escolaridade', value: employee.education || '-' },
-    { label: 'Nome da Mãe', value: employee.motherName || '-' },
-    { label: 'Nome do Pai', value: employee.fatherName || '-' },
-    { label: 'RG', value: employee.rg || '-' },
-    { label: 'RG Emissor/UF', value: employee.rgIssuer ? `${employee.rgIssuer}/${employee.rgState || '-'}` : '-' },
-    { label: 'Data Emissão RG', value: formatDate(employee.rgIssueDate) || '-' },
-  ];
-
-  const docsInfo = [
-    { label: 'PIS / PASEP / NIT', value: employee.pis || '-' },
-    { label: 'Tít. Eleitor Nº', value: employee.voterTitle || '-' },
-    { label: 'Zona', value: employee.voterZone || '-' },
-    { label: 'Seção', value: employee.voterSection || '-' },
-    { label: 'UF Eleitor', value: employee.voterState || '-' },
-    { label: 'Reservista', value: employee.reservista || '-' },
-  ];
-
-  const addressInfo = [
-    { label: 'CEP', value: employee.cep || '-' },
-    { label: 'Logradouro', value: employee.street || '-' },
-    { label: 'Número', value: employee.streetNumber || '-' },
-    { label: 'Complemento', value: employee.addressComplement || '-' },
-    { label: 'Bairro', value: employee.neighborhood || '-' },
-    { label: 'Cidade', value: employee.city || '-' },
-    { label: 'Estado', value: employee.state || '-' },
-  ];
-
-  const contractInfo = [
-    { label: 'Matrícula', value: employee.registration || '-' },
-    { label: 'Cargo', value: employee.position || '-' },
-    { label: 'Departamento', value: employee.department || '-' },
-    { label: 'Unidade', value: employee.unit || '-' },
-    { label: 'Gestor', value: managerName || '-' },
-    { label: 'Admissão', value: formatDate(employee.admissionDate) },
-    { label: 'Tipo Contrato', value: employee.contractType || '-' },
-    { label: 'Salário (R$)', value: employee.salary ? Number(employee.salary).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : '-' },
-    { label: 'Status', value: EMPLOYEE_STATUS_LABEL[employee.status] || employee.status },
-    { label: 'Demissão', value: formatDate(employee.terminationDate) || '-' },
-  ];
-
-  const timeInfo = [
-    { label: 'Escala', value: employee.customWorkScale || employee.workScale || '-' },
-    { label: 'Jornada Diária', value: employee.dailyWorkload || '-' },
-    { label: 'Entrada', value: employee.standardEntry || '-' },
-    { label: 'Saída Almoço', value: employee.standardLunchStart || '-' },
-    { label: 'Retorno Almoço', value: employee.standardLunchReturn || '-' },
-    { label: 'Saída', value: employee.standardExit || '-' },
-  ];
-
-  const bankInfo = [
-    { label: 'Banco', value: employee.bankName || '-' },
-    { label: 'Agência', value: employee.bankAgency || '-' },
-    { label: 'Conta', value: employee.bankAccount || '-' },
-    { label: 'Tipo de Conta', value: employee.bankAccountType || '-' },
-  ];
-
-  let dependentsSection = '';
-  if (employee.dependents) {
-    try {
-      const deps: Array<{ nome: string; cpf: string; dataNascimento: string; parentesco: string }> = JSON.parse(employee.dependents);
-      if (Array.isArray(deps) && deps.length > 0) {
-        const depRows = deps.map((d) => `
-          <tr>
-            <td style="padding:4px 8px;font-size:9px;color:#0f172a;">${escapeHtml(d.nome || '-')}</td>
-            <td style="padding:4px 8px;font-size:9px;color:#334155;">${escapeHtml(d.cpf || '-')}</td>
-            <td style="padding:4px 8px;font-size:9px;color:#334155;">${escapeHtml(d.dataNascimento ? new Date(d.dataNascimento).toLocaleDateString('pt-BR') : '-')}</td>
-            <td style="padding:4px 8px;font-size:9px;color:#334155;">${escapeHtml(d.parentesco || '-')}</td>
-          </tr>`);
-        dependentsSection = section('Dependentes', pdfTable(
-          ['Nome', 'CPF', 'Nascimento', 'Parentesco'],
-          depRows,
-          { compact: true }
-        ));
-      }
-    } catch { /* ignore */ }
-  }
-
-  const companyData: PdfCompanyInfo | null = company ? {
-    name: company.name,
-    legalName: company.legalName,
-    document: company.cnpj,
-    logoUrl: company.logoUrl,
-    phone: company.phone,
-    email: company.email,
-    address: [company.street, company.streetNumber, company.neighborhood, company.city, company.state, company.cep].filter(Boolean).map(String).join(', ') || undefined
-  } : null;
-
-  const html = buildPdfShell({ title, subtitle: normalizeDisplayName(employee.name), landscape: false }, companyData, `
-    ${section('Dados Pessoais', infoGrid(personalInfo, 5))}
-    ${section('Documentação', infoGrid(docsInfo, 5))}
-    ${section('Endereço', infoGrid(addressInfo, 5))}
-    ${section('Dados Profissionais', infoGrid(contractInfo, 5))}
-    ${section('Jornada e Escala de Trabalho', infoGrid(timeInfo, 5))}
-    ${section('Dados Bancários', infoGrid(bankInfo, 5))}
-    ${dependentsSection}
-    ${employee.observations ? section('Observações', `<p style="font-size:9px;color:#475569;">${escapeHtml(employee.observations)}</p>`) : ''}
-    ${signatureBlock(['Assinatura do Funcionário', 'Assinatura do RH / Empregador'])}
-  `);
-  printPdf(html, `ficha-registro-${slugify(employee.name)}.pdf`);
-}
-
-function monthLabelFn(month: string) {
-  if (!month) return 'Período completo';
-  const [year, monthNumber] = month.split('-').map(Number);
-  if (!year || !monthNumber) return month;
-  const date = new Date(year, monthNumber - 1, 1);
-  const label = date.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
-  return label.charAt(0).toUpperCase() + label.slice(1);
-}
-
-function escapeHtml(value: unknown) {
-  return String(value ?? '').replace(/[&<>"]/g, (char) => ({ '&': '&', '<': '<', '>': '>', '"': '"' })[char] ?? char);
-}
-
-function slugify(value: string) {
-  return normalizeDisplayName(value).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'funcionario';
-}
 
 function accessText(employee: Employee) {
   if (!employee.userId || !employee.user) return 'Sem acesso';

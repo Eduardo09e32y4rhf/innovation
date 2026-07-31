@@ -3,10 +3,9 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, HeadphonesIcon, CheckCircle2, AlertCircle, Loader2, LifeBuoy, Send, ShieldCheck, Building2 } from 'lucide-react';
-import { Space_Grotesk } from 'next/font/google';
 import api from '@/app/lib/api';
 
-const display = Space_Grotesk({ subsets: ['latin'], weight: ['500', '700'] });
+const display = { className: 'font-display' };
 
 export default function SuportePage() {
   const [name, setName] = useState('');

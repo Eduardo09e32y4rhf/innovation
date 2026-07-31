@@ -18,6 +18,22 @@ export class TimeClosingController {
   @Roles('ADMIN', 'RH')
   list(@Req() req: any, @Query('status') status?: TimeClosingStatus) { return this.service.list(req.user.companyId, status); }
 
+  @Get('collective/pdf')
+  @Roles('ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO')
+  collectivePdf(
+    @Req() req: any,
+    @Res() res: any,
+    @Query('month') month: string,
+    @Query('employeeIds') employeeIds?: string | string[],
+  ) {
+    return this.service.streamCollectivePdf(
+      req.user.companyId,
+      req.user,
+      { month, employeeIds },
+      res,
+    );
+  }
+
   @Get(':id')
   @Roles('ADMIN', 'RH', 'FUNCIONARIO')
   getById(@Req() req: any, @Param('id') id: string) { return this.service.getById(req.user.companyId, id, req.user); }

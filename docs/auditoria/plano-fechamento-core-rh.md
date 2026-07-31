@@ -24,6 +24,30 @@ Fechar os fluxos reais do sistema, removendo:
 - estado visual que nao representa o backend;
 - redundancia de navegacao e responsabilidade.
 
+## Status atual do escopo
+
+### Fechado ou validado em grande parte
+
+- [x] 30/07/2026 - Ponto e pre-folha: INSS 2026 atualizado, ausencia sem duplicidade entre atraso/saida antecipada e atestado por hora no fluxo de ponto.
+- [x] 30/07/2026 - Escala: bloqueio de vigencia sobreposta antes de salvar nova atribuicao.
+- [x] 30/07/2026 - Ferias: ciclo aquisitivo calculado por admissao, entitlement por faltas e front sem regra falsa de "11o mes obrigatorio".
+- [x] 30/07/2026 - Dashboard, Gestao, Usuarios e Suporte: simplificacao visual, suporte com autor/status/historico, usuarios com persistencia de permissao e ajuste de overflow.
+
+### Fechamento executado em 30/07/2026
+
+- [x] 30/07/2026 - Funcionarios e ASO: exclusao segura com arquivamento quando houver historico, dossie 360 com ASO/ferias/ponto e mascaramento de dados sensiveis.
+- [x] 30/07/2026 - Vagas e Admissao: candidatura com consentimento persistido, curriculo/versionamento por Application, bloqueio de contratacao incompleta e isolamento para nao sobrescrever dados criticos de outra candidatura.
+- [x] 30/07/2026 - Plataforma: raiz convertida em hub unico, extrato financeiro servido pelo backend, contratos com download por endpoint e configuracao separada como centro administrativo.
+- [x] 30/07/2026 - PDFs e QA local: documentos oficiais migrados para o backend, fronteira automatica sem consumidores de `printPdf`, builds de API/Web aprovados, typecheck Web aprovado, 245 testes unitarios, 38 de contrato e 35 de seguranca aprovados.
+- [x] 30/07/2026 - Revisao automatizada ponta a ponta: regras integradas cobertas por testes deterministas, Prisma validado e client regenerado, candidatura publica validada no Chromium.
+
+### Fechamento operacional ainda pendente
+
+- [ ] 30/07/2026 - Publicar as alteracoes locais em `main`.
+- [ ] 30/07/2026 - Aplicar as duas migrations na VPS e executar o deploy.
+- [ ] 30/07/2026 - Executar smoke manual de login, candidatura, PDFs e fluxos principais na VPS.
+- [ ] 30/07/2026 - Validar backup e rollback antes de declarar producao fechada.
+
 ## Ordem de execucao
 
 1. Ponto e pre-folha
@@ -247,10 +271,9 @@ Fechar os fluxos reais do sistema, removendo:
 ## Checklist final de saida
 
 - [ ] Nao existe regra critica duplicada sem controle de versao
-- [ ] Nenhum PDF critico depende do navegador
+- [x] Nenhum PDF critico depende do navegador
 - [ ] Nenhuma pagina critica tem botao sem efeito
 - [ ] Cada acao sensivel gera auditoria
 - [ ] O fechamento nao depende de aproximacao local
 - [ ] O mobile nao quebra a experiencia
 - [ ] O deploy da VPS reproduz o mesmo estado do GitHub
-

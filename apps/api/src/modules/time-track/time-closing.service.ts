@@ -1,5 +1,6 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { TimeClosingStatus } from '@prisma/client';
+import { createHash } from 'node:crypto';
 import type { JwtUser } from '../../common/types/auth.types';
 import { PrismaService } from '../../database/prisma.service';
 import { PayrollCalculationService } from './payroll-calculation.service';
@@ -14,6 +15,11 @@ interface GenerateClosingDto {
   referenceMonth?: number;
   referenceYear?: number;
   overtimeHandling?: 'PAYMENT' | 'BANK';
+}
+
+interface CollectivePdfQuery {
+  month: string;
+  employeeIds?: string | string[];
 }
 
 @Injectable()
@@ -45,6 +51,7 @@ export class TimeClosingService {
     if (withoutSalary.length) {
       throw new BadRequestException(`Preencha o salario na ficha antes de fechar: ${withoutSalary.map((item) => item.name).join(', ')}`);
     }
+    const taxContext = await this.payroll.resolveTaxContext(periodEnd);
 
     const existingLocked = await this.prisma.timeClosing.findFirst({
       where: {
@@ -184,6 +191,7 @@ export class TimeClosingService {
         overtime100Factor: Number(overtimeRule.sundayHolidayRate),
         nightShiftPercent: (Number(overtimeRule.nightShiftRate) - 1) * 100,
         dsrEnabled: overtimeRule.dsrEnabled,
+        taxContext,
       });
 
       await this.prisma.timeClosing.deleteMany({
@@ -209,6 +217,7 @@ export class TimeClosingService {
           lateMinutes,
           earlyLeaveMinutes,
           ...financial,
+          taxTableSnapshot: JSON.parse(JSON.stringify(taxContext)),
           totalPayable: financial.netPay,
         },
         include: { employee: true },
@@ -264,6 +273,7 @@ export class TimeClosingService {
     }
     const value = Number(dto.newValue);
     if (!Number.isFinite(value) || value < 0) throw new BadRequestException('Informe um valor numerico nao negativo.');
+    const taxContext = await this.payroll.resolveTaxContext(closing.periodEnd);
 
     return this.prisma.$transaction(async (tx) => {
       await tx.timeClosingAdjustment.create({
@@ -284,10 +294,16 @@ export class TimeClosingService {
         payableWorkdays: Number(updated.payableWorkdays),
         paidRestDays: Number(updated.paidRestDays),
         dependents: Array.isArray(updated.employee.dependents) ? updated.employee.dependents.length : 0,
+        taxContext,
       });
       return tx.timeClosing.update({
         where: { id },
-        data: { [dto.field]: value, ...financial, totalPayable: financial.netPay },
+        data: {
+          [dto.field]: value,
+          ...financial,
+          taxTableSnapshot: JSON.parse(JSON.stringify(taxContext)),
+          totalPayable: financial.netPay,
+        },
         include: { employee: true },
       });
     });
@@ -329,6 +345,121 @@ export class TimeClosingService {
   async getPdf(companyId: string, id: string, actor?: JwtUser) {
     await this.getById(companyId, id, actor);
     return { url: `/time-closing/${id}/pdf-stream` };
+  }
+
+  async getCollectivePdf(companyId: string, actor: JwtUser, query: CollectivePdfQuery) {
+    const { periodStart, periodEnd } = this.resolveCollectiveMonth(query.month);
+    const requestedEmployeeIds = this.parseEmployeeIds(query.employeeIds);
+    const authorizedEmployeeIds = await this.resolveCollectiveEmployeeScope(
+      companyId,
+      actor,
+      requestedEmployeeIds,
+    );
+
+    const closings = await this.prisma.timeClosing.findMany({
+      where: {
+        companyId,
+        periodStart,
+        periodEnd,
+        ...(authorizedEmployeeIds.length
+          ? { employeeId: { in: authorizedEmployeeIds } }
+          : requestedEmployeeIds.length
+            ? { employeeId: { in: requestedEmployeeIds } }
+            : {}),
+      },
+      include: { employee: true, company: true },
+      orderBy: [{ updatedAt: 'desc' }, { employee: { name: 'asc' } }],
+    });
+
+    const latestByEmployee = new Map<string, any>();
+    for (const closing of closings) {
+      if (!latestByEmployee.has(closing.employeeId)) latestByEmployee.set(closing.employeeId, closing);
+    }
+    const selectedClosings = [...latestByEmployee.values()]
+      .sort((left, right) => left.employee.name.localeCompare(right.employee.name, 'pt-BR'));
+
+    if (!selectedClosings.length) {
+      throw new BadRequestException(
+        'Nenhum fechamento oficial encontrado para o mes selecionado. Gere o fechamento antes de emitir a folha coletiva.',
+      );
+    }
+
+    const employeeIds = selectedClosings.map((closing) => closing.employeeId);
+    const tracks = await this.prisma.timeTrack.findMany({
+      where: {
+        companyId,
+        employeeId: { in: employeeIds },
+        date: { gte: periodStart, lte: periodEnd },
+      },
+      orderBy: [{ employeeId: 'asc' }, { date: 'asc' }],
+    });
+    const tracksByEmployee = new Map<string, any[]>();
+    for (const track of tracks) {
+      const rows = tracksByEmployee.get(track.employeeId) ?? [];
+      rows.push(track);
+      tracksByEmployee.set(track.employeeId, rows);
+    }
+
+    const generatedAt = new Date();
+    const documentSeed = [
+      companyId,
+      query.month,
+      ...selectedClosings.map((closing) => `${closing.id}:${closing.updatedAt.toISOString()}`),
+    ].join('|');
+    const documentId = `POINT-COLLECTIVE-${query.month}-${createHash('sha256').update(documentSeed).digest('hex').slice(0, 12)}`;
+    const buffer = await this.buildCollectivePdf(
+      selectedClosings,
+      tracksByEmployee,
+      generatedAt,
+      documentId,
+      actor.sub,
+    );
+    const hash = createHash('sha256').update(buffer).digest('hex');
+    const calculationVersions = [...new Set(
+      selectedClosings.map((closing) => closing.calculationVersion || 'UNVERSIONED'),
+    )];
+
+    return {
+      buffer,
+      hash,
+      documentId,
+      generatedAt,
+      filename: `Folha_Ponto_Coletiva_${query.month}.pdf`,
+      recordCount: selectedClosings.length,
+      calculationVersions,
+    };
+  }
+
+  async streamCollectivePdf(
+    companyId: string,
+    actor: JwtUser,
+    query: CollectivePdfQuery,
+    res: any,
+  ) {
+    const artifact = await this.getCollectivePdf(companyId, actor, query);
+    const target = res.raw ?? res;
+    const digest = Buffer.from(artifact.hash, 'hex').toString('base64');
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="${artifact.filename}"`,
+      'Content-Length': String(artifact.buffer.length),
+      'Cache-Control': 'private, no-store',
+      'Digest': `sha-256=${digest}`,
+      'ETag': `"sha256-${artifact.hash}"`,
+      'X-Document-Id': artifact.documentId,
+      'X-Document-Sha256': artifact.hash,
+      'X-Document-Type': 'TIME_CLOSING_COLLECTIVE',
+      'X-Document-Version': 'TIME_CLOSING_COLLECTIVE_V1',
+      'X-Document-Generated-At': artifact.generatedAt.toISOString(),
+      'X-Document-Records': String(artifact.recordCount),
+      'X-Calculation-Versions': artifact.calculationVersions.join(','),
+    };
+
+    for (const [name, value] of Object.entries(headers)) {
+      if (typeof target.setHeader === 'function') target.setHeader(name, value);
+      else if (typeof res.header === 'function') res.header(name, value);
+    }
+    target.end(artifact.buffer);
   }
 
   async streamPdf(companyId: string, id: string, res: any, actor?: JwtUser) {
@@ -529,7 +660,259 @@ export class TimeClosingService {
 
       doc.end();
     });
-  }  private async changeStatus(companyId: string, id: string, expected: TimeClosingStatus, next: TimeClosingStatus, extra: any = {}) {
+  }
+
+  private async buildCollectivePdf(
+    closings: any[],
+    tracksByEmployee: Map<string, any[]>,
+    generatedAt: Date,
+    documentId: string,
+    issuedBy: string,
+  ): Promise<Buffer> {
+    const PDFDocument = (await import('pdfkit')).default;
+    const doc = new PDFDocument({
+      margin: 36,
+      size: 'A4',
+      bufferPages: true,
+      info: {
+        Title: 'Folha coletiva de ponto',
+        Author: 'Innovation RH',
+        Subject: `Fechamentos oficiais de ponto - ${documentId}`,
+        Keywords: 'ponto, fechamento, folha coletiva, Innovation RH',
+        Creator: 'Innovation RH API',
+        CreationDate: generatedAt,
+      },
+    });
+    const chunks: Buffer[] = [];
+    doc.on('data', (chunk: Buffer) => chunks.push(chunk));
+    const completed = new Promise<Buffer>((resolve, reject) => {
+      doc.on('end', () => resolve(Buffer.concat(chunks)));
+      doc.on('error', reject);
+    });
+
+    const contentWidth = 523;
+    const formatTime = (value?: Date | null) => value
+      ? new Intl.DateTimeFormat('pt-BR', {
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZone: 'America/Sao_Paulo',
+      }).format(value)
+      : '--:--';
+    const formatMinutes = (value?: number | null) => {
+      const minutes = Number(value ?? 0);
+      const hours = Math.floor(Math.abs(minutes) / 60);
+      const remainder = Math.abs(minutes) % 60;
+      return `${minutes < 0 ? '-' : ''}${hours}:${String(remainder).padStart(2, '0')}`;
+    };
+    const formatCpf = (value?: string | null) => {
+      if (!value || value.length !== 11) return value || 'Nao informado';
+      return `${value.slice(0, 3)}.${value.slice(3, 6)}.${value.slice(6, 9)}-${value.slice(9, 11)}`;
+    };
+
+    closings.forEach((closing, closingIndex) => {
+      if (closingIndex > 0) doc.addPage();
+      const employee = closing.employee;
+      const company = closing.company;
+      const tracks = tracksByEmployee.get(closing.employeeId) ?? [];
+
+      doc.font('Helvetica-Bold').fontSize(15).fillColor('#0f172a')
+        .text('FOLHA COLETIVA DE PONTO', { align: 'center' });
+      doc.font('Helvetica').fontSize(8).fillColor('#64748b')
+        .text('Documento emitido pela API a partir do fechamento e dos registros oficiais', { align: 'center' });
+      doc.moveDown(0.5);
+      doc.moveTo(36, doc.y).lineTo(559, doc.y).strokeColor('#cbd5e1').stroke();
+      doc.moveDown(0.5);
+
+      const headerY = doc.y;
+      doc.font('Helvetica-Bold').fontSize(8).fillColor('#475569').text('EMPRESA', 36, headerY);
+      doc.font('Helvetica').fontSize(8).fillColor('#0f172a')
+        .text(company?.name || 'Innovation RH', 36, headerY + 11, { width: 245 })
+        .text(`CNPJ: ${company?.document || 'Nao informado'}`, 36, headerY + 22, { width: 245 });
+      doc.font('Helvetica-Bold').fillColor('#475569').text('COLABORADOR', 305, headerY);
+      doc.font('Helvetica').fillColor('#0f172a')
+        .text(employee.name, 305, headerY + 11, { width: 254 })
+        .text(`CPF: ${formatCpf(employee.cpf)} | Matricula: ${employee.registration || 'N/A'}`, 305, headerY + 22, { width: 254 })
+        .text(`${employee.position || 'Cargo nao informado'} | ${employee.department || 'Departamento nao informado'}`, 305, headerY + 33, { width: 254 });
+      doc.y = headerY + 52;
+
+      const metadataY = doc.y;
+      doc.roundedRect(36, metadataY, contentWidth, 34, 4).fill('#f1f5f9');
+      doc.font('Helvetica-Bold').fontSize(8).fillColor('#334155')
+        .text(`Periodo: ${this.formatDate(closing.periodStart)} a ${this.formatDate(closing.periodEnd)}`, 44, metadataY + 11, { width: 170 })
+        .text(`Status: ${closing.status}`, 220, metadataY + 11, { width: 95 })
+        .text(`Regra: ${closing.calculationVersion || 'UNVERSIONED'}`, 320, metadataY + 11, { width: 130 })
+        .text(`Fechamento: ${closing.id.slice(0, 8)}`, 450, metadataY + 11, { width: 100 });
+      doc.y = metadataY + 43;
+
+      doc.font('Helvetica-Bold').fontSize(9).fillColor('#0f766e').text('REGISTROS DIARIOS');
+      doc.moveDown(0.25);
+      const columns = [
+        { label: 'Data', x: 36, width: 50 },
+        { label: 'Entrada', x: 88, width: 48 },
+        { label: 'Int. inicio', x: 138, width: 53 },
+        { label: 'Int. fim', x: 193, width: 48 },
+        { label: 'Saida', x: 243, width: 48 },
+        { label: 'Trabalhado', x: 293, width: 57 },
+        { label: 'Saldo', x: 352, width: 50 },
+        { label: 'Ocorrencia', x: 404, width: 155 },
+      ];
+      let rowY = doc.y;
+      doc.rect(36, rowY, contentWidth, 15).fill('#e2e8f0');
+      doc.font('Helvetica-Bold').fontSize(6.8).fillColor('#475569');
+      for (const column of columns) doc.text(column.label, column.x + 2, rowY + 4, { width: column.width - 4 });
+      rowY += 15;
+
+      if (!tracks.length) {
+        doc.rect(36, rowY, contentWidth, 22).fill('#f8fafc');
+        doc.font('Helvetica-Oblique').fontSize(7.5).fillColor('#64748b')
+          .text('Nenhum registro diario encontrado no periodo. Os totais abaixo permanecem vinculados ao snapshot do fechamento.', 42, rowY + 7, { width: contentWidth - 12 });
+        rowY += 22;
+      } else {
+        tracks.forEach((track, rowIndex) => {
+          if (rowIndex % 2 === 0) doc.rect(36, rowY, contentWidth, 13).fill('#f8fafc');
+          const values = [
+            new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', timeZone: 'UTC' }).format(track.date),
+            formatTime(track.entry),
+            formatTime(track.lunchStart),
+            formatTime(track.lunchReturn),
+            formatTime(track.exit),
+            formatMinutes(track.totalWorked),
+            formatMinutes(track.dailyBalance),
+            String(track.incidentType || track.manualReason || 'normal').replace(/_/g, ' '),
+          ];
+          doc.font('Helvetica').fontSize(6.8).fillColor('#1e293b');
+          columns.forEach((column, columnIndex) => {
+            doc.text(values[columnIndex], column.x + 2, rowY + 3, {
+              width: column.width - 4,
+              ellipsis: true,
+              lineBreak: false,
+            });
+          });
+          rowY += 13;
+        });
+      }
+      doc.y = rowY + 7;
+
+      doc.font('Helvetica-Bold').fontSize(9).fillColor('#0f766e').text('RESUMO OFICIAL DO FECHAMENTO');
+      doc.moveDown(0.25);
+      const summary = [
+        ['Horas normais', `${Number(closing.normalHours || 0).toFixed(2)} h`],
+        ['HE 50%', `${Number(closing.overtime50 || 0).toFixed(2)} h`],
+        ['HE 100%', `${Number(closing.overtime100 || 0).toFixed(2)} h`],
+        ['Adicional noturno', `${Number(closing.nightShift || 0).toFixed(2)} h`],
+        ['Faltas', `${closing.absenceMinutes || 0} min`],
+        ['Atrasos', `${closing.lateMinutes || 0} min`],
+        ['Saidas antecipadas', `${closing.earlyLeaveMinutes || 0} min`],
+        ['Dias previstos', String(closing.payableWorkdays ?? 0)],
+      ];
+      const summaryY = doc.y;
+      summary.forEach(([label, value], index) => {
+        const column = index % 4;
+        const row = Math.floor(index / 4);
+        const x = 36 + column * 131;
+        const y = summaryY + row * 30;
+        doc.roundedRect(x, y, 124, 24, 3).fill('#f8fafc');
+        doc.font('Helvetica-Bold').fontSize(6.5).fillColor('#64748b').text(label.toUpperCase(), x + 6, y + 5, { width: 112 });
+        doc.font('Helvetica-Bold').fontSize(8.5).fillColor('#0f172a').text(value, x + 6, y + 13, { width: 112 });
+      });
+      doc.y = summaryY + 67;
+
+      const taxVersion = this.taxSnapshotVersion(closing.taxTableSnapshot);
+      doc.font('Helvetica').fontSize(6.8).fillColor('#64748b')
+        .text(
+          `Snapshot tributario: ${taxVersion} | Fechamento atualizado em: ${closing.updatedAt.toISOString()} | Emissor: ${issuedBy}`,
+          36,
+          doc.y,
+          { width: contentWidth, align: 'center' },
+        );
+      doc.moveDown(2.2);
+      const signatureY = doc.y;
+      doc.moveTo(55, signatureY).lineTo(250, signatureY).strokeColor('#64748b').stroke();
+      doc.moveTo(345, signatureY).lineTo(540, signatureY).strokeColor('#64748b').stroke();
+      doc.font('Helvetica').fontSize(7).fillColor('#64748b')
+        .text('Assinatura do colaborador', 55, signatureY + 4, { width: 195, align: 'center' })
+        .text('Assinatura do RH / responsavel', 345, signatureY + 4, { width: 195, align: 'center' });
+    });
+
+    const pages = doc.bufferedPageRange();
+    for (let index = 0; index < pages.count; index++) {
+      doc.switchToPage(index);
+      const footerY = doc.page.height - 28;
+      doc.moveTo(36, footerY - 5).lineTo(559, footerY - 5).strokeColor('#e2e8f0').stroke();
+      doc.font('Helvetica').fontSize(6.5).fillColor('#94a3b8').text(
+        `${documentId} | Gerado em ${generatedAt.toISOString()} | Pagina ${index + 1} de ${pages.count}`,
+        36,
+        footerY,
+        { width: contentWidth, align: 'center' },
+      );
+    }
+    doc.end();
+    return completed;
+  }
+
+  private resolveCollectiveMonth(month: string) {
+    if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month || '')) {
+      throw new BadRequestException('Informe o mes no formato YYYY-MM.');
+    }
+    const [year, monthNumber] = month.split('-').map(Number);
+    return {
+      periodStart: new Date(Date.UTC(year, monthNumber - 1, 1)),
+      periodEnd: new Date(Date.UTC(year, monthNumber, 0)),
+    };
+  }
+
+  private parseEmployeeIds(value?: string | string[]): string[] {
+    const values = Array.isArray(value) ? value : value ? [value] : [];
+    const ids = [...new Set(values.flatMap((item) => item.split(',')).map((item) => item.trim()).filter(Boolean))];
+    if (ids.length > 500) throw new BadRequestException('Selecione no maximo 500 colaboradores por documento.');
+    return ids;
+  }
+
+  private async resolveCollectiveEmployeeScope(
+    companyId: string,
+    actor: JwtUser,
+    requestedEmployeeIds: string[],
+  ): Promise<string[]> {
+    if (actor.role === 'ADMIN' || actor.role === 'RH') return requestedEmployeeIds;
+
+    const actorEmployee = await this.prisma.employee.findFirst({
+      where: { companyId, userId: actor.sub },
+      select: { id: true },
+    });
+    if (!actorEmployee) throw new ForbiddenException('Usuario sem colaborador vinculado.');
+
+    if (actor.role === 'FUNCIONARIO') {
+      if (requestedEmployeeIds.some((id) => id !== actorEmployee.id)) {
+        throw new ForbiddenException('Acesso negado a folha de outro colaborador.');
+      }
+      return [actorEmployee.id];
+    }
+
+    if (actor.role === 'GESTOR') {
+      const team = await this.prisma.employee.findMany({
+        where: {
+          companyId,
+          OR: [{ id: actorEmployee.id }, { managerId: actorEmployee.id }],
+        },
+        select: { id: true },
+      });
+      const allowed = new Set(team.map((employee) => employee.id));
+      if (requestedEmployeeIds.some((id) => !allowed.has(id))) {
+        throw new ForbiddenException('A selecao inclui colaborador fora da equipe do gestor.');
+      }
+      return requestedEmployeeIds.length ? requestedEmployeeIds : [...allowed];
+    }
+
+    throw new ForbiddenException('Perfil sem permissao para emitir folha coletiva.');
+  }
+
+  private taxSnapshotVersion(snapshot: unknown): string {
+    if (!snapshot || typeof snapshot !== 'object') return 'NAO_REGISTRADO';
+    const value = snapshot as Record<string, unknown>;
+    return String(value.version || value.calculationVersion || value.reference || 'SNAPSHOT_REGISTRADO');
+  }
+
+  private async changeStatus(companyId: string, id: string, expected: TimeClosingStatus, next: TimeClosingStatus, extra: any = {}) {
     const closing = await this.prisma.timeClosing.findFirst({ where: { id, companyId } });
     if (!closing || closing.status !== expected) throw new BadRequestException(`Transicao invalida: esperado ${expected}.`);
     return this.prisma.timeClosing.update({ where: { id }, data: { status: next, ...extra }, include: { employee: true } });

@@ -1,5 +1,6 @@
 import { Type } from 'class-transformer';
-import { IsDateString, IsIn, IsInt, IsNumber, IsOptional, IsString, IsUrl, IsUUID, Max, Min } from 'class-validator';
+import { IsDateString, IsIn, IsInt, IsNumber, IsOptional, IsString, IsUUID, Max, Min } from 'class-validator';
+import { MANUAL_CONTRACT_STATUSES, ManualContractStatus } from '../manual-contract-status';
 
 export class UpdateManualContractDto {
   @IsOptional() @IsUUID() planId?: string;
@@ -11,5 +12,5 @@ export class UpdateManualContractDto {
   @IsOptional() @IsString() externalContractNumber?: string;
   @IsOptional() @IsString() notes?: string;
   @IsOptional() @IsString() documentUrl?: string;
-  @IsOptional() @IsIn(['ACTIVE', 'ENDED', 'CANCELED']) status?: 'ACTIVE' | 'ENDED' | 'CANCELED';
+  @IsOptional() @IsIn(MANUAL_CONTRACT_STATUSES) status?: ManualContractStatus;
 }

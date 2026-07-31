@@ -23,13 +23,9 @@ import {
   ChevronDown,
   Star,
 } from 'lucide-react';
-import { Space_Grotesk } from 'next/font/google';
 import { PricingSection } from './_components/pricing-section';
 
-const display = Space_Grotesk({
-  subsets: ['latin'],
-  weight: ['500', '700'],
-});
+const display = { className: 'font-display' };
 
 const pillars = [
   {

@@ -1,0 +1,12 @@
+ALTER TABLE "Application"
+ADD COLUMN "source" TEXT DEFAULT 'CAREERS_PORTAL',
+ADD COLUMN "linkedinUrl" TEXT,
+ADD COLUMN "coverLetter" TEXT,
+ADD COLUMN "resumeUrl" TEXT,
+ADD COLUMN "resumeName" TEXT,
+ADD COLUMN "resumeType" TEXT,
+ADD COLUMN "resumeSize" INTEGER,
+ADD COLUMN "aiScore" INTEGER,
+ADD COLUMN "aiSummary" TEXT,
+ADD COLUMN "consentGiven" BOOLEAN NOT NULL DEFAULT false,
+ADD COLUMN "consentAt" TIMESTAMP(3);

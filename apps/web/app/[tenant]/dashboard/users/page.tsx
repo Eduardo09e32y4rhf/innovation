@@ -178,11 +178,11 @@ export default function UsersPage() {
   const handleResetSubmit = async (newPassword: string) => {
     if (!selectedUser) return;
     try {
-      await api.users.resetPassword(selectedUser.id, { newPassword });
-      const updatedUser = await api.users.get(selectedUser.id);
+      const updatedUser = await api.users.resetPassword(selectedUser.id, { newPassword });
       setSelectedUser(updatedUser);
+      setResetModalOpen(false);
       toast.success('Senha temporaria definida com sucesso!');
-      users.refetch();
+      await users.refetch();
     } catch (error: any) {
       toast.error(error?.message || 'Nao foi possivel redefinir a senha.');
       throw error;

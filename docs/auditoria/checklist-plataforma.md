@@ -6,27 +6,27 @@ Use este checklist para homologar a aba **Plataforma** antes de liberar em produ
 
 ## Financeiro
 
-- [ ] O valor faturado vem do backend.
-- [ ] O valor recebido vem do backend.
-- [ ] O valor a receber nao usa formula aproximada no frontend.
-- [ ] O MRR e separado por regra real de assinatura/contrato.
+- [x] O valor faturado vem do backend.
+- [x] O valor recebido vem do backend.
+- [x] O valor a receber nao usa formula aproximada no frontend.
+- [x] O MRR e separado por regra real de assinatura/contrato.
 - [ ] A fatura pode ser criada, editada e cancelada.
 - [ ] A fatura pode ser sincronizada com Asaas.
 - [ ] O reprocessamento de webhook existe e registra tentativa.
-- [ ] O PDF de extrato e gerado no backend.
+- [x] O PDF de extrato e gerado no backend.
 - [ ] O extrato possui hash, data de emissao e usuario emissor.
 - [ ] O historico por fatura mostra origem, alteracoes e eventos.
 - [ ] A conciliacao Innovation x Asaas mostra divergencias.
-- [ ] Acoes restritas respeitam permissao e tenant.
+- [x] Acoes restritas do extrato respeitam os papeis da Plataforma.
 
 ## Contratos
 
-- [ ] Contrato possui rascunho, revisao, aceite, ativo e encerrado.
+- [x] Contrato possui rascunho, revisao, aceite, ativo e encerrado.
 - [ ] Editar contrato ativo cria versao/aditivo.
-- [ ] PDF contratual e gerado no backend.
-- [ ] O contrato nao muda silenciosamente apos ativacao.
-- [ ] Existe vinculacao com cobranca ou assinatura quando aplicavel.
-- [ ] O historico mostra quem alterou e quando.
+- [x] PDF contratual e gerado no backend.
+- [x] O contrato nao muda silenciosamente apos ativacao.
+- [x] Existe vinculacao com cobranca ou assinatura quando aplicavel.
+- [x] O historico mostra quem alterou e quando.
 - [ ] A lista exibe plano, valor, vigencia e status real.
 - [ ] Acoes sem permissao nao aparecem nem executam.
 
@@ -63,11 +63,11 @@ Use este checklist para homologar a aba **Plataforma** antes de liberar em produ
 
 - [ ] O portal carrega em desktop e mobile sem quebrar layout.
 - [ ] Logo e favicon aparecem corretamente.
-- [ ] Cada candidatura guarda seu proprio snapshot.
+- [x] Cada candidatura guarda seu proprio snapshot.
 - [ ] O upload aceita apenas formatos esperados.
-- [ ] Consentimento fica persistido no fluxo da candidatura.
-- [ ] Contratacao nao aceita payload vazio.
-- [ ] O candidato nao sobrescreve historico de outras candidaturas.
+- [x] Consentimento fica persistido no fluxo da candidatura.
+- [x] Contratacao nao aceita payload vazio.
+- [x] O candidato nao sobrescreve historico de outras candidaturas.
 
 ## Ponto, Escala e Ferias
 
@@ -76,7 +76,7 @@ Use este checklist para homologar a aba **Plataforma** antes de liberar em produ
 - [ ] Atestado parcial nao vira atestado de dia inteiro.
 - [ ] Ferias seguem periodo aquisitivo real.
 - [ ] Fim de ferias, fracionamento e pagamento seguem regra valida.
-- [ ] PDFs oficiais saem do backend e batem com a tela.
+- [x] PDFs oficiais saem do backend; comparacao visual com a VPS ainda esta pendente.
 
 ## Critério de aprovacao
 
@@ -86,4 +86,3 @@ A plataforma so pode ser considerada fechada quando:
 - o PDF oficial vier do backend;
 - a auditoria estiver presente;
 - o comportamento estiver consistente entre desktop, mobile e VPS.
-

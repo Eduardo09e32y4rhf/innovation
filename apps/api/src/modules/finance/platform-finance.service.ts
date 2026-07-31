@@ -190,7 +190,15 @@ export class PlatformFinanceService {
       if (!admin) throw new BadRequestException('A empresa nao possui administrador ativo.');
       const customerId = await this.ensureAsaasCustomer(company, admin);
       const plan = company.platformPlan;
-      const pricing = plan ? this.pricingService.calculate((plan.commitmentMonths as any) || 1, company.subscription?.seatQuantity || 1) : null;
+      const pricing = plan ? this.pricingService.calculate(
+        (plan.commitmentMonths as any) || 1,
+        company.subscription?.seatQuantity || 1,
+        {
+          baseMonthlyPrice: plan.baseMonthlyPrice,
+          userMonthlyPrice: plan.userMonthlyPrice,
+          price: plan.price,
+        },
+      ) : null;
       const amount = pricing?.total ?? Number(plan?.price ?? 0);
       const subscriptionId = amount > 0 ? await this.createRecurringSubscription(company, customerId, amount, company.trialEndsAt) : null;
       await this.audit(company.id, 'ONBOARDING_TRIAL_SUBSCRIPTION_SCHEDULED', {
@@ -203,11 +211,19 @@ export class PlatformFinanceService {
     }
 
     const plan = company.platformPlan;
-    let amount = plan ? Number(plan.price) : Number(process.env.DEFAULT_SIGNUP_PRICE || 49.9);
+    if (!plan) {
+      throw new BadRequestException('A empresa nao possui plano e precificacao configurados.');
+    }
+    let amount = Number(plan.price);
     if (plan && !plan.isFree) {
       const pricing = this.pricingService.calculate(
-        (plan.commitmentMonths as any) || 1, 
-        company.subscription?.seatQuantity || 1
+        (plan.commitmentMonths as any) || 1,
+        company.subscription?.seatQuantity || 1,
+        {
+          baseMonthlyPrice: plan.baseMonthlyPrice,
+          userMonthlyPrice: plan.userMonthlyPrice,
+          price: plan.price,
+        },
       );
       amount = pricing.total;
     }
@@ -273,8 +289,25 @@ export class PlatformFinanceService {
     });
     if (!company) return { configured: false, created: false };
     const plan = company.platformPlan;
-    const quote = plan ? this.pricingService.calculate((plan.commitmentMonths as any) || 1, company.subscription?.seatQuantity || 1) : null;
-    const amount = quote?.total ?? Number(plan?.price ?? 249.90);
+    if (!plan) {
+      return {
+        configured: false,
+        created: false,
+        reason: 'MISSING_PLAN_PRICING',
+      };
+    }
+    const quote = plan.isFree
+      ? null
+      : this.pricingService.calculate(
+          (plan.commitmentMonths as any) || 1,
+          company.subscription?.seatQuantity || 1,
+          {
+            baseMonthlyPrice: plan.baseMonthlyPrice,
+            userMonthlyPrice: plan.userMonthlyPrice,
+            price: plan.price,
+          },
+        );
+    const amount = quote?.total ?? Number(plan.price);
     if (amount <= 0) return { configured: true, created: false };
 
     if (!this.asaas.isConfigured() || !company.document || !company.users[0]) {
@@ -638,10 +671,42 @@ export class PlatformFinanceService {
 
   async summary(query: Pick<ListPlatformInvoicesDto, 'from' | 'to'>, commercialOwnerId?: string) {
     const where = this.buildWhere(query, commercialOwnerId);
-    const invoices = await this.prisma.platformInvoice.findMany({
-      where,
-      select: { amount: true, status: true, dueDate: true, paidAt: true },
-    });
+    const now = new Date();
+    const companyScope = {
+      status: 'ACTIVE' as const,
+      ...(commercialOwnerId ? { commercialOwnerId } : {}),
+    };
+    const [invoices, activeSubscriptions, activeCompaniesWithoutSub, manualContracts] = await Promise.all([
+      this.prisma.platformInvoice.findMany({
+        where,
+        select: { amount: true, status: true, dueDate: true, paidAt: true },
+      }),
+      this.prisma.companySubscription.findMany({
+        where: {
+          status: 'ACTIVE',
+          company: companyScope,
+        },
+        include: {
+          plan: true,
+          company: { select: { id: true, name: true } },
+        },
+      }),
+      this.prisma.company.findMany({
+        where: {
+          ...companyScope,
+          plan: { not: 'FREE' },
+          subscription: null,
+        },
+        include: { platformPlan: true },
+      }),
+      this.prisma.manualContract.findMany({
+        where: {
+          status: 'ACTIVE',
+          company: companyScope,
+        },
+        include: { company: { select: { id: true, name: true } } },
+      }),
+    ]);
 
     const totals = { billed: 0, received: 0, open: 0, overdue: 0, canceled: 0 };
     const monthly = new Map<string, { month: string; billed: number; received: number }>();
@@ -664,61 +729,181 @@ export class PlatformFinanceService {
       monthly.set(month, bucket);
     }
 
-    const activeSubscriptions = await this.prisma.companySubscription.findMany({
-      where: {
-        status: 'ACTIVE',
-        company: commercialOwnerId ? { commercialOwnerId } : undefined,
-      },
-      include: { plan: true },
-    });
+    type MrrIssue = {
+      companyId: string;
+      companyName: string;
+      code: 'INCOMPLETE_SUBSCRIPTION' | 'MISSING_PRICING' | 'MULTIPLE_ACTIVE_CONTRACTS' | 'MULTIPLE_RECURRING_SOURCES';
+      message: string;
+    };
 
-    let mrr = 0;
-    for (const sub of activeSubscriptions) {
-      const base = Number(sub.baseMonthlyPrice ?? sub.plan?.baseMonthlyPrice ?? sub.plan?.price ?? 0);
-      const userPrice = Number(sub.userMonthlyPrice ?? sub.plan?.userMonthlyPrice ?? 0);
-      const seats = sub.seatQuantity ?? 1;
-      mrr += base + (userPrice * seats);
+    const issues: MrrIssue[] = [];
+    const contractsByCompany = new Map<string, typeof manualContracts>();
+    for (const contract of manualContracts) {
+      if (contract.startsAt > now || (contract.endsAt && contract.endsAt < now)) continue;
+      const contracts = contractsByCompany.get(contract.companyId) ?? [];
+      contracts.push(contract);
+      contractsByCompany.set(contract.companyId, contracts);
     }
 
-    const activeCompaniesWithoutSub = await this.prisma.company.findMany({
-      where: {
-        status: 'ACTIVE',
-        plan: { not: 'FREE' },
-        subscription: null,
-        ...(commercialOwnerId ? { commercialOwnerId } : {}),
-      },
-      include: { platformPlan: true },
-    });
+    const subscriptionCompanies = new Set(activeSubscriptions.map((subscription) => subscription.companyId));
+    const includedCompanies = new Set<string>();
+    const sourceCounts = { subscriptions: 0, contracts: 0, plans: 0 };
+    let mrrCents = 0;
 
-    for (const comp of activeCompaniesWithoutSub) {
-      if (comp.platformPlan) {
-        const base = Number(comp.platformPlan.baseMonthlyPrice ?? comp.platformPlan.price ?? 0);
-        const userPrice = Number(comp.platformPlan.userMonthlyPrice ?? 0);
-        mrr += base + userPrice;
-      } else {
-        mrr += 249.99; // fallback para plano pago sem PlatformPlan
+    const toNonNegativeCents = (value: unknown): number | null => {
+      if (value === null || value === undefined || value === '') return null;
+      const parsed = Number(value);
+      if (!Number.isFinite(parsed) || parsed < 0) return null;
+      return Math.round(parsed * 100);
+    };
+
+    const monthlyPricingCents = (
+      baseValue: unknown,
+      userValue: unknown,
+      seatQuantity: unknown,
+      discountValue: unknown,
+      allowZero: boolean,
+    ): number | null => {
+      const baseCents = toNonNegativeCents(baseValue);
+      const userCents = toNonNegativeCents(userValue);
+      const seats = Number(seatQuantity);
+      const discount = discountValue === null || discountValue === undefined ? 0 : Number(discountValue);
+      if (
+        baseCents === null ||
+        userCents === null ||
+        !Number.isInteger(seats) ||
+        seats < 1 ||
+        !Number.isFinite(discount) ||
+        discount < 0 ||
+        discount > 100
+      ) {
+        return null;
       }
+      const discountedBaseCents = Math.round(baseCents * (100 - discount) / 100);
+      const totalCents = discountedBaseCents + userCents * seats;
+      return totalCents > 0 || allowZero ? totalCents : null;
+    };
+
+    for (const subscription of activeSubscriptions) {
+      const plan = subscription.plan;
+      const planBase = Number(plan?.baseMonthlyPrice ?? 0) > 0
+        ? plan?.baseMonthlyPrice
+        : plan?.price;
+      const amountCents = monthlyPricingCents(
+        subscription.baseMonthlyPrice ?? planBase,
+        subscription.userMonthlyPrice ?? plan?.userMonthlyPrice,
+        subscription.seatQuantity,
+        subscription.discountPercent ?? plan?.discountPercent,
+        Boolean(plan?.isFree),
+      );
+      const companyContracts = contractsByCompany.get(subscription.companyId) ?? [];
+
+      if (companyContracts.length > 0) {
+        issues.push({
+          companyId: subscription.companyId,
+          companyName: subscription.company.name,
+          code: 'MULTIPLE_RECURRING_SOURCES',
+          message: 'Empresa possui assinatura e contrato manual ativos; o MRR considera somente a assinatura.',
+        });
+      }
+
+      if (amountCents === null) {
+        issues.push({
+          companyId: subscription.companyId,
+          companyName: subscription.company.name,
+          code: 'INCOMPLETE_SUBSCRIPTION',
+          message: 'Assinatura ativa sem preço, desconto ou quantidade de licenças válidos.',
+        });
+        continue;
+      }
+
+      mrrCents += amountCents;
+      includedCompanies.add(subscription.companyId);
+      sourceCounts.subscriptions += 1;
     }
 
-    const manualContracts = await this.prisma.manualContract.findMany({
-      where: { status: 'ACTIVE', ...(commercialOwnerId ? { company: { commercialOwnerId } } : {}) },
-    });
-    for (const mc of manualContracts) {
-      mrr += Number(mc.agreedAmount || 0);
+    for (const company of activeCompaniesWithoutSub) {
+      const contracts = contractsByCompany.get(company.id) ?? [];
+      if (contracts.length > 1) {
+        issues.push({
+          companyId: company.id,
+          companyName: company.name,
+          code: 'MULTIPLE_ACTIVE_CONTRACTS',
+          message: 'Empresa possui mais de um contrato manual vigente; o valor foi excluído por ambiguidade.',
+        });
+        continue;
+      }
+
+      if (contracts.length === 1) {
+        const contractCents = toNonNegativeCents(contracts[0].agreedAmount);
+        if (contractCents !== null && contractCents > 0) {
+          mrrCents += contractCents;
+          includedCompanies.add(company.id);
+          sourceCounts.contracts += 1;
+          continue;
+        }
+      }
+
+      const plan = company.platformPlan;
+      const planBase = Number(plan?.baseMonthlyPrice ?? 0) > 0
+        ? plan?.baseMonthlyPrice
+        : plan?.price;
+      const planCents = plan
+        ? monthlyPricingCents(
+            planBase,
+            plan.userMonthlyPrice,
+            company.maxUsers,
+            plan.discountPercent,
+            plan.isFree,
+          )
+        : null;
+
+      if (planCents === null) {
+        issues.push({
+          companyId: company.id,
+          companyName: company.name,
+          code: 'MISSING_PRICING',
+          message: 'Empresa ativa em plano pago sem assinatura, contrato vigente ou preço de plano completo.',
+        });
+        continue;
+      }
+
+      mrrCents += planCents;
+      includedCompanies.add(company.id);
+      sourceCounts.plans += 1;
     }
 
-    const calculatedMrr = Number(mrr.toFixed(2));
-    if (totals.billed === 0 && calculatedMrr > 0) {
-      totals.billed = calculatedMrr;
+    // Contracts can belong to a company whose legacy plan enum is FREE. They remain
+    // recurring revenue when there is no active subscription and the contract is unambiguous.
+    for (const [companyId, contracts] of contractsByCompany) {
+      if (subscriptionCompanies.has(companyId) || includedCompanies.has(companyId)) continue;
+      const company = contracts[0]?.company;
+      if (!company) continue;
+      if (contracts.length > 1) {
+        issues.push({
+          companyId,
+          companyName: company.name,
+          code: 'MULTIPLE_ACTIVE_CONTRACTS',
+          message: 'Empresa possui mais de um contrato manual vigente; o valor foi excluído por ambiguidade.',
+        });
+        continue;
+      }
+      const contractCents = toNonNegativeCents(contracts[0].agreedAmount);
+      if (contractCents === null || contractCents <= 0) {
+        issues.push({
+          companyId,
+          companyName: company.name,
+          code: 'MISSING_PRICING',
+          message: 'Contrato manual vigente sem valor mensal válido.',
+        });
+        continue;
+      }
+      mrrCents += contractCents;
+      includedCompanies.add(companyId);
+      sourceCounts.contracts += 1;
     }
-    if (totals.open === 0 && calculatedMrr > totals.received) {
-      totals.open = Number((calculatedMrr - totals.received).toFixed(2));
-    }
-    if (totals.billed === 0 && manualContracts.length > 0) {
-      const mcSum = manualContracts.reduce((acc, c) => acc + Number(c.agreedAmount || 0), 0);
-      totals.billed = mcSum;
-      totals.open = mcSum;
-    }
+
+    const calculatedMrr = mrrCents / 100;
 
     return {
       totals,
@@ -727,6 +912,14 @@ export class PlatformFinanceService {
       activeSubscriptions: activeSubscriptions.length,
       conversionRate: totals.billed > 0 ? Number(((totals.received / totals.billed) * 100).toFixed(1)) : 0,
       monthly: [...monthly.values()].sort((a, b) => a.month.localeCompare(b.month)).slice(-12),
+      mrrQuality: {
+        status: issues.length === 0 ? 'COMPLETE' : 'PARTIAL',
+        currency: 'BRL',
+        includedCompanies: includedCompanies.size,
+        incompleteCompanies: new Set(issues.map((issue) => issue.companyId)).size,
+        sources: sourceCounts,
+        issues,
+      },
     };
   }
 

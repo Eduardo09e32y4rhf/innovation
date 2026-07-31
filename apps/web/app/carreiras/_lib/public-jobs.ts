@@ -41,6 +41,7 @@ export type JobApplicationInput = {
   phone: string;
   linkedinUrl?: string;
   coverLetter?: string;
+  consent: boolean;
   website?: string;
   resume: File;
 };
@@ -299,6 +300,7 @@ export async function applyToPublicJob(
   if (input.website?.trim()) {
     formData.append('website', input.website.trim());
   }
+  formData.append('consent', String(Boolean(input.consent)));
   formData.append('resume', input.resume, input.resume.name);
 
   const payload = await fetchPublic(`/public/jobs/${encodeURIComponent(jobId)}/apply`, {

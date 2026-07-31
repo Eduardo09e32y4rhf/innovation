@@ -1,4 +1,6 @@
 import { PayrollCalculationService } from './payroll-calculation.service';
+import { BadRequestException } from '@nestjs/common';
+import { vi } from 'vitest';
 
 describe('PayrollCalculationService - tabelas 2026', () => {
   const service = new PayrollCalculationService();
@@ -81,5 +83,70 @@ describe('PayrollCalculationService - tabelas 2026', () => {
     expect(result.lateDiscount).toBe(20);
     expect(result.earlyLeaveDiscount).toBe(40);
     expect(result.grossPay).toBe(4340); // 4400 - 60
+  });
+
+  it('resolve a tabela ativa pela competencia e registra suas versoes no calculo', async () => {
+    const prisma: any = {
+      payrollTaxTable: {
+        findMany: vi.fn().mockResolvedValue([
+          {
+            id: 'inss-2026',
+            taxType: 'INSS',
+            version: 'INSS_2026_DB',
+            brackets: [
+              { limit: 1621, rate: 0.075 },
+              { limit: 8475.55, rate: 0.14 },
+            ],
+            parameters: null,
+          },
+          {
+            id: 'irrf-2026',
+            taxType: 'IRRF',
+            version: 'IRRF_2026_DB',
+            brackets: [
+              { limit: 2428.8, rate: 0, deduction: 0 },
+              { limit: null, rate: 0.275, deduction: 908.73 },
+            ],
+            parameters: {
+              dependentDeduction: 189.59,
+              simplifiedDeduction: 607.2,
+              fullExemptionLimit: 5000,
+              partialExemptionLimit: 7350,
+              partialReductionBase: 978.62,
+              partialReductionFactor: 0.133145,
+            },
+          },
+        ]),
+      },
+    };
+    const dbService = new PayrollCalculationService(prisma);
+    const taxContext = await dbService.resolveTaxContext(new Date('2026-07-31T00:00:00.000Z'));
+    const result = dbService.calculate({
+      salary: 3000,
+      weeklyMinutes: 2640,
+      overtime50Minutes: 0,
+      overtime100Minutes: 0,
+      nightShiftMinutes: 0,
+      absenceMinutes: 0,
+      payableWorkdays: 22,
+      paidRestDays: 8,
+      taxContext,
+    });
+
+    expect(prisma.payrollTaxTable.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ active: true }),
+    }));
+    expect(result.calculationVersion).toContain('INSS_2026_DB');
+    expect(result.calculationVersion).toContain('IRRF_2026_DB');
+  });
+
+  it('bloqueia o fechamento oficial quando falta tabela para a competencia', async () => {
+    const prisma: any = {
+      payrollTaxTable: { findMany: vi.fn().mockResolvedValue([]) },
+    };
+    const dbService = new PayrollCalculationService(prisma);
+
+    await expect(dbService.resolveTaxContext(new Date('2027-01-31T00:00:00.000Z')))
+      .rejects.toBeInstanceOf(BadRequestException);
   });
 });

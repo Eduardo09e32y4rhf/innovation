@@ -58,11 +58,24 @@ export class JobsRepository {
     return this.prisma.$transaction(async (tx) => {
       const application = await tx.application.findFirst({ where: { companyId, id } });
       if (!application) return null;
-      const candidateStatus = status === 'APPLIED' ? 'NEW' : status;
-      await tx.candidate.update({
-        where: { id: application.candidateId },
-        data: { status: candidateStatus },
+
+      const nextStatus = status === 'APPLIED' ? 'NEW' : status;
+      const candidateApplications = await tx.application.findMany({
+        where: { companyId, candidateId: application.candidateId },
+        select: { id: true, status: true, updatedAt: true },
+        orderBy: [{ updatedAt: 'desc' }],
       });
+      const latestStatus = candidateApplications
+        .map((item) => (item.id === application.id ? nextStatus : item.status))
+        .find(Boolean);
+
+      if (latestStatus) {
+        await tx.candidate.update({
+          where: { id: application.candidateId },
+          data: { status: latestStatus as any },
+        });
+      }
+
       return tx.application.update({ where: { id }, data: { status } });
     });
   }
@@ -74,10 +87,7 @@ export class JobsRepository {
         isActive: true,
         status: 'ACTIVE',
         billingStatus: { notIn: ['CANCELED', 'PENDING_PAYMENT'] },
-        OR: [
-          { slug: companyKey },
-          ...(isUuid ? [{ id: companyKey }] : []),
-        ],
+        OR: [{ slug: companyKey }, ...(isUuid ? [{ id: companyKey }] : [])],
       },
       select: { id: true, name: true, slug: true, logoUrl: true, primaryColor: true, city: true, state: true },
     });
@@ -87,8 +97,15 @@ export class JobsRepository {
     return this.prisma.job.findMany({
       where: { companyId, status: 'OPEN' },
       select: {
-        id: true, title: true, description: true, location: true, employmentType: true,
-        salaryRange: true, benefits: true, createdAt: true, updatedAt: true,
+        id: true,
+        title: true,
+        description: true,
+        location: true,
+        employmentType: true,
+        salaryRange: true,
+        benefits: true,
+        createdAt: true,
+        updatedAt: true,
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -96,7 +113,10 @@ export class JobsRepository {
 
   publicJobsCatalog() {
     return this.prisma.job.findMany({
-      where: { status: 'OPEN', company: { isActive: true, status: 'ACTIVE', billingStatus: { notIn: ['CANCELED', 'PENDING_PAYMENT'] } } },
+      where: {
+        status: 'OPEN',
+        company: { isActive: true, status: 'ACTIVE', billingStatus: { notIn: ['CANCELED', 'PENDING_PAYMENT'] } },
+      },
       select: {
         id: true,
         title: true,
@@ -128,8 +148,15 @@ export class JobsRepository {
     return this.prisma.job.findFirst({
       where: { companyId, id: jobId, status: 'OPEN' },
       select: {
-        id: true, title: true, description: true, location: true, employmentType: true,
-        salaryRange: true, benefits: true, createdAt: true, updatedAt: true,
+        id: true,
+        title: true,
+        description: true,
+        location: true,
+        employmentType: true,
+        salaryRange: true,
+        benefits: true,
+        createdAt: true,
+        updatedAt: true,
       },
     });
   }
@@ -154,8 +181,15 @@ export class JobsRepository {
         },
       },
       select: {
-        id: true, title: true, description: true, location: true, employmentType: true,
-        salaryRange: true, benefits: true, createdAt: true, updatedAt: true,
+        id: true,
+        title: true,
+        description: true,
+        location: true,
+        employmentType: true,
+        salaryRange: true,
+        benefits: true,
+        createdAt: true,
+        updatedAt: true,
         companyId: true,
         company: {
           select: { id: true, name: true, slug: true, logoUrl: true, primaryColor: true, city: true, state: true },
@@ -177,14 +211,24 @@ export class JobsRepository {
     return { jobs, companies };
   }
 
-  async apply(companyId: string, jobId: string, data: any, resume: {
-    key: string; name: string; type: string; size: number;
-  }) {
+  async apply(
+    companyId: string,
+    jobId: string,
+    data: any,
+    resume: {
+      key: string;
+      name: string;
+      type: string;
+      size: number;
+    },
+  ) {
     return this.prisma.$transaction(async (tx) => {
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`${companyId}:${data.email}`}))`;
+
       let candidate = await tx.candidate.findFirst({
         where: { companyId, email: { equals: data.email, mode: 'insensitive' } },
       });
+
       if (!candidate) {
         candidate = await tx.candidate.create({
           data: {
@@ -193,13 +237,6 @@ export class JobsRepository {
             email: data.email,
             phone: data.phone,
             linkedinUrl: data.linkedinUrl,
-            coverLetter: data.coverLetter,
-            resumeUrl: resume.key,
-            resumeName: resume.name,
-            resumeType: resume.type,
-            resumeSize: resume.size,
-            aiScore: data.aiScore,
-            aiSummary: data.aiSummary,
             status: 'NEW',
           },
         });
@@ -208,26 +245,38 @@ export class JobsRepository {
           where: { companyId, candidateId: candidate.id, jobId },
         });
         if (duplicate) return { duplicate: true as const, application: duplicate };
+
         candidate = await tx.candidate.update({
           where: { id: candidate.id },
           data: {
             name: data.name,
             phone: data.phone,
-            linkedinUrl: data.linkedinUrl,
-            coverLetter: data.coverLetter,
-            resumeUrl: resume.key,
-            resumeName: resume.name,
-            resumeType: resume.type,
-            resumeSize: resume.size,
-            aiScore: data.aiScore,
-            aiSummary: data.aiSummary,
+            linkedinUrl: data.linkedinUrl ?? candidate.linkedinUrl,
             status: 'NEW',
           },
         });
       }
+
       const application = await tx.application.create({
-        data: { companyId, candidateId: candidate.id, jobId, status: 'APPLIED' },
+        data: {
+          companyId,
+          candidateId: candidate.id,
+          jobId,
+          status: 'APPLIED',
+          source: data.source ?? 'CAREERS_PORTAL',
+          linkedinUrl: data.linkedinUrl,
+          coverLetter: data.coverLetter,
+          resumeUrl: resume.key,
+          resumeName: resume.name,
+          resumeType: resume.type,
+          resumeSize: resume.size,
+          aiScore: data.aiScore,
+          aiSummary: data.aiSummary,
+          consentGiven: Boolean(data.consent),
+          consentAt: data.consent ? new Date() : null,
+        },
       });
+
       return { duplicate: false as const, application };
     });
   }
@@ -235,73 +284,85 @@ export class JobsRepository {
   async hire(companyId: string, applicationId: string, actorId: string, data: any) {
     try {
       return await this.prisma.$transaction(async (tx) => {
-      const application = await tx.application.findFirst({
-        where: { companyId, id: applicationId },
-        include: { candidate: { include: { admittedEmployee: true } }, job: true },
-      });
-      if (!application) return null;
-      if (application.candidate.admittedEmployee) {
-        return { employee: application.candidate.admittedEmployee, alreadyHired: true };
-      }
+        const application = await tx.application.findFirst({
+          where: { companyId, id: applicationId },
+          include: { candidate: { include: { admittedEmployee: true } }, job: true },
+        });
+        if (!application) return null;
+        if (application.candidate.admittedEmployee) {
+          return { employee: application.candidate.admittedEmployee, alreadyHired: true };
+        }
 
-      const preset = data.clinicPresetId
-        ? await tx.asoClinicPreset.findFirst({ where: { companyId, id: data.clinicPresetId, active: true } })
-        : await tx.asoClinicPreset.findFirst({ where: { companyId, active: true }, orderBy: { createdAt: 'asc' } });
+        const preset = data.clinicPresetId
+          ? await tx.asoClinicPreset.findFirst({ where: { companyId, id: data.clinicPresetId, active: true } })
+          : await tx.asoClinicPreset.findFirst({ where: { companyId, active: true }, orderBy: { createdAt: 'asc' } });
 
-      const notes = [
-        'Origem: Portal de Vagas / ATS.',
-        application.candidate.aiSummary ? `Triagem: ${application.candidate.aiSummary}` : null,
-        application.candidate.coverLetter ? `Apresentação: ${application.candidate.coverLetter}` : null,
-      ].filter(Boolean).join('\n\n');
+        const notes = [
+          'Origem: Portal de Vagas / ATS.',
+          application.aiSummary ? `Triagem: ${application.aiSummary}` : null,
+          application.coverLetter ? `Apresentacao: ${application.coverLetter}` : null,
+        ]
+          .filter(Boolean)
+          .join('\n\n');
 
-      const employee = await tx.employee.create({
-        data: {
-          companyId,
-          originCandidateId: application.candidate.id,
-          name: application.candidate.name,
-          email: application.candidate.email,
-          phone: application.candidate.phone,
-          position: application.job.title,
-          department: data.department?.trim() || 'A definir',
-          salary: data.salary !== undefined ? String(data.salary) : undefined,
-          admissionDate: data.admissionDate ? new Date(data.admissionDate) : new Date(),
-          contractType: data.contractType,
-          workScheduleRuleId: data.workScheduleRuleId,
-          observations: notes || undefined,
-          status: 'ONBOARDING',
-        },
-      });
-
-      await tx.employeeAsoRecord.create({
-        data: {
-          companyId,
-          employeeId: employee.id,
-          asoType: 'ADMISSIONAL',
-          status: preset ? 'SCHEDULED' : 'PENDING',
-          clinicName: preset?.name,
-          doctorName: preset?.doctorName,
-          createdBy: actorId,
-        },
-      });
-
-      if (application.candidate.resumeUrl) {
-        await tx.attachment.create({
+        const employee = await tx.employee.create({
           data: {
             companyId,
-            ownerType: 'EMPLOYEE',
-            ownerId: employee.id,
-            fileName: application.candidate.resumeName || 'curriculo',
-            fileType: application.candidate.resumeType || 'application/octet-stream',
-            fileSize: application.candidate.resumeSize || 0,
-            fileUrl: `/jobs/applications/${application.id}/resume`,
-            storageKey: application.candidate.resumeUrl,
-            uploadedByUserId: actorId,
+            originCandidateId: application.candidate.id,
+            name: application.candidate.name,
+            email: application.candidate.email,
+            phone: application.candidate.phone,
+            position: application.job.title,
+            department: data.department?.trim() || 'A definir',
+            salary: data.salary !== undefined ? String(data.salary) : undefined,
+            admissionDate: data.admissionDate ? new Date(data.admissionDate) : new Date(),
+            contractType: data.contractType,
+            workScheduleRuleId: data.workScheduleRuleId,
+            observations: notes || undefined,
+            status: 'ONBOARDING',
           },
         });
-      }
 
-      await tx.application.update({ where: { id: application.id }, data: { status: 'HIRED' } });
-      await tx.candidate.update({ where: { id: application.candidate.id }, data: { status: 'HIRED' } });
+        await tx.employeeAsoRecord.create({
+          data: {
+            companyId,
+            employeeId: employee.id,
+            asoType: 'ADMISSIONAL',
+            status: preset ? 'SCHEDULED' : 'PENDING',
+            clinicName: preset?.name,
+            doctorName: preset?.doctorName,
+            createdBy: actorId,
+          },
+        });
+
+        if (application.resumeUrl) {
+          await tx.attachment.create({
+            data: {
+              companyId,
+              ownerType: 'EMPLOYEE',
+              ownerId: employee.id,
+              fileName: application.resumeName || 'curriculo',
+              fileType: application.resumeType || 'application/octet-stream',
+              fileSize: application.resumeSize || 0,
+              fileUrl: `/jobs/applications/${application.id}/resume`,
+              storageKey: application.resumeUrl,
+              uploadedByUserId: actorId,
+            },
+          });
+        }
+
+        await tx.application.update({ where: { id: application.id }, data: { status: 'HIRED' } });
+
+        const latestApplication = await tx.application.findFirst({
+          where: { companyId, candidateId: application.candidate.id },
+          orderBy: [{ updatedAt: 'desc' }],
+          select: { status: true },
+        });
+        await tx.candidate.update({
+          where: { id: application.candidate.id },
+          data: { status: latestApplication?.status === 'APPLIED' ? 'NEW' : latestApplication?.status ?? 'HIRED' },
+        });
+
         return { employee, alreadyHired: false };
       });
     } catch (error) {

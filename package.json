@@ -25,6 +25,7 @@
     "typecheck:api": "npm --prefix apps/api run build",
     "typecheck:web": "npm --prefix apps/web run typecheck",
     "check:workspace": "node scripts/workspace-foundation-check.cjs",
+    "check:official-pdfs": "node scripts/check-official-pdfs.mjs",
     "test:api": "npm --prefix apps/api test",
     "test:e2e": "npm --prefix tests-e2e test",
     "test:unit": "vitest run --config vitest.config.ts",
@@ -37,7 +38,8 @@
     "test:db:reset": "npx tsx scripts/test/reset-database.ts",
     "test:db:seed": "npx tsx scripts/test/seed-test-data.ts",
     "validate": "npm run check:workspace && npm run prisma:validate && npm run prisma:generate && npm run lint:web && npm run typecheck:api && npm run typecheck:web",
-    "quality:gate": "npm run validate && npm run test:all && npm run build"
+    "quality:gate": "npm run validate && npm run test:all && npm run build",
+    "release:core-rh": "npm run check:official-pdfs && npm run prisma:validate && npm run prisma:generate && npm run build:api && npm run build:web && npm --prefix apps/api exec vitest run src/modules/jobs/jobs.service.spec.ts"
   },
   "author": "Innovation RH Connect Team",
   "license": "UNLICENSED",

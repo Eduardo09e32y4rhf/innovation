@@ -13,6 +13,7 @@ import { ScheduleService } from './schedule.service';
 import { CreateScheduleDto } from './dto/create-schedule.dto';
 import { AssignScheduleDto } from './dto/assign-schedule.dto';
 import { CreateScheduleExceptionDto } from './dto/swap-request.dto';
+import { UpdateScheduleCoverageConfigDto } from './dto/schedule-governance.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import type { JwtUser } from '../../common/types/auth.types';
@@ -66,11 +67,6 @@ export class ScheduleController {
     return this.service.getMyCalendar(actor.companyId, actor, m);
   }
 
-  @Get(':id')
-  getOne(@CurrentUser() actor: JwtUser, @Param('id') id: string) {
-    return this.service.getSchedule(actor.companyId, id);
-  }
-
   @Post()
   create(@CurrentUser() actor: JwtUser, @Body() dto: CreateScheduleDto) {
     return this.service.createSchedule(actor.companyId, actor, dto);
@@ -91,6 +87,38 @@ export class ScheduleController {
   @Post('assign')
   assign(@CurrentUser() actor: JwtUser, @Body() dto: AssignScheduleDto) {
     return this.service.assignSchedule(actor.companyId, actor, dto);
+  }
+
+  @Post('assign/preview')
+  previewAssignment(@CurrentUser() actor: JwtUser, @Body() dto: AssignScheduleDto) {
+    return this.service.previewAssignment(actor.companyId, actor, dto);
+  }
+
+  @Get('governance/history')
+  history(
+    @CurrentUser() actor: JwtUser,
+    @Query('employeeId') employeeId?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.service.history(actor.companyId, actor, employeeId, limit);
+  }
+
+  @Get('governance/coverage')
+  coverageConfig(@CurrentUser() actor: JwtUser) {
+    return this.service.getCoverageConfig(actor.companyId, actor);
+  }
+
+  @Post('governance/coverage')
+  updateCoverageConfig(
+    @CurrentUser() actor: JwtUser,
+    @Body() dto: UpdateScheduleCoverageConfigDto,
+  ) {
+    return this.service.updateCoverageConfig(actor.companyId, actor, dto);
+  }
+
+  @Get(':id')
+  getOne(@CurrentUser() actor: JwtUser, @Param('id') id: string) {
+    return this.service.getSchedule(actor.companyId, id);
   }
 
   // ─── Exceções ───────────────────────────────────────────────────

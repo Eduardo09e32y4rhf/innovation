@@ -14,6 +14,8 @@ export function safeIsoDate(val: any) {
 
 export function CompanyManageModal({ company, onClose, onSave, loading, error }: { company: PlatformCompany; onClose: () => void; onSave: (data: any) => void; loading: boolean; error: string | null }) {
   const [activeTab, setActiveTab] = useState<string>('plan');
+  const [generatingContract, setGeneratingContract] = useState(false);
+  const [contractError, setContractError] = useState<string | null>(null);
 
   const plansData = useQuery(() => api.platform.listPlans(), []);
   const [name, setName] = useState(company.name || '');
@@ -28,30 +30,37 @@ export function CompanyManageModal({ company, onClose, onSave, loading, error }:
   const [asaasSubscriptionId, setAsaasSubscriptionId] = useState(company.asaasSubscriptionId || '');
   const [internalNotes, setInternalNotes] = useState(company.internalNotes || '');
 
-  const handleGeneratePdf = () => {
+  const handleGeneratePdf = async () => {
     const selectedPlan = plansData.data?.find(p => p.id === plan);
-    if (!selectedPlan) return alert('Selecione um plano da plataforma primeiro.');
-    
-    const { buildPdfShell, infoGrid, section, signatureBlock, printPdf } = require('@/app/lib/pdf-utils');
-    const pdfCompanyData = { 
-      name: company.name, 
-      document: company.document || 'N/A', 
-      address: company.address || 'Não informado', 
-      city: '', state: '' 
-    };
+    if (!selectedPlan) {
+      setContractError('Selecione um plano da plataforma primeiro.');
+      return;
+    }
 
-    const objContent = '<p class="text-[11px] text-slate-700 text-justify mb-2">O presente contrato tem como objeto a licença de uso do software como serviço (SaaS) denominado "Innovation RH", referente ao plano <strong>' + selectedPlan.name + '</strong>.<'+'/'+'p>';
-    const termsContent = '<p class="text-[11px] text-slate-700 text-justify mb-2">1. A CONTRATADA compromete-se a manter a plataforma acessível e funcional, ressalvadas as manutenções programadas.<'+'br><'+'br>2. Em caso de inadimplência (status: Inadimplente), o sistema suspenderá automaticamente o acesso aos módulos contratados, limitando o acesso a funções de administração até a regularização.<'+'br><'+'br>3. O suporte será prestado dentro do horário comercial e os SLAs obedecem a política de suporte estabelecida.<'+'/p>';
-    const condGrid = infoGrid([
-      { label: 'Plano', value: selectedPlan.name },
-      { label: 'Valor', value: selectedPlan.isFree ? 'Gratuito' : 'R$ ' + parseFloat(String(selectedPlan.price)).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) + ' / ' + selectedPlan.cycle },
-      { label: 'Max. Usuários', value: String(maxUsers) },
-      { label: 'Max. Funcionários', value: String(maxEmployees) },
-    ]);
-    
-    const html = buildPdfShell({ title: 'Contrato de Prestação de Serviços', subtitle: 'Innovation RH Plataforma' }, pdfCompanyData, section('1. O Objeto', objContent) + section('2. Condições Comerciais', condGrid) + section('3. Termos Gerais', termsContent) + signatureBlock(['Innovation RH System', company.name]));
-    
-    printPdf(html, 'contrato-' + company.id + '.pdf');
+    const agreedAmount = Number(selectedPlan.price || 0);
+    if (!Number.isFinite(agreedAmount) || agreedAmount <= 0) {
+      setContractError('O plano precisa ter um valor comercial válido para gerar o contrato.');
+      return;
+    }
+
+    setGeneratingContract(true);
+    setContractError(null);
+    try {
+      const contract = await api.manualContracts.create({
+        companyId: company.id,
+        planId: selectedPlan.id,
+        seatQuantity: maxEmployees,
+        agreedAmount,
+        startsAt: new Date().toISOString(),
+        paymentMethod: asaasCustomerId ? 'ASAAS' : 'EXTERNAL',
+        notes: `Contrato gerado pela gestão da empresa. Plano: ${selectedPlan.name}. Usuários administrativos: ${maxUsers}. Funcionários: ${maxEmployees}.`,
+      });
+      await api.manualContracts.downloadPdf(contract.id);
+    } catch (generationError) {
+      setContractError(generationError instanceof Error ? generationError.message : 'Não foi possível gerar o contrato.');
+    } finally {
+      setGeneratingContract(false);
+    }
   };
 
   const changed = 
@@ -103,6 +112,7 @@ export function CompanyManageModal({ company, onClose, onSave, loading, error }:
         {/* BODY */}
         <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-50/50">
           {error && <p className="mb-3 rounded-[8px] border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">{error}</p>}
+          {contractError && <p className="mb-3 rounded-[8px] border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">{contractError}</p>}
 
           {/* Campos de Nome e CNPJ — sempre visíveis, independente da aba */}
           <div className="rounded-[10px] border border-slate-100 bg-white p-4 shadow-sm">
@@ -180,9 +190,10 @@ export function CompanyManageModal({ company, onClose, onSave, loading, error }:
                 <div className="mt-4 pt-4 border-t border-slate-100 flex justify-end">
                   <button 
                     onClick={handleGeneratePdf}
+                    disabled={generatingContract}
                     className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px]"
                   >
-                    Gerar Contrato (PDF)
+                    {generatingContract ? 'Gerando contrato...' : 'Gerar Contrato (PDF)'}
                   </button>
                 </div>
               </div>

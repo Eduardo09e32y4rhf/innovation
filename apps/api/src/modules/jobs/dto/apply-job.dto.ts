@@ -1,4 +1,5 @@
-import { IsEmail, IsOptional, IsString, IsUrl, MaxLength } from 'class-validator';
+import { Transform } from 'class-transformer';
+import { Equals, IsBoolean, IsEmail, IsOptional, IsString, MaxLength } from 'class-validator';
 
 export class ApplyJobDto {
   @IsString()
@@ -27,4 +28,9 @@ export class ApplyJobDto {
   @IsString()
   @MaxLength(200)
   website?: string;
+
+  @Transform(({ value }) => value === true || value === 'true')
+  @IsBoolean()
+  @Equals(true, { message: 'Consentimento obrigatorio para enviar a candidatura.' })
+  consent!: boolean;
 }
