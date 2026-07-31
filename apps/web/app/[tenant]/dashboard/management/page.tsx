@@ -408,8 +408,8 @@ function AgendaKanban({ columns, employees, canManage, onOpenForm, onSave, onDel
           <div className="flex items-center justify-between border-b border-slate-100 p-4">
             <h4 className="text-sm font-black text-slate-900 capitalize">{monthName}</h4>
             <div className="flex gap-2">
-              <button onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))} className="rounded-full bg-slate-100 p-2 text-slate-600 hover:bg-slate-200"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M15 18l-6-6 6-6"/></svg></button>
-              <button onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))} className="rounded-full bg-slate-100 p-2 text-slate-600 hover:bg-slate-200"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M9 18l6-6-6-6"/></svg></button>
+              <button aria-label="Mês anterior" onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))} className="rounded-full bg-slate-100 p-2 text-slate-600 hover:bg-slate-200"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M15 18l-6-6 6-6"/></svg></button>
+              <button aria-label="Próximo mês" onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))} className="rounded-full bg-slate-100 p-2 text-slate-600 hover:bg-slate-200"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M9 18l6-6-6-6"/></svg></button>
             </div>
           </div>
           <div className="grid grid-cols-7 border-b border-slate-100 bg-slate-50/50">
