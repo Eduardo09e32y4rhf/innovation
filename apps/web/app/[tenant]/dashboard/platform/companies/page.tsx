@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { Plus, Search } from 'lucide-react';
+import { Plus, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { EmptyState, ErrorState, LoadingState } from '@/app/components/data-states';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useMutation, useQuery } from '@/app/hooks/use-data';
@@ -24,11 +24,24 @@ export default function CompaniesPage() {
   const isSuperAdmin = currentRole === 'DEV';
   
   const stats = useQuery(() => api.platform.stats(), []);
-  const companies = useQuery(() => api.platform.listCompanies(), []);
-  const plans = useQuery(() => api.platform.listPlans(), []);
   
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const limit = 20;
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1); // reseta a página ao buscar
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [search]);
+
+  const companies = useQuery(() => api.platform.listCompanies({ page, limit, search: debouncedSearch }), [page, limit, debouncedSearch]);
+  const plans = useQuery(() => api.platform.listPlans(), []);
+  
   const [editingCompany, setEditingCompany] = useState<PlatformCompany | null>(null);
 
   const toggleActive = useMutation(
@@ -81,15 +94,10 @@ export default function CompaniesPage() {
     await purge.mutate(c.id).catch(() => {});
   }
 
-  const filteredCompanies = useMemo(() => {
+  const displayCompanies = useMemo(() => {
     if (!companies.data) return [];
-    const term = search.toLowerCase();
-    return companies.data.filter(c => 
-      c.name.toLowerCase().includes(term) || 
-      (c.document && c.document.includes(term)) ||
-      (c.id && c.id.includes(term))
-    );
-  }, [companies.data, search]);
+    return companies.data.data || [];
+  }, [companies.data]);
 
   return (
     <div className="mx-auto w-full space-y-5">
@@ -111,11 +119,11 @@ export default function CompaniesPage() {
         </p>
       )}
 
-      {companies.loading ? (
+      {companies.loading && page === 1 ? (
         <LoadingState label="Carregando empresas..." />
       ) : companies.error ? (
         <ErrorState message={companies.error} onRetry={companies.refetch} />
-      ) : (companies.data ?? []).length === 0 ? (
+      ) : displayCompanies.length === 0 && !debouncedSearch ? (
         <EmptyState message="Nenhuma empresa cadastrada. Clique em Nova empresa." />
       ) : (
         <section className="rounded-2xl bg-white shadow-sm shadow-slate-900/5 border border-slate-200 pb-32">
@@ -148,7 +156,7 @@ export default function CompaniesPage() {
                 </tr>
               </thead>
               <tbody className="bg-white">
-                {filteredCompanies.map((c) => {
+                {displayCompanies.map((c) => {
                   const status = c.status ?? (c.isActive ? 'ACTIVE' : 'SUSPENDED');
                   return (
                     <tr key={c.id} className="border-b border-slate-50 last:border-0 text-sm text-slate-700 hover:bg-slate-50/50 transition-colors">
@@ -199,7 +207,7 @@ export default function CompaniesPage() {
                     </tr>
                   );
                 })}
-                {filteredCompanies.length === 0 && (
+                {displayCompanies.length === 0 && (
                   <tr>
                     <td colSpan={8} className="p-8 text-center text-sm text-slate-500 bg-white">
                       Nenhuma empresa encontrada com o termo "{search}".
@@ -209,6 +217,32 @@ export default function CompaniesPage() {
               </tbody>
             </table>
           </div>
+          
+          {/* Pagination Controls */}
+          {companies.data && companies.data.total > 0 && (
+            <div className="flex items-center justify-between border-t border-slate-100 p-4 bg-slate-50 rounded-b-2xl">
+              <span className="text-sm text-slate-500">
+                Mostrando {((page - 1) * limit) + 1} a {Math.min(page * limit, companies.data.total)} de {companies.data.total} empresas
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  disabled={page === 1}
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                <span className="text-sm font-semibold text-slate-700 mx-2">Página {page}</span>
+                <button
+                  disabled={page * limit >= companies.data.total}
+                  onClick={() => setPage(p => p + 1)}
+                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            </div>
+          )}
         </section>
       )}
 

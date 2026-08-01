@@ -17,21 +17,38 @@ const safeUserSelect = {
 export class PlatformRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async listCompanies(actor?: any) {
+  async listCompanies(actor?: any, options?: { page?: number; limit?: number; search?: string }) {
     const where: any = {};
     if (actor && actor.role === 'COMERCIAL') {
       where.commercialOwnerId = actor.sub;
     }
-    const companies = await this.prisma.company.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
-      include: {
-        subscription: true,
-        platformPlan: { select: { id: true, name: true, code: true } },
-        _count: { select: { users: true, employees: true } },
-      },
-    });
-    return companies.map((c: (typeof companies)[number]) => ({
+    if (options?.search) {
+      where.OR = [
+        { name: { contains: options.search, mode: 'insensitive' } },
+        { document: { contains: options.search } },
+      ];
+    }
+    
+    const limit = Math.min(Math.max(options?.limit ?? 20, 1), 100);
+    const page = Math.max(options?.page ?? 1, 1);
+    const skip = (page - 1) * limit;
+
+    const [total, companies] = await Promise.all([
+      this.prisma.company.count({ where }),
+      this.prisma.company.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        take: limit,
+        skip,
+        include: {
+          subscription: true,
+          platformPlan: { select: { id: true, name: true, code: true } },
+          _count: { select: { users: true, employees: true } },
+        },
+      })
+    ]);
+
+    const data = companies.map((c: (typeof companies)[number]) => ({
       id: c.id,
       name: c.name,
       document: c.document,
@@ -56,6 +73,8 @@ export class PlatformRepository {
       usersCount: c._count.users,
       employeesCount: c._count.employees,
     }));
+    
+    return { data, total, page, limit };
   }
 
   listCompanyAuditLogs(companyId: string, options?: { page?: number; limit?: number }) {

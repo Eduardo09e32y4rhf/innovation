@@ -119,16 +119,20 @@ export function DashboardSidebar({ open = false, onClose }: { open?: boolean; on
   }));
 
   return (
-    <aside className={`fixed inset-y-0 left-0 z-50 flex w-[min(86vw,260px)] flex-col bg-black p-5 text-white shadow-2xl transition-transform duration-200 lg:sticky lg:top-0 lg:z-30 lg:h-screen lg:w-60 lg:translate-x-0 lg:shadow-none ${open ? 'translate-x-0' : '-translate-x-full'}`}>
-      <CompanyBrandCard name={company.data?.name} document={company.data?.document} logoUrl={company.data?.logoUrl} />
+    <aside className={`fixed inset-y-0 left-0 z-50 flex w-[min(86vw,260px)] flex-col bg-[#050505] border-r border-white/5 p-4 text-white shadow-2xl transition-transform duration-200 lg:sticky lg:top-0 lg:z-30 lg:h-screen lg:w-64 lg:translate-x-0 lg:shadow-none ${open ? 'translate-x-0' : '-translate-x-full'}`}>
+      
+      <div className="mb-6 mt-2">
+        <CompanyBrandCard name={company.data?.name} document={company.data?.document} logoUrl={company.data?.logoUrl} />
+      </div>
 
-      <nav className="mt-8 flex flex-1 flex-col gap-2 overflow-y-auto overflow-x-hidden pr-1">
+      <nav className="flex flex-1 flex-col gap-1.5 overflow-y-auto overflow-x-hidden pr-1 pb-4 custom-scrollbar">
+        <div className="text-[10px] font-bold text-white/30 uppercase tracking-widest px-3 mb-2 mt-2">Menu Principal</div>
         {tenantNavItems.map((item) => (
           <NavItem key={item.href} item={item} active={isActive(pathname, item)} onNavigate={onClose} />
         ))}
       </nav>
 
-      <div className="mt-auto pt-6">
+      <div className="mt-auto pt-4 border-t border-white/10">
         <UserIdentityCard name={user?.name} email={user?.email} profile={profile} />
       </div>
     </aside>
@@ -137,20 +141,23 @@ export function DashboardSidebar({ open = false, onClose }: { open?: boolean; on
 
 function CompanyBrandCard({ name, document, logoUrl }: { name?: string | null; document?: string | null; logoUrl?: string | null }) {
   return (
-    <div className="flex items-center gap-3">
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white font-bold text-black">
+    <div className="flex items-center gap-3 bg-white p-3 rounded-2xl shadow-[0_4px_20px_rgba(138,5,190,0.15)] ring-1 ring-white/10 relative overflow-hidden group transition-all hover:shadow-[0_4px_25px_rgba(138,5,190,0.25)]">
+      {/* Decorative purple gradient background for the white card */}
+      <div className="absolute top-0 right-0 w-16 h-16 bg-[#8A05BE]/10 rounded-full blur-xl -translate-y-1/2 translate-x-1/2" />
+      
+      <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-slate-50 font-black text-[#8A05BE] border border-slate-100 shadow-sm overflow-hidden">
         {logoUrl ? (
-          <img src={logoUrl} alt="Logo da empresa" className="h-full w-full object-contain rounded-xl" />
+          <img src={logoUrl} alt="Logo" className="h-full w-full object-contain bg-white" />
         ) : (
-          'IR'
+          <span className="text-lg tracking-tighter">IR</span>
         )}
       </div>
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-[15px] font-black leading-tight text-white">
-          {normalizeDisplayName(name) || 'Innovation'}
+      <div className="relative min-w-0 flex-1">
+        <p className="truncate text-[14px] font-black leading-tight text-slate-900">
+          {normalizeDisplayName(name) || 'Innovation RH'}
         </p>
-        <p className="truncate text-[11px] font-semibold text-white/50">
-          {document || 'Gestão de RH'}
+        <p className="truncate text-[10px] font-bold text-slate-500 uppercase tracking-wider mt-0.5">
+          {document || 'Plataforma'}
         </p>
       </div>
     </div>
@@ -159,13 +166,13 @@ function CompanyBrandCard({ name, document, logoUrl }: { name?: string | null; d
 
 function UserIdentityCard({ name, email, profile }: { name?: string; email?: string; profile?: string }) {
   return (
-    <div className="flex items-center gap-3">
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#8A05BE] text-[12px] font-bold text-white">
+    <div className="flex items-center gap-3 px-2 py-1">
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#8A05BE] to-purple-800 text-[11px] font-black text-white shadow-md ring-2 ring-white/5">
         {getInitials(name, email)}
       </div>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-[14px] font-bold leading-tight text-white">{normalizeDisplayName(name) || email || 'Usuário'}</p>
-        <p className="truncate text-[11px] font-semibold text-white/50">
+        <p className="truncate text-[13px] font-bold leading-tight text-white">{normalizeDisplayName(name) || email || 'Usuário'}</p>
+        <p className="truncate text-[10px] font-bold text-[#8A05BE] uppercase tracking-wider mt-0.5">
           {ROLE_LABEL[profile || ''] ?? profile ?? 'Perfil'}
         </p>
       </div>
@@ -190,17 +197,21 @@ function NavItem({ item, active, onNavigate }: { item: NavItemConfig; active: bo
       <Link 
         href={item.href}
         onClick={onNavigate}
-        className={`group relative flex h-11 items-center gap-3 rounded-xl px-3 text-sm font-bold transition-colors ${
-          active ? 'bg-[#8A05BE]/10 text-white' : 'text-white/60 hover:text-white'
+        className={`group relative flex h-[42px] items-center gap-3 rounded-xl px-3 text-[13px] font-bold transition-all duration-300 overflow-hidden ${
+          active 
+            ? 'bg-gradient-to-r from-[#8A05BE]/20 to-transparent text-white ring-1 ring-[#8A05BE]/30' 
+            : 'text-white/60 hover:bg-white/5 hover:text-white'
         }`}
       >
-        {active && <div className="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-md bg-[#8A05BE]" />}
-        <Icon size={20} strokeWidth={active ? 2.5 : 2} className={`shrink-0 ${active ? 'text-[#8A05BE]' : ''}`} />
-        <span className="truncate">{item.label}</span>
+        {active && (
+          <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#8A05BE] rounded-r-md shadow-[0_0_10px_rgba(138,5,190,0.8)]" />
+        )}
+        <Icon size={18} strokeWidth={active ? 2.5 : 2} className={`shrink-0 transition-colors ${active ? 'text-[#8A05BE]' : 'text-white/40 group-hover:text-white/80'}`} />
+        <span className="truncate tracking-wide">{item.label}</span>
       </Link>
       
       {active && visibleSubItems && visibleSubItems.length > 0 && (
-        <div className="ml-[42px] mt-1 flex flex-col gap-1.5 md:flex">
+        <div className="ml-10 mt-1.5 flex flex-col gap-1">
           {visibleSubItems.map(sub => {
             const currentTab = searchParams.get('tab') || 'minha';
             const subTab = sub.href.split('tab=')[1] || 'minha';
@@ -210,10 +221,13 @@ function NavItem({ item, active, onNavigate }: { item: NavItemConfig; active: bo
               <button 
                 key={sub.href} 
                 onClick={() => { router.push(sub.href); onNavigate?.(); }} 
-                className={`flex w-full items-center text-[12px] font-semibold transition-colors ${
-                  isActiveSub ? 'text-[#8A05BE]' : 'text-white/50 hover:text-white/80'
+                className={`flex w-full items-center text-[12px] font-bold transition-colors py-1.5 px-2 rounded-lg ${
+                  isActiveSub 
+                    ? 'text-white bg-white/5' 
+                    : 'text-white/40 hover:text-white/90 hover:bg-white/5'
                 }`}
               >
+                <div className={`w-1.5 h-1.5 rounded-full mr-2 ${isActiveSub ? 'bg-[#8A05BE]' : 'bg-white/20'}`} />
                 <span className="truncate">{sub.label}</span>
               </button>
             );

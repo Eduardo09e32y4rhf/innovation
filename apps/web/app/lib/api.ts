@@ -741,7 +741,7 @@ export const api = {
 
   platform: {
     stats: () => request<PlatformStats>('/platform/stats'),
-    listCompanies: () => request<PlatformCompany[]>('/platform/companies', { timeoutMs: 12000 }),
+    listCompanies: (params?: { page?: number; limit?: number; search?: string }) => request<{ data: PlatformCompany[]; total: number; page: number; limit: number }>(`/platform/companies${makeQuery(params || {})}`, { timeoutMs: 12000 }),
     getCompany: (id: string) => request<PlatformCompany>(`/platform/companies/${id}`),
     getCompanyAuditLogs: (id: string) => request<any[]>(`/platform/companies/${id}/audit-logs`),
     createCompany: (input: CreatePlatformCompanyInput) => request<PlatformCompany & { paymentUrl?: string | null; billingSetupPending?: boolean }>('/platform/companies', { method: 'POST', body: input }),

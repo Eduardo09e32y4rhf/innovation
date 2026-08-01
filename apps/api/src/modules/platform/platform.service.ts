@@ -25,17 +25,18 @@ export class PlatformService {
     private readonly platformFinance: PlatformFinanceService,
   ) {}
 
-  async listCompanies(actor?: JwtUser) {
-    const companies = await this.repository.listCompanies(actor);
+  async listCompanies(actor?: JwtUser, query?: { page?: number; limit?: number; search?: string }) {
+    const { data, total, page, limit } = await this.repository.listCompanies(actor, query);
     if (actor && actor.role !== 'DEV') {
-      return companies.map(c => ({
+      const mapped = data.map(c => ({
         ...c,
         internalNotes: undefined,
-        asaasCustomerId: c.asaasCustomerId ? 'ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢' : null,
-        asaasSubscriptionId: c.asaasSubscriptionId ? 'ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢' : null,
+        asaasCustomerId: c.asaasCustomerId ? '•••' : null,
+        asaasSubscriptionId: c.asaasSubscriptionId ? '•••' : null,
       }));
+      return { data: mapped, total, page, limit };
     }
-    return companies;
+    return { data, total, page, limit };
   }
 
   getOnlineUsers() {

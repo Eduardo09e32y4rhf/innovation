@@ -22,8 +22,13 @@ export class PlatformController {
   }
 
   @Get('companies')
-  listCompanies(@CurrentUser() actor: JwtUser) {
-    return this.service.listCompanies(actor);
+  listCompanies(
+    @CurrentUser() actor: JwtUser,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('search') search?: string,
+  ) {
+    return this.service.listCompanies(actor, { page: Number(page) || 1, limit: Number(limit) || 20, search });
   }
 
   @Get('online-users')
