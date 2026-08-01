@@ -100,7 +100,7 @@ export function DashboardSidebar({ open = false, onClose }: { open?: boolean; on
     return true;
   });
 
-  if (['DEV', 'ADMIN', 'RH', 'GESTOR'].includes(profile || '')) {
+  if (['DEV'].includes(profile || '')) {
     navItems.push({
       icon: Briefcase,
       label: 'Vagas',
