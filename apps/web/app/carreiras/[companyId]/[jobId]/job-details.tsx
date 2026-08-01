@@ -678,8 +678,10 @@ export function JobDetails({ companyId, jobId }: JobDetailsProps) {
                     className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--career-accent)]"
                   />
                   <span className="text-[10px] leading-4 text-slate-500">
-                    Autorizo o tratamento dos meus dados para fins deste processo seletivo e
-                    declaro que as informações enviadas são verdadeiras.
+                    Autorizo o tratamento dos meus dados (LGPD) exclusivamente para fins deste processo
+                    seletivo. Estou ciente de que, conforme a Política de Privacidade (ISO 27701), 
+                    meu currículo poderá ser retido por até 6 meses para futuras oportunidades e que
+                    posso solicitar sua exclusão a qualquer momento.
                   </span>
                 </label>
 

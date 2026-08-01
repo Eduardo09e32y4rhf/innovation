@@ -1,2 +1,5 @@
 import { redirect } from 'next/navigation';
-export default function TimeClosingPage({ params }: { params: { tenant: string } }) { redirect(`/${params.tenant}/dashboard/management?tab=payroll`); }
+
+export default function TimeClosingRedirect({ params }: { params: { tenant: string } }) {
+  redirect(`/${params.tenant}/dashboard/escalas/fechamento`);
+}

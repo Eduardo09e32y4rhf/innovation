@@ -1,19 +1,18 @@
 'use client';
 import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { LoadingSkeleton } from '@/app/components/platform-ui';
+import { useRouter, useParams } from 'next/navigation';
 
-export default function EscalaRedirect({ params }: { params: { tenant: string } }) {
+export default function EscalaRedirect() {
   const router = useRouter();
+  const params = useParams();
+  const tenant = String(params?.tenant || '');
   useEffect(() => {
-    // Redirecionamento para a nova rota unificada de Jornada & Escala
-    router.replace(`/${params.tenant}/dashboard/time-track`);
-  }, [router, params.tenant]);
+    router.replace(`/${tenant}/dashboard/escalas/calendario`);
+  }, [router, tenant]);
 
   return (
     <div className="p-8 max-w-2xl mx-auto mt-20">
-      <LoadingSkeleton rows={4} />
-      <p className="mt-4 text-slate-500 text-sm text-center">Redirecionando para o módulo unificado de Jornada & Escala...</p>
+      <p className="mt-4 text-slate-500 text-sm text-center">Redirecionando para Escalas...</p>
     </div>
   );
 }

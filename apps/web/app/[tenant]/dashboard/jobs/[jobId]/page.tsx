@@ -76,6 +76,8 @@ export default function JobPipelinePage() {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [hiringId, setHiringId] = useState<string | null>(null);
   const [downloadingResumeId, setDownloadingResumeId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkUpdating, setBulkUpdating] = useState(false);
 
   const job = useMemo(() => (jobs.data ?? []).find((item) => item.id === jobId) ?? null, [jobId, jobs.data]);
   const rows = applications.data ?? [];
@@ -138,6 +140,33 @@ export default function JobPipelinePage() {
     } finally {
       setUpdatingId(null);
       setDraggingId(null);
+    }
+  };
+
+  const handleBulkStatusChange = async (status: ApplicationStatus) => {
+    if (selectedIds.size === 0) return;
+    const next = normalizeApplicationStatus(status);
+    if (next === 'HIRED') {
+      toast.error('Contratações devem ser feitas individualmente (admissão).');
+      return;
+    }
+    setBulkUpdating(true);
+    let successCount = 0;
+    try {
+      await Promise.all(
+        Array.from(selectedIds).map(async (id) => {
+          await jobsApi.updateApplicationStatus(id, next);
+          successCount++;
+        })
+      );
+      toast.success(`${successCount} candidato(s) movido(s) para ${COLUMNS.find((c) => c.status === next)?.label ?? next}. E-mail de feedback automático enviado na fila.`);
+      applications.refetch();
+      setSelectedIds(new Set());
+    } catch (error) {
+      toast.error('Falha parcial ao mover candidatos em lote.');
+      applications.refetch();
+    } finally {
+      setBulkUpdating(false);
     }
   };
 
@@ -233,6 +262,37 @@ export default function JobPipelinePage() {
         )}
       </section>
 
+      {selectedIds.size > 0 && (
+        <section className="sticky top-4 z-40 flex items-center justify-between gap-4 rounded-xl border border-slate-200 bg-slate-900 px-5 py-3 shadow-2xl">
+          <div className="flex items-center gap-3 text-xs font-bold text-white">
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-violet-500 text-white shadow-sm">
+              {selectedIds.size}
+            </span>
+            candidatos selecionados
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-bold uppercase text-slate-400">Mover para:</span>
+            {COLUMNS.filter((c) => c.status !== 'HIRED').map((col) => (
+              <button
+                key={col.status}
+                onClick={() => handleBulkStatusChange(col.status)}
+                disabled={bulkUpdating}
+                className="rounded-lg bg-white/10 px-3 py-1.5 text-[10px] font-bold text-white transition-colors hover:bg-white/20 disabled:opacity-50"
+              >
+                {col.label}
+              </button>
+            ))}
+            <div className="mx-2 h-4 w-px bg-white/20" />
+            <button
+              onClick={() => setSelectedIds(new Set())}
+              className="text-[10px] font-bold text-slate-400 hover:text-white"
+            >
+              Cancelar
+            </button>
+          </div>
+        </section>
+      )}
+
       <section className="overflow-x-auto pb-3">
         <div className="grid min-w-[1680px] grid-cols-6 gap-3">
           {COLUMNS.map((column) => {
@@ -272,7 +332,14 @@ export default function JobPipelinePage() {
                       <CandidateCard
                         key={application.id}
                         application={application}
-                        disabled={updatingId === application.id}
+                        selected={selectedIds.has(application.id)}
+                        onToggleSelection={() => {
+                          const next = new Set(selectedIds);
+                          if (next.has(application.id)) next.delete(application.id);
+                          else next.add(application.id);
+                          setSelectedIds(next);
+                        }}
+                        disabled={updatingId === application.id || bulkUpdating}
                         onOpen={() => setSelected(application)}
                         onDragStart={() => setDraggingId(application.id)}
                         onDragEnd={() => setDraggingId(null)}
@@ -305,12 +372,16 @@ export default function JobPipelinePage() {
 
 function CandidateCard({
   application,
+  selected,
+  onToggleSelection,
   disabled,
   onOpen,
   onDragStart,
   onDragEnd,
 }: {
   application: JobApplication;
+  selected: boolean;
+  onToggleSelection: () => void;
   disabled: boolean;
   onOpen: () => void;
   onDragStart: () => void;
@@ -324,16 +395,34 @@ function CandidateCard({
       draggable={!disabled}
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
-      onClick={onOpen}
-      className={`group cursor-pointer rounded-xl border border-slate-200 bg-white p-3 shadow-sm transition-all hover:-translate-y-0.5 hover:border-violet-300 hover:shadow-md ${disabled ? 'opacity-60' : ''}`}
+      className={`group relative rounded-xl border bg-white p-3 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md ${
+        selected ? 'border-violet-500 ring-1 ring-violet-500' : 'border-slate-200 hover:border-violet-300'
+      } ${disabled ? 'opacity-60' : ''}`}
     >
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <h3 className="truncate text-xs font-black text-slate-950">{candidate.name}</h3>
-          <p className="mt-0.5 truncate text-[10px] font-medium text-slate-500">{candidate.email || 'E-mail não informado'}</p>
-        </div>
-        <GripVertical size={14} className="shrink-0 text-slate-300 group-hover:text-violet-500" />
+      <div className="absolute left-3 top-3 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+        <input
+          type="checkbox"
+          checked={selected}
+          onChange={onToggleSelection}
+          className="h-4 w-4 rounded border-slate-300 text-violet-600 focus:ring-violet-500 cursor-pointer"
+        />
       </div>
+      <div
+        onClick={(e) => {
+          const target = e.target as HTMLElement;
+          if (target.tagName.toLowerCase() !== 'input') {
+            onOpen();
+          }
+        }}
+        className="cursor-pointer"
+      >
+        <div className="flex items-start justify-between gap-2 pl-6">
+          <div className="min-w-0">
+            <h3 className="truncate text-xs font-black text-slate-950">{candidate.name}</h3>
+            <p className="mt-0.5 truncate text-[10px] font-medium text-slate-500">{candidate.email || 'E-mail não informado'}</p>
+          </div>
+          <GripVertical size={14} className="shrink-0 text-slate-300 group-hover:text-violet-500" />
+        </div>
 
       {score != null ? (
         <div className="mt-3">
@@ -360,6 +449,7 @@ function CandidateCard({
         <span className="inline-flex items-center gap-1 text-violet-700">
           Ver dossiê <ArrowRight size={10} />
         </span>
+      </div>
       </div>
     </article>
   );

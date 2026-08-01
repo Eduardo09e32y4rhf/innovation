@@ -34,18 +34,20 @@ const baseNavItems: NavItemConfig[] = [
   { icon: Users, label: 'Funcionários', href: '/dashboard/employees', match: '/dashboard/employees', roles: ['DEV', 'ADMIN', 'RH', 'GESTOR', 'CONSULTA'], moduleKey: 'employees' },
   { 
     icon: CalendarClock, 
-    label: 'Escala', 
-    href: '/dashboard/escala', 
-    match: '/dashboard/escala', 
+    label: 'Escalas', 
+    href: '/dashboard/escalas', 
+    match: '/dashboard/escalas', 
     roles: ['DEV', 'ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'], 
     moduleKey: 'time-track',
     subItems: [
-      { label: 'Minha Jornada', href: '/dashboard/escala?tab=minha' },
-      { label: 'Escala de Equipe', href: '/dashboard/escala?tab=equipe', roles: ['DEV', 'ADMIN', 'RH', 'GESTOR'] },
-      { label: 'Trocar de Escala', href: '/dashboard/escala?tab=trocas' }
+      { label: 'Calendário', href: '/dashboard/escalas/calendario' },
+      { label: 'Ponto', href: '/dashboard/escalas/ponto' },
+      { label: 'Equipe', href: '/dashboard/escalas/equipe', roles: ['DEV', 'ADMIN', 'RH', 'GESTOR'] },
+      { label: 'Ocorrências', href: '/dashboard/escalas/ocorrencias' },
+      { label: 'Trocas', href: '/dashboard/escalas/trocas' },
+      { label: 'Fechamento', href: '/dashboard/escalas/fechamento', roles: ['DEV', 'ADMIN', 'RH'] },
     ]
   },
-  { icon: Clock, label: 'Ponto', href: '/dashboard/time-track', match: '/dashboard/time-track', roles: ['DEV', 'ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'], moduleKey: 'time-track' },
   { icon: CalendarDays, label: 'Férias', href: '/dashboard/vacations', match: '/dashboard/vacations', roles: ['DEV', 'ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'], moduleKey: 'vacations' },
   { icon: Users, label: 'Gestão', href: '/dashboard/management', match: '/dashboard/management', roles: ['DEV', 'ADMIN', 'RH', 'GESTOR'], moduleKey: 'management' },
   { icon: UserCog, label: 'Usuários', href: '/dashboard/users', match: '/dashboard/users', roles: ['DEV', 'ADMIN', 'RH'] },
@@ -100,7 +102,7 @@ export function DashboardSidebar({ open = false, onClose }: { open?: boolean; on
     return true;
   });
 
-  if (['DEV'].includes(profile || '')) {
+  if (['DEV', 'ADMIN', 'RH', 'GESTOR'].includes(profile || '')) {
     navItems.push({
       icon: Briefcase,
       label: 'Vagas',

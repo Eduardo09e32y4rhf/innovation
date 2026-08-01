@@ -673,6 +673,12 @@ export const api = {
       request<Vacation>(`/vacations/${id}/status`, { method: 'PATCH', body: { status, observation } }),
   },
 
+  documents: {
+    list: () => request<any[]>('/documents'),
+    generate: (input: any) => request<any>('/documents/generate', { method: 'POST', body: input }),
+    download: (id: string) => downloadRequest(`/documents/${id}/download`),
+  },
+
   users: {
     list: () => request<AppUser[]>('/users'),
     usage: () => request<UsersUsage>('/users/usage'),
