@@ -1,4 +1,5 @@
 'use client';
+import { Suspense } from 'react';
 
 import Link from 'next/link';
 import { usePathname , useParams, useSearchParams, useRouter } from 'next/navigation';
@@ -129,9 +130,11 @@ export function DashboardSidebar({ open = false, onClose }: { open?: boolean; on
 
       <nav className="flex flex-1 flex-col gap-1.5 overflow-y-auto overflow-x-hidden pr-1 pb-4 custom-scrollbar">
         <div className="text-[10px] font-bold text-white/30 uppercase tracking-widest px-3 mb-2 mt-2">Menu Principal</div>
-        {tenantNavItems.map((item) => (
-          <NavItem key={item.href} item={item} active={isActive(pathname, item)} onNavigate={onClose} />
-        ))}
+        <Suspense fallback={<div />}>
+          {tenantNavItems.map((item) => (
+            <NavItem key={item.href} item={item} active={isActive(pathname, item)} onNavigate={onClose} />
+          ))}
+        </Suspense>
       </nav>
 
       <div className="mt-auto pt-4 border-t border-white/10">
@@ -215,7 +218,7 @@ function NavItem({ item, active, onNavigate }: { item: NavItemConfig; active: bo
       {active && visibleSubItems && visibleSubItems.length > 0 && (
         <div className="ml-10 mt-1.5 flex flex-col gap-1">
           {visibleSubItems.map(sub => {
-            const currentTab = searchParams.get('tab') || 'minha';
+            const currentTab = searchParams?.get('tab') || 'minha';
             const subTab = sub.href.split('tab=')[1] || 'minha';
             const isActiveSub = currentTab === subTab;
             
