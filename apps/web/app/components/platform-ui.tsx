@@ -140,3 +140,12 @@ export function LoadingSkeleton({ rows = 3 }: { rows?: number }) {
     </div>
   );
 }
+
+export function LoadingState({ label = 'Carregando...' }: { label?: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center p-12 text-center rounded-3xl bg-slate-50/50">
+      <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-teal-600 mb-4" />
+      <p className="text-sm font-semibold text-slate-500">{label}</p>
+    </div>
+  );
+}
