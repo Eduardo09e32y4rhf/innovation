@@ -11,6 +11,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 
 COPY package.json package-lock.json ./
 COPY apps/web/package.json ./apps/web/package.json
+COPY apps/api/package.json ./apps/api/package.json
 
 RUN npm install --no-audit --legacy-peer-deps
 
