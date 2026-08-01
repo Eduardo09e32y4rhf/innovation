@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X } from 'lucide-react';
+import { X, CheckCircle2, AlertCircle } from 'lucide-react';
 import { ROLE_LABEL } from '@/app/lib/format';
 import type { PlatformCompany, UserRole } from '@/app/lib/api';
 
@@ -10,6 +10,31 @@ interface UserCreateModalProps {
   currentRole?: string;
   companies: PlatformCompany[];
   onSubmit: (data: any) => Promise<void>;
+}
+
+function PasswordStrengthBar({ password }: { password: string }) {
+  const checks = [
+    password.length >= 10,
+    /[A-Z]/.test(password),
+    /[a-z]/.test(password),
+    /[0-9]/.test(password),
+    /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password),
+  ];
+  const score = checks.filter(Boolean).length;
+  const label = score <= 2 ? 'Fraca' : score <= 3 ? 'Média' : score === 4 ? 'Boa' : 'Forte';
+  const color = score <= 2 ? 'bg-rose-500' : score <= 3 ? 'bg-amber-500' : score === 4 ? 'bg-blue-500' : 'bg-emerald-500';
+  const width = `${(score / 5) * 100}%`;
+
+  return (
+    <div className="mt-1.5 space-y-1">
+      <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
+        <div className={`h-full rounded-full transition-all ${color}`} style={{ width }} />
+      </div>
+      <p className={`text-[10px] font-bold ${score <= 2 ? 'text-rose-600' : score <= 3 ? 'text-amber-600' : 'text-emerald-600'}`}>
+        Força: {label}
+      </p>
+    </div>
+  );
 }
 
 export function UserCreateModal({
@@ -23,20 +48,42 @@ export function UserCreateModal({
   const [companyId, setCompanyId] = useState('');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [emailError, setEmailError] = useState('');
   const [role, setRole] = useState<UserRole>('FUNCIONARIO');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [done, setDone] = useState(false);
+  const [createdName, setCreatedName] = useState('');
 
   const shouldShowCompanySelect = currentRole === 'DEV' && companies.length > 1;
   const defaultCompanyId = currentRole === 'DEV' && companies.length === 1 ? companies[0]?.id ?? '' : '';
 
   if (!isOpen) return null;
 
+  const resetForm = () => {
+    setCompanyId('');
+    setName('');
+    setEmail('');
+    setEmailError('');
+    setRole('FUNCIONARIO');
+    setPassword('');
+    setConfirmPassword('');
+    setError('');
+    setDone(false);
+    setCreatedName('');
+  };
+
+  const handleClose = () => {
+    resetForm();
+    onClose();
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setEmailError('');
 
     if (shouldShowCompanySelect && !companyId) {
       setError('Por favor, selecione a empresa.');
@@ -46,8 +93,6 @@ export function UserCreateModal({
       setError('As senhas não coincidem.');
       return;
     }
-
-    // Validação básica de senha forte
     if (password.length < 10) {
       setError('A senha deve ter no mínimo 10 caracteres.');
       return;
@@ -73,22 +118,62 @@ export function UserCreateModal({
     try {
       const resolvedCompanyId = shouldShowCompanySelect ? companyId : defaultCompanyId;
       await onSubmit({ companyId: resolvedCompanyId, name, email, role, password });
-      setCompanyId('');
-      setName('');
-      setEmail('');
-      setRole('FUNCIONARIO');
-      setPassword('');
-      setConfirmPassword('');
-      onClose();
+      setCreatedName(name);
+      setDone(true);
     } catch (err: any) {
-      setError(err.message || 'Erro ao criar usuário');
+      const msg: string = err.message || 'Erro ao criar usuário';
+      // Erro de e-mail duplicado → inline no campo
+      if (/e-mail|email|cadastrado|duplicado/i.test(msg)) {
+        setEmailError(msg);
+      } else {
+        setError(msg);
+      }
     } finally {
       setLoading(false);
     }
   };
 
+  /* ── Tela de sucesso ── */
+  if (done) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/30 p-4 backdrop-blur-[2px]">
+        <div className="w-full max-w-md overflow-hidden rounded-[16px] bg-white shadow-2xl">
+          <div className="p-8 text-center">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50">
+              <CheckCircle2 size={32} className="text-emerald-500" />
+            </div>
+            <h3 className="text-lg font-black text-slate-950">Usuário criado com sucesso!</h3>
+            <p className="mt-2 text-sm text-slate-600">
+              <strong>{createdName}</strong> foi cadastrado e receberá as credenciais de acesso.
+            </p>
+            <div className="mx-auto mt-4 max-w-xs rounded-[10px] border border-amber-200 bg-amber-50 p-3 text-left">
+              <p className="flex items-start gap-2 text-xs font-semibold text-amber-800">
+                <AlertCircle size={14} className="mt-0.5 shrink-0 text-amber-600" />
+                A senha temporária foi definida. O usuário será obrigado a trocá-la no primeiro login.
+              </p>
+            </div>
+            <div className="mt-6 flex justify-center gap-3">
+              <button onClick={handleClose} className="btn-outline px-6">
+                Fechar
+              </button>
+              <button
+                onClick={() => {
+                  resetForm();
+                }}
+                className="crystal-button px-6"
+              >
+                Criar outro
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ── Formulário ── */
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/30 p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/30 p-4 backdrop-blur-[2px]">
       <div className="w-full max-w-md overflow-hidden rounded-[14px] bg-white shadow-2xl">
         <header className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
           <div>
@@ -96,7 +181,7 @@ export function UserCreateModal({
             <p className="text-xs text-slate-500">Cadastre um novo acesso para sua equipe</p>
           </div>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="flex h-8 w-8 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-600"
           >
             <X size={16} />
@@ -143,10 +228,19 @@ export function UserCreateModal({
               <input
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (emailError) setEmailError('');
+                }}
                 required
-                className="form-control"
+                className={`form-control transition-colors ${emailError ? 'border-rose-400 ring-2 ring-rose-200 focus:border-rose-500' : ''}`}
               />
+              {emailError && (
+                <p className="mt-1 flex items-center gap-1 text-[11px] font-semibold text-rose-600">
+                  <AlertCircle size={11} />
+                  {emailError}
+                </p>
+              )}
             </div>
 
             <div>
@@ -181,6 +275,7 @@ export function UserCreateModal({
                     required
                     className="form-control"
                   />
+                  {password && <PasswordStrengthBar password={password} />}
                 </div>
                 <div>
                   <input
@@ -191,6 +286,12 @@ export function UserCreateModal({
                     required
                     className="form-control"
                   />
+                  {confirmPassword && confirmPassword !== password && (
+                    <p className="mt-1 text-[10px] font-bold text-rose-600">Senhas não coincidem</p>
+                  )}
+                  {confirmPassword && confirmPassword === password && password.length >= 10 && (
+                    <p className="mt-1 text-[10px] font-bold text-emerald-600">✓ Senhas coincidem</p>
+                  )}
                 </div>
               </div>
             </div>
@@ -205,7 +306,7 @@ export function UserCreateModal({
           <div className="mt-6 flex justify-end gap-3">
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleClose}
               disabled={loading}
               className="btn-outline px-6"
             >

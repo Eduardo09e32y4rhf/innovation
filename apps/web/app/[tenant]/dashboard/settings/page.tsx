@@ -283,6 +283,41 @@ function CompanySettings() {
   const logoError = useMemo(() => (removeLogo ? '' : validateLogoUrl(logoUrl)), [logoUrl, removeLogo]);
   const previewLogo = !removeLogo && !logoError && logoUrl.trim() ? logoUrl.trim() : '';
 
+  // Dirty check — desabilita Salvar se nada mudou
+  const hasChanges = useMemo(() => {
+    if (!company.data) return false;
+    const d = company.data;
+    if (removeLogo !== false && d.logoUrl) return true; // logo foi marcado para remover
+    return (
+      name !== (d.name ?? '') ||
+      legalName !== (d.legalName ?? '') ||
+      document !== (d.document ?? '') ||
+      (!removeLogo && logoUrl !== (d.logoUrl ?? '')) ||
+      phone !== (d.phone ?? '') ||
+      email !== (d.email ?? '') ||
+      zipCode !== (d.zipCode ?? '') ||
+      street !== (d.street ?? '') ||
+      streetNumber !== (d.streetNumber ?? '') ||
+      addressComplement !== (d.addressComplement ?? '') ||
+      neighborhood !== (d.neighborhood ?? '') ||
+      city !== (d.city ?? '') ||
+      state !== (d.state ?? '') ||
+      stateRegistration !== (d.stateRegistration ?? '') ||
+      municipalRegistration !== (d.municipalRegistration ?? '') ||
+      legalRepresentativeName !== (d.legalRepresentativeName ?? '') ||
+      legalRepresentativeCpf !== (d.legalRepresentativeCpf ?? '') ||
+      legalRepresentativeRole !== (d.legalRepresentativeRole ?? '') ||
+      legalRepresentativeEmail !== (d.legalRepresentativeEmail ?? '') ||
+      legalRepresentativePhone !== (d.legalRepresentativePhone ?? '')
+    );
+  }, [
+    company.data, removeLogo, name, legalName, document, logoUrl,
+    phone, email, zipCode, street, streetNumber, addressComplement,
+    neighborhood, city, state, stateRegistration, municipalRegistration,
+    legalRepresentativeName, legalRepresentativeCpf, legalRepresentativeRole,
+    legalRepresentativeEmail, legalRepresentativePhone,
+  ]);
+
   const save = useMutation(
     () => api.companies.update({
       name: name.trim() || undefined,
@@ -467,10 +502,16 @@ function CompanySettings() {
               <input value={removeLogo ? '' : logoUrl} onChange={(e) => { setRemoveLogo(false); setLogoUrl(e.target.value); }} placeholder="https://seudominio.com/logo.png ou faça o upload..." disabled={company.loading} className={inputClass} />
             </label>
             <div className="sm:col-span-2">
+              {hasChanges && (
+                <p className="mb-3 flex items-center gap-2 rounded-[8px] border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700">
+                  <Save size={11} />
+                  Há alterações não salvas
+                </p>
+              )}
               <button
                 type="button"
                 onClick={() => !logoError && save.mutate().catch(() => {})}
-                disabled={Boolean(logoError) || save.loading || company.loading}
+                disabled={Boolean(logoError) || save.loading || company.loading || !hasChanges}
                 className="crystal-button inline-flex h-10 items-center gap-2 rounded-[10px] bg-gradient-to-r from-teal-500 to-cyan-600 px-5 text-xs font-black text-white shadow-lg shadow-teal-500/25 transition-all hover:-translate-y-0.5 hover:shadow-xl active:translate-y-0 disabled:opacity-60"
               >
                 <Save size={14} strokeWidth={2.5} />

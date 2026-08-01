@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { UserPlus } from 'lucide-react';
+import { AlertTriangle, UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
 import { EmptyState, ErrorState, LoadingState } from '@/app/components/data-states';
 import { useAuth } from '@/app/contexts/AuthContext';
@@ -14,6 +14,49 @@ import { UsersTable } from './_components/users-table';
 import { UserDrawer } from './_components/user-drawer';
 import { UserCreateModal } from './_components/user-create-modal';
 import { UserPasswordResetModal } from './_components/user-password-reset-modal';
+
+// ─── Modal de confirmação reutilizável ────────────────────────────────────────
+interface ConfirmModalProps {
+  isOpen: boolean;
+  title: string;
+  description: string;
+  confirmLabel: string;
+  confirmClass?: string;
+  loading?: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
+}
+
+function ConfirmModal({ isOpen, title, description, confirmLabel, confirmClass = 'bg-rose-600 text-white hover:bg-rose-700', loading, onConfirm, onCancel }: ConfirmModalProps) {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/40 p-4 backdrop-blur-[2px]">
+      <div className="w-full max-w-sm rounded-[16px] bg-white p-6 shadow-2xl">
+        <div className="mb-4 flex items-start gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-rose-50">
+            <AlertTriangle size={18} className="text-rose-500" />
+          </div>
+          <div>
+            <h3 className="text-sm font-black text-slate-950">{title}</h3>
+            <p className="mt-1 text-xs text-slate-600">{description}</p>
+          </div>
+        </div>
+        <div className="flex justify-end gap-3">
+          <button onClick={onCancel} disabled={loading} className="btn-outline px-5">
+            Cancelar
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={loading}
+            className={`inline-flex items-center rounded-[10px] px-5 py-2 text-xs font-black shadow-sm transition-all disabled:opacity-60 ${confirmClass}`}
+          >
+            {loading ? 'Aguarde...' : confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 const ALL_ROLES: UserRole[] = ['DEV', 'COMERCIAL', 'ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'];
 const COMPANY_ROLES: UserRole[] = ['ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'];
@@ -74,6 +117,11 @@ export default function UsersPage() {
   const [selectedUser, setSelectedUser] = useState<AppUser | null>(null);
   const [resetModalOpen, setResetModalOpen] = useState(false);
 
+  // Confirm modal state
+  type ConfirmAction = { type: 'block' | 'delete'; user: AppUser } | null;
+  const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null);
+  const [confirmLoading, setConfirmLoading] = useState(false);
+
   // Data
   const rows = users.data ?? [];
   const companyOptions = currentRole === 'DEV' ? (companies.data ?? []) : [];
@@ -111,13 +159,20 @@ export default function UsersPage() {
     setResetModalOpen(true);
   };
 
-  const handleToggleBlock = async (user: AppUser) => {
-    if (!window.confirm(`Tem certeza que deseja ${user.isActive === false ? 'desbloquear' : 'bloquear'} o acesso de ${user.name}?`)) return;
+  const handleToggleBlock = (user: AppUser) => {
+    setConfirmAction({ type: 'block', user });
+  };
+
+  const executeToggleBlock = async (user: AppUser) => {
+    setConfirmLoading(true);
     try {
       await toggleStatus.mutate({ id: user.id, isActive: user.isActive === false });
       toast.success(user.isActive === false ? 'Acesso desbloqueado.' : 'Acesso bloqueado.');
+      setConfirmAction(null);
     } catch (e: any) {
-      toast.error(e?.message || 'Nao foi possivel atualizar o acesso.');
+      toast.error(e?.message || 'Não foi possível atualizar o acesso.');
+    } finally {
+      setConfirmLoading(false);
     }
   };
 
@@ -152,13 +207,24 @@ export default function UsersPage() {
     setDrawerOpen(true);
   };
 
-  const handleDelete = async (user: AppUser) => {
-    if (!window.confirm(`Tem certeza que deseja excluir DEFINITIVAMENTE o acesso de ${user.name}?`)) return;
+  const handleDelete = (user: AppUser) => {
+    setConfirmAction({ type: 'delete', user });
+  };
+
+  const executeDelete = async (user: AppUser) => {
+    setConfirmLoading(true);
     try {
       await remove.mutate(user.id);
-      toast.success('Acesso excluido.');
+      toast.success('Acesso excluído.');
+      setConfirmAction(null);
+      if (drawerOpen && selectedUser?.id === user.id) {
+        setDrawerOpen(false);
+        setSelectedUser(null);
+      }
     } catch (e: any) {
-      toast.error(e?.message || 'Nao foi possivel excluir o acesso.');
+      toast.error(e?.message || 'Não foi possível excluir o acesso.');
+    } finally {
+      setConfirmLoading(false);
     }
   };
 
@@ -166,11 +232,10 @@ export default function UsersPage() {
     try {
       const { password, ...rest } = data;
       await api.users.create({ ...rest, password });
-      toast.success('Usuario criado com sucesso!');
       users.refetch();
       usage.refetch();
     } catch (e: any) {
-      toast.error(e?.message || 'Erro ao criar usuario.');
+      // Re-lança o erro para o modal tratar inline (ex: e-mail duplicado)
       throw e;
     }
   };
@@ -295,6 +360,46 @@ export default function UsersPage() {
         onSavePermissions={handleSavePermissions}
         onResetPassword={() => setResetModalOpen(true)}
         onToggleBlock={() => handleToggleBlock(selectedUser!)}
+      />
+
+      {/* Modal de confirmação (bloquear/excluir) */}
+      <ConfirmModal
+        isOpen={!!confirmAction}
+        loading={confirmLoading}
+        title={
+          confirmAction?.type === 'delete'
+            ? `Excluir acesso de ${confirmAction.user.name}?`
+            : confirmAction?.user.isActive === false
+              ? `Desbloquear ${confirmAction?.user.name}?`
+              : `Bloquear ${confirmAction?.user.name}?`
+        }
+        description={
+          confirmAction?.type === 'delete'
+            ? 'Esta ação é irreversível. O usuário perderá acesso imediatamente e todos os dados de acesso serão removidos.'
+            : confirmAction?.user.isActive === false
+              ? 'O usuário voltará a conseguir fazer login normalmente.'
+              : 'O usuário será impedido de fazer login até ser desbloqueado.'
+        }
+        confirmLabel={
+          confirmAction?.type === 'delete'
+            ? 'Excluir definitivamente'
+            : confirmAction?.user.isActive === false
+              ? 'Desbloquear'
+              : 'Bloquear'
+        }
+        confirmClass={
+          confirmAction?.type === 'delete'
+            ? 'bg-rose-600 text-white hover:bg-rose-700'
+            : confirmAction?.user.isActive === false
+              ? 'bg-emerald-600 text-white hover:bg-emerald-700'
+              : 'bg-rose-600 text-white hover:bg-rose-700'
+        }
+        onConfirm={() => {
+          if (!confirmAction) return;
+          if (confirmAction.type === 'block') executeToggleBlock(confirmAction.user);
+          else executeDelete(confirmAction.user);
+        }}
+        onCancel={() => setConfirmAction(null)}
       />
     </div>
   );

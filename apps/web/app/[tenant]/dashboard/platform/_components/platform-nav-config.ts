@@ -10,15 +10,22 @@ export const PLATFORM_NAV_GROUPS: PlatformNavGroup[] = [
   { key: 'contracts', label: 'Contratos', href: '/contracts', matchPrefixes: ['/contracts', '/proposals'] },
   {
     key: 'configuration',
-    label: 'Configuracao',
+    label: 'Configuração',
     href: '/configuration',
-    matchPrefixes: ['/configuration', '/companies', '/plans', '/permissions', '/access', '/coupons', '/subscriptions', '/whatsapp', '/audit'],
+    matchPrefixes: ['/configuration', '/companies', '/plans', '/permissions', '/access', '/coupons', '/subscriptions', '/whatsapp'],
+  },
+  {
+    key: 'audit',
+    label: 'Auditoria',
+    href: '/audit',
+    matchPrefixes: ['/audit'],
   },
 ];
 
 export function getPlatformNavGroups(role: string): PlatformNavGroup[] {
   if (role === 'DEV') return PLATFORM_NAV_GROUPS;
-  return PLATFORM_NAV_GROUPS.filter((group) => group.key !== 'configuration');
+  // ADMIN e COMERCIAL não acessam Configuração nem Auditoria
+  return PLATFORM_NAV_GROUPS.filter((group) => group.key !== 'configuration' && group.key !== 'audit');
 }
 
 export function resolvePlatformActive(base: string, pathname: string, groups: PlatformNavGroup[]) {

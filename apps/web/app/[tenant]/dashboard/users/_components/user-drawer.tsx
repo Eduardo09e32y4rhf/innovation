@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { X, Shield, KeyRound, Link as LinkIcon, User } from 'lucide-react';
+import { X, Shield, KeyRound, Link as LinkIcon, User, CheckCircle2, AlertCircle } from 'lucide-react';
+import { useRouter, useParams } from 'next/navigation';
 import { ROLE_LABEL } from '@/app/lib/format';
 import { PERMISSIONS_LABELS, getDefaultPermissions } from '@/app/lib/permissions';
 import type { AppUser, UserRole } from '@/app/lib/api';
@@ -15,10 +16,10 @@ interface UserDrawerProps {
   onSavePermissions: (customPermissions: string[] | null) => Promise<void>;
   onResetPassword: () => void;
   onToggleBlock: () => void;
-  // TODO: Vinculo actions
 }
 
 type TabType = 'geral' | 'permissoes' | 'seguranca' | 'vinculo';
+type FeedbackState = { type: 'success' | 'error'; message: string } | null;
 
 export function UserDrawer({
   user,
@@ -32,19 +33,26 @@ export function UserDrawer({
   onResetPassword,
   onToggleBlock,
 }: UserDrawerProps) {
+  const router = useRouter();
+  const params = useParams();
+  const tenant = String(params?.tenant || '');
+
   const [activeTab, setActiveTab] = useState<TabType>('geral');
   const [isSaving, setIsSaving] = useState(false);
-  const [feedback, setFeedback] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<FeedbackState>(null);
 
+  // Geral
   const [name, setName] = useState(user?.name ?? '');
   const [email, setEmail] = useState(user?.email ?? '');
   const [role, setRole] = useState<UserRole>(user?.role ?? 'FUNCIONARIO');
 
+  // Permissões
   const [isCustomPerms, setIsCustomPerms] = useState(!!user?.customPermissions?.length);
   const [customPerms, setCustomPerms] = useState<string[]>(
     user?.customPermissions ?? getDefaultPermissions(user?.role ?? 'FUNCIONARIO')
   );
 
+  // Sincronizar quando user muda
   useEffect(() => {
     if (!user) return;
     setIsSaving(false);
@@ -65,11 +73,27 @@ export function UserDrawer({
   useEffect(() => {
     if (isOpen) {
       setActiveTab('geral');
+      setFeedback(null);
     }
   }, [isOpen]);
 
   if (!isOpen || !user) return null;
 
+  // ── Dirty check ──────────────────────────────────────────────
+  const geralDirty =
+    name !== (user.name ?? '') ||
+    email !== (user.email ?? '') ||
+    role !== (user.role ?? 'FUNCIONARIO');
+
+  const permsDirty = (() => {
+    const origPerms = user.customPermissions ?? getDefaultPermissions(user.role ?? 'FUNCIONARIO');
+    const origIsCustom = !!user.customPermissions?.length;
+    if (isCustomPerms !== origIsCustom) return true;
+    if (customPerms.length !== origPerms.length) return true;
+    return !customPerms.every((p) => origPerms.includes(p));
+  })();
+
+  // ── Handlers ─────────────────────────────────────────────────
   const handleSaveGeneral = async () => {
     setIsSaving(true);
     setFeedback(null);
@@ -80,9 +104,12 @@ export function UserDrawer({
         role,
         customPermissions: isCustomPerms ? customPerms : null,
       });
-      setFeedback('Alteracoes gerais salvas com sucesso.');
+      setFeedback({ type: 'success', message: 'Alterações salvas com sucesso.' });
     } catch (error) {
-      setFeedback(error instanceof Error ? error.message : 'Nao foi possivel salvar as alteracoes.');
+      setFeedback({
+        type: 'error',
+        message: error instanceof Error ? error.message : 'Não foi possível salvar as alterações.',
+      });
     } finally {
       setIsSaving(false);
     }
@@ -93,9 +120,12 @@ export function UserDrawer({
     setFeedback(null);
     try {
       await onSavePermissions(isCustomPerms ? customPerms : null);
-      setFeedback('Permissoes salvas com sucesso.');
+      setFeedback({ type: 'success', message: 'Permissões salvas com sucesso.' });
     } catch (error) {
-      setFeedback(error instanceof Error ? error.message : 'Nao foi possivel salvar as permissoes.');
+      setFeedback({
+        type: 'error',
+        message: error instanceof Error ? error.message : 'Não foi possível salvar as permissões.',
+      });
     } finally {
       setIsSaving(false);
     }
@@ -110,10 +140,28 @@ export function UserDrawer({
 
   const tabs = [
     { id: 'geral', label: 'Geral', icon: User },
-    { id: 'permissoes', label: 'Permissoes', icon: Shield },
-    { id: 'seguranca', label: 'Seguranca', icon: KeyRound },
-    { id: 'vinculo', label: 'Vinculo', icon: LinkIcon },
+    { id: 'permissoes', label: 'Permissões', icon: Shield },
+    { id: 'seguranca', label: 'Segurança', icon: KeyRound },
+    { id: 'vinculo', label: 'Vínculo', icon: LinkIcon },
   ] as const;
+
+  // Componente de feedback inline
+  const FeedbackBanner = () => {
+    if (!feedback) return null;
+    const isSuccess = feedback.type === 'success';
+    return (
+      <div
+        className={`mb-3 flex items-center gap-2 rounded-[8px] border px-3 py-2 text-xs font-semibold ${
+          isSuccess
+            ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+            : 'border-rose-200 bg-rose-50 text-rose-700'
+        }`}
+      >
+        {isSuccess ? <CheckCircle2 size={13} /> : <AlertCircle size={13} />}
+        {feedback.message}
+      </div>
+    );
+  };
 
   return (
     <div className="fixed inset-0 z-50">
@@ -123,7 +171,7 @@ export function UserDrawer({
         <header className="sticky top-0 z-10 border-b border-slate-100 bg-white px-6 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-lg font-black text-slate-900">Detalhes do usuario</h3>
+              <h3 className="text-lg font-black text-slate-900">Detalhes do usuário</h3>
               <p className="text-xs font-medium text-slate-500">{user.name}</p>
             </div>
             <button
@@ -156,6 +204,7 @@ export function UserDrawer({
         </header>
 
         <div className="flex-1 p-6">
+          {/* ── ABA GERAL ── */}
           {activeTab === 'geral' && (
             <div className="space-y-4">
               <div>
@@ -200,7 +249,7 @@ export function UserDrawer({
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="mb-1 block text-xs font-bold text-slate-700">Ultimo acesso</label>
+                  <label className="mb-1 block text-xs font-bold text-slate-700">Último acesso</label>
                   <input
                     type="text"
                     value={user.lastActiveAt ? new Date(user.lastActiveAt).toLocaleString('pt-BR') : 'Nunca acessou'}
@@ -220,32 +269,35 @@ export function UserDrawer({
               </div>
 
               <div className="pt-4">
-                {feedback && (
-                  <p className="mb-3 rounded-[8px] border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium text-slate-700">
-                    {feedback}
+                <FeedbackBanner />
+                {geralDirty && (
+                  <p className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold text-amber-600">
+                    <AlertCircle size={11} />
+                    Há alterações não salvas
                   </p>
                 )}
                 <button
                   type="button"
                   onClick={handleSaveGeneral}
-                  disabled={isSaving}
-                  className="crystal-button w-full"
+                  disabled={isSaving || !geralDirty}
+                  className="crystal-button w-full disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {isSaving ? 'Salvando...' : 'Salvar alteracoes'}
+                  {isSaving ? 'Salvando...' : 'Salvar alterações'}
                 </button>
               </div>
             </div>
           )}
 
+          {/* ── ABA PERMISSÕES ── */}
           {activeTab === 'permissoes' && (
             <div className="space-y-6">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-sm font-bold text-slate-900">
-                    Permissoes do perfil {ROLE_LABEL[user.role] ?? user.role}
+                    Permissões do perfil {ROLE_LABEL[user.role] ?? user.role}
                   </p>
                   <p className="text-xs text-slate-500">
-                    Ao personalizar, as permissoes padrao deixam de ser aplicadas.
+                    Ao personalizar, as permissões padrão deixam de ser aplicadas.
                   </p>
                 </div>
                 <div className="flex shrink-0 items-center gap-4 text-xs font-bold">
@@ -259,7 +311,7 @@ export function UserDrawer({
                       }}
                       className="accent-teal-600"
                     />
-                    Padrao
+                    Padrão
                   </label>
                   <label className="flex cursor-pointer items-center gap-2">
                     <input
@@ -296,33 +348,40 @@ export function UserDrawer({
               </div>
 
               <div className="flex items-center justify-between pt-4">
-                {feedback && (
-                  <p className="mr-3 rounded-[8px] border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium text-slate-700">
-                    {feedback}
-                  </p>
-                )}
-                {isCustomPerms && (
+                <div className="flex-1">
+                  <FeedbackBanner />
+                  {permsDirty && (
+                    <p className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold text-amber-600">
+                      <AlertCircle size={11} />
+                      Há alterações não salvas
+                    </p>
+                  )}
+                </div>
+                <div className="ml-3 flex items-center gap-3">
+                  {isCustomPerms && (
+                    <button
+                      onClick={() => {
+                        setIsCustomPerms(false);
+                        setCustomPerms(getDefaultPermissions(user.role));
+                      }}
+                      className="text-xs font-bold text-teal-600 hover:underline"
+                    >
+                      Restaurar padrão
+                    </button>
+                  )}
                   <button
-                    onClick={() => {
-                      setIsCustomPerms(false);
-                      setCustomPerms(getDefaultPermissions(user.role));
-                    }}
-                    className="text-xs font-bold text-teal-600 hover:underline"
+                    onClick={handleSavePerms}
+                    disabled={isSaving || !permsDirty}
+                    className="crystal-button px-6 disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    Restaurar padrao do perfil
+                    {isSaving ? 'Salvando...' : 'Salvar permissões'}
                   </button>
-                )}
-                <button
-                  onClick={handleSavePerms}
-                  disabled={isSaving}
-                  className="crystal-button ml-auto px-6"
-                >
-                  {isSaving ? 'Salvando...' : 'Salvar permissoes'}
-                </button>
+                </div>
               </div>
             </div>
           )}
 
+          {/* ── ABA SEGURANÇA ── */}
           {activeTab === 'seguranca' && (
             <div className="space-y-6">
               <div className="rounded-[12px] border border-slate-200 bg-slate-50 p-4">
@@ -334,17 +393,19 @@ export function UserDrawer({
                     </p>
                   </div>
                   <div>
-                    <p className="font-medium text-slate-500">Ultimo acesso</p>
+                    <p className="font-medium text-slate-500">Último acesso</p>
                     <p className="font-bold text-slate-900">
                       {user.lastActiveAt ? new Date(user.lastActiveAt).toLocaleString('pt-BR') : 'Nunca'}
                     </p>
                   </div>
                   <div>
-                    <p className="font-medium text-slate-500">Tentativas invalidas</p>
-                    <p className="font-bold text-rose-600">{user.failedLoginAttempts ?? 0}</p>
+                    <p className="font-medium text-slate-500">Tentativas inválidas</p>
+                    <p className={`font-bold ${(user.failedLoginAttempts ?? 0) > 0 ? 'text-rose-600' : 'text-slate-900'}`}>
+                      {user.failedLoginAttempts ?? 0}
+                    </p>
                   </div>
                   <div>
-                    <p className="font-medium text-slate-500">Ultima troca de senha</p>
+                    <p className="font-medium text-slate-500">Última troca de senha</p>
                     <p className="font-bold text-slate-900">
                       {user.passwordChangedAt
                         ? new Date(user.passwordChangedAt).toLocaleString('pt-BR')
@@ -353,8 +414,8 @@ export function UserDrawer({
                   </div>
                   <div>
                     <p className="font-medium text-slate-500">Troca pendente</p>
-                    <p className="font-bold text-amber-600">
-                      {user.forcePasswordChange ? 'Sim (obrigatoria no login)' : 'Nao'}
+                    <p className={`font-bold ${user.forcePasswordChange ? 'text-amber-600' : 'text-slate-900'}`}>
+                      {user.forcePasswordChange ? 'Sim (obrigatória no login)' : 'Não'}
                     </p>
                   </div>
                 </div>
@@ -365,7 +426,7 @@ export function UserDrawer({
                   onClick={onResetPassword}
                   className="btn-outline flex items-center justify-center gap-2"
                 >
-                  <KeyRound size={14} /> Redefinir senha com senha temporaria
+                  <KeyRound size={14} /> Redefinir senha temporária
                 </button>
                 <button
                   onClick={onToggleBlock}
@@ -379,6 +440,7 @@ export function UserDrawer({
             </div>
           )}
 
+          {/* ── ABA VÍNCULO ── */}
           {activeTab === 'vinculo' && (
             <div className="space-y-6">
               {user.employee ? (
@@ -390,7 +452,7 @@ export function UserDrawer({
                     <div>
                       <p className="font-bold text-slate-900">{user.employee.name}</p>
                       <p className="text-xs font-medium text-slate-500">
-                        {user.employee.registration ? `Matricula ${user.employee.registration}` : 'Sem matricula'}
+                        {user.employee.registration ? `Matrícula ${user.employee.registration}` : 'Sem matrícula'}
                       </p>
                     </div>
                   </div>
@@ -406,12 +468,13 @@ export function UserDrawer({
                   </div>
                 </div>
               ) : (
-                <div className="rounded-[12px] border border-slate-200 bg-slate-50 p-6 text-center">
+                <div className="rounded-[12px] border border-dashed border-slate-200 bg-slate-50 p-6 text-center">
+                  <LinkIcon size={24} className="mx-auto mb-2 text-slate-300" />
                   <p className="text-sm font-medium text-slate-600">
-                    Este usuario nao esta vinculado a um funcionario.
+                    Este usuário não está vinculado a um funcionário.
                   </p>
                   <p className="mt-1 text-xs text-slate-400">
-                    O vinculo e necessario para acessar Ponto, Ferias e Escala.
+                    O vínculo é necessário para acessar Ponto, Férias e Escala.
                   </p>
                 </div>
               )}
@@ -419,17 +482,39 @@ export function UserDrawer({
               <div className="flex flex-col gap-3">
                 {user.employee ? (
                   <>
-                    <button className="btn-outline flex items-center justify-center gap-2 text-teal-600">
-                      Abrir cadastro do funcionario
+                    <button
+                      onClick={() => {
+                        if (tenant && user.employee?.id) {
+                          router.push(`/${tenant}/dashboard/employees`);
+                          onClose();
+                        }
+                      }}
+                      className="btn-outline flex items-center justify-center gap-2 text-teal-600"
+                    >
+                      <LinkIcon size={14} />
+                      Abrir cadastro do funcionário
                     </button>
-                    <button className="btn-outline flex items-center justify-center gap-2 text-rose-600">
-                      Remover vinculo
-                    </button>
+                    <div className="rounded-[8px] border border-amber-200 bg-amber-50 p-3">
+                      <p className="text-xs font-semibold text-amber-700">
+                        Para remover o vínculo, acesse o cadastro do funcionário e desvincule o usuário de lá. Esta ação exige perfil DEV ou ADMIN.
+                      </p>
+                    </div>
                   </>
                 ) : (
-                  <button className="crystal-button flex items-center justify-center gap-2">
-                    Vincular a um funcionario
-                  </button>
+                  <div className="rounded-[8px] border border-slate-200 bg-slate-50 p-3">
+                    <p className="text-xs font-semibold text-slate-600">
+                      Para vincular este usuário a um funcionário, acesse o módulo de Funcionários, abra o cadastro do funcionário desejado e associe o usuário por lá.
+                    </p>
+                    <button
+                      onClick={() => {
+                        router.push(`/${tenant}/dashboard/employees`);
+                        onClose();
+                      }}
+                      className="crystal-button mt-3 flex w-full items-center justify-center gap-2"
+                    >
+                      Ir para Funcionários
+                    </button>
+                  </div>
                 )}
               </div>
             </div>
