@@ -29,6 +29,7 @@ function repositoryDouble() {
       findByIdWithPassword: vi.fn(),
       update: vi.fn().mockResolvedValue({ count: 1 }),
       findById: vi.fn().mockResolvedValue(safeUser),
+      createAuditLog: vi.fn(),
     },
   };
 }

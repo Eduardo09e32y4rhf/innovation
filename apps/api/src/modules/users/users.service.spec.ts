@@ -21,6 +21,7 @@ function makeRepository(overrides: Record<string, any> = {}) {
     list: vi.fn(),
     listAll: vi.fn(),
     ping: vi.fn(),
+    createAuditLog: vi.fn(),
     ...overrides,
   } as any;
 }
