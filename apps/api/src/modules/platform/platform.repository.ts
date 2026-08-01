@@ -1,4 +1,5 @@
-import { Injectable } from '@nestjs/common';
+import { ConflictException, Injectable } from '@nestjs/common';
+import type { UserRole } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 
 const safeUserSelect = {
@@ -57,12 +58,22 @@ export class PlatformRepository {
     }));
   }
 
-  listCompanyAuditLogs(companyId: string) {
-    return this.prisma.auditLog.findMany({
-      where: { companyId },
-      include: { user: { select: { id: true, name: true, email: true } } },
-      orderBy: { createdAt: 'desc' },
-      take: 100,
+  listCompanyAuditLogs(companyId: string, options?: { page?: number; limit?: number }) {
+    const limit = Math.min(Math.max(options?.limit ?? 25, 1), 100);
+    const page = Math.max(options?.page ?? 1, 1);
+    const skip = (page - 1) * limit;
+    return this.prisma.$transaction(async (tx) => {
+      const [total, data] = await Promise.all([
+        tx.auditLog.count({ where: { companyId } }),
+        tx.auditLog.findMany({
+          where: { companyId },
+          include: { user: { select: { id: true, name: true, email: true } } },
+          orderBy: { createdAt: 'desc' },
+          take: limit,
+          skip,
+        }),
+      ]);
+      return { data, total, page, limit };
     });
   }
 
@@ -108,8 +119,138 @@ export class PlatformRepository {
     return this.prisma.user.findFirst({ where: { id: userId, companyId }, select: safeUserSelect });
   }
 
+  async createWithEmployeeSync(data: {
+    companyId: string;
+    name: string;
+    email: string;
+    passwordHash: string;
+    role: UserRole;
+    customPermissions?: string[];
+  }) {
+    return this.prisma.$transaction(async (tx) => {
+      const user = await tx.user.create({
+        data: {
+          ...data,
+          email: data.email.trim().toLowerCase(),
+          passwordChangedAt: new Date(),
+          forcePasswordChange: false,
+        },
+        select: safeUserSelect,
+      });
+
+      const employee = await tx.employee.findFirst({
+        where: {
+          companyId: data.companyId,
+          email: { equals: data.email.trim().toLowerCase(), mode: 'insensitive' },
+        },
+        select: { id: true, userId: true },
+      });
+
+      if (employee) {
+        if (employee.userId && employee.userId !== user.id) {
+          throw new ConflictException('Este funcionario ja esta vinculado a outro usuario.');
+        }
+        await tx.employee.updateMany({
+          where: { companyId: data.companyId, id: employee.id },
+          data: {
+            userId: user.id,
+            name: data.name,
+            email: data.email.trim().toLowerCase(),
+          },
+        });
+      }
+
+      const createdUser = await tx.user.findFirst({
+        where: { id: user.id, companyId: data.companyId },
+        select: safeUserSelect,
+      });
+      if (!createdUser) throw new ConflictException('Falha ao criar usuario sincronizado.');
+      return createdUser;
+    });
+  }
+
+  async updateWithEmployeeSync(companyId: string, userId: string, data: Record<string, unknown>) {
+    return this.prisma.$transaction(async (tx) => {
+      const current = await tx.user.findFirst({
+        where: { id: userId, companyId },
+        select: { id: true, email: true, name: true, role: true, isActive: true },
+      });
+      if (!current) return { count: 0, user: null };
+
+      const result = await tx.user.updateMany({ where: { id: userId, companyId }, data });
+      if (!result.count) return { count: 0, user: null };
+
+      const nextEmail = typeof data.email === 'string' ? data.email.trim().toLowerCase() : current.email;
+      const nextName = typeof data.name === 'string' ? data.name.trim() : current.name;
+      const linkedEmployee = await tx.employee.findFirst({
+        where: { companyId, userId },
+        select: { id: true, userId: true },
+      });
+      const emailMatchEmployee = linkedEmployee
+        ? null
+        : await tx.employee.findFirst({
+            where: {
+              companyId,
+              email: { equals: nextEmail, mode: 'insensitive' },
+            },
+            select: { id: true, userId: true },
+          });
+      const employee = linkedEmployee ?? emailMatchEmployee;
+
+      if (employee) {
+        if (employee.userId && employee.userId !== userId) {
+          throw new ConflictException('Este funcionario ja esta vinculado a outro usuario.');
+        }
+        await tx.employee.updateMany({
+          where: { companyId, id: employee.id },
+          data: {
+            userId,
+            ...(typeof data.name === 'string' ? { name: nextName } : {}),
+            ...(typeof data.email === 'string' ? { email: nextEmail } : {}),
+          },
+        });
+      }
+
+      const updatedUser = await tx.user.findFirst({
+        where: { id: userId, companyId },
+        select: safeUserSelect,
+      });
+      if (!updatedUser) throw new ConflictException('Falha ao atualizar usuario sincronizado.');
+
+      return {
+        count: result.count,
+        user: updatedUser,
+      };
+    });
+  }
+
+  async deactivateWithEmployeeSync(companyId: string, userId: string) {
+    return this.prisma.$transaction(async (tx) => {
+      const result = await tx.user.updateMany({
+        where: { id: userId, companyId },
+        data: {
+          isActive: false,
+          forcePasswordChange: true,
+          resetPasswordCode: null,
+          resetPasswordExpires: null,
+        },
+      });
+      if (!result.count) return { count: 0, user: null };
+
+      const updatedUser = await tx.user.findFirst({
+        where: { id: userId, companyId },
+        select: safeUserSelect,
+      });
+      if (!updatedUser) throw new ConflictException('Falha ao desativar usuario sincronizado.');
+
+      return {
+        count: result.count,
+        user: updatedUser,
+      };
+    });
+  }
   createCompanyUser(data: any) {
-    // Garante que senha recém-criada não dispare a regra de troca obrigatória de 30 dias
+    // Garante que senha recÃƒÆ’Ã‚Â©m-criada nÃƒÆ’Ã‚Â£o dispare a regra de troca obrigatÃƒÆ’Ã‚Â³ria de 30 dias
     return this.prisma.user.create({
       data: { ...data, passwordChangedAt: new Date(), forcePasswordChange: false },
       select: safeUserSelect,
@@ -121,7 +262,15 @@ export class PlatformRepository {
   }
 
   deleteCompanyUser(companyId: string, userId: string) {
-    return this.prisma.user.deleteMany({ where: { id: userId, companyId } });
+    return this.prisma.user.updateMany({
+      where: { id: userId, companyId },
+      data: {
+        isActive: false,
+        forcePasswordChange: true,
+        resetPasswordCode: null,
+        resetPasswordExpires: null,
+      },
+    });
   }
 
   createCompanyWithAdmin(params: {
@@ -194,12 +343,12 @@ export class PlatformRepository {
 
   async purgeCompany(id: string) {
     return this.prisma.$transaction(async (tx) => {
-      await tx.companySubscription.deleteMany({ where: { companyId: id } }).catch(() => {});
-      await tx.manualContract.deleteMany({ where: { companyId: id } }).catch(() => {});
-      await tx.platformInvoice.deleteMany({ where: { companyId: id } }).catch(() => {});
-      await tx.supportTicket.deleteMany({ where: { companyId: id } }).catch(() => {});
-      await tx.auditLog.deleteMany({ where: { companyId: id } }).catch(() => {});
-      await tx.user.deleteMany({ where: { companyId: id } }).catch(() => {});
+      await tx.companySubscription.deleteMany({ where: { companyId: id } });
+      await tx.manualContract.deleteMany({ where: { companyId: id } });
+      await tx.platformInvoice.deleteMany({ where: { companyId: id } });
+      await tx.supportTicket.deleteMany({ where: { companyId: id } });
+      await tx.auditLog.deleteMany({ where: { companyId: id } });
+      await tx.user.deleteMany({ where: { companyId: id } });
       return tx.company.delete({ where: { id } });
     });
   }
@@ -231,7 +380,7 @@ export class PlatformRepository {
   }
 
   async getFirstAdmin(companyId: string) {
-    // Tenta admin ativo primeiro; fallback para qualquer admin (ghost-mode de emergência)
+    // Tenta admin ativo primeiro; fallback para qualquer admin (ghost-mode de emergÃƒÆ’Ã‚Âªncia)
     const activeAdmin = await this.prisma.user.findFirst({
       where: { companyId, role: 'ADMIN', isActive: true },
     });

@@ -35,6 +35,12 @@ export class JwtAuthGuard implements CanActivate {
       const companyActive = freshUser.company && (freshUser.company.status ?? 'ACTIVE') === 'ACTIVE' && freshUser.company.billingStatus !== 'CANCELED';
       if (role !== 'DEV' && !companyActive) throw new UnauthorizedException(SESSION_DENIED_MESSAGE);
 
+      const tokenIssuedAt = typeof payload?.iat === 'number' ? payload.iat * 1000 : null;
+      const passwordChangedAt = freshUser.passwordChangedAt ? new Date(freshUser.passwordChangedAt).getTime() : 0;
+      if (tokenIssuedAt && passwordChangedAt && tokenIssuedAt < passwordChangedAt) {
+        throw new UnauthorizedException(SESSION_DENIED_MESSAGE);
+      }
+
       const changedAt = freshUser.passwordChangedAt ? new Date(freshUser.passwordChangedAt).getTime() : 0;
       const passwordExpired =
         freshUser.forcePasswordChange || !changedAt || Date.now() - changedAt >= PASSWORD_MAX_AGE_DAYS * 24 * 60 * 60 * 1000;
@@ -55,3 +61,4 @@ export class JwtAuthGuard implements CanActivate {
     }
   }
 }
+

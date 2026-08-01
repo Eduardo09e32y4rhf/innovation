@@ -8,7 +8,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import type { UserRole } from '../../common/types/auth.types';
 import { UsersRepository } from './users.repository';
 
-// SEGURANÇA: e-mail do DEV proprietário da plataforma — definido via variável de ambiente
+// SEGURANCA: e-mail do DEV proprietario da plataforma — definido via variavel de ambiente
 const PLATFORM_OWNER_EMAIL = (process.env.PLATFORM_OWNER_EMAIL ?? '').toLowerCase();
 
 const ROLE_MANAGEMENT: Record<string, string[]> = {
@@ -78,20 +78,40 @@ export class UsersService {
       });
     }
 
-    return this.repository.create({
+    const created = await this.repository.createWithEmployeeSync({
       companyId: targetCompanyId,
       name: normalizeDisplayName(dto.name),
       email,
       passwordHash: await bcrypt.hash(dto.password, 12),
       role: dto.role ?? 'FUNCIONARIO',
-      ...(dto.customPermissions !== undefined ? { customPermissions: dto.customPermissions } : {}),
+      ...(dto.customPermissions !== undefined && dto.customPermissions !== null ? { customPermissions: dto.customPermissions } : {}),
     });
+    if (!created) {
+      throw new NotFoundException('Usuario nao encontrado');
+    }
+
+    await this.repository.createAuditLog({
+      companyId: targetCompanyId,
+      userId: created.id,
+      action: 'USER_CREATED',
+      entity: 'User',
+      entityId: created.id,
+      metadata: {
+        name: created.name,
+        email: created.email,
+        role: created.role,
+        isActive: created.isActive,
+        employeeLinked: Boolean((created as any).employee?.id),
+      },
+    });
+
+    return created;
   }
 
   async update(companyId: string, actor: JwtUser, id: string, dto: UpdateUserDto) {
     this.assertRoleChangeAllowed(actor, dto.role);
-    const user = await this.get(companyId, actor, id);
-    if (user.role && !this.canManageRole(actor.role, user.role)) {
+    const before = await this.get(companyId, actor, id);
+    if (before.role && !this.canManageRole(actor.role, before.role)) {
       throw new ForbiddenException('Voce nao tem permissao para editar este usuario.');
     }
 
@@ -102,11 +122,36 @@ export class UsersService {
       ...(email !== undefined ? { email: email.trim().toLowerCase() } : {}),
       ...(password ? { passwordHash: await bcrypt.hash(password, 12) } : {}),
     };
-    const result = actor.role === 'DEV'
-      ? await this.repository.update(id, data)
-      : await this.repository.update(id, data, companyId);
-    if (!result.count) throw new NotFoundException('Usuario nao encontrado');
-    return this.get(companyId, actor, id);
+
+    const result = await this.repository.updateWithEmployeeSync(companyId, id, data);
+    if (!result.count || !result.user) throw new NotFoundException('Usuario nao encontrado');
+
+    await this.repository.createAuditLog({
+      companyId,
+      userId: id,
+      action: 'USER_UPDATED',
+      entity: 'User',
+      entityId: id,
+      metadata: {
+        previous: {
+          name: before.name,
+          email: before.email,
+          role: before.role,
+          isActive: before.isActive,
+          customPermissions: before.customPermissions ?? null,
+        },
+        next: {
+          name: result.user.name,
+          email: result.user.email,
+          role: result.user.role,
+          isActive: result.user.isActive,
+          customPermissions: result.user.customPermissions ?? null,
+        },
+        changedFields: Object.keys(data),
+      },
+    });
+
+    return result.user;
   }
 
   async resetPassword(companyId: string, actor: JwtUser, id: string, dto: ResetUserPasswordDto) {
@@ -120,7 +165,7 @@ export class UsersService {
     if (actor.sub === id) {
       throw new ConflictException('Nao e permitido resetar a propria senha por esta acao.');
     }
-    
+
     if (!dto.newPassword) {
       throw new BadRequestException('A nova senha nao foi fornecida');
     }
@@ -152,6 +197,21 @@ export class UsersService {
       ? await this.repository.update(id, data)
       : await this.repository.update(id, data, companyId);
     if (!result.count) throw new NotFoundException('Usuario nao encontrado');
+
+    await this.repository.createAuditLog({
+      companyId: user.companyId,
+      userId: user.id,
+      action: 'PASSWORD_RESET_COMPLETED',
+      entity: 'User',
+      entityId: user.id,
+      metadata: {
+        requestedBy: actor.email,
+        passwordChangedAt: new Date().toISOString(),
+        forcePasswordChange: true,
+        previousPasswordCount: (user.previousPasswords ?? []).length,
+      },
+    });
+
     return this.get(companyId, actor, id);
   }
 
@@ -162,10 +222,24 @@ export class UsersService {
       throw new ForbiddenException('Voce nao tem permissao para deletar este usuario.');
     }
     const result = actor.role === 'DEV'
-      ? await this.repository.delete(id)
-      : await this.repository.delete(id, companyId);
-    if (!result.count) throw new NotFoundException('Usuario nao encontrado');
-    return { deleted: true };
+      ? await this.repository.deactivateWithEmployeeSync(companyId, id)
+      : await this.repository.deactivateWithEmployeeSync(companyId, id);
+    if (!result.count || !result.user) throw new NotFoundException('Usuario nao encontrado');
+
+    await this.repository.createAuditLog({
+      companyId,
+      userId: actor.sub,
+      action: 'USER_DEACTIVATED',
+      entity: 'User',
+      entityId: id,
+      metadata: {
+        previous: { isActive: user.isActive, role: user.role },
+        next: { isActive: false, forcePasswordChange: true },
+        requestedBy: actor.email,
+      },
+    });
+
+    return { deleted: true, deactivated: true };
   }
 
   async usage(companyId: string) {
@@ -224,5 +298,3 @@ export class UsersService {
     return ROLE_MANAGEMENT[actorRole.toUpperCase()]?.includes(targetRole.toUpperCase()) ?? false;
   }
 }
-
-

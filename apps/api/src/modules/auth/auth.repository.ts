@@ -129,7 +129,11 @@ export class AuthRepository {
   }
 
   deleteIncompleteCompany(id: string) {
-    return this.prisma.company.delete({ where: { id } });
+    return this.prisma.$transaction(async (tx) => {
+      await tx.user.deleteMany({ where: { companyId: id } });
+      await tx.companySubscription.deleteMany({ where: { companyId: id } });
+      return tx.company.deleteMany({ where: { id } });
+    });
   }
 
   createCompanyWithAdmin(data: {

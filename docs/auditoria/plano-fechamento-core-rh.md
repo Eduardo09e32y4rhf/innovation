@@ -43,10 +43,28 @@ Fechar os fluxos reais do sistema, removendo:
 
 ### Fechamento operacional ainda pendente
 
-- [x] 31/07/2026 - Publicar as alteracoes locais em `main` (commit `8bdcd47a` enviado para `origin/main`).
+- [ ] 01/08/2026 - Publicar as alteracoes locais em `main` apos o fechamento completo do restante do escopo.
 - [ ] 30/07/2026 - Aplicar as duas migrations na VPS e executar o deploy.
 - [ ] 30/07/2026 - Executar smoke manual de login, candidatura, PDFs e fluxos principais na VPS.
 - [ ] 30/07/2026 - Validar backup e rollback antes de declarar producao fechada.
+
+### Atualizacao de 01/08/2026
+
+#### Feito hoje
+
+- [x] 01/08/2026 - Login publico ajustado para expor entrada clara para o site e atalho direto para cadastro.
+- [x] 01/08/2026 - Cadastro publico ajustado para manter visiveis quantidade de usuarios e cupom promocional sem quebrar a tela.
+- [x] 01/08/2026 - Usuarios ajustados com resumo mais claro e modal de criacao com contexto de acesso temporario.
+- [x] 01/08/2026 - Suporte ajustado para responder com toast e manter retorno operacional visivel.
+- [x] 01/08/2026 - Teste de reset de senha do usuario adicionado na API.
+- [x] 01/08/2026 - Baseline local validada com `validate`, `build`, `test:unit`, `test:contract` e `test:security`.
+
+#### Pendencias reais
+
+- [ ] 01/08/2026 - Revalidar a suite E2E financeira depois das mudancas recentes.
+- [ ] 01/08/2026 - Executar deploy controlado na VPS com as migrations pendentes.
+- [ ] 01/08/2026 - Fazer smoke manual em producao/staging para login, candidatura, financeiro, PDFs e suporte.
+- [ ] 01/08/2026 - Confirmar backup e rollback antes de marcar producao como fechada.
 
 ## Ordem de execucao
 
@@ -277,3 +295,20 @@ Fechar os fluxos reais do sistema, removendo:
 - [ ] O fechamento nao depende de aproximacao local
 - [ ] O mobile nao quebra a experiencia
 - [ ] O deploy da VPS reproduz o mesmo estado do GitHub
+
+### Atualizacao backend de 01/08/2026
+
+#### Feito hoje no backend
+
+- [x] 01/08/2026 - JWT invalidado corretamente apos reset/troca de senha usando `iat` e `passwordChangedAt`.
+- [x] 01/08/2026 - Criacao/edicao/desativacao de usuarios passou a sincronizar Employee e registrar auditoria.
+- [x] 01/08/2026 - Usuarios da Plataforma passaram a sincronizar com Employee, com auditoria e paginação da auditoria por empresa.
+- [x] 01/08/2026 - Permissoes globais passaram a salvar com auditoria e sem no-op silencioso.
+- [x] 01/08/2026 - Prisma validate, Prisma generate, build da API e testes nativos da API aprovados localmente.
+
+#### Pendencias reais
+
+- [ ] 01/08/2026 - Revalidar a suite E2E financeira depois das mudancas recentes.
+- [ ] 01/08/2026 - Executar deploy controlado na VPS com as migrations pendentes.
+- [ ] 01/08/2026 - Fazer smoke manual em producao/staging para login, candidatura, financeiro, PDFs e suporte.
+- [ ] 01/08/2026 - Confirmar backup e rollback antes de marcar producao como fechada.

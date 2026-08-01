@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { api } from '@/app/lib/api';
 import {
@@ -165,8 +166,9 @@ export default function PlatformSupportPage() {
       const updated = await api.platformSupport.get(selectedTicket.id);
       if (updated) setSelectedTicket(updated);
       void loadTickets();
+      toast.success(isInternalNote ? 'Nota interna enviada.' : 'Resposta enviada.');
     } catch (err: any) {
-      alert(err?.message || 'Erro ao enviar resposta.');
+      toast.error(err?.message || 'Erro ao enviar resposta.');
     } finally {
       setSendingReply(false);
     }
@@ -181,8 +183,9 @@ export default function PlatformSupportPage() {
       const updated = await api.platformSupport.get(selectedTicket.id);
       if (updated) setSelectedTicket(updated);
       void loadTickets();
+      toast.success('Chamado assumido com sucesso.');
     } catch (err: any) {
-      alert(err?.message || 'Erro ao assumir chamado.');
+      toast.error(err?.message || 'Erro ao assumir chamado.');
     } finally {
       setUpdatingStatus(false);
     }
@@ -197,8 +200,9 @@ export default function PlatformSupportPage() {
       const updated = await api.platformSupport.get(selectedTicket.id);
       if (updated) setSelectedTicket(updated);
       void loadTickets();
+      toast.success('Status atualizado.');
     } catch (err: any) {
-      alert(err?.message || 'Erro ao atualizar status.');
+      toast.error(err?.message || 'Erro ao atualizar status.');
     } finally {
       setUpdatingStatus(false);
     }
@@ -213,8 +217,9 @@ export default function PlatformSupportPage() {
       const updated = await api.platformSupport.get(selectedTicket.id);
       if (updated) setSelectedTicket(updated);
       void loadTickets();
+      toast.success('Chamado resolvido.');
     } catch (err: any) {
-      alert(err?.message || 'Erro ao resolver chamado.');
+      toast.error(err?.message || 'Erro ao resolver chamado.');
     } finally {
       setUpdatingStatus(false);
     }
@@ -229,8 +234,9 @@ export default function PlatformSupportPage() {
       }
       const updated = await api.platformSupport.get(selectedTicket.id);
       if (updated) setSelectedTicket(updated);
+      toast.success('Anexo enviado.');
     } catch (err: any) {
-      alert(err?.message || 'Erro ao enviar anexo.');
+      toast.error(err?.message || 'Erro ao enviar anexo.');
     } finally {
       setUploadingAttachment(false);
     }
@@ -240,8 +246,9 @@ export default function PlatformSupportPage() {
     if (!selectedTicket) return;
     try {
       await api.support.downloadAttachment(selectedTicket.id, attachment.id);
+      toast.success('Download iniciado.');
     } catch (err: any) {
-      alert(err?.message || 'Erro ao baixar anexo.');
+      toast.error(err?.message || 'Erro ao baixar anexo.');
     }
   };
 

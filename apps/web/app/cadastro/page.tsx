@@ -13,6 +13,8 @@ import {
   Mail,
   Phone,
   ShieldCheck,
+  Users,
+  Sparkles,
   User,
   FileText,
 } from 'lucide-react';
@@ -312,6 +314,40 @@ function CadastroForm() {
                 </div>
               </label>
             ))}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="group relative">
+            <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400 transition-colors group-focus-within:text-brand-500">
+              <Users size={18} />
+            </div>
+            <input
+              type="number"
+              min={1}
+              name="seatQuantity"
+              placeholder="Quantidade de usuários"
+              value={formData.seatQuantity}
+              onChange={(e) => setFormData((current) => ({ ...current, seatQuantity: Math.max(1, Number(e.target.value) || 1) }))}
+              disabled={loading}
+              required
+              className="h-12 w-full rounded-[14px] border border-slate-200/80 bg-slate-50/50 pl-11 pr-4 text-sm font-medium text-slate-900 outline-none transition-all focus:border-brand-500 focus:bg-white focus:ring-4 focus:ring-brand-500/10 disabled:opacity-60"
+            />
+          </div>
+
+          <div className="group relative">
+            <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400 transition-colors group-focus-within:text-brand-500">
+              <Sparkles size={18} />
+            </div>
+            <input
+              type="text"
+              name="couponCode"
+              placeholder="Cupom promocional (opcional)"
+              value={formData.couponCode}
+              onChange={handleChange}
+              disabled={loading}
+              className="h-12 w-full rounded-[14px] border border-slate-200/80 bg-slate-50/50 pl-11 pr-4 text-sm font-medium text-slate-900 outline-none transition-all focus:border-brand-500 focus:bg-white focus:ring-4 focus:ring-brand-500/10 disabled:opacity-60"
+            />
           </div>
         </div>
 
