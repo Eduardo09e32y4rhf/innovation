@@ -92,7 +92,7 @@ export default function UsersPage() {
   
   const users = useQuery(() => api.users.list(), []);
   const usage = useQuery(() => api.users.usage(), []);
-  const companies = useQuery(() => api.platform.listCompanies(), [], { enabled: currentRole === 'DEV' });
+  const companies = useQuery(() => api.platform.listCompanies({ limit: 1000 }).then(res => res.data), [], { enabled: currentRole === 'DEV' });
 
   const remove = useMutation((id: string) => api.users.delete(id), {
     onSuccess: () => { users.refetch(); usage.refetch(); },

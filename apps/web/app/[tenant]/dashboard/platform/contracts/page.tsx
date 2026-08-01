@@ -115,12 +115,12 @@ export default function ContractsPage({ params: { tenant } }: { params: { tenant
     try {
       const [contractsRes, companiesRes, plansRes] = await Promise.allSettled([
         api.manualContracts.list(companyFilter ? { companyId: companyFilter } : undefined),
-        api.platform.listCompanies(),
+        api.platform.listCompanies({ limit: 1000 }),
         api.platform.listPlans(),
       ]);
 
       if (contractsRes.status === 'fulfilled' && Array.isArray(contractsRes.value)) setContracts(contractsRes.value);
-      if (companiesRes.status === 'fulfilled' && Array.isArray(companiesRes.value)) setCompanies(companiesRes.value);
+      if (companiesRes.status === 'fulfilled' && companiesRes.value && typeof companiesRes.value === 'object' && 'data' in companiesRes.value) setCompanies((companiesRes.value as any).data);
       if (plansRes.status === 'fulfilled' && Array.isArray(plansRes.value)) setPlans(plansRes.value);
 
       if (companyFilter && !form.companyId && companiesRes.status === 'fulfilled') {

@@ -112,7 +112,7 @@ export default function FinancePage({ params: { tenant } }: { params: { tenant: 
   );
   const webhookEvents = useQuery(() => api.platform.finance.webhookEvents({ limit: 12 }), []);
   const billingAuditLogs = useQuery(() => api.platform.finance.billingAuditLogs({ limit: 12 }), []);
-  const companies = useQuery(() => api.platform.listCompanies(), [], { enabled: showModal || Boolean(editingInvoice) });
+  const companies = useQuery(() => api.platform.listCompanies({ limit: 1000 }).then(res => res.data), [], { enabled: showModal || Boolean(editingInvoice) });
   const [retryingWebhookId, setRetryingWebhookId] = useState<string | null>(null);
   const [selectedInvoice, setSelectedInvoice] = useState<PlatformInvoice | null>(null);
 

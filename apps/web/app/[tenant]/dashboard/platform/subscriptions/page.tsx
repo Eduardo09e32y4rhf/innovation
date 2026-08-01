@@ -141,13 +141,13 @@ export default function SubscriptionsPage({ params: { tenant } }: { params: { te
     setLoading(true);
     setError('');
     try {
-      const [companiesData, plansData, summaryData, logsData] = await Promise.all([
-        api.platform.listCompanies(),
+      const [companiesResponse, plansData, summaryData, logsData] = await Promise.all([
+        api.platform.listCompanies({ limit: 1000 }),
         api.platform.listPlans(),
         api.platform.finance.summary(),
         api.platform.finance.billingAuditLogs({ limit: 80 }),
       ]);
-      setCompanies(companiesData || []);
+      setCompanies(companiesResponse?.data || []);
       setPlans((plansData || []) as PublicPlatformPlan[]);
       setSummary(summaryData);
       setAuditLogs(logsData || []);

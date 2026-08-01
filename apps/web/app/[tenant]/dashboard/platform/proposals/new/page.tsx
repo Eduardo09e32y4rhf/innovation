@@ -31,8 +31,8 @@ export default function NewProposalPage() {
 
   const loadCompanies = async () => {
     try {
-      const data = await api.platform.listCompanies();
-      setCompanies(data.filter((c: any) => c.status !== 'CANCELLED'));
+      const data = await api.platform.listCompanies({ limit: 1000 });
+      setCompanies((data?.data || []).filter((c: any) => c.status !== 'CANCELLED'));
     } catch (err) {
       toast.error('Erro ao carregar empresas');
     }

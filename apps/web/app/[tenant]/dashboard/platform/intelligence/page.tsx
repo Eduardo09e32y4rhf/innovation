@@ -14,7 +14,7 @@ export default function IntelligencePage({ params }: { params: { tenant: string 
   const [riskData, setRiskData] = useState<Record<string, any>>({});
   const [summaryData, setSummaryData] = useState<Record<string, any>>({});
 
-  const companies = useQuery(() => api.platform.listCompanies(), []);
+  const companies = useQuery(() => api.platform.listCompanies({ limit: 1000 }).then(res => res.data), []);
 
   const filtered = useMemo(() => {
     if (!companies.data) return [];

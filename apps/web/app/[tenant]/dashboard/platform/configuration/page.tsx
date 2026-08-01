@@ -92,13 +92,13 @@ export default function PlatformConfigurationPage({
 
     try {
       const [companies, plans, permissions] = await Promise.all([
-        api.platform.listCompanies(),
+        api.platform.listCompanies({ limit: 1000 }),
         api.platform.listPlans() as Promise<PlanWithStatus[]>,
         request<GlobalPermission[]>('/platform/global-permissions'),
       ]);
 
       setSnapshot({
-        companies: companies ?? [],
+        companies: companies?.data ?? [],
         plans: plans ?? [],
         permissions: permissions ?? [],
         loadedAt: new Date(),
