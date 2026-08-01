@@ -470,7 +470,7 @@ export default function TimeTrackPage() {
       {refreshing && <p className="rounded-[8px] border border-teal-200 bg-teal-50 px-4 py-2 text-xs font-semibold text-teal-700">Atualizando...</p>}
 
       {initialLoading ? <LoadingState label="Carregando folha de ponto..."/> :
-       tracks.error && !tracks.data ? <ErrorState message={tracks.error} onRetry={tracks.refetch}/> :
+       tracks.error && !tracks.data ? <ErrorState message={tracks.error} retry={tracks.refetch}/> :
        (empFilter || isFunc) && selected ? (
         <div>
           {tab === 'ponto' ? (
