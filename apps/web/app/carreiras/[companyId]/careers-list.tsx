@@ -172,27 +172,27 @@ export function CareersList({ companyId }: CareersListProps) {
       className="min-h-screen bg-[#f4f7f6] text-slate-950 selection:bg-teal-200"
       style={{ '--career-accent': accent } as React.CSSProperties}
     >
-      <section className="relative overflow-hidden bg-[#071711] text-white">
-        <div className="absolute inset-0 opacity-40 [background-image:radial-gradient(circle_at_15%_10%,var(--career-accent),transparent_32%),radial-gradient(circle_at_85%_80%,#0f766e,transparent_25%)]" />
-        <div className="absolute inset-0 opacity-[0.06] [background-image:linear-gradient(rgba(255,255,255,.8)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.8)_1px,transparent_1px)] [background-size:44px_44px]" />
+      <section className="relative overflow-hidden bg-white text-slate-950">
+        <div className="absolute inset-0 opacity-20 [background-image:radial-gradient(circle_at_15%_10%,var(--career-accent),transparent_25%),radial-gradient(circle_at_85%_80%,#e2e8f0,transparent_25%)]" />
+        <div className="absolute inset-0 opacity-[0.4] [background-image:linear-gradient(rgba(226,232,240,.6)_1px,transparent_1px),linear-gradient(90deg,rgba(226,232,240,.6)_1px,transparent_1px)] [background-size:44px_44px]" />
 
         <div className="relative mx-auto max-w-7xl px-5 pb-16 pt-6 sm:px-8 sm:pb-24 sm:pt-8">
           <header className="flex items-center justify-between">
             <CareersBrand company={company} companyId={companyId} />
-            <span className="hidden rounded-full border border-white/15 bg-white/5 px-4 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-slate-300 sm:inline-flex">
+            <span className="hidden rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-slate-500 sm:inline-flex">
               Oportunidades abertas
             </span>
           </header>
 
           <div className="mt-16 max-w-3xl sm:mt-24">
-            <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-teal-100 backdrop-blur">
+            <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/60 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-[var(--career-accent)] backdrop-blur shadow-sm">
               <Sparkles size={13} aria-hidden="true" />
               Faça parte do nosso time
             </span>
-            <h1 className="mt-6 text-4xl font-black leading-[1.02] tracking-[-0.04em] sm:text-6xl">
+            <h1 className="mt-6 text-4xl font-black leading-[1.02] tracking-[-0.04em] sm:text-6xl text-slate-900">
               Seu próximo desafio pode começar aqui.
             </h1>
-            <p className="mt-5 max-w-2xl text-base leading-7 text-slate-300 sm:text-lg">
+            <p className="mt-5 max-w-2xl text-base leading-7 text-slate-600 sm:text-lg">
               {company.description ||
                 `Conheça as oportunidades abertas na ${company.name} e encontre uma vaga que combine com o seu talento.`}
             </p>

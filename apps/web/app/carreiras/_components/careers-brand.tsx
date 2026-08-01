@@ -19,13 +19,13 @@ export function CareersBrand({ company, companyId, compact = false }: CareersBra
       aria-label={`Vagas da ${company.name}`}
     >
       <span
-        className={`relative shrink-0 overflow-hidden border border-white/15 shadow-[0_12px_30px_-14px_rgba(15,23,42,.8)] ${
+        className={`relative flex shrink-0 items-center justify-center overflow-hidden border border-slate-200/60 shadow-sm transition group-hover:border-slate-300 group-hover:shadow-md ${
           compact ? 'h-12 w-12 rounded-2xl' : 'h-14 w-14 rounded-[18px]'
-        } bg-slate-950`}
+        } bg-white`}
       >
         <span
-          className="absolute inset-0 opacity-80"
-          style={{ background: `linear-gradient(135deg, ${accent}25, #020617)` }}
+          className="absolute inset-0 opacity-10"
+          style={{ background: `linear-gradient(135deg, ${accent}50, transparent)` }}
         />
         {company.logoUrl ? (
           <Image
@@ -47,10 +47,10 @@ export function CareersBrand({ company, companyId, compact = false }: CareersBra
       </span>
 
       <span className="min-w-0">
-        <span className="block truncate text-sm font-black tracking-tight text-white sm:text-base">
+        <span className="block truncate text-sm font-black tracking-tight text-slate-950 sm:text-base transition group-hover:text-slate-700">
           {company.name}
         </span>
-        <span className="mt-0.5 block text-[10px] font-bold uppercase tracking-[0.22em] text-slate-400">
+        <span className="mt-0.5 block text-[10px] font-bold uppercase tracking-[0.22em] text-slate-500">
           Portal de carreiras
         </span>
       </span>

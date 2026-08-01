@@ -243,34 +243,37 @@ export function JobDetails({ companyId, jobId }: JobDetailsProps) {
       className="min-h-screen bg-[#f4f7f6] text-slate-950 selection:bg-teal-200"
       style={{ '--career-accent': accent } as React.CSSProperties}
     >
-      <section className="relative overflow-hidden bg-[#071711] text-white">
-        <div className="absolute inset-0 opacity-40 [background-image:radial-gradient(circle_at_15%_15%,var(--career-accent),transparent_30%),radial-gradient(circle_at_90%_100%,#0f766e,transparent_26%)]" />
-        <div className="absolute inset-0 opacity-[0.05] [background-image:linear-gradient(rgba(255,255,255,.8)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.8)_1px,transparent_1px)] [background-size:44px_44px]" />
+      <section className="relative overflow-hidden bg-white text-slate-950">
+        <div className="absolute inset-0 opacity-20 [background-image:radial-gradient(circle_at_15%_15%,var(--career-accent),transparent_30%),radial-gradient(circle_at_90%_100%,#e2e8f0,transparent_26%)]" />
+        <div className="absolute inset-0 opacity-[0.4] [background-image:linear-gradient(rgba(226,232,240,.6)_1px,transparent_1px),linear-gradient(90deg,rgba(226,232,240,.6)_1px,transparent_1px)] [background-size:44px_44px]" />
         <div className="relative mx-auto max-w-6xl px-5 pb-20 pt-6 sm:px-8 sm:pb-28 sm:pt-8">
-          <CareersBrand company={company} companyId={companyId} compact />
+          <div className="flex items-center justify-between">
+            <CareersBrand company={company} companyId={companyId} compact />
+            
+            <Link
+              href={`/carreiras/${encodeURIComponent(companyId)}`}
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 text-xs font-black text-slate-600 shadow-sm transition hover:border-slate-300 hover:bg-white hover:text-slate-950"
+            >
+              <ArrowLeft size={15} aria-hidden="true" />
+              Ver todas as vagas
+            </Link>
+          </div>
 
-          <Link
-            href={`/carreiras/${encodeURIComponent(companyId)}`}
-            className="mt-12 inline-flex items-center gap-2 text-xs font-black text-slate-300 transition hover:text-white sm:mt-16"
-          >
-            <ArrowLeft size={15} aria-hidden="true" />
-            Todas as oportunidades
-          </Link>
-          <div className="mt-6 max-w-4xl">
+          <div className="mt-12 max-w-4xl sm:mt-16">
             <div className="flex flex-wrap gap-2">
               {job.department && (
-                <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-teal-100">
+                <span className="rounded-full border border-slate-200 bg-white/60 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-[var(--career-accent)] shadow-sm backdrop-blur">
                   {job.department}
                 </span>
               )}
-              <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-slate-200">
+              <span className="rounded-full border border-slate-200 bg-white/60 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-slate-500 shadow-sm backdrop-blur">
                 Vaga aberta
               </span>
             </div>
-            <h1 className="mt-5 text-3xl font-black leading-tight tracking-[-0.035em] sm:text-5xl">
+            <h1 className="mt-5 text-3xl font-black leading-tight tracking-[-0.035em] sm:text-5xl text-slate-900">
               {job.title}
             </h1>
-            <div className="mt-6 flex flex-wrap gap-x-6 gap-y-3 text-sm font-semibold text-slate-300">
+            <div className="mt-6 flex flex-wrap gap-x-6 gap-y-3 text-sm font-semibold text-slate-600">
               <span className="inline-flex items-center gap-2">
                 <MapPin size={16} aria-hidden="true" />
                 {job.location || 'Local a combinar'}

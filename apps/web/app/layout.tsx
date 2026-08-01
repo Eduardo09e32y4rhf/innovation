@@ -8,10 +8,6 @@ export const metadata: Metadata = {
     template: '%s | Innovation RH System',
   },
   description: 'Plataforma de RH com controle de ponto, férias, alertas e comunicação corporativa.',
-  icons: {
-    icon: '/innovation-logo-dark.png',
-    apple: '/innovation-logo-dark.png',
-  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
