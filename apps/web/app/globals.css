@@ -56,7 +56,7 @@
 
   /* Card de estatística compacto */
   .card-stat {
-    @apply rounded-3xl bg-white/80 backdrop-blur-xl border border-slate-200/50 shadow-[0_20px_50px_rgba(0,0,0,0.05)] p-5 flex flex-col gap-1 transition-all hover:shadow-lg relative group;
+    @apply rounded-3xl bg-white/80 backdrop-blur-xl border border-slate-200/50 shadow-[0_20px_50px_rgba(0,0,0,0.05)] p-5 flex flex-col gap-1 transition-all hover:shadow-lg relative;
   }
   .card-stat-label {
     @apply text-[10px] font-bold uppercase tracking-widest text-slate-400;
