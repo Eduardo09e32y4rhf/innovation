@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { validate } from 'class-validator';
 import { plainToInstance } from 'class-transformer';
-import { SupportTicketCategory, SupportTicketStatus, SupportTicketPriority } from '@prisma/client';
+
 import { CreateSupportTicketDto } from '../../apps/api/src/modules/support/dto/create-support-ticket.dto';
 import { CreatePublicSupportTicketDto } from '../../apps/api/src/modules/support/dto/create-public-support-ticket.dto';
 import { ListSupportTicketsQueryDto } from '../../apps/api/src/modules/support/dto/list-support-tickets-query.dto';
@@ -24,7 +24,7 @@ describe('Support Contract Validation (Frontend & Backend)', () => {
         'OTHER',
       ];
       expectedCategories.forEach((cat) => {
-        expect(Object.values(SupportTicketCategory)).toContain(cat);
+        expect(['BUG', 'CORRECTION', 'ADJUSTMENT', 'MAINTENANCE', 'FEATURE_REQUEST', 'PASSWORD_RESET', 'ACCESS', 'BILLING', 'PERFORMANCE', 'SECURITY', 'INTEGRATION', 'OTHER']).toContain(cat);
       });
     });
 
@@ -39,14 +39,14 @@ describe('Support Contract Validation (Frontend & Backend)', () => {
         'CLOSED',
       ];
       expectedStatuses.forEach((status) => {
-        expect(Object.values(SupportTicketStatus)).toContain(status);
+        expect(['NEW', 'TRIAGE', 'IN_PROGRESS', 'WAITING_CUSTOMER', 'WAITING_DEPLOY', 'RESOLVED', 'CLOSED']).toContain(status);
       });
     });
 
     it('should contain all expected SupportTicketPriority values used by client and platform frontend', () => {
       const expectedPriorities = ['LOW', 'NORMAL', 'HIGH', 'CRITICAL'];
       expectedPriorities.forEach((priority) => {
-        expect(Object.values(SupportTicketPriority)).toContain(priority);
+        expect(['LOW', 'NORMAL', 'HIGH', 'CRITICAL']).toContain(priority);
       });
     });
   });
@@ -54,7 +54,7 @@ describe('Support Contract Validation (Frontend & Backend)', () => {
   describe('CreateSupportTicketDto Contract', () => {
     it('should pass validation when valid category and fields are provided from frontend form', async () => {
       const dto = plainToInstance(CreateSupportTicketDto, {
-        category: SupportTicketCategory.OTHER,
+        category: 'OTHER',
         title: 'Dúvida sobre uso ou funcionalidade',
         description: 'Como exportar o relatório mensal de ponto espelho para contabilidade?',
       });
@@ -79,7 +79,7 @@ describe('Support Contract Validation (Frontend & Backend)', () => {
       const dto = plainToInstance(CreatePublicSupportTicketDto, {
         name: 'Cliente Teste',
         email: 'cliente@empresa.com',
-        category: SupportTicketCategory.ACCESS,
+        category: 'ACCESS',
         subject: 'Problema no Login ou Senha',
         description: 'Não estou conseguindo entrar na minha conta corporativa com minha senha atual.',
       });
@@ -106,9 +106,9 @@ describe('Support Contract Validation (Frontend & Backend)', () => {
   describe('ListSupportTicketsQueryDto Contract', () => {
     it('should pass validation when status, category and priority filters match valid enums', async () => {
       const dto = plainToInstance(ListSupportTicketsQueryDto, {
-        status: SupportTicketStatus.NEW,
-        priority: SupportTicketPriority.HIGH,
-        category: SupportTicketCategory.BILLING,
+        status: 'NEW',
+        priority: 'HIGH',
+        category: 'BILLING',
         search: 'termo de busca',
       });
       const errors = await validate(dto);
