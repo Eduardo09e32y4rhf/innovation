@@ -3,7 +3,9 @@ import { GlobalPermissionsService } from './global-permissions.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
-import { UserRole } from '@prisma/client';
+import { $Enums } from '@prisma/client';
+type UserRole = $Enums.UserRole;
+const UserRole = $Enums.UserRole;
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('DEV')

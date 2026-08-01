@@ -237,7 +237,7 @@ export class ManualContractsService {
     }
   }
 
-  private async setupBilling(contract: any, actorId: string) {
+  private async setupBilling(contract: { companyId: string, id: string, plan?: { id: string, name: string } | null, company: { name: string }, startsAt: Date }, actorId: string) {
     try {
       const nextDueDate = new Date(contract.startsAt);
       nextDueDate.setUTCMonth(nextDueDate.getUTCMonth() + 1);
