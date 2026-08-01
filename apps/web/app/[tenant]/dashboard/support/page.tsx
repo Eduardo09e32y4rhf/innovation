@@ -22,6 +22,7 @@ import {
 import { ErrorState, EmptyState, LoadingState } from '@/app/components/data-states';
 import { toast } from 'sonner';
 import PlatformSupportPage from '../platform/support/page';
+import { TicketWizardSlideover } from './_components/ticket-wizard-slideover';
 
 interface SupportMessage {
   id: string;
@@ -607,95 +608,31 @@ function CustomerSupportPage() {
         </div>
       )}
 
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-lg animate-in zoom-in-95 rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl md:p-8">
-            <div className="mb-6 flex items-center justify-between border-b border-slate-100 pb-4">
-              <div>
-                <h3 className="text-xl font-black text-slate-900">Abrir novo chamado</h3>
-                <p className="mt-0.5 text-xs text-slate-500">Nossa equipe responderá o mais rápido possível.</p>
-              </div>
-              <button onClick={() => setShowModal(false)} className="rounded-full p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600">
-                <X size={20} />
-              </button>
-            </div>
-
-            <form onSubmit={handleCreateTicket} className="space-y-4">
-              <div>
-                <label className="mb-1.5 block text-xs font-bold text-slate-700">Assunto ou tipo de solicitação</label>
-                <select
-                  value={newCategory}
-                  onChange={(e) => setNewCategory(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 bg-white p-3 text-sm font-medium outline-none focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10"
-                >
-                  <option value="OTHER">Dúvida sobre uso ou funcionalidade</option>
-                  <option value="BUG">Problema técnico ou erro no sistema</option>
-                  <option value="BILLING">Faturamento, plano ou financeiro</option>
-                  <option value="FEATURE_REQUEST">Sugestão de nova melhoria ou recurso</option>
-                  <option value="SECURITY">Acesso, permissões ou segurança</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="mb-1.5 block text-xs font-bold text-slate-700">Título curto</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Ex: Erro ao emitir espelho de ponto da filial SP"
-                  value={newTitle}
-                  onChange={(e) => setNewTitle(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 p-3 text-sm font-medium outline-none focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10"
-                />
-              </div>
-
-              <div>
-                <label className="mb-1.5 block text-xs font-bold text-slate-700">Descrição detalhada</label>
-                <textarea
-                  required
-                  rows={5}
-                  placeholder="Explique o que aconteceu, o passo a passo para reproduzir o problema e o impacto para a operação."
-                  value={newDescription}
-                  onChange={(e) => setNewDescription(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 p-3 text-sm font-medium outline-none focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10"
-                />
-              </div>
-
-              <div>
-                <label className="mb-1.5 block text-xs font-bold text-slate-700">Prints ou documentos</label>
-                <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-violet-300 bg-violet-50 p-4 text-xs font-black text-violet-700 hover:bg-violet-100">
-                  <Upload size={16} />
-                  {newFiles.length ? `${newFiles.length} arquivo(s) selecionado(s)` : 'Selecionar até 5 arquivos'}
-                  <input
-                    type="file"
-                    multiple
-                    accept=".png,.jpg,.jpeg,.webp,.pdf,.txt,.mp4,.webm"
-                    className="sr-only"
-                    onChange={(event) => setNewFiles(Array.from(event.target.files ?? []).slice(0, 5))}
-                  />
-                </label>
-                <p className="mt-1.5 text-[10px] text-slate-400">Limite de 20 MB por arquivo. Formatos executáveis são bloqueados.</p>
-              </div>
-
-              <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="rounded-xl px-5 py-2.5 text-xs font-bold text-slate-600 transition-colors hover:bg-slate-100"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={creating}
-                  className="rounded-xl bg-violet-600 px-6 py-2.5 text-xs font-black text-white shadow-lg shadow-violet-500/30 transition-all hover:bg-violet-700 disabled:opacity-50"
-                >
-                  {creating ? 'Registrando...' : 'Criar chamado'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <TicketWizardSlideover
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        creating={creating}
+        onCreate={async (data) => {
+          setCreating(true);
+          try {
+            const ticket = await api.support.create({
+              category: data.category as any,
+              title: data.title.trim(),
+              description: data.description.trim(),
+            });
+            for (const file of data.files) {
+              await api.support.uploadAttachment(ticket.id, file);
+            }
+            toast.success('Chamado aberto com sucesso.');
+            setShowModal(false);
+            loadTickets();
+          } catch (err: any) {
+            toast.error(err?.message || 'Erro ao criar o chamado.');
+          } finally {
+            setCreating(false);
+          }
+        }}
+      />
     </div>
   );
 }

@@ -23,19 +23,26 @@ export default function PlatformLayout({ children }: { children: ReactNode }) {
   const { group: activeGroup } = resolvePlatformActive(base, pathname, groups);
 
   return (
-    <section className="min-w-0 space-y-4">
+    <section className="mx-auto w-full max-w-7xl space-y-8 px-4 py-8 sm:px-6">
       <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.18em] text-violet-600">Administracao</p>
-          <h1 className="text-2xl font-black text-slate-950">Plataforma Innovation RH</h1>
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-violet-600">Administração</p>
+          <h1 className="text-3xl font-black text-slate-950">Plataforma Innovation RH</h1>
           {activeGroup && pathname !== base && (
             <p className="mt-1 text-xs font-medium text-slate-400">{activeGroup.label}</p>
           )}
         </div>
-        <p className="max-w-sm text-right text-xs font-medium text-slate-500">Um console unico para empresas, vendas, contratos e cobrancas.</p>
+        <p className="max-w-sm text-left sm:text-right text-xs font-medium text-slate-500">Um console unico para empresas, vendas, contratos e cobrancas.</p>
       </div>
-      <PlatformNav base={base} groups={groups} />
-      {children}
+      
+      <div className="flex flex-col gap-8 md:flex-row">
+        <aside className="w-full md:w-64 shrink-0">
+          <PlatformNav base={base} groups={groups} />
+        </aside>
+        <main className="flex-1 min-w-0">
+          {children}
+        </main>
+      </div>
     </section>
   );
 }

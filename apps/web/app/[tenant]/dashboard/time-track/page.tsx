@@ -7,7 +7,8 @@ import {
   Check, Edit3, MapPin, Printer, Shield, Save, X, RefreshCw, FileText, Download, 
   Trash2, Filter, AlertTriangle, FileSpreadsheet, Send, Search, Image as ImageIcon, CalendarDays, Clock3, XCircle 
 } from 'lucide-react';
-import { ErrorState, LoadingState } from '@/app/components/data-states';
+import { ErrorState, LoadingState, EmptyState, LoadingSkeleton } from '@/app/components/platform-ui';
+import { PageHeader, SolidCard, GlassCard, ButtonPrimary, ButtonSecondary, InnerCard } from '@/app/components/platform-ui';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useMutation, useQuery } from '@/app/hooks/use-data';
 import { api, type Employee, type TimeTrack, type TimeTrackAdjustmentReason } from '@/app/lib/api';
@@ -33,6 +34,9 @@ const REASONS: { value: TimeTrackAdjustmentReason; label: string; fullDay?: bool
 function getLocalToday() {
   return saoPauloDateKey();
 }
+// @TODO(BACKEND-TICKET-XX): Módulo unificado "Jornada & Escala" na interface temporária.
+// Atualmente cruzando dados no cliente de `/api/time-track` e `/api/escala`.
+// Substituir por chamada única `/api/time-track/unified` assim que disponível.
 function currentMonth() { return getLocalToday().slice(0,7); }
 function toDateKey(v?: string | null) { return v ? v.slice(0,10) : ''; }
 function fmtTime(v?: string | null) {
@@ -577,8 +581,8 @@ function MonthGrid({ employee, tracks, month, canManage, canApprove, refreshing,
   const pendentes = grid.filter(g=>!g.isRest && !g.isFuture && !g.track).length;
 
   return (
-    <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm ring-1 ring-slate-900/5">
-      <div className="border-b border-slate-100 bg-slate-50/50 p-6 backdrop-blur-sm">
+    <div className="rounded-3xl bg-white border border-slate-200 shadow-sm overflow-hidden">
+      <div className="border-b border-slate-100 bg-slate-50/50 p-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-4">
             <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-teal-500 to-emerald-600 text-lg font-black text-white shadow-md shadow-teal-500/20">{normalizeDisplayName(employee.name).charAt(0).toUpperCase()}</div>
@@ -707,7 +711,7 @@ function MonthGrid({ employee, tracks, month, canManage, canApprove, refreshing,
           <span className="text-slate-400">--:-- SEM REGISTRO</span>
         </div>
       </div>
-    </section>
+    </div>
   );
 }
 

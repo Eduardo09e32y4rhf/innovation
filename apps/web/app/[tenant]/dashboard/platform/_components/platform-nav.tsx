@@ -9,15 +9,17 @@ export function PlatformNav({ base, groups }: { base: string; groups: PlatformNa
   const { group: activeGroup } = resolvePlatformActive(base, pathname, groups);
 
   return (
-    <nav className="flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200 bg-white p-2 shadow-sm" aria-label="Navegacao da plataforma">
+    <nav className="flex flex-col gap-1 w-full" aria-label="Navegacao da plataforma">
       {groups.map((group) => {
         const isActive = activeGroup?.key === group.key;
         return (
           <Link
             key={group.key}
             href={`${base}${group.href}`}
-            className={`inline-flex h-10 items-center rounded-xl px-4 text-sm font-bold transition-colors ${
-              isActive ? 'bg-violet-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-950'
+            className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold transition-all ${
+              isActive
+                ? 'bg-white text-violet-700 shadow-sm border border-slate-200'
+                : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900 border border-transparent'
             }`}
           >
             {group.label}

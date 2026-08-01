@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Image as ImageIcon, Key, Save, X, Upload, Download, FileSpreadsheet, AlertTriangle, CheckCircle, Shield, Lock, History, Eye, EyeOff, MapPin } from 'lucide-react';
+import { Image as ImageIcon, Key, Save, X, Upload, Download, FileSpreadsheet, AlertTriangle, CheckCircle, Shield, Lock, History, Eye, EyeOff, MapPin, Settings } from 'lucide-react';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useMutation, useQuery } from '@/app/hooks/use-data';
 import { api } from '@/app/lib/api';
@@ -51,42 +51,60 @@ export default function SettingsPage({ params }: { params: { tenant: string } })
         ? 'Configurações do RH'
         : 'Minha conta';
 
+  const tabs = [
+    { id: 'geral', label: 'Segurança & Acesso', icon: Shield, show: true },
+    { id: 'rh', label: 'Acessos de Funcionários', icon: Key, show: canResetEmployees },
+    { id: 'financeiro', label: 'Financeiro e Faturamento', icon: AlertTriangle, show: canManageCompanyFinance },
+    { id: 'planos', label: 'Planos e Limites', icon: FileSpreadsheet, show: canManagePlatformPlans },
+    { id: 'empresa', label: 'Configurações da Empresa', icon: Settings, show: canEditCompany },
+    { id: 'dados', label: 'Importação e Exportação', icon: Download, show: canEditCompany },
+  ].filter(t => t.show);
+
+  const [activeTab, setActiveTab] = useState(tabs[0]?.id || 'geral');
+
   return (
-    <div className="mx-auto w-full space-y-6 px-4 py-6 sm:px-6">
-      <header className="flex flex-col gap-2">
-        <p className="text-[11px] font-black uppercase tracking-[0.2em] text-violet-600">
+    <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6">
+      <header className="mb-8 flex flex-col gap-2">
+        <p className="text-[11px] font-black uppercase tracking-[0.2em] text-teal-600">
           Configurações
         </p>
-
-        <h2 className="text-2xl font-black text-slate-950">
+        <h2 className="text-3xl font-black tracking-tight text-slate-950">
           {pageTitle}
         </h2>
-
         <p className="text-sm font-medium text-slate-500">
           Gerencie apenas as opções permitidas para o seu perfil.
         </p>
       </header>
 
-      <PasswordChangeSection changePassword={changePassword} />
+      <div className="flex flex-col gap-8 md:flex-row">
+        {/* Sidebar Vertical Tabs */}
+        <nav className="flex w-full flex-col gap-1 md:w-64 shrink-0">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold transition-all ${
+                activeTab === tab.id
+                  ? 'bg-white text-teal-700 shadow-sm border border-slate-200'
+                  : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900 border border-transparent'
+              }`}
+            >
+              <tab.icon size={16} />
+              {tab.label}
+            </button>
+          ))}
+        </nav>
 
-      {canResetEmployees && (
-        <EmployeePasswordResetSection />
-      )}
-
-      {canManageCompanyFinance && (
-        <CompanyFinanceSection tenant={tenant} />
-      )}
-
-      {canManagePlatformPlans && (
-        <PlatformPlansSection tenant={tenant} />
-      )}
-
-      {canEditCompany && (
-        <>
-          <CompanySettings />
-          <ImportExportSection />
-        </>
-      )}
+        {/* Tab Content */}
+        <div className="flex-1 min-w-0 space-y-6">
+          {activeTab === 'geral' && <PasswordChangeSection changePassword={changePassword} />}
+          {activeTab === 'rh' && canResetEmployees && <EmployeePasswordResetSection />}
+          {activeTab === 'financeiro' && canManageCompanyFinance && <CompanyFinanceSection tenant={tenant} />}
+          {activeTab === 'planos' && canManagePlatformPlans && <PlatformPlansSection tenant={tenant} />}
+          {activeTab === 'empresa' && canEditCompany && <CompanySettings />}
+          {activeTab === 'dados' && canEditCompany && <ImportExportSection />}
+        </div>
+      </div>
     </div>
   );
 }

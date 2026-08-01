@@ -50,35 +50,35 @@
      CARDS
   ═══════════════════════════════════════════════════════════ */
   .card-flat {
-    @apply bg-white rounded-xl border border-zinc-200 transition-colors duration-150;
+    @apply bg-white rounded-3xl border border-slate-200 transition-colors duration-150;
   }
   .card-flat:hover { border-color: var(--brand); }
 
   /* Card de estatística compacto */
   .card-stat {
-    @apply bg-white rounded-xl border border-zinc-200 p-4 flex flex-col gap-1;
+    @apply rounded-3xl bg-white/80 backdrop-blur-xl border border-slate-200/50 shadow-[0_20px_50px_rgba(0,0,0,0.05)] p-5 flex flex-col gap-1 transition-all hover:shadow-lg relative group;
   }
   .card-stat-label {
-    @apply text-[10px] font-bold uppercase tracking-widest text-zinc-400;
+    @apply text-[10px] font-bold uppercase tracking-widest text-slate-400;
   }
   .card-stat-value {
-    @apply text-2xl font-black text-zinc-900 leading-none;
+    @apply text-2xl font-black text-slate-900 leading-none mt-2;
   }
   .card-stat-detail {
-    @apply text-[11px] text-zinc-400 font-medium;
+    @apply text-[11px] text-slate-400 font-medium mt-2;
   }
 
   /* ═══════════════════════════════════════════════════════════
      PAGE HEADER
   ═══════════════════════════════════════════════════════════ */
   .page-header {
-    @apply flex items-start justify-between gap-4 pb-5;
+    @apply rounded-3xl bg-white/80 backdrop-blur-xl border border-slate-200/50 shadow-[0_10px_30px_rgba(0,0,0,0.03)] px-8 py-6 mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4;
   }
   .page-title {
-    @apply text-xl font-black text-zinc-900 leading-tight tracking-tight;
+    @apply text-2xl font-black tracking-tight text-slate-950;
   }
   .page-subtitle {
-    @apply text-xs text-zinc-400 font-medium mt-0.5;
+    @apply text-sm text-slate-500 font-medium mt-1;
   }
   .page-label {
     @apply text-[10px] font-bold uppercase tracking-widest text-[#8A05BE] mb-1;
@@ -195,7 +195,7 @@
     @apply px-3 py-2.5 text-xs text-zinc-700 font-medium;
   }
   .data-table-wrap {
-    @apply bg-white rounded-xl border border-zinc-200 overflow-hidden;
+    @apply bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm;
   }
 
   /* ═══════════════════════════════════════════════════════════

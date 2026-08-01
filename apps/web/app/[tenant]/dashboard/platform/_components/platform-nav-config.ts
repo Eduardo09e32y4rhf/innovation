@@ -6,17 +6,19 @@ export type PlatformNavGroup = {
 };
 
 export const PLATFORM_NAV_GROUPS: PlatformNavGroup[] = [
+  { key: 'overview', label: 'Visão Geral', href: '', matchPrefixes: [] },
   { key: 'finance', label: 'Financeiro', href: '/finance', matchPrefixes: ['/finance'] },
   { key: 'contracts', label: 'Contratos', href: '/contracts', matchPrefixes: ['/contracts', '/proposals'] },
+  { key: 'subscriptions', label: 'Assinaturas e Planos', href: '/subscriptions', matchPrefixes: ['/subscriptions', '/plans'] },
   {
     key: 'configuration',
-    label: 'Configuração',
+    label: 'Configuração Administrativa',
     href: '/configuration',
-    matchPrefixes: ['/configuration', '/companies', '/plans', '/permissions', '/access', '/coupons', '/subscriptions', '/whatsapp'],
+    matchPrefixes: ['/configuration', '/companies', '/permissions', '/access', '/coupons', '/whatsapp'],
   },
   {
     key: 'audit',
-    label: 'Auditoria',
+    label: 'Auditoria e Logs',
     href: '/audit',
     matchPrefixes: ['/audit'],
   },

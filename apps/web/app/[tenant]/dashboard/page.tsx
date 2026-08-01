@@ -6,6 +6,7 @@ import { useRouter , useParams } from 'next/navigation';
 import Link from 'next/link';
 import { AlertTriangle, ArrowUpRight, Bell, Cake, CalendarDays, Clock3, MessageSquareText, TrendingUp, Users, UserPlus, FileText, Download, AlertCircle, CheckCircle, XCircle, UserMinus, UserX, Stethoscope } from 'lucide-react';
 import { ErrorState } from '@/app/components/data-states';
+import { PageHeader, GlassCard } from '@/app/components/platform-ui';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useQuery } from '@/app/hooks/use-data';
 import { api } from '@/app/lib/api';
@@ -178,30 +179,25 @@ function DashboardContent() {
 
   return (
 <div className="mx-auto w-full space-y-4 overflow-x-hidden px-3 py-4 sm:px-6 lg:px-8">
-      {/* Premium Hero Section */}
-      <section className="mb-4 overflow-hidden rounded-xl bg-black p-5 text-white shadow-sm">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div className="flex flex-col gap-1">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-[#8A05BE]">{presentation.eyebrow}</span>
-            <h2 className="text-xl font-black tracking-tight">{presentation.title}</h2>
-            <p className="text-[11px] font-medium text-white/70 max-w-xl">{presentation.description}</p>
-          </div>
-          
+      <PageHeader 
+        title={presentation.title} 
+        subtitle={presentation.description} 
+        action={
           <div className="flex items-center gap-2">
             {actionShortcuts.map((action, i) => {
               const Icon = action.icon;
               return (
                 <Link key={i} href={action.href} className="group relative flex flex-col items-center gap-1">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/10 text-white transition-all hover:scale-105 hover:bg-[#8A05BE]">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600 transition-all hover:scale-105 hover:bg-violet-600 hover:text-white">
                     <Icon size={16} strokeWidth={2.5} />
                   </div>
-                  <span className="text-[9px] font-bold text-white/70 transition-colors group-hover:text-white">{action.label}</span>
+                  <span className="text-[9px] font-bold text-slate-500 transition-colors group-hover:text-slate-900">{action.label}</span>
                 </Link>
               );
             })}
           </div>
-        </div>
-      </section>
+        }
+      />
 
       {/* Filters */}
       {!isFuncionario && !isCommercial && (
@@ -571,17 +567,17 @@ function MetricCard({ label, value, icon: Icon, detail, trend, trendColor = 'eme
   trend?: string; trendColor?: string; alert?: boolean; loading?: boolean;
 }) {
   return (
-    <div className="card-stat relative group">
-      {alert && <div className="absolute right-3 top-3 h-2 w-2 animate-pulse rounded-full bg-[#8A05BE]" />}
+    <GlassCard className="relative group p-5 flex flex-col gap-1 transition-all hover:shadow-lg">
+      {alert && <div className="absolute right-3 top-3 h-2 w-2 animate-pulse rounded-full bg-violet-600" />}
       <div className="flex items-start justify-between">
-        <p className="card-stat-label">{label}</p>
-        <Icon size={14} className="text-slate-400 group-hover:text-[#8A05BE] transition-colors" />
+        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{label}</p>
+        <Icon size={14} className="text-slate-400 group-hover:text-violet-600 transition-colors" />
       </div>
-      <p className="card-stat-value mt-2">
+      <p className="text-2xl font-black text-slate-900 leading-none mt-2">
         {loading && value === undefined ? '--' : value ?? '0'}
       </p>
       <div className="mt-2 flex items-center justify-between">
-        <p className="card-stat-detail">{detail}</p>
+        <p className="text-[11px] text-slate-400 font-medium">Atualizado hoje · {detail}</p>
         {trend && (
           <span className="inline-flex items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5 text-[9px] font-black text-slate-700">
             <ArrowUpRight size={10} strokeWidth={3} />
@@ -589,7 +585,7 @@ function MetricCard({ label, value, icon: Icon, detail, trend, trendColor = 'eme
           </span>
         )}
       </div>
-    </div>
+    </GlassCard>
   );
 }
 
@@ -605,8 +601,8 @@ function PendencyItem({ label, count, href }: { label: string; count: number; hr
 
 function DataTable({ title, headers, children }: { title: string; headers: string[]; children: React.ReactNode }) {
   return (
-    <div className="overflow-hidden rounded-[18px] border border-slate-200/60 bg-white shadow-[0_8px_30px_rgba(15,23,42,0.08)] transition-all duration-300 hover:shadow-[0_20px_50px_rgba(15,23,42,0.12)]">
-      <div className="border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white px-5 py-4">
+    <div className="rounded-3xl bg-white border border-slate-200 shadow-sm overflow-hidden">
+      <div className="border-b border-slate-100 bg-white px-5 py-4">
         <h3 className="text-sm font-black uppercase tracking-wider text-slate-950">{title}</h3>
       </div>
       <div className="overflow-x-auto px-5 py-3">
