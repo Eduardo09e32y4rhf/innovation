@@ -23,9 +23,9 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { PlatformFinanceService } from '../finance/platform-finance.service';
 import { PricingService } from '../finance/pricing.service';
 
-// SEGURANÇA: e-mail do DEV proprietário da plataforma — definido via variável de ambiente
+// SEGURANÃ‡A: e-mail do DEV proprietÃ¡rio da plataforma â€” definido via variÃ¡vel de ambiente
 const PLATFORM_OWNER_EMAIL = (process.env.PLATFORM_OWNER_EMAIL ?? '').toLowerCase();
-const LOGIN_DENIED_MESSAGE = 'Não foi possível entrar';
+const LOGIN_DENIED_MESSAGE = 'NÃ£o foi possÃ­vel entrar';
 const PASSWORD_MAX_AGE_DAYS = 30;
 const PASSWORD_RESET_PURPOSE = 'PASSWORD_RESET';
 
@@ -131,7 +131,13 @@ export class AuthService {
         await this.repository.createSubscription(subscriptionData);
       }
     } catch (error) {
-      await this.repository.deleteIncompleteCompany(company.id).catch(() => undefined);
+      try {
+        await this.repository.deleteIncompleteCompany(company.id);
+      } catch (cleanupError) {
+        this.logger.error(
+          `Falha ao limpar cadastro incompleto da empresa ${company.id}: ${String(cleanupError)}`,
+        );
+      }
       throw error;
     }
 
@@ -232,15 +238,15 @@ export class AuthService {
     });
 
     try {
-      // Notifica todos os perfis privilegiados da empresa que podem liberar o código:
-      // GESTOR (direto do colaborador), RH e ADMIN (responsáveis pela empresa)
+      // Notifica todos os perfis privilegiados da empresa que podem liberar o cÃ³digo:
+      // GESTOR (direto do colaborador), RH e ADMIN (responsÃ¡veis pela empresa)
       const rolesParaNotificar = ['GESTOR', 'RH', 'ADMIN'] as const;
       await Promise.allSettled(
         rolesParaNotificar.map((role) =>
           this.notificationsService.createAdminNotice(user.companyId, user.id, {
             type: 'SYSTEM_NOTICE',
-            title: 'Código de Recuperação de Senha',
-            message: `O colaborador ${user.employee?.name || user.name} (Email: ${user.email}) solicitou recuperação de senha. Informe o código apenas ao colaborador presencialmente.`,
+            title: 'CÃ³digo de RecuperaÃ§Ã£o de Senha',
+            message: `O colaborador ${user.employee?.name || user.name} (Email: ${user.email}) solicitou recuperaÃ§Ã£o de senha. Informe o cÃ³digo apenas ao colaborador presencialmente.`,
             priority: 'HIGH',
             targetType: 'ROLE',
             targetRole: role,
@@ -258,29 +264,29 @@ export class AuthService {
 
   async validateResetCode(dto: { email: string; code: string; cpfStart: string; registration: string }) {
     const user = await this.repository.findUserWithEmployeeByEmail(dto.email);
-    if (!user || !user.isActive) throw new UnauthorizedException('Dados de validação incorretos');
+    if (!user || !user.isActive) throw new UnauthorizedException('Dados de validaÃ§Ã£o incorretos');
     
     if (!user.resetPasswordCode || user.resetPasswordCode !== dto.code.trim().toUpperCase()) {
-      throw new UnauthorizedException('Código inválido ou expirado');
+      throw new UnauthorizedException('CÃ³digo invÃ¡lido ou expirado');
     }
     if (user.resetPasswordExpires && new Date() > user.resetPasswordExpires) {
-      throw new UnauthorizedException('Código expirado');
+      throw new UnauthorizedException('CÃ³digo expirado');
     }
 
     const employee = user.employee;
     if (!employee) {
-      throw new UnauthorizedException('Usuário não possui cadastro de colaborador. Contate o suporte.');
+      throw new UnauthorizedException('UsuÃ¡rio nÃ£o possui cadastro de colaborador. Contate o suporte.');
     }
     
     const rawCpf = employee.cpf ? employee.cpf.replace(/\D/g, '') : '';
     if (!rawCpf.startsWith(dto.cpfStart.trim())) {
-      throw new UnauthorizedException('Dados de validação incorretos');
+      throw new UnauthorizedException('Dados de validaÃ§Ã£o incorretos');
     }
 
     const empReg = (employee.registration || '').trim().toLowerCase();
     const providedReg = dto.registration.trim().toLowerCase();
     if (empReg !== providedReg) {
-      throw new UnauthorizedException('Dados de validação incorretos');
+      throw new UnauthorizedException('Dados de validaÃ§Ã£o incorretos');
     }
 
     const token = await this.jwtService.signAsync({
@@ -316,7 +322,7 @@ export class AuthService {
     // Check previous passwords
     for (const oldHash of user.previousPasswords) {
       const matched = await bcrypt.compare(dto.newPassword, oldHash);
-      if (matched) throw new ConflictException('Você não pode reutilizar senhas antigas');
+      if (matched) throw new ConflictException('VocÃª nÃ£o pode reutilizar senhas antigas');
     }
 
     this.assertStrongPassword(dto.newPassword);
@@ -368,7 +374,7 @@ export class AuthService {
     // Check previous passwords
     for (const oldHash of freshUser.previousPasswords) {
       const matched = await bcrypt.compare(dto.newPassword, oldHash);
-      if (matched) throw new ConflictException('Você não pode reutilizar senhas antigas');
+      if (matched) throw new ConflictException('VocÃª nÃ£o pode reutilizar senhas antigas');
     }
 
     this.assertStrongPassword(dto.newPassword);
@@ -509,25 +515,25 @@ export class AuthService {
 
     if (!employee || !employee.user) {
       throw new NotFoundException(
-        'Funcionário com acesso ao sistema não encontrado.',
+        'FuncionÃ¡rio com acesso ao sistema nÃ£o encontrado.',
       );
     }
 
     if (!employee.user.isActive) {
       throw new BadRequestException(
-        'O acesso deste funcionário está desativado.',
+        'O acesso deste funcionÃ¡rio estÃ¡ desativado.',
       );
     }
 
     if (!this.canResetTargetRole(actor.role, employee.user.role)) {
       throw new ForbiddenException(
-        'Você não possui permissão para redefinir a senha deste perfil.',
+        'VocÃª nÃ£o possui permissÃ£o para redefinir a senha deste perfil.',
       );
     }
 
     if (employee.user.id === actor.sub) {
       throw new BadRequestException(
-        'Para alterar a própria senha, utilize a opção Minha senha.',
+        'Para alterar a prÃ³pria senha, utilize a opÃ§Ã£o Minha senha.',
       );
     }
 
@@ -538,7 +544,7 @@ export class AuthService {
 
     if (samePassword) {
       throw new ConflictException(
-        'A nova senha precisa ser diferente da senha atual do funcionário.',
+        'A nova senha precisa ser diferente da senha atual do funcionÃ¡rio.',
       );
     }
 
@@ -550,7 +556,7 @@ export class AuthService {
 
       if (alreadyUsed) {
         throw new ConflictException(
-          'Esta senha já foi utilizada anteriormente pelo funcionário.',
+          'Esta senha jÃ¡ foi utilizada anteriormente pelo funcionÃ¡rio.',
         );
       }
     }
@@ -599,7 +605,7 @@ export class AuthService {
   private assertCanResetEmployeePassword(actor: JwtUser) {
     if (!['ADMIN', 'RH', 'DEV'].includes(actor.role)) {
       throw new ForbiddenException(
-        'Você não possui permissão para redefinir senhas.',
+        'VocÃª nÃ£o possui permissÃ£o para redefinir senhas.',
       );
     }
   }

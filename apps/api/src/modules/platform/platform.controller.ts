@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, ForbiddenException, Get, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, ForbiddenException, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -74,8 +74,11 @@ export class PlatformController {
   }
 
   @Get('companies/:id/audit-logs')
-  companyAuditLogs(@CurrentUser() actor: JwtUser, @Param('id') id: string) {
-    return this.service.companyAuditLogs(id, actor);
+  companyAuditLogs(@CurrentUser() actor: JwtUser, @Param('id') id: string, @Query('page') page?: string, @Query('limit') limit?: string) {
+    return this.service.companyAuditLogs(id, actor, {
+      page: Number(page) || 1,
+      limit: Number(limit) || 25,
+    });
   }
 
   @Get('companies/:id')

@@ -1,4 +1,4 @@
-import { Users, Ban, KeyRound, Building2 } from 'lucide-react';
+import { Users, Ban, KeyRound, Building2, Clock3 } from 'lucide-react';
 import type { AppUser, UsersUsage } from '@/app/lib/api';
 
 interface UserSummaryCardsProps {
@@ -9,9 +9,10 @@ interface UserSummaryCardsProps {
 export function UserSummaryCards({ rows, usage }: UserSummaryCardsProps) {
   const activeUsers = rows.filter((user) => user.isActive !== false).length;
   const blockedUsers = rows.filter(
-    (user) => user.isActive === false || (user.failedLoginAttempts ?? 0) >= 3
+    (user) => user.isActive === false || (user.failedLoginAttempts ?? 0) >= 3,
   ).length;
   const pendingPasswordChange = rows.filter((user) => user.forcePasswordChange).length;
+  const activeRecently = rows.filter((user) => Boolean(user.lastActiveAt)).length;
 
   const usedLicenses = usage?.used ?? rows.length;
   const maxLicenses = usage?.max ?? 0;
@@ -19,7 +20,7 @@ export function UserSummaryCards({ rows, usage }: UserSummaryCardsProps) {
 
   const cards = [
     {
-      title: 'Usuários ativos',
+      title: 'Usuarios ativos',
       value: activeUsers,
       icon: Users,
       iconColor: 'text-teal-700',
@@ -37,15 +38,21 @@ export function UserSummaryCards({ rows, usage }: UserSummaryCardsProps) {
       iconColor: pendingPasswordChange > 0 ? 'text-amber-600' : 'text-slate-600',
     },
     {
-      title: 'Licenças',
+      title: 'Licencas',
       value: maxLicenses > 0 ? `${usedLicenses} / ${maxLicenses}` : usedLicenses,
       icon: Building2,
       iconColor: isFull ? 'text-amber-600' : 'text-slate-600',
     },
+    {
+      title: 'Com acesso recente',
+      value: activeRecently,
+      icon: Clock3,
+      iconColor: 'text-teal-700',
+    },
   ];
 
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
       {cards.map((card, i) => (
         <div
           key={i}

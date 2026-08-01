@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { X, CheckCircle2, AlertCircle } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { X, CheckCircle2, AlertCircle, ShieldCheck } from 'lucide-react';
 import { ROLE_LABEL } from '@/app/lib/format';
 import type { PlatformCompany, UserRole } from '@/app/lib/api';
 
@@ -60,6 +60,11 @@ export function UserCreateModal({
   const shouldShowCompanySelect = currentRole === 'DEV' && companies.length > 1;
   const defaultCompanyId = currentRole === 'DEV' && companies.length === 1 ? companies[0]?.id ?? '' : '';
 
+  const selectedCompany = useMemo(
+    () => companies.find((company) => company.id === (shouldShowCompanySelect ? companyId : defaultCompanyId)) ?? null,
+    [companies, defaultCompanyId, shouldShowCompanySelect, companyId],
+  );
+
   if (!isOpen) return null;
 
   const resetForm = () => {
@@ -90,23 +95,23 @@ export function UserCreateModal({
       return;
     }
     if (password !== confirmPassword) {
-      setError('As senhas não coincidem.');
+      setError('As senhas nao coincidem.');
       return;
     }
     if (password.length < 10) {
-      setError('A senha deve ter no mínimo 10 caracteres.');
+      setError('A senha deve ter no minimo 10 caracteres.');
       return;
     }
     if (!/[A-Z]/.test(password)) {
-      setError('A senha deve ter pelo menos uma letra maiúscula.');
+      setError('A senha deve ter pelo menos uma letra maiuscula.');
       return;
     }
     if (!/[a-z]/.test(password)) {
-      setError('A senha deve ter pelo menos uma letra minúscula.');
+      setError('A senha deve ter pelo menos uma letra minuscula.');
       return;
     }
     if (!/[0-9]/.test(password)) {
-      setError('A senha deve ter pelo menos um número.');
+      setError('A senha deve ter pelo menos um numero.');
       return;
     }
     if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
@@ -177,7 +182,7 @@ export function UserCreateModal({
       <div className="w-full max-w-md overflow-hidden rounded-[14px] bg-white shadow-2xl">
         <header className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
           <div>
-            <h3 className="text-sm font-black text-slate-900">Novo usuário</h3>
+            <h3 className="text-sm font-black text-slate-900">Novo usuario</h3>
             <p className="text-xs text-slate-500">Cadastre um novo acesso para sua equipe</p>
           </div>
           <button
@@ -190,9 +195,17 @@ export function UserCreateModal({
 
         <form onSubmit={handleSubmit} className="p-5">
           <div className="space-y-4">
+            <div className="rounded-[8px] border border-slate-200 bg-slate-50 p-3">
+              <p className="text-[11px] font-bold text-slate-600">Resumo do novo acesso</p>
+              <p className="mt-1 text-xs text-slate-500">
+                {selectedCompany ? `Empresa: ${selectedCompany.name}. ` : 'Empresa sera definida no envio. '}
+                O acesso sera criado com senha temporaria e obrigara troca no primeiro login.
+              </p>
+            </div>
+
             {shouldShowCompanySelect && (
               <div>
-                <label className="mb-1 block text-xs font-bold text-slate-700">Empresa (Obrigatório)</label>
+                <label className="mb-1 block text-xs font-bold text-slate-700">Empresa (Obrigatorio)</label>
                 <select
                   value={companyId}
                   onChange={(e) => setCompanyId(e.target.value)}
@@ -262,14 +275,14 @@ export function UserCreateModal({
               <p className="mb-3 text-[11px] font-bold text-slate-700">Forma de acesso</p>
               <label className="flex items-center gap-2 text-xs font-medium text-slate-700">
                 <input type="radio" checked readOnly className="accent-teal-600" />
-                Criar com senha temporária (troca obrigatória)
+                Criar com senha temporaria (troca obrigatoria)
               </label>
 
               <div className="mt-3 grid grid-cols-2 gap-3">
                 <div>
                   <input
                     type="password"
-                    placeholder="Senha temporária"
+                    placeholder="Senha temporaria"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
@@ -294,6 +307,10 @@ export function UserCreateModal({
                   )}
                 </div>
               </div>
+              <div className="mt-3 flex items-center gap-2 text-[11px] text-slate-500">
+                <ShieldCheck size={14} className="text-teal-600" />
+                O usuario sera obrigado a trocar a senha no primeiro acesso.
+              </div>
             </div>
 
             {error && (
@@ -313,7 +330,7 @@ export function UserCreateModal({
               Cancelar
             </button>
             <button type="submit" disabled={loading} className="crystal-button px-6">
-              {loading ? 'Criando...' : 'Criar usuário'}
+              {loading ? 'Criando...' : 'Criar usuario'}
             </button>
           </div>
         </form>

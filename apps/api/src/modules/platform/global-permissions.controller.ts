@@ -1,11 +1,11 @@
-import { Body, Controller, Get, Param, Patch, UseGuards } from '@nestjs/common';
+﻿import { Body, Controller, Get, Param, Patch, UseGuards } from '@nestjs/common';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { GlobalPermissionsService } from './global-permissions.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
-import { $Enums } from '@prisma/client';
-type UserRole = $Enums.UserRole;
-const UserRole = $Enums.UserRole;
+import { UserRole } from '@prisma/client';
+import type { JwtUser } from '../../common/types/auth.types';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('DEV')
@@ -19,7 +19,7 @@ export class GlobalPermissionsController {
   }
 
   @Patch(':role')
-  update(@Param('role') role: UserRole, @Body() body: { permissions: string[] }) {
-    return this.service.update(role, body.permissions);
+  update(@CurrentUser() actor: JwtUser, @Param('role') role: UserRole, @Body() body: { permissions: string[] }) {
+    return this.service.update(role, body.permissions, actor);
   }
 }

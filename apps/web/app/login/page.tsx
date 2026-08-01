@@ -98,6 +98,15 @@ export default function LoginPage() {
   return (
     <AuthSplitLayout title={forgotPassword ? 'Recuperar Acesso' : 'Entrar na Plataforma'} subtitle={forgotPassword ? 'Enviaremos as instruções para seu e-mail cadastrado.' : 'Digite suas credenciais corporativas abaixo.'}>
       <form onSubmit={handleLogin} className="flex flex-col gap-5">
+        <div className="flex items-center justify-between gap-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+          <Link href="/" className="transition-colors hover:text-brand-600">
+            Voltar para o site
+          </Link>
+          <Link href="/cadastro" className="transition-colors hover:text-brand-600">
+            Criar minha empresa
+          </Link>
+        </div>
+
         {(localError || error) && (
           <div className="flex items-center gap-3 rounded-xl border border-rose-500/30 bg-rose-50 px-4 py-3">
             <AlertCircle size={18} className="text-rose-600 shrink-0" />

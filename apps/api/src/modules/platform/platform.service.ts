@@ -9,7 +9,7 @@ import { UpdatePlatformCompanyDto } from './dto/update-platform-company.dto';
 import { UpdatePlatformCompanyUserDto } from './dto/update-platform-company-user.dto';
 import { PlatformRepository } from './platform.repository';
 
-// SEGURANÇA: e-mail do DEV proprietário da plataforma — definido via variável de ambiente
+// SEGURANÃƒÆ’Ã¢â‚¬Â¡A: e-mail do DEV proprietÃƒÆ’Ã‚Â¡rio da plataforma ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â definido via variÃƒÆ’Ã‚Â¡vel de ambiente
 const PLATFORM_OWNER_EMAIL = (process.env.PLATFORM_OWNER_EMAIL ?? '').toLowerCase();
 const PROTECTED_PLATFORM_ROLES = ['DEV', 'COMERCIAL'];
 
@@ -31,8 +31,8 @@ export class PlatformService {
       return companies.map(c => ({
         ...c,
         internalNotes: undefined,
-        asaasCustomerId: c.asaasCustomerId ? '••••••••' : null,
-        asaasSubscriptionId: c.asaasSubscriptionId ? '••••••••' : null,
+        asaasCustomerId: c.asaasCustomerId ? 'ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢' : null,
+        asaasSubscriptionId: c.asaasSubscriptionId ? 'ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢' : null,
       }));
     }
     return companies;
@@ -48,12 +48,12 @@ export class PlatformService {
     }
 
     const company = await this.repository.getCompany(companyId);
-    if (!company) throw new NotFoundException('Empresa não encontrada');
+    if (!company) throw new NotFoundException('Empresa nÃƒÆ’Ã‚Â£o encontrada');
     if (company.status !== 'ACTIVE') {
-      throw new ForbiddenException(`Não pode acessar empresa ${company.status === 'SUSPENDED' ? 'suspensa' : 'cancelada'}`);
+      throw new ForbiddenException(`NÃƒÆ’Ã‚Â£o pode acessar empresa ${company.status === 'SUSPENDED' ? 'suspensa' : 'cancelada'}`);
     }
 
-    const reason = req?.body?.reason || 'Suporte técnico';
+    const reason = req?.body?.reason || 'Suporte tÃƒÆ’Ã‚Â©cnico';
 
     await this.repository.createAuditLog({
       companyId,
@@ -68,7 +68,7 @@ export class PlatformService {
       },
     });
 
-    // ✅ Mantém identidade do DEV — não impersona o admin da empresa
+    // ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ MantÃƒÆ’Ã‚Â©m identidade do DEV ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â nÃƒÆ’Ã‚Â£o impersona o admin da empresa
     const payload = {
       sub: actor.sub,
       email: actor.email,
@@ -103,15 +103,15 @@ export class PlatformService {
     const result: any = { ...company, usersCount: company._count.users, employeesCount: company._count.employees };
     if (actor && actor.role !== 'DEV') {
       result.internalNotes = undefined;
-      result.asaasCustomerId = result.asaasCustomerId ? '••••••••' : null;
-      result.asaasSubscriptionId = result.asaasSubscriptionId ? '••••••••' : null;
+      result.asaasCustomerId = result.asaasCustomerId ? 'ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢' : null;
+      result.asaasSubscriptionId = result.asaasSubscriptionId ? 'ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢' : null;
     }
     return result;
   }
 
-  async companyAuditLogs(id: string, actor?: JwtUser) {
+  async companyAuditLogs(id: string, actor?: JwtUser, query?: { page?: number; limit?: number }) {
     await this.getCompany(id, actor);
-    return this.repository.listCompanyAuditLogs(id);
+    return this.repository.listCompanyAuditLogs(id, query);
   }
 
   async createCompany(actor: JwtUser, dto: CreatePlatformCompanyDto) {
@@ -228,12 +228,12 @@ export class PlatformService {
       ...(autoSuspensionReason !== undefined && !status ? { suspensionReason: autoSuspensionReason } : {}),
     };
     
-    // Notificar admin(s) da empresa sobre inadimplência caso mude para PAST_DUE
+    // Notificar admin(s) da empresa sobre inadimplÃƒÆ’Ã‚Âªncia caso mude para PAST_DUE
     if (billingStatus === 'PAST_DUE' && company.billingStatus !== 'PAST_DUE') {
       await this.notificationsService.createAdminNotice(id, actor.sub, {
         type: 'SYSTEM_ALERT',
-        title: 'Aviso de Inadimplência e Bloqueio',
-        message: 'Consta um débito pendente na sua assinatura. Seu acesso a módulos foi restrito. Regularize para reativar o acesso integral à plataforma.',
+        title: 'Aviso de InadimplÃƒÆ’Ã‚Âªncia e Bloqueio',
+        message: 'Consta um dÃƒÆ’Ã‚Â©bito pendente na sua assinatura. Seu acesso a mÃƒÆ’Ã‚Â³dulos foi restrito. Regularize para reativar o acesso integral ÃƒÆ’Ã‚Â  plataforma.',
         priority: 'HIGH',
         targetType: 'ROLE',
         targetRole: 'ADMIN',
@@ -338,14 +338,32 @@ export class PlatformService {
       throw new ForbiddenException({ code: 'SEAT_LIMIT_REACHED', message: 'A empresa utiliza todas as licencas contratadas.', used: count, limit });
     }
 
-    return this.repository.createCompanyUser({
+    const created = await this.repository.createWithEmployeeSync({
       companyId,
       name: normalizeDisplayName(dto.name),
       email,
       passwordHash: await bcrypt.hash(dto.password, 12),
       role: dto.role ?? 'FUNCIONARIO',
-      ...(dto.customPermissions !== undefined ? { customPermissions: dto.customPermissions } : {}),
+      ...(dto.customPermissions !== undefined && dto.customPermissions !== null ? { customPermissions: dto.customPermissions } : {}),
     });
+    if (!created) throw new NotFoundException('Usuario nao encontrado');
+
+    await this.repository.createAuditLog({
+      companyId,
+      userId: actor.sub,
+      action: 'COMPANY_USER_CREATED',
+      entity: 'User',
+      entityId: created.id,
+      actor: actor.email,
+      metadata: {
+        name: created.name,
+        email: created.email,
+        role: created.role,
+        employeeLinked: Boolean((created as any)?.employee?.id),
+      },
+    });
+
+    return created;
   }
 
   async updateCompanyUser(actor: JwtUser, companyId: string, userId: string, dto: UpdatePlatformCompanyUserDto) {
@@ -356,14 +374,38 @@ export class PlatformService {
     this.assertCanTouchTargetUser(actor, current.role);
 
     const { password, name, email, ...rest } = dto;
-    const result = await this.repository.updateCompanyUser(companyId, userId, {
+    const result = await this.repository.updateWithEmployeeSync(companyId, userId, {
       ...rest,
       ...(name !== undefined ? { name: normalizeDisplayName(name) } : {}),
       ...(email !== undefined ? { email: email.trim().toLowerCase() } : {}),
       ...(password ? { passwordHash: await bcrypt.hash(password, 12) } : {}),
     });
-    if (!result.count) throw new NotFoundException('Usuario nao encontrado');
-    return this.repository.findCompanyUser(companyId, userId);
+    if (!result.count || !result.user) throw new NotFoundException('Usuario nao encontrado');
+
+    await this.repository.createAuditLog({
+      companyId,
+      userId: actor.sub,
+      action: 'COMPANY_USER_UPDATED',
+      entity: 'User',
+      entityId: userId,
+      actor: actor.email,
+      metadata: {
+        previous: {
+          name: current.name,
+          email: current.email,
+          role: current.role,
+          isActive: current.isActive,
+        },
+        next: {
+          name: result.user.name,
+          email: result.user.email,
+          role: result.user.role,
+          isActive: result.user.isActive,
+        },
+      },
+    });
+
+    return result.user;
   }
 
   async deleteCompanyUser(actor: JwtUser, companyId: string, userId: string) {
@@ -371,9 +413,31 @@ export class PlatformService {
     const current = await this.repository.findCompanyUser(companyId, userId);
     if (!current) throw new NotFoundException('Usuario nao encontrado');
     this.assertCanTouchTargetUser(actor, current.role);
-    const result = await this.repository.deleteCompanyUser(companyId, userId);
-    if (!result.count) throw new NotFoundException('Usuario nao encontrado');
-    return { deleted: true };
+    const result = await this.repository.deactivateWithEmployeeSync(companyId, userId);
+    if (!result.count || !result.user) throw new NotFoundException('Usuario nao encontrado');
+
+    await this.repository.createAuditLog({
+      companyId,
+      userId: actor.sub,
+      action: 'COMPANY_USER_DEACTIVATED',
+      entity: 'User',
+      entityId: userId,
+      actor: actor.email,
+      metadata: {
+        previous: {
+          name: current.name,
+          email: current.email,
+          role: current.role,
+          isActive: current.isActive,
+        },
+        next: {
+          isActive: false,
+          forcePasswordChange: true,
+        },
+      },
+    });
+
+    return { deleted: true, deactivated: true };
   }
 
   stats(actor?: JwtUser) {
