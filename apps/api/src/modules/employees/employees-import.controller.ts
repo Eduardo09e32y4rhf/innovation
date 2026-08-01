@@ -24,11 +24,12 @@ export class EmployeesImportController {
 
   @Get('template')
   @ApiOperation({ summary: 'Download do modelo seguro de importação (.xlsx)' })
-  downloadTemplate(@Res() reply: FastifyReply) {
+  async downloadTemplate(@Res() reply: FastifyReply) {
+    const buffer = await this.importService.generateTemplate();
     reply
       .header('Content-Disposition', 'attachment; filename="modelo_importacao_funcionarios.xlsx"')
       .type('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-      .send(this.importService.generateTemplate());
+      .send(buffer);
   }
 
   @Post('validate')

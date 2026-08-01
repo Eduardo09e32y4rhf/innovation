@@ -2,7 +2,7 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import type { Cache } from 'cache-manager';
 import { randomUUID } from 'node:crypto';
-import * as xlsx from 'xlsx';
+import * as ExcelJS from 'exceljs';
 import { PrismaService } from '../../database/prisma.service';
 
 const SHEET_NAME = 'Funcionários';
@@ -31,25 +31,48 @@ export class EmployeesImportService {
     @Inject(CACHE_MANAGER) private readonly cache: Cache,
   ) {}
 
-  generateTemplate(): Buffer {
-    const sheet = xlsx.utils.aoa_to_sheet([Array.from(HEADERS)]);
-    sheet['!cols'] = [{ wch: 30 }, { wch: 15 }, { wch: 30 }, { wch: 22 }, { wch: 22 }, { wch: 20 }, { wch: 18 }, { wch: 18 }];
-    const workbook = xlsx.utils.book_new();
-    xlsx.utils.book_append_sheet(workbook, sheet, SHEET_NAME);
-    return xlsx.write(workbook, { type: 'buffer', bookType: 'xlsx', compression: true });
+  async generateTemplate(): Promise<Buffer> {
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet(SHEET_NAME);
+    sheet.addRow(Array.from(HEADERS));
+    sheet.columns = [
+      { width: 30 }, { width: 15 }, { width: 30 }, { width: 22 }, 
+      { width: 22 }, { width: 20 }, { width: 18 }, { width: 18 }
+    ];
+    return (await workbook.xlsx.writeBuffer()) as unknown as Buffer;
   }
 
   async validate(companyId: string, file: { filename: string; mimetype: string; buffer: Buffer }) {
     this.assertFile(file);
-    const workbook = this.readWorkbook(file.buffer);
-    if (workbook.SheetNames.length !== 1 || workbook.SheetNames[0] !== SHEET_NAME) {
+    const workbook = await this.readWorkbook(file.buffer);
+    if (workbook.worksheets.length !== 1 || workbook.worksheets[0].name !== SHEET_NAME) {
       throw new BadRequestException('A planilha deve conter somente a aba Funcionários.');
     }
-    if ((workbook as any).vbaraw) throw new BadRequestException('Planilhas com macros não são permitidas.');
 
-    const sheet = workbook.Sheets[SHEET_NAME];
+    const sheet = workbook.worksheets[0];
     this.assertNoActiveContent(sheet);
-    const matrix = xlsx.utils.sheet_to_json<any[]>(sheet, { header: 1, raw: false, defval: '' });
+
+    const matrix: any[][] = [];
+    sheet.eachRow((row) => {
+      const values = Array.isArray(row.values) ? row.values.slice(1) : [];
+      const stringValues = Array.from({ length: HEADERS.length }).map((_, i) => {
+        const val = values[i];
+        if (val === null || val === undefined) return '';
+        if (typeof val === 'object') {
+          if ('result' in val) return String(val.result);
+          if ('richText' in val) return (val as any).richText.map((rt: any) => rt.text).join('');
+          if (val instanceof Date) {
+            const d = String(val.getUTCDate()).padStart(2, '0');
+            const m = String(val.getUTCMonth() + 1).padStart(2, '0');
+            const y = val.getUTCFullYear();
+            return `${d}/${m}/${y}`;
+          }
+        }
+        return String(val);
+      });
+      matrix.push(stringValues);
+    });
+
     const headers = (matrix[0] ?? []).map((value) => String(value).trim());
     if (headers.length !== HEADERS.length || HEADERS.some((header, index) => headers[index] !== header)) {
       throw new BadRequestException(`Cabeçalhos inválidos. Use exatamente: ${HEADERS.join(', ')}.`);
@@ -166,20 +189,23 @@ export class EmployeesImportService {
     if (file.buffer[0] !== 0x50 || file.buffer[1] !== 0x4b) throw new BadRequestException('Assinatura do arquivo XLSX inválida.');
   }
 
-  private readWorkbook(buffer: Buffer): xlsx.WorkBook {
+  private async readWorkbook(buffer: Buffer): Promise<ExcelJS.Workbook> {
     try {
-      return xlsx.read(buffer, { type: 'buffer', bookVBA: true, cellFormula: true, cellHTML: false, cellNF: false });
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.load(buffer as any);
+      return workbook;
     } catch {
       throw new BadRequestException('Arquivo XLSX malformado.');
     }
   }
 
-  private assertNoActiveContent(sheet: xlsx.WorkSheet) {
-    for (const [address, cell] of Object.entries(sheet)) {
-      if (address.startsWith('!')) continue;
-      if ((cell as xlsx.CellObject).f) throw new BadRequestException(`Fórmulas não são permitidas (${address}).`);
-      if ((cell as any).l) throw new BadRequestException(`Links externos não são permitidos (${address}).`);
-    }
+  private assertNoActiveContent(sheet: ExcelJS.Worksheet) {
+    sheet.eachRow((row) => {
+      row.eachCell((cell) => {
+        if (cell.type === ExcelJS.ValueType.Formula) throw new BadRequestException(`Fórmulas não são permitidas (${cell.address}).`);
+        if (cell.type === ExcelJS.ValueType.Hyperlink) throw new BadRequestException(`Links externos não são permitidos (${cell.address}).`);
+      });
+    });
   }
 
   private parseDate(value: string): Date | null {
