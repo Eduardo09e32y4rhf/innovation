@@ -170,7 +170,7 @@ export default function CompanyDetailPage({ params }: { params: { tenant: string
           ['documents', 'Documentos', FolderOpen],
           ['support', 'Chamados', HelpCircle],
           ['logs', 'Auditoria', Activity],
-        ].map(([id, label, Icon]: any) => <button key={id} onClick={() => setTab(id)} className={`inline-flex items-center gap-2 whitespace-nowrap border-b-2 px-1 py-3 text-xs font-black transition-all ${tab === id ? 'border-violet-600 text-slate-950 font-extrabold' : 'border-transparent text-slate-400 hover:text-slate-700'}`}><Icon size={14} className={tab === id ? 'text-violet-600' : ''} /> {label}</button>)}
+        ].map(([id, label, Icon]: any) => <button key={id} onClick={() => setTab(id)} aria-current={tab === id ? 'page' : undefined} className={`inline-flex items-center gap-2 whitespace-nowrap border-b-2 px-1 py-3 text-xs font-black transition-all ${tab === id ? 'border-violet-600 text-slate-950 font-extrabold' : 'border-transparent text-slate-400 hover:text-slate-700'}`}><Icon size={14} aria-hidden="true" className={tab === id ? 'text-violet-600' : ''} /> {label}</button>)}
       </nav>
 
       {tab === 'general' && (

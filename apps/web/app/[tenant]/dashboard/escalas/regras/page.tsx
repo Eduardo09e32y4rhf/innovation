@@ -173,14 +173,14 @@ export default function RegrasPage() {
                 <span className={`badge ${rule.status === 'ACTIVE' ? 'badge-active' : 'badge-inactive'}`}>
                   {rule.status === 'ACTIVE' ? 'Ativo' : 'Arquivado'}
                 </span>
-                <button className="btn-icon"><Edit2 className="w-4 h-4" /></button>
+                <button className="btn-icon" aria-label="Editar regra" title="Editar regra"><Edit2 className="w-4 h-4" aria-hidden="true" /></button>
                 {rule.status === 'ACTIVE' ? (
-                  <button className="btn-icon text-gray-600 hover:text-red-500" onClick={() => archiveMutation.mutate(rule.id)}>
-                    <Archive className="w-4 h-4" />
+                  <button className="btn-icon text-gray-600 hover:text-red-500" onClick={() => archiveMutation.mutate(rule.id)} aria-label="Arquivar regra" title="Arquivar regra">
+                    <Archive className="w-4 h-4" aria-hidden="true" />
                   </button>
                 ) : (
-                  <button className="btn-icon text-green-600" onClick={() => activateMutation.mutate(rule.id)}>
-                    <Play className="w-4 h-4" />
+                  <button className="btn-icon text-green-600" onClick={() => activateMutation.mutate(rule.id)} aria-label="Ativar regra" title="Ativar regra">
+                    <Play className="w-4 h-4" aria-hidden="true" />
                   </button>
                 )}
               </div>
@@ -261,9 +261,9 @@ export default function RegrasPage() {
               <div className="flex items-center gap-4">
                 <span className="badge badge-brand">{holiday.type || 'Feriado'}</span>
                 <span className="text-xs text-gray-500">{holiday.scope || 'Nacional'}</span>
-                <button className="btn-icon"><Edit2 className="w-4 h-4" /></button>
-                <button className="btn-icon text-red-600 hover:text-red-800" onClick={() => handleDeleteHoliday(holiday.id)}>
-                  <Archive className="w-4 h-4" />
+                <button className="btn-icon" aria-label="Editar feriado" title="Editar feriado"><Edit2 className="w-4 h-4" aria-hidden="true" /></button>
+                <button className="btn-icon text-red-600 hover:text-red-800" onClick={() => handleDeleteHoliday(holiday.id)} aria-label="Excluir feriado" title="Excluir feriado">
+                  <Archive className="w-4 h-4" aria-hidden="true" />
                 </button>
               </div>
             </div>

@@ -137,8 +137,8 @@ export default function EquipeEscalasPage() {
                   <div className="flex justify-between items-start mb-2">
                     <h3 className="font-semibold text-lg">{schedule.name}</h3>
                     <div className="flex gap-1">
-                      <button className="btn-icon text-gray-500 hover:text-brand" title="Editar">
-                        <Edit size={16} />
+                      <button className="btn-icon text-gray-500 hover:text-brand" aria-label="Editar escala" title="Editar">
+                        <Edit size={16} aria-hidden="true" />
                       </button>
                       <button 
                         className="btn-icon text-gray-500 hover:text-red-500" 
