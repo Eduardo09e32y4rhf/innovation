@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
-import { createHmac } from 'node:crypto';
+import { createHmac, timingSafeEqual } from 'node:crypto';
 import { AuthRepository } from './auth.repository';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { LoginDto } from './dto/login.dto';
@@ -266,7 +266,12 @@ export class AuthService {
     const user = await this.repository.findUserWithEmployeeByEmail(dto.email);
     if (!user || !user.isActive) throw new UnauthorizedException('Dados de validaÃ§Ã£o incorretos');
     
-    if (!user.resetPasswordCode || user.resetPasswordCode !== dto.code.trim().toUpperCase()) {
+    if (!user.resetPasswordCode) {
+      throw new UnauthorizedException('CÃ³digo invÃ¡lido ou expirado');
+    }
+    const expectedBuffer = Buffer.from(user.resetPasswordCode);
+    const providedBuffer = Buffer.from(dto.code.trim().toUpperCase());
+    if (expectedBuffer.length !== providedBuffer.length || !timingSafeEqual(expectedBuffer, providedBuffer)) {
       throw new UnauthorizedException('CÃ³digo invÃ¡lido ou expirado');
     }
     if (user.resetPasswordExpires && new Date() > user.resetPasswordExpires) {
