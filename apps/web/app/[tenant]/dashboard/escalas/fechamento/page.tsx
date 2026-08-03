@@ -31,7 +31,7 @@ export default function FechamentoPage() {
   });
   const reopenMutation = useMutation(({ id, reason }: any) => api.timeClosing.reopen(id, reason), { onSuccess: () => refetch() });
 
-  const isAuthorized = ['ADMIN', 'RH', 'DEV'].includes(user?.role || '');
+  const isAuthorized = ['ADMIN', 'RH', 'DEV', 'MASTER'].includes((user?.role || '').toUpperCase());
 
   if (!isAuthorized) {
     return <ErrorState message="Acesso restrito a administradores e RH" />;

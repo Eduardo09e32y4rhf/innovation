@@ -158,7 +158,7 @@ export default function EquipeEscalasPage() {
                           setIsNewScheduleModalOpen(true);
                         }}
                       >
-                        <Edit size={16} />
+                        <Edit size={14} />
                       </button>
                       <button 
                         className="btn-icon text-gray-500 hover:text-red-500" 
