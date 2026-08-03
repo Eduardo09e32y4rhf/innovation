@@ -439,15 +439,20 @@ export class TimeTrackService {
   async batchApproveManual(companyId: string, actor: JwtUser, ids: string[], approved: boolean) {
     if (!Array.isArray(ids) || ids.length === 0) throw new BadRequestException('A lista de IDs nao pode estar vazia');
     const results = [];
-    // Doing it sequentially to reuse validation logic
-    for (const id of ids) {
+
+    // Process promises concurrently for better performance instead of sequentially
+    const promises = ids.map(async (id) => {
       try {
         const result = await this.approveManual(companyId, actor, id, approved);
-        results.push({ id, status: 'success', data: result });
+        return { id, status: 'success', data: result };
       } catch (err: any) {
-        results.push({ id, status: 'error', message: err.message });
+        return { id, status: 'error', message: err.message };
       }
-    }
+    });
+
+    const outcomes = await Promise.all(promises);
+    results.push(...outcomes);
+
     return { results };
   }
   async revokeManual(companyId: string, actor: JwtUser, id: string, reason: string) {
