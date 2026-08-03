@@ -646,7 +646,7 @@ export const api = {
     reject: (id: string) => request<any>(`/time-occurrences/${id}/reject`, { method: 'PUT' }),
   },
   facialRecognition: {
-      enroll: (input: { imageBase64: string, employeeId?: string }) => request('/facial-recognition/enroll', { method: 'POST', body: input }),
+      enroll: (input: { imageBase64: string, employeeId?: string }) => request('/time-track/enroll-facial', { method: 'POST', body: input }),
     },
     timeTrack: {
     list: (month?: string) =>
@@ -674,9 +674,16 @@ export const api = {
   },
 
   documents: {
-    list: () => request<any[]>('/documents'),
-    generate: (input: any) => request<any>('/documents/generate', { method: 'POST', body: input }),
-    download: (id: string) => downloadRequest(`/documents/${id}/download`),
+    list: () => request<any[]>('/time-closing'),
+    generate: (input: { month: number; year: number }) => request<any>('/time-closing/generate', { method: 'POST', body: input }),
+    downloadIndividual: (closingId: string) => downloadRequest(`/time-closing/${closingId}/pdf`),
+    downloadCollective: (month: string, employeeIds?: string[]) => {
+      const params = new URLSearchParams({ month });
+      if (employeeIds && employeeIds.length) {
+        employeeIds.forEach(id => params.append('employeeIds', id));
+      }
+      return downloadRequest(`/time-closing/collective/pdf?${params.toString()}`);
+    },
   },
 
   users: {

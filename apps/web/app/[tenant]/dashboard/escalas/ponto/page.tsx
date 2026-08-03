@@ -8,6 +8,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { LoadingState, ErrorState, EmptyState } from '@/app/components/platform-ui';
 import { formatMinutes } from '@/app/lib/format';
 import { ChevronLeft, ChevronRight, Clock, Download, CheckCircle, Plus, X } from 'lucide-react';
+import { toast } from 'sonner';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -112,12 +113,18 @@ export default function PontoPage() {
 
   const pendingIds = timeRecords?.filter((r: any) => r.status === 'PENDING').map((r: any) => r.id) || [];
 
-  const summary = {
-    worked: 160 * 60,
-    extra: 12 * 60,
-    absences: 1,
-    delays: 45
-  };
+  const summary = React.useMemo(() => {
+    if (!timeRecords.length) return { worked: 0, extra: 0, absences: 0, delays: 0 };
+    
+    const worked = timeRecords.reduce((sum: number, r: any) => sum + (r.totalWorked || r.totalMinutes || 0), 0);
+    const extra = timeRecords.reduce((sum: number, r: any) => 
+      sum + (r.overtime50Minutes || 0) + (r.overtime100Minutes || 0), 0);
+    const absences = timeRecords.filter((r: any) => 
+      r.incidentType === 'ABSENCE' || r.incidentType === 'UNJUSTIFIED_ABSENCE').length;
+    const delays = timeRecords.reduce((sum: number, r: any) => sum + (r.lateMinutes || 0), 0);
+    
+    return { worked, extra, absences, delays };
+  }, [timeRecords]);
 
   return (
     <div className="space-y-6">
@@ -205,7 +212,18 @@ export default function PontoPage() {
                 {approveBatchMutation.loading ? 'Aprovando...' : `Aprovar Pendentes (${pendingIds.length})`}
               </button>
             )}
-            <button className="btn-outline flex items-center gap-2">
+            <button 
+              onClick={async () => {
+                const monthParam = currentMonth;
+                const empIds = selectedEmployeeId === 'all' ? undefined : [selectedEmployeeId];
+                try {
+                  await api.documents.downloadCollective(monthParam, empIds);
+                } catch {
+                  toast.error('Erro ao exportar PDF');
+                }
+              }}
+              className="btn-outline flex items-center gap-2"
+            >
               <Download size={16} /> Exportar PDF
             </button>
           </div>
@@ -229,7 +247,7 @@ export default function PontoPage() {
               {timeRecords?.length === 0 ? (
                 <tr>
                   <td colSpan={isAdminOrRh && selectedEmployeeId === 'all' ? 8 : 7} className="text-center py-8 text-gray-500">
-                    <EmptyState title="Não há marcações de ponto neste período." description="Não há marcações de ponto neste período." />
+                    <EmptyState title="Não há marcações de ponto neste período." description="Tente alterar o filtro ou data." />
                   </td>
                 </tr>
               ) : (

@@ -16,6 +16,8 @@ export default function RegrasPage() {
   // Modals
   const [isRuleModalOpen, setIsRuleModalOpen] = useState(false);
   const [isHolidayModalOpen, setIsHolidayModalOpen] = useState(false);
+  const [editingRule, setEditingRule] = useState<any>(null);
+  const [editingHoliday, setEditingHoliday] = useState<any>(null);
 
   // Forms
   const [ruleForm, setRuleForm] = useState({
@@ -75,10 +77,11 @@ export default function RegrasPage() {
   const activateMutation = useMutation((id: string) => api.workScheduleRules.activate(id), { onSuccess: () => refetchRules() });
   
   const createRuleMutation = useMutation(
-    (data: any) => api.workScheduleRules.create(data),
+    (data: any) => editingRule ? api.workScheduleRules.update(editingRule.id, data) : api.workScheduleRules.create(data),
     {
       onSuccess: () => {
         setIsRuleModalOpen(false);
+        setEditingRule(null);
         refetchRules();
       }
     }
@@ -116,8 +119,12 @@ export default function RegrasPage() {
 
   const handleAddHoliday = (e: React.FormEvent) => {
     e.preventDefault();
-    const newHoliday = { ...holidayForm, id: Date.now().toString() };
-    updateHolidaysMutation.mutate([...holidays, newHoliday]);
+    if (editingHoliday) {
+      updateHolidaysMutation.mutate(holidays.map(h => h.id === editingHoliday.id ? { ...holidayForm, id: h.id } : h));
+    } else {
+      const newHoliday = { ...holidayForm, id: Date.now().toString() };
+      updateHolidaysMutation.mutate([...holidays, newHoliday]);
+    }
   };
 
   const handleDeleteHoliday = (id: string) => {
@@ -139,7 +146,17 @@ export default function RegrasPage() {
         {activeTab !== 'EXTRAS' && (
           <button 
             className="btn-nubank flex items-center gap-2"
-            onClick={() => activeTab === 'JORNADAS' ? setIsRuleModalOpen(true) : setIsHolidayModalOpen(true)}
+            onClick={() => {
+              if (activeTab === 'JORNADAS') {
+                setEditingRule(null);
+                setRuleForm({ name: '', weeklyHours: 44, toleranceMinutes: 10, intervalMinutes: 60 });
+                setIsRuleModalOpen(true);
+              } else {
+                setEditingHoliday(null);
+                setHolidayForm({ name: '', date: '', type: 'NACIONAL', scope: 'Geral' });
+                setIsHolidayModalOpen(true);
+              }
+            }}
           >
             <Plus className="w-4 h-4" /> Novo
           </button>
@@ -173,7 +190,18 @@ export default function RegrasPage() {
                 <span className={`badge ${rule.status === 'ACTIVE' ? 'badge-active' : 'badge-inactive'}`}>
                   {rule.status === 'ACTIVE' ? 'Ativo' : 'Arquivado'}
                 </span>
-                <button className="btn-icon"><Edit2 className="w-4 h-4" /></button>
+                <button className="btn-icon" onClick={() => {
+                  setEditingRule(rule);
+                  setRuleForm({
+                    name: rule.name,
+                    weeklyHours: rule.weeklyHours || 44,
+                    toleranceMinutes: rule.toleranceMinutes || 10,
+                    intervalMinutes: rule.intervalMinutes || 60
+                  });
+                  setIsRuleModalOpen(true);
+                }}>
+                  <Edit2 className="w-4 h-4" />
+                </button>
                 {rule.status === 'ACTIVE' ? (
                   <button className="btn-icon text-gray-600 hover:text-red-500" onClick={() => archiveMutation.mutate(rule.id)}>
                     <Archive className="w-4 h-4" />
@@ -261,7 +289,18 @@ export default function RegrasPage() {
               <div className="flex items-center gap-4">
                 <span className="badge badge-brand">{holiday.type || 'Feriado'}</span>
                 <span className="text-xs text-gray-500">{holiday.scope || 'Nacional'}</span>
-                <button className="btn-icon"><Edit2 className="w-4 h-4" /></button>
+                <button className="btn-icon" onClick={() => {
+                  setEditingHoliday(holiday);
+                  setHolidayForm({
+                    name: holiday.name,
+                    date: holiday.date ? holiday.date.split('T')[0] : '',
+                    type: holiday.type || 'NACIONAL',
+                    scope: holiday.scope || 'Geral'
+                  });
+                  setIsHolidayModalOpen(true);
+                }}>
+                  <Edit2 className="w-4 h-4" />
+                </button>
                 <button className="btn-icon text-red-600 hover:text-red-800" onClick={() => handleDeleteHoliday(holiday.id)}>
                   <Archive className="w-4 h-4" />
                 </button>
@@ -282,8 +321,8 @@ export default function RegrasPage() {
               className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden"
             >
               <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50">
-                <h3 className="font-semibold text-gray-800">Nova Regra de Jornada</h3>
-                <button onClick={() => setIsRuleModalOpen(false)} className="text-gray-400 hover:text-gray-600">
+                <h3 className="font-semibold text-gray-800">{editingRule ? 'Editar Regra' : 'Nova Regra de Jornada'}</h3>
+                <button onClick={() => { setIsRuleModalOpen(false); setEditingRule(null); }} className="text-gray-400 hover:text-gray-600">
                   <X className="w-5 h-5" />
                 </button>
               </div>
@@ -334,7 +373,7 @@ export default function RegrasPage() {
                 </div>
 
                 <div className="pt-4 flex justify-end gap-3 border-t mt-6">
-                  <button type="button" className="btn-outline" onClick={() => setIsRuleModalOpen(false)}>Cancelar</button>
+                  <button type="button" className="btn-outline" onClick={() => { setIsRuleModalOpen(false); setEditingRule(null); }}>Cancelar</button>
                   <button type="submit" className="btn-nubank" disabled={createRuleMutation.loading}>
                     {createRuleMutation.loading ? 'Salvando...' : 'Salvar Regra'}
                   </button>
@@ -356,8 +395,8 @@ export default function RegrasPage() {
               className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden"
             >
               <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50">
-                <h3 className="font-semibold text-gray-800">Cadastrar Feriado</h3>
-                <button onClick={() => setIsHolidayModalOpen(false)} className="text-gray-400 hover:text-gray-600">
+                <h3 className="font-semibold text-gray-800">{editingHoliday ? 'Editar Feriado' : 'Cadastrar Feriado'}</h3>
+                <button onClick={() => { setIsHolidayModalOpen(false); setEditingHoliday(null); }} className="text-gray-400 hover:text-gray-600">
                   <X className="w-5 h-5" />
                 </button>
               </div>
@@ -409,9 +448,9 @@ export default function RegrasPage() {
                 </div>
 
                 <div className="pt-4 flex justify-end gap-3 border-t mt-6">
-                  <button type="button" className="btn-outline" onClick={() => setIsHolidayModalOpen(false)}>Cancelar</button>
+                  <button type="button" className="btn-outline" onClick={() => { setIsHolidayModalOpen(false); setEditingHoliday(null); }}>Cancelar</button>
                   <button type="submit" className="btn-nubank" disabled={updateHolidaysMutation.loading}>
-                    {updateHolidaysMutation.loading ? 'Salvando...' : 'Cadastrar'}
+                    {updateHolidaysMutation.loading ? 'Salvando...' : 'Salvar Feriado'}
                   </button>
                 </div>
               </form>

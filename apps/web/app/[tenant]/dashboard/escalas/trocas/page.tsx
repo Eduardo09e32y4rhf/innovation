@@ -118,7 +118,7 @@ export default function TrocasPage() {
       )}
 
       {filteredSwaps.length === 0 ? (
-        <EmptyState title="Não há solicitações de troca para exibir" description="Não há solicitações de troca para exibir" />
+        <EmptyState title="Não há solicitações de troca para exibir" description="Nenhuma solicitação encontrada." />
       ) : (
         <div className="grid gap-4">
           {filteredSwaps.map((swap: any) => (
@@ -130,9 +130,9 @@ export default function TrocasPage() {
                 <div>
                   <h4 className="font-semibold text-gray-900">{swap.requesterName}</h4>
                   <div className="flex items-center text-sm text-gray-500 mt-1 gap-2">
-                    <span>{format(new Date(swap.originalDate), 'dd/MM/yyyy')}</span>
+                    <span>{format(new Date(swap.originalDate.includes('T') ? swap.originalDate : `${swap.originalDate}T12:00:00`), 'dd/MM/yyyy')}</span>
                     <ArrowRight className="w-3 h-3" />
-                    <span>{format(new Date(swap.targetDate), 'dd/MM/yyyy')}</span>
+                    <span>{format(new Date(swap.targetDate.includes('T') ? swap.targetDate : `${swap.targetDate}T12:00:00`), 'dd/MM/yyyy')}</span>
                   </div>
                   <p className="text-sm mt-1">{swap.justification}</p>
                 </div>

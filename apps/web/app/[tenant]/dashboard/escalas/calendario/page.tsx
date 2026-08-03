@@ -277,16 +277,20 @@ export default function CalendarioPage() {
                   </td>
                   {monthDays.map(d => {
                     const dateStr = formatDateKey(year, month, d)
-                    // Mock finding the status for the day
-                    const status = Math.random() > 0.8 ? 'red' : Math.random() > 0.6 ? 'yellow' : 'green'
-                    let bg = 'bg-green-400'
-                    if (status === 'red') bg = 'bg-red-400'
-                    if (status === 'yellow') bg = 'bg-yellow-400'
+                    const dayTracks = teamTimeTrack.filter((t: any) => t.employee?.id === emp?.id && t.date === dateStr)
+                    const hasEntry = dayTracks.length > 0
+                    const hasOccurrence = dayTracks.some((t: any) => t.incidentType)
+                    
+                    let bg = 'bg-gray-200'
+                    let title = 'Sem dados'
+                    if (hasEntry && hasOccurrence) { bg = 'bg-yellow-400'; title = 'Com ocorrência'; }
+                    else if (hasEntry && !hasOccurrence) { bg = 'bg-green-400'; title = 'Ponto OK'; }
+                    else if (!hasEntry) { bg = 'bg-red-400'; title = 'Sem registro'; }
 
                     return (
-                      <td key={d} className="px-1 py-2 border-l border-gray-100 cursor-pointer" onClick={() => setSelectedDay({ date: dateStr, employeeId: emp.id })}>
+                      <td key={d} className="px-1 py-2 border-l border-gray-100 cursor-pointer" onClick={() => setSelectedDay({ date: dateStr, employeeId: emp?.id })}>
                          <div className="flex items-center justify-center h-full">
-                           <div className={`w-3 h-3 rounded-full ${bg}`} title={`Dia ${d} - Status: ${status}`}></div>
+                           <div className={`w-3 h-3 rounded-full ${bg}`} title={`Dia ${d} - Status: ${title}`}></div>
                          </div>
                       </td>
                     )
@@ -421,37 +425,63 @@ export default function CalendarioPage() {
                   <X className="w-5 h-5" />
                 </button>
               </div>
-              <div className="p-6 space-y-6">
-                <div className="flex flex-col gap-1">
-                  <span className="text-sm font-medium text-gray-500">Colaborador</span>
-                  <span className="text-gray-800 font-medium">{'Selecionado'}</span>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="p-3 bg-gray-50 rounded-lg border border-gray-100">
-                    <span className="text-xs text-gray-500 block mb-1">Jornada Prevista</span>
-                    <span className="font-medium text-gray-800">08:00 - 17:00</span>
-                  </div>
-                  <div className="p-3 bg-purple-50 rounded-lg border border-purple-100">
-                    <span className="text-xs text-purple-600 block mb-1">Batidas Realizadas</span>
-                    <span className="font-medium text-gray-800">08:02 - 12:00<br/>13:00 - 17:05</span>
-                  </div>
-                </div>
-
-                <div>
-                  <span className="text-sm font-medium text-gray-500 block mb-2">Ocorrências</span>
-                  <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg flex items-start gap-3">
-                    <AlertCircle className="w-5 h-5 text-yellow-600 shrink-0 mt-0.5" />
-                    <div>
-                      <p className="text-sm font-medium text-yellow-800">Atraso de 2 minutos</p>
-                      <p className="text-xs text-yellow-600 mt-1">Pendente de justificativa</p>
+              
+              {(() => {
+                const dayEmp = teamTimeTrack.find((t: any) => t.employee?.id === selectedDay.employeeId)?.employee || { name: 'Você' };
+                const dayTrack = teamTimeTrack.find((t: any) => t.employee?.id === selectedDay.employeeId && t.date === selectedDay.date) || 
+                                 myTimeTrack.find((t: any) => t.date === selectedDay.date);
+                const daySchedule = teamSchedule.find((s: any) => s.employee?.id === selectedDay.employeeId && s.date === selectedDay.date) ||
+                                    myCalendar.find((s: any) => s.date === selectedDay.date);
+                                    
+                return (
+                  <div className="p-6 space-y-6">
+                    <div className="flex flex-col gap-1">
+                      <span className="text-sm font-medium text-gray-500">Colaborador</span>
+                      <span className="text-gray-800 font-medium">{dayEmp?.name || 'Selecionado'}</span>
                     </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="p-3 bg-gray-50 rounded-lg border border-gray-100">
+                        <span className="text-xs text-gray-500 block mb-1">Jornada Prevista</span>
+                        <span className="font-medium text-gray-800">
+                          {daySchedule ? `${daySchedule.entryTime || '--:--'} - ${daySchedule.exitTime || '--:--'}` : 'Sem escala (Folga)'}
+                        </span>
+                      </div>
+                      <div className="p-3 bg-purple-50 rounded-lg border border-purple-100">
+                        <span className="text-xs text-purple-600 block mb-1">Batidas Realizadas</span>
+                        <span className="font-medium text-gray-800">
+                          {dayTrack && [dayTrack.entry, dayTrack.lunchStart, dayTrack.lunchReturn, dayTrack.exit].filter(Boolean).length > 0 
+                            ? [dayTrack.entry, dayTrack.lunchStart, dayTrack.lunchReturn, dayTrack.exit].filter(Boolean).join(' - ')
+                            : 'Nenhuma batida registrada'
+                          }
+                        </span>
+                      </div>
+                    </div>
+
+                    {dayTrack?.incidentType && (
+                      <div>
+                        <span className="text-sm font-medium text-gray-500 block mb-2">Ocorrências</span>
+                        <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg flex items-start gap-3">
+                          <AlertCircle className="w-5 h-5 text-yellow-600 shrink-0 mt-0.5" />
+                          <div>
+                            <p className="text-sm font-medium text-yellow-800">{dayTrack.incidentType}</p>
+                            <p className="text-xs text-yellow-600 mt-1">Saldo do dia: {dayTrack.dailyBalance ? `${dayTrack.dailyBalance} mins` : 'N/A'}</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                </div>
-              </div>
+                );
+              })()}
+              
               <div className="p-4 border-t border-gray-100 flex justify-end gap-3 bg-gray-50">
                 <button className="btn-outline" onClick={() => setSelectedDay(null)}>Fechar</button>
-                <button className="btn-nubank">Ver Espelho Ponto</button>
+                <button 
+                  className="btn-nubank"
+                  onClick={() => router.push(`/${params.tenant}/dashboard/escalas/ponto${selectedDay.employeeId ? `?employee=${selectedDay.employeeId}` : ''}`)}
+                >
+                  Ver Espelho Ponto
+                </button>
               </div>
             </motion.div>
           </div>

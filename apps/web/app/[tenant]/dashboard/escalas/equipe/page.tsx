@@ -21,6 +21,7 @@ export default function EquipeEscalasPage() {
   const [isNewScheduleModalOpen, setIsNewScheduleModalOpen] = useState(false);
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [selectedEmployeeForAssign, setSelectedEmployeeForAssign] = useState<any>(null);
+  const [editingSchedule, setEditingSchedule] = useState<any>(null);
 
   // Form States (New Schedule)
   const [newScheduleForm, setNewScheduleForm] = useState({
@@ -58,11 +59,12 @@ export default function EquipeEscalasPage() {
   );
 
   const createScheduleMutation = useMutation(
-    (data: any) => api.schedules.create(data),
+    (data: any) => editingSchedule ? api.schedules.update(editingSchedule.id, data) : api.schedules.create(data),
     { 
       onSuccess: () => {
         queryClient.invalidateQueries();
         setIsNewScheduleModalOpen(false);
+        setEditingSchedule(null);
       }
     }
   );
@@ -112,7 +114,11 @@ export default function EquipeEscalasPage() {
           <p className="page-subtitle">Gerencie os modelos de escala e atribuições da equipe</p>
         </div>
         <button 
-          onClick={() => setIsNewScheduleModalOpen(true)}
+          onClick={() => {
+            setEditingSchedule(null);
+            setNewScheduleForm({ name: '', description: '', workDays: [], entryTime: '', exitTime: '' });
+            setIsNewScheduleModalOpen(true);
+          }}
           className="btn-nubank flex items-center gap-2 mt-4 md:mt-0"
         >
           <Plus size={18} />
@@ -137,7 +143,21 @@ export default function EquipeEscalasPage() {
                   <div className="flex justify-between items-start mb-2">
                     <h3 className="font-semibold text-lg">{schedule.name}</h3>
                     <div className="flex gap-1">
-                      <button className="btn-icon text-gray-500 hover:text-brand" title="Editar">
+                      <button 
+                        className="btn-icon text-gray-500 hover:text-brand" 
+                        title="Editar"
+                        onClick={() => {
+                          setEditingSchedule(schedule);
+                          setNewScheduleForm({
+                            name: schedule.name,
+                            description: schedule.description || '',
+                            workDays: schedule.workDays || [],
+                            entryTime: schedule.entryTime || '',
+                            exitTime: schedule.exitTime || ''
+                          });
+                          setIsNewScheduleModalOpen(true);
+                        }}
+                      >
                         <Edit size={16} />
                       </button>
                       <button 
@@ -249,8 +269,8 @@ export default function EquipeEscalasPage() {
               className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden"
             >
               <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50">
-                <h3 className="font-semibold text-gray-800">Nova Escala de Trabalho</h3>
-                <button onClick={() => setIsNewScheduleModalOpen(false)} className="text-gray-400 hover:text-gray-600">
+                <h3 className="font-semibold text-gray-800">{editingSchedule ? 'Editar Escala' : 'Novo Modelo de Escala'}</h3>
+                <button onClick={() => { setIsNewScheduleModalOpen(false); setEditingSchedule(null); }} className="text-gray-400 hover:text-gray-600">
                   <X className="w-5 h-5" />
                 </button>
               </div>
@@ -319,9 +339,13 @@ export default function EquipeEscalasPage() {
                 </div>
 
                 <div className="pt-4 flex justify-end gap-3 border-t mt-6">
-                  <button type="button" className="btn-outline" onClick={() => setIsNewScheduleModalOpen(false)}>Cancelar</button>
-                  <button type="submit" className="btn-nubank" disabled={createScheduleMutation.loading}>
-                    {createScheduleMutation.loading ? 'Salvando...' : 'Criar Escala'}
+                  <button type="button" className="btn-outline" onClick={() => { setIsNewScheduleModalOpen(false); setEditingSchedule(null); }}>Cancelar</button>
+                  <button 
+                    type="submit" 
+                    className={`btn-nubank ${createScheduleMutation.loading ? 'opacity-50' : ''}`}
+                    disabled={createScheduleMutation.loading}
+                  >
+                    {createScheduleMutation.loading ? 'Salvando...' : 'Salvar Modelo'}
                   </button>
                 </div>
               </form>
