@@ -145,14 +145,14 @@ export default function PontoPage() {
 
       <div className="flex flex-col md:flex-row justify-between gap-4 bg-white p-4 rounded-xl shadow-sm border border-gray-100">
         <div className="flex items-center gap-4">
-          <button onClick={handlePrevMonth} className="btn-icon p-2 hover:bg-gray-100 rounded-full">
-            <ChevronLeft size={20} />
+          <button onClick={handlePrevMonth} className="btn-icon p-2 hover:bg-gray-100 rounded-full" aria-label="Mês anterior">
+            <ChevronLeft size={20} aria-hidden="true" />
           </button>
           <span className="font-medium text-lg min-w-[120px] text-center">
             {new Date(`${currentMonth}-01T00:00:00`).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
           </span>
-          <button onClick={handleNextMonth} className="btn-icon p-2 hover:bg-gray-100 rounded-full">
-            <ChevronRight size={20} />
+          <button onClick={handleNextMonth} className="btn-icon p-2 hover:bg-gray-100 rounded-full" aria-label="Próximo mês">
+            <ChevronRight size={20} aria-hidden="true" />
           </button>
         </div>
 

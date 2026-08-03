@@ -140,14 +140,14 @@ export default function CalendarioPage() {
   const renderToolbar = () => (
     <div className="card-flat mb-6 p-4 flex flex-col md:flex-row gap-4 items-center justify-between">
       <div className="flex items-center gap-4">
-        <button onClick={prevMonth} className="btn-icon">
-          <ChevronLeft className="w-5 h-5" />
+        <button onClick={prevMonth} className="btn-icon" aria-label="Mês anterior">
+          <ChevronLeft className="w-5 h-5" aria-hidden="true" />
         </button>
         <h2 className="text-lg font-semibold text-gray-800 capitalize w-40 text-center">
           {currentDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
         </h2>
-        <button onClick={nextMonth} className="btn-icon">
-          <ChevronRight className="w-5 h-5" />
+        <button onClick={nextMonth} className="btn-icon" aria-label="Próximo mês">
+          <ChevronRight className="w-5 h-5" aria-hidden="true" />
         </button>
       </div>
 

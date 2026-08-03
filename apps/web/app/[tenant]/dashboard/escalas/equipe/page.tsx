@@ -138,14 +138,14 @@ export default function EquipeEscalasPage() {
                     <h3 className="font-semibold text-lg">{schedule.name}</h3>
                     <div className="flex gap-1">
                       <button className="btn-icon text-gray-500 hover:text-brand" title="Editar">
-                        <Edit size={16} />
+                        <Edit size={16} aria-hidden="true" />
                       </button>
                       <button 
                         className="btn-icon text-gray-500 hover:text-red-500" 
                         title="Arquivar"
                         onClick={() => archiveMutation.mutate(schedule.id)}
                       >
-                        <Archive size={16} />
+                        <Archive size={16} aria-hidden="true" />
                       </button>
                     </div>
                   </div>
