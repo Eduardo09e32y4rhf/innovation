@@ -44,16 +44,16 @@ export default function EquipeEscalasPage() {
     () => api.schedules.list(),
     ['schedules', tenant]
   );
-  const schedules = (schedulesData || []) as any[];
+  const schedules = Array.isArray(schedulesData) ? schedulesData : [];
 
   const { data: teamScheduleData, loading: isLoadingTeam, error: errorTeam } = useQuery(
     () => api.schedules.teamSchedule(currentMonth),
     ['teamSchedule', tenant, currentMonth]
   );
-  const teamSchedule = (teamScheduleData || []) as any[];
+  const teamSchedule = Array.isArray(teamScheduleData) ? teamScheduleData : [];
 
   const { data: employeesData } = useQuery(() => api.employees.list(), []);
-  const employees = (employeesData || []) as any[];
+  const employees = Array.isArray(employeesData) ? employeesData : [];
 
   // Mutations
   const archiveMutation = useMutation(
@@ -135,10 +135,12 @@ export default function EquipeEscalasPage() {
           <EmptyState title="Nenhuma escala" description="Crie seu primeiro modelo de escala clicando no botão acima." />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {schedules.map((schedule: any) => (
-              <motion.div 
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
+            {schedules.map((schedule: any) => {
+              if (!schedule) return null;
+              return (
+                <motion.div 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
                 key={schedule.id} 
                 className="card-flat flex flex-col justify-between"
               >
@@ -177,7 +179,7 @@ export default function EquipeEscalasPage() {
                   <div className="flex flex-col gap-2 text-sm text-gray-600">
                     <div className="flex items-center gap-2">
                       <Calendar size={14} className="text-brand" />
-                      <span>{schedule.workDays?.join(', ')}</span>
+                      <span>{Array.isArray(schedule.workDays) ? schedule.workDays.join(', ') : 'Dias não definidos'}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Users size={14} className="text-brand" />
@@ -186,7 +188,7 @@ export default function EquipeEscalasPage() {
                   </div>
                 </div>
               </motion.div>
-            ))}
+            )})}
           </div>
         )}
       </section>
@@ -221,13 +223,15 @@ export default function EquipeEscalasPage() {
                   <td colSpan={5} className="text-center py-4 text-gray-500">Nenhum registro encontrado.</td>
                 </tr>
               ) : (
-                filteredTeam.map((assignment: any) => (
+                filteredTeam.map((assignment: any) => {
+                  if (!assignment) return null;
+                  return (
                   <tr key={assignment.id || assignment.employee?.id}>
                     <td className="font-medium">{assignment.employee?.name}</td>
                     <td>{assignment.schedule?.name || <span className="italic text-gray-400">Sem escala</span>}</td>
                     <td className="text-sm text-gray-600">
-                      {assignment.startDate ? new Date(assignment.startDate).toLocaleDateString() : '-'} 
-                      {assignment.endDate ? ` a ${new Date(assignment.endDate).toLocaleDateString()}` : ' (Indeterminado)'}
+                      {assignment.startDate ? String(assignment.startDate).substring(0, 10).split('-').reverse().join('/') : '-'} 
+                      {assignment.endDate ? ` a ${String(assignment.endDate).substring(0, 10).split('-').reverse().join('/')}` : ' (Indeterminado)'}
                     </td>
                     <td>
                       <span className={`badge ${
@@ -254,7 +258,8 @@ export default function EquipeEscalasPage() {
                       </button>
                     </td>
                   </tr>
-                ))
+                )
+                })
               )}
             </tbody>
           </table>
@@ -391,9 +396,11 @@ export default function EquipeEscalasPage() {
                     onChange={e => setAssignForm(prev => ({ ...prev, scheduleId: e.target.value }))}
                   >
                     <option value="">Selecione uma escala...</option>
-                    {schedules.map((s: any) => (
-                      <option key={s.id} value={s.id}>{s.name} ({s.workDays?.join(', ') || 'N/A'})</option>
-                    ))}
+                    {schedules.map((s: any) => {
+                      if (!s) return null;
+                      return (
+                      <option key={s.id} value={s.id}>{s.name} ({Array.isArray(s.workDays) ? s.workDays.join(', ') : 'N/A'})</option>
+                    )})}
                   </select>
                 </div>
                 
