@@ -254,6 +254,18 @@ export default function PontoPage() {
   const isFunc = !canManage && !isGestor;
 
   const [currentMonth, setCurrentMonth] = useState(new Date().toISOString().substring(0, 7));
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  const handleDownloadPdf = async (employeeId?: string) => {
+    try {
+      setIsDownloading(true);
+      await api.documents.downloadCollective(currentMonth, employeeId ? [employeeId] : undefined);
+    } catch (err: any) {
+      alert(err?.message || 'Erro ao gerar PDF. O serviço pode estar indisponível.');
+    } finally {
+      setIsDownloading(false);
+    }
+  };
   const [selectedEmployeeId, setSelectedEmployeeId] = useState(searchParams.get('employeeId') || (isFunc ? user?.id : 'all'));
   
   const [isManualModalOpen, setIsManualModalOpen] = useState(false);
@@ -335,8 +347,8 @@ export default function PontoPage() {
         <div className="flex flex-wrap gap-2 mt-4 md:mt-0">
           {(canManage || isGestor) && (
             <>
-              <button onClick={() => window.print()} className="btn-outline flex items-center gap-2 text-brand bg-brand/5 border-brand/20 hover:bg-brand/10 transition-colors">
-                <FileText size={16} /><span>Imprimir Relatório</span>
+              <button onClick={() => handleDownloadPdf()} disabled={isDownloading} className="btn-outline flex items-center gap-2 text-brand bg-brand/5 border-brand/20 hover:bg-brand/10 transition-colors disabled:opacity-50">
+                <FileText size={16} /><span>{isDownloading ? 'Gerando...' : 'Imprimir Relatório'}</span>
               </button>
               <button onClick={() => { setEditingTrack(null); setIsManualModalOpen(true); }} className="btn-outline flex items-center gap-2">
                 <Plus size={16} /><span>Ajuste Manual</span>
@@ -433,7 +445,7 @@ export default function PontoPage() {
                     <div className="flex flex-row gap-2 shrink-0">
                       <button onClick={(e) => { e.stopPropagation(); setSelectedEmployeeId(emp.id); }} className="btn-nubank px-4 py-2 text-[10px] shadow-sm font-bold tracking-wider hover:scale-105 transition-transform">VER FOLHA</button>
                       {(canManage || isGestor) && (
-                        <button onClick={(e) => { e.stopPropagation(); window.print(); }} className="btn-outline flex items-center justify-center gap-1.5 px-3 py-2 text-[10px] font-bold border-brand/30 text-brand hover:bg-brand/5 transition-transform hover:scale-105">
+                        <button onClick={(e) => { e.stopPropagation(); handleDownloadPdf(emp.id); }} disabled={isDownloading} className="btn-outline flex items-center justify-center gap-1.5 px-3 py-2 text-[10px] font-bold border-brand/30 text-brand hover:bg-brand/5 transition-transform hover:scale-105 disabled:opacity-50">
                           <Download size={14}/> PDF
                         </button>
                       )}
