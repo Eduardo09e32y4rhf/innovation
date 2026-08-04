@@ -1433,16 +1433,16 @@ function EscalaEquipeTab({ loading, teamData, schedules, canWrite, year, month, 
         <div className="flex items-center gap-2">
           <button
             onClick={onPrev}
-            className="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50 hover:ring-slate-300 transition-all shadow-sm"
+            className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand/10 text-brand ring-1 ring-brand/20 hover:bg-brand hover:text-white transition-all shadow-sm"
           >
             <ChevronLeft size={16}/>
           </button>
-          <h2 className="text-base font-bold text-slate-900">
-            {MONTH_NAMES[month-1]} <span className="text-slate-400 font-normal">{year}</span>
+          <h2 className="text-base font-black text-slate-900 uppercase tracking-wider">
+            {MONTH_NAMES[month-1]} <span className="text-brand font-bold">{year}</span>
           </h2>
           <button
             onClick={onNext}
-            className="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50 hover:ring-slate-300 transition-all shadow-sm"
+            className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand/10 text-brand ring-1 ring-brand/20 hover:bg-brand hover:text-white transition-all shadow-sm"
           >
             <ChevronRight size={16}/>
           </button>
@@ -1450,9 +1450,9 @@ function EscalaEquipeTab({ loading, teamData, schedules, canWrite, year, month, 
         <div className="flex items-center gap-2">
           <button
             onClick={onRefresh}
-            className="flex items-center gap-1.5 rounded-xl bg-white px-3 py-2 text-xs font-medium text-slate-600 ring-1 ring-slate-200 hover:ring-slate-300 hover:text-slate-900 transition-all shadow-sm"
+            className="btn-outline flex items-center gap-1.5 border-brand/30 text-brand hover:bg-brand/5 shadow-sm"
           >
-            <RefreshCw size={12}/> Atualizar
+            <RefreshCw size={14}/> Atualizar
           </button>
           {canWrite && (
             <button
@@ -1533,27 +1533,30 @@ function EmployeeTeamCard({ employee, schedule, hasSchedule, onSelect }: {
   return (
     <button
       onClick={onSelect}
-      className="group flex items-center gap-4 w-full text-left rounded-2xl bg-white p-4 ring-1 ring-slate-200 hover:ring-slate-300 hover:shadow-md transition-all duration-200 relative overflow-hidden"
+      className="group flex items-center gap-4 w-full text-left rounded-2xl bg-white p-4 ring-1 ring-slate-200 hover:ring-brand/50 hover:shadow-[0_4px_20px_-4px_rgba(138,5,190,0.15)] transition-all duration-300 relative overflow-hidden"
     >
-      {/* Linha lateral colorida no hover */}
-      <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-brand opacity-0 group-hover:opacity-100 transition-opacity rounded-full" />
+      {/* Linha lateral colorida sempre visível, mas expande no hover */}
+      <div className="absolute left-0 top-0 bottom-0 w-1 bg-brand/30 group-hover:bg-brand transition-colors rounded-l-2xl" />
 
       {/* Avatar */}
       <div
-        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-white text-sm font-bold shadow-md group-hover:scale-105 transition-transform bg-brand"
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white text-sm font-black shadow-md group-hover:scale-110 transition-transform bg-gradient-to-br from-brand to-[#5e0382] ml-2"
       >
         {getInitials(employee.name || '')}
       </div>
 
       {/* Info */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <p className="text-sm font-bold text-slate-900 truncate">
-            {employee.registration ? String(employee.registration).padStart(4, '0') : 'S/N'} - {employee.name?.toUpperCase()}
-          </p>
-        </div>
-        <p className="text-xs text-slate-500 truncate mt-0.5">
-          {employee.department?.toUpperCase()} · {employee.position?.toUpperCase()}
+      <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+        <p className="text-sm font-black text-slate-900 truncate flex items-center gap-2">
+          {employee.registration && (
+            <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded text-[10px] font-mono tracking-widest border border-slate-200 group-hover:border-brand/30 group-hover:text-brand transition-colors">
+              {String(employee.registration).padStart(4, '0')}
+            </span>
+          )}
+          {employee.name?.toUpperCase()}
+        </p>
+        <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider truncate">
+          {employee.department} • {employee.position}
         </p>
       </div>
 
