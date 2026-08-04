@@ -13,7 +13,7 @@
     "start:web": "npm --prefix apps/web run start",
     "start:api": "npm --prefix apps/api run start",
     "prisma:format": "npm --prefix apps/api exec -- prisma format --schema apps/api/prisma/schema.prisma",
-    "prisma:validate": "npm --prefix apps/api exec -- prisma validate --schema apps/api/prisma/schema.prisma",
+    "prisma:validate": "DATABASE_URL=\"postgresql://dummy:dummy@localhost:5432/dummy\" npm --prefix apps/api exec -- prisma validate --schema apps/api/prisma/schema.prisma",
     "prisma:generate": "npm --prefix apps/api exec -- prisma generate --schema apps/api/prisma/schema.prisma",
     "db:generate": "npm run prisma:generate",
     "db:migrate": "npm --prefix apps/api run prisma:migrate",

@@ -19,7 +19,8 @@
     "seed:admin": "node prisma/seed-admin.cjs",
     "seed:mvp": "node prisma/seed-admin.cjs",
     "seed:pricing": "npx tsx prisma/seed-pricing.ts",
-    "seed:realistic-demo": "npx tsx prisma/seed-realistic-demo.ts"
+    "seed:realistic-demo": "npx tsx prisma/seed-realistic-demo.ts",
+    "prisma:migrate": "npm run prisma:deploy"
   },
   "dependencies": {
     "@fastify/cookie": "^11.0.2",
