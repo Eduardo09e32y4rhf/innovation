@@ -478,7 +478,7 @@ function EmployeeCombobox({ employees, selectedId, onSelect }: {
         {selected ? (
           <>
             <div
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-white text-xs font-bold shadow-sm bg-brand"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-white text-xs font-bold shadow-sm bg-slate-900"
             >
               {getInitials(selected.name || '')}
             </div>
@@ -562,7 +562,7 @@ function EmployeeCombobox({ employees, selectedId, onSelect }: {
                   className={`flex w-full items-center gap-3 px-4 py-3 hover:bg-slate-50 transition-colors ${selectedId === e.id ? 'bg-slate-50' : ''}`}
                 >
                   <div
-                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-white text-xs font-bold shadow-sm bg-brand"
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-white text-xs font-bold shadow-sm bg-slate-900"
                   >
                     {getInitials(e.name || '')}
                   </div>
@@ -803,7 +803,7 @@ function MinhaEscalaTab({ loading, calendarData, year, month, onPrev, onNext, se
                   {/* Número do dia */}
                   <span className={`text-[13px] font-bold leading-none ${
                     isToday
-                      ? 'flex h-6 w-6 items-center justify-center rounded-full bg-brand text-white text-[11px]'
+                      ? 'flex h-6 w-6 items-center justify-center rounded-full bg-slate-900 text-white text-[11px]'
                       : isWeekend
                         ? `${meta.textColor} opacity-70`
                         : meta.textColor
@@ -836,7 +836,7 @@ function MinhaEscalaTab({ loading, calendarData, year, month, onPrev, onNext, se
 
                   {/* Indicador de seleção */}
                   <span className={`absolute inset-0 rounded-xl transition-opacity duration-200 ${
-                    isSelected ? 'opacity-0' : 'opacity-0 group-hover:opacity-100 bg-brand/5'
+                    isSelected ? 'opacity-0' : 'opacity-0 group-hover:opacity-100 bg-slate-900/5'
                   }`} />
                 </button>
               );
@@ -1363,7 +1363,7 @@ function ModalAjusteMensal({ employeeId, currentMonth, onClose, onSuccess }: {
                 onClick={() => setType(t.value)}
                 className={`flex items-center gap-2 rounded-xl px-3 py-2.5 text-xs font-semibold ring-1 transition-all ${
                   type === t.value
-                    ? 'bg-brand text-white ring-slate-900 shadow-sm'
+                    ? 'bg-slate-900 text-white ring-slate-900 shadow-sm'
                     : 'bg-slate-50 text-slate-600 ring-slate-200 hover:ring-slate-300 hover:bg-slate-100'
                 }`}
               >
@@ -1391,7 +1391,7 @@ function ModalAjusteMensal({ employeeId, currentMonth, onClose, onSuccess }: {
           <button
             onClick={submit}
             disabled={loading}
-            className="flex items-center gap-2 rounded-xl bg-brand hover:bg-slate-700 px-5 py-2 text-sm font-semibold text-white disabled:opacity-50 transition-colors shadow-sm"
+            className="flex items-center gap-2 rounded-xl bg-slate-900 hover:bg-slate-700 px-5 py-2 text-sm font-semibold text-white disabled:opacity-50 transition-colors shadow-sm"
           >
             {loading ? <Loader2 size={14} className="animate-spin"/> : <Check size={14}/>}
             Aplicar Ajuste
@@ -1457,7 +1457,7 @@ function EscalaEquipeTab({ loading, teamData, schedules, canWrite, year, month, 
           {canWrite && (
             <button
               onClick={onLancar}
-              className="flex items-center gap-1.5 rounded-xl bg-brand hover:bg-slate-700 px-4 py-2 text-xs font-bold text-white transition-all shadow-sm"
+              className="flex items-center gap-1.5 rounded-xl bg-slate-900 hover:bg-slate-700 px-4 py-2 text-xs font-bold text-white transition-all shadow-sm"
             >
               <Plus size={13}/> Lançar Escala
             </button>
@@ -1536,11 +1536,11 @@ function EmployeeTeamCard({ employee, schedule, hasSchedule, onSelect }: {
       className="group flex items-center gap-4 w-full text-left rounded-2xl bg-white p-4 ring-1 ring-slate-200 hover:ring-slate-300 hover:shadow-md transition-all duration-200 relative overflow-hidden"
     >
       {/* Linha lateral colorida no hover */}
-      <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-brand opacity-0 group-hover:opacity-100 transition-opacity rounded-full" />
+      <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-slate-900 opacity-0 group-hover:opacity-100 transition-opacity rounded-full" />
 
       {/* Avatar */}
       <div
-        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-white text-sm font-bold shadow-md group-hover:scale-105 transition-transform bg-brand"
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-white text-sm font-bold shadow-md group-hover:scale-105 transition-transform bg-slate-900"
       >
         {getInitials(employee.name || '')}
       </div>
@@ -1611,7 +1611,7 @@ function TrocarEscalaTab({ loading, swaps, canApprove, onNovatroca, onApprove, o
           </button>
           <button
             onClick={onNovatroca}
-            className="flex items-center gap-1.5 rounded-xl bg-brand hover:bg-slate-700 px-4 py-2 text-xs font-bold text-white transition-all shadow-sm"
+            className="flex items-center gap-1.5 rounded-xl bg-slate-900 hover:bg-slate-700 px-4 py-2 text-xs font-bold text-white transition-all shadow-sm"
           >
             <Plus size={13}/> Nova Solicitação
           </button>
@@ -1790,7 +1790,7 @@ function ModalSolicitarTroca({ onClose, onSuccess, canApprove, allEmployees }: {
           <button
             onClick={submit}
             disabled={loading}
-            className="flex items-center gap-2 rounded-xl bg-brand hover:bg-slate-700 px-5 py-2 text-sm font-semibold text-white disabled:opacity-50 transition-colors shadow-sm"
+            className="flex items-center gap-2 rounded-xl bg-slate-900 hover:bg-slate-700 px-5 py-2 text-sm font-semibold text-white disabled:opacity-50 transition-colors shadow-sm"
           >
             {loading ? <Loader2 size={14} className="animate-spin"/> : <Check size={14}/>} Enviar
           </button>
@@ -1964,7 +1964,7 @@ function ModalLancarEscala({ schedules, onClose, onSuccess }: { schedules: any[]
               {selectedEmployeeObjects.map(e => (
                 <span
                   key={e.id}
-                  className="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 text-white shadow-sm bg-brand"
+                  className="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 text-white shadow-sm bg-slate-900"
                 >
                   {getInitials(e.name || '')} {e.name?.split(' ')[0]}
                   <button
@@ -1983,7 +1983,7 @@ function ModalLancarEscala({ schedules, onClose, onSuccess }: { schedules: any[]
               <label className="text-xs font-semibold text-slate-600">
                 Funcionários
                 {selectedEmployees.length > 0 && (
-                  <span className="ml-2 rounded-full bg-brand text-white px-2 py-0.5 text-[10px] font-bold">
+                  <span className="ml-2 rounded-full bg-slate-900 text-white px-2 py-0.5 text-[10px] font-bold">
                     {selectedEmployees.length} selecionado{selectedEmployees.length !== 1 ? 's' : ''}
                   </span>
                 )}
@@ -2049,14 +2049,14 @@ function ModalLancarEscala({ schedules, onClose, onSuccess }: { schedules: any[]
                     >
                       {/* Checkbox */}
                       <div className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-lg border-2 transition-all ${
-                        isSelected ? 'border-slate-900 bg-brand' : 'border-slate-300 bg-white hover:border-slate-500'
+                        isSelected ? 'border-slate-900 bg-slate-900' : 'border-slate-300 bg-white hover:border-slate-500'
                       }`}>
                         {isSelected && <Check size={11} strokeWidth={3} className="text-white"/>}
                       </div>
 
                       {/* Avatar */}
                       <div
-                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-white text-xs font-bold shadow-sm bg-brand"
+                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-white text-xs font-bold shadow-sm bg-slate-900"
                       >
                         {getInitials(e.name || '')}
                       </div>
@@ -2153,7 +2153,7 @@ function ModalLancarEscala({ schedules, onClose, onSuccess }: { schedules: any[]
         <button
           onClick={mode === 'assign' ? submitAssign : submitCreate}
           disabled={loading}
-          className="flex items-center gap-2 rounded-xl bg-brand hover:bg-slate-700 px-5 py-2 text-sm font-bold text-white disabled:opacity-50 transition-colors shadow-sm"
+          className="flex items-center gap-2 rounded-xl bg-slate-900 hover:bg-slate-700 px-5 py-2 text-sm font-bold text-white disabled:opacity-50 transition-colors shadow-sm"
         >
           {loading ? <Loader2 size={14} className="animate-spin"/> : <Check size={14}/>}
           {mode === 'assign' ? `Atribuir${selectedEmployees.length > 0 ? ` (${selectedEmployees.length})` : ''}` : 'Criar Escala'}

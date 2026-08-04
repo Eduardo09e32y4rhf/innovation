@@ -345,6 +345,7 @@ export interface Company {
   cnpj?: string | null; street?: string | null; streetNumber?: string | null;
   neighborhood?: string | null; city?: string | null; state?: string | null; cep?: string | null;
   zipCode?: string | null; addressComplement?: string | null;
+  requireFacialRecognition?: boolean;
   stateRegistration?: string | null; municipalRegistration?: string | null;
   legalRepresentativeName?: string | null; legalRepresentativeCpf?: string | null;
   legalRepresentativeRole?: string | null; legalRepresentativeEmail?: string | null;

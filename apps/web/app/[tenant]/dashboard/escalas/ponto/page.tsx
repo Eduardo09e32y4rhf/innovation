@@ -10,7 +10,7 @@ import { formatMinutes } from '@/app/lib/format';
 import { normalizeDisplayName } from '@/app/lib/text';
 import { hasPermission } from '@/app/lib/permissions';
 import { saoPauloDateKey } from '@/app/lib/date';
-import { ChevronLeft, ChevronRight, Clock, Download, CheckCircle, Plus, X, CalendarDays, Edit3, Trash2, MapPin, Search } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Clock, Download, CheckCircle, Plus, X, CalendarDays, Edit3, Trash2, MapPin, Search, FileText } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 
@@ -334,9 +334,14 @@ export default function PontoPage() {
         </div>
         <div className="flex flex-wrap gap-2 mt-4 md:mt-0">
           {(canManage || isGestor) && (
-            <button onClick={() => { setEditingTrack(null); setIsManualModalOpen(true); }} className="btn-outline flex items-center gap-2">
-              <Plus size={16} /><span>Ajuste Manual</span>
-            </button>
+            <>
+              <button onClick={() => api.timeClosing.downloadCollectivePdf(currentMonth).catch(()=>{toast.error('Erro ao baixar PDF')})} className="btn-outline flex items-center gap-2 text-slate-600 bg-white">
+                <FileText size={16} /><span>Exportar PDF</span>
+              </button>
+              <button onClick={() => { setEditingTrack(null); setIsManualModalOpen(true); }} className="btn-outline flex items-center gap-2">
+                <Plus size={16} /><span>Ajuste Manual</span>
+              </button>
+            </>
           )}
           <Link href={`/${tenant}/dashboard/time-track/clock-in`} className="btn-nubank flex items-center gap-2">
             <Clock size={16} /><span>Bater Ponto</span>
@@ -420,7 +425,14 @@ export default function PontoPage() {
                         <span className={`font-mono text-sm font-bold ${saldo >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>{fmtBalance(saldo)}</span>
                       </div>
                     </div>
-                    <button className="btn-outline px-3 py-1.5 h-auto text-[11px]">VER FOLHA</button>
+                    <div className="flex flex-col gap-2">
+                      <button onClick={() => setSelectedEmployeeId(emp.id)} className="btn-outline px-3 py-1.5 h-auto text-[11px] w-full">VER FOLHA</button>
+                      {(canManage || isGestor) && (
+                        <button onClick={(e) => { e.stopPropagation(); api.timeClosing.downloadCollectivePdf(currentMonth, [emp.id]).catch(()=>{toast.error('Erro ao baixar PDF')}); }} className="flex items-center justify-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1.5 rounded text-[11px] font-bold border border-slate-200 transition-colors w-full">
+                          <Download size={12}/> PDF
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               );
@@ -637,7 +649,7 @@ function TimeTrackModal({ track, employees, onClose, onDone, defaultEmpId, canMa
             <label className="text-xs font-bold text-slate-500 uppercase">Colaborador</label>
             <select disabled={!!track?.id} value={empId} onChange={e=>setEmpId(e.target.value)} className="form-control">
               <option value="">Selecione...</option>
-              {employees.map((e: any)=><option key={e.id} value={e.id}>{normalizeDisplayName(e.name)}</option>)}
+              {employees.map((e: any)=><option key={e.id} value={e.id}>[{e.registration || e.id.slice(0,8).toUpperCase()}] {normalizeDisplayName(e.name)}</option>)}
             </select>
           </div>
           
