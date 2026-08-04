@@ -1,398 +1,695 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useQuery, useMutation } from '@/app/hooks/use-data';
-import { api } from '@/app/lib/api';
+import { api, type Employee, type TimeTrack, type TimeTrackAdjustmentReason } from '@/app/lib/api';
 import { useAuth } from '@/app/contexts/AuthContext';
-import { useParams, useRouter } from 'next/navigation';
-import { LoadingState, ErrorState, EmptyState } from '@/app/components/platform-ui';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { LoadingState, ErrorState, EmptyState, SolidCard, InnerCard } from '@/app/components/platform-ui';
 import { formatMinutes } from '@/app/lib/format';
-import { ChevronLeft, ChevronRight, Clock, Download, CheckCircle, Plus, X } from 'lucide-react';
-import { toast } from 'sonner';
+import { normalizeDisplayName } from '@/app/lib/text';
+import { hasPermission } from '@/app/lib/permissions';
+import { saoPauloDateKey } from '@/app/lib/date';
+import { ChevronLeft, ChevronRight, Clock, Download, CheckCircle, Plus, X, CalendarDays, Edit3, Trash2, MapPin, Search } from 'lucide-react';
 import Link from 'next/link';
-import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from 'sonner';
+
+const WEEKDAYS = ['DOM','SEG','TER','QUA','QUI','SEX','SÁB'];
+
+const REASONS: { value: TimeTrackAdjustmentReason; label: string; fullDay?: boolean }[] = [
+  { value:'ajuste_erro_marcacao', label:'AJUSTE - MARCAÇÃO INCOMPLETA', fullDay:false },
+  { value:'ajuste_atestado_integral', label:'ATESTADO INTEGRAL', fullDay:true },
+  { value:'ajuste_feriado', label:'FERIADO', fullDay:true },
+  { value:'ajuste_abono_atestado_horas', label:'ABONO - ATESTADO DE HORAS', fullDay:false },
+  { value:'ajuste_folga_dsr', label:'FOLGA', fullDay:true },
+  { value:'ajuste_abono_folga', label:'ABONO - FOLGA (BANCO)', fullDay:true },
+  { value:'ajuste_abono_banco_saida_antecipada', label:'ABONO - BANCO SAÍDA ANTECIPADA', fullDay:true },
+  { value:'ajuste_abono_atraso', label:'ABONO - ATRASO', fullDay:true },
+  { value:'ajuste_suspensao', label:'SUSPENSÃO', fullDay:true },
+];
+
+function getLocalToday() {
+  return saoPauloDateKey();
+}
+function toDateKey(v?: string | null) { return v ? v.slice(0,10) : ''; }
+function fmtTime(v?: string | null) {
+  if (!v) return '--:--';
+  const d = new Date(v);
+  if (Number.isNaN(d.getTime())) return '--:--';
+  return d.toLocaleTimeString('pt-BR',{ hour:'2-digit', minute:'2-digit' });
+}
+function fmtLunch(s?: string|null, e?: string|null) {
+  if (!s && !e) return '--:--';
+  return `${fmtTime(s)} - ${fmtTime(e)}`;
+}
+function fmtWorked(m?: number|null) { return m == null ? '--:--' : formatMinutes(m); }
+function fmtBalance(m?: number|null) { return m == null ? '--:--' : formatMinutes(m); }
+
+function fmtDateFull(v?: string | null): string {
+  if (!v) return '---';
+  const d = new Date(v);
+  if (Number.isNaN(d.getTime())) return '---';
+  const wd = WEEKDAYS[d.getUTCDay()] ?? '---';
+  const dd = String(d.getUTCDate()).padStart(2,'0');
+  const mm = String(d.getUTCMonth()+1).padStart(2,'0');
+  const yy = d.getUTCFullYear();
+  return `${wd} - ${dd}/${mm}/${yy}`;
+}
+
+function isRestDay(date: Date, emp: Employee): boolean {
+  const wd = date.getUTCDay();
+  if (emp.workScheduleRule?.restDaysOfWeek && emp.workScheduleRule.restDaysOfWeek.length > 0) {
+    return emp.workScheduleRule.restDaysOfWeek.includes(wd);
+  }
+  const s = emp.workScale; const c = emp.customWorkScale;
+  if (s==='5X2') return wd===0||wd===6;
+  if (s==='6X1') return wd===0;
+  if (s==='4X2') return isCycle(date,emp,4,2);
+  if (s==='12X36') return isCycle(date,emp,1,1);
+  if (s==='OUTRO' && c) {
+    const m = c.match(/(\d+)X(\d+)/i);
+    if (m) return isCycle(date,emp,parseInt(m[1],10),parseInt(m[2],10));
+  }
+  return wd===0;
+}
+function isCycle(date: Date, emp: Employee, work: number, off: number) {
+  const adm = emp.admissionDate ? new Date(emp.admissionDate) : new Date('2020-01-01');
+  const a = Date.UTC(adm.getUTCFullYear(), adm.getUTCMonth(), adm.getUTCDate());
+  const b = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+  const diff = Math.floor((b-a)/864e5);
+  if (diff<0) return false;
+  return (diff%(work+off)) >= work;
+}
+function isAntesAdmissao(key: string, emp: Employee): boolean {
+  if (!emp.admissionDate) return false;
+  const adm = emp.admissionDate.slice(0,10);
+  return key < adm;
+}
+function isDepoisDemissao(key: string, emp: Employee): boolean {
+  if (!emp.terminationDate) return false;
+  const dem = emp.terminationDate.slice(0,10);
+  return key > dem;
+}
+
+function buildGrid(month: string, emp: Employee, tracks: TimeTrack[], startDay: number = 1, holidays: any[] = [], teamSchedules: any[] = []) {
+  const safeHolidays = holidays || [];
+  const [y,m] = month.split('-').map(Number); if (!y||!m) return [];
+  const today = getLocalToday();
+  const map = new Map<string, TimeTrack>();
+  for (const t of tracks) map.set(toDateKey(t.date), t);
+  const g: any[] = [];
+  const empSchedule = teamSchedules.find(ts => ts.employee?.id === emp.id || ts.employeeId === emp.id);
+  const calDays = empSchedule ? (empSchedule.days || []) : [];
+  const getCalDay = (k: string) => calDays.find((cd: any) => cd.date === k);
+  
+  let startDate = new Date(Date.UTC(y, m - 1, 1));
+  let endDate = new Date(Date.UTC(y, m, 0));
+
+  if (startDay > 1) {
+    startDate = new Date(Date.UTC(y, m - 2, startDay));
+    const nextMonth = new Date(Date.UTC(y, m - 1, startDay));
+    endDate = new Date(nextMonth.getTime() - 24 * 60 * 60 * 1000);
+  }
+
+  for (let d = new Date(startDate); d <= endDate; d.setUTCDate(d.getUTCDate() + 1)) {
+    const date = new Date(d);
+    const key = date.toISOString().slice(0,10);
+    const holiday = safeHolidays.find(h => h.date && h.date.startsWith(key));
+    const cd = getCalDay(key);
+    let isRest = isRestDay(date,emp);
+    let holidayName = holiday?.name;
+    let scheduled = null;
+    let dayType = 'WORK';
+    if (cd) {
+      isRest = cd.dayType === 'FOLGA' || cd.dayType === 'FOLGA_DSR' || cd.dayType === 'FOLGA_BANCO';
+      if (cd.dayType === 'SEM_ESCALA') isRest = isRestDay(date, emp);
+      if (cd.dayType === 'FERIADO' || cd.dayType === 'FERIADO_LOCAL') holidayName = holidayName || 'Feriado';
+      scheduled = isRest ? null : cd.scheduled;
+      dayType = cd.dayType;
+    }
+
+    if (!isRest && !scheduled) {
+      scheduled = {
+        entry: emp.standardEntry || '08:00',
+        lunchStart: emp.standardLunchStart || '12:00',
+        lunchReturn: emp.standardLunchReturn || '13:00',
+        exit: emp.standardExit || '18:00'
+      };
+    }
+
+    g.push({
+      date, key, day: date.getUTCDate(), wd: date.getUTCDay(),
+      isRest, isFuture: key>today, antesAdmissao: isAntesAdmissao(key,emp), depoisDemissao: isDepoisDemissao(key,emp),
+      track: map.get(key), holidayName, scheduled, dayType
+    });
+  }
+  return g;
+}
+
+function dayStatus(row: TimeTrack, holidayName?: string) {
+  if (row.manualStatus==='revoked') return 'REVOGADO';
+  const o = (row.observation ?? '').toLowerCase();
+  if (o.includes('atestado integral')) return 'ATESTADO';
+  if (o.includes('atestado') && o.includes('horas')) return 'ATESTADO (HORAS)';
+  if (o.includes('suspensao') || o.includes('suspensão')) return 'SUSPENSÃO';
+  if (o.includes('feriado') || holidayName) return 'FERIADO';
+  if (o.includes('folga extra')) return 'FOLGA EXTRA';
+  if (o.includes('folga banco')) return 'FOLGA BANCO';
+  if (o.includes('folga')) return 'FOLGA';
+  const r = (row.manualReason ?? '').toLowerCase();
+  if (r.includes('atestado integral')) return 'ATESTADO';
+  if (r.includes('feriado')) return 'FERIADO';
+  if (r.includes('folga dsr')) return 'FOLGA';
+  if (r === 'ajuste_erro_marcacao') return 'PONTO INCOMPLETO';
+  if (r === 'ajuste_abono_atraso') return 'ABONO DE ATRASO';
+  if (r === 'ajuste_abono_banco_saida_antecipada') return 'ABONO SAÍDA';
+  if (r === 'ajuste_abono_atestado_horas') return 'ATESTADO (HORAS)';
+  if (r === 'ajuste_suspensao') return 'SUSPENSÃO';
+  const occurrences: string[] = [];
+  if ((row.lateMinutes ?? 0) > 0) occurrences.push(`ATRASO ${formatMinutes(row.lateMinutes ?? 0)}`);
+  if ((row.earlyLeaveMinutes ?? 0) > 0) occurrences.push(`SAÍDA ANTECIPADA ${formatMinutes(row.earlyLeaveMinutes ?? 0)}`);
+  if ((row.overtime50Minutes ?? 0) > 0) occurrences.push(`HE 50% ${formatMinutes(row.overtime50Minutes ?? 0)}`);
+  if ((row.overtime100Minutes ?? 0) > 0) occurrences.push(`HE 100% ${formatMinutes(row.overtime100Minutes ?? 0)}`);
+  if (occurrences.length) return occurrences.join(' + ');
+  if (row.manualStatus==='pending') return 'PENDENTE';
+  if (row.manualStatus==='rejected') return 'REJEITADO';
+  if (row.manualReason || o.includes('ajuste')) return 'AJUSTE MANUAL';
+  if (!row.entry && !row.exit) return 'FALTA';
+  return 'NORMAL';
+}
+
+function isFalta(row: TimeTrack) {
+  if (row.entry || row.exit) return false;
+  const o = (row.observation ?? '').toLowerCase();
+  const r = (row.manualReason ?? '').toLowerCase();
+  if (o.includes('atestado') || r.includes('atestado')) return false;
+  if (o.includes('feriado') || r.includes('feriado')) return false;
+  if (o.includes('folga') || r.includes('folga')) return false;
+  if (o.includes('abonado') || r.includes('abonado')) return false;
+  if (o.includes('suspensao') || o.includes('suspensão') || r.includes('suspensao') || r.includes('suspensão')) return false;
+  return true;
+}
+
+function getEffectiveStatsFromGrid(grid: any[]) {
+  let worked = 0;
+  let saldo = 0;
+  grid.forEach(g => {
+    if (g.isFuture || g.antesAdmissao || g.depoisDemissao) return;
+    if (g.track) {
+      worked += (g.track.totalWorked ?? 0);
+      saldo += (g.track.dailyBalance ?? 0);
+    } else if (!g.isRest) {
+      let expected = 480;
+      if (g.scheduled && g.scheduled.entry && g.scheduled.exit) {
+        const ent = new Date(`1970-01-01T${g.scheduled.entry}Z`);
+        const ext = new Date(`1970-01-01T${g.scheduled.exit}Z`);
+        expected = (ext.getTime() - ent.getTime()) / 60000;
+        if (g.scheduled.lunchStart && g.scheduled.lunchReturn) {
+          const lEnt = new Date(`1970-01-01T${g.scheduled.lunchStart}Z`);
+          const lExt = new Date(`1970-01-01T${g.scheduled.lunchReturn}Z`);
+          expected -= (lExt.getTime() - lEnt.getTime()) / 60000;
+        }
+      }
+      saldo -= expected;
+    }
+  });
+  return { worked, saldo };
+}
+
+function StatusBadge({ status }: { status: string }) {
+  const u = status.toUpperCase();
+  const c: Record<string,string> = {
+    'NORMAL':'bg-emerald-50 text-emerald-700 border-emerald-200',
+    'PENDENTE':'bg-amber-50 text-amber-700 border-amber-200',
+    'REJEITADO':'bg-rose-50 text-rose-700 border-rose-200',
+    'REVOGADO':'bg-red-100 text-red-700 border-red-200',
+    'FERIADO':'bg-teal-50 text-teal-700 border-teal-200',
+    'ATESTADO':'bg-violet-50 text-violet-700 border-violet-200',
+    'ATESTADO (HORAS)':'bg-violet-50 text-violet-700 border-violet-200',
+    'SUSPENSÃO':'bg-orange-50 text-orange-700 border-orange-200',
+    'FOLGA':'bg-sky-50 text-sky-700 border-sky-200',
+    'FOLGA (DSR)':'bg-sky-50 text-sky-700 border-sky-200',
+    'FOLGA EXTRA':'bg-indigo-50 text-indigo-700 border-indigo-200',
+    'FOLGA BANCO':'bg-cyan-50 text-cyan-700 border-cyan-200',
+    'AJUSTE MANUAL':'bg-orange-50 text-orange-700 border-orange-200',
+    'PONTO INCOMPLETO':'bg-amber-50 text-amber-700 border-amber-200',
+    'ABONO DE ATRASO':'bg-indigo-50 text-indigo-700 border-indigo-200',
+    'ABONO SAÍDA':'bg-indigo-50 text-indigo-700 border-indigo-200',
+    'FALTA':'bg-rose-50 text-rose-700 border-rose-200',
+    'ATRASO':'bg-rose-50 text-rose-800 border-rose-300',
+    'SAÍDA ANTECIPADA':'bg-rose-50 text-rose-800 border-rose-300',
+  };
+  return <span className={`inline-flex items-center rounded border px-2 py-0.5 text-[9px] font-bold whitespace-nowrap ${c[u]||'bg-slate-100 text-slate-600 border-slate-200'}`}>{u}</span>;
+}
 
 export default function PontoPage() {
   const { tenant } = useParams() as { tenant: string };
   const { user } = useAuth();
+  const searchParams = useSearchParams();
   const router = useRouter();
   
+  const canManage = hasPermission(user, 'time_tracking.view_all');
+  const canApprove = hasPermission(user, 'time_tracking.approve_all') || hasPermission(user, 'time_tracking.approve_team');
+  const isGestor = hasPermission(user, 'time_tracking.view_team') && !canManage;
+  const isFunc = !canManage && !isGestor;
+
   const [currentMonth, setCurrentMonth] = useState(new Date().toISOString().substring(0, 7));
-  const [selectedEmployeeId, setSelectedEmployeeId] = useState(user?.id || 'all');
-  const [optimisticUpdates, setOptimisticUpdates] = useState<Record<string, any>>({});
-
-  // Modal States
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState(searchParams.get('employeeId') || (isFunc ? user?.id : 'all'));
+  
   const [isManualModalOpen, setIsManualModalOpen] = useState(false);
-  const [manualForm, setManualForm] = useState({
-    employeeId: user?.id || '',
-    date: new Date().toISOString().substring(0, 10),
-    entry: '',
-    lunchStart: '',
-    lunchReturn: '',
-    exit: '',
-    reason: 'ajuste_erro_marcacao' as any,
-    observation: ''
-  });
+  const [editingTrack, setEditingTrack] = useState<TimeTrack | null>(null);
 
-  const isAdminOrRh = ['ADMIN', 'RH', 'GESTOR'].includes(user?.role || '');
+  useEffect(() => {
+    const q = searchParams.get('employeeId');
+    if (q) setSelectedEmployeeId(q);
+  }, [searchParams]);
 
-  const { data: employeesData } = useQuery(
-    () => isAdminOrRh ? api.employees.list() : Promise.resolve([]),
-    [tenant, isAdminOrRh]
-  );
-  const employees = (employeesData || []) as any[];
-
-  const { data: timeRecordsData, loading: isLoading, error, refetch } = useQuery(
-    () => {
-      if (!isAdminOrRh || selectedEmployeeId !== 'all') {
-        const empId = selectedEmployeeId === 'all' ? user?.id : selectedEmployeeId;
-        return api.timeTrack.listEmployeeMonth(empId as string, currentMonth);
-      }
-      return api.timeTrack.list(currentMonth);
-    },
-    [tenant, currentMonth, selectedEmployeeId, isAdminOrRh, user?.id]
+  const { data: employeesData } = useQuery(() => api.employees.list(), []);
+  const employees = (employeesData || []) as Employee[];
+  
+  const { data: timeRecordsData, loading: isLoadingTracks, refetch: refetchTracks } = useQuery(
+    () => api.timeTrack.list(currentMonth),
+    [currentMonth]
   );
   
-  // Apply optimistic updates
-  const rawRecords = (timeRecordsData || []) as any[];
-  const timeRecords = rawRecords.map(r => 
-    optimisticUpdates[r.id] ? { ...r, ...optimisticUpdates[r.id] } : r
+  const { data: teamSchedulesData } = useQuery(
+    () => api.schedules.teamSchedule(currentMonth),
+    [currentMonth]
   );
+  
+  const { data: companyData } = useQuery(() => api.companies.me(), []);
+  const { data: holidaysData } = useQuery(() => api.companies.getHolidays(), []);
+  const { data: pendingData, refetch: refetchPending } = useQuery(() => api.timeTrack.listPending(), [], { enabled: canApprove });
 
-  const approveBatchMutation = useMutation(
-    (ids: string[]) => api.timeTrack.batchApprove(ids, true),
-    { 
-      onSuccess: (_, ids) => {
-        // Atualização Otimista
-        const updates: Record<string, any> = {};
-        ids.forEach(id => { updates[id] = { status: 'APPROVED' }; });
-        setOptimisticUpdates(prev => ({ ...prev, ...updates }));
-        refetch();
-      }
-    }
-  );
-
-  const manualAdjustMutation = useMutation(
-    (data: any) => api.timeTrack.manual(data),
-    {
-      onSuccess: () => {
-        setIsManualModalOpen(false);
-        refetch();
-      }
-    }
-  );
+  const approveMut = useMutation((p:{id:string;approved:boolean})=> api.timeTrack.approve(p.id, p.approved), { onSuccess:()=>{ refetchPending(); refetchTracks(); }});
+  const removeMut = useMutation((id:string)=> api.timeTrack.delete(id), { onSuccess: ()=> refetchTracks() });
 
   const handlePrevMonth = () => {
     const d = new Date(`${currentMonth}-01T00:00:00`);
     d.setMonth(d.getMonth() - 1);
     setCurrentMonth(d.toISOString().substring(0, 7));
   };
-
   const handleNextMonth = () => {
     const d = new Date(`${currentMonth}-01T00:00:00`);
     d.setMonth(d.getMonth() + 1);
     setCurrentMonth(d.toISOString().substring(0, 7));
   };
 
-  const handleManualSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    manualAdjustMutation.mutate(manualForm as any);
+  const onDelete = async (r: TimeTrack) => {
+    if (!window.confirm(`Excluir ponto de ${normalizeDisplayName(r.employee?.name ??'-')} em ${fmtDateFull(r.date)}?`)) return;
+    await removeMut.mutate(r.id).catch(()=>{});
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'APPROVED': case 'NORMAL': return 'bg-green-50 text-green-700 border-l-4 border-green-500';
-      case 'PENDING': return 'bg-yellow-50 text-yellow-700 border-l-4 border-yellow-500';
-      case 'ISSUE': case 'REJECTED': return 'bg-red-50 text-red-700 border-l-4 border-red-500';
-      default: return '';
-    }
-  };
+  const visibleEmployees = useMemo(() => {
+    return employees.filter(e => {
+      if (selectedEmployeeId && selectedEmployeeId !== 'all' && e.id !== selectedEmployeeId) return false;
+      const [y,m] = currentMonth.split('-').map(Number);
+      const startOfMonth = `${y}-${String(m).padStart(2,'0')}-01`;
+      const endOfMonth = new Date(y, m, 0).toISOString().slice(0,10);
+      if (e.admissionDate && e.admissionDate.slice(0,10) > endOfMonth) return false;
+      if (e.terminationDate && e.terminationDate.slice(0,10) < startOfMonth) return false;
+      return true;
+    }).sort((a,b)=>normalizeDisplayName(a.name).localeCompare(normalizeDisplayName(b.name),'pt-BR'));
+  }, [employees, selectedEmployeeId, currentMonth]);
 
-  if (isLoading && !timeRecordsData) return <LoadingState label="Carregando espelho de ponto..." />;
-  if (error) return <ErrorState message="Erro ao carregar registros de ponto" retry={refetch} />;
+  const byEmpMap = useMemo(() => {
+    const map: Record<string, TimeTrack[]> = {};
+    (timeRecordsData || []).forEach((r: TimeTrack) => {
+      if (!map[r.employeeId]) map[r.employeeId] = [];
+      map[r.employeeId].push(r);
+    });
+    return map;
+  }, [timeRecordsData]);
 
-  const pendingIds = timeRecords?.filter((r: any) => r.status === 'PENDING').map((r: any) => r.id) || [];
+  if (isLoadingTracks && !timeRecordsData) return <LoadingState label="Carregando folha de ponto..." />;
 
-  const summary = React.useMemo(() => {
-    if (!timeRecords.length) return { worked: 0, extra: 0, absences: 0, delays: 0 };
-    
-    const worked = timeRecords.reduce((sum: number, r: any) => sum + (r.totalWorked || r.totalMinutes || 0), 0);
-    const extra = timeRecords.reduce((sum: number, r: any) => 
-      sum + (r.overtime50Minutes || 0) + (r.overtime100Minutes || 0), 0);
-    const absences = timeRecords.filter((r: any) => 
-      r.incidentType === 'ABSENCE' || r.incidentType === 'UNJUSTIFIED_ABSENCE').length;
-    const delays = timeRecords.reduce((sum: number, r: any) => sum + (r.lateMinutes || 0), 0);
-    
-    return { worked, extra, absences, delays };
-  }, [timeRecords]);
+  const isDetailView = selectedEmployeeId && selectedEmployeeId !== 'all' && visibleEmployees.length === 1;
 
   return (
     <div className="space-y-6">
       <div className="page-header flex flex-col md:flex-row justify-between md:items-center">
         <div>
-          <h1 className="page-title">Controle de Ponto</h1>
-          <p className="page-subtitle">Acompanhe os registros de jornada de trabalho</p>
+          <h1 className="page-title">{isDetailView && isFunc ? 'Meu Ponto' : 'Folha de Ponto'}</h1>
+          <p className="page-subtitle">Acompanhe os registros de jornada e saldo de horas</p>
         </div>
-        <div className="flex gap-2 mt-4 md:mt-0">
-          {isAdminOrRh && (
-            <button 
-              onClick={() => setIsManualModalOpen(true)}
-              className="btn-outline flex items-center gap-2"
-            >
-              <Plus size={18} />
-              <span>Ajuste Manual</span>
+        <div className="flex flex-wrap gap-2 mt-4 md:mt-0">
+          {(canManage || isGestor) && (
+            <button onClick={() => { setEditingTrack(null); setIsManualModalOpen(true); }} className="btn-outline flex items-center gap-2">
+              <Plus size={16} /><span>Ajuste Manual</span>
             </button>
           )}
           <Link href={`/${tenant}/dashboard/time-track/clock-in`} className="btn-nubank flex items-center gap-2">
-            <Clock size={18} />
-            <span>Bater Ponto</span>
+            <Clock size={16} /><span>Bater Ponto</span>
           </Link>
         </div>
       </div>
 
-      <div className="flex flex-col md:flex-row justify-between gap-4 bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+      <div className="flex flex-col md:flex-row justify-between gap-4 bg-white p-4 rounded-xl shadow-sm border border-slate-200">
         <div className="flex items-center gap-4">
-          <button onClick={handlePrevMonth} className="btn-icon p-2 hover:bg-gray-100 rounded-full">
+          <button onClick={handlePrevMonth} className="p-2 hover:bg-slate-100 rounded-full text-slate-500 transition-colors">
             <ChevronLeft size={20} />
           </button>
-          <span className="font-medium text-lg min-w-[120px] text-center">
+          <span className="font-semibold text-slate-800 text-base min-w-[140px] text-center capitalize">
             {new Date(`${currentMonth}-01T00:00:00`).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
           </span>
-          <button onClick={handleNextMonth} className="btn-icon p-2 hover:bg-gray-100 rounded-full">
+          <button onClick={handleNextMonth} className="p-2 hover:bg-slate-100 rounded-full text-slate-500 transition-colors">
             <ChevronRight size={20} />
           </button>
         </div>
 
-        {isAdminOrRh && (
-          <div className="flex gap-2 w-full md:w-auto">
+        {!isFunc && (
+          <div className="flex items-center gap-2 w-full md:w-auto relative">
+            <Search size={16} className="absolute left-3 text-slate-400" />
             <select 
-              className="form-control"
+              className="pl-9 pr-4 py-2 w-full md:w-72 bg-slate-50 border border-slate-200 text-sm rounded-lg font-medium text-slate-700 outline-none focus:border-brand/50 focus:ring-2 focus:ring-brand/20 transition-all"
               value={selectedEmployeeId}
-              onChange={(e) => setSelectedEmployeeId(e.target.value)}
+              onChange={(e) => {
+                setSelectedEmployeeId(e.target.value);
+                if (e.target.value === 'all') {
+                  router.push(`/${tenant}/dashboard/escalas/ponto`);
+                } else {
+                  router.push(`/${tenant}/dashboard/escalas/ponto?employeeId=${e.target.value}`);
+                }
+              }}
             >
-              <option value="all">Todos Funcionários</option>
+              <option value="all">TODOS FUNCIONÁRIOS</option>
               {employees?.map((e: any) => (
-                <option key={e.id} value={e.id}>{e.name}</option>
+                <option key={e.id} value={e.id}>{normalizeDisplayName(e.name)}</option>
               ))}
             </select>
           </div>
         )}
       </div>
 
+      {!isDetailView ? (
+        <SolidCard>
+          <div className="px-5 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 rounded-t-xl">
+            <h3 className="font-bold text-slate-800">Colaboradores</h3>
+            <span className="text-xs font-medium text-slate-500">{visibleEmployees.length} registros</span>
+          </div>
+          <div className="divide-y divide-slate-100">
+            {visibleEmployees.map(emp => {
+              const rows = byEmpMap[emp.id] ?? [];
+              const grid = buildGrid(currentMonth, emp, rows, (companyData as any)?.payrollStartDay || 1, holidaysData as any[] || [], teamSchedulesData?.withSchedule || []);
+              const { worked, saldo } = getEffectiveStatsFromGrid(grid);
+              const faltas = rows.filter(isFalta).length;
+              
+              return (
+                <div key={emp.id} onClick={() => setSelectedEmployeeId(emp.id)} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-5 py-4 hover:bg-slate-50 cursor-pointer transition-colors">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 shrink-0 rounded-lg bg-brand/10 text-brand flex items-center justify-center font-bold text-sm">
+                      {normalizeDisplayName(emp.name).charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-bold text-slate-400 border border-slate-200 rounded px-1">{emp.registration || emp.id.slice(0,8).toUpperCase()}</span>
+                        <p className="font-bold text-sm text-slate-900">{normalizeDisplayName(emp.name)}</p>
+                      </div>
+                      <p className="text-xs font-medium text-slate-500 mt-0.5">{emp.department || 'Sem Departamento'} {faltas > 0 && <span className="text-red-500 ml-2 font-bold">{faltas} FALTA(S)</span>}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-6">
+                    <div className="flex gap-4 items-center">
+                      <div className="flex flex-col items-end">
+                        <span className="text-[9px] font-bold uppercase text-slate-400 tracking-wider">Trabalhado</span>
+                        <span className="font-mono text-sm font-semibold text-slate-700">{fmtWorked(worked)}</span>
+                      </div>
+                      <div className="w-px h-6 bg-slate-200"></div>
+                      <div className="flex flex-col items-end">
+                        <span className="text-[9px] font-bold uppercase text-slate-400 tracking-wider">Saldo</span>
+                        <span className={`font-mono text-sm font-bold ${saldo >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>{fmtBalance(saldo)}</span>
+                      </div>
+                    </div>
+                    <button className="btn-outline px-3 py-1.5 h-auto text-[11px]">VER FOLHA</button>
+                  </div>
+                </div>
+              );
+            })}
+            {visibleEmployees.length === 0 && (
+              <div className="py-12 text-center text-slate-400 font-medium text-sm">
+                Nenhum colaborador encontrado para o mês {currentMonth}.
+              </div>
+            )}
+          </div>
+        </SolidCard>
+      ) : (
+        <MonthGridView 
+          employee={visibleEmployees[0]} 
+          tracks={byEmpMap[visibleEmployees[0].id] || []} 
+          month={currentMonth} 
+          company={companyData} 
+          holidays={holidaysData as any[]} 
+          teamSchedules={teamSchedulesData?.withSchedule || []}
+          canManage={canManage}
+          canApprove={canApprove}
+          onEdit={(t) => { setEditingTrack(t); setIsManualModalOpen(true); }}
+          onDelete={onDelete}
+          onApprove={(id, app) => approveMut.mutate({ id, approved: app })}
+        />
+      )}
+
+      {isManualModalOpen && (
+        <TimeTrackModal 
+          track={editingTrack}
+          employees={employees}
+          defaultEmpId={selectedEmployeeId !== 'all' ? selectedEmployeeId : ''}
+          canManage={canManage}
+          onClose={() => { setIsManualModalOpen(false); setEditingTrack(null); }}
+          onDone={() => { setIsManualModalOpen(false); setEditingTrack(null); refetchTracks(); }}
+        />
+      )}
+    </div>
+  );
+}
+
+function MonthGridView({ employee, tracks, month, company, holidays, teamSchedules, canManage, canApprove, onEdit, onDelete, onApprove }: any) {
+  const grid = useMemo(() => buildGrid(month, employee, tracks, company?.payrollStartDay || 1, holidays, teamSchedules), [month, employee, tracks, company, holidays, teamSchedules]);
+  const { worked, saldo } = useMemo(() => getEffectiveStatsFromGrid(grid), [grid]);
+  
+  const restDays = grid.filter((g: any) => g.isRest).length;
+  const batidas = grid.filter((g: any) => g.track && !g.isRest).length;
+  const pendentes = grid.filter((g: any) => !g.isRest && !g.isFuture && !g.track).length;
+
+  return (
+    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="card-stat">
-          <p className="card-stat-label">Horas Trabalhadas</p>
-          <p className="card-stat-value text-brand">{formatMinutes(summary.worked)}</p>
+          <p className="card-stat-label">Trabalhado</p>
+          <p className="card-stat-value text-slate-800 font-mono">{fmtWorked(worked)}</p>
         </div>
         <div className="card-stat">
-          <p className="card-stat-label">Horas Extras</p>
-          <p className="card-stat-value text-green-600">+{formatMinutes(summary.extra)}</p>
+          <p className="card-stat-label">Saldo (Banco)</p>
+          <p className={`card-stat-value font-mono ${saldo >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>{fmtBalance(saldo)}</p>
         </div>
         <div className="card-stat">
-          <p className="card-stat-label">Faltas</p>
-          <p className="card-stat-value text-red-500">{summary.absences} dias</p>
+          <p className="card-stat-label">Dias Restantes</p>
+          <p className="card-stat-value text-slate-600">{grid.filter((g: any) => g.isFuture && !g.isRest).length} dias</p>
         </div>
         <div className="card-stat">
-          <p className="card-stat-label">Atrasos</p>
-          <p className="card-stat-value text-yellow-600">{formatMinutes(summary.delays)}</p>
+          <p className="card-stat-label">Pendências</p>
+          <p className="card-stat-value text-amber-600">{pendentes} ausências</p>
         </div>
       </div>
 
-      <div className="content-section">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="section-title">Registros do Mês</h2>
-          <div className="flex gap-2">
-            {isAdminOrRh && pendingIds.length > 0 && (
-              <button 
-                onClick={() => approveBatchMutation.mutate(pendingIds)}
-                disabled={approveBatchMutation.loading}
-                className={`btn-outline flex items-center gap-2 text-green-600 border-green-600 hover:bg-green-50 ${approveBatchMutation.loading ? 'opacity-50 cursor-not-allowed' : ''}`}
-              >
-                <CheckCircle size={16} /> 
-                {approveBatchMutation.loading ? 'Aprovando...' : `Aprovar Pendentes (${pendingIds.length})`}
-              </button>
-            )}
-            <button 
-              onClick={async () => {
-                const monthParam = currentMonth;
-                const empIds = selectedEmployeeId === 'all' ? undefined : [selectedEmployeeId];
-                try {
-                  await api.documents.downloadCollective(monthParam, empIds);
-                } catch {
-                  toast.error('Erro ao exportar PDF');
-                }
-              }}
-              className="btn-outline flex items-center gap-2"
-            >
-              <Download size={16} /> Exportar PDF
-            </button>
-          </div>
-        </div>
-
-        <div className="data-table-wrap">
-          <table className="data-table w-full text-left">
+      <SolidCard className="overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[900px] border-collapse text-left">
             <thead>
-              <tr>
-                <th>Data</th>
-                {isAdminOrRh && selectedEmployeeId === 'all' && <th>Colaborador</th>}
-                <th>Entrada</th>
-                <th>Almoço</th>
-                <th>Saída</th>
-                <th>Total</th>
-                <th>Saldo</th>
-                <th>Status</th>
+              <tr className="bg-slate-50 border-b border-slate-200 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                <th className="px-4 py-3 w-[12%]">DATA</th>
+                <th className="px-4 py-3 w-[9%] text-center">ENTRADA</th>
+                <th className="px-4 py-3 w-[11%] text-center">ALMOÇO</th>
+                <th className="px-4 py-3 w-[9%] text-center">SAÍDA</th>
+                <th className="px-4 py-3 w-[9%] text-center">TRAB</th>
+                <th className="px-4 py-3 w-[9%] text-center">SALDO</th>
+                <th className="px-4 py-3 w-[12%] text-center">STATUS</th>
+                <th className="px-4 py-3 w-[20%] text-center">AÇÕES</th>
               </tr>
             </thead>
             <tbody>
-              {timeRecords?.length === 0 ? (
-                <tr>
-                  <td colSpan={isAdminOrRh && selectedEmployeeId === 'all' ? 8 : 7} className="text-center py-8 text-gray-500">
-                    <EmptyState title="Não há marcações de ponto neste período." description="Tente alterar o filtro ou data." />
-                  </td>
-                </tr>
-              ) : (
-                timeRecords?.map((record: any) => (
-                  <tr key={record.id} className={getStatusColor(record.status)}>
-                    <td className="font-medium">{new Date(record.date).toLocaleDateString('pt-BR')}</td>
-                    {isAdminOrRh && selectedEmployeeId === 'all' && (
-                      <td>{record.employee?.name || '-'}</td>
-                    )}
-                    <td>{record.punchIn || '--:--'}</td>
-                    <td>{record.breakOut || '--:--'} - {record.breakIn || '--:--'}</td>
-                    <td>{record.punchOut || '--:--'}</td>
-                    <td className="font-medium">{formatMinutes(record.totalMinutes || 0)}</td>
-                    <td className={record.balanceMinutes > 0 ? 'text-green-600' : record.balanceMinutes < 0 ? 'text-red-500' : ''}>
-                      {record.balanceMinutes > 0 ? '+' : ''}{formatMinutes(record.balanceMinutes || 0)}
+              {grid.map((day: any) => {
+                const t = day.track;
+                let bg = '';
+                if (day.isRest) bg = 'bg-slate-50/50';
+                else if (day.isFuture) bg = 'bg-white opacity-60';
+                else if (!t && !day.antesAdmissao && !day.depoisDemissao) bg = 'bg-rose-50/30';
+                
+                let status = '';
+                if (t) status = dayStatus(t, day.holidayName);
+                else if (day.dayType === 'ATESTADO' || day.dayType === 'ATESTADO_HORAS') status = 'ATESTADO';
+                else if (day.dayType === 'FERIADO' || day.dayType === 'FERIADO_LOCAL') status = 'FERIADO';
+                else if (day.dayType === 'SUSPENSAO') status = 'SUSPENSÃO';
+                else if (day.dayType === 'FOLGA' || day.dayType === 'FOLGA_DSR' || day.dayType === 'FOLGA_BANCO') status = 'FOLGA';
+                else if (day.antesAdmissao || day.depoisDemissao) status = '---';
+                else if (day.isFuture) status = '---';
+                else status = 'FALTA';
+
+                const isAtestado = ['ATESTADO','FERIADO','SUSPENSÃO','FOLGA','FOLGA EXTRA','FOLGA BANCO','FOLGA (DSR)','---'].includes(status);
+
+                return (
+                  <tr key={day.key} className={`border-t border-slate-100 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 transition-colors ${bg}`}>
+                    <td className="px-4 py-2 text-slate-600 font-bold">
+                      <div className="flex flex-col">
+                        <span>{fmtDateFull(day.key)}</span>
+                        {t?.locationAddress && (
+                          <span className="mt-0.5 flex items-center gap-1 text-[9px] font-semibold text-brand truncate max-w-[120px]" title={t.locationAddress}>
+                            <MapPin size={10} /> {t.locationAddress}
+                          </span>
+                        )}
+                      </div>
                     </td>
-                    <td>
-                      <span className={`badge ${record.status === 'PENDING' ? 'badge-warn' : record.status === 'ISSUE' ? 'badge-alert' : 'badge-active'}`}>
-                        {record.status === 'PENDING' ? 'Pendente' : record.status === 'ISSUE' ? 'Incompleto' : 'Ok'}
-                      </span>
+                    <td className={`px-4 text-center font-mono text-[11px] font-medium ${isAtestado?'text-slate-300':t?.entry?'text-slate-900':day.scheduled?.entry?'text-slate-400':'text-slate-300'}`}>{isAtestado?'---':t?.entry?fmtTime(t.entry):(day.scheduled?.entry ? fmtTime(day.scheduled.entry) : '--:--')}</td>
+                    <td className={`px-4 text-center font-mono text-[11px] font-medium ${t?.lunchStart||t?.lunchReturn?'text-slate-500':day.scheduled?.lunchStart?'text-slate-400':'text-slate-300'}`}>{isAtestado?'---':t?.lunchStart?fmtLunch(t?.lunchStart,t?.lunchReturn):(day.scheduled?.lunchStart ? fmtLunch(day.scheduled.lunchStart, day.scheduled.lunchReturn) : '--:--')}</td>
+                    <td className={`px-4 text-center font-mono text-[11px] font-medium ${isAtestado?'text-slate-300':t?.exit?'text-slate-900':day.scheduled?.exit?'text-slate-400':'text-slate-300'}`}>{isAtestado?'---':t?.exit?fmtTime(t.exit):(day.scheduled?.exit ? fmtTime(day.scheduled.exit) : '--:--')}</td>
+                    <td className="px-4 text-center text-slate-500 font-medium">{isAtestado?'---':t?fmtWorked(t.totalWorked):'--:--'}</td>
+                    <td className={`px-4 text-center font-bold ${isAtestado?'text-slate-300':t&&(t.dailyBalance??0)<0?'text-rose-500':t?'text-emerald-500':'text-slate-300'}`}>{isAtestado?'---':t?fmtBalance(t.dailyBalance):'--:--'}</td>
+                    <td className="px-4 text-center">
+                      <StatusBadge status={status}/>
+                    </td>
+                    <td className="px-4">
+                      <div className="flex items-center justify-center gap-2 whitespace-nowrap">
+                        {!day.isFuture && (
+                          <button onClick={() => onEdit(t || { employeeId: employee.id, date: day.key, entry: null, lunchStart: null, lunchReturn: null, exit: null } as any)} className="p-1.5 rounded bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors">
+                            <Edit3 size={12} />
+                          </button>
+                        )}
+                        {t && canApprove && t.manualStatus === 'pending' && (
+                          <button onClick={() => onApprove(t.id, true)} className="p-1.5 rounded bg-emerald-100 text-emerald-700 hover:bg-emerald-200 transition-colors">
+                            <CheckCircle size={12} />
+                          </button>
+                        )}
+                        {t && canManage && (
+                          <button onClick={() => onDelete(t)} className="p-1.5 rounded bg-rose-100 text-rose-600 hover:bg-rose-200 transition-colors">
+                            <Trash2 size={12} />
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
-                ))
-              )}
+                );
+              })}
             </tbody>
           </table>
         </div>
-      </div>
+        <div className="bg-slate-50 p-4 border-t border-slate-100 text-xs text-slate-500 font-medium flex gap-4">
+          <div className="flex items-center gap-2"><span className="w-2 h-2 rounded bg-emerald-500"></span> Batida Normal</div>
+          <div className="flex items-center gap-2"><span className="w-2 h-2 rounded bg-amber-500"></span> Pendente Ajuste</div>
+          <div className="flex items-center gap-2"><span className="w-2 h-2 rounded bg-rose-500"></span> Falta / Atraso</div>
+        </div>
+      </SolidCard>
+    </div>
+  );
+}
 
-      {/* MODAL AJUSTE MANUAL */}
-      <AnimatePresence>
-        {isManualModalOpen && (
-          <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden"
-            >
-              <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50">
-                <h3 className="font-semibold text-gray-800">Ajuste Manual de Ponto</h3>
-                <button onClick={() => setIsManualModalOpen(false)} className="text-gray-400 hover:text-gray-600">
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-              <form onSubmit={handleManualSubmit} className="p-6 space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Colaborador</label>
-                    <select 
-                      required 
-                      className="form-control w-full"
-                      value={manualForm.employeeId}
-                      onChange={e => setManualForm(prev => ({ ...prev, employeeId: e.target.value }))}
-                    >
-                      <option value="">Selecione...</option>
-                      {employees.map((e: any) => (
-                        <option key={e.id} value={e.id}>{e.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Data</label>
-                    <input 
-                      required 
-                      type="date" 
-                      className="form-control w-full"
-                      value={manualForm.date}
-                      onChange={e => setManualForm(prev => ({ ...prev, date: e.target.value }))}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Entrada 1</label>
-                    <input 
-                      type="time" 
-                      className="form-control w-full"
-                      value={manualForm.entry}
-                      onChange={e => setManualForm(prev => ({ ...prev, entry: e.target.value }))}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Saída 1 (Almoço)</label>
-                    <input 
-                      type="time" 
-                      className="form-control w-full"
-                      value={manualForm.lunchStart}
-                      onChange={e => setManualForm(prev => ({ ...prev, lunchStart: e.target.value }))}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Entrada 2 (Retorno)</label>
-                    <input 
-                      type="time" 
-                      className="form-control w-full"
-                      value={manualForm.lunchReturn}
-                      onChange={e => setManualForm(prev => ({ ...prev, lunchReturn: e.target.value }))}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Saída 2</label>
-                    <input 
-                      type="time" 
-                      className="form-control w-full"
-                      value={manualForm.exit}
-                      onChange={e => setManualForm(prev => ({ ...prev, exit: e.target.value }))}
-                    />
-                  </div>
-                  <div className="col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Motivo Legal</label>
-                    <select 
-                      required 
-                      className="form-control w-full"
-                      value={manualForm.reason}
-                      onChange={e => setManualForm(prev => ({ ...prev, reason: e.target.value as any }))}
-                    >
-                      <option value="ajuste_erro_marcacao">Erro de Marcação / Esquecimento</option>
-                      <option value="ajuste_atestado_integral">Atestado Integral</option>
-                      <option value="ajuste_abono_atestado_horas">Atestado Parcial (Horas)</option>
-                      <option value="ajuste_feriado">Feriado Local</option>
-                      <option value="ajuste_folga_dsr">Folga / DSR</option>
-                    </select>
-                  </div>
-                  <div className="col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Observação Interna</label>
-                    <input 
-                      type="text" 
-                      className="form-control w-full"
-                      value={manualForm.observation}
-                      onChange={e => setManualForm(prev => ({ ...prev, observation: e.target.value }))}
-                      placeholder="Ex: Acerto feito conforme solicitação do gestor"
-                    />
-                  </div>
-                </div>
+function TimeTrackModal({ track, employees, onClose, onDone, defaultEmpId, canManage }: any) {
+  const initDate = track?.date ? toDateKey(track.date) : getLocalToday();
+  const [date, setDate] = useState(initDate);
+  const [empId, setEmpId] = useState(track ? track.employeeId : defaultEmpId || '');
+  const [reason, setReason] = useState<TimeTrackAdjustmentReason>('ajuste_erro_marcacao');
+  const [entry, setEntry] = useState(track?.entry ? fmtTime(track.entry) : '');
+  const [lunchS, setLunchS] = useState(track?.lunchStart ? fmtTime(track.lunchStart) : '');
+  const [lunchR, setLunchR] = useState(track?.lunchReturn ? fmtTime(track.lunchReturn) : '');
+  const [exit, setExit] = useState(track?.exit ? fmtTime(track.exit) : '');
+  const [detail, setDetail] = useState(track?.observation ?? '');
+  
+  const selReason = REASONS.find((r) => r.value === reason);
+  const fullDay = Boolean(selReason?.fullDay);
 
-                <div className="pt-4 flex justify-end gap-3 border-t mt-6">
-                  <button type="button" className="btn-outline" onClick={() => setIsManualModalOpen(false)}>Cancelar</button>
-                  <button type="submit" className="btn-nubank" disabled={manualAdjustMutation.loading}>
-                    {manualAdjustMutation.loading ? 'Salvando...' : 'Confirmar Ajuste'}
-                  </button>
-                </div>
-              </form>
-            </motion.div>
+  function toIso(date: string, time: string) {
+    if (!date || !time || time === '--:--') return null;
+    const [y,m,d] = date.split('-').map(Number);
+    const [hh,mm] = time.split(':').map(Number);
+    return new Date(y,m-1,d,hh,mm,0,0).toISOString();
+  }
+
+  const save = useMutation(async () => {
+    const payload = {
+      entry: toIso(date, entry),
+      lunchStart: toIso(date, lunchS),
+      lunchReturn: toIso(date, lunchR),
+      exit: toIso(date, exit),
+      reason,
+      observation: detail,
+    };
+
+    if (track?.id && canManage) {
+      await api.timeTrack.update(track.id, payload);
+      return;
+    }
+
+    await api.timeTrack.manual({ employeeId: empId, date, ...payload });
+  }, { onSuccess: () => { toast.success('Ponto salvo com sucesso'); onDone(); } });
+
+  const ok = Boolean(empId && date && (fullDay || entry || lunchS || lunchR || exit));
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
+      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl bg-white p-6 shadow-2xl">
+        <div className="mb-6 flex items-center justify-between border-b border-slate-100 pb-4">
+          <h3 className="text-lg font-bold text-slate-800">{track?.id ? 'Editar Ponto' : 'Lançar Ponto Manual'}</h3>
+          <button onClick={onClose} className="p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700 rounded-full transition-colors"><X size={20}/></button>
+        </div>
+        
+        {save.error && <p className="mb-4 rounded-lg bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700 border border-rose-100">{save.error}</p>}
+        
+        <div className="space-y-4">
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-slate-500 uppercase">Colaborador</label>
+            <select disabled={!!track?.id} value={empId} onChange={e=>setEmpId(e.target.value)} className="form-control">
+              <option value="">Selecione...</option>
+              {employees.map((e: any)=><option key={e.id} value={e.id}>{normalizeDisplayName(e.name)}</option>)}
+            </select>
           </div>
-        )}
-      </AnimatePresence>
+          
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-500 uppercase">Data</label>
+              <input disabled={!!track?.id} type="date" value={date} onChange={e=>setDate(e.target.value)} className="form-control" />
+            </div>
+            {(!track?.id || !canManage) && (
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-500 uppercase">Motivo</label>
+                <select value={reason} onChange={e=>setReason(e.target.value as any)} className="form-control">
+                  {REASONS.map(r=><option key={r.value} value={r.value}>{r.label}</option>)}
+                </select>
+              </div>
+            )}
+          </div>
+
+          {!fullDay && (
+            <div className="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-500 uppercase">Entrada</label>
+                <input type="time" value={entry} onChange={e=>setEntry(e.target.value)} className="form-control bg-white" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-500 uppercase">Saída</label>
+                <input type="time" value={exit} onChange={e=>setExit(e.target.value)} className="form-control bg-white" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-500 uppercase">Saída Almoço</label>
+                <input type="time" value={lunchS} onChange={e=>setLunchS(e.target.value)} className="form-control bg-white" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-500 uppercase">Retorno Almoço</label>
+                <input type="time" value={lunchR} onChange={e=>setLunchR(e.target.value)} className="form-control bg-white" />
+              </div>
+            </div>
+          )}
+
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-slate-500 uppercase">Observação</label>
+            <input value={detail} onChange={e=>setDetail(e.target.value)} className="form-control" placeholder="Motivo do ajuste..." />
+          </div>
+        </div>
+        
+        <div className="mt-8 flex justify-end gap-3 pt-4 border-t border-slate-100">
+          <button onClick={onClose} className="btn-outline">Cancelar</button>
+          <button onClick={()=>ok && save.mutate().catch(()=>{})} disabled={!ok || save.loading} className="btn-nubank">
+            {save.loading ? 'Salvando...' : 'Salvar Registro'}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
