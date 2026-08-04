@@ -335,8 +335,8 @@ export default function PontoPage() {
         <div className="flex flex-wrap gap-2 mt-4 md:mt-0">
           {(canManage || isGestor) && (
             <>
-              <button onClick={() => api.timeClosing.downloadCollectivePdf(currentMonth).catch(()=>{toast.error('Erro ao baixar PDF')})} className="btn-outline flex items-center gap-2 text-slate-600 bg-white">
-                <FileText size={16} /><span>Exportar PDF</span>
+              <button onClick={() => window.print()} className="btn-outline flex items-center gap-2 text-brand bg-brand/5 border-brand/20 hover:bg-brand/10 transition-colors">
+                <FileText size={16} /><span>Imprimir Relatório</span>
               </button>
               <button onClick={() => { setEditingTrack(null); setIsManualModalOpen(true); }} className="btn-outline flex items-center gap-2">
                 <Plus size={16} /><span>Ajuste Manual</span>
@@ -425,10 +425,10 @@ export default function PontoPage() {
                         <span className={`font-mono text-sm font-bold ${saldo >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>{fmtBalance(saldo)}</span>
                       </div>
                     </div>
-                    <div className="flex flex-col gap-2">
-                      <button onClick={() => setSelectedEmployeeId(emp.id)} className="btn-outline px-3 py-1.5 h-auto text-[11px] w-full">VER FOLHA</button>
+                    <div className="flex flex-row md:flex-col gap-2 w-full md:w-28">
+                      <button onClick={() => setSelectedEmployeeId(emp.id)} className="btn-nubank px-3 py-2 text-[11px] w-full shadow-sm font-bold tracking-wider">VER FOLHA</button>
                       {(canManage || isGestor) && (
-                        <button onClick={(e) => { e.stopPropagation(); api.timeClosing.downloadCollectivePdf(currentMonth, [emp.id]).catch(()=>{toast.error('Erro ao baixar PDF')}); }} className="flex items-center justify-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1.5 rounded text-[11px] font-bold border border-slate-200 transition-colors w-full">
+                        <button onClick={(e) => { e.stopPropagation(); window.print(); }} className="flex items-center justify-center gap-1.5 bg-slate-50 hover:bg-slate-100 text-slate-600 px-3 py-2 rounded text-[11px] font-bold border border-slate-200 transition-colors w-full">
                           <Download size={12}/> PDF
                         </button>
                       )}

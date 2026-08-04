@@ -52,6 +52,9 @@ export default function EquipeEscalasPage() {
   );
   const teamSchedule = (teamScheduleData || []) as any[];
 
+  const { data: employeesData } = useQuery(() => api.employees.list(), []);
+  const employees = (employeesData || []) as any[];
+
   // Mutations
   const archiveMutation = useMutation(
     (id: string) => api.schedules.archive(id),
