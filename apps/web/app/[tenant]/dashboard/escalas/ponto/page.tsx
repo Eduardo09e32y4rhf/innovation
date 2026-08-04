@@ -349,16 +349,16 @@ export default function PontoPage() {
         </div>
       </div>
 
-      <div className="flex flex-col md:flex-row justify-between gap-4 bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+      <div className="flex flex-col md:flex-row justify-between gap-4 bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
         <div className="flex items-center gap-4">
-          <button onClick={handlePrevMonth} className="p-2 hover:bg-slate-100 rounded-full text-slate-500 transition-colors">
-            <ChevronLeft size={20} />
+          <button onClick={handlePrevMonth} className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand/10 text-brand ring-1 ring-brand/20 hover:bg-brand hover:text-white transition-all shadow-sm">
+            <ChevronLeft size={16} />
           </button>
-          <span className="font-semibold text-slate-800 text-base min-w-[140px] text-center capitalize">
-            {new Date(`${currentMonth}-01T00:00:00`).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
+          <span className="font-black text-slate-900 text-base min-w-[150px] text-center uppercase tracking-wider">
+            {new Date(`${currentMonth}-01T00:00:00`).toLocaleDateString('pt-BR', { month: 'long' })} <span className="text-brand">{new Date(`${currentMonth}-01T00:00:00`).getFullYear()}</span>
           </span>
-          <button onClick={handleNextMonth} className="p-2 hover:bg-slate-100 rounded-full text-slate-500 transition-colors">
-            <ChevronRight size={20} />
+          <button onClick={handleNextMonth} className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand/10 text-brand ring-1 ring-brand/20 hover:bg-brand hover:text-white transition-all shadow-sm">
+            <ChevronRight size={16} />
           </button>
         </div>
 
@@ -400,36 +400,41 @@ export default function PontoPage() {
               const faltas = rows.filter(isFalta).length;
               
               return (
-                <div key={emp.id} onClick={() => setSelectedEmployeeId(emp.id)} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-5 py-4 hover:bg-slate-50 cursor-pointer transition-colors">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 shrink-0 rounded-lg bg-brand/10 text-brand flex items-center justify-center font-bold text-sm">
+                <div key={emp.id} onClick={() => setSelectedEmployeeId(emp.id)} className="group flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-5 py-4 hover:bg-brand/5 cursor-pointer transition-all duration-300 relative overflow-hidden">
+                  {/* Linha lateral colorida */}
+                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-transparent group-hover:bg-brand transition-colors" />
+                  
+                  <div className="flex items-center gap-4">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white text-sm font-black shadow-md group-hover:scale-110 transition-transform bg-gradient-to-br from-brand to-[#5e0382] ml-1">
                       {normalizeDisplayName(emp.name).charAt(0).toUpperCase()}
                     </div>
-                    <div>
+                    <div className="flex flex-col gap-0.5">
                       <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-bold text-slate-400 border border-slate-200 rounded px-1">{emp.registration || emp.id.slice(0,8).toUpperCase()}</span>
-                        <p className="font-bold text-sm text-slate-900">{normalizeDisplayName(emp.name)}</p>
+                        <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded text-[10px] font-mono tracking-widest border border-slate-200 group-hover:border-brand/30 group-hover:text-brand transition-colors">
+                          {emp.registration ? String(emp.registration).padStart(4, '0') : emp.id.slice(0,8).toUpperCase()}
+                        </span>
+                        <p className="font-black text-sm text-slate-900 tracking-tight">{normalizeDisplayName(emp.name).toUpperCase()}</p>
                       </div>
-                      <p className="text-xs font-medium text-slate-500 mt-0.5">{emp.department || 'Sem Departamento'} {faltas > 0 && <span className="text-red-500 ml-2 font-bold">{faltas} FALTA(S)</span>}</p>
+                      <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">{emp.department || 'SEM DEPARTAMENTO'} {faltas > 0 && <span className="text-red-500 ml-2 font-bold bg-red-50 px-1.5 py-0.5 rounded border border-red-200">{faltas} FALTA(S)</span>}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-6">
-                    <div className="flex gap-4 items-center">
+                    <div className="flex gap-5 items-center">
                       <div className="flex flex-col items-end">
                         <span className="text-[9px] font-bold uppercase text-slate-400 tracking-wider">Trabalhado</span>
-                        <span className="font-mono text-sm font-semibold text-slate-700">{fmtWorked(worked)}</span>
+                        <span className="font-mono text-sm font-black text-slate-700">{fmtWorked(worked)}</span>
                       </div>
-                      <div className="w-px h-6 bg-slate-200"></div>
+                      <div className="w-px h-8 bg-slate-200"></div>
                       <div className="flex flex-col items-end">
                         <span className="text-[9px] font-bold uppercase text-slate-400 tracking-wider">Saldo</span>
-                        <span className={`font-mono text-sm font-bold ${saldo >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>{fmtBalance(saldo)}</span>
+                        <span className={`font-mono text-sm font-black ${saldo >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>{fmtBalance(saldo)}</span>
                       </div>
                     </div>
-                    <div className="flex flex-row md:flex-col gap-2 w-full md:w-28">
-                      <button onClick={() => setSelectedEmployeeId(emp.id)} className="btn-nubank px-3 py-2 text-[11px] w-full shadow-sm font-bold tracking-wider">VER FOLHA</button>
+                    <div className="flex flex-row gap-2 shrink-0">
+                      <button onClick={(e) => { e.stopPropagation(); setSelectedEmployeeId(emp.id); }} className="btn-nubank px-4 py-2 text-[10px] shadow-sm font-bold tracking-wider hover:scale-105 transition-transform">VER FOLHA</button>
                       {(canManage || isGestor) && (
-                        <button onClick={(e) => { e.stopPropagation(); window.print(); }} className="flex items-center justify-center gap-1.5 bg-slate-50 hover:bg-slate-100 text-slate-600 px-3 py-2 rounded text-[11px] font-bold border border-slate-200 transition-colors w-full">
-                          <Download size={12}/> PDF
+                        <button onClick={(e) => { e.stopPropagation(); window.print(); }} className="btn-outline flex items-center justify-center gap-1.5 px-3 py-2 text-[10px] font-bold border-brand/30 text-brand hover:bg-brand/5 transition-transform hover:scale-105">
+                          <Download size={14}/> PDF
                         </button>
                       )}
                     </div>
