@@ -108,9 +108,6 @@ export default function PontoPage() {
     }
   };
 
-  if (isLoading && !timeRecordsData) return <LoadingState label="Carregando espelho de ponto..." />;
-  if (error) return <ErrorState message="Erro ao carregar registros de ponto" retry={refetch} />;
-
   const pendingIds = timeRecords?.filter((r: any) => r.status === 'PENDING').map((r: any) => r.id) || [];
 
   const summary = React.useMemo(() => {
@@ -125,6 +122,9 @@ export default function PontoPage() {
     
     return { worked, extra, absences, delays };
   }, [timeRecords]);
+
+  if (isLoading && !timeRecordsData) return <LoadingState label="Carregando espelho de ponto..." />;
+  if (error) return <ErrorState message="Erro ao carregar registros de ponto" retry={refetch} />;
 
   return (
     <div className="space-y-6">
