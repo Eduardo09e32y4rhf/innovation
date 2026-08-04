@@ -48,25 +48,33 @@ export function DataTable<T extends { id?: string | number }>({
 
 export function TableActionButton({
   onClick,
-  children
+  children,
+  'aria-label': ariaLabel
 }: {
   onClick?: () => void;
   children: React.ReactNode;
+  'aria-label'?: string;
 }) {
   return (
     <button
       onClick={onClick}
-      className="p-2 bg-white/5 rounded-lg hover:text-purple-400 transition-colors"
+      className="p-2 bg-white/5 rounded-lg hover:text-purple-400 transition-colors focus-visible:ring-2 focus-visible:ring-purple-400 focus-visible:outline-none"
       type="button"
+      aria-label={ariaLabel}
     >
-      {children}
+      {React.Children.map(children, child => {
+        if (React.isValidElement(child) && ariaLabel) {
+          return React.cloneElement(child, { 'aria-hidden': 'true' } as any);
+        }
+        return child;
+      })}
     </button>
   );
 }
 
-export function DownloadPdfButton({ onClick }: { onClick?: () => void }) {
+export function DownloadPdfButton({ onClick, 'aria-label': ariaLabel = 'Download PDF' }: { onClick?: () => void; 'aria-label'?: string }) {
   return (
-    <TableActionButton onClick={onClick}>
+    <TableActionButton onClick={onClick} aria-label={ariaLabel}>
       <Download size={14} />
     </TableActionButton>
   );
