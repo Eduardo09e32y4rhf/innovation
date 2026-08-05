@@ -355,12 +355,12 @@ function PasswordField({
           className="h-11 w-full rounded-xl border border-slate-200 px-4 pr-11 text-sm font-semibold outline-none focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10"
         />
 
-        <button
+        <button aria-label={show ? "Ocultar senha" : "Exibir senha"}
           type="button"
           onClick={onToggle}
           className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700"
         >
-          {show ? <EyeOff size={16} /> : <Eye size={16} />}
+          {show ? <EyeOff size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />}
         </button>
       </div>
     </label>

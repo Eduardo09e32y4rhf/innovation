@@ -279,13 +279,13 @@ function CadastroForm() {
             required
             className="h-12 w-full rounded-[14px] border border-slate-200/80 bg-slate-50/50 pl-11 pr-12 text-sm font-medium text-slate-900 outline-none transition-all focus:border-brand-500 focus:bg-white focus:ring-4 focus:ring-brand-500/10 disabled:opacity-60"
           />
-          <button
+          <button aria-label={showPassword ? "Ocultar senha" : "Exibir senha"}
             type="button"
             onClick={() => setShowPassword(!showPassword)}
             tabIndex={-1}
             className="absolute inset-y-0 right-0 flex items-center pr-4 text-slate-400 hover:text-slate-600"
           >
-            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            {showPassword ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
           </button>
         </div>
 
