@@ -19,29 +19,44 @@ export class AsoService {
         where: { companyId, status: 'COMPLETED', dueDate: { lte: today } },
         include: { employee: true }
       });
-      for (const record of expired) {
-        const existing = await this.prisma.employeeAsoRecord.findFirst({
-          where: { companyId, employeeId: record.employeeId, asoType: 'PERIODICO', createdAt: { gt: record.createdAt } }
+
+      if (expired.length > 0) {
+        const employeeIds = expired.map(r => r.employeeId);
+        const allPeriodicos = await this.prisma.employeeAsoRecord.findMany({
+          where: {
+            companyId,
+            employeeId: { in: employeeIds },
+            asoType: 'PERIODICO',
+          }
         });
-        if (!existing) {
-          await this.prisma.employeeAsoRecord.create({
-            data: {
-              companyId,
-              employeeId: record.employeeId,
-              asoType: 'PERIODICO',
-              status: 'PENDING',
-            }
-          });
-          await this.prisma.notification.create({
-            data: {
-              companyId,
-              title: `⚕️ ASO Periódico Pendente`,
-              message: `Um novo ASO de rotina (periódico) foi gerado automaticamente após 12 meses do último exame. Agende o quanto antes para evitar irregularidades.`,
-              type: 'SYSTEM_NOTICE',
-              status: 'SENT',
-              targetType: 'ALL',
-            }
-          });
+
+        for (const record of expired) {
+          const existing = allPeriodicos.find(
+            p => p.employeeId === record.employeeId && p.createdAt > record.createdAt
+          );
+
+          if (!existing) {
+            const newRecord = await this.prisma.employeeAsoRecord.create({
+              data: {
+                companyId,
+                employeeId: record.employeeId,
+                asoType: 'PERIODICO',
+                status: 'PENDING',
+              }
+            });
+            allPeriodicos.push(newRecord);
+
+            await this.prisma.notification.create({
+              data: {
+                companyId,
+                title: `⚕️ ASO Periódico Pendente`,
+                message: `Um novo ASO de rotina (periódico) foi gerado automaticamente após 12 meses do último exame. Agende o quanto antes para evitar irregularidades.`,
+                type: 'SYSTEM_NOTICE',
+                status: 'SENT',
+                targetType: 'ALL',
+              }
+            });
+          }
         }
       }
     } catch (err) {
