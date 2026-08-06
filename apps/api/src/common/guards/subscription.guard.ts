@@ -2,7 +2,6 @@ import { CanActivate, ExecutionContext, Injectable, HttpException, HttpStatus } 
 import { Reflector } from '@nestjs/core';
 import { PrismaService } from '../../database/prisma.service';
 import type { JwtUser } from '../types/auth.types';
-import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 import { SKIP_SUBSCRIPTION_CHECK_KEY } from '../decorators/skip-subscription-check.decorator';
 
 @Injectable()
@@ -13,17 +12,12 @@ export class SubscriptionActiveGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
-      context.getHandler(),
-      context.getClass(),
-    ]);
-
     const skipCheck = this.reflector.getAllAndOverride<boolean>(SKIP_SUBSCRIPTION_CHECK_KEY, [
       context.getHandler(),
       context.getClass(),
     ]);
 
-    if (isPublic || skipCheck) {
+    if (skipCheck) {
       return true;
     }
 
