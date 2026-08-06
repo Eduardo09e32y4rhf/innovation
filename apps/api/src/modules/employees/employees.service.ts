@@ -221,7 +221,7 @@ export class EmployeesService {
       name: dto.name ?? employee.name,
       email,
       role,
-      passwordHash: await bcrypt.hash(DEFAULT_PANEL_PASSWORD, 12),
+      passwordHash: await bcrypt.hash(DEFAULT_PANEL_PASSWORD as string, 12),
       forcePasswordChange: true,
       isActive: true,
     });

@@ -11,6 +11,7 @@ import type { IncomingWhatsappMessage, WhatsappConnectionStatus } from './whatsa
 const memoryWhatsapp = new Map<string, { status: string; qrCode?: string | null; phone?: string | null; displayName?: string | null }>();
 const memoryConversations = new Map<string, any[]>();
 const memoryMessages = new Map<string, any[]>();
+import { Logger } from '@nestjs/common';
 
 function normalizeChatId(id: string) {
   return String(id || '').trim();
@@ -79,6 +80,8 @@ export class CommunicationService implements OnModuleInit {
     private readonly gateway: CommunicationGateway,
     private readonly omnius: OmniusAdapterService,
   ) {}
+
+  private readonly logger = new Logger(CommunicationService.name);
 
   onModuleInit() {
     this.provider.setEvents({

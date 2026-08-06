@@ -563,7 +563,6 @@ export class TimeTrackService {
   async delete(companyId: string, actor: JwtUser, id: string) {
     const track = await this.repository.findById(companyId, id);
     if (!track) throw new NotFoundException('Time track not found');
-    if (track.companyId !== companyId) throw new NotFoundException('Time track not found');
 
     const result = await this.repository.delete(companyId, id);
     if (!result.count) throw new NotFoundException('Time track not found');
