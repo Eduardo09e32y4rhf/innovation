@@ -84,6 +84,16 @@ export async function request<T>(path: string, opts: Opts = {}): Promise<T> {
     throw new ApiError(401, 'Sessao expirada. Faca login novamente.');
   }
 
+  if (res.status === 402) {
+    if (!silent && typeof window !== 'undefined') {
+      const parts = window.location.pathname.split('/');
+      const tenant = parts.length > 1 && parts[1] ? parts[1] : null;
+      if (tenant && !window.location.pathname.includes('fatura-pendente')) {
+        window.location.href = `/${tenant}/fatura-pendente`;
+      }
+    }
+  }
+
   const text = await res.clone().text();
   const data = text ? safeJson(text) : null;
 
