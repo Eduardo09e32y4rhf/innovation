@@ -58,7 +58,7 @@ export class TimeTrackService {
         return data.display_name || null;
       }
     } catch (e) {
-      console.error('Nominatim Geocoding error', e);
+      this.logger.error(`Nominatim Geocoding error: ${String(e)}`);
     }
     return null;
   }
@@ -101,11 +101,8 @@ export class TimeTrackService {
             const entryTime = this.tzService.parseFromBRT(dto.entry);
             
             if (!isNaN(entryTime.getTime())) {
-               const tzOffset = entryTime.getTimezoneOffset() * 60000;
-               const localEntryTime = new Date(entryTime.getTime() + tzOffset);
-               
                const exitTime = previousTrack.exit;
-               const diffHours = (localEntryTime.getTime() - exitTime.getTime()) / (1000 * 60 * 60);
+               const diffHours = (entryTime.getTime() - exitTime.getTime()) / (1000 * 60 * 60);
                
                if (diffHours > 0 && diffHours < 11) {
                   const isFullDayAdjustment = dto.reason?.toLowerCase().includes('atestado') || dto.reason?.toLowerCase().includes('licença') || dto.reason?.toLowerCase().includes('abono');
@@ -139,6 +136,115 @@ export class TimeTrackService {
         livenessOk: data.livenessOk,
       }
     });
+  }
+
+  async clockInFacial(companyId: string, actor: JwtUser, dto: any) {
+    if (!dto.imageBase64 && !dto.fallback) {
+      throw new BadRequestException('Imagem facial é obrigatória para o registro.');
+    }
+
+    let facialSuccess = false;
+    let matchResult = null;
+
+    let employeeId = '';
+    const emp = await this.prisma.employee.findFirst({ 
+      where: { 
+        companyId,
+        OR: [
+          { userId: actor.sub },
+          { email: actor.email }
+        ]
+      } 
+    });
+    if (emp) employeeId = emp.id;
+
+    if (!employeeId) {
+      throw new BadRequestException('Funcionário não encontrado para este usuário.');
+    }
+
+    const enrollment = await this.prisma.faceEnrollment.findUnique({ where: { employeeId } });
+
+    if (!dto.faceDescriptor) {
+      if (enrollment && enrollment.active) {
+         throw new BadRequestException('Reconhecimento facial obrigatório. Seu dispositivo não enviou os dados biométricos.');
+      }
+      if (dto.imageBase64) {
+         facialSuccess = true;
+      }
+    } else if (!enrollment || !enrollment.active || !enrollment.descriptor) {
+      try {
+        await this.prisma.faceEnrollment.upsert({
+          where: { employeeId },
+          update: { descriptor: dto.faceDescriptor, enrolledAt: new Date(), active: true },
+          create: { companyId, employeeId, descriptor: dto.faceDescriptor, active: true }
+        });
+        facialSuccess = true;
+      } catch (error: any) {
+        throw new BadRequestException('Erro ao salvar biometria no banco de dados.');
+      }
+    } else {
+      const savedDescriptor = enrollment.descriptor as number[];
+      if (Array.isArray(savedDescriptor) && Array.isArray(dto.faceDescriptor) && savedDescriptor.length === dto.faceDescriptor.length) {
+        const distance = await new Promise<number>((resolve) => {
+          setImmediate(() => {
+            let sum = 0;
+            const len = dto.faceDescriptor.length;
+            for (let i = 0; i < len; i++) {
+              const diff = dto.faceDescriptor[i] - savedDescriptor[i];
+              sum += diff * diff;
+            }
+            resolve(Math.sqrt(sum));
+          });
+        });
+
+        matchResult = { distance, subject: employeeId };
+        if (distance < 0.55) {
+          facialSuccess = true;
+        } else {
+           throw new BadRequestException('Rosto não reconhecido. Tente novamente.');
+        }
+      } else {
+         throw new BadRequestException('Dados biométricos corrompidos ou inválidos. Contate o suporte.');
+      }
+    }
+
+    if (!dto.faceDescriptor && !dto.fallback && !facialSuccess) {
+       throw new BadRequestException('Dados biométricos não recebidos do dispositivo.');
+    }
+
+    await this.logFacialAttempt({
+      companyId,
+      employeeId,
+      matched: facialSuccess,
+      similarity: matchResult?.distance ? (1 - matchResult.distance) : 0,
+      livenessOk: true
+    });
+
+    if (!facialSuccess && !dto.fallback) {
+      throw new BadRequestException('Falha no reconhecimento facial.');
+    }
+
+    return this.register(companyId, actor, { ...dto, clockedInWithoutFacial: !facialSuccess });
+  }
+
+  async enrollFacial(companyId: string, actor: JwtUser, descriptor: number[]) {
+    const employee = await this.prisma.employee.findFirst({ 
+      where: { 
+        companyId,
+        OR: [
+          { userId: actor.sub },
+          { email: actor.email }
+        ]
+      } 
+    });
+    if (!employee) throw new BadRequestException('Funcionário não encontrado no banco de dados. Contate o RH para vincular seu usuário.');
+    
+    await this.prisma.faceEnrollment.upsert({
+      where: { employeeId: employee.id },
+      update: { descriptor: descriptor, enrolledAt: new Date(), active: true },
+      create: { companyId, employeeId: employee.id, descriptor: descriptor, enrolledAt: new Date() },
+    });
+    return { success: true };
   }
 
   async register(companyId: string, actor: JwtUser, dto: RegisterTimeDto) {
@@ -281,10 +387,12 @@ export class TimeTrackService {
     }
   }
 
-  async update(companyId: string, id: string, dto: UpdateTimeTrackDto) {
+  async update(companyId: string, actor: JwtUser, id: string, dto: UpdateTimeTrackDto) {
     const current = await this.repository.findById(companyId, id);
     if (!current) throw new NotFoundException('Time track not found');
     
+    await this.ensureCanAccessEmployee(companyId, actor, current.employeeId);
+
     const employee = await this.prisma.employee.findUnique({ where: { id: current.employeeId } });
     if (!employee) throw new NotFoundException('Employee not found');
 
@@ -397,29 +505,20 @@ export class TimeTrackService {
   }
 
   private async updateOvertimeBank(companyId: string, employeeId: string, minutesToAdd: number) {
-    const existing = await this.prisma.overtimeBank.findUnique({
+    await this.prisma.overtimeBank.upsert({
       where: { companyId_employeeId: { companyId, employeeId } },
+      update: {
+        balanceMinutes: { increment: minutesToAdd },
+        accumulatedMinutes: { increment: minutesToAdd },
+        lastUpdatedAt: new Date(),
+      },
+      create: {
+        companyId,
+        employeeId,
+        balanceMinutes: minutesToAdd,
+        accumulatedMinutes: minutesToAdd,
+      },
     });
-
-    if (existing) {
-      await this.prisma.overtimeBank.update({
-        where: { id: existing.id },
-        data: {
-          balanceMinutes: { increment: minutesToAdd },
-          accumulatedMinutes: { increment: minutesToAdd },
-          lastUpdatedAt: new Date(),
-        },
-      });
-    } else {
-      await this.prisma.overtimeBank.create({
-        data: {
-          companyId,
-          employeeId,
-          balanceMinutes: minutesToAdd,
-          accumulatedMinutes: minutesToAdd,
-        },
-      });
-    }
   }
 
   async approveManual(companyId: string, actor: JwtUser, id: string, approved: boolean) {
@@ -438,6 +537,7 @@ export class TimeTrackService {
 
   async batchApproveManual(companyId: string, actor: JwtUser, ids: string[], approved: boolean) {
     if (!Array.isArray(ids) || ids.length === 0) throw new BadRequestException('A lista de IDs nao pode estar vazia');
+    if (ids.length > 100) throw new BadRequestException('Máximo de 100 registros por lote');
     const results = [];
     // Doing it sequentially to reuse validation logic
     for (const id of ids) {
@@ -460,7 +560,11 @@ export class TimeTrackService {
     return this.repository.updateManualStatus(companyId, id, 'revoked', reason);
   }
 
-  async delete(companyId: string, id: string) {
+  async delete(companyId: string, actor: JwtUser, id: string) {
+    const track = await this.repository.findById(companyId, id);
+    if (!track) throw new NotFoundException('Time track not found');
+    if (track.companyId !== companyId) throw new NotFoundException('Time track not found');
+
     const result = await this.repository.delete(companyId, id);
     if (!result.count) throw new NotFoundException('Time track not found');
     return { deleted: true };

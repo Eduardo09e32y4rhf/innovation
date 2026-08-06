@@ -15,7 +15,9 @@ export class LocalSupportStorageService implements SupportStorageService {
   private async ensureDirectory(dir: string) {
     try {
       await fs.mkdir(dir, { recursive: true });
-    } catch (e) {}
+    } catch (e) {
+      this.logger.error('Falha ao criar diretório de anexos de suporte', e);
+    }
   }
 
   async saveFile(key: string, buffer: Buffer): Promise<string> {

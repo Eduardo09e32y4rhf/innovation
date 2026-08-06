@@ -13,7 +13,7 @@ import { RedisIoAdapter } from './common/adapters/redis-io.adapter';
 import { WinstonModule } from 'nest-winston';
 import * as winston from 'winston';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-const LokiTransport = require('winston-loki');
+import LokiTransport from 'winston-loki';
 
 async function bootstrap() {
   const logger = WinstonModule.createLogger({
@@ -107,14 +107,21 @@ async function bootstrap() {
   const port = Number(process.env.PORT ?? 3333);
   const host = process.env.HOST ?? '0.0.0.0';
 
-  const config = new DocumentBuilder()
-    .setTitle('Innovation RH Connect API')
-    .setDescription('API documentation for Innovation RH Connect (Time tracking, Payroll, Privacy, etc).')
-    .setVersion('1.0')
-    .addBearerAuth()
-    .build();
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api/docs', app, document);
+  if (process.env.NODE_ENV !== 'production') {
+    const config = new DocumentBuilder()
+      .setTitle('Innovation RH Connect API')
+      .setDescription('API documentation for Innovation RH Connect (Time tracking, Payroll, Privacy, etc).')
+      .setVersion('1.0')
+      .addBearerAuth()
+      .build();
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('api/docs', app, document, {
+      swaggerOptions: {
+        persistAuthorization: true,
+      },
+      customSiteTitle: 'Innovation API Docs',
+    });
+  }
 
   await app.listen({ port, host });
 

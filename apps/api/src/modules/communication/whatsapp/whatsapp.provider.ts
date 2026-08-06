@@ -89,7 +89,9 @@ export class WhatsappProvider {
               const baseDir = process.env.WHATSAPP_SESSION_PATH || join(process.cwd(), 'storage', 'whatsapp');
               const authDir = join(baseDir, companyId);
               require('fs').rmSync(authDir, { recursive: true, force: true });
-            } catch (e) {}
+            } catch (e) {
+              this.logger.warn(`Falha ao limpar sessão WhatsApp da empresa ${companyId}`, e);
+            }
             this.setSnapshot(companyId, {
               status: 'DISCONNECTED',
               qrCode: null,

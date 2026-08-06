@@ -62,6 +62,14 @@ export class EmployeesRepository {
     });
   }
 
+  listSwapCandidates(companyId: string, roleFilter: any) {
+    return this.prisma.employee.findMany({
+      where: { companyId, ...roleFilter },
+      select: { id: true, name: true, registration: true, position: true },
+      orderBy: { name: 'asc' }
+    });
+  }
+
   countByManager(companyId: string, managerId: string) {
     return this.prisma.employee.count({ where: { companyId, managerId } });
   }

@@ -9,7 +9,7 @@ import { UpdatePlatformCompanyDto } from './dto/update-platform-company.dto';
 import { UpdatePlatformCompanyUserDto } from './dto/update-platform-company-user.dto';
 import { PlatformRepository } from './platform.repository';
 
-// SEGURANÃƒÆ’Ã¢â‚¬Â¡A: e-mail do DEV proprietÃƒÆ’Ã‚Â¡rio da plataforma ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â definido via variÃƒÆ’Ã‚Â¡vel de ambiente
+// SEGURANÃÆ’ââ‚¬Â¡A: e-mail do DEV proprietÃÆ’ÂÂ¡rio da plataforma ÃÂ¢ââ€šÂ¬ââ‚¬Â definido via variÃÆ’ÂÂ¡vel de ambiente
 const PLATFORM_OWNER_EMAIL = (process.env.PLATFORM_OWNER_EMAIL ?? '').toLowerCase();
 const PROTECTED_PLATFORM_ROLES = ['DEV', 'COMERCIAL'];
 
@@ -49,12 +49,12 @@ export class PlatformService {
     }
 
     const company = await this.repository.getCompany(companyId);
-    if (!company) throw new NotFoundException('Empresa nÃƒÆ’Ã‚Â£o encontrada');
+    if (!company) throw new NotFoundException('Empresa nÃÆ’ÂÂ£o encontrada');
     if (company.status !== 'ACTIVE') {
-      throw new ForbiddenException(`NÃƒÆ’Ã‚Â£o pode acessar empresa ${company.status === 'SUSPENDED' ? 'suspensa' : 'cancelada'}`);
+      throw new ForbiddenException(`NÃÆ’ÂÂ£o pode acessar empresa ${company.status === 'SUSPENDED' ? 'suspensa' : 'cancelada'}`);
     }
 
-    const reason = req?.body?.reason || 'Suporte tÃƒÆ’Ã‚Â©cnico';
+    const reason = req?.body?.reason || 'Suporte tÃÆ’ÂÂ©cnico';
 
     await this.repository.createAuditLog({
       companyId,
@@ -69,7 +69,7 @@ export class PlatformService {
       },
     });
 
-    // ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ MantÃƒÆ’Ã‚Â©m identidade do DEV ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â nÃƒÆ’Ã‚Â£o impersona o admin da empresa
+    // ÃÂ¢Ã…â€œââ‚¬Â¦ MantÃÆ’ÂÂ©m identidade do DEV ÃÂ¢ââ€šÂ¬ââ‚¬Â nÃÆ’ÂÂ£o impersona o admin da empresa
     const payload = {
       sub: actor.sub,
       email: actor.email,
@@ -104,8 +104,8 @@ export class PlatformService {
     const result: any = { ...company, usersCount: company._count.users, employeesCount: company._count.employees };
     if (actor && actor.role !== 'DEV') {
       result.internalNotes = undefined;
-      result.asaasCustomerId = result.asaasCustomerId ? 'ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢' : null;
-      result.asaasSubscriptionId = result.asaasSubscriptionId ? 'ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢' : null;
+      result.asaasCustomerId = result.asaasCustomerId ? 'ÃÂ¢ââ€šÂ¬ÂÂ¢ÃÂ¢ââ€šÂ¬ÂÂ¢ÃÂ¢ââ€šÂ¬ÂÂ¢ÃÂ¢ââ€šÂ¬ÂÂ¢ÃÂ¢ââ€šÂ¬ÂÂ¢ÃÂ¢ââ€šÂ¬ÂÂ¢ÃÂ¢ââ€šÂ¬ÂÂ¢ÃÂ¢ââ€šÂ¬ÂÂ¢' : null;
+      result.asaasSubscriptionId = result.asaasSubscriptionId ? 'ÃÂ¢ââ€šÂ¬ÂÂ¢ÃÂ¢ââ€šÂ¬ÂÂ¢ÃÂ¢ââ€šÂ¬ÂÂ¢ÃÂ¢ââ€šÂ¬ÂÂ¢ÃÂ¢ââ€šÂ¬ÂÂ¢ÃÂ¢ââ€šÂ¬ÂÂ¢ÃÂ¢ââ€šÂ¬ÂÂ¢ÃÂ¢ââ€šÂ¬ÂÂ¢' : null;
     }
     return result;
   }
@@ -229,12 +229,12 @@ export class PlatformService {
       ...(autoSuspensionReason !== undefined && !status ? { suspensionReason: autoSuspensionReason } : {}),
     };
     
-    // Notificar admin(s) da empresa sobre inadimplÃƒÆ’Ã‚Âªncia caso mude para PAST_DUE
+    // Notificar admin(s) da empresa sobre inadimplÃÆ’ÂÂªncia caso mude para PAST_DUE
     if (billingStatus === 'PAST_DUE' && company.billingStatus !== 'PAST_DUE') {
       await this.notificationsService.createAdminNotice(id, actor.sub, {
         type: 'SYSTEM_ALERT',
-        title: 'Aviso de InadimplÃƒÆ’Ã‚Âªncia e Bloqueio',
-        message: 'Consta um dÃƒÆ’Ã‚Â©bito pendente na sua assinatura. Seu acesso a mÃƒÆ’Ã‚Â³dulos foi restrito. Regularize para reativar o acesso integral ÃƒÆ’Ã‚Â  plataforma.',
+        title: 'Aviso de InadimplÃÆ’ÂÂªncia e Bloqueio',
+        message: 'Consta um dÃÆ’ÂÂ©bito pendente na sua assinatura. Seu acesso a mÃÆ’ÂÂ³dulos foi restrito. Regularize para reativar o acesso integral ÃÆ’ÂÂ  plataforma.',
         priority: 'HIGH',
         targetType: 'ROLE',
         targetRole: 'ADMIN',

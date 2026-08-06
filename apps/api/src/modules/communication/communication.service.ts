@@ -379,7 +379,9 @@ export class CommunicationService implements OnModuleInit {
   private async handleQrCode(companyId: string, qrCode: string) {
     try {
       await this.repository.upsertWhatsappStatus(companyId, { status: 'QR_CODE', qrCode });
-    } catch {}
+    } catch (e) {
+      this.logger.warn(`Falha ao atualizar QR Code da empresa ${companyId}`, e);
+    }
     memoryWhatsapp.set(companyId, { ...(memoryWhatsapp.get(companyId) ?? {}), status: 'QR_CODE', qrCode });
     this.gateway.emitToCompany(companyId, 'communication.whatsapp.qrcode', { qrCode });
   }
@@ -387,7 +389,9 @@ export class CommunicationService implements OnModuleInit {
   private async handleStatus(companyId: string, status: WhatsappConnectionStatus) {
     try {
       await this.repository.upsertWhatsappStatus(companyId, { status, qrCode: status === 'QR_CODE' ? undefined : null });
-    } catch {}
+    } catch (e) {
+      this.logger.warn(`Falha ao atualizar status da empresa ${companyId}`, e);
+    }
     memoryWhatsapp.set(companyId, {
       ...(memoryWhatsapp.get(companyId) ?? {}),
       status,

@@ -36,6 +36,7 @@ export class PlatformController {
     return this.service.getOnlineUsers();
   }
 
+  @Roles('DEV')
   @Post('ghost-mode/:companyId')
   ghostMode(
     @Param('companyId') companyId: string,

@@ -44,95 +44,7 @@ export class TimeTrackController {
   @UseGuards(RateLimitGuard)
   @RateLimit({ window: 60, max: 10, prefix: 'punch-facial' })
   async clockInFacial(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Body() dto: { imageBase64: string, faceDescriptor?: number[], fallback?: boolean } & any) {
-    if (!dto.imageBase64 && !dto.fallback) {
-      throw new BadRequestException('Imagem facial é obrigatória para o registro.');
-    }
-
-    let facialSuccess = false;
-    let matchResult = null;
-
-    let employeeId = '';
-    const emp = await this.service['prisma'].employee.findFirst({ 
-      where: { 
-        companyId,
-        OR: [
-          { userId: actor.sub },
-          { email: actor.email }
-        ]
-      } 
-    });
-    if (emp) employeeId = emp.id;
-
-    if (!employeeId) {
-      throw new BadRequestException('Funcionário não encontrado para este usuário.');
-    }
-
-    const enrollment = await this.service['prisma'].faceEnrollment.findUnique({ where: { employeeId } });
-
-    if (!dto.faceDescriptor && dto.imageBase64) {
-      // Se não veio o descritor facial (porque a interface voltou a usar a Câmera simples), 
-      // aceitamos o ponto normalmente sem validação biométrica matemática.
-      facialSuccess = true;
-    } else if (!enrollment || !enrollment.active || !enrollment.descriptor) {
-      // Primeira vez: Cadastrar a biometria facial automaticamente com base no faceDescriptor
-      if (!dto.faceDescriptor) {
-         throw new BadRequestException('Não foi possível realizar o cadastro biométrico inicial. Tente novamente.');
-      }
-      try {
-        await this.service['prisma'].faceEnrollment.upsert({
-          where: { employeeId },
-          update: { descriptor: dto.faceDescriptor, enrolledAt: new Date(), active: true },
-          create: { companyId, employeeId, descriptor: dto.faceDescriptor, active: true }
-        });
-        facialSuccess = true;
-      } catch (error: any) {
-        throw new BadRequestException('Erro ao salvar biometria no banco de dados.');
-      }
-    } else if (dto.faceDescriptor) {
-      // Calcular Distância Euclidiana entre o descritor salvo e o atual
-      const savedDescriptor = enrollment.descriptor as number[];
-      if (Array.isArray(savedDescriptor) && Array.isArray(dto.faceDescriptor) && savedDescriptor.length === dto.faceDescriptor.length) {
-        
-        // Offload calculation to prevent Event Loop blocking (Deadlock Fix)
-        const distance = await new Promise<number>((resolve) => {
-          setImmediate(() => {
-            let sum = 0;
-            const len = dto.faceDescriptor.length;
-            for (let i = 0; i < len; i++) {
-              const diff = dto.faceDescriptor[i] - savedDescriptor[i];
-              sum += diff * diff;
-            }
-            resolve(Math.sqrt(sum));
-          });
-        });
-
-        matchResult = { distance, subject: employeeId };
-        if (distance < 0.55) {
-          facialSuccess = true;
-        } else {
-           throw new BadRequestException('Rosto não reconhecido. Tente novamente.');
-        }
-      } else {
-         throw new BadRequestException('Dados biométricos corrompidos ou inválidos. Contate o suporte.');
-      }
-    } else if (!dto.fallback) {
-       throw new BadRequestException('Dados biométricos não recebidos do dispositivo.');
-    }
-
-    // Log attempt
-    await this.service.logFacialAttempt({
-      companyId,
-      employeeId,
-      matched: facialSuccess,
-      similarity: matchResult?.distance ? (1 - matchResult.distance) : 0,
-      livenessOk: true
-    });
-
-    if (!facialSuccess && !dto.fallback) {
-      throw new BadRequestException('Falha no reconhecimento facial.');
-    }
-
-    return this.service.register(companyId, actor, { ...dto, clockedInWithoutFacial: !facialSuccess });
+    return this.service.clockInFacial(companyId, actor, dto);
   }
 
   @Post('enroll-facial')
@@ -141,23 +53,7 @@ export class TimeTrackController {
     @CurrentUser() actor: JwtUser,
     @Body() dto: { descriptor: number[] }
   ) {
-    const employee = await this.service['prisma'].employee.findFirst({ 
-      where: { 
-        companyId,
-        OR: [
-          { userId: actor.sub },
-          { email: actor.email }
-        ]
-      } 
-    });
-    if (!employee) throw new BadRequestException('Funcionário não encontrado no banco de dados. Contate o RH para vincular seu usuário.');
-    
-    await this.service['prisma'].faceEnrollment.upsert({
-      where: { employeeId: employee.id },
-      update: { descriptor: dto.descriptor, enrolledAt: new Date(), active: true },
-      create: { companyId, employeeId: employee.id, descriptor: dto.descriptor, enrolledAt: new Date() },
-    });
-    return { success: true };
+    return this.service.enrollFacial(companyId, actor, dto.descriptor);
   }
 
   @Post('register')
@@ -180,11 +76,13 @@ export class TimeTrackController {
     return this.service.approveOvertime(companyId, actor, id, body.approved);
   }
 
+  @Roles('DEV', 'ADMIN', 'RH', 'GESTOR')
   @Patch(':id/approve')
   approve(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string, @Body() body: { approved: boolean }) {
     return this.service.approveManual(companyId, actor, id, body.approved);
   }
 
+  @Roles('DEV', 'ADMIN', 'RH', 'GESTOR')
   @Post('batch-approve')
   batchApprove(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Body() body: { ids: string[], approved: boolean }) {
     return this.service.batchApproveManual(companyId, actor, body.ids, body.approved);
@@ -192,8 +90,8 @@ export class TimeTrackController {
 
   @Roles('DEV', 'ADMIN', 'RH')
   @Patch(':id')
-  update(@CurrentCompany() companyId: string, @Param('id') id: string, @Body() dto: UpdateTimeTrackDto) {
-    return this.service.update(companyId, id, dto);
+  update(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string, @Body() dto: UpdateTimeTrackDto) {
+    return this.service.update(companyId, actor, id, dto);
   }
 
   @Roles('DEV', 'ADMIN', 'RH')
@@ -204,7 +102,7 @@ export class TimeTrackController {
 
   @Roles('DEV', 'ADMIN', 'RH')
   @Delete(':id')
-  delete(@CurrentCompany() companyId: string, @Param('id') id: string) {
-    return this.service.delete(companyId, id);
+  delete(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string) {
+    return this.service.delete(companyId, actor, id);
   }
 }

@@ -64,9 +64,13 @@ export class EmployeesController {
     return this.streamOfficialDocument(companyId, actor, id, 'EMPLOYEE_RECORD', response);
   }
 
+  @Get('swap-candidates')
+  listSwapCandidates(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser) {
+    return this.service.listSwapCandidates(companyId, actor);
+  }
+
   @Get(':id')
   get(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string) {
-    if (id === 'swap-candidates') return this.service.listSwapCandidates(companyId, actor);
     return this.service.get(companyId, actor, id);
   }
 

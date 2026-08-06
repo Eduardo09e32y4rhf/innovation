@@ -40,7 +40,6 @@ export class SupportFileValidationService {
   }
 
   detectMimeType(extension: string, declaredMimeType?: string) {
-    if (declaredMimeType) return declaredMimeType;
     switch (extension) {
       case 'png': return 'image/png';
       case 'jpg':
@@ -50,7 +49,7 @@ export class SupportFileValidationService {
       case 'txt': return 'text/plain';
       case 'mp4': return 'video/mp4';
       case 'webm': return 'video/webm';
-      default: return 'application/octet-stream';
+      default: return declaredMimeType || 'application/octet-stream';
     }
   }
 
@@ -66,6 +65,9 @@ export class SupportFileValidationService {
     }
     if (extension === 'pdf' && !buffer.subarray(0, 5).toString('ascii').startsWith('%PDF-')) {
       throw new BadRequestException('Arquivo PDF corrompido ou falsificado.');
+    }
+    if (extension === 'webp' && buffer.length >= 12 && buffer.subarray(8, 12).toString('ascii') !== 'WEBP') {
+      throw new BadRequestException('Arquivo WEBP corrompido ou falsificado.');
     }
   }
 }

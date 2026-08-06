@@ -6,7 +6,10 @@ import { UpdateEmployeeDto } from './dto/update-employee.dto';
 import { EmployeesRepository } from './employees.repository';
 import { AsoService } from '../management/aso.service';
 
-const DEFAULT_PANEL_PASSWORD = process.env.DEFAULT_EMPLOYEE_PASSWORD ?? 'Innovation@123';
+const DEFAULT_PANEL_PASSWORD = process.env.DEFAULT_EMPLOYEE_PASSWORD;
+if (!DEFAULT_PANEL_PASSWORD) {
+  throw new Error('DEFAULT_EMPLOYEE_PASSWORD environment variable is required');
+}
 const EMPLOYEE_ACCESS_ROLES: UserRole[] = ['FUNCIONARIO', 'GESTOR', 'RH', 'ADMIN', 'CONSULTA'];
 
 @Injectable()
@@ -41,11 +44,7 @@ export class EmployeesService {
        roleFilter = { status: 'ACTIVE', position: me.position };
     }
     
-    return this.repository['prisma'].employee.findMany({
-      where: { companyId, ...roleFilter },
-      select: { id: true, name: true, registration: true, position: true },
-      orderBy: { name: 'asc' }
-    });
+    return this.repository.listSwapCandidates(companyId, roleFilter);
   }
 
   async get(companyId: string, actor: JwtUser, id: string) {
@@ -75,7 +74,7 @@ export class EmployeesService {
     await this.asoService.create(companyId, undefined, {
       employeeId: employee.id,
       asoType: 'ADMISSIONAL',
-      status: 'PENDENTE'
+      status: 'PENDING'
     });
 
     await this.syncPanelAccess(companyId, employee, dto);
@@ -119,7 +118,7 @@ export class EmployeesService {
     await this.asoService.create(companyId, actor.sub, {
       employeeId: id,
       asoType: 'DEMISSIONAL',
-      status: 'PENDENTE'
+      status: 'PENDING'
     });
 
     return this.get(companyId, actor, id);
