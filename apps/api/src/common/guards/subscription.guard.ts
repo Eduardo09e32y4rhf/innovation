@@ -37,7 +37,7 @@ export class SubscriptionActiveGuard implements CanActivate {
       return true;
     }
 
-    if (company.billingStatus === 'OVERDUE' || company.billingStatus === 'SUSPENDED') {
+    if (company.billingStatus === 'PAST_DUE' || company.billingStatus === 'CANCELED') {
       // Return 402 Payment Required so the frontend knows exactly to redirect to billing
       throw new HttpException(
         {
