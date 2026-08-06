@@ -6,10 +6,6 @@ import { UpdateEmployeeDto } from './dto/update-employee.dto';
 import { EmployeesRepository } from './employees.repository';
 import { AsoService } from '../management/aso.service';
 
-const DEFAULT_PANEL_PASSWORD = process.env.DEFAULT_EMPLOYEE_PASSWORD;
-if (!DEFAULT_PANEL_PASSWORD) {
-  throw new Error('DEFAULT_EMPLOYEE_PASSWORD environment variable is required');
-}
 const EMPLOYEE_ACCESS_ROLES: UserRole[] = ['FUNCIONARIO', 'GESTOR', 'RH', 'ADMIN', 'CONSULTA'];
 
 @Injectable()
@@ -216,12 +212,17 @@ export class EmployeesService {
       return;
     }
 
+    const defaultPassword = process.env.DEFAULT_EMPLOYEE_PASSWORD;
+    if (!defaultPassword) {
+      throw new ConflictException('DEFAULT_EMPLOYEE_PASSWORD não configurado no servidor');
+    }
+
     const user = await this.repository.createUser({
       companyId,
       name: dto.name ?? employee.name,
       email,
       role,
-      passwordHash: await bcrypt.hash(DEFAULT_PANEL_PASSWORD as string, 12),
+      passwordHash: await bcrypt.hash(defaultPassword, 12),
       forcePasswordChange: true,
       isActive: true,
     });
