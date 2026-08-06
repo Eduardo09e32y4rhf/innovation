@@ -28,6 +28,7 @@ import { FinanceModule } from './modules/finance/finance.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { EscalaModule } from './modules/schedule/escala.module';
 import { TenantGuard } from './common/guards/tenant.guard';
+import { SubscriptionActiveGuard } from './common/guards/subscription.guard';
 import { ManualContractsModule } from './modules/manual-contracts/manual-contracts.module';
 import { CouponsModule } from './modules/coupons/coupons.module';
 import { DocumentsModule } from './modules/documents/documents.module';
@@ -96,6 +97,7 @@ import { JobsModule } from './modules/jobs/jobs.module';
     { provide: APP_INTERCEPTOR, useClass: MetricsInterceptor },
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: TenantGuard },
+    { provide: APP_GUARD, useClass: SubscriptionActiveGuard },
   ],
 })
 export class AppModule {}

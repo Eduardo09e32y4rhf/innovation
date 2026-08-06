@@ -1497,15 +1497,19 @@ model PlatformInvoice {
   updatedAt       DateTime      @updatedAt
 
   // Campos de nota fiscal (NFS-e via Asaas)
-  asaasInvoiceId        String?   @unique
+  asaasInvoiceId        String? @unique
   invoiceNumber         String?
   invoiceSeries         String?
   invoiceValidationCode String?
   fiscalPdfUrl          String?
   fiscalXmlUrl          String?
-  invoiceAuthorizedAt   DateTime?
-  invoiceCanceledAt     DateTime?
-  invoiceStatus         String? // AUTHORIZED, CANCELED, ERROR
+  receiptUrl            String?
+  nfeStatus             String? // AUTHORIZED, CANCELED, ERROR, etc.
+
+  paymentAttempts     PaymentAttempt[]
+  invoiceAuthorizedAt DateTime?
+  invoiceCanceledAt   DateTime?
+  invoiceStatus       String? // AUTHORIZED, CANCELED, ERROR
 
   company Company       @relation(fields: [companyId], references: [id])
   plan    PlatformPlan? @relation(fields: [planId], references: [id])
@@ -2165,4 +2169,21 @@ model GeneratedDocument {
 
   @@index([companyId, type])
   @@index([createdAt])
+}
+
+model PaymentAttempt {
+  id               String          @id @default(uuid()) @db.Uuid
+  invoiceId        String          @db.Uuid
+  invoice          PlatformInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  paymentMethod    String
+  installments     Int             @default(1)
+  amountRequested  Decimal         @db.Decimal(10, 2)
+  status           String
+  returnCode       String?
+  sanitizedMessage String?
+  providerId       String?
+  attemptedAt      DateTime        @default(now())
+
+  @@index([invoiceId])
+  @@index([attemptedAt])
 }

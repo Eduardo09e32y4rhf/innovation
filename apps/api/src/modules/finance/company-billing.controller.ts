@@ -2,6 +2,7 @@ import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { CurrentCompany } from '../../common/decorators/current-company.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { SkipSubscriptionCheck } from '../../common/decorators/skip-subscription-check.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import type { JwtUser } from '../../common/types/auth.types';
@@ -11,6 +12,7 @@ import { ChangeSeatQuantityDto } from './dto/change-seat-quantity.dto';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('ADMIN', 'DEV')
+@SkipSubscriptionCheck()
 @Controller('finance/company')
 export class CompanyBillingController {
   constructor(private readonly service: PlatformFinanceService) {}
