@@ -1,7 +1,7 @@
 import { CanActivate, ExecutionContext, Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { PrismaService } from '../../database/prisma.service';
-import type { JwtUser } from '../../modules/auth/jwt.strategy';
+import type { JwtUser } from '../types/auth.types';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 import { SKIP_SUBSCRIPTION_CHECK_KEY } from '../decorators/skip-subscription-check.decorator';
 

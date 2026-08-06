@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Check, ChevronRight, Loader2, Sparkles, Zap, Building2, ShieldCheck, ArrowRight } from 'lucide-react';
+import { Check, Loader2, Sparkles, Zap, Building2, ShieldCheck, ArrowRight } from 'lucide-react';
 import api from '@/app/lib/api';
 
 interface PlatformPlan {
