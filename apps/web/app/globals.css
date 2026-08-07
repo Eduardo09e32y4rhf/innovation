@@ -3,18 +3,52 @@
 @tailwind utilities;
 
 /* ═══════════════════════════════════════════════════════════════
-   DESIGN TOKENS
+   1. DESIGN TOKENS (Base)
 ═══════════════════════════════════════════════════════════════ */
 @layer base {
   :root {
+    /* Identidade da Marca (Roxo) */
+    --color-brand-50: #faf5ff;
+    --color-brand-100: #f3e8ff;
+    --color-brand-200: #e9d5ff;
+    --color-brand-300: #d8b4fe;
+    --color-brand-400: #c084fc;
+    --color-brand-500: #a855f7;
+    --color-brand-600: #8a05be;
+    --color-brand-700: #72049e;
+    --color-brand-800: #581c87;
+    --color-brand-900: #3b0764;
+    --color-brand: #8a05be;
+
+    /* Cores Semânticas */
+    --color-success: #059669;
+    --color-warning: #d97706;
+    --color-danger: #e11d48;
+    --color-info: #2563eb;
+
+    /* Cores de Fundo e Texto (Compatibilidade / Globais) */
     --background: #f4f4f5;
     --foreground: #09090b;
-    --brand: #8A05BE;
-    --brand-hover: #72049e;
     --border: #e4e4e7;
     --muted: #71717a;
-    --danger: #e11d48;
-    --danger-hover: #be123c;
+
+    /* Tokens de Raio (Border Radius) */
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 16px;
+    --radius-xl: 20px;
+    --radius-full: 9999px;
+
+    /* Tokens de Sombra */
+    --shadow-xs: 0 1px 2px rgb(15 23 42 / 0.04);
+    --shadow-sm: 0 4px 12px rgb(15 23 42 / 0.06);
+    --shadow-md: 0 12px 30px rgb(15 23 42 / 0.08);
+    --shadow-lg: 0 24px 60px rgb(15 23 42 / 0.12);
+
+    /* Tokens de Tamanho (Controles) */
+    --control-sm: 32px;
+    --control-md: 40px;
+    --control-lg: 48px;
   }
 
   html, body {
@@ -22,7 +56,7 @@
     background-color: var(--background);
     color: var(--foreground);
     min-height: 100vh;
-    font-size: 13px;
+    font-size: 13px; /* Tamanho base original */
     -webkit-font-smoothing: antialiased;
   }
 
@@ -31,204 +65,216 @@
   .font-display {
     font-family: "Segoe UI Variable Display", "Trebuchet MS", sans-serif;
   }
+
+  /* Scrollbar customizada global */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #d4d4d8; border-radius: var(--radius-full); }
+  ::-webkit-scrollbar-thumb:hover { background: #a1a1aa; }
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   LAYOUT
+   2. COMPONENTES VISUAIS OFICIAIS
 ═══════════════════════════════════════════════════════════════ */
 @layer components {
-  .app-shell {
-    display: grid;
-    min-height: 100vh;
-    grid-template-columns: 240px 1fr;
-    background-color: var(--background);
+
+  /* --- Estrutura de Página --- */
+  .app-page { @apply flex flex-col min-h-screen bg-[var(--background)]; }
+  .app-page-container { @apply w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6; }
+  .app-page-content { @apply flex flex-col gap-6; }
+  .app-section { @apply flex flex-col gap-4; }
+  .app-section-grid { @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4; }
+
+  /* --- Cabeçalhos --- */
+  .page-header {
+    @apply flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white/80 backdrop-blur-xl border border-[var(--border)] px-6 py-5 mb-6;
+    border-radius: var(--radius-xl);
+  }
+  .page-header-content { @apply flex flex-col gap-1; }
+  .page-eyebrow { @apply text-[10px] font-bold uppercase tracking-widest text-[var(--color-brand)] mb-1; }
+  .page-title { @apply text-2xl font-black tracking-tight text-slate-950; }
+  .page-description { @apply text-sm text-slate-500 font-medium mt-1 max-w-2xl; }
+  .page-actions { @apply flex items-center gap-2; }
+
+  /* --- Cards --- */
+  .surface {
+    @apply bg-white border border-[var(--border)] transition-colors;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+  }
+  .surface-muted { @apply surface bg-slate-50/50 shadow-none; }
+  .surface-interactive { @apply surface cursor-pointer hover:border-[var(--color-brand)] hover:shadow-md; }
+  .surface-header { @apply flex items-center justify-between gap-4 px-5 py-4 border-b border-[var(--border)]; }
+  
+  .stat-card { @apply surface flex flex-col gap-1 px-5 py-4 relative overflow-hidden; }
+  .stat-card-label { @apply text-[11px] font-bold uppercase tracking-wider text-slate-500; }
+  .stat-card-value { @apply text-2xl font-black text-slate-900 leading-none mt-1; }
+  .stat-card-detail { @apply text-[11px] text-slate-400 font-medium; }
+
+  /* --- Botões --- */
+  .btn {
+    @apply inline-flex items-center justify-center gap-1.5 font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed select-none;
+    border-radius: var(--radius-md);
+    height: var(--control-md);
+    padding: 0 16px;
+    font-size: 13px;
+  }
+  .btn-sm { height: var(--control-sm); padding: 0 12px; font-size: 11px; }
+  .btn-lg { height: var(--control-lg); padding: 0 24px; font-size: 14px; }
+  
+  .btn-primary { @apply bg-[var(--color-brand)] text-white hover:bg-[var(--color-brand-700)] active:scale-[0.98]; shadow: var(--shadow-sm); }
+  .btn-secondary { @apply bg-zinc-900 text-white hover:bg-zinc-800 active:scale-[0.98]; shadow: var(--shadow-sm); }
+  .btn-outline { @apply bg-white border border-zinc-300 text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 active:scale-[0.98]; }
+  .btn-ghost { @apply bg-transparent text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 active:scale-[0.98]; }
+  .btn-danger { @apply bg-[var(--color-danger)] text-white hover:bg-[#be123c] active:scale-[0.98]; }
+  .btn-warning { @apply bg-[var(--color-warning)] text-white hover:bg-[#b45309] active:scale-[0.98]; }
+  .btn-success { @apply bg-[var(--color-success)] text-white hover:bg-[#047857] active:scale-[0.98]; }
+  
+  .btn-icon {
+    @apply inline-flex items-center justify-center bg-zinc-100 border border-zinc-200 text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200 hover:border-zinc-300 transition-colors disabled:opacity-50;
+    border-radius: var(--radius-md);
+    width: var(--control-sm);
+    height: var(--control-sm);
   }
 
+  /* --- Formulários --- */
+  .form-group { @apply flex flex-col gap-1.5 w-full; }
+  .form-label { @apply text-xs font-bold text-slate-700; }
+  .form-helper { @apply text-[11px] text-slate-500; }
+  .form-error { @apply text-[11px] font-bold text-[var(--color-danger)]; }
+  
+  .form-control {
+    @apply w-full bg-white border border-zinc-300 text-zinc-900 text-sm outline-none transition-all placeholder:text-zinc-400 focus:border-[var(--color-brand)] focus:ring-1 focus:ring-[var(--color-brand)];
+    border-radius: var(--radius-md);
+    height: var(--control-md);
+    padding: 0 12px;
+  }
+  .form-select { @apply form-control cursor-pointer pr-8 appearance-none bg-no-repeat bg-[right_12px_center] bg-[length:16px_16px]; }
+  .form-textarea {
+    @apply w-full bg-white border border-zinc-300 text-zinc-900 text-sm outline-none transition-all placeholder:text-zinc-400 focus:border-[var(--color-brand)] focus:ring-1 focus:ring-[var(--color-brand)] py-2;
+    border-radius: var(--radius-md);
+    padding: 8px 12px;
+    min-height: 80px;
+    resize: vertical;
+  }
+  .form-checkbox { @apply w-4 h-4 rounded border-zinc-300 text-[var(--color-brand)] focus:ring-[var(--color-brand)]; }
+  .form-radio { @apply w-4 h-4 rounded-full border-zinc-300 text-[var(--color-brand)] focus:ring-[var(--color-brand)]; }
+  .form-grid { @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4; }
+
+  /* --- Tabelas --- */
+  .table-shell {
+    @apply bg-white border border-zinc-200 overflow-hidden;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+  }
+  .table-toolbar { @apply flex flex-col sm:flex-row items-center justify-between gap-4 p-4 border-b border-zinc-200 bg-zinc-50/50; }
+  .data-table { @apply w-full text-left text-xs whitespace-nowrap; }
+  .data-table thead tr { @apply bg-zinc-50 border-b border-zinc-200; }
+  .data-table thead th { @apply px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-zinc-500; }
+  .data-table tbody tr { @apply border-b border-zinc-100 transition-colors hover:bg-zinc-50/80 last:border-0; }
+  .data-table tbody td { @apply px-4 py-3 text-xs font-medium text-zinc-700; }
+  .table-cell-primary { @apply text-zinc-900 font-bold; }
+  .table-cell-secondary { @apply text-zinc-500 font-normal; }
+  .table-actions { @apply flex items-center gap-1 justify-end; }
+
+  /* --- Tabs --- */
+  .tabs { @apply flex items-center border-b border-zinc-200 w-full; }
+  .tabs-scroll { @apply overflow-x-auto no-scrollbar; }
+  .tab-button {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-3 text-sm font-semibold text-zinc-500 border-b-2 border-transparent transition-all hover:text-zinc-800 whitespace-nowrap cursor-pointer;
+  }
+  .tab-button-active { @apply text-zinc-900 border-[var(--color-brand)]; }
+
+  /* --- Badges --- */
+  .status-badge {
+    @apply inline-flex items-center justify-center gap-1 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider border;
+    border-radius: var(--radius-sm);
+  }
+  .status-success { @apply bg-emerald-50 text-[var(--color-success)] border-emerald-200; }
+  .status-warning { @apply bg-amber-50 text-[var(--color-warning)] border-amber-200; }
+  .status-danger { @apply bg-rose-50 text-[var(--color-danger)] border-rose-200; }
+  .status-info { @apply bg-blue-50 text-[var(--color-info)] border-blue-200; }
+  .status-neutral { @apply bg-zinc-100 text-zinc-600 border-zinc-200; }
+  .status-brand { @apply bg-purple-50 text-[var(--color-brand)] border-purple-200; }
+
+  /* --- Modais e Drawers --- */
+  .overlay { @apply fixed inset-0 z-40 bg-slate-900/60 backdrop-blur-sm transition-opacity; }
+  
+  .modal {
+    @apply fixed left-1/2 top-1/2 z-50 flex w-full -translate-x-1/2 -translate-y-1/2 flex-col bg-white border border-zinc-200 shadow-[var(--shadow-lg)];
+    border-radius: var(--radius-xl);
+  }
+  .modal-sm { @apply max-w-sm; }
+  .modal-md { @apply max-w-lg; }
+  .modal-lg { @apply max-w-3xl; }
+  .modal-header { @apply flex items-center justify-between px-6 py-5 border-b border-zinc-100; }
+  .modal-body { @apply p-6 max-h-[70vh] overflow-y-auto; }
+  .modal-footer { @apply flex items-center justify-end gap-3 px-6 py-4 border-t border-zinc-100 bg-zinc-50/50 rounded-b-[var(--radius-xl)]; }
+
+  .drawer {
+    @apply fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col bg-white border-l border-zinc-200 shadow-[var(--shadow-lg)];
+  }
+  .drawer-header { @apply flex items-center justify-between px-6 py-5 border-b border-zinc-100; }
+  .drawer-body { @apply flex-1 p-6 overflow-y-auto; }
+  .drawer-footer { @apply flex items-center justify-end gap-3 px-6 py-4 border-t border-zinc-100 bg-zinc-50/50; }
+
+  /* --- Estados --- */
+  .state-box {
+    @apply flex flex-col items-center justify-center gap-3 p-8 text-center bg-white border border-dashed border-zinc-300;
+    border-radius: var(--radius-lg);
+  }
+  .state-loading { @apply text-zinc-400; }
+  .state-empty { @apply text-zinc-500; }
+  .state-error { @apply bg-rose-50/50 border-rose-200; }
+  .state-blocked { @apply bg-amber-50/50 border-amber-200; }
+  .state-icon { @apply flex items-center justify-center w-12 h-12 rounded-full bg-zinc-100 text-zinc-400 mb-2; }
+  .state-title { @apply text-sm font-bold text-zinc-900; }
+  .state-description { @apply text-xs text-zinc-500 max-w-sm mx-auto; }
+
+
+  /* ═══════════════════════════════════════════════════════════════
+     3. COMPATIBILIDADE LEGADA (Não remover até o fim do projeto)
+  ═══════════════════════════════════════════════════════════════ */
+  .app-shell { display: grid; min-height: 100vh; grid-template-columns: 240px 1fr; background-color: var(--background); }
   @media (max-width: 1024px) { .app-shell { display: flex; flex-direction: column; } }
 
-  /* ═══════════════════════════════════════════════════════════
-     CARDS
-  ═══════════════════════════════════════════════════════════ */
-  .card-flat {
-    @apply bg-white rounded-3xl border border-slate-200 transition-colors duration-150;
-  }
-  .card-flat:hover { border-color: var(--brand); }
+  .card-flat { @apply surface; }
+  .card-stat { @apply stat-card bg-white/80 backdrop-blur-xl shadow-none; }
+  .card-stat-label { @apply stat-card-label; }
+  .card-stat-value { @apply stat-card-value; }
+  .card-stat-detail { @apply stat-card-detail; }
 
-  /* Card de estatística compacto */
-  .card-stat {
-    @apply rounded-3xl bg-white/80 backdrop-blur-xl border border-slate-200/50 shadow-[0_20px_50px_rgba(0,0,0,0.05)] p-5 flex flex-col gap-1 transition-all hover:shadow-lg relative;
-  }
-  .card-stat-label {
-    @apply text-[10px] font-bold uppercase tracking-widest text-slate-400;
-  }
-  .card-stat-value {
-    @apply text-2xl font-black text-slate-900 leading-none mt-2;
-  }
-  .card-stat-detail {
-    @apply text-[11px] text-slate-400 font-medium mt-2;
-  }
+  .btn-nubank { @apply btn btn-primary h-9; font-size: 12px; }
+  .crystal-button { @apply btn btn-primary h-9; background: linear-gradient(to right, var(--color-brand), #6c0494); font-size: 12px; }
+  .btn-black { @apply btn btn-secondary h-9; font-size: 12px; }
+  .btn-outline-nubank { @apply btn h-9 bg-white border border-[var(--color-brand)] text-[var(--color-brand)] hover:bg-purple-50; font-size: 12px; }
+  .btn-outline-premium { @apply btn btn-outline h-7 px-2.5; font-size: 11px; }
+  .btn-action { @apply btn btn-outline h-7 px-2.5; font-size: 11px; }
+  .btn-warn { @apply btn btn-secondary h-7 px-2.5; font-size: 11px; }
 
-  /* ═══════════════════════════════════════════════════════════
-     PAGE HEADER
-  ═══════════════════════════════════════════════════════════ */
-  .page-header {
-    @apply rounded-3xl bg-white/80 backdrop-blur-xl border border-slate-200/50 shadow-[0_10px_30px_rgba(0,0,0,0.03)] px-8 py-6 mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4;
-  }
-  .page-title {
-    @apply text-2xl font-black tracking-tight text-slate-950;
-  }
-  .page-subtitle {
-    @apply text-sm text-slate-500 font-medium mt-1;
-  }
-  .page-label {
-    @apply text-[10px] font-bold uppercase tracking-widest text-[#8A05BE] mb-1;
-  }
+  .avatar-initial { @apply flex items-center justify-center rounded-lg bg-zinc-900 text-white font-black text-xs shrink-0 w-8 h-8; }
+  .avatar-initial-lg { @apply flex items-center justify-center rounded-xl bg-zinc-900 text-white font-black text-sm shrink-0 w-10 h-10; }
 
-  /* ═══════════════════════════════════════════════════════════
-     BUTTONS
-  ═══════════════════════════════════════════════════════════ */
+  .badge { @apply status-badge; }
+  .badge-active { @apply status-neutral; }
+  .badge-inactive { @apply status-neutral bg-zinc-50 text-zinc-400; }
+  .badge-alert { @apply status-danger; }
+  .badge-warn { @apply status-warning; }
+  .badge-brand { @apply status-brand; }
+  .badge-dot { @apply w-1.5 h-1.5 rounded-full shrink-0; }
 
-  /* CTA primário — Nubank Purple */
-  .btn-nubank {
-    @apply inline-flex items-center justify-center gap-1.5 h-9 px-4 rounded-lg bg-[#8A05BE] text-white font-bold text-xs transition-colors duration-150 active:scale-[0.98] hover:bg-[#72049e] disabled:opacity-40 disabled:cursor-not-allowed;
-  }
+  .data-table-wrap { @apply table-shell; }
+  .tab-bar { @apply tabs; }
+  .tab-item { @apply tab-button; padding: 10px 16px; border-bottom-width: 2px; }
+  .tab-item-active { @apply tab-button-active; }
+  
+  .content-section { @apply surface; }
+  .section-header { @apply surface-header py-3; }
+  .section-title { @apply text-xs font-black uppercase tracking-widest text-zinc-900; }
+  .state-text { @apply state-description; }
+}
 
-  .crystal-button {
-    @apply inline-flex items-center justify-center gap-1.5 h-9 px-4 rounded-lg bg-gradient-to-r from-[#8A05BE] to-[#6c0494] text-white font-bold text-xs shadow-lg shadow-[#8A05BE]/20 border border-[#8A05BE]/20 transition-colors duration-150 active:scale-[0.98] hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed;
-  }
-
-  /* Botão preto — ações neutras */
-  .btn-black {
-    @apply inline-flex items-center justify-center gap-1.5 h-9 px-4 rounded-lg bg-zinc-900 text-white font-bold text-xs transition-colors duration-150 active:scale-[0.98] hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed;
-  }
-
-  /* Botão outline */
-  .btn-outline {
-    @apply inline-flex items-center justify-center gap-1.5 h-9 px-4 rounded-lg bg-zinc-100 border border-zinc-300 text-zinc-900 font-bold text-xs transition-colors duration-150 active:scale-[0.98] hover:border-zinc-400 hover:bg-zinc-200 disabled:opacity-40 disabled:cursor-not-allowed;
-  }
-
-  /* Alias — existia no código como btn-outline-nubank */
-  .btn-outline-nubank {
-    @apply inline-flex items-center justify-center gap-1.5 h-9 px-4 rounded-lg bg-white border border-[#8A05BE] text-[#8A05BE] font-bold text-xs transition-colors duration-150 active:scale-[0.98] hover:bg-[#8A05BE]/5 disabled:opacity-40 disabled:cursor-not-allowed;
-  }
-
-  /* Alias — estava indefinido, causava quebra visual */
-  .btn-outline-premium {
-    @apply inline-flex items-center justify-center gap-1.5 h-7 px-2.5 rounded-md bg-zinc-100 border border-zinc-300 text-zinc-800 font-semibold text-[11px] transition-colors duration-150 hover:border-zinc-400 hover:bg-zinc-200 disabled:opacity-40 disabled:cursor-not-allowed;
-  }
-
-  /* Botão pequeno (tabela) — ação genérica */
-  .btn-action {
-    @apply inline-flex items-center justify-center gap-1.5 h-7 px-2.5 rounded-md bg-zinc-100 border border-zinc-300 text-zinc-800 font-semibold text-[11px] transition-colors duration-150 hover:border-zinc-900 hover:text-zinc-900 hover:bg-zinc-200 disabled:opacity-40 disabled:cursor-not-allowed;
-  }
-
-  /* Botão pequeno — Desligar / ação destrutiva secundária */
-  .btn-warn {
-    @apply inline-flex items-center justify-center gap-1.5 h-7 px-2.5 rounded-md bg-zinc-900 text-white font-semibold text-[11px] transition-colors duration-150 hover:bg-zinc-700 disabled:opacity-40 disabled:cursor-not-allowed;
-  }
-
-  /* Botão pequeno — Excluir */
-  .btn-danger {
-    @apply inline-flex items-center justify-center gap-1.5 h-7 px-2.5 rounded-md bg-white border border-red-200 text-red-600 font-semibold text-[11px] transition-colors duration-150 hover:bg-red-600 hover:text-white hover:border-red-600 disabled:opacity-40 disabled:cursor-not-allowed;
-  }
-
-  /* Botão de ícone quadrado */
-  .btn-icon {
-    @apply inline-flex items-center justify-center w-8 h-8 rounded-lg bg-zinc-100 border border-zinc-300 text-zinc-700 transition-colors duration-150 hover:border-zinc-400 hover:text-zinc-900 hover:bg-zinc-200 disabled:opacity-40;
-  }
-
-  /* ═══════════════════════════════════════════════════════════
-     INPUTS
-  ═══════════════════════════════════════════════════════════ */
-  .form-control {
-    @apply w-full h-9 bg-white border border-zinc-200 rounded-lg px-3 text-sm font-medium text-zinc-900 outline-none transition-all placeholder:text-zinc-400 focus:border-[#8A05BE] focus:ring-2 focus:ring-[#8A05BE]/10;
-  }
-
-  select.form-control {
-    @apply cursor-pointer;
-  }
-
-  /* ═══════════════════════════════════════════════════════════
-     AVATARES
-  ═══════════════════════════════════════════════════════════ */
-  .avatar-initial {
-    @apply flex items-center justify-center rounded-lg bg-zinc-900 text-white font-black text-xs leading-none select-none shrink-0;
-    width: 32px;
-    height: 32px;
-  }
-
-  .avatar-initial-lg {
-    @apply flex items-center justify-center rounded-xl bg-zinc-900 text-white font-black text-sm leading-none select-none shrink-0;
-    width: 40px;
-    height: 40px;
-  }
-
-  /* ═══════════════════════════════════════════════════════════
-     BADGES DE STATUS
-  ═══════════════════════════════════════════════════════════ */
-  .badge {
-    @apply inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide border;
-  }
-  .badge-active   { @apply badge bg-white border-zinc-200 text-zinc-700; }
-  .badge-inactive { @apply badge bg-zinc-50 border-zinc-200 text-zinc-500; }
-  .badge-alert    { @apply badge bg-white border-red-200 text-red-600; }
-  .badge-warn     { @apply badge bg-white border-amber-200 text-amber-600; }
-  .badge-brand    { @apply badge bg-[#8A05BE]/5 border-[#8A05BE]/20 text-[#8A05BE]; }
-  .badge-dot      { @apply w-1.5 h-1.5 rounded-full shrink-0; }
-
-  /* ═══════════════════════════════════════════════════════════
-     TABELAS
-  ═══════════════════════════════════════════════════════════ */
-  .data-table {
-    @apply w-full text-left text-xs;
-  }
-  .data-table thead tr {
-    @apply bg-zinc-900 text-white;
-  }
-  .data-table thead th {
-    @apply px-3 py-2.5 text-[10px] font-bold uppercase tracking-widest whitespace-nowrap;
-  }
-  .data-table tbody tr {
-    @apply border-t border-zinc-100 transition-colors hover:bg-zinc-50/60;
-  }
-  .data-table tbody td {
-    @apply px-3 py-2.5 text-xs text-zinc-700 font-medium;
-  }
-  .data-table-wrap {
-    @apply bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm;
-  }
-
-  /* ═══════════════════════════════════════════════════════════
-     TABS (navegação interna de página)
-  ═══════════════════════════════════════════════════════════ */
-  .tab-bar {
-    @apply flex items-center border-b border-zinc-200 gap-0;
-  }
-  .tab-item {
-    @apply inline-flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold text-zinc-500 border-b-2 border-transparent transition-colors hover:text-zinc-900 cursor-pointer;
-  }
-  .tab-item-active {
-    @apply tab-item text-zinc-900 border-[#8A05BE];
-  }
-
-  /* ═══════════════════════════════════════════════════════════
-     SEÇÃO / BLOCO CONTENT
-  ═══════════════════════════════════════════════════════════ */
-  .content-section {
-    @apply bg-white rounded-xl border border-zinc-200;
-  }
-  .section-header {
-    @apply flex items-center justify-between gap-3 px-4 py-3 border-b border-zinc-100;
-  }
-  .section-title {
-    @apply text-xs font-black uppercase tracking-widest text-zinc-900;
-  }
-
-  /* ═══════════════════════════════════════════════════════════
-     LOADING / EMPTY / ERROR STATES
-  ═══════════════════════════════════════════════════════════ */
-  .state-box {
-    @apply flex flex-col items-center justify-center gap-2 py-12 text-center bg-white rounded-xl border border-zinc-200;
-  }
-  .state-text { @apply text-xs text-zinc-400 font-medium; }
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 }

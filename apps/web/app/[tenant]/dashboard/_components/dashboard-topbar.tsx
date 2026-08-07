@@ -15,24 +15,24 @@ export function DashboardTopbar({ onMenu }: { onMenu?: () => void }) {
         type="button"
         aria-label="Abrir menu"
         onClick={onMenu}
-        className="flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 text-slate-600 lg:hidden"
+        className="btn-icon lg:hidden"
       >
-        <Menu size={22} />
+        <Menu size={20} />
       </button>
       <div className="hidden flex-1 lg:block" />
-      <div className="flex items-center gap-2 sm:gap-3">
+      <div className="flex items-center gap-3">
         <button
           aria-label="Notificações"
           onClick={() => router.push(`/${tenant}/dashboard/notifications`)}
-          className="flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 transition-colors hover:text-[#8A05BE]"
+          className="btn-icon bg-white text-zinc-500 hover:text-[var(--color-brand)] border-zinc-200"
         >
           <Bell size={20} strokeWidth={2.5} />
         </button>
         <button
           onClick={() => { logout(); router.push('/login'); }}
-          className="flex h-11 items-center gap-2 rounded-xl bg-slate-50 px-3 text-sm font-bold text-slate-600 transition-colors hover:bg-slate-100 hover:text-black sm:px-4"
+          className="btn btn-outline border-zinc-200 bg-white shadow-sm"
         >
-          <LogOut size={18} strokeWidth={2.5} />
+          <LogOut size={16} strokeWidth={2.5} />
           <span className="hidden sm:block">Sair</span>
         </button>
       </div>
