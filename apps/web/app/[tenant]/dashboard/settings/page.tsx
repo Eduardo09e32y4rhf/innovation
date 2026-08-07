@@ -8,6 +8,7 @@ import { api } from '@/app/lib/api';
 import { EmployeePasswordResetSection } from './_components/employee-password-reset-section';
 import { CompanyFinanceSection } from './_components/company-finance-section';
 import { PlatformPlansSection } from './_components/platform-plans-section';
+import { PageHeader } from '@/app/components/enterprise/page-header';
 
 const SAFE_LOGO_URL = /^https:\/\/[^\s?#]+\.(png|jpe?g|webp)(\?[^\s#]*)?(#[^\s]*)?$/i;
 const MAX_LOGO_URL_LENGTH = 2048;
@@ -63,29 +64,23 @@ export default function SettingsPage({ params }: { params: { tenant: string } })
   const [activeTab, setActiveTab] = useState(tabs[0]?.id || 'geral');
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6">
-      <header className="mb-8 flex flex-col gap-2">
-        <p className="text-[11px] font-black uppercase tracking-[0.2em] text-teal-600">
-          Configurações
-        </p>
-        <h2 className="text-3xl font-black tracking-tight text-slate-950">
-          {pageTitle}
-        </h2>
-        <p className="text-sm font-medium text-slate-500">
-          Gerencie apenas as opções permitidas para o seu perfil.
-        </p>
-      </header>
+    <div className="app-page">
+      <div className="app-page-container">
+        <PageHeader 
+          title={pageTitle} 
+          subtitle="Gerencie apenas as opções permitidas para o seu perfil."
+        />
 
-      <div className="flex flex-col gap-8 md:flex-row">
+        <div className="flex flex-col gap-8 md:flex-row mt-6">
         {/* Sidebar Vertical Tabs */}
         <nav className="flex w-full flex-col gap-1 md:w-64 shrink-0">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold transition-all ${
+              className={`flex items-center gap-3 rounded-[var(--radius-md)] px-4 py-3 text-sm font-bold transition-all ${
                 activeTab === tab.id
-                  ? 'bg-white text-teal-700 shadow-sm border border-slate-200'
+                  ? 'bg-white text-[var(--color-brand-700)] shadow-[var(--shadow-sm)] border border-[var(--color-brand-200)]'
                   : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900 border border-transparent'
               }`}
             >
@@ -105,6 +100,7 @@ export default function SettingsPage({ params }: { params: { tenant: string } })
           {activeTab === 'dados' && canEditCompany && <ImportExportSection />}
         </div>
       </div>
+    </div>
     </div>
   );
 }
@@ -155,13 +151,13 @@ function PasswordChangeSection({ changePassword }: { changePassword: (current: s
     }
   }
 
-  const inputClass = 'h-11 w-full rounded-[10px] border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-900 shadow-sm outline-none transition-all focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10';
+  const inputClass = 'form-control h-11 text-sm';
 
   return (
     <section className="overflow-hidden rounded-[18px] border border-slate-200/60 bg-white shadow-[0_8px_30px_rgba(15,23,42,0.08)]">
       <div className="border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white px-6 py-5">
         <div className="flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-[8px] bg-gradient-to-br from-teal-500 to-cyan-600 shadow-md">
+          <div className="flex h-9 w-9 items-center justify-center rounded-[var(--radius-sm)] bg-[var(--color-brand)] shadow-[var(--shadow-sm)]">
             <Shield size={16} className="text-white" />
           </div>
           <div>
@@ -216,7 +212,7 @@ function PasswordChangeSection({ changePassword }: { changePassword: (current: s
           </label>
         </div>
 
-        <button type="button" onClick={handleSubmit} disabled={!valid || loading} className="crystal-button mt-5 inline-flex h-10 items-center gap-2 rounded-[10px] bg-gradient-to-r from-teal-500 to-cyan-600 px-5 text-xs font-black text-white shadow-lg shadow-teal-500/25 transition-all hover:-translate-y-0.5 hover:shadow-xl active:translate-y-0 disabled:opacity-60">
+        <button type="button" onClick={handleSubmit} disabled={!valid || loading} className="btn btn-primary h-10 mt-5 w-fit px-5">
           <Lock size={14} strokeWidth={2.5} />
           {loading ? 'Salvando...' : 'Alterar senha'}
         </button>
@@ -365,13 +361,13 @@ function CompanySettings() {
     { onSuccess: () => company.refetch() },
   );
 
-  const inputClass = 'h-11 w-full rounded-[10px] border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-900 shadow-sm outline-none transition-all focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10';
+  const inputClass = 'form-control h-11 text-sm';
 
   return (
     <section className="overflow-hidden rounded-[18px] border border-slate-200/60 bg-white shadow-[0_8px_30px_rgba(15,23,42,0.08)]">
       <div className="border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white px-6 py-5">
         <div className="flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-[8px] bg-gradient-to-br from-teal-500 to-cyan-600 shadow-md">
+          <div className="flex h-9 w-9 items-center justify-center rounded-[var(--radius-sm)] bg-[var(--color-brand)] shadow-[var(--shadow-sm)]">
             <ImageIcon size={16} className="text-white" />
           </div>
           <div>
@@ -395,7 +391,7 @@ function CompanySettings() {
               )}
             </div>
             {company.data?.logoUrl && !removeLogo && (
-              <button type="button" onClick={() => setRemoveLogo(true)} className="btn-outline-premium flex h-9 w-full items-center justify-center gap-2 rounded-[8px] px-3 text-xs font-black">
+              <button type="button" onClick={() => setRemoveLogo(true)} className="btn btn-outline h-9 w-full px-3 text-xs flex gap-2 justify-center">
                 <X size={13} /> Remover logo
               </button>
             )}
@@ -496,7 +492,7 @@ function CompanySettings() {
             <label className="space-y-2 text-xs font-bold uppercase tracking-wider text-slate-600 sm:col-span-2 mt-4 pt-4 border-t border-slate-100">
               <div className="flex items-center justify-between">
                 <span>Logo da Empresa (URL ou Upload)</span>
-                <div className="relative overflow-hidden rounded bg-teal-50 px-3 py-1 text-[10px] font-bold text-teal-700 hover:bg-teal-100 cursor-pointer">
+                <div className="relative overflow-hidden rounded-[var(--radius-sm)] bg-[var(--color-brand-50)] px-3 py-1 text-[10px] font-bold text-[var(--color-brand-700)] hover:bg-[var(--color-brand-100)] cursor-pointer">
                   Fazer Upload
                   <input 
                     type="file" 
@@ -530,7 +526,7 @@ function CompanySettings() {
                 type="button"
                 onClick={() => !logoError && save.mutate().catch(() => {})}
                 disabled={Boolean(logoError) || save.loading || company.loading || !hasChanges}
-                className="crystal-button inline-flex h-10 items-center gap-2 rounded-[10px] bg-gradient-to-r from-teal-500 to-cyan-600 px-5 text-xs font-black text-white shadow-lg shadow-teal-500/25 transition-all hover:-translate-y-0.5 hover:shadow-xl active:translate-y-0 disabled:opacity-60"
+                className="btn btn-primary h-10 px-5 w-fit gap-2"
               >
                 <Save size={14} strokeWidth={2.5} />
                 {save.loading ? 'Salvando...' : 'Salvar configurações'}
@@ -615,13 +611,13 @@ function ImportExportSection() {
     setImportFile(null);
   }
 
-  const inputClass = 'h-11 w-full rounded-[10px] border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-900 shadow-sm outline-none transition-all focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10';
+  const inputClass = 'form-control h-11 text-sm';
 
   return (
     <section className="overflow-hidden rounded-[18px] border border-slate-200/60 bg-white shadow-[0_8px_30px_rgba(15,23,42,0.08)]">
       <div className="border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white px-6 py-5">
         <div className="flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-[8px] bg-gradient-to-br from-amber-500 to-orange-600 shadow-md">
+          <div className="flex h-9 w-9 items-center justify-center rounded-[var(--radius-sm)] bg-[var(--color-brand)] shadow-[var(--shadow-sm)]">
             <Upload size={16} className="text-white" />
           </div>
           <div>
@@ -673,13 +669,13 @@ function ImportExportSection() {
                 type="file" 
                 accept=".xlsx" 
                 onChange={(e) => setImportFile(e.target.files?.[0] || null)}
-                className="h-11 w-full rounded-[10px] border border-slate-200 bg-white px-4 text-sm text-slate-900 shadow-sm outline-none transition-all focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10 file:mr-3 file:rounded-[6px] file:border-0 file:bg-teal-50 file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-teal-700 hover:file:bg-teal-100"
+                className="form-control h-11 file:mr-3 file:rounded-[var(--radius-sm)] file:border-0 file:bg-[var(--color-brand-50)] file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-[var(--color-brand-700)] hover:file:bg-[var(--color-brand-100)]"
               />
             </label>
             <button 
               onClick={handleImport} 
               disabled={!importFile || importing}
-              className="self-end inline-flex h-11 items-center gap-2 rounded-[10px] bg-gradient-to-r from-teal-500 to-cyan-600 px-5 text-xs font-black text-white shadow-lg shadow-teal-500/25 transition-all hover:-translate-y-0.5 hover:shadow-xl active:translate-y-0 disabled:opacity-60"
+              className="btn btn-primary h-11 px-5 gap-2 self-end"
             >
               {importing ? 'Importando...' : <><Upload size={14} strokeWidth={2.5} /> Importar</>}
             </button>
@@ -716,7 +712,7 @@ function ImportExportSection() {
 function ExportButton({ label, icon: Icon, onClick }: { label: string; icon: React.ElementType; onClick: () => void }) {
   return (
     <button onClick={onClick} className="flex items-center gap-2.5 rounded-[10px] border border-slate-200/60 bg-gradient-to-br from-white to-slate-50/30 p-3.5 text-xs font-black text-slate-700 shadow-sm transition-all hover:-translate-y-0.5 hover:border-teal-300 hover:shadow-md active:translate-y-0">
-      <div className="flex h-8 w-8 items-center justify-center rounded-[8px] bg-gradient-to-br from-teal-500 to-cyan-600 shadow-md">
+      <div className="flex h-8 w-8 items-center justify-center rounded-[var(--radius-sm)] bg-[var(--color-brand)] shadow-[var(--shadow-sm)]">
         <Icon size={14} strokeWidth={2.5} className="text-white" />
       </div>
       {label}

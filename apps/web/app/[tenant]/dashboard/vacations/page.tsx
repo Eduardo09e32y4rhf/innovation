@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Check, Plus, X, Calendar, Clock, AlertCircle, FileText, Download, History, RefreshCw, AlertTriangle, Timer, ThumbsDown } from 'lucide-react';
 import { EmptyState, ErrorState, LoadingState } from '@/app/components/data-states';
+import { PageHeader } from '@/app/components/platform-ui';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useMutation, useQuery } from '@/app/hooks/use-data';
 import { API_URL, api, type CreateVacationInput, type Employee, type VacationStatus } from '@/app/lib/api';
@@ -255,22 +256,23 @@ export default function VacationsPage() {
   const displayRows = tab === 'active' ? activeRows : tab === 'rejected' ? rejectedRows : historyRows;
 
   return (
-    <div className="mx-auto w-full space-y-6 px-4 py-6 sm:px-6 lg:px-8">
-      <header className="page-header items-center">
-        <div>
-          <p className="page-label">FÉRIAS</p>
-          <h2 className="page-title">{isGestor ? 'Férias da equipe' : 'Solicitações'}</h2>
-        </div>
-        <button onClick={() => setOpen(true)} className="btn-nubank">
-          <Plus size={14} /> Nova solicitação
-        </button>
-      </header>
+    <div className="app-page">
+      <div className="app-page-container flex flex-col gap-6">
+        <PageHeader 
+          title={isGestor ? 'Férias da equipe' : 'Solicitações'}
+          subtitle="Gerenciamento e aprovação de férias"
+          action={
+            <button onClick={() => setOpen(true)} className="btn-nubank">
+              <Plus size={14} /> Nova solicitação
+            </button>
+          }
+        />
 
       {/* Stats Cards */}
       <section className="grid grid-cols-1 gap-3 sm:grid-cols-4">
         <StatCard label="Pendentes" value={pendingCount} icon={Clock} color="amber" />
         <StatCard label="Aprovadas" value={approvedCount} icon={Check} color="emerald" />
-        <StatCard label="Concluídas" value={completedCount} icon={RefreshCw} color="teal" />
+        <StatCard label="Concluídas" value={completedCount} icon={RefreshCw} color="brand" />
         <StatCard label="Rejeitadas" value={rejectedCount} icon={X} color="rose" />
       </section>
 
@@ -294,7 +296,7 @@ export default function VacationsPage() {
           {/* Bulk actions */}
           {canApprove && tab === 'active' && selectedRows.length > 0 && (
             <div className="flex gap-2">
-              <button onClick={handleBulkApprove} className="inline-flex h-9 items-center gap-1.5 rounded-[8px] bg-gradient-to-r from-emerald-500 to-teal-600 px-4 text-[11px] font-black text-white shadow-md shadow-emerald-500/20 transition-all hover:-translate-y-0.5 hover:shadow-lg active:translate-y-0">
+              <button onClick={handleBulkApprove} className="inline-flex h-9 items-center gap-1.5 rounded-[var(--radius-sm)] bg-emerald-600 px-4 text-[11px] font-black text-white shadow-sm transition-all hover:bg-emerald-700">
                 <Check size={13} strokeWidth={2.5} />
                 Aprovar {selectedRows.length} selecionada(s)
               </button>
@@ -392,7 +394,7 @@ export default function VacationsPage() {
             <table className="w-full min-w-[900px] text-left">
               <thead>
                 <tr className="bg-gradient-to-r from-slate-100 to-slate-50 text-[10px] font-black uppercase tracking-[0.14em] text-slate-600">
-                  {canApprove && tab === 'active' && <th className="px-4 py-4 w-10"><input type="checkbox" checked={selectedRows.length === activeRows.length} onChange={handleSelectAll} className="h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500" /></th>}
+                  {canApprove && tab === 'active' && <th className="px-4 py-4 w-10"><input type="checkbox" checked={selectedRows.length === activeRows.length} onChange={handleSelectAll} className="h-4 w-4 rounded border-slate-300 text-[var(--color-brand)] focus:ring-[var(--color-brand)]" /></th>}
                   <th className="px-6 py-4">Funcionário</th>
                   <th className="px-6 py-4">Período</th>
                   <th className="px-6 py-4">Dias</th>
@@ -427,14 +429,14 @@ export default function VacationsPage() {
                             type="checkbox" 
                             checked={selectedRows.includes(row.id)} 
                             onChange={() => handleSelect(row.id)} 
-                            className="h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
+                            className="h-4 w-4 rounded border-slate-300 text-[var(--color-brand)] focus:ring-[var(--color-brand)]"
                             disabled={row.status !== 'PENDING'}
                           />
                         </td>
                       )}
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-[10px] bg-gradient-to-br from-teal-500 to-cyan-600 text-sm font-black text-white shadow-sm">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-[var(--radius-sm)] bg-[var(--color-brand)] text-sm font-black text-white shadow-[var(--shadow-sm)]">
                             {row.employee?.name?.charAt(0).toUpperCase() || '?'}
                           </div>
                           <div>
@@ -463,11 +465,11 @@ export default function VacationsPage() {
                         <div className="flex items-center gap-2">
                           <div className="h-2 w-24 overflow-hidden rounded-full bg-slate-200">
                             <div 
-                              className={`h-full rounded-full transition-all ${remaining >= 0 ? 'bg-teal-500' : 'bg-rose-500'}`}
+                              className={`h-full rounded-full transition-all ${remaining >= 0 ? 'bg-[var(--color-brand)]' : 'bg-rose-500'}`}
                               style={{ width: `${Math.min((usedDays / MAX_VACATION_DAYS) * 100, 100)}%` }}
                             />
                           </div>
-                          <span className={`text-xs font-black ${remaining >= 0 ? 'text-teal-700' : 'text-rose-700'}`}>
+                          <span className={`text-xs font-black ${remaining >= 0 ? 'text-[var(--color-brand-700)]' : 'text-rose-700'}`}>
                             {remaining}d restantes
                           </span>
                         </div>
@@ -488,16 +490,14 @@ export default function VacationsPage() {
                           <div className="flex justify-end gap-2">
                             <button
                               onClick={() => updateStatus.mutate({ id: row.id, status: 'APPROVED' }).catch(() => {})}
-                              disabled={row.status !== 'PENDING' || updateStatus.loading}
-                              className="inline-flex h-9 items-center gap-1.5 rounded-[8px] bg-gradient-to-r from-emerald-500 to-teal-600 px-4 text-[11px] font-black text-white shadow-md shadow-emerald-500/20 transition-all hover:-translate-y-0.5 hover:shadow-lg active:translate-y-0 disabled:opacity-40 disabled:hover:translate-y-0 disabled:hover:shadow-md"
+                              className="inline-flex h-9 items-center gap-1.5 rounded-[var(--radius-sm)] bg-emerald-600 px-4 text-[11px] font-black text-white shadow-sm transition-all hover:bg-emerald-700 disabled:opacity-40"
                             >
                               <Check size={13} strokeWidth={2.5} />
                               Aprovar
                             </button>
                             <button
                               onClick={() => updateStatus.mutate({ id: row.id, status: 'REJECTED' }).catch(() => {})}
-                              disabled={row.status !== 'PENDING' || updateStatus.loading}
-                              className="inline-flex h-9 items-center gap-1.5 rounded-[8px] bg-gradient-to-r from-rose-500 to-pink-600 px-4 text-[11px] font-black text-white shadow-md shadow-rose-500/20 transition-all hover:-translate-y-0.5 hover:shadow-lg active:translate-y-0 disabled:opacity-40 disabled:hover:translate-y-0 disabled:hover:shadow-md"
+                              className="inline-flex h-9 items-center gap-1.5 rounded-[var(--radius-sm)] bg-rose-600 px-4 text-[11px] font-black text-white shadow-sm transition-all hover:bg-rose-700 disabled:opacity-40"
                             >
                               <X size={13} strokeWidth={2.5} />
                               Rejeitar
@@ -554,6 +554,7 @@ export default function VacationsPage() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }
@@ -563,9 +564,9 @@ export default function VacationsPage() {
 function StatCard({ label, value, icon: Icon, color }: { label: string; value: number; icon: React.ElementType; color: string }) {
   const colorMap: Record<string, string> = {
     amber: 'from-amber-500 to-orange-600 shadow-amber-500/25',
-    emerald: 'from-emerald-500 to-teal-600 shadow-emerald-500/25',
-    teal: 'from-teal-500 to-cyan-600 shadow-teal-500/25',
-    rose: 'from-rose-500 to-pink-600 shadow-rose-500/25',
+    emerald: 'from-emerald-500 to-teal-600 shadow-[var(--shadow-sm)]',
+    brand: 'bg-[var(--color-brand)] shadow-[var(--shadow-sm)]',
+    rose: 'from-rose-500 to-pink-600 shadow-[var(--shadow-sm)]',
   };
   return (
     <div className="group relative overflow-hidden rounded-[16px] border border-slate-200/60 bg-gradient-to-br from-white to-slate-50/30 p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md">
@@ -574,7 +575,7 @@ function StatCard({ label, value, icon: Icon, color }: { label: string; value: n
           <p className="text-[11px] font-black uppercase tracking-wider text-slate-500">{label}</p>
           <p className="mt-1 text-2xl font-black text-slate-950">{value}</p>
         </div>
-        <div className={`flex h-12 w-12 items-center justify-center rounded-[12px] bg-gradient-to-br ${colorMap[color]} shadow-lg`}>
+        <div className={`flex h-12 w-12 items-center justify-center rounded-[var(--radius-md)] ${colorMap[color]} text-white`}>
           <Icon size={20} strokeWidth={2.5} className="text-white" />
         </div>
       </div>

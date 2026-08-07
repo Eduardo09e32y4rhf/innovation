@@ -380,12 +380,13 @@ export default function TimeTrackPage() {
   const refreshing = tracks.loading && !!tracks.data;
 
   return (
-    <div className="mx-auto w-full space-y-6 px-4 py-6 sm:px-6 lg:px-8">
-      <header className="page-header items-center">
-        <div>
-          <p className="page-label">CONTROLE DE PONTO</p>
-          <h2 className="page-title">{isFunc?'MEU PONTO':isGestor?'PONTO DA EQUIPE':'FOLHA DE PONTO'}</h2>
-        </div>
+    <div className="app-page">
+      <div className="app-page-container flex flex-col gap-6">
+        <PageHeader 
+          title={isFunc?'MEU PONTO':isGestor?'PONTO DA EQUIPE':'FOLHA DE PONTO'}
+          subtitle="Controle de jornada e acompanhamento de escalas"
+          action={
+
         <div className="flex flex-wrap gap-2">
           <Link href={`/${tenant}/dashboard/escala${empFilter ? `?employeeId=${empFilter}` : ''}`} className="btn-outline"><CalendarDays size={14}/> ESCALA</Link>
           <Link href={`/${tenant}/dashboard/time-track/clock-in`} className="btn-nubank"><Clock3 size={14}/> BATER PONTO</Link>
@@ -393,7 +394,8 @@ export default function TimeTrackPage() {
           {isFunc && <button onClick={downloadCollectivePdf} disabled={refreshing || downloadingCollectivePdf || visible.length === 0} className="btn-outline"><FileText size={14}/> {downloadingCollectivePdf ? 'GERANDO...' : 'MINHA FOLHA'}</button>}
           <button onClick={()=>setOpen(true)} disabled={refreshing} className="btn-nubank"><Edit3 size={14}/> LANÇAR PONTO</button>
         </div>
-      </header>
+          }
+        />
 
       {collectivePdfError && (
         <div className="flex items-center justify-between gap-3 rounded-[10px] border border-rose-200 bg-rose-50 px-4 py-3 text-xs font-semibold text-rose-700">
@@ -425,7 +427,7 @@ export default function TimeTrackPage() {
           <div className="space-y-3">{(pending.data ?? []).map(t=> (
             <div key={t.id} className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-xl border border-amber-200 bg-white/80 p-4 shadow-sm backdrop-blur-sm transition-all hover:bg-white hover:shadow-md">
               <div className="flex items-center gap-4 text-xs">
-                  <input type="checkbox" className="h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-600" checked={selectedPending.includes(t.id)} onChange={e => {
+                  <input type="checkbox" className="h-4 w-4 rounded border-slate-300 text-[var(--color-brand)] focus:ring-[var(--color-brand)]" checked={selectedPending.includes(t.id)} onChange={e => {
                     if(e.target.checked) setSelectedPending(prev => [...prev, t.id]);
                     else setSelectedPending(prev => prev.filter(id => id !== t.id));
                   }} />
@@ -447,19 +449,19 @@ export default function TimeTrackPage() {
       )}
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex gap-1 rounded-[8px] bg-slate-100 p-1">
-          <button onClick={()=>setTab('ponto')} className={`rounded-[6px] px-4 py-2 text-xs font-black uppercase ${tab==='ponto'?'bg-white shadow-sm text-teal-700':'text-slate-500'}`}>Ponto</button>
-          <button onClick={()=>setTab('ocorrencias')} className={`rounded-[6px] px-4 py-2 text-xs font-black uppercase ${tab==='ocorrencias'?'bg-white shadow-sm text-teal-700':'text-slate-500'}`}>Ocorrências</button>
+        <div className="flex gap-1 rounded-[var(--radius-sm)] bg-slate-100 p-1">
+          <button onClick={()=>setTab('ponto')} className={`rounded-[var(--radius-sm)] px-4 py-2 text-xs font-black uppercase ${tab==='ponto'?'bg-white shadow-[var(--shadow-sm)] text-[var(--color-brand-700)]':'text-slate-500'}`}>Ponto</button>
+          <button onClick={()=>setTab('ocorrencias')} className={`rounded-[var(--radius-sm)] px-4 py-2 text-xs font-black uppercase ${tab==='ocorrencias'?'bg-white shadow-[var(--shadow-sm)] text-[var(--color-brand-700)]':'text-slate-500'}`}>Ocorrências</button>
         </div>
         <div className="flex flex-wrap gap-2">
           {!isFunc && (
-            <select value={empFilter} onChange={e=>setEmpFilter(e.target.value)} className="h-9 rounded-[6px] border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 outline-none focus:border-teal-500">
+            <select value={empFilter} onChange={e=>setEmpFilter(e.target.value)} className="form-control h-9 w-auto text-xs py-1">
               <option value="">TODOS</option>{actives.map(e=><option key={e.id} value={e.id}>{normalizeDisplayName(e.name)}</option>)}
             </select>
           )}
-          <input type="month" value={month} onChange={e=>setMonth(e.target.value)} className="h-9 w-36 rounded-[6px] border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 outline-none focus:border-teal-500" />
+          <input type="month" value={month} onChange={e=>setMonth(e.target.value)} className="form-control h-9 w-36 text-xs py-1" />
           {!isFunc && (
-            <select value={deptFilter} onChange={e=>setDeptFilter(e.target.value)} className="h-9 rounded-[6px] border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 outline-none focus:border-teal-500">
+            <select value={deptFilter} onChange={e=>setDeptFilter(e.target.value)} className="form-control h-9 w-auto text-xs py-1">
               <option value="">DEPTO</option>{depts.map(d=><option key={d} value={d}>{d}</option>)}
             </select>
           )}
@@ -467,7 +469,7 @@ export default function TimeTrackPage() {
       </div>
 
       {remove.error && <p className="rounded-[8px] border border-rose-200 bg-rose-50 px-4 py-2 text-xs text-rose-700">{remove.error}</p>}
-      {refreshing && <p className="rounded-[8px] border border-teal-200 bg-teal-50 px-4 py-2 text-xs font-semibold text-teal-700">Atualizando...</p>}
+      {refreshing && <p className="rounded-[var(--radius-sm)] border border-[var(--color-brand-200)] bg-[var(--color-brand-50)] px-4 py-2 text-xs font-semibold text-[var(--color-brand-700)]">Atualizando...</p>}
 
       {initialLoading ? <LoadingState label="Carregando folha de ponto..."/> :
        tracks.error && !tracks.data ? <ErrorState message={tracks.error} retry={tracks.refetch}/> :
@@ -530,6 +532,7 @@ export default function TimeTrackPage() {
         )}
 
       {open && <TimeTrackModal track={editing} employees={employees.data || []} onClose={()=>{setOpen(false);setEditing(null);}} onDone={()=>{setOpen(false);setEditing(null);tracks.refetch();}} defaultEmpId={empFilter} canManage={canManage} />}
+      </div>
     </div>
   );
 }
@@ -585,10 +588,10 @@ function MonthGrid({ employee, tracks, month, canManage, canApprove, refreshing,
       <div className="border-b border-slate-100 bg-slate-50/50 p-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-4">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-teal-500 to-emerald-600 text-lg font-black text-white shadow-md shadow-teal-500/20">{normalizeDisplayName(employee.name).charAt(0).toUpperCase()}</div>
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-brand)] text-lg font-black text-white shadow-[var(--shadow-sm)]">{normalizeDisplayName(employee.name).charAt(0).toUpperCase()}</div>
             <div>
               <div className="flex flex-wrap items-center gap-2">
-                <span className="rounded-full border border-teal-200 bg-teal-50 px-2 py-0.5 text-[10px] font-black text-teal-700 shadow-sm">{employee.registration || employee.id.slice(0,8).toUpperCase()}</span>
+                <span className="rounded-full border border-[var(--color-brand-200)] bg-[var(--color-brand-50)] px-2 py-0.5 text-[10px] font-black text-[var(--color-brand-700)] shadow-[var(--shadow-sm)]">{employee.registration || employee.id.slice(0,8).toUpperCase()}</span>
                 <h3 className="text-base font-black text-slate-950">{normalizeDisplayName(employee.name)}</h3>
               </div>
               <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] font-semibold text-slate-500">
@@ -663,7 +666,7 @@ function MonthGrid({ employee, tracks, month, canManage, canApprove, refreshing,
     <div className="flex flex-col">
       <span>{fmtDateFull(day.key)}</span>
       {t?.locationAddress && (
-        <span className="mt-0.5 flex items-center gap-0.5 text-[9px] font-semibold text-teal-600" title={t.locationAddress}>
+        <span className="mt-0.5 flex items-center gap-0.5 text-[9px] font-semibold text-[var(--color-brand)]" title={t.locationAddress}>
           <MapPin size={9} /> <span className="max-w-[80px] truncate">{t.locationAddress}</span>
         </span>
       )}

@@ -189,6 +189,7 @@ function NavItem({ item, active, onNavigate }: { item: NavItemConfig; active: bo
   const { user } = useAuth();
   const profile = user?.profile?.toUpperCase();
   const searchParams = useSearchParams();
+  const pathname = usePathname();
   const router = useRouter();
 
   const visibleSubItems = item.subItems?.filter(sub => {

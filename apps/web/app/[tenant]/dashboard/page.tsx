@@ -178,7 +178,8 @@ function DashboardContent() {
   }
 
   return (
-<div className="mx-auto w-full space-y-4 overflow-x-hidden px-3 py-4 sm:px-6 lg:px-8">
+    <div className="app-page">
+      <div className="app-page-container flex flex-col gap-4">
       <PageHeader 
         title={presentation.title} 
         subtitle={presentation.description} 
@@ -504,7 +505,7 @@ function DashboardContent() {
               <td className="py-3.5 text-xs font-semibold text-slate-600">{formatTime(row.exit)}</td>
               {!isFuncionario && (
                 <td className="py-3.5">
-                  <Link href={`/${tenant}/dashboard/time-track?employeeId=${row.employeeId}`} className="inline-flex h-7 items-center gap-1.5 rounded-[6px] bg-gradient-to-r from-teal-500 to-cyan-600 px-2.5 text-[10px] font-black text-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md">
+                  <Link href={`/${tenant}/dashboard/time-track?employeeId=${row.employeeId}`} className="inline-flex h-7 items-center gap-1.5 rounded-[var(--radius-sm)] bg-[var(--color-brand)] px-2.5 text-[10px] font-black text-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md hover:bg-[var(--color-brand-600)]">
                     Ponto
                   </Link>
                 </td>
@@ -514,7 +515,7 @@ function DashboardContent() {
           {todayRows.length > 0 && (
             <tr className="border-t border-slate-100">
               <td colSpan={isFuncionario ? 3 : 4} className="py-3 text-center">
-                <Link href={`/${tenant}/dashboard/time-track`} className="text-xs font-black text-teal-600 hover:text-teal-700 transition-colors">Ver todos os registros &rarr;</Link>
+                <Link href={`/${tenant}/dashboard/time-track`} className="text-xs font-black text-[var(--color-brand)] hover:text-[var(--color-brand-700)] transition-colors">Ver todos os registros &rarr;</Link>
               </td>
             </tr>
           )}
@@ -549,13 +550,14 @@ function DashboardContent() {
             {vacationRows.length > 0 && (
               <tr className="border-t border-slate-100">
                 <td colSpan={3} className="py-3 text-center">
-                  <Link href={`/${tenant}/dashboard/vacations`} className="text-xs font-black text-teal-600 hover:text-teal-700 transition-colors">Ver todas as solicitações â†’</Link>
+                  <Link href={`/${tenant}/dashboard/vacations`} className="text-xs font-black text-[var(--color-brand)] hover:text-[var(--color-brand-700)] transition-colors">Ver todas as solicitações &rarr;</Link>
                 </td>
               </tr>
             )}
           </DataTable>
         )}
       </section>
+      </div>
     </div>
   );
 }
@@ -626,9 +628,9 @@ function LoadingRow({ span }: { span: number }) {
     <tr className="border-t border-slate-100">
       <td colSpan={span} className="py-8 text-center text-xs font-semibold text-slate-400">
         <div className="flex items-center justify-center gap-2">
-          <div className="h-1.5 w-1.5 animate-bounce rounded-full bg-teal-500" style={{ animationDelay: '0ms' }} />
-          <div className="h-1.5 w-1.5 animate-bounce rounded-full bg-teal-500" style={{ animationDelay: '150ms' }} />
-          <div className="h-1.5 w-1.5 animate-bounce rounded-full bg-teal-500" style={{ animationDelay: '300ms' }} />
+          <div className="h-1.5 w-1.5 animate-bounce rounded-full bg-[var(--color-brand)]" style={{ animationDelay: '0ms' }} />
+          <div className="h-1.5 w-1.5 animate-bounce rounded-full bg-[var(--color-brand)]" style={{ animationDelay: '150ms' }} />
+          <div className="h-1.5 w-1.5 animate-bounce rounded-full bg-[var(--color-brand)]" style={{ animationDelay: '300ms' }} />
         </div>
       </td>
     </tr>

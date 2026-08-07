@@ -222,12 +222,12 @@ export default function SubscriptionsPage({ params: { tenant } }: { params: { te
 
   return (
     <div className="mx-auto w-full space-y-6 pb-10">
-      <header className="rounded-[18px] border border-slate-200 bg-slate-950 px-6 py-6 text-white shadow-2xl shadow-slate-950/20">
+      <header className="rounded-[var(--radius-xl)] border border-[var(--color-brand-700)] bg-[var(--color-brand)] px-6 py-6 text-white shadow-2xl shadow-[var(--color-brand)]/20">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-3">
-            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-teal-300">Gestao de assinaturas</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[var(--color-brand-200)]">Gestao de assinaturas</p>
             <h2 className="text-2xl font-black tracking-tight">Conta criada. Pagamento liberado. Renovacao auditada.</h2>
-            <p className="max-w-3xl text-sm leading-6 text-slate-300">
+            <p className="max-w-3xl text-sm leading-6 text-[var(--color-brand-100)]">
               Esta tela mostra o ciclo operacional da assinatura: criacao da empresa, primeira cobranca, renovacao por assentos e cancelamento com trilha de auditoria.
             </p>
           </div>
@@ -243,7 +243,7 @@ export default function SubscriptionsPage({ params: { tenant } }: { params: { te
             </button>
             <Link
               href={`/${tenant}/dashboard/platform/companies`}
-              className="inline-flex h-10 items-center gap-2 rounded-[10px] bg-violet-600 px-4 text-xs font-black text-white shadow-sm hover:bg-violet-500"
+              className="inline-flex h-10 items-center gap-2 rounded-[10px] bg-white text-[var(--color-brand)] px-4 text-xs font-black shadow-sm hover:bg-[var(--color-brand-50)]"
             >
               <Building2 size={14} />
               Ir para empresas
@@ -260,13 +260,13 @@ export default function SubscriptionsPage({ params: { tenant } }: { params: { te
 
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {[
-          { label: 'MRR real', value: summary ? money(summary.mrr) : '—', icon: BadgeDollarSign, tone: 'bg-slate-950 text-white' },
+          { label: 'MRR real', value: summary ? money(summary.mrr) : '—', icon: BadgeDollarSign, tone: 'bg-[var(--color-brand)] text-white' },
           { label: 'Assinaturas ativas', value: totals.active, icon: ShieldCheck, tone: 'bg-emerald-600 text-white' },
           { label: 'Primeiro pagamento pendente', value: totals.pending, icon: CreditCard, tone: 'bg-amber-500 text-white' },
           { label: 'Inadimplentes', value: totals.overdue, icon: AlertTriangle, tone: 'bg-rose-600 text-white' },
         ].map((stat) => (
-          <article key={stat.label} className="flex items-center gap-4 rounded-[16px] border border-slate-200 bg-white p-5 shadow-sm">
-            <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${stat.tone} shadow-inner`}>
+          <article key={stat.label} className="flex items-center gap-4 rounded-[var(--radius-lg)] border border-slate-200 bg-white p-5 shadow-[var(--shadow-sm)]">
+            <div className={`flex h-12 w-12 items-center justify-center rounded-[var(--radius-md)] ${stat.tone} shadow-inner`}>
               <stat.icon size={20} strokeWidth={2.4} />
             </div>
             <div>
@@ -310,13 +310,13 @@ export default function SubscriptionsPage({ params: { tenant } }: { params: { te
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
                   placeholder="Buscar por empresa, plano ou contexto..."
-                  className="h-10 w-full rounded-[10px] border border-slate-200 pl-9 pr-3 text-sm outline-none focus:border-violet-500"
+                  className="form-control pl-9 pr-3 h-10"
                 />
               </div>
               <select
                 value={statusFilter}
                 onChange={(event) => setStatusFilter(event.target.value as (typeof STATUS_FILTERS)[number]['value'])}
-                className="h-10 rounded-[10px] border border-slate-200 bg-white px-3 text-sm outline-none focus:border-violet-500"
+                className="form-control h-10 w-auto min-w-[200px]"
               >
                 {STATUS_FILTERS.map((item) => (
                   <option key={item.value} value={item.value}>{item.label}</option>
@@ -325,7 +325,7 @@ export default function SubscriptionsPage({ params: { tenant } }: { params: { te
               <button
                 type="button"
                 onClick={() => { setSearch(''); setStatusFilter('ALL'); }}
-                className="h-10 rounded-[10px] border border-slate-200 bg-slate-50 px-4 text-xs font-bold text-slate-600 hover:bg-slate-100"
+                className="btn btn-outline h-10 px-4 text-xs"
               >
                 Limpar filtros
               </button>
@@ -433,7 +433,7 @@ export default function SubscriptionsPage({ params: { tenant } }: { params: { te
                                 href={`https://www.asaas.com/customer/view/${company.asaasCustomerId}`}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border border-slate-200 px-3 text-[10px] font-bold text-slate-600 shadow-sm hover:bg-white hover:text-violet-700"
+                                className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border border-slate-200 px-3 text-[10px] font-bold text-slate-600 shadow-sm hover:bg-white hover:text-[var(--color-brand)]"
                               >
                                 <ExternalLink size={12} />
                                 Asaas
@@ -517,9 +517,9 @@ export default function SubscriptionsPage({ params: { tenant } }: { params: { te
             </div>
           </section>
 
-          <section className="rounded-[16px] border border-slate-200 bg-slate-950 p-5 text-white shadow-sm">
+          <section className="rounded-[var(--radius-lg)] border border-[var(--color-brand-700)] bg-[var(--color-brand)] p-5 text-white shadow-sm">
             <h3 className="text-sm font-black">Como a assinatura cresce</h3>
-            <div className="mt-4 space-y-3 text-sm text-slate-300">
+            <div className="mt-4 space-y-3 text-sm text-[var(--color-brand-100)]">
               <div className="flex items-start gap-3">
                 <div className="mt-0.5 flex h-7 w-7 items-center justify-center rounded-full bg-white/10 text-xs font-black">1</div>
                 <div>
@@ -543,7 +543,7 @@ export default function SubscriptionsPage({ params: { tenant } }: { params: { te
               </div>
             </div>
 
-            <div className="mt-5 rounded-[14px] border border-white/10 bg-white/5 p-4 text-xs text-slate-300">
+            <div className="mt-5 rounded-[var(--radius-md)] border border-white/20 bg-white/10 p-4 text-xs text-white font-medium">
               Auditoria e contexto operacional agora vivem juntos: quem criou, quando cobrou, qual o valor e o que foi ajustado.
             </div>
           </section>
@@ -555,7 +555,7 @@ export default function SubscriptionsPage({ params: { tenant } }: { params: { te
           <div className="flex h-full w-full max-w-2xl flex-col overflow-hidden rounded-[24px] bg-white shadow-2xl">
             <header className="flex items-start justify-between gap-4 border-b border-slate-100 px-6 py-5">
               <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-violet-600">Detalhe da assinatura</p>
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-brand)]">Detalhe da assinatura</p>
                 <h3 className="mt-1 text-lg font-black text-slate-950">{selectedCompany.name}</h3>
                 <p className="mt-1 text-xs text-slate-500">
                   {selectedCompany.document || 'Sem CNPJ'} • {lifecycleLabel(selectedCompany)}
@@ -630,7 +630,7 @@ export default function SubscriptionsPage({ params: { tenant } }: { params: { te
                       type="button"
                       onClick={() => runCheckout(selectedCompany)}
                       disabled={workingCheckoutId === selectedCompany.id}
-                      className="inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-3 py-2 text-xs font-bold text-violet-700 hover:bg-violet-100 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="inline-flex items-center gap-2 rounded-xl border border-[var(--color-brand-200)] bg-[var(--color-brand-50)] px-3 py-2 text-xs font-bold text-[var(--color-brand-700)] hover:bg-[var(--color-brand-100)] disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       <CreditCard size={14} />
                       {workingCheckoutId === selectedCompany.id ? 'Gerando...' : 'Gerar cobrança'}

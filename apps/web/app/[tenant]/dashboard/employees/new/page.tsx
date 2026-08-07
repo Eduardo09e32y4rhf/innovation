@@ -6,6 +6,7 @@ import { ArrowLeft, Plus, Save, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useMutation, useQuery } from '@/app/hooks/use-data';
 import { api, type ContractType, type CreateEmployeeInput, type DailyWorkload, type Employee, type EmployeeStatus, type WorkScale } from '@/app/lib/api';
+import { PageHeader } from '@/app/components/platform-ui';
 import { normalizeDisplayName, maskCPF, maskCNPJ, maskCEP } from '@/app/lib/text';
 
 const STATUS_OPTIONS: { value: EmployeeStatus; label: string }[] = [
@@ -433,16 +434,17 @@ function EmployeeForm() {
   }
 
   return (
-    <div className="mx-auto w-full space-y-4">
-      <header className="flex items-center gap-3">
-        <Link href={`/${tenant}/dashboard/employees`} className="btn-icon rounded-[6px]">
-          <ArrowLeft size={15} />
-        </Link>
-        <div>
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-teal-600">Funcionários</p>
-          <h2 className="text-xl font-black text-slate-950">{isEdit ? 'Editar colaborador' : 'Novo colaborador'}</h2>
-        </div>
-      </header>
+    <div className="app-page">
+      <div className="app-page-container flex flex-col gap-6">
+        <PageHeader
+          title={isEdit ? 'Editar colaborador' : 'Novo colaborador'}
+          subtitle="Preencha os dados cadastrais do funcionário"
+          action={
+            <Link href={`/${tenant}/dashboard/employees`} className="btn btn-outline">
+              <ArrowLeft size={15} /> Voltar
+            </Link>
+          }
+        />
 
       {save.error && (
         <p className="rounded-[8px] border border-rose-200 bg-rose-50 px-4 py-2 text-xs text-rose-700">{save.error}</p>
@@ -541,7 +543,7 @@ function EmployeeForm() {
             <Field label="Estado" value={form.state ?? ''} onChange={(v) => set('state', v)} />
             <label className="space-y-1 text-xs font-medium text-slate-600 sm:col-span-2">
               <span>Observacoes cadastrais</span>
-              <textarea value={form.observations ?? ''} onChange={(e) => set('observations', e.target.value)} className="min-h-20 w-full rounded-[6px] border border-slate-200 px-3 py-1.5 text-sm outline-none focus:border-teal-500" />
+              <textarea value={form.observations ?? ''} onChange={(e) => set('observations', e.target.value)} className="form-control min-h-[80px]" />
             </label>
           </div>
         )}
@@ -651,18 +653,19 @@ function EmployeeForm() {
         )}
 
         <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-end">
-          <Link href={`/${tenant}/dashboard/employees`} className="btn-outline inline-flex h-9 items-center justify-center rounded-[6px] px-3 text-[11px] font-bold text-slate-600 hover:text-black">Cancelar</Link>
+          <Link href={`/${tenant}/dashboard/employees`} className="btn btn-outline">Cancelar</Link>
           <button
             type="button"
             onClick={handleSubmit}
             disabled={save.loading}
-            className="crystal-button inline-flex h-9 items-center justify-center gap-2 rounded-[6px] px-3 text-[11px] font-black text-white disabled:opacity-60"
+            className="btn btn-primary"
           >
             <Save size={14} />
             {save.loading ? 'Salvando...' : 'Salvar colaborador'}
           </button>
         </div>
       </section>
+      </div>
     </div>
   );
 }
@@ -671,7 +674,7 @@ function Field({ label, value, onChange, type = 'text', placeholder, required }:
   return (
     <label className="space-y-1 text-xs font-medium text-slate-600">
       <span>{label}{required && <span className="text-rose-500"> *</span>}</span>
-      <input type={type} value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500" />
+      <input type={type} value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} className="form-control" />
     </label>
   );
 }
@@ -680,7 +683,7 @@ function Select({ label, value, onChange, options }: { label: string; value: str
   return (
     <label className="space-y-1 text-xs font-medium text-slate-600">
       <span>{label}</span>
-      <select value={value} onChange={(e) => onChange(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500">
+      <select value={value} onChange={(e) => onChange(e.target.value)} className="form-control">
         {options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
       </select>
     </label>
@@ -691,7 +694,7 @@ function ManagerSelect({ employees, value, onChange, loading }: { employees: Emp
   return (
     <label className="space-y-1 text-xs font-medium text-slate-600">
       <span>Gestor</span>
-      <select value={value} onChange={(e) => onChange(e.target.value)} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500">
+      <select value={value} onChange={(e) => onChange(e.target.value)} className="form-control">
         <option value="">{loading ? 'Carregando gestores...' : 'Sem gestor definido'}</option>
         {employees.map((employee) => <option key={employee.id} value={employee.id}>{normalizeDisplayName(employee.name)}</option>)}
       </select>

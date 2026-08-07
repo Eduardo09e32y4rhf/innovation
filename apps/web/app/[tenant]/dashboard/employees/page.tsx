@@ -9,6 +9,7 @@ import { useAuth } from '@/app/contexts/AuthContext';
 import { useMutation, useQuery } from '@/app/hooks/use-data';
 import { API_URL, api, type Employee, type EmployeeDossier } from '@/app/lib/api';
 import { readAuthSession } from '@/app/lib/auth-session';
+import { PageHeader } from '@/app/components/platform-ui';
 import { EMPLOYEE_STATUS_LABEL, formatDate, formatMinutes, formatTime } from '@/app/lib/format';
 import { normalizeDisplayName } from '@/app/lib/text';
 
@@ -119,25 +120,26 @@ export default function EmployeesPage() {
   }
 
   return (
-    <div className="mx-auto w-full space-y-6 px-4 py-6 sm:px-6 lg:px-8">
-      {/* Header */}
-      <section className="page-header">
-        <div>
-          <p className="page-label">Funcionários</p>
-          <h1 className="page-title">Cadastro da equipe</h1>
-        </div>
-        {canEdit && (
-          <div className="flex flex-wrap gap-2">
-            <Link href={`/${tenant}/dashboard/employees/import`} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 text-sm font-bold text-slate-700">
-              <Download size={15} /> Importar XLSX
-            </Link>
-            <Link href={`/${tenant}/dashboard/employees/new`} className="btn-nubank">
-              <UserPlus size={15} strokeWidth={2.5} />
-              Novo funcionário
-            </Link>
-          </div>
-        )}
-      </section>
+    <div className="app-page">
+      <div className="app-page-container flex flex-col gap-6">
+        {/* Header */}
+        <PageHeader 
+          title="Cadastro da equipe"
+          subtitle="Gerencie as informações, documentos e acessos dos funcionários."
+          action={
+            canEdit && (
+              <div className="flex flex-wrap gap-2">
+                <Link href={`/${tenant}/dashboard/employees/import`} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 text-sm font-bold text-slate-700">
+                  <Download size={15} /> Importar XLSX
+                </Link>
+                <Link href={`/${tenant}/dashboard/employees/new`} className="btn-nubank">
+                  <UserPlus size={15} strokeWidth={2.5} />
+                  Novo funcionário
+                </Link>
+              </div>
+            )
+          }
+        />
 
       {/* Stats Cards */}
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -288,6 +290,7 @@ export default function EmployeesPage() {
           />
         </>
       )}
+      </div>
     </div>
   );
 }
