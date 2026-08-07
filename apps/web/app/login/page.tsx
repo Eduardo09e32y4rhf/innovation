@@ -130,7 +130,6 @@ export default function LoginPage() {
               {showPassword ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
             </button>
           </div>
-        )}
 
         <div className="flex items-center justify-between mt-1">
           <button
