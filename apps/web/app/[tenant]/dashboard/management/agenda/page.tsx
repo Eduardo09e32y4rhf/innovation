@@ -6,7 +6,8 @@ import { useQuery, useMutation } from '@/app/hooks/use-data';
 import { api, type Employee, type ManagementEvent } from '@/app/lib/api';
 import { normalizeDisplayName } from '@/app/lib/text';
 import { Check, XCircle, X } from 'lucide-react';
-import { LoadingState, ErrorState } from '@/app/components/data-states';
+import { LoadingState, ErrorState } from '@/app/components/ui';
+import { Drawer, ConfirmDialog, Badge } from '@/app/components/ui';
 
 type ColumnKey = 'OVERDUE' | 'TODAY' | 'THIS_WEEK' | 'UPCOMING' | 'COMPLETED';
 type EventType = 'REUNIAO' | 'CHAMADA' | 'TAREFA_INTERNA' | 'PRAZO_ADMINISTRATIVO' | 'RETORNO_COLABORADOR' | 'DOCUMENTO_PENDENTE' | 'OUTROS';
@@ -61,6 +62,7 @@ export default function AgendaPage() {
   const canManage = profile === 'DEV' || profile === 'ADMIN' || profile === 'RH';
 
   const [eventForm, setEventForm] = useState<{ open: boolean; edit?: ManagementEvent }>({ open: false });
+  const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; id?: string }>({ open: false });
 
   const kanbanQuery = useQuery(() => api.management.events.kanban(), [], { enabled: canView });
   const employeesQuery = useQuery(() => api.employees.list(), [], { enabled: canView });
@@ -148,8 +150,24 @@ export default function AgendaPage() {
         canManage={canManage}
         onOpenForm={(edit) => setEventForm({ open: true, edit })}
         onSave={(data, id) => eventsMut.mutate({ id, data }).catch(() => {})}
-        onDelete={(id) => deleteEventMut.mutate(id).catch(() => {})}
+        onDelete={(id) => setDeleteConfirm({ open: true, id })}
         saving={eventsMut.loading}
+      />
+
+      <ConfirmDialog
+        isOpen={deleteConfirm.open}
+        onClose={() => setDeleteConfirm({ open: false })}
+        onConfirm={() => {
+          if (deleteConfirm.id) {
+            deleteEventMut.mutate(deleteConfirm.id).catch(() => {});
+          }
+          setDeleteConfirm({ open: false });
+        }}
+        title="Excluir compromisso"
+        description="Tem certeza que deseja excluir este compromisso? Esta ação não pode ser desfeita."
+        confirmText="Excluir"
+        variant="danger"
+        isLoading={deleteEventMut.loading}
       />
 
       {eventForm.open && (
@@ -300,7 +318,7 @@ function AgendaKanban({ columns, employees, canManage, onOpenForm, onSave, onDel
                         {ev.status !== 'CONCLUIDO' && canManage && (
                           <button onClick={() => onSave({ status: 'CONCLUIDO' }, ev.id)} disabled={saving} className="btn-primary h-7 px-2 text-[10px] flex items-center gap-1"><Check size={12}/> Concluir</button>
                         )}
-                        {canManage && <button onClick={() => { if (window.confirm('Excluir?')) onDelete(ev.id); }} disabled={saving} className="btn-danger h-7 px-2 text-[10px] flex items-center gap-1"><XCircle size={12}/></button>}
+                        {canManage && <button onClick={() => onDelete(ev.id)} disabled={saving} className="btn-danger h-7 px-2 text-[10px] flex items-center gap-1"><XCircle size={12}/></button>}
                       </div>
                     </div>
                   ))}
@@ -317,6 +335,7 @@ function AgendaKanban({ columns, employees, canManage, onOpenForm, onSave, onDel
 function EventModal({ event, employees, onClose, onSave, saving }: {
   event?: ManagementEvent; employees: Employee[]; onClose: () => void; onSave: (data: any) => void; saving: boolean;
 }) {
+  const { user } = useAuth();
   const init = {
     title: event?.title ?? '',
     eventType: event?.eventType ?? 'REUNIAO',
@@ -334,7 +353,6 @@ function EventModal({ event, employees, onClose, onSave, saving }: {
   const [priority, setPriority] = useState<EventPriority>(init.priority as EventPriority);
   const [start, setStart] = useState(init.startDateTime?.slice(0, 16) ?? '');
   const [end, setEnd] = useState(init.endDateTime?.slice(0, 16) ?? '');
-  const [responsible, setResponsible] = useState(init.responsibleUserId ?? '');
   const [employeeId, setEmployeeId] = useState(init.employeeId ?? '');
   const [desc, setDesc] = useState(init.description ?? '');
 
@@ -347,7 +365,7 @@ function EventModal({ event, employees, onClose, onSave, saving }: {
       eventType,
       startDateTime: new Date(start).toISOString(),
       endDateTime: end ? new Date(end).toISOString() : null,
-      responsibleUserId: responsible || null,
+      responsibleUserId: event?.responsibleUserId ?? user?.id ?? null,
       employeeId: employeeId || null,
       status,
       priority,
@@ -355,64 +373,59 @@ function EventModal({ event, employees, onClose, onSave, saving }: {
   };
 
   return (
-    <div className="modal">
-      <div className="surface max-h-[90vh] w-full max-w-2xl overflow-y-auto">
-        <div className="mb-6 flex items-center justify-between">
-          <h3 className="text-lg font-black text-slate-900">{event ? 'Editar Compromisso' : 'Novo Compromisso'}</h3>
-          <button onClick={onClose} className="rounded-full p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors"><X size={20}/></button>
-        </div>
+    <Drawer 
+      isOpen={true} 
+      onClose={onClose} 
+      title={event ? 'Editar Compromisso' : 'Novo Compromisso'}
+      maxWidth="max-w-xl"
+    >
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="form-group sm:col-span-2">
-            <span>Título *</span>
+            <span className="text-sm font-semibold text-zinc-700">Título *</span>
             <input value={title} onChange={e => setTitle(e.target.value)} className="form-control" />
           </label>
           <label className="form-group">
-            <span>Tipo *</span>
+            <span className="text-sm font-semibold text-zinc-700">Tipo *</span>
             <select value={eventType} onChange={e => setEventType(e.target.value as EventType)} className="form-control">
               {EVENT_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
             </select>
           </label>
           <label className="form-group">
-            <span>Status *</span>
+            <span className="text-sm font-semibold text-zinc-700">Status *</span>
             <select value={status} onChange={e => setStatus(e.target.value as EventStatus)} className="form-control">
               {EVENT_STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
             </select>
           </label>
           <label className="form-group">
-            <span>Prioridade *</span>
+            <span className="text-sm font-semibold text-zinc-700">Prioridade *</span>
             <select value={priority} onChange={e => setPriority(e.target.value as EventPriority)} className="form-control">
               {EVENT_PRIORITIES.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
             </select>
           </label>
           <label className="form-group">
-            <span>Início *</span>
+            <span className="text-sm font-semibold text-zinc-700">Início *</span>
             <input type="datetime-local" value={start} onChange={e => setStart(e.target.value)} className="form-control" />
           </label>
           <label className="form-group">
-            <span>Fim</span>
+            <span className="text-sm font-semibold text-zinc-700">Fim</span>
             <input type="datetime-local" value={end} onChange={e => setEnd(e.target.value)} className="form-control" />
           </label>
-          <label className="form-group">
-            <span>Responsável (ID)</span>
-            <input value={responsible} onChange={e => setResponsible(e.target.value)} placeholder="UUID" className="form-control" />
-          </label>
-          <label className="form-group">
-            <span>Funcionário Vinculado</span>
+          <label className="form-group sm:col-span-2">
+            <span className="text-sm font-semibold text-zinc-700">Funcionário Vinculado</span>
             <select value={employeeId} onChange={e => setEmployeeId(e.target.value)} className="form-control">
               <option value="">Nenhum...</option>
               {employees.map(e => <option key={e.id} value={e.id}>{normalizeDisplayName(e.name)}</option>)}
             </select>
           </label>
           <label className="form-group sm:col-span-2">
-            <span>Descrição</span>
-            <textarea value={desc} onChange={e => setDesc(e.target.value)} rows={3} className="form-control resize-none" />
+            <span className="text-sm font-semibold text-zinc-700">Descrição</span>
+            <textarea value={desc} onChange={e => setDesc(e.target.value)} rows={3} className="form-textarea resize-none" />
           </label>
         </div>
-        <div className="mt-6 flex justify-end gap-3 pt-6 border-t border-slate-100">
-          <button onClick={onClose} className="btn-outline px-6">Cancelar</button>
-          <button onClick={save} disabled={!ok || saving} className="btn-primary px-6 disabled:opacity-60">{saving ? 'Salvando...' : 'Salvar Compromisso'}</button>
+        <div className="mt-8 flex justify-end gap-3 border-t border-slate-100 pt-6">
+          <button onClick={onClose} className="btn btn-outline px-6">Cancelar</button>
+          <button onClick={save} disabled={!ok || saving} className="btn btn-primary px-6 disabled:opacity-60">{saving ? 'Salvando...' : 'Salvar Compromisso'}</button>
         </div>
-      </div>
-    </div>
+    </Drawer>
   );
 }

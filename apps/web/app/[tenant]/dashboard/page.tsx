@@ -179,7 +179,7 @@ function DashboardContent() {
 
   return (
     <div className="app-page">
-      <div className="app-page-container flex flex-col gap-4">
+      <div className="app-page-content flex flex-col gap-4">
       <PageHeader 
         title={presentation.title} 
         subtitle={presentation.description} 

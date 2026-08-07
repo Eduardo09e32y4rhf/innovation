@@ -44,6 +44,10 @@
     --shadow-sm: 0 4px 12px rgb(15 23 42 / 0.06);
     --shadow-md: 0 12px 30px rgb(15 23 42 / 0.08);
     --shadow-lg: 0 24px 60px rgb(15 23 42 / 0.12);
+    --shadow-xl: 0 32px 80px rgb(15 23 42 / 0.16);
+
+    /* Tokens de Layout */
+    --sidebar-width: 260px;
 
     /* Tokens de Tamanho (Controles) */
     --control-sm: 32px;
@@ -122,8 +126,8 @@
   .btn-sm { height: var(--control-sm); padding: 0 12px; font-size: 11px; }
   .btn-lg { height: var(--control-lg); padding: 0 24px; font-size: 14px; }
   
-  .btn-primary { @apply bg-[var(--color-brand)] text-white hover:bg-[var(--color-brand-700)] active:scale-[0.98]; shadow: var(--shadow-sm); }
-  .btn-secondary { @apply bg-zinc-900 text-white hover:bg-zinc-800 active:scale-[0.98]; shadow: var(--shadow-sm); }
+  .btn-primary { @apply bg-[var(--color-brand)] text-white hover:bg-[var(--color-brand-700)] active:scale-[0.98]; box-shadow: var(--shadow-sm); }
+  .btn-secondary { @apply bg-zinc-900 text-white hover:bg-zinc-800 active:scale-[0.98]; box-shadow: var(--shadow-sm); }
   .btn-outline { @apply bg-white border border-zinc-300 text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 active:scale-[0.98]; }
   .btn-ghost { @apply bg-transparent text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 active:scale-[0.98]; }
   .btn-danger { @apply bg-[var(--color-danger)] text-white hover:bg-[#be123c] active:scale-[0.98]; }
@@ -235,7 +239,7 @@
   /* ═══════════════════════════════════════════════════════════════
      3. COMPATIBILIDADE LEGADA (Não remover até o fim do projeto)
   ═══════════════════════════════════════════════════════════════ */
-  .app-shell { display: grid; min-height: 100vh; grid-template-columns: 240px 1fr; background-color: var(--background); }
+  .app-shell { display: grid; min-height: 100vh; grid-template-columns: var(--sidebar-width) minmax(0, 1fr); background-color: var(--background); }
   @media (max-width: 1024px) { .app-shell { display: flex; flex-direction: column; } }
 
   .card-flat { @apply surface; }

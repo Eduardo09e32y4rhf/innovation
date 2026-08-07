@@ -27,9 +27,6 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [localError, setLocalError] = useState('');
-  const [forgotPassword, setForgotPassword] = useState(false);
-  const [forgotSuccess, setForgotSuccess] = useState('');
-  const [resetToken, setResetToken] = useState('');
   const [didSubmit, setDidSubmit] = useState(false);
   const [showHelpMenu, setShowHelpMenu] = useState(false);
 
@@ -59,26 +56,6 @@ export default function LoginPage() {
   const handleLogin = async (event: React.FormEvent) => {
     event.preventDefault();
     setLocalError('');
-    setForgotSuccess('');
-    setResetToken('');
-
-    if (forgotPassword) {
-      if (!email.trim()) {
-        setLocalError('Informe o e-mail para recuperar a senha.');
-        return;
-      }
-      try {
-        const res = await api.auth.requestPasswordReset(email.trim());
-        if (res.demoCode) {
-          setForgotSuccess(`Para testar (DEV), o código é: ${res.demoCode}`);
-        } else {
-          setForgotSuccess('Solicitação enviada! Peça o código de liberação ao seu Gestor/RH.');
-        }
-      } catch (err) {
-        setLocalError(err instanceof Error ? err.message : 'Não foi possível solicitar a recuperação.');
-      }
-      return;
-    }
 
     if (!email.trim() || !password) {
       setLocalError('Informe o e-mail e a senha.');
@@ -96,7 +73,7 @@ export default function LoginPage() {
   };
 
   return (
-    <AuthSplitLayout title={forgotPassword ? 'Recuperar Acesso' : 'Entrar na Plataforma'} subtitle={forgotPassword ? 'Enviaremos as instruções para seu e-mail cadastrado.' : 'Digite suas credenciais corporativas abaixo.'}>
+    <AuthSplitLayout title="Entrar na Plataforma" subtitle="Digite suas credenciais corporativas abaixo.">
       <form onSubmit={handleLogin} className="flex flex-col gap-5">
         <div className="flex items-center justify-between gap-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">
           <Link href="/" className="transition-colors hover:text-brand-600">
@@ -114,21 +91,7 @@ export default function LoginPage() {
           </div>
         )}
         
-        {forgotSuccess && (
-          <div className="flex flex-col gap-2 rounded-[var(--radius-md)] border border-emerald-200 bg-emerald-50 px-4 py-3">
-            <div className="flex items-center gap-3">
-              <CheckCircle2 size={18} className="text-[var(--color-success)] shrink-0" />
-              <p className="text-sm font-medium text-emerald-800">{forgotSuccess}</p>
-            </div>
-            <button
-              type="button"
-              onClick={() => router.push(`/reset-password?email=${encodeURIComponent(email)}`)}
-              className="mt-1 block rounded-lg bg-emerald-100 px-3 py-2 text-center text-xs font-bold text-emerald-700 hover:bg-emerald-200"
-            >
-              Já tenho o código
-            </button>
-          </div>
-        )}
+
 
         <div className="group relative">
           <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-zinc-400 transition-colors group-focus-within:text-[var(--color-brand)]">
@@ -145,8 +108,7 @@ export default function LoginPage() {
           />
         </div>
 
-        {!forgotPassword && (
-          <div className="group relative">
+        <div className="group relative">
             <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-zinc-400 transition-colors group-focus-within:text-[var(--color-brand)]">
               <Lock size={18} />
             </div>
@@ -171,24 +133,13 @@ export default function LoginPage() {
         )}
 
         <div className="flex items-center justify-between mt-1">
-          {!forgotPassword && (
-            <button
-              type="button"
-              onClick={() => { setForgotPassword(true); setLocalError(''); setForgotSuccess(''); }}
-              className="text-xs font-bold text-zinc-500 hover:text-[var(--color-brand)] transition-colors"
-            >
-              Esqueci a senha
-            </button>
-          )}
-          {forgotPassword && (
-            <button
-              type="button"
-              onClick={() => { setForgotPassword(false); setLocalError(''); setForgotSuccess(''); }}
-              className="text-xs font-bold text-zinc-500 hover:text-[var(--color-brand)] transition-colors"
-            >
-              Voltar ao login
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={() => router.push('/forgot-password')}
+            className="text-xs font-bold text-zinc-500 hover:text-[var(--color-brand)] transition-colors"
+          >
+            Esqueci a senha
+          </button>
         </div>
 
         <button
@@ -196,18 +147,16 @@ export default function LoginPage() {
           disabled={loading}
           className="btn btn-primary h-12 text-sm w-full mt-2 group"
         >
-          {loading ? 'Processando...' : forgotPassword ? 'Solicitar Código' : 'Acessar Plataforma'}
+          {loading ? 'Processando...' : 'Acessar Plataforma'}
           {!loading && <ArrowRight size={18} className="transition-transform group-hover:translate-x-1" />}
         </button>
 
-        {!forgotPassword && (
-          <p className="mt-4 text-center text-xs font-medium text-zinc-500">
-            Ainda não tem uma conta?{' '}
-            <Link href="/cadastro" className="font-bold text-[var(--color-brand)] hover:text-[var(--color-brand-700)]">
-              Criar agora
-            </Link>
-          </p>
-        )}
+        <p className="mt-4 text-center text-xs font-medium text-zinc-500">
+          Ainda não tem uma conta?{' '}
+          <Link href="/cadastro" className="font-bold text-[var(--color-brand)] hover:text-[var(--color-brand-700)]">
+            Criar agora
+          </Link>
+        </p>
 
         <div className="mt-6 flex flex-col items-center border-t border-zinc-100 pt-4">
           <div className="relative">
@@ -245,7 +194,7 @@ export default function LoginPage() {
 
                 <button
                   type="button"
-                  onClick={() => { setShowHelpMenu(false); setForgotPassword(true); setLocalError(''); setForgotSuccess(''); }}
+                  onClick={() => { setShowHelpMenu(false); router.push('/forgot-password'); }}
                   className="flex w-full items-center gap-2.5 rounded-[var(--radius-sm)] px-3 py-2 text-left text-xs font-semibold text-zinc-700 hover:bg-zinc-50 transition-colors"
                 >
                   <Lock size={15} className="text-[var(--color-brand)] shrink-0" />

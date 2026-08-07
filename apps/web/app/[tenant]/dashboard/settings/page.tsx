@@ -8,7 +8,7 @@ import { api } from '@/app/lib/api';
 import { EmployeePasswordResetSection } from './_components/employee-password-reset-section';
 import { CompanyFinanceSection } from './_components/company-finance-section';
 import { PlatformPlansSection } from './_components/platform-plans-section';
-import { PageHeader } from '@/app/components/enterprise/page-header';
+import { PageHeader } from '@/app/components/ui';
 
 const SAFE_LOGO_URL = /^https:\/\/[^\s?#]+\.(png|jpe?g|webp)(\?[^\s#]*)?(#[^\s]*)?$/i;
 const MAX_LOGO_URL_LENGTH = 2048;
@@ -65,20 +65,20 @@ export default function SettingsPage({ params }: { params: { tenant: string } })
 
   return (
     <div className="app-page">
-      <div className="app-page-container">
+      <div className="app-page-content">
         <PageHeader 
           title={pageTitle} 
           subtitle="Gerencie apenas as opções permitidas para o seu perfil."
         />
 
         <div className="flex flex-col gap-8 md:flex-row mt-6">
-        {/* Sidebar Vertical Tabs */}
-        <nav className="flex w-full flex-col gap-1 md:w-64 shrink-0">
+        {/* Sidebar Tabs */}
+        <nav className="flex w-full overflow-x-auto no-scrollbar gap-2 pb-2 md:pb-0 md:flex-col md:gap-1 md:w-64 shrink-0">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-3 rounded-[var(--radius-md)] px-4 py-3 text-sm font-bold transition-all ${
+              className={`flex items-center gap-3 rounded-[var(--radius-md)] px-4 py-3 text-sm font-bold transition-all whitespace-nowrap ${
                 activeTab === tab.id
                   ? 'bg-white text-[var(--color-brand-700)] shadow-[var(--shadow-sm)] border border-[var(--color-brand-200)]'
                   : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900 border border-transparent'
@@ -122,8 +122,8 @@ function PasswordChangeSection({ changePassword }: { changePassword: (current: s
   if (newPassword && !/[a-z]/.test(newPassword)) passwordErrors.push('Pelo menos 1 letra minúscula');
   if (newPassword && !/[0-9]/.test(newPassword)) passwordErrors.push('Pelo menos 1 número');
   if (newPassword && !/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(newPassword)) passwordErrors.push('Pelo menos 1 caractere especial');
-  const passwordStrength = newPassword.length >= MIN_PASSWORD_LENGTH && passwordErrors.length <= 2 ? 'Média' 
-    : newPassword.length >= MIN_PASSWORD_LENGTH && passwordErrors.length === 0 ? 'Forte' : 'Fraca';
+  const passwordStrength = newPassword.length >= MIN_PASSWORD_LENGTH && passwordErrors.length === 0 ? 'Forte' 
+    : newPassword.length >= MIN_PASSWORD_LENGTH && passwordErrors.length <= 2 ? 'Média' : 'Fraca';
 
   const strengthColors: Record<string, string> = {
     'Fraca': 'bg-rose-500 w-1/3',

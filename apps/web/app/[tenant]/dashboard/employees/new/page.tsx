@@ -435,7 +435,7 @@ function EmployeeForm() {
 
   return (
     <div className="app-page">
-      <div className="app-page-container flex flex-col gap-6">
+      <div className="app-page-content flex flex-col gap-6">
         <PageHeader
           title={isEdit ? 'Editar colaborador' : 'Novo colaborador'}
           subtitle="Preencha os dados cadastrais do funcionário"

@@ -40,14 +40,6 @@ const baseNavItems: NavItemConfig[] = [
     match: '/dashboard/escalas', 
     roles: ['DEV', 'ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'], 
     moduleKey: 'time-track',
-    subItems: [
-      { label: 'Calendário', href: '/dashboard/escalas/calendario' },
-      { label: 'Ponto', href: '/dashboard/escalas/ponto' },
-      { label: 'Equipe', href: '/dashboard/escalas/equipe', roles: ['DEV', 'ADMIN', 'RH', 'GESTOR'] },
-      { label: 'Ocorrências', href: '/dashboard/escalas/ocorrencias' },
-      { label: 'Trocas', href: '/dashboard/escalas/trocas' },
-      { label: 'Fechamento', href: '/dashboard/escalas/fechamento', roles: ['DEV', 'ADMIN', 'RH'] },
-    ]
   },
   { icon: CalendarDays, label: 'Férias', href: '/dashboard/vacations', match: '/dashboard/vacations', roles: ['DEV', 'ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'], moduleKey: 'vacations' },
   { icon: Users, label: 'Gestão', href: '/dashboard/management', match: '/dashboard/management', roles: ['DEV', 'ADMIN', 'RH', 'GESTOR'], moduleKey: 'management' },

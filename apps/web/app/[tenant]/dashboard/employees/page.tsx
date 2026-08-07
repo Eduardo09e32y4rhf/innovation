@@ -9,7 +9,7 @@ import { useAuth } from '@/app/contexts/AuthContext';
 import { useMutation, useQuery } from '@/app/hooks/use-data';
 import { API_URL, api, type Employee, type EmployeeDossier } from '@/app/lib/api';
 import { readAuthSession } from '@/app/lib/auth-session';
-import { PageHeader } from '@/app/components/platform-ui';
+import { ConfirmDialog, Modal } from '@/app/components/ui';
 import { EMPLOYEE_STATUS_LABEL, formatDate, formatMinutes, formatTime } from '@/app/lib/format';
 import { normalizeDisplayName } from '@/app/lib/text';
 
@@ -29,6 +29,12 @@ export default function EmployeesPage() {
   const [search, setSearch] = useState('');
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
+  
+  const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; title: string; description: string; action: () => Promise<void> | void; confirmText?: string; variant?: 'danger'|'primary' }>({ open: false, title: '', description: '', action: () => {} });
+  const [promptDialog, setPromptDialog] = useState<{ open: boolean; title: string; description: string; expected: string; action: () => Promise<void> | void }>({ open: false, title: '', description: '', expected: '', action: () => {} });
+  const [promptInput, setPromptInput] = useState('');
+  const [alertDialog, setAlertDialog] = useState<{ open: boolean; title: string; message: string }>({ open: false, title: '', message: '' });
+
   const terminate = useMutation((id: string) => api.employees.terminate(id), { onSuccess: () => refetch() });
   const remove = useMutation((id: string) => api.employees.delete(id), { onSuccess: () => refetch() });
   const dossierQuery = useQuery(() => api.employees.dossier(selectedEmployeeId ?? ''), [selectedEmployeeId], { enabled: !!selectedEmployeeId });
@@ -58,30 +64,49 @@ export default function EmployeesPage() {
 
   async function handleTerminate(employee: Employee) {
     if (employee.status === 'TERMINATED') return;
-    const ok = window.confirm(`Desligar ${normalizeDisplayName(employee.name)}? O cadastro será marcado como desligado.`);
-    if (!ok) return;
-    await terminate.mutate(employee.id).catch(() => {});
+    setConfirmDialog({
+      open: true,
+      title: 'Desligar funcionário',
+      description: `Desligar ${normalizeDisplayName(employee.name)}? O cadastro será marcado como desligado.`,
+      confirmText: 'Desligar',
+      variant: 'danger',
+      action: async () => {
+        await terminate.mutate(employee.id).catch(() => {});
+      }
+    });
   }
 
   async function handleDelete(employee: Employee) {
     const expected = normalizeDisplayName(employee.name);
-    const typed = window.prompt(`Excluir definitivamente ${expected}? Digite o nome do funcionário para confirmar.`);
-    if (typed !== expected) return;
-    await remove.mutate(employee.id).catch(() => {});
+    setPromptInput('');
+    setPromptDialog({
+      open: true,
+      title: 'Excluir definitivamente',
+      description: `Para confirmar a exclusão de ${expected}, digite o nome abaixo:`,
+      expected,
+      action: async () => {
+        await remove.mutate(employee.id).catch(() => {});
+      }
+    });
   }
 
   async function handleSafeDelete(employee: Employee) {
     const expected = normalizeDisplayName(employee.name);
-    const typed = window.prompt(`Arquivar ou excluir ${expected}? Digite o nome do funcionario para confirmar.`);
-    if (typed !== expected) return;
-    const result = await remove.mutate(employee.id).catch(() => null);
-    if (result?.archived) {
-      window.alert('Funcionario arquivado com seguranca. O historico foi preservado e o acesso foi bloqueado.');
-      return;
-    }
-    if (result?.deleted) {
-      window.alert('Funcionario removido definitivamente porque nao possuia historico vinculado.');
-    }
+    setPromptInput('');
+    setPromptDialog({
+      open: true,
+      title: 'Arquivar ou excluir funcionário',
+      description: `Para confirmar a exclusão de ${expected}, digite o nome abaixo:`,
+      expected,
+      action: async () => {
+        const result = await remove.mutate(employee.id).catch(() => null);
+        if (result?.archived) {
+          setAlertDialog({ open: true, title: 'Funcionário Arquivado', message: 'Funcionário arquivado com segurança. O histórico foi preservado e o acesso foi bloqueado.' });
+        } else if (result?.deleted) {
+          setAlertDialog({ open: true, title: 'Funcionário Removido', message: 'Funcionário removido definitivamente porque não possuía histórico vinculado.' });
+        }
+      }
+    });
   }
 
   async function handleDownloadFicha(employee: Employee) {
@@ -89,7 +114,7 @@ export default function EmployeesPage() {
     try {
       await downloadEmployeePdf(employee, 'record');
     } catch (downloadError) {
-      window.alert(downloadError instanceof Error ? downloadError.message : 'Nao foi possivel baixar a ficha do funcionario.');
+      setAlertDialog({ open: true, title: 'Erro de Download', message: downloadError instanceof Error ? downloadError.message : 'Nao foi possivel baixar a ficha do funcionario.' });
     } finally {
       setDownloadingId(null);
     }
@@ -101,7 +126,7 @@ export default function EmployeesPage() {
     try {
       await downloadEmployeePdf(employee, 'point-sheet', month);
     } catch {
-      window.alert('Não foi possível baixar a folha deste funcionário.');
+      setAlertDialog({ open: true, title: 'Erro de Download', message: 'Não foi possível baixar a folha deste funcionário.' });
     } finally {
       setDownloadingId(null);
     }
@@ -113,7 +138,7 @@ export default function EmployeesPage() {
     try {
       await downloadEmployeePdf(employee, 'occurrences', month);
     } catch {
-      window.alert('Não foi possível baixar a ficha de ocorrências deste funcionário.');
+      setAlertDialog({ open: true, title: 'Erro de Download', message: 'Não foi possível baixar a ficha de ocorrências deste funcionário.' });
     } finally {
       setDownloadingId(null);
     }
@@ -121,25 +146,24 @@ export default function EmployeesPage() {
 
   return (
     <div className="app-page">
-      <div className="app-page-container flex flex-col gap-6">
+      <div className="app-page-content flex flex-col gap-6">
         {/* Header */}
-        <PageHeader 
-          title="Cadastro da equipe"
-          subtitle="Gerencie as informações, documentos e acessos dos funcionários."
-          action={
-            canEdit && (
-              <div className="flex flex-wrap gap-2">
-                <Link href={`/${tenant}/dashboard/employees/import`} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 text-sm font-bold text-slate-700">
-                  <Download size={15} /> Importar XLSX
-                </Link>
-                <Link href={`/${tenant}/dashboard/employees/new`} className="btn-nubank">
-                  <UserPlus size={15} strokeWidth={2.5} />
-                  Novo funcionário
-                </Link>
-              </div>
-            )
-          }
-        />
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-black text-slate-900">Cadastro da equipe</h1>
+            <p className="text-sm text-slate-500 mt-1">Gerencie as informações, documentos e acessos dos funcionários.</p>
+          </div>
+          {canEdit && (
+            <div className="flex flex-wrap gap-2">
+              <Link href={`/${tenant}/dashboard/employees/import`} className="btn-outline flex items-center gap-2">
+                <Download size={15} /> Importar XLSX
+              </Link>
+              <Link href={`/${tenant}/dashboard/employees/new`} className="btn-primary flex items-center gap-2">
+                <UserPlus size={15} /> Novo funcionário
+              </Link>
+            </div>
+          )}
+        </div>
 
       {/* Stats Cards */}
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -280,7 +304,6 @@ export default function EmployeesPage() {
             </div>
           </section>
           
-          <EmployeeAsoSection employees={filteredEmployees} />
           <EmployeeDossierDrawer
             employeeId={selectedEmployeeId}
             dossier={dossierQuery.data as EmployeeDossier | undefined}
@@ -288,6 +311,54 @@ export default function EmployeesPage() {
             error={dossierQuery.error}
             onClose={() => setSelectedEmployeeId(null)}
           />
+
+          <ConfirmDialog 
+            isOpen={confirmDialog.open} 
+            onClose={() => setConfirmDialog(c => ({...c, open: false}))} 
+            onConfirm={async () => {
+              await confirmDialog.action();
+              setConfirmDialog(c => ({...c, open: false}));
+            }} 
+            title={confirmDialog.title} 
+            description={confirmDialog.description} 
+            confirmText={confirmDialog.confirmText} 
+            variant={confirmDialog.variant} 
+          />
+
+          <Modal isOpen={promptDialog.open} onClose={() => setPromptDialog(p => ({...p, open: false}))} title={promptDialog.title} maxWidth="max-w-md">
+            <div className="space-y-4">
+              <p className="text-sm text-slate-600">{promptDialog.description}</p>
+              <input 
+                type="text" 
+                value={promptInput} 
+                onChange={e => setPromptInput(e.target.value)} 
+                className="form-control" 
+                placeholder="Digite o nome..." 
+              />
+              <div className="flex justify-end gap-2 pt-4">
+                <button onClick={() => setPromptDialog(p => ({...p, open: false}))} className="btn-outline px-4 py-2">Cancelar</button>
+                <button 
+                  onClick={async () => {
+                    await promptDialog.action();
+                    setPromptDialog(p => ({...p, open: false}));
+                  }} 
+                  disabled={promptInput !== promptDialog.expected}
+                  className="btn-danger px-4 py-2"
+                >
+                  Confirmar
+                </button>
+              </div>
+            </div>
+          </Modal>
+
+          <Modal isOpen={alertDialog.open} onClose={() => setAlertDialog(a => ({...a, open: false}))} title={alertDialog.title} maxWidth="max-w-md">
+            <div className="space-y-4">
+              <p className="text-sm text-slate-600">{alertDialog.message}</p>
+              <div className="flex justify-end pt-4">
+                <button onClick={() => setAlertDialog(a => ({...a, open: false}))} className="btn-primary px-4 py-2">Entendi</button>
+              </div>
+            </div>
+          </Modal>
         </>
       )}
       </div>
@@ -325,68 +396,7 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-function EmployeeAsoSection({ employees }: { employees: Employee[] }) {
-  const [selectedEmployeeId, setSelectedEmployeeId] = useState('');
-  const employeeIds = useMemo(() => employees.map(e => e.id), [employees]);
-  const enabled = !!selectedEmployeeId && employeeIds.includes(selectedEmployeeId);
-  const asoQuery = useQuery(() => api.management.aso.listByEmployee(selectedEmployeeId), [], { enabled });
 
-  const selected = employees.find(e => e.id === selectedEmployeeId);
-
-  return (
-    <div className="mt-6 space-y-3">
-      <h3 className="text-sm font-black text-slate-950">Saúde Ocupacional / ASO por funcionário</h3>
-      <div className="flex flex-wrap items-center gap-2">
-        <select
-          value={selectedEmployeeId}
-          onChange={(e) => setSelectedEmployeeId(e.target.value)}
-          className="h-9 rounded-[6px] border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 outline-none focus:border-teal-500"
-        >
-          <option value="">Selecione um funcionário...</option>
-          {employees.map(e => <option key={e.id} value={e.id}>{normalizeDisplayName(e.name)}</option>)}
-        </select>
-        {selected && (
-          <span className="text-[11px] font-bold text-slate-700">Status atual: <StatusBadge status={selected.status} /></span>
-        )}
-      </div>
-
-      {asoQuery.loading && <p className="text-xs text-slate-500">Carregando ASO...</p>}
-      {asoQuery.error && <p className="text-xs text-rose-600">{asoQuery.error}</p>}
-      {!asoQuery.loading && !asoQuery.error && selected && (
-        <div className="overflow-hidden rounded-[12px] border border-slate-200">
-          <table className="w-full text-left">
-            <thead>
-              <tr className="bg-slate-50 text-[10px] font-black uppercase tracking-[0.1em] text-slate-500">
-                <th className="px-3 py-2 border-b border-slate-200">Tipo</th>
-                <th className="px-3 py-2 border-b border-slate-200">Exame</th>
-                <th className="px-3 py-2 border-b border-slate-200">Vencimento</th>
-                <th className="px-3 py-2 border-b border-slate-200">Status</th>
-                <th className="px-3 py-2 border-b border-slate-200">Clínica</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(asoQuery.data as any[] | undefined)?.length === 0 && (
-                <tr><td colSpan={5} className="px-3 py-4 text-xs text-slate-500">Nenhum registro de ASO encontrado.</td></tr>
-              )}
-              {(asoQuery.data as any[] | undefined)?.map((r: any) => {
-                const alert = getAsoAlert(r.status, r.expirationDate);
-                return (
-                  <tr key={r.id} className="border-t border-slate-100 text-[11px] font-semibold">
-                    <td className="px-3 py-2 text-slate-700">{r.asoType}</td>
-                    <td className="px-3 py-2 text-slate-600">{fmtDate(r.examDate)}</td>
-                    <td className="px-3 py-2 text-slate-600">{fmtDate(r.expirationDate)}</td>
-                    <td className="px-3 py-2"><span className={`inline-flex rounded-[5px] border px-2 py-0.5 text-[9px] font-black ${alert.cls}`}>{alert.label}</span></td>
-                    <td className="px-3 py-2 text-slate-600">{r.clinicName ?? '---'}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
-  );
-}
 
 function EmployeeDossierDrawer({
   employeeId,

@@ -257,7 +257,7 @@ export default function VacationsPage() {
 
   return (
     <div className="app-page">
-      <div className="app-page-container flex flex-col gap-6">
+      <div className="app-page-content flex flex-col gap-6">
         <PageHeader 
           title={isGestor ? 'Férias da equipe' : 'Solicitações'}
           subtitle="Gerenciamento e aprovação de férias"

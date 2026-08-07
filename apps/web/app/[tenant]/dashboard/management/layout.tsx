@@ -26,7 +26,7 @@ export default function ManagementLayout({ children }: { children: React.ReactNo
 
   return (
     <div className="app-page">
-      <div className="app-page-container">
+      <div className="app-page-content">
         <header className="page-header">
           <div>
             <p className="page-label">GESTÃO</p>

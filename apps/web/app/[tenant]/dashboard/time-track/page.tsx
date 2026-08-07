@@ -381,7 +381,7 @@ export default function TimeTrackPage() {
 
   return (
     <div className="app-page">
-      <div className="app-page-container flex flex-col gap-6">
+      <div className="app-page-content flex flex-col gap-6">
         <PageHeader 
           title={isFunc?'MEU PONTO':isGestor?'PONTO DA EQUIPE':'FOLHA DE PONTO'}
           subtitle="Controle de jornada e acompanhamento de escalas"

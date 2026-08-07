@@ -43,7 +43,7 @@ export default function EmployeesImportPage() {
   }
 
   return <div className="app-page">
-    <div className="app-page-container flex flex-col gap-6">
+    <div className="app-page-content flex flex-col gap-6">
       <PageHeader
         title="Importação por Excel"
         subtitle="Use somente o modelo .xlsx, com até 2 MB e 2.000 linhas."
