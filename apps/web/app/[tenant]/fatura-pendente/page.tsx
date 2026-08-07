@@ -8,7 +8,7 @@ import api, { ApiError, type CompanyBillingResult } from '@/app/lib/api';
 import { readAuthSession } from '@/app/lib/auth-session';
 import { useAuth } from '@/app/contexts/AuthContext';
 
-export default function FaturaPendentePage() {
+export function FaturaPendentePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const autoCheckoutStarted = useRef(false);
