@@ -110,7 +110,7 @@ export default function FaturaPendentePage() {
         <p className="text-[10px] font-black uppercase tracking-[0.2em] text-teal-400">Innovation RH</p>
         <h1 className="mt-2 text-2xl font-black text-white">{isAdmin ? 'Regularize para liberar o acesso' : 'Acesso temporariamente bloqueado'}</h1>
         <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-slate-400">
-          {isAdmin ? 'A empresa esta aguardando a confirmacao da assinatura. Assim que o Asaas confirmar o pagamento, o acesso sera liberado automaticamente.' : 'A assinatura da empresa esta em atraso. Procure o administrador ou o RH para regularizar o pagamento.'}
+          {isAdmin ? 'A empresa está aguardando a confirmação da assinatura. Assim que o Asaas confirmar o pagamento, o acesso será liberado automaticamente.' : 'A assinatura da empresa está em atraso. Procure o administrador ou o RH para regularizar o pagamento.'}
         </p>
 
         {isAdmin ? (
@@ -149,16 +149,26 @@ export default function FaturaPendentePage() {
             )}
 
             <button onClick={() => loadStatus(true)} disabled={checking} className="flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 text-sm font-bold text-slate-200 hover:bg-white/10 disabled:opacity-60">
-              {checking ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />} Ja paguei, verificar agora
+              {checking ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />} Já paguei, verificar agora
             </button>
             <div className="flex items-center justify-center gap-2 text-xs text-slate-500"><ShieldCheck size={14} className="text-teal-500" /> Pagamento processado no ambiente seguro do Asaas</div>
           </div>
         ) : (
-          <p className="mt-7 rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-slate-300">Solicite ao administrador da empresa a regularizacao da assinatura.</p>
+          <p className="mt-7 rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-slate-300">Solicite ao administrador da empresa a regularização da assinatura.</p>
         )}
 
         <button onClick={logout} className="mt-6 inline-flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-white"><LogOut size={15} /> Sair da conta</button>
       </div>
     </main>
+  );
+}
+
+import { Suspense } from 'react';
+
+export default function FaturaPendentePageWrapper() {
+  return (
+    <Suspense fallback={<div className="flex h-screen items-center justify-center bg-slate-950 text-white"><Loader2 className="animate-spin" /></div>}>
+      <FaturaPendentePage />
+    </Suspense>
   );
 }
