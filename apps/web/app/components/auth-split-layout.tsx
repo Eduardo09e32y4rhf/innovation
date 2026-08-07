@@ -3,38 +3,25 @@ import Image from 'next/image';
 
 export function AuthSplitLayout({ children, title, subtitle }: { children: React.ReactNode, title?: string, subtitle?: string }) {
   return (
-    <div className="flex min-h-[100dvh] w-full bg-white font-sans selection:bg-brand-500/30 md:h-[100dvh]">
+    <div className="app-page flex min-h-screen items-center justify-center p-4 py-12 relative overflow-hidden">
+      {/* Background decoration */}
+      <div className="absolute top-0 right-0 w-96 h-96 bg-[var(--color-brand)]/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+      <div className="absolute bottom-0 left-0 w-96 h-96 bg-[var(--color-brand)]/5 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
       
-      {/* Lado Esquerdo - Imagem (Oculto no mobile) 60% */}
-      <div className="relative hidden md:flex md:w-[50%] lg:w-[60%] items-center justify-center bg-black overflow-hidden">
-        {/* A imagem com fundo preto se funde perfeitamente com o bg-black da div */}
-        <div className="relative z-10 flex h-full w-full items-center justify-center p-12">
-          <Image 
-            src="/innovation-logo-dark.png" 
-            alt="Innovation Logo" 
-            width={800}
-            height={800}
-            priority
-            className="w-full max-w-[600px] object-contain drop-shadow-2xl animate-in fade-in zoom-in-95 duration-1000"
-          />
-        </div>
-      </div>
-      
-      {/* Lado Direito - Formulário 40% */}
-      <div className="relative flex min-h-[100dvh] w-full flex-col justify-center px-6 py-10 sm:px-12 md:h-[100dvh] md:min-h-0 md:w-[50%] lg:w-[40%] xl:px-16 bg-white border-l border-slate-100 shadow-[-20px_0_40px_rgba(0,0,0,0.02)] overflow-y-auto">
+      <div className="w-full max-w-[420px] relative z-10 animate-in fade-in zoom-in-95 duration-500">
         
-        <div className="relative z-10 mx-auto w-full max-w-[420px] animate-in slide-in-from-bottom-8 fade-in duration-700">
-          
-          {/* Logo no Mobile (Só aparece em telas pequenas) */}
-          <div className="mb-10 flex justify-center md:hidden">
-            <div className="rounded-[20px] bg-black p-6 shadow-2xl ring-1 ring-black/5 relative w-24 h-24">
-               <Image src="/innovation-logo-dark.png" alt="Innovation" fill priority className="object-contain p-4" />
-            </div>
+        {/* Logo */}
+        <div className="mb-8 flex justify-center">
+          <div className="rounded-[var(--radius-xl)] bg-black p-4 shadow-xl ring-1 ring-black/5 relative w-20 h-20 flex items-center justify-center">
+             <Image src="/innovation-logo-dark.png" alt="Innovation" width={64} height={64} priority className="object-contain" />
           </div>
+        </div>
 
+        {/* Card */}
+        <div className="surface p-8 shadow-[var(--shadow-xl)]">
           {(title || subtitle) && (
-            <div className="mb-10">
-              {title && <h1 className="text-[32px] font-black tracking-tight text-slate-900 leading-tight">{title}</h1>}
+            <div className="mb-8 text-center">
+              {title && <h1 className="text-2xl font-black tracking-tight text-slate-900">{title}</h1>}
               {subtitle && <p className="mt-2 text-sm font-medium text-slate-500 leading-relaxed">{subtitle}</p>}
             </div>
           )}
@@ -42,9 +29,9 @@ export function AuthSplitLayout({ children, title, subtitle }: { children: React
           <div className="bg-transparent">
             {children}
           </div>
-
         </div>
       </div>
     </div>
   );
 }
+

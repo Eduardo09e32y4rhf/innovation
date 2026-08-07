@@ -159,8 +159,8 @@ function CadastroForm() {
     <AuthSplitLayout title="Crie sua conta" subtitle="E comece a usar a plataforma Innovation RH hoje mesmo.">
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         {error && (
-          <div className="flex items-center gap-3 rounded-xl border border-rose-500/30 bg-rose-50 px-4 py-3">
-            <AlertCircle size={18} className="text-rose-600 shrink-0" />
+          <div className="flex items-center gap-3 rounded-[var(--radius-md)] border border-rose-200 bg-rose-50 px-4 py-3">
+            <AlertCircle size={18} className="text-[var(--color-danger)] shrink-0" />
             <p className="text-sm font-medium text-rose-800">{error}</p>
           </div>
         )}
@@ -178,7 +178,7 @@ function CadastroForm() {
               onChange={handleChange}
               disabled={loading}
               required
-              className="h-12 w-full rounded-[14px] border border-slate-200/80 bg-slate-50/50 pl-11 pr-4 text-sm font-medium text-slate-900 outline-none transition-all focus:border-brand-500 focus:bg-white focus:ring-4 focus:ring-brand-500/10 disabled:opacity-60"
+              className="form-control pl-11 pr-4 h-12 text-sm"
             />
           </div>
 
@@ -194,7 +194,7 @@ function CadastroForm() {
               onChange={handleChange}
               disabled={loading}
               required
-              className="h-12 w-full rounded-[14px] border border-slate-200/80 bg-slate-50/50 pl-11 pr-4 text-sm font-medium text-slate-900 outline-none transition-all focus:border-brand-500 focus:bg-white focus:ring-4 focus:ring-brand-500/10 disabled:opacity-60"
+              className="form-control pl-11 pr-4 h-12 text-sm"
             />
           </div>
         </div>
@@ -220,7 +220,7 @@ function CadastroForm() {
               }}
               disabled={loading}
               required
-              className="h-12 w-full rounded-[14px] border border-slate-200/80 bg-slate-50/50 pl-11 pr-4 text-sm font-medium text-slate-900 outline-none transition-all focus:border-brand-500 focus:bg-white focus:ring-4 focus:ring-brand-500/10 disabled:opacity-60"
+              className="form-control pl-11 pr-4 h-12 text-sm"
             />
           </div>
 
@@ -244,7 +244,7 @@ function CadastroForm() {
               }}
               disabled={loading}
               required
-              className="h-12 w-full rounded-[14px] border border-slate-200/80 bg-slate-50/50 pl-11 pr-4 text-sm font-medium text-slate-900 outline-none transition-all focus:border-brand-500 focus:bg-white focus:ring-4 focus:ring-brand-500/10 disabled:opacity-60"
+              className="form-control pl-11 pr-4 h-12 text-sm"
             />
           </div>
         </div>
@@ -277,13 +277,13 @@ function CadastroForm() {
             onChange={handleChange}
             disabled={loading}
             required
-            className="h-12 w-full rounded-[14px] border border-slate-200/80 bg-slate-50/50 pl-11 pr-12 text-sm font-medium text-slate-900 outline-none transition-all focus:border-brand-500 focus:bg-white focus:ring-4 focus:ring-brand-500/10 disabled:opacity-60"
+            className="form-control pl-11 pr-12 h-12 text-sm"
           />
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
             tabIndex={-1}
-            className="absolute inset-y-0 right-0 flex items-center pr-4 text-slate-400 hover:text-slate-600"
+            className="absolute inset-y-0 right-0 flex items-center pr-4 text-zinc-400 hover:text-zinc-600"
           >
             {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
           </button>
@@ -293,7 +293,7 @@ function CadastroForm() {
           <label className="text-sm font-bold text-slate-900">Escolha o Plano</label>
           <div className="grid grid-cols-1 gap-3">
             {plans.map(plan => (
-              <label key={plan.id} className={`relative flex cursor-pointer rounded-[14px] border p-4 transition-all ${formData.planId === plan.id ? 'border-brand-500 bg-brand-50/30 ring-1 ring-brand-500' : 'border-slate-200 bg-slate-50/30 hover:border-brand-300'}`}>
+              <label key={plan.id} className={`relative flex cursor-pointer rounded-[var(--radius-md)] border p-4 transition-all ${formData.planId === plan.id ? 'border-[var(--color-brand)] bg-[var(--color-brand-50)] ring-1 ring-[var(--color-brand)]' : 'border-zinc-200 bg-zinc-50/50 hover:border-zinc-300'}`}>
                 <input 
                   type="radio" 
                   name="planId" 
@@ -304,12 +304,12 @@ function CadastroForm() {
                 />
                 <div className="flex flex-col w-full">
                   <div className="flex items-center justify-between w-full">
-                    <span className={`font-black ${formData.planId === plan.id ? 'text-brand-700' : 'text-slate-900'}`}>{plan.name}</span>
-                    {plan.isRecommended && <span className="text-[10px] uppercase font-black tracking-wider text-brand-600 bg-brand-100 px-2 py-0.5 rounded-full">Recomendado</span>}
+                    <span className={`font-black ${formData.planId === plan.id ? 'text-[var(--color-brand-700)]' : 'text-zinc-900'}`}>{plan.name}</span>
+                    {plan.isRecommended && <span className="text-[10px] uppercase font-black tracking-wider text-[var(--color-brand-700)] bg-[var(--color-brand-100)] px-2 py-0.5 rounded-[var(--radius-full)]">Recomendado</span>}
                   </div>
-                  <span className="text-xs font-medium text-slate-500 mt-1">{plan.description}</span>
+                  <span className="text-xs font-medium text-zinc-500 mt-1">{plan.description}</span>
                   {plan.cycle !== 'CUSTOM' && (
-                    <span className="text-sm font-black text-slate-900 mt-2">{getPlanDisplayPrice(plan).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} <span className="text-[10px] text-slate-500 font-medium">/{plan.cycle === 'YEARLY' ? 'ano' : 'mês'}</span></span>
+                    <span className="text-sm font-black text-zinc-900 mt-2">{getPlanDisplayPrice(plan).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} <span className="text-[10px] text-zinc-500 font-medium">/{plan.cycle === 'YEARLY' ? 'ano' : 'mês'}</span></span>
                   )}
                 </div>
               </label>
@@ -331,7 +331,7 @@ function CadastroForm() {
               onChange={(e) => setFormData((current) => ({ ...current, seatQuantity: Math.max(1, Number(e.target.value) || 1) }))}
               disabled={loading}
               required
-              className="h-12 w-full rounded-[14px] border border-slate-200/80 bg-slate-50/50 pl-11 pr-4 text-sm font-medium text-slate-900 outline-none transition-all focus:border-brand-500 focus:bg-white focus:ring-4 focus:ring-brand-500/10 disabled:opacity-60"
+              className="form-control pl-11 pr-4 h-12 text-sm"
             />
           </div>
 
@@ -346,7 +346,7 @@ function CadastroForm() {
               value={formData.couponCode}
               onChange={handleChange}
               disabled={loading}
-              className="h-12 w-full rounded-[14px] border border-slate-200/80 bg-slate-50/50 pl-11 pr-4 text-sm font-medium text-slate-900 outline-none transition-all focus:border-brand-500 focus:bg-white focus:ring-4 focus:ring-brand-500/10 disabled:opacity-60"
+              className="form-control pl-11 pr-4 h-12 text-sm"
             />
           </div>
         </div>
@@ -354,15 +354,15 @@ function CadastroForm() {
         <button
           type="submit"
           disabled={loading || !formData.planId}
-          className="crystal-button group mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-[14px] text-sm font-black text-white shadow-lg shadow-brand-500/20 transition-all hover:scale-[1.02] hover:shadow-xl hover:shadow-brand-500/30 disabled:pointer-events-none disabled:opacity-70"
+          className="btn btn-primary h-12 text-sm w-full mt-4 group"
         >
           {loading ? 'Criando conta...' : 'Cadastrar Empresa'}
           {!loading && <ArrowRight size={18} className="transition-transform group-hover:translate-x-1" />}
         </button>
 
-        <p className="mt-4 text-center text-xs font-medium text-slate-500">
+        <p className="mt-4 text-center text-xs font-medium text-zinc-500">
           Já tem uma conta?{' '}
-          <Link href="/login" className="font-bold text-brand-600 hover:text-brand-700">
+          <Link href="/login" className="font-bold text-[var(--color-brand)] hover:text-[var(--color-brand-700)]">
             Fazer login
           </Link>
         </p>

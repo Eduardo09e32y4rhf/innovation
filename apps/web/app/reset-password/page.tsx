@@ -94,20 +94,20 @@ function ResetPasswordForm() {
       {!isStep2 ? (
         <form onSubmit={handleValidate} className="flex flex-col gap-4">
           {error && (
-            <div className="flex items-center gap-3 rounded-xl border border-rose-500/30 bg-rose-50 px-4 py-3">
-              <AlertCircle size={18} className="text-rose-600 shrink-0" />
+            <div className="flex items-center gap-3 rounded-[var(--radius-md)] border border-rose-200 bg-rose-50 px-4 py-3">
+              <AlertCircle size={18} className="text-[var(--color-danger)] shrink-0" />
               <p className="text-sm font-medium text-rose-800">{error}</p>
             </div>
           )}
           {message && (
-            <div className="flex items-center gap-3 rounded-xl border border-teal-500/30 bg-teal-50 px-4 py-3">
-              <CheckCircle2 size={18} className="text-teal-600 shrink-0" />
-              <p className="text-sm font-medium text-teal-800">{message}</p>
+            <div className="flex items-center gap-3 rounded-[var(--radius-md)] border border-emerald-200 bg-emerald-50 px-4 py-3">
+              <CheckCircle2 size={18} className="text-[var(--color-success)] shrink-0" />
+              <p className="text-sm font-medium text-emerald-800">{message}</p>
             </div>
           )}
 
           <div className="group relative">
-            <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400 transition-colors group-focus-within:text-brand-500">
+            <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-zinc-400 transition-colors group-focus-within:text-[var(--color-brand)]">
               <User size={18} />
             </div>
             <input
@@ -117,12 +117,12 @@ function ResetPasswordForm() {
               disabled={loading}
               required
               placeholder="E-mail Corporativo"
-              className="h-12 w-full rounded-[14px] border border-slate-200/80 bg-slate-50/50 pl-11 pr-4 text-sm font-medium text-slate-900 outline-none transition-all focus:border-brand-500 focus:bg-white focus:ring-4 focus:ring-brand-500/10 disabled:opacity-60"
+              className="form-control pl-11 pr-4 h-12 text-sm"
             />
           </div>
 
           <div className="group relative">
-            <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400 transition-colors group-focus-within:text-brand-500">
+            <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-zinc-400 transition-colors group-focus-within:text-[var(--color-brand)]">
               <KeyRound size={18} />
             </div>
             <input
@@ -133,13 +133,13 @@ function ResetPasswordForm() {
               disabled={loading}
               required
               placeholder="Código do Gestor (6 dígitos)"
-              className="h-12 w-full rounded-[14px] border border-slate-200/80 bg-slate-50/50 pl-11 pr-4 text-sm font-medium text-slate-900 outline-none transition-all focus:border-brand-500 focus:bg-white focus:ring-4 focus:ring-brand-500/10 disabled:opacity-60"
+              className="form-control pl-11 pr-4 h-12 text-sm"
             />
           </div>
 
           <div className="flex gap-4">
             <div className="group relative w-1/2">
-              <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400 transition-colors group-focus-within:text-brand-500">
+              <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-zinc-400 transition-colors group-focus-within:text-[var(--color-brand)]">
                 <Hash size={18} />
               </div>
               <input
@@ -150,12 +150,12 @@ function ResetPasswordForm() {
                 disabled={loading}
                 required
                 placeholder="Início CPF (3 dígitos)"
-                className="h-12 w-full rounded-[14px] border border-slate-200/80 bg-slate-50/50 pl-11 pr-4 text-sm font-medium text-slate-900 outline-none transition-all focus:border-brand-500 focus:bg-white focus:ring-4 focus:ring-brand-500/10 disabled:opacity-60"
+                className="form-control pl-11 pr-4 h-12 text-sm"
               />
             </div>
 
             <div className="group relative w-1/2">
-              <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400 transition-colors group-focus-within:text-brand-500">
+              <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-zinc-400 transition-colors group-focus-within:text-[var(--color-brand)]">
                 <Hash size={18} />
               </div>
               <input
@@ -165,7 +165,7 @@ function ResetPasswordForm() {
                 disabled={loading}
                 required
                 placeholder="Matrícula"
-                className="h-12 w-full rounded-[14px] border border-slate-200/80 bg-slate-50/50 pl-11 pr-4 text-sm font-medium text-slate-900 outline-none transition-all focus:border-brand-500 focus:bg-white focus:ring-4 focus:ring-brand-500/10 disabled:opacity-60"
+                className="form-control pl-11 pr-4 h-12 text-sm"
               />
             </div>
           </div>
@@ -173,14 +173,14 @@ function ResetPasswordForm() {
           <button
             type="submit"
             disabled={loading}
-            className="crystal-button group mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-[14px] text-sm font-black text-white shadow-lg shadow-brand-500/20 transition-all hover:scale-[1.02] hover:shadow-xl hover:shadow-brand-500/30 disabled:pointer-events-none disabled:opacity-70"
+            className="btn btn-primary h-12 text-sm w-full mt-2 group"
           >
             {loading ? 'Validando...' : 'Validar Identidade'}
             {!loading && <ArrowRight size={18} className="transition-transform group-hover:translate-x-1" />}
           </button>
           
-          <p className="mt-4 text-center text-xs font-medium text-slate-500">
-            <Link href="/login" className="font-bold text-slate-500 hover:text-slate-700 flex items-center justify-center gap-1">
+          <p className="mt-4 text-center text-xs font-medium text-zinc-500">
+            <Link href="/login" className="font-bold text-zinc-500 hover:text-zinc-700 flex items-center justify-center gap-1">
               <ArrowLeft size={14} /> Voltar ao login
             </Link>
           </p>
@@ -188,20 +188,20 @@ function ResetPasswordForm() {
       ) : (
         <form onSubmit={handleReset} className="flex flex-col gap-4 animate-in fade-in slide-in-from-right-4 duration-500">
           {error && (
-            <div className="flex items-center gap-3 rounded-xl border border-rose-500/30 bg-rose-50 px-4 py-3">
-              <AlertCircle size={18} className="text-rose-600 shrink-0" />
+            <div className="flex items-center gap-3 rounded-[var(--radius-md)] border border-rose-200 bg-rose-50 px-4 py-3">
+              <AlertCircle size={18} className="text-[var(--color-danger)] shrink-0" />
               <p className="text-sm font-medium text-rose-800">{error}</p>
             </div>
           )}
           {message && (
-            <div className="flex items-center gap-3 rounded-xl border border-teal-500/30 bg-teal-50 px-4 py-3">
-              <CheckCircle2 size={18} className="text-teal-600 shrink-0" />
-              <p className="text-sm font-medium text-teal-800">{message}</p>
+            <div className="flex items-center gap-3 rounded-[var(--radius-md)] border border-emerald-200 bg-emerald-50 px-4 py-3">
+              <CheckCircle2 size={18} className="text-[var(--color-success)] shrink-0" />
+              <p className="text-sm font-medium text-emerald-800">{message}</p>
             </div>
           )}
 
           <div className="group relative">
-            <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400 transition-colors group-focus-within:text-brand-500">
+            <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-zinc-400 transition-colors group-focus-within:text-[var(--color-brand)]">
               <Lock size={18} />
             </div>
             <input
@@ -211,12 +211,12 @@ function ResetPasswordForm() {
               disabled={loading}
               required
               placeholder="Nova senha"
-              className="h-12 w-full rounded-[14px] border border-slate-200/80 bg-slate-50/50 pl-11 pr-4 text-sm font-medium text-slate-900 outline-none transition-all focus:border-brand-500 focus:bg-white focus:ring-4 focus:ring-brand-500/10 disabled:opacity-60"
+              className="form-control pl-11 pr-4 h-12 text-sm"
             />
           </div>
 
           <div className="group relative">
-            <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400 transition-colors group-focus-within:text-brand-500">
+            <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-zinc-400 transition-colors group-focus-within:text-[var(--color-brand)]">
               <Lock size={18} />
             </div>
             <input
@@ -226,14 +226,14 @@ function ResetPasswordForm() {
               disabled={loading}
               required
               placeholder="Confirmar nova senha"
-              className="h-12 w-full rounded-[14px] border border-slate-200/80 bg-slate-50/50 pl-11 pr-4 text-sm font-medium text-slate-900 outline-none transition-all focus:border-brand-500 focus:bg-white focus:ring-4 focus:ring-brand-500/10 disabled:opacity-60"
+              className="form-control pl-11 pr-4 h-12 text-sm"
             />
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="crystal-button group mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-[14px] text-sm font-black text-white shadow-lg shadow-brand-500/20 transition-all hover:scale-[1.02] hover:shadow-xl hover:shadow-brand-500/30 disabled:pointer-events-none disabled:opacity-70"
+            className="btn btn-primary h-12 text-sm w-full mt-2 group"
           >
             {loading ? 'Salvando...' : 'Salvar Nova Senha'}
             {!loading && <ArrowRight size={18} className="transition-transform group-hover:translate-x-1" />}
