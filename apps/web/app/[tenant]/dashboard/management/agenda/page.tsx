@@ -126,7 +126,7 @@ export default function AgendaPage() {
     return () => clearInterval(interval);
   }, [columns, canView]);
 
-  if (kanbanQuery.loading && !kanbanQuery.data) return <LoadingState label="Carregando agenda..." />;
+  if (kanbanQuery.loading && !kanbanQuery.data) return <LoadingState message="Carregando agenda..." />;
   if (kanbanQuery.error && !kanbanQuery.data) return <ErrorState message={kanbanQuery.error} onRetry={kanbanQuery.refetch} />;
 
   return (
