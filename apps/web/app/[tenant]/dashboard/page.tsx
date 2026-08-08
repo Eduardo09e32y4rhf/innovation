@@ -6,7 +6,8 @@ import { useRouter , useParams } from 'next/navigation';
 import Link from 'next/link';
 import { AlertTriangle, ArrowUpRight, Bell, Cake, CalendarDays, Clock3, MessageSquareText, TrendingUp, Users, UserPlus, FileText, Download, AlertCircle, CheckCircle, XCircle, UserMinus, UserX, Stethoscope } from 'lucide-react';
 import { ErrorState } from '@/app/components/data-states';
-import { PageHeader, GlassCard } from '@/app/components/platform-ui';
+import { PageHeader, GlassCard } from "@/app/components/platform-ui";
+import { StatCard } from "@/app/components/ui/stat-card";
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useQuery } from '@/app/hooks/use-data';
 import { api } from '@/app/lib/api';
@@ -224,8 +225,7 @@ function DashboardContent() {
         <>
           {/* Main KPI Cards */}
           <section className={`grid grid-cols-1 gap-4 sm:grid-cols-2 ${isFuncionario ? '' : 'lg:grid-cols-4'}`}>
-            <MetricCard 
-              label="Funcionários ativos" 
+            <StatCard title="Funcionários ativos" 
               value={summaryData?.activeEmployees} 
               icon={Users} 
               detail="equipe em acompanhamento"
@@ -233,8 +233,7 @@ function DashboardContent() {
               trendColor="emerald"
               loading={summary.loading}
             />
-            <MetricCard 
-              label="Pontos hoje" 
+            <StatCard title="Pontos hoje" 
               value={summaryData?.timeTracksToday} 
               icon={Clock3} 
               detail="jornadas registradas"
@@ -242,16 +241,14 @@ function DashboardContent() {
             />
             {!isFuncionario && (
               <>
-                <MetricCard 
-                  label="Férias pendentes" 
+                <StatCard title="Férias pendentes" 
                   value={pendingVacations} 
                   icon={CalendarDays} 
                   detail="aguardando decisão"
                   alert={pendingVacations > 0}
                   loading={summary.loading}
                 />
-                <MetricCard 
-                  label="Banco de horas" 
+                <StatCard title="Banco de horas" 
                   value={formatMinutes(totalBalanceThisMonth)} 
                   icon={TrendingUp} 
                   detail="saldo do período"

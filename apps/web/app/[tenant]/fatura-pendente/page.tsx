@@ -101,15 +101,15 @@ function FaturaPendentePage() {
   if (loading || !user) return null;
 
   return (
-    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-zinc-950 p-6">
+    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-950 p-6">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(138,5,190,0.15),transparent_48%)]" />
-      <div className="relative w-full max-w-xl overflow-hidden rounded-[var(--radius-xl)] border border-white/10 bg-zinc-900/85 p-8 text-center shadow-[var(--shadow-xl)] backdrop-blur-xl">
+      <div className="relative w-full max-w-xl overflow-hidden rounded-[var(--radius-xl)] border border-white/10 bg-slate-900/85 p-8 text-center shadow-[var(--shadow-xl)] backdrop-blur-xl">
         <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-[var(--radius-full)] bg-amber-500/15 text-amber-400 ring-1 ring-amber-400/20">
           {checking || creating ? <Loader2 size={42} className="animate-spin" /> : <AlertTriangle size={44} />}
         </div>
         <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-brand-400)]">Innovation RH</p>
         <h1 className="mt-2 text-2xl font-black text-white">{isAdmin ? 'Regularize para liberar o acesso' : 'Acesso temporariamente bloqueado'}</h1>
-        <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-zinc-400">
+        <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-slate-400">
           {isAdmin ? 'A empresa está aguardando a confirmação da assinatura. Assim que o Asaas confirmar o pagamento, o acesso será liberado automaticamente.' : 'A assinatura da empresa está em atraso. Procure o administrador ou o RH para regularizar o pagamento.'}
         </p>
 
@@ -120,7 +120,7 @@ function FaturaPendentePage() {
               <div className="rounded-[14px] border border-white/10 bg-white/[0.04] p-4 text-left">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <p className="text-xs font-bold text-zinc-400">Fatura pendente</p>
+                    <p className="text-xs font-bold text-slate-400">Fatura pendente</p>
                     <p className="mt-1 text-sm font-black text-white">{invoice.description || 'Assinatura Innovation'}</p>
                   </div>
                   <span className="rounded-[var(--radius-full)] border border-amber-400/20 bg-amber-400/10 px-2.5 py-1 text-[10px] font-black text-amber-300">
@@ -129,7 +129,7 @@ function FaturaPendentePage() {
                 </div>
                 <div className="mt-4 flex items-end justify-between">
                   <span className="text-2xl font-black text-white">{safeAmount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
-                  <span className="text-xs text-zinc-500">Vence em {new Date(invoice.dueDate).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</span>
+                  <span className="text-xs text-slate-500">Vence em {new Date(invoice.dueDate).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</span>
                 </div>
               </div>
             )}
@@ -148,16 +148,16 @@ function FaturaPendentePage() {
               </button>
             )}
 
-            <button onClick={() => loadStatus(true)} disabled={checking} className="flex h-11 w-full items-center justify-center gap-2 rounded-[var(--radius-md)] border border-white/10 bg-white/5 text-sm font-bold text-zinc-200 hover:bg-white/10 disabled:opacity-60">
+            <button onClick={() => loadStatus(true)} disabled={checking} className="flex h-11 w-full items-center justify-center gap-2 rounded-[var(--radius-md)] border border-white/10 bg-white/5 text-sm font-bold text-slate-200 hover:bg-white/10 disabled:opacity-60">
               {checking ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />} Já paguei, verificar agora
             </button>
-            <div className="flex items-center justify-center gap-2 text-xs text-zinc-500"><ShieldCheck size={14} className="text-[var(--color-brand-500)]" /> Pagamento processado no ambiente seguro do Asaas</div>
+            <div className="flex items-center justify-center gap-2 text-xs text-slate-500"><ShieldCheck size={14} className="text-[var(--color-brand-500)]" /> Pagamento processado no ambiente seguro do Asaas</div>
           </div>
         ) : (
-          <p className="mt-7 rounded-[var(--radius-md)] border border-white/10 bg-white/5 p-4 text-sm text-zinc-300">Solicite ao administrador da empresa a regularização da assinatura.</p>
+          <p className="mt-7 rounded-[var(--radius-md)] border border-white/10 bg-white/5 p-4 text-sm text-slate-300">Solicite ao administrador da empresa a regularização da assinatura.</p>
         )}
 
-        <button onClick={logout} className="mt-6 inline-flex items-center gap-2 text-xs font-bold text-zinc-500 hover:text-white"><LogOut size={15} /> Sair da conta</button>
+        <button onClick={logout} className="mt-6 inline-flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-white"><LogOut size={15} /> Sair da conta</button>
       </div>
     </main>
   );

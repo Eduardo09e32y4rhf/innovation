@@ -366,7 +366,7 @@ export default function EscalaPage() {
   const targetEmployee = allEmployees.find(e => e.id === targetEmployeeId);
 
   return (
-    <div className="flex flex-col gap-6 p-4 md:p-6 min-h-screen">
+    <div className="space-y-6">
       {/* Header */}
       <div className="page-header items-center">
         <div>

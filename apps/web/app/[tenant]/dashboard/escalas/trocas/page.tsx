@@ -44,8 +44,8 @@ export default function TrocasPage() {
   const filteredSwaps = swaps?.filter((swap: any) => filter === 'ALL' || swap.status === filter) || [];
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="space-y-6">
+      <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
         <div>
           <h1 className="page-title">Trocas e Exceções</h1>
           <p className="page-subtitle">Gerencie solicitações de troca de turno e exceções de escala</p>

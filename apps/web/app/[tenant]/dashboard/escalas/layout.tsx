@@ -26,12 +26,12 @@ export default function EscalasLayout({ children }: { children: React.ReactNode 
   const activeItem = getActiveNavItem(pathname, tenant);
 
   return (
-    <div className="min-h-screen w-full bg-slate-50 pb-12">
-      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 pt-8">
+    <div className="app-page">
+      <div className="app-page-content space-y-6">
         {/* Header */}
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-bold uppercase tracking-widest text-[#8A05BE]">
+            <span className="text-xs font-bold uppercase tracking-widest text-brand">
               JORNADA & PONTO
             </span>
             {activeItem && activeItem.href !== '' && (
@@ -53,7 +53,7 @@ export default function EscalasLayout({ children }: { children: React.ReactNode 
         <EscalasNav />
 
         {/* Main Content */}
-        <main className="mt-6">
+        <main>
           {children}
         </main>
       </div>

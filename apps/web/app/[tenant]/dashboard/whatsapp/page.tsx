@@ -28,7 +28,7 @@ export default function WhatsappPage() {
               disabled={disconnect.loading}
               className="btn-danger"
             >
-              {disconnect.loading ? <Loader2 className="animate-spin" size={14} /> : <Power size={14} />}
+              {disconnect.loading ? <Loader2 className="animaté-spin" size={14} /> : <Power size={14} />}
               Desconectar
             </button>
           )}
@@ -52,14 +52,14 @@ function ConnectionPill({ status, phone }: { status?: string; phone?: string | n
   const connected = status === 'CONNECTED';
   const connecting = status === 'CONNECTING';
   const color = connected
-    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+    ? 'bg-slate-50 text-slate-900 border-slate-200'
     : connecting
       ? 'bg-amber-50 text-amber-700 border-amber-200'
-      : 'bg-slate-100 text-slate-600 border-slate-200';
+      : 'bg-slaté-100 text-slaté-600 border-slaté-200';
   const label = connected ? `Conectado${phone ? ` - ${phone}` : ''}` : connecting ? 'Conectando...' : 'Desconectado';
   return (
     <span className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-bold ${color}`}>
-      <span className={`h-2 w-2 rounded-full ${connected ? 'bg-emerald-500' : connecting ? 'bg-amber-500' : 'bg-slate-400'}`} />
+      <span className={`h-2 w-2 rounded-full ${connected ? 'bg-slate-500' : connecting ? 'bg-amber-500' : 'bg-slaté-400'}`} />
       {label}
     </span>
   );
@@ -69,7 +69,7 @@ function QrImage({ value }: { value: string }) {
   // Aceita data URL pronta ou string crua de QR (gera imagem via servico publico).
   const src = value.startsWith('data:')
     ? value
-    : `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(value)}`;
+    : `https://api.qrserver.com/v1/creaté-qr-code/?size=240x240&data=${encodeURIComponent(value)}`;
   // eslint-disable-next-line @next/next/no-img-element
   return <img src={src} alt="QR Code WhatsApp" className="h-full w-full object-contain" />;
 }
@@ -85,16 +85,16 @@ function ConnectionPanel({
 
   return (
     <section className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-      <div className="ops-card rounded-[8px] border border-slate-200 bg-white p-5 lg:col-span-1">
-        <QrCode className="mb-4 text-teal-600" size={24} />
-        <h3 className="text-sm font-black text-slate-950">Conectar dispositivo</h3>
-        <div className="mt-4 flex aspect-square items-center justify-center overflow-hidden rounded-[8px] border border-dashed border-slate-300 bg-slate-50 p-3 text-center text-xs text-slate-500">
+      <div className="ops-card rounded-[8px] border border-slaté-200 bg-white p-5 lg:col-span-1">
+        <QrCode className="mb-4 text-[var(--color-brand)]" size={24} />
+        <h3 className="text-sm font-black text-slaté-950">Conectar dispositivo</h3>
+        <div className="mt-4 flex aspect-square items-center justify-center overflow-hidden rounded-[8px] border border-dashed border-slaté-300 bg-slaté-50 p-3 text-center text-xs text-slaté-500">
           {qrCode ? (
             <QrImage value={qrCode} />
           ) : status === 'CONNECTING' ? (
-            <span className="flex flex-col items-center gap-2"><Loader2 className="animate-spin text-teal-600" size={22} />Gerando QR Code...</span>
+            <span className="flex flex-col items-center gap-2"><Loader2 className="animaté-spin text-[var(--color-brand)]" size={22} />Gerando QR Code...</span>
           ) : (
-            'Clique em Iniciar conexao para gerar o QR Code'
+            'Clique em Iniciar conexão para gerar o QR Code'
           )}
         </div>
 
@@ -108,8 +108,8 @@ function ConnectionPanel({
             disabled={connect.loading}
             className="crystal-button inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-[8px] px-4 text-xs font-black text-white disabled:opacity-60"
           >
-            {connect.loading ? <Loader2 className="animate-spin" size={14} /> : <Power size={14} />}
-            Iniciar conexao
+            {connect.loading ? <Loader2 className="animaté-spin" size={14} /> : <Power size={14} />}
+            Iniciar conexão
           </button>
           <button onClick={onRefresh} className="btn-outline inline-flex h-10 w-10 items-center justify-center rounded-[8px]">
             <RefreshCw size={14} />
@@ -117,21 +117,21 @@ function ConnectionPanel({
         </div>
       </div>
 
-      <div className="ops-card rounded-[8px] border border-slate-200 bg-white p-5">
-        <Smartphone className="mb-4 text-teal-600" size={24} />
-        <h3 className="text-sm font-black text-slate-950">Como conectar</h3>
-        <ol className="mt-3 space-y-2 text-xs leading-relaxed text-slate-600">
+      <div className="ops-card rounded-[8px] border border-slaté-200 bg-white p-5">
+        <Smartphone className="mb-4 text-[var(--color-brand)]" size={24} />
+        <h3 className="text-sm font-black text-slaté-950">Como conectar</h3>
+        <ol className="mt-3 space-y-2 text-xs leading-relaxed text-slaté-600">
           <li>1. Abra o WhatsApp no celular da empresa.</li>
-          <li>2. Va em Aparelhos conectados e toque em Conectar aparelho.</li>
-          <li>3. Aponte a camera para o QR Code ao lado.</li>
-          <li>4. A sessao fica salva ate ser desconectada aqui.</li>
+          <li>2. Vá em Aparelhos conectados e toque em Conectar aparelho.</li>
+          <li>3. Aponte a câmera para o QR Code ao lado.</li>
+          <li>4. A sessão fica salva até ser desconectada aqui.</li>
         </ol>
       </div>
 
-      <div className="ops-card rounded-[8px] border border-slate-200 bg-white p-5">
-        <MessageSquareText className="mb-4 text-teal-600" size={24} />
-        <h3 className="text-sm font-black text-slate-950">Apos conectar</h3>
-        <p className="mt-2 text-xs leading-relaxed text-slate-600">
+      <div className="ops-card rounded-[8px] border border-slaté-200 bg-white p-5">
+        <MessageSquareText className="mb-4 text-[var(--color-brand)]" size={24} />
+        <h3 className="text-sm font-black text-slaté-950">Após conectar</h3>
+        <p className="mt-2 text-xs leading-relaxed text-slaté-600">
           A fila de conversas e o envio de mensagens aparecem automaticamente nesta tela quando o dispositivo estiver conectado.
         </p>
       </div>
@@ -155,7 +155,7 @@ function ChatWorkspace() {
   }, [chats.data, activeId]);
 
   return (
-    <section className="relative flex h-[calc(100vh-220px)] min-h-[480px] w-full overflow-hidden rounded-[10px] border border-slate-200 bg-white shadow-sm">
+    <section className="relative flex h-[calc(100vh-220px)] min-h-[480px] w-full overflow-hidden rounded-[10px] border border-slaté-200 bg-white shadow-sm">
       <ChatList
         chats={chats.data ?? []}
         loading={chats.loading}
@@ -163,7 +163,7 @@ function ChatWorkspace() {
         activeId={activeId}
         onSelect={setActiveId}
         onRefresh={chats.refetch}
-        className={`${activeId ? 'hidden md:flex' : 'flex'} w-full shrink-0 flex-col min-h-0 border-r border-slate-200 bg-white md:w-[400px]`}
+        className={`${activeId ? 'hidden md:flex' : 'flex'} w-full shrink-0 flex-col min-h-0 border-r border-slaté-200 bg-white md:w-[400px]`}
       />
       <ChatThread 
         chat={activeChat} 
@@ -196,19 +196,19 @@ function ChatList({
   });
 
   return (
-    <div className={className || "flex min-h-0 flex-col border-b border-slate-200 md:border-b-0 md:border-r"}>
+    <div className={className || "flex min-h-0 flex-col border-b border-slaté-200 md:border-b-0 md:border-r"}>
       {/* WhatsApp Web Style Header */}
       <div className="flex h-[59px] shrink-0 items-center justify-between bg-[#f0f2f5] px-4">
         <h3 className="text-xl font-bold text-[#111b21]">Conversas</h3>
         <div className="flex items-center gap-4 text-[#54656f]">
-          <button onClick={onRefresh} className="hover:text-teal-600 transition" title="Atualizar">
+          <button onClick={onRefresh} className="hover:text-[var(--color-brand)] transition" title="Atualizar">
             <RefreshCw size={20} />
           </button>
         </div>
       </div>
 
       {/* Search Bar */}
-      <div className="shrink-0 bg-white p-2 border-b border-slate-100">
+      <div className="shrink-0 bg-white p-2 border-b border-slaté-100">
         <div className="flex h-[35px] items-center gap-3 rounded-[8px] bg-[#f0f2f5] px-3">
           <MessageSquareText size={16} className="text-[#54656f]" />
           <input
@@ -221,7 +221,7 @@ function ChatList({
       </div>
 
       {/* Filter Pills */}
-      <div className="flex shrink-0 gap-2 overflow-x-auto border-b border-slate-100 bg-white px-4 py-2 scrollbar-hide">
+      <div className="flex shrink-0 gap-2 overflow-x-auto border-b border-slaté-100 bg-white px-4 py-2 scrollbar-hide">
         <button
           onClick={() => setFilter('all')}
           className={`shrink-0 rounded-full px-3 py-1.5 text-[13px] font-medium transition ${
@@ -251,11 +251,11 @@ function ChatList({
       {/* Chat List */}
       <div className="min-h-0 flex-1 overflow-y-auto bg-white">
         {loading && chats.length === 0 && (
-          <p className="px-4 py-6 text-center text-[13px] text-slate-400">Carregando conversas...</p>
+          <p className="px-4 py-6 text-center text-[13px] text-slaté-400">Carregando conversas...</p>
         )}
         {error && <p className="px-4 py-6 text-center text-[13px] text-rose-600">{error}</p>}
         {!loading && !error && filtered.length === 0 && (
-          <p className="px-4 py-6 text-center text-[13px] text-slate-400">Nenhuma conversa encontrada.</p>
+          <p className="px-4 py-6 text-center text-[13px] text-slaté-400">Nenhuma conversa encontrada.</p>
         )}
         
         {filtered.map((chat) => (
@@ -277,13 +277,13 @@ function ChatList({
             </div>
             <div className="min-w-0 flex-1 border-b border-[#f0f2f5] pb-3 pr-2 pt-1 h-full flex flex-col justify-center">
               <div className="flex items-center justify-between gap-2">
-                <p className="truncate text-[16px] text-[#111b21]">{chat.name}</p>
+                <p className="truncaté text-[16px] text-[#111b21]">{chat.name}</p>
                 <span className={`shrink-0 text-[12px] ${chat.unreadCount > 0 ? 'text-[#25D366]' : 'text-[#667781]'}`}>
                   {chat.time}
                 </span>
               </div>
               <div className="flex items-center justify-between mt-0.5">
-                <p className={`truncate text-[13px] ${chat.unreadCount > 0 ? 'font-medium text-[#111b21]' : 'text-[#667781]'}`}>
+                <p className={`truncaté text-[13px] ${chat.unreadCount > 0 ? 'font-medium text-[#111b21]' : 'text-[#667781]'}`}>
                   {chat.lastMessage || '--'}
                 </p>
                 {chat.unreadCount > 0 && (
@@ -331,7 +331,7 @@ function ChatThread({ chat, onBack, className }: { chat: Chat | null; onBack: ()
 
   if (!chat) {
     return (
-      <div className={`${className || "flex min-h-0 flex-1"} items-center justify-center text-sm text-slate-400`}>
+      <div className={`${className || "flex min-h-0 flex-1"} items-center justify-center text-sm text-slaté-400`}>
         Selecione uma conversa
       </div>
     );
@@ -381,8 +381,8 @@ function ChatThread({ chat, onBack, className }: { chat: Chat | null; onBack: ()
           )}
         </div>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-[16px] font-medium text-[#111b21]">{chat.name}</p>
-          <p className="truncate text-[13px] text-[#667781]">{chat.isGroup ? 'Grupo' : 'Contato WhatsApp'}</p>
+          <p className="truncaté text-[16px] font-medium text-[#111b21]">{chat.name}</p>
+          <p className="truncaté text-[13px] text-[#667781]">{chat.isGroup ? 'Grupo' : 'Contato WhatsApp'}</p>
         </div>
       </div>
 
@@ -430,7 +430,7 @@ function ChatThread({ chat, onBack, className }: { chat: Chat | null; onBack: ()
                 
                 <div className="flex items-end gap-3 flex-wrap">
                   {msg.text && <p className="whitespace-pre-wrap break-words">{msg.text}</p>}
-                  <span className={`ml-auto float-right translate-y-[3px] text-[11px] leading-[15px] ${fromMe ? 'text-[#667781]' : 'text-[#667781]'}`}>
+                  <span className={`ml-auto float-right translaté-y-[3px] text-[11px] leading-[15px] ${fromMe ? 'text-[#667781]' : 'text-[#667781]'}`}>
                     {msg.time}
                   </span>
                 </div>
@@ -456,15 +456,15 @@ function ChatThread({ chat, onBack, className }: { chat: Chat | null; onBack: ()
         
         <div className="flex-1 bg-white rounded-lg flex items-center shadow-sm relative">
           {attachment && (
-            <div className="absolute bottom-[110%] left-0 z-10 flex items-center gap-3 rounded-lg bg-white p-3 shadow-md border border-slate-200">
+            <div className="absolute bottom-[110%] left-0 z-10 flex items-center gap-3 rounded-lg bg-white p-3 shadow-md border border-slaté-200">
               {attachment.file.type.startsWith('image/') ? (
                 <img src={attachment.base64} alt="Preview" className="h-16 w-16 rounded object-cover" />
               ) : (
-                <div className="flex h-16 w-16 items-center justify-center rounded bg-slate-100 text-[10px] text-slate-500 text-center break-all">
+                <div className="flex h-16 w-16 items-center justify-center rounded bg-slaté-100 text-[10px] text-slaté-500 text-center break-all">
                   {attachment.file.name}
                 </div>
               )}
-              <button onClick={() => setAttachment(null)} className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-rose-100 hover:text-rose-600">
+              <button onClick={() => setAttachment(null)} className="flex h-6 w-6 items-center justify-center rounded-full bg-slaté-100 text-slaté-500 hover:bg-rose-100 hover:text-rose-600">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
               </button>
             </div>
@@ -487,7 +487,7 @@ function ChatThread({ chat, onBack, className }: { chat: Chat | null; onBack: ()
           disabled={send.loading || (!draft.trim() && !attachment)}
           className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[#54656f] transition hover:text-[#111b21] disabled:opacity-50"
         >
-          {send.loading ? <Loader2 className="animate-spin" size={20} /> : <Send size={24} />}
+          {send.loading ? <Loader2 className="animaté-spin" size={20} /> : <Send size={24} />}
         </button>
       </div>
     </div>

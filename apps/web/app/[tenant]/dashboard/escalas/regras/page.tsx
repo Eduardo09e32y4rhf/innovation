@@ -137,8 +137,8 @@ export default function RegrasPage() {
   };
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="space-y-6">
+      <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
         <div>
           <h1 className="page-title">Regras e Configurações</h1>
           <p className="page-subtitle">Configure jornadas, banco de horas, ciclos e feriados</p>
