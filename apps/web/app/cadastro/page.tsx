@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import React, { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   AlertCircle,
   ArrowRight,
@@ -17,22 +17,22 @@ import {
   Sparkles,
   User,
   FileText,
-} from 'lucide-react';
-import Link from 'next/link';
-import { AuthSplitLayout } from '@/app/components/auth-split-layout';
-import { api, type PublicPlatformPlan } from '@/app/lib/api';
-import { PricingSection } from '../_components/pricing-section';
-import { persistAuthSession } from '@/app/lib/auth-session';
-import type { Company, User as AuthUser } from '@/app/contexts/AuthContext';
+} from "lucide-react";
+import Link from "next/link";
+import { AuthSplitLayout } from "@/app/components/auth-split-layout";
+import { api, type PublicPlatformPlan } from "@/app/lib/api";
+import { PricingSection } from "../_components/pricing-section";
+import { persistAuthSession } from "@/app/lib/auth-session";
+import type { Company, User as AuthUser } from "@/app/contexts/AuthContext";
 
 function parseMoney(val: any): number {
-  if (val === null || val === undefined || val === '') return 0;
-  if (typeof val === 'number') return Number.isFinite(val) ? val : 0;
+  if (val === null || val === undefined || val === "") return 0;
+  if (typeof val === "number") return Number.isFinite(val) ? val : 0;
   const raw = String(val).trim();
-  if (raw === 'NaN' || raw === 'null' || raw === 'undefined') return 0;
-  const normalized = raw.includes(',')
-    ? raw.replace(/\./g, '').replace(',', '.')
-    : raw.replace(/,/g, '');
+  if (raw === "NaN" || raw === "null" || raw === "undefined") return 0;
+  const normalized = raw.includes(",")
+    ? raw.replace(/\./g, "").replace(",", ".")
+    : raw.replace(/,/g, "");
   const n = Number(normalized);
   return Number.isFinite(n) ? n : 0;
 }
@@ -48,37 +48,39 @@ function getPlanDisplayPrice(plan: PublicPlatformPlan): number {
 function CadastroForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  
-  const initialPlanId = searchParams.get('planId') || '';
-  const initialSeats = searchParams.get('seats') || '1';
-  
+
+  const initialPlanId = searchParams.get("planId") || "";
+  const initialSeats = searchParams.get("seats") || "1";
+
   const [formData, setFormData] = useState({
-    companyName: '',
-    document: '',
-    name: '',
-    email: '',
-    phone: '',
-    password: '',
+    companyName: "",
+    document: "",
+    name: "",
+    email: "",
+    phone: "",
+    password: "",
     planId: initialPlanId,
     seatQuantity: Number(initialSeats) || 1,
-    couponCode: '',
+    couponCode: "",
   });
   const [plans, setPlans] = useState<PublicPlatformPlan[]>([]);
 
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
 
   useEffect(() => {
-    api.auth.publicPlans()
+    api.auth
+      .publicPlans()
       .then((items) => {
         if (items && Array.isArray(items)) {
           setPlans(items);
-          setFormData(current => {
+          setFormData((current) => {
             if (!current.planId) {
-              const recommended = items.find((item) => !item.isFree) ?? items[0];
-              return { ...current, planId: recommended?.id || '' };
+              const recommended =
+                items.find((item) => !item.isFree) ?? items[0];
+              return { ...current, planId: recommended?.id || "" };
             }
             return current;
           });
@@ -88,15 +90,15 @@ function CadastroForm() {
   }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-    
+    setError("");
+
     if (formData.password.length < 8) {
-      setError('A senha deve ter pelo menos 8 caracteres.');
+      setError("A senha deve ter pelo menos 8 caracteres.");
       return;
     }
 
@@ -104,10 +106,10 @@ function CadastroForm() {
     try {
       const response = await api.auth.registerCompany({
         companyName: formData.companyName,
-        document: formData.document.replace(/\D/g, ''),
+        document: formData.document.replace(/\D/g, ""),
         name: formData.name,
         email: formData.email,
-        phone: formData.phone.replace(/\D/g, ''),
+        phone: formData.phone.replace(/\D/g, ""),
         password: formData.password,
         planId: formData.planId,
         seatQuantity: formData.seatQuantity,
@@ -125,14 +127,27 @@ function CadastroForm() {
         billingStatus: response.user.billingStatus,
       };
       const sessionCompany: Company = response.company;
-      persistAuthSession(response.access_token, sessionUser, sessionCompany, Boolean(response.passwordChangeRequired), false);
+      persistAuthSession(
+        response.access_token,
+        sessionUser,
+        sessionCompany,
+        Boolean(response.passwordChangeRequired),
+        false,
+      );
       setSuccess(true);
 
       const tenant = response.company.slug || response.company.id;
-      router.replace(response.trial ? `/${tenant}/dashboard` : `/${tenant}/fatura-pendente?autoCheckout=1`);
-      
+      router.replace(
+        response.trial
+          ? `/${tenant}/dashboard`
+          : `/${tenant}/fatura-pendente?autoCheckout=1`,
+      );
     } catch (err: any) {
-      setError(err instanceof Error ? err.message : 'Erro ao criar conta. Tente novamente.');
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Erro ao criar conta. Tente novamente.",
+      );
     } finally {
       setLoading(false);
     }
@@ -145,22 +160,32 @@ function CadastroForm() {
           <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
             <CheckCircle2 size={48} strokeWidth={2} />
           </div>
-          <h1 className="text-3xl font-black text-slate-900 mb-2">Conta Criada!</h1>
+          <h1 className="text-3xl font-black text-slate-900 mb-2">
+            Conta Criada!
+          </h1>
           <p className="text-slate-500">
             Sua empresa foi cadastrada com sucesso.
           </p>
-          <p className="mt-4 text-sm font-bold text-brand-600">Redirecionando para o painel...</p>
+          <p className="mt-4 text-sm font-bold text-brand-600">
+            Redirecionando para o painel...
+          </p>
         </div>
       </AuthSplitLayout>
     );
   }
 
   return (
-    <AuthSplitLayout title="Crie sua conta" subtitle="E comece a usar a plataforma Innovation RH hoje mesmo.">
+    <AuthSplitLayout
+      title="Crie sua conta"
+      subtitle="E comece a usar a plataforma Innovation RH hoje mesmo."
+    >
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         {error && (
           <div className="flex items-center gap-3 rounded-[var(--radius-md)] border border-rose-200 bg-rose-50 px-4 py-3">
-            <AlertCircle size={18} className="text-[var(--color-danger)] shrink-0" />
+            <AlertCircle
+              size={18}
+              className="text-[var(--color-danger)] shrink-0"
+            />
             <p className="text-sm font-medium text-rose-800">{error}</p>
           </div>
         )}
@@ -212,11 +237,21 @@ function CadastroForm() {
               onChange={(e) => {
                 let v = e.target.value.replace(/\D/g, "");
                 if (v.length > 14) v = v.slice(0, 14);
-                if (v.length > 12) v = v.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2}).*/, "$1.$2.$3/$4-$5");
-                else if (v.length > 8) v = v.replace(/^(\d{2})(\d{3})(\d{3})(\d{1,4}).*/, "$1.$2.$3/$4");
-                else if (v.length > 5) v = v.replace(/^(\d{2})(\d{3})(\d{1,3}).*/, "$1.$2.$3");
-                else if (v.length > 2) v = v.replace(/^(\d{2})(\d{1,3}).*/, "$1.$2");
-                setFormData(p => ({...p, document: v}));
+                if (v.length > 12)
+                  v = v.replace(
+                    /^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2}).*/,
+                    "$1.$2.$3/$4-$5",
+                  );
+                else if (v.length > 8)
+                  v = v.replace(
+                    /^(\d{2})(\d{3})(\d{3})(\d{1,4}).*/,
+                    "$1.$2.$3/$4",
+                  );
+                else if (v.length > 5)
+                  v = v.replace(/^(\d{2})(\d{3})(\d{1,3}).*/, "$1.$2.$3");
+                else if (v.length > 2)
+                  v = v.replace(/^(\d{2})(\d{1,3}).*/, "$1.$2");
+                setFormData((p) => ({ ...p, document: v }));
               }}
               disabled={loading}
               required
@@ -236,11 +271,14 @@ function CadastroForm() {
               onChange={(e) => {
                 let v = e.target.value.replace(/\D/g, "");
                 if (v.length > 11) v = v.slice(0, 11);
-                if (v.length > 10) v = v.replace(/^(\d{2})(\d{5})(\d{4}).*/, "($1) $2-$3");
-                else if (v.length > 6) v = v.replace(/^(\d{2})(\d{4})(\d{1,4}).*/, "($1) $2-$3");
-                else if (v.length > 2) v = v.replace(/^(\d{2})(\d{1,4}).*/, "($1) $2");
+                if (v.length > 10)
+                  v = v.replace(/^(\d{2})(\d{5})(\d{4}).*/, "($1) $2-$3");
+                else if (v.length > 6)
+                  v = v.replace(/^(\d{2})(\d{4})(\d{1,4}).*/, "($1) $2-$3");
+                else if (v.length > 2)
+                  v = v.replace(/^(\d{2})(\d{1,4}).*/, "($1) $2");
                 else if (v.length > 0) v = v.replace(/^(\d{1,2}).*/, "($1");
-                setFormData(p => ({...p, phone: v}));
+                setFormData((p) => ({ ...p, phone: v }));
               }}
               disabled={loading}
               required
@@ -270,7 +308,7 @@ function CadastroForm() {
             <Lock size={18} />
           </div>
           <input
-            type={showPassword ? 'text' : 'password'}
+            type={showPassword ? "text" : "password"}
             name="password"
             placeholder="Crie uma senha forte"
             value={formData.password}
@@ -282,34 +320,63 @@ function CadastroForm() {
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            tabIndex={-1}
-            className="absolute inset-y-0 right-0 flex items-center pr-4 text-zinc-400 hover:text-zinc-600"
+            aria-label={showPassword ? "Ocultar senha" : "Exibir senha"}
+            className="absolute inset-y-0 right-0 flex items-center px-4 text-zinc-400 hover:text-zinc-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--color-brand)] rounded-r-[var(--radius-md)]"
           >
-            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            {showPassword ? (
+              <EyeOff size={18} aria-hidden="true" />
+            ) : (
+              <Eye size={18} aria-hidden="true" />
+            )}
           </button>
         </div>
 
         <div className="flex flex-col gap-3 mt-4 mb-2">
-          <label className="text-sm font-bold text-slate-900">Escolha o Plano</label>
+          <label className="text-sm font-bold text-slate-900">
+            Escolha o Plano
+          </label>
           <div className="grid grid-cols-1 gap-3">
-            {plans.map(plan => (
-              <label key={plan.id} className={`relative flex cursor-pointer rounded-[var(--radius-md)] border p-4 transition-all ${formData.planId === plan.id ? 'border-[var(--color-brand)] bg-[var(--color-brand-50)] ring-1 ring-[var(--color-brand)]' : 'border-zinc-200 bg-zinc-50/50 hover:border-zinc-300'}`}>
-                <input 
-                  type="radio" 
-                  name="planId" 
+            {plans.map((plan) => (
+              <label
+                key={plan.id}
+                className={`relative flex cursor-pointer rounded-[var(--radius-md)] border p-4 transition-all ${formData.planId === plan.id ? "border-[var(--color-brand)] bg-[var(--color-brand-50)] ring-1 ring-[var(--color-brand)]" : "border-zinc-200 bg-zinc-50/50 hover:border-zinc-300"}`}
+              >
+                <input
+                  type="radio"
+                  name="planId"
                   value={plan.id}
                   checked={formData.planId === plan.id}
-                  onChange={(e) => setFormData(p => ({...p, planId: e.target.value}))}
+                  onChange={(e) =>
+                    setFormData((p) => ({ ...p, planId: e.target.value }))
+                  }
                   className="sr-only"
                 />
                 <div className="flex flex-col w-full">
                   <div className="flex items-center justify-between w-full">
-                    <span className={`font-black ${formData.planId === plan.id ? 'text-[var(--color-brand-700)]' : 'text-zinc-900'}`}>{plan.name}</span>
-                    {plan.isRecommended && <span className="text-[10px] uppercase font-black tracking-wider text-[var(--color-brand-700)] bg-[var(--color-brand-100)] px-2 py-0.5 rounded-[var(--radius-full)]">Recomendado</span>}
+                    <span
+                      className={`font-black ${formData.planId === plan.id ? "text-[var(--color-brand-700)]" : "text-zinc-900"}`}
+                    >
+                      {plan.name}
+                    </span>
+                    {plan.isRecommended && (
+                      <span className="text-[10px] uppercase font-black tracking-wider text-[var(--color-brand-700)] bg-[var(--color-brand-100)] px-2 py-0.5 rounded-[var(--radius-full)]">
+                        Recomendado
+                      </span>
+                    )}
                   </div>
-                  <span className="text-xs font-medium text-zinc-500 mt-1">{plan.description}</span>
-                  {plan.cycle !== 'CUSTOM' && (
-                    <span className="text-sm font-black text-zinc-900 mt-2">{getPlanDisplayPrice(plan).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} <span className="text-[10px] text-zinc-500 font-medium">/{plan.cycle === 'YEARLY' ? 'ano' : 'mês'}</span></span>
+                  <span className="text-xs font-medium text-zinc-500 mt-1">
+                    {plan.description}
+                  </span>
+                  {plan.cycle !== "CUSTOM" && (
+                    <span className="text-sm font-black text-zinc-900 mt-2">
+                      {getPlanDisplayPrice(plan).toLocaleString("pt-BR", {
+                        style: "currency",
+                        currency: "BRL",
+                      })}{" "}
+                      <span className="text-[10px] text-zinc-500 font-medium">
+                        /{plan.cycle === "YEARLY" ? "ano" : "mês"}
+                      </span>
+                    </span>
                   )}
                 </div>
               </label>
@@ -328,7 +395,12 @@ function CadastroForm() {
               name="seatQuantity"
               placeholder="Quantidade de usuários"
               value={formData.seatQuantity}
-              onChange={(e) => setFormData((current) => ({ ...current, seatQuantity: Math.max(1, Number(e.target.value) || 1) }))}
+              onChange={(e) =>
+                setFormData((current) => ({
+                  ...current,
+                  seatQuantity: Math.max(1, Number(e.target.value) || 1),
+                }))
+              }
               disabled={loading}
               required
               className="form-control pl-11 pr-4 h-12 text-sm"
@@ -356,13 +428,21 @@ function CadastroForm() {
           disabled={loading || !formData.planId}
           className="btn btn-primary h-12 text-sm w-full mt-4 group"
         >
-          {loading ? 'Criando conta...' : 'Cadastrar Empresa'}
-          {!loading && <ArrowRight size={18} className="transition-transform group-hover:translate-x-1" />}
+          {loading ? "Criando conta..." : "Cadastrar Empresa"}
+          {!loading && (
+            <ArrowRight
+              size={18}
+              className="transition-transform group-hover:translate-x-1"
+            />
+          )}
         </button>
 
         <p className="mt-4 text-center text-xs font-medium text-zinc-500">
-          Já tem uma conta?{' '}
-          <Link href="/login" className="font-bold text-[var(--color-brand)] hover:text-[var(--color-brand-700)]">
+          Já tem uma conta?{" "}
+          <Link
+            href="/login"
+            className="font-bold text-[var(--color-brand)] hover:text-[var(--color-brand-700)]"
+          >
             Fazer login
           </Link>
         </p>
@@ -373,7 +453,13 @@ function CadastroForm() {
 
 export default function CadastroPage() {
   return (
-    <Suspense fallback={<div className="flex min-h-screen items-center justify-center">Carregando...</div>}>
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center">
+          Carregando...
+        </div>
+      }
+    >
       <CadastroForm />
     </Suspense>
   );
