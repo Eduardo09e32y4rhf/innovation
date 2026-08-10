@@ -17,7 +17,9 @@ jobs:
           node-version: 20
           cache: 'npm'
       - run: npm ci
+      - run: npm install eslint@^8.57.1 --no-save
       - run: npm run lint:web
+      - run: npm run prisma:generate
       - run: npm run typecheck:api
       - run: npm run typecheck:web
 
@@ -31,6 +33,7 @@ jobs:
           node-version: 20
           cache: 'npm'
       - run: npm ci
+      - run: npm run prisma:generate
       - run: npm run test:unit
       - run: npm run test:coverage
       - uses: actions/upload-artifact@v4
@@ -66,7 +69,8 @@ jobs:
           node-version: 20
           cache: 'npm'
       - run: npm ci
-      - run: npm run db:migrate
+      - run: npm run prisma:generate
+      - run: npm run db:deploy
         env:
           DATABASE_URL: postgresql://root:rootpassword@localhost:5432/innovation_test?schema=public
       - run: npm run test:integration
@@ -102,7 +106,8 @@ jobs:
         run: npx playwright install --with-deps
       - name: Start Database & API & Web
         run: |
-          npm run db:migrate
+          npm run prisma:generate
+          npm run db:deploy
           npm run test:db:seed
           npm run build
           npm run start:api &

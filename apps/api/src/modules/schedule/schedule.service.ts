@@ -653,6 +653,7 @@ export class ScheduleService {
 
     const { start: startDate, end: endDate } = this.monthBounds(month);
 
+    // ⚡ Bolt: Execute independent queries concurrently using Promise.all to reduce overall I/O latency
     const [userSchedules, exceptions, holidays, timeTracks] = await Promise.all([
       this.prisma.userSchedule.findMany({
         where: {
@@ -752,6 +753,7 @@ export class ScheduleService {
     const uniqueUserSchedules = Array.from(withScheduleMap.values());
     const withScheduleIds = new Set(withScheduleMap.keys());
 
+    // ⚡ Bolt: Execute independent queries concurrently using Promise.all to reduce overall I/O latency
     const [withoutSchedule, exceptions, holidays, timeTracks] = await Promise.all([
       this.prisma.employee.findMany({
         where: { id: { in: employeeIds.filter((id) => !withScheduleIds.has(id)) } },
