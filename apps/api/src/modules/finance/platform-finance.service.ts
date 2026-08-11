@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { Prisma, $Enums } from '@prisma/client';
+import { Prisma } from '@prisma/client';
+import { $Enums } from '@prisma/client';
 type InvoiceStatus = $Enums.InvoiceStatus;
 const InvoiceStatus = $Enums.InvoiceStatus;
 import type { JwtUser } from '../../common/types/auth.types';
