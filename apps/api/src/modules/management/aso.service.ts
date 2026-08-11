@@ -62,7 +62,7 @@ export class AsoService {
             title: `⚕️ ASO Periódico Pendente`,
             message: `Um novo ASO de rotina (periódico) foi gerado automaticamente após 12 meses do último exame. Agende o quanto antes para evitar irregularidades.`,
             type: 'SYSTEM_NOTICE',
-            status: 'SENT',
+            status: 'UNREAD',
             targetType: 'ALL',
           }))
         });
