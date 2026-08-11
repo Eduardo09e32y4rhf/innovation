@@ -48,16 +48,16 @@ export function DataTable<T extends { id?: string | number }>({
 
 export function TableActionButton({
   onClick,
-  children,
-  ...props
-}: React.ButtonHTMLAttributes<HTMLButtonElement>) {
-
+  children
+}: {
+  onClick?: () => void;
+  children: React.ReactNode;
+}) {
   return (
     <button
       onClick={onClick}
       className="p-2 bg-white/5 rounded-lg hover:text-purple-400 transition-colors"
       type="button"
-      {...props}
     >
       {children}
     </button>
@@ -66,8 +66,8 @@ export function TableActionButton({
 
 export function DownloadPdfButton({ onClick }: { onClick?: () => void }) {
   return (
-    <TableActionButton onClick={onClick} aria-label="Baixar PDF">
-      <Download size={14} aria-hidden="true" />
+    <TableActionButton onClick={onClick}>
+      <Download size={14} />
     </TableActionButton>
   );
 }

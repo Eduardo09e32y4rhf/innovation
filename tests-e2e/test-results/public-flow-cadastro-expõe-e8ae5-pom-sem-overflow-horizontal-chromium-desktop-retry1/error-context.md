@@ -6,8 +6,8 @@
 
 # Test info
 
-- Name: platform-finance.spec.ts >> Plataforma: Asaas e cobrancas >> ativa cobranca automatica no Asaas pelo painel da empresa
-- Location: tests/platform-finance.spec.ts:38:7
+- Name: public-flow.spec.ts >> cadastro expõe plano, licenças e cupom sem overflow horizontal
+- Location: tests/public-flow.spec.ts:18:5
 
 # Error details
 

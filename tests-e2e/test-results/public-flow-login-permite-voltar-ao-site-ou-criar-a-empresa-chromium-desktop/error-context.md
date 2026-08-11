@@ -6,8 +6,8 @@
 
 # Test info
 
-- Name: platform-finance.spec.ts >> Plataforma: Asaas e cobrancas >> ativa cobranca automatica no Asaas pelo painel da empresa
-- Location: tests/platform-finance.spec.ts:38:7
+- Name: public-flow.spec.ts >> login permite voltar ao site ou criar a empresa
+- Location: tests/public-flow.spec.ts:11:5
 
 # Error details
 

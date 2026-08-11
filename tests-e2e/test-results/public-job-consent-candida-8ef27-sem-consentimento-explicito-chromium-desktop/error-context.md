@@ -6,8 +6,8 @@
 
 # Test info
 
-- Name: platform-finance.spec.ts >> Plataforma: Asaas e cobrancas >> ativa cobranca automatica no Asaas pelo painel da empresa
-- Location: tests/platform-finance.spec.ts:38:7
+- Name: public-job-consent.spec.ts >> candidatura publica nao envia dados sem consentimento explicito
+- Location: tests/public-job-consent.spec.ts:6:5
 
 # Error details
 

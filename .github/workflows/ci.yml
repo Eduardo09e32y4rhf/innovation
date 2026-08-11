@@ -17,6 +17,8 @@ jobs:
           node-version: 20
           cache: 'npm'
       - run: npm ci
+      - run: npm run prisma:generate --prefix apps/api
+      - run: npm install eslint@^8.57.1 --no-save
       - run: npm run lint:web
       - run: npm run typecheck:api
       - run: npm run typecheck:web
@@ -31,6 +33,7 @@ jobs:
           node-version: 20
           cache: 'npm'
       - run: npm ci
+      - run: npm run prisma:generate --prefix apps/api
       - run: npm run test:unit
       - run: npm run test:coverage
       - uses: actions/upload-artifact@v4
@@ -66,6 +69,8 @@ jobs:
           node-version: 20
           cache: 'npm'
       - run: npm ci
+      - run: npm run prisma:generate --prefix apps/api
+      - run: npm run build:api
       - run: npm run db:migrate
         env:
           DATABASE_URL: postgresql://root:rootpassword@localhost:5432/innovation_test?schema=public
@@ -99,7 +104,7 @@ jobs:
           cache: 'npm'
       - run: npm ci
       - name: Install Playwright Browsers
-        run: npx playwright install --with-deps
+        run: npm --prefix tests-e2e ci && npm --prefix tests-e2e exec -- playwright install --with-deps chromium
       - name: Start Database & API & Web
         run: |
           npm run db:migrate
@@ -113,7 +118,7 @@ jobs:
       - name: Wait for services
         run: npx wait-on http://127.0.0.1:3999/health http://127.0.0.1:3000
       - name: Run Playwright
-        run: npm run test:e2e
+        run: npm --prefix tests-e2e test
         env:
           E2E_BASE_URL: http://127.0.0.1:3000
       - uses: actions/upload-artifact@v4
