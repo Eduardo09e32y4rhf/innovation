@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
-import { Prisma, $Enums } from '@prisma/client';
+import { Prisma } from '@prisma/client';
+import { $Enums } from '.prisma/client';
 
 export const SAFE_USER_SELECT = {
   id: true,
