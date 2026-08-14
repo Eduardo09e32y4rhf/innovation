@@ -653,39 +653,38 @@ export class ScheduleService {
 
     const { start: startDate, end: endDate } = this.monthBounds(month);
 
-    const userSchedules = await this.prisma.userSchedule.findMany({
-      where: {
-        companyId,
-        employeeId,
-        startDate: { lt: endDate },
-        OR: [{ endDate: null }, { endDate: { gte: startDate } }],
-      },
-      include: { schedule: true },
-      orderBy: { startDate: 'desc' },
-    });
-
-    const exceptions = await this.prisma.scheduleException.findMany({
-      where: {
-        companyId,
-        employeeId,
-        date: { gte: startDate, lt: endDate },
-      },
-    });
-
-    const holidays = await this.prisma.holiday.findMany({
-      where: {
-        companyId,
-        date: { gte: startDate, lt: endDate },
-      },
-    });
-
-    const timeTracks = await this.prisma.timeTrack.findMany({
-      where: {
-        companyId,
-        employeeId,
-        date: { gte: startDate, lt: endDate },
-      },
-    });
+    const [userSchedules, exceptions, holidays, timeTracks] = await Promise.all([
+      this.prisma.userSchedule.findMany({
+        where: {
+          companyId,
+          employeeId,
+          startDate: { lt: endDate },
+          OR: [{ endDate: null }, { endDate: { gte: startDate } }],
+        },
+        include: { schedule: true },
+        orderBy: { startDate: 'desc' },
+      }),
+      this.prisma.scheduleException.findMany({
+        where: {
+          companyId,
+          employeeId,
+          date: { gte: startDate, lt: endDate },
+        },
+      }),
+      this.prisma.holiday.findMany({
+        where: {
+          companyId,
+          date: { gte: startDate, lt: endDate },
+        },
+      }),
+      this.prisma.timeTrack.findMany({
+        where: {
+          companyId,
+          employeeId,
+          date: { gte: startDate, lt: endDate },
+        },
+      }),
+    ]);
 
     return this.buildCalendarDays(
       month,
@@ -758,26 +757,28 @@ export class ScheduleService {
       select: { id: true, name: true, department: true, position: true, registration: true },
     });
 
-    const exceptions = await this.prisma.scheduleException.findMany({
-      where: {
-        companyId,
-        employeeId: { in: employeeIds },
-        date: { gte: startDate, lt: endDate },
-      },
-    });
-    const holidays = await this.prisma.holiday.findMany({
-      where: {
-        companyId,
-        date: { gte: startDate, lt: endDate },
-      },
-    });
-    const timeTracks = await this.prisma.timeTrack.findMany({
-      where: {
-        companyId,
-        employeeId: { in: employeeIds },
-        date: { gte: startDate, lt: endDate },
-      },
-    });
+    const [exceptions, holidays, timeTracks] = await Promise.all([
+      this.prisma.scheduleException.findMany({
+        where: {
+          companyId,
+          employeeId: { in: employeeIds },
+          date: { gte: startDate, lt: endDate },
+        },
+      }),
+      this.prisma.holiday.findMany({
+        where: {
+          companyId,
+          date: { gte: startDate, lt: endDate },
+        },
+      }),
+      this.prisma.timeTrack.findMany({
+        where: {
+          companyId,
+          employeeId: { in: employeeIds },
+          date: { gte: startDate, lt: endDate },
+        },
+      }),
+    ]);
 
     const schedulesByEmployee = new Map<string, any[]>();
     for (const schedule of userSchedules) {

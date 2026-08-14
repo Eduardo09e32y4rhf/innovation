@@ -5,3 +5,6 @@
 ## 2026-07-30 - Fix N+1 queries in time closing generation
 **Learning:** Database performance degrades severely when making iterative Prisma ORM queries inside a loop such as `for (const employee of employees)`, causing an N+1 problem that does not scale for companies with many employees.
 **Action:** Extract database dependencies by pre-fetching bulk data using `{ in: [...] }` filtering, then regrouping results in memory (e.g. Map objects by employee ID) to iterate locally without emitting further SQL queries.
+## 2024-08-14 - Concurrent Database Queries in ScheduleService
+**Learning:** Sequential independent database queries using `findMany` (e.g., fetching exceptions, holidays, and time tracks) were creating unnecessary latency bottlenecks in schedule fetching logic. By analyzing the data dependencies, we found these lookups could run in parallel.
+**Action:** When working on performance, always search for repeated sequential queries (e.g., `grep -B 5 -A 20 "await this.prisma"` or evaluating loops). Group independent queries using `Promise.all` to significantly reduce database round-trips.
