@@ -1,3 +1,6 @@
 ## 2024-07-30 - Accessible Interactive Elements in Inputs
 **Learning:** When absolutely positioning interactive elements like toggle buttons inside input fields (e.g., password visibility toggles), they often lack focus styles and have `tabIndex={-1}` by default, making them completely inaccessible to keyboard users. When fixing this, you must explicitly define `focus-visible:ring-inset` alongside standard focus rings so the ring doesn't clip awkwardly outside the input's bounding box.
 **Action:** Always verify `tabIndex` and focus styles (`focus-visible`) on floating buttons within inputs, ensuring they have appropriate ARIA labels and `aria-hidden` on internal icons. Use `focus-visible:ring-inset` for a polished visual result.
+## 2024-07-31 - Accessible Interactive Elements in Inputs (Login)
+**Learning:** When applying `focus-visible:ring-2` to floating absolute elements inside form-controls, using `focus-visible:ring-inset` ensures the focus ring remains contained within the button bounds and visually aligns with the parent input's right edge when combined with `rounded-r-[var(--radius-md)]`.
+**Action:** Always add `focus-visible:ring-inset` and match parent corner radii on absolutely positioned floating toggle buttons inside form inputs to guarantee keyboard navigability without awkward clipping.
