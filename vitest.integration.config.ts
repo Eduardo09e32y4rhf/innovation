@@ -6,6 +6,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
+    passWithNoTests: true,
     include: ['tests/integration/**/*.spec.ts'],
     exclude: ['node_modules', 'dist', 'tests-e2e', 'tests/unit', 'tests/contract', 'tests/security'],
     testTimeout: 30000,

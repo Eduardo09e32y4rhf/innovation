@@ -22,7 +22,7 @@ async function login(page: Page) {
   await page.goto('/login');
   await page.getByPlaceholder('E-mail corporativo').fill(DEV_EMAIL);
   await page.getByPlaceholder('Senha').fill(DEV_PASSWORD);
-  await page.getByRole('button', { name: /entrar/i }).click();
+  await page.getByRole('button', { name: /acessar plataforma/i }).click();
   await expect(page).toHaveURL(/dashboard/, { timeout: 15_000 });
 }
 

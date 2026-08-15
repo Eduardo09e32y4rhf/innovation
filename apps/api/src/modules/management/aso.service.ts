@@ -305,10 +305,7 @@ export class AsoService {
             name: employee.name,
             email,
             role: 'FUNCIONARIO',
-            passwordHash: await bcrypt.hash(process.env.DEFAULT_EMPLOYEE_PASSWORD ?? (() => {
-              const securePassword = crypto.randomBytes(12).toString('base64').replace(/[^a-zA-Z0-9]/g, '').slice(0, 12) + '!1A';
-              return securePassword;
-            })(), 12),
+            passwordHash: await bcrypt.hash(process.env.DEFAULT_EMPLOYEE_PASSWORD ?? (() => { throw new Error('Missing DEFAULT_EMPLOYEE_PASSWORD environment variable for secure user creation'); })(), 12),
             forcePasswordChange: true,
             isActive: true,
           },
