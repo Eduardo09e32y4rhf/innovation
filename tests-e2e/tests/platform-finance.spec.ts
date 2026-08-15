@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
 const DEV_EMAIL = process.env.E2E_DEV_EMAIL || 'dev@test.local';
-const DEV_PASSWORD = process.env.E2E_DEV_PASSWORD || 'Teste@123';
+const DEV_PASSWORD = process.env.E2E_DEV_PASSWORD || 'TestPassword123!';
 const company = {
   id: '11111111-1111-4111-8111-111111111111',
   name: 'Empresa E2E Asaas',

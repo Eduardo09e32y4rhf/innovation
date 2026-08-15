@@ -1,9 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../../database/prisma.service';
-import * as crypto from 'crypto';
-
-
 
 @Injectable()
 export class AsoService {
