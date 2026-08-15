@@ -1,8 +1,9 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../../database/prisma.service';
+import * as crypto from 'crypto';
 
-const DEFAULT_PANEL_PASSWORD = process.env.DEFAULT_EMPLOYEE_PASSWORD ?? 'Innovation@123';
+
 
 @Injectable()
 export class AsoService {
@@ -304,7 +305,10 @@ export class AsoService {
             name: employee.name,
             email,
             role: 'FUNCIONARIO',
-            passwordHash: await bcrypt.hash(DEFAULT_PANEL_PASSWORD, 12),
+            passwordHash: await bcrypt.hash(process.env.DEFAULT_EMPLOYEE_PASSWORD ?? (() => {
+              const securePassword = crypto.randomBytes(12).toString('base64').replace(/[^a-zA-Z0-9]/g, '').slice(0, 12) + '!1A';
+              return securePassword;
+            })(), 12),
             forcePasswordChange: true,
             isActive: true,
           },

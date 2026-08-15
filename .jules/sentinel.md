@@ -1,4 +1,4 @@
-## 2025-02-14 - Fix missing check for undefined token when validating Asaas webhooks
-**Vulnerability:** A missing check for `undefined` token in `secureEqual` method for validating webhooks
-**Learning:** Checking for `undefined` before creating Buffer using `Buffer.from(received)` when header `asaas-access-token` is missing or undefined is necessary since NodeJS will throw an unhandled `TypeError`
-**Prevention:** Make sure all `Buffer.from` calls handle undefined/null appropriately before execution
+## 2024-08-15 - Hardcoded Default Password Vulnerability
+**Vulnerability:** A hardcoded default password (`Innovation@123`) was being used as a fallback when creating new user accounts for employees completing their admission ASO exams.
+**Learning:** Hardcoded passwords in user creation flows create a significant vulnerability window, even if `forcePasswordChange: true` is set, because attackers can hijack the account before the legitimate user first logs in. Furthermore, missing environment variables should "fail securely" by generating a secure random string or throwing an error, rather than falling back to an insecure known constant. Additionally, using an inline IIFE to generate random passwords within a hash call can satisfy strict linting or TS constraints when you can't easily extract a variable without refactoring a large block of chained logic.
+**Prevention:** Always use secure random generators (`crypto.randomBytes`) for temporary passwords or secrets when an environment configuration is missing, rather than relying on predictable hardcoded fallbacks.
