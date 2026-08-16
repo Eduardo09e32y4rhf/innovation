@@ -19,12 +19,32 @@ export class AsoService {
         where: { companyId, status: 'COMPLETED', dueDate: { lte: today } },
         include: { employee: true }
       });
+      if (expired.length === 0) return;
+
+      const employeeIds = expired.map(r => r.employeeId);
+
+      // Optimization: avoid N+1 query problem by bulk fetching existing records
+      // and mapping them in-memory to reduce database calls
+      const existingRecords = await this.prisma.employeeAsoRecord.findMany({
+        where: {
+          companyId,
+          employeeId: { in: employeeIds },
+          asoType: 'PERIODICO',
+        },
+      });
+
+      const existingMap = new Map();
+      for (const record of existingRecords) {
+        if (!existingMap.has(record.employeeId) || record.createdAt > existingMap.get(record.employeeId).createdAt) {
+           existingMap.set(record.employeeId, record);
+        }
+      }
+
       for (const record of expired) {
-        const existing = await this.prisma.employeeAsoRecord.findFirst({
-          where: { companyId, employeeId: record.employeeId, asoType: 'PERIODICO', createdAt: { gt: record.createdAt } }
-        });
-        if (!existing) {
-          await this.prisma.employeeAsoRecord.create({
+        const existing = existingMap.get(record.employeeId);
+
+        if (!existing || existing.createdAt <= record.createdAt) {
+          const newAso = await this.prisma.employeeAsoRecord.create({
             data: {
               companyId,
               employeeId: record.employeeId,
@@ -32,6 +52,9 @@ export class AsoService {
               status: 'PENDING',
             }
           });
+
+          existingMap.set(record.employeeId, newAso);
+
           await this.prisma.notification.create({
             data: {
               companyId,
