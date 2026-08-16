@@ -430,7 +430,7 @@ function EmployeeDossierDrawer({
               <h3 className="text-xl font-black text-slate-950">{employee ? normalizeDisplayName(employee.name) : 'Carregando...'}</h3>
               <p className="text-xs text-slate-500">ASO, historico recente, ferias e impacto de arquivamento em um unico painel.</p>
             </div>
-            <button onClick={onClose} className="rounded-xl border border-slate-200 p-2 text-slate-500 transition hover:bg-slate-50 hover:text-slate-700">
+            <button aria-label="Fechar" onClick={onClose} className="rounded-xl border border-slate-200 p-2 text-slate-500 transition hover:bg-slate-50 hover:text-slate-700">
               <X size={16} />
             </button>
           </div>

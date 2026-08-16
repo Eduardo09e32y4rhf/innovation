@@ -279,7 +279,7 @@ function AsoModal({ record, employees, asos, onClose, onSave, saving }: {
               <p className="text-xs font-semibold text-slate-500">Atestado de Saúde Ocupacional</p>
             </div>
           </div>
-          <button onClick={onClose} className="rounded-full p-2 text-slate-400 hover:bg-slate-100"><X size={20}/></button>
+          <button aria-label="Fechar" onClick={onClose} className="rounded-full p-2 text-slate-400 hover:bg-slate-100"><X size={20}/></button>
         </div>
 
         <div className="grid gap-x-6 gap-y-6 lg:grid-cols-2">

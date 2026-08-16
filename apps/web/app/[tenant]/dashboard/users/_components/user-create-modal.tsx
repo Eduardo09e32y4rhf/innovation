@@ -185,7 +185,7 @@ export function UserCreateModal({
             <h3 className="text-sm font-black text-slate-900">Novo usuario</h3>
             <p className="text-xs text-slate-500">Cadastre um novo acesso para sua equipe</p>
           </div>
-          <button
+          <button aria-label="Fechar"
             onClick={handleClose}
             className="flex h-8 w-8 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-600"
           >

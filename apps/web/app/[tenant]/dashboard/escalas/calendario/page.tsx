@@ -700,7 +700,7 @@ function MinhaEscalaTab({ loading, calendarData, year, month, onPrev, onNext, se
 
       {/* Navegação de mês */}
       <div className="flex items-center justify-between">
-        <button
+        <button aria-label="Voltar"
           onClick={onPrev}
           className="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50 hover:text-slate-900 hover:ring-slate-300 transition-all shadow-sm"
         >
@@ -709,7 +709,7 @@ function MinhaEscalaTab({ loading, calendarData, year, month, onPrev, onNext, se
         <h2 className="text-base font-bold text-slate-900 tracking-tight">
           {MONTH_NAMES[month - 1]} <span className="text-slate-400 font-normal">{year}</span>
         </h2>
-        <button
+        <button aria-label="Avançar"
           onClick={onNext}
           className="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50 hover:text-slate-900 hover:ring-slate-300 transition-all shadow-sm"
         >
@@ -978,7 +978,7 @@ function DayDetailPanel({ day, onClose, canWrite, targetEmployeeId, refresh, cur
       <div className={`h-1.5 w-full ${meta.color}`} style={{ background: meta.bg }} />
 
       <div className="p-5 relative">
-        <button
+        <button aria-label="Fechar"
           onClick={onClose}
           className="absolute top-4 right-4 flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-900 transition-colors"
         >
@@ -1431,7 +1431,7 @@ function EscalaEquipeTab({ loading, teamData, schedules, canWrite, year, month, 
     <div className="flex flex-col gap-5">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <button
+          <button aria-label="Voltar"
             onClick={onPrev}
             className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand/10 text-brand ring-1 ring-brand/20 hover:bg-brand hover:text-white transition-all shadow-sm"
           >
@@ -1440,7 +1440,7 @@ function EscalaEquipeTab({ loading, teamData, schedules, canWrite, year, month, 
           <h2 className="text-base font-black text-slate-900 uppercase tracking-wider">
             {MONTH_NAMES[month-1]} <span className="text-brand font-bold">{year}</span>
           </h2>
-          <button
+          <button aria-label="Avançar"
             onClick={onNext}
             className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand/10 text-brand ring-1 ring-brand/20 hover:bg-brand hover:text-white transition-all shadow-sm"
           >
@@ -2174,7 +2174,7 @@ function Modal({ title, onClose, children, wide }: { title: string; onClose: () 
       <div className={`relative flex flex-col rounded-2xl bg-white ring-1 ring-slate-200 shadow-2xl w-full ${wide ? 'max-w-2xl' : 'max-w-md'} animate-in slide-in-from-bottom-4 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-300`}>
         <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
           <h2 className="text-base font-bold text-slate-900">{title}</h2>
-          <button
+          <button aria-label="Fechar"
             onClick={onClose}
             className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-900 transition-colors"
           >

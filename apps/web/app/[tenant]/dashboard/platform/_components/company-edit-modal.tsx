@@ -88,7 +88,7 @@ export function CompanyEditModal({ company, onClose, onDone }: { company: Platfo
             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-violet-600">Plataforma</p>
             <h2 className="mt-1 text-lg font-black text-slate-950">Editar empresa</h2>
           </div>
-          <button onClick={onClose} className="rounded-full p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700">
+          <button aria-label="Fechar" onClick={onClose} className="rounded-full p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700">
             <X size={18} />
           </button>
         </header>

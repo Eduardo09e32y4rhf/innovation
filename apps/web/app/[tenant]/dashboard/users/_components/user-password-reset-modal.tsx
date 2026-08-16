@@ -58,7 +58,7 @@ export function UserPasswordResetModal({ isOpen = true, user, onClose, onSubmit 
       <div className="w-full max-w-md rounded-[16px] border border-slate-200 bg-white p-6 shadow-2xl">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-lg font-black text-slate-950">Redefinir senha</h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-700">
+          <button aria-label="Fechar" onClick={onClose} className="text-slate-400 hover:text-slate-700">
             <X size={18} />
           </button>
         </div>

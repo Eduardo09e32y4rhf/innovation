@@ -363,13 +363,13 @@ export default function PontoPage() {
 
       <div className="flex flex-col md:flex-row justify-between gap-4 bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
         <div className="flex items-center gap-4">
-          <button onClick={handlePrevMonth} className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand/10 text-brand ring-1 ring-brand/20 hover:bg-brand hover:text-white transition-all shadow-sm">
+          <button aria-label="Voltar" onClick={handlePrevMonth} className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand/10 text-brand ring-1 ring-brand/20 hover:bg-brand hover:text-white transition-all shadow-sm">
             <ChevronLeft size={16} />
           </button>
           <span className="font-black text-slate-900 text-base min-w-[150px] text-center uppercase tracking-wider">
             {new Date(`${currentMonth}-01T00:00:00`).toLocaleDateString('pt-BR', { month: 'long' })} <span className="text-brand">{new Date(`${currentMonth}-01T00:00:00`).getFullYear()}</span>
           </span>
-          <button onClick={handleNextMonth} className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand/10 text-brand ring-1 ring-brand/20 hover:bg-brand hover:text-white transition-all shadow-sm">
+          <button aria-label="Avançar" onClick={handleNextMonth} className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand/10 text-brand ring-1 ring-brand/20 hover:bg-brand hover:text-white transition-all shadow-sm">
             <ChevronRight size={16} />
           </button>
         </div>
@@ -656,7 +656,7 @@ function TimeTrackModal({ track, employees, onClose, onDone, defaultEmpId, canMa
       <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl bg-white p-6 shadow-2xl">
         <div className="mb-6 flex items-center justify-between border-b border-slate-100 pb-4">
           <h3 className="text-lg font-bold text-slate-800">{track?.id ? 'Editar Ponto' : 'Lançar Ponto Manual'}</h3>
-          <button onClick={onClose} className="p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700 rounded-full transition-colors"><X size={20}/></button>
+          <button aria-label="Fechar" onClick={onClose} className="p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700 rounded-full transition-colors"><X size={20}/></button>
         </div>
         
         {save.error && <p className="mb-4 rounded-lg bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700 border border-rose-100">{save.error}</p>}

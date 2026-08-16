@@ -111,7 +111,7 @@ function ConnectionPanel({
             {connect.loading ? <Loader2 className="animaté-spin" size={14} /> : <Power size={14} />}
             Iniciar conexão
           </button>
-          <button onClick={onRefresh} className="btn-outline inline-flex h-10 w-10 items-center justify-center rounded-[8px]">
+          <button aria-label="Atualizar" onClick={onRefresh} className="btn-outline inline-flex h-10 w-10 items-center justify-center rounded-[8px]">
             <RefreshCw size={14} />
           </button>
         </div>
@@ -201,7 +201,7 @@ function ChatList({
       <div className="flex h-[59px] shrink-0 items-center justify-between bg-[#f0f2f5] px-4">
         <h3 className="text-xl font-bold text-[#111b21]">Conversas</h3>
         <div className="flex items-center gap-4 text-[#54656f]">
-          <button onClick={onRefresh} className="hover:text-[var(--color-brand)] transition" title="Atualizar">
+          <button aria-label="Atualizar" onClick={onRefresh} className="hover:text-[var(--color-brand)] transition" title="Atualizar">
             <RefreshCw size={20} />
           </button>
         </div>

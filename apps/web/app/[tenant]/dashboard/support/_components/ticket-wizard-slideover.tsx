@@ -49,7 +49,7 @@ export function TicketWizardSlideover({
             <h2 className="text-lg font-black text-slate-950">Novo Chamado</h2>
             <p className="text-xs font-semibold text-slate-500">Etapa {step} de 4</p>
           </div>
-          <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full transition-colors">
+          <button aria-label="Fechar" onClick={onClose} className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full transition-colors">
             <X size={18} />
           </button>
         </header>

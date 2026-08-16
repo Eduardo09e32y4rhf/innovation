@@ -174,7 +174,7 @@ export function UserDrawer({
               <h3 className="text-lg font-black text-slate-900">Detalhes do usuário</h3>
               <p className="text-xs font-medium text-slate-500">{user.name}</p>
             </div>
-            <button
+            <button aria-label="Fechar"
               onClick={onClose}
               className="flex h-8 w-8 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-600"
             >

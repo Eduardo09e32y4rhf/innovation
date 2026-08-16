@@ -88,7 +88,7 @@ function PlanModal({ plan, onClose, onDone }: { plan?: any; onClose: () => void;
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
           <h3 className="text-base font-black text-slate-950">{plan ? 'Editar Plano' : 'Novo Plano'}</h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-700 transition-colors"><X size={18} /></button>
+          <button aria-label="Fechar" onClick={onClose} className="text-slate-400 hover:text-slate-700 transition-colors"><X size={18} /></button>
         </div>
 
         {/* Body */}
@@ -319,7 +319,7 @@ function PlanCard({ plan, onEdit, onDeactivate, onReactivate, onDelete }: {
             >
               <Edit3 size={13} /> Editar
             </button>
-            <button
+            <button aria-label="Excluir"
               onClick={onDeactivate}
               title="Desativar plano"
               className="h-9 w-9 flex justify-center items-center rounded-[8px] border border-rose-200 text-rose-600 hover:bg-rose-50 transition-colors"
@@ -335,7 +335,7 @@ function PlanCard({ plan, onEdit, onDeactivate, onReactivate, onDelete }: {
             >
               <RotateCcw size={13} /> Reativar
             </button>
-            <button
+            <button aria-label="Excluir"
               onClick={onDelete}
               title="Excluir permanentemente"
               className="h-9 w-9 flex justify-center items-center rounded-[8px] border border-rose-200 text-rose-600 hover:bg-rose-50 transition-colors"
