@@ -50,6 +50,7 @@ jobs:
           cache: 'npm'
           cache-dependency-path: package-lock.json
       - run: npm ci
+      - run: npm run prisma:generate --prefix apps/api
       - run: npm run lint:web
 
   typecheck-api:
@@ -64,6 +65,7 @@ jobs:
           cache: 'npm'
           cache-dependency-path: package-lock.json
       - run: npm ci
+      - run: npm run prisma:generate --prefix apps/api
       - run: npm run typecheck:api
 
   typecheck-web:
@@ -78,6 +80,7 @@ jobs:
           cache: 'npm'
           cache-dependency-path: package-lock.json
       - run: npm ci
+      - run: npm run prisma:generate --prefix apps/api
       - run: npm run typecheck:web
 
   prisma-validate:
@@ -92,7 +95,7 @@ jobs:
           cache: 'npm'
           cache-dependency-path: package-lock.json
       - run: npm ci
-      - run: npm run prisma:validate
+      - run: DATABASE_URL=postgresql://dummy:dummy@localhost:5432/dummy npm run prisma:validate
       - run: npm run prisma:generate
 
   build-api:

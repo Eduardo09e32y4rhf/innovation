@@ -17,6 +17,7 @@ jobs:
           node-version: 20
           cache: 'npm'
       - run: npm ci
+      - run: npm run prisma:generate --prefix apps/api
       - run: npm run lint:web
       - run: npm run typecheck:api
       - run: npm run typecheck:web
@@ -66,7 +67,8 @@ jobs:
           node-version: 20
           cache: 'npm'
       - run: npm ci
-      - run: npm run db:migrate
+      - run: npm run prisma:generate --prefix apps/api
+      - run: npm --prefix apps/api exec -- prisma db push --schema apps/api/prisma/schema.prisma --skip-generate
         env:
           DATABASE_URL: postgresql://root:rootpassword@localhost:5432/innovation_test?schema=public
       - run: npm run test:integration
@@ -102,7 +104,8 @@ jobs:
         run: npx playwright install --with-deps
       - name: Start Database & API & Web
         run: |
-          npm run db:migrate
+          npm run prisma:generate --prefix apps/api
+          npm --prefix apps/api exec -- prisma db push --schema apps/api/prisma/schema.prisma --skip-generate
           npm run test:db:seed
           npm run build
           npm run start:api &
