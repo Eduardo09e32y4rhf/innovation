@@ -15,10 +15,10 @@ export default defineConfig({
     { name: 'chromium-mobile', use: { ...devices['Pixel 5'] } },
   ],
   webServer: {
-    command: 'node ../node_modules/next/dist/bin/next dev ../apps/web --hostname 127.0.0.1 --port 3000',
+    command: 'npm --prefix ../apps/web run dev -- --hostname 127.0.0.1 --port 3000',
     url: process.env.E2E_BASE_URL || 'http://127.0.0.1:3000',
     reuseExistingServer: false,
-    timeout: 120_000,
+    timeout: 120_000 * 3,
     env: {
       NEXT_PUBLIC_API_URL: 'http://127.0.0.1:3999',
       NEXT_IGNORE_INCORRECT_LOCKFILE: '1',
