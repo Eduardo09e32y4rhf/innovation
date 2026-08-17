@@ -17,6 +17,8 @@ jobs:
           node-version: 20
           cache: 'npm'
       - run: npm ci
+      - run: DATABASE_URL=postgresql://dummy:dummy@localhost:5432/dummy npm run prisma:generate
+      - run: npm install eslint@^8.57.1 --no-save
       - run: npm run lint:web
       - run: npm run typecheck:api
       - run: npm run typecheck:web
