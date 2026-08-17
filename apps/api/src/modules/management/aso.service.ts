@@ -19,12 +19,28 @@ export class AsoService {
         where: { companyId, status: 'COMPLETED', dueDate: { lte: today } },
         include: { employee: true }
       });
+
+      if (!expired.length) return;
+
+      const employeeIds = [...new Set(expired.map((r) => r.employeeId))];
+      const existingRecords = await this.prisma.employeeAsoRecord.findMany({
+        where: { companyId, employeeId: { in: employeeIds }, asoType: 'PERIODICO' }
+      });
+
+      const existingMap = new Map<string, Date>();
+      for (const record of existingRecords) {
+        const current = existingMap.get(record.employeeId);
+        if (!current || record.createdAt > current) {
+          existingMap.set(record.employeeId, record.createdAt);
+        }
+      }
+
       for (const record of expired) {
-        const existing = await this.prisma.employeeAsoRecord.findFirst({
-          where: { companyId, employeeId: record.employeeId, asoType: 'PERIODICO', createdAt: { gt: record.createdAt } }
-        });
+        const latestCreatedAt = existingMap.get(record.employeeId);
+        const existing = latestCreatedAt && latestCreatedAt > record.createdAt;
+
         if (!existing) {
-          await this.prisma.employeeAsoRecord.create({
+          const newRecord = await this.prisma.employeeAsoRecord.create({
             data: {
               companyId,
               employeeId: record.employeeId,
@@ -32,6 +48,9 @@ export class AsoService {
               status: 'PENDING',
             }
           });
+
+          existingMap.set(record.employeeId, newRecord.createdAt);
+
           await this.prisma.notification.create({
             data: {
               companyId,
