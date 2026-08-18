@@ -19,12 +19,38 @@ export class AsoService {
         where: { companyId, status: 'COMPLETED', dueDate: { lte: today } },
         include: { employee: true }
       });
+
+      if (!expired.length) return;
+
+      const employeeIds = expired.map(r => r.employeeId);
+      // We only need to check existing periodic records created after the oldest expired record
+      const minCreatedAt = new Date(
+        expired.reduce((min, r) => Math.min(min, r.createdAt.getTime()), Infinity)
+      );
+
+      const existingRecords = await this.prisma.employeeAsoRecord.findMany({
+        where: {
+          companyId,
+          employeeId: { in: employeeIds },
+          asoType: 'PERIODICO',
+          createdAt: { gt: minCreatedAt },
+        },
+      });
+
+      // Group existing records by employeeId
+      const existingByEmployeeId = new Map<string, typeof existingRecords>();
+      for (const record of existingRecords) {
+        const arr = existingByEmployeeId.get(record.employeeId) || [];
+        arr.push(record);
+        existingByEmployeeId.set(record.employeeId, arr);
+      }
+
       for (const record of expired) {
-        const existing = await this.prisma.employeeAsoRecord.findFirst({
-          where: { companyId, employeeId: record.employeeId, asoType: 'PERIODICO', createdAt: { gt: record.createdAt } }
-        });
-        if (!existing) {
-          await this.prisma.employeeAsoRecord.create({
+        const existingsForEmployee = existingByEmployeeId.get(record.employeeId) || [];
+        const hasExisting = existingsForEmployee.some(e => e.createdAt > record.createdAt);
+
+        if (!hasExisting) {
+          const created = await this.prisma.employeeAsoRecord.create({
             data: {
               companyId,
               employeeId: record.employeeId,
@@ -32,6 +58,12 @@ export class AsoService {
               status: 'PENDING',
             }
           });
+
+          // Update in-memory map to prevent duplicates if the loop processes the same employee again
+          const arr = existingByEmployeeId.get(record.employeeId) || [];
+          arr.push(created);
+          existingByEmployeeId.set(record.employeeId, arr);
+
           await this.prisma.notification.create({
             data: {
               companyId,
