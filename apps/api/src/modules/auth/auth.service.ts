@@ -268,6 +268,7 @@ export class AuthService {
     if (!user || !user.isActive) throw new UnauthorizedException('Dados de validação incorretos');
     
     const storedCode = Buffer.from(user.resetPasswordCode ?? '');
+    if (dto.code === undefined || dto.code === null) throw new UnauthorizedException('Dados de validação incorretos');
     const providedCode = Buffer.from(dto.code.trim().toUpperCase());
     const codesMatch = storedCode.length === providedCode.length && timingSafeEqual(storedCode, providedCode);
 
