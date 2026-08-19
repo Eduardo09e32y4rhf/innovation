@@ -27,11 +27,9 @@ export class GlobalPermissionsService implements OnModuleInit {
       const existingCount = await this.prisma.globalRolePermission.count();
       if (existingCount === 0) {
         this.logger.log('Seeding permissões globais padrão...');
-        for (const [role, permissions] of Object.entries(DEFAULT_PERMISSIONS)) {
-          await this.prisma.globalRolePermission.create({
-            data: { role: role as UserRole, permissions },
-          });
-        }
+        // ⚡ Bolt: Bulk insert to prevent N+1 queries during module init (reduces queries from 7 to 1)
+        const dataToInsert = Object.entries(DEFAULT_PERMISSIONS).map(([role, permissions]) => ({ role: role as UserRole, permissions }));
+        await this.prisma.globalRolePermission.createMany({ data: dataToInsert });
       }
     } catch (e) {
       this.logger.error('Erro ao semear permissões globais:', e);
