@@ -1,7 +1,5 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { Prisma, $Enums } from '@prisma/client';
-type InvoiceStatus = $Enums.InvoiceStatus;
-const InvoiceStatus = $Enums.InvoiceStatus;
+import { Prisma, InvoiceStatus } from '@prisma/client';
 import type { JwtUser } from '../../common/types/auth.types';
 import { PrismaService } from '../../database/prisma.service';
 import { AsaasPayment, AsaasService } from './asaas.service';
@@ -1241,7 +1239,7 @@ export class PlatformFinanceService {
       : undefined;
     return {
       deletedAt: null,
-      status: query.status as InvoiceStatus | undefined,
+      status: query.status ? (query.status as InvoiceStatus) : undefined,
       dueDate,
       company: commercialOwnerId || query.search
         ? {
