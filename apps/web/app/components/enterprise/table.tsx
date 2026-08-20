@@ -47,27 +47,26 @@ export function DataTable<T extends { id?: string | number }>({
 }
 
 export function TableActionButton({
-  onClick,
-  children
-}: {
-  onClick?: () => void;
-  children: React.ReactNode;
-}) {
+  className,
+  ...props
+}: React.ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
     <button
-      onClick={onClick}
-      className="p-2 bg-white/5 rounded-lg hover:text-purple-400 transition-colors"
       type="button"
-    >
-      {children}
-    </button>
+      className={`p-2 bg-white/5 rounded-lg hover:text-purple-400 transition-colors focus-visible:ring-2 focus-visible:outline-none ${className || ''}`.trim()}
+      {...props}
+    />
   );
 }
 
 export function DownloadPdfButton({ onClick }: { onClick?: () => void }) {
   return (
-    <TableActionButton onClick={onClick}>
-      <Download size={14} />
+    <TableActionButton
+      onClick={onClick}
+      aria-label="Baixar PDF"
+      title="Baixar PDF"
+    >
+      <Download size={14} aria-hidden="true" />
     </TableActionButton>
   );
 }
