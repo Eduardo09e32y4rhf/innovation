@@ -5,3 +5,7 @@
 ## 2026-07-30 - Fix N+1 queries in time closing generation
 **Learning:** Database performance degrades severely when making iterative Prisma ORM queries inside a loop such as `for (const employee of employees)`, causing an N+1 problem that does not scale for companies with many employees.
 **Action:** Extract database dependencies by pre-fetching bulk data using `{ in: [...] }` filtering, then regrouping results in memory (e.g. Map objects by employee ID) to iterate locally without emitting further SQL queries.
+
+## 2026-08-20 - [Fix N+1 query in ASO periodic trigger]
+**Learning:** Background jobs or periodic triggers in NestJS that loop over records (like expired ASO exams) and execute findFirst/create queries inside the loop cause severe N+1 performance bottlenecks.
+**Action:** Extract database dependencies by pre-fetching subsequent records using { in: [...] }, grouping results in memory by employeeId, and dynamically updating the map during the loop to avoid duplicate inserts. Finally, bundle all inserts into createMany operations.
