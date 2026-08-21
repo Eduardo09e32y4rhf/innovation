@@ -46,7 +46,7 @@ export function Drawer({ isOpen, onClose, title, description, children, footer, 
               className="btn-icon rounded-full hover:bg-zinc-100 p-2 text-zinc-500 transition-colors" 
               aria-label="Fechar drawer"
             >
-              <X size={20} />
+              <X size={20} aria-hidden="true" />
             </button>
           </div>
         )}

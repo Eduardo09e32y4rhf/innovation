@@ -46,7 +46,7 @@ export function Modal({ isOpen, onClose, title, description, children, footer, m
               className="btn-icon" 
               aria-label="Fechar modal"
             >
-              <X size={20} />
+              <X size={20} aria-hidden="true" />
             </button>
           </div>
         )}
