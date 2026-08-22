@@ -1,3 +1,3 @@
-## 2024-07-30 - Accessible Interactive Elements in Inputs
-**Learning:** When absolutely positioning interactive elements like toggle buttons inside input fields (e.g., password visibility toggles), they often lack focus styles and have `tabIndex={-1}` by default, making them completely inaccessible to keyboard users. When fixing this, you must explicitly define `focus-visible:ring-inset` alongside standard focus rings so the ring doesn't clip awkwardly outside the input's bounding box.
-**Action:** Always verify `tabIndex` and focus styles (`focus-visible`) on floating buttons within inputs, ensuring they have appropriate ARIA labels and `aria-hidden` on internal icons. Use `focus-visible:ring-inset` for a polished visual result.
+## 2024-11-20 - Adding ARIA labels to Icon-only Buttons
+**Learning:** Icon-only buttons (like `Edit2`, `Archive`, `Play` using `lucide-react`) in lists and tables are common but lack accessible names for screen readers. Using `aria-label` makes them accessible.
+**Action:** When adding or reviewing icon-only buttons, always ensure an `aria-label` is present in Portuguese.
