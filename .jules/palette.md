@@ -1,3 +1,7 @@
 ## 2024-07-30 - Accessible Interactive Elements in Inputs
 **Learning:** When absolutely positioning interactive elements like toggle buttons inside input fields (e.g., password visibility toggles), they often lack focus styles and have `tabIndex={-1}` by default, making them completely inaccessible to keyboard users. When fixing this, you must explicitly define `focus-visible:ring-inset` alongside standard focus rings so the ring doesn't clip awkwardly outside the input's bounding box.
 **Action:** Always verify `tabIndex` and focus styles (`focus-visible`) on floating buttons within inputs, ensuring they have appropriate ARIA labels and `aria-hidden` on internal icons. Use `focus-visible:ring-inset` for a polished visual result.
+
+## 2024-08-23 - Accessible Table Action Buttons
+**Learning:** Generic wrapper components for buttons (like `TableActionButton`) often swallow accessibility attributes like `aria-label` if they are not explicitly typed and forwarded to the underlying `<button>` element. This leaves icon-only actions within data tables inaccessible to screen readers.
+**Action:** When creating or modifying button wrappers, ensure they either extend native button attributes or explicitly accept and forward `aria-label`. Always pair `aria-label` on the button with `aria-hidden="true"` on the internal icon, and ensure keyboard focus is visible using utility classes like `focus-visible:ring-2 focus-visible:outline-none`.
