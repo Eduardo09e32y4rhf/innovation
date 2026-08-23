@@ -5,3 +5,7 @@
 ## 2026-07-30 - Fix N+1 queries in time closing generation
 **Learning:** Database performance degrades severely when making iterative Prisma ORM queries inside a loop such as `for (const employee of employees)`, causing an N+1 problem that does not scale for companies with many employees.
 **Action:** Extract database dependencies by pre-fetching bulk data using `{ in: [...] }` filtering, then regrouping results in memory (e.g. Map objects by employee ID) to iterate locally without emitting further SQL queries.
+
+## 2024-08-23 - Fix N+1 queries in time closing generation with createMany
+**Learning:** When refactoring iterative Prisma `.create()` calls into a bulk `.createMany()` operation, ensure that the array used to collect the raw data payloads is explicitly typed (e.g., `const results: any[] = [];` or a specific model type). Changing the array's contents from resolved Prisma models to raw payloads without explicit typing will cause TypeScript compilation failures.
+**Action:** Always explicitly type the array when aggregating raw creation payloads to be used in `.createMany()` to avoid type inference issues.

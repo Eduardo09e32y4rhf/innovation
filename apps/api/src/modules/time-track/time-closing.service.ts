@@ -73,7 +73,7 @@ export class TimeClosingService {
       where: { OR: [{ companyId }, { companyId: null }], date: { gte: periodStart, lte: periodEnd } },
     });
     const holidayKeys = new Set(holidays.map((holiday) => this.dateKey(holiday.date)));
-    const results = [];
+    const results: any[] = [];
 
     const employeeIds = employees.map(e => e.id);
     const [allTracks, allOccurrences, allSchedules] = await Promise.all([
@@ -216,36 +216,62 @@ export class TimeClosingService {
         taxContext,
       });
 
-      await this.prisma.timeClosing.deleteMany({
-        where: { companyId, employeeId: employee.id, periodStart, periodEnd, status: TimeClosingStatus.DRAFT },
+      results.push({
+        companyId,
+        employeeId: employee.id,
+        periodStart,
+        periodEnd,
+        status: TimeClosingStatus.DRAFT,
+        normalHours: this.hours(normalMinutes),
+        overtime50: this.hours(overtime50Minutes),
+        overtime100: this.hours(overtime100Minutes),
+        nightShift: this.hours(nightShiftMinutes),
+        absences: absenceDays,
+        lateArrivals: lateArrivalDays,
+        fallbackPunches,
+        payableWorkdays,
+        paidRestDays,
+        absenceMinutes,
+        lateMinutes,
+        earlyLeaveMinutes,
+        ...financial,
+        taxTableSnapshot: JSON.parse(JSON.stringify(taxContext)),
+        totalPayable: financial.netPay,
       });
-      results.push(await this.prisma.timeClosing.create({
-        data: {
+    }
+
+    if (results.length > 0) {
+      const processedEmployeeIds = results.map(r => r.employeeId);
+
+      await this.prisma.timeClosing.deleteMany({
+        where: {
           companyId,
-          employeeId: employee.id,
+          employeeId: { in: processedEmployeeIds },
           periodStart,
           periodEnd,
           status: TimeClosingStatus.DRAFT,
-          normalHours: this.hours(normalMinutes),
-          overtime50: this.hours(overtime50Minutes),
-          overtime100: this.hours(overtime100Minutes),
-          nightShift: this.hours(nightShiftMinutes),
-          absences: absenceDays,
-          lateArrivals: lateArrivalDays,
-          fallbackPunches,
-          payableWorkdays,
-          paidRestDays,
-          absenceMinutes,
-          lateMinutes,
-          earlyLeaveMinutes,
-          ...financial,
-          taxTableSnapshot: JSON.parse(JSON.stringify(taxContext)),
-          totalPayable: financial.netPay,
+        },
+      });
+
+      await this.prisma.timeClosing.createMany({
+        data: results,
+      });
+
+      // Fetch the created records to return them with included employee data
+      const createdClosings = await this.prisma.timeClosing.findMany({
+        where: {
+          companyId,
+          employeeId: { in: processedEmployeeIds },
+          periodStart,
+          periodEnd,
+          status: TimeClosingStatus.DRAFT,
         },
         include: { employee: true },
-      }));
+      });
+      return createdClosings;
     }
-    return results;
+
+    return [];
   }
 
   async list(companyId: string, status?: TimeClosingStatus) {
