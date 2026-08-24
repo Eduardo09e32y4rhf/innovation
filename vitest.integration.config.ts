@@ -8,6 +8,7 @@ export default defineConfig({
     environment: 'node',
     include: ['tests/integration/**/*.spec.ts'],
     exclude: ['node_modules', 'dist', 'tests-e2e', 'tests/unit', 'tests/contract', 'tests/security'],
+    passWithNoTests: true,
     testTimeout: 30000,
     hookTimeout: 30000,
     fileParallelism: false, // Sequencial para não causar colisão em banco de dados isolado

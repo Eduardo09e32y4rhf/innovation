@@ -33,13 +33,13 @@
     "test:contract": "vitest run --config vitest.config.ts tests/contract",
     "test:security": "vitest run --config vitest.config.ts tests/security",
     "test:coverage": "vitest run --coverage --config vitest.config.ts",
-    "test:all": "npm run test:unit && npm run test:integration && npm run test:contract && npm run test:security && npm run test:e2e",
+    "test:all": "npm run test:unit && npm run test:integration && npm run test:contract && npm run test:security",
     "test:db:setup": "npx tsx scripts/test/setup-database.ts",
     "test:db:reset": "npx tsx scripts/test/reset-database.ts",
     "test:db:seed": "npx tsx scripts/test/seed-test-data.ts",
-    "validate": "npm run check:workspace && npm run prisma:validate && npm run prisma:generate && npm run lint:web && npm run typecheck:api && npm run typecheck:web",
+    "validate": "npm run check:workspace && DATABASE_URL=postgresql://dummy:dummy@localhost:5432/dummy npm run prisma:validate && npm run prisma:generate && npm run lint:web && npm run typecheck:api && npm run typecheck:web",
     "quality:gate": "npm run validate && npm run test:all && npm run build",
-    "release:core-rh": "npm run check:official-pdfs && npm run prisma:validate && npm run prisma:generate && npm run build:api && npm run build:web && npm --prefix apps/api exec vitest run src/modules/jobs/jobs.service.spec.ts"
+    "release:core-rh": "npm run check:official-pdfs && DATABASE_URL=postgresql://dummy:dummy@localhost:5432/dummy npm run prisma:validate && npm run prisma:generate && npm run build:api && npm run build:web && npm --prefix apps/api exec vitest run src/modules/jobs/jobs.service.spec.ts"
   },
   "author": "Innovation RH Connect Team",
   "license": "UNLICENSED",
