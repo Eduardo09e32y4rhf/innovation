@@ -1,11 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { exec } from 'child_process';
+import { execFile } from 'child_process';
 import { promisify } from 'util';
 import * as fs from 'fs';
 import * as path from 'path';
 
-const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
 
 @Injectable()
 export class BackupService {
@@ -33,9 +33,10 @@ export class BackupService {
 
       // We extract DB info from prisma URL (postgresql://user:password@host:port/dbname)
       // Assuming pg_dump is available on the system running the node process
-      const command = `pg_dump "${dbUrl}" -F c -f "${filepath}"`;
+      const command = 'pg_dump';
+      const args = [dbUrl, '-F', 'c', '-f', filepath];
       
-      const { stdout, stderr } = await execAsync(command);
+      const { stdout, stderr } = await execFileAsync(command, args);
       
       if (stderr) {
         this.logger.debug(`pg_dump stderr: ${stderr}`);
@@ -52,15 +53,26 @@ export class BackupService {
 
   private cleanupOldBackups(backupDir: string) {
     try {
+      const rootDir = path.resolve(backupDir) + path.sep;
       const files = fs.readdirSync(backupDir)
         .filter(f => f.startsWith('db_backup_') && f.endsWith('.sql'))
-        .map(f => ({ name: f, time: fs.statSync(path.join(backupDir, f)).mtime.getTime() }))
+        .map(f => {
+          const filePath = path.resolve(backupDir, f);
+          if (!filePath.startsWith(rootDir)) {
+            return null; // Skip invalid paths
+          }
+          return { name: f, time: fs.statSync(filePath).mtime.getTime() };
+        })
+        .filter((f): f is { name: string, time: number } => f !== null)
         .sort((a, b) => b.time - a.time);
 
       if (files.length > 7) {
         for (let i = 7; i < files.length; i++) {
-          fs.unlinkSync(path.join(backupDir, files[i].name));
-          this.logger.log(`Deleted old backup: ${files[i].name}`);
+          const fileToDelete = path.resolve(backupDir, files[i].name);
+          if (fileToDelete.startsWith(rootDir)) {
+            fs.unlinkSync(fileToDelete);
+            this.logger.log(`Deleted old backup: ${files[i].name}`);
+          }
         }
       }
     } catch (error: any) {

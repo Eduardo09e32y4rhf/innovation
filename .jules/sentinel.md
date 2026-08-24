@@ -2,3 +2,7 @@
 **Vulnerability:** A missing check for `undefined` token in `secureEqual` method for validating webhooks
 **Learning:** Checking for `undefined` before creating Buffer using `Buffer.from(received)` when header `asaas-access-token` is missing or undefined is necessary since NodeJS will throw an unhandled `TypeError`
 **Prevention:** Make sure all `Buffer.from` calls handle undefined/null appropriately before execution
+## 2024-05-24 - Command Injection in BackupService
+**Vulnerability:** OS command injection in `exec` via unsanitized `DATABASE_URL` interpolation.
+**Learning:** Even internal URLs from process environments can be manipulated leading to RCE if passed to `exec`.
+**Prevention:** Use `execFile` with parameterized arguments instead of `exec`.
