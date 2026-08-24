@@ -88,7 +88,7 @@ export function CompanyManageModal({ company, onClose, onSave, loading, error }:
             <h3 className="text-base font-black text-slate-950">Gerenciar {normalizeDisplayName(company.name)}</h3>
             <p className="mt-0.5 text-[11px] text-slate-500">Configurações, limites e financeiro</p>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-700"><X size={18} /></button>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-700" aria-label="Fechar modal"><X size={18} aria-hidden="true" /></button>
         </div>
 
         {/* TABS */}

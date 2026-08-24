@@ -439,7 +439,7 @@ function EditClosingModal({ item, onClose, onSave, saving }: {
       <div className="surface w-full max-w-md">
         <div className="flex items-center justify-between border-b border-slate-100 pb-4">
           <h3 className="text-lg font-black text-slate-900">Ajuste Manual</h3>
-          <button onClick={onClose} disabled={saving} className="rounded-full p-2 hover:bg-slate-100"><X size={18}/></button>
+          <button onClick={onClose} disabled={saving} className="rounded-full p-2 hover:bg-slate-100" aria-label="Fechar modal"><X size={18} aria-hidden="true" /></button>
         </div>
         <form onSubmit={handleSubmit} className="mt-4 space-y-4">
           <p className="text-sm text-slate-500">Colaborador: <b className="text-black">{item.employee?.name}</b></p>

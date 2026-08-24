@@ -264,7 +264,7 @@ export default function CompanyDetailPage({ params }: { params: { tenant: string
           <div className="w-full max-w-md overflow-hidden rounded-[20px] bg-white shadow-2xl">
             <header className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
               <h2 className="text-base font-black text-slate-900">Nova Cobrança Avulsa</h2>
-              <button onClick={() => setIsInvoiceModalOpen(false)} className="rounded-full p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600"><X size={18} /></button>
+              <button onClick={() => setIsInvoiceModalOpen(false)} className="rounded-full p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600" aria-label="Fechar modal de fatura"><X size={18} aria-hidden="true" /></button>
             </header>
             <form onSubmit={createManualInvoice} className="p-6">
               <div className="space-y-4">

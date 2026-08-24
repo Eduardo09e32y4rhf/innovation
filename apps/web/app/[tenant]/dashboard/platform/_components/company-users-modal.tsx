@@ -40,7 +40,7 @@ export function CompanyUsersModal({ company, onClose }: { company: PlatformCompa
             <h3 className="text-base font-black text-slate-950">Usuários de {normalizeDisplayName(company.name)}</h3>
             <p className="mt-1 text-xs text-slate-500">{company.usersCount} / {company.maxUsers} usuarios</p>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-700"><X size={18} /></button>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-700" aria-label="Fechar modal"><X size={18} aria-hidden="true" /></button>
         </div>
         <div className="mb-4 flex justify-end">
           <button onClick={() => setOpenNew(true)} className="crystal-button inline-flex h-9 items-center gap-2 rounded-[8px] px-3 text-xs font-black text-white">
@@ -124,7 +124,7 @@ function CompanyUserFormModal({ companyId, user, onClose, onDone }: { companyId:
       <div className="w-full max-w-md rounded-[12px] border border-slate-200 bg-white p-6 shadow-xl">
         <div className="mb-4 flex items-center justify-between">
           <h4 className="text-base font-black text-slate-950">{user ? 'Editar usuario' : 'Novo usuario'}</h4>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-700"><X size={18} /></button>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-700" aria-label="Fechar modal"><X size={18} aria-hidden="true" /></button>
         </div>
         {save.error && <p className="mb-3 rounded-[8px] border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">{save.error}</p>}
         <div className="space-y-3">

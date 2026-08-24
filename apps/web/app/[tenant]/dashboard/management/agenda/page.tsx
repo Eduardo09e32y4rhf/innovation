@@ -318,7 +318,7 @@ function AgendaKanban({ columns, employees, canManage, onOpenForm, onSave, onDel
                         {ev.status !== 'CONCLUIDO' && canManage && (
                           <button onClick={() => onSave({ status: 'CONCLUIDO' }, ev.id)} disabled={saving} className="btn-primary h-7 px-2 text-[10px] flex items-center gap-1"><Check size={12}/> Concluir</button>
                         )}
-                        {canManage && <button onClick={() => onDelete(ev.id)} disabled={saving} className="btn-danger h-7 px-2 text-[10px] flex items-center gap-1"><XCircle size={12}/></button>}
+                        {canManage && <button onClick={() => onDelete(ev.id)} disabled={saving} className="btn-danger h-7 px-2 text-[10px] flex items-center gap-1" aria-label="Excluir"><XCircle size={12} aria-hidden="true" /></button>}
                       </div>
                     </div>
                   ))}

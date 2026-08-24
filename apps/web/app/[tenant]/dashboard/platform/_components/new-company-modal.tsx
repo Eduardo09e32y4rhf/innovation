@@ -54,7 +54,7 @@ export function NewCompanyModal({ onClose, onDone }: { onClose: () => void; onDo
       <div className="w-full max-w-lg rounded-[12px] border border-slate-200 bg-white p-6 shadow-xl">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-base font-black text-slate-950">Nova empresa</h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-700"><X size={18} /></button>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-700" aria-label="Fechar modal"><X size={18} aria-hidden="true" /></button>
         </div>
         {create.error && <p className="mb-3 rounded-[8px] border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">{create.error}</p>}
         <div className="grid gap-3 sm:grid-cols-2 mb-3">

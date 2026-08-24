@@ -213,7 +213,7 @@ function AsoTab({ records, employees, canManage, onOpenForm, onSave, onDelete, s
                       <div className="flex justify-end gap-1.5">
                         <button onClick={() => handleGenerateAsoPdf(r)} disabled={pdfId === r.id} className="btn-outline h-7 px-2 text-[10px] font-bold disabled:opacity-60">{pdfId === r.id ? 'Gerando...' : 'PDF'}</button>
                         <button onClick={() => onOpenForm(r)} disabled={saving} className="btn-outline h-7 px-2 text-[10px] font-bold">Editar</button>
-                        {canManage && <button onClick={() => onSave({ status: 'CANCELLED' }, r.id)} disabled={saving} className="btn-danger h-7 px-2 text-[10px] flex items-center gap-1"><XCircle size={12}/></button>}
+                        {canManage && <button onClick={() => onSave({ status: 'CANCELLED' }, r.id)} disabled={saving} className="btn-danger h-7 px-2 text-[10px] flex items-center gap-1" aria-label="Cancelar"><XCircle size={12} aria-hidden="true" /></button>}
                         {canManage && <button onClick={() => { if (window.confirm('Excluir?')) onDelete(r.id); }} disabled={saving} className="btn-danger h-7 px-2 text-[10px] font-black">X</button>}
                       </div>
                     </td>
@@ -279,7 +279,7 @@ function AsoModal({ record, employees, asos, onClose, onSave, saving }: {
               <p className="text-xs font-semibold text-slate-500">Atestado de Saúde Ocupacional</p>
             </div>
           </div>
-          <button onClick={onClose} className="rounded-full p-2 text-slate-400 hover:bg-slate-100"><X size={20}/></button>
+          <button onClick={onClose} className="rounded-full p-2 text-slate-400 hover:bg-slate-100" aria-label="Fechar modal"><X size={20} aria-hidden="true" /></button>
         </div>
 
         <div className="grid gap-x-6 gap-y-6 lg:grid-cols-2">

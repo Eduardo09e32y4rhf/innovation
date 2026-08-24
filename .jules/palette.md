@@ -1,3 +1,3 @@
-## 2024-07-30 - Accessible Interactive Elements in Inputs
-**Learning:** When absolutely positioning interactive elements like toggle buttons inside input fields (e.g., password visibility toggles), they often lack focus styles and have `tabIndex={-1}` by default, making them completely inaccessible to keyboard users. When fixing this, you must explicitly define `focus-visible:ring-inset` alongside standard focus rings so the ring doesn't clip awkwardly outside the input's bounding box.
-**Action:** Always verify `tabIndex` and focus styles (`focus-visible`) on floating buttons within inputs, ensuring they have appropriate ARIA labels and `aria-hidden` on internal icons. Use `focus-visible:ring-inset` for a polished visual result.
+## 2026-08-24 - Accessibility for icon-only buttons
+**Learning:** Found multiple instances where the application relies on `X` or `XCircle` components embedded inside a `<button>` without providing any text description or `aria-label`, leaving screen readers with ambiguous labels. Additionally, the decorative SVG icons themselves were missing `aria-hidden="true"`.
+**Action:** Consistently append `aria-label="[Localized Action]"` (e.g., "Fechar modal", "Excluir") to such buttons and apply `aria-hidden="true"` to the internal SVG to optimize the screen reader experience moving forward.

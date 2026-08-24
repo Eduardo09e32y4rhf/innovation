@@ -656,7 +656,7 @@ function TimeTrackModal({ track, employees, onClose, onDone, defaultEmpId, canMa
       <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl bg-white p-6 shadow-2xl">
         <div className="mb-6 flex items-center justify-between border-b border-slate-100 pb-4">
           <h3 className="text-lg font-bold text-slate-800">{track?.id ? 'Editar Ponto' : 'Lançar Ponto Manual'}</h3>
-          <button onClick={onClose} className="p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700 rounded-full transition-colors"><X size={20}/></button>
+          <button onClick={onClose} className="p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700 rounded-full transition-colors" aria-label="Fechar modal"><X size={20} aria-hidden="true" /></button>
         </div>
         
         {save.error && <p className="mb-4 rounded-lg bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700 border border-rose-100">{save.error}</p>}

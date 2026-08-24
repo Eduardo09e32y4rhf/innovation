@@ -671,7 +671,7 @@ function NewVacationModal({
       <div className="w-full max-w-md rounded-[18px] border border-slate-200/60 bg-white p-6 shadow-2xl">
         <div className="mb-5 flex items-center justify-between">
           <h3 className="text-base font-black text-slate-950">Nova solicitação de férias</h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-700 transition-colors"><X size={18} /></button>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-700 transition-colors" aria-label="Fechar modal"><X size={18} aria-hidden="true" /></button>
         </div>
 
         {create.error && (
