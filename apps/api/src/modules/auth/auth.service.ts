@@ -268,6 +268,7 @@ export class AuthService {
     if (!user || !user.isActive) throw new UnauthorizedException('Dados de validação incorretos');
     
     const storedCode = Buffer.from(user.resetPasswordCode ?? '');
+    if (!dto.code) throw new UnauthorizedException('Código inválido ou expirado');
     const providedCode = Buffer.from(dto.code.trim().toUpperCase());
     const codesMatch = storedCode.length === providedCode.length && timingSafeEqual(storedCode, providedCode);
 
@@ -284,11 +285,12 @@ export class AuthService {
     }
     
     const rawCpf = employee.cpf ? employee.cpf.replace(/\D/g, '') : '';
-    if (!rawCpf.startsWith(dto.cpfStart.trim())) {
+    if (!dto.cpfStart || !rawCpf.startsWith(dto.cpfStart.trim())) {
       throw new UnauthorizedException('Dados de validação incorretos');
     }
 
     const empReg = (employee.registration || '').trim().toLowerCase();
+    if (!dto.registration) throw new UnauthorizedException('Dados de validação incorretos');
     const providedReg = dto.registration.trim().toLowerCase();
     if (empReg !== providedReg) {
       throw new UnauthorizedException('Dados de validação incorretos');
