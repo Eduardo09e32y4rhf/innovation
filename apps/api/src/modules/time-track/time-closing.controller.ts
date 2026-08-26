@@ -1,11 +1,10 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, Res, UseGuards } from '@nestjs/common';
-import { $Enums } from '@prisma/client';
-type TimeClosingStatus = $Enums.TimeClosingStatus;
-const TimeClosingStatus = $Enums.TimeClosingStatus;
+import {} from '@prisma/client';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { TimeClosingService } from './time-closing.service';
+import { TimeClosingStatus } from '@prisma/client';
 
 @Controller('time-closing')
 @UseGuards(JwtAuthGuard, RolesGuard)

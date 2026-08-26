@@ -1,12 +1,11 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { Prisma, $Enums } from '@prisma/client';
-type InvoiceStatus = $Enums.InvoiceStatus;
-const InvoiceStatus = $Enums.InvoiceStatus;
+import { Prisma} from '@prisma/client';
 import type { JwtUser } from '../../common/types/auth.types';
 import { PrismaService } from '../../database/prisma.service';
 import { AsaasPayment, AsaasService } from './asaas.service';
 import { PricingService } from './pricing.service';
 import { CreatePlatformInvoiceDto, ListPlatformInvoicesDto, UpdatePlatformInvoiceDto } from './dto/platform-finance.dto';
+import { InvoiceStatus } from '@prisma/client';
 
 @Injectable()
 export class PlatformFinanceService {
