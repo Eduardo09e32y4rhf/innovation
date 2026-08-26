@@ -1,7 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import { RedisService } from '../../common/redis/redis.service';
-import {} from '@prisma/client';
 import { HolidayScope } from '@prisma/client';
 
 @Injectable()
