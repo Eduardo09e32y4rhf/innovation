@@ -50,6 +50,7 @@ jobs:
           cache: 'npm'
           cache-dependency-path: package-lock.json
       - run: npm ci
+      - run: npm install eslint@^8.57.1 --no-save
       - run: npm run lint:web
 
   typecheck-api:
