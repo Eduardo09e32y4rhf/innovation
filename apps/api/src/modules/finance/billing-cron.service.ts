@@ -231,11 +231,14 @@ export class BillingCronService {
       where: { status: 'ACTIVE', endsAt: { lt: now } },
       select: { id: true, companyId: true },
     });
-    for (const contract of expired) {
+    const expiredIds = expired.map((c) => c.id);
+    const expiredCompanyIds = expired.map((c) => c.companyId);
+    if (expiredIds.length > 0) {
+      // Optimização: Substitui queries N+1 por atualizações em massa (updateMany) agrupadas em uma única transação, reduzindo chamadas ao banco e o tempo de execução da cron job.
       await this.prisma.$transaction([
-        this.prisma.manualContract.update({ where: { id: contract.id }, data: { status: 'ENDED' } }),
-        this.prisma.companySubscription.updateMany({ where: { companyId: contract.companyId, status: 'MANUAL_CONTRACT' }, data: { status: 'ENDED' } }),
-        this.prisma.company.update({ where: { id: contract.companyId }, data: { status: 'SUSPENDED', isActive: false, billingStatus: 'PAST_DUE', suspensionReason: 'contrato_manual_expirado' } }),
+        this.prisma.manualContract.updateMany({ where: { id: { in: expiredIds } }, data: { status: 'ENDED' } }),
+        this.prisma.companySubscription.updateMany({ where: { companyId: { in: expiredCompanyIds }, status: 'MANUAL_CONTRACT' }, data: { status: 'ENDED' } }),
+        this.prisma.company.updateMany({ where: { id: { in: expiredCompanyIds } }, data: { status: 'SUSPENDED', isActive: false, billingStatus: 'PAST_DUE', suspensionReason: 'contrato_manual_expirado' } }),
       ]);
     }
     if (expired.length) this.logger.log(`${expired.length} contrato(s) manual(is) encerrado(s).`);
