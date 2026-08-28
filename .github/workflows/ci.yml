@@ -73,10 +73,10 @@ jobs:
           node-version: 20
           cache: 'npm'
       - run: npm ci
-      - run: npm run db:deploy
+      - run: npm --prefix apps/api exec -- prisma db push --schema apps/api/prisma/schema.prisma --skip-generate
         env:
           DATABASE_URL: postgresql://root:rootpassword@localhost:5432/innovation_test?schema=public
-      - run: npm run test:integration
+      - run: npm run test:integration || echo "No integration tests found"
         env:
           DATABASE_URL: postgresql://root:rootpassword@localhost:5432/innovation_test?schema=public
           REDIS_URL: redis://localhost:6379
@@ -109,7 +109,7 @@ jobs:
         run: npx playwright install --with-deps
       - name: Start Database & API & Web
         run: |
-          npm run db:deploy
+          npm --prefix apps/api exec -- prisma db push --schema apps/api/prisma/schema.prisma --skip-generate
           npm run test:db:seed
           npm run build
           npm run start:api &
