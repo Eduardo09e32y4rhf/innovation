@@ -7,7 +7,7 @@
     "dev": "npm run dev:web",
     "dev:web": "npm --prefix apps/web run dev",
     "dev:api": "npm --prefix apps/api run dev",
-    "build": "npm run validate && npm run build:api && npm run build:web",
+    "build": "DATABASE_URL=postgresql://dummy:dummy@localhost:5432/dummy npm run validate && npm run build:api && npm run build:web",
     "build:api": "npm --prefix apps/api run build",
     "build:web": "npm --prefix apps/web run build",
     "start:web": "npm --prefix apps/web run start",
@@ -37,7 +37,7 @@
     "test:db:setup": "npx tsx scripts/test/setup-database.ts",
     "test:db:reset": "npx tsx scripts/test/reset-database.ts",
     "test:db:seed": "npx tsx scripts/test/seed-test-data.ts",
-    "validate": "npm run check:workspace && npm run prisma:validate && npm run prisma:generate && npm run lint:web && npm run typecheck:api && npm run typecheck:web",
+    "validate": "npm run check:workspace && DATABASE_URL=postgresql://dummy:dummy@localhost:5432/dummy npm run prisma:validate && DATABASE_URL=postgresql://dummy:dummy@localhost:5432/dummy npm run prisma:generate && npm run lint:web && npm run typecheck:api && npm run typecheck:web",
     "quality:gate": "npm run validate && npm run test:all && npm run build",
     "release:core-rh": "npm run check:official-pdfs && npm run prisma:validate && npm run prisma:generate && npm run build:api && npm run build:web && npm --prefix apps/api exec vitest run src/modules/jobs/jobs.service.spec.ts"
   },
