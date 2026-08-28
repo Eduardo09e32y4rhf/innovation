@@ -703,10 +703,10 @@ export default function FinancePage({ params: { tenant } }: { params: { tenant: 
                         </button>
                         {invoice.invoiceUrl && (
                           <>
-                            <button type="button" onClick={() => navigator.clipboard.writeText(invoice.invoiceUrl || '').then(() => toast.success('Link copiado.'))} className="rounded-[7px] p-2 text-slate-500 hover:bg-white hover:text-teal-700 hover:shadow-sm" title="Copiar link">
+                            <button type="button" onClick={() => navigator.clipboard.writeText(invoice.invoiceUrl || '').then(() => toast.success('Link copiado.'))} className="rounded-[7px] p-2 text-slate-500 hover:bg-white hover:text-teal-700 hover:shadow-sm" title="Copiar link" aria-label="Copiar link da fatura">
                               <Copy size={14} />
                             </button>
-                            <a href={invoice.invoiceUrl} target="_blank" rel="noreferrer" className="rounded-[7px] p-2 text-slate-500 hover:bg-white hover:text-teal-700 hover:shadow-sm" title="Abrir">
+                            <a href={invoice.invoiceUrl} target="_blank" rel="noreferrer" className="rounded-[7px] p-2 text-slate-500 hover:bg-white hover:text-teal-700 hover:shadow-sm" title="Abrir" aria-label="Abrir link da fatura">
                               <ExternalLink size={14} />
                             </a>
                           </>

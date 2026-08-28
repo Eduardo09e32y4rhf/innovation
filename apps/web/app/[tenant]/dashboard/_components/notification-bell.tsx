@@ -93,7 +93,7 @@ export function NotificationBell() {
                   Marcar todas
                 </button>
               )}
-              <button type="button" onClick={() => setOpen(false)} className="text-slate-400 hover:text-slate-700">
+              <button type="button" onClick={() => setOpen(false)} className="text-slate-400 hover:text-slate-700" aria-label="Fechar">
                 <X size={14} />
               </button>
             </div>
