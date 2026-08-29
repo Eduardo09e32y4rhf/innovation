@@ -19,29 +19,64 @@ export class AsoService {
         where: { companyId, status: 'COMPLETED', dueDate: { lte: today } },
         include: { employee: true }
       });
-      for (const record of expired) {
-        const existing = await this.prisma.employeeAsoRecord.findFirst({
-          where: { companyId, employeeId: record.employeeId, asoType: 'PERIODICO', createdAt: { gt: record.createdAt } }
+      if (expired.length > 0) {
+        // Collect employee IDs to check for existing pending PERIODICO records
+        const employeeIds = expired.map(r => r.employeeId);
+
+        // Find existing records
+        const existingRecords = await this.prisma.employeeAsoRecord.findMany({
+          where: {
+            companyId,
+            employeeId: { in: employeeIds },
+            asoType: 'PERIODICO',
+          },
+          select: { employeeId: true, createdAt: true }
         });
-        if (!existing) {
-          await this.prisma.employeeAsoRecord.create({
-            data: {
+
+        // Use a Map for O(1) lookups instead of O(N) array search
+        const existingMap = new Map<string, Date>();
+        for (const record of existingRecords) {
+          const current = existingMap.get(record.employeeId);
+          if (!current || record.createdAt > current) {
+            existingMap.set(record.employeeId, record.createdAt);
+          }
+        }
+
+        const newRecords: import('@prisma/client').Prisma.EmployeeAsoRecordCreateManyInput[] = [];
+        const newNotifications: import('@prisma/client').Prisma.NotificationCreateManyInput[] = [];
+
+        // Track processed employees to prevent duplicate generation if an employee has multiple expired ASOs
+        const processedEmployeeIds = new Set<string>();
+
+        for (const record of expired) {
+          if (processedEmployeeIds.has(record.employeeId)) continue;
+
+          const latestExistingCreatedAt = existingMap.get(record.employeeId);
+          // Check if there is an existing record created after the expired one
+          if (!latestExistingCreatedAt || latestExistingCreatedAt <= record.createdAt) {
+            processedEmployeeIds.add(record.employeeId);
+            newRecords.push({
               companyId,
               employeeId: record.employeeId,
               asoType: 'PERIODICO',
               status: 'PENDING',
-            }
-          });
-          await this.prisma.notification.create({
-            data: {
+            });
+            newNotifications.push({
               companyId,
               title: `⚕️ ASO Periódico Pendente`,
               message: `Um novo ASO de rotina (periódico) foi gerado automaticamente após 12 meses do último exame. Agende o quanto antes para evitar irregularidades.`,
               type: 'SYSTEM_NOTICE',
               status: 'SENT',
               targetType: 'ALL',
-            }
-          });
+            });
+          }
+        }
+
+        if (newRecords.length > 0) {
+          await this.prisma.$transaction([
+            this.prisma.employeeAsoRecord.createMany({ data: newRecords }),
+            this.prisma.notification.createMany({ data: newNotifications })
+          ]);
         }
       }
     } catch (err) {
