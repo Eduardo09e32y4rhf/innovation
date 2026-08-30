@@ -264,6 +264,9 @@ export class AuthService {
   }
 
   async validateResetCode(dto: { email: string; code: string; cpfStart: string; registration: string }) {
+    if (!dto.code || typeof dto.code !== 'string' || !dto.cpfStart || typeof dto.cpfStart !== 'string' || !dto.registration || typeof dto.registration !== 'string') {
+      throw new UnauthorizedException('Dados de validação incorretos');
+    }
     const user = await this.repository.findUserWithEmployeeByEmail(dto.email);
     if (!user || !user.isActive) throw new UnauthorizedException('Dados de validação incorretos');
     
