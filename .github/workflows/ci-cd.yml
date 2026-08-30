@@ -95,7 +95,15 @@ jobs:
       - run: npm run prisma:validate
         env:
           DATABASE_URL: postgresql://dummy:dummy@localhost:5432/dummy
+        env:
+          DATABASE_URL: postgresql://dummy:dummy@localhost:5432/dummy
       - run: npm run prisma:generate
+        env:
+          DATABASE_URL: postgresql://dummy:dummy@localhost:5432/dummy
+        env:
+          DATABASE_URL: postgresql://dummy:dummy@localhost:5432/dummy
+        env:
+          DATABASE_URL: postgresql://dummy:dummy@localhost:5432/dummy
 
   build-api:
     name: Build API
@@ -110,6 +118,10 @@ jobs:
           cache-dependency-path: package-lock.json
       - run: npm ci
       - run: npm run prisma:generate
+        env:
+          DATABASE_URL: postgresql://dummy:dummy@localhost:5432/dummy
+        env:
+          DATABASE_URL: postgresql://dummy:dummy@localhost:5432/dummy
       - run: npm run build:api
 
   build-web:
@@ -125,6 +137,10 @@ jobs:
           cache-dependency-path: package-lock.json
       - run: npm ci
       - run: npm run prisma:generate
+        env:
+          DATABASE_URL: postgresql://dummy:dummy@localhost:5432/dummy
+        env:
+          DATABASE_URL: postgresql://dummy:dummy@localhost:5432/dummy
       - run: npm run build:web
 
   test-unit:
@@ -140,6 +156,10 @@ jobs:
           cache-dependency-path: package-lock.json
       - run: npm ci
       - run: npm run prisma:generate
+        env:
+          DATABASE_URL: postgresql://dummy:dummy@localhost:5432/dummy
+        env:
+          DATABASE_URL: postgresql://dummy:dummy@localhost:5432/dummy
       - run: npm run test:api
 
   test-integration:
@@ -170,6 +190,10 @@ jobs:
           cache-dependency-path: package-lock.json
       - run: npm ci
       - run: npm run prisma:generate
+        env:
+          DATABASE_URL: postgresql://dummy:dummy@localhost:5432/dummy
+        env:
+          DATABASE_URL: postgresql://dummy:dummy@localhost:5432/dummy
       - run: npm --prefix apps/api exec -- prisma db push --schema apps/api/prisma/schema.prisma --skip-generate
       - run: npm run test:integration
 
