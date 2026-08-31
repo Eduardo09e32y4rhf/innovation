@@ -13,3 +13,6 @@
 ## 2025-02-14 - Fix GitHub Actions Node version deprecation
 **Learning:** GitHub Actions deprecated Node 20. Workflows forcing `node-version: 20` must be updated to `node-version: 22` to avoid CI failures and warnings.
 **Prevention:** Regularly audit `.github/workflows/` for deprecated runtime versions and update `node-version` strings.
+## 2025-02-14 - Fix Prisma migration mapping error
+**Learning:** Initial Prisma migrations sometimes reference tables like `companies` and `users` that haven't been re-mapped or are inconsistently named. They need to exactly match the schema (`Company` and `User`). If you encounter `relation "companies" does not exist`, verify `migration.sql` files.
+**Prevention:** Always verify if `@@map` is correctly applied or if relations in generated migrations correctly match the table cases in older migrations.
