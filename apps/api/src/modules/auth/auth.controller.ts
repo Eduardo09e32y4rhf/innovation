@@ -16,6 +16,7 @@ import { ChangePasswordDto } from './dto/change-password.dto';
 import { LoginDto } from './dto/login.dto';
 import { RegisterCompanyDto } from './dto/register-company.dto';
 import { RequestPasswordResetDto } from './dto/request-password-reset.dto';
+import { BadRequestException } from '@nestjs/common';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -61,6 +62,9 @@ export class AuthController {
   @Throttle({ default: { limit: 5, ttl: 300000 } })
   @Post('password-reset/validate-code')
   validateResetCode(@Body() dto: { email: string; code: string; cpfStart: string; registration: string }) {
+    if (!dto || typeof dto.email !== 'string' || typeof dto.code !== 'string') {
+      throw new BadRequestException('Dados inválidos');
+    }
     return this.service.validateResetCode(dto);
   }
 
