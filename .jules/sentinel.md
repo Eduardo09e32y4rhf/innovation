@@ -16,3 +16,6 @@
 ## 2025-02-14 - Fix Prisma migration mapping error
 **Learning:** Initial Prisma migrations sometimes reference tables like `companies` and `users` that haven't been re-mapped or are inconsistently named. They need to exactly match the schema (`Company` and `User`). If you encounter `relation "companies" does not exist`, verify `migration.sql` files.
 **Prevention:** Always verify if `@@map` is correctly applied or if relations in generated migrations correctly match the table cases in older migrations.
+## 2025-02-14 - Fix Cloudflare Workers TypeScript configuration
+**Learning:** Adding `@cloudflare/workers-types` or trying to resolve Cloudflare Workers `wrangler.toml` typechecks may appear as external CI checks not present in `.github/workflows`. The repository `package.json` had no `worker` scripts. No action was taken as it is an external CI configured on Cloudflare's end, and the issue was out of scope for the current local configuration.
+**Prevention:** Avoid searching for Cloudflare specifics unless `wrangler.toml` is present in the repository.
