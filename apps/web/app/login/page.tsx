@@ -99,6 +99,7 @@ export default function LoginPage() {
           </div>
           <input
             type="email"
+            aria-label="E-mail corporativo"
             placeholder="E-mail corporativo"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -114,6 +115,7 @@ export default function LoginPage() {
             </div>
             <input
               type={showPassword ? 'text' : 'password'}
+              aria-label="Senha"
               placeholder="Senha"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
