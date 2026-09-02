@@ -12,16 +12,16 @@
   "dependencies": {
     "@vladmandic/face-api": "1.7.15",
     "clsx": "^2.1.0",
-    "framer-motion": "^11.0.3",
-    "lucide-react": "^0.330.0",
-    "next": "^14.2.35",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "react-is": "18.3.1",
-    "recharts": "^3.8.1",
-    "sonner": "^2.0.7",
-    "tailwind-merge": "^2.2.1",
-    "zod": "^4.4.3"
+    "framer-motion": "^13.1.1",
+    "lucide-react": "^1.37.0",
+    "next": "^16.3.3",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "react-is": "19.2.8",
+    "recharts": "^3.10.1",
+    "sonner": "^2.0.8",
+    "tailwind-merge": "^3.6.0",
+    "zod": "^4.5.4"
   },
   "optionalDependencies": {
     "@next/swc-linux-x64-gnu": "14.2.35",
@@ -29,8 +29,8 @@
   },
   "devDependencies": {
     "@types/node": "^20",
-    "@types/react": "^18.3.31",
-    "@types/react-dom": "^18.3.7",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.5",
     "autoprefixer": "^10.0.1",
     "eslint": "^8.57.1",
     "eslint-config-next": "^14.2.35",
