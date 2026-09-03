@@ -73,7 +73,6 @@ export class TimeClosingService {
       where: { OR: [{ companyId }, { companyId: null }], date: { gte: periodStart, lte: periodEnd } },
     });
     const holidayKeys = new Set(holidays.map((holiday) => this.dateKey(holiday.date)));
-    const results = [];
 
     const employeeIds = employees.map(e => e.id);
     const [allTracks, allOccurrences, allSchedules] = await Promise.all([
@@ -112,6 +111,9 @@ export class TimeClosingService {
       if (!schedulesByEmployee.has(schedule.employeeId)) schedulesByEmployee.set(schedule.employeeId, []);
       schedulesByEmployee.get(schedule.employeeId)!.push(schedule);
     }
+
+    // ⚡ Bolt: Bulk payload collection for batch insert to prevent N+1 queries.
+    const timeClosingDataToCreate: any[] = [];
 
     for (const employee of employees) {
       const tracks = tracksByEmployee.get(employee.id) || [];
@@ -216,36 +218,58 @@ export class TimeClosingService {
         taxContext,
       });
 
-      await this.prisma.timeClosing.deleteMany({
-        where: { companyId, employeeId: employee.id, periodStart, periodEnd, status: TimeClosingStatus.DRAFT },
+      timeClosingDataToCreate.push({
+        companyId,
+        employeeId: employee.id,
+        periodStart,
+        periodEnd,
+        status: TimeClosingStatus.DRAFT,
+        normalHours: this.hours(normalMinutes),
+        overtime50: this.hours(overtime50Minutes),
+        overtime100: this.hours(overtime100Minutes),
+        nightShift: this.hours(nightShiftMinutes),
+        absences: absenceDays,
+        lateArrivals: lateArrivalDays,
+        fallbackPunches,
+        payableWorkdays,
+        paidRestDays,
+        absenceMinutes,
+        lateMinutes,
+        earlyLeaveMinutes,
+        ...financial,
+        taxTableSnapshot: JSON.parse(JSON.stringify(taxContext)),
+        totalPayable: financial.netPay,
       });
-      results.push(await this.prisma.timeClosing.create({
-        data: {
-          companyId,
-          employeeId: employee.id,
-          periodStart,
-          periodEnd,
-          status: TimeClosingStatus.DRAFT,
-          normalHours: this.hours(normalMinutes),
-          overtime50: this.hours(overtime50Minutes),
-          overtime100: this.hours(overtime100Minutes),
-          nightShift: this.hours(nightShiftMinutes),
-          absences: absenceDays,
-          lateArrivals: lateArrivalDays,
-          fallbackPunches,
-          payableWorkdays,
-          paidRestDays,
-          absenceMinutes,
-          lateMinutes,
-          earlyLeaveMinutes,
-          ...financial,
-          taxTableSnapshot: JSON.parse(JSON.stringify(taxContext)),
-          totalPayable: financial.netPay,
-        },
-        include: { employee: true },
-      }));
     }
-    return results;
+
+    // ⚡ Bolt: Execute batched delete and create operations outside the loop.
+    // This reduces database roundtrips from O(N) to O(1), improving performance for large sets of employees.
+    await this.prisma.timeClosing.deleteMany({
+      where: {
+        companyId,
+        employeeId: { in: employees.map((e) => e.id) },
+        periodStart,
+        periodEnd,
+        status: TimeClosingStatus.DRAFT,
+      },
+    });
+
+    if (timeClosingDataToCreate.length > 0) {
+      await this.prisma.timeClosing.createMany({
+        data: timeClosingDataToCreate,
+      });
+    }
+
+    return this.prisma.timeClosing.findMany({
+      where: {
+        companyId,
+        employeeId: { in: employees.map((e) => e.id) },
+        periodStart,
+        periodEnd,
+        status: TimeClosingStatus.DRAFT,
+      },
+      include: { employee: true },
+    });
   }
 
   async list(companyId: string, status?: TimeClosingStatus) {
