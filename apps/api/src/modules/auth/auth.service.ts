@@ -18,6 +18,7 @@ import { LoginDto } from './dto/login.dto';
 import { RegisterCompanyDto } from './dto/register-company.dto';
 import { RequestPasswordResetDto } from './dto/request-password-reset.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { ValidateResetCodeDto } from './dto/validate-reset-code.dto';
 import type { JwtUser, UserRole } from '../../common/types/auth.types';
 
 import { NotificationsService } from '../notifications/notifications.service';
@@ -263,7 +264,7 @@ export class AuthService {
     return { requested: true };
   }
 
-  async validateResetCode(dto: { email: string; code: string; cpfStart: string; registration: string }) {
+  async validateResetCode(dto: ValidateResetCodeDto) {
     const user = await this.repository.findUserWithEmployeeByEmail(dto.email);
     if (!user || !user.isActive) throw new UnauthorizedException('Dados de validação incorretos');
     
