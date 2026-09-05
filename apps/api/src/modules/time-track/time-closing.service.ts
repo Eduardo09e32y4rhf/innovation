@@ -113,6 +113,9 @@ export class TimeClosingService {
       schedulesByEmployee.get(schedule.employeeId)!.push(schedule);
     }
 
+        const draftsToDelete: string[] = [];
+    const bulkCreates: any[] = [];
+
     for (const employee of employees) {
       const tracks = tracksByEmployee.get(employee.id) || [];
       const occurrences = occurrencesByEmployee.get(employee.id) || [];
@@ -216,34 +219,61 @@ export class TimeClosingService {
         taxContext,
       });
 
-      await this.prisma.timeClosing.deleteMany({
-        where: { companyId, employeeId: employee.id, periodStart, periodEnd, status: TimeClosingStatus.DRAFT },
+
+      draftsToDelete.push(employee.id);
+      bulkCreates.push({
+        companyId,
+        employeeId: employee.id,
+        periodStart,
+        periodEnd,
+        status: TimeClosingStatus.DRAFT,
+        normalHours: this.hours(normalMinutes),
+        overtime50: this.hours(overtime50Minutes),
+        overtime100: this.hours(overtime100Minutes),
+        nightShift: this.hours(nightShiftMinutes),
+        absences: absenceDays,
+        lateArrivals: lateArrivalDays,
+        fallbackPunches,
+        payableWorkdays,
+        paidRestDays,
+        absenceMinutes,
+        lateMinutes,
+        earlyLeaveMinutes,
+        ...financial,
+        taxTableSnapshot: JSON.parse(JSON.stringify(taxContext)),
+        totalPayable: financial.netPay,
       });
-      results.push(await this.prisma.timeClosing.create({
-        data: {
+
+    }
+
+    if (draftsToDelete.length > 0) {
+      await this.prisma.timeClosing.deleteMany({
+        where: {
           companyId,
-          employeeId: employee.id,
+          employeeId: { in: draftsToDelete },
           periodStart,
           periodEnd,
           status: TimeClosingStatus.DRAFT,
-          normalHours: this.hours(normalMinutes),
-          overtime50: this.hours(overtime50Minutes),
-          overtime100: this.hours(overtime100Minutes),
-          nightShift: this.hours(nightShiftMinutes),
-          absences: absenceDays,
-          lateArrivals: lateArrivalDays,
-          fallbackPunches,
-          payableWorkdays,
-          paidRestDays,
-          absenceMinutes,
-          lateMinutes,
-          earlyLeaveMinutes,
-          ...financial,
-          taxTableSnapshot: JSON.parse(JSON.stringify(taxContext)),
-          totalPayable: financial.netPay,
+        },
+      });
+    }
+
+    if (bulkCreates.length > 0) {
+      await this.prisma.timeClosing.createMany({
+        data: bulkCreates,
+      });
+
+      const createdDrafts = await this.prisma.timeClosing.findMany({
+        where: {
+          companyId,
+          employeeId: { in: draftsToDelete },
+          periodStart,
+          periodEnd,
+          status: TimeClosingStatus.DRAFT,
         },
         include: { employee: true },
-      }));
+      });
+      results.push(...createdDrafts);
     }
     return results;
   }
@@ -885,7 +915,7 @@ export class TimeClosingService {
 
   private parseEmployeeIds(value?: string | string[]): string[] {
     const values = Array.isArray(value) ? value : value ? [value] : [];
-    const ids = [...new Set(values.flatMap((item) => item.split(',')).map((item) => item.trim()).filter(Boolean))];
+    const ids = [...new Set(values.flatMap((item: string) => String(item).split(',')).map((item: string) => String(item).trim()).filter(Boolean))] as string[];
     if (ids.length > 500) throw new BadRequestException('Selecione no maximo 500 colaboradores por documento.');
     return ids;
   }
