@@ -267,6 +267,7 @@ export class AuthService {
     const user = await this.repository.findUserWithEmployeeByEmail(dto.email);
     if (!user || !user.isActive) throw new UnauthorizedException('Dados de validação incorretos');
     
+    if (!dto.code) throw new UnauthorizedException('Código inválido ou expirado');
     const storedCode = Buffer.from(user.resetPasswordCode ?? '');
     const providedCode = Buffer.from(dto.code.trim().toUpperCase());
     const codesMatch = storedCode.length === providedCode.length && timingSafeEqual(storedCode, providedCode);
