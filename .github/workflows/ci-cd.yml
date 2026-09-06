@@ -11,7 +11,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  NODE_VERSION: '20'
+  NODE_VERSION: '22'
 
 jobs:
   install-root:
@@ -50,6 +50,7 @@ jobs:
           cache: 'npm'
           cache-dependency-path: package-lock.json
       - run: npm ci
+      - run: npm run db:generate
       - run: npm run lint:web
 
   typecheck-api:
@@ -64,6 +65,7 @@ jobs:
           cache: 'npm'
           cache-dependency-path: package-lock.json
       - run: npm ci
+      - run: npm run db:generate
       - run: npm run typecheck:api
 
   typecheck-web:
@@ -78,12 +80,15 @@ jobs:
           cache: 'npm'
           cache-dependency-path: package-lock.json
       - run: npm ci
+      - run: npm run db:generate
       - run: npm run typecheck:web
 
   prisma-validate:
     name: Prisma Validate
     needs: [install-root]
     runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgresql://innovation_rh_user:test_password@localhost:5432/innovation_rh_connect_test?schema=public
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -92,6 +97,7 @@ jobs:
           cache: 'npm'
           cache-dependency-path: package-lock.json
       - run: npm ci
+      - run: npm run db:generate
       - run: npm run prisma:validate
       - run: npm run prisma:generate
 
