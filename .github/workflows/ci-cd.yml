@@ -11,7 +11,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  NODE_VERSION: '20'
+  NODE_VERSION: '22'
 
 jobs:
   install-root:
@@ -25,6 +25,7 @@ jobs:
           cache: 'npm'
           cache-dependency-path: package-lock.json
       - run: npm ci
+      - run: npm run db:generate
 
   install-e2e:
     name: Install E2E
@@ -50,6 +51,8 @@ jobs:
           cache: 'npm'
           cache-dependency-path: package-lock.json
       - run: npm ci
+      - run: npm run db:generate
+      - run: npm install eslint@^8.57.1 --no-save
       - run: npm run lint:web
 
   typecheck-api:
@@ -64,6 +67,7 @@ jobs:
           cache: 'npm'
           cache-dependency-path: package-lock.json
       - run: npm ci
+      - run: npm run db:generate
       - run: npm run typecheck:api
 
   typecheck-web:
@@ -78,6 +82,7 @@ jobs:
           cache: 'npm'
           cache-dependency-path: package-lock.json
       - run: npm ci
+      - run: npm run db:generate
       - run: npm run typecheck:web
 
   prisma-validate:
@@ -92,7 +97,10 @@ jobs:
           cache: 'npm'
           cache-dependency-path: package-lock.json
       - run: npm ci
+      - run: npm run db:generate
       - run: npm run prisma:validate
+        env:
+          DATABASE_URL: postgresql://root:rootpassword@localhost:5432/innovation_test?schema=public
       - run: npm run prisma:generate
 
   build-api:
@@ -107,6 +115,7 @@ jobs:
           cache: 'npm'
           cache-dependency-path: package-lock.json
       - run: npm ci
+      - run: npm run db:generate
       - run: npm run prisma:generate
       - run: npm run build:api
 
@@ -122,6 +131,7 @@ jobs:
           cache: 'npm'
           cache-dependency-path: package-lock.json
       - run: npm ci
+      - run: npm run db:generate
       - run: npm run prisma:generate
       - run: npm run build:web
 
@@ -137,6 +147,7 @@ jobs:
           cache: 'npm'
           cache-dependency-path: package-lock.json
       - run: npm ci
+      - run: npm run db:generate
       - run: npm run prisma:generate
       - run: npm run test:api
 
@@ -167,6 +178,7 @@ jobs:
           cache: 'npm'
           cache-dependency-path: package-lock.json
       - run: npm ci
+      - run: npm run db:generate
       - run: npm run prisma:generate
       - run: npm --prefix apps/api exec -- prisma db push --schema apps/api/prisma/schema.prisma --skip-generate
       - run: npm run test:integration
@@ -183,6 +195,7 @@ jobs:
           cache: 'npm'
           cache-dependency-path: package-lock.json
       - run: npm ci
+      - run: npm run db:generate
       - run: npm run test:security || echo "No security tests found" # Or whatever command if needed
 
   quality-summary:
