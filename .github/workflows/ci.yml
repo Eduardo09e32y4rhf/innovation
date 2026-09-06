@@ -20,6 +20,7 @@ jobs:
       - run: npm run db:generate
       - run: npm install eslint@^8.57.1 --no-save
       - run: npm run lint:web
+      - run: npm run build:api
       - run: npm run typecheck:api
       - run: npm run typecheck:web
 

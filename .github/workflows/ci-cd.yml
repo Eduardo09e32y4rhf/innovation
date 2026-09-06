@@ -149,6 +149,7 @@ jobs:
       - run: npm ci
       - run: npm run db:generate
       - run: npm run prisma:generate
+      - run: npm run build:api
       - run: npm run test:api
 
   test-integration:
