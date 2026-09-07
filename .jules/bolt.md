@@ -5,3 +5,6 @@
 ## 2026-07-30 - Fix N+1 queries in time closing generation
 **Learning:** Database performance degrades severely when making iterative Prisma ORM queries inside a loop such as `for (const employee of employees)`, causing an N+1 problem that does not scale for companies with many employees.
 **Action:** Extract database dependencies by pre-fetching bulk data using `{ in: [...] }` filtering, then regrouping results in memory (e.g. Map objects by employee ID) to iterate locally without emitting further SQL queries.
+## 2025-05-15 - [Refactor `Prisma.create()` in loops to `createMany()`]
+**Learning:** Initializing default configuration data using iterative `create` queries inside loops during `OnModuleInit` delays module startup.
+**Action:** Combine static seeding data in memory and use a single `createMany` operation to prevent N+1 query patterns that delay module startup.
