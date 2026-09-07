@@ -1,3 +1,6 @@
 ## 2024-07-30 - Accessible Interactive Elements in Inputs
 **Learning:** When absolutely positioning interactive elements like toggle buttons inside input fields (e.g., password visibility toggles), they often lack focus styles and have `tabIndex={-1}` by default, making them completely inaccessible to keyboard users. When fixing this, you must explicitly define `focus-visible:ring-inset` alongside standard focus rings so the ring doesn't clip awkwardly outside the input's bounding box.
 **Action:** Always verify `tabIndex` and focus styles (`focus-visible`) on floating buttons within inputs, ensuring they have appropriate ARIA labels and `aria-hidden` on internal icons. Use `focus-visible:ring-inset` for a polished visual result.
+## 2024-09-07 - PR Submission format
+**Learning:** The PR submission needs to include specific sections. When acting as the UX agent 'Palette', PR submissions must use the title format '🎨 Palette: [UX improvement]' and explicitly include the description sections: '💡 What:', '🎯 Why:', '📸 Before/After:', and '♿ Accessibility:'.
+**Action:** Always format the PR description strictly as a markdown list by prefixing each section with a bullet point or consolidate the title into a single line to prevent markdown parsing errors.
