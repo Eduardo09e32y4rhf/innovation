@@ -1,6 +1,7 @@
 import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
 import { ManualContractsService } from './manual-contracts.service';
+import { InvoiceStatus } from '@prisma/client';
 
 const baseContract = {
   id: 'contract-1',
