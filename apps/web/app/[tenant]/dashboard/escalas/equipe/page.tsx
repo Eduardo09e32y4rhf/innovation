@@ -151,6 +151,7 @@ export default function EquipeEscalasPage() {
                       <button 
                         className="btn-icon text-gray-500 hover:text-brand" 
                         title="Editar"
+                        aria-label="Editar"
                         onClick={() => {
                           setEditingSchedule(schedule);
                           setNewScheduleForm({
@@ -168,6 +169,7 @@ export default function EquipeEscalasPage() {
                       <button 
                         className="btn-icon text-gray-500 hover:text-red-500" 
                         title="Arquivar"
+                        aria-label="Arquivar"
                         onClick={() => archiveMutation.mutate(schedule.id)}
                       >
                         <Archive size={16} />

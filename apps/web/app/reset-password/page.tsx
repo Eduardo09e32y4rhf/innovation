@@ -112,6 +112,7 @@ function ResetPasswordForm() {
             </div>
             <input
               type="email"
+              aria-label="E-mail Corporativo"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               disabled={loading}
@@ -127,6 +128,7 @@ function ResetPasswordForm() {
             </div>
             <input
               type="text"
+              aria-label="Código do Gestor (6 dígitos)"
               value={code}
               onChange={(e) => setCode(e.target.value.toUpperCase())}
               maxLength={6}
@@ -144,6 +146,7 @@ function ResetPasswordForm() {
               </div>
               <input
                 type="text"
+                aria-label="Início CPF (3 dígitos)"
                 value={cpfStart}
                 onChange={(e) => setCpfStart(e.target.value.replace(/\D/g, ''))}
                 maxLength={3}
@@ -160,6 +163,7 @@ function ResetPasswordForm() {
               </div>
               <input
                 type="text"
+                aria-label="Matrícula"
                 value={registration}
                 onChange={(e) => setRegistration(e.target.value)}
                 disabled={loading}
@@ -206,6 +210,7 @@ function ResetPasswordForm() {
             </div>
             <input
               type="password"
+              aria-label="Nova Senha"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               disabled={loading}
@@ -221,6 +226,7 @@ function ResetPasswordForm() {
             </div>
             <input
               type="password"
+              aria-label="Confirmar Nova Senha"
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
               disabled={loading}

@@ -115,6 +115,7 @@ export default function DocumentosPage() {
                       <button 
                         className="btn-icon text-[#8A05BE]"
                         title="Baixar PDF"
+                        aria-label="Baixar PDF"
                         onClick={() => handleDownload(doc)}
                       >
                         <Download className="w-5 h-5" />
