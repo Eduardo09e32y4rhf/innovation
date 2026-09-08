@@ -59,7 +59,7 @@ export class VacationsRepository {
     metadata: Record<string, unknown>;
     createdBy?: string;
   }) {
-    const metadata = JSON.parse(JSON.stringify(data.metadata)) as Prisma.InputJsonValue;
+    const metadata = JSON.parse(JSON.stringify(data.metadata)) as any;
     return this.prisma.generatedDocument.create({
       data: {
         ...data,
@@ -129,7 +129,7 @@ export class VacationsRepository {
       unjustifiedAbsences: number;
     };
   }) {
-    return this.prisma.$transaction(async (tx) => {
+    return this.prisma.$transaction(async (tx: any) => {
       const entitlement = await tx.vacationEntitlement.upsert({
         where: {
           employeeId_acquisitionStart_acquisitionEnd: {
@@ -200,7 +200,7 @@ export class VacationsRepository {
     observation: string | undefined,
     actorUserId: string,
   ) {
-    return this.prisma.$transaction(async (tx) => {
+    return this.prisma.$transaction(async (tx: any) => {
       const vacation = await tx.vacation.findFirst({
         where: { id, employee: { companyId } },
         include: { entitlement: true },
@@ -287,7 +287,7 @@ export class VacationsRepository {
     reference?: string;
     actorUserId: string;
   }) {
-    return this.prisma.$transaction(async (tx) => {
+    return this.prisma.$transaction(async (tx: any) => {
       const vacation = await tx.vacation.findFirst({ where: { id: vacationId, employee: { companyId } } });
       if (!vacation) return null;
       const payment = await tx.vacationPayment.create({

@@ -3,7 +3,7 @@ import { SupportService } from './support.service';
 import { SupportRepository } from './support.repository';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { SupportAuthorizationService } from './support-authorization.service';
-import { SupportTicketPriority, SupportTicketStatus } from '@prisma/client';
+
 import { ListSupportTicketsQueryDto } from './dto/list-support-tickets-query.dto';
 import { UpdateSupportStatusDto } from './dto/update-support-status.dto';
 
@@ -54,7 +54,7 @@ export class PlatformSupportController {
   }
 
   @Patch('tickets/:id/priority')
-  async updatePriority(@Req() req: any, @Param('id') id: string, @Body('priority') priority: SupportTicketPriority) {
+  async updatePriority(@Req() req: any, @Param('id') id: string, @Body('priority') priority: any) {
     this.authService.assertCanManageTicket(req.user);
     const ticket = await this.repository.updateTicket(id, { priority });
     await this.repository.createEvent({ ticketId: id, actorUserId: req.user.sub, eventType: 'PRIORITY_CHANGED', newValue: { priority } });
@@ -64,7 +64,7 @@ export class PlatformSupportController {
   @Patch('tickets/:id/status')
   async updateStatus(@Req() req: any, @Param('id') id: string, @Body() body: UpdateSupportStatusDto) {
     this.authService.assertCanManageTicket(req.user);
-    const status = body.status as SupportTicketStatus;
+    const status = body.status as any;
     const lifecycle: any = { status };
     if (status === 'RESOLVED') lifecycle.resolvedAt = new Date();
     if (status === 'CLOSED') lifecycle.closedAt = new Date();

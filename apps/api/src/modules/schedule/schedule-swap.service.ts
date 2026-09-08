@@ -53,7 +53,7 @@ export class ScheduleSwapService {
     await this.assertDatesAreOpen(this.prisma, companyId, employee.id, [originalDate, targetDate]);
     const notifiedUserId = await this.resolveApprover(companyId, actor, employee);
 
-    return this.prisma.$transaction(async (tx) => {
+    return this.prisma.$transaction(async (tx: any) => {
       const request = await tx.scheduleSwapRequest.create({
         data: {
           companyId,
@@ -137,7 +137,7 @@ export class ScheduleSwapService {
       if (!self) return [];
       const teamIds = await this.prisma.employee
         .findMany({ where: { companyId, managerId: self.id }, select: { id: true } })
-        .then((records) => records.map((employee) => employee.id));
+        .then((records: any) => records.map((employee: any) => employee.id));
       return this.prisma.scheduleSwapRequest.findMany({
         where: {
           companyId,
@@ -180,7 +180,7 @@ export class ScheduleSwapService {
       ]);
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    return this.prisma.$transaction(async (tx: any) => {
       const result = await tx.scheduleSwapRequest.updateMany({
         where: { id, companyId, status: 'PENDING' },
         data: {
@@ -230,7 +230,7 @@ export class ScheduleSwapService {
       throw new ForbiddenException('So e possivel cancelar solicitacoes pendentes.');
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    return this.prisma.$transaction(async (tx: any) => {
       const result = await tx.scheduleSwapRequest.updateMany({
         where: { id, companyId, status: 'PENDING' },
         data: { status: 'CANCELLED' },

@@ -1,6 +1,6 @@
 import { ConflictException, Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import type { UserRole } from '@prisma/client';
+
 import { PrismaService } from '../../database/prisma.service';
 
 const safeUserSelect = {
@@ -116,10 +116,10 @@ export class UsersRepository {
     name: string;
     email: string;
     passwordHash: string;
-    role: UserRole;
+    role: any;
     customPermissions?: string[];
   }) {
-    return this.prisma.$transaction(async (tx) => {
+    return this.prisma.$transaction(async (tx: any) => {
       const user = await tx.user.create({
         data: {
           ...data,
@@ -164,7 +164,7 @@ export class UsersRepository {
     userId: string,
     data: Record<string, unknown>,
   ) {
-    return this.prisma.$transaction(async (tx) => {
+    return this.prisma.$transaction(async (tx: any) => {
       const current = await tx.user.findFirst({
         where: { id: userId, companyId },
         select: { id: true, email: true, name: true, role: true, isActive: true },
@@ -219,7 +219,7 @@ export class UsersRepository {
   }
 
   async deactivateWithEmployeeSync(companyId: string, userId: string) {
-    return this.prisma.$transaction(async (tx) => {
+    return this.prisma.$transaction(async (tx: any) => {
       const result = await tx.user.updateMany({
         where: { id: userId, companyId },
         data: {
@@ -275,7 +275,7 @@ export class UsersRepository {
     }).catch(() => null);
   }
 
-  createAuditLog(data: { companyId: string; userId?: string; action: string; entity: string; entityId?: string; metadata?: Prisma.InputJsonValue; ipAddress?: string; userAgent?: string }) {
+  createAuditLog(data: { companyId: string; userId?: string; action: string; entity: string; entityId?: string; metadata?: any; ipAddress?: string; userAgent?: string }) {
     return this.prisma.auditLog.create({ data });
   }
 }

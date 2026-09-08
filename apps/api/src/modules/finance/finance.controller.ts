@@ -89,16 +89,16 @@ export class FinanceController {
     const companies = await this.prisma.company.findMany({
       select: { id: true, name: true, asaasCustomerId: true },
     });
-    const byCustomer = new Map(companies.filter((item) => item.asaasCustomerId).map((item) => [item.asaasCustomerId as string, item]));
-    const byId = new Map(companies.map((item) => [item.id, item]));
+    const byCustomer = new Map(companies.filter((item: any) => item.asaasCustomerId).map((item: any) => [item.asaasCustomerId as string, item]));
+    const byId = new Map(companies.map((item: any) => [item?.id, item]));
     return events
-      .map((event) => {
+      .map((event: any) => {
         const payload = event.payload as any;
         const payment = payload?.payment || {};
         const externalReference = String(payment.externalReference || '').replace(/^signup:/, '');
         const company = byCustomer.get(payment.customer) || byId.get(externalReference);
         return {
-          id: event.id,
+          id: event?.id,
           asaasEventId: event.asaasEventId,
           eventType: event.eventType,
           status: event.status,
@@ -111,7 +111,7 @@ export class FinanceController {
           paymentId: payment.id || null,
         };
       })
-      .filter((event) => !companyId || event.company?.id === companyId);
+      .filter((event: any) => !companyId || event.company?.id === companyId);
   }
 
   @Post('platform/webhook-events/:id/retry')

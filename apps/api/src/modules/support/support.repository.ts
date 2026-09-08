@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
-import { Prisma, $Enums } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 
 export const SAFE_USER_SELECT = {
   id: true,
@@ -13,7 +13,7 @@ export const SAFE_USER_SELECT = {
 export class SupportRepository {
   constructor(private prisma: PrismaService) {}
 
-  async createTicket(data: Prisma.SupportTicketUncheckedCreateInput) {
+  async createTicket(data: any) {
     return this.prisma.supportTicket.create({
       data,
       select: {
@@ -155,7 +155,7 @@ export class SupportRepository {
     });
   }
 
-  async findTickets(where: Prisma.SupportTicketWhereInput, orderBy: Prisma.SupportTicketOrderByWithRelationInput = { createdAt: 'desc' }) {
+  async findTickets(where: any, orderBy: any = { createdAt: 'desc' }) {
     return this.prisma.supportTicket.findMany({
       where,
       orderBy,
@@ -185,14 +185,14 @@ export class SupportRepository {
     });
   }
 
-  async updateTicket(id: string, data: Prisma.SupportTicketUpdateInput) {
+  async updateTicket(id: string, data: any) {
     return this.prisma.supportTicket.update({
       where: { id },
       data
     });
   }
 
-  async createMessage(data: Prisma.SupportTicketMessageUncheckedCreateInput) {
+  async createMessage(data: any) {
     return this.prisma.supportTicketMessage.create({
       data,
       select: {
@@ -207,11 +207,11 @@ export class SupportRepository {
     });
   }
 
-  async createEvent(data: Prisma.SupportTicketEventUncheckedCreateInput) {
+  async createEvent(data: any) {
     return this.prisma.supportTicketEvent.create({ data });
   }
 
-  async createAttachment(data: Prisma.SupportAttachmentUncheckedCreateInput) {
+  async createAttachment(data: any) {
     return this.prisma.supportAttachment.create({ data });
   }
 
@@ -294,7 +294,7 @@ export class SupportRepository {
   }
 
   async generateTicketNumber(year: number): Promise<string> {
-    const counter = await this.prisma.$transaction(async (tx) => {
+    const counter = await this.prisma.$transaction(async (tx: any) => {
       const existing = await tx.supportTicketCounter.findUnique({ where: { year } });
       if (existing) {
         return tx.supportTicketCounter.update({

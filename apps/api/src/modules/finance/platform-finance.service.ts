@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { Prisma, $Enums } from '@prisma/client';
-type InvoiceStatus = $Enums.InvoiceStatus;
-const InvoiceStatus = $Enums.InvoiceStatus;
+import { Prisma, InvoiceStatus } from '@prisma/client';
+
+
 import type { JwtUser } from '../../common/types/auth.types';
 import { PrismaService } from '../../database/prisma.service';
 import { AsaasPayment, AsaasService } from './asaas.service';
@@ -747,7 +747,7 @@ export class PlatformFinanceService {
       contractsByCompany.set(contract.companyId, contracts);
     }
 
-    const subscriptionCompanies = new Set(activeSubscriptions.map((subscription) => subscription.companyId));
+    const subscriptionCompanies = new Set(activeSubscriptions.map((subscription: any) => subscription.companyId));
     const includedCompanies = new Set<string>();
     const sourceCounts = { subscriptions: 0, contracts: 0, plans: 0 };
     let mrrCents = 0;
@@ -1005,7 +1005,7 @@ export class PlatformFinanceService {
     if (!invoices.length) {
       doc.font('Helvetica').fontSize(9).fillColor('#64748b').text('Nenhuma fatura encontrada para este filtro.', 38, doc.y + 10);
     } else {
-      invoices.forEach((invoice) => {
+      invoices.forEach((invoice: any) => {
         const rowY = doc.y + 3;
         const status = String(invoice.status || '').toUpperCase();
         const statusColor = status === 'PAID' ? '#047857' : status === 'OVERDUE' ? '#be123c' : status === 'CANCELED' ? '#475569' : '#0369a1';
@@ -1232,7 +1232,7 @@ export class PlatformFinanceService {
   private buildWhere(
     query: Pick<ListPlatformInvoicesDto, 'status' | 'search' | 'from' | 'to'>,
     commercialOwnerId?: string,
-  ): Prisma.PlatformInvoiceWhereInput {
+  ): any {
     const dueDate = query.from || query.to
       ? {
           gte: query.from ? new Date(query.from) : undefined,

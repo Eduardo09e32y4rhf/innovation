@@ -2,7 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { SupportRepository } from './support.repository';
 import { SupportAuthorizationService } from './support-authorization.service';
 import { SupportSlaService } from './support-sla.service';
-import { SupportTicketPriority } from '@prisma/client';
+
 import type { JwtUser } from '../../common/types/auth.types';
 import { ListSupportTicketsQueryDto } from './dto/list-support-tickets-query.dto';
 
@@ -20,15 +20,15 @@ export class SupportService {
     const year = new Date().getFullYear();
     const ticketNumber = await this.repository.generateTicketNumber(year);
     
-    let initialPriority: SupportTicketPriority = SupportTicketPriority.NORMAL;
+    let initialPriority: any = 'NORMAL';
     if (data.priority) {
       initialPriority = data.priority;
     } else if (data.impact?.includes('toda empresa') || data.impact?.includes('perda de dados') || data.category === 'SECURITY') {
-      initialPriority = SupportTicketPriority.CRITICAL;
+      initialPriority = 'CRITICAL';
     } else if (data.impact?.includes('Alguns usuários')) {
-      initialPriority = SupportTicketPriority.HIGH;
+      initialPriority = 'HIGH';
     } else if (data.category === 'FEATURE_REQUEST') {
-      initialPriority = SupportTicketPriority.LOW;
+      initialPriority = 'LOW';
     }
 
     const { firstResponseDueAt, resolutionDueAt } = this.slaService.calculateDueDates(initialPriority);

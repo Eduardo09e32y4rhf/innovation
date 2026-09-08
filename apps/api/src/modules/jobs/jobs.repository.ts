@@ -55,7 +55,7 @@ export class JobsRepository {
   }
 
   async updateApplicationStatus(companyId: string, id: string, status: any) {
-    return this.prisma.$transaction(async (tx) => {
+    return this.prisma.$transaction(async (tx: any) => {
       const application = await tx.application.findFirst({ where: { companyId, id } });
       if (!application) return null;
 
@@ -66,7 +66,7 @@ export class JobsRepository {
         orderBy: [{ updatedAt: 'desc' }],
       });
       const latestStatus = candidateApplications
-        .map((item) => (item.id === application.id ? nextStatus : item.status))
+        .map((item: any) => (item.id === application.id ? nextStatus : item.status))
         .find(Boolean);
 
       if (latestStatus) {
@@ -222,7 +222,7 @@ export class JobsRepository {
       size: number;
     },
   ) {
-    return this.prisma.$transaction(async (tx) => {
+    return this.prisma.$transaction(async (tx: any) => {
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`${companyId}:${data.email}`}))`;
 
       let candidate = await tx.candidate.findFirst({
@@ -283,7 +283,7 @@ export class JobsRepository {
 
   async hire(companyId: string, applicationId: string, actorId: string, data: any) {
     try {
-      return await this.prisma.$transaction(async (tx) => {
+      return await this.prisma.$transaction(async (tx: any) => {
         const application = await tx.application.findFirst({
           where: { companyId, id: applicationId },
           include: { candidate: { include: { admittedEmployee: true } }, job: true },

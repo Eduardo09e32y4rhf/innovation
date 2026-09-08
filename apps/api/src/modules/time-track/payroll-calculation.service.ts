@@ -111,8 +111,8 @@ export class PayrollCalculationService {
       },
       orderBy: { effectiveFrom: 'desc' },
     });
-    const inss = tables.find((table) => table.taxType === 'INSS');
-    const irrf = tables.find((table) => table.taxType === 'IRRF');
+    const inss = tables.find((table: any) => table.taxType === 'INSS');
+    const irrf = tables.find((table: any) => table.taxType === 'IRRF');
     if (!inss || !irrf) {
       const competence = `${referenceDate.getUTCFullYear()}-${String(referenceDate.getUTCMonth() + 1).padStart(2, '0')}`;
       throw new BadRequestException(

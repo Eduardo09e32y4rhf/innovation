@@ -1,9 +1,9 @@
 ﻿import { Injectable, OnModuleInit, Logger, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
-import type { UserRole } from '@prisma/client';
+
 import type { JwtUser } from '../../common/types/auth.types';
 
-const DEFAULT_PERMISSIONS: Record<UserRole, string[]> = {
+const DEFAULT_PERMISSIONS: Record<any, string[]> = {
   DEV: ['admin', 'config_company', 'config_payroll', 'config_time', 'time_admin', 'time_approve', 'time_view', 'time_clock', 'manage_employees', 'payroll', 'documents', 'settings_basic'],
   ADMIN: ['admin', 'config_company', 'config_payroll', 'config_time', 'time_admin', 'time_approve', 'time_view', 'time_clock', 'manage_employees', 'payroll', 'documents', 'settings_basic'],
   COMERCIAL: [],
@@ -29,7 +29,7 @@ export class GlobalPermissionsService implements OnModuleInit {
         this.logger.log('Seeding permissões globais padrão...');
         for (const [role, permissions] of Object.entries(DEFAULT_PERMISSIONS)) {
           await this.prisma.globalRolePermission.create({
-            data: { role: role as UserRole, permissions },
+            data: { role: role as any, permissions },
           });
         }
       }
@@ -42,7 +42,7 @@ export class GlobalPermissionsService implements OnModuleInit {
     return this.prisma.globalRolePermission.findMany({ orderBy: { role: 'asc' } });
   }
 
-  async update(role: UserRole, permissions: string[], actor: JwtUser) {
+  async update(role: any, permissions: string[], actor: JwtUser) {
     if (!actor || actor.role !== 'DEV') {
       throw new ForbiddenException('Apenas DEV pode alterar permissões globais.');
     }
@@ -78,7 +78,7 @@ export class GlobalPermissionsService implements OnModuleInit {
     return { ...updated, changed: true };
   }
 
-  async getForRole(role: UserRole) {
+  async getForRole(role: any) {
     return this.prisma.globalRolePermission.findUnique({ where: { role } });
   }
 }

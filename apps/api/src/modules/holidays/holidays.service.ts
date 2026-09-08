@@ -1,9 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import { RedisService } from '../../common/redis/redis.service';
-import { $Enums } from '@prisma/client';
-type HolidayScope = $Enums.HolidayScope;
-const HolidayScope = $Enums.HolidayScope;
+import { HolidayScope } from '@prisma/client';
+
+
 
 @Injectable()
 export class HolidaysService {
@@ -30,7 +30,7 @@ export class HolidaysService {
       const data = (await res.json()) as any[];
       
       // A better approach is to find existing global national holidays for that year, delete them, and recreate.
-      await this.prisma.$transaction(async (tx) => {
+      await this.prisma.$transaction(async (tx: any) => {
         const startDate = new Date(`${year}-01-01T00:00:00Z`);
         const endDate = new Date(`${year}-12-31T23:59:59Z`);
         

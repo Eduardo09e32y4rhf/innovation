@@ -1,5 +1,5 @@
 import { ConflictException, Injectable } from '@nestjs/common';
-import type { UserRole } from '@prisma/client';
+
 import { PrismaService } from '../../database/prisma.service';
 
 const safeUserSelect = {
@@ -81,7 +81,7 @@ export class PlatformRepository {
     const limit = Math.min(Math.max(options?.limit ?? 25, 1), 100);
     const page = Math.max(options?.page ?? 1, 1);
     const skip = (page - 1) * limit;
-    return this.prisma.$transaction(async (tx) => {
+    return this.prisma.$transaction(async (tx: any) => {
       const [total, data] = await Promise.all([
         tx.auditLog.count({ where: { companyId } }),
         tx.auditLog.findMany({
@@ -143,10 +143,10 @@ export class PlatformRepository {
     name: string;
     email: string;
     passwordHash: string;
-    role: UserRole;
+    role: any;
     customPermissions?: string[];
   }) {
-    return this.prisma.$transaction(async (tx) => {
+    return this.prisma.$transaction(async (tx: any) => {
       const user = await tx.user.create({
         data: {
           ...data,
@@ -189,7 +189,7 @@ export class PlatformRepository {
   }
 
   async updateWithEmployeeSync(companyId: string, userId: string, data: Record<string, unknown>) {
-    return this.prisma.$transaction(async (tx) => {
+    return this.prisma.$transaction(async (tx: any) => {
       const current = await tx.user.findFirst({
         where: { id: userId, companyId },
         select: { id: true, email: true, name: true, role: true, isActive: true },
@@ -244,7 +244,7 @@ export class PlatformRepository {
   }
 
   async deactivateWithEmployeeSync(companyId: string, userId: string) {
-    return this.prisma.$transaction(async (tx) => {
+    return this.prisma.$transaction(async (tx: any) => {
       const result = await tx.user.updateMany({
         where: { id: userId, companyId },
         data: {
@@ -361,7 +361,7 @@ export class PlatformRepository {
   }
 
   async purgeCompany(id: string) {
-    return this.prisma.$transaction(async (tx) => {
+    return this.prisma.$transaction(async (tx: any) => {
       await tx.companySubscription.deleteMany({ where: { companyId: id } });
       await tx.manualContract.deleteMany({ where: { companyId: id } });
       await tx.platformInvoice.deleteMany({ where: { companyId: id } });

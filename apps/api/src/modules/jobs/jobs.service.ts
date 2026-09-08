@@ -57,7 +57,7 @@ export class JobsService {
   async applications(companyId: string, jobId: string) {
     await this.get(companyId, jobId);
     const applications = await this.repository.applications(companyId, jobId);
-    return applications.map((application) => ({
+    return applications.map((application: any) => ({
       ...application,
       candidate: {
         ...application.candidate,

@@ -131,7 +131,7 @@ export class AsoService {
         dueDate.setFullYear(dueDate.getFullYear() + 1);
       }
 
-      const record = await this.prisma.$transaction(async (tx) => {
+      const record = await this.prisma.$transaction(async (tx: any) => {
         const created = await tx.employeeAsoRecord.create({
           data: {
             companyId,
@@ -209,7 +209,7 @@ export class AsoService {
         dueDate.setFullYear(dueDate.getFullYear() + 1);
       }
 
-      const record = await this.prisma.$transaction(async (tx) => {
+      const record = await this.prisma.$transaction(async (tx: any) => {
         const {
           saveClinicPreset: _saveClinicPreset,
           clinicCep: _clinicCep,

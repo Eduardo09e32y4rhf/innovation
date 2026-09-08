@@ -453,7 +453,7 @@ export class ScheduleService {
   async assignSchedule(companyId: string, actor: JwtUser, dto: AssignScheduleDto) {
     this.assertCanWrite(actor);
 
-    return this.prisma.$transaction(async (tx) => {
+    return this.prisma.$transaction(async (tx: any) => {
       const assessment = await this.assessAssignment(tx, companyId, dto);
       if (!assessment.canApply) {
         throw new BadRequestException({
@@ -512,7 +512,7 @@ export class ScheduleService {
             replacedAssignmentIds: assessment.replacements.map((item: any) => item.id),
             truncatedAssignmentIds: assessment.truncated.map((item: any) => item.id),
             coverage: assessment.coverage,
-          })) as Prisma.InputJsonValue,
+          })) as any,
         },
       });
       return {

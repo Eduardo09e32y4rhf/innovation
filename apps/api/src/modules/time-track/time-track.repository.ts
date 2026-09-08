@@ -106,7 +106,7 @@ overtimePaymentMinutes: true,
       select: this.employeeSelect,
       orderBy: { name: 'asc' },
     });
-    return new Map<string, EmployeeSummary>(employees.map((employee) => [employee.id, employee]));
+    return new Map<string, EmployeeSummary>(employees.map((employee: any) => [employee.id, employee]));
   }
 
   private async loadTracks(
@@ -132,7 +132,7 @@ overtimePaymentMinutes: true,
     });
 
     return tracks
-      .map((track) => ({
+      .map((track: any) => ({
         ...track,
         employee: employeeMap.get(track.employeeId) ?? null,
       }))
@@ -163,11 +163,11 @@ overtimePaymentMinutes: true,
       select: this.trackSelect,
       orderBy: { date: 'asc' },
     });
-    return tracks.map((track) => ({ ...track, employee }));
+    return tracks.map((track: any) => ({ ...track, employee }));
   }
 
   listEmployeeMonth(companyId: string, employeeId: string, start: Date, end: Date, skip = 0, take = 62) {
-    return this.findEmployeeSummary(companyId, employeeId).then((employee) => {
+    return this.findEmployeeSummary(companyId, employeeId).then((employee: any) => {
       if (!employee) return [];
       return this.prisma.timeTrack.findMany({
         where: { employee: { companyId }, employeeId, date: { gte: start, lt: end } },
@@ -180,7 +180,7 @@ overtimePaymentMinutes: true,
   }
 
   countEmployeeMonth(companyId: string, employeeId: string, start: Date, end: Date) {
-    return this.findEmployeeSummary(companyId, employeeId).then((employee) => {
+    return this.findEmployeeSummary(companyId, employeeId).then((employee: any) => {
       if (!employee) return 0;
       return this.prisma.timeTrack.count({
         where: { employee: { companyId }, employeeId, date: { gte: start, lt: end } },
@@ -207,10 +207,10 @@ overtimePaymentMinutes: true,
       select: this.employeeSelect,
       orderBy: { name: 'asc' },
     });
-    const employeeIds = employees.map((employee) => employee.id);
+    const employeeIds = employees.map((employee: any) => employee.id);
     if (employeeIds.length === 0) return [];
 
-    const employeeMap = new Map<string, EmployeeSummary>(employees.map((employee) => [employee.id, employee]));
+    const employeeMap = new Map<string, EmployeeSummary>(employees.map((employee: any) => [employee.id, employee]));
     const tracks = await this.prisma.timeTrack.findMany({
       where: {
         companyId,
@@ -222,7 +222,7 @@ overtimePaymentMinutes: true,
     });
 
     return tracks
-      .map((track) => ({
+      .map((track: any) => ({
         ...track,
         employee: employeeMap.get(track.employeeId) ?? null,
       }))
@@ -306,7 +306,7 @@ overtimePaymentMinutes: true,
       select: this.trackSelect,
       orderBy: { createdAt: 'desc' },
     });
-    return tracks.map((track) => ({
+    return tracks.map((track: any) => ({
       ...track,
       employee: employees.get(track.employeeId) ?? null,
     }));
@@ -330,17 +330,17 @@ overtimePaymentMinutes: true,
       select: this.employeeSelect,
       orderBy: { name: 'asc' },
     });
-    const employeeIds = employees.map((employee) => employee.id);
+    const employeeIds = employees.map((employee: any) => employee.id);
     if (employeeIds.length === 0) return [];
 
-    const employeeMap = new Map<string, EmployeeSummary>(employees.map((employee) => [employee.id, employee]));
+    const employeeMap = new Map<string, EmployeeSummary>(employees.map((employee: any) => [employee.id, employee]));
     const tracks = await this.prisma.timeTrack.findMany({
       where: { companyId, employeeId: { in: employeeIds }, manualStatus: 'pending' },
       select: this.trackSelect,
       orderBy: { createdAt: 'desc' },
     });
 
-    return tracks.map((track) => ({
+    return tracks.map((track: any) => ({
       ...track,
       employee: employeeMap.get(track.employeeId) ?? null,
     }));
@@ -380,7 +380,7 @@ overtimePaymentMinutes: true,
         status: 'SENT',
         sentAt: new Date(),
         recipients: {
-          create: adminUserIds.map((u) => ({ userId: u.id, status: 'UNREAD' })),
+          create: adminUserIds.map((u: any) => ({ userId: u.id, status: 'UNREAD' })),
         },
       },
     });

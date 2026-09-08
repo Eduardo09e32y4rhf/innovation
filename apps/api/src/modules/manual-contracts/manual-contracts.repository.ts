@@ -48,7 +48,7 @@ export class ManualContractsRepository {
   }
 
   createWithActivation(data: any, actorId: string) {
-    return this.prisma.$transaction(async (tx) => {
+    return this.prisma.$transaction(async (tx: any) => {
       const contract = await tx.manualContract.create({
         data: { ...data, status: data.status || 'DRAFT', createdBy: actorId },
         include: contractInclude,
@@ -75,7 +75,7 @@ export class ManualContractsRepository {
   }
 
   updateDetails(id: string, data: any, actorId: string, before: any) {
-    return this.prisma.$transaction(async (tx) => {
+    return this.prisma.$transaction(async (tx: any) => {
       const contract = await tx.manualContract.update({
         where: { id },
         data,
@@ -114,7 +114,7 @@ export class ManualContractsRepository {
     reason: string,
     endsAt?: Date,
   ) {
-    return this.prisma.$transaction(async (tx) => {
+    return this.prisma.$transaction(async (tx: any) => {
       const result = await tx.manualContract.updateMany({
         where: { id, status: expectedStatus },
         data: {
@@ -163,7 +163,7 @@ export class ManualContractsRepository {
   }
 
   delete(id: string, actorId: string) {
-    return this.prisma.$transaction(async (tx) => {
+    return this.prisma.$transaction(async (tx: any) => {
       const contract = await tx.manualContract.delete({ where: { id } });
       await tx.auditLog.create({
         data: {

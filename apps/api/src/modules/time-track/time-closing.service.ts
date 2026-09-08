@@ -47,16 +47,16 @@ export class TimeClosingService {
       orderBy: { name: 'asc' },
     });
     if (!employees.length) throw new BadRequestException('Nenhum funcionario ativo encontrado para o fechamento.');
-    const withoutSalary = employees.filter((employee) => Number(employee.salary || 0) <= 0);
+    const withoutSalary = employees.filter((employee: any) => Number(employee.salary || 0) <= 0);
     if (withoutSalary.length) {
-      throw new BadRequestException(`Preencha o salario na ficha antes de fechar: ${withoutSalary.map((item) => item.name).join(', ')}`);
+      throw new BadRequestException(`Preencha o salario na ficha antes de fechar: ${withoutSalary.map((item: any) => item.name).join(', ')}`);
     }
     const taxContext = await this.payroll.resolveTaxContext(periodEnd);
 
     const existingLocked = await this.prisma.timeClosing.findFirst({
       where: {
         companyId,
-        employeeId: { in: employees.map((employee) => employee.id) },
+        employeeId: { in: employees.map((employee: any) => employee.id) },
         periodStart,
         periodEnd,
         status: { not: TimeClosingStatus.DRAFT },
@@ -72,7 +72,7 @@ export class TimeClosingService {
     const holidays = await this.prisma.holiday.findMany({
       where: { OR: [{ companyId }, { companyId: null }], date: { gte: periodStart, lte: periodEnd } },
     });
-    const holidayKeys = new Set(holidays.map((holiday) => this.dateKey(holiday.date)));
+    const holidayKeys = new Set(holidays.map((holiday: any) => this.dateKey(holiday.date)));
     const results = [];
 
     const employeeIds = employees.map(e => e.id);
@@ -118,10 +118,10 @@ export class TimeClosingService {
       const occurrences = occurrencesByEmployee.get(employee.id) || [];
       const schedules = schedulesByEmployee.get(employee.id) || [];
 
-      const trackByDate = new Map(tracks.map((track) => [this.dateKey(track.date), track]));
+      const trackByDate = new Map(tracks.map((track: any) => [this.dateKey(track.date), track]));
       const justifiedDates = new Set(occurrences
-        .filter((item) => this.isJustifyingOccurrence(item.type))
-        .map((item) => this.dateKey(item.date)));
+        .filter((item: any) => this.isJustifyingOccurrence(item.type))
+        .map((item: any) => this.dateKey(item.date)));
       let payableWorkdays = 0;
       let paidRestDays = 0;
       let missingAbsenceMinutes = 0;
@@ -133,7 +133,7 @@ export class TimeClosingService {
 
       for (const date of this.eachDate(periodStart, periodEnd)) {
         const key = this.dateKey(date);
-        const schedule = schedules.find((item) => item.startDate <= date && (!item.endDate || item.endDate >= date));
+        const schedule = schedules.find((item: any) => item.startDate <= date && (!item.endDate || item.endDate >= date));
         const restDays = schedule?.schedule.restDays ?? employee.workScheduleRule?.restDaysOfWeek ?? [0, 6];
         const dayOfWeek = saoPauloDayOfWeek(date);
         const isRest = restDays.includes(dayOfWeek) || holidayKeys.has(key) || this.isOffCycle12x36(date, schedule?.schedule);
@@ -297,7 +297,7 @@ export class TimeClosingService {
     if (!Number.isFinite(value) || value < 0) throw new BadRequestException('Informe um valor numerico nao negativo.');
     const taxContext = await this.payroll.resolveTaxContext(closing.periodEnd);
 
-    return this.prisma.$transaction(async (tx) => {
+    return this.prisma.$transaction(async (tx: any) => {
       await tx.timeClosingAdjustment.create({
         data: { timeClosingId: id, field: dto.field, oldValue: String((closing as unknown as Record<string, unknown>)[dto.field]), newValue: String(value), reason: dto.reason.trim(), changedBy: actor.sub },
       });
@@ -885,7 +885,7 @@ export class TimeClosingService {
 
   private parseEmployeeIds(value?: string | string[]): string[] {
     const values = Array.isArray(value) ? value : value ? [value] : [];
-    const ids = [...new Set(values.flatMap((item) => item.split(',')).map((item) => item.trim()).filter(Boolean))];
+    const ids = [...new Set(values.flatMap((item: any) => item.split(',')).map((item: any) => item.trim()).filter(Boolean))];
     if (ids.length > 500) throw new BadRequestException('Selecione no maximo 500 colaboradores por documento.');
     return ids;
   }
@@ -918,7 +918,7 @@ export class TimeClosingService {
         },
         select: { id: true },
       });
-      const allowed = new Set(team.map((employee) => employee.id));
+      const allowed = new Set(team.map((employee: any) => employee.id));
       if (requestedEmployeeIds.some((id) => !allowed.has(id))) {
         throw new ForbiddenException('A selecao inclui colaborador fora da equipe do gestor.');
       }

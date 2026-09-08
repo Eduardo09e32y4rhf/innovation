@@ -87,7 +87,7 @@ export class AuthRepository {
     userMonthlyPrice?: unknown;
     discountPercent?: unknown;
   }) {
-    return this.prisma.$transaction(async (tx) => {
+    return this.prisma.$transaction(async (tx: any) => {
       const now = new Date();
       const coupon = await tx.promotionCoupon.findUnique({ where: { id: data.couponId } });
       if (!coupon || !coupon.isActive || (coupon.startsAt && coupon.startsAt > now) || (coupon.expiresAt && coupon.expiresAt < now)) {
@@ -129,7 +129,7 @@ export class AuthRepository {
   }
 
   deleteIncompleteCompany(id: string) {
-    return this.prisma.$transaction(async (tx) => {
+    return this.prisma.$transaction(async (tx: any) => {
       await tx.user.deleteMany({ where: { companyId: id } });
       await tx.companySubscription.deleteMany({ where: { companyId: id } });
       return tx.company.deleteMany({ where: { id } });

@@ -11,7 +11,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  NODE_VERSION: '20'
+  NODE_VERSION: '22'
 
 jobs:
   install-root:
@@ -92,7 +92,7 @@ jobs:
           cache: 'npm'
           cache-dependency-path: package-lock.json
       - run: npm ci
-      - run: npm run prisma:validate
+      - run: DATABASE_URL="postgresql://postgres:postgres@localhost:5432/test?schema=public" npm run db:generate && DATABASE_URL="postgresql://postgres:postgres@localhost:5432/test?schema=public" npm run prisma:validate
       - run: npm run prisma:generate
 
   build-api:
