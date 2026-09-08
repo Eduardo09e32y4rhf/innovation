@@ -11,7 +11,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  NODE_VERSION: '20'
+  NODE_VERSION: '22'
 
 jobs:
   install-root:
@@ -50,7 +50,7 @@ jobs:
           cache: 'npm'
           cache-dependency-path: package-lock.json
       - run: npm ci
-      - run: npm run lint:web
+      - run: npm run db:generate && npm run lint:web
 
   typecheck-api:
     name: Typecheck API
@@ -64,7 +64,7 @@ jobs:
           cache: 'npm'
           cache-dependency-path: package-lock.json
       - run: npm ci
-      - run: npm run typecheck:api
+      - run: npm run db:generate && npm run typecheck:api
 
   typecheck-web:
     name: Typecheck Web
@@ -92,7 +92,9 @@ jobs:
           cache: 'npm'
           cache-dependency-path: package-lock.json
       - run: npm ci
-      - run: npm run prisma:validate
+      - env:
+          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/test?schema=public"
+        run: npm run prisma:validate
       - run: npm run prisma:generate
 
   build-api:

@@ -15,7 +15,7 @@ export default defineConfig({
     { name: 'chromium-mobile', use: { ...devices['Pixel 5'] } },
   ],
   webServer: {
-    command: 'node ../apps/web/node_modules/next/dist/bin/next dev ../apps/web --hostname 127.0.0.1 --port 3000',
+    command: 'npm --prefix ../apps/web run dev -- --hostname 127.0.0.1 --port 3000',
     url: process.env.E2E_BASE_URL || 'http://127.0.0.1:3000',
     reuseExistingServer: false,
     timeout: 120_000,
