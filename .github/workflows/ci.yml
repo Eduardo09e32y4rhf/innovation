@@ -17,7 +17,7 @@ jobs:
           node-version: 22
           cache: 'npm'
       - run: npm ci
-      - run: npm run db:generate && npm run lint:web
+      - run: npm run db:generate && npm install eslint@^8.57.1 --no-save && npm run lint:web
       - run: npm run db:generate && npm run typecheck:api
       - run: npm run typecheck:web
 
@@ -31,7 +31,9 @@ jobs:
           node-version: 22
           cache: 'npm'
       - run: npm ci
-      - run: npm run db:generate && npm run test:unit
+      - env:
+          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/test?schema=public"
+        run: npm run db:generate && npm run test:unit
       - run: npm run test:coverage
       - uses: actions/upload-artifact@v4
         with:
@@ -69,7 +71,9 @@ jobs:
       - run: npm run db:deploy
         env:
           DATABASE_URL: postgresql://root:rootpassword@localhost:5432/innovation_test?schema=public
-      - run: npm run test:integration
+      - env:
+          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/test?schema=public"
+        run: npm run test:integration
         env:
           DATABASE_URL: postgresql://root:rootpassword@localhost:5432/innovation_test?schema=public
           REDIS_URL: redis://localhost:6379

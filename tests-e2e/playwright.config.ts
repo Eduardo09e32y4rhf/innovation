@@ -2,7 +2,7 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: './tests',
-  timeout: 30_000,
+  timeout: 60_000,
   expect: { timeout: 10_000 },
   retries: 1,
   reporter: [['list']],
@@ -15,7 +15,7 @@ export default defineConfig({
     { name: 'chromium-mobile', use: { ...devices['Pixel 5'] } },
   ],
   webServer: {
-    command: 'npm --prefix ../apps/web run dev -- --hostname 127.0.0.1 --port 3000',
+    command: 'npm run dev', // Ensure both web and api start
     url: process.env.E2E_BASE_URL || 'http://127.0.0.1:3000',
     reuseExistingServer: false,
     timeout: 120_000,

@@ -50,7 +50,7 @@ jobs:
           cache: 'npm'
           cache-dependency-path: package-lock.json
       - run: npm ci
-      - run: npm run db:generate && npm run lint:web
+      - run: npm run db:generate && npm install eslint@^8.57.1 --no-save && npm run lint:web
 
   typecheck-api:
     name: Typecheck API
@@ -171,7 +171,9 @@ jobs:
       - run: npm ci
       - run: npm run prisma:generate
       - run: npm --prefix apps/api exec -- prisma db push --schema apps/api/prisma/schema.prisma --skip-generate
-      - run: npm run test:integration
+      - env:
+          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/test?schema=public"
+        run: npm run test:integration
 
   security-gate:
     name: Security Gate
