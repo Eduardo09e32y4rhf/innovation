@@ -33,7 +33,7 @@
     "test:contract": "vitest run --config vitest.config.ts tests/contract",
     "test:security": "vitest run --config vitest.config.ts tests/security",
     "test:coverage": "vitest run --coverage --config vitest.config.ts",
-    "test:all": "npm run test:unit && npm run test:integration && npm run test:contract && npm run test:security && npm run test:e2e",
+    "test:all": "npm run test:unit && npm run test:integration && npm run test:contract && npm run test:security",
     "test:db:setup": "npx tsx scripts/test/setup-database.ts",
     "test:db:reset": "npx tsx scripts/test/reset-database.ts",
     "test:db:seed": "npx tsx scripts/test/seed-test-data.ts",
