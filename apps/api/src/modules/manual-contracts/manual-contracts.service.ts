@@ -40,7 +40,7 @@ export class ManualContractsService {
     }
     return {
       currentStatus: contract.status,
-      allowed: MANUAL_CONTRACT_TRANSITIONS[contract.status],
+      allowed: MANUAL_CONTRACT_TRANSITIONS[contract.status as ManualContractStatus],
       termsLocked: IMMUTABLE_CONTRACT_STATUSES.has(contract.status),
     };
   }
@@ -105,7 +105,7 @@ export class ManualContractsService {
       throw new BadRequestException('O contrato ja esta no status solicitado.');
     }
 
-    const allowed = MANUAL_CONTRACT_TRANSITIONS[current.status];
+    const allowed = MANUAL_CONTRACT_TRANSITIONS[current.status as ManualContractStatus];
     if (!allowed.includes(dto.status)) {
       throw new BadRequestException(
         `Transicao invalida de ${current.status} para ${dto.status}. Destinos permitidos: ${allowed.join(', ') || 'nenhum'}.`,
