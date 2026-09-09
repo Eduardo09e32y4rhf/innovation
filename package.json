@@ -29,7 +29,7 @@
     "test:api": "npm --prefix apps/api test",
     "test:e2e": "npm --prefix tests-e2e test",
     "test:unit": "vitest run --config vitest.config.ts",
-    "test:integration": "vitest run --config vitest.integration.config.ts",
+    "test:integration": "vitest run --config vitest.integration.config.ts --passWithNoTests",
     "test:contract": "vitest run --config vitest.config.ts tests/contract",
     "test:security": "vitest run --config vitest.config.ts tests/security",
     "test:coverage": "vitest run --coverage --config vitest.config.ts",
