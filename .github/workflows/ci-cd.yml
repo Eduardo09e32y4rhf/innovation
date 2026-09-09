@@ -11,7 +11,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  NODE_VERSION: '20'
+  NODE_VERSION: '22'
 
 jobs:
   install-root:
@@ -50,6 +50,7 @@ jobs:
           cache: 'npm'
           cache-dependency-path: package-lock.json
       - run: npm ci
+      - run: npm install eslint@^8.57.1 --no-save
       - run: npm run lint:web
 
   typecheck-api:
@@ -64,6 +65,7 @@ jobs:
           cache: 'npm'
           cache-dependency-path: package-lock.json
       - run: npm ci
+      - run: npm run db:generate
       - run: npm run typecheck:api
 
   typecheck-web:
@@ -78,6 +80,7 @@ jobs:
           cache: 'npm'
           cache-dependency-path: package-lock.json
       - run: npm ci
+      - run: npm run db:generate
       - run: npm run typecheck:web
 
   prisma-validate:
@@ -92,8 +95,10 @@ jobs:
           cache: 'npm'
           cache-dependency-path: package-lock.json
       - run: npm ci
-      - run: npm run prisma:validate
       - run: npm run prisma:generate
+      - run: npm run prisma:validate
+        env:
+          DATABASE_URL: postgresql://dummy:dummy@localhost:5432/dummy?schema=public
 
   build-api:
     name: Build API

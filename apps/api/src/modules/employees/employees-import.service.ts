@@ -162,7 +162,7 @@ export class EmployeesImportService {
     if (!payload || payload.companyId !== companyId) throw new BadRequestException('Importação expirada ou inválida.');
     if (!payload.rows.length || payload.rows.length > MAX_ROWS) throw new BadRequestException('Importação sem linhas válidas.');
 
-    const result = await this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx: any) => {
       const created = await tx.employee.createMany({
         data: payload.rows.map((row) => ({ ...row, companyId, status: 'ACTIVE' })),
       });
