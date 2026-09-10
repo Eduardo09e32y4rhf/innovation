@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { AuthSplitLayout } from '@/app/components/auth-split-layout';
 import { AlertCircle, CheckCircle2, ArrowRight } from 'lucide-react';
-import { ArrowLeft, Lock, ShieldCheck, User, Hash, KeyRound } from 'lucide-react';
+import { ArrowLeft, Lock, ShieldCheck, User, Hash, KeyRound, Eye, EyeOff } from 'lucide-react';
 import { FormEvent, Suspense, useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { api } from '@/app/lib/api';
@@ -30,6 +30,8 @@ function ResetPasswordForm() {
   const [resetToken, setResetToken] = useState(queryToken);
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
   
   // State
   const [loading, setLoading] = useState(false);
@@ -205,14 +207,22 @@ function ResetPasswordForm() {
               <Lock size={18} />
             </div>
             <input
-              type="password"
+              type={showPassword ? 'text' : 'password'}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               disabled={loading}
               required
               placeholder="Nova senha"
-              className="form-control pl-11 pr-4 h-12 text-sm"
+              className="form-control pl-11 pr-12 h-12 text-sm"
             />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              aria-label={showPassword ? 'Ocultar senha' : 'Exibir senha'}
+              className="absolute inset-y-0 right-0 flex items-center px-4 text-zinc-400 hover:text-zinc-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand)] focus-visible:ring-inset rounded-r-[var(--radius-md)]"
+            >
+              {showPassword ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
+            </button>
           </div>
 
           <div className="group relative">
@@ -220,14 +230,22 @@ function ResetPasswordForm() {
               <Lock size={18} />
             </div>
             <input
-              type="password"
+              type={showPasswordConfirm ? 'text' : 'password'}
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
               disabled={loading}
               required
               placeholder="Confirmar nova senha"
-              className="form-control pl-11 pr-4 h-12 text-sm"
+              className="form-control pl-11 pr-12 h-12 text-sm"
             />
+            <button
+              type="button"
+              onClick={() => setShowPasswordConfirm(!showPasswordConfirm)}
+              aria-label={showPasswordConfirm ? 'Ocultar senha' : 'Exibir senha'}
+              className="absolute inset-y-0 right-0 flex items-center px-4 text-zinc-400 hover:text-zinc-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand)] focus-visible:ring-inset rounded-r-[var(--radius-md)]"
+            >
+              {showPasswordConfirm ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
+            </button>
           </div>
 
           <button
