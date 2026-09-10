@@ -110,7 +110,7 @@ jobs:
           cache: 'npm'
           cache-dependency-path: package-lock.json
       - run: npm ci
-      - run: npm run prisma:generate
+      - run: npm run db:generate
       - run: npm run build:api
 
   build-web:
@@ -125,7 +125,7 @@ jobs:
           cache: 'npm'
           cache-dependency-path: package-lock.json
       - run: npm ci
-      - run: npm run prisma:generate
+      - run: npm run db:generate
       - run: npm run build:web
 
   test-unit:
@@ -140,7 +140,7 @@ jobs:
           cache: 'npm'
           cache-dependency-path: package-lock.json
       - run: npm ci
-      - run: npm run prisma:generate
+      - run: npm run db:generate
       - run: npm run test:api
 
   test-integration:

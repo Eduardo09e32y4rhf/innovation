@@ -33,6 +33,8 @@ jobs:
             tests-e2e/package-lock.json
       - name: Install application dependencies
         run: npm ci
+      - name: Generate Prisma client
+        run: npm run db:generate
       - name: Install E2E dependencies
         run: npm --prefix tests-e2e ci
       - name: Install Chromium
