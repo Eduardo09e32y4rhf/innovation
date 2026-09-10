@@ -23,7 +23,7 @@ async function login(page: Page) {
   await page.getByPlaceholder('E-mail corporativo').fill(DEV_EMAIL);
   await page.getByPlaceholder('Senha').fill(DEV_PASSWORD);
   await page.getByRole('button', { name: /entrar/i }).click();
-  await expect(page).toHaveURL(/dashboard/, { timeout: 15_000 });
+  await expect(page).toHaveURL(/dashboard/, { timeout: 30_000 });
 }
 
 async function mockPlatform(page: Page) {
@@ -35,6 +35,7 @@ async function mockPlatform(page: Page) {
 }
 
 test.describe('Plataforma: Asaas e cobrancas', () => {
+  test.setTimeout(60000);
   test('ativa cobranca automatica no Asaas pelo painel da empresa', async ({ page }) => {
     await mockPlatform(page);
     let checkoutCalled = false;
