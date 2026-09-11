@@ -1,11 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { exec } from 'child_process';
+import { execFile } from 'child_process';
 import { promisify } from 'util';
 import * as fs from 'fs';
 import * as path from 'path';
 
-const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
 
 @Injectable()
 export class BackupService {
@@ -33,9 +33,10 @@ export class BackupService {
 
       // We extract DB info from prisma URL (postgresql://user:password@host:port/dbname)
       // Assuming pg_dump is available on the system running the node process
-      const command = `pg_dump "${dbUrl}" -F c -f "${filepath}"`;
+      // Use execFile to avoid command injection via unescaped environment variables
+      const args = [dbUrl, '-F', 'c', '-f', filepath];
       
-      const { stdout, stderr } = await execAsync(command);
+      const { stdout, stderr } = await execFileAsync('pg_dump', args);
       
       if (stderr) {
         this.logger.debug(`pg_dump stderr: ${stderr}`);
