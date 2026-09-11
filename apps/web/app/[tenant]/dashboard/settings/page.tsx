@@ -175,8 +175,11 @@ function PasswordChangeSection({ changePassword }: { changePassword: (current: s
             <span>Senha atual</span>
             <div className="relative">
               <input type={showPasswords ? 'text' : 'password'} value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} className={inputClass} />
-              <button type="button" onClick={() => setShowPasswords(!showPasswords)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-                {showPasswords ? <EyeOff size={15} /> : <Eye size={15} />}
+              <button type="button" onClick={() => setShowPasswords(!showPasswords)}
+                aria-label={showPasswords ? 'Ocultar senha' : 'Exibir senha'}
+                className="absolute inset-y-0 right-0 flex items-center px-3 text-slate-400 hover:text-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-teal-500 rounded-r-[8px]"
+              >
+                {showPasswords ? <EyeOff size={15} aria-hidden="true" /> : <Eye size={15} aria-hidden="true" />}
               </button>
             </div>
           </label>
