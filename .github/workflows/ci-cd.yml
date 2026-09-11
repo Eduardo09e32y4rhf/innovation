@@ -64,7 +64,7 @@ jobs:
           cache: 'npm'
           cache-dependency-path: package-lock.json
       - run: npm ci
-      - run: npm run typecheck:api
+      - run: npm run db:generate && npm run typecheck:api
 
   typecheck-web:
     name: Typecheck Web
@@ -92,7 +92,15 @@ jobs:
           cache: 'npm'
           cache-dependency-path: package-lock.json
       - run: npm ci
-      - run: npm run prisma:validate
+      - env:
+        DATABASE_URL: "postgresql://root:rootpassword@localhost:5432/innovation_test?schema=public"
+      env:
+        DATABASE_URL: "postgresql://root:rootpassword@localhost:5432/innovation_test?schema=public"
+      env:
+        DATABASE_URL: "postgresql://root:rootpassword@localhost:5432/innovation_test?schema=public"
+      env:
+        DATABASE_URL: "postgresql://root:rootpassword@localhost:5432/innovation_test?schema=public"
+      run: npm run prisma:validate
       - run: npm run prisma:generate
 
   build-api:
