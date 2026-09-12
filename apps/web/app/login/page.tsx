@@ -1,31 +1,83 @@
+'use client';
+
 import { AuthLayout } from '@/app/components/auth/AuthLayout';
 import Link from 'next/link';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/app/contexts/AuthContext';
+import toast from 'react-hot-toast';
 
 export default function LoginPage() {
+  const router = useRouter();
+  const { login } = useAuth();
+  
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!email || !password) {
+      toast.error('Por favor, preencha o e-mail e a senha.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await login(email, password);
+      // O redirecionamento é feito dentro do método login() do AuthContext
+    } catch (error: any) {
+      toast.error(error.message || 'E-mail ou senha incorretos.');
+      setLoading(false);
+    }
+  };
+
   return (
     <AuthLayout 
       title="Entrar na Plataforma" 
       subtitle="Digite suas credenciais corporativas abaixo."
       logoSize="lg"
     >
-      <form className="flex flex-col gap-4">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <div>
           <label className="block text-sm font-medium text-[var(--auth-text-secondary)] mb-1">E-mail corporativo</label>
           <input 
             type="email" 
             placeholder="voce@empresa.com.br"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            disabled={loading}
             className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-[var(--auth-text-primary)] placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-[var(--auth-accent-purple)] transition-all"
             required
           />
         </div>
         <div>
           <label className="block text-sm font-medium text-[var(--auth-text-secondary)] mb-1">Senha</label>
-          <input 
-            type="password" 
-            placeholder="••••••••"
-            className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-[var(--auth-text-primary)] placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-[var(--auth-accent-purple)] transition-all"
-            required
-          />
+          <div className="relative">
+            <input 
+              type={showPassword ? "text" : "password"}
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              disabled={loading}
+              className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-[var(--auth-text-primary)] placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-[var(--auth-accent-purple)] transition-all pr-12"
+              required
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              disabled={loading}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-white/50 hover:text-white transition-colors focus:outline-none"
+            >
+              {showPassword ? (
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+              ) : (
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+              )}
+            </button>
+          </div>
         </div>
         
         <div className="flex items-center justify-between mt-1 mb-4">
@@ -40,10 +92,11 @@ export default function LoginPage() {
 
         <button 
           type="submit" 
-          className="w-full py-3 px-4 rounded-xl font-bold text-white shadow-lg transition-transform hover:scale-[1.02] active:scale-[0.98]"
+          disabled={loading}
+          className="w-full py-3 px-4 rounded-xl font-bold text-white shadow-lg transition-transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:scale-100"
           style={{ background: 'linear-gradient(to right, var(--auth-accent-purple), var(--auth-accent-violet))' }}
         >
-          Acessar Plataforma →
+          {loading ? 'Entrando...' : 'Acessar Plataforma →'}
         </button>
 
         <div className="mt-6 text-center">
