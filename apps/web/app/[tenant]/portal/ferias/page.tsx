@@ -5,11 +5,11 @@ export default function FeriasPage() {
   return (
     <div className="space-y-6">
       <header>
-        <h2 className="text-xl font-black text-slate-900">Minhas Férias</h2>
-        <p className="mt-1 text-sm font-medium text-slate-500">Acompanhe seu saldo e faça solicitações.</p>
+        <h2 className="text-xl font-black text-slate-900">Minhas FÃ©rias</h2>
+        <p className="mt-1 text-sm font-medium text-slate-500">Acompanhe seu saldo e faÃ§a solicitaÃ§Ãµes.</p>
       </header>
       <div className="rounded-2xl border border-slate-200 bg-white">
-        <EmptyState message="Sem informações de férias." />
+        <EmptyState message="Sem informaÃ§Ãµes de fÃ©rias." />
       </div>
     </div>
   );
