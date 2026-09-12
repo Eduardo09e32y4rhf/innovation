@@ -1,4 +1,4 @@
-﻿import { Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { APP_INTERCEPTOR, APP_GUARD } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
@@ -70,7 +70,7 @@ import { OnboardingModule } from './modules/onboarding/onboarding.module';
     RedisModule,
     DatabaseModule,
     HealthModule,
-    AuthModule,   // @Global() â€” JwtService disponivel em todos os modulos
+    AuthModule,   // @Global() — JwtService disponivel em todos os modulos
     UsersModule,
     CompaniesModule,
     CommunicationModule,
@@ -92,7 +92,7 @@ import { OnboardingModule } from './modules/onboarding/onboarding.module';
     AiModule,
     JobsModule,
     DocumentsModule,
-    OnboardingModule, PerformanceModule,
+    OnboardingModule, PerformanceModule, PerformanceModule,
     PayrollModule,
     ScheduleModule.forRoot(),
   ],
@@ -105,5 +105,7 @@ import { OnboardingModule } from './modules/onboarding/onboarding.module';
   ],
 })
 import { PerformanceModule } from './modules/performance/performance.module';
+import { PerformanceModule } from './modules/performance/performance.module';
 export class AppModule {}
+
 
