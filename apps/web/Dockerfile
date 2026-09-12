@@ -1,39 +1,12 @@
-FROM node:20-bookworm-slim AS builder
+﻿FROM node:20-alpine
 WORKDIR /app
-
-ARG NEXT_PUBLIC_API_URL=/api
-ARG NEXT_PUBLIC_API_BASE_URL=/api
-ARG NEXT_PUBLIC_API_BASE=/api
-ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
-ENV NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL
-ENV NEXT_PUBLIC_API_BASE=$NEXT_PUBLIC_API_BASE
-ENV NEXT_TELEMETRY_DISABLED=1
-
-COPY package.json package-lock.json ./
-COPY apps/web/package.json ./apps/web/package.json
-COPY apps/api/package.json ./apps/api/package.json
-
-RUN npm install --no-audit --legacy-peer-deps
-
+COPY package*.json ./
+COPY apps/api/package*.json ./apps/api/
+COPY apps/web/package*.json ./apps/web/
+RUN npm install
 COPY . .
-
-RUN echo "module.exports.patchIncorrectLockfile = async function() { return; }" > node_modules/next/dist/lib/patch-incorrect-lockfile.js || true
-RUN echo "module.exports.patchIncorrectLockfile = async function() { return; }" > apps/web/node_modules/next/dist/lib/patch-incorrect-lockfile.js || true
-
+RUN cd apps/api && npx prisma generate
+ENV NEXT_PUBLIC_API_URL=http://vps11515.integrator.host/api
 RUN npm run build:web
-
-FROM node:20-bookworm-slim AS runner
-WORKDIR /app
-
-ENV NODE_ENV=production
-ENV NEXT_TELEMETRY_DISABLED=1
-ENV PORT=3000
-
-COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/package-lock.json ./package-lock.json
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/apps/web ./apps/web
-
 EXPOSE 3000
-
-CMD ["sh", "-c", "cd apps/web && npx next start -H 0.0.0.0 -p ${PORT:-3000}"]
+CMD ["npm", "run", "start:web"]

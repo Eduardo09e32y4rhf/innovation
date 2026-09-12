@@ -1,142 +1,43 @@
-# Docker Compose de produção.
-# Uso recomendado:
-#   cp .env.prod.example .env
-#   bash scripts/deploy-prod.sh
-#
-# PostgreSQL e Redis não são expostos publicamente. O PgBouncer foi removido
-# porque a API usa conexão direta com o PostgreSQL e o serviço antigo ocupava
-# desnecessariamente a porta 6432 da VPS.
-
-services:
-  postgres:
+﻿services:
+  db:
     image: postgres:16-alpine
-    container_name: innovation-postgres
-    restart: unless-stopped
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
-    ports:
-      - "127.0.0.1:${POSTGRES_HOST_PORT:-5435}:5432"
+      POSTGRES_USER: innovation
+      POSTGRES_PASSWORD: innovation
+      POSTGRES_DB: innovation_db
+    ports: ["5432:5432"]
     volumes:
-      - innovation_pgdata:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
+      - postgres_data:/var/lib/postgresql/data
+    restart: always
 
   redis:
     image: redis:7-alpine
-    container_name: innovation-redis
-    restart: unless-stopped
-    volumes:
-      - innovation_redisdata:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
+    ports: ["6379:6379"]
+    restart: always
 
   api:
     build:
       context: .
       dockerfile: apps/api/Dockerfile
-    container_name: innovation-api
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3333/health', r => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"]
-      interval: 15s
-      timeout: 10s
-      retries: 5
-      start_period: 30s
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
     environment:
-      NODE_ENV: production
-      NODE_OPTIONS: "--max-old-space-size=2048"
-      PORT: ${API_PORT:-3333}
-      REDIS_URL: redis://redis:6379
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
-      JWT_SECRET: ${JWT_SECRET}
-      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
-      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
-      APP_URL: ${APP_URL:-}
-      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-}
-      PLATFORM_OWNER_EMAIL: ${PLATFORM_OWNER_EMAIL}
-      DEV_EMAIL: ${DEV_EMAIL:-}
-      DEV_PASSWORD: ${DEV_PASSWORD:-}
-      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
-      PLATFORM_COMPANY_DOCUMENT: ${PLATFORM_COMPANY_DOCUMENT:-00000000000000}
-      DEMO_COMPANY_DOCUMENT: ${DEMO_COMPANY_DOCUMENT:-00000000000191}
-      WHATSAPP_SESSION_PATH: /data/whatsapp
-      WHATSAPPMEDIA_PATH: /data/whatsapp-media
-      SUPPORT_ATTACHMENTS_PATH: /data/attachments
-      RECRUITMENT_RESUMES_PATH: /data/attachments/recruitment
-      COMPREFACE_URL: ${COMPREFACE_URL:-}
-      COMPREFACE_API_KEY: ${COMPREFACE_API_KEY:-}
-      ASAAS_API_KEY: ${ASAAS_API_KEY:-}
-      ASAAS_API_URL: ${ASAAS_API_URL:-https://api.asaas.com/v3}
-      ASAAS_WEBHOOK_TOKEN: ${ASAAS_WEBHOOK_TOKEN:-}
-      ASAAS_WEBHOOK_SECRET: ${ASAAS_WEBHOOK_SECRET:-}
-      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
-      OPENAI_AI_ENABLED: ${OPENAI_AI_ENABLED:-true}
-      OPENAI_MODEL_FAST: ${OPENAI_MODEL_FAST:-gpt-4o-mini}
-      OPENAI_MODEL_REASONING: ${OPENAI_MODEL_REASONING:-gpt-4o}
-      OPENAI_MONTHLY_BUDGET: ${OPENAI_MONTHLY_BUDGET:-500000}
-      OPENAI_INPUT_COST_PER_1K: ${OPENAI_INPUT_COST_PER_1K:-0.005}
-      OPENAI_OUTPUT_COST_PER_1K: ${OPENAI_OUTPUT_COST_PER_1K:-0.015}
-    volumes:
-      - innovation_wa:/data
+      DATABASE_URL: "postgresql://innovation:innovation@db:5432/innovation_db?schema=public"
+      JWT_SECRET: "innovation-secret-key-123"
+    ports: ["3333:3333"]
+    depends_on:
+      - db
+      - redis
+    restart: always
 
   web:
     build:
       context: .
       dockerfile: apps/web/Dockerfile
-      args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-/api}
-        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-/api}
-        NEXT_PUBLIC_API_BASE: ${NEXT_PUBLIC_API_BASE:-/api}
-        NEXT_TELEMETRY_DISABLED: 1
-    container_name: innovation-web
-    restart: unless-stopped
-    depends_on:
-      api:
-        condition: service_healthy
     environment:
-      NODE_OPTIONS: "--max-old-space-size=2048"
-      PORT: 3000
-      HOSTNAME: "0.0.0.0"
-    ports:
-      - "${WEB_HOST_PORT:-3000}:3000"
-
-  caddy:
-    image: caddy:2-alpine
-    container_name: innovation-caddy
-    restart: unless-stopped
-    environment:
-      DOMAIN: ${DOMAIN}
-      CADDY_EMAIL: ${CADDY_EMAIL}
-    ports:
-      - "80:80"
-      - "443:443"
-      - "443:443/udp"
-    volumes:
-      - ./infra/Caddyfile:/etc/caddy/Caddyfile:ro
-      - innovation_caddy_data:/data
-      - innovation_caddy_config:/config
+      NEXT_PUBLIC_API_URL: "http://vps11515.integrator.host/api"
+    ports: ["3000:3000"]
     depends_on:
-      api:
-        condition: service_healthy
-      web:
-        condition: service_started
+      - api
+    restart: always
 
 volumes:
-  innovation_pgdata:
-  innovation_wa:
-  innovation_redisdata:
-  innovation_caddy_data:
-  innovation_caddy_config:
+  postgres_data:

@@ -1,24 +1,11 @@
-# Dockerfile de producao da API NestJS.
-
-FROM node:20-bookworm-slim
-WORKDIR /usr/src/app
-
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    python3 make g++ openssl ca-certificates curl \
-  && rm -rf /var/lib/apt/lists/*
-
-COPY package.json package-lock.json ./
-COPY apps/api/package.json ./apps/api/package.json
-COPY apps/web/package.json ./apps/web/package.json
-RUN npm config set fetch-retries 5 \
- && npm config set fetch-retry-mintimeout 20000 \
- && npm config set fetch-retry-maxtimeout 120000 \
- && npm install --no-audit
-
+﻿FROM node:20-alpine
+WORKDIR /app
+COPY package*.json ./
+COPY apps/api/package*.json ./apps/api/
+COPY apps/web/package*.json ./apps/web/
+RUN npm install
 COPY . .
-
-WORKDIR /usr/src/app/apps/api
-RUN npx prisma generate --schema prisma/schema.prisma && npm run build
-
+RUN cd apps/api && npx prisma generate
+RUN npm run build:api
 EXPOSE 3333
-CMD npx prisma migrate deploy --schema prisma/schema.prisma && node dist/main.js
+CMD ["npm", "run", "start:api"]
