@@ -32,23 +32,14 @@ export function AuthLayout({ title, subtitle, logoSize = 'lg', children }: AuthL
         </div>
 
         <div className="relative z-10 flex flex-col items-center">
-          <div 
-            className="rounded-full shadow-2xl overflow-hidden flex items-center justify-center bg-[#16294F]"
-            style={{ 
-              width: logoDimensions[logoSize].width * 0.74, 
-              height: logoDimensions[logoSize].height * 0.74 
-            }}
-          >
-            <Image 
-              src="/logo-innovation.jpg" 
-              alt="Innovation RH Connect" 
-              width={logoDimensions[logoSize].width} 
-              height={logoDimensions[logoSize].height} 
-              className="object-cover max-w-none"
-              style={{ width: '135%', height: '135%' }}
-              priority
-            />
-          </div>
+          <Image 
+            src="/logo-innovation-clean.png" 
+            alt="Innovation RH Connect" 
+            width={logoDimensions[logoSize].width} 
+            height={logoDimensions[logoSize].height} 
+            className="object-contain drop-shadow-2xl"
+            priority
+          />
           <p className="mt-8 text-center text-lg lg:text-xl font-light tracking-wide max-w-sm" style={{ color: 'var(--auth-text-secondary)' }}>
             Gestão de RH inteligente para o seu negócio
           </p>
