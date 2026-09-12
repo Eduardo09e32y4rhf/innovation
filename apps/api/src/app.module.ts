@@ -1,3 +1,4 @@
+import { PerformanceModule } from './modules/performance/performance.module';
 import { Module } from '@nestjs/common';
 import { APP_INTERCEPTOR, APP_GUARD } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
@@ -92,7 +93,8 @@ import { OnboardingModule } from './modules/onboarding/onboarding.module';
     AiModule,
     JobsModule,
     DocumentsModule,
-    OnboardingModule, PerformanceModule, PerformanceModule,
+    OnboardingModule,
+    PerformanceModule,
     PayrollModule,
     ScheduleModule.forRoot(),
   ],
@@ -104,8 +106,7 @@ import { OnboardingModule } from './modules/onboarding/onboarding.module';
     { provide: APP_GUARD, useClass: SubscriptionActiveGuard },
   ],
 })
-import { PerformanceModule } from './modules/performance/performance.module';
-import { PerformanceModule } from './modules/performance/performance.module';
 export class AppModule {}
+
 
 
