@@ -4,7 +4,7 @@ import { AuthLayout } from '@/app/components/auth/AuthLayout';
 import Link from 'next/link';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/app/contexts/AuthContext';
+import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
 
 export default function LoginPage() {
