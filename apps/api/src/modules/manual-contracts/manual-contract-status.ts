@@ -12,7 +12,7 @@ export const MANUAL_CONTRACT_STATUSES = [
 
 export type ManualContractStatus = (typeof MANUAL_CONTRACT_STATUSES)[number];
 
-export const MANUAL_CONTRACT_TRANSITIONS: Record<ManualContractStatus, readonly ManualContractStatus[]> = {
+export const MANUAL_CONTRACT_TRANSITIONS: Record<string, readonly string[]> = {
   DRAFT: ['IN_REVIEW', 'CANCELED'],
   IN_REVIEW: ['DRAFT', 'PENDING_ACCEPTANCE', 'CANCELED'],
   PENDING_ACCEPTANCE: ['IN_REVIEW', 'ACTIVE', 'CANCELED'],

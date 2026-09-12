@@ -366,7 +366,7 @@ export class JobsRepository {
         return { employee, alreadyHired: false };
       });
     } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+      if ((error as any)?.code === "P2002") {
         const application = await this.application(companyId, applicationId);
         if (application?.candidate.admittedEmployee) {
           return { employee: application.candidate.admittedEmployee, alreadyHired: true };
