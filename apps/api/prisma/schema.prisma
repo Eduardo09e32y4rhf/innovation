@@ -558,6 +558,9 @@ model Employee {
   supportTicketsAffected SupportTicket[]
   payrolls               Payroll[]
 
+  evaluationsGiven    PerformanceEvaluation[] @relation("Evaluator")
+  evaluationsReceived PerformanceEvaluation[] @relation("Evaluatee")
+
   @@index([companyId])
   @@index([cpf])
 }
@@ -2329,4 +2332,89 @@ model OnboardingDocument {
 
   @@index([flowId])
   @@index([companyId])
+}
+
+model PerformanceReview {
+  id          String    @id @default(uuid()) @db.Uuid
+  companyId   String    @db.Uuid
+  title       String
+  description String?
+  startDate   DateTime
+  endDate     DateTime
+  status      String    @default("DRAFT") // DRAFT, ACTIVE, CLOSED
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  evaluations PerformanceEvaluation[]
+
+  @@index([companyId, status])
+}
+
+model PerformanceEvaluation {
+  id             String    @id @default(uuid()) @db.Uuid
+  companyId      String    @db.Uuid
+  reviewId       String    @db.Uuid
+  evaluatorId    String    @db.Uuid
+  evaluateeId    String    @db.Uuid
+  score          Decimal?  @db.Decimal(5, 2)
+  feedback       String?   @db.Text
+  status         String    @default("PENDING") // PENDING, SUBMITTED
+  submittedAt    DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  review         PerformanceReview @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  evaluator      Employee          @relation("Evaluator", fields: [evaluatorId], references: [id])
+  evaluatee      Employee          @relation("Evaluatee", fields: [evaluateeId], references: [id])
+
+  @@unique([reviewId, evaluatorId, evaluateeId])
+  @@index([companyId, evaluateeId])
+}
+
+model OKR {
+  id          String    @id @default(uuid()) @db.Uuid
+  companyId   String    @db.Uuid
+  title       String
+  period      String    // ex: "Q3 2024"
+  status      String    @default("ACTIVE") // ACTIVE, CLOSED
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  objectives  Objective[]
+
+  @@index([companyId, status])
+}
+
+model Objective {
+  id          String    @id @default(uuid()) @db.Uuid
+  companyId   String    @db.Uuid
+  okrId       String    @db.Uuid
+  title       String
+  description String?
+  progress    Decimal   @default(0) @db.Decimal(5, 2)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  okr         OKR       @relation(fields: [okrId], references: [id], onDelete: Cascade)
+  keyResults  KeyResult[]
+
+  @@index([companyId, okrId])
+}
+
+model KeyResult {
+  id             String    @id @default(uuid()) @db.Uuid
+  companyId      String    @db.Uuid
+  objectiveId    String    @db.Uuid
+  title          String
+  targetValue    Decimal   @db.Decimal(10, 2)
+  currentValue   Decimal   @default(0) @db.Decimal(10, 2)
+  progress       Decimal   @default(0) @db.Decimal(5, 2)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  objective      Objective @relation(fields: [objectiveId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, objectiveId])
 }
