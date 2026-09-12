@@ -7,10 +7,10 @@ export const metadata: Metadata = {
     default: 'Innovation RH System',
     template: '%s | Innovation RH System',
   },
-  description: 'Plataforma de RH com controle de ponto, fÃ©rias, alertas e comunicaÃ§Ã£o corporativa.',
+  description: 'Plataforma de RH com controle de ponto, férias, alertas e comunicação corporativa.',
   icons: {
-    icon: '/innovation-logo-dark.png',
-    apple: '/innovation-logo-dark.png',
+    icon: '/logo-innovation-clean.png',
+    apple: '/logo-innovation-clean.png',
   },
 };
 
