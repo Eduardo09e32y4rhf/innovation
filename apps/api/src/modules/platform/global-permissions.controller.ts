@@ -4,7 +4,7 @@ import { GlobalPermissionsService } from './global-permissions.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
-import { UserRole } from '@prisma/client';
+import { Prisma, UserRole } from '@prisma/client';
 import type { JwtUser } from '../../common/types/auth.types';
 
 @UseGuards(JwtAuthGuard, RolesGuard)

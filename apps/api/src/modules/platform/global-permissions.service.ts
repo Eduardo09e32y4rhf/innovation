@@ -1,6 +1,6 @@
 ﻿import { Injectable, OnModuleInit, Logger, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
-import type { UserRole } from '@prisma/client';
+import { Prisma, UserRole } from '@prisma/client';
 import type { JwtUser } from '../../common/types/auth.types';
 
 const DEFAULT_PERMISSIONS: Record<UserRole, string[]> = {
