@@ -9,7 +9,7 @@ export default function DocumentosPage() {
         <p className="mt-1 text-sm font-medium text-slate-500">Documentos admissionais e informes.</p>
       </header>
       <div className="rounded-2xl border border-slate-200 bg-white">
-        <EmptyState message="Nenhum documento disponível para download." />
+        <EmptyState message="Nenhum documento disponÃ­vel para download." />
       </div>
     </div>
   );

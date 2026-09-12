@@ -4,7 +4,7 @@ import { EmptyState, LoadingState, ErrorState } from '@/app/components/data-stat
 import { Download } from 'lucide-react';
 import { useState } from 'react';
 
-// Simulando API para o funcionário por enquanto, já que depende da sessão
+// Simulando API para o funcionÃ¡rio por enquanto, jÃ¡ que depende da sessÃ£o
 export default function HoleritesPage() {
   const [loading, setLoading] = useState(false);
   
@@ -16,7 +16,7 @@ export default function HoleritesPage() {
       </header>
 
       <div className="rounded-2xl border border-slate-200 bg-white">
-        <EmptyState message="Nenhum holerite disponível no momento." />
+        <EmptyState message="Nenhum holerite disponÃ­vel no momento." />
       </div>
     </div>
   );
