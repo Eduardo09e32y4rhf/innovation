@@ -42,6 +42,8 @@ import { redisStore } from 'cache-manager-ioredis-yet';
 import { SupportModule } from './modules/support/support.module';
 import { AiModule } from './modules/ai/ai.module';
 import { JobsModule } from './modules/jobs/jobs.module';
+import { PayrollModule } from './modules/payroll/payroll.module';
+import { OnboardingModule } from './modules/onboarding/onboarding.module';
 
 @Module({
   imports: [
@@ -90,6 +92,8 @@ import { JobsModule } from './modules/jobs/jobs.module';
     AiModule,
     JobsModule,
     DocumentsModule,
+    OnboardingModule,
+    PayrollModule,
     ScheduleModule.forRoot(),
   ],
   providers: [

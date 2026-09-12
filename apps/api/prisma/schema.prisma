@@ -556,6 +556,7 @@ model Employee {
   swapRequests       ScheduleSwapRequest[]
 
   supportTicketsAffected SupportTicket[]
+  payrolls               Payroll[]
 
   @@index([companyId])
   @@index([cpf])
@@ -2186,4 +2187,146 @@ model PaymentAttempt {
 
   @@index([invoiceId])
   @@index([attemptedAt])
+}
+
+enum PayrollStatus {
+  DRAFT
+  PROCESSING
+  APPROVED
+  PAID
+  CANCELLED
+}
+
+enum PayrollItemType {
+  BASE_SALARY
+  OVERTIME
+  NIGHT_SHIFT
+  BONUS
+  COMMISSION
+  VACATION_ADDITION
+  INSS
+  IRRF
+  FGTS
+  ADVANCE
+  ABSENCE_DEDUCTION
+  OTHER_EARNING
+  OTHER_DEDUCTION
+}
+
+model Payroll {
+  id               String        @id @default(uuid()) @db.Uuid
+  companyId        String        @db.Uuid
+  employeeId       String        @db.Uuid
+  referenceMonth   Int
+  referenceYear    Int
+  baseSalary       Decimal       @db.Decimal(12, 2)
+  grossSalary      Decimal       @db.Decimal(12, 2)
+  netSalary        Decimal       @db.Decimal(12, 2)
+  inssAmount       Decimal       @db.Decimal(12, 2)
+  irrfAmount       Decimal       @db.Decimal(12, 2)
+  fgtsAmount       Decimal       @db.Decimal(12, 2)
+  overtimeAmount   Decimal       @db.Decimal(12, 2) @default(0)
+  nightShiftAmount Decimal       @db.Decimal(12, 2) @default(0)
+  status           PayrollStatus @default(DRAFT)
+  pdfUrl           String?
+  observations     String?
+  approvedBy       String?       @db.Uuid
+  approvedAt       DateTime?
+  paidAt           DateTime?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  deletedAt        DateTime?
+
+  employee Employee      @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  items    PayrollItem[]
+
+  @@unique([companyId, employeeId, referenceMonth, referenceYear])
+  @@index([companyId, status])
+  @@index([companyId, referenceYear, referenceMonth])
+  @@index([employeeId])
+}
+
+model PayrollItem {
+  id          String          @id @default(uuid()) @db.Uuid
+  payrollId   String          @db.Uuid
+  companyId   String          @db.Uuid
+  type        PayrollItemType
+  description String
+  amount      Decimal         @db.Decimal(12, 2)
+  isDeduction Boolean         @default(false)
+  createdAt   DateTime        @default(now())
+
+  payroll Payroll @relation(fields: [payrollId], references: [id], onDelete: Cascade)
+
+  @@index([payrollId])
+  @@index([companyId])
+}
+
+// ─── MÓDULO ONBOARDING DIGITAL ───────────────────────────────────────────────
+
+enum OnboardingStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum OnboardingTaskType {
+  DOCUMENT_UPLOAD
+  FORM_FILL
+  CONTRACT_SIGN
+  TRAINING
+  SYSTEM_ACCESS
+  OTHER
+}
+
+model OnboardingFlow {
+  id          String             @id @default(uuid()) @db.Uuid
+  companyId   String             @db.Uuid
+  employeeId  String             @db.Uuid
+  status      OnboardingStatus   @default(PENDING)
+  startedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  deletedAt   DateTime?
+
+  tasks     OnboardingTask[]
+  documents OnboardingDocument[]
+
+  @@unique([companyId, employeeId])
+  @@index([companyId, status])
+}
+
+model OnboardingTask {
+  id          String             @id @default(uuid()) @db.Uuid
+  companyId   String             @db.Uuid
+  flowId      String             @db.Uuid
+  title       String
+  description String?
+  taskType    OnboardingTaskType
+  required    Boolean            @default(true)
+  completedAt DateTime?
+  createdAt   DateTime           @default(now())
+
+  flow OnboardingFlow @relation(fields: [flowId], references: [id], onDelete: Cascade)
+
+  @@index([flowId])
+  @@index([companyId])
+}
+
+model OnboardingDocument {
+  id         String    @id @default(uuid()) @db.Uuid
+  companyId  String    @db.Uuid
+  flowId     String    @db.Uuid
+  name       String
+  fileUrl    String?
+  required   Boolean   @default(true)
+  uploadedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  flow OnboardingFlow @relation(fields: [flowId], references: [id], onDelete: Cascade)
+
+  @@index([flowId])
+  @@index([companyId])
 }
