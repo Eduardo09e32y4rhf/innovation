@@ -41,12 +41,12 @@ export function AuthLayout({ title, subtitle, logoSize = 'lg', children }: AuthL
             priority
           />
           <p className="mt-8 text-center text-lg lg:text-xl font-light tracking-wide max-w-sm" style={{ color: 'var(--auth-text-secondary)' }}>
-            Gestão de RH inteligente para o seu negócio
+            GestÃ£o de RH inteligente para o seu negÃ³cio
           </p>
         </div>
       </div>
 
-      {/* Direita / Formulário (Card) */}
+      {/* Direita / FormulÃ¡rio (Card) */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-4 lg:p-12 z-20">
         <div 
           className="w-full max-w-md p-8 lg:p-10 rounded-2xl shadow-2xl relative"
