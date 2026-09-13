@@ -2,19 +2,44 @@
 
 import { AuthLayout } from '@/app/components/auth/AuthLayout';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login } = useAuth();
+  const { login, logout, isAuthenticated, company, user } = useAuth();
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [didSubmit, setDidSubmit] = useState(false);
+
+  useEffect(() => {
+    // Se o usuário navegou até /login manualmente sem ter submetido o formulário, limpamos sessões antigas
+    if (!didSubmit && isAuthenticated) {
+      logout();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    // Só redirecionamos se o usuário tiver preenchido o form e clicado em "Acessar Plataforma"
+    if (didSubmit && isAuthenticated && company) {
+      const slug = (company as any).slug || company.name?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || company.id;
+      const isDev = user?.profile?.toUpperCase() === 'DEV' || user?.role?.toUpperCase() === 'DEV';
+      const mustPay =
+        !isDev &&
+        (user?.companyStatus === 'SUSPENDED' ||
+          user?.companyStatus === 'CANCELLED' ||
+          user?.billingStatus === 'CANCELED' ||
+          user?.billingStatus === 'PENDING_PAYMENT');
+      
+      router.push(mustPay ? `/${slug}/fatura-pendente?autoCheckout=1` : `/${slug}/dashboard`);
+    }
+  }, [didSubmit, isAuthenticated, company, user, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,10 +50,12 @@ export default function LoginPage() {
     }
 
     setLoading(true);
+    setDidSubmit(true);
     try {
       await login(email, password);
-      // O redirecionamento é feito dentro do método login() do AuthContext
+      // O useEffect lidará com o redirecionamento assim que isAuthenticated for true
     } catch (error: any) {
+      setDidSubmit(false);
       toast.error(error.message || 'E-mail ou senha incorretos.');
       setLoading(false);
     }
