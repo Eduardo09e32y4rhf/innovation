@@ -11,7 +11,6 @@ export default defineConfig({
     testTimeout: 30000,
     hookTimeout: 30000,
     fileParallelism: false, // Sequencial para não causar colisão em banco de dados isolado
-    passWithNoTests: true,
     setupFiles: ['./scripts/test/vitest.setup.ts'],
   },
   esbuild: false,
