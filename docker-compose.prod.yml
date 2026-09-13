@@ -1,4 +1,4 @@
-﻿services:
+services:
   db:
     image: postgres:16-alpine
     environment:
@@ -33,7 +33,7 @@
       context: .
       dockerfile: apps/web/Dockerfile
     environment:
-      NEXT_PUBLIC_API_URL: "http://vps11515.integrator.host/api"
+      NEXT_PUBLIC_API_URL: "https://innovation-209-50-228-146.sslip.io/api"
     ports: ["3000:3000"]
     depends_on:
       - api
