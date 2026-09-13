@@ -1,20 +1,28 @@
-﻿import { Controller, Get, Param, UseGuards } from '@nestjs/common';
-import { CurrentCompany } from '../../common/decorators/current-company.decorator';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { Controller, Get, Post, Body, Param, Delete } from '@nestjs/common';
 import { PerformanceService } from './performance.service';
+import { CreateReviewDto } from './dto/create-review.dto';
 
-@UseGuards(JwtAuthGuard)
 @Controller('performance')
 export class PerformanceController {
-  constructor(private readonly service: PerformanceService) {}
+  constructor(private readonly performanceService: PerformanceService) {}
 
-  @Get('reviews')
-  listReviews(@CurrentCompany() companyId: string) {
-    return this.service.listReviews(companyId);
+  @Post()
+  create(@Body() createReviewDto: CreateReviewDto) {
+    return this.performanceService.create(createReviewDto);
   }
 
-  @Get('okrs')
-  listOKRs(@CurrentCompany() companyId: string) {
-    return this.service.listOKRs(companyId);
+  @Get()
+  findAll() {
+    return this.performanceService.findAll();
+  }
+
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.performanceService.findOne(id);
+  }
+
+  @Delete(':id')
+  remove(@Param('id') id: string) {
+    return this.performanceService.remove(id);
   }
 }

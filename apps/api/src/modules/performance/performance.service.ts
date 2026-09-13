@@ -1,30 +1,21 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../../database/prisma.service';
+import { CreateReviewDto } from './dto/create-review.dto';
 
 @Injectable()
 export class PerformanceService {
-  constructor(private prisma: PrismaService) {}
-
-  async listReviews(companyId: string) {
-    return this.prisma.performanceReview.findMany({
-      where: { companyId, deletedAt: null },
-      include: {
-        evaluations: true,
-      },
-    });
+  async create(createReviewDto: CreateReviewDto) {
+    return 'This action adds a new performance review';
   }
 
-  async listOKRs(companyId: string) {
-    return this.prisma.oKR.findMany({
-      where: { companyId, deletedAt: null },
-      include: {
-        objectives: {
-          include: {
-            keyResults: true,
-          }
-        }
-      },
-    });
+  async findAll() {
+    return `This action returns all performance reviews`;
+  }
+
+  async findOne(id: string) {
+    return `This action returns a #${id} performance review`;
+  }
+
+  async remove(id: string) {
+    return `This action removes a #${id} performance review`;
   }
 }
-

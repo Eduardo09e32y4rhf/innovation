@@ -1,12 +1,10 @@
 import { Module } from '@nestjs/common';
-import { PrismaService } from '../../database/prisma.service';
-import { PerformanceController } from './performance.controller';
 import { PerformanceService } from './performance.service';
+import { PerformanceController } from './performance.controller';
 
 @Module({
   controllers: [PerformanceController],
-  providers: [PerformanceService, PrismaService],
+  providers: [PerformanceService],
   exports: [PerformanceService],
 })
 export class PerformanceModule {}
-
