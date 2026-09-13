@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../contexts/AuthContext';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 
 export default function LoginPage() {
   const router = useRouter();
