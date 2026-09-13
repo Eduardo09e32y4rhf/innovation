@@ -298,13 +298,13 @@ model Company {
   logoUrl   String? @db.Text
   phone     String?
   email     String?
-  address   String? // Mantido para migraÃƒÂ§ÃƒÂ£o
+  address   String? // Mantido para migraÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o
 
   // Dados Contratuais e Fiscais
   stateRegistration     String?
   municipalRegistration String?
 
-  // EndereÃƒÂ§o Estruturado
+  // EndereÃƒÆ’Ã‚Â§o Estruturado
   zipCode           String?
   street            String?
   streetNumber      String?
@@ -389,7 +389,7 @@ model Company {
   couponRedemptions   CouponRedemption[]
   manualContracts     ManualContract[]
 
-  // MÃƒÂ³dulo Escala
+  // MÃƒÆ’Ã‚Â³dulo Escala
   schedules          Schedule[]
   userSchedules      UserSchedule[]
   scheduleExceptions ScheduleException[]
@@ -399,6 +399,8 @@ model Company {
   generatedDocuments GeneratedDocument[]
   partners           Partner[]
   partnerInvoices    PartnerInvoice[]
+  timeRecords        TimeRecord[]
+  timePunches        TimePunch[]
 
   @@index([commercialOwnerId])
 }
@@ -553,7 +555,7 @@ model Employee {
   vacationEntitlements VacationEntitlement[]
   medicalCertificates  MedicalCertificate[]
 
-  // MÃƒÂ³dulo Escala
+  // MÃƒÆ’Ã‚Â³dulo Escala
   userSchedules      UserSchedule[]
   scheduleExceptions ScheduleException[]
   swapRequests       ScheduleSwapRequest[]
@@ -563,6 +565,7 @@ model Employee {
 
   evaluationsGiven    PerformanceEvaluation[] @relation("Evaluator")
   evaluationsReceived PerformanceEvaluation[] @relation("Evaluatee")
+  timeRecords         TimeRecord[]
 
   @@index([companyId])
   @@index([cpf])
@@ -580,7 +583,7 @@ model TimeTrack {
   lunchReturn DateTime?
   exit        DateTime?
 
-  // CÃƒÂ¡lculos
+  // CÃƒÆ’Ã‚Â¡lculos
   totalWorked            Int? // minutos
   dailyBalance           Int? // minutos (pode ser negativo)
   overtime50Minutes      Int     @default(0)
@@ -593,7 +596,7 @@ model TimeTrack {
   absenceMinutes         Int?
   clockedInWithoutFacial Boolean @default(false)
 
-  // AprovaÃƒÂ§ÃƒÂ£o (NOVO)
+  // AprovaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o (NOVO)
   overtimeApprovalStatus   String    @default("PENDING") // PENDING, APPROVED, REJECTED
   overtimeExceedsLimit     Boolean   @default(false)
   overtimeApprovedAt       DateTime?
@@ -632,18 +635,18 @@ model WorkScheduleRule {
   id        String @id @default(uuid()) @db.Uuid
   companyId String @db.Uuid
 
-  // IdentificaÃƒÂ§ÃƒÂ£o
+  // IdentificaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o
   name        String
   description String?
 
-  // HorÃƒÂ¡rios padrÃƒÂ£o
+  // HorÃƒÆ’Ã‚Â¡rios padrÃƒÆ’Ã‚Â£o
   standardEntry String? // "08:00"
   standardExit  String? // "18:00"
   breakMinutes  Int     @default(60)
-  dailyMinutes  Int     @default(480) // 8h padrÃƒÂ£o
-  weeklyMinutes Int     @default(2400) // 40h padrÃƒÂ£o
+  dailyMinutes  Int     @default(480) // 8h padrÃƒÆ’Ã‚Â£o
+  weeklyMinutes Int     @default(2400) // 40h padrÃƒÆ’Ã‚Â£o
 
-  // TolerÃƒÂ¢ncias (NOVO)
+  // TolerÃƒÆ’Ã‚Â¢ncias (NOVO)
   lateToleranceMinutes       Int @default(10)
   earlyLeaveToleranceMinutes Int @default(10)
   overtimeToleranceMinutes   Int @default(5)
@@ -652,9 +655,9 @@ model WorkScheduleRule {
   maxDailyOvertimeMinutes   Int @default(120) // CLT: 2h
   maxMonthlyOvertimeMinutes Int @default(2400) // 40h
 
-  // Escala customizÃƒÂ¡vel (NOVO)
+  // Escala customizÃƒÆ’Ã‚Â¡vel (NOVO)
   workScale      String @default("5x2") // "5x2", "6x1", "12x36", etc
-  restDaysOfWeek Int[]  @default([0, 6]) // 0=domingo, 6=sÃƒÂ¡bado
+  restDaysOfWeek Int[]  @default([0, 6]) // 0=domingo, 6=sÃƒÆ’Ã‚Â¡bado
 
   // Turno noturno (NOVO)
   nightShiftEnabled Boolean @default(false)
@@ -1275,7 +1278,7 @@ model OvertimeBank {
   employeeId String @unique @db.Uuid
 
   balanceMinutes     Int @default(0) // Saldo atual (pode ser negativo)
-  accumulatedMinutes Int @default(0) // Total histÃƒÂ³rico
+  accumulatedMinutes Int @default(0) // Total histÃƒÆ’Ã‚Â³rico
 
   lastUpdatedAt DateTime @default(now())
 
@@ -1526,7 +1529,7 @@ model PlatformInvoice {
   @@index([asaasInvoiceId])
 }
 
-/// ConfiguraÃƒÂ§ÃƒÂµes de notificaÃƒÂ§ÃƒÂµes financeiras por empresa
+/// ConfiguraÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Âµes de notificaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Âµes financeiras por empresa
 model CompanyFinanceConfig {
   id        String @id @default(uuid()) @db.Uuid
   companyId String @unique @db.Uuid
@@ -1553,7 +1556,7 @@ model CompanyFinanceConfig {
   company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 }
 
-/// Log de notificaÃƒÂ§ÃƒÂµes financeiras Ã¢â‚¬â€ controle de idempotÃƒÂªncia e histÃƒÂ³rico
+/// Log de notificaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Âµes financeiras ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â controle de idempotÃƒÆ’Ã‚Âªncia e histÃƒÆ’Ã‚Â³rico
 model FinanceNotificationLog {
   id        String @id @default(cuid())
   companyId String @db.Uuid
@@ -1654,9 +1657,9 @@ model ProposalAuditLog {
   @@index([createdAt])
 }
 
-// Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
-// MÃƒâ€œDULO ESCALA
-// Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+// ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
+// MÃƒÆ’Ã¢â‚¬Å“DULO ESCALA
+// ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
 
 enum ScheduleStatus {
   ACTIVE
@@ -1680,20 +1683,20 @@ model Schedule {
   scaleType   String         @default("5x2") // "5x2", "6x1", "12x36", "4x2", "PERSONALIZADA", "PLANTAO"
   status      ScheduleStatus @default(ACTIVE)
 
-  // HorÃƒÂ¡rios padrÃƒÂ£o
+  // HorÃƒÆ’Ã‚Â¡rios padrÃƒÆ’Ã‚Â£o
   entryTime       String? // "08:00"
   lunchStartTime  String? // "12:00"
   lunchReturnTime String? // "13:00"
   exitTime        String? // "17:00"
 
-  // Dias de trabalho (0=Dom, 1=Seg, ... 6=SÃƒÂ¡b)
+  // Dias de trabalho (0=Dom, 1=Seg, ... 6=SÃƒÆ’Ã‚Â¡b)
   workDays Int[] @default([1, 2, 3, 4, 5])
   restDays Int[] @default([0, 6])
 
-  // ConfiguraÃƒÂ§ÃƒÂµes 12x36
+  // ConfiguraÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Âµes 12x36
   cycleWorkHours Int? // horas trabalhadas no ciclo (ex: 12)
   cycleRestHours Int? // horas de descanso no ciclo (ex: 36)
-  cycleStartDate DateTime? // data de inÃƒÂ­cio do ciclo 12x36
+  cycleStartDate DateTime? // data de inÃƒÆ’Ã‚Â­cio do ciclo 12x36
 
   // Turno noturno
   isNightShift   Boolean @default(false)
@@ -1712,7 +1715,7 @@ model Schedule {
   @@map("schedules")
 }
 
-/// VÃƒÂ­nculo entre funcionÃƒÂ¡rio e escala (com perÃƒÂ­odo de vigÃƒÂªncia)
+/// VÃƒÆ’Ã‚Â­nculo entre funcionÃƒÆ’Ã‚Â¡rio e escala (com perÃƒÆ’Ã‚Â­odo de vigÃƒÆ’Ã‚Âªncia)
 model UserSchedule {
   id         String @id @default(uuid()) @db.Uuid
   companyId  String @db.Uuid
@@ -1722,7 +1725,7 @@ model UserSchedule {
   startDate DateTime  @db.Date
   endDate   DateTime? @db.Date // null = vigente indefinidamente
 
-  // Override dos horÃƒÂ¡rios padrÃƒÂ£o da escala (opcional por funcionÃƒÂ¡rio)
+  // Override dos horÃƒÆ’Ã‚Â¡rios padrÃƒÆ’Ã‚Â£o da escala (opcional por funcionÃƒÆ’Ã‚Â¡rio)
   entryTimeOverride       String?
   lunchStartTimeOverride  String?
   lunchReturnTimeOverride String?
@@ -1743,7 +1746,7 @@ model UserSchedule {
   @@map("user_schedules")
 }
 
-/// ExceÃƒÂ§ÃƒÂµes individuais na escala (folga especÃƒÂ­fica, feriado local, atestado)
+/// ExceÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Âµes individuais na escala (folga especÃƒÆ’Ã‚Â­fica, feriado local, atestado)
 model ScheduleException {
   id         String   @id @default(uuid()) @db.Uuid
   companyId  String   @db.Uuid
@@ -1754,7 +1757,7 @@ model ScheduleException {
   reason        String?
   observation   String?
 
-  // Se for compensaÃƒÂ§ÃƒÂ£o, registra o horÃƒÂ¡rio alternativo
+  // Se for compensaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o, registra o horÃƒÆ’Ã‚Â¡rio alternativo
   altEntryTime String?
   altExitTime  String?
 
@@ -1772,7 +1775,7 @@ model ScheduleException {
   @@map("schedule_exceptions")
 }
 
-/// SolicitaÃƒÂ§ÃƒÂµes de troca de escala/folga
+/// SolicitaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Âµes de troca de escala/folga
 model ScheduleSwapRequest {
   id          String            @id @default(uuid()) @db.Uuid
   companyId   String            @db.Uuid
@@ -1786,12 +1789,12 @@ model ScheduleSwapRequest {
 
   justification String?
 
-  // AprovaÃƒÂ§ÃƒÂ£o
+  // AprovaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o
   approvedByUserId String?   @db.Uuid
   approvedAt       DateTime?
   rejectionReason  String?
 
-  // NotificaÃƒÂ§ÃƒÂ£o enviada para
+  // NotificaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o enviada para
   notifiedUserId String? @db.Uuid
 
   createdAt DateTime @default(now())
@@ -2268,7 +2271,7 @@ model PayrollItem {
   @@index([companyId])
 }
 
-// Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ MÃƒâ€œDULO ONBOARDING DIGITAL Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+// ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ MÃƒÆ’Ã¢â‚¬Å“DULO ONBOARDING DIGITAL ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
 
 enum OnboardingStatus {
   PENDING
@@ -2429,7 +2432,7 @@ model KeyResult {
 model Partner {
   id          String        @id @default(uuid()) @db.Uuid
   companyId   String        @db.Uuid
-  legalName   String // RazÃ£o Social
+  legalName   String // RazÃƒÂ£o Social
   tradeName   String? // Nome Fantasia
   document    String // CNPJ ou CPF
   email       String
@@ -2438,7 +2441,7 @@ model Partner {
   address     String?
   status      PartnerStatus @default(ACTIVE)
 
-  // RelaÃ§Ã£o opcional com um usuÃ¡rio que vai logar no portal do parceiro
+  // RelaÃƒÂ§ÃƒÂ£o opcional com um usuÃƒÂ¡rio que vai logar no portal do parceiro
   userId String? @unique @db.Uuid
   user   User?   @relation(fields: [userId], references: [id])
 
@@ -2492,4 +2495,58 @@ enum PartnerInvoiceStatus {
   PAID
   REJECTED
   CANCELLED
+}
+
+// ==========================================
+// FASE 6: GESTÃO DE PONTO E JORNADA
+// ==========================================
+
+model TimeRecord {
+  id         String @id @default(uuid()) @db.Uuid
+  companyId  String @db.Uuid
+  employeeId String @db.Uuid
+
+  date   DateTime   @db.Date
+  status TimeStatus @default(PENDING) // PENDING, APPROVED, REJECTED
+
+  punches TimePunch[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  company  Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, employeeId, date])
+  @@index([companyId])
+}
+
+model TimePunch {
+  id           String @id @default(uuid()) @db.Uuid
+  companyId    String @db.Uuid
+  timeRecordId String @db.Uuid
+
+  timestamp  DateTime
+  type       PunchType // IN (Entrada), OUT (Saída)
+  location   String? // GPS ou IP
+  deviceInfo String?
+
+  createdAt DateTime @default(now())
+
+  timeRecord TimeRecord @relation(fields: [timeRecordId], references: [id], onDelete: Cascade)
+  company    Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([timeRecordId])
+}
+
+enum TimeStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum PunchType {
+  IN
+  OUT
 }
