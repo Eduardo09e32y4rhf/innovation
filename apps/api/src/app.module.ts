@@ -1,5 +1,6 @@
 import { PerformanceModule } from './modules/performance/performance.module';
 import { Module } from '@nestjs/common';
+import { PartnersModule } from './modules/partners/partners.module';
 import { APP_INTERCEPTOR, APP_GUARD } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
@@ -48,6 +49,7 @@ import { OnboardingModule } from './modules/onboarding/onboarding.module';
 
 @Module({
   imports: [
+    PartnersModule,
     PrometheusModule.register(),
     CacheModule.registerAsync({
       isGlobal: true,
@@ -71,7 +73,7 @@ import { OnboardingModule } from './modules/onboarding/onboarding.module';
     RedisModule,
     DatabaseModule,
     HealthModule,
-    AuthModule,   // @Global() — JwtService disponivel em todos os modulos
+    AuthModule,   // @Global() â€” JwtService disponivel em todos os modulos
     UsersModule,
     CompaniesModule,
     CommunicationModule,

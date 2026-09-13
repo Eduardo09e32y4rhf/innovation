@@ -298,13 +298,13 @@ model Company {
   logoUrl   String? @db.Text
   phone     String?
   email     String?
-  address   String? // Mantido para migração
+  address   String? // Mantido para migraÃƒÂ§ÃƒÂ£o
 
   // Dados Contratuais e Fiscais
   stateRegistration     String?
   municipalRegistration String?
 
-  // Endereço Estruturado
+  // EndereÃƒÂ§o Estruturado
   zipCode           String?
   street            String?
   streetNumber      String?
@@ -389,7 +389,7 @@ model Company {
   couponRedemptions   CouponRedemption[]
   manualContracts     ManualContract[]
 
-  // Módulo Escala
+  // MÃƒÂ³dulo Escala
   schedules          Schedule[]
   userSchedules      UserSchedule[]
   scheduleExceptions ScheduleException[]
@@ -397,6 +397,8 @@ model Company {
 
   supportTickets     SupportTicket[]
   generatedDocuments GeneratedDocument[]
+  partners           Partner[]
+  partnerInvoices    PartnerInvoice[]
 
   @@index([commercialOwnerId])
 }
@@ -445,6 +447,7 @@ model User {
   supportAttachmentsUploaded SupportAttachment[]
   supportTicketEvents        SupportTicketEvent[]
   generatedDocuments         GeneratedDocument[]
+  partner                    Partner?
 
   @@index([companyId])
 }
@@ -550,7 +553,7 @@ model Employee {
   vacationEntitlements VacationEntitlement[]
   medicalCertificates  MedicalCertificate[]
 
-  // Módulo Escala
+  // MÃƒÂ³dulo Escala
   userSchedules      UserSchedule[]
   scheduleExceptions ScheduleException[]
   swapRequests       ScheduleSwapRequest[]
@@ -577,7 +580,7 @@ model TimeTrack {
   lunchReturn DateTime?
   exit        DateTime?
 
-  // Cálculos
+  // CÃƒÂ¡lculos
   totalWorked            Int? // minutos
   dailyBalance           Int? // minutos (pode ser negativo)
   overtime50Minutes      Int     @default(0)
@@ -590,7 +593,7 @@ model TimeTrack {
   absenceMinutes         Int?
   clockedInWithoutFacial Boolean @default(false)
 
-  // Aprovação (NOVO)
+  // AprovaÃƒÂ§ÃƒÂ£o (NOVO)
   overtimeApprovalStatus   String    @default("PENDING") // PENDING, APPROVED, REJECTED
   overtimeExceedsLimit     Boolean   @default(false)
   overtimeApprovedAt       DateTime?
@@ -629,18 +632,18 @@ model WorkScheduleRule {
   id        String @id @default(uuid()) @db.Uuid
   companyId String @db.Uuid
 
-  // Identificação
+  // IdentificaÃƒÂ§ÃƒÂ£o
   name        String
   description String?
 
-  // Horários padrão
+  // HorÃƒÂ¡rios padrÃƒÂ£o
   standardEntry String? // "08:00"
   standardExit  String? // "18:00"
   breakMinutes  Int     @default(60)
-  dailyMinutes  Int     @default(480) // 8h padrão
-  weeklyMinutes Int     @default(2400) // 40h padrão
+  dailyMinutes  Int     @default(480) // 8h padrÃƒÂ£o
+  weeklyMinutes Int     @default(2400) // 40h padrÃƒÂ£o
 
-  // Tolerâncias (NOVO)
+  // TolerÃƒÂ¢ncias (NOVO)
   lateToleranceMinutes       Int @default(10)
   earlyLeaveToleranceMinutes Int @default(10)
   overtimeToleranceMinutes   Int @default(5)
@@ -649,9 +652,9 @@ model WorkScheduleRule {
   maxDailyOvertimeMinutes   Int @default(120) // CLT: 2h
   maxMonthlyOvertimeMinutes Int @default(2400) // 40h
 
-  // Escala customizável (NOVO)
+  // Escala customizÃƒÂ¡vel (NOVO)
   workScale      String @default("5x2") // "5x2", "6x1", "12x36", etc
-  restDaysOfWeek Int[]  @default([0, 6]) // 0=domingo, 6=sábado
+  restDaysOfWeek Int[]  @default([0, 6]) // 0=domingo, 6=sÃƒÂ¡bado
 
   // Turno noturno (NOVO)
   nightShiftEnabled Boolean @default(false)
@@ -1272,7 +1275,7 @@ model OvertimeBank {
   employeeId String @unique @db.Uuid
 
   balanceMinutes     Int @default(0) // Saldo atual (pode ser negativo)
-  accumulatedMinutes Int @default(0) // Total histórico
+  accumulatedMinutes Int @default(0) // Total histÃƒÂ³rico
 
   lastUpdatedAt DateTime @default(now())
 
@@ -1523,7 +1526,7 @@ model PlatformInvoice {
   @@index([asaasInvoiceId])
 }
 
-/// Configurações de notificações financeiras por empresa
+/// ConfiguraÃƒÂ§ÃƒÂµes de notificaÃƒÂ§ÃƒÂµes financeiras por empresa
 model CompanyFinanceConfig {
   id        String @id @default(uuid()) @db.Uuid
   companyId String @unique @db.Uuid
@@ -1550,7 +1553,7 @@ model CompanyFinanceConfig {
   company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 }
 
-/// Log de notificações financeiras — controle de idempotência e histórico
+/// Log de notificaÃƒÂ§ÃƒÂµes financeiras Ã¢â‚¬â€ controle de idempotÃƒÂªncia e histÃƒÂ³rico
 model FinanceNotificationLog {
   id        String @id @default(cuid())
   companyId String @db.Uuid
@@ -1651,9 +1654,9 @@ model ProposalAuditLog {
   @@index([createdAt])
 }
 
-// ─────────────────────────────────────────────────
-// MÓDULO ESCALA
-// ─────────────────────────────────────────────────
+// Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+// MÃƒâ€œDULO ESCALA
+// Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
 enum ScheduleStatus {
   ACTIVE
@@ -1677,20 +1680,20 @@ model Schedule {
   scaleType   String         @default("5x2") // "5x2", "6x1", "12x36", "4x2", "PERSONALIZADA", "PLANTAO"
   status      ScheduleStatus @default(ACTIVE)
 
-  // Horários padrão
+  // HorÃƒÂ¡rios padrÃƒÂ£o
   entryTime       String? // "08:00"
   lunchStartTime  String? // "12:00"
   lunchReturnTime String? // "13:00"
   exitTime        String? // "17:00"
 
-  // Dias de trabalho (0=Dom, 1=Seg, ... 6=Sáb)
+  // Dias de trabalho (0=Dom, 1=Seg, ... 6=SÃƒÂ¡b)
   workDays Int[] @default([1, 2, 3, 4, 5])
   restDays Int[] @default([0, 6])
 
-  // Configurações 12x36
+  // ConfiguraÃƒÂ§ÃƒÂµes 12x36
   cycleWorkHours Int? // horas trabalhadas no ciclo (ex: 12)
   cycleRestHours Int? // horas de descanso no ciclo (ex: 36)
-  cycleStartDate DateTime? // data de início do ciclo 12x36
+  cycleStartDate DateTime? // data de inÃƒÂ­cio do ciclo 12x36
 
   // Turno noturno
   isNightShift   Boolean @default(false)
@@ -1709,7 +1712,7 @@ model Schedule {
   @@map("schedules")
 }
 
-/// Vínculo entre funcionário e escala (com período de vigência)
+/// VÃƒÂ­nculo entre funcionÃƒÂ¡rio e escala (com perÃƒÂ­odo de vigÃƒÂªncia)
 model UserSchedule {
   id         String @id @default(uuid()) @db.Uuid
   companyId  String @db.Uuid
@@ -1719,7 +1722,7 @@ model UserSchedule {
   startDate DateTime  @db.Date
   endDate   DateTime? @db.Date // null = vigente indefinidamente
 
-  // Override dos horários padrão da escala (opcional por funcionário)
+  // Override dos horÃƒÂ¡rios padrÃƒÂ£o da escala (opcional por funcionÃƒÂ¡rio)
   entryTimeOverride       String?
   lunchStartTimeOverride  String?
   lunchReturnTimeOverride String?
@@ -1740,7 +1743,7 @@ model UserSchedule {
   @@map("user_schedules")
 }
 
-/// Exceções individuais na escala (folga específica, feriado local, atestado)
+/// ExceÃƒÂ§ÃƒÂµes individuais na escala (folga especÃƒÂ­fica, feriado local, atestado)
 model ScheduleException {
   id         String   @id @default(uuid()) @db.Uuid
   companyId  String   @db.Uuid
@@ -1751,7 +1754,7 @@ model ScheduleException {
   reason        String?
   observation   String?
 
-  // Se for compensação, registra o horário alternativo
+  // Se for compensaÃƒÂ§ÃƒÂ£o, registra o horÃƒÂ¡rio alternativo
   altEntryTime String?
   altExitTime  String?
 
@@ -1769,7 +1772,7 @@ model ScheduleException {
   @@map("schedule_exceptions")
 }
 
-/// Solicitações de troca de escala/folga
+/// SolicitaÃƒÂ§ÃƒÂµes de troca de escala/folga
 model ScheduleSwapRequest {
   id          String            @id @default(uuid()) @db.Uuid
   companyId   String            @db.Uuid
@@ -1783,12 +1786,12 @@ model ScheduleSwapRequest {
 
   justification String?
 
-  // Aprovação
+  // AprovaÃƒÂ§ÃƒÂ£o
   approvedByUserId String?   @db.Uuid
   approvedAt       DateTime?
   rejectionReason  String?
 
-  // Notificação enviada para
+  // NotificaÃƒÂ§ÃƒÂ£o enviada para
   notifiedUserId String? @db.Uuid
 
   createdAt DateTime @default(now())
@@ -2228,8 +2231,8 @@ model Payroll {
   inssAmount       Decimal       @db.Decimal(12, 2)
   irrfAmount       Decimal       @db.Decimal(12, 2)
   fgtsAmount       Decimal       @db.Decimal(12, 2)
-  overtimeAmount   Decimal       @db.Decimal(12, 2) @default(0)
-  nightShiftAmount Decimal       @db.Decimal(12, 2) @default(0)
+  overtimeAmount   Decimal       @default(0) @db.Decimal(12, 2)
+  nightShiftAmount Decimal       @default(0) @db.Decimal(12, 2)
   status           PayrollStatus @default(DRAFT)
   pdfUrl           String?
   observations     String?
@@ -2265,7 +2268,7 @@ model PayrollItem {
   @@index([companyId])
 }
 
-// ─── MÓDULO ONBOARDING DIGITAL ───────────────────────────────────────────────
+// Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ MÃƒâ€œDULO ONBOARDING DIGITAL Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
 enum OnboardingStatus {
   PENDING
@@ -2284,14 +2287,14 @@ enum OnboardingTaskType {
 }
 
 model OnboardingFlow {
-  id          String             @id @default(uuid()) @db.Uuid
-  companyId   String             @db.Uuid
-  employeeId  String             @db.Uuid
-  status      OnboardingStatus   @default(PENDING)
+  id          String           @id @default(uuid()) @db.Uuid
+  companyId   String           @db.Uuid
+  employeeId  String           @db.Uuid
+  status      OnboardingStatus @default(PENDING)
   startedAt   DateTime?
   completedAt DateTime?
-  createdAt   DateTime           @default(now())
-  updatedAt   DateTime           @updatedAt
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
   deletedAt   DateTime?
 
   tasks     OnboardingTask[]
@@ -2352,69 +2355,141 @@ model PerformanceReview {
 }
 
 model PerformanceEvaluation {
-  id             String    @id @default(uuid()) @db.Uuid
-  companyId      String    @db.Uuid
-  reviewId       String    @db.Uuid
-  evaluatorId    String    @db.Uuid
-  evaluateeId    String    @db.Uuid
-  score          Decimal?  @db.Decimal(5, 2)
-  feedback       String?   @db.Text
-  status         String    @default("PENDING") // PENDING, SUBMITTED
-  submittedAt    DateTime?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  id          String    @id @default(uuid()) @db.Uuid
+  companyId   String    @db.Uuid
+  reviewId    String    @db.Uuid
+  evaluatorId String    @db.Uuid
+  evaluateeId String    @db.Uuid
+  score       Decimal?  @db.Decimal(5, 2)
+  feedback    String?   @db.Text
+  status      String    @default("PENDING") // PENDING, SUBMITTED
+  submittedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
-  review         PerformanceReview @relation(fields: [reviewId], references: [id], onDelete: Cascade)
-  evaluator      Employee          @relation("Evaluator", fields: [evaluatorId], references: [id])
-  evaluatee      Employee          @relation("Evaluatee", fields: [evaluateeId], references: [id])
+  review    PerformanceReview @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  evaluator Employee          @relation("Evaluator", fields: [evaluatorId], references: [id])
+  evaluatee Employee          @relation("Evaluatee", fields: [evaluateeId], references: [id])
 
   @@unique([reviewId, evaluatorId, evaluateeId])
   @@index([companyId, evaluateeId])
 }
 
 model OKR {
-  id          String    @id @default(uuid()) @db.Uuid
-  companyId   String    @db.Uuid
-  title       String
-  period      String    // ex: "Q3 2024"
-  status      String    @default("ACTIVE") // ACTIVE, CLOSED
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  deletedAt   DateTime?
+  id        String    @id @default(uuid()) @db.Uuid
+  companyId String    @db.Uuid
+  title     String
+  period    String // ex: "Q3 2024"
+  status    String    @default("ACTIVE") // ACTIVE, CLOSED
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
-  objectives  Objective[]
+  objectives Objective[]
 
   @@index([companyId, status])
 }
 
 model Objective {
-  id          String    @id @default(uuid()) @db.Uuid
-  companyId   String    @db.Uuid
-  okrId       String    @db.Uuid
+  id          String   @id @default(uuid()) @db.Uuid
+  companyId   String   @db.Uuid
+  okrId       String   @db.Uuid
   title       String
   description String?
-  progress    Decimal   @default(0) @db.Decimal(5, 2)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  progress    Decimal  @default(0) @db.Decimal(5, 2)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  okr         OKR       @relation(fields: [okrId], references: [id], onDelete: Cascade)
-  keyResults  KeyResult[]
+  okr        OKR         @relation(fields: [okrId], references: [id], onDelete: Cascade)
+  keyResults KeyResult[]
 
   @@index([companyId, okrId])
 }
 
 model KeyResult {
-  id             String    @id @default(uuid()) @db.Uuid
-  companyId      String    @db.Uuid
-  objectiveId    String    @db.Uuid
-  title          String
-  targetValue    Decimal   @db.Decimal(10, 2)
-  currentValue   Decimal   @default(0) @db.Decimal(10, 2)
-  progress       Decimal   @default(0) @db.Decimal(5, 2)
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  id           String   @id @default(uuid()) @db.Uuid
+  companyId    String   @db.Uuid
+  objectiveId  String   @db.Uuid
+  title        String
+  targetValue  Decimal  @db.Decimal(10, 2)
+  currentValue Decimal  @default(0) @db.Decimal(10, 2)
+  progress     Decimal  @default(0) @db.Decimal(5, 2)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  objective      Objective @relation(fields: [objectiveId], references: [id], onDelete: Cascade)
+  objective Objective @relation(fields: [objectiveId], references: [id], onDelete: Cascade)
 
   @@index([companyId, objectiveId])
+}
+
+// ==========================================
+// FASE 8: PARCEIROS E FORNECEDORES
+// ==========================================
+
+model Partner {
+  id          String        @id @default(uuid()) @db.Uuid
+  companyId   String        @db.Uuid
+  legalName   String // RazÃ£o Social
+  tradeName   String? // Nome Fantasia
+  document    String // CNPJ ou CPF
+  email       String
+  phone       String?
+  contactName String?
+  address     String?
+  status      PartnerStatus @default(ACTIVE)
+
+  // RelaÃ§Ã£o opcional com um usuÃ¡rio que vai logar no portal do parceiro
+  userId String? @unique @db.Uuid
+  user   User?   @relation(fields: [userId], references: [id])
+
+  invoices PartnerInvoice[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, document])
+  @@index([companyId])
+}
+
+model PartnerInvoice {
+  id        String @id @default(uuid()) @db.Uuid
+  companyId String @db.Uuid
+  partnerId String @db.Uuid
+
+  invoiceNumber String
+  description   String?  @db.Text
+  amount        Decimal  @db.Decimal(12, 2)
+  dueDate       DateTime
+  issueDate     DateTime @default(now())
+
+  status        PartnerInvoiceStatus @default(PENDING)
+  attachmentUrl String? // Link do PDF da Nota Fiscal
+  notes         String?              @db.Text
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  partner Partner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, status])
+  @@index([partnerId])
+}
+
+enum PartnerStatus {
+  ACTIVE
+  INACTIVE
+  BLOCKED
+}
+
+enum PartnerInvoiceStatus {
+  PENDING
+  APPROVED
+  PAID
+  REJECTED
+  CANCELLED
 }
