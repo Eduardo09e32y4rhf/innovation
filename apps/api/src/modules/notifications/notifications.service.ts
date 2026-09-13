@@ -1,7 +1,7 @@
+import { UserRole } from '@prisma/client';
 import { Injectable } from '@nestjs/common';
-import { $Enums } from '@prisma/client';
-type UserRole = $Enums.UserRole;
-const UserRole = $Enums.UserRole;
+
+
 import { PrismaService } from '../../database/prisma.service';
 import type { JwtUser } from '../../common/types/auth.types';
 
