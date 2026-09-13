@@ -14,9 +14,10 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: 'npm'
       - run: npm ci
+      - run: npm run db:generate
       - run: npm run lint:web
       - run: npm run typecheck:api
       - run: npm run typecheck:web
@@ -28,9 +29,10 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: 'npm'
       - run: npm ci
+      - run: npm run db:generate
       - run: npm run test:unit
       - run: npm run test:coverage
       - uses: actions/upload-artifact@v4
@@ -63,9 +65,10 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: 'npm'
       - run: npm ci
+      - run: npm run db:generate
       - run: npm run db:migrate
         env:
           DATABASE_URL: postgresql://root:rootpassword@localhost:5432/innovation_test?schema=public
@@ -95,7 +98,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: 'npm'
       - run: npm ci
       - name: Install Playwright Browsers
