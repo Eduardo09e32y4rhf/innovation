@@ -1,5 +1,5 @@
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/app/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card"
 import { Clock } from "lucide-react"
 
 export default function TimeTrackingPage() {
@@ -13,7 +13,7 @@ export default function TimeTrackingPage() {
           <CardHeader className="text-center">
             <CardTitle className="text-2xl">Registrar Ponto</CardTitle>
             <CardDescription>
-              Registre sua entrada, saída ou intervalo.
+              Registre sua entrada, saÃ­da ou intervalo.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col items-center justify-center pb-12">
