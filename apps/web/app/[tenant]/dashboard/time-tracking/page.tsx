@@ -13,7 +13,7 @@ export default function TimeTrackingPage() {
           <CardHeader className="text-center">
             <CardTitle className="text-2xl">Registrar Ponto</CardTitle>
             <CardDescription>
-              Registre sua entrada, saÃ­da ou intervalo.
+              Registre sua entrada, saída ou intervalo.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col items-center justify-center pb-12">
