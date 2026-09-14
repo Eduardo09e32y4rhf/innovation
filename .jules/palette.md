@@ -1,0 +1,3 @@
+## 2024-09-14 - Improve accessibility of password visibility toggle
+**Learning:** For interactive icon buttons absolutely positioned inside text inputs (like password toggles), applying `focus-visible:ring-inset` along with standard focus rings (`focus-visible:ring-2`) is crucial to prevent the focus outline from clipping outside the input's bounding box and becoming invisible or cut off by hidden overflow boundaries.
+**Action:** Always include `focus-visible:ring-inset` on embedded absolute buttons inside form fields when adding keyboard focus outlines, and ensure decorative inner SVGs include `aria-hidden="true"` so screen readers don't read generic paths in addition to the button's `aria-label`.
