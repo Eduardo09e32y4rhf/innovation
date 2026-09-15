@@ -69,9 +69,10 @@ export default function LoginPage() {
     >
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <div>
-          <label className="block text-sm font-medium text-[var(--auth-text-secondary)] mb-1">E-mail corporativo</label>
+          <label htmlFor="email" className="block text-sm font-medium text-[var(--auth-text-secondary)] mb-1">E-mail corporativo</label>
           <input 
-            type="email" 
+            type="email"
+            id="email"
             placeholder="voce@empresa.com.br"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -81,10 +82,11 @@ export default function LoginPage() {
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-[var(--auth-text-secondary)] mb-1">Senha</label>
+          <label htmlFor="password" className="block text-sm font-medium text-[var(--auth-text-secondary)] mb-1">Senha</label>
           <div className="relative">
             <input 
               type={showPassword ? "text" : "password"}
+              id="password"
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
