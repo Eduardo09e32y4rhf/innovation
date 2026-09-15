@@ -20,9 +20,9 @@ const company = {
 
 async function login(page: Page) {
   await page.goto('/login');
-  await page.getByPlaceholder('E-mail corporativo').fill(DEV_EMAIL);
-  await page.getByPlaceholder('Senha').fill(DEV_PASSWORD);
-  await page.getByRole('button', { name: /entrar/i }).click();
+  await page.locator('#email').fill(DEV_EMAIL);
+  await page.locator('#password').fill(DEV_PASSWORD);
+  await page.locator('button[type="submit"]').click();
   await expect(page).toHaveURL(/dashboard/, { timeout: 15_000 });
 }
 
