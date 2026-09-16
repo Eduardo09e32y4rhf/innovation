@@ -18,12 +18,12 @@ export class PlatformPlansService {
     return this.serializePlan(plan);
   }
 
-  async create(data: any) {
+  async create(data: Partial<import('@prisma/client').Prisma.PlatformPlanCreateInput>) {
     const plan = await this.prisma.platformPlan.create({ data: this.normalizePlanPayload(data, true) });
     return this.serializePlan(plan);
   }
 
-  async update(id: string, data: any) {
+  async update(id: string, data: Partial<import('@prisma/client').Prisma.PlatformPlanUpdateInput>) {
     const payload = this.normalizePlanPayload(data, false);
     const plan = await this.prisma.platformPlan.update({
       where: { id },
