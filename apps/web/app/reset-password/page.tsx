@@ -111,6 +111,7 @@ function ResetPasswordForm() {
               <User size={18} />
             </div>
             <input
+              aria-label="E-mail Corporativo"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -126,6 +127,7 @@ function ResetPasswordForm() {
               <KeyRound size={18} />
             </div>
             <input
+              aria-label="Código do Gestor"
               type="text"
               value={code}
               onChange={(e) => setCode(e.target.value.toUpperCase())}
@@ -143,6 +145,7 @@ function ResetPasswordForm() {
                 <Hash size={18} />
               </div>
               <input
+                aria-label="Início CPF"
                 type="text"
                 value={cpfStart}
                 onChange={(e) => setCpfStart(e.target.value.replace(/\D/g, ''))}
@@ -159,6 +162,7 @@ function ResetPasswordForm() {
                 <Hash size={18} />
               </div>
               <input
+                aria-label="Matrícula"
                 type="text"
                 value={registration}
                 onChange={(e) => setRegistration(e.target.value)}
@@ -205,6 +209,7 @@ function ResetPasswordForm() {
               <Lock size={18} />
             </div>
             <input
+              aria-label="Nova senha"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -220,6 +225,7 @@ function ResetPasswordForm() {
               <Lock size={18} />
             </div>
             <input
+              aria-label="Confirmar nova senha"
               type="password"
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
