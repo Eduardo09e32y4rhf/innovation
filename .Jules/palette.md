@@ -1,0 +1,3 @@
+## 2024-09-17 - Added Accessibility to Auth Forms
+**Learning:** Found that auth forms (login) were missing proper `htmlFor` and `id` linking between labels and inputs, and the password toggle button lacked `aria-label` and `aria-hidden` attributes on its SVG icons, hindering screen reader usability. Additionally, the password toggle button lacked focus indicators (`focus-visible:ring-2`) and needed `focus-visible:ring-inset` to stay inside the input visually.
+**Action:** Always ensure `htmlFor` is paired with `id` on inputs, add dynamic `aria-label`s to stateful buttons (using Portuguese for this app, e.g., 'Mostrar senha'), ensure inner SVGs use `aria-hidden="true"`, and provide proper `focus-visible` styling for absolute positioned interactive elements.
