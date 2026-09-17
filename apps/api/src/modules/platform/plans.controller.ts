@@ -1,4 +1,6 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { CreatePlatformPlanDto } from './dto/create-platform-plan.dto';
+import { UpdatePlatformPlanDto } from './dto/update-platform-plan.dto';
 import { PlatformPlansService } from './plans.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -17,7 +19,7 @@ export class PlatformPlansController {
 
   @Post()
   @Roles('DEV')
-  create(@Body() body: any) {
+  create(@Body() body: CreatePlatformPlanDto) {
     return this.service.create(body);
   }
 
@@ -28,7 +30,7 @@ export class PlatformPlansController {
 
   @Patch(':id')
   @Roles('DEV')
-  update(@Param('id') id: string, @Body() body: any) {
+  update(@Param('id') id: string, @Body() body: UpdatePlatformPlanDto) {
     return this.service.update(id, body);
   }
 
