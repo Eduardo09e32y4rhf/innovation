@@ -19,29 +19,66 @@ export class AsoService {
         where: { companyId, status: 'COMPLETED', dueDate: { lte: today } },
         include: { employee: true }
       });
-      for (const record of expired) {
-        const existing = await this.prisma.employeeAsoRecord.findFirst({
-          where: { companyId, employeeId: record.employeeId, asoType: 'PERIODICO', createdAt: { gt: record.createdAt } }
+      // BOLT: Optimize triggerPeriodicAso by preventing N+1 queries.
+      // Fetch existing subsequent ASOs in one query, check existence in-memory, and use createMany
+      if (expired.length > 0) {
+        const expiredEmployeeIds = expired.map(r => r.employeeId);
+
+        // Find existing periodic ASOs for these employees created after their respective expired ones
+        // Simplified approach: find any PERIODICO created recently for these employees
+        const existings = await this.prisma.employeeAsoRecord.findMany({
+          where: {
+            companyId,
+            employeeId: { in: expiredEmployeeIds },
+            asoType: 'PERIODICO',
+          },
+          select: { employeeId: true, createdAt: true }
         });
-        if (!existing) {
-          await this.prisma.employeeAsoRecord.create({
-            data: {
+
+        const existingMap = new Map();
+        for (const e of existings) {
+          if (!existingMap.has(e.employeeId) || existingMap.get(e.employeeId) < e.createdAt.getTime()) {
+            existingMap.set(e.employeeId, e.createdAt.getTime());
+          }
+        }
+
+        const asoToCreate: import('@prisma/client').Prisma.EmployeeAsoRecordCreateManyInput[] = [];
+        const notificationsToCreate: import('@prisma/client').Prisma.NotificationCreateManyInput[] = [];
+
+        // We only want one pending ASO per employee to avoid duplicate inserts if multiple expired records exist
+        const processedEmployees = new Set();
+
+        for (const record of expired) {
+          if (processedEmployees.has(record.employeeId)) continue;
+
+          const lastExistingDate = existingMap.get(record.employeeId);
+          // If no existing periodic ASO exists, or existing was created before the expired one
+          if (!lastExistingDate || lastExistingDate <= record.createdAt.getTime()) {
+            processedEmployees.add(record.employeeId);
+
+            asoToCreate.push({
               companyId,
               employeeId: record.employeeId,
               asoType: 'PERIODICO',
               status: 'PENDING',
-            }
-          });
-          await this.prisma.notification.create({
-            data: {
+            });
+
+            notificationsToCreate.push({
               companyId,
               title: `⚕️ ASO Periódico Pendente`,
               message: `Um novo ASO de rotina (periódico) foi gerado automaticamente após 12 meses do último exame. Agende o quanto antes para evitar irregularidades.`,
               type: 'SYSTEM_NOTICE',
               status: 'SENT',
               targetType: 'ALL',
-            }
-          });
+            });
+          }
+        }
+
+        if (asoToCreate.length > 0) {
+          await this.prisma.$transaction([
+            this.prisma.employeeAsoRecord.createMany({ data: asoToCreate, skipDuplicates: true }),
+            this.prisma.notification.createMany({ data: notificationsToCreate, skipDuplicates: true })
+          ]);
         }
       }
     } catch (err) {
