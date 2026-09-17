@@ -173,6 +173,7 @@ function CadastroForm() {
             <input
               type="text"
               name="name"
+              aria-label="Seu Nome Completo"
               placeholder="Seu Nome Completo"
               value={formData.name}
               onChange={handleChange}
@@ -189,6 +190,7 @@ function CadastroForm() {
             <input
               type="text"
               name="companyName"
+              aria-label="Nome da Empresa"
               placeholder="Nome da Empresa"
               value={formData.companyName}
               onChange={handleChange}
@@ -207,6 +209,7 @@ function CadastroForm() {
             <input
               type="text"
               name="document"
+              aria-label="CNPJ"
               placeholder="CNPJ"
               value={formData.document}
               onChange={(e) => {
@@ -231,6 +234,7 @@ function CadastroForm() {
             <input
               type="text"
               name="phone"
+              aria-label="Telefone ou WhatsApp"
               placeholder="Telefone / WhatsApp"
               value={formData.phone}
               onChange={(e) => {
@@ -256,6 +260,7 @@ function CadastroForm() {
           <input
             type="email"
             name="email"
+            aria-label="Seu melhor e-mail"
             placeholder="Seu melhor e-mail"
             value={formData.email}
             onChange={handleChange}
@@ -272,6 +277,7 @@ function CadastroForm() {
           <input
             type={showPassword ? 'text' : 'password'}
             name="password"
+            aria-label="Crie uma senha forte"
             placeholder="Crie uma senha forte"
             value={formData.password}
             onChange={handleChange}
@@ -282,10 +288,10 @@ function CadastroForm() {
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            tabIndex={-1}
-            className="absolute inset-y-0 right-0 flex items-center pr-4 text-zinc-400 hover:text-zinc-600"
+            aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+            className="absolute inset-y-0 right-0 flex items-center pr-4 text-zinc-400 hover:text-zinc-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--color-brand-500)] rounded-md"
           >
-            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            {showPassword ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
           </button>
         </div>
 
@@ -326,6 +332,7 @@ function CadastroForm() {
               type="number"
               min={1}
               name="seatQuantity"
+              aria-label="Quantidade de usuários"
               placeholder="Quantidade de usuários"
               value={formData.seatQuantity}
               onChange={(e) => setFormData((current) => ({ ...current, seatQuantity: Math.max(1, Number(e.target.value) || 1) }))}
@@ -342,6 +349,7 @@ function CadastroForm() {
             <input
               type="text"
               name="couponCode"
+              aria-label="Cupom promocional (opcional)"
               placeholder="Cupom promocional (opcional)"
               value={formData.couponCode}
               onChange={handleChange}

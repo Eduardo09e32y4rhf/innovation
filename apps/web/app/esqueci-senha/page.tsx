@@ -40,8 +40,8 @@ export default function EsqueciSenhaPage() {
       ) : (
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
           <div>
-            <label className="block text-sm font-medium text-[var(--auth-text-secondary)] mb-1">E-mail corporativo</label>
-            <input 
+            <label htmlFor="email" className="block text-sm font-medium text-[var(--auth-text-secondary)] mb-1">E-mail corporativo</label>
+            <input id="email"
               type="email" 
               placeholder="voce@empresa.com.br"
               className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-[var(--auth-text-primary)] placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-[var(--auth-accent-purple)] transition-all"
