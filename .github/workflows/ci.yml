@@ -32,6 +32,7 @@ jobs:
           node-version: 22
           cache: 'npm'
       - run: npm ci
+      - run: npm run db:generate
       - run: npm run test:unit
       - run: npm run test:coverage
       - uses: actions/upload-artifact@v4
