@@ -1,0 +1,3 @@
+## 2025-06-25 - Prevent N+1 Prisma query in iterative create() loops
+**Learning:** When refactoring iterative Prisma .create() loops that include an existence check (e.g., .findFirst()) into bulk .createMany() operations, the pre-fetched existence check will not account for records created during the same batch. You must track newly processed entities in memory (e.g., using a Set of IDs) within the loop to prevent inserting duplicates for multiple occurrences of the same entity.
+**Action:** Always use an in-memory tracking mechanism like a Set when converting loops to bulk creations if the original logic relied on immediate existence checks.
