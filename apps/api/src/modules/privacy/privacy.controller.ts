@@ -10,7 +10,7 @@ export class AcceptTermsDto {
   @IsOptional() @IsNumber() longitude?: number;
   @IsOptional() @IsString() address?: string;
   @IsOptional() @IsString() photoBase64?: string;
-  @IsOptional() @IsArray() faceDescriptor?: number[];
+  @IsOptional() @IsArray() @IsNumber({}, { each: true }) faceDescriptor?: number[];
 }
 
 @UseGuards(JwtAuthGuard)
