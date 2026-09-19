@@ -80,6 +80,7 @@ export function UserPasswordResetModal({ isOpen = true, user, onClose, onSubmit 
             />
             <button
               type="button"
+              aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
               onClick={() => setShowPassword(!showPassword)}
               className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
             >
