@@ -1,4 +1,5 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { InvoiceStatus } from '@prisma/client';
 import { CreateManualContractDto } from './dto/create-manual-contract.dto';
 import { TransitionManualContractDto } from './dto/transition-manual-contract.dto';
 import { UpdateManualContractDto } from './dto/update-manual-contract.dto';
