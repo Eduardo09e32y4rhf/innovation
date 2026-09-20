@@ -517,9 +517,9 @@ export default function PlansPage({ params: { tenant } }: { params: { tenant: st
               </div>
               <button
                 onClick={() => setShowInactive(v => !v)}
-                className="ml-auto flex items-center gap-1.5 text-[11px] font-bold text-slate-500 hover:text-slate-800 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 rounded-md p-1"
+                className="ml-auto flex items-center gap-1.5 text-[11px] font-bold text-slate-500 hover:text-slate-800 transition-colors"
               >
-                {showInactive ? <EyeOff size={12} aria-hidden="true" /> : <Eye size={12} aria-hidden="true" />}
+                {showInactive ? <EyeOff size={12} /> : <Eye size={12} />}
                 {showInactive ? 'Ocultar inativos' : 'Mostrar inativos'}
               </button>
             </>
