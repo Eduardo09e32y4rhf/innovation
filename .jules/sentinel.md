@@ -12,3 +12,8 @@
 **Vulnerability:** Prisma $Enums usage fails at runtime for generated types if not resolved correctly via typechecker.
 **Learning:** `TypeError: Cannot read properties of undefined (reading 'InvoiceStatus')` happens when importing `$Enums` dynamically from `@prisma/client`.
 **Prevention:** Use hardcoded literals or explicit exported types instead of `$Enums`.
+
+## 2024-05-20 - CI Prisma Validations
+**Vulnerability:** CI fails on validation due to missing `DATABASE_URL` during `npm run prisma:validate` and `Missing script: "prisma:migrate"`.
+**Learning:** `prisma validate` requires `DATABASE_URL` if it's referenced in the schema. `package.json` was routing `db:migrate` to a non-existent command.
+**Prevention:** Provide a mock `DATABASE_URL` via environment variable in package.json `prisma:validate` script, and fix `db:migrate` script mapping to point to `prisma:deploy`.
