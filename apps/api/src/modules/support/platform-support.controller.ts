@@ -6,6 +6,7 @@ import { SupportAuthorizationService } from './support-authorization.service';
 import { SupportTicketPriority, SupportTicketStatus } from '@prisma/client';
 import { ListSupportTicketsQueryDto } from './dto/list-support-tickets-query.dto';
 import { UpdateSupportStatusDto } from './dto/update-support-status.dto';
+import { AddSupportMessageDto } from './dto/add-support-message.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('platform/support')
@@ -78,12 +79,12 @@ export class PlatformSupportController {
   }
 
   @Post('tickets/:id/messages')
-  async addMessage(@Req() req: any, @Param('id') id: string, @Body() data: any) {
+  async addMessage(@Req() req: any, @Param('id') id: string, @Body() data: AddSupportMessageDto) {
     return this.supportService.addMessage(req.user, id, data.message, 'PUBLIC');
   }
 
   @Post('tickets/:id/internal-notes')
-  async addInternalNote(@Req() req: any, @Param('id') id: string, @Body() data: any) {
+  async addInternalNote(@Req() req: any, @Param('id') id: string, @Body() data: AddSupportMessageDto) {
     return this.supportService.addMessage(req.user, id, data.message, 'INTERNAL');
   }
 
