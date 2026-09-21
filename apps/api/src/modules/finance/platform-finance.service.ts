@@ -1,7 +1,5 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Prisma, $Enums } from '@prisma/client';
-type InvoiceStatus = $Enums.InvoiceStatus;
-const InvoiceStatus = $Enums.InvoiceStatus;
 import type { JwtUser } from '../../common/types/auth.types';
 import { PrismaService } from '../../database/prisma.service';
 import { AsaasPayment, AsaasService } from './asaas.service';
@@ -91,12 +89,12 @@ export class PlatformFinanceService {
           total: amount,
         },
         dueDate: new Date(payment.dueDate),
-        status: (this.mapAsaasStatus(payment.status || 'PENDING') || 'OPEN') as InvoiceStatus,
+        status: (this.mapAsaasStatus(payment.status || 'PENDING') || 'OPEN'),
         billingType: payment.billingType || 'UNDEFINED',
         asaasPaymentId: payment.id,
         invoiceUrl: payment.invoiceUrl,
       },
-      update: { invoiceUrl: payment.invoiceUrl, status: (this.mapAsaasStatus(payment.status || 'PENDING') || 'OPEN') as InvoiceStatus, deletedAt: null },
+      update: { invoiceUrl: payment.invoiceUrl, status: (this.mapAsaasStatus(payment.status || 'PENDING') || 'OPEN'), deletedAt: null },
     });
 
     await this.audit(company.id, 'INITIAL_CHARGE_CREATED', {
@@ -1241,7 +1239,7 @@ export class PlatformFinanceService {
       : undefined;
     return {
       deletedAt: null,
-      status: query.status as InvoiceStatus | undefined,
+      status: query.status | undefined,
       dueDate,
       company: commercialOwnerId || query.search
         ? {
@@ -1260,7 +1258,7 @@ export class PlatformFinanceService {
     };
   }
 
-  private mapAsaasStatus(status?: string): InvoiceStatus | undefined {
+  private mapAsaasStatus(status?: string): string | undefined {
     if (!status) return undefined;
     if (['RECEIVED', 'CONFIRMED', 'RECEIVED_IN_CASH'].includes(status)) return 'PAID';
     if (status === 'OVERDUE') return 'OVERDUE';
