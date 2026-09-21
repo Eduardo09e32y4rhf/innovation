@@ -1,0 +1,3 @@
+## 2025-02-18 - Replacing multiple counts with groupBy in Platform Repository
+**Learning:** In Prisma, doing multiple \`this.prisma.model.count({ where: ... })\` with overlapping base `where` filters but small variations (e.g., status flags) can be optimized into a single \`.groupBy()\` call. This avoids multiple distinct SQL queries and leverages the database engine to group the counts in one pass, significantly reducing database hits.
+**Action:** Always look for sequences of `.count()` queries on the same table with overlapping `where` conditions. Replace them with a single `.groupBy({ by: [...], where: baseWhere, _count: true })` and reduce the result in JavaScript.
