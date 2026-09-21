@@ -190,7 +190,7 @@ export default function RegrasPage() {
                 <span className={`badge ${rule.status === 'ACTIVE' ? 'badge-active' : 'badge-inactive'}`}>
                   {rule.status === 'ACTIVE' ? 'Ativo' : 'Arquivado'}
                 </span>
-                <button className="btn-icon" onClick={() => {
+                <button className="btn-icon" aria-label="Editar regra" title="Editar regra" onClick={() => {
                   setEditingRule(rule);
                   setRuleForm({
                     name: rule.name,
@@ -200,15 +200,15 @@ export default function RegrasPage() {
                   });
                   setIsRuleModalOpen(true);
                 }}>
-                  <Edit2 className="w-4 h-4" />
+                  <Edit2 className="w-4 h-4" aria-hidden="true" />
                 </button>
                 {rule.status === 'ACTIVE' ? (
-                  <button className="btn-icon text-gray-600 hover:text-red-500" onClick={() => archiveMutation.mutate(rule.id)}>
-                    <Archive className="w-4 h-4" />
+                  <button className="btn-icon text-gray-600 hover:text-red-500" aria-label="Arquivar regra" title="Arquivar regra" onClick={() => archiveMutation.mutate(rule.id)}>
+                    <Archive className="w-4 h-4" aria-hidden="true" />
                   </button>
                 ) : (
-                  <button className="btn-icon text-green-600" onClick={() => activateMutation.mutate(rule.id)}>
-                    <Play className="w-4 h-4" />
+                  <button className="btn-icon text-green-600" aria-label="Ativar regra" title="Ativar regra" onClick={() => activateMutation.mutate(rule.id)}>
+                    <Play className="w-4 h-4" aria-hidden="true" />
                   </button>
                 )}
               </div>
@@ -289,7 +289,7 @@ export default function RegrasPage() {
               <div className="flex items-center gap-4">
                 <span className="badge badge-brand">{holiday.type || 'Feriado'}</span>
                 <span className="text-xs text-gray-500">{holiday.scope || 'Nacional'}</span>
-                <button className="btn-icon" onClick={() => {
+                <button className="btn-icon" aria-label="Editar feriado" title="Editar feriado" onClick={() => {
                   setEditingHoliday(holiday);
                   setHolidayForm({
                     name: holiday.name,
@@ -299,10 +299,10 @@ export default function RegrasPage() {
                   });
                   setIsHolidayModalOpen(true);
                 }}>
-                  <Edit2 className="w-4 h-4" />
+                  <Edit2 className="w-4 h-4" aria-hidden="true" />
                 </button>
-                <button className="btn-icon text-red-600 hover:text-red-800" onClick={() => handleDeleteHoliday(holiday.id)}>
-                  <Archive className="w-4 h-4" />
+                <button className="btn-icon text-red-600 hover:text-red-800" aria-label="Excluir feriado" title="Excluir feriado" onClick={() => handleDeleteHoliday(holiday.id)}>
+                  <Archive className="w-4 h-4" aria-hidden="true" />
                 </button>
               </div>
             </div>
@@ -322,8 +322,8 @@ export default function RegrasPage() {
             >
               <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50">
                 <h3 className="font-semibold text-gray-800">{editingRule ? 'Editar Regra' : 'Nova Regra de Jornada'}</h3>
-                <button onClick={() => { setIsRuleModalOpen(false); setEditingRule(null); }} className="text-gray-400 hover:text-gray-600">
-                  <X className="w-5 h-5" />
+                <button onClick={() => { setIsRuleModalOpen(false); setEditingRule(null); }} className="text-gray-400 hover:text-gray-600" aria-label="Fechar modal" title="Fechar modal">
+                  <X className="w-5 h-5" aria-hidden="true" />
                 </button>
               </div>
               <form onSubmit={handleCreateRule} className="p-6 space-y-4">
@@ -396,8 +396,8 @@ export default function RegrasPage() {
             >
               <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50">
                 <h3 className="font-semibold text-gray-800">{editingHoliday ? 'Editar Feriado' : 'Cadastrar Feriado'}</h3>
-                <button onClick={() => { setIsHolidayModalOpen(false); setEditingHoliday(null); }} className="text-gray-400 hover:text-gray-600">
-                  <X className="w-5 h-5" />
+                <button onClick={() => { setIsHolidayModalOpen(false); setEditingHoliday(null); }} className="text-gray-400 hover:text-gray-600" aria-label="Fechar modal" title="Fechar modal">
+                  <X className="w-5 h-5" aria-hidden="true" />
                 </button>
               </div>
               <form onSubmit={handleAddHoliday} className="p-6 space-y-4">
