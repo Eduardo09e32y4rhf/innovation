@@ -377,15 +377,30 @@ export class PlatformRepository {
     if (actor && actor.role === 'COMERCIAL') {
       whereCompany.commercialOwnerId = actor.sub;
     }
-    const [companies, users, employees, messages, activeCompanies, suspendedCompanies, pastDueCompanies] = await Promise.all([
-      this.prisma.company.count({ where: whereCompany }),
+    const [users, employees, messages, companyGroups] = await Promise.all([
       this.prisma.user.count({ where: actor?.role === 'COMERCIAL' ? { company: whereCompany } : undefined }),
       this.prisma.employee.count({ where: actor?.role === 'COMERCIAL' ? { company: whereCompany } : undefined }),
       this.prisma.message.count(),
-      this.prisma.company.count({ where: { ...whereCompany, status: 'ACTIVE' } }),
-      this.prisma.company.count({ where: { ...whereCompany, status: 'SUSPENDED' } }),
-      this.prisma.company.count({ where: { ...whereCompany, billingStatus: 'PAST_DUE' } }),
+      this.prisma.company.groupBy({
+        by: ['status', 'billingStatus'],
+        where: whereCompany,
+        _count: { _all: true },
+      }),
     ]);
+
+    let companies = 0;
+    let activeCompanies = 0;
+    let suspendedCompanies = 0;
+    let pastDueCompanies = 0;
+
+    for (const group of companyGroups) {
+      const count = group._count._all;
+      companies += count;
+      if (group.status === 'ACTIVE') activeCompanies += count;
+      if (group.status === 'SUSPENDED') suspendedCompanies += count;
+      if (group.billingStatus === 'PAST_DUE') pastDueCompanies += count;
+    }
+
     return { companies, users, employees, messages, activeCompanies, suspendedCompanies, pastDueCompanies };
   }
 
