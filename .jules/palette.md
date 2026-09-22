@@ -1,0 +1,3 @@
+## 2024-05-27 - Auth forms missing aria-labels on show password buttons
+**Learning:** This app's auth forms (login, registration) frequently omit `aria-label` attributes on password visibility toggles, making them inaccessible to screen reader users who cannot distinguish the button's action. The forms also often miss `htmlFor` properties on labels to link them with standard inputs.
+**Action:** When working on auth flows or forms in this codebase, explicitly check for missing `aria-label` on icon-only buttons (using Portuguese strings like 'Mostrar senha' / 'Ocultar senha') and ensure `htmlFor` matches the input `id`.
