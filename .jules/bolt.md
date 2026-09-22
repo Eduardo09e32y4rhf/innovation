@@ -1,0 +1,3 @@
+## 2024-05-27 - Optimized multiple count queries using groupBy
+**Learning:** Multiple database queries measuring counts grouped by different fields on the same table can be significantly slow. In Prisma, combining multiple `.count()` queries into a single `.groupBy()` query with `_count: true` drastically reduces roundtrips to the database and improves backend performance.
+**Action:** Identify endpoints making consecutive `.count()` queries on the same table (especially dashboards or stats), and refactor them to use a single `.groupBy()` query, aggregating the result set in-memory. Ensure to read nested counts properly via `_count._all` or equivalent based on Prisma output.
