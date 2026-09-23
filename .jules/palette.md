@@ -1,0 +1,3 @@
+## 2024-05-20 - Missing Label Associations in Auth Flow
+**Learning:** The authentication forms (login, register) often use generic `<div>` wrappers and visual `<label>` text but lack explicit `htmlFor` and `id` linking to the adjacent `<input>` fields, breaking screen reader compatibility. Additionally, password toggle buttons are missing ARIA labels and their inner SVG icons lack `aria-hidden="true"`.
+**Action:** Always ensure that `<label>` elements are explicitly linked to their corresponding `<input>` elements using `htmlFor` and `id` attributes. Add dynamic `aria-label` attributes to stateful icon-only buttons (like password visibility toggles) and set `aria-hidden="true"` on their child icons to prevent redundant announcements.
