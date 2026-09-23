@@ -1,0 +1,3 @@
+## 2024-05-18 - [Optimize platform globalStats using prisma.groupBy]
+**Learning:** Found an N+1 style query issue masquerading as parallel promises in `globalStats()` where multiple `.count()` queries were executed to aggregate company counts by statuses. Prisma returns the grouped counts correctly using `.groupBy()` with `_count: { _all: true }`, but it returns an object structure (e.g. `group._count._all`), not a direct primitive, which must be carefully accessed when combining back into totals.
+**Action:** Replaced multiple `count` queries in `apps/api/src/modules/platform/platform.repository.ts` with a single `groupBy` query on the `Company` model to reduce database round-trips for the global stats endpoint, taking care to extract `_count._all` appropriately.
