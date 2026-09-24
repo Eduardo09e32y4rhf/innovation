@@ -1,4 +1,19 @@
-import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
+
+export class MediaDto {
+  @IsString()
+  @IsNotEmpty()
+  base64!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  mimeType!: string;
+
+  @IsString()
+  @IsOptional()
+  name?: string;
+}
 
 export class SendMessageDto {
   @IsString()
@@ -14,9 +29,7 @@ export class SendMessageDto {
   contactName?: string;
 
   @IsOptional()
-  media?: {
-    base64: string;
-    mimeType: string;
-    name?: string;
-  };
+  @ValidateNested()
+  @Type(() => MediaDto)
+  media?: MediaDto;
 }
