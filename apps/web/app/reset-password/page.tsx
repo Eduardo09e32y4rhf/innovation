@@ -107,10 +107,12 @@ function ResetPasswordForm() {
           )}
 
           <div className="group relative">
+            <label htmlFor="email" className="sr-only">E-mail Corporativo</label>
             <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-zinc-400 transition-colors group-focus-within:text-[var(--color-brand)]">
               <User size={18} />
             </div>
             <input
+              id="email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -122,10 +124,12 @@ function ResetPasswordForm() {
           </div>
 
           <div className="group relative">
+            <label htmlFor="code" className="sr-only">Código do Gestor</label>
             <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-zinc-400 transition-colors group-focus-within:text-[var(--color-brand)]">
               <KeyRound size={18} />
             </div>
             <input
+              id="code"
               type="text"
               value={code}
               onChange={(e) => setCode(e.target.value.toUpperCase())}
@@ -139,10 +143,12 @@ function ResetPasswordForm() {
 
           <div className="flex gap-4">
             <div className="group relative w-1/2">
+              <label htmlFor="cpfStart" className="sr-only">Início CPF</label>
               <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-zinc-400 transition-colors group-focus-within:text-[var(--color-brand)]">
                 <Hash size={18} />
               </div>
               <input
+                id="cpfStart"
                 type="text"
                 value={cpfStart}
                 onChange={(e) => setCpfStart(e.target.value.replace(/\D/g, ''))}
@@ -155,10 +161,12 @@ function ResetPasswordForm() {
             </div>
 
             <div className="group relative w-1/2">
+              <label htmlFor="registration" className="sr-only">Matrícula</label>
               <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-zinc-400 transition-colors group-focus-within:text-[var(--color-brand)]">
                 <Hash size={18} />
               </div>
               <input
+                id="registration"
                 type="text"
                 value={registration}
                 onChange={(e) => setRegistration(e.target.value)}
@@ -201,10 +209,12 @@ function ResetPasswordForm() {
           )}
 
           <div className="group relative">
+            <label htmlFor="password" className="sr-only">Nova senha</label>
             <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-zinc-400 transition-colors group-focus-within:text-[var(--color-brand)]">
               <Lock size={18} />
             </div>
             <input
+              id="password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -216,10 +226,12 @@ function ResetPasswordForm() {
           </div>
 
           <div className="group relative">
+            <label htmlFor="confirm" className="sr-only">Confirmar nova senha</label>
             <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-zinc-400 transition-colors group-focus-within:text-[var(--color-brand)]">
               <Lock size={18} />
             </div>
             <input
+              id="confirm"
               type="password"
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
