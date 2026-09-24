@@ -1,4 +1,4 @@
-import { IsBoolean, IsIn, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsBoolean, IsIn, IsOptional, IsString, MaxLength, IsNumber } from 'class-validator';
 
 export class UpdateCommunicationSettingsDto {
   @IsOptional()
@@ -31,5 +31,6 @@ export class UpdateCommunicationSettingsDto {
   prompt?: string;
 
   @IsOptional()
+  @IsNumber()
   temperature?: number;
 }
