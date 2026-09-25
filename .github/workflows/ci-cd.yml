@@ -84,6 +84,8 @@ jobs:
     name: Prisma Validate
     needs: [install-root]
     runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: "postgresql://innovation_rh_user:test_password@localhost:5432/innovation_test?schema=public"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -92,6 +94,7 @@ jobs:
           cache: 'npm'
           cache-dependency-path: package-lock.json
       - run: npm ci
+      - run: npm run db:generate
       - run: npm run prisma:validate
       - run: npm run prisma:generate
 
@@ -129,6 +132,8 @@ jobs:
     name: Test Unit
     needs: [build-api, build-web]
     runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: "postgresql://innovation_rh_user:test_password@localhost:5432/innovation_test?schema=public"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -137,8 +142,9 @@ jobs:
           cache: 'npm'
           cache-dependency-path: package-lock.json
       - run: npm ci
-      - run: npm run prisma:generate
+      - run: npm run db:generate
       - run: npm run test:api
+      - run: npm run test:unit
 
   test-integration:
     name: Test Integration
