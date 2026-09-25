@@ -1,0 +1,3 @@
+## 2024-05-18 - Improve Password Toggle Accessibility
+**Learning:** The password visibility toggle buttons across the authentication and reset password forms lack explicit ARIA labels and intentionally trap focus (`tabIndex={-1}`). While trapping focus might have been intended, these toggles are interactive elements that users need to reach via keyboard to toggle visibility. Furthermore, screen readers cannot announce the action without `aria-label`.
+**Action:** When working on password inputs, ensure the toggle buttons are keyboard accessible (remove `tabIndex={-1}`) and include dynamic ARIA labels (e.g., "Mostrar senha" / "Ocultar senha") to clearly convey their state to screen reader users. Also ensure to add `aria-hidden="true"` to the icon elements.
