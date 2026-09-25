@@ -1,5 +1,5 @@
 import { ConflictException, NotFoundException } from '@nestjs/common';
-import * as bcrypt from 'bcryptjs';
+import * as bcrypt from '../../../apps/api/node_modules/bcryptjs/index.js';
 import { describe, expect, it, vi } from 'vitest';
 import { UsersService } from '../../../apps/api/src/modules/users/users.service';
 
