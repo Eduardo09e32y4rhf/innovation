@@ -1,0 +1,3 @@
+## 2024-05-18 - Missing ARIA labels and tabIndex on password toggles
+**Learning:** Password visibility toggles across the authentication flow (login, register, forgot-password) are missing `aria-label` attributes for accessibility. In some cases, they also inappropriately include `tabIndex={-1}`, making them inaccessible via keyboard. Both Portuguese labels ("Mostrar senha" / "Ocultar senha") and the removal of `tabIndex={-1}` from non-honeypot toggles are needed to ensure smooth, accessible interactions.
+**Action:** Always verify `aria-label` and `tabIndex` correctness when dealing with custom interactive elements like password visibility toggles.
