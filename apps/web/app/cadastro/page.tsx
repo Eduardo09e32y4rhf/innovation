@@ -282,7 +282,7 @@ function CadastroForm() {
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            tabIndex={-1}
+            aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
             className="absolute inset-y-0 right-0 flex items-center pr-4 text-zinc-400 hover:text-zinc-600"
           >
             {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}

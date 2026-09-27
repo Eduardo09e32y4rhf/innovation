@@ -1,0 +1,3 @@
+## 2024-11-20 - Accessible Password Toggles
+**Learning:** Password visibility toggle buttons in this application across login, registration, and reset-password forms frequently lacked `aria-label` attributes and some mistakenly included `tabIndex={-1}`, hiding them from screen readers and keyboard navigation. Additionally, inner icons didn't always have `aria-hidden="true"`, but since we can add the label on the button level, the primary issue is the button semantics. Portuguese labels ("Mostrar senha" / "Ocultar senha") should be used as this is the primary language.
+**Action:** When adding password visibility toggles, always ensure they are focusable (remove `tabIndex={-1}` unless it's a honeypot field) and include an appropriate dynamic `aria-label` in Portuguese.
