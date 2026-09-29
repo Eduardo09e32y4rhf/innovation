@@ -1,0 +1,3 @@
+## 2025-02-28 - ARIA Labels and keyboard focus on Password Toggle
+**Learning:** The password visibility toggle button was missing an ARIA label, reducing screen reader context, and used SVGs without `aria-hidden='true'` which might be incorrectly announced. Additionally, it lacked a focus visible outline, making keyboard navigation harder to track visually.
+**Action:** Ensure all interactive icon-only buttons include `aria-label` describing their dynamic action (e.g. 'Ocultar senha' / 'Mostrar senha') and add `aria-hidden='true'` to inner SVGs. Also, add explicit `focus-visible:ring-2` classes to improve keyboard navigation visibility.
