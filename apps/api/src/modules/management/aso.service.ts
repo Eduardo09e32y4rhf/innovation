@@ -19,12 +19,36 @@ export class AsoService {
         where: { companyId, status: 'COMPLETED', dueDate: { lte: today } },
         include: { employee: true }
       });
+
+      if (!expired.length) return;
+
+      const employeeIds = expired.map(r => r.employeeId);
+
+      // Optimization: Batch fetching of PERIODICO records to eliminate N+1 queries.
+      // Impact: Reduces queries from O(N) to O(1) for large numbers of expired records.
+      const existingPeriodicos = await this.prisma.employeeAsoRecord.findMany({
+        where: {
+          companyId,
+          employeeId: { in: employeeIds },
+          asoType: 'PERIODICO'
+        },
+        select: { employeeId: true, createdAt: true }
+      });
+
+      const employeeToLatestPeriodico = new Map<string, Date>();
+      for (const record of existingPeriodicos) {
+        const current = employeeToLatestPeriodico.get(record.employeeId);
+        if (!current || record.createdAt > current) {
+          employeeToLatestPeriodico.set(record.employeeId, record.createdAt);
+        }
+      }
+
       for (const record of expired) {
-        const existing = await this.prisma.employeeAsoRecord.findFirst({
-          where: { companyId, employeeId: record.employeeId, asoType: 'PERIODICO', createdAt: { gt: record.createdAt } }
-        });
-        if (!existing) {
-          await this.prisma.employeeAsoRecord.create({
+        const latestPeriodicoCreatedAt = employeeToLatestPeriodico.get(record.employeeId);
+        const hasRecentPeriodico = latestPeriodicoCreatedAt && latestPeriodicoCreatedAt > record.createdAt;
+
+        if (!hasRecentPeriodico) {
+          const newRecord = await this.prisma.employeeAsoRecord.create({
             data: {
               companyId,
               employeeId: record.employeeId,
@@ -32,6 +56,8 @@ export class AsoService {
               status: 'PENDING',
             }
           });
+          employeeToLatestPeriodico.set(record.employeeId, newRecord.createdAt);
+
           await this.prisma.notification.create({
             data: {
               companyId,

@@ -1,0 +1,3 @@
+## 2024-05-24 - Identifying N+1 query
+**Learning:** Found N+1 query in `triggerPeriodicAso` in `apps/api/src/modules/management/aso.service.ts`. It loops through expired ASOs and fires a `.findFirst` for each one, followed by a `.create` if not found.
+**Action:** Optimize N+1 in `triggerPeriodicAso` by querying `existing` periodically outside the loop, or by querying `existing` by `employeeId` in one batch. Wait, better yet, `getRhAlerts` calls `triggerPeriodicAso(companyId)` which executes a SELECT * then loops through it. If `triggerPeriodicAso` fetches `employeeAsoRecord` we can fetch all existing `PERIODICO` at once.
