@@ -26,7 +26,8 @@ export class JobsStorageService {
   }
 
   private resolveKey(key: string) {
-    const target = path.resolve(this.root, key);
+    const safeKey = key.replace(/^\/+/, '');
+    const target = path.resolve(this.root, safeKey);
     if (target !== this.root && !target.startsWith(`${this.root}${path.sep}`)) {
       throw new Error('Invalid recruitment storage key');
     }
