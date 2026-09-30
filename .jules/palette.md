@@ -1,0 +1,3 @@
+## 2024-05-24 - Accessibility patterns in Authentication Forms
+**Learning:** Auth forms in this application frequently omit `htmlFor` and `id` bindings between labels and inputs, and password visibility toggles lack accessibility attributes (missing `aria-label`, `aria-hidden` on SVGs, and focus rings).
+**Action:** Always link `<label>` and `<input>` using `htmlFor` and `id`. For password visibility toggles, explicitly add `aria-label="Mostrar senha"` / `Ocultar senha"`, `aria-hidden="true"` to inner SVGs, and `focus-visible:ring-2 focus-visible:ring-[var(--auth-accent-purple)]` for keyboard focus visibility.
