@@ -1,0 +1,3 @@
+## 2024-05-18 - Added Accessibility to Password Toggles
+**Learning:** Icon-only buttons for password visibility toggles frequently lack `aria-label` attributes and focus styles, making them inaccessible to screen readers and keyboard users. Furthermore, they sometimes incorrectly include `tabIndex={-1}`, which prevents keyboard navigation entirely.
+**Action:** When creating or updating password inputs with visibility toggles, ensure the button has a descriptive `aria-label` (e.g., 'Mostrar senha' / 'Ocultar senha'), clear focus-visible styles for keyboard users, and does not have `tabIndex={-1}`. Inner SVGs should also have `aria-hidden="true"` to prevent redundant screen reader announcements.
