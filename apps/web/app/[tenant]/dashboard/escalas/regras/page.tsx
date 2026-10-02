@@ -66,7 +66,6 @@ export default function RegrasPage() {
     if (companyData) {
       setExtrasForm(prev => ({
         ...prev,
-        // Mocking reading these from companyData since they might be in a JSON metadata field in the real DB
         ...((companyData as any).settings || {})
       }));
     }

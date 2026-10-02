@@ -58,7 +58,7 @@ async function main() {
     document: String(10000000000000 + (now % 89999999999999)).padStart(14, '0'),
     name: 'Admin Teste',
     email: `admin.${now}@teste.com`,
-    password: 'Admin@123456',
+    password: process.env.TEST_PASSWORD || 'Admin@123456',
   };
 
   const registered = await request('auth/register-company', '/auth/register-company', {
