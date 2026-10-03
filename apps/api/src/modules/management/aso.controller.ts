@@ -8,7 +8,7 @@ import type { JwtUser } from '../../common/types/auth.types';
 import { AsoService } from './aso.service';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('DEV', 'ADMIN', 'RH', 'GESTOR')
+@Roles('DEV', 'ADMIN', 'RH', 'GESTOR', 'CEO', 'CONSULTA')
 @Controller('management/aso')
 export class AsoController {
   constructor(private readonly svc: AsoService) {}
@@ -24,8 +24,8 @@ export class AsoController {
   }
 
   @Get('alerts/rh')
-  rhAlerts(@CurrentCompany() companyId: string, @CurrentUser() _actor: JwtUser) {
-    return this.svc.getRhAlerts(companyId);
+  rhAlerts(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser) {
+    return this.svc.getRhAlerts(companyId, { sub: actor.sub, role: actor.role, managerId: actor.managerId });
   }
 
   // ─── CLINIC PRESETS ──────────────────────────────────────────────────────────

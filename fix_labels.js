@@ -1,0 +1,1 @@
+const fs = require("fs"); let c = fs.readFileSync("apps/web/app/lib/permissions.ts", "utf8"); c = c.replace(/(\x27platform\.manage\x27: [^\n]+)\n};/g, "$1,\n  \x27platform.view_finance\x27: \x27Visualizar financeiro da Plataforma\x27\n};"); fs.writeFileSync("apps/web/app/lib/permissions.ts", c); console.log("done");

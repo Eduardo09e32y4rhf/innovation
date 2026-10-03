@@ -1,0 +1,1 @@
+const fs = require("fs"); let c = fs.readFileSync("apps/web/app/[tenant]/dashboard/page.tsx", "utf8"); c = c.replace(/`\/\/dashboard\/platform`/g, "`/${tenant}/dashboard/platform`"); c = c.replace(/`\/\/dashboard\/platform\/finance`/g, "`/${tenant}/dashboard/platform/finance`"); fs.writeFileSync("apps/web/app/[tenant]/dashboard/page.tsx", c); console.log("done");

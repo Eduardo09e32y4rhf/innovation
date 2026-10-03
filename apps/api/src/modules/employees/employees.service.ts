@@ -6,6 +6,7 @@ import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
 import { EmployeesRepository } from './employees.repository';
 import { AsoService } from '../management/aso.service';
+import { assertRoleChangeAllowed, canManageRole } from '../../common/constants/role-hierarchy';
 
 const EMPLOYEE_ACCESS_ROLES: UserRole[] = ['FUNCIONARIO', 'GESTOR', 'RH', 'ADMIN', 'CONSULTA'];
 
@@ -13,14 +14,17 @@ const EMPLOYEE_ACCESS_ROLES: UserRole[] = ['FUNCIONARIO', 'GESTOR', 'RH', 'ADMIN
 export class EmployeesService {
   constructor(private readonly repository: EmployeesRepository, private readonly asoService: AsoService) {}
 
-  async list(companyId: string, actor: JwtUser) {
+  async list(companyId: string, actor: JwtUser, page: number = 1, pageSize: number = 50, search?: string, status?: string) {
+    const skip = Math.max(0, (page - 1) * pageSize);
+
     if (actor.role === 'ADMIN' || actor.role === 'RH' || actor.role === 'DEV' || actor.role === 'CONSULTA') {
-      return (await this.repository.list(companyId)).filter((employee: any) => this.canAccessEmployee(actor, employee));
+      const employees = await this.repository.list(companyId, skip, pageSize, search, status);
+      return employees.filter((employee: any) => this.canAccessEmployee(actor, employee));
     }
     if (actor.role === 'GESTOR') {
       const managerEmployee = await this.repository.findByUserId(companyId, actor.sub, actor.email);
       if (!managerEmployee || !this.canAccessEmployee(actor, managerEmployee)) return [];
-      const team = await this.repository.listByManager(companyId, managerEmployee.id);
+      const team = await this.repository.listByManager(companyId, managerEmployee.id, skip, pageSize, search, status);
       return [managerEmployee, ...team.filter((employee: any) => employee.id !== managerEmployee.id && this.canAccessEmployee(actor, employee))];
     }
     if (actor.role === 'FUNCIONARIO') {
@@ -110,7 +114,7 @@ export class EmployeesService {
     await this.get(companyId, actor, id);
     const result = await this.repository.update(companyId, id, { status: 'TERMINATED' });
     if (!result.count) throw new NotFoundException('Employee not found');
-    
+
     // Automação: Gera ASO Demissional pendente
     await this.asoService.create(companyId, actor.sub, {
       employeeId: id,
@@ -118,7 +122,206 @@ export class EmployeesService {
       status: 'PENDING'
     });
 
-    return this.get(companyId, actor, id);
+    const employee = await this.get(companyId, actor, id);
+    if (employee?.userId) {
+      await this.repository.updateUser(companyId, employee.userId, {
+        isActive: false,
+        forcePasswordChange: true,
+      });
+    }
+
+    return employee;
+  }
+
+  async createAccess(companyId: string, actor: JwtUser, employeeId: string, dto: { email: string; role?: string; name?: string }) {
+    assertRoleChangeAllowed(actor.role, dto.role);
+
+    const employee = await this.get(companyId, actor, employeeId);
+    if (!employee) throw new NotFoundException('Employee not found');
+
+    const email = dto.email.trim().toLowerCase();
+    const role = this.resolveAccessRole(dto.role);
+
+    if (!canManageRole(actor.role, role)) {
+      throw new ForbiddenException(`${actor.role} não pode criar usuários com papel ${role}`);
+    }
+
+    const existingUser = await this.repository.findUserByEmail(email);
+    if (existingUser && existingUser.companyId !== companyId) throw new ConflictException('E-mail already registered in another company');
+
+    let temporaryPassword: string | null = null;
+
+    if (existingUser) {
+      const linkedEmployee = await this.repository.findByUserId(companyId, existingUser.id);
+      if (linkedEmployee && linkedEmployee.id !== employee.id) throw new ConflictException('User already linked to another employee');
+
+      await this.repository.updateUser(companyId, existingUser.id, {
+        name: dto.name ?? employee.name,
+        email,
+        role,
+        isActive: true,
+      });
+      if (employee.userId !== existingUser.id) {
+        await this.repository.updateUserLink(companyId, employeeId, existingUser.id);
+      }
+    } else {
+      const [count, limits] = await Promise.all([
+        this.repository.countByCompany(companyId),
+        this.repository.getCompanyLimits(companyId),
+      ]);
+      const contractedSeats = limits?.subscription?.seatQuantity ?? 1;
+      if (count >= contractedSeats) {
+        throw new ConflictException('SEAT_LIMIT_REACHED: Limite de licenças atingido para a empresa');
+      }
+
+      temporaryPassword = this.generateTemporaryPassword();
+      const user = await this.repository.createUser({
+        companyId,
+        name: dto.name ?? employee.name,
+        email,
+        role,
+        passwordHash: await bcrypt.hash(temporaryPassword, 12),
+        forcePasswordChange: true,
+        isActive: true,
+        temporaryPassword: {
+          value: temporaryPassword,
+          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        },
+      });
+      await this.repository.updateUserLink(companyId, employeeId, user.id);
+
+      await this.repository.createAuditLog({
+        companyId,
+        userId: actor.sub,
+        action: 'USER_CREATED',
+        entity: 'User',
+        entityId: user.id,
+        metadata: {
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          employeeLinked: employeeId,
+        },
+      });
+    }
+
+    return {
+      success: true,
+      userId: employee.userId || existingUser?.id,
+      temporaryPassword,
+      email,
+      role,
+    };
+  }
+
+  async linkAccess(companyId: string, actor: JwtUser, employeeId: string, userId: string) {
+    const employee = await this.get(companyId, actor, employeeId);
+    if (!employee) throw new NotFoundException('Employee not found');
+
+    const existingUser = await this.repository.findUserById(companyId, userId);
+    if (!existingUser) throw new NotFoundException('User not found');
+
+    const linkedEmployee = await this.repository.findByUserId(companyId, userId);
+    if (linkedEmployee && linkedEmployee.id !== employeeId) throw new ConflictException('User already linked to another employee');
+
+    await this.repository.updateUserLink(companyId, employeeId, userId);
+    return { success: true, employeeId, userId };
+  }
+
+  async unlinkAccess(companyId: string, actor: JwtUser, employeeId: string) {
+    const employee = await this.get(companyId, actor, employeeId);
+    if (!employee) throw new NotFoundException('Employee not found');
+    if (!employee.userId) throw new ConflictException('Employee has no linked user');
+
+    await this.repository.updateUserLink(companyId, employeeId, null);
+    await this.repository.updateUser(companyId, employee.userId, { isActive: false });
+    return { success: true, employeeId };
+  }
+
+  async bulkAccess(companyId: string, actor: JwtUser, dto: { employeeIds: string[]; action: string; role?: string }) {
+    assertRoleChangeAllowed(actor.role, dto.role);
+    const results: any[] = [];
+
+    for (const employeeId of dto.employeeIds) {
+      try {
+        const employee = await this.repository.findById(companyId, employeeId);
+        if (!employee) {
+          results.push({ employeeId, success: false, error: 'Employee not found' });
+          continue;
+        }
+
+        switch (dto.action) {
+          case 'create':
+            if (!employee.email) {
+              results.push({ employeeId, success: false, error: 'Employee has no email' });
+              break;
+            }
+            try {
+              const createResult = await this.createAccess(companyId, actor, employeeId, {
+                email: employee.email,
+                role: dto.role,
+                name: employee.name,
+              });
+              results.push({ employeeId, success: true, temporaryPassword: createResult.temporaryPassword, role: createResult.role });
+            } catch (error: any) {
+              results.push({ employeeId, success: false, error: error.message });
+            }
+            break;
+
+          case 'block':
+            if (!employee.userId) {
+              results.push({ employeeId, success: false, error: 'Employee has no linked user' });
+              break;
+            }
+            await this.repository.updateUser(companyId, employee.userId, { isActive: false });
+            results.push({ employeeId, success: true });
+            break;
+
+          case 'unblock':
+            if (!employee.userId) {
+              results.push({ employeeId, success: false, error: 'Employee has no linked user' });
+              break;
+            }
+            await this.repository.updateUser(companyId, employee.userId, { isActive: true });
+            results.push({ employeeId, success: true });
+            break;
+
+          case 'reset-password':
+            if (!employee.userId) {
+              results.push({ employeeId, success: false, error: 'Employee has no linked user' });
+              break;
+            }
+            const newPassword = this.generateTemporaryPassword();
+            await this.repository.updateUser(companyId, employee.userId, {
+              passwordHash: await bcrypt.hash(newPassword, 12),
+              forcePasswordChange: true,
+            });
+            results.push({ employeeId, success: true, temporaryPassword: newPassword });
+            break;
+
+          case 'set-role':
+            if (!employee.userId) {
+              results.push({ employeeId, success: false, error: 'Employee has no linked user' });
+              break;
+            }
+            const newRole = this.resolveAccessRole(dto.role);
+            if (!canManageRole(actor.role, newRole)) {
+              results.push({ employeeId, success: false, error: `${actor.role} não pode atribuir papel ${newRole}` });
+              break;
+            }
+            await this.repository.updateUser(companyId, employee.userId, { role: newRole });
+            results.push({ employeeId, success: true, role: newRole });
+            break;
+
+          default:
+            results.push({ employeeId, success: false, error: 'Invalid action' });
+        }
+      } catch (error: any) {
+        results.push({ employeeId, success: false, error: error.message });
+      }
+    }
+
+    return results;
   }
 
   async delete(companyId: string, actor: JwtUser, id: string) {

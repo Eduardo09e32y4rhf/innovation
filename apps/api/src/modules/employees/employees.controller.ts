@@ -7,11 +7,12 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import type { JwtUser } from '../../common/types/auth.types';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
+import { CreateEmployeeAccessDto, LinkEmployeeAccessDto, BulkEmployeeAccessDto } from './dto/employee-access.dto';
 import { EmployeesService } from './employees.service';
 import { EmployeeDocumentsService } from './employee-documents.service';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA')
+@Roles('CEO', 'ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA')
 @Controller('employees')
 export class EmployeesController {
   constructor(
@@ -20,8 +21,17 @@ export class EmployeesController {
   ) {}
 
   @Get()
-  list(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser) {
-    return this.service.list(companyId, actor);
+  list(
+    @CurrentCompany() companyId: string,
+    @CurrentUser() actor: JwtUser,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
+    @Query('search') search?: string,
+    @Query('status') status?: string,
+  ) {
+    const pageNum = Math.max(1, parseInt(page || '1', 10));
+    const pageSizeNum = Math.min(100, Math.max(1, parseInt(pageSize || '50', 10)));
+    return this.service.list(companyId, actor, pageNum, pageSizeNum, search, status);
   }
 
   @Get(':id/dossier')
@@ -96,6 +106,44 @@ export class EmployeesController {
   @Delete(':id')
   terminate(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string) {
     return this.service.terminate(companyId, actor, id);
+  }
+
+  @Roles('ADMIN', 'RH', 'CEO', 'DEV')
+  @Post(':id/access')
+  createAccess(
+    @CurrentCompany() companyId: string,
+    @CurrentUser() actor: JwtUser,
+    @Param('id') id: string,
+    @Body() dto: CreateEmployeeAccessDto,
+  ) {
+    return this.service.createAccess(companyId, actor, id, dto);
+  }
+
+  @Roles('ADMIN', 'RH', 'CEO', 'DEV')
+  @Post(':id/access/link')
+  linkAccess(
+    @CurrentCompany() companyId: string,
+    @CurrentUser() actor: JwtUser,
+    @Param('id') id: string,
+    @Body() dto: LinkEmployeeAccessDto,
+  ) {
+    return this.service.linkAccess(companyId, actor, id, dto.userId);
+  }
+
+  @Roles('ADMIN', 'RH', 'CEO', 'DEV')
+  @Delete(':id/access/link')
+  unlinkAccess(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string) {
+    return this.service.unlinkAccess(companyId, actor, id);
+  }
+
+  @Roles('ADMIN', 'RH', 'CEO', 'DEV')
+  @Post('access/bulk')
+  bulkAccess(
+    @CurrentCompany() companyId: string,
+    @CurrentUser() actor: JwtUser,
+    @Body() dto: BulkEmployeeAccessDto,
+  ) {
+    return this.service.bulkAccess(companyId, actor, dto);
   }
 
   private async streamOfficialDocument(

@@ -635,7 +635,7 @@ export const api = {
   },
 
   employees: {
-    list: () => request<Employee[]>('/employees'),
+    list: (page?: number, pageSize?: number, search?: string, status?: string) => request<Employee[]>('/employees' + makeQuery({ page, pageSize, search, status })),
     swapCandidates: () => request<any[]>('/employees/swap-candidates'),
     get: (id: string) => request<Employee>(`/employees/${id}`),
     dossier: (id: string) => request<EmployeeDossier>(`/employees/${id}/dossier`),
@@ -643,12 +643,16 @@ export const api = {
     update: (id: string, input: Partial<CreateEmployeeInput>) => request<Employee>(`/employees/${id}`, { method: 'PATCH', body: input }),
     terminate: (id: string) => request<Employee>(`/employees/${id}`, { method: 'DELETE' }),
     delete: (id: string) => request<EmployeeDeleteResult>(`/employees/${id}/permanent`, { method: 'DELETE' }),
+    createAccess: (id: string, input: { email: string; role?: string; name?: string }) => request<{ success: boolean; userId?: string; temporaryPassword?: string; email: string; role: string }>(`/employees/${id}/access`, { method: 'POST', body: input }),
+    linkAccess: (id: string, userId: string) => request<{ success: boolean; employeeId: string; userId: string }>(`/employees/${id}/access/link`, { method: 'POST', body: { userId } }),
+    unlinkAccess: (id: string) => request<{ success: boolean; employeeId: string }>(`/employees/${id}/access/link`, { method: 'DELETE' }),
+    bulkAccess: (input: { employeeIds: string[]; action: string; role?: string }) => request<Array<{ employeeId?: string; row?: number; success: boolean; error?: string; temporaryPassword?: string; role?: string }>>('/employees/access/bulk', { method: 'POST', body: input }),
     validateImport: (file: File) => {
       const form = new FormData();
       form.append('file', file);
-      return request<{ valid: boolean; importToken: string | null; totalRows: number; validRows: number; invalidRows: number; preview: Array<Record<string, unknown>>; errors: Array<{ row: number; column: string; message: string }> }>('/employees/import/validate', { method: 'POST', body: form, timeoutMs: 30000 });
+      return request<{ valid: boolean; importToken: string | null; totalRows: number; validRows: number; invalidRows: number; preview: Array<Record<string, unknown>>; errors: Array<{ row: number; column: string; message: string }>; invalidRowsData?: any[] }>('/employees/import/validate', { method: 'POST', body: form, timeoutMs: 30000 });
     },
-    confirmImport: (importToken: string) => request<{ imported: number; errors: unknown[] }>('/employees/import/confirm', { method: 'POST', body: { importToken }, timeoutMs: 30000 }),
+    confirmImport: (importToken: string) => request<{ imported: number; totalProcessed: number; invalidRows: number; results: any[] }>('/employees/import/confirm', { method: 'POST', body: { importToken }, timeoutMs: 30000 }),
   },
 
   workScheduleRules: {

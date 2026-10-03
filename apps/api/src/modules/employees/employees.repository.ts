@@ -6,10 +6,20 @@ import { encryptTemporaryPassword } from '../../common/crypto/temporary-password
 export class EmployeesRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  list(companyId: string, skip = 0, take = 100) {
+  list(companyId: string, skip = 0, take = 100, search?: string, status?: string) {
     return this.prisma.employee.findMany({
-      where: { companyId },
-      include: { 
+      where: {
+        companyId,
+        ...(search && {
+          OR: [
+            { name: { contains: search, mode: 'insensitive' } },
+            { cpf: { contains: search, mode: 'insensitive' } },
+            { email: { contains: search, mode: 'insensitive' } },
+          ]
+        }),
+        ...(status && { status }),
+      },
+      include: {
         user: { select: { id: true, role: true, isActive: true, forcePasswordChange: true } },
         faceEnrollment: { select: { active: true } }
       },
@@ -50,10 +60,21 @@ export class EmployeesRepository {
     });
   }
 
-  listByManager(companyId: string, managerId: string, skip = 0, take = 100) {
+  listByManager(companyId: string, managerId: string, skip = 0, take = 100, search?: string, status?: string) {
     return this.prisma.employee.findMany({
-      where: { companyId, managerId },
-      include: { 
+      where: {
+        companyId,
+        managerId,
+        ...(search && {
+          OR: [
+            { name: { contains: search, mode: 'insensitive' } },
+            { cpf: { contains: search, mode: 'insensitive' } },
+            { email: { contains: search, mode: 'insensitive' } },
+          ]
+        }),
+        ...(status && { status }),
+      },
+      include: {
         user: { select: { id: true, role: true, isActive: true, forcePasswordChange: true } },
         faceEnrollment: { select: { active: true } }
       },
@@ -99,6 +120,10 @@ export class EmployeesRepository {
 
   findUserByEmail(email: string) {
     return this.prisma.user.findUnique({ where: { email } });
+  }
+
+  findUserById(companyId: string, userId: string) {
+    return this.prisma.user.findFirst({ where: { companyId, id: userId } });
   }
 
   createUser(data: any) {
@@ -265,5 +290,33 @@ export class EmployeesRepository {
 
   delete(companyId: string, id: string) {
     return this.prisma.employee.deleteMany({ where: { companyId, id } });
+  }
+
+  createAuditLog(data: { companyId: string; userId?: string; action: string; entity: string; entityId?: string; metadata?: any }) {
+    return this.prisma.auditLog.create({ data });
+  }
+
+  countByCompany(companyId: string) {
+    return this.prisma.user.count({
+      where: {
+        companyId,
+        isActive: true,
+        role: { in: ['RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'] },
+      },
+    });
+  }
+
+  getCompanyLimits(companyId: string) {
+    return this.prisma.company.findUnique({
+      where: { id: companyId },
+      select: {
+        plan: true,
+        status: true,
+        billingStatus: true,
+        subscription: {
+          select: { seatQuantity: true },
+        },
+      },
+    });
   }
 }

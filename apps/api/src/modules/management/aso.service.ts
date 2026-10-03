@@ -403,16 +403,21 @@ export class AsoService {
 
   // ─── RH ALERTS ───────────────────────────────────────────────────────────────
 
-  async getRhAlerts(companyId: string) {
+  async getRhAlerts(companyId: string, actor?: { sub: string; role: string; managerId?: string }) {
     try {
       await this.triggerPeriodicAso(companyId);
       const today = new Date();
       const in30Days = new Date(today);
       in30Days.setUTCDate(today.getUTCDate() + 30);
 
+      const whereClause: any = { companyId };
+      if (actor?.role === 'GESTOR' && actor?.managerId) {
+        whereClause.employee = { managerId: actor.managerId };
+      }
+
       const allRecords = await this.prisma.employeeAsoRecord.findMany({
-        where: { companyId },
-        include: { employee: { select: { id: true, name: true, status: true } } },
+        where: whereClause,
+        include: { employee: { select: { id: true, name: true, status: true, managerId: true } } },
         orderBy: { dueDate: 'asc' },
       });
 
@@ -485,8 +490,8 @@ export class AsoService {
         items,
       };
     } catch (err) {
-      this.safeLog('getRhAlerts fallback', err);
-      return { asoExpired: 0, asoExpiringSoon: 0, pendingAdmissionAso: 0, pendingTotal: 0, inaptoCount: 0, items: [] };
+      this.safeLog('getRhAlerts error', err);
+      throw err;
     }
   }
 }

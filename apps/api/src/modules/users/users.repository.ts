@@ -122,9 +122,10 @@ export class UsersRepository {
     role: UserRole;
     customPermissions?: string[];
     temporaryPassword?: { value: string; expiresAt: Date };
+    employeeId?: string;
   }) {
     return this.prisma.$transaction(async (tx) => {
-      const { temporaryPassword, ...userData } = data;
+      const { temporaryPassword, employeeId, ...userData } = data;
       const user = await tx.user.create({
         data: {
           ...userData,
@@ -146,13 +147,21 @@ export class UsersRepository {
         });
       }
 
-      const employee = await tx.employee.findFirst({
-        where: {
-          companyId: data.companyId,
-          email: { equals: data.email.trim().toLowerCase(), mode: 'insensitive' },
-        },
-        select: { id: true, userId: true },
-      });
+      let employee;
+      if (employeeId) {
+        employee = await tx.employee.findFirst({
+          where: { companyId: data.companyId, id: employeeId },
+          select: { id: true, userId: true },
+        });
+      } else {
+        employee = await tx.employee.findFirst({
+          where: {
+            companyId: data.companyId,
+            email: { equals: data.email.trim().toLowerCase(), mode: 'insensitive' },
+          },
+          select: { id: true, userId: true },
+        });
+      }
 
       if (employee) {
         if (employee.userId && employee.userId !== user.id) {
