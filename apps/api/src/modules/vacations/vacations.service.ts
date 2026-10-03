@@ -67,6 +67,8 @@ export class VacationsService {
     }
     if (endDate < startDate) throw new BadRequestException('End date must be after start date');
 
+    this.validateCltVacationRules(startDate, endDate);
+
     const requestedDays = Math.floor((endDate.getTime() - startDate.getTime()) / 86400000) + 1;
     if (requestedDays < 1 || requestedDays > 30) {
       throw new BadRequestException('O periodo de ferias deve ter entre 1 e 30 dias corridos.');
@@ -351,6 +353,28 @@ export class VacationsService {
     if (unjustifiedAbsences <= 23) return 18;
     if (unjustifiedAbsences <= 32) return 12;
     return 0;
+  }
+
+  private validateCltVacationRules(startDate: Date, endDate: Date) {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const dayOfWeekStart = start.getDay();
+
+    if (dayOfWeekStart === 0) {
+      throw new BadRequestException(
+        'As férias não podem começar em domingo conforme normas CLT. Escolha outro dia da semana.'
+      );
+    }
+
+    const nextDay = new Date(start);
+    nextDay.setDate(nextDay.getDate() + 1);
+    const nextDayOfWeek = nextDay.getDay();
+
+    if (nextDayOfWeek === 0) {
+      throw new BadRequestException(
+        'As férias não podem começar na sexta-feira (dia imediatamente anterior ao domingo). Escolha outro dia.'
+      );
+    }
   }
 
   private countUnjustifiedAbsences(
