@@ -1,3 +1,4 @@
+import { createPdfSink, sendPdf } from '../../common/pdf/pdf-response';
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { TimeClosingStatus } from '@prisma/client';
 import { createHash } from 'node:crypto';
@@ -33,7 +34,7 @@ export class TimeClosingService {
     const company = await this.prisma.company.findUnique({ where: { id: companyId }, select: { payrollStartDay: true } });
     const { periodStart, periodEnd } = this.resolvePeriod(dto, company?.payrollStartDay ?? 1);
     const overtimeHandling = dto.overtimeHandling === 'BANK' ? 'BANK' : dto.overtimeHandling === 'PAYMENT' ? 'PAYMENT' : undefined;
-    const employees = await this.prisma.employee.findMany({
+    const allEmployees = await this.prisma.employee.findMany({
       where: {
         companyId,
         admissionDate: { lte: periodEnd },
@@ -46,10 +47,17 @@ export class TimeClosingService {
       include: { workScheduleRule: true, userSchedules: { include: { schedule: true }, orderBy: { startDate: 'desc' } } },
       orderBy: { name: 'asc' },
     });
-    if (!employees.length) throw new BadRequestException('Nenhum funcionario ativo encontrado para o fechamento.');
-    const withoutSalary = employees.filter((employee) => Number(employee.salary || 0) <= 0);
+    if (!allEmployees.length) throw new BadRequestException('Nenhum funcionario ativo encontrado para o fechamento.');
+    // Quem esta sem salario na ficha nao bloqueia a empresa inteira: e ignorado e o RH e avisado no log de auditoria.
+    const withoutSalary = allEmployees.filter((employee) => Number(employee.salary || 0) <= 0);
+    const employees = allEmployees.filter((employee) => Number(employee.salary || 0) > 0);
+    if (!employees.length) {
+      throw new BadRequestException(`Nenhum funcionario com salario preenchido para fechar: ${withoutSalary.map((item) => item.name).join(', ')}`);
+    }
     if (withoutSalary.length) {
-      throw new BadRequestException(`Preencha o salario na ficha antes de fechar: ${withoutSalary.map((item) => item.name).join(', ')}`);
+      await this.prisma.auditLog
+        .create({ data: { companyId, userId: actor.sub, action: 'TIME_CLOSING_SKIPPED_NO_SALARY', entity: 'TimeClosing', metadata: { employees: withoutSalary.map((item) => ({ id: item.id, name: item.name })) } } })
+        .catch(() => undefined);
     }
     const taxContext = await this.payroll.resolveTaxContext(periodEnd);
 
@@ -495,22 +503,12 @@ export class TimeClosingService {
 
   async streamPdf(companyId: string, id: string, res: any, actor?: JwtUser) {
     const closing = await this.getById(companyId, id, actor);
-    
-    // Fastify/Express compatibility
-    const isFastify = typeof res.raw !== 'undefined';
-    const stream = isFastify ? res.raw : res;
-    
-    if (isFastify) {
-      stream.setHeader('Content-Type', 'application/pdf');
-      stream.setHeader('Content-Disposition', `attachment; filename=Folha_Ponto_${this.safeFilename(closing.employee.name)}_${this.dateKey(closing.periodStart)}.pdf`);
-    } else {
-      res.header('Content-Type', 'application/pdf');
-      res.header('Content-Disposition', `attachment; filename=Folha_Ponto_${this.safeFilename(closing.employee.name)}_${this.dateKey(closing.periodStart)}.pdf`);
-    }
-
-    import('pdfkit').then(PDFDocument => {
+    const fileName = `Folha_Ponto_${this.safeFilename(closing.employee?.name ?? 'funcionario')}_${this.dateKey(closing.periodStart)}.pdf`;
+    const sink = createPdfSink();
+    const PDFDocument = await import('pdfkit');
+    {
       const doc = new PDFDocument.default({ margin: 40, size: 'A4', bufferPages: true });
-      doc.pipe(stream);
+      doc.pipe(sink.stream);
 
       const emp = closing.employee;
       const company = closing.company;
@@ -690,7 +688,8 @@ export class TimeClosingService {
       }
 
       doc.end();
-    });
+    }
+    sendPdf(res, await sink.done, fileName);
   }
 
   private async buildCollectivePdf(

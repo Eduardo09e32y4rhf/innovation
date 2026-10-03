@@ -28,6 +28,22 @@ const VALID_PERMISSIONS = [
   'hr.approve_vacations',
   'hr.manage_schedules',
   'hr.approve_schedules',
+  // Chaves usadas pela interface (lib/permissions.ts); antes eram rejeitadas com 400.
+  'time_tracking.clock_in',
+  'time_tracking.view_own',
+  'time_tracking.view_team',
+  'time_tracking.view_all',
+  'time_tracking.approve_team',
+  'time_tracking.approve_all',
+  'vacations.request_own',
+  'vacations.request_team',
+  'vacations.approve',
+  'settings.change_own_password',
+  'settings.change_team_password',
+  'settings.change_all_passwords',
+  'users.view_employee_files',
+  'admin.manage_rh',
+  'platform.manage',
 ];
 
 const ROLE_MANAGEMENT: Record<string, string[]> = {
@@ -142,6 +158,9 @@ export class UsersService {
 
   async update(companyId: string, actor: JwtUser, id: string, dto: UpdateUserDto) {
     this.assertRoleChangeAllowed(actor, dto.role);
+    if (id === actor.sub &&actor.role !== 'DEV' && (dto.isActive === false || (dto.role && dto.role !== actor.role))) {
+      throw new ForbiddenException('Voce nao pode desativar a propria conta nem alterar o proprio perfil.');
+    }
     const before = await this.get(companyId, actor, id);
     if (before.role && !this.canManageRole(actor.role, before.role)) {
       throw new ForbiddenException('Voce nao tem permissao para editar este usuario.');

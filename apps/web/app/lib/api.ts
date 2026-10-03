@@ -117,29 +117,49 @@ export async function request<T>(path: string, opts: Opts = {}): Promise<T> {
   return data as T;
 }
 
+function parseDownloadName(disposition: string): string {
+  const star = /filename\*\s*=\s*UTF-8''([^;]+)/i.exec(disposition)?.[1];
+  if (star) { try { return decodeURIComponent(star.trim()); } catch { /* tenta as outras formas */ } }
+  const quoted = /filename\s*=\s*"([^"]+)"/i.exec(disposition)?.[1];
+  if (quoted) { try { return decodeURIComponent(quoted); } catch { return quoted; } }
+  const bare = /filename\s*=\s*([^;]+)/i.exec(disposition)?.[1];
+  return bare ? bare.trim() : 'anexo';
+}
+
 async function downloadRequest(path: string): Promise<void> {
   const headers: Record<string, string> = {};
   const token = getToken();
   if (token) headers.Authorization = `Bearer ${token}`;
-  const response = await fetch(`${API_URL}${path}`, { headers });
+  let response: Response;
+  try {
+    response = await fetch(`${API_URL}${path}`, { headers });
+  } catch (err) {
+    throw new ApiError(0, 'Sem conexao com a API. Verifique sua internet e tente novamente.', err);
+  }
+  if (response.status === 401) {
+    clearSession();
+    if (typeof window !== 'undefined') window.location.href = '/login';
+    throw new ApiError(401, 'Sessao expirada. Faca login novamente.');
+  }
   if (!response.ok) {
     const data = safeJson(await response.text());
-    const message = data && typeof data === 'object' && 'message' in data ? String((data as any).message) : `Erro ${response.status}`;
+    const nested = data && typeof data === 'object' && 'error' in data ? (data as any).error : data;
+    const raw = nested && typeof nested === 'object' && 'message' in nested ? (nested as any).message : data && typeof data === 'object' && 'message' in data ? (data as any).message : null;
+    const message = Array.isArray(raw) ? raw.join(', ') : raw ? String(raw) : `Nao foi possivel baixar o arquivo (erro ${response.status}).`;
     throw new ApiError(response.status, message, data);
   }
-  const disposition = response.headers.get('content-disposition') || '';
-  const encodedName = disposition.match(/filename="([^"]+)"/i)?.[1];
-  const filename = encodedName ? decodeURIComponent(encodedName) : 'anexo';
-  const url = URL.createObjectURL(await response.blob());
+  const blob = await response.blob();
+  if (blob.size === 0) throw new ApiError(500, 'O servidor devolveu um arquivo vazio.');
+  const filename = parseDownloadName(response.headers.get('content-disposition') || '');
+  const url = URL.createObjectURL(blob);
   const anchor = document.createElement('a');
   anchor.href = url;
   anchor.download = filename;
   document.body.appendChild(anchor);
   anchor.click();
   anchor.remove();
-  URL.revokeObjectURL(url);
+  setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
-
 function safeJson(text: string): unknown {
   try { return JSON.parse(text); } catch { return text; }
 }
@@ -450,7 +470,7 @@ export interface AsaasWebhookEvent {
   paymentId?: string | null;
 }
 export interface PlatformInvoiceQuery {
-  page?: number; limit?: number; status?: PlatformInvoiceStatus | ''; search?: string; from?: string; to?: string;
+  page?: number; limit?: number; status?: PlatformInvoiceStatus | ''; search?: string; from?: string; to?: string; companyId?: string;
 }
 export interface CreatePlatformInvoiceInput {
   companyId: string; planId?: string; description: string; amount: number; dueDate: string;
@@ -731,6 +751,8 @@ export const api = {
     update: (id: string, input: UpdateUserInput) => request<AppUser>(`/users/${id}`, { method: 'PATCH', body: input }),
     delete: (id: string) => request<void>(`/users/${id}`, { method: 'DELETE' }),
     resetPassword: (id: string, body: { newPassword: string }) => request<AppUser>(`/users/${id}/reset-password`, { method: 'POST', body }),
+    revealTemporaryPassword: (id: string) => request<{ temporaryPassword: string; expiresAt: string }>(`/users/${id}/temporary-password/reveal`, { method: 'POST' }),
+    reissueTemporaryPassword: (id: string) => request<{ temporaryPassword: string; expiresAt: string }>(`/users/${id}/temporary-password/reissue`, { method: 'POST' }),
     ping: () => request<void>('/users/ping', { method: 'POST', silent: true }),
   },
 
@@ -809,7 +831,7 @@ export const api = {
     getReceitaCnpj: (cnpj: string) => request<any>(`/platform/receita/${cnpj}`),
     ghostMode: (companyId: string) => request<{ token: string }>(`/platform/ghost-mode/${companyId}`, { method: 'POST' }),
     finance: {
-      summary: (query: Pick<PlatformInvoiceQuery, 'from' | 'to'> = {}) => request<PlatformFinanceSummary>(`/finance/platform/summary${makeQuery(query)}`),
+      summary: (query: Pick<PlatformInvoiceQuery, 'from' | 'to' | 'companyId'> = {}) => request<PlatformFinanceSummary>(`/finance/platform/summary${makeQuery(query)}`),
       list: (query: PlatformInvoiceQuery = {}) => request<PlatformInvoiceList>(`/finance/platform/invoices${makeQuery(query)}`),
       listCompany: (companyId: string) => request<PlatformInvoice[]>(`/finance/platform/companies/${companyId}/invoices`),
       checkoutCompany: (companyId: string) => request<CompanyBillingResult>(`/finance/platform/companies/${companyId}/checkout`, { method: 'POST', timeoutMs: 20000 }),
@@ -821,15 +843,8 @@ export const api = {
       retryWebhookEvent: (id: string) => request<{ queued: boolean; id: string }>(`/finance/platform/webhook-events/${id}/retry`, { method: 'POST' }),
       billingAuditLogs: (query: { companyId?: string; limit?: number } = {}) => request<PlatformBillingAuditLog[]>(`/finance/platform/audit-logs${makeQuery(query)}`),
       delete: (id: string) => request<{ id: string }>(`/finance/platform/invoices/${id}`, { method: 'DELETE' }),
-      downloadStatementPdf: (query: Pick<PlatformInvoiceQuery, 'status' | 'search' | 'from' | 'to'> = {}) =>
+      downloadStatementPdf: (query: Pick<PlatformInvoiceQuery, 'status' | 'search' | 'from' | 'to' | 'companyId'> = {}) =>
         downloadRequest(`/finance/platform/statements/pdf${makeQuery(query)}`),
-    },
-    accounting: {
-      overview: (month?: string) => request<AccountingOverview>(`/finance/accounting/overview${makeQuery({ month })}`),
-      closings: (companyId: string, month?: string) => request<AccountingClosing[]>(`/finance/accounting/companies/${companyId}/closings${makeQuery({ month })}`),
-      payroll: (companyId: string, month?: string) => request<AccountingPayroll[]>(`/finance/accounting/companies/${companyId}/payroll${makeQuery({ month })}`),
-      adjustClosing: (id: string, input: { field: string; newValue: number; reason: string }) => request<AccountingClosing>(`/finance/accounting/time-closings/${id}/adjust`, { method: 'PATCH', body: input }),
-      correctPayroll: (id: string, input: Record<string, unknown>) => request<AccountingPayroll>(`/finance/accounting/payroll/${id}`, { method: 'PATCH', body: input }),
     },
   },
 

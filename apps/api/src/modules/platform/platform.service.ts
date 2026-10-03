@@ -9,7 +9,7 @@ import { UpdatePlatformCompanyDto } from './dto/update-platform-company.dto';
 import { UpdatePlatformCompanyUserDto } from './dto/update-platform-company-user.dto';
 import { PlatformRepository } from './platform.repository';
 
-// SEGURANÃÆ’ââ‚¬Â¡A: e-mail do DEV proprietÃÆ’ÂÂ¡rio da plataforma ÃÂ¢ââ€šÂ¬ââ‚¬Â definido via variÃÆ’ÂÂ¡vel de ambiente
+// SEGURANCA: e-mail do DEV proprietario da plataforma, definido via variavel de ambiente
 const PLATFORM_OWNER_EMAIL = (process.env.PLATFORM_OWNER_EMAIL ?? '').toLowerCase();
 const PROTECTED_PLATFORM_ROLES = ['DEV', 'COMERCIAL'];
 
@@ -49,12 +49,12 @@ export class PlatformService {
     }
 
     const company = await this.repository.getCompany(companyId);
-    if (!company) throw new NotFoundException('Empresa nÃÆ’ÂÂ£o encontrada');
+    if (!company) throw new NotFoundException('Empresa não encontrada');
     if (company.status !== 'ACTIVE') {
-      throw new ForbiddenException(`NÃÆ’ÂÂ£o pode acessar empresa ${company.status === 'SUSPENDED' ? 'suspensa' : 'cancelada'}`);
+      throw new ForbiddenException(`Não pode acessar empresa ${company.status === 'SUSPENDED' ? 'suspensa' : 'cancelada'}`);
     }
 
-    const reason = req?.body?.reason || 'Suporte tÃÆ’ÂÂ©cnico';
+    const reason = req?.body?.reason || 'Suporte técnico';
 
     await this.repository.createAuditLog({
       companyId,
@@ -69,7 +69,7 @@ export class PlatformService {
       },
     });
 
-    // ÃÂ¢Ã…â€œââ‚¬Â¦ MantÃÆ’ÂÂ©m identidade do DEV ÃÂ¢ââ€šÂ¬ââ‚¬Â nÃÆ’ÂÂ£o impersona o admin da empresa
+    // Mantem a identidade do DEV: nao impersona o admin da empresa
     const payload = {
       sub: actor.sub,
       email: actor.email,
@@ -229,12 +229,12 @@ export class PlatformService {
       ...(autoSuspensionReason !== undefined && !status ? { suspensionReason: autoSuspensionReason } : {}),
     };
 
-    // Notificar admin(s) da empresa sobre inadimplÃÆ’ÂÂªncia caso mude para PAST_DUE
+    // Notificar admin(s) da empresa sobre inadimplência caso mude para PAST_DUE
     if (billingStatus === 'PAST_DUE' && company.billingStatus !== 'PAST_DUE') {
       await this.notificationsService.createAdminNotice(id, actor.sub, {
         type: 'SYSTEM_ALERT',
-        title: 'Aviso de InadimplÃÆ’ÂÂªncia e Bloqueio',
-        message: 'Consta um dÃÆ’ÂÂ©bito pendente na sua assinatura. Seu acesso a mÃÆ’ÂÂ³dulos foi restrito. Regularize para reativar o acesso integral ÃÆ’ÂÂ  plataforma.',
+        title: 'Aviso de Inadimplência e Bloqueio',
+        message: 'Consta um débito pendente na sua assinatura. Seu acesso a módulos foi restrito. Regularize para reativar o acesso integral à plataforma.',
         priority: 'HIGH',
         targetType: 'ROLE',
         targetRole: 'ADMIN',

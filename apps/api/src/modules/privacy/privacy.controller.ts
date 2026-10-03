@@ -1,3 +1,4 @@
+import { contentDisposition } from '../../common/pdf/pdf-response';
 import { Body, Controller, Get, Post, Req, Res, UseGuards, Param } from '@nestjs/common';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -33,7 +34,7 @@ export class PrivacyController {
     
     const buffer = Buffer.from(base64Pdf, 'base64');
     reply.header('Content-Type', 'application/pdf');
-    reply.header('Content-Disposition', `attachment; filename=Termo_De_Uso_${userId}.pdf`);
+    reply.header('Content-Disposition', contentDisposition('Termo_de_Uso.pdf'));
     reply.send(buffer);
   }
 

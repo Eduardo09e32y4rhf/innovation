@@ -140,13 +140,14 @@ describe('PayrollCalculationService - tabelas 2026', () => {
     expect(result.calculationVersion).toContain('IRRF_2026_DB');
   });
 
-  it('bloqueia o fechamento oficial quando falta tabela para a competencia', async () => {
+  it('nao bloqueia o fechamento quando falta tabela: usa o padrao embutido e sinaliza', async () => {
     const prisma: any = {
       payrollTaxTable: { findMany: vi.fn().mockResolvedValue([]) },
     };
     const dbService = new PayrollCalculationService(prisma);
 
-    await expect(dbService.resolveTaxContext(new Date('2027-01-31T00:00:00.000Z')))
-      .rejects.toBeInstanceOf(BadRequestException);
+    const context = await dbService.resolveTaxContext(new Date('2027-01-31T00:00:00.000Z'));
+    expect(context.builtin).toEqual(expect.arrayContaining(['INSS', 'IRRF']));
+    expect(context.inss.version).toBe('PADRAO_2026');
   });
 });

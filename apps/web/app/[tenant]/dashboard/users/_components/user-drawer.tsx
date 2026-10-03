@@ -4,7 +4,7 @@ import { useParams } from 'next/navigation';
 import { Button, Drawer } from '@/app/components/ui';
 import { ROLE_LABEL } from '@/app/lib/format';
 import { PERMISSIONS_LABELS, getDefaultPermissions } from '@/app/lib/permissions';
-import type { AppUser, UserRole } from '@/app/lib/api';
+import { api, type AppUser, type UserRole } from '@/app/lib/api';
 import { userAccessPolicy } from './access-policy';
 import { AccessConfirmDialog } from './access-confirm-dialog';
 import { useAccessOverlay } from './use-access-overlay';
@@ -44,7 +44,18 @@ export function UserDrawer({ user, isOpen, onClose, availableRoles, currentRole,
   const [feedback, setFeedback] = useState<{ success: boolean; message: string } | null>(null);
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
   const [restore, setRestore] = useState(false);
+  const [temp, setTemp] = useState<{ temporaryPassword: string; expiresAt: string } | null>(null);
+  const [tempBusy, setTempBusy] = useState<'reveal' | 'reissue' | null>(null);
+  const canTemp = !!user && ['DEV', 'CEO', 'ADMIN', 'RH'].includes(currentRole ?? '') && user.forcePasswordChange !== false && user.id !== currentUserId;
+  async function runTemp(kind: 'reveal' | 'reissue') {
+    if (!user) return;
+    setTempBusy(kind); setFeedback(null);
+    try { setTemp(await (kind === 'reveal' ? api.users.revealTemporaryPassword(user.id) : api.users.reissueTemporaryPassword(user.id))); }
+    catch (err) { setFeedback({ success: false, message: err instanceof Error ? err.message : 'Não foi possível obter a senha provisória.' }); }
+    finally { setTempBusy(null); }
+  }
   useEffect(() => {
+    setTemp(null);
     if (!isOpen || !user) return;
     setActiveTab(initialTab); setName(user.name ?? ''); setEmail(user.email ?? ''); setRole(user.role);
     setIsCustom(!!user.customPermissions?.length);
@@ -157,11 +168,20 @@ export function UserDrawer({ user, isOpen, onClose, availableRoles, currentRole,
             ].map(([label, value]) => <div key={label}><dt className="text-fg-mut">{label}</dt><dd className="mt-1 font-medium">{value}</dd></div>)}
           </dl>
           <p className="text-sm text-fg-mut">O reset invalida sessões anteriores à troca de senha. O bloqueio impede o acesso às rotas autenticadas. Esta seção mostra os dados de acesso disponíveis, sem uma trilha completa de eventos.</p>
+          {canTemp && <div className="space-y-3 rounded-xl border border-border p-4">
+            <h4 className="text-sm font-semibold">Senha provisória</h4>
+            {temp ? <p role="status" className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">Repasse com segurança: <code className="select-all font-mono font-semibold">{temp.temporaryPassword}</code><span className="block text-xs">Válida até {dateTime(temp.expiresAt)}. Exibida somente agora.</span></p>
+              : <p className="text-sm text-fg-mut">Disponível enquanto o usuário não trocar a senha do primeiro acesso (24h).</p>}
+            <div className="flex flex-wrap gap-3">
+              <Button type="button" variant="outline" isLoading={tempBusy === 'reveal'} disabled={!!tempBusy} onClick={() => runTemp('reveal')}>Ver senha provisória</Button>
+              {!policy.own && <Button type="button" variant="outline" isLoading={tempBusy === 'reissue'} disabled={!!tempBusy} onClick={() => runTemp('reissue')}>Gerar nova</Button>}
+            </div>
+          </div>}
           <div className="flex flex-wrap gap-3">
             {policy.reset && <Button type="button" variant="outline" onClick={() => proceed(onResetPassword)}>Redefinir senha temporária</Button>}
             {policy.block && <Button type="button" variant={user.isActive === false ? 'outline' : 'danger'} onClick={() => proceed(onToggleBlock)}>{user.isActive === false ? 'Desbloquear acesso' : 'Bloquear acesso'}</Button>}
           </div>
-          {policy.own && <Link className="btn btn-outline" href={`/${tenant}/dashboard/settings?section=seguranca`} onClick={event => { if (generalDirty || permissionsDirty) { event.preventDefault(); setFeedback({ success: false, message: 'Salve ou descarte as alterações antes de sair.' }); } }}>Alterar minha senha</Link>}
+          {policy.own && <Link className="btn btn-outline" href={`/${tenant}/dashboard/settings?section=conta`} onClick={event => { if (generalDirty || permissionsDirty) { event.preventDefault(); setFeedback({ success: false, message: 'Salve ou descarte as alterações antes de sair.' }); } }}>Alterar minha senha</Link>}
           {!policy.reset && !policy.own && <p className="text-sm text-fg-mut">Seu perfil não pode redefinir a senha desta conta.</p>}
         </div>}
         {activeTab === 'vinculo' && <div className="space-y-4">

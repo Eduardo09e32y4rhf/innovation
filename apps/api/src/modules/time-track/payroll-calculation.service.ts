@@ -7,7 +7,17 @@ export interface PayrollTaxBracket {
   deduction?: number;
 }
 
+export interface PayrollRuleParams {
+  overtime50MinFactor: number;
+  overtime100MinFactor: number;
+  nightMinPercent: number;
+  monthlyDivisorFactor: number;
+}
+
 export interface PayrollTaxContext {
+  fgts?: { id: string | null; version: string; rate: number };
+  params?: { id: string | null; version: string } & PayrollRuleParams;
+  builtin?: string[];
   inss: {
     id: string;
     version: string;
@@ -75,20 +85,27 @@ export interface PayrollCalculationResult {
 @Injectable()
 export class PayrollCalculationService {
   static readonly VERSION = 'CLT_2026_1';
-  private static readonly DEFAULT_INSS: PayrollTaxBracket[] = [
+  static readonly DEFAULT_INSS: PayrollTaxBracket[] = [
     { limit: 1621, rate: 0.075 },
     { limit: 2902.84, rate: 0.09 },
     { limit: 4354.27, rate: 0.12 },
     { limit: 8475.55, rate: 0.14 },
   ];
-  private static readonly DEFAULT_IRRF: PayrollTaxBracket[] = [
+  static readonly DEFAULT_IRRF: PayrollTaxBracket[] = [
     { limit: 2428.8, rate: 0, deduction: 0 },
     { limit: 2826.65, rate: 0.075, deduction: 182.16 },
     { limit: 3751.05, rate: 0.15, deduction: 394.16 },
     { limit: 4664.68, rate: 0.225, deduction: 675.49 },
     { limit: null, rate: 0.275, deduction: 908.73 },
   ];
-  private static readonly DEFAULT_IRRF_PARAMETERS = {
+  static readonly DEFAULT_FGTS_RATE = 0.08;
+  static readonly DEFAULT_RULE_PARAMS: PayrollRuleParams = {
+    overtime50MinFactor: 1.5,
+    overtime100MinFactor: 2,
+    nightMinPercent: 20,
+    monthlyDivisorFactor: 5,
+  };
+  static readonly DEFAULT_IRRF_PARAMETERS = {
     dependentDeduction: 189.59,
     simplifiedDeduction: 607.2,
     fullExemptionLimit: 5000,
@@ -99,50 +116,67 @@ export class PayrollCalculationService {
 
   constructor(@Optional() private readonly prisma?: PrismaService) {}
 
+  /**
+   * Resolve as regras vigentes na competência (tabelas INSS/IRRF, alíquota do FGTS e parâmetros de folha).
+   * Se alguma regra não estiver cadastrada, usa o padrão legal embutido e registra isso em `builtin`
+   * (nunca bloqueia o fechamento com erro 400).
+   */
   async resolveTaxContext(referenceDate: Date): Promise<PayrollTaxContext> {
-    if (!this.prisma) {
-      throw new BadRequestException('Servico de tabelas tributarias indisponivel para o fechamento oficial.');
-    }
-    const tables = await this.prisma.payrollTaxTable.findMany({
-      where: {
-        active: true,
-        effectiveFrom: { lte: referenceDate },
-        OR: [{ effectiveTo: null }, { effectiveTo: { gte: referenceDate } }],
-      },
-      orderBy: { effectiveFrom: 'desc' },
-    });
-    const inss = tables.find((table) => table.taxType === 'INSS');
-    const irrf = tables.find((table) => table.taxType === 'IRRF');
-    if (!inss || !irrf) {
-      const competence = `${referenceDate.getUTCFullYear()}-${String(referenceDate.getUTCMonth() + 1).padStart(2, '0')}`;
-      throw new BadRequestException(
-        `Fechamento bloqueado: nao existe tabela tributaria INSS e IRRF ativa para a competencia ${competence}.`,
-      );
-    }
+    const tables = this.prisma
+      ? await this.prisma.payrollTaxTable.findMany({
+          where: {
+            active: true,
+            effectiveFrom: { lte: referenceDate },
+            OR: [{ effectiveTo: null }, { effectiveTo: { gte: referenceDate } }],
+          },
+          orderBy: { effectiveFrom: 'desc' },
+        })
+      : [];
+    const find = (type: string) => tables.find((table) => (table.taxType as string) === type);
+    const builtin: string[] = [];
 
-    return {
-      inss: {
-        id: inss.id,
-        version: inss.version,
-        brackets: this.parseBrackets(inss.brackets, 'INSS'),
-      },
-      irrf: {
-        id: irrf.id,
-        version: irrf.version,
-        brackets: this.parseBrackets(irrf.brackets, 'IRRF'),
-        parameters: this.parseIrrfParameters(irrf.parameters),
-      },
-    };
+    const inssTable = find('INSS');
+    const irrfTable = find('IRRF');
+    const fgtsTable = find('FGTS');
+    const paramsTable = find('PAYROLL_PARAMS');
+    const D = PayrollCalculationService;
+
+    let inss: PayrollTaxContext['inss'];
+    if (inssTable) inss = { id: inssTable.id, version: inssTable.version, brackets: this.parseBrackets(inssTable.brackets, 'INSS') };
+    else { builtin.push('INSS'); inss = { id: 'builtin', version: 'PADRAO_2026', brackets: D.DEFAULT_INSS }; }
+
+    let irrf: PayrollTaxContext['irrf'];
+    if (irrfTable) irrf = { id: irrfTable.id, version: irrfTable.version, brackets: this.parseBrackets(irrfTable.brackets, 'IRRF'), parameters: this.parseIrrfParameters(irrfTable.parameters) };
+    else { builtin.push('IRRF'); irrf = { id: 'builtin', version: 'PADRAO_2026', brackets: D.DEFAULT_IRRF, parameters: D.DEFAULT_IRRF_PARAMETERS }; }
+
+    let fgts: NonNullable<PayrollTaxContext['fgts']>;
+    if (fgtsTable) {
+      const rate = Number((Array.isArray(fgtsTable.brackets) ? (fgtsTable.brackets as any[])[0]?.rate : undefined) ?? D.DEFAULT_FGTS_RATE);
+      fgts = { id: fgtsTable.id, version: fgtsTable.version, rate: Number.isFinite(rate) && rate > 0 && rate < 1 ? rate : D.DEFAULT_FGTS_RATE };
+    } else { builtin.push('FGTS'); fgts = { id: 'builtin', version: 'PADRAO_2026', rate: D.DEFAULT_FGTS_RATE }; }
+
+    let params: NonNullable<PayrollTaxContext['params']>;
+    if (paramsTable) {
+      const source = (paramsTable.parameters ?? {}) as Record<string, unknown>;
+      const read = (key: keyof PayrollRuleParams) => {
+        const value = Number(source[key]);
+        return Number.isFinite(value) && value > 0 ? value : D.DEFAULT_RULE_PARAMS[key];
+      };
+      params = { id: paramsTable.id, version: paramsTable.version, overtime50MinFactor: read('overtime50MinFactor'), overtime100MinFactor: read('overtime100MinFactor'), nightMinPercent: read('nightMinPercent'), monthlyDivisorFactor: read('monthlyDivisorFactor') };
+    } else { builtin.push('PAYROLL_PARAMS'); params = { id: 'builtin', version: 'PADRAO_2026', ...D.DEFAULT_RULE_PARAMS }; }
+
+    return { inss, irrf, fgts, params, ...(builtin.length ? { builtin } : {}) };
   }
 
   calculate(input: PayrollCalculationInput): PayrollCalculationResult {
     let salaryBase = this.money(Math.max(0, input.salary));
     const weeklyHours = Math.max(1, input.weeklyMinutes / 60);
-    const monthlyDivisor = Math.max(1, weeklyHours * 5);
+    const rules = input.taxContext?.params ?? { ...PayrollCalculationService.DEFAULT_RULE_PARAMS };
+    const monthlyDivisor = Math.max(1, weeklyHours * rules.monthlyDivisorFactor);
     const hourlyRate = salaryBase / monthlyDivisor;
-    const overtime50Factor = Math.max(1.5, input.overtime50Factor ?? 1.5);
-    const overtime100Factor = Math.max(2, input.overtime100Factor ?? 2);
-    const nightShiftPercent = Math.max(20, input.nightShiftPercent ?? 20) / 100;
+    const overtime50Factor = Math.max(rules.overtime50MinFactor, input.overtime50Factor ?? rules.overtime50MinFactor);
+    const overtime100Factor = Math.max(rules.overtime100MinFactor, input.overtime100Factor ?? rules.overtime100MinFactor);
+    const nightShiftPercent = Math.max(rules.nightMinPercent, input.nightShiftPercent ?? rules.nightMinPercent) / 100;
 
     const isPartialMonth = input.isPartialMonth === true;
     if (isPartialMonth && (input.scheduledMinutesInPeriod ?? 0) > 0) {
@@ -179,7 +213,7 @@ export class PayrollCalculationService {
       input.taxContext?.irrf.brackets,
       irrfParameters,
     );
-    const fgtsAmount = this.money(grossPay * 0.08);
+    const fgtsAmount = this.money(grossPay * (input.taxContext?.fgts?.rate ?? PayrollCalculationService.DEFAULT_FGTS_RATE));
     const netPay = this.money(Math.max(0, grossPay - inssDiscount - irrfDiscount));
 
     return {
@@ -203,9 +237,22 @@ export class PayrollCalculationService {
       fgtsAmount,
       netPay,
       calculationVersion: input.taxContext
-        ? `${PayrollCalculationService.VERSION}|${input.taxContext.inss.version}|${input.taxContext.irrf.version}`
+        ? [PayrollCalculationService.VERSION, input.taxContext.inss.version, input.taxContext.irrf.version, input.taxContext.fgts ? `FGTS:${input.taxContext.fgts.version}` : null, input.taxContext.params ? `PARAMS:${input.taxContext.params.version}` : null].filter(Boolean).join('|')
         : PayrollCalculationService.VERSION,
     };
+  }
+
+  /** Aplica INSS, IRRF e FGTS (regras vigentes) sobre um bruto já apurado. Usado para recalcular folhas sem divergir do motor. */
+  applyTaxes(grossPay: number, dependents: number, taxContext?: PayrollTaxContext) {
+    const gross = this.money(Math.max(0, grossPay));
+    const inssDiscount = this.calculateInss(gross, taxContext?.inss.brackets);
+    const parameters = taxContext?.irrf.parameters ?? PayrollCalculationService.DEFAULT_IRRF_PARAMETERS;
+    const legalDeductions = inssDiscount + Math.max(0, dependents) * parameters.dependentDeduction;
+    const irrfBase = this.money(Math.max(0, gross - Math.max(parameters.simplifiedDeduction, legalDeductions)));
+    const irrfDiscount = this.calculateIrrf(irrfBase, gross, taxContext?.irrf.brackets, parameters);
+    const fgtsAmount = this.money(gross * (taxContext?.fgts?.rate ?? PayrollCalculationService.DEFAULT_FGTS_RATE));
+    const netPay = this.money(Math.max(0, gross - inssDiscount - irrfDiscount));
+    return { grossPay: gross, inssDiscount, irrfBase, irrfDiscount, fgtsAmount, netPay };
   }
 
   calculateInss(base: number, bands = PayrollCalculationService.DEFAULT_INSS): number {

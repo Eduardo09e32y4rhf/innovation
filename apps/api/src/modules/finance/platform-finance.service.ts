@@ -1,3 +1,4 @@
+import { createPdfSink, sendPdf } from '../../common/pdf/pdf-response';
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Prisma, $Enums } from '@prisma/client';
 type InvoiceStatus = $Enums.InvoiceStatus;
@@ -1004,21 +1005,11 @@ export class PlatformFinanceService {
       this.list(pdfQuery, commercialOwnerId),
     ]);
 
-    const isFastify = typeof res.raw !== 'undefined';
-    const stream = isFastify ? res.raw : res;
     const fileName = `extrato-financeiro-${new Date().toISOString().slice(0, 10)}.pdf`;
-
-    if (isFastify) {
-      stream.setHeader('Content-Type', 'application/pdf');
-      stream.setHeader('Content-Disposition', `attachment; filename=${fileName}`);
-    } else {
-      res.header('Content-Type', 'application/pdf');
-      res.header('Content-Disposition', `attachment; filename=${fileName}`);
-    }
-
+    const sink = createPdfSink();
     const pdfkit = await import('pdfkit');
     const doc = new pdfkit.default({ margin: 38, size: 'A4', bufferPages: true });
-    doc.pipe(stream);
+    doc.pipe(sink.stream);
 
     const title = 'Extrato Financeiro da Plataforma';
     const subtitleParts = [
@@ -1103,6 +1094,7 @@ export class PlatformFinanceService {
       .text(`Gerado em ${new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date())}`, { align: 'right' });
 
     doc.end();
+    sendPdf(res, await sink.done, fileName);
   }
 
 
@@ -1302,7 +1294,7 @@ export class PlatformFinanceService {
   }
 
   private buildWhere(
-    query: Pick<ListPlatformInvoicesDto, 'status' | 'search' | 'from' | 'to'>,
+    query: Pick<ListPlatformInvoicesDto, 'status' | 'search' | 'from' | 'to' | 'companyId'>,
     commercialOwnerId?: string,
   ): Prisma.PlatformInvoiceWhereInput {
     const dueDate = query.from || query.to
@@ -1313,6 +1305,7 @@ export class PlatformFinanceService {
       : undefined;
     return {
       deletedAt: null,
+      ...(query.companyId ? { companyId: query.companyId } : {}),
       status: query.status as InvoiceStatus | undefined,
       dueDate,
       company: commercialOwnerId || query.search

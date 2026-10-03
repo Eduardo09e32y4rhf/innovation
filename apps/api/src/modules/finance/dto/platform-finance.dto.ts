@@ -44,6 +44,22 @@ export class ListPlatformInvoicesDto {
   @IsOptional()
   @IsDateString()
   to?: string;
+
+  @IsOptional()
+  @IsUUID()
+  companyId?: string;
+}
+
+export class AuditLogsQueryDto {
+  @IsOptional()
+  @IsUUID()
+  companyId?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @Min(1)
+  @Max(200)
+  limit?: number;
 }
 
 export class CreatePlatformInvoiceDto {

@@ -34,8 +34,8 @@ export const NAV_ITEMS: NavItem[] = [
   { id: 'users', label: 'Usuários', href: '/dashboard/users', icon: UserRoundCog, group: 'Administração', roles: ['DEV', 'ADMIN', 'RH'], anyPermission: ['users.manage_employees'] },
   { id: 'settings', label: 'Configurações', href: '/dashboard/settings', icon: Settings2, group: 'Administração', roles: ALL_ROLES },
   { id: 'support', label: 'Suporte', href: '/dashboard/support', icon: HelpCircle, group: 'Administração', roles: ALL_ROLES },
-  { id: 'platform', label: 'Plataforma', href: '/dashboard/platform', icon: Building2, group: 'Operação global', roles: ['DEV', 'CEO', 'COMERCIAL'], anyPermission: ['platform.manage', 'platform.view_finance'] },
-  { id: 'accounting', label: 'Contabilidade', href: '/dashboard/platform/accounting', icon: Calculator, group: 'Operação global', roles: ['DEV', 'CEO'] },
+  { id: 'platform', label: 'Plataforma', href: '/dashboard/platform', icon: Building2, group: 'Operação global', roles: ['DEV', 'CEO', 'COMERCIAL', 'CONTABIL'], anyPermission: ['platform.manage', 'platform.view_finance'] },
+  { id: 'accounting', label: 'Contabilidade', href: '/dashboard/platform?tab=contabilidade', icon: Calculator, group: 'Operação global', roles: ['DEV', 'CEO', 'CONTABIL'] },
 ];
 
 export function getVisibleNavItems(user: User | null, activeModules: readonly string[] = []): NavItem[] {

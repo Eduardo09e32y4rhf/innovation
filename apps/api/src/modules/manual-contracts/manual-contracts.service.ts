@@ -1,3 +1,4 @@
+import { createPdfSink, sendPdf } from '../../common/pdf/pdf-response';
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { CreateManualContractDto } from './dto/create-manual-contract.dto';
 import { TransitionManualContractDto } from './dto/transition-manual-contract.dto';
@@ -147,21 +148,11 @@ export class ManualContractsService {
     const contract = await this.repository.findById(id);
     if (!contract) throw new NotFoundException('Contrato manual nao encontrado.');
 
-    const isFastify = typeof res.raw !== 'undefined';
-    const stream = isFastify ? res.raw : res;
     const fileName = `contrato-manual-${contract.company?.name?.replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '') || contract.id}.pdf`;
-
-    if (isFastify) {
-      stream.setHeader('Content-Type', 'application/pdf');
-      stream.setHeader('Content-Disposition', `attachment; filename=${fileName}`);
-    } else {
-      res.header('Content-Type', 'application/pdf');
-      res.header('Content-Disposition', `attachment; filename=${fileName}`);
-    }
-
+    const sink = createPdfSink();
     const pdfkit = await import('pdfkit');
     const doc = new pdfkit.default({ margin: 38, size: 'A4', bufferPages: true });
-    doc.pipe(stream);
+    doc.pipe(sink.stream);
 
     const money = (value: number | string | null | undefined) => Number(value ?? 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
     const date = (value?: string | Date | null) => value ? new Intl.DateTimeFormat('pt-BR', { timeZone: 'UTC' }).format(new Date(value)) : '-';
@@ -215,6 +206,7 @@ export class ManualContractsService {
       .text(`Contrato registrado no Innovation RH System • ID ${contract.id}`, { align: 'right' });
 
     doc.end();
+    sendPdf(res, await sink.done, fileName);
   }
 
   private validateTransition(current: any, nextStatus: ManualContractStatus, endsAt?: Date) {

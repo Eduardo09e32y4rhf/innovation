@@ -6,7 +6,7 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import type { JwtUser } from '../../common/types/auth.types';
-import { CreatePlatformInvoiceDto, ListPlatformInvoicesDto, UpdatePlatformInvoiceDto } from './dto/platform-finance.dto';
+import { AuditLogsQueryDto, CreatePlatformInvoiceDto, ListPlatformInvoicesDto, UpdatePlatformInvoiceDto } from './dto/platform-finance.dto';
 import { PlatformFinanceService } from './platform-finance.service';
 import { PrismaService } from '../../database/prisma.service';
 import { TimeClosingService } from '../time-track/time-closing.service';
@@ -35,143 +35,6 @@ export class FinanceController {
   @Get('platform/invoices')
   list(@CurrentUser() actor: JwtUser, @Query() query: ListPlatformInvoicesDto) {
     return this.service.list(query, actor.role === 'COMERCIAL' ? actor.sub : undefined);
-  }
-
-  @Get('accounting/overview')
-  @Roles('DEV', 'CEO')
-  async accountingOverview(@Query('month') month?: string) {
-    const match = /^(\d{4})-(\d{2})$/.exec(month || '');
-    const year = match ? Number(match[1]) : new Date().getUTCFullYear();
-    const monthNumber = match ? Number(match[2]) : new Date().getUTCMonth() + 1;
-    const periodStart = new Date(Date.UTC(year, monthNumber - 1, 1));
-    const periodEnd = new Date(Date.UTC(year, monthNumber, 1));
-
-    const [companies, closings, payrolls, invoices] = await Promise.all([
-      this.prisma.company.findMany({
-        select: { id: true, name: true, document: true, status: true, billingStatus: true },
-        orderBy: { name: 'asc' },
-      }),
-      this.prisma.timeClosing.findMany({
-        where: { periodStart: { gte: periodStart, lt: periodEnd } },
-        select: {
-          id: true, companyId: true, status: true, periodStart: true, periodEnd: true,
-          grossPay: true, netPay: true, updatedAt: true,
-          company: { select: { name: true } }, employee: { select: { name: true } },
-        },
-        orderBy: { updatedAt: 'desc' },
-        take: 5000,
-      }),
-      this.prisma.payroll.findMany({
-        where: { referenceYear: year, referenceMonth: monthNumber, deletedAt: null },
-        select: {
-          id: true, companyId: true, status: true, baseSalary: true, grossSalary: true, netSalary: true,
-          updatedAt: true, employee: { select: { name: true } },
-        },
-        orderBy: { updatedAt: 'desc' },
-        take: 5000,
-      }),
-      this.prisma.platformInvoice.findMany({
-        where: { dueDate: { gte: periodStart, lt: periodEnd }, deletedAt: null },
-        select: { id: true, companyId: true, amount: true, status: true, dueDate: true, invoiceNumber: true, nfeStatus: true },
-        orderBy: { dueDate: 'asc' },
-        take: 5000,
-      }),
-    ]);
-
-    const companyRows = companies.map((company) => {
-      const companyClosings = closings.filter((item) => item.companyId === company.id);
-      const companyPayrolls = payrolls.filter((item) => item.companyId === company.id);
-      const companyInvoices = invoices.filter((item) => item.companyId === company.id);
-      return {
-        ...company,
-        closings: companyClosings.length,
-        closingsInReview: companyClosings.filter((item) => item.status === 'DRAFT' || item.status === 'IN_REVIEW').length,
-        payrolls: companyPayrolls.length,
-        payrollsPending: companyPayrolls.filter((item) => item.status === 'DRAFT' || item.status === 'PROCESSING').length,
-        invoices: companyInvoices.length,
-        invoicesOverdue: companyInvoices.filter((item) => item.status === 'OVERDUE').length,
-        invoiceTotal: companyInvoices.reduce((total, item) => total + Number(item.amount), 0),
-      };
-    });
-
-    return {
-      period: { year, month: monthNumber, key: `${year}-${String(monthNumber).padStart(2, '0')}` },
-      metrics: {
-        companies: companies.length,
-        closings: closings.length,
-        closingsInReview: closings.filter((item) => item.status === 'DRAFT' || item.status === 'IN_REVIEW').length,
-        payrolls: payrolls.length,
-        payrollsPending: payrolls.filter((item) => item.status === 'DRAFT' || item.status === 'PROCESSING').length,
-        invoiceTotal: invoices.reduce((total, item) => total + Number(item.amount), 0),
-        invoicesOverdue: invoices.filter((item) => item.status === 'OVERDUE').length,
-        invoicesWithoutFiscalNumber: invoices.filter((item) => !item.invoiceNumber && item.status !== 'CANCELED').length,
-      },
-      companies: companyRows,
-      recentClosings: closings.slice(0, 80),
-      recentPayrolls: payrolls.slice(0, 80),
-      recentInvoices: invoices.slice(0, 80),
-    };
-  }
-
-  @Get('accounting/companies/:companyId/closings')
-  @Roles('DEV', 'CEO')
-  async accountingCompanyClosings(@Param('companyId') companyId: string, @Query('month') month?: string) {
-    const match = /^(\d{4})-(\d{2})$/.exec(month || '');
-    const year = match ? Number(match[1]) : new Date().getUTCFullYear();
-    const monthNumber = match ? Number(match[2]) : new Date().getUTCMonth() + 1;
-    const periodStart = new Date(Date.UTC(year, monthNumber - 1, 1));
-    const periodEnd = new Date(Date.UTC(year, monthNumber, 1));
-    return this.prisma.timeClosing.findMany({
-      where: { companyId, periodStart: { gte: periodStart, lt: periodEnd } },
-      include: { employee: { select: { name: true, position: true } }, adjustments: { orderBy: { createdAt: 'desc' }, take: 5 } },
-      orderBy: [{ status: 'asc' }, { employee: { name: 'asc' } }],
-    });
-  }
-
-  @Get('accounting/companies/:companyId/payroll')
-  @Roles('DEV', 'CEO')
-  async accountingCompanyPayroll(@Param('companyId') companyId: string, @Query('month') month?: string) {
-    const match = /^(\d{4})-(\d{2})$/.exec(month || '');
-    const year = match ? Number(match[1]) : new Date().getUTCFullYear();
-    const monthNumber = match ? Number(match[2]) : new Date().getUTCMonth() + 1;
-    return this.prisma.payroll.findMany({
-      where: { companyId, referenceYear: year, referenceMonth: monthNumber, deletedAt: null },
-      include: { employee: { select: { name: true, position: true } }, items: true },
-      orderBy: { employee: { name: 'asc' } },
-    });
-  }
-
-  @Patch('accounting/time-closings/:id/adjust')
-  @Roles('DEV', 'CEO')
-  async accountingAdjustClosing(@Param('id') id: string, @CurrentUser() actor: JwtUser, @Body() body: { field: string; newValue: string | number; reason: string }) {
-    const closing = await this.prisma.timeClosing.findUnique({ where: { id }, select: { companyId: true } });
-    if (!closing) throw new NotFoundException('Fechamento nao encontrado.');
-    return this.timeClosingService.adjust(closing.companyId, actor, id, { ...body, newValue: String(body.newValue) });
-  }
-
-  @Patch('accounting/payroll/:id')
-  @Roles('DEV', 'CEO')
-  async accountingCorrectPayroll(@Param('id') id: string, @CurrentUser() actor: JwtUser, @Body() body: Record<string, unknown>) {
-    const allowed = ['baseSalary', 'grossSalary', 'netSalary', 'inssAmount', 'irrfAmount', 'fgtsAmount', 'overtimeAmount', 'nightShiftAmount'];
-    const reason = String(body.reason || '').trim();
-    if (!reason) throw new BadRequestException('Informe o motivo da correção.');
-    const payroll = await this.prisma.payroll.findFirst({ where: { id, deletedAt: null }, include: { employee: { select: { name: true, position: true } } } });
-    if (!payroll) throw new NotFoundException('Folha nao encontrada.');
-    if (!['DRAFT', 'PROCESSING'].includes(payroll.status)) throw new BadRequestException('Somente folhas em rascunho ou processamento podem ser corrigidas.');
-    const changes: Record<string, number> = {};
-    for (const field of allowed) {
-      if (body[field] === undefined || body[field] === '') continue;
-      const value = Number(body[field]);
-      if (!Number.isFinite(value) || value < 0) throw new BadRequestException(`Valor invalido para ${field}.`);
-      changes[field] = value;
-    }
-    if (!Object.keys(changes).length) throw new BadRequestException('Informe ao menos um valor para corrigir.');
-    const updated = await this.prisma.$transaction(async (tx) => {
-      const result = await tx.payroll.update({ where: { id }, data: { ...changes, observations: `${payroll.observations ? `${payroll.observations}\n` : ''}[${new Date().toISOString()}] ${reason}` }, include: { employee: { select: { name: true, position: true } } } });
-      await tx.auditLog.create({ data: { companyId: payroll.companyId, userId: actor.sub, action: 'ACCOUNTING_PAYROLL_CORRECTED', entity: 'Payroll', entityId: id, metadata: { reason, changes } } });
-      return result;
-    });
-    return updated;
   }
 
   @Get('platform/companies/:companyId/invoices')
@@ -216,53 +79,73 @@ export class FinanceController {
   }
 
   @Get('platform/audit-logs')
-  async auditLogs(@Query('companyId') companyId?: string, @Query('limit') limit?: string) {
+  @Roles('DEV', 'CEO')
+  async auditLogs(@Query() query: AuditLogsQueryDto) {
     return this.prisma.auditLog.findMany({
       where: {
-        ...(companyId ? { companyId } : {}),
+        ...(query.companyId ? { companyId: query.companyId } : {}),
         entity: { in: ['Company', 'Billing', 'Subscription'] },
       },
       include: {
-        company: { select: { id: true, name: true, document: true, plan: true, billingStatus: true, status: true, asaasCustomerId: true, asaasSubscriptionId: true, subscriptionStartedAt: true } },
+        company: { select: { id: true, name: true, document: true, plan: true, billingStatus: true, status: true, subscriptionStartedAt: true } },
         user: { select: { id: true, name: true, email: true, role: true } },
       },
       orderBy: { createdAt: 'desc' },
-      take: Math.min(Math.max(Number(limit) || 60, 1), 200),
+      take: query.limit ?? 60,
     });
   }
 
   @Get('platform/webhook-events')
-  async webhookEvents(@Query('companyId') companyId?: string, @Query('limit') limit?: string) {
-    const events = await this.prisma.asaasWebhookEvent.findMany({
-      orderBy: { createdAt: 'desc' },
-      take: Math.min(Math.max(Number(limit) || 50, 1), 200),
-    });
-    const companies = await this.prisma.company.findMany({
-      select: { id: true, name: true, asaasCustomerId: true },
-    });
+  @Roles('DEV', 'CEO')
+  async webhookEvents(@Query() query: AuditLogsQueryDto) {
+    const take = query.limit ?? 50;
+    let where: Record<string, unknown> | undefined;
+    if (query.companyId) {
+      const company = await this.prisma.company.findUnique({ where: { id: query.companyId }, select: { id: true, asaasCustomerId: true } });
+      if (!company) return [];
+      where = {
+        OR: [
+          ...(company.asaasCustomerId ? [{ payload: { path: ['payment', 'customer'], equals: company.asaasCustomerId } }] : []),
+          { payload: { path: ['payment', 'externalReference'], equals: company.id } },
+          { payload: { path: ['payment', 'externalReference'], equals: `signup:${company.id}` } },
+        ],
+      };
+    }
+    const events = await this.prisma.asaasWebhookEvent.findMany({ where: where as any, orderBy: { createdAt: 'desc' }, take });
+    const customers = new Set<string>();
+    const references = new Set<string>();
+    for (const event of events) {
+      const payment = (event.payload as any)?.payment ?? {};
+      if (payment.customer) customers.add(String(payment.customer));
+      const reference = String(payment.externalReference || '').replace(/^signup:/, '');
+      if (/^[0-9a-f-]{36}$/i.test(reference)) references.add(reference);
+    }
+    const companies = customers.size || references.size
+      ? await this.prisma.company.findMany({
+          where: { OR: [...(customers.size ? [{ asaasCustomerId: { in: [...customers] } }] : []), ...(references.size ? [{ id: { in: [...references] } }] : [])] },
+          select: { id: true, name: true, asaasCustomerId: true },
+        })
+      : [];
     const byCustomer = new Map(companies.filter((item) => item.asaasCustomerId).map((item) => [item.asaasCustomerId as string, item]));
     const byId = new Map(companies.map((item) => [item.id, item]));
-    return events
-      .map((event) => {
-        const payload = event.payload as any;
-        const payment = payload?.payment || {};
-        const externalReference = String(payment.externalReference || '').replace(/^signup:/, '');
-        const company = byCustomer.get(payment.customer) || byId.get(externalReference);
-        return {
-          id: event.id,
-          asaasEventId: event.asaasEventId,
-          eventType: event.eventType,
-          status: event.status,
-          attempts: event.attempts,
-          errorMessage: event.errorMessage,
-          createdAt: event.createdAt,
-          updatedAt: event.updatedAt,
-          processedAt: event.processedAt,
-          company: company ? { id: company.id, name: company.name } : null,
-          paymentId: payment.id || null,
-        };
-      })
-      .filter((event) => !companyId || event.company?.id === companyId);
+    return events.map((event) => {
+      const payment = (event.payload as any)?.payment ?? {};
+      const reference = String(payment.externalReference || '').replace(/^signup:/, '');
+      const company = byCustomer.get(payment.customer) || byId.get(reference);
+      return {
+        id: event.id,
+        asaasEventId: event.asaasEventId,
+        eventType: event.eventType,
+        status: event.status,
+        attempts: event.attempts,
+        errorMessage: event.errorMessage,
+        createdAt: event.createdAt,
+        updatedAt: event.updatedAt,
+        processedAt: event.processedAt,
+        company: company ? { id: company.id, name: company.name } : null,
+        paymentId: payment.id || null,
+      };
+    });
   }
 
   @Post('platform/webhook-events/:id/retry')

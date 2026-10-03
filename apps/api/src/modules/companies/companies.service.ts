@@ -50,7 +50,7 @@ export class CompaniesService {
     return this.repository.getHolidays(companyId);
   }
 
-  updateHolidays(companyId: string, holidays: any[]) {
+  updateHolidays(companyId: string, holidays: { name: string; date: string; scope?: 'NATIONAL' | 'STATE' | 'MUNICIPAL' }[]) {
     return this.repository.updateHolidays(companyId, holidays);
   }
 }

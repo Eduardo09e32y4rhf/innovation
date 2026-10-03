@@ -156,6 +156,8 @@ enum MedicalCertificateStatus {
 enum PayrollTaxType {
   INSS
   IRRF
+  FGTS
+  PAYROLL_PARAMS
 }
 
 enum NotificationType {

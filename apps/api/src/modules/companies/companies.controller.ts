@@ -5,6 +5,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { CompaniesService } from './companies.service';
 import { UpdateCompanyDto } from './dto/update-company.dto';
+import { UpdateHolidaysDto } from './dto/update-holidays.dto';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('companies')
@@ -30,7 +31,7 @@ export class CompaniesController {
 
   @Roles('ADMIN', 'RH')
   @Patch('holidays')
-  updateHolidays(@CurrentCompany() companyId: string, @Body() body: { holidays: any[] }) {
+  updateHolidays(@CurrentCompany() companyId: string, @Body() body: UpdateHolidaysDto) {
     return this.service.updateHolidays(companyId, body.holidays);
   }
 }

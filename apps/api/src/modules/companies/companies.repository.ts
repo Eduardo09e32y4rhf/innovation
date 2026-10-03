@@ -23,19 +23,18 @@ export class CompaniesRepository {
     });
   }
 
-  async updateHolidays(companyId: string, holidays: any[]) {
-    await this.prisma.holiday.deleteMany({ where: { companyId } });
-    if (holidays.length > 0) {
-      await this.prisma.holiday.createMany({
-        data: holidays.map((h: any) => ({
+  async updateHolidays(companyId: string, holidays: { name: string; date: string; scope?: 'NATIONAL' | 'STATE' | 'MUNICIPAL' }[]) {
+    await this.prisma.$transaction([
+      this.prisma.holiday.deleteMany({ where: { companyId } }),
+      this.prisma.holiday.createMany({
+        data: holidays.map((h) => ({
           companyId,
-          name: h.name,
+          name: h.name.trim(),
           date: new Date(h.date),
-          scope: h.scope || 'NATIONAL',
-            handling: h.handling || 'PAID_100',
+          scope: h.scope ?? 'NATIONAL',
         })),
-      });
-    }
+      }),
+    ]);
     return this.getHolidays(companyId);
   }
 }
