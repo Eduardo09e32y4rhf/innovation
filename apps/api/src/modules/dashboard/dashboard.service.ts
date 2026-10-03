@@ -17,7 +17,7 @@ export class DashboardService {
     if (cached) return cached;
 
     let result;
-    if (actor.role === 'ADMIN' || actor.role === 'RH' || actor.role === 'DEV' || actor.role === 'CONSULTA') {
+    if (actor.role === 'ADMIN' || actor.role === 'RH' || actor.role === 'DEV' || actor.role === 'CONSULTA' || actor.role === 'CEO' || actor.role === 'CONTABIL' || actor.role === 'COMERCIAL') {
       result = await this.repository.insights(companyId);
     } else if (actor.role === 'GESTOR') {
       result = await this.repository.insightsForManager(companyId, actor.sub);
@@ -35,7 +35,7 @@ export class DashboardService {
     if (cached) return cached;
 
     let result;
-    if (actor.role === 'ADMIN' || actor.role === 'RH' || actor.role === 'DEV' || actor.role === 'CONSULTA') {
+    if (actor.role === 'ADMIN' || actor.role === 'RH' || actor.role === 'DEV' || actor.role === 'CONSULTA' || actor.role === 'CEO' || actor.role === 'CONTABIL' || actor.role === 'COMERCIAL') {
       result = await this.repository.summary(companyId);
     } else if (actor.role === 'GESTOR') {
       result = await this.repository.summaryForManager(companyId, actor.sub);
