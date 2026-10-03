@@ -94,40 +94,52 @@ export class DashboardRepository {
   }
 
   async summary(companyId: string) {
-    const { startOfDay, endOfDay } = this.todayRange();
-    const [activeEmployees, timeTracksToday, pendingVacations, whatsappMessages, timeBalance] = await Promise.all([
+    const { startOfDay, endOfDay, startOfMonth, endOfMonth } = { ...this.todayRange(), ...this.monthRange() };
+    const [activeEmployees, timeTracksToday, pendingVacations, whatsappMessages, timeBalance, admissionsMonth, terminationsMonth] = await Promise.all([
       this.prisma.employee.count({ where: { companyId, status: 'ACTIVE' } }),
       this.prisma.timeTrack.count({ where: { employee: { companyId }, date: { gte: startOfDay, lt: endOfDay } } }),
       this.prisma.vacation.count({ where: { employee: { companyId }, status: 'PENDING' } }),
       this.prisma.message.count({ where: { companyId } }),
       this.prisma.timeTrack.aggregate({ where: { employee: { companyId } }, _sum: { dailyBalance: true } }),
+      this.prisma.employee.count({ where: { companyId, admissionDate: { gte: startOfMonth, lt: endOfMonth } } }),
+      this.prisma.employee.count({ where: { companyId, terminationDate: { gte: startOfMonth, lt: endOfMonth } } }),
     ]);
-    return { activeEmployees, timeTracksToday, pendingVacations, whatsappMessages, totalTimeBalance: timeBalance._sum.dailyBalance ?? 0 };
+    return {
+      activeEmployees,
+      timeTracksToday,
+      pendingVacations,
+      whatsappMessages,
+      totalTimeBalance: timeBalance._sum.dailyBalance ?? 0,
+      admissionsThisMonth: admissionsMonth,
+      terminationsThisMonth: terminationsMonth,
+    };
   }
 
   async summaryForManager(companyId: string, userId: string) {
     const manager = await this.prisma.employee.findFirst({ where: { companyId, userId } });
-    if (!manager) return { activeEmployees: 0, timeTracksToday: 0, pendingVacations: 0, whatsappMessages: 0, totalTimeBalance: 0 };
+    if (!manager) return { activeEmployees: 0, timeTracksToday: 0, pendingVacations: 0, whatsappMessages: 0, totalTimeBalance: 0, admissionsThisMonth: 0, terminationsThisMonth: 0 };
     const teamFilter = { companyId, managerId: manager.id };
-    const { startOfDay, endOfDay } = this.todayRange();
-    const [activeEmployees, timeTracksToday, pendingVacations, timeBalance] = await Promise.all([
+    const { startOfDay, endOfDay, startOfMonth, endOfMonth } = { ...this.todayRange(), ...this.monthRange() };
+    const [activeEmployees, timeTracksToday, pendingVacations, timeBalance, admissionsMonth, terminationsMonth] = await Promise.all([
       this.prisma.employee.count({ where: { ...teamFilter, status: 'ACTIVE' } }),
       this.prisma.timeTrack.count({ where: { employee: teamFilter, date: { gte: startOfDay, lt: endOfDay } } }),
       this.prisma.vacation.count({ where: { employee: teamFilter, status: 'PENDING' } }),
       this.prisma.timeTrack.aggregate({ where: { employee: teamFilter }, _sum: { dailyBalance: true } }),
+      this.prisma.employee.count({ where: { ...teamFilter, admissionDate: { gte: startOfMonth, lt: endOfMonth } } }),
+      this.prisma.employee.count({ where: { ...teamFilter, terminationDate: { gte: startOfMonth, lt: endOfMonth } } }),
     ]);
-    return { activeEmployees, timeTracksToday, pendingVacations, whatsappMessages: 0, totalTimeBalance: timeBalance._sum.dailyBalance ?? 0 };
+    return { activeEmployees, timeTracksToday, pendingVacations, whatsappMessages: 0, totalTimeBalance: timeBalance._sum.dailyBalance ?? 0, admissionsThisMonth: admissionsMonth, terminationsThisMonth: terminationsMonth };
   }
 
   async summaryForEmployee(companyId: string, userId: string) {
     const employee = await this.prisma.employee.findFirst({ where: { companyId, userId } });
-    if (!employee) return { activeEmployees: 0, timeTracksToday: 0, pendingVacations: 0, whatsappMessages: 0, totalTimeBalance: 0 };
+    if (!employee) return { activeEmployees: 0, timeTracksToday: 0, pendingVacations: 0, whatsappMessages: 0, totalTimeBalance: 0, admissionsThisMonth: 0, terminationsThisMonth: 0 };
     const { startOfDay, endOfDay } = this.todayRange();
     const [timeTracksToday, pendingVacations, timeBalance] = await Promise.all([
       this.prisma.timeTrack.count({ where: { employeeId: employee.id, date: { gte: startOfDay, lt: endOfDay } } }),
       this.prisma.vacation.count({ where: { employeeId: employee.id, status: 'PENDING' } }),
       this.prisma.timeTrack.aggregate({ where: { employeeId: employee.id }, _sum: { dailyBalance: true } }),
     ]);
-    return { activeEmployees: 1, timeTracksToday, pendingVacations, whatsappMessages: 0, totalTimeBalance: timeBalance._sum.dailyBalance ?? 0 };
+    return { activeEmployees: 1, timeTracksToday, pendingVacations, whatsappMessages: 0, totalTimeBalance: timeBalance._sum.dailyBalance ?? 0, admissionsThisMonth: 0, terminationsThisMonth: 0 };
   }
 }

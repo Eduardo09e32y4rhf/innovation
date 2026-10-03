@@ -57,9 +57,6 @@ function DashboardContent({ tenant }: { tenant: string }) {
   const insights = useQuery(() => api.dashboard.insights(), [], { enabled: !isCommercial, pollMs: 60000 });
   const rhAlerts = useQuery(() => api.dashboard.rhAlerts(), [], { enabled: !isCommercial && !isFuncionario });
   const notificationsWidget = useQuery(() => api.notifications.dashboardWidget(), [], { enabled: !isCommercial, pollMs: 30000 });
-  const timeTracks = useQuery(() => api.timeTrack.list(), [], { enabled: !isCommercial });
-  const vacations = useQuery(() => api.vacations.list(), [], { enabled: !isCommercial && !isFuncionario });
-  const employees = useQuery(() => api.employees.list(), [], { enabled: !isCommercial && !isFuncionario });
 
   const [dashMonth, setDashMonth] = useState(() => {
     const t = new Date();
