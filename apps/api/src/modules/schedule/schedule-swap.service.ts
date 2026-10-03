@@ -204,6 +204,61 @@ export class ScheduleSwapService {
         throw new BadRequestException('A solicitacao foi processada por outro usuario.');
       }
       const updated = await tx.scheduleSwapRequest.findUniqueOrThrow({ where: { id } });
+
+      if (dto.action === 'APPROVED') {
+        const requester = await tx.employee.findFirst({ where: { id: request.requesterId, companyId } });
+        if (requester) {
+          const originalDateStr = request.originalDate.toISOString().split('T')[0];
+          const targetDateStr = request.targetDate.toISOString().split('T')[0];
+
+          await tx.scheduleException.upsert({
+            where: {
+              employeeId_date_exceptionType: {
+                employeeId: request.requesterId,
+                date: request.originalDate,
+                exceptionType: 'AJUSTE_ESCALA',
+              },
+            },
+            create: {
+              companyId,
+              employeeId: request.requesterId,
+              date: request.originalDate,
+              exceptionType: 'AJUSTE_ESCALA',
+              reason: `Troca de escala aprovada: ${originalDateStr} ↔ ${targetDateStr}`,
+              observation: request.justification ?? undefined,
+              createdByUserId: actor.sub,
+            },
+            update: {
+              reason: `Troca de escala aprovada: ${originalDateStr} ↔ ${targetDateStr}`,
+              observation: request.justification ?? undefined,
+            },
+          });
+
+          await tx.scheduleException.upsert({
+            where: {
+              employeeId_date_exceptionType: {
+                employeeId: request.requesterId,
+                date: request.targetDate,
+                exceptionType: 'AJUSTE_ESCALA',
+              },
+            },
+            create: {
+              companyId,
+              employeeId: request.requesterId,
+              date: request.targetDate,
+              exceptionType: 'AJUSTE_ESCALA',
+              reason: `Troca de escala aprovada: ${originalDateStr} ↔ ${targetDateStr}`,
+              observation: request.justification ?? undefined,
+              createdByUserId: actor.sub,
+            },
+            update: {
+              reason: `Troca de escala aprovada: ${originalDateStr} ↔ ${targetDateStr}`,
+              observation: request.justification ?? undefined,
+            },
+          });
+        }
+      }
+
       await tx.auditLog.create({
         data: {
           companyId,
