@@ -47,6 +47,7 @@ export class VacationsController {
     return this.service.listMedicalCertificates(companyId, actor, employeeId);
   }
 
+  @Roles('ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'DEV')
   @Post('medical-certificates')
   createMedicalCertificate(
     @CurrentCompany() companyId: string,
@@ -84,6 +85,7 @@ export class VacationsController {
     return response.send(receipt.buffer);
   }
 
+  @Roles('ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'DEV')
   @Post()
   create(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Body() dto: CreateVacationDto) {
     return this.service.create(companyId, actor, dto);
