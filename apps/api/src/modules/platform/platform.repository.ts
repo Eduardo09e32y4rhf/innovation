@@ -1,6 +1,7 @@
 import { ConflictException, Injectable } from '@nestjs/common';
 import type { UserRole } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
+import { encryptTemporaryPassword } from '../../common/crypto/temporary-password';
 
 const safeUserSelect = {
   id: true,
@@ -145,17 +146,29 @@ export class PlatformRepository {
     passwordHash: string;
     role: UserRole;
     customPermissions?: string[];
+    temporaryPassword?: { value: string; expiresAt: Date };
   }) {
     return this.prisma.$transaction(async (tx) => {
+      const { temporaryPassword, ...userData } = data;
       const user = await tx.user.create({
         data: {
-          ...data,
-          email: data.email.trim().toLowerCase(),
+          ...userData,
+          email: userData.email.trim().toLowerCase(),
           passwordChangedAt: new Date(),
-          forcePasswordChange: false,
+          forcePasswordChange: true,
         },
         select: safeUserSelect,
       });
+
+      if (temporaryPassword) {
+        await tx.temporaryCredential.create({
+          data: {
+            userId: user.id,
+            encryptedValue: encryptTemporaryPassword(temporaryPassword.value),
+            expiresAt: temporaryPassword.expiresAt,
+          },
+        });
+      }
 
       const employee = await tx.employee.findFirst({
         where: {
@@ -341,7 +354,7 @@ export class PlatformRepository {
           passwordHash: params.adminPasswordHash,
           role: 'ADMIN',
           passwordChangedAt: new Date(),
-          forcePasswordChange: false,
+          forcePasswordChange: true,
         },
         select: { id: true, email: true, role: true },
       });

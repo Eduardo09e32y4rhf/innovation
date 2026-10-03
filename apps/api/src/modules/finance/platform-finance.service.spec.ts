@@ -7,7 +7,7 @@ function decimal(value: number) {
 function createService() {
   const prisma = {
     platformInvoice: { findMany: vi.fn() },
-    companySubscription: { findMany: vi.fn() },
+    companySubscription: { findMany: vi.fn(), update: vi.fn() },
     company: { findMany: vi.fn(), findUnique: vi.fn() },
     manualContract: { findMany: vi.fn() },
   };
@@ -278,6 +278,24 @@ describe('PlatformFinanceService.summary', () => {
     expect(prisma.manualContract.findMany).toHaveBeenCalledWith(expect.objectContaining({
       where: { status: 'ACTIVE', company: { status: 'ACTIVE', commercialOwnerId: 'owner-1' } },
     }));
+  });
+});
+
+describe('PlatformFinanceService.billing pause', () => {
+  it('is idempotent and does not alter access when already paused', async () => {
+    const { prisma, service } = createService();
+    prisma.company.findUnique.mockResolvedValue({
+      id: 'company-1',
+      asaasSubscriptionId: null,
+      subscription: { id: 'subscription-1', billingPaused: true },
+    });
+
+    await expect(service.pauseBilling('company-1', { sub: 'dev-1', role: 'DEV', email: 'dev@example.com' } as any)).resolves.toEqual({
+      changed: false,
+      billingPaused: true,
+      accessUnchanged: true,
+    });
+    expect(prisma.companySubscription.update).not.toHaveBeenCalled();
   });
 });
 

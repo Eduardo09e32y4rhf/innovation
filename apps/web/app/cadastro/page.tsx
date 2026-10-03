@@ -95,8 +95,15 @@ function CadastroForm() {
     e.preventDefault();
     setError('');
     
-    if (formData.password.length < 8) {
-      setError('A senha deve ter pelo menos 8 caracteres.');
+    const passwordIsValid =
+      formData.password.length >= 10 &&
+      /[a-z]/.test(formData.password) &&
+      /[A-Z]/.test(formData.password) &&
+      /\d/.test(formData.password) &&
+      /[^A-Za-z0-9]/.test(formData.password);
+
+    if (!passwordIsValid) {
+      setError('A senha deve ter pelo menos 10 caracteres, com letra maiúscula, minúscula, número e símbolo.');
       return;
     }
 
@@ -276,6 +283,9 @@ function CadastroForm() {
             value={formData.password}
             onChange={handleChange}
             disabled={loading}
+            minLength={10}
+            autoComplete="new-password"
+            aria-describedby="password-requirements"
             required
             className="form-control pl-11 pr-12 h-12 text-sm"
           />
@@ -288,6 +298,9 @@ function CadastroForm() {
             {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
           </button>
         </div>
+        <p id="password-requirements" className="-mt-2 text-xs font-medium text-slate-500">
+          Use pelo menos 10 caracteres, incluindo maiúscula, minúscula, número e símbolo.
+        </p>
 
         <div className="flex flex-col gap-3 mt-4 mb-2">
           <label className="text-sm font-bold text-slate-900">Escolha o Plano</label>

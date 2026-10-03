@@ -2,6 +2,7 @@ import { ConflictException, Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import type { UserRole } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
+import { encryptTemporaryPassword } from '../../common/crypto/temporary-password';
 
 const safeUserSelect = {
   id: true,
@@ -17,6 +18,8 @@ const safeUserSelect = {
   failedLoginAttempts: true,
   passwordChangedAt: true,
   customPermissions: true,
+  onboardingState: true,
+  onboardingCompletedAt: true,
   employee: {
     select: {
       id: true,
@@ -118,17 +121,30 @@ export class UsersRepository {
     passwordHash: string;
     role: UserRole;
     customPermissions?: string[];
+    temporaryPassword?: { value: string; expiresAt: Date };
   }) {
     return this.prisma.$transaction(async (tx) => {
+      const { temporaryPassword, ...userData } = data;
       const user = await tx.user.create({
         data: {
-          ...data,
-          email: data.email.trim().toLowerCase(),
+          ...userData,
+          email: userData.email.trim().toLowerCase(),
           passwordChangedAt: new Date(),
-          forcePasswordChange: false,
+          forcePasswordChange: true,
+          ...(userData.role === 'CEO' ? { onboardingState: 'PASSWORD_CHANGE' as const } : {}),
         },
         select: safeUserSelect,
       });
+
+      if (temporaryPassword) {
+        await tx.temporaryCredential.create({
+          data: {
+            userId: user.id,
+            encryptedValue: encryptTemporaryPassword(temporaryPassword.value),
+            expiresAt: temporaryPassword.expiresAt,
+          },
+        });
+      }
 
       const employee = await tx.employee.findFirst({
         where: {
@@ -277,5 +293,24 @@ export class UsersRepository {
 
   createAuditLog(data: { companyId: string; userId?: string; action: string; entity: string; entityId?: string; metadata?: Prisma.InputJsonValue; ipAddress?: string; userAgent?: string }) {
     return this.prisma.auditLog.create({ data });
+  }
+
+  findTemporaryCredential(userId: string) {
+    return this.prisma.temporaryCredential.findUnique({ where: { userId } });
+  }
+
+  markTemporaryCredentialRevealed(userId: string) {
+    return this.prisma.temporaryCredential.update({
+      where: { userId },
+      data: { revealCount: { increment: 1 } },
+    });
+  }
+
+  replaceTemporaryCredential(userId: string, encryptedValue: string, expiresAt: Date) {
+    return this.prisma.temporaryCredential.upsert({
+      where: { userId },
+      create: { userId, encryptedValue, expiresAt },
+      update: { encryptedValue, expiresAt, issuedAt: new Date(), consumedAt: null, revokedAt: null, revealCount: 0 },
+    });
   }
 }

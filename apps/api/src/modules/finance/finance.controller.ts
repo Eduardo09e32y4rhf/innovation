@@ -11,7 +11,7 @@ import { PlatformFinanceService } from './platform-finance.service';
 import { PrismaService } from '../../database/prisma.service';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('DEV', 'COMERCIAL')
+@Roles('DEV', 'CEO', 'COMERCIAL')
 @Controller('finance')
 export class FinanceController {
   constructor(
@@ -38,6 +38,18 @@ export class FinanceController {
   @Get('platform/companies/:companyId/invoices')
   companyInvoices(@CurrentUser() actor: JwtUser, @Param('companyId') companyId: string) {
     return this.service.listCompanyInvoices(companyId, actor.role === 'COMERCIAL' ? actor.sub : undefined);
+  }
+
+  @Post('platform/companies/:companyId/billing/pause')
+  @Roles('DEV', 'CEO')
+  pauseBilling(@Param('companyId') companyId: string, @CurrentUser() actor: JwtUser) {
+    return this.service.pauseBilling(companyId, actor);
+  }
+
+  @Post('platform/companies/:companyId/billing/resume')
+  @Roles('DEV', 'CEO')
+  resumeBilling(@Param('companyId') companyId: string, @CurrentUser() actor: JwtUser) {
+    return this.service.resumeBilling(companyId, actor);
   }
 
   @Post('platform/companies/:companyId/checkout')

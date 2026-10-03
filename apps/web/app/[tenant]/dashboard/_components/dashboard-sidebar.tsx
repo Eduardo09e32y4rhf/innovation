@@ -31,7 +31,7 @@ import { normalizeDisplayName } from '@/app/lib/text';
 type NavItemConfig = { label: string; href: string; icon: LucideIcon; match?: string; roles?: string[]; moduleKey?: string; subItems?: { label: string; href: string; roles?: string[] }[] };
 
 const baseNavItems: NavItemConfig[] = [
-  { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard', roles: ['DEV', 'ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'] },
+  { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard', roles: ['DEV', 'CEO', 'CONTABIL', 'ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'] },
   { icon: Users, label: 'Funcionários', href: '/dashboard/employees', match: '/dashboard/employees', roles: ['DEV', 'ADMIN', 'RH', 'GESTOR', 'CONSULTA'], moduleKey: 'employees' },
   { 
     icon: CalendarClock, 
@@ -104,7 +104,7 @@ export function DashboardSidebar({ open = false, onClose }: { open?: boolean; on
     });
   }
 
-  if (profile === 'DEV' || profile === 'COMERCIAL') navItems.push(devNavItem);
+  if (profile === 'DEV' || profile === 'CEO' || profile === 'COMERCIAL') navItems.push(devNavItem);
 
   const tenantNavItems = navItems.map((item) => ({
     ...item,

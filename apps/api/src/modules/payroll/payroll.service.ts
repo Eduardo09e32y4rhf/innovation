@@ -3,6 +3,7 @@ import { PayrollStatus } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 import { CreatePayrollDto } from './dto/create-payroll.dto';
 import { PayrollRepository } from './payroll.repository';
+import { PayrollCalculationService } from '../time-track/payroll-calculation.service';
 
 // ---------------------------------------------------------------------------
 // Tabelas de tributação 2024
@@ -94,6 +95,7 @@ export class PayrollService {
   constructor(
     private readonly repo: PayrollRepository,
     private readonly prisma: PrismaService,
+    private readonly officialCalculator: PayrollCalculationService,
   ) {}
 
   list(companyId: string, year?: number, month?: number) {
@@ -136,11 +138,24 @@ export class PayrollService {
     const dependentsData = employee.dependents as Array<{ name?: string }> | null;
     const dependentCount = Array.isArray(dependentsData) ? dependentsData.length : 0;
 
-    // 5. Cálculos
-    const inssAmount = calculateInss(grossSalary);
-    const irrfAmount = calculateIrrf(grossSalary, inssAmount, dependentCount);
-    const fgtsAmount = round2(grossSalary * FGTS_RATE);
-    const netSalary = round2(grossSalary - inssAmount - irrfAmount);
+    // 5. O mesmo motor versionado usado pelo fechamento oficial.
+    const taxContext = await this.officialCalculator.resolveTaxContext(new Date(Date.UTC(dto.referenceYear, dto.referenceMonth - 1, 1)));
+    const calculation = this.officialCalculator.calculate({
+      salary: grossSalary,
+      weeklyMinutes: 2640,
+      overtime50Minutes: 0,
+      overtime100Minutes: 0,
+      nightShiftMinutes: 0,
+      absenceMinutes: 0,
+      payableWorkdays: 22,
+      paidRestDays: 0,
+      dependents: dependentCount,
+      taxContext,
+    });
+    const inssAmount = calculation.inssDiscount;
+    const irrfAmount = calculation.irrfDiscount;
+    const fgtsAmount = calculation.fgtsAmount;
+    const netSalary = calculation.netPay;
 
     // 6. Monta os itens discriminados
     const items: Array<{
@@ -191,6 +206,8 @@ export class PayrollService {
       inssAmount,
       irrfAmount,
       fgtsAmount,
+      calculationVersion: calculation.calculationVersion,
+      taxTableSnapshot: JSON.parse(JSON.stringify(taxContext)),
       observations: dto.observations,
       items,
     });

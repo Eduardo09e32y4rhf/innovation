@@ -25,7 +25,7 @@ export const PLATFORM_NAV_GROUPS: PlatformNavGroup[] = [
 ];
 
 export function getPlatformNavGroups(role: string): PlatformNavGroup[] {
-  if (role === 'DEV') return PLATFORM_NAV_GROUPS;
+  if (role === 'DEV' || role === 'CEO') return PLATFORM_NAV_GROUPS.filter((group) => group.key !== 'audit');
   // ADMIN e COMERCIAL não acessam Configuração nem Auditoria
   return PLATFORM_NAV_GROUPS.filter((group) => group.key !== 'configuration' && group.key !== 'audit');
 }

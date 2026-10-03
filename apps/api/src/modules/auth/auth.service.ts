@@ -211,6 +211,7 @@ export class AuthService {
       customPermissions: user.customPermissions,
       companyStatus: user.company?.status,
       billingStatus: user.company?.billingStatus,
+      onboardingState: user.onboardingState ?? null,
     }, this.passwordChangeRequired(user));
   }
 
@@ -363,6 +364,7 @@ export class AuthService {
       customPermissions: freshUser.customPermissions,
       companyStatus: freshUser.company?.status,
       billingStatus: freshUser.company?.billingStatus,
+      onboardingState: freshUser.onboardingState ?? null,
       passwordChangeRequired: this.passwordChangeRequired(freshUser),
     };
   }
@@ -386,7 +388,12 @@ export class AuthService {
     const passwordHash = await bcrypt.hash(dto.newPassword, 12);
     
     const nextPrevious = [freshUser.passwordHash, ...freshUser.previousPasswords].slice(0, 10);
-    await this.repository.updatePassword(freshUser.id, passwordHash, nextPrevious);
+    await this.repository.updatePassword(
+      freshUser.id,
+      passwordHash,
+      nextPrevious,
+      freshUser.role === 'CEO' ? 'FACE_ENROLLMENT' : undefined,
+    );
     
     await this.repository.createAuditLog({
       companyId: freshUser.companyId,
@@ -398,7 +405,11 @@ export class AuthService {
       ipAddress: requestMeta.ipAddress,
       userAgent: requestMeta.userAgent,
     });
-    return { changed: true, passwordChangeRequired: false };
+    return {
+      changed: true,
+      passwordChangeRequired: false,
+      onboardingState: freshUser.role === 'CEO' ? 'FACE_ENROLLMENT' : null,
+    };
   }
 
   private async auditInvalidLogin(email: string, requestMeta?: { ipAddress?: string; userAgent?: string }, companyId?: string, userId?: string) {
@@ -621,6 +632,8 @@ export class AuthService {
   ) {
     const allowedTargets: Record<UserRole, UserRole[]> = {
       DEV: [
+        'CEO',
+        'CONTABIL',
         'COMERCIAL',
         'ADMIN',
         'RH',
@@ -628,6 +641,14 @@ export class AuthService {
         'FUNCIONARIO',
         'CONSULTA',
       ],
+      CEO: [
+        'ADMIN',
+        'RH',
+        'GESTOR',
+        'FUNCIONARIO',
+        'CONSULTA',
+      ],
+      CONTABIL: [],
       ADMIN: [
         'ADMIN',
         'RH',

@@ -1,5 +1,7 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
+import { randomBytes } from 'node:crypto';
+import { decryptTemporaryPassword, encryptTemporaryPassword } from '../../common/crypto/temporary-password';
 import type { JwtUser } from '../../common/types/auth.types';
 import { normalizeDisplayName } from '../../common/utils/text-normalization';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -10,9 +12,12 @@ import { UsersRepository } from './users.repository';
 
 // SEGURANCA: e-mail do DEV proprietario da plataforma — definido via variavel de ambiente
 const PLATFORM_OWNER_EMAIL = (process.env.PLATFORM_OWNER_EMAIL ?? '').toLowerCase();
+const PLATFORM_OWNER_USER_ID = process.env.PLATFORM_OWNER_USER_ID ?? '';
 
 const ROLE_MANAGEMENT: Record<string, string[]> = {
-  DEV: ['DEV', 'COMERCIAL', 'ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'],
+  DEV: ['DEV', 'CEO', 'CONTABIL', 'COMERCIAL', 'ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'],
+  CEO: ['ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'],
+  CONTABIL: [],
   COMERCIAL: [],
   ADMIN: ['ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'],
   RH: ['RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'],
@@ -84,6 +89,10 @@ export class UsersService {
       email,
       passwordHash: await bcrypt.hash(dto.password, 12),
       role: dto.role ?? 'FUNCIONARIO',
+      temporaryPassword: {
+        value: dto.password,
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      },
       ...(dto.customPermissions !== undefined && dto.customPermissions !== null ? { customPermissions: dto.customPermissions } : {}),
     });
     if (!created) {
@@ -215,6 +224,64 @@ export class UsersService {
     return this.get(companyId, actor, id);
   }
 
+  async revealTemporaryPassword(companyId: string, actor: JwtUser, id: string) {
+    const user = await this.repository.findById(id, actor.role === 'DEV' || actor.role === 'CEO' ? undefined : companyId);
+    if (!user) throw new NotFoundException('Usuario nao encontrado');
+    this.assertCanRevealTemporaryPassword(actor, user);
+
+    const credential = await this.repository.findTemporaryCredential(id);
+    if (!credential || credential.revokedAt || credential.consumedAt || credential.expiresAt <= new Date()) {
+      throw new NotFoundException('Senha provisoria indisponivel ou expirada.');
+    }
+
+    let temporaryPassword: string;
+    try {
+      temporaryPassword = decryptTemporaryPassword(credential.encryptedValue);
+    } catch {
+      throw new NotFoundException('Senha provisoria indisponivel.');
+    }
+
+    await this.repository.markTemporaryCredentialRevealed(id);
+    await this.repository.createAuditLog({
+      companyId: user.companyId,
+      userId: actor.sub,
+      action: 'TEMPORARY_PASSWORD_REVEALED',
+      entity: 'User',
+      entityId: id,
+      metadata: { targetUserId: id, targetRole: user.role, expiresAt: credential.expiresAt.toISOString() },
+    });
+
+    return { temporaryPassword, expiresAt: credential.expiresAt };
+  }
+
+  async reissueTemporaryPassword(companyId: string, actor: JwtUser, id: string) {
+    const user = await this.repository.findByIdWithPassword(id, actor.role === 'DEV' || actor.role === 'CEO' ? undefined : companyId);
+    if (!user) throw new NotFoundException('Usuario nao encontrado');
+    this.assertCanRevealTemporaryPassword(actor, user);
+    if (actor.sub === id) throw new ConflictException('Nao e permitido reemitir a propria senha por esta acao.');
+
+    const temporaryPassword = this.generateTemporaryPassword();
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const passwordHash = await bcrypt.hash(temporaryPassword, 12);
+    await this.repository.update(id, {
+      passwordHash,
+      previousPasswords: [user.passwordHash, ...(user.previousPasswords ?? [])].slice(0, 10),
+      forcePasswordChange: true,
+      passwordChangedAt: new Date(),
+      failedLoginAttempts: 0,
+    }, actor.role === 'DEV' || actor.role === 'CEO' ? undefined : companyId);
+    await this.repository.replaceTemporaryCredential(id, encryptTemporaryPassword(temporaryPassword), expiresAt);
+    await this.repository.createAuditLog({
+      companyId: user.companyId,
+      userId: actor.sub,
+      action: 'TEMPORARY_PASSWORD_REISSUED',
+      entity: 'User',
+      entityId: id,
+      metadata: { targetUserId: id, targetRole: user.role, expiresAt: expiresAt.toISOString() },
+    });
+    return { temporaryPassword, expiresAt };
+  }
+
   async delete(companyId: string, actor: JwtUser, id: string) {
     if (actor.sub === id) throw new ForbiddenException('Nao e permitido excluir a propria conta.');
     const user = await this.get(companyId, actor, id);
@@ -266,15 +333,26 @@ export class UsersService {
     }
   }
 
+  private generateTemporaryPassword() {
+    return `Aa1!${randomBytes(18).toString('hex')}`;
+  }
+
+  private assertCanRevealTemporaryPassword(actor: JwtUser, user: { id: string; role?: string }) {
+    if (actor.sub === user.id) throw new ForbiddenException('Nao e permitido revelar a propria senha provisoria.');
+    if (!this.canManageRole(actor.role, user.role)) {
+      throw new ForbiddenException('Voce nao tem permissao para gerir a senha provisoria deste usuario.');
+    }
+  }
+
   private assertRoleChangeAllowed(actor: JwtUser, nextRole?: string) {
     if (!nextRole) return;
     const actorRole = String(actor?.role || '').toUpperCase();
-    const protectedRoles = ['DEV', 'COMERCIAL'];
+    const protectedRoles = ['DEV', 'CEO', 'CONTABIL', 'COMERCIAL'];
 
-    if (protectedRoles.includes(nextRole) && actor?.email.toLowerCase() !== PLATFORM_OWNER_EMAIL) {
-      throw new ForbiddenException('Apenas o dono da plataforma pode criar ou promover Super Admin/Comercial.');
+    if (protectedRoles.includes(nextRole) && !this.isPlatformOwner(actor)) {
+      throw new ForbiddenException('Apenas o DEV proprietario da plataforma pode criar ou promover perfis internos.');
     }
-    if (actorRole === 'RH' && ['ADMIN', 'DEV', 'COMERCIAL'].includes(nextRole)) {
+    if (actorRole === 'RH' && ['ADMIN', 'DEV', 'CEO', 'CONTABIL', 'COMERCIAL'].includes(nextRole)) {
       throw new ForbiddenException('RH nao pode criar ou promover Administrador, Comercial ou Super Admin.');
     }
     if (actorRole === 'GESTOR' || actorRole === 'FUNCIONARIO' || actorRole === 'CONSULTA') {
@@ -285,6 +363,9 @@ export class UsersService {
   private canAccessUser(actor: JwtUser, user?: { role?: string } | null) {
     if (!user) return false;
     if (actor?.role === 'DEV') return true;
+    if (['DEV', 'CEO', 'CONTABIL', 'COMERCIAL'].includes(String(user.role || '').toUpperCase())) {
+      return actor.sub === (user as any).id && ['CEO', 'CONTABIL', 'COMERCIAL'].includes(actor.role);
+    }
     return String(user.role || '').toUpperCase() !== 'DEV';
   }
 
@@ -296,5 +377,11 @@ export class UsersService {
   private canManageRole(actorRole?: string, targetRole?: string) {
     if (!actorRole || !targetRole) return false;
     return ROLE_MANAGEMENT[actorRole.toUpperCase()]?.includes(targetRole.toUpperCase()) ?? false;
+  }
+
+  private isPlatformOwner(actor: JwtUser) {
+    if (!actor || actor.role !== 'DEV') return false;
+    if (PLATFORM_OWNER_USER_ID) return actor.sub === PLATFORM_OWNER_USER_ID;
+    return Boolean(PLATFORM_OWNER_EMAIL) && actor.email.toLowerCase() === PLATFORM_OWNER_EMAIL;
   }
 }

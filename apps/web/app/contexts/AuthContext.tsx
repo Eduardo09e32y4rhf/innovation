@@ -21,6 +21,7 @@ export interface User {
   customPermissions?: string[];
   companyStatus?: 'ACTIVE' | 'SUSPENDED' | 'CANCELLED';
   billingStatus?: 'TRIAL' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED' | 'PENDING_PAYMENT';
+  onboardingState?: 'INVITED' | 'PASSWORD_CHANGE' | 'FACE_ENROLLMENT' | 'PROFILE_REQUIRED' | 'CONTRACT_PENDING' | 'ACTIVE' | null;
 }
 
 export interface Company {

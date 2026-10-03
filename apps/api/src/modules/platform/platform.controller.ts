@@ -11,7 +11,7 @@ import { UpdatePlatformCompanyUserDto } from './dto/update-platform-company-user
 import { PlatformService } from './platform.service';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('DEV', 'COMERCIAL')
+@Roles('DEV', 'CEO', 'COMERCIAL')
 @Controller('platform')
 export class PlatformController {
   constructor(private readonly service: PlatformService) {}
@@ -122,7 +122,7 @@ export class PlatformController {
   }
 
   private assertDevOrCommercial(actor: JwtUser) {
-    if (actor.role !== 'DEV' && actor.role !== 'COMERCIAL') {
+    if (actor.role !== 'DEV' && actor.role !== 'CEO' && actor.role !== 'COMERCIAL') {
       throw new ForbiddenException('Acesso negado.');
     }
   }

@@ -1,4 +1,4 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { BadRequestException, Injectable, InternalServerErrorException } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
 import type { JwtUser } from '../../common/types/auth.types';
@@ -27,6 +27,9 @@ export class PrivacyService {
   }
 
   async accept(user: JwtUser, requestMeta: { ipAddress?: string; userAgent?: string }, body?: any) {
+    if (body?.faceDescriptor || body?.photoBase64) {
+      throw new BadRequestException('Biometria e selfie devem ser enviadas somente pelo fluxo facial especifico, separado do aceite de privacidade.');
+    }
     const userData = await this.repository.getUserData(user.sub);
     const userName = userData?.name || user.name || 'Usuário';
     const companyName = userData?.company?.name || 'Empresa Cliente';
@@ -39,21 +42,12 @@ export class PrivacyService {
       latitude: body?.latitude,
       longitude: body?.longitude,
       address: body?.address,
-      photoBase64: body?.photoBase64,
+      photoBase64: undefined,
       pdfBase64: undefined,
       ...requestMeta,
     });
 
-    let employeeData = null;
-    if (body?.faceDescriptor && Array.isArray(body.faceDescriptor)) {
-      const employeeIdObj = await this.repository.getEmployeeId(user.sub);
-      if (employeeIdObj) {
-        await this.repository.saveFaceEnrollment(user.companyId, employeeIdObj.id, body.faceDescriptor);
-      } else {
-        console.warn(`User ${user.sub} accepted terms with faceDescriptor, but has no employee record to bind to.`);
-      }
-    }
-    employeeData = await this.repository.getEmployeeData(user.sub);
+    const employeeData = await this.repository.getEmployeeData(user.sub);
 
     const crypto = require('crypto');
     
@@ -120,7 +114,7 @@ export class PrivacyService {
       latitude: body?.latitude,
       longitude: body?.longitude,
       address: body?.address,
-      photoBase64: body?.photoBase64,
+      photoBase64: undefined,
       payloadHash,
       digitalSignature: signature,
       date: new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }).replace(/\u202F/g, ' '),

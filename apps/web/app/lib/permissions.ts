@@ -107,6 +107,24 @@ const DEFAULT_PERMISSIONS: Record<string, Permission[]> = {
     'admin.manage_rh',
     'admin.delete_employees',
     'platform.manage'
+  ],
+  'ceo': [
+    'time_tracking.view_all',
+    'time_tracking.approve_all',
+    'vacations.approve',
+    'settings.change_own_password',
+    'settings.change_team_password',
+    'settings.change_all_passwords',
+    'users.view_team',
+    'users.manage_employees',
+    'users.view_employee_files',
+    'admin.manage_rh',
+    'admin.delete_employees',
+    'platform.manage'
+  ],
+  'contabil': [
+    'time_tracking.view_all',
+    'settings.change_own_password'
   ]
 };
 

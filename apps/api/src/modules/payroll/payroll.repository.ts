@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { PayrollStatus } from '@prisma/client';
+import { PayrollStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 
 @Injectable()
@@ -62,6 +62,8 @@ export class PayrollRepository {
       inssAmount: number;
       irrfAmount: number;
       fgtsAmount: number;
+      calculationVersion?: string;
+      taxTableSnapshot?: Prisma.InputJsonValue;
       overtimeAmount?: number;
       nightShiftAmount?: number;
       observations?: string;

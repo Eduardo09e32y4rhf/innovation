@@ -1,5 +1,6 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
+import { randomBytes } from 'node:crypto';
 import type { JwtUser, UserRole } from '../../common/types/auth.types';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
@@ -212,21 +213,27 @@ export class EmployeesService {
       return;
     }
 
-    const defaultPassword = process.env.DEFAULT_EMPLOYEE_PASSWORD;
-    if (!defaultPassword) {
-      throw new ConflictException('DEFAULT_EMPLOYEE_PASSWORD não configurado no servidor');
-    }
+    const temporaryPassword = this.generateTemporaryPassword();
 
     const user = await this.repository.createUser({
       companyId,
       name: dto.name ?? employee.name,
       email,
       role,
-      passwordHash: await bcrypt.hash(defaultPassword, 12),
+      passwordHash: await bcrypt.hash(temporaryPassword, 12),
       forcePasswordChange: true,
       isActive: true,
+      temporaryPassword: {
+        value: temporaryPassword,
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      },
     });
     await this.repository.updateUserLink(companyId, employee.id, user.id);
+  }
+
+  private generateTemporaryPassword() {
+    // Nunca reutilizar senha de ambiente: cada provisionamento recebe um segredo distinto.
+    return `Aa1!${randomBytes(18).toString('hex')}`;
   }
 
 

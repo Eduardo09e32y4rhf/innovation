@@ -16,9 +16,9 @@ export class JwtAuthGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
     const header = request.headers.authorization as string | undefined;
     const token = header?.startsWith('Bearer ') ? header.slice(7) : undefined;
-    const path = String(request.route?.path ?? request.url ?? '');
-    const isPasswordChangeRoute = path.includes('change-password');
-    const isMeRoute = path.endsWith('/me') || path === 'me';
+    const path = String(request.route?.path ?? request.url ?? '').split('?')[0];
+    const isPasswordChangeRoute = path === '/auth/change-password' || path === 'auth/change-password';
+    const isMeRoute = path === '/auth/me' || path === 'auth/me' || path === '/me' || path === 'me';
 
     if (!token) throw new UnauthorizedException('Token não informado');
 
@@ -53,6 +53,7 @@ export class JwtAuthGuard implements CanActivate {
         companyId: payload.ghostMode ? payload.companyId : freshUser.companyId,
         role,
         ghostMode: payload.ghostMode || false,
+        onboardingState: freshUser.onboardingState ?? null,
       };
       return true;
     } catch (error) {

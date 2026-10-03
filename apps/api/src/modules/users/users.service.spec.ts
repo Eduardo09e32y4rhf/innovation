@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import { UsersService } from './users.service';
@@ -112,5 +112,49 @@ describe('UsersService.resetPassword', () => {
     await expect(service.resetPassword('company-1', { sub: 'admin-1', role: 'ADMIN', email: 'admin@company.com' } as any, 'user-1', {
       newPassword: 'SenhaForte123!',
     })).rejects.toBeInstanceOf(ConflictException);
+  });
+});
+
+describe('UsersService internal platform role protection', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('does not allow a tenant administrator to create a CEO', async () => {
+    const repository = makeRepository();
+    const service = new UsersService(repository);
+
+    await expect(service.create('company-1', {
+      sub: 'admin-1',
+      role: 'ADMIN',
+      email: 'admin@company.com',
+      companyId: 'company-1',
+    } as any, {
+      name: 'CEO proibido',
+      email: 'ceo@company.com',
+      password: 'SenhaForte123!',
+      role: 'CEO',
+    })).rejects.toBeInstanceOf(ForbiddenException);
+
+    expect(repository.findByEmail).not.toHaveBeenCalled();
+  });
+
+  it('does not allow tenant administrators to create CONTABIL', async () => {
+    const repository = makeRepository();
+    const service = new UsersService(repository);
+
+    await expect(service.create('company-1', {
+      sub: 'admin-1',
+      role: 'ADMIN',
+      email: 'admin@company.com',
+      companyId: 'company-1',
+    } as any, {
+      name: 'Contabil proibido',
+      email: 'contabil@company.com',
+      password: 'SenhaForte123!',
+      role: 'CONTABIL',
+    })).rejects.toBeInstanceOf(ForbiddenException);
+
+    expect(repository.findByEmail).not.toHaveBeenCalled();
   });
 });

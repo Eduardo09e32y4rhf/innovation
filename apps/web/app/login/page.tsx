@@ -129,7 +129,7 @@ export default function LoginPage() {
         <div className="mt-6 text-center">
           <p className="text-sm text-[var(--auth-text-secondary)]">
             Ainda não tem uma conta?{' '}
-            <Link href="/criar-conta" className="font-medium text-[var(--auth-accent-cyan)] hover:text-white transition-colors">
+            <Link href="/cadastro" className="font-medium text-[var(--auth-accent-cyan)] hover:text-white transition-colors">
               Criar agora
             </Link>
           </p>

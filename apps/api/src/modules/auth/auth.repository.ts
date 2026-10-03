@@ -179,10 +179,14 @@ export class AuthRepository {
     });
   }
 
-  updatePassword(userId: string, passwordHash: string, previousPasswords: string[] = []) {
-    return this.prisma.user.update({
-      where: { id: userId },
-      data: { passwordHash, previousPasswords, passwordChangedAt: new Date(), forcePasswordChange: false },
+  updatePassword(userId: string, passwordHash: string, previousPasswords: string[] = [], onboardingState?: 'FACE_ENROLLMENT') {
+    return this.prisma.$transaction(async (tx) => {
+      const updated = await tx.user.update({
+        where: { id: userId },
+        data: { passwordHash, previousPasswords, passwordChangedAt: new Date(), forcePasswordChange: false, ...(onboardingState ? { onboardingState } : {}) },
+      });
+      await tx.temporaryCredential.deleteMany({ where: { userId } });
+      return updated;
     });
   }
 

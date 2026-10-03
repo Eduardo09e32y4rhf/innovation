@@ -107,7 +107,7 @@ export function FaceIDOverlay({ onCapture, onCancel, title = 'Verificação Faci
     if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop());
 
     // Entrega a foto (sem descriptor por enquanto — futura integração de face-api)
-    setTimeout(() => onCapture(photoBase64, []), 600);
+    setTimeout(() => onCapture(photoBase64), 600);
   }
 
   function retryCapture() {

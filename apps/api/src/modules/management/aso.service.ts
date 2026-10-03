@@ -1,8 +1,10 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
+import { randomBytes } from 'node:crypto';
+import { encryptTemporaryPassword } from '../../common/crypto/temporary-password';
 import { PrismaService } from '../../database/prisma.service';
 
-const DEFAULT_PANEL_PASSWORD = process.env.DEFAULT_EMPLOYEE_PASSWORD ?? 'Innovation@123';
+const generateTemporaryPassword = () => `Aa1!${randomBytes(18).toString('hex')}`;
 
 @Injectable()
 export class AsoService {
@@ -298,15 +300,23 @@ export class AsoService {
       const email = employee.email.trim().toLowerCase();
       const existingUser = await tx.user.findUnique({ where: { email } });
       if (!existingUser) {
+        const temporaryPassword = generateTemporaryPassword();
         const user = await tx.user.create({
           data: {
             companyId,
             name: employee.name,
             email,
             role: 'FUNCIONARIO',
-            passwordHash: await bcrypt.hash(DEFAULT_PANEL_PASSWORD, 12),
+            passwordHash: await bcrypt.hash(temporaryPassword, 12),
             forcePasswordChange: true,
             isActive: true,
+          },
+        });
+        await tx.temporaryCredential.create({
+          data: {
+            userId: user.id,
+            encryptedValue: encryptTemporaryPassword(temporaryPassword),
+            expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
           },
         });
         await tx.employee.update({ where: { id: employeeId }, data: { userId: user.id } });

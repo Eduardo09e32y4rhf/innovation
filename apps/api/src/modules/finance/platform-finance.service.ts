@@ -464,6 +464,78 @@ export class PlatformFinanceService {
     });
   }
 
+  async pauseBilling(companyId: string, actor: JwtUser) {
+    const company = await this.prisma.company.findUnique({
+      where: { id: companyId },
+      select: { id: true, asaasSubscriptionId: true, subscription: true },
+    });
+    if (!company) throw new NotFoundException('Empresa nao encontrada.');
+    const subscription = company.subscription;
+    if (!subscription) throw new NotFoundException('Assinatura nao encontrada.');
+    if (subscription.billingPaused) {
+      return { changed: false, billingPaused: true, accessUnchanged: true };
+    }
+
+    const externalId = subscription.asaasSubscriptionId || company.asaasSubscriptionId;
+    if (externalId && this.asaas.isConfigured()) {
+      await this.asaas.deleteSubscription(externalId);
+    } else if (externalId) {
+      throw new BadRequestException('A integracao Asaas nao esta configurada; a pausa nao foi registrada.');
+    }
+
+    const now = new Date();
+    await this.prisma.$transaction([
+      this.prisma.companySubscription.update({
+        where: { companyId },
+        data: {
+          billingPaused: true,
+          billingPausedAt: now,
+          billingPausedBy: actor.sub,
+          status: 'PAUSED',
+          asaasSubscriptionId: null,
+        },
+      }),
+      this.prisma.company.update({ where: { id: companyId }, data: { asaasSubscriptionId: null } }),
+    ]);
+    await this.audit(companyId, 'BILLING_PAUSED', {
+      previousSubscriptionId: externalId ?? null,
+      accessUnchanged: true,
+    }, actor, 'Subscription', subscription.id);
+    return { changed: true, billingPaused: true, accessUnchanged: true };
+  }
+
+  async resumeBilling(companyId: string, actor: JwtUser) {
+    const company = await this.prisma.company.findUnique({
+      where: { id: companyId },
+      include: { platformPlan: true, subscription: true, users: { where: { role: 'ADMIN', isActive: true }, orderBy: { createdAt: 'asc' }, take: 1 } },
+    });
+    if (!company) throw new NotFoundException('Empresa nao encontrada.');
+    const subscription = company.subscription;
+    if (!subscription) throw new NotFoundException('Assinatura nao encontrada.');
+    if (!subscription.billingPaused) {
+      return { changed: false, billingPaused: false, accessUnchanged: true };
+    }
+    if (company.platformPlan?.isFree) {
+      await this.prisma.companySubscription.update({ where: { companyId }, data: { billingPaused: false, billingPausedAt: null, billingPausedBy: null, status: 'ACTIVE' } });
+      await this.audit(companyId, 'BILLING_RESUMED', { freePlan: true, accessUnchanged: true }, actor, 'Subscription', subscription.id);
+      return { changed: true, billingPaused: false, accessUnchanged: true, subscriptionId: null };
+    }
+    if (!this.asaas.isConfigured()) throw new BadRequestException('A integracao Asaas nao esta configurada; a retomada nao foi concluida.');
+    const admin = company.users[0];
+    if (!admin || !company.document || !company.platformPlan) throw new BadRequestException('Dados insuficientes para retomar a cobranca.');
+    const customerId = await this.ensureAsaasCustomer(company, admin);
+    const quote = this.pricingService.calculate(
+      (company.platformPlan.commitmentMonths as any) || 1,
+      subscription.seatQuantity,
+      { baseMonthlyPrice: company.platformPlan.baseMonthlyPrice, userMonthlyPrice: company.platformPlan.userMonthlyPrice, price: company.platformPlan.price },
+    );
+    const subscriptionId = await this.createRecurringSubscription({ ...company, subscription: { ...subscription, asaasSubscriptionId: null } }, customerId, quote.total);
+    if (!subscriptionId) throw new BadRequestException('O Asaas nao confirmou a nova assinatura.');
+    await this.prisma.companySubscription.update({ where: { companyId }, data: { billingPaused: false, billingPausedAt: null, billingPausedBy: null, status: 'ACTIVE' } });
+    await this.audit(companyId, 'BILLING_RESUMED', { subscriptionId, accessUnchanged: true }, actor, 'Subscription', subscription.id);
+    return { changed: true, billingPaused: false, accessUnchanged: true, subscriptionId };
+  }
+
   async changeSeatQuantity(companyId: string, nextSeatQuantity: number, actor?: JwtUser) {
     const subscription = await this.prisma.companySubscription.findUnique({
       where: { companyId },

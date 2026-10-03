@@ -139,9 +139,14 @@ export class TimeTrackService {
   }
 
   async clockInFacial(companyId: string, actor: JwtUser, dto: any) {
-    if (!dto.imageBase64 && !dto.fallback) {
+    if (process.env.FACIAL_VERIFICATION_ENABLED !== 'true') {
+      throw new BadRequestException('Verificacao facial temporariamente indisponivel ate a ativacao de uma prova de vida validada no servidor.');
+    }
+    if (!dto.imageBase64) {
       throw new BadRequestException('Imagem facial é obrigatória para o registro.');
     }
+
+    if (dto.faceDescriptor !== undefined) this.assertValidFaceDescriptor(dto.faceDescriptor);
 
     let facialSuccess = false;
     let matchResult = null;
@@ -168,9 +173,7 @@ export class TimeTrackService {
       if (enrollment && enrollment.active) {
          throw new BadRequestException('Reconhecimento facial obrigatório. Seu dispositivo não enviou os dados biométricos.');
       }
-      if (dto.imageBase64) {
-         facialSuccess = true;
-      }
+      throw new BadRequestException('Prova biometrica do servidor nao recebida.');
     } else if (!enrollment || !enrollment.active || !enrollment.descriptor) {
       try {
         await this.prisma.faceEnrollment.upsert({
@@ -208,7 +211,7 @@ export class TimeTrackService {
       }
     }
 
-    if (!dto.faceDescriptor && !dto.fallback && !facialSuccess) {
+    if (!dto.faceDescriptor && !facialSuccess) {
        throw new BadRequestException('Dados biométricos não recebidos do dispositivo.');
     }
 
@@ -217,10 +220,10 @@ export class TimeTrackService {
       employeeId,
       matched: facialSuccess,
       similarity: matchResult?.distance ? (1 - matchResult.distance) : 0,
-      livenessOk: true
+      livenessOk: false
     });
 
-    if (!facialSuccess && !dto.fallback) {
+    if (!facialSuccess) {
       throw new BadRequestException('Falha no reconhecimento facial.');
     }
 
@@ -228,6 +231,10 @@ export class TimeTrackService {
   }
 
   async enrollFacial(companyId: string, actor: JwtUser, descriptor: number[]) {
+    if (process.env.FACIAL_VERIFICATION_ENABLED !== 'true') {
+      throw new BadRequestException('Cadastro facial temporariamente indisponivel ate a ativacao de uma prova de vida validada no servidor.');
+    }
+    this.assertValidFaceDescriptor(descriptor);
     const employee = await this.prisma.employee.findFirst({ 
       where: { 
         companyId,
@@ -245,6 +252,12 @@ export class TimeTrackService {
       create: { companyId, employeeId: employee.id, descriptor: descriptor, enrolledAt: new Date() },
     });
     return { success: true };
+  }
+
+  private assertValidFaceDescriptor(descriptor: unknown): asserts descriptor is number[] {
+    if (!Array.isArray(descriptor) || descriptor.length !== 128 || descriptor.some((value) => typeof value !== 'number' || !Number.isFinite(value))) {
+      throw new BadRequestException('Descritor facial invalido.');
+    }
   }
 
   async register(companyId: string, actor: JwtUser, dto: RegisterTimeDto) {

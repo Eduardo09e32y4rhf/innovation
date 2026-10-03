@@ -5,6 +5,8 @@ import type { JwtUser } from '../../common/types/auth.types';
 
 const DEFAULT_PERMISSIONS: Record<UserRole, string[]> = {
   DEV: ['admin', 'config_company', 'config_payroll', 'config_time', 'time_admin', 'time_approve', 'time_view', 'time_clock', 'manage_employees', 'payroll', 'documents', 'settings_basic'],
+  CEO: ['admin', 'config_company', 'config_payroll', 'config_time', 'time_admin', 'time_approve', 'time_view', 'time_clock', 'manage_employees', 'payroll', 'documents', 'settings_basic'],
+  CONTABIL: ['payroll', 'documents', 'time_view', 'settings_basic'],
   ADMIN: ['admin', 'config_company', 'config_payroll', 'config_time', 'time_admin', 'time_approve', 'time_view', 'time_clock', 'manage_employees', 'payroll', 'documents', 'settings_basic'],
   COMERCIAL: [],
   RH: ['time_admin', 'time_approve', 'time_view', 'time_clock', 'manage_employees', 'payroll', 'documents', 'settings_basic'],
@@ -24,17 +26,20 @@ export class GlobalPermissionsService implements OnModuleInit {
 
   private async seedDefaults() {
     try {
-      const existingCount = await this.prisma.globalRolePermission.count();
-      if (existingCount === 0) {
-        this.logger.log('Seeding permissões globais padrão...');
-        // Optimization: Use createMany to avoid N+1 queries during module initialization seeding
-        const data = Object.entries(DEFAULT_PERMISSIONS).map(([role, permissions]) => ({
+      const existing = await this.prisma.globalRolePermission.findMany({
+        select: { role: true },
+      });
+      const existingRoles = new Set(existing.map((item) => item.role));
+      const missing = Object.entries(DEFAULT_PERMISSIONS)
+        .filter(([role]) => !existingRoles.has(role as UserRole))
+        .map(([role, permissions]) => ({
           role: role as UserRole,
           permissions,
         }));
-        await this.prisma.globalRolePermission.createMany({
-          data,
-        });
+
+      if (missing.length > 0) {
+        this.logger.log(`Seeding ${missing.length} permissao(oes) global(is) ausente(s)...`);
+        await this.prisma.globalRolePermission.createMany({ data: missing });
       }
     } catch (e) {
       this.logger.error('Erro ao semear permissões globais:', e);

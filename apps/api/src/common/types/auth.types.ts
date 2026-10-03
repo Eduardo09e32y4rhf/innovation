@@ -1,4 +1,4 @@
-export type UserRole = 'DEV' | 'COMERCIAL' | 'ADMIN' | 'RH' | 'GESTOR' | 'FUNCIONARIO' | 'CONSULTA';
+export type UserRole = 'DEV' | 'CEO' | 'CONTABIL' | 'COMERCIAL' | 'ADMIN' | 'RH' | 'GESTOR' | 'FUNCIONARIO' | 'CONSULTA';
 
 export interface JwtUser {
   sub: string;
@@ -10,4 +10,5 @@ export interface JwtUser {
   ghostMode?: boolean;
   companyStatus?: string;
   billingStatus?: string;
+  onboardingState?: 'INVITED' | 'PASSWORD_CHANGE' | 'FACE_ENROLLMENT' | 'PROFILE_REQUIRED' | 'CONTRACT_PENDING' | 'ACTIVE' | null;
 }

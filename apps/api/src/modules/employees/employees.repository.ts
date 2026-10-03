@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
+import { encryptTemporaryPassword } from '../../common/crypto/temporary-password';
 
 @Injectable()
 export class EmployeesRepository {
@@ -101,7 +102,20 @@ export class EmployeesRepository {
   }
 
   createUser(data: any) {
-    return this.prisma.user.create({ data });
+    const { temporaryPassword, ...userData } = data;
+    return this.prisma.$transaction(async (tx) => {
+      const user = await tx.user.create({ data: userData });
+      if (temporaryPassword) {
+        await tx.temporaryCredential.create({
+          data: {
+            userId: user.id,
+            encryptedValue: encryptTemporaryPassword(temporaryPassword.value),
+            expiresAt: temporaryPassword.expiresAt,
+          },
+        });
+      }
+      return user;
+    });
   }
 
   updateUser(companyId: string, id: string, data: any) {

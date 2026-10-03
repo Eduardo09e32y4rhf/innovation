@@ -1,4 +1,5 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Header, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { CurrentCompany } from '../../common/decorators/current-company.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -21,32 +22,32 @@ export class UsersController {
     return this.service.ping(actor.sub);
   }
 
-  @Roles('DEV', 'ADMIN', 'RH')
+  @Roles('DEV', 'CEO', 'ADMIN', 'RH')
   @Get()
   list(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser) {
     return this.service.list(companyId, actor);
   }
 
   /** Retorna { used, max } - consumido pela tela de Usuarios para mostrar o limite. */
-  @Roles('DEV', 'ADMIN', 'RH')
+  @Roles('DEV', 'CEO', 'ADMIN', 'RH')
   @Get('usage')
   usage(@CurrentCompany() companyId: string) {
     return this.service.usage(companyId);
   }
 
-  @Roles('DEV', 'ADMIN', 'RH')
+  @Roles('DEV', 'CEO', 'ADMIN', 'RH')
   @Post()
   create(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Body() dto: CreateUserDto) {
     return this.service.create(companyId, actor, dto);
   }
 
-  @Roles('DEV', 'ADMIN', 'RH')
+  @Roles('DEV', 'CEO', 'ADMIN', 'RH')
   @Get(':id')
   get(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string) {
     return this.service.get(companyId, actor, id);
   }
 
-  @Roles('DEV', 'ADMIN', 'RH')
+  @Roles('DEV', 'CEO', 'ADMIN', 'RH')
   @Patch(':id')
   update(
     @CurrentCompany() companyId: string,
@@ -72,5 +73,21 @@ export class UsersController {
     @Body() dto: ResetUserPasswordDto,
   ) {
     return this.service.resetPassword(companyId, actor, id, dto);
+  }
+
+  @Header('Cache-Control', 'no-store')
+  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @Roles('DEV', 'CEO', 'ADMIN', 'RH')
+  @Post(':id/temporary-password/reveal')
+  revealTemporaryPassword(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string) {
+    return this.service.revealTemporaryPassword(companyId, actor, id);
+  }
+
+  @Header('Cache-Control', 'no-store')
+  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @Roles('DEV', 'CEO', 'ADMIN', 'RH')
+  @Post(':id/temporary-password/reissue')
+  reissueTemporaryPassword(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string) {
+    return this.service.reissueTemporaryPassword(companyId, actor, id);
   }
 }

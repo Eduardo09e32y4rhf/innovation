@@ -192,7 +192,7 @@ export class PlatformService {
   }
 
   async updateCompany(actor: JwtUser, id: string, dto: UpdatePlatformCompanyDto) {
-    if (actor.role !== 'DEV' && actor.role !== 'COMERCIAL') {
+    if (actor.role !== 'DEV' && actor.role !== 'CEO' && actor.role !== 'COMERCIAL') {
       throw new ForbiddenException('Apenas DEV ou COMERCIAL pode alterar limites/licencas da empresa.');
     }
     const company = await this.getCompany(id);
@@ -345,6 +345,10 @@ export class PlatformService {
       email,
       passwordHash: await bcrypt.hash(dto.password, 12),
       role: dto.role ?? 'FUNCIONARIO',
+      temporaryPassword: {
+        value: dto.password,
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      },
       ...(dto.customPermissions !== undefined && dto.customPermissions !== null ? { customPermissions: dto.customPermissions } : {}),
     });
     if (!created) throw new NotFoundException('Usuario nao encontrado');
@@ -447,7 +451,7 @@ export class PlatformService {
 
   private async assertCanManageCompanyUsers(actor: JwtUser, companyId: string) {
     if (actor.role === 'DEV') return;
-    if (actor.role !== 'COMERCIAL') throw new ForbiddenException('Perfil sem permissao para gerir usuarios de empresas.');
+    if (actor.role !== 'CEO' && actor.role !== 'COMERCIAL') throw new ForbiddenException('Perfil sem permissao para gerir usuarios de empresas.');
     const company = await this.getCompany(companyId);
     if (company.commercialOwnerId !== actor.sub) {
       throw new ForbiddenException('Comercial so pode gerir empresas sob sua responsabilidade.');
