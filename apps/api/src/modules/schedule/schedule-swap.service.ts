@@ -53,6 +53,14 @@ export class ScheduleSwapService {
     await this.assertDatesAreOpen(this.prisma, companyId, employee.id, [originalDate, targetDate]);
     const notifiedUserId = await this.resolveApprover(companyId, actor, employee);
 
+    // Validate counterpart if provided
+    let counterpartId = dto.counterpartId ?? null;
+    if (counterpartId) {
+      const counterpart = await this.prisma.employee.findFirst({ where: { companyId, id: counterpartId } });
+      if (!counterpart) throw new BadRequestException('Colega nao encontrado.');
+      if (counterpartId === employee.id) throw new BadRequestException('Nao e possivel fazer troca com a mesma pessoa.');
+    }
+
     return this.prisma.$transaction(async (tx) => {
       const request = await tx.scheduleSwapRequest.create({
         data: {
@@ -62,6 +70,7 @@ export class ScheduleSwapService {
           targetDate,
           justification: dto.justification,
           notifiedUserId,
+          counterpartId: counterpartId as any,
         },
       });
       await tx.auditLog.create({
@@ -73,6 +82,7 @@ export class ScheduleSwapService {
           entityId: request.id,
           metadata: {
             employeeId: employee.id,
+            counterpartId,
             originalDate: dto.originalDate.slice(0, 10),
             targetDate: dto.targetDate.slice(0, 10),
             justification: dto.justification ?? null,

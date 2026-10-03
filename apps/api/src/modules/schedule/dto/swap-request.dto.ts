@@ -14,6 +14,10 @@ export class SwapRequestDto {
   @IsOptional()
   @IsString()
   employeeId?: string;
+
+  @IsOptional()
+  @IsString()
+  counterpartId?: string;
 }
 
 export class ApproveSwapDto {
