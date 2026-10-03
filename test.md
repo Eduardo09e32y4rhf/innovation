@@ -711,3 +711,4 @@ O redesign completo das 23 telas ainda não foi concluído. Nesta etapa foram mi
 - As abas de ferias passaram para `ActionBar`, com rolagem horizontal controlada para telas estreitas e sem remover nenhuma visao.
 - A tela continua com os estados de carregamento, erro, vazio, alertas e historico existentes.
 - Validacao: `typecheck:web` aprovado.
+- Landing page e autenticaÃ§Ã£o: identidade visual alinhada ao gradiente azul/roxo do login, logo oficial compartilhada e dimensÃµes responsivas para celular, tablet e desktop. `typecheck:web` aprovado.

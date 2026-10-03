@@ -3,22 +3,20 @@ import Image from 'next/image';
 
 export function AuthSplitLayout({ children, title, subtitle }: { children: React.ReactNode, title?: string, subtitle?: string }) {
   return (
-    <div className="app-page flex min-h-screen items-center justify-center p-4 py-12 relative overflow-hidden">
+    <div className="relative flex min-h-[100svh] items-center justify-center overflow-x-hidden px-4 py-5 sm:py-8" style={{ background: 'linear-gradient(135deg, var(--auth-bg-start) 0%, var(--auth-bg-mid) 55%, var(--auth-bg-end) 100%)' }}>
       {/* Background decoration */}
       <div className="absolute top-0 right-0 w-96 h-96 bg-[var(--color-brand)]/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
       <div className="absolute bottom-0 left-0 w-96 h-96 bg-[var(--color-brand)]/5 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
       
-      <div className="w-full max-w-[420px] relative z-10 animate-in fade-in zoom-in-95 duration-500">
+      <div className="w-full max-w-[620px] relative z-10 animate-in fade-in zoom-in-95 duration-500">
         
         {/* Logo */}
-        <div className="mb-8 flex justify-center">
-          <div className="rounded-[var(--radius-xl)] bg-black p-4 shadow-xl ring-1 ring-black/5 relative w-20 h-20 flex items-center justify-center">
-             <Image src="/innovation-logo-dark.png" alt="Innovation" width={64} height={64} priority className="object-contain" />
-          </div>
+        <div className="mb-4 flex justify-center sm:mb-6">
+          <Image src="/logo-innovation-clean.png" alt="Innovation RH Connect" width={240} height={240} priority className="h-auto w-[clamp(120px,32vw,190px)] object-contain drop-shadow-2xl" />
         </div>
 
         {/* Card */}
-        <div className="surface p-8 shadow-[var(--shadow-xl)]">
+        <div className="surface p-5 shadow-[var(--shadow-xl)] sm:p-8">
           {(title || subtitle) && (
             <div className="mb-8 text-center">
               {title && <h1 className="text-2xl font-black tracking-tight text-slate-900">{title}</h1>}

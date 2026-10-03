@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import Image from 'next/image';
 import {
   ArrowRight,
   BellRing,
@@ -73,24 +74,18 @@ export default function Home() {
   const [openFaq, setOpenFaq] = useState<number | null>(0);
 
   return (
-    <main className={`${display.className} relative overflow-hidden bg-[#040810] text-slate-100 selection:bg-teal-500/30 selection:text-teal-200`}>
+    <main className={`${display.className} landing-page relative overflow-hidden bg-[var(--auth-bg-start)] text-slate-100 selection:bg-teal-500/30 selection:text-teal-200`}>
       {/* Background Gradients */}
       <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.015)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.015)_1px,transparent_1px)] bg-[size:64px_64px]" />
       <div className="absolute top-[-20%] left-[-10%] h-[50rem] w-[50rem] rounded-full bg-teal-500/10 blur-[160px] pointer-events-none" />
       <div className="absolute bottom-[-20%] right-[-10%] h-[40rem] w-[40rem] rounded-full bg-cyan-600/10 blur-[150px] pointer-events-none" />
 
-      <div className="relative mx-auto flex min-h-screen max-w-7xl flex-col px-6 pb-20 pt-6 lg:px-8">
+      <div className="relative mx-auto flex min-h-screen max-w-7xl flex-col px-4 pb-12 pt-4 sm:px-6 sm:pb-20 sm:pt-6 lg:px-8">
         
         {/* ================= NAVBAR ================= */}
         <header className="flex items-center justify-between rounded-full border border-white/10 bg-white/[0.02] px-6 py-4 backdrop-blur-2xl">
-          <Link href="/" className="flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-[14px] bg-gradient-to-br from-teal-400 to-cyan-500 text-slate-950 shadow-[0_8px_30px_rgba(45,212,191,0.3)]">
-              <ShieldCheck size={20} strokeWidth={2.5} />
-            </span>
-            <span className="leading-tight">
-              <span className="block text-sm font-black uppercase tracking-[0.2em] text-white">Innovation</span>
-              <span className="block text-[10px] font-bold tracking-[0.25em] text-teal-400">RH Connect</span>
-            </span>
+          <Link href="/" className="flex min-w-0 items-center gap-2">
+            <Image src="/logo-innovation-clean.png" alt="Innovation RH Connect" width={160} height={160} priority className="h-auto w-[clamp(104px,18vw,148px)] object-contain" />
           </Link>
           <nav className="hidden items-center gap-10 text-xs font-bold uppercase tracking-wider text-slate-400 lg:flex">
             <a href="#beneficios" className="transition-colors hover:text-white">Benefícios</a>
@@ -102,21 +97,21 @@ export default function Home() {
             <Link href="/login" className="text-xs font-bold text-slate-300 hover:text-white transition-colors">
               Acessar
             </Link>
-            <Link href="/cadastro" className="inline-flex h-11 items-center justify-center rounded-full bg-white px-6 text-sm font-black text-slate-950 transition-all hover:scale-105 hover:shadow-[0_10px_40px_rgba(255,255,255,0.15)]">
+            <Link href="/cadastro" className="hidden h-11 items-center justify-center rounded-full bg-white px-4 text-xs font-black text-slate-950 transition-all hover:scale-105 hover:shadow-[0_10px_40px_rgba(255,255,255,0.15)] sm:inline-flex sm:px-6 sm:text-sm">
               Criar minha empresa
             </Link>
           </div>
         </header>
 
         {/* ================= HERO SECTION ================= */}
-        <section className="mt-16 grid flex-1 items-center gap-16 lg:mt-24 lg:grid-cols-[1fr_1fr]">
+        <section className="mt-10 grid flex-1 items-center gap-10 lg:mt-20 lg:grid-cols-[1fr_1fr] lg:gap-16">
           <div className="max-w-2xl">
             <div className="inline-flex items-center gap-2 rounded-full border border-teal-400/20 bg-teal-400/10 px-4 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-teal-300">
               <Sparkles size={14} className="text-teal-400" />
               O Fim das Planilhas de RH
             </div>
 
-            <h1 className="mt-8 text-5xl font-black tracking-[-0.04em] text-white sm:text-6xl lg:text-[5rem] lg:leading-[1.05]">
+            <h1 className="mt-6 text-4xl font-black tracking-[-0.04em] text-white sm:text-6xl lg:mt-8 lg:text-[5rem] lg:leading-[1.05]">
               Feche a folha em minutos, <span className="bg-gradient-to-r from-teal-300 to-cyan-400 bg-clip-text text-transparent">não em dias.</span>
             </h1>
 
@@ -149,7 +144,7 @@ export default function Home() {
           {/* Pure CSS Hero Mockup */}
           <div className="relative hidden lg:block perspective-[2000px]">
             <div className="absolute inset-0 -z-10 rounded-[2.5rem] bg-gradient-to-br from-teal-500/20 to-cyan-500/20 blur-3xl opacity-50" />
-            <div className="relative transform rotate-y-[-10deg] rotate-x-[5deg] transition-transform duration-700 hover:rotate-0 rounded-[2rem] border border-white/10 bg-[#09111c] p-4 shadow-2xl backdrop-blur-3xl">
+            <div className="relative transform rotate-y-[-10deg] rotate-x-[5deg] transition-transform duration-700 hover:rotate-0 rounded-[2rem] border border-white/15 bg-[var(--auth-bg-end)]/70 p-4 shadow-2xl backdrop-blur-3xl">
               
               {/* Fake Browser Window */}
               <div className="flex items-center gap-2 pb-4 border-b border-white/5">
@@ -294,7 +289,7 @@ export default function Home() {
           {/* Mobile Clock In App Mockup */}
           <div className="relative flex justify-center">
             <div className="absolute inset-0 bg-teal-500/20 blur-[100px] rounded-full w-3/4 mx-auto" />
-            <div className="relative w-[300px] h-[600px] bg-[#0b131e] rounded-[3rem] border-8 border-slate-800 shadow-2xl p-6 overflow-hidden">
+            <div className="relative w-[300px] h-[600px] bg-[var(--auth-bg-end)] rounded-[3rem] border-8 border-indigo-950 shadow-2xl p-6 overflow-hidden">
               <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-6 bg-slate-800 rounded-b-xl" />
               
               <div className="mt-8 text-center">
@@ -324,7 +319,7 @@ export default function Home() {
         </section>
 
         {/* ================= STATS / ROI ================= */}
-        <section className="mt-40 rounded-[3rem] border border-white/5 bg-[#060c16] p-10 lg:p-20 relative overflow-hidden">
+        <section className="mt-24 rounded-[3rem] border border-white/10 bg-[var(--auth-bg-end)]/55 p-6 sm:p-10 lg:mt-40 lg:p-20 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-96 h-96 bg-cyan-500/10 rounded-full blur-[100px]" />
           <div className="relative text-center max-w-3xl mx-auto">
             <h2 className="text-3xl font-black tracking-tight text-white sm:text-5xl">
