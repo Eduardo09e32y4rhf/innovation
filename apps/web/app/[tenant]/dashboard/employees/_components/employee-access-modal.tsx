@@ -66,7 +66,7 @@ export function EmployeeAccessModal({
   };
 
   return (
-    <Modal open={true} onOpenChange={handleClose} title="Criar Acesso">
+    <Modal isOpen={true} onClose={handleClose} title="Criar Acesso">
       <div className="space-y-4">
         {!temporaryPassword ? (
           <>
