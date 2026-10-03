@@ -14,6 +14,22 @@ import { UsersRepository } from './users.repository';
 const PLATFORM_OWNER_EMAIL = (process.env.PLATFORM_OWNER_EMAIL ?? '').toLowerCase();
 const PLATFORM_OWNER_USER_ID = process.env.PLATFORM_OWNER_USER_ID ?? '';
 
+const VALID_PERMISSIONS = [
+  'users.manage_employees',
+  'users.view_team',
+  'users.reset_password',
+  'users.manage_roles',
+  'admin.delete_employees',
+  'admin.delete_users',
+  'admin.manage_company',
+  'platform.view_finance',
+  'platform.view_reports',
+  'hr.manage_vacations',
+  'hr.approve_vacations',
+  'hr.manage_schedules',
+  'hr.approve_schedules',
+];
+
 const ROLE_MANAGEMENT: Record<string, string[]> = {
   DEV: ['DEV', 'CEO', 'CONTABIL', 'COMERCIAL', 'ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'],
   CEO: ['ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'],
@@ -53,6 +69,13 @@ export class UsersService {
 
   async create(companyId: string, actor: JwtUser, dto: CreateUserDto) {
     this.assertRoleChangeAllowed(actor, dto.role);
+
+    if (dto.customPermissions) {
+      const invalid = dto.customPermissions.filter(p => !VALID_PERMISSIONS.includes(p));
+      if (invalid.length > 0) {
+        throw new BadRequestException(`Permissões inválidas: ${invalid.join(', ')}`);
+      }
+    }
 
     const targetCompanyId = actor.role === 'DEV' ? dto.companyId : companyId;
     if (actor.role === 'DEV' && !targetCompanyId) {
@@ -225,7 +248,7 @@ export class UsersService {
   }
 
   async revealTemporaryPassword(companyId: string, actor: JwtUser, id: string) {
-    const user = await this.repository.findById(id, actor.role === 'DEV' || actor.role === 'CEO' ? undefined : companyId);
+    const user = await this.repository.findById(id, actor.role === 'DEV' ? undefined : companyId);
     if (!user) throw new NotFoundException('Usuario nao encontrado');
     this.assertCanRevealTemporaryPassword(actor, user);
 
@@ -288,9 +311,7 @@ export class UsersService {
     if (user.role && !this.canManageRole(actor.role, user.role)) {
       throw new ForbiddenException('Voce nao tem permissao para deletar este usuario.');
     }
-    const result = actor.role === 'DEV'
-      ? await this.repository.deactivateWithEmployeeSync(companyId, id)
-      : await this.repository.deactivateWithEmployeeSync(companyId, id);
+    const result = await this.repository.deactivateWithEmployeeSync(companyId, id);
     if (!result.count || !result.user) throw new NotFoundException('Usuario nao encontrado');
 
     await this.repository.createAuditLog({
