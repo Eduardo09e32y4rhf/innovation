@@ -158,14 +158,14 @@ export function UserCreateModal({
               </p>
             </div>
             <div className="mt-6 flex justify-center gap-3">
-              <button onClick={handleClose} className="btn-outline px-6">
+              <button onClick={handleClose} className="btn btn-outline">
                 Fechar
               </button>
               <button
                 onClick={() => {
                   resetForm();
                 }}
-                className="crystal-button px-6"
+                className="btn btn-primary"
               >
                 Criar outro
               </button>
@@ -330,11 +330,11 @@ export function UserCreateModal({
               type="button"
               onClick={handleClose}
               disabled={loading}
-              className="btn-outline px-6"
+              className="btn btn-outline"
             >
               Cancelar
             </button>
-            <button type="submit" disabled={loading} className="crystal-button px-6">
+            <button type="submit" disabled={loading} className="btn btn-primary">
               {loading ? 'Criando...' : 'Criar usuario'}
             </button>
           </div>
