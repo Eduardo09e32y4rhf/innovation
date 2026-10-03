@@ -70,7 +70,6 @@ export class ScheduleSwapService {
           targetDate,
           justification: dto.justification,
           notifiedUserId,
-          counterpartId: counterpartId as any,
         },
       });
       await tx.auditLog.create({

@@ -108,7 +108,7 @@ export class ScheduleService {
         overtimePaymentMinutes: timeTrack.overtimePaymentMinutes,
         manualStatus: timeTrack.manualStatus,
         clockedInWithoutFacial: timeTrack.clockedInWithoutFacial ?? false,
-        ...(actor.role === 'GESTOR' ? {} : {
+        ...(actor && actor.role === 'GESTOR' ? {} : {
           observation: timeTrack.observation,
           manualReason: timeTrack.manualReason,
           latitude: timeTrack.latitude,

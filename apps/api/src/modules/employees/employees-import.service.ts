@@ -241,7 +241,7 @@ export class EmployeesImportService {
                   companyId,
                   name: row.name,
                   email: row.email,
-                  role,
+                  role: role as any,
                   passwordHash,
                   forcePasswordChange: true,
                   isActive: true,

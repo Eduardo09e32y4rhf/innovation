@@ -17,7 +17,7 @@ export class EmployeesRepository {
             { email: { contains: search, mode: 'insensitive' } },
           ]
         }),
-        ...(status && { status }),
+        ...(status && { status: status as any }),
       },
       include: {
         user: { select: { id: true, role: true, isActive: true, forcePasswordChange: true } },

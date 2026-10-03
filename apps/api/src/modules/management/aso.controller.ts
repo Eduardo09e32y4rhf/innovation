@@ -25,7 +25,7 @@ export class AsoController {
 
   @Get('alerts/rh')
   rhAlerts(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser) {
-    return this.svc.getRhAlerts(companyId, { sub: actor.sub, role: actor.role, managerId: actor.managerId });
+    return this.svc.getRhAlerts(companyId, actor);
   }
 
   // ─── CLINIC PRESETS ──────────────────────────────────────────────────────────
