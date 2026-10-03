@@ -704,3 +704,10 @@ Migrar o shell do dashboard e as telas de autenticação/cadastro para usar os c
 ### 24.1 Transparência sobre as 23 telas
 
 O redesign completo das 23 telas ainda não foi concluído. Nesta etapa foram migrados o shell/base compartilhada, Dashboard, Funcionários e Usuários. As demais telas continuam funcionais, mas ainda precisam ser migradas para o padrão único definido na seção 21, em lotes de Férias, Suporte, ASO, Folha, Agenda, Recrutamento, Portal público e Console da plataforma.
+## 25. Migracao responsiva da tela de Ferias - 02/10/2026
+
+- A acao principal de nova solicitacao passou a usar o `Button` oficial, mantendo a mesma permissao e o mesmo fluxo.
+- A aprovacao em lote passou a usar o `Button` oficial com variante de sucesso.
+- As abas de ferias passaram para `ActionBar`, com rolagem horizontal controlada para telas estreitas e sem remover nenhuma visao.
+- A tela continua com os estados de carregamento, erro, vazio, alertas e historico existentes.
+- Validacao: `typecheck:web` aprovado.

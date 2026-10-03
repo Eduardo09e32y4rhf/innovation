@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { Check, Plus, X, Calendar, Clock, AlertCircle, FileText, Download, History, RefreshCw, AlertTriangle, Timer, ThumbsDown } from 'lucide-react';
 import { EmptyState, ErrorState, LoadingState } from '@/app/components/data-states';
 import { PageHeader } from '@/app/components/platform-ui';
+import { ActionBar } from '@/app/components/ui/action-bar';
+import { Button } from '@/app/components/ui/button';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useMutation, useQuery } from '@/app/hooks/use-data';
 import { API_URL, api, type CreateVacationInput, type Employee, type VacationStatus } from '@/app/lib/api';
@@ -262,9 +264,9 @@ export default function VacationsPage() {
           title={isGestor ? 'Férias da equipe' : 'Solicitações'}
           subtitle="Gerenciamento e aprovação de férias"
           action={
-            <button onClick={() => setOpen(true)} className="btn-nubank">
+            <Button onClick={() => setOpen(true)} variant="primary" size="md">
               <Plus size={14} /> Nova solicitação
-            </button>
+            </Button>
           }
         />
 
@@ -282,8 +284,8 @@ export default function VacationsPage() {
 
       {/* Tabs */}
       {!vacations.loading && !vacations.error && rows.length > 0 && (
-        <div className="flex items-center justify-between">
-          <div className="tab-bar">
+        <ActionBar className="items-start">
+          <div className="tab-bar min-w-0 max-w-full overflow-x-auto" role="tablist" aria-label="Vacation views">
             <button onClick={() => setTab('active')} className={tab === 'active' ? 'tab-item-active' : 'tab-item'}>Ativas ({activeRows.length})</button>
             <button onClick={() => setTab('rejected')} className={tab === 'rejected' ? 'tab-item-active' : 'tab-item'}>Recusadas ({rejectedRows.length})</button>
             <button onClick={() => setTab('history')} className={tab === 'history' ? 'tab-item-active' : 'tab-item'}>Histórico ({historyRows.length})</button>
@@ -295,14 +297,14 @@ export default function VacationsPage() {
           </div>
           {/* Bulk actions */}
           {canApprove && tab === 'active' && selectedRows.length > 0 && (
-            <div className="flex gap-2">
-              <button onClick={handleBulkApprove} className="inline-flex h-9 items-center gap-1.5 rounded-[var(--radius-sm)] bg-emerald-600 px-4 text-[11px] font-black text-white shadow-sm transition-all hover:bg-emerald-700">
+            <div className="flex shrink-0 gap-2">
+              <Button onClick={handleBulkApprove} variant="success" size="sm">
                 <Check size={13} strokeWidth={2.5} />
                 Aprovar {selectedRows.length} selecionada(s)
-              </button>
+              </Button>
             </div>
           )}
-        </div>
+        </ActionBar>
       )}
 
       {tab === 'alerts' ? (
