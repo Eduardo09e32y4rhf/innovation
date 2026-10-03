@@ -26,7 +26,7 @@ const EmployeeDashboard = dynamic(
   { ssr: false },
 );
 
-/* â”€â”€ Estilos utilitÃ¡rios (usam tokens do globals.css) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* â”€â”€ Estilos utilitários (usam tokens do globals.css) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 const CARD = 'card-v2';
 const PAGE = 'px-[clamp(1rem,2.5vw,2.5rem)] py-[clamp(1rem,1.8vw,2rem)] w-full';
 
@@ -49,6 +49,8 @@ function DashboardContent({ tenant }: { tenant: string }) {
   const { user } = useAuth();
   const profile = user?.profile?.toUpperCase();
   const isCommercial = profile === 'COMERCIAL';
+  const isContabil = profile === 'CONTABIL';
+  const isCeo = profile === 'CEO';
   const isFuncionario = profile === 'FUNCIONARIO';
 
   const summary = useQuery(() => api.dashboard.summary(), [], { enabled: !isCommercial, pollMs: 60000 });
@@ -106,7 +108,7 @@ function DashboardContent({ tenant }: { tenant: string }) {
   const admissionsThisMonth = (employees.data ?? []).filter((e) => isSelectedMonth(e.admissionDate)).length;
   const terminationsThisMonth = (employees.data ?? []).filter((e) => isSelectedMonth(e.terminationDate)).length;
 
-  /* â”€â”€ GrÃ¡ficos â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  /* â”€â”€ Gráficos â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   const chartJornadas = useMemo(() => {
     const byDay = new Map<string, { day: string; registros: number; saldo: number }>();
     filteredTimeTracks.forEach((t) => {
@@ -126,7 +128,7 @@ function DashboardContent({ tenant }: { tenant: string }) {
     list.forEach((e) => { map[e.status] = (map[e.status] ?? 0) + 1; });
     return [
       { name: 'Ativos',     value: map.ACTIVE,      color: 'rgb(20 184 166)' },
-      { name: 'Em admissÃ£o',value: map.ONBOARDING,  color: 'rgb(245 158 11)' },
+      { name: 'Em admissão',value: map.ONBOARDING,  color: 'rgb(245 158 11)' },
       { name: 'Inativos',   value: map.INACTIVE,    color: 'rgb(148 163 184)' },
       { name: 'Desligados', value: map.TERMINATED,  color: 'rgb(244 63 94)' },
     ].filter((d) => d.value > 0);
@@ -179,31 +181,40 @@ function DashboardContent({ tenant }: { tenant: string }) {
   }
 
   const rolePresentation: Record<string, { eyebrow: string; title: string; description: string }> = {
-    DEV:      { eyebrow: 'Dashboard Dev',      title: 'VisÃ£o global da plataforma', description: 'Empresas, acessos, faturamento e saÃºde operacional em um sÃ³ lugar.' },
-    ADMIN:    { eyebrow: 'Dashboard Administrador', title: 'Controle completo da empresa', description: 'Pessoas, usuÃ¡rios, jornada e fechamento sob sua administraÃ§Ã£o.' },
-    RH:       { eyebrow: 'Dashboard RH',        title: 'GestÃ£o de pessoas em tempo real', description: 'Cadastros, fÃ©rias, ocorrÃªncias e fechamento para o time de RH.' },
-    GESTOR:   { eyebrow: 'Dashboard Gestor',    title: 'Sua equipe em tempo real', description: 'Escala, ponto, banco de horas e pendÃªncias da equipe sob sua gestÃ£o.' },
-    CONSULTA: { eyebrow: 'Dashboard Consulta',  title: 'Indicadores da operaÃ§Ã£o', description: 'Acompanhamento em modo de consulta, sem alteraÃ§Ãµes operacionais.' },
+    CEO: { eyebrow: 'Dashboard CEO', title: 'Vis�o global da plataforma', description: 'M�tricas, finan�as e opera��o centralizada.' },
+    CONTABIL: { eyebrow: 'Dashboard Cont�bil', title: 'Vis�o financeira da plataforma', description: 'Assinaturas, MRR, churn e fluxo de recebimentos.' },
+    DEV: { eyebrow: 'Dashboard Dev',      title: 'Visão global da plataforma', description: 'Empresas, acessos, faturamento e saúde operacional em um só lugar.' },
+    ADMIN:    { eyebrow: 'Dashboard Administrador', title: 'Controle completo da empresa', description: 'Pessoas, usuários, jornada e fechamento sob sua administração.' },
+    RH:       { eyebrow: 'Dashboard RH',        title: 'Gestão de pessoas em tempo real', description: 'Cadastros, férias, ocorrências e fechamento para o time de RH.' },
+    GESTOR:   { eyebrow: 'Dashboard Gestor',    title: 'Sua equipe em tempo real', description: 'Escala, ponto, banco de horas e pendências da equipe sob sua gestão.' },
+    CONSULTA: { eyebrow: 'Dashboard Consulta',  title: 'Indicadores da operação', description: 'Acompanhamento em modo de consulta, sem alterações operacionais.' },
   };
   const presentation = profile === 'COMERCIAL'
-    ? { eyebrow: 'Dashboard Comercial', title: 'VisÃ£o comercial da plataforma', description: 'Acompanhe empresas, propostas, planos e a operaÃ§Ã£o comercial em um sÃ³ lugar.' }
+    ? { eyebrow: 'Dashboard Comercial', title: 'Visão comercial da plataforma', description: 'Acompanhe empresas, propostas, planos e a operação comercial em um só lugar.' }
     : rolePresentation[profile || ''] ?? rolePresentation.ADMIN;
 
   const roleActions: Record<string, { label: string; href: string; icon: LucideIcon }[]> = {
-    DEV:      [
+    CEO: [
       { label: 'Plataforma', href: `/${tenant}/dashboard/platform`, icon: TrendingUp },
       { label: 'Financeiro', href: `/${tenant}/dashboard/platform/finance`, icon: FileText },
-      { label: 'UsuÃ¡rios',   href: `/${tenant}/dashboard/users`,    icon: Users },
+    ],
+    CONTABIL: [
+      { label: 'Financeiro', href: `/${tenant}/dashboard/platform/finance`, icon: FileText },
+    ],
+    DEV: [
+      { label: 'Plataforma', href: `/${tenant}/dashboard/platform`, icon: TrendingUp },
+      { label: 'Financeiro', href: `/${tenant}/dashboard/platform/finance`, icon: FileText },
+      { label: 'Usuários',   href: `/${tenant}/dashboard/users`,    icon: Users },
     ],
     ADMIN:    [
-      { label: 'FuncionÃ¡rios', href: `/${tenant}/dashboard/employees`, icon: Users },
-      { label: 'UsuÃ¡rios',     href: `/${tenant}/dashboard/users`,     icon: UserPlus },
+      { label: 'Funcionários', href: `/${tenant}/dashboard/employees`, icon: Users },
+      { label: 'Usuários',     href: `/${tenant}/dashboard/users`,     icon: UserPlus },
       { label: 'Fechamento',   href: `/${tenant}/dashboard/time-track/closing`, icon: Download },
     ],
     RH:       [
-      { label: 'Novo funcionÃ¡rio', href: `/${tenant}/dashboard/employees/new`, icon: UserPlus },
-      { label: 'FÃ©rias',           href: `/${tenant}/dashboard/vacations`,     icon: CalendarDays },
-      { label: 'GestÃ£o',           href: `/${tenant}/dashboard/management`,    icon: Users },
+      { label: 'Novo funcionário', href: `/${tenant}/dashboard/employees/new`, icon: UserPlus },
+      { label: 'Férias',           href: `/${tenant}/dashboard/vacations`,     icon: CalendarDays },
+      { label: 'Gestão',           href: `/${tenant}/dashboard/management`,    icon: Users },
     ],
     GESTOR:   [
       { label: 'Minha equipe', href: `/${tenant}/dashboard/employees`,       icon: Users },
@@ -211,7 +222,7 @@ function DashboardContent({ tenant }: { tenant: string }) {
       { label: 'Ponto',        href: `/${tenant}/dashboard/time-track`,      icon: Clock3 },
     ],
     CONSULTA: [
-      { label: 'FuncionÃ¡rios', href: `/${tenant}/dashboard/employees`, icon: Users },
+      { label: 'Funcionários', href: `/${tenant}/dashboard/employees`, icon: Users },
       { label: 'Escala',       href: `/${tenant}/dashboard/escala`,    icon: CalendarDays },
       { label: 'Ponto',        href: `/${tenant}/dashboard/time-track`,icon: Clock3 },
     ],
@@ -223,6 +234,47 @@ function DashboardContent({ tenant }: { tenant: string }) {
         { label: 'Empresas', href: `/${tenant}/dashboard/platform/companies`, icon: Users },
       ]
     : roleActions[profile || ''] ?? roleActions.ADMIN;
+
+  if (isContabil) {
+    return (
+      <div className="flex flex-col gap-5">
+        <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between pb-2">
+          <div className="min-w-0">
+            <p className="mb-1 text-[11px] font-black uppercase tracking-[0.22em] text-brand-600">
+              {presentation.eyebrow}
+            </p>
+            <h1 className="text-[clamp(1.75rem,1.5rem+1.4vw,2.25rem)] font-black tracking-tight text-fg">
+              {presentation.title}
+            </h1>
+            <p className="mt-2 max-w-3xl text-[clamp(0.875rem,0.85rem+0.25vw,1rem)] font-medium text-fg-mut">
+              {presentation.description}
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            {shortcuts.map((s, i) => {
+              const Icon = s.icon;
+              return (
+                <Link key={i} href={s.href} className="btn-v2-outline">
+                  <Icon size={15} strokeWidth={2.4} />
+                  <span className="hidden sm:inline">{s.label}</span>
+                </Link>
+              );
+            })}
+          </div>
+        </header>
+
+        <div className="flex flex-col items-center justify-center py-20 text-center rounded-v2-xl border border-border/60 bg-bg-sub/20 mt-4">
+          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-brand-50 text-brand-600">
+            <FileText size={32} />
+          </div>
+          <h2 className="text-xl font-black text-fg">Vis�o Cont�bil Financeira</h2>
+          <p className="mt-2 max-w-md text-sm text-fg-mut mx-auto">
+            Este � o painel de opera��es financeiras. Utilize o atalho acima para gerenciar o fluxo de assinaturas e faturamento.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   if (isCommercial) {
     return (
@@ -303,7 +355,7 @@ function DashboardContent({ tenant }: { tenant: string }) {
         <div className="card-v2 flex flex-col gap-3 p-3 sm:flex-row sm:items-center">
           <label className="flex flex-col gap-1 min-w-[180px]">
             <span className="text-[10px] font-black uppercase tracking-widest text-fg-sub">
-              MÃªs de referÃªncia
+              Mês de referência
             </span>
             <input
               type="month"
@@ -332,11 +384,11 @@ function DashboardContent({ tenant }: { tenant: string }) {
       <section className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <KpiCard
           delay={0.0}
-          title="FuncionÃ¡rios ativos"
+          title="Funcionários ativos"
           value={summary.data?.activeEmployees ?? 0}
           icon={Users}
           accent="brand"
-          trend={admissionsThisMonth > 0 ? { value: `+${admissionsThisMonth}`, direction: 'up', label: 'admissÃµes no mÃªs' } : undefined}
+          trend={admissionsThisMonth > 0 ? { value: `+${admissionsThisMonth}`, direction: 'up', label: 'admissões no mês' } : undefined}
           loading={summary.loading}
         />
         <KpiCard
@@ -350,11 +402,11 @@ function DashboardContent({ tenant }: { tenant: string }) {
         />
         <KpiCard
           delay={0.1}
-          title="FÃ©rias pendentes"
+          title="Férias pendentes"
           value={pendingVacations}
           icon={CalendarDays}
           accent={pendingVacations > 0 ? 'warning' : 'success'}
-          hint="aguardando decisÃ£o"
+          hint="aguardando decisão"
           loading={summary.loading}
         />
         <KpiCard
@@ -363,17 +415,17 @@ function DashboardContent({ tenant }: { tenant: string }) {
           value={formatMinutes(totalBalanceThisMonth)}
           icon={TrendingUp}
           accent={totalBalanceThisMonth >= 0 ? 'success' : 'danger'}
-          hint="saldo do perÃ­odo"
+          hint="saldo do período"
           loading={summary.loading}
         />
       </section>
 
-      {/* â”€â”€ Bento de grÃ¡ficos â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* â”€â”€ Bento de gráficos â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <section className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        {/* EvoluÃ§Ã£o de jornadas */}
+        {/* Evolução de jornadas */}
         <ChartBlock
           delay={0.2}
-          title="Jornadas no mÃªs"
+          title="Jornadas no mês"
           subtitle="Registros por dia"
           className="lg:col-span-2"
           height={260}
@@ -405,8 +457,8 @@ function DashboardContent({ tenant }: { tenant: string }) {
           )}
         </ChartBlock>
 
-        {/* DistribuiÃ§Ã£o de status */}
-        <ChartBlock delay={0.25} title="DistribuiÃ§Ã£o da equipe" subtitle="Status atual" height={260}>
+        {/* Distribuição de status */}
+        <ChartBlock delay={0.25} title="Distribuição da equipe" subtitle="Status atual" height={260}>
           {chartStatus.length === 0 ? (
             <EmptyChart />
           ) : (
@@ -433,12 +485,12 @@ function DashboardContent({ tenant }: { tenant: string }) {
         </ChartBlock>
       </section>
 
-      {/* â”€â”€ MovimentaÃ§Ãµes + Alerta rÃ¡pido â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* â”€â”€ Movimentações + Alerta rápido â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <section className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <ChartBlock
           delay={0.3}
-          title="MovimentaÃ§Ãµes"
-          subtitle="AdmissÃµes vs desligamentos (6 meses)"
+          title="Movimentações"
+          subtitle="Admissões vs desligamentos (6 meses)"
           className="lg:col-span-2"
           height={240}
         >
@@ -478,16 +530,16 @@ function DashboardContent({ tenant }: { tenant: string }) {
         </section>
       )}
 
-      {/* â”€â”€ NotificaÃ§Ãµes + Aniversariantes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* â”€â”€ Notificações + Aniversariantes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <section className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         {notificationWidgetData && (
           <div className="card-v2 flex flex-col lg:col-span-2">
             <div className="flex items-center justify-between gap-3 border-b border-border/60 px-5 py-4">
               <div className="flex items-center gap-2">
                 <Bell size={16} className="text-brand-600" />
-                <h3 className="text-sm font-black text-fg">Central de notificaÃ§Ãµes</h3>
+                <h3 className="text-sm font-black text-fg">Central de notificações</h3>
                 {notificationWidgetData.unreadCount > 0 && (
-                  <span className="chip chip-brand">{notificationWidgetData.unreadCount} nÃ£o lidas</span>
+                  <span className="chip chip-brand">{notificationWidgetData.unreadCount} não lidas</span>
                 )}
               </div>
               <Link
@@ -499,7 +551,7 @@ function DashboardContent({ tenant }: { tenant: string }) {
             </div>
             <div className="flex-1 p-3">
               {notificationWidgetData.notifications.length === 0 ? (
-                <p className="py-8 text-center text-xs text-fg-sub">Nenhuma notificaÃ§Ã£o no momento.</p>
+                <p className="py-8 text-center text-xs text-fg-sub">Nenhuma notificação no momento.</p>
               ) : (
                 <div className="space-y-2">
                   {notificationWidgetData.notifications.slice(0, 5).map((n: any) => (
@@ -532,12 +584,12 @@ function DashboardContent({ tenant }: { tenant: string }) {
           </div>
           <div className="flex-1 space-y-2 p-3 max-h-[320px] overflow-y-auto">
             {birthdays.length === 0 && workAnniversaries.length === 0 && (
-              <p className="py-8 text-center text-xs font-medium text-fg-sub">Nenhum evento neste mÃªs.</p>
+              <p className="py-8 text-center text-xs font-medium text-fg-sub">Nenhum evento neste mês.</p>
             )}
             {birthdays.map((emp: any) => (
               <div key={`b-${emp.id}`} className="flex items-center justify-between gap-2 rounded-v2-md border border-border/60 bg-bg-sub/40 px-3 py-2 text-xs">
                 <span className="truncate font-bold text-fg">{emp.name}</span>
-                <span className="chip chip-brand shrink-0">AniversÃ¡rio</span>
+                <span className="chip chip-brand shrink-0">Aniversário</span>
               </div>
             ))}
             {workAnniversaries.map((emp: any) => (
@@ -555,7 +607,7 @@ function DashboardContent({ tenant }: { tenant: string }) {
         <DataTableCard
           delay={0.5}
           title="Jornadas recentes"
-          headers={['FuncionÃ¡rio', 'Data', 'Entrada', 'SaÃ­da', '']}
+          headers={['Funcionário', 'Data', 'Entrada', 'Saída', '']}
           loading={timeTracks.loading}
           error={timeTracks.error}
           empty="Nenhum registro encontrado."
@@ -585,13 +637,13 @@ function DashboardContent({ tenant }: { tenant: string }) {
         {!isFuncionario && (
           <DataTableCard
             delay={0.55}
-            title="FÃ©rias e ausÃªncias"
-            headers={['FuncionÃ¡rio', 'PerÃ­odo', 'Status']}
+            title="Férias e ausências"
+            headers={['Funcionário', 'Período', 'Status']}
             loading={vacations.loading}
             error={vacations.error}
-            empty="Nenhuma solicitaÃ§Ã£o em aberto."
+            empty="Nenhuma solicitação em aberto."
             footerHref={`/${tenant}/dashboard/vacations`}
-            footerLabel="Ver todas as solicitaÃ§Ãµes"
+            footerLabel="Ver todas as solicitações"
           >
             {vacationRows.map((row) => (
               <tr key={row.id} className="border-t border-border/60 transition-colors hover:bg-bg-sub/50">
@@ -750,7 +802,7 @@ function EmptyChart() {
       <div className="flex h-10 w-10 items-center justify-center rounded-full bg-bg-sub text-fg-sub">
         <AlertCircle size={18} />
       </div>
-      <p className="text-xs font-semibold text-fg-sub">Sem dados para o perÃ­odo</p>
+      <p className="text-xs font-semibold text-fg-sub">Sem dados para o período</p>
     </div>
   );
 }
@@ -767,7 +819,7 @@ function PendencyCard({
 }) {
   const items = [
     { label: 'Pontos manuais', value: pendingTimeTracks, href: `/${tenant}/dashboard/time-track`, accent: 'warning' as const },
-    { label: 'FÃ©rias pendentes', value: pendingVacations, href: `/${tenant}/dashboard/vacations`, accent: 'warning' as const },
+    { label: 'Férias pendentes', value: pendingVacations, href: `/${tenant}/dashboard/vacations`, accent: 'warning' as const },
     { label: 'Sem gestor',       value: employeesNoManager, href: `/${tenant}/dashboard/employees`, accent: 'danger' as const },
     { label: 'Sem acesso',       value: employeesNoAccess, href: `/${tenant}/dashboard/employees`, accent: 'danger' as const },
   ];
@@ -783,7 +835,7 @@ function PendencyCard({
       <div className="flex items-center justify-between gap-3 border-b border-border/60 px-5 py-4">
         <div className="flex items-center gap-2">
           <AlertCircle size={16} className="text-brand-600" />
-          <h3 className="text-sm font-black text-fg">PendÃªncias</h3>
+          <h3 className="text-sm font-black text-fg">Pendências</h3>
         </div>
         <span className={cn('chip', total > 0 && 'chip-warning')}>
           {total} {total === 1 ? 'item' : 'itens'}
@@ -880,3 +932,6 @@ function DataTableCard({
     </motion.div>
   );
 }
+
+
+

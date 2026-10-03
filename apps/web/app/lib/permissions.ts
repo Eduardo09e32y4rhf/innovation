@@ -18,7 +18,8 @@ export type Permission =
   | 'users.view_employee_files'
   | 'admin.manage_rh'
   | 'admin.delete_employees'
-  | 'platform.manage';
+  | 'platform.manage'
+  | 'platform.view_finance';
 
 export const PERMISSIONS_LABELS: Record<Permission, string> = {
   'time_tracking.clock_in': 'Bater ponto',
@@ -66,7 +67,8 @@ const DEFAULT_PERMISSIONS: Record<string, Permission[]> = {
     'settings.change_all_passwords',
     'users.manage_employees',
     'users.view_employee_files',
-    'platform.manage'
+    'platform.manage',
+    'platform.view_finance'
   ],
   'admin': [
     'time_tracking.clock_in',
@@ -86,7 +88,8 @@ const DEFAULT_PERMISSIONS: Record<string, Permission[]> = {
     'users.view_employee_files',
     'admin.manage_rh',
     'admin.delete_employees',
-    'platform.manage'
+    'platform.manage',
+    'platform.view_finance'
   ],
   'dev': [
     'time_tracking.clock_in',
@@ -106,7 +109,8 @@ const DEFAULT_PERMISSIONS: Record<string, Permission[]> = {
     'users.view_employee_files',
     'admin.manage_rh',
     'admin.delete_employees',
-    'platform.manage'
+    'platform.manage',
+    'platform.view_finance'
   ],
   'ceo': [
     'time_tracking.view_all',
@@ -120,11 +124,22 @@ const DEFAULT_PERMISSIONS: Record<string, Permission[]> = {
     'users.view_employee_files',
     'admin.manage_rh',
     'admin.delete_employees',
-    'platform.manage'
+    'platform.manage',
+    'platform.view_finance'
   ],
   'contabil': [
     'time_tracking.view_all',
-    'settings.change_own_password'
+    'settings.change_own_password',
+    'platform.view_finance'
+  ],
+  'comercial': [
+    'settings.change_own_password',
+    'platform.view_finance'
+  ],
+  'consulta': [
+    'time_tracking.view_all',
+    'time_tracking.view_team',
+    'users.view_team'
   ]
 };
 
@@ -143,3 +158,6 @@ export function hasPermission(user: User | null, permission: Permission): boolea
 export function getDefaultPermissions(role: string): Permission[] {
   return DEFAULT_PERMISSIONS[role.toLowerCase()] || [];
 }
+
+
+
